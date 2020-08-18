@@ -916,10 +916,15 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
         __shared__ ABFloat p_b_block[b_block_space];
 
         // register allocation for output
-        AccFloat p_c_thread[c_k_thread_mtx_desc.GetElementSpace()];
+        constexpr index_t c_thread_vec_size = c_k_thread_mtx_desc.GetElementSpace() * sizeof(AccFloat) / sizeof(float32_t);
+        float32_t p_c_thread_vec[c_thread_vec_size];
+
+        for(index_t i = 0; i < c_thread_vec_size; i++)
+            p_c_thread_vec[i] = 0;
+
+        const auto p_c_thread = reinterpret_cast<float*>(p_c_thread_vec);
 
         // zero out threadwise output
-        threadwise_matrix_set_zero(c_k_thread_mtx_desc, p_c_thread);
         blockwise_gemm.XdlopsMatrixCSetZero();
 
         // preload data into LDS
@@ -954,7 +959,7 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
             const typename vector_type<ABFloat, KPack>::MemoryType* p_b_block_vec =
                 reinterpret_cast<const typename vector_type<ABFloat, KPack>::MemoryType*>(
                     p_b_block);
-            blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_c_thread);
+            blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_c_thread_vec);
 
             block_sync_lds();
 
@@ -974,11 +979,11 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
             const typename vector_type<ABFloat, KPack>::MemoryType* p_b_block_vec =
                 reinterpret_cast<const typename vector_type<ABFloat, KPack>::MemoryType*>(
                     p_b_block);
-            blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_c_thread);
+            blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_c_thread_vec);
         }
 
         // load data from xldop_acc_regs
-        blockwise_gemm.XdlopsMatrixCRead(p_c_thread);
+        //blockwise_gemm.XdlopsMatrixCRead(p_c_thread);
 
         // copy output: register to global memory
         {

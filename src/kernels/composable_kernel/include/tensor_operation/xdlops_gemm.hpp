@@ -493,6 +493,11 @@ struct XdlopsGemm_t
         return (MPerXdlops * NPerXdlops) / (mfma_type.m * mfma_type.n);
     }
 
+    __device__ static constexpr index_t GetNumXdlops()
+    {
+        return (MPerXdlops * NPerXdlops) / (mfma_type.m * mfma_type.n * mfma_type.num_output_blks);
+    }
+
     __device__ constexpr XdlopsGemm_t()
     {
         static_assert(NPerXdlops == 4 || NPerXdlops == 8 || NPerXdlops == 16 || NPerXdlops == 32 ||
@@ -631,8 +636,6 @@ struct XdlopsGemm_t
                         FloatC* const __restrict__ p_c_thread) const
     {
         static_assert(is_same<FloatA, FloatB>::value, "FloatA != FloatB");
-        static_assert(is_same<FloatC, float>::value, "FloatC != float");
-
         static_assert(is_same<data_type, float>::value || is_same<data_type, half_t>::value ||
                           is_same<data_type, ushort>::value,
                       "base data_type must be float, half, ushort!");
@@ -648,13 +651,13 @@ struct XdlopsGemm_t
         static_assert(sizeof(FloatA) % (sizeof(data_type) * mfma_type.k_base) == 0,
                       "wrong! FloatA is consistent with mfma");
 
+        constexpr index_t KRepeats = sizeof(FloatA) / (sizeof(data_type) * mfma_type.k_base);
+
         static_assert(!IsKReduction || K % mfma_type.num_input_blks == 0,
                       "K cannot divided by mfma_type.num_input_blks!");
 
         static_assert(!IsKReduction || (MRepeats == 1 && NRepeats == 1),
                       "KReduction does not support M/N Repeats!");
-
-        constexpr index_t KRepeats = sizeof(FloatA) / (sizeof(data_type) * mfma_type.k_base);
 
         auto pa = reinterpret_cast<const data_type*>(&a);
         auto pb = reinterpret_cast<const data_type*>(&b);
@@ -676,7 +679,7 @@ struct XdlopsGemm_t
                 for(index_t n_i = 0; n_i < NRepeats; ++n_i)
                 {
                     const index_t b_off = n_i * K * (KRepeats * mfma_type.k_base);
-                    const index_t c_off = (NRepeats * m_i + n_i) * GetRegSizePerXdlops();
+                    const index_t c_off = (NRepeats * m_i + n_i) * GetNumXdlops();
 
 #if CK_WORKAROUND_SWDEV_229564
 #pragma unroll

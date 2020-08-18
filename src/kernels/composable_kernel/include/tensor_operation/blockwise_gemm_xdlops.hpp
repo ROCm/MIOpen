@@ -108,15 +108,13 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
         constexpr index_t K = BlockMatrixA::NRow();
 
 #if CK_WORKAROUND_SWDEV_241664
-        constexpr auto reg_size_xdlops = MPerXdlops * NPerXdlops / WaveSize;
-
         for(index_t m = 0; m < MRepeats; m++)
         {
             for(index_t n = 0; n < NRepeats; n++)
             {
                 XdlopsGemm.template Run<M, N, K>(&p_a_block[mMyWaveOffsetA + MPerXdlops * m],
                                                  &p_b_block[mMyWaveOffsetB + NPerXdlops * n],
-                                                 p_c_thread + (NRepeats * m + n) * reg_size_xdlops);
+                                                 p_c_thread + (NRepeats * m + n) * XdlopsGemm.GetNumXdlops());
             }
         }
 #else
