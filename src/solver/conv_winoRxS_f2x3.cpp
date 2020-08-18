@@ -771,13 +771,14 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
         int pad_H                        = params.conv_problem.GetConv().GetConvPads()[0];
         int pad_W                        = params.conv_problem.GetConv().GetConvPads()[1];
 
-        BuffInfo d_buf(GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(params.in_layout)), true),
-                       N,
-                       C,
-                       H,
-                       W,
-                       1,
-                       group_cnt,
+        BuffInfo d_buf(
+            GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(params.in_layout)), true),
+            N,
+            C,
+            H,
+            W,
+            1,
+            group_cnt,
             GetTypeSize(params.in_data_type)),
             o_buf(GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(params.out_layout)), false),
                   N,

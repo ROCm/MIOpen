@@ -3725,7 +3725,8 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
             return;
         }
 
-        MIOPEN_THROW("Solver " + solver_id.ToString() + " requested in immediate WrW, which is not supported.");
+        MIOPEN_THROW("Solver " + solver_id.ToString() +
+                     " requested in immediate WrW, which is not supported.");
     });
 }
 
