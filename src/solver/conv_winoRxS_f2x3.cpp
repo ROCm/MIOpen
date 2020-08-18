@@ -761,37 +761,69 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
         int unused = 0;
         int N, C, H, W, K, out_H, out_W, R, S;
         GetCompiledInParameters(
-            params, &N, &K, &out_H, &out_W, &C, &unused, &H, &W, &R, &S, &unused, &unused);
-        int pad_H = params.conv_problem.GetConv().GetConvPads()[0];
-        int pad_W = params.conv_problem.GetConv().GetConvPads()[1];
+            params, &C, &K, &R, &S, &N, &unused, &H, &W, &out_H, &out_W, &unused, &unused);
+        const auto group_cnt             = params.group_counts;
+        static const int F_NKC_STRIDES   = 1 << 9;
+        static const int F_GROUP_STRIDES = 1 << 10;
+        int flags                        = F_NKC_STRIDES + F_GROUP_STRIDES;
+        N                                = N / group_cnt;
+        K                                = K / group_cnt;
+        int pad_H                        = params.conv_problem.GetConv().GetConvPads()[0];
+        int pad_W                        = params.conv_problem.GetConv().GetConvPads()[1];
+
+        BuffInfo d_buf(GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(params.in_layout)), true),
+                       N,
+                       C,
+                       H,
+                       W,
+                       1,
+                       group_cnt,
+            GetTypeSize(params.in_data_type)),
+            o_buf(GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(params.out_layout)), false),
+                  N,
+                  K,
+                  out_H,
+                  out_W,
+                  1,
+                  group_cnt,
+                  GetTypeSize(params.out_data_type)),
+            f_buf(GetGroupConvLayout(GetSwappedNCLayout(MemLayout_t::NCHW), true),
+                  K,
+                  C,
+                  R,
+                  S,
+                  1,
+                  group_cnt,
+                  GetTypeSize(params.weights_data_type));
+
+        decltype(auto) batch_sz = params.batch_sz;
+        decltype(auto) n_inputs = params.n_inputs;
 
         result.invoker_factory = [=](std::vector<Kernel> kernels) {
             return [=](const Handle& handle, const boost::any& primitive_params) {
-                const auto& data_ctx = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
-                const auto& tensors  = data_ctx.tensors;
-                using dataType       = float;
-                static const int F_FLIP_K_C    = 1 << 2;
-                static const int F_NKC_STRIDES = 1 << 9;
-                int reserved                   = 0;
-                int* reserved_ptr              = nullptr;
-                int flags                      = F_FLIP_K_C + F_NKC_STRIDES;
-                int d_N_stride                 = H * W * static_cast<int>(sizeof(dataType));
-                int d_C_stride                 = C * d_N_stride;
-                int f_K_stride                 = out_H * out_W * static_cast<int>(sizeof(dataType));
-                int f_C_stride                 = K * f_K_stride;
-                int o_N_stride                 = R * S * static_cast<int>(sizeof(dataType));
-                int o_K_stride                 = C * o_N_stride;
+                decltype(auto) invoke_params =
+                    boost::any_cast<conv::WrWInvokeParams>(primitive_params);
+                decltype(auto) tensors = invoke_params.tensors;
 
                 // clang-format off
-                MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
+                MIOPEN_LOG_I2(" N=" << N << " G=" << group_cnt << " C=" << C << " H=" << H << " W=" << W << " K=" << K
                     << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
                     << " pad_H=" << pad_H << " pad_W=" << pad_W << " out_H=" << out_H << " out_W=" << out_W
-                    << " d_N_stride=" << d_N_stride << " d_C_stride=" << d_C_stride
-                    << " f_K_stride=" << f_K_stride << " f_C_stride=" << f_C_stride
-                    << " o_N_stride=" << o_N_stride << " o_K_stride=" << o_K_stride); // clang-format on
+                    << " d_buf.byte_stride.nk=" << d_buf.byte_stride.nk << " d_buf.byte_stride.c=" << d_buf.byte_stride.c
+                    << " d_buf.byte_stride.h=" << d_buf.byte_stride.h << " d_buf.byte_stride.w=" << d_buf.byte_stride.w
+                    << " f_buf.byte_stride.nk=" << f_buf.byte_stride.nk << " f_buf.byte_stride.c=" << f_buf.byte_stride.c
+                    << " f_buf.byte_stride.h=" << f_buf.byte_stride.h << " f_buf.byte_stride.w=" << f_buf.byte_stride.w
+                    << " o_buf.byte_stride.nk=" << o_buf.byte_stride.nk << " o_buf.byte_stride.c=" << o_buf.byte_stride.c
+                    << " o_buf.byte_stride.h="  << o_buf.byte_stride.h <<  " o_buf.byte_stride.w=" << o_buf.byte_stride.w
+                    << " d_buf.byte_stride.g=" << d_buf.byte_stride.g  << " o_buf.byte_stride.g="  << o_buf.byte_stride.g
+                    << " f_buf.byte_stride.g=" << f_buf.byte_stride.g); // clang-format on
+                MIOPEN_LOG_I2(" ctx.batch_sz=" << batch_sz << "ctx.n_inputs=" << n_inputs);
 
-                handle.Run(kernels[0])(C,
-                                       N,
+                int reserved      = 0;
+                int* reserved_ptr = nullptr;
+
+                handle.Run(kernels[0])(N,
+                                       C,
                                        H,
                                        W,
                                        K,
@@ -802,20 +834,30 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
                                        tensors.dy,
                                        tensors.dw,
                                        reserved_ptr, // Unused return_addr.
-                                       out_H,
-                                       out_W,
-                                       pad_H, // Like Fwd wino.
-                                       pad_W,
                                        R,
                                        S,
+                                       pad_H, // Like Fwd wino.
+                                       pad_W,
+                                       out_H,
+                                       out_W,
                                        reserved_ptr, // Unused bias_addr.
                                        reserved,     // Unused relu_alpha.
-                                       d_N_stride,
-                                       d_C_stride,
-                                       f_K_stride,
-                                       f_C_stride,
-                                       o_N_stride,
-                                       o_K_stride);
+                                       d_buf.byte_stride.nk,
+                                       d_buf.byte_stride.c,
+                                       d_buf.byte_stride.h,
+                                       d_buf.byte_stride.w,
+                                       f_buf.byte_stride.nk,
+                                       f_buf.byte_stride.c,
+                                       f_buf.byte_stride.h,
+                                       f_buf.byte_stride.w,
+                                       o_buf.byte_stride.nk,
+                                       o_buf.byte_stride.c,
+                                       o_buf.byte_stride.h,
+                                       o_buf.byte_stride.w,
+                                       group_cnt,
+                                       d_buf.byte_stride.g,
+                                       f_buf.byte_stride.g,
+                                       o_buf.byte_stride.g);
             };
         };
     }
