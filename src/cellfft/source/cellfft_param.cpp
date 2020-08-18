@@ -109,9 +109,9 @@ size_t get_auxbuf_size( const ConvolutionContext& ctx )
     uint32_t ldb=PSIZE(n,31)>>5;
     lda=(lda+(1^(lda&1)))<<5;
     ldb=(ldb+(1^(ldb&1)))<<5;
-    uint32_t abks=lda*ek+16;
-    uint32_t bbks=ldb*ek+16;
-    uint32_t cbks=lda* n+16;
+    uint64_t abks=lda*ek+16;
+    uint64_t bbks=ldb*ek+16;
+    uint64_t cbks=lda* n+16;
     return ((abks+bbks+cbks)*(nbanks<<3));
 }
 size_t get_auxbuf_size_grad( const ConvolutionContext& ctx )
@@ -144,14 +144,17 @@ size_t get_auxbuf_size_grad( const ConvolutionContext& ctx )
     uint32_t ldb=PSIZE(qnc,31)>>5;
     lda=(lda+(1^(lda&1)))<<5;
     ldb=(ldb+(1^(ldb&1)))<<5;
-    uint32_t abks=lda*ek +16;
-    uint32_t bbks=ldb*ek +16;
-    uint32_t cbks=lda*qnc+16;
+    uint64_t abks=lda*ek +16;
+    uint64_t bbks=ldb*ek +16;
+    uint64_t cbks=lda*qnc+16;
     return ((abks+bbks+cbks)*(nbanks<<3));
 }
 size_t get_auxbuf_size( const cellfft_param_t& p )
 {
-    return ((p.abks+p.bbks+p.cbks)*(p.nbanks<<3));
+    uint64_t abks=static_cast<uint64_t>(p.abks);
+    uint64_t bbks=static_cast<uint64_t>(p.bbks);
+    uint64_t cbks=static_cast<uint64_t>(p.cbks);
+    return ((abks+bbks+cbks)*(p.nbanks<<3));
 }
 void build_cellfft_params( cellfft_param_t& p, const ConvolutionContext& ctx )
 {
