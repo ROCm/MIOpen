@@ -21,6 +21,11 @@ typedef ushort ushort2_t __attribute__((ext_vector_type(2)));
 typedef ushort ushort4_t __attribute__((ext_vector_type(4)));
 typedef ushort ushort8_t __attribute__((ext_vector_type(8)));
 
+typedef struct
+{
+    float32_t c0, c1;
+} float64_t;
+
 template <class T, index_t N>
 struct vector_type
 {
