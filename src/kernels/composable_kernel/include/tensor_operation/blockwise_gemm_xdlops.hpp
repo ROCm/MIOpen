@@ -112,9 +112,10 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
         {
             for(index_t n = 0; n < NRepeats; n++)
             {
-                XdlopsGemm.template Run<M, N, K>(&p_a_block[mMyWaveOffsetA + MPerXdlops * m],
-                                                 &p_b_block[mMyWaveOffsetB + NPerXdlops * n],
-                                                 p_c_thread + (NRepeats * m + n) * XdlopsGemm.GetNumXdlops());
+                XdlopsGemm.template Run<M, N, K>(
+                    &p_a_block[mMyWaveOffsetA + MPerXdlops * m],
+                    &p_b_block[mMyWaveOffsetB + NPerXdlops * n],
+                    p_c_thread + (NRepeats * m + n) * XdlopsGemm.GetNumXdlops());
             }
         }
 #else
@@ -158,7 +159,17 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
         return make_ConstantMatrixDescriptor_packed(Number<total_reg_size>{}, Number<1>{});
     }
 
-    __device__ void XdlopsMatrixCSetZero() const { XdlopsGemm.SetZeroXdlopsRegs(); }
+    template <class FloatC>
+    __device__ void XdlopsMatrixCSetZero(FloatC* __restrict__ p_c_thread) const
+    {
+        const index_t total_reg_size    = GemmMPerWave * GemmNPerWave / WaveSize;
+        const index_t c_thread_vec_size = total_reg_size / (sizeof(FloatC) / sizeof(float));
+
+        for(index_t i     = 0; i < c_thread_vec_size; i++)
+            p_c_thread[i] = 0;
+
+        XdlopsGemm.SetZeroXdlopsRegs();
+    }
 
     template <class FloatC>
     __device__ void XdlopsMatrixCRead(FloatC* __restrict__ p_c_thread) const

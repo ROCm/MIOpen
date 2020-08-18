@@ -916,16 +916,14 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
         __shared__ ABFloat p_b_block[b_block_space];
 
         // register allocation for output
-        constexpr index_t c_thread_vec_size = c_k_thread_mtx_desc.GetElementSpace() * sizeof(AccFloat) / sizeof(float32_t);
+        constexpr index_t c_thread_vec_size =
+            c_k_thread_mtx_desc.GetElementSpace() * sizeof(AccFloat) / sizeof(float32_t);
         float32_t p_c_thread_vec[c_thread_vec_size];
-
-        for(index_t i = 0; i < c_thread_vec_size; i++)
-            p_c_thread_vec[i] = 0;
 
         const auto p_c_thread = reinterpret_cast<float*>(p_c_thread_vec);
 
         // zero out threadwise output
-        blockwise_gemm.XdlopsMatrixCSetZero();
+        blockwise_gemm.XdlopsMatrixCSetZero(p_c_thread_vec);
 
         // preload data into LDS
         {
@@ -983,7 +981,7 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
         }
 
         // load data from xldop_acc_regs
-        //blockwise_gemm.XdlopsMatrixCRead(p_c_thread);
+        blockwise_gemm.XdlopsMatrixCRead(p_c_thread);
 
         // copy output: register to global memory
         {
