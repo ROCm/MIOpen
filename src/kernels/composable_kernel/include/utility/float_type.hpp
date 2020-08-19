@@ -35,6 +35,7 @@ union c_vec64_t
 {
     float64_t c;
     float32_t s[2];
+    float n[64];
 };
 
 template <>

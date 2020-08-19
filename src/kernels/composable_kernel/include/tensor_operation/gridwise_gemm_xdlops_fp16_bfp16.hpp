@@ -921,8 +921,6 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
 
         c_vec64_t p_c_thread_vec[c_thread_vec_size];
 
-        const auto p_c_thread = reinterpret_cast<float*>(p_c_thread_vec);
-
         // zero out threadwise output
         blockwise_gemm.XdlopsMatrixCSetZero(p_c_thread_vec);
 
@@ -982,7 +980,7 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
         }
 
         // load data from xldop_acc_regs
-        blockwise_gemm.XdlopsMatrixCRead(p_c_thread);
+        blockwise_gemm.XdlopsMatrixCRead(p_c_thread_vec);
 
         // copy output: register to global memory
         {
@@ -1013,6 +1011,8 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
             constexpr index_t BlkSize = blockwise_gemm.GetBlkSize();
             constexpr index_t NumBlks = blockwise_gemm.GetNumBlks();
 
+            static_assert(BlkSize == 16, "");
+
             for(index_t i = 0; i < NumBlks; ++i)
             {
                 // calculate origin of thread output tensor on global memory
@@ -1041,7 +1041,7 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
                      m_thread_data_on_global % (M2 * M1) / M2,
                      m_thread_data_on_global % M2,
                      n_thread_data_on_global})
-                    .Run(p_c_thread + i * BlkSize, p_c_global);
+                    .Run(p_c_thread_vec[i / 4].n + (i % 4) * BlkSize, p_c_global);
             }
         }
     }
