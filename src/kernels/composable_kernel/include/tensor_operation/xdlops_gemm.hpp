@@ -329,13 +329,12 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x2bf16>
     static constexpr index_t k_base          = 2;
 
     template <index_t MPerXdlops, index_t NPerXdlops, class FloatA, class FloatB, class FloatC>
-    __device__ void run(const FloatA* a, const FloatB* b, FloatC* reg_c) const
+    __device__ FloatC run(const FloatA* a, const FloatB* b, FloatC reg_c) const
     {
         const auto p_a = reinterpret_cast<const ushort2_t*>(a);
         const auto p_b = reinterpret_cast<const ushort2_t*>(b);
-        auto p_c       = reinterpret_cast<float32_t*>(reg_c);
 
-        intrin_mfma_f32_32x32x2bf16<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
+        return intrin_mfma_f32_32x32x2bf16_v2(p_a, p_b, reg_c);
     }
 };
 
