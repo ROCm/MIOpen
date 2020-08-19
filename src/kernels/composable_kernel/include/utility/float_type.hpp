@@ -31,6 +31,12 @@ struct vector_type
     } MemoryType;
 };
 
+union c_vec64_t
+{
+    float64_t c;
+    float32_t s[2];
+};
+
 template <>
 struct vector_type<float, 1>
 {

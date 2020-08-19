@@ -917,9 +917,9 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
 
         // register allocation for output
         constexpr index_t c_thread_vec_size =
-            c_k_thread_mtx_desc.GetElementSpace() * sizeof(float) / sizeof(float64_t);
+            c_k_thread_mtx_desc.GetElementSpace() * sizeof(float) / sizeof(c_vec64_t);
 
-        float64_t p_c_thread_vec[c_thread_vec_size];
+        c_vec64_t p_c_thread_vec[c_thread_vec_size];
 
         const auto p_c_thread = reinterpret_cast<float*>(p_c_thread_vec);
 

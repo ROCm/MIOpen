@@ -123,9 +123,20 @@ intrin_mfma_f32_4x4x1f32<8, 64>(const float* reg_a, const float* reg_b, float4_t
     reg_c[1] = llvm_intrin_amdgcn_mfma_f32_4x4x1f32(reg_a[0], reg_b[0], reg_c[1], 4, 1, 0);
 }
 
+template <class FloatC>
+__device__ FloatC intrin_mfma_f32_32x32x4f16_v2(const half4_t* reg_a,
+                                                const half4_t* reg_b,
+                                                FloatC reg_c)
+{
+    reg_c.s[0] = llvm_intrin_amdgcn_mfma_f32_32x32x4f16(reg_a[0], reg_b[0], reg_c.s[0], 1, 0, 0);
+    reg_c.s[1] = llvm_intrin_amdgcn_mfma_f32_32x32x4f16(reg_a[0], reg_b[0], reg_c.s[1], 1, 1, 0);
+    return reg_c;
+}
+
 template <index_t MPerWave, index_t NPerWave>
 __device__ void
 intrin_mfma_f32_32x32x4f16(const half4_t* reg_a, const half4_t* reg_b, float32_t* reg_c);
+
 template <>
 __device__ void
 intrin_mfma_f32_32x32x4f16<64, 64>(const half4_t* reg_a, const half4_t* reg_b, float32_t* reg_c)

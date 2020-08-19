@@ -164,8 +164,10 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
         const index_t total_reg_size    = GemmMPerWave * GemmNPerWave / WaveSize;
         const index_t c_thread_vec_size = total_reg_size / (sizeof(FloatC) / sizeof(float));
 
-        for(index_t i     = 0; i < c_thread_vec_size; i++)
-            p_c_thread[i] = 0;
+        for(index_t i = 0; i < c_thread_vec_size; i++)
+        {
+            p_c_thread[i].c = 0;
+        }
 
         XdlopsGemm.SetZeroXdlopsRegs();
     }

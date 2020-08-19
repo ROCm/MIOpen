@@ -191,13 +191,12 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x4f16>
     static constexpr index_t k_base          = 4;
 
     template <index_t MPerXdlops, index_t NPerXdlops, class FloatA, class FloatB, class FloatC>
-    __device__ void run(const FloatA* a, const FloatB* b, FloatC* reg_c) const
+    __device__ FloatC run(const FloatA* a, const FloatB* b, FloatC reg_c) const
     {
         const auto p_a = reinterpret_cast<const half4_t*>(a);
         const auto p_b = reinterpret_cast<const half4_t*>(b);
-        auto p_c       = reinterpret_cast<float32_t*>(reg_c);
 
-        intrin_mfma_f32_32x32x4f16<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
+        return intrin_mfma_f32_32x32x4f16_v2(p_a, p_b, reg_c);
     }
 };
 
@@ -686,10 +685,10 @@ struct XdlopsGemm_t
 #endif
                     for(index_t k_i = 0; k_i < K * KRepeats; ++k_i)
                     {
-                        mfma_type.template run<MPerXdlops, NPerXdlops>(
+                        p_c_thread[c_off] = mfma_type.template run<MPerXdlops, NPerXdlops>(
                             &pa[k_i * mfma_type.k_base + a_off],
                             &pb[k_i * mfma_type.k_base + b_off],
-                            &p_c_thread[c_off]);
+                            p_c_thread[c_off]);
                     }
                 }
             }
