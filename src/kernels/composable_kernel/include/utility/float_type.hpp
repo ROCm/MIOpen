@@ -34,7 +34,11 @@ struct vector_type
 union c_vec64_t
 {
     float64_t c;
-    float32_t s[2];
+    struct
+    {
+        float32_t x;
+        float32_t y;
+    } s;
     float n[64];
 };
 

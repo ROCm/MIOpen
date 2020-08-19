@@ -284,8 +284,8 @@ __device__ FloatC intrin_mfma_f32_32x32x1f32_v2(const float* reg_a,
                                                 const float* reg_b,
                                                 FloatC reg_c)
 {
-    reg_c.s[0] = llvm_intrin_amdgcn_mfma_f32_32x32x1f32(reg_a[0], reg_b[0], reg_c.s[0], 1, 0, 0);
-    reg_c.s[1] = llvm_intrin_amdgcn_mfma_f32_32x32x1f32(reg_a[0], reg_b[0], reg_c.s[1], 1, 1, 0);
+    reg_c.s.x = llvm_intrin_amdgcn_mfma_f32_32x32x1f32(reg_a[0], reg_b[0], reg_c.s.x, 1, 0, 0);
+    reg_c.s.y = llvm_intrin_amdgcn_mfma_f32_32x32x1f32(reg_a[0], reg_b[0], reg_c.s.y, 1, 1, 0);
     return reg_c;
 }
 
@@ -294,8 +294,8 @@ __device__ FloatC intrin_mfma_f32_32x32x4f16_v2(const half4_t* reg_a,
                                                 const half4_t* reg_b,
                                                 FloatC reg_c)
 {
-    reg_c.s[0] = llvm_intrin_amdgcn_mfma_f32_32x32x4f16(reg_a[0], reg_b[0], reg_c.s[0], 1, 0, 0);
-    reg_c.s[1] = llvm_intrin_amdgcn_mfma_f32_32x32x4f16(reg_a[0], reg_b[0], reg_c.s[1], 1, 1, 0);
+    reg_c.s.x = llvm_intrin_amdgcn_mfma_f32_32x32x4f16(reg_a[0], reg_b[0], reg_c.s.x, 1, 0, 0);
+    reg_c.s.y = llvm_intrin_amdgcn_mfma_f32_32x32x4f16(reg_a[0], reg_b[0], reg_c.s.y, 1, 1, 0);
     return reg_c;
 }
 }
