@@ -763,8 +763,8 @@ std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeDirect(
     }
 }
 
-std::size_t ConvolutionDescriptor::GetWorkspaceSizeCellfft(
-    const miopen::ConvolutionContext& ctx) const
+std::size_t
+ConvolutionDescriptor::GetWorkspaceSizeCellfft(const miopen::ConvolutionContext& ctx) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CELLFFT{}))
     {
