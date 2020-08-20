@@ -1013,6 +1013,7 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
 
             static_assert(BlkSize == 16, "");
 
+#pragma unroll
             for(index_t i = 0; i < NumBlks; ++i)
             {
                 // calculate origin of thread output tensor on global memory
