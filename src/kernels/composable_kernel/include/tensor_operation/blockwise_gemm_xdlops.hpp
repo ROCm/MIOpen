@@ -98,9 +98,9 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
     }
 
     template <class FloatA, class FloatB, class FloatC>
-    __device__ void Run(const FloatA* __restrict__ p_a_block,
-                        const FloatB* __restrict__ p_b_block,
-                        FloatC* __restrict__ p_c_thread) const
+    __device__ FloatC Run(const FloatA* __restrict__ p_a_block,
+                          const FloatB* __restrict__ p_b_block,
+                          FloatC p_c_thread) const
 
     {
         constexpr index_t M = BlockMatrixA::NCol(); // A is transposed
@@ -108,19 +108,26 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
         constexpr index_t K = BlockMatrixA::NRow();
 
 #if CK_WORKAROUND_SWDEV_241664
-        for(index_t m = 0; m < MRepeats; m++)
+        // for(index_t m = 0; m < MRepeats; m++)
         {
-            for(index_t n = 0; n < NRepeats; n++)
+            // for(index_t n = 0; n < NRepeats; n++)
             {
-                XdlopsGemm.template Run<M, N, K>(&p_a_block[mMyWaveOffsetA + MPerXdlops * m],
-                                                 &p_b_block[mMyWaveOffsetB + NPerXdlops * n],
-                                                 p_c_thread + (NRepeats * m + n));
+                p_c_thread.l.x =
+                    XdlopsGemm.template Run<M, N, K>(&p_a_block[mMyWaveOffsetA + MPerXdlops * 0],
+                                                     &p_b_block[mMyWaveOffsetB + NPerXdlops * 0],
+                                                     p_c_thread.l.x);
+
+                p_c_thread.l.y =
+                    XdlopsGemm.template Run<M, N, K>(&p_a_block[mMyWaveOffsetA + MPerXdlops * 0],
+                                                     &p_b_block[mMyWaveOffsetB + NPerXdlops * 1],
+                                                     p_c_thread.l.y);
             }
         }
 #else
         XdlopsGemm.template Run<M, N, K>(
             &p_a_block[mMyWaveOffsetA], &p_b_block[mMyWaveOffsetB], p_c_thread);
 #endif
+        return p_c_thread;
     }
 
     __device__ static MatrixIndex GetBeginOfThreadMatrixC(index_t i)

@@ -10,6 +10,7 @@ typedef float float4_t __attribute__((ext_vector_type(4)));
 typedef float float16_t __attribute__((ext_vector_type(16)));
 typedef float float32_t __attribute__((ext_vector_type(32)));
 typedef float float64_t __attribute__((ext_vector_type(64)));
+typedef float float128_t __attribute__((ext_vector_type(128)));
 
 // float16
 typedef _Float16 half_t;
@@ -33,13 +34,22 @@ struct vector_type
 
 union c_vec64_t
 {
-    float64_t c;
     struct
     {
         float32_t x;
         float32_t y;
     } s;
-    float n[64];
+};
+
+union c_vec64_2_t
+{
+    float128_t c;
+    struct
+    {
+        c_vec64_t x;
+        c_vec64_t y;
+    } l;
+    float n[128];
 };
 
 template <>

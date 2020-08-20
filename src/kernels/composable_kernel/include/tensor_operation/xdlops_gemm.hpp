@@ -517,6 +517,10 @@ struct XdlopsGemm_t
                       "num_regs_blk incorrect");
 
         static_assert(mfma_type.k % mfma_type.k_base == 0, "k and k_base is inconsistent!");
+
+#if CK_WORKAROUND_SWDEV_241664
+        static_assert(MRepeats == 1 && NRepeats == 1, "");
+#endif
     }
 
     __device__ static constexpr index_t GetRegSizePerXdlops()
@@ -529,7 +533,7 @@ struct XdlopsGemm_t
     template <index_t M, index_t N, index_t K, class FloatA, class FloatB, class FloatC>
     __device__ void XdlopsEmulate(const FloatA* const __restrict__ p_a_wave,
                                   const FloatB* const __restrict__ p_b_wave,
-                                  FloatC* const __restrict__ p_c_thread) const
+                                  FloatC const __restrict__ p_c_thread) const
     {
         const index_t laneId = get_thread_local_1d_id() % mfma_type.wave_size;
         const index_t blk_id = laneId / mfma_type.num_threads_blk;
@@ -628,9 +632,9 @@ struct XdlopsGemm_t
 #endif
 
     template <index_t M, index_t N, index_t K, class FloatA, class FloatB, class FloatC>
-    __device__ void Run(const FloatA* const __restrict__ p_a_wave,
-                        const FloatB* const __restrict__ p_b_wave,
-                        FloatC* const __restrict__ p_c_thread) const
+    __device__ FloatC Run(const FloatA* const __restrict__ p_a_wave,
+                          const FloatB* const __restrict__ p_b_wave,
+                          FloatC p_c_thread) const
     {
         static_assert(is_same<FloatA, FloatB>::value, "FloatA != FloatB");
         static_assert(is_same<data_type, float>::value || is_same<data_type, half_t>::value ||
@@ -676,23 +680,23 @@ struct XdlopsGemm_t
                 for(index_t n_i = 0; n_i < NRepeats; ++n_i)
                 {
                     const index_t b_off = n_i * K * (KRepeats * mfma_type.k_base);
-                    const index_t c_off = (NRepeats * m_i + n_i);
 
 #if CK_WORKAROUND_SWDEV_229564
 #pragma unroll
 #endif
                     for(index_t k_i = 0; k_i < K * KRepeats; ++k_i)
                     {
-                        p_c_thread[c_off] = mfma_type.template run<MPerXdlops, NPerXdlops>(
+                        p_c_thread = mfma_type.template run<MPerXdlops, NPerXdlops>(
                             &pa[k_i * mfma_type.k_base + a_off],
                             &pb[k_i * mfma_type.k_base + b_off],
-                            p_c_thread[c_off]);
+                            p_c_thread);
                     }
                 }
             }
 
         }).Else([&](auto) {
 
+#if 0
             const index_t blk_id = laneId / mfma_type.num_threads_blk;
             const index_t blk_td = laneId % mfma_type.num_threads_blk;
 
@@ -714,9 +718,11 @@ struct XdlopsGemm_t
                         &pb[(k_i * KRepeats + i) * mfma_type.k_base],
                         p_c_thread);
             }
+#endif
 
         });
 #endif
+        return p_c_thread;
     }
 
     __device__ static MatrixIndex GetBeginOfThreadBlk(index_t i)
