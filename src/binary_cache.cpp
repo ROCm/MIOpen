@@ -65,7 +65,7 @@ static boost::filesystem::path ComputeUserCachePath()
         std::to_string(MIOPEN_VERSION_PATCH) + "." + MIOPEN_STRINGIZE(MIOPEN_VERSION_TWEAK);
 
     auto p = boost::filesystem::path{miopen::ExpandUser(cache_dir)} / version;
-    if(!boost::filesystem::exists(p))
+    if(!boost::filesystem::exists(p) && !MIOPEN_DISABLE_USERDB)
         boost::filesystem::create_directories(p);
     return p;
 #else
@@ -92,6 +92,7 @@ static bool IsCacheDisabled()
 #endif
 }
 
+#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
 using KDb = DbTimer<MultiFileDb<KernDb, KernDb, false>>;
 KDb GetDb(const std::string& device, size_t num_cu)
 {
@@ -106,6 +107,7 @@ KDb GetDb(const std::string& device, size_t num_cu)
         sys_path = boost::filesystem::path{};
     return {sys_path.string(), user_path.string(), device, num_cu};
 }
+#endif
 
 boost::filesystem::path GetCacheFile(const std::string& device,
                                      const std::string& name,

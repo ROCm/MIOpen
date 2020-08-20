@@ -28,6 +28,7 @@
 #define GUARD_MIOPEN_FIND_CONTROLS_HPP_
 
 #include <miopen/solver_id.hpp>
+#include <miopen/conv/context.hpp>
 #include <ostream>
 
 namespace miopen {
@@ -128,14 +129,15 @@ class FindMode
         Fast,
         Hybrid,
         End_,
-        Default_ = Normal,
+        Default_ = Hybrid,
     };
 
     private:
     Values value;
 
     public:
-    FindMode();
+    FindMode(const ConvolutionContext& ctx);
+
     bool IsFast() const { return value == Values::Fast && !debug::FindModeDisable; }
     bool IsHybrid() const { return value == Values::Hybrid && !debug::FindModeDisable; }
     friend std::ostream& operator<<(std::ostream&, const FindMode&);
