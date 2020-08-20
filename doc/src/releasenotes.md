@@ -1,7 +1,7 @@
 
 ## MIOpen Release notes
 
-### 07/31/2020 [ 2.6.0 ]
+### 08/20/2020 [ 2.6.0 ]
 
 - This release contains convolution performance improvements, improved multi-threading behavior, and improved stability for half precision convolutions. Initial iteration time has been reduced with the introduction of hybrid find mode. Builds for a static library have been refined for this release.
 
