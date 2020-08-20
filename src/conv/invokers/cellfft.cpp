@@ -2,7 +2,7 @@
 *
 * MIT License
 *
-* Copyright (c) 2019 Advanced Micro Devices, Inc.
+* Copyright (c) 2020 Advanced Micro Devices, Inc.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -126,8 +126,8 @@ InvokerFactory MakeCellfftInvokerFactory( const cellfft::cellfft_param_t& conv_p
             const size_t abks=static_cast<size_t>(conv_params.abks);
             const size_t bbks=static_cast<size_t>(conv_params.bbks);
             const size_t cbks=static_cast<size_t>(conv_params.cbks);
-            const size_t nbks=static_cast<size_t>(conv_params.nbanks);
-            const size_t auxsize=(nbks<<3)*(abks+bbks+cbks);
+            const size_t nbks=static_cast<size_t>(conv_params.nbanks)<<3;
+            const size_t auxsize=nbks*(abks+bbks+cbks);
             const auto& params=boost::any_cast<DataInvokeParams>(prim_params);
             if(params.workSpace==nullptr||params.workSpaceSize<auxsize)
                 MIOPEN_THROW("Workspace is not enough for cellfft");
@@ -137,8 +137,8 @@ InvokerFactory MakeCellfftInvokerFactory( const cellfft::cellfft_param_t& conv_p
             const void* fil=tensors.w;
             void* dst=tensors.out;
             uint8_t* a=reinterpret_cast<uint8_t*>(auxbuf);
-            uint8_t* b=a+((nbks*abks)<<3);
-            uint8_t* c=b+((nbks*bbks)<<3);
+            uint8_t* b=a+nbks*abks;
+            uint8_t* c=b+nbks*bbks;
             float elapsed=0.f;
             dtr( handle, kernels[1], conv_params, a, src );
             if(handle.IsProfilingEnabled()){ elapsed+=handle.GetKernelTime(); }
@@ -164,8 +164,8 @@ InvokerFactory MakeCellfftInvokerFactoryGrad( const cellfft::cellfft_param_t& co
             const size_t abks=static_cast<size_t>(conv_params.abks);
             const size_t bbks=static_cast<size_t>(conv_params.bbks);
             const size_t cbks=static_cast<size_t>(conv_params.cbks);
-            const size_t nbks=static_cast<size_t>(conv_params.nbanks);
-            const size_t auxsize=(nbks<<3)*(abks+bbks+cbks);
+            const size_t nbks=static_cast<size_t>(conv_params.nbanks)<<3;
+            const size_t auxsize=nbks*(abks+bbks+cbks);
             const auto& params=boost::any_cast<WrWInvokeParams>(prim_params);
             if(params.workSpace==nullptr||params.workSpaceSize<auxsize)
                 MIOPEN_THROW("Workspace is not enough for cellfft");
@@ -175,8 +175,8 @@ InvokerFactory MakeCellfftInvokerFactoryGrad( const cellfft::cellfft_param_t& co
             const void* qin=tensors.dy;
             void* dst=tensors.dw;
             uint8_t* a=reinterpret_cast<uint8_t*>(auxbuf);
-            uint8_t* b=a+((nbks*abks)<<3);
-            uint8_t* c=b+((nbks*bbks)<<3);
+            uint8_t* b=a+nbks*abks;
+            uint8_t* c=b+nbks*bbks;
             float elapsed=0.f;
             dtr( handle, kernels[1], conv_params, a, pin );
             if(handle.IsProfilingEnabled()){ elapsed+=handle.GetKernelTime(); }

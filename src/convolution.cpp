@@ -45,8 +45,6 @@
 #include <boost/range/combine.hpp>
 #include <boost/range/adaptors.hpp>
 
-#include "cellfft/include/cellfft_param.hpp"
-
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_WINOGRAD)
@@ -467,7 +465,7 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
 
     const size_t implicit_gemm_workspace = ForwardBackwardGetWorkSpaceSizeImplicitGemm(ctx);
 
-    const size_t cellfft_workspace = cellfft::get_auxbuf_size(ctx);
+    const size_t cellfft_workspace = GetWorkspaceSizeCellfft(ctx);
 
     size_t workspace_size_gemm = 0;
 #if MIOPEN_USE_GEMM
@@ -569,7 +567,7 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
 
     const size_t implicit_gemm_workspace = ForwardBackwardGetWorkSpaceSizeImplicitGemm(ctx);
 
-    const size_t cellfft_workspace = cellfft::get_auxbuf_size(ctx);
+    const size_t cellfft_workspace = GetWorkspaceSizeCellfft(ctx);
 
     size_t workspace_size_gemm = 0;
 
@@ -765,6 +763,35 @@ std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeDirect(
     }
 }
 
+std::size_t ConvolutionDescriptor::GetWorkspaceSizeCellfft(
+    const miopen::ConvolutionContext& ctx) const
+{
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CELLFFT{}))
+    {
+        return 0;
+    }
+
+    try
+    {
+        const auto ss  = FindCellfftSolution(ctx);
+        std::size_t sz = 0;
+        for(const auto& sol : ss)
+        {
+            if(sz < sol.workspce_sz)
+            {
+                MIOPEN_LOG_I2(sz << " < " << sol.workspce_sz);
+                sz = sol.workspce_sz;
+            }
+        }
+        return sz;
+    }
+    catch(const miopen::Exception& ex)
+    {
+        MIOPEN_LOG_WE(ex.what());
+        return 0;
+    }
+}
+
 std::size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(
     const miopen::ConvolutionContext& ctx) const
 {
@@ -846,6 +873,33 @@ std::size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeImplicitGemm(
     }
 }
 
+std::size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeCellfft(
+    const miopen::ConvolutionContext& ctx) const
+{
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CELLFFT{}))
+        return 0;
+
+    try
+    {
+        const auto ss  = FindCellfftSolution(ctx);
+        std::size_t sz = 0;
+        for(const auto& sol : ss)
+        {
+            if(sz < sol.workspce_sz)
+            {
+                MIOPEN_LOG_I2(sz << " < " << sol.workspce_sz);
+                sz = sol.workspce_sz;
+            }
+        }
+        return sz;
+    }
+    catch(const miopen::Exception& ex)
+    {
+        MIOPEN_LOG_WE(ex.what());
+        return 0;
+    }
+}
+
 std::size_t
 ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
                                                        const TensorDescriptor& dyDesc,
@@ -891,7 +945,7 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
     const size_t workspace_size = std::max({BackwardWeightsGetWorkSpaceSizeImplicitGemm(ctx),
                                             BackwardWeightsGetWorkSpaceSizeWinograd(ctx),
                                             BackwardWeightsGetWorkSpaceSizeDirect(ctx),
-                                            cellfft::get_auxbuf_size_grad(ctx),
+                                            BackwardWeightsGetWorkSpaceSizeCellfft(ctx),
                                             workspace_size_gemm});
     MIOPEN_LOG_I2(workspace_size);
     return workspace_size;

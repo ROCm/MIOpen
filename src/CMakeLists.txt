@@ -465,10 +465,8 @@ if( MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
 endif()
 
 list(APPEND MIOpen_Source
-    cellfft/include/cellfft_get_kernel.hpp
     cellfft/include/cellfft_op.hpp
     cellfft/include/cellfft_param.hpp
-    cellfft/source/cellfft_get_kernel.cpp
     cellfft/source/cellfft_op.cpp
     cellfft/source/cellfft_param.cpp
     include/miopen/conv/invokers/cellfft.hpp
