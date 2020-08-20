@@ -66,7 +66,8 @@ These variables control the sets (families) of convolution Solutions. For exampl
 
 ### Filtering by build method
 
-* `MIOPEN_DEBUG_GCN_ASM_KERNELS` - Kernels written in assembly language. Currently these include some Direct solvers, Winograd kernels and SCGEMM.
+* `MIOPEN_DEBUG_GCN_ASM_KERNELS` - Kernels written in assembly language. Currently these used in many convolutions (some Direct solvers, Winograd kernels, fused convolutions), batch normalization.
+* `MIOPEN_DEBUG_HIP_KERNELS` - Convoluton kernels written in HIP (today, all these implement ImplicitGemm algorithm).
 * `MIOPEN_DEBUG_OPENCL_CONVOLUTIONS` - Convolution kernels written in OpenCL (note that _only_ convolutions affected).
 * `MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES` - Binary kernels. Right now the library does not use binaries.
 
