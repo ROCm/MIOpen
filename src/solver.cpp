@@ -254,7 +254,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, "fft", miopenConvolutionAlgoFFT);
     RegisterWithSolver(
         registry, ++id, ConvWinograd3x3MultipassWrW<3, 4>{}, miopenConvolutionAlgoWinograd);
-    ++id; // Id for ConvSCGemmFGemm.
+    RegisterWithSolver(registry, ++id, ConvFlexgemm{}, miopenConvolutionAlgoFlexgemm);
     RegisterWithSolver(registry, ++id, ConvBinWinogradRxSf3x2{}, miopenConvolutionAlgoWinograd);
     RegisterWithSolver(
         registry, ++id, ConvWinograd3x3MultipassWrW<3, 5>{}, miopenConvolutionAlgoWinograd);

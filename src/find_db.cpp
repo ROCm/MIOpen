@@ -74,6 +74,8 @@ bool CheckInvokerSupport(const std::string& algo)
            algo == "miopenConvolutionBwdWeightsAlgoDirect" ||
            algo == "miopenConvolutionFwdAlgoWinograd" ||
            algo == "miopenConvolutionBwdDataAlgoWinograd" ||
+           algo == "miopenConvolutionFwdAlgoFlexgemm" ||
+           algo == "miopenConvolutionBwdDataAlgoFlexgemm" ||
            algo == "miopenConvolutionFwdAlgoImplicitGEMM" ||
            algo == "miopenConvolutionBwdDataAlgoImplicitGEMM" ||
            algo == "miopenConvolutionBwdWeightsAlgoImplicitGEMM";

@@ -656,6 +656,49 @@ COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS} $<TARGET_FILE:test_conv2d> --verbose --
 COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128  256 56 56 --weights 64  256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
 )
 
+set(FLEXGEMM_DISABLES
+    MIOPEN_DEBUG_CONV_DIRECT=0
+    MIOPEN_DEBUG_CONV_FFT=0
+    MIOPEN_DEBUG_CONV_GEMM=0
+    MIOPEN_DEBUG_CONV_WINOGRAD=0
+    MIOPEN_DEBUG_CONV_IMPLICITGEMM=0)
+set(FLEXGEMM_ENVS
+    ${FLEXGEMM_DISABLES}
+    MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvFlexgemm)
+
+COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  64 128 56 56 --weights  32  64 3 3 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  64 128 56 56 --weights  48  64 3 3 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  64 128 56 56 --weights  96  64 3 3 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  64 128 56 56 --weights 128  64 3 3 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  64 128 56 56 --weights 192  64 3 3 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128 128 35 35 --weights  32 128 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128 128 35 35 --weights  48 128 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128 128 35 35 --weights  96 128 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128 128 35 35 --weights 128 128 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128 128 35 35 --weights 192 128 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128 128 35 35 --weights  32 128 3 3 --pads_strides_dilations 1 1 2 2 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128 128 35 35 --weights  48 128 3 3 --pads_strides_dilations 1 1 2 2 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128 128 35 35 --weights  96 128 3 3 --pads_strides_dilations 1 1 2 2 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128 128 35 35 --weights 128 128 3 3 --pads_strides_dilations 1 1 2 2 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128 128 35 35 --weights 192 128 3 3 --pads_strides_dilations 1 1 2 2 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128 128 34 34 --weights  32 128 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128 128 34 34 --weights  48 128 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128 128 34 34 --weights  96 128 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128 128 34 34 --weights 128 128 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128 128 34 34 --weights 192 128 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128 128 35 35 --weights  32 128 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128 128 35 35 --weights  48 128 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128 128 35 35 --weights  96 128 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128 128 35 35 --weights 128 128 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128 128 35 35 --weights 192 128 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128 256 28 28 --weights 512 256 3 3 --pads_strides_dilations 1 1 0 0 1 1 --disable-forward --disable-backward-weights
+COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128 384 28 28 --weights 512 384 3 3 --pads_strides_dilations 1 1 0 0 1 1 --disable-forward --disable-backward-weights
+COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128 512 28 28 --weights 512 512 3 3 --pads_strides_dilations 1 1 0 0 1 1 --disable-forward --disable-backward-weights
+COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128 256 28 28 --weights 512 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128 384 28 28 --weights 512 384 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128 512 28 28 --weights 512 512 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
+
+
 if(MIOPEN_TEST_DEEPBENCH)
     add_custom_test(test_deepbench_conv
     COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	4	1	161	700	--weights	32	1	5	20	--pads_strides_dilations	0	0	2	2	1	1						

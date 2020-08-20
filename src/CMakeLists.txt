@@ -399,7 +399,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenCTCLoss.cl
         kernels/MIOpenDropout.cl
         kernels/xform_data.s
-        kernels/xform_filter.s)
+        kernels/xform_filter.s
+        kernels/flexgemm_gfx900.s
+        kernels/flexgemm_gfx906.s)
 
     add_kernels("${MIOPEN_KERNELS}")
     add_kernel_includes("${MIOPEN_KERNEL_INCLUDES}")
@@ -461,6 +463,16 @@ if( MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
         hipoc/hipoc_program.cpp
         )
 endif()
+
+list(APPEND MIOpen_Source
+    flexgemm/include/flexgemm_op.hpp
+    flexgemm/include/flexgemm_param.hpp
+    flexgemm/source/flexgemm_op.cpp
+    flexgemm/source/flexgemm_param.cpp
+    include/miopen/conv/invokers/flexgemm.hpp
+    conv/invokers/flexgemm.cpp
+    solver/conv_flexgemm.cpp
+)
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     list(APPEND MIOpen_Source ${PROJECT_BINARY_DIR}/include/miopen_kernels.h)

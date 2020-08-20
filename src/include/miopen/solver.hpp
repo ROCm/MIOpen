@@ -1812,6 +1812,13 @@ struct gemm : SolverBase<ConvolutionContext>
     }
 };
 
+struct ConvFlexgemm : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& params) const;
+    size_t GetWorkspaceSize(const ConvolutionContext& params) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
+};
+
 struct AnySolver;
 
 } // namespace solver
