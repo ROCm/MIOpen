@@ -25,7 +25,6 @@
  *******************************************************************************/
 #include <array>
 #include <initializer_list>
-#include <string>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
@@ -47,14 +46,6 @@ extern "C" miopenStatus_t miopenSet4dTensorDescriptor(
         std::initializer_list<int> lens = {n, c, h, w};
         miopen::deref(tensorDesc)       = miopen::TensorDescriptor(dataType, lens.begin(), 4);
     });
-}
-
-extern "C" miopenStatus_t miopenSetTensorDescriptorLayout(miopenTensorDescriptor_t tensorDesc,
-                                                          const char* layout)
-{
-
-    MIOPEN_LOG_FUNCTION(tensorDesc, layout);
-    return miopen::try_([&] { miopen::deref(tensorDesc).SetLayout(std::string(layout)); });
 }
 
 extern "C" miopenStatus_t miopenGet4dTensorDescriptor(miopenTensorDescriptor_t tensorDesc,

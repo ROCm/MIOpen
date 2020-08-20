@@ -463,8 +463,8 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
     std::vector<int> in_len  = GetInputTensorLengthsFromCmdLine();
     std::vector<int> wei_len = GetWeightTensorLengthsFromCmdLine();
 
-    SetTensorNd(inputTensor, in_len, data_type);
-    SetTensorNd(weightTensor, wei_len, data_type);
+    SetTensorNd(inputTensor, in_len, "input", inflags.GetValueStr("in_layout"), data_type);
+    SetTensorNd(weightTensor, wei_len, "filter", inflags.GetValueStr("fil_layout"), data_type);
 
     if(inflags.GetValueInt("tensor_vect") == 1 && data_type == miopenInt8)
     {
@@ -486,11 +486,7 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
 
     miopenDataType_t y_type =
         (data_type == miopenInt8 || data_type == miopenInt8x4) ? miopenFloat : data_type;
-    SetTensorNd(outputTensor, out_len, y_type);
-
-    miopenSetTensorDescriptorLayout(inputTensor, inflags.GetValueStr("in_layout").c_str());
-    miopenSetTensorDescriptorLayout(weightTensor, inflags.GetValueStr("fil_layout").c_str());
-    miopenSetTensorDescriptorLayout(outputTensor, inflags.GetValueStr("out_layout").c_str());
+    SetTensorNd(outputTensor, out_len, "output", inflags.GetValueStr("out_layout"), y_type);
 
     if(inflags.GetValueInt("bias") != 0)
     {

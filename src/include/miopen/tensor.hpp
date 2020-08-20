@@ -33,7 +33,9 @@
 #include <miopen/returns.hpp>
 #include <miopen/errors.hpp>
 
+#include <algorithm>
 #include <cassert>
+#include <numeric>
 #include <vector>
 
 namespace miopen {
@@ -173,8 +175,47 @@ struct TensorDescriptor : miopenTensorDescriptor
 
     std::string ToString() const;
 
-    void SetLayout(const std::string& l);
-    std::string GetLayout() const { return this->layout; }
+    template <class Vector, class Op>
+    inline std::vector<int64_t> sort_permutation(const Vector& data, Op op) const
+    {
+        std::vector<std::int64_t> result(data.size());
+        std::iota(result.begin(), result.end(), 0);
+        std::sort(
+            result.begin(), result.end(), [&](auto x, auto y) { return op(data[x], data[y]); });
+        return result;
+    }
+
+    std::string GetLayout(std::string labels) const
+    {
+        if(labels.size() != strides.size())
+        {
+            MIOPEN_THROW(
+                "Invalid labels size. Layout labels size must be equavalent to stride size");
+        }
+
+        auto isOfLegal = [](std::string legalChars) {
+            return [&legalChars](const char& x) {
+                std::string addedChars;
+                bool isNotAdded = addedChars.find(x) == std::string::npos;
+                addedChars.push_back(x);
+                return legalChars.find(x) != std::string::npos && isNotAdded;
+            };
+        };
+        bool is4dInputTensor  = std::all_of(labels.begin(), labels.end(), isOfLegal("NCHW"));
+        bool is4dFilterTensor = std::all_of(labels.begin(), labels.end(), isOfLegal("KCYX"));
+        bool is4dOutputTensor = std::all_of(labels.begin(), labels.end(), isOfLegal("NKHW"));
+
+        if((!is4dInputTensor && !is4dFilterTensor && !is4dOutputTensor))
+        {
+            MIOPEN_THROW("Invalid labels. Layout labels must be a combination of "
+                         "NCHW, KCYX or NKHW");
+        }
+
+        auto result = labels;
+        auto p      = sort_permutation(strides, std::greater<>{});
+        std::transform(p.begin(), p.end(), result.begin(), [&](auto i) { return labels[i]; });
+        return result;
+    }
 
     friend std::ostream& operator<<(std::ostream& stream, const TensorDescriptor& t);
 
@@ -185,8 +226,6 @@ struct TensorDescriptor : miopenTensorDescriptor
     bool packed;
 
     miopenDataType_t type = miopenFloat;
-
-    std::string layout;
 };
 
 } // namespace miopen
