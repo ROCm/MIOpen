@@ -124,7 +124,7 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
             }
         }
 #else
-        XdlopsGemm.template Run<M, N, K>(
+        p_c_thread = XdlopsGemm.template Run<M, N, K>(
             &p_a_block[mMyWaveOffsetA], &p_b_block[mMyWaveOffsetB], p_c_thread);
 #endif
         return p_c_thread;
