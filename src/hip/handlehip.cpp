@@ -36,6 +36,10 @@
 #include <miopen/kernel_cache.hpp>
 #include <miopen/logger.hpp>
 
+#if !MIOPEN_ENABLE_SQLITE_KERN_CACHE
+#include <miopen/write_file.hpp>
+#endif
+
 #include <boost/filesystem.hpp>
 #include <miopen/handle_lock.hpp>
 #include <miopen/load_file.hpp>
@@ -50,7 +54,7 @@
 #include <chrono>
 #include <thread>
 
-#define MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_30 MIOPEN_USE_COMGR
+#define MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_30 (MIOPEN_USE_COMGR && BUILD_SHARED_LIBS)
 
 namespace miopen {
 
@@ -372,7 +376,9 @@ Program Handle::LoadProgram(const std::string& program_name,
 
 // Save to cache
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
-        miopen::SaveBinary(miopen::LoadFile(p.GetBinary().string()),
+        miopen::SaveBinary(p.IsCodeObjectInMemory()
+                               ? p.GetCodeObjectBlob()
+                               : miopen::LoadFile(p.GetCodeObjectPathname().string()),
                            this->GetDeviceName(),
                            this->GetMaxComputeUnits(),
                            program_name,
@@ -380,7 +386,10 @@ Program Handle::LoadProgram(const std::string& program_name,
                            is_kernel_str);
 #else
         auto path      = miopen::GetCachePath(false) / boost::filesystem::unique_path();
-        boost::filesystem::copy_file(p.GetBinary(), path);
+        if(p.IsCodeObjectInMemory())
+            miopen::WriteFile(p.GetCodeObjectBlob(), path);
+        else
+            boost::filesystem::copy_file(p.GetCodeObjectPathname(), path);
         miopen::SaveBinary(path, this->GetDeviceName(), program_name, params, is_kernel_str);
 #endif
 

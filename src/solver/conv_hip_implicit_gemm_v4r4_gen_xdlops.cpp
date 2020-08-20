@@ -27,9 +27,11 @@
 #include <miopen/solver.hpp>
 
 #include <miopen/conv/invokers/impl_gemm.hpp>
+#include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/stringutils.hpp>
+#include <miopen/tensor_ops.hpp>
 #include <miopen/implicitgemm_params.hpp>
 
 #include "implicitgemm_util.hpp"
@@ -105,6 +107,10 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
 		"gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_nchw_kcyx_nkhw_lds_double_buffer";
         }
         // clang-format on
+    }
+    else
+    {
+        MIOPEN_THROW("invalid value of 'kernel'");
     }
 
     std::size_t ABlockCopySubLengths_GemmK = GemmKPerBlock / config.WeiBlockCopyClusterLengths_E;
@@ -323,10 +329,78 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         }
     }
 
-    if(ctx.direction.IsForward() || ctx.direction.IsBackwardData())
-        result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
-
     result.construction_params.push_back(construction_parameters);
+    const auto& dwDesc = ctx.conv_problem.GetWeights();
+
+    if(ctx.direction.IsForward() || ctx.direction.IsBackwardData())
+    {
+        result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
+    }
+    else if(dwDesc.GetType() == miopenHalf || dwDesc.GetType() == miopenBFloat16)
+    {
+        const auto lowp_quant  = ctx.conv_problem.GetConv().lowp_quant;
+        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+            return [=](const Handle& handle, const boost::any& primitive_params) {
+                const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
+                const auto& tensors      = invoke_params.tensors;
+                float zero               = 0.f;
+                TensorDescriptor workSpaceDesc(
+                    miopenFloat, tensors.dwDesc.GetLengths(), tensors.dwDesc.GetStrides());
+                SetTensor(handle, workSpaceDesc, invoke_params.workSpace, &zero);
+                float elapsed = std::numeric_limits<float>::max();
+                if(handle.IsProfilingEnabled())
+                    elapsed = handle.GetKernelTime();
+
+                handle.Run(kernels[0])(tensors.x, tensors.dy, invoke_params.workSpace);
+                if(handle.IsProfilingEnabled())
+                    elapsed += handle.GetKernelTime();
+
+                CastTensor(handle,
+                           &lowp_quant,
+                           workSpaceDesc,
+                           invoke_params.workSpace,
+                           tensors.dwDesc,
+                           tensors.dw,
+                           0,
+                           0);
+
+                if(handle.IsProfilingEnabled())
+                {
+                    elapsed += handle.GetKernelTime();
+                    handle.ResetKernelTime();
+                    handle.AccumKernelTime(elapsed);
+                }
+            };
+        };
+    }
+    else
+    {
+        result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+            return [=](const Handle& handle, const boost::any& primitive_params) {
+                const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
+                const auto& tensors      = invoke_params.tensors;
+                float zero               = 0.f;
+                auto elapsed             = 0.f;
+
+                if(tensors.dwDesc.GetType() != miopenHalf &&
+                   tensors.dwDesc.GetType() != miopenBFloat16)
+                {
+                    SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
+                    if(handle.IsProfilingEnabled())
+                        elapsed += handle.GetKernelTime();
+                }
+
+                handle.Run(kernels[0])(tensors.x, tensors.dy, tensors.dw);
+                if(handle.IsProfilingEnabled())
+                {
+                    elapsed += handle.GetKernelTime();
+                    handle.ResetKernelTime();
+                    handle.AccumKernelTime(elapsed);
+                }
+            };
+        };
+    }
+
     return result;
 }
 
@@ -393,13 +467,12 @@ bool ConvHipImplicitGemmV4R4GenFwdXdlops::IsApplicable(const ConvolutionContext&
 {
     if(!(ctx.IsFp16() || ctx.IsBfp16()))
         return false;
-
+    if(!ctx.use_hip_kernels)
+        return false;
     if(!ctx.direction.IsForward())
         return false;
-
     if(!ctx.Is2d())
         return false;
-
     return IsApplicableXdlops(ctx);
 }
 
@@ -407,14 +480,14 @@ bool ConvHipImplicitGemmV4R4GenWrWXdlops::IsApplicable(const ConvolutionContext&
 {
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
-
-    if(ConvHipImplicitGemmV4R4GenXdlopsWrWFp32{}.IsApplicable(ctx))
+    if(!ctx.use_hip_kernels)
         return false;
-
     if(!ctx.direction.IsBackwardWrW())
         return false;
-
     if(!ctx.Is2d())
+        return false;
+
+    if(ConvHipImplicitGemmV4R4GenXdlopsWrWFp32{}.IsApplicable(ctx))
         return false;
 
     return IsApplicableXdlops(ctx);
