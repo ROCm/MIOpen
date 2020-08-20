@@ -34,6 +34,7 @@
 #include <boost/any.hpp>
 #include <miopen/conv/invokers/cellfft.hpp>
 
+// clang-format off
 #define START_R2C_S   0
 #define START_C2R_S   (START_R2C_S+8)
 #define START_R2C_X   (START_C2R_S+22)
