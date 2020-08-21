@@ -225,6 +225,16 @@
 	.endif
 .endm
 
+.macro .VGPR_ALLOC_ONCE __vgpr_symbolic, __vgpr_numregs=1
+	.ifndef __guard_vgpr_\__vgpr_symbolic
+		__guard_vgpr_\__vgpr_symbolic = 0
+	.endif
+	.if __guard_vgpr_\__vgpr_symbolic == 0
+		__guard_vgpr_\__vgpr_symbolic = 1
+		.VGPR_ALLOC \__vgpr_symbolic, \__vgpr_numregs
+	.endif
+.endm
+
 .macro .GPR_INVALIDATE __gpr_symbolic
 	.set \__gpr_symbolic, 0x7fffffff /* invalidate (intentionally to the middle of the int range) */
 .endm
