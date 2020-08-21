@@ -670,10 +670,9 @@ struct XdlopsGemm_t
                     a[k_i + m_i * K] = p_a_wave[k_i * M + laneId + MPerXdlops * m_i];
 
             for(index_t n_i = 0; n_i < NRepeats; ++n_i)
-                for(index_t k_i = 0; k_i < K; ++k_i)
+                for(index_t k_i      = 0; k_i < K; ++k_i)
                     b[k_i + n_i * K] = p_b_wave[k_i * N + laneId + NPerXdlops * n_i];
 
-#if CK_WORKAROUND_SWDEV_241664
             index_t m_i = 0, n_i = 0;
             // for(index_t m_i = 0; m_i < MRepeats; ++m_i)
             {
@@ -693,49 +692,6 @@ struct XdlopsGemm_t
                     }
                 }
             }
-
-#else
-
-            index_t m_i = 0, n_i = 0;
-            // for(index_t m_i = 0; m_i < MRepeats; ++m_i)
-            {
-                const index_t a_off = m_i * K * (KRepeats * mfma_type.k_base);
-
-                // for(index_t n_i = 0; n_i < NRepeats; ++n_i)
-                {
-                    const index_t b_off = n_i * K * (KRepeats * mfma_type.k_base);
-
-#pragma unroll
-                    for(index_t k_i = 0; k_i < K * KRepeats; ++k_i)
-                    {
-                        p_c_thread.l.x = mfma_type.template run<MPerXdlops, NPerXdlops>(
-                            &pa[k_i * mfma_type.k_base + a_off],
-                            &pb[k_i * mfma_type.k_base + b_off],
-                            p_c_thread.l.x);
-                    }
-                }
-            }
-
-            n_i = 1;
-            // for(index_t m_i = 0; m_i < MRepeats; ++m_i)
-            {
-                const index_t a_off = m_i * K * (KRepeats * mfma_type.k_base);
-
-                // for(index_t n_i = 0; n_i < NRepeats; ++n_i)
-                {
-                    const index_t b_off = n_i * K * (KRepeats * mfma_type.k_base);
-
-#pragma unroll
-                    for(index_t k_i = 0; k_i < K * KRepeats; ++k_i)
-                    {
-                        p_c_thread.l.y = mfma_type.template run<MPerXdlops, NPerXdlops>(
-                            &pa[k_i * mfma_type.k_base + a_off],
-                            &pb[k_i * mfma_type.k_base + b_off],
-                            p_c_thread.l.y);
-                    }
-                }
-            }
-#endif
 
         }).Else([&](auto) {
 

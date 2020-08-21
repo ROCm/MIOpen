@@ -32,13 +32,15 @@ struct vector_type
     } MemoryType;
 };
 
-union c_vec64_t
+union c_vec32_2_t
 {
+    float64_t c;
     struct
     {
         float32_t x;
         float32_t y;
     } s;
+    float n[64];
 };
 
 union c_vec64_2_t
@@ -46,8 +48,8 @@ union c_vec64_2_t
     float128_t c;
     struct
     {
-        c_vec64_t x;
-        c_vec64_t y;
+        c_vec32_2_t x;
+        c_vec32_2_t y;
     } l;
     float n[128];
 };

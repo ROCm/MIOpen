@@ -915,8 +915,13 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
         __shared__ ABFloat p_a_block[a_block_space];
         __shared__ ABFloat p_b_block[b_block_space];
 
-        // register allocation for output
+        static_assert(MPerWave >= 64 && NPerWave >= 64, "");
+// register allocation for output
+#if CK_PARAM_TUNABLE_GEMM_M_PER_WAVE == 64 && CK_PARAM_TUNABLE_GEMM_N_PER_WAVE == 64
+        c_vec32_2_t p_c_thread_vec;
+#else
         c_vec64_2_t p_c_thread_vec;
+#endif
         p_c_thread_vec.c = 0;
 
         // preload data into LDS
