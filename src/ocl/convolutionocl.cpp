@@ -3346,7 +3346,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                                                        size_t workSpaceSize) const
 {
     MIOPEN_LOG_I("algo = " << algo << ", workspace = " << workSpaceSize);
-    auto tensors = ConvWrwTensors{dyDesc, dy, xDesc, x, dwDesc, dw};
+    decltype(auto) tensors = ConvWrwTensors{dyDesc, dy, xDesc, x, dwDesc, dw};
     ValidateConvTensors(tensors);
     ValidateAlphaBeta(alpha, beta);
 
@@ -3356,32 +3356,24 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
     ConvWrwCheckNumerics(handle, tensors, beta, [&]() {
         ValidateGroupCount(xDesc, dwDesc, *this);
 
-        const auto direction      = conv::Direction::BackwardWeights;
-        const auto algorithm_name = AlgorithmName{ConvolutionAlgoToDirectionalString(
-            static_cast<miopenConvAlgorithm_t>(algo), direction)};
-
-        auto ctx = ConvolutionContext{xDesc, dwDesc, dyDesc, *this, direction};
-        ctx.SetStream(&handle);
-        const auto network_config = ctx.BuildConfKey();
-        const auto& invoker       = handle.GetInvoker(network_config, boost::none, algorithm_name);
-
-        if(invoker)
+        if (algo == miopenConvolutionBwdWeightsAlgoGEMM)
         {
-            const auto& invoke_ctx = conv::WrWInvokeParams{tensors, workSpace, workSpaceSize};
-            (*invoker)(handle, invoke_ctx);
+            BackwardWeightsGemm(handle, tensors, workSpace, workSpaceSize);
             return;
         }
 
-        switch(algo)
-        {
-        case miopenConvolutionBwdWeightsAlgoDirect:
-        case miopenConvolutionBwdWeightsAlgoImplicitGEMM:
-        case miopenConvolutionBwdWeightsAlgoWinograd:
+        decltype(auto) direction      = conv::Direction::BackwardWeights;
+        decltype(auto) algorithm_name = AlgorithmName{ConvolutionAlgoToDirectionalString(
+            static_cast<miopenConvAlgorithm_t>(algo), direction)};
+        decltype(auto) ctx = conv::ProblemDescription{xDesc, dwDesc, dyDesc, *this, direction};
+        decltype(auto) network_config = ctx.BuildConfKey();
+        decltype(auto) invoker = handle.GetInvoker(network_config, boost::none, algorithm_name);
+
+        if(!invoker)
             MIOPEN_THROW("No invoker was registered for convolution weights. Was find executed?");
-        case miopenConvolutionBwdWeightsAlgoGEMM:
-            BackwardWeightsGemm(handle, tensors, workSpace, workSpaceSize);
-            break;
-        }
+
+        decltype(auto) invoke_ctx = conv::WrWInvokeParams{tensors, workSpace, workSpaceSize};
+        (*invoker)(handle, invoke_ctx);
     });
 }
 
