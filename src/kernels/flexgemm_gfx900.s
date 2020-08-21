@@ -119,13 +119,14 @@ padding2d:
     .amdhsa_user_sgpr_kernarg_segment_ptr 1
     .amdhsa_system_sgpr_workgroup_id_x 1
     .amdhsa_system_sgpr_workgroup_id_y 1
-    .amdhsa_system_sgpr_workgroup_id_z 1
+    .amdhsa_system_sgpr_workgroup_id_z 0
     .amdhsa_system_vgpr_workitem_id 0
     .amdhsa_next_free_vgpr 8
     .amdhsa_next_free_sgpr 27
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl perm2d_flip
 .p2align 8
@@ -220,6 +221,7 @@ L2:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl genidx2d
 .p2align 8
@@ -416,6 +418,7 @@ genidx2d:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl sbco7x4
 .p2align 8
@@ -914,6 +917,7 @@ L7:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl sbco8x5
 .p2align 8
@@ -1718,6 +1722,7 @@ L12:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl sbco8x6
 .p2align 8
@@ -3065,6 +3070,7 @@ L20:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl sbco7x7
 .p2align 8
@@ -3149,7 +3155,7 @@ sbco7x7:
     global_load_dwordx4 v[104:107], v[114:115], s[6:7]
     global_load_dwordx4 v[108:111], v[115:116], s[6:7]
     s_load_dwordx8 s[12:19], s[2:3], 0x40
-    s_and_b32 s14, s36, 1
+    s_and_b32 s20, s36, 1
     s_lshl_b32 s21, s36, 11
     v_lshlrev_b32 v3, 4, v5
     v_lshlrev_b32 v4, 4, v6
@@ -5042,6 +5048,7 @@ L28:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl sufbco7x4_om
 .p2align 8
@@ -5518,10 +5525,11 @@ L33:
     .amdhsa_system_sgpr_workgroup_id_z 1
     .amdhsa_system_vgpr_workitem_id 0
     .amdhsa_next_free_vgpr 57
-    .amdhsa_next_free_sgpr 28
+    .amdhsa_next_free_sgpr 26
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl sufbco7x4_dm
 .p2align 8
@@ -5547,16 +5555,16 @@ sufbco7x4_dm:
     s_lshr_b32 s21, s9, 1
     s_sub_u32 s22, s20, 1
     v_cmp_gt_u32 vcc, s20, v5
-    v_mov_b32 v9, s22
-    v_cndmask_b32 v9, v9, v5, vcc
-    v_mul_lo_u32 v7, s12, v9
-    v_mul_hi_u32 v8, s12, v9
-    v_lshrrev_b64 v[6:7], s13, v[6:7]
-    v_mul_lo_u32 v8, s21, v7
-    v_sub_u32 v8, v9, v8
+    v_mov_b32 v10, s22
+    v_cndmask_b32 v10, v10, v5, vcc
+    v_mul_lo_u32 v8, s12, v10
+    v_mul_hi_u32 v9, s12, v10
+    v_lshrrev_b64 v[8:9], s13, v[8:9]
+    v_mul_lo_u32 v9, s21, v8
+    v_sub_u32 v9, v10, v9
     s_mul_i32 s20, s21, s18
-    v_mul_lo_u32 v9, s20, v7
-    v_add_lshl_u32 v41, v8, v9, 3
+    v_mul_lo_u32 v10, s20, v8
+    v_add_lshl_u32 v41, v9, v10, 3
     s_mul_i32 s3, s2, s11
     s_mul_i32 s12, s10, s2
     s_mul_hi_u32 s13, s10, s2
@@ -5582,14 +5590,14 @@ sufbco7x4_dm:
     global_load_dwordx2 v[36:37], v[43:44], s[4:5]
     global_load_dwordx2 v[38:39], v[44:45], s[4:5]
     global_load_dword v40, v[45:46], s[6:7]
-    v_mul_lo_u32 v5, s14, v53
-    v_mul_hi_u32 v6, s14, v53
-    v_lshrrev_b64 v[4:5], s15, v[4:5]
-    v_mul_lo_u32 v6, s9, v5
-    v_sub_u32 v6, v53, v6
+    v_mul_lo_u32 v6, s14, v53
+    v_mul_hi_u32 v7, s14, v53
+    v_lshrrev_b64 v[6:7], s15, v[6:7]
+    v_mul_lo_u32 v7, s9, v6
+    v_sub_u32 v7, v53, v7
     s_mul_i32 s20, s9, s19
-    v_mul_lo_u32 v5, s20, v5
-    v_add_lshl_u32 v46, v5, v6, 2
+    v_mul_lo_u32 v6, s20, v6
+    v_add_lshl_u32 v46, v6, v7, 2
     v_and_b32 v5, 3, v4
     v_lshlrev_b32 v6, 8, v2
     v_lshlrev_b32 v7, 10, v2
@@ -5998,6 +6006,7 @@ L38:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl sufbco7x4_qm
 .p2align 8
@@ -6025,16 +6034,16 @@ sufbco7x4_qm:
     s_lshr_b32 s21, s9, 2
     s_sub_u32 s22, s20, 1
     v_cmp_gt_u32 vcc, s20, v7
-    v_mov_b32 v11, s22
-    v_cndmask_b32 v11, v11, v7, vcc
-    v_mul_lo_u32 v9, s12, v11
-    v_mul_hi_u32 v10, s12, v11
-    v_lshrrev_b64 v[8:9], s13, v[8:9]
-    v_mul_lo_u32 v10, s21, v9
-    v_sub_u32 v10, v11, v10
+    v_mov_b32 v12, s22
+    v_cndmask_b32 v12, v12, v7, vcc
+    v_mul_lo_u32 v10, s12, v12
+    v_mul_hi_u32 v11, s12, v12
+    v_lshrrev_b64 v[10:11], s13, v[10:11]
+    v_mul_lo_u32 v11, s21, v10
+    v_sub_u32 v11, v12, v11
     s_mul_i32 s20, s21, s18
-    v_mul_lo_u32 v11, s20, v9
-    v_add_lshl_u32 v41, v10, v11, 4
+    v_mul_lo_u32 v12, s20, v10
+    v_add_lshl_u32 v41, v11, v12, 4
     s_mul_i32 s3, s2, s11
     s_mul_i32 s12, s10, s2
     s_mul_hi_u32 s13, s10, s2
@@ -6055,14 +6064,14 @@ sufbco7x4_qm:
     global_load_dwordx4 v[32:35], v[41:42], s[4:5]
     global_load_dwordx4 v[36:39], v[42:43], s[4:5]
     global_load_dword v40, v[43:44], s[6:7]
-    v_mul_lo_u32 v7, s14, v51
-    v_mul_hi_u32 v8, s14, v51
-    v_lshrrev_b64 v[6:7], s15, v[6:7]
-    v_mul_lo_u32 v8, s9, v7
-    v_sub_u32 v8, v51, v8
+    v_mul_lo_u32 v8, s14, v51
+    v_mul_hi_u32 v9, s14, v51
+    v_lshrrev_b64 v[8:9], s15, v[8:9]
+    v_mul_lo_u32 v9, s9, v8
+    v_sub_u32 v9, v51, v9
     s_mul_i32 s20, s9, s19
-    v_mul_lo_u32 v7, s20, v7
-    v_add_lshl_u32 v44, v7, v8, 2
+    v_mul_lo_u32 v8, s20, v8
+    v_add_lshl_u32 v44, v8, v9, 2
     v_and_b32 v7, 3, v6
     v_lshlrev_b32 v3, 8, v2
     v_lshlrev_b32 v4, 10, v2
@@ -6469,6 +6478,7 @@ L43:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl sufbco8x5_om
 .p2align 8
@@ -7241,6 +7251,7 @@ L48:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl sufbco8x5_dm
 .p2align 8
@@ -7266,16 +7277,16 @@ sufbco8x5_dm:
     s_lshr_b32 s21, s9, 1
     s_sub_u32 s22, s20, 1
     v_cmp_gt_u32 vcc, s20, v5
-    v_mov_b32 v9, s22
-    v_cndmask_b32 v9, v9, v5, vcc
-    v_mul_lo_u32 v7, s12, v9
-    v_mul_hi_u32 v8, s12, v9
-    v_lshrrev_b64 v[6:7], s13, v[6:7]
-    v_mul_lo_u32 v8, s21, v7
-    v_sub_u32 v8, v9, v8
+    v_mov_b32 v10, s22
+    v_cndmask_b32 v10, v10, v5, vcc
+    v_mul_lo_u32 v8, s12, v10
+    v_mul_hi_u32 v9, s12, v10
+    v_lshrrev_b64 v[8:9], s13, v[8:9]
+    v_mul_lo_u32 v9, s21, v8
+    v_sub_u32 v9, v10, v9
     s_mul_i32 s20, s21, s18
-    v_mul_lo_u32 v9, s20, v7
-    v_add_lshl_u32 v65, v8, v9, 3
+    v_mul_lo_u32 v10, s20, v8
+    v_add_lshl_u32 v65, v9, v10, 3
     s_mul_i32 s3, s2, s11
     s_mul_i32 s12, s10, s2
     s_mul_hi_u32 s13, s10, s2
@@ -8008,6 +8019,7 @@ L53:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl sufbco8x5_qm
 .p2align 8
@@ -8033,16 +8045,16 @@ sufbco8x5_qm:
     s_lshr_b32 s19, s9, 2
     s_sub_u32 s20, s18, 1
     v_cmp_gt_u32 vcc, s18, v5
-    v_mov_b32 v9, s20
-    v_cndmask_b32 v9, v9, v5, vcc
-    v_mul_lo_u32 v7, s12, v9
-    v_mul_hi_u32 v8, s12, v9
-    v_lshrrev_b64 v[6:7], s13, v[6:7]
-    v_mul_lo_u32 v8, s19, v7
-    v_sub_u32 v8, v9, v8
+    v_mov_b32 v10, s20
+    v_cndmask_b32 v10, v10, v5, vcc
+    v_mul_lo_u32 v8, s12, v10
+    v_mul_hi_u32 v9, s12, v10
+    v_lshrrev_b64 v[8:9], s13, v[8:9]
+    v_mul_lo_u32 v9, s19, v8
+    v_sub_u32 v9, v10, v9
     s_mul_i32 s18, s19, s16
-    v_mul_lo_u32 v9, s18, v7
-    v_add_lshl_u32 v65, v8, v9, 4
+    v_mul_lo_u32 v10, s18, v8
+    v_add_lshl_u32 v65, v9, v10, 4
     s_mul_i32 s3, s2, s11
     s_mul_i32 s12, s10, s2
     s_mul_hi_u32 s13, s10, s2
@@ -8765,6 +8777,7 @@ L58:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl sufbco8x6_om
 .p2align 8
@@ -10115,6 +10128,7 @@ L66:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl sufbco8x6_dm
 .p2align 8
@@ -10140,16 +10154,16 @@ sufbco8x6_dm:
     s_lshr_b32 s21, s9, 1
     s_sub_u32 s22, s20, 1
     v_cmp_gt_u32 vcc, s20, v5
-    v_mov_b32 v9, s22
-    v_cndmask_b32 v9, v9, v5, vcc
-    v_mul_lo_u32 v7, s12, v9
-    v_mul_hi_u32 v8, s12, v9
-    v_lshrrev_b64 v[6:7], s13, v[6:7]
-    v_mul_lo_u32 v8, s21, v7
-    v_sub_u32 v8, v9, v8
+    v_mov_b32 v10, s22
+    v_cndmask_b32 v10, v10, v5, vcc
+    v_mul_lo_u32 v8, s12, v10
+    v_mul_hi_u32 v9, s12, v10
+    v_lshrrev_b64 v[8:9], s13, v[8:9]
+    v_mul_lo_u32 v9, s21, v8
+    v_sub_u32 v9, v10, v9
     s_mul_i32 s20, s21, s18
-    v_mul_lo_u32 v9, s20, v7
-    v_add_lshl_u32 v106, v8, v9, 3
+    v_mul_lo_u32 v10, s20, v8
+    v_add_lshl_u32 v106, v9, v10, 3
     s_mul_i32 s3, s2, s11
     s_mul_i32 s12, s10, s2
     s_mul_hi_u32 s13, s10, s2
@@ -10179,14 +10193,14 @@ sufbco8x6_dm:
     global_load_dwordx2 v[102:103], v[109:110], s[4:5]
     global_load_dwordx2 v[104:105], v[110:111], s[6:7]
     v_readfirstlane_b32 s12, v2
-    v_mul_lo_u32 v1, s14, v116
-    v_mul_hi_u32 v2, s14, v116
-    v_lshrrev_b64 v[0:1], s15, v[0:1]
-    v_mul_lo_u32 v2, s9, v1
-    v_sub_u32 v2, v116, v2
+    v_mul_lo_u32 v2, s14, v116
+    v_mul_hi_u32 v3, s14, v116
+    v_lshrrev_b64 v[2:3], s15, v[2:3]
+    v_mul_lo_u32 v3, s9, v2
+    v_sub_u32 v3, v116, v3
     s_mul_i32 s20, s9, s19
-    v_mul_lo_u32 v1, s20, v1
-    v_add_lshl_u32 v117, v1, v2, 2
+    v_mul_lo_u32 v2, s20, v2
+    v_add_lshl_u32 v117, v2, v3, 2
     s_lshl_b32 s2, s12, 11
     s_lshl_b32 s3, s12, 8
     v_and_b32 v1, 63, v0
@@ -11459,6 +11473,7 @@ L74:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl sufbco8x6_qm
 .p2align 8
@@ -11484,16 +11499,16 @@ sufbco8x6_qm:
     s_lshr_b32 s21, s9, 2
     s_sub_u32 s22, s20, 1
     v_cmp_gt_u32 vcc, s20, v5
-    v_mov_b32 v9, s22
-    v_cndmask_b32 v9, v9, v5, vcc
-    v_mul_lo_u32 v7, s12, v9
-    v_mul_hi_u32 v8, s12, v9
-    v_lshrrev_b64 v[6:7], s13, v[6:7]
-    v_mul_lo_u32 v8, s21, v7
-    v_sub_u32 v8, v9, v8
+    v_mov_b32 v10, s22
+    v_cndmask_b32 v10, v10, v5, vcc
+    v_mul_lo_u32 v8, s12, v10
+    v_mul_hi_u32 v9, s12, v10
+    v_lshrrev_b64 v[8:9], s13, v[8:9]
+    v_mul_lo_u32 v9, s21, v8
+    v_sub_u32 v9, v10, v9
     s_mul_i32 s20, s21, s18
-    v_mul_lo_u32 v9, s20, v7
-    v_add_lshl_u32 v106, v8, v9, 4
+    v_mul_lo_u32 v10, s20, v8
+    v_add_lshl_u32 v106, v9, v10, 4
     s_mul_i32 s3, s2, s11
     s_mul_i32 s12, s10, s2
     s_mul_hi_u32 s13, s10, s2
@@ -12796,6 +12811,7 @@ L82:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl sufbco7x7_om
 .p2align 8
@@ -14734,6 +14750,7 @@ L90:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl sufbco7x7_dm
 .p2align 8
@@ -16458,6 +16475,7 @@ L98:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl sufbco7x7_qm
 .p2align 8
@@ -16485,16 +16503,16 @@ sufbco7x7_qm:
     s_lshr_b32 s19, s9, 2
     s_sub_u32 s20, s18, 1
     v_cmp_gt_u32 vcc, s18, v7
-    v_mov_b32 v11, s20
-    v_cndmask_b32 v11, v11, v7, vcc
-    v_mul_lo_u32 v9, s12, v11
-    v_mul_hi_u32 v10, s12, v11
-    v_lshrrev_b64 v[8:9], s13, v[8:9]
-    v_mul_lo_u32 v10, s19, v9
-    v_sub_u32 v10, v11, v10
+    v_mov_b32 v12, s20
+    v_cndmask_b32 v12, v12, v7, vcc
+    v_mul_lo_u32 v10, s12, v12
+    v_mul_hi_u32 v11, s12, v12
+    v_lshrrev_b64 v[10:11], s13, v[10:11]
+    v_mul_lo_u32 v11, s19, v10
+    v_sub_u32 v11, v12, v11
     s_mul_i32 s18, s19, s16
-    v_mul_lo_u32 v11, s18, v9
-    v_add_lshl_u32 v112, v10, v11, 4
+    v_mul_lo_u32 v12, s18, v10
+    v_add_lshl_u32 v112, v11, v12, 4
     s_mul_i32 s3, s2, s11
     s_mul_i32 s12, s10, s2
     s_mul_hi_u32 s13, s10, s2
@@ -16521,14 +16539,14 @@ sufbco7x7_qm:
     global_load_dwordx4 v[108:111], v[115:116], s[6:7]
     v_readfirstlane_b32 s12, v2
     s_lshr_b32 s18, s9, 1
-    v_mul_lo_u32 v7, s14, v121
-    v_mul_hi_u32 v8, s14, v121
-    v_lshrrev_b64 v[6:7], s15, v[6:7]
-    v_mul_lo_u32 v8, s18, v7
-    v_sub_u32 v8, v121, v8
+    v_mul_lo_u32 v8, s14, v121
+    v_mul_hi_u32 v9, s14, v121
+    v_lshrrev_b64 v[8:9], s15, v[8:9]
+    v_mul_lo_u32 v9, s18, v8
+    v_sub_u32 v9, v121, v9
     s_mul_i32 s18, s18, s17
-    v_mul_lo_u32 v7, s18, v7
-    v_add_lshl_u32 v122, v7, v8, 3
+    v_mul_lo_u32 v8, s18, v8
+    v_add_lshl_u32 v122, v8, v9, 3
     v_lshlrev_b32 v116, 4, v5
     v_lshlrev_b32 v117, 4, v6
     v_lshlrev_b32 v118, 4, v0
@@ -18177,6 +18195,7 @@ L106:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl sfco
 .p2align 8
@@ -19305,6 +19324,7 @@ L113:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl sfco_relu
 .p2align 8
@@ -20465,6 +20485,7 @@ L120:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl sfco7x4
 .p2align 8
@@ -20982,6 +21003,7 @@ L125:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl sfco7x4_relu
 .p2align 8
@@ -21515,6 +21537,7 @@ L130:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl sfco8x5
 .p2align 8
@@ -22320,6 +22343,7 @@ L135:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl sfco8x5_relu
 .p2align 8
@@ -23157,6 +23181,7 @@ L140:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl sfco8x6
 .p2align 8
@@ -24541,6 +24566,7 @@ L148:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl sfco8x6_relu
 .p2align 8
@@ -25989,6 +26015,7 @@ L156:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl sfco7x7
 .p2align 8
@@ -26076,7 +26103,7 @@ sfco7x7:
     global_load_dwordx4 v[104:107], v[114:115], s[6:7]
     global_load_dwordx4 v[108:111], v[115:116], s[6:7]
     s_load_dwordx8 s[12:19], s[2:3], 0x40
-    s_and_b32 s14, s36, 1
+    s_and_b32 s20, s36, 1
     v_lshlrev_b32 v7, 4, v3
     v_lshlrev_b32 v8, 4, v4
     v_lshlrev_b32 v9, 2, v6
@@ -27969,6 +27996,7 @@ L164:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl sfco7x7_relu
 .p2align 8
@@ -28056,7 +28084,7 @@ sfco7x7_relu:
     global_load_dwordx4 v[104:107], v[114:115], s[6:7]
     global_load_dwordx4 v[108:111], v[115:116], s[6:7]
     s_load_dwordx8 s[12:19], s[2:3], 0x40
-    s_and_b32 s14, s36, 1
+    s_and_b32 s20, s36, 1
     v_lshlrev_b32 v7, 4, v3
     v_lshlrev_b32 v8, 4, v4
     v_lshlrev_b32 v9, 2, v6
@@ -30013,6 +30041,7 @@ L172:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl suffco7x4_om
 .p2align 8
@@ -30500,6 +30529,7 @@ L177:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl suffco7x4_om_relu
 .p2align 8
@@ -31003,6 +31033,7 @@ L182:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl suffco7x4_dm
 .p2align 8
@@ -31065,14 +31096,14 @@ suffco7x4_dm:
     global_load_dwordx2 v[38:39], v[44:45], s[4:5]
     global_load_dword v40, v[45:46], s[6:7]
     v_readfirstlane_b32 s2, v2
-    v_mul_lo_u32 v5, s14, v53
-    v_mul_hi_u32 v6, s14, v53
-    v_lshrrev_b64 v[4:5], s15, v[4:5]
-    v_mul_lo_u32 v6, s9, v5
-    v_sub_u32 v6, v53, v6
+    v_mul_lo_u32 v6, s14, v53
+    v_mul_hi_u32 v7, s14, v53
+    v_lshrrev_b64 v[6:7], s15, v[6:7]
+    v_mul_lo_u32 v7, s9, v6
+    v_sub_u32 v7, v53, v7
     s_mul_i32 s16, s9, s23
-    v_mul_lo_u32 v5, s16, v5
-    v_add_lshl_u32 v46, v5, v6, 2
+    v_mul_lo_u32 v6, s16, v6
+    v_add_lshl_u32 v46, v6, v7, 2
     s_lshl_b32 s3, s2, 10
     v_and_b32 v5, 15, v1
     v_lshrrev_b32 v6, 4, v1
@@ -31484,6 +31515,7 @@ L187:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl suffco7x4_dm_relu
 .p2align 8
@@ -31546,14 +31578,14 @@ suffco7x4_dm_relu:
     global_load_dwordx2 v[38:39], v[44:45], s[4:5]
     global_load_dword v40, v[45:46], s[6:7]
     v_readfirstlane_b32 s2, v2
-    v_mul_lo_u32 v5, s14, v53
-    v_mul_hi_u32 v6, s14, v53
-    v_lshrrev_b64 v[4:5], s15, v[4:5]
-    v_mul_lo_u32 v6, s9, v5
-    v_sub_u32 v6, v53, v6
+    v_mul_lo_u32 v6, s14, v53
+    v_mul_hi_u32 v7, s14, v53
+    v_lshrrev_b64 v[6:7], s15, v[6:7]
+    v_mul_lo_u32 v7, s9, v6
+    v_sub_u32 v7, v53, v7
     s_mul_i32 s16, s9, s23
-    v_mul_lo_u32 v5, s16, v5
-    v_add_lshl_u32 v46, v5, v6, 2
+    v_mul_lo_u32 v6, s16, v6
+    v_add_lshl_u32 v46, v6, v7, 2
     s_lshl_b32 s3, s2, 10
     v_and_b32 v5, 15, v1
     v_lshrrev_b32 v6, 4, v1
@@ -31981,6 +32013,7 @@ L192:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl suffco7x4_qm
 .p2align 8
@@ -32040,14 +32073,14 @@ suffco7x4_qm:
     global_load_dwordx4 v[36:39], v[42:43], s[4:5]
     global_load_dword v40, v[43:44], s[6:7]
     v_readfirstlane_b32 s2, v2
-    v_mul_lo_u32 v7, s14, v51
-    v_mul_hi_u32 v8, s14, v51
-    v_lshrrev_b64 v[6:7], s15, v[6:7]
-    v_mul_lo_u32 v8, s9, v7
-    v_sub_u32 v8, v51, v8
+    v_mul_lo_u32 v8, s14, v51
+    v_mul_hi_u32 v9, s14, v51
+    v_lshrrev_b64 v[8:9], s15, v[8:9]
+    v_mul_lo_u32 v9, s9, v8
+    v_sub_u32 v9, v51, v9
     s_mul_i32 s16, s9, s23
-    v_mul_lo_u32 v7, s16, v7
-    v_add_lshl_u32 v44, v7, v8, 2
+    v_mul_lo_u32 v8, s16, v8
+    v_add_lshl_u32 v44, v8, v9, 2
     s_lshl_b32 s3, s2, 10
     v_and_b32 v3, 15, v1
     v_lshrrev_b32 v4, 4, v1
@@ -32457,6 +32490,7 @@ L197:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl suffco7x4_qm_relu
 .p2align 8
@@ -32516,14 +32550,14 @@ suffco7x4_qm_relu:
     global_load_dwordx4 v[36:39], v[42:43], s[4:5]
     global_load_dword v40, v[43:44], s[6:7]
     v_readfirstlane_b32 s2, v2
-    v_mul_lo_u32 v7, s14, v51
-    v_mul_hi_u32 v8, s14, v51
-    v_lshrrev_b64 v[6:7], s15, v[6:7]
-    v_mul_lo_u32 v8, s9, v7
-    v_sub_u32 v8, v51, v8
+    v_mul_lo_u32 v8, s14, v51
+    v_mul_hi_u32 v9, s14, v51
+    v_lshrrev_b64 v[8:9], s15, v[8:9]
+    v_mul_lo_u32 v9, s9, v8
+    v_sub_u32 v9, v51, v9
     s_mul_i32 s16, s9, s23
-    v_mul_lo_u32 v7, s16, v7
-    v_add_lshl_u32 v44, v7, v8, 2
+    v_mul_lo_u32 v8, s16, v8
+    v_add_lshl_u32 v44, v8, v9, 2
     s_lshl_b32 s3, s2, 10
     v_and_b32 v3, 15, v1
     v_lshrrev_b32 v4, 4, v1
@@ -32949,6 +32983,7 @@ L202:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl suffco8x5_om
 .p2align 8
@@ -33723,6 +33758,7 @@ L207:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl suffco8x5_om_relu
 .p2align 8
@@ -34529,6 +34565,7 @@ L212:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl suffco8x5_dm
 .p2align 8
@@ -34593,14 +34630,14 @@ suffco8x5_dm:
     v_lshrrev_b32 v2, 6, v0
     v_and_b32 v1, 63, v0
     v_readfirstlane_b32 s2, v2
-    v_mul_lo_u32 v5, s14, v77
-    v_mul_hi_u32 v6, s14, v77
-    v_lshrrev_b64 v[4:5], s15, v[4:5]
-    v_mul_lo_u32 v6, s9, v5
-    v_sub_u32 v6, v77, v6
+    v_mul_lo_u32 v6, s14, v77
+    v_mul_hi_u32 v7, s14, v77
+    v_lshrrev_b64 v[6:7], s15, v[6:7]
+    v_mul_lo_u32 v7, s9, v6
+    v_sub_u32 v7, v77, v7
     s_mul_i32 s20, s9, s19
-    v_mul_lo_u32 v5, s20, v5
-    v_add_lshl_u32 v70, v5, v6, 2
+    v_mul_lo_u32 v6, s20, v6
+    v_add_lshl_u32 v70, v6, v7, 2
     s_lshl_b32 s3, s2, 11
     v_and_b32 v5, 7, v1
     v_lshrrev_b32 v6, 3, v1
@@ -35300,6 +35337,7 @@ L217:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl suffco8x5_dm_relu
 .p2align 8
@@ -35364,14 +35402,14 @@ suffco8x5_dm_relu:
     v_lshrrev_b32 v2, 6, v0
     v_and_b32 v1, 63, v0
     v_readfirstlane_b32 s2, v2
-    v_mul_lo_u32 v5, s14, v77
-    v_mul_hi_u32 v6, s14, v77
-    v_lshrrev_b64 v[4:5], s15, v[4:5]
-    v_mul_lo_u32 v6, s9, v5
-    v_sub_u32 v6, v77, v6
+    v_mul_lo_u32 v6, s14, v77
+    v_mul_hi_u32 v7, s14, v77
+    v_lshrrev_b64 v[6:7], s15, v[6:7]
+    v_mul_lo_u32 v7, s9, v6
+    v_sub_u32 v7, v77, v7
     s_mul_i32 s20, s9, s19
-    v_mul_lo_u32 v5, s20, v5
-    v_add_lshl_u32 v70, v5, v6, 2
+    v_mul_lo_u32 v6, s20, v6
+    v_add_lshl_u32 v70, v6, v7, 2
     s_lshl_b32 s3, s2, 11
     v_and_b32 v5, 7, v1
     v_lshrrev_b32 v6, 3, v1
@@ -36103,6 +36141,7 @@ L222:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl suffco8x5_qm
 .p2align 8
@@ -36160,14 +36199,14 @@ suffco8x5_qm:
     global_load_dwordx4 v[60:63], v[66:67], s[4:5]
     global_load_dword v64, v[67:68], s[6:7]
     v_readfirstlane_b32 s2, v2
-    v_mul_lo_u32 v5, s14, v75
-    v_mul_hi_u32 v6, s14, v75
-    v_lshrrev_b64 v[4:5], s15, v[4:5]
-    v_mul_lo_u32 v6, s9, v5
-    v_sub_u32 v6, v75, v6
+    v_mul_lo_u32 v6, s14, v75
+    v_mul_hi_u32 v7, s14, v75
+    v_lshrrev_b64 v[6:7], s15, v[6:7]
+    v_mul_lo_u32 v7, s9, v6
+    v_sub_u32 v7, v75, v7
     s_mul_i32 s20, s9, s19
-    v_mul_lo_u32 v5, s20, v5
-    v_add_lshl_u32 v68, v5, v6, 2
+    v_mul_lo_u32 v6, s20, v6
+    v_add_lshl_u32 v68, v6, v7, 2
     s_lshl_b32 s3, s2, 11
     v_and_b32 v5, 7, v1
     v_lshrrev_b32 v6, 3, v1
@@ -36865,6 +36904,7 @@ L227:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl suffco8x5_qm_relu
 .p2align 8
@@ -36922,14 +36962,14 @@ suffco8x5_qm_relu:
     global_load_dwordx4 v[60:63], v[66:67], s[4:5]
     global_load_dword v64, v[67:68], s[6:7]
     v_readfirstlane_b32 s2, v2
-    v_mul_lo_u32 v5, s14, v75
-    v_mul_hi_u32 v6, s14, v75
-    v_lshrrev_b64 v[4:5], s15, v[4:5]
-    v_mul_lo_u32 v6, s9, v5
-    v_sub_u32 v6, v75, v6
+    v_mul_lo_u32 v6, s14, v75
+    v_mul_hi_u32 v7, s14, v75
+    v_lshrrev_b64 v[6:7], s15, v[6:7]
+    v_mul_lo_u32 v7, s9, v6
+    v_sub_u32 v7, v75, v7
     s_mul_i32 s20, s9, s19
-    v_mul_lo_u32 v5, s20, v5
-    v_add_lshl_u32 v68, v5, v6, 2
+    v_mul_lo_u32 v6, s20, v6
+    v_add_lshl_u32 v68, v6, v7, 2
     s_lshl_b32 s3, s2, 11
     v_and_b32 v5, 7, v1
     v_lshrrev_b32 v6, 3, v1
@@ -37659,6 +37699,7 @@ L232:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl suffco8x6_om
 .p2align 8
@@ -37675,19 +37716,19 @@ suffco8x6_om:
     s_mul_i32 s17, s11, s8
     s_sub_u32 s18, s14, 1
     v_cmp_gt_u32 vcc, s14, v122
-    v_mov_b32 v4, s18
-    v_cndmask_b32 v3, v4, v122, vcc
-    v_mul_lo_u32 v1, s12, v3
-    v_mul_hi_u32 v2, s12, v3
-    v_lshrrev_b64 v[0:1], s13, v[0:1]
-    v_mul_lo_u32 v2, s9, v1
-    v_sub_u32 v2, v3, v2
+    v_mov_b32 v5, s18
+    v_cndmask_b32 v4, v5, v122, vcc
+    v_mul_lo_u32 v2, s12, v4
+    v_mul_hi_u32 v3, s12, v4
+    v_lshrrev_b64 v[2:3], s13, v[2:3]
+    v_mul_lo_u32 v3, s9, v2
+    v_sub_u32 v3, v4, v3
     s_mul_i32 s18, s17, s9
     s_mul_i32 s19, s16, s9
-    v_mul_lo_u32 v3, s18, v1
-    v_mul_lo_u32 v4, s19, v1
-    v_add_lshl_u32 v106, v2, v3, 2
-    v_add_lshl_u32 v115, v2, v4, 2
+    v_mul_lo_u32 v4, s18, v2
+    v_mul_lo_u32 v5, s19, v2
+    v_add_lshl_u32 v106, v3, v4, 2
+    v_add_lshl_u32 v115, v3, v5, 2
     v_lshrrev_b32 v3, 2, v0
     v_and_b32 v4, 3, v0
     v_or_b32 v5, s28, v3
@@ -39008,6 +39049,7 @@ L240:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl suffco8x6_om_relu
 .p2align 8
@@ -39024,19 +39066,19 @@ suffco8x6_om_relu:
     s_mul_i32 s17, s11, s8
     s_sub_u32 s18, s14, 1
     v_cmp_gt_u32 vcc, s14, v122
-    v_mov_b32 v4, s18
-    v_cndmask_b32 v3, v4, v122, vcc
-    v_mul_lo_u32 v1, s12, v3
-    v_mul_hi_u32 v2, s12, v3
-    v_lshrrev_b64 v[0:1], s13, v[0:1]
-    v_mul_lo_u32 v2, s9, v1
-    v_sub_u32 v2, v3, v2
+    v_mov_b32 v5, s18
+    v_cndmask_b32 v4, v5, v122, vcc
+    v_mul_lo_u32 v2, s12, v4
+    v_mul_hi_u32 v3, s12, v4
+    v_lshrrev_b64 v[2:3], s13, v[2:3]
+    v_mul_lo_u32 v3, s9, v2
+    v_sub_u32 v3, v4, v3
     s_mul_i32 s18, s17, s9
     s_mul_i32 s19, s16, s9
-    v_mul_lo_u32 v3, s18, v1
-    v_mul_lo_u32 v4, s19, v1
-    v_add_lshl_u32 v106, v2, v3, 2
-    v_add_lshl_u32 v115, v2, v4, 2
+    v_mul_lo_u32 v4, s18, v2
+    v_mul_lo_u32 v5, s19, v2
+    v_add_lshl_u32 v106, v3, v4, 2
+    v_add_lshl_u32 v115, v3, v5, 2
     v_lshrrev_b32 v3, 2, v0
     v_and_b32 v4, 3, v0
     v_or_b32 v5, s28, v3
@@ -40421,6 +40463,7 @@ L248:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl suffco8x6_dm
 .p2align 8
@@ -40485,14 +40528,14 @@ suffco8x6_dm:
     v_lshrrev_b32 v2, 6, v0
     v_and_b32 v1, 63, v0
     v_readfirstlane_b32 s2, v2
-    v_mul_lo_u32 v5, s14, v118
-    v_mul_hi_u32 v6, s14, v118
-    v_lshrrev_b64 v[4:5], s15, v[4:5]
-    v_mul_lo_u32 v6, s9, v5
-    v_sub_u32 v6, v118, v6
+    v_mul_lo_u32 v6, s14, v118
+    v_mul_hi_u32 v7, s14, v118
+    v_lshrrev_b64 v[6:7], s15, v[6:7]
+    v_mul_lo_u32 v7, s9, v6
+    v_sub_u32 v7, v118, v7
     s_mul_i32 s20, s9, s19
-    v_mul_lo_u32 v5, s20, v5
-    v_add_lshl_u32 v111, v5, v6, 2
+    v_mul_lo_u32 v6, s20, v6
+    v_add_lshl_u32 v111, v6, v7, 2
     s_lshl_b32 s3, s2, 11
     v_and_b32 v5, 7, v1
     v_lshrrev_b32 v6, 3, v1
@@ -41766,6 +41809,7 @@ L256:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl suffco8x6_dm_relu
 .p2align 8
@@ -41830,14 +41874,14 @@ suffco8x6_dm_relu:
     v_lshrrev_b32 v2, 6, v0
     v_and_b32 v1, 63, v0
     v_readfirstlane_b32 s2, v2
-    v_mul_lo_u32 v5, s14, v118
-    v_mul_hi_u32 v6, s14, v118
-    v_lshrrev_b64 v[4:5], s15, v[4:5]
-    v_mul_lo_u32 v6, s9, v5
-    v_sub_u32 v6, v118, v6
+    v_mul_lo_u32 v6, s14, v118
+    v_mul_hi_u32 v7, s14, v118
+    v_lshrrev_b64 v[6:7], s15, v[6:7]
+    v_mul_lo_u32 v7, s9, v6
+    v_sub_u32 v7, v118, v7
     s_mul_i32 s20, s9, s19
-    v_mul_lo_u32 v5, s20, v5
-    v_add_lshl_u32 v111, v5, v6, 2
+    v_mul_lo_u32 v6, s20, v6
+    v_add_lshl_u32 v111, v6, v7, 2
     s_lshl_b32 s3, s2, 11
     v_and_b32 v5, 7, v1
     v_lshrrev_b32 v6, 3, v1
@@ -43175,6 +43219,7 @@ L264:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl suffco8x6_qm
 .p2align 8
@@ -43232,14 +43277,14 @@ suffco8x6_qm:
     global_load_dwordx4 v[100:103], v[107:108], s[4:5]
     global_load_dwordx2 v[104:105], v[108:109], s[6:7]
     v_readfirstlane_b32 s2, v2
-    v_mul_lo_u32 v5, s14, v116
-    v_mul_hi_u32 v6, s14, v116
-    v_lshrrev_b64 v[4:5], s15, v[4:5]
-    v_mul_lo_u32 v6, s9, v5
-    v_sub_u32 v6, v116, v6
+    v_mul_lo_u32 v6, s14, v116
+    v_mul_hi_u32 v7, s14, v116
+    v_lshrrev_b64 v[6:7], s15, v[6:7]
+    v_mul_lo_u32 v7, s9, v6
+    v_sub_u32 v7, v116, v7
     s_mul_i32 s20, s9, s19
-    v_mul_lo_u32 v5, s20, v5
-    v_add_lshl_u32 v109, v5, v6, 2
+    v_mul_lo_u32 v6, s20, v6
+    v_add_lshl_u32 v109, v6, v7, 2
     s_lshl_b32 s3, s2, 11
     v_and_b32 v5, 7, v1
     v_lshrrev_b32 v6, 3, v1
@@ -44511,6 +44556,7 @@ L272:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl suffco8x6_qm_relu
 .p2align 8
@@ -44568,14 +44614,14 @@ suffco8x6_qm_relu:
     global_load_dwordx4 v[100:103], v[107:108], s[4:5]
     global_load_dwordx2 v[104:105], v[108:109], s[6:7]
     v_readfirstlane_b32 s2, v2
-    v_mul_lo_u32 v5, s14, v116
-    v_mul_hi_u32 v6, s14, v116
-    v_lshrrev_b64 v[4:5], s15, v[4:5]
-    v_mul_lo_u32 v6, s9, v5
-    v_sub_u32 v6, v116, v6
+    v_mul_lo_u32 v6, s14, v116
+    v_mul_hi_u32 v7, s14, v116
+    v_lshrrev_b64 v[6:7], s15, v[6:7]
+    v_mul_lo_u32 v7, s9, v6
+    v_sub_u32 v7, v116, v7
     s_mul_i32 s20, s9, s19
-    v_mul_lo_u32 v5, s20, v5
-    v_add_lshl_u32 v109, v5, v6, 2
+    v_mul_lo_u32 v6, s20, v6
+    v_add_lshl_u32 v109, v6, v7, 2
     s_lshl_b32 s3, s2, 11
     v_and_b32 v5, 7, v1
     v_lshrrev_b32 v6, 3, v1
@@ -45911,6 +45957,7 @@ L280:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl suffco7x7_om
 .p2align 8
@@ -45936,19 +45983,19 @@ suffco7x7_om:
     s_mul_i32 s19, s11, s8
     s_sub_u32 s14, s17, 1
     v_cmp_gt_u32 vcc, s17, v16
-    v_mov_b32 v12, s14
-    v_cndmask_b32 v11, v12, v16, vcc
-    v_mul_lo_u32 v9, s12, v11
-    v_mul_hi_u32 v10, s12, v11
-    v_lshrrev_b64 v[8:9], s13, v[8:9]
-    v_mul_lo_u32 v10, s9, v9
-    v_sub_u32 v10, v11, v10
+    v_mov_b32 v13, s14
+    v_cndmask_b32 v12, v13, v16, vcc
+    v_mul_lo_u32 v10, s12, v12
+    v_mul_hi_u32 v11, s12, v12
+    v_lshrrev_b64 v[10:11], s13, v[10:11]
+    v_mul_lo_u32 v11, s9, v10
+    v_sub_u32 v11, v12, v11
     s_mul_i32 s14, s19, s9
     s_mul_i32 s15, s18, s9
-    v_mul_lo_u32 v11, s14, v9
-    v_mul_lo_u32 v12, s15, v9
-    v_add_lshl_u32 v112, v10, v11, 2
-    v_add_lshl_u32 v122, v10, v12, 2
+    v_mul_lo_u32 v12, s14, v10
+    v_mul_lo_u32 v13, s15, v10
+    v_add_lshl_u32 v112, v11, v12, 2
+    v_add_lshl_u32 v122, v11, v13, 2
     s_mul_i32 s14, s11, s21
     s_movk_i32 s15, 0
     s_mul_i32 s12, s9, s14
@@ -47857,6 +47904,7 @@ L288:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl suffco7x7_om_relu
 .p2align 8
@@ -47882,19 +47930,19 @@ suffco7x7_om_relu:
     s_mul_i32 s19, s11, s8
     s_sub_u32 s14, s17, 1
     v_cmp_gt_u32 vcc, s17, v16
-    v_mov_b32 v12, s14
-    v_cndmask_b32 v11, v12, v16, vcc
-    v_mul_lo_u32 v9, s12, v11
-    v_mul_hi_u32 v10, s12, v11
-    v_lshrrev_b64 v[8:9], s13, v[8:9]
-    v_mul_lo_u32 v10, s9, v9
-    v_sub_u32 v10, v11, v10
+    v_mov_b32 v13, s14
+    v_cndmask_b32 v12, v13, v16, vcc
+    v_mul_lo_u32 v10, s12, v12
+    v_mul_hi_u32 v11, s12, v12
+    v_lshrrev_b64 v[10:11], s13, v[10:11]
+    v_mul_lo_u32 v11, s9, v10
+    v_sub_u32 v11, v12, v11
     s_mul_i32 s14, s19, s9
     s_mul_i32 s15, s18, s9
-    v_mul_lo_u32 v11, s14, v9
-    v_mul_lo_u32 v12, s15, v9
-    v_add_lshl_u32 v112, v10, v11, 2
-    v_add_lshl_u32 v122, v10, v12, 2
+    v_mul_lo_u32 v12, s14, v10
+    v_mul_lo_u32 v13, s15, v10
+    v_add_lshl_u32 v112, v11, v12, 2
+    v_add_lshl_u32 v122, v11, v13, 2
     s_mul_i32 s14, s11, s21
     s_movk_i32 s15, 0
     s_mul_i32 s12, s9, s14
@@ -49867,6 +49915,7 @@ L296:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl suffco7x7_dm
 .p2align 8
@@ -49893,19 +49942,19 @@ suffco7x7_dm:
     s_lshr_b32 s16, s9, 1
     s_sub_u32 s14, s15, 1
     v_cmp_gt_u32 vcc, s15, v125
-    v_mov_b32 v12, s14
-    v_cndmask_b32 v11, v12, v125, vcc
-    v_mul_lo_u32 v9, s12, v11
-    v_mul_hi_u32 v10, s12, v11
-    v_lshrrev_b64 v[8:9], s13, v[8:9]
-    v_mul_lo_u32 v10, s16, v9
-    v_sub_u32 v10, v11, v10
+    v_mov_b32 v13, s14
+    v_cndmask_b32 v12, v13, v125, vcc
+    v_mul_lo_u32 v10, s12, v12
+    v_mul_hi_u32 v11, s12, v12
+    v_lshrrev_b64 v[10:11], s13, v[10:11]
+    v_mul_lo_u32 v11, s16, v10
+    v_sub_u32 v11, v12, v11
     s_mul_i32 s14, s19, s16
     s_mul_i32 s15, s18, s16
-    v_mul_lo_u32 v11, s14, v9
-    v_mul_lo_u32 v12, s15, v9
-    v_add_lshl_u32 v112, v10, v11, 3
-    v_add_lshl_u32 v118, v10, v12, 3
+    v_mul_lo_u32 v12, s14, v10
+    v_mul_lo_u32 v13, s15, v10
+    v_add_lshl_u32 v112, v11, v12, 3
+    v_add_lshl_u32 v118, v11, v13, 3
     s_mul_i32 s14, s11, s21
     s_movk_i32 s15, 0
     s_mul_i32 s12, s9, s14
@@ -51596,6 +51645,7 @@ L304:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl suffco7x7_dm_relu
 .p2align 8
@@ -51622,19 +51672,19 @@ suffco7x7_dm_relu:
     s_lshr_b32 s16, s9, 1
     s_sub_u32 s14, s15, 1
     v_cmp_gt_u32 vcc, s15, v125
-    v_mov_b32 v12, s14
-    v_cndmask_b32 v11, v12, v125, vcc
-    v_mul_lo_u32 v9, s12, v11
-    v_mul_hi_u32 v10, s12, v11
-    v_lshrrev_b64 v[8:9], s13, v[8:9]
-    v_mul_lo_u32 v10, s16, v9
-    v_sub_u32 v10, v11, v10
+    v_mov_b32 v13, s14
+    v_cndmask_b32 v12, v13, v125, vcc
+    v_mul_lo_u32 v10, s12, v12
+    v_mul_hi_u32 v11, s12, v12
+    v_lshrrev_b64 v[10:11], s13, v[10:11]
+    v_mul_lo_u32 v11, s16, v10
+    v_sub_u32 v11, v12, v11
     s_mul_i32 s14, s19, s16
     s_mul_i32 s15, s18, s16
-    v_mul_lo_u32 v11, s14, v9
-    v_mul_lo_u32 v12, s15, v9
-    v_add_lshl_u32 v112, v10, v11, 3
-    v_add_lshl_u32 v118, v10, v12, 3
+    v_mul_lo_u32 v12, s14, v10
+    v_mul_lo_u32 v13, s15, v10
+    v_add_lshl_u32 v112, v11, v12, 3
+    v_add_lshl_u32 v118, v11, v13, 3
     s_mul_i32 s14, s11, s21
     s_movk_i32 s15, 0
     s_mul_i32 s12, s9, s14
@@ -53389,6 +53439,7 @@ L312:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl suffco7x7_qm
 .p2align 8
@@ -53417,16 +53468,16 @@ suffco7x7_qm:
     s_lshr_b32 s17, s9, 2
     s_sub_u32 s18, s16, 1
     v_cmp_gt_u32 vcc, s16, v9
-    v_mov_b32 v13, s18
-    v_cndmask_b32 v13, v13, v9, vcc
-    v_mul_lo_u32 v11, s12, v13
-    v_mul_hi_u32 v12, s12, v13
-    v_lshrrev_b64 v[10:11], s13, v[10:11]
-    v_mul_lo_u32 v12, s17, v11
-    v_sub_u32 v12, v13, v12
+    v_mov_b32 v14, s18
+    v_cndmask_b32 v14, v14, v9, vcc
+    v_mul_lo_u32 v12, s12, v14
+    v_mul_hi_u32 v13, s12, v14
+    v_lshrrev_b64 v[12:13], s13, v[12:13]
+    v_mul_lo_u32 v13, s17, v12
+    v_sub_u32 v13, v14, v13
     s_mul_i32 s16, s17, s22
-    v_mul_lo_u32 v13, s16, v11
-    v_add_lshl_u32 v112, v12, v13, 4
+    v_mul_lo_u32 v14, s16, v12
+    v_add_lshl_u32 v112, v13, v14, 4
     s_mul_i32 s16, s11, s21
     s_movk_i32 s17, 0
     s_mul_i32 s12, s9, s16
@@ -53457,14 +53508,14 @@ suffco7x7_qm:
     global_load_dwordx4 v[108:111], v[115:116], s[6:7]
     v_readfirstlane_b32 s2, v2
     s_lshr_b32 s16, s9, 1
-    v_mul_lo_u32 v9, s14, v123
-    v_mul_hi_u32 v10, s14, v123
-    v_lshrrev_b64 v[8:9], s15, v[8:9]
-    v_mul_lo_u32 v10, s16, v9
-    v_sub_u32 v10, v123, v10
+    v_mul_lo_u32 v10, s14, v123
+    v_mul_hi_u32 v11, s14, v123
+    v_lshrrev_b64 v[10:11], s15, v[10:11]
+    v_mul_lo_u32 v11, s16, v10
+    v_sub_u32 v11, v123, v11
     s_mul_i32 s16, s16, s23
-    v_mul_lo_u32 v9, s16, v9
-    v_add_lshl_u32 v116, v9, v10, 3
+    v_mul_lo_u32 v10, s16, v10
+    v_add_lshl_u32 v116, v10, v11, 3
     s_lshl4_add_u32 s20, s2, s20
     s_lshl_b32 s3, s2, 11
     v_lshlrev_b32 v2, 2, v8
@@ -55120,6 +55171,7 @@ L320:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+
 .text
 .globl suffco7x7_qm_relu
 .p2align 8
@@ -55148,16 +55200,16 @@ suffco7x7_qm_relu:
     s_lshr_b32 s17, s9, 2
     s_sub_u32 s18, s16, 1
     v_cmp_gt_u32 vcc, s16, v9
-    v_mov_b32 v13, s18
-    v_cndmask_b32 v13, v13, v9, vcc
-    v_mul_lo_u32 v11, s12, v13
-    v_mul_hi_u32 v12, s12, v13
-    v_lshrrev_b64 v[10:11], s13, v[10:11]
-    v_mul_lo_u32 v12, s17, v11
-    v_sub_u32 v12, v13, v12
+    v_mov_b32 v14, s18
+    v_cndmask_b32 v14, v14, v9, vcc
+    v_mul_lo_u32 v12, s12, v14
+    v_mul_hi_u32 v13, s12, v14
+    v_lshrrev_b64 v[12:13], s13, v[12:13]
+    v_mul_lo_u32 v13, s17, v12
+    v_sub_u32 v13, v14, v13
     s_mul_i32 s16, s17, s22
-    v_mul_lo_u32 v13, s16, v11
-    v_add_lshl_u32 v112, v12, v13, 4
+    v_mul_lo_u32 v14, s16, v12
+    v_add_lshl_u32 v112, v13, v14, 4
     s_mul_i32 s16, s11, s21
     s_movk_i32 s17, 0
     s_mul_i32 s12, s9, s16
@@ -55188,14 +55240,14 @@ suffco7x7_qm_relu:
     global_load_dwordx4 v[108:111], v[115:116], s[6:7]
     v_readfirstlane_b32 s2, v2
     s_lshr_b32 s16, s9, 1
-    v_mul_lo_u32 v9, s14, v123
-    v_mul_hi_u32 v10, s14, v123
-    v_lshrrev_b64 v[8:9], s15, v[8:9]
-    v_mul_lo_u32 v10, s16, v9
-    v_sub_u32 v10, v123, v10
+    v_mul_lo_u32 v10, s14, v123
+    v_mul_hi_u32 v11, s14, v123
+    v_lshrrev_b64 v[10:11], s15, v[10:11]
+    v_mul_lo_u32 v11, s16, v10
+    v_sub_u32 v11, v123, v11
     s_mul_i32 s16, s16, s23
-    v_mul_lo_u32 v9, s16, v9
-    v_add_lshl_u32 v116, v9, v10, 3
+    v_mul_lo_u32 v10, s16, v10
+    v_add_lshl_u32 v116, v10, v11, 3
     s_lshl4_add_u32 s20, s2, s20
     s_lshl_b32 s3, s2, 11
     v_lshlrev_b32 v2, 2, v8
@@ -56976,8 +57028,8 @@ amdhsa.kernels:
     - { .size: 4, .offset: 16, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 20, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 24, .value_kind: by_value,      .value_type: u32 }
-    - { .size: 4, .offset: 28, .value_kind: by_value,      .value_type: u64 }
-    - { .size: 4, .offset: 32, .value_kind: by_value,      .value_type: u64 }
+    - { .size: 4, .offset: 28, .value_kind: by_value,      .value_type: u32 }
+    - { .size: 4, .offset: 32, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 36, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 40, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 44, .value_kind: by_value,      .value_type: u32 }
@@ -56995,8 +57047,8 @@ amdhsa.kernels:
     .sgpr_count: 43
     .vgpr_count: 50
     .args:
-    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: f32 }
-    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: f32 }
+    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: u32 }
+    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: u32 }
     - { .size: 4, .offset: 16, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 20, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 24, .value_kind: by_value,      .value_type: u32 }
@@ -57019,8 +57071,8 @@ amdhsa.kernels:
     .sgpr_count: 43
     .vgpr_count: 74
     .args:
-    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: f32 }
-    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: f32 }
+    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: u32 }
+    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: u32 }
     - { .size: 4, .offset: 16, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 20, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 24, .value_kind: by_value,      .value_type: u32 }
@@ -57043,8 +57095,8 @@ amdhsa.kernels:
     .sgpr_count: 43
     .vgpr_count: 116
     .args:
-    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: f32 }
-    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: f32 }
+    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: u32 }
+    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: u32 }
     - { .size: 4, .offset: 16, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 20, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 24, .value_kind: by_value,      .value_type: u32 }
@@ -57067,8 +57119,8 @@ amdhsa.kernels:
     .sgpr_count: 43
     .vgpr_count: 122
     .args:
-    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: f32 }
-    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: f32 }
+    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: u32 }
+    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: u32 }
     - { .size: 4, .offset: 16, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 20, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 24, .value_kind: by_value,      .value_type: u32 }
@@ -57367,8 +57419,8 @@ amdhsa.kernels:
     .sgpr_count: 45
     .vgpr_count: 76
     .args:
-    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: f32 }
-    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: f32 }
+    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: u32 }
+    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: u32 }
     - { .size: 4, .offset: 16, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 20, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 24, .value_kind: by_value,      .value_type: u32 }
@@ -57391,8 +57443,8 @@ amdhsa.kernels:
     .sgpr_count: 45
     .vgpr_count: 76
     .args:
-    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: f32 }
-    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: f32 }
+    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: u32 }
+    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: u32 }
     - { .size: 4, .offset: 16, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 20, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 24, .value_kind: by_value,      .value_type: u32 }
@@ -57415,8 +57467,8 @@ amdhsa.kernels:
     .sgpr_count: 43
     .vgpr_count: 51
     .args:
-    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: f32 }
-    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: f32 }
+    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: u32 }
+    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: u32 }
     - { .size: 4, .offset: 16, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 20, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 24, .value_kind: by_value,      .value_type: u32 }
@@ -57439,8 +57491,8 @@ amdhsa.kernels:
     .sgpr_count: 43
     .vgpr_count: 51
     .args:
-    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: f32 }
-    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: f32 }
+    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: u32 }
+    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: u32 }
     - { .size: 4, .offset: 16, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 20, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 24, .value_kind: by_value,      .value_type: u32 }
@@ -57463,8 +57515,8 @@ amdhsa.kernels:
     .sgpr_count: 43
     .vgpr_count: 75
     .args:
-    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: f32 }
-    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: f32 }
+    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: u32 }
+    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: u32 }
     - { .size: 4, .offset: 16, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 20, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 24, .value_kind: by_value,      .value_type: u32 }
@@ -57487,8 +57539,8 @@ amdhsa.kernels:
     .sgpr_count: 43
     .vgpr_count: 75
     .args:
-    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: f32 }
-    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: f32 }
+    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: u32 }
+    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: u32 }
     - { .size: 4, .offset: 16, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 20, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 24, .value_kind: by_value,      .value_type: u32 }
@@ -57511,8 +57563,8 @@ amdhsa.kernels:
     .sgpr_count: 43
     .vgpr_count: 116
     .args:
-    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: f32 }
-    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: f32 }
+    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: u32 }
+    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: u32 }
     - { .size: 4, .offset: 16, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 20, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 24, .value_kind: by_value,      .value_type: u32 }
@@ -57535,8 +57587,8 @@ amdhsa.kernels:
     .sgpr_count: 43
     .vgpr_count: 116
     .args:
-    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: f32 }
-    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: f32 }
+    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: u32 }
+    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: u32 }
     - { .size: 4, .offset: 16, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 20, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 24, .value_kind: by_value,      .value_type: u32 }
@@ -57559,8 +57611,8 @@ amdhsa.kernels:
     .sgpr_count: 43
     .vgpr_count: 123
     .args:
-    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: f32 }
-    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: f32 }
+    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: u32 }
+    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: u32 }
     - { .size: 4, .offset: 16, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 20, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 24, .value_kind: by_value,      .value_type: u32 }
@@ -57583,8 +57635,8 @@ amdhsa.kernels:
     .sgpr_count: 43
     .vgpr_count: 123
     .args:
-    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: f32 }
-    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: f32 }
+    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: u32 }
+    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: u32 }
     - { .size: 4, .offset: 16, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 20, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 24, .value_kind: by_value,      .value_type: u32 }

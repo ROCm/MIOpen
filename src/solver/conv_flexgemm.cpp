@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,7 +34,7 @@
 #include <miopen/conv/invokers/flexgemm.hpp>
 
 // clang-format off
-static void get_solution(const miopen::ConvolutionContext& ctx, miopen::solver::ConvSolution& sol, const miopen::flexgemm::param_ufconv_t& p, const std::string& file_name, uint32_t relu)
+static void get_solution(miopen::solver::ConvSolution& sol, const miopen::ConvolutionContext& ctx, const miopen::flexgemm::param_ufconv_t& p, const std::string& file_name, uint32_t relu)
 {
     static const char* knames_ufco[]=
     {
@@ -75,22 +75,22 @@ static void get_solution(const miopen::ConvolutionContext& ctx, miopen::solver::
         "sufbco7x7_dm"     ,
         "sufbco7x7_qm"     
     };
-    static const uint32_t blk_ufco[]={128,256,256,256};
-    uint32_t id=p.id&0xffff;
-    uint32_t mode=p.id>>16;
-    uint32_t shx=(id>0)&&(id<3)?8:7;
-    uint32_t shy=4+id;
-    uint32_t gdy=(p.n+(1<<shy)-1)>>shy;
-    uint32_t gdx=p.ntidx>>shx;
-    uint32_t routine=id*(3+p.dir)+p.dir*24+((mode<<(1^p.dir))|relu);
-    const std::vector<size_t> block{blk_ufco[id],1,1};
-    const std::vector<size_t> grid{gdy*blk_ufco[id],gdx,p.ng};
+    const uint32_t id=p.id&0xffff;
+    const uint32_t mode=p.id>>16;
+    const uint32_t blk=id>0?256:128;
+    const uint32_t shx=(id>0)&&(id<3)?8:7;
+    const uint32_t shy=4+id;
+    const uint32_t gdy=(p.n+(1<<shy)-1)>>shy;
+    const uint32_t gdx=p.ntidx>>shx;
+    const uint32_t routine=p.dir*24+id*(3*(1+(1^p.dir)))+((mode<<(1^p.dir))|relu);
+    const std::vector<size_t> block{blk,1,1};
+    const std::vector<size_t> grid{gdy*blk,gdx,p.ng};
     std::ostringstream options;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3()?5:4);
     miopen::solver::KernelInfo kinfo={ options.str(), block, grid, file_name, knames_ufco[routine] };
     sol.construction_params.push_back(kinfo);
 }
-static void get_solution(const miopen::ConvolutionContext& ctx, miopen::solver::ConvSolution& sol, const miopen::flexgemm::param_conv_t& p, const std::string& file_name, uint32_t relu)
+static void get_solution(miopen::solver::ConvSolution& sol, const miopen::ConvolutionContext& ctx, const miopen::flexgemm::param_conv_t& p, const std::string& file_name, uint32_t relu)
 {
     static const char* knames_co[]=
     {
@@ -113,7 +113,7 @@ static void get_solution(const miopen::ConvolutionContext& ctx, miopen::solver::
     std::ostringstream options;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3()?5:4);
     if(p.spad!=0){
-        uint32_t gdx=(p.pnx*p.pny*p.ng*p.inc+255)>>8;
+        const uint32_t gdx=(p.pnx*p.pny*p.ng*p.inc+255)>>8;
         const std::vector<size_t> block{256,1,1};
         const std::vector<size_t> grid{gdx<<8,p.bs,1};
         miopen::solver::KernelInfo kinfo={ options.str(), block, grid, file_name, "padding2d" };
@@ -121,7 +121,7 @@ static void get_solution(const miopen::ConvolutionContext& ctx, miopen::solver::
     }
 
     if(p.dir!=0){
-        uint32_t gdx=(((p.n+3)&~3)+63)>>6;
+        const uint32_t gdx=(((p.n+3)&~3)+63)>>6;
         const std::vector<size_t> block{64,1,1};
         const std::vector<size_t> grid{gdx<<6,p.inc,p.ng};
         miopen::solver::KernelInfo kinfo={ options.str(), block, grid, file_name, "perm2d_flip" };
@@ -129,9 +129,9 @@ static void get_solution(const miopen::ConvolutionContext& ctx, miopen::solver::
     }
 
     {
-        uint32_t srelo=((p.k+15)&~15)+32;
-        uint32_t ntid=p.ntidx>srelo?p.ntidx:srelo;
-        uint32_t gdx=(ntid+63)>>6;
+        const uint32_t srelo=((p.k+7)&~7)+32;
+        const uint32_t ntid=p.ntidx>srelo?p.ntidx:srelo;
+        const uint32_t gdx=(ntid+63)>>6;
         const std::vector<size_t> block{64,1,1};
         const std::vector<size_t> grid{gdx<<6,1,1};
         miopen::solver::KernelInfo kinfo={ options.str(), block, grid, file_name, "genidx2d" };
@@ -139,13 +139,13 @@ static void get_solution(const miopen::ConvolutionContext& ctx, miopen::solver::
     }
 
     {
-        uint32_t routine=p.dir==0?((p.id<<1)|relu):(10+p.id);
-        uint32_t shx=((p.dir==0?0x78878:0x7887)>>(p.id<<2))&0xf;
-        uint32_t shy=((p.dir==0?0x76545:0x7654)>>(p.id<<2))&0xf;
-        uint32_t ngx=p.ntidx>>shx;
-        uint32_t ngy=(p.n+(1<<shy)-1)>>shy;
-        uint32_t gdx=p.pad!=0?gdx:gdy;
-        uint32_t gdy=p.pad!=0?gdy:gdx;
+        const uint32_t routine=p.dir==0?((p.id<<1)|relu):(10+p.id);
+        const uint32_t shx=((p.dir==0?0x78878:0x7887)>>(p.id<<2))&0xf;
+        const uint32_t shy=((p.dir==0?0x76545:0x7654)>>(p.id<<2))&0xf;
+        const uint32_t ngx=p.ntidx>>shx;
+        const uint32_t ngy=(p.n+(1<<shy)-1)>>shy;
+        const uint32_t gdx=p.pad!=0?ngx:ngy;
+        const uint32_t gdy=p.pad!=0?ngy:ngx;
         const std::vector<size_t> block{blk_co[p.id-p.dir],1,1};
         const std::vector<size_t> grid{gdx*blk_co[p.id-p.dir],gdy,p.ng};
         miopen::solver::KernelInfo kinfo={ options.str(), block, grid, file_name, knames_co[routine] };
@@ -159,7 +159,11 @@ bool ConvFlexgemm::IsApplicable(const ConvolutionContext& ctx) const
 {
     const auto name=ctx.GetStream().GetDeviceName();
     if((name!="gfx900"&&name!="gfx906")||ctx.direction.IsBackwardWrW()) return false;
-    if((ctx.kernel_size_w|ctx.kernel_size_h|ctx.kernel_size_d)!=1){
+    uint32_t pad=ctx.pad_w|ctx.pad_h|ctx.pad_d;
+    uint32_t ksize=ctx.kernel_size_w|ctx.kernel_size_h|ctx.kernel_size_d;
+    uint32_t stride=ctx.kernel_stride_w|ctx.kernel_stride_h|ctx.kernel_stride_d;
+    uint32_t dilation=ctx.kernel_dilation_w|ctx.kernel_dilation_h|ctx.kernel_dilation_d;
+    if(((ksize|stride|dilation)!=1)||(pad!=0)||((ctx.n_inputs&7)!=0)){
         if(!ctx.Is2d()) return false;
         if(!ctx.direction.IsForward()){
             if((ctx.kernel_stride_w|ctx.kernel_stride_h|ctx.kernel_dilation_w|ctx.kernel_dilation_h)!=1)
@@ -170,9 +174,11 @@ bool ConvFlexgemm::IsApplicable(const ConvolutionContext& ctx) const
 }
 size_t ConvFlexgemm::GetWorkspaceSize(const ConvolutionContext& ctx) const
 {
-    if((ctx.kernel_size_w|ctx.kernel_size_h|ctx.kernel_size_d|
-        ctx.kernel_stride_w|ctx.kernel_stride_h|ctx.kernel_stride_d|
-        ctx.kernel_dilation_w|ctx.kernel_dilation_h|ctx.kernel_dilation_d)==1)
+    uint32_t pad=ctx.pad_w|ctx.pad_h|ctx.pad_d;
+    uint32_t ksize=ctx.kernel_size_w|ctx.kernel_size_h|ctx.kernel_size_d;
+    uint32_t stride=ctx.kernel_stride_w|ctx.kernel_stride_h|ctx.kernel_stride_d;
+    uint32_t dilation=ctx.kernel_dilation_w|ctx.kernel_dilation_h|ctx.kernel_dilation_d;
+    if(((ksize|stride|dilation)==1)&&(pad==0)&&((ctx.n_inputs&7)==0))
         return 0;
     return flexgemm::get_auxbuf_size(ctx);
 }
@@ -180,21 +186,22 @@ ConvSolution ConvFlexgemm::GetSolution(const ConvolutionContext& ctx) const
 {
     ConvSolution sol{};
     const std::string file_name="flexgemm_"+ctx.GetStream().GetDeviceName()+".s";
+    uint32_t pad=ctx.pad_w|ctx.pad_h|ctx.pad_d;
     uint32_t ksize=ctx.kernel_size_w|ctx.kernel_size_h|ctx.kernel_size_d;
     uint32_t stride=ctx.kernel_stride_w|ctx.kernel_stride_h|ctx.kernel_stride_d;
     uint32_t dilation=ctx.kernel_dilation_w|ctx.kernel_dilation_h|ctx.kernel_dilation_d;
 
-    if((ksize|stride|dilation)==1){
+    if(((ksize|stride|dilation)==1)&&(pad==0)&&((ctx.n_inputs&7)==0)){
         flexgemm::param_ufconv_t params{};
         flexgemm::build_params_ufconv(params, ctx);
         sol.workspce_sz=0;
-        get_solution(ctx, sol, params, file_name, 0);
+        get_solution(sol, ctx, params, file_name, 0);
         sol.invoker_factory=conv::MakeFlexgemmInvokerFactory(params, 1.f);
     } else {
         flexgemm::param_conv_t params{};
         flexgemm::build_params_conv(params, ctx);
         sol.workspce_sz=params.spad+params.sperm+params.sidx;
-        get_solution(ctx, sol, params, file_name, 0);
+        get_solution(sol, ctx, params, file_name, 0);
         sol.invoker_factory=conv::MakeFlexgemmInvokerFactory(params, 1.f);
     }
     return sol;

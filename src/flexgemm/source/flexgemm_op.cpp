@@ -54,7 +54,7 @@ void lk_genidx2d(const Handle& handle, const Kernel& kern, const param_conv_t& p
 }
 void lk_conv(const Handle& handle, const Kernel& kern, const param_conv_t& p, void* c, const void* a, const void* b, const void* idx, float alpha)
 {
-    uint8_t* relo=static_cast<const uint8_t*>(idx)+(p.ntidx<<3);
+    const uint8_t* relo=static_cast<const uint8_t*>(idx)+(p.ntidx<<3);
     uint32_t align=p.id!=3?7:15;
     uint32_t ldb=p.dir==0?(p.k*p.ng):((p.n+3)&~3);
     uint32_t n=(p.pad!=0?0x80000000:0)|p.n;

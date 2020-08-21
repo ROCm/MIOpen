@@ -57,11 +57,11 @@ static inline miopen::flexgemm::magic_t idiv_magic( uint32_t nmax, uint32_t d )
 }
 static inline uint32_t choose_routine_ufconv(uint32_t m, uint32_t n, uint32_t k, int dir)
 {
-    uint32_t s=(n+31)>>5;
-    uint32_t t=(n+15)>>4;
+    uint32_t r=(n+31)>>5;
+    uint32_t s=(n+15)>>4;
     uint32_t mode=((m&1)^1)+((m&3)==0?1:0);
-    uint32_t id=1+((s&3)==0?((k&15)==0?2:1):((s&1)^1));
-    if((t&1)!=0&&n<=112) id=0;
+    uint32_t id=1+((r&3)==0?((k&15)==0?2:1):((r&1)^1));
+    if((s&1)!=0&&n<=112) id=0;
     if((dir!=0)&&(id!=0)){ id=(n&3)!=0?((n&1)!=0?1:2):id; }
     return ((mode<<16)|id);
 }
@@ -141,20 +141,19 @@ size_t get_auxbuf_size(const param_conv_t& p)
 }
 void build_params_ufconv(param_ufconv_t& p, const ConvolutionContext& ctx)
 {
-    static const uint32_t selx=0x924924u;
-    static const uint32_t sely=0x500000u;
-    p.m=ctx.in_width*ctx.in_height;
+    p.m=ctx.out_width*ctx.out_height;
     p.n=ctx.n_outputs;
     p.k=ctx.n_inputs;
     p.dir=ctx.direction.IsForward()?0:1;
     p.id=choose_routine_ufconv(p.m, p.n, p.k, p.dir);
-    uint32_t id=(p.id&0xffff)*3+(p.id>>16);
-    uint32_t sx=(selx>>(id<<1))&0x3;
-    uint32_t sy=(sely>>(id<<1))&0x3;
-    uint32_t alignment=(p.id&0xffff)>0&&(p.id&0xffff)<3?255:127;
+    uint32_t tile=p.id&0xffff;
+    uint32_t mode=p.id>>16;
+    uint32_t sx=(0x024>>(mode<<1))&0x3;
+    uint32_t sy=(0xc00>>(tile*3+mode))&0x1;
+    uint32_t alignment=(tile>0)&&(tile<3)?255:127;
     p.ng   =ctx.group_counts;
     p.dimx =p.m*ctx.batch_sz;
-    p.ntidx=(p.dimx+alignment)&~alignment;
+    p.ntidx=(p.dimx+alignment)&(~alignment);
     p.amag =idiv_magic(p.ntidx>>sx,p.m>>sx);
     if(sx!=sy){
         p.cmag=idiv_magic(p.ntidx>>sy,p.m>>sy);
@@ -205,8 +204,7 @@ void build_params_conv(param_conv_t& p, const ConvolutionContext& ctx)
             p.lda=(temp+(1^(temp&1)))<<6;
         }
     }
-    temp=p.id!=(p.dir==0?4:3)?7:15;
-    uint32_t pk=(p.k+temp)&~temp;
+    uint32_t pk=(p.k+7)&~7;
     p.ags  =p.lda*p.inc;
     p.spad =static_cast<size_t>(p.ng<<2)*p.ags;
     p.sperm=static_cast<size_t>(p.ng<<2)*pk*((p.n+3)&~3);

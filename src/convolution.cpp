@@ -45,8 +45,6 @@
 #include <boost/range/combine.hpp>
 #include <boost/range/adaptors.hpp>
 
-#include "flexgemm/include/flexgemm_param.hpp"
-
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_WINOGRAD)
@@ -467,7 +465,7 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
 
     const size_t implicit_gemm_workspace = ForwardBackwardGetWorkSpaceSizeImplicitGemm(ctx);
 
-    const size_t flexgemm_workspace = flexgemm::get_auxbuf_size(ctx);
+    const size_t flexgemm_workspace = ForwardBackwardGetWorkSpaceSizeFlexgemm(ctx);
 
     size_t workspace_size_gemm = 0;
 #if MIOPEN_USE_GEMM
@@ -569,7 +567,7 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
 
     const size_t implicit_gemm_workspace = ForwardBackwardGetWorkSpaceSizeImplicitGemm(ctx);
 
-    const size_t flexgemm_workspace = flexgemm::get_auxbuf_size(ctx);
+    const size_t flexgemm_workspace = ForwardBackwardGetWorkSpaceSizeFlexgemm(ctx);
 
     size_t workspace_size_gemm = 0;
 
@@ -704,6 +702,35 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeGEMM(const TensorDescripto
     }
 
     return gemm_size;
+}
+
+std::size_t ConvolutionDescriptor::ForwardBackwardGetWorkSpaceSizeFlexgemm(
+    const miopen::ConvolutionContext& ctx) const
+{
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_FLEXGEMM{}))
+    {
+        return 0;
+    }
+
+    try
+    {
+        const auto ss  = FindAllFlexgemmSolutions(ctx);
+        std::size_t sz = 0;
+        for(const auto& solution : ss)
+        {
+            if(sz < solution.workspce_sz)
+            {
+                MIOPEN_LOG_I2(sz << " < " << solution.workspce_sz);
+                sz = solution.workspce_sz;
+            }
+        }
+        return sz;
+    }
+    catch(const miopen::Exception& ex)
+    {
+        MIOPEN_LOG_WE(ex.what());
+        return 0;
+    }
 }
 
 std::size_t ConvolutionDescriptor::ForwardBackwardGetWorkSpaceSizeImplicitGemm(
