@@ -804,7 +804,7 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
             return [=](const Handle& handle, const boost::any& primitive_params) {
                 decltype(auto) invoke_params =
                     boost::any_cast<conv::WrWInvokeParams>(primitive_params);
-                decltype(auto) tensors = invoke_params.tensors;
+                const auto& tensors = invoke_params.tensors;
 
                 // clang-format off
                 MIOPEN_LOG_I2(" N=" << N << " G=" << group_cnt << " C=" << C << " H=" << H << " W=" << W << " K=" << K
