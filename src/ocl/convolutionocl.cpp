@@ -3356,7 +3356,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
     ConvWrwCheckNumerics(handle, tensors, beta, [&]() {
         ValidateGroupCount(xDesc, dwDesc, *this);
 
-        if (algo == miopenConvolutionBwdWeightsAlgoGEMM)
+        if(algo == miopenConvolutionBwdWeightsAlgoGEMM)
         {
             BackwardWeightsGemm(handle, tensors, workSpace, workSpaceSize);
             return;
