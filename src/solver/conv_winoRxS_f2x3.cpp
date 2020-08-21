@@ -700,6 +700,8 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
 
         result.invoker_factory = [=](std::vector<Kernel> kernels) {
             return [=](const Handle& handle, const boost::any& primitive_params) {
+                std::cerr << "Executing data ConvBinWinogradRxSf2x3 invoker." << std::endl;
+
                 const auto k         = handle.Run(kernels[0]);
                 const auto& data_ctx = boost::any_cast<conv::DataInvokeParams>(primitive_params);
                 const auto& tensors  = data_ctx.tensors;
@@ -802,6 +804,8 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
 
         result.invoker_factory = [=](std::vector<Kernel> kernels) {
             return [=](const Handle& handle, const boost::any& primitive_params) {
+                std::cerr << "Executing WrW ConvBinWinogradRxSf2x3 invoker." << std::endl;
+
                 decltype(auto) invoke_params =
                     boost::any_cast<conv::WrWInvokeParams>(primitive_params);
                 const auto& tensors = invoke_params.tensors;
