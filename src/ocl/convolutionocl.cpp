@@ -3094,16 +3094,16 @@ inline void EvaluateWinograd3x3MultipassWrW(Handle& handle,
     BuffInfo
         in_buff_info(
             GetSwappedNCLayout(GetMemLayout_t(ctx.in_layout)),
-            N, C, H, W, 1,
+            N, C, H, W,
             GetTypeSize(ctx.in_data_type)),
         out_buff_info(
             GetSwappedNCLayout(GetMemLayout_t(ctx.out_layout)),
-            N, K, out_H, out_W, 1,
+            N, K, out_H, out_W,
             GetTypeSize(ctx.out_data_type)),
         weights_buff_info(
             // weights_layout unsupported ... GetSwappedNCLayout(GetMemLayout_t(ctx.weights_layout))
             GetSwappedNCLayout(MemLayout_t::NCHW),
-            K, C, R, S, 1,
+            K, C, R, S,
             GetTypeSize(ctx.weights_data_type));
 
     int wino_xform_h =
@@ -3114,21 +3114,21 @@ inline void EvaluateWinograd3x3MultipassWrW(Handle& handle,
         // cppcheck-suppress unreadVariable
         wino_in(N,K,C,out_H,out_W,R,S,
             MemLayout_t::HWNC,
-            1,GetTypeSize(ctx.in_data_type),
+            GetTypeSize(ctx.in_data_type),
             ConvWinoBuffType::Input,
             wino_xform_h,
             wino_xform_w),
         // cppcheck-suppress unreadVariable
         wino_out(N,K,C,out_H,out_W,R,S,
             MemLayout_t::HWNC,
-            1,GetTypeSize(ctx.out_data_type),
+            GetTypeSize(ctx.out_data_type),
             ConvWinoBuffType::Output,
             wino_xform_h,
             wino_xform_w),
         // cppcheck-suppress unreadVariable
         wino_wei(N,K,C,out_H,out_W,R,S,
             MemLayout_t::HWNC,
-            1,GetTypeSize(ctx.weights_data_type),
+            GetTypeSize(ctx.weights_data_type),
             ConvWinoBuffType::Weight,
             wino_xform_h,
             wino_xform_w);
@@ -3191,7 +3191,7 @@ inline void EvaluateWinograd3x3MultipassWrW(Handle& handle,
              // and GEMM
         {
             const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
-            int m = N, n = K, k = wino_in.wino_c;
+            int m = N, n = K, k = wino_in.buff_info.size.c;
             int lda = k, ldb = k, ldc = n;
             int batch_count       = wino_xform_h * wino_xform_w;
             long long int strideA = m * k * 1LL, strideB = k * n * 1LL, strideC = m * n * 1LL;
@@ -3645,7 +3645,6 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                     C,
                                     H,
                                     W,
-                                    1,
                                     group_cnt,
                                     GetTypeSize(ctx.in_data_type)),
                                     o_buf(GetGroupConvLayout(
@@ -3655,7 +3654,6 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                           K,
                                           out_H,
                                           out_W,
-                                          1,
                                           group_cnt,
                                           GetTypeSize(ctx.out_data_type)),
                                     f_buf(GetGroupConvLayout(GetSwappedNCLayout(MemLayout_t::NCHW),
@@ -3664,7 +3662,6 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                           C,
                                           R,
                                           S,
-                                          1,
                                           group_cnt,
                                           GetTypeSize(ctx.weights_data_type));
 
@@ -4238,7 +4235,6 @@ void ConvolutionDescriptor::BackwardWeightsWinograd(Handle& handle,
                 C,
                 H,
                 W,
-                1,
                 group_cnt,
                 GetTypeSize(ctx.in_data_type)),
                 // cppcheck-suppress unreadVariable
@@ -4247,7 +4243,6 @@ void ConvolutionDescriptor::BackwardWeightsWinograd(Handle& handle,
                       K,
                       out_H,
                       out_W,
-                      1,
                       group_cnt,
                       GetTypeSize(ctx.out_data_type)),
                 // cppcheck-suppress unreadVariable
@@ -4256,7 +4251,6 @@ void ConvolutionDescriptor::BackwardWeightsWinograd(Handle& handle,
                       C,
                       R,
                       S,
-                      1,
                       group_cnt,
                       GetTypeSize(ctx.weights_data_type));
 
