@@ -97,6 +97,11 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, Db& db)
         }
     }
 
+    if(miopen::FindMode(context).IsNtHybrid())
+    {
+        // For now, let's use this for solutions skipped due to NT_HYBRID.
+        return {static_cast<miopenStatus_t>(100)};
+    }
     return s.GetSolution(context, s.GetPerformanceConfig(context));
 }
 
@@ -156,13 +161,18 @@ struct SolverContainer
                     }
                     else
                     {
-                        /// \todo If Solver is applicable it must provide an appropriate Solution.
-                        /// This is not the case for some 20x5 convolutions (and possibly others).
-                        /// Normally we should not get here and message level should be Error.
-                        /// For now, let's use Info (not Warning) level to avoid
-                        /// flooding the console.
-                        MIOPEN_LOG_I(SolverDbId(solver)
-                                     << ": [Warning] Applicable Solver not succeeded.");
+                        if(miopen::FindMode(search_params).IsNtHybrid() &&
+                           s.status == static_cast<miopenStatus_t>(100))
+                            MIOPEN_LOG_I(SolverDbId(solver)
+                                         << ": Skipped (solution is untuned, NT_HYBRID mode).");
+                        else
+                            /// \todo If Solver is applicable it must provide an appropriate
+                            /// Solution. This is not the case for some 20x5 convolutions (and
+                            /// possibly others). Normally we should not get here and message
+                            /// level should be Error. For now, let's use Info (not Warning)
+                            /// level to avoid flooding the console.
+                            MIOPEN_LOG_I(SolverDbId(solver)
+                                         << ": [Warning] Applicable Solver not succeeded.");
                     }
                 }
                 else
