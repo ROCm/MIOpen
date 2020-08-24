@@ -392,8 +392,8 @@ genidx2d:
     s_and_b32 s15, s15, 63
     v_mul_lo_u32 v6, s0, v2
     s_mul_i32 s2, s16, s7
-    s_add_u32 s3, s1, 7
-    s_andn2_b32 s3, s3, 7
+    s_add_u32 s3, s1, 15
+    s_andn2_b32 s3, s3, 15
     s_add_u32 s3, s3, 32
     v_mul_u32_u24 v7, s15, v5
     v_mad_u32_u24 v8, s2, v4, v6
@@ -553,7 +553,7 @@ L3:
     ds_read_b128 v[28:31], v45 offset:0x1040
     v_xor_b32 v46, s37, v46
     s_waitcnt lgkmcnt(2)
-    s_load_dwordx8 s[12:19], s[2:3], 0x24
+    s_load_dwordx8 s[12:19], s[2:3], s36
     global_load_dword v32, v[42:43], s[20:21]
     global_load_dword v33, v[42:43], s[22:23]
     global_load_dword v34, v[42:43], s[24:25]
@@ -1073,7 +1073,7 @@ L8:
     ds_read_b128 v[52:55], v69 offset:0x2080
     v_xor_b32 v70, s37, v70
     s_waitcnt lgkmcnt(3)
-    s_load_dwordx8 s[12:19], s[2:3], 0x24
+    s_load_dwordx8 s[12:19], s[2:3], s36
     global_load_dword v56, v[66:67], s[20:21]
     global_load_dword v57, v[66:67], s[22:23]
     global_load_dword v58, v[66:67], s[24:25]
@@ -1876,7 +1876,7 @@ L13:
     ds_read_b128 v[92:95], v110 offset:0x2180
     v_xor_b32 v111, s37, v111
     s_waitcnt lgkmcnt(4)
-    s_load_dwordx8 s[12:19], s[2:3], 0x24
+    s_load_dwordx8 s[12:19], s[2:3], s36
     v_mac_f32 v0, v64, v68
     s_setprio 1
     v_mac_f32 v1, v65, v68
@@ -18354,7 +18354,7 @@ L107:
     ds_read_b128 v[48:51], v68 offset:0x480
     s_sub_u32 s10, s10, 8
     s_waitcnt lgkmcnt(3)
-    s_load_dwordx8 s[12:19], s[2:3], 0x24
+    s_load_dwordx8 s[12:19], s[2:3], s36
     global_load_dword v56, v[66:67], s[20:21]
     global_load_dword v57, v[66:67], s[22:23]
     global_load_dword v58, v[66:67], s[24:25]
@@ -19483,7 +19483,7 @@ L114:
     ds_read_b128 v[48:51], v68 offset:0x480
     s_sub_u32 s10, s10, 8
     s_waitcnt lgkmcnt(3)
-    s_load_dwordx8 s[12:19], s[2:3], 0x24
+    s_load_dwordx8 s[12:19], s[2:3], s36
     global_load_dword v56, v[66:67], s[20:21]
     global_load_dword v57, v[66:67], s[22:23]
     global_load_dword v58, v[66:67], s[24:25]
@@ -20621,7 +20621,7 @@ L121:
     ds_read_b128 v[28:31], v45 offset:0x1040
     v_xor_b32 v46, s37, v46
     s_waitcnt lgkmcnt(2)
-    s_load_dwordx8 s[12:19], s[2:3], 0x24
+    s_load_dwordx8 s[12:19], s[2:3], s36
     global_load_dword v32, v[42:43], s[20:21]
     global_load_dword v33, v[42:43], s[22:23]
     global_load_dword v34, v[42:43], s[24:25]
@@ -21139,7 +21139,7 @@ L126:
     ds_read_b128 v[28:31], v45 offset:0x1040
     v_xor_b32 v46, s37, v46
     s_waitcnt lgkmcnt(2)
-    s_load_dwordx8 s[12:19], s[2:3], 0x24
+    s_load_dwordx8 s[12:19], s[2:3], s36
     global_load_dword v32, v[42:43], s[20:21]
     global_load_dword v33, v[42:43], s[22:23]
     global_load_dword v34, v[42:43], s[24:25]
@@ -21693,7 +21693,7 @@ L131:
     ds_read_b128 v[52:55], v69 offset:0x2080
     v_xor_b32 v70, s37, v70
     s_waitcnt lgkmcnt(3)
-    s_load_dwordx8 s[12:19], s[2:3], 0x24
+    s_load_dwordx8 s[12:19], s[2:3], s36
     global_load_dword v56, v[66:67], s[20:21]
     global_load_dword v57, v[66:67], s[22:23]
     global_load_dword v58, v[66:67], s[24:25]
@@ -22499,7 +22499,7 @@ L136:
     ds_read_b128 v[52:55], v69 offset:0x2080
     v_xor_b32 v70, s37, v70
     s_waitcnt lgkmcnt(3)
-    s_load_dwordx8 s[12:19], s[2:3], 0x24
+    s_load_dwordx8 s[12:19], s[2:3], s36
     global_load_dword v56, v[66:67], s[20:21]
     global_load_dword v57, v[66:67], s[22:23]
     global_load_dword v58, v[66:67], s[24:25]
@@ -23372,7 +23372,7 @@ L141:
     ds_read_b128 v[92:95], v110 offset:0x2480
     v_xor_b32 v111, s37, v111
     s_waitcnt lgkmcnt(4)
-    s_load_dwordx8 s[12:19], s[2:3], 0x24
+    s_load_dwordx8 s[12:19], s[2:3], s36
     v_mac_f32 v0, v64, v68
     s_setprio 1
     v_mac_f32 v1, v65, v68
@@ -24757,7 +24757,7 @@ L149:
     ds_read_b128 v[92:95], v110 offset:0x2480
     v_xor_b32 v111, s37, v111
     s_waitcnt lgkmcnt(4)
-    s_load_dwordx8 s[12:19], s[2:3], 0x24
+    s_load_dwordx8 s[12:19], s[2:3], s36
     v_mac_f32 v0, v64, v68
     s_setprio 1
     v_mac_f32 v1, v65, v68
@@ -57010,6 +57010,7 @@ amdhsa.kernels:
     - { .size: 4, .offset: 24, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 28, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 32, .value_kind: by_value,      .value_type: u32 }
+    - { .size: 4, .offset: 36, .value_kind: by_value,      .value_type: u32 }
   - .name: genidx2d
     .symbol: genidx2d.kd
     .wavefront_size: 64

@@ -67,7 +67,7 @@ InvokerFactory MakeFlexgemmInvokerFactory( const flexgemm::param_conv_t& p, floa
             uint8_t* b=a+p.spad;
             uint8_t* idx=b+p.sperm;
             int ikern=0;
-            if(p.spad!=0){
+            if(p.pad!=0){
                 lk_padding2d( handle, kernels[ikern++], p, a, tensors.in );
                 if(handle.IsProfilingEnabled()){ elapsed+=handle.GetKernelTime(); }
             }

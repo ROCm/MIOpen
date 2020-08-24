@@ -69,22 +69,15 @@ static inline uint32_t choose_routine_fconv(uint32_t n, uint32_t k)
 {
     uint32_t r=(n+31)>>5;
     uint32_t s=(n+15)>>4;
-    uint32_t id=2+((r&3)==0?((k&15)==0?2:1):((r&1)^1));
-    return (((s&1)!=0)&&(n<=112)?1:((k&7)!=0?0:id));
+    uint32_t id=1+((r&3)==0?((k&15)==0?2:1):((r&1)^1));
+    return ((k&7)!=0?4:id);
 }
 static inline uint32_t choose_routine_bconv(uint32_t n)
 {
+    uint32_t r=(n+31)>>5;
     uint32_t s=(n+15)>>4;
-    uint32_t id=(s&7)==0?3:((s&3)==0?2:((s&1)^1));
-    return id;
-}
-static inline uint32_t get_alignment( uint32_t id, uint32_t dir )
-{
-    if(dir==0){
-        return ((id==1)||(id==4)?127:255);
-    } else {
-        return ((id==0)||(id==3)?127:255);
-    }
+    uint32_t id=1+((r&3)==0?2:((r&1)^1));
+    return (((s&1)!=0)&&(n<=112)?0:id);
 }
 
 namespace miopen {
@@ -115,7 +108,7 @@ size_t get_auxbuf_size(const ConvolutionContext& ctx)
     uint32_t fid=choose_routine_fconv(n,k);
     uint32_t bid=choose_routine_bconv(n);
     uint32_t id=ctx.direction.IsForward()?fid:bid;
-    uint32_t temp=get_alignment(id,ctx.direction.IsForward()?0:1);
+    uint32_t temp=id==0?127:255;
     uint32_t ntidx=(m+temp)&~temp;
     uint32_t lda=pnx*pny;
     if((pu|pv)!=0){
@@ -125,12 +118,11 @@ size_t get_auxbuf_size(const ConvolutionContext& ctx)
             lda=(temp+(1^(temp&1)))<<6;
         }
     }
-    temp=id!=(ctx.direction.IsForward()?4:3)?7:15;
-    size_t pk   =(k+temp)&~temp;
+    temp=id!=3?7:15;
     size_t ags  =lda*inc;
     size_t spad =static_cast<size_t>(ng<<2)*ags;
-    size_t sperm=static_cast<size_t>(ng<<2)*pk*((n+3)&~3);
-    size_t sidx =(ntidx<<3)+(pk<<2)+128;
+    size_t sperm=static_cast<size_t>(ng<<2)*((k+temp)&~temp)*((n+3)&~3);
+    size_t sidx =(ntidx<<3)+(((k+15)&~15)<<2)+128;
     spad=(pu|pv)==0?0:spad;
     sperm=ctx.direction.IsForward()?0:sperm;
     return (spad+sperm+sidx);
@@ -183,18 +175,18 @@ void build_params_conv(param_conv_t& p, const ConvolutionContext& ctx)
     }
     p.pnx=p.anx+(pu<<1);
     p.pny=p.any+(pv<<1);
-    p.k=p.bnx*p.bny*p.inc;
-    p.n=ctx.n_outputs;
     p.pad=(pv<<24)|(pv<<16)|(pu<<8)|pu;
     p.sd=(dv<<18)|(du<<12)|(sv<<6)|su;
     p.ldc=p.cnx*p.cny;
     p.m=p.ldc*p.bs;
+    p.n=ctx.n_outputs;
+    p.k=p.bnx*p.bny*p.inc;
     if(p.dir==0){
         p.id=choose_routine_fconv(p.n,p.k);
     } else {
         p.id=choose_routine_bconv(p.n);
     }
-    uint32_t temp=get_alignment(p.id,p.dir);
+    uint32_t temp=p.id==0?127:255;
     p.ntidx=(p.m+temp)&~temp;
     p.lda=p.pnx*p.pny;
     if(p.pad!=0){
@@ -204,11 +196,11 @@ void build_params_conv(param_conv_t& p, const ConvolutionContext& ctx)
             p.lda=(temp+(1^(temp&1)))<<6;
         }
     }
-    uint32_t pk=(p.k+7)&~7;
+    temp=p.id!=3?7:15;
     p.ags  =p.lda*p.inc;
     p.spad =static_cast<size_t>(p.ng<<2)*p.ags;
-    p.sperm=static_cast<size_t>(p.ng<<2)*pk*((p.n+3)&~3);
-    p.sidx =(p.ntidx<<3)+(pk<<2)+128;
+    p.sperm=static_cast<size_t>(p.ng<<2)*((p.k+temp)&~temp)*((p.n+3)&~3);
+    p.sidx =(p.ntidx<<3)+(((p.k+15)&~15)<<2)+128;
     p.spad =p.pad==0?0:p.spad;
     p.sperm=p.dir==0?0:p.sperm;
 }

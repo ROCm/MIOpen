@@ -94,8 +94,6 @@ static void get_solution(miopen::solver::ConvSolution& sol, const miopen::Convol
 {
     static const char* knames_co[]=
     {
-        "sfco"        ,
-        "sfco_relu"   ,
         "sfco7x4"     ,
         "sfco7x4_relu",
         "sfco8x5"     ,
@@ -104,15 +102,16 @@ static void get_solution(miopen::solver::ConvSolution& sol, const miopen::Convol
         "sfco8x6_relu",
         "sfco7x7"     ,
         "sfco7x7_relu",
+        "sfco"        ,
+        "sfco_relu"   ,
         "sbco7x4"     ,
         "sbco8x5"     ,
         "sbco8x6"     ,
-        "sbco7x7"
+        "sbco7x7"    
     };
-    static const uint32_t blk_co[]={256,128,256,256,256};
     std::ostringstream options;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3()?5:4);
-    if(p.spad!=0){
+    if(p.pad!=0){
         const uint32_t gdx=(p.pnx*p.pny*p.ng*p.inc+255)>>8;
         const std::vector<size_t> block{256,1,1};
         const std::vector<size_t> grid{gdx<<8,p.bs,1};
@@ -129,7 +128,7 @@ static void get_solution(miopen::solver::ConvSolution& sol, const miopen::Convol
     }
 
     {
-        const uint32_t srelo=((p.k+7)&~7)+32;
+        const uint32_t srelo=((p.k+15)&~15)+32;
         const uint32_t ntid=p.ntidx>srelo?p.ntidx:srelo;
         const uint32_t gdx=(ntid+63)>>6;
         const std::vector<size_t> block{64,1,1};
@@ -140,14 +139,15 @@ static void get_solution(miopen::solver::ConvSolution& sol, const miopen::Convol
 
     {
         const uint32_t routine=p.dir==0?((p.id<<1)|relu):(10+p.id);
-        const uint32_t shx=((p.dir==0?0x78878:0x7887)>>(p.id<<2))&0xf;
-        const uint32_t shy=((p.dir==0?0x76545:0x7654)>>(p.id<<2))&0xf;
+        const uint32_t blk=p.id==0?128:256;
+        const uint32_t shx=(0x87887>>(p.id<<2))&0xf;
+        const uint32_t shy=(0x57654>>(p.id<<2))&0xf;
         const uint32_t ngx=p.ntidx>>shx;
         const uint32_t ngy=(p.n+(1<<shy)-1)>>shy;
         const uint32_t gdx=p.pad!=0?ngx:ngy;
         const uint32_t gdy=p.pad!=0?ngy:ngx;
-        const std::vector<size_t> block{blk_co[p.id-p.dir],1,1};
-        const std::vector<size_t> grid{gdx*blk_co[p.id-p.dir],gdy,p.ng};
+        const std::vector<size_t> block{blk,1,1};
+        const std::vector<size_t> grid{gdx*blk,gdy,p.ng};
         miopen::solver::KernelInfo kinfo={ options.str(), block, grid, file_name, knames_co[routine] };
         sol.construction_params.push_back(kinfo);
     }
@@ -163,6 +163,7 @@ bool ConvFlexgemm::IsApplicable(const ConvolutionContext& ctx) const
     uint32_t ksize=ctx.kernel_size_w|ctx.kernel_size_h|ctx.kernel_size_d;
     uint32_t stride=ctx.kernel_stride_w|ctx.kernel_stride_h|ctx.kernel_stride_d;
     uint32_t dilation=ctx.kernel_dilation_w|ctx.kernel_dilation_h|ctx.kernel_dilation_d;
+    if(((ctx.n_inputs&7)!=0)&&!ctx.Is2d()) return false;
     if(((ksize|stride|dilation)!=1)||(pad!=0)||((ctx.n_inputs&7)!=0)){
         if(!ctx.Is2d()) return false;
         if(!ctx.direction.IsForward()){
