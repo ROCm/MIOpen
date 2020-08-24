@@ -34,7 +34,7 @@ struct vector_type
 
 union c_vec32_2_t
 {
-    float64_t c;
+    // float64_t c;
     struct
     {
         float32_t x;
@@ -45,7 +45,7 @@ union c_vec32_2_t
 
 union c_vec64_2_t
 {
-    float128_t c;
+    // float128_t c;
     struct
     {
         c_vec32_2_t x;

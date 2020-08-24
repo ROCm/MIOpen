@@ -919,11 +919,15 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
 // register allocation for output
 #if CK_PARAM_TUNABLE_GEMM_M_PER_WAVE == 64 && CK_PARAM_TUNABLE_GEMM_N_PER_WAVE == 64
         c_vec32_2_t p_c_thread_vec;
+        p_c_thread_vec.s.x = 0;
+        p_c_thread_vec.s.y = 0;
 #else
         c_vec64_2_t p_c_thread_vec;
+        p_c_thread_vec.l.x.s.x = 0;
+        p_c_thread_vec.l.x.s.y = 0;
+        p_c_thread_vec.l.y.s.x = 0;
+        p_c_thread_vec.l.y.s.y = 0;
 #endif
-        p_c_thread_vec.c = 0;
-
         // preload data into LDS
         {
             a_blockwise_copy.Run(p_a_global, p_a_block);
