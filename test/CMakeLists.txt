@@ -57,10 +57,10 @@ set(MIOPEN_TEST_FLOAT_ARG)
 
 if(MIOPEN_TEST_HALF)   
     if(MIOPEN_BACKEND_OPENCL)
-        set(SKIP_TESTS test_gru test_rnn_vanilla test_lstm test_conv_igemm_dynamic)
+        set(SKIP_TESTS test_gru test_rnn_vanilla test_lstm test_conv_igemm_dynamic test_conv_flexgemm)
     endif()
     if(MIOPEN_TEST_GFX908)
-       set(SKIP_TESTS test_immed_conv3d test_conv3d test_fusion_aux test_activation test_lrn_test test_ctc test_conv2d_bias test_conv3d_bias test_cba_inference test_cbna_inference test_pooling2d test_na_train test_na_inference test_bn_aux test_conv_igemm_dynamic)
+       set(SKIP_TESTS test_immed_conv3d test_conv3d test_fusion_aux test_activation test_lrn_test test_ctc test_conv2d_bias test_conv3d_bias test_cba_inference test_cbna_inference test_pooling2d test_na_train test_na_inference test_bn_aux test_conv_igemm_dynamic test_conv_flexgemm)
     endif()
     set(MIOPEN_TEST_FLOAT_ARG --half)
 elseif(MIOPEN_TEST_INT8)
@@ -658,6 +658,7 @@ COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS} $<TARGET_FILE:test_conv2d> --verbose --
 )
 
 set(FLEXGEMM_DISABLES
+    MIOPEN_DEBUG_DISABLE_FIND_DB=1
     MIOPEN_DEBUG_CONV_DIRECT=0
     MIOPEN_DEBUG_CONV_FFT=0
     MIOPEN_DEBUG_CONV_GEMM=0
@@ -667,7 +668,7 @@ set(FLEXGEMM_ENVS
     ${FLEXGEMM_DISABLES}
     MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvFlexgemm)
 
-add_custom_test(test_conv_flexgemm SKIP_UNLESS_ALL
+add_custom_test(test_conv_flexgemm
 COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  64 128 28 28 --weights  32 128 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
 COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  64 128 28 28 --weights  64 128 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
 COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  64 128 28 28 --weights  96 128 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
