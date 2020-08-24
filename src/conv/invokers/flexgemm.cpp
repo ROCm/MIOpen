@@ -66,6 +66,8 @@ InvokerFactory MakeFlexgemmInvokerFactory( const flexgemm::param_conv_t& p, floa
             uint8_t* a=reinterpret_cast<uint8_t*>(params.workSpace);
             uint8_t* b=a+p.spad;
             uint8_t* idx=b+p.sperm;
+            const void* src=p.pad!=0?static_cast<const void*>(a):tensors.in;
+            const void* fil=p.dir!=0?static_cast<const void*>(b):tensors.w;
             int ikern=0;
             if(p.pad!=0){
                 lk_padding2d( handle, kernels[ikern++], p, a, tensors.in );
@@ -77,7 +79,8 @@ InvokerFactory MakeFlexgemmInvokerFactory( const flexgemm::param_conv_t& p, floa
             }
             lk_genidx2d( handle, kernels[ikern++], p, idx );
             if(handle.IsProfilingEnabled()){ elapsed+=handle.GetKernelTime(); }
-            lk_conv( handle, kernels[ikern], p, tensors.out, p.pad!=0?a:tensors.in, p.dir!=0?b:tensors.w, idx, alpha );
+
+            lk_conv( handle, kernels[ikern], p, tensors.out, src, fil, idx, alpha );
             if(handle.IsProfilingEnabled()){
                 elapsed+=handle.GetKernelTime();
                 handle.ResetKernelTime();

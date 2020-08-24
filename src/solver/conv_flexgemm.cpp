@@ -107,7 +107,7 @@ static void get_solution(miopen::solver::ConvSolution& sol, const miopen::Convol
         "sbco7x4"     ,
         "sbco8x5"     ,
         "sbco8x6"     ,
-        "sbco7x7"    
+        "sbco7x7"
     };
     std::ostringstream options;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3()?5:4);
