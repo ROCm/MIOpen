@@ -610,7 +610,8 @@ COMMAND $<TARGET_FILE:test_conv3d> --verbose --conv_dim_type conv3d --input 16  
 set(DYNAMIC_IMPLICITGEMM_COMMON
     MIOPEN_DEBUG_CONV_FFT=0
     MIOPEN_DEBUG_CONV_GEMM=0
-    MIOPEN_DEBUG_CONV_WINOGRAD=0)
+    MIOPEN_DEBUG_CONV_WINOGRAD=0
+    MIOPEN_DEBUG_CONV_FLEXGEMM=0)
 set(DYNAMIC_IMPLICITGEMM_ENVS
     ${DYNAMIC_IMPLICITGEMM_COMMON}
     MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmV4R1DynamicFwd)
@@ -666,7 +667,7 @@ set(FLEXGEMM_ENVS
     ${FLEXGEMM_DISABLES}
     MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvFlexgemm)
 
-add_custom_test(test_conv_flexgemm
+add_custom_test(test_conv_flexgemm SKIP_UNLESS_ALL
 COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  64 128 28 28 --weights  32 128 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
 COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  64 128 28 28 --weights  64 128 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
 COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  64 128 28 28 --weights  96 128 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
