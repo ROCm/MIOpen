@@ -92,23 +92,6 @@ static void get_solution(miopen::solver::ConvSolution& sol, const miopen::Convol
 }
 static void get_solution(miopen::solver::ConvSolution& sol, const miopen::ConvolutionContext& ctx, const miopen::flexgemm::param_conv_t& p, const std::string& file_name, uint32_t relu)
 {
-    static const char* knames_co[]=
-    {
-        "sfco7x4"     ,
-        "sfco7x4_relu",
-        "sfco8x5"     ,
-        "sfco8x5_relu",
-        "sfco8x6"     ,
-        "sfco8x6_relu",
-        "sfco7x7"     ,
-        "sfco7x7_relu",
-        "sfco"        ,
-        "sfco_relu"   ,
-        "sbco7x4"     ,
-        "sbco8x5"     ,
-        "sbco8x6"     ,
-        "sbco7x7"
-    };
     std::ostringstream options;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3()?5:4);
     if(p.pad!=0){
@@ -138,6 +121,13 @@ static void get_solution(miopen::solver::ConvSolution& sol, const miopen::Convol
     }
 
     {
+        static const char* knames_co[]={
+            "sfco7x4", "sfco7x4_relu",
+            "sfco8x5", "sfco8x5_relu",
+            "sfco8x6", "sfco8x6_relu",
+            "sfco7x7", "sfco7x7_relu",
+            "sfco"   , "sfco_relu",
+            "sbco7x4", "sbco8x5", "sbco8x6", "sbco7x7" };
         const uint32_t routine=p.dir==0?((p.id<<1)|relu):(10+p.id);
         const uint32_t blk=p.id==0?128:256;
         const uint32_t shx=(0x87887>>(p.id<<2))&0xf;
