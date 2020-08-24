@@ -732,8 +732,8 @@ static void DirConvFindCore(Handle& handle,
     {
         ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
         bufs.SetFwd(x, w, y);
-        const auto all = conv.FindFlexgemmSolutions(
-            handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs);
+        const auto all =
+            conv.FindFlexgemmSolutions(handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs);
         PrecompileSolutions(handle, all);
         const auto algorithm_name = AlgorithmName{"miopenConvolutionFwdAlgoFlexgemm"};
         EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
@@ -2249,8 +2249,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 const auto all = this->FindFlexgemmSolutions(
                     handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, bufs);
                 PrecompileSolutions(handle, all);
-                const auto algorithm_name =
-                    AlgorithmName{"miopenConvolutionBwdDataAlgoFlexgemm"};
+                const auto algorithm_name = AlgorithmName{"miopenConvolutionBwdDataAlgoFlexgemm"};
                 EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
             }
 

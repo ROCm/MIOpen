@@ -80,8 +80,8 @@ struct param_conv_t
 };
 size_t get_auxbuf_size(const ConvolutionContext&);
 size_t get_auxbuf_size(const param_conv_t&);
-void   build_params_ufconv(param_ufconv_t&, const ConvolutionContext&);
-void   build_params_conv(param_conv_t&, const ConvolutionContext&);
+void build_params_ufconv(param_ufconv_t&, const ConvolutionContext&);
+void build_params_conv(param_conv_t&, const ConvolutionContext&);
 } // namespace flexgemm
 } // namespace miopen
 // clang-foramt on
