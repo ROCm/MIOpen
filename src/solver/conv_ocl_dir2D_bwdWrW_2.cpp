@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#if MIOPEN_BACKEND_OPENCL
 #include <miopen/solver.hpp>
 
 #include <miopen/conv/invokers/ocl_wrw_rdc.hpp>
@@ -858,3 +859,4 @@ template struct ConvOclBwdWrW2<16>;
 
 } // namespace solver
 } // namespace miopen
+#endif // MIOPEN_BACKEND_OPENCL
