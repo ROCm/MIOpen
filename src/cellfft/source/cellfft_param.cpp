@@ -101,6 +101,8 @@ size_t get_auxbuf_size( const ConvolutionContext& ctx )
     uint32_t tile_y=cell-fny+1;
     uint32_t grid_x=(pnx+tile_x-fnx)/tile_x;
     uint32_t grid_y=(pny+tile_y-fny)/tile_y;
+    p.grid_x=p.grid_x==0?1:p.grid_x;
+    p.grid_y=p.grid_y==0?1:p.grid_y;
     uint32_t m=bs*grid_x*grid_y;
     uint32_t n=onc;
     uint32_t k=inc;
@@ -138,6 +140,8 @@ size_t get_auxbuf_size_grad( const ConvolutionContext& ctx )
     uint32_t tile_y=cell-cny+1;
     uint32_t grid_x=(pnx+tile_x-cnx)/tile_x;
     uint32_t grid_y=(pny+tile_y-cny)/tile_y;
+    p.grid_x=p.grid_x==0?1:p.grid_x;
+    p.grid_y=p.grid_y==0?1:p.grid_y;
     uint32_t k=bs*grid_x*grid_y;
     uint32_t ek=PSIZE(k,7);
     uint32_t lda=PSIZE(pnc,31)>>5;
@@ -186,6 +190,8 @@ void build_cellfft_params( cellfft_param_t& p, const ConvolutionContext& ctx )
     p.tile_y=cell-p.bny+1;
     p.grid_x=(pnx+p.tile_x-p.bnx)/p.tile_x;
     p.grid_y=(pny+p.tile_y-p.bny)/p.tile_y;
+    p.grid_x=p.grid_x==0?1:p.grid_x;
+    p.grid_y=p.grid_y==0?1:p.grid_y;
     p.m=bs*p.grid_x*p.grid_y;
     p.n=onc;
     p.k=inc;
@@ -238,6 +244,8 @@ void build_cellfft_params_grad( cellfft_param_t& p, const ConvolutionContext& ct
     p.tile_y=cell-p.cny+1;
     p.grid_x=(pnx+p.tile_x-p.cnx)/p.tile_x;
     p.grid_y=(pny+p.tile_y-p.cny)/p.tile_y;
+    p.grid_x=p.grid_x==0?1:p.grid_x;
+    p.grid_y=p.grid_y==0?1:p.grid_y;
     p.m=pnc;
     p.n=qnc;
     p.k=bs*p.grid_x*p.grid_y;
