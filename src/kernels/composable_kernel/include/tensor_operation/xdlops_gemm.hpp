@@ -49,13 +49,7 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x1xf32>
     static constexpr index_t cycles          = 64;
     static constexpr index_t k_base          = 1;
 
-    template <index_t MPerXdlops,
-              index_t NPerXdlops,
-              index_t AStride = 1,
-              index_t BStride = 1,
-              class FloatA,
-              class FloatB,
-              class FloatC>
+    template <index_t MPerXdlops, index_t NPerXdlops, class FloatA, class FloatB, class FloatC>
     __device__ void run(const FloatA* a, const FloatB* b, FloatC* reg_c) const
     {
         const auto p_a = reinterpret_cast<const float*>(a);
@@ -230,14 +224,19 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x8f16>
     static constexpr index_t cycles          = 64;
     static constexpr index_t k_base          = 4;
 
-    template <index_t MPerXdlops, index_t NPerXdlops, class FloatA, class FloatB, class FloatC>
-    __device__ void run(const FloatA* a, const FloatB* b, FloatC* reg_c) const
+    template <index_t MPerXdlops,
+              index_t NPerXdlops,
+              index_t AStride = 1,
+              index_t BStride = 1,
+              class FloatA,
+              class FloatB,
+              class FloatC>
+    __device__ FloatC run(const FloatA* a, const FloatB* b, FloatC reg_c) const
     {
         const auto p_a = reinterpret_cast<const half4_t*>(a);
         const auto p_b = reinterpret_cast<const half4_t*>(b);
-        auto p_c       = reinterpret_cast<float16_t*>(reg_c);
 
-        intrin_mfma_f32_32x32x8f16(p_a, p_b, p_c);
+        return intrin_mfma_f32_32x32x8f16(p_a, p_b, reg_c);
     }
 };
 
@@ -713,7 +712,7 @@ struct XdlopsGemm_t
             for(index_t k_i = 0; k_i < K; k_i += mfma_type.num_input_blks)
             {
                 for(index_t i = 0; i < KRepeats; ++i)
-                    mfma_type.template run<MPerXdlops, NPerXdlops, AStride, BStride>(
+                    p_c_thread = mfma_type.template run<MPerXdlops, NPerXdlops, AStride, BStride>(
                         &pa[(k_i * KRepeats + i) * mfma_type.k_base],
                         &pb[(k_i * KRepeats + i) * mfma_type.k_base],
                         p_c_thread);
@@ -767,6 +766,36 @@ struct XdlopsGemm_t
     static constexpr auto GetXdlopsInfo<half_t, 128, 64>()
     {
         return xdlops_info<mfma_instr::mfma_f32_32x32x4f16, 64, 64, 2, 1, c_vec32_4_t>{};
+    }
+
+    template <>
+    static constexpr auto GetXdlopsInfo<half_t, 64, 128>()
+    {
+        return xdlops_info<mfma_instr::mfma_f32_32x32x4f16, 64, 64, 1, 2, c_vec32_4_t>{};
+    }
+
+    template <>
+    static constexpr auto GetXdlopsInfo<half_t, 64, 64>()
+    {
+        return xdlops_info<mfma_instr::mfma_f32_32x32x4f16, 64, 64, 1, 1, c_vec32_2_t>{};
+    }
+
+    template <>
+    static constexpr auto GetXdlopsInfo<half_t, 64, 32>()
+    {
+        return xdlops_info<mfma_instr::mfma_f32_32x32x4f16, 64, 32, 1, 1, c_vec32_1_t>{};
+    }
+
+    template <>
+    static constexpr auto GetXdlopsInfo<half_t, 32, 64>()
+    {
+        return xdlops_info<mfma_instr::mfma_f32_32x32x4f16, 32, 64, 1, 1, c_vec32_1_t>{};
+    }
+
+    template <>
+    static constexpr auto GetXdlopsInfo<half_t, 32, 32>()
+    {
+        return xdlops_info<mfma_instr::mfma_f32_32x32x8f16, 32, 32, 1, 1, c_vec16_1_t>{};
     }
 
 #if 0
@@ -887,7 +916,7 @@ struct XdlopsGemm_t
     template <>
     static constexpr auto GetXdlopsInfo<half_t, 128, 64>()
     {
-        return xdlops_info<mfma_instr::mfma_f32_32x32x4f16, 64, 64, 2, 1, c_vec32_4_t>{};
+        return xdlops_info<mfma_instr::mfma_f32_32x32x4f16, 64, 64, 2, 1>{};
     }
 
     template <>
@@ -1126,10 +1155,43 @@ struct XdlopsGemm_t
         __device__ static constexpr auto GetOutputVecZero<c_vec32_4_t>()
         {
             c_vec32_4_t c;
+
             c.s.x = 0;
             c.s.y = 0;
             c.s.z = 0;
             c.s.w = 0;
+
+            return c;
+        }
+
+        template <>
+        __device__ static constexpr auto GetOutputVecZero<c_vec32_2_t>()
+        {
+            c_vec32_2_t c;
+
+            c.s.x = 0;
+            c.s.y = 0;
+
+            return c;
+        }
+
+        template <>
+        __device__ static constexpr auto GetOutputVecZero<c_vec32_1_t>()
+        {
+            c_vec32_1_t c;
+
+            c.s.x = 0;
+
+            return c;
+        }
+
+        template <>
+        __device__ static constexpr auto GetOutputVecZero<c_vec16_1_t>()
+        {
+            c_vec16_1_t c;
+
+            c.s.x = 0;
+
             return c;
         }
 

@@ -42,6 +42,34 @@ union c_vec32_4_t
     float n[128];
 };
 
+union c_vec32_2_t
+{
+    struct
+    {
+        float32_t x;
+        float32_t y;
+    } s;
+    float n[64];
+};
+
+union c_vec32_1_t
+{
+    struct
+    {
+        float32_t x;
+    } s;
+    float n[32];
+};
+
+union c_vec16_1_t
+{
+    struct
+    {
+        float16_t x;
+    } s;
+    float n[16];
+};
+
 template <>
 struct vector_type<float, 1>
 {
