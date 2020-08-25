@@ -517,6 +517,12 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicable(const ConvolutionContext& param
 }
 
 template <int N_BATCH_LOOPS>
+bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsEnabledForNtHybrid() const
+{
+    return N_BATCH_LOOPS == 1;
+}
+
+template <int N_BATCH_LOOPS>
 PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
 ConvOclBwdWrW2<N_BATCH_LOOPS>::GetPerformanceConfig(const ConvolutionContext& params) const
 {

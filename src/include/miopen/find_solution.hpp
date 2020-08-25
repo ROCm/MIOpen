@@ -97,7 +97,7 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, Db& db)
         }
     }
 
-    if(miopen::FindMode(context).IsNtHybrid())
+    if(miopen::FindMode(context).IsNtHybrid() && !s.IsEnabledForNtHybrid())
     {
         // For now, let's use this for solutions skipped due to NT_HYBRID.
         return {static_cast<miopenStatus_t>(100)};
