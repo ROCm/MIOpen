@@ -917,15 +917,10 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
 
         // register allocation for output
         // AccFloat p_c_thread[c_k_thread_mtx_desc.GetElementSpace()];
-        c_vec32_4_t p_c_thread_vec;
-        p_c_thread_vec.s.x = 0;
-        p_c_thread_vec.s.y = 0;
-        p_c_thread_vec.s.z = 0;
-        p_c_thread_vec.s.w = 0;
+        using c_vec_type = decltype(blockwise_gemm.GetOutputLayout().GetOutputVec());
 
-        // zero out threadwise output
-        // threadwise_matrix_set_zero(c_k_thread_mtx_desc, p_c_thread);
-        // blockwise_gemm.XdlopsMatrixCSetZero();
+        auto p_c_thread_vec =
+            blockwise_gemm.GetOutputLayout().template GetOutputVecZero<c_vec_type>();
 
         // preload data into LDS
         {

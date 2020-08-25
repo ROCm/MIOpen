@@ -469,7 +469,8 @@ template <mfma_instr instr,
           index_t MPerXdlops_,
           index_t NPerXdlops_,
           index_t MRepeats_,
-          index_t NRepeats_>
+          index_t NRepeats_,
+          class output_vec_type_>
 struct xdlops_info
 {
     static constexpr auto mfma_type = mfma_info<instr>{};
@@ -485,6 +486,8 @@ struct xdlops_info
     {
         return (mfma_type.num_output_blks == 1) && (mfma_type.num_input_blks > 1);
     }
+
+    static constexpr auto output_vec = output_vec_type_{};
 };
 
 template <class data_type,
@@ -748,23 +751,6 @@ struct XdlopsGemm_t
         return MatrixIndex{row, col};
     }
 
-    struct OutputLayout
-    {
-        __device__ static constexpr index_t M1() { return mfma_type.num_groups_blk; }
-        __device__ static constexpr index_t M0() { return mfma_type.group_size; }
-        __device__ static constexpr index_t N1() { return mfma_type.num_input_blks; }
-        __device__ static constexpr index_t N0() { return mfma_type.num_threads_blk; }
-
-        __device__ static constexpr index_t GetBlkSize() { return mfma_type.num_regs_blk; }
-
-        __device__ static constexpr index_t GetNumBlks()
-        {
-            return GetNumBlksPerXdlops() * MRepeats * NRepeats;
-        }
-    };
-
-    __device__ static constexpr auto GetOutputLayout() { return OutputLayout{}; }
-
     __device__ void SetZeroXdlopsRegs() const {}
 
     template <class FloatC>
@@ -772,12 +758,18 @@ struct XdlopsGemm_t
     {
     }
 
-    protected:
     template <class data_type_  = data_type,
               index_t MPerWave_ = GemmMPerWave,
               index_t NPerWave_ = GemmNPerWave>
     static constexpr auto GetXdlopsInfo();
 
+    template <>
+    static constexpr auto GetXdlopsInfo<half_t, 128, 64>()
+    {
+        return xdlops_info<mfma_instr::mfma_f32_32x32x4f16, 64, 64, 2, 1, c_vec32_4_t>{};
+    }
+
+#if 0
     template <>
     static constexpr auto GetXdlopsInfo<float, 128, 128>()
     {
@@ -895,7 +887,7 @@ struct XdlopsGemm_t
     template <>
     static constexpr auto GetXdlopsInfo<half_t, 128, 64>()
     {
-        return xdlops_info<mfma_instr::mfma_f32_32x32x4f16, 64, 64, 2, 1>{};
+        return xdlops_info<mfma_instr::mfma_f32_32x32x4f16, 64, 64, 2, 1, c_vec32_4_t>{};
     }
 
     template <>
@@ -1101,6 +1093,7 @@ struct XdlopsGemm_t
     {
         return xdlops_info<mfma_instr::mfma_f32_4x4x2bf16, 4, 64, 1, 1>{};
     }
+#endif
 
     static constexpr index_t MRepeats   = GetXdlopsInfo().MRepeats;
     static constexpr index_t NRepeats   = GetXdlopsInfo().NRepeats;
@@ -1111,6 +1104,39 @@ struct XdlopsGemm_t
     static constexpr bool IsABroadcast = GetXdlopsInfo().IsABroadcast();
 
     static constexpr auto mfma_type = GetXdlopsInfo().mfma_type;
+
+    struct OutputLayout
+    {
+        __device__ static constexpr index_t M1() { return mfma_type.num_groups_blk; }
+        __device__ static constexpr index_t M0() { return mfma_type.group_size; }
+        __device__ static constexpr index_t N1() { return mfma_type.num_input_blks; }
+        __device__ static constexpr index_t N0() { return mfma_type.num_threads_blk; }
+
+        __device__ static constexpr index_t GetBlkSize() { return mfma_type.num_regs_blk; }
+
+        __device__ static constexpr index_t GetNumBlks()
+        {
+            return GetNumBlksPerXdlops() * MRepeats * NRepeats;
+        }
+
+        template <class c_vec_type>
+        __device__ static constexpr auto GetOutputVecZero();
+
+        template <>
+        __device__ static constexpr auto GetOutputVecZero<c_vec32_4_t>()
+        {
+            c_vec32_4_t c;
+            c.s.x = 0;
+            c.s.y = 0;
+            c.s.z = 0;
+            c.s.w = 0;
+            return c;
+        }
+
+        __device__ static constexpr auto GetOutputVec() { return GetXdlopsInfo().output_vec; }
+    };
+
+    __device__ static constexpr auto GetOutputLayout() { return OutputLayout{}; }
 };
 
 } // namespace ck
