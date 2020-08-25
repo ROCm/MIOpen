@@ -521,7 +521,9 @@ static inline bool IsValidBlockwiseGemmXdlops(const ConvolutionContext& ctx,
         return false;
 
     // check M, N and K
-    std::vector<std::tuple<int, int, int>> validWaveGemmSize = {std::make_tuple(128, 64, 1),
+    std::vector<std::tuple<int, int, int>> validWaveGemmSize = {
+        std::make_tuple(128, 128, 1),
+        std::make_tuple(128, 64, 1),
                                                                 std::make_tuple(128, 32, 1),
                                                                 std::make_tuple(128, 16, 1),
                                                                 std::make_tuple(64, 128, 1),

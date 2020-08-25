@@ -917,7 +917,18 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
 
         static_assert(MPerWave >= 64 && NPerWave >= 64, "");
 // register allocation for output
-#if CK_PARAM_TUNABLE_GEMM_M_PER_WAVE == 64 && CK_PARAM_TUNABLE_GEMM_N_PER_WAVE == 64
+#if CK_PARAM_TUNABLE_GEMM_M_PER_WAVE == 128 && CK_PARAM_TUNABLE_GEMM_N_PER_WAVE == 128
+        c_vec64_4_t p_c_thread_vec;
+        p_c_thread_vec.l.x.s.x = 0;
+        p_c_thread_vec.l.x.s.y = 0;
+        p_c_thread_vec.l.y.s.x = 0;
+        p_c_thread_vec.l.y.s.y = 0;
+
+        p_c_thread_vec.l.z.s.x = 0;
+        p_c_thread_vec.l.z.s.y = 0;
+        p_c_thread_vec.l.w.s.x = 0;
+        p_c_thread_vec.l.w.s.y = 0;
+#elif CK_PARAM_TUNABLE_GEMM_M_PER_WAVE == 64 && CK_PARAM_TUNABLE_GEMM_N_PER_WAVE == 64
         c_vec32_2_t p_c_thread_vec;
         p_c_thread_vec.s.x = 0;
         p_c_thread_vec.s.y = 0;

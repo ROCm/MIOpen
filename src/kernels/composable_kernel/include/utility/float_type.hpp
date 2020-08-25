@@ -54,6 +54,19 @@ union c_vec64_2_t
     float n[128];
 };
 
+union c_vec64_4_t
+{
+    // float128_t c;
+    struct
+    {
+        c_vec32_2_t x;
+        c_vec32_2_t y;
+        c_vec32_2_t z;
+        c_vec32_2_t w;
+    } l;
+    float n[256];
+};
+
 template <>
 struct vector_type<float, 1>
 {

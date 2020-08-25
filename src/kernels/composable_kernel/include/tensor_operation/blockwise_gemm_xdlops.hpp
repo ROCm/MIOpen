@@ -107,36 +107,8 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
         constexpr index_t N = BlockMatrixB::NCol();
         constexpr index_t K = BlockMatrixA::NRow();
 
-#if CK_PARAM_TUNABLE_GEMM_M_PER_WAVE == 64 && CK_PARAM_TUNABLE_GEMM_N_PER_WAVE == 64
-
         p_c_thread = XdlopsGemm.template Run<M, N, K>(
             &p_a_block[mMyWaveOffsetA], &p_b_block[mMyWaveOffsetB], p_c_thread);
-
-#elif CK_PARAM_TUNABLE_GEMM_M_PER_WAVE == 64 && CK_PARAM_TUNABLE_GEMM_N_PER_WAVE == 128
-
-        p_c_thread.l.x =
-            XdlopsGemm.template Run<M, N, K>(&p_a_block[mMyWaveOffsetA + MPerXdlops * 0],
-                                             &p_b_block[mMyWaveOffsetB + NPerXdlops * 0],
-                                             p_c_thread.l.x);
-
-        p_c_thread.l.y =
-            XdlopsGemm.template Run<M, N, K>(&p_a_block[mMyWaveOffsetA + MPerXdlops * 0],
-                                             &p_b_block[mMyWaveOffsetB + NPerXdlops * 1],
-                                             p_c_thread.l.y);
-
-#elif CK_PARAM_TUNABLE_GEMM_M_PER_WAVE == 128 && CK_PARAM_TUNABLE_GEMM_N_PER_WAVE == 64
-        p_c_thread.l.x =
-            XdlopsGemm.template Run<M, N, K>(&p_a_block[mMyWaveOffsetA + MPerXdlops * 0],
-                                             &p_b_block[mMyWaveOffsetB + NPerXdlops * 0],
-                                             p_c_thread.l.x);
-
-        p_c_thread.l.y =
-            XdlopsGemm.template Run<M, N, K>(&p_a_block[mMyWaveOffsetA + MPerXdlops * 1],
-                                             &p_b_block[mMyWaveOffsetB + NPerXdlops * 0],
-                                             p_c_thread.l.y);
-#else
-        static_assert(true, "");
-#endif
 
         return p_c_thread;
     }

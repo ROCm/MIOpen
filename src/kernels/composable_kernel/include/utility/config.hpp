@@ -75,7 +75,7 @@
 #endif
 // workaround for accvgpr over-allocation
 #ifndef CK_WORKAROUND_SWDEV_241664
-#define CK_WORKAROUND_SWDEV_241664 1
+#define CK_WORKAROUND_SWDEV_241664 0
 #endif
 
 namespace ck {
