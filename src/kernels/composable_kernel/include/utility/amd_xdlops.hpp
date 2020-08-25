@@ -198,57 +198,69 @@ struct intrin_mfma_f32_32x32x4f16<32, 64, AStride, BStride>
     }
 };
 
-template <class FloatC>
-__device__ FloatC intrin_mfma_f32_32x32x8f16(const half4_t* reg_a,
-                                             const half4_t* reg_b,
-                                             FloatC reg_c)
+__device__ c_vec16_1_t intrin_mfma_f32_32x32x8f16(const half4_t* reg_a,
+                                                  const half4_t* reg_b,
+                                                  c_vec16_1_t reg_c)
 {
     reg_c.s.x = llvm_intrin_amdgcn_mfma_f32_32x32x8f16(reg_a[0], reg_b[0], reg_c.s.x, 0, 0, 0);
     return reg_c;
 }
 
-__device__ void
-intrin_mfma_f32_16x16x16f16(const half4_t* reg_a, const half4_t* reg_b, float4_t* reg_c)
+__device__ c_vec4_1_t intrin_mfma_f32_16x16x16f16(const half4_t* reg_a,
+                                                  const half4_t* reg_b,
+                                                  c_vec4_1_t reg_c)
 {
-    reg_c[0] = llvm_intrin_amdgcn_mfma_f32_16x16x16f16(reg_a[0], reg_b[0], reg_c[0], 0, 0, 0);
+    reg_c.s.x = llvm_intrin_amdgcn_mfma_f32_16x16x16f16(reg_a[0], reg_b[0], reg_c.s.x, 0, 0, 0);
+    return reg_c;
 }
 
 template <index_t MPerWave, index_t NPerWave>
-__device__ void
-intrin_mfma_f32_16x16x4f16(const half4_t* reg_a, const half4_t* reg_b, float16_t* reg_c);
+__device__ c_vec16_1_t intrin_mfma_f32_16x16x4f16(const half4_t* reg_a,
+                                                  const half4_t* reg_b,
+                                                  c_vec16_1_t reg_c);
 
 template <>
-__device__ void
-intrin_mfma_f32_16x16x4f16<16, 64>(const half4_t* reg_a, const half4_t* reg_b, float16_t* reg_c)
+__device__ c_vec16_1_t intrin_mfma_f32_16x16x4f16<16, 64>(const half4_t* reg_a,
+                                                          const half4_t* reg_b,
+                                                          c_vec16_1_t reg_c)
 {
-    reg_c[0] = llvm_intrin_amdgcn_mfma_f32_16x16x4f16(reg_a[0], reg_b[0], reg_c[0], 2, 0, 0);
+    reg_c.s.x = llvm_intrin_amdgcn_mfma_f32_16x16x4f16(reg_a[0], reg_b[0], reg_c.s.x, 2, 0, 0);
+    return reg_c;
 }
 
 template <>
-__device__ void
-intrin_mfma_f32_16x16x4f16<64, 16>(const half4_t* reg_a, const half4_t* reg_b, float16_t* reg_c)
+__device__ c_vec16_1_t intrin_mfma_f32_16x16x4f16<64, 16>(const half4_t* reg_a,
+                                                          const half4_t* reg_b,
+                                                          c_vec16_1_t reg_c)
 
 {
-    reg_c[0] = llvm_intrin_amdgcn_mfma_f32_16x16x4f16(reg_a[0], reg_b[0], reg_c[0], 0, 0, 4);
+    reg_c.s.x = llvm_intrin_amdgcn_mfma_f32_16x16x4f16(reg_a[0], reg_b[0], reg_c.s.x, 0, 0, 4);
+    return reg_c;
 }
 
-template <index_t MPerWave, index_t NPerWave>
-__device__ void
-intrin_mfma_f32_4x4x4f16(const half4_t* reg_a, const half4_t* reg_b, float4_t* reg_c);
+template <index_t MPerWave, index_t NPerWave, class FloatC>
+__device__ FloatC intrin_mfma_f32_4x4x4f16(const half4_t* reg_a,
+                                           const half4_t* reg_b,
+                                           FloatC reg_c);
 
 template <>
-__device__ void
-intrin_mfma_f32_4x4x4f16<4, 64>(const half4_t* reg_a, const half4_t* reg_b, float4_t* reg_c)
+__device__ c_vec4_1_t intrin_mfma_f32_4x4x4f16<4, 64, c_vec4_1_t>(const half4_t* reg_a,
+                                                                  const half4_t* reg_b,
+                                                                  c_vec4_1_t reg_c)
 {
-    reg_c[0] = llvm_intrin_amdgcn_mfma_f32_4x4x4f16(reg_a[0], reg_b[0], reg_c[0], 4, 0, 0);
+    reg_c.s.x = llvm_intrin_amdgcn_mfma_f32_4x4x4f16(reg_a[0], reg_b[0], reg_c.s.x, 4, 0, 0);
+    return reg_c;
 }
 
 template <>
-__device__ void
-intrin_mfma_f32_4x4x4f16<8, 64>(const half4_t* reg_a, const half4_t* reg_b, float4_t* reg_c)
+__device__ c_vec4_2_t intrin_mfma_f32_4x4x4f16<8, 64, c_vec4_2_t>(const half4_t* reg_a,
+                                                                  const half4_t* reg_b,
+                                                                  c_vec4_2_t reg_c)
 {
-    reg_c[0] = llvm_intrin_amdgcn_mfma_f32_4x4x4f16(reg_a[0], reg_b[0], reg_c[0], 4, 0, 0);
-    reg_c[1] = llvm_intrin_amdgcn_mfma_f32_4x4x4f16(reg_a[0], reg_b[0], reg_c[1], 4, 1, 0);
+    reg_c.s.x = llvm_intrin_amdgcn_mfma_f32_4x4x4f16(reg_a[0], reg_b[0], reg_c.s.x, 4, 0, 0);
+    reg_c.s.y = llvm_intrin_amdgcn_mfma_f32_4x4x4f16(reg_a[0], reg_b[0], reg_c.s.y, 4, 1, 0);
+
+    return reg_c;
 }
 
 template <index_t MPerWave, index_t NPerWave>

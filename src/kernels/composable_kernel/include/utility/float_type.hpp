@@ -70,6 +70,25 @@ union c_vec16_1_t
     float n[16];
 };
 
+union c_vec4_2_t
+{
+    struct
+    {
+        float4_t x;
+        float4_t y;
+    } s;
+    float n[8];
+};
+
+union c_vec4_1_t
+{
+    struct
+    {
+        float4_t x;
+    } s;
+    float n[4];
+};
+
 template <>
 struct vector_type<float, 1>
 {
