@@ -508,7 +508,7 @@ struct XdlopsGemmAsm_t
         static_assert(sizeof(FloatA) % (sizeof(data_type) * mfma_type.k_base) == 0,
                       "wrong! FloatA is consistent with mfma");
 
-        constexpr index_t nxdlops = sizeof(FloatA) / (sizeof(data_type) * mfma_type.k_base);
+        constexpr index_t KRepeats = sizeof(FloatA) / (sizeof(data_type) * mfma_type.k_base);
 
         static_assert(!IsKReduction || K % mfma_type.num_input_blks == 0,
                       "K cannot divided by mfma_type.num_input_blks!");
@@ -522,8 +522,8 @@ struct XdlopsGemmAsm_t
 
         static_if<!IsKReduction>{}([&](auto) {
 
-            constexpr index_t AStride = K * nxdlops;
-            constexpr index_t BStride = K * nxdlops;
+            constexpr index_t AStride = K * KRepeats;
+            constexpr index_t BStride = K * KRepeats;
 
             for(index_t m_i = 0; m_i < MRepeats; ++m_i)
                 for(index_t k_i      = 0; k_i < K; ++k_i)
@@ -536,12 +536,10 @@ struct XdlopsGemmAsm_t
 #if CK_WORKAROUND_SWDEV_229564
 #pragma unroll
 #endif
-            for(index_t k_i = 0; k_i < K; ++k_i)
+            for(index_t k_i = 0; k_i < K * KRepeats; ++k_i)
             {
-                for(index_t i = 0; i < nxdlops; ++i)
-                    mfma_type.template run<MPerXdlops, NPerXdlops, AStride, BStride>(
-                        &pa[(k_i * nxdlops + i) * mfma_type.k_base],
-                        &pb[(k_i * nxdlops + i) * mfma_type.k_base]);
+                mfma_type.template run<GemmMPerWave, GemmNPerWave, AStride, BStride>(
+                    &pa[k_i * mfma_type.k_base], &pb[k_i * mfma_type.k_base]);
             }
 
         }).Else([&](auto) {
@@ -561,10 +559,10 @@ struct XdlopsGemmAsm_t
 #endif
             for(index_t k_i = 0; k_i < K; k_i += mfma_type.num_input_blks)
             {
-                for(index_t i = 0; i < nxdlops; ++i)
+                for(index_t i = 0; i < KRepeats; ++i)
                     mfma_type.template run<MPerXdlops, NPerXdlops>(
-                        &pa[(k_i * nxdlops + i) * mfma_type.k_base],
-                        &pb[(k_i * nxdlops + i) * mfma_type.k_base]);
+                        &pa[(k_i * KRepeats + i) * mfma_type.k_base],
+                        &pb[(k_i * KRepeats + i) * mfma_type.k_base]);
             }
 
         });

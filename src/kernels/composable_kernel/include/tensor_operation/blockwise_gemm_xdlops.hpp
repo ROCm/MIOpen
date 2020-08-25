@@ -76,16 +76,16 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
     }
 
     template <class FloatA, class FloatB, class FloatC>
-    __device__ void Run(const FloatA* __restrict__ p_a_block,
-                        const FloatB* __restrict__ p_b_block,
-                        FloatC* __restrict__ p_c_thread) const
+    __device__ FloatC Run(const FloatA* __restrict__ p_a_block,
+                          const FloatB* __restrict__ p_b_block,
+                          FloatC p_c_thread) const
 
     {
         constexpr index_t M = BlockMatrixA::NCol(); // A is transposed
         constexpr index_t N = BlockMatrixB::NCol();
         constexpr index_t K = BlockMatrixA::NRow();
 
-        XdlopsGemm.template Run<M, N, K>(
+        return XdlopsGemm.template Run<M, N, K>(
             &p_a_block[mMyWaveOffsetA], &p_b_block[mMyWaveOffsetB], p_c_thread);
     }
 

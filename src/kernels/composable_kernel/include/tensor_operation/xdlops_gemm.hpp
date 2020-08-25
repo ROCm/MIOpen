@@ -49,7 +49,13 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x1xf32>
     static constexpr index_t cycles          = 64;
     static constexpr index_t k_base          = 1;
 
-    template <index_t MPerXdlops, index_t NPerXdlops, class FloatA, class FloatB, class FloatC>
+    template <index_t MPerXdlops,
+              index_t NPerXdlops,
+              index_t AStride = 1,
+              index_t BStride = 1,
+              class FloatA,
+              class FloatB,
+              class FloatC>
     __device__ void run(const FloatA* a, const FloatB* b, FloatC* reg_c) const
     {
         const auto p_a = reinterpret_cast<const float*>(a);
@@ -190,14 +196,20 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x4f16>
     static constexpr index_t cycles          = 64;
     static constexpr index_t k_base          = 4;
 
-    template <index_t MPerXdlops, index_t NPerXdlops, class FloatA, class FloatB, class FloatC>
-    __device__ void run(const FloatA* a, const FloatB* b, FloatC* reg_c) const
+    template <index_t MPerXdlops,
+              index_t NPerXdlops,
+              index_t AStride,
+              index_t BStride,
+              class FloatA,
+              class FloatB,
+              class FloatC>
+    __device__ FloatC run(const FloatA* a, const FloatB* b, FloatC reg_c) const
     {
         const auto p_a = reinterpret_cast<const half4_t*>(a);
         const auto p_b = reinterpret_cast<const half4_t*>(b);
-        auto p_c       = reinterpret_cast<float32_t*>(reg_c);
 
-        intrin_mfma_f32_32x32x4f16<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
+        return intrin_mfma_f32_32x32x4f16<MPerXdlops, NPerXdlops, AStride, BStride>{}.run(
+            p_a, p_b, reg_c);
     }
 };
 
@@ -626,12 +638,11 @@ struct XdlopsGemm_t
 #endif
 
     template <index_t M, index_t N, index_t K, class FloatA, class FloatB, class FloatC>
-    __device__ void Run(const FloatA* const __restrict__ p_a_wave,
-                        const FloatB* const __restrict__ p_b_wave,
-                        FloatC* const __restrict__ p_c_thread) const
+    __device__ FloatC Run(const FloatA* const __restrict__ p_a_wave,
+                          const FloatB* const __restrict__ p_b_wave,
+                          FloatC p_c_thread) const
     {
         static_assert(is_same<FloatA, FloatB>::value, "FloatA != FloatB");
-        static_assert(is_same<FloatC, float>::value, "FloatC != float");
 
         static_assert(is_same<data_type, float>::value || is_same<data_type, half_t>::value ||
                           is_same<data_type, ushort>::value,
@@ -659,6 +670,9 @@ struct XdlopsGemm_t
         auto pa = reinterpret_cast<const data_type*>(&a);
         auto pb = reinterpret_cast<const data_type*>(&b);
 
+        constexpr index_t AStride = K * KRepeats;
+        constexpr index_t BStride = K * KRepeats;
+
         static_if<!IsKReduction>{}([&](auto) {
 
             for(index_t m_i = 0; m_i < MRepeats; ++m_i)
@@ -669,26 +683,13 @@ struct XdlopsGemm_t
                 for(index_t k_i      = 0; k_i < K; ++k_i)
                     b[k_i + n_i * K] = p_b_wave[k_i * N + laneId + NPerXdlops * n_i];
 
-            for(index_t m_i = 0; m_i < MRepeats; ++m_i)
-            {
-                const index_t a_off = m_i * K * (KRepeats * mfma_type.k_base);
-
-                for(index_t n_i = 0; n_i < NRepeats; ++n_i)
-                {
-                    const index_t b_off = n_i * K * (KRepeats * mfma_type.k_base);
-                    const index_t c_off = (NRepeats * m_i + n_i) * GetRegSizePerXdlops();
-
 #if CK_WORKAROUND_SWDEV_229564
 #pragma unroll
 #endif
-                    for(index_t k_i = 0; k_i < K * KRepeats; ++k_i)
-                    {
-                        mfma_type.template run<MPerXdlops, NPerXdlops>(
-                            &pa[k_i * mfma_type.k_base + a_off],
-                            &pb[k_i * mfma_type.k_base + b_off],
-                            p_c_thread + c_off);
-                    }
-                }
+            for(index_t k_i = 0; k_i < K * KRepeats; ++k_i)
+            {
+                p_c_thread = mfma_type.template run<GemmMPerWave, GemmNPerWave, AStride, BStride>(
+                    &pa[k_i * mfma_type.k_base], &pb[k_i * mfma_type.k_base], p_c_thread);
             }
 
         }).Else([&](auto) {
@@ -709,7 +710,7 @@ struct XdlopsGemm_t
             for(index_t k_i = 0; k_i < K; k_i += mfma_type.num_input_blks)
             {
                 for(index_t i = 0; i < KRepeats; ++i)
-                    mfma_type.template run<MPerXdlops, NPerXdlops>(
+                    mfma_type.template run<MPerXdlops, NPerXdlops, AStride, BStride>(
                         &pa[(k_i * KRepeats + i) * mfma_type.k_base],
                         &pb[(k_i * KRepeats + i) * mfma_type.k_base],
                         p_c_thread);
@@ -717,6 +718,8 @@ struct XdlopsGemm_t
 
         });
 #endif
+
+        return p_c_thread;
     }
 
     __device__ static MatrixIndex GetBeginOfThreadBlk(index_t i)
