@@ -202,7 +202,7 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x4f16>
         const auto p_a = reinterpret_cast<const half4_t*>(a);
         const auto p_b = reinterpret_cast<const half4_t*>(b);
 
-        return intrin_mfma_f32_32x32x4f16<MPerXdlops, NPerXdlops, AStride, BStride>{}.run(
+        return intrin_mfma_f32_32x32x4f16<MPerXdlops, NPerXdlops, AStride, BStride>::run(
             p_a, p_b, reg_c);
     }
 };
@@ -335,7 +335,7 @@ struct mfma_info<mfma_instr::mfma_f32_4x4x4f16>
         const auto p_a = reinterpret_cast<const half4_t*>(a);
         const auto p_b = reinterpret_cast<const half4_t*>(b);
 
-        return intrin_mfma_f32_4x4x4f16<MPerXdlops, NPerXdlops>{}.run(p_a, p_b, reg_c);
+        return intrin_mfma_f32_4x4x4f16<MPerXdlops, NPerXdlops>::run(p_a, p_b, reg_c);
     }
 };
 
