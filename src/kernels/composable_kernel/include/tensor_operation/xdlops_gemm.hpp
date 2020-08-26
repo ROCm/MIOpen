@@ -49,14 +49,20 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x1xf32>
     static constexpr index_t cycles          = 64;
     static constexpr index_t k_base          = 1;
 
-    template <index_t MPerXdlops, index_t NPerXdlops, class FloatA, class FloatB, class FloatC>
-    __device__ void run(const FloatA* a, const FloatB* b, FloatC* reg_c) const
+    template <index_t MPerXdlops,
+              index_t NPerXdlops,
+              index_t AStride = 1,
+              index_t BStride = 1,
+              class FloatA,
+              class FloatB,
+              class FloatC>
+    __device__ FloatC run(const FloatA* a, const FloatB* b, FloatC reg_c) const
     {
         const auto p_a = reinterpret_cast<const float*>(a);
         const auto p_b = reinterpret_cast<const float*>(b);
-        auto p_c       = reinterpret_cast<float32_t*>(reg_c);
 
-        intrin_mfma_f32_32x32x1f32<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
+        return intrin_mfma_f32_32x32x1f32<MPerXdlops, NPerXdlops, AStride, BStride>::run(
+            p_a, p_b, reg_c);
     }
 };
 
@@ -77,14 +83,19 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x2xf32>
     static constexpr index_t cycles          = 64;
     static constexpr index_t k_base          = 1;
 
-    template <index_t MPerXdlops, index_t NPerXdlops, class FloatA, class FloatB, class FloatC>
-    __device__ void run(const FloatA* a, const FloatB* b, FloatC* reg_c) const
+    template <index_t MPerXdlops,
+              index_t NPerXdlops,
+              index_t AStride = 1,
+              index_t BStride = 1,
+              class FloatA,
+              class FloatB,
+              class FloatC>
+    __device__ FloatC run(const FloatA* a, const FloatB* b, FloatC reg_c) const
     {
         const auto p_a = reinterpret_cast<const float*>(a);
         const auto p_b = reinterpret_cast<const float*>(b);
-        auto p_c       = reinterpret_cast<float16_t*>(reg_c);
 
-        intrin_mfma_f32_32x32x2f32(p_a, p_b, p_c);
+        return intrin_mfma_f32_32x32x2f32(p_a, p_b, reg_c);
     }
 };
 
@@ -105,14 +116,19 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x4xf32>
     static constexpr index_t cycles          = 32;
     static constexpr index_t k_base          = 1;
 
-    template <index_t MPerXdlops, index_t NPerXdlops, class FloatA, class FloatB, class FloatC>
-    __device__ void run(const FloatA* a, const FloatB* b, FloatC* reg_c) const
+    template <index_t MPerXdlops,
+              index_t NPerXdlops,
+              index_t AStride = 1,
+              index_t BStride = 1,
+              class FloatA,
+              class FloatB,
+              class FloatC>
+    __device__ FloatC run(const FloatA* a, const FloatB* b, FloatC reg_c) const
     {
         const auto p_a = reinterpret_cast<const float*>(a);
         const auto p_b = reinterpret_cast<const float*>(b);
-        auto p_c       = reinterpret_cast<float4_t*>(reg_c);
 
-        intrin_mfma_f32_16x16x4f32(p_a, p_b, p_c);
+        return intrin_mfma_f32_16x16x4f32(p_a, p_b, reg_c);
     }
 };
 
@@ -133,14 +149,19 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x1xf32>
     static constexpr index_t cycles          = 32;
     static constexpr index_t k_base          = 1;
 
-    template <index_t MPerXdlops, index_t NPerXdlops, class FloatA, class FloatB, class FloatC>
-    __device__ void run(const FloatA* a, const FloatB* b, FloatC* reg_c) const
+    template <index_t MPerXdlops,
+              index_t NPerXdlops,
+              index_t AStride = 1,
+              index_t BStride = 1,
+              class FloatA,
+              class FloatB,
+              class FloatC>
+    __device__ FloatC run(const FloatA* a, const FloatB* b, FloatC reg_c) const
     {
         const auto p_a = reinterpret_cast<const float*>(a);
         const auto p_b = reinterpret_cast<const float*>(b);
-        auto p_c       = reinterpret_cast<float16_t*>(reg_c);
 
-        intrin_mfma_f32_16x16x1f32<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
+        return intrin_mfma_f32_16x16x1f32<MPerXdlops, NPerXdlops>(p_a, p_b, reg_c);
     }
 };
 
@@ -162,14 +183,19 @@ struct mfma_info<mfma_instr::mfma_f32_4x4x1xf32>
     static constexpr index_t cycles          = 8;
     static constexpr index_t k_base          = 1;
 
-    template <index_t MPerXdlops, index_t NPerXdlops, class FloatA, class FloatB, class FloatC>
-    __device__ void run(const FloatA* a, const FloatB* b, FloatC* reg_c) const
+    template <index_t MPerXdlops,
+              index_t NPerXdlops,
+              index_t AStride = 1,
+              index_t BStride = 1,
+              class FloatA,
+              class FloatB,
+              class FloatC>
+    __device__ FloatC run(const FloatA* a, const FloatB* b, FloatC reg_c) const
     {
         const auto p_a = reinterpret_cast<const float*>(a);
         const auto p_b = reinterpret_cast<const float*>(b);
-        auto p_c       = reinterpret_cast<float4_t*>(reg_c);
 
-        intrin_mfma_f32_4x4x1f32<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
+        return intrin_mfma_f32_4x4x1f32<MPerXdlops, NPerXdlops>::run(p_a, p_b, reg_c);
     }
 };
 
@@ -804,6 +830,72 @@ struct XdlopsGemm_t
     static constexpr auto GetXdlopsInfo();
 
     template <>
+    static constexpr auto GetXdlopsInfo<float, 128, 64>()
+    {
+        return xdlops_info<mfma_instr::mfma_f32_32x32x1xf32, 64, 64, 2, 1, c_vec32_4_t>{};
+    }
+
+    template <>
+    static constexpr auto GetXdlopsInfo<float, 64, 128>()
+    {
+        return xdlops_info<mfma_instr::mfma_f32_32x32x1xf32, 64, 64, 1, 2, c_vec32_4_t>{};
+    }
+
+    template <>
+    static constexpr auto GetXdlopsInfo<float, 64, 64>()
+    {
+        return xdlops_info<mfma_instr::mfma_f32_32x32x1xf32, 64, 64, 1, 1, c_vec32_2_t>{};
+    }
+
+    template <>
+    static constexpr auto GetXdlopsInfo<float, 64, 32>()
+    {
+        return xdlops_info<mfma_instr::mfma_f32_32x32x1xf32, 64, 32, 1, 1, c_vec32_1_t>{};
+    }
+
+    template <>
+    static constexpr auto GetXdlopsInfo<float, 32, 64>()
+    {
+        return xdlops_info<mfma_instr::mfma_f32_32x32x1xf32, 32, 64, 1, 1, c_vec32_1_t>{};
+    }
+
+    template <>
+    static constexpr auto GetXdlopsInfo<float, 64, 16>()
+    {
+        return xdlops_info<mfma_instr::mfma_f32_16x16x1xf32, 64, 16, 1, 1, c_vec16_1_t>{};
+    }
+
+    template <>
+    static constexpr auto GetXdlopsInfo<float, 16, 64>()
+    {
+        return xdlops_info<mfma_instr::mfma_f32_16x16x1xf32, 16, 64, 1, 1, c_vec16_1_t>{};
+    }
+
+    template <>
+    static constexpr auto GetXdlopsInfo<float, 8, 64>()
+    {
+        return xdlops_info<mfma_instr::mfma_f32_4x4x1xf32, 8, 64, 1, 1, c_vec4_2_t>{};
+    }
+
+    template <>
+    static constexpr auto GetXdlopsInfo<float, 4, 64>()
+    {
+        return xdlops_info<mfma_instr::mfma_f32_4x4x1xf32, 4, 64, 1, 1, c_vec4_1_t>{};
+    }
+
+    template <>
+    static constexpr auto GetXdlopsInfo<float, 32, 32>()
+    {
+        return xdlops_info<mfma_instr::mfma_f32_32x32x2xf32, 32, 32, 1, 1, c_vec16_1_t>{};
+    }
+
+    template <>
+    static constexpr auto GetXdlopsInfo<float, 16, 16>()
+    {
+        return xdlops_info<mfma_instr::mfma_f32_16x16x4xf32, 16, 16, 1, 1, c_vec4_1_t>{};
+    }
+
+    template <>
     static constexpr auto GetXdlopsInfo<half_t, 128, 64>()
     {
         return xdlops_info<mfma_instr::mfma_f32_32x32x4f16, 64, 64, 2, 1, c_vec32_4_t>{};
@@ -868,224 +960,6 @@ struct XdlopsGemm_t
     {
         return xdlops_info<mfma_instr::mfma_f32_16x16x16f16, 16, 16, 1, 1, c_vec4_1_t>{};
     }
-
-#if 0
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 128, 128>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_32x32x1xf32, 64, 64, 2, 2>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 128, 64>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_32x32x1xf32, 64, 64, 2, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 128, 32>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_32x32x1xf32, 64, 32, 2, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 128, 16>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_16x16x1xf32, 64, 16, 2, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 64, 128>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_32x32x1xf32, 64, 64, 1, 2>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 64, 64>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_32x32x1xf32, 64, 64, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 64, 32>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_32x32x1xf32, 64, 32, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 64, 16>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_16x16x1xf32, 64, 16, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 32, 128>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_32x32x1xf32, 32, 64, 1, 2>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 32, 64>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_32x32x1xf32, 32, 64, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 32, 32>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_32x32x2xf32, 32, 32, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 16, 128>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_16x16x1xf32, 16, 64, 1, 2>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 16, 64>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_16x16x1xf32, 16, 64, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 16, 16>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_16x16x4xf32, 16, 16, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 8, 128>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_4x4x1xf32, 8, 64, 1, 2>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 8, 64>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_4x4x1xf32, 8, 64, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 4, 128>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_4x4x1xf32, 4, 64, 1, 2>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 4, 64>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_4x4x1xf32, 4, 64, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 128, 128>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_32x32x4f16, 64, 64, 2, 2>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 128, 64>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_32x32x4f16, 64, 64, 2, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 128, 32>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_32x32x4f16, 64, 32, 2, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 128, 16>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_16x16x4f16, 64, 16, 2, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 64, 128>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_32x32x4f16, 64, 64, 1, 2>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 64, 64>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_32x32x4f16, 64, 64, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 64, 32>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_32x32x4f16, 64, 32, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 64, 16>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_16x16x4f16, 64, 16, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 32, 128>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_32x32x4f16, 32, 64, 1, 2>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 32, 64>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_32x32x4f16, 32, 64, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 32, 32>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_32x32x8f16, 32, 32, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 16, 128>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_16x16x4f16, 16, 64, 1, 2>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 16, 64>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_16x16x4f16, 16, 64, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 16, 16>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_16x16x16f16, 16, 16, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 8, 128>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_4x4x4f16, 8, 64, 1, 2>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 8, 64>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_4x4x4f16, 8, 64, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 4, 128>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_4x4x4f16, 4, 64, 1, 2>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 4, 64>()
-    {
-        return xdlops_info<mfma_instr::mfma_f32_4x4x4f16, 4, 64, 1, 1>{};
-    }
-#endif
 
     template <>
     static constexpr auto GetXdlopsInfo<ushort, 128, 64>()
