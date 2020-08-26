@@ -319,7 +319,7 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmABlockCopyPerformancePara
 
         // make sure a thread can do a full vector load, at the cost that some threads
         // may not do threadwise copy at all
-        data_per_thread_copy = lcm(data_per_thread_copy, SrcDataPerRead_GemmKPack);
+        //data_per_thread_copy = lcm(data_per_thread_copy, SrcDataPerRead_GemmKPack);
 
         const auto data_per_thread_copy_gemmkpack = SrcDataPerRead_GemmKPack;
         const auto tmp = data_per_thread_copy / data_per_thread_copy_gemmkpack;
@@ -355,7 +355,7 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmABlockCopyPerformancePara
 
         // blockwise-copy support that block_size is larger than thread cluster size, which means
         // some threads may not do threadwise copy
-        if(block_size < ClusterLengths_GemmK * ClusterLengths_GemmM * ClusterLengths_GemmKPack)
+        if(block_size != ClusterLengths_GemmK * ClusterLengths_GemmM * ClusterLengths_GemmKPack)
             MIOPEN_THROW("invalid performance parameter");
     }
     catch(...)
@@ -443,7 +443,7 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmBBlockCopyPerformancePara
 
         // make sure a thread can do a full vector load, at the cost that some threads
         // may not do threadwise copy at all
-        data_per_thread_copy = lcm(data_per_thread_copy, SrcDataPerRead_GemmN);
+        //data_per_thread_copy = lcm(data_per_thread_copy, SrcDataPerRead_GemmN);
 
         const auto data_per_thread_copy_gemmn = SrcDataPerRead_GemmN;
         const auto tmp                        = data_per_thread_copy / data_per_thread_copy_gemmn;
@@ -476,7 +476,7 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmBBlockCopyPerformancePara
 
         // blockwise-copy support that block_size is larger than thread cluster size, which means
         // some threads may not do threadwise copy
-        if(block_size < ClusterLengths_GemmK * ClusterLengths_GemmN * ClusterLengths_GemmKPack)
+        if(block_size != ClusterLengths_GemmK * ClusterLengths_GemmN * ClusterLengths_GemmKPack)
             MIOPEN_THROW("invalid performance parameter");
     }
     catch(...)
