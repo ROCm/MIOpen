@@ -69,7 +69,7 @@ elseif(MIOPEN_TEST_INT8)
 elseif(MIOPEN_TEST_BFLOAT16)
     set(SKIP_ALL_EXCEPT_TESTS test_conv2d test_tensor_copy test_tensor_set test_tensor_vec test_immed_conv2d test_check_numerics_test)
     if(MIOPEN_TEST_GFX908)
-        set(SKIP_ALL_EXCEPT_TESTS test_conv_extra test_conv_for_implicit_gemm test_miopen_conv test_deepbench_conv ${SKIP_ALL_EXCEPT_TESTS})
+        set(SKIP_ALL_EXCEPT_TESTS test_conv_extra test_conv_for_implicit_gemm test_miopen_conv test_deepbench_conv test_conv_cellfft ${SKIP_ALL_EXCEPT_TESTS})
     endif()
     set(MIOPEN_TEST_FLOAT_ARG --bfloat16)
 elseif(MIOPEN_TEST_GFX908)
@@ -658,14 +658,12 @@ COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS} $<TARGET_FILE:test_conv2d> --verbose --
 COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128  256 56 56 --weights 64  256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
 )
 
-set(CELLFFT_DISABLES
+set(CELLFFT_ENVS
     MIOPEN_DEBUG_CONV_DIRECT=0
     MIOPEN_DEBUG_CONV_FFT=0
     MIOPEN_DEBUG_CONV_GEMM=0
     MIOPEN_DEBUG_CONV_WINOGRAD=0
     MIOPEN_DEBUG_CONV_IMPLICIT_GEMM=0)
-set(CELLFFT_ENVS
-    ${CELLFFT_DISABLES}
     MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvCellfft)
 
 add_custom_test(test_conv_cellfft SKIP_UNLESS_ALL

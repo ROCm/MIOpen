@@ -25,6 +25,7 @@
  *******************************************************************************/
 
 #include <sstream>
+#include <miopen/config.h>
 #include <miopen/kernel_info.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/solver.hpp>
@@ -519,6 +520,7 @@ namespace miopen {
 namespace solver {
 bool ConvCellfft::IsApplicable( const ConvolutionContext& ctx ) const
 {
+    if(MIOPEN_BACKEND_OPENCL) return false;
     const auto name=ctx.GetStream().GetDeviceName();
     if(name!="gfx900" && name!="gfx906") return false;
     if((ctx.kernel_stride_w|ctx.kernel_stride_h|ctx.kernel_dilation_w|ctx.kernel_dilation_h|ctx.group_counts)!=1)
