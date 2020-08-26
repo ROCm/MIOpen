@@ -665,7 +665,7 @@ set(FLEXGEMM_ENVS
     MIOPEN_DEBUG_CONV_IMPLICITGEMM=0
     MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvFlexgemm)
 
-add_custom_test(test_conv_flexgemm
+add_custom_test(test_conv_flexgemm SKIP_UNLESS_ALL
 COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  64 128 28 28 --weights  32 128 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
 COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  64 128 28 28 --weights  64 128 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
 COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  64 128 28 28 --weights  96 128 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
