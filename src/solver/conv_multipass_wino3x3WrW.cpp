@@ -555,16 +555,16 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
     BuffInfo
         in_buff_info(
             GetSwappedNCLayout(GetMemLayout_t(params.in_layout)),
-            N, C, H, W, 1,
+            N, C, H, W,
             GetTypeSize(params.in_data_type)),
         out_buff_info(
             GetSwappedNCLayout(GetMemLayout_t(params.out_layout)),
-            N, K, out_H, out_W, 1,
+            N, K, out_H, out_W,
             GetTypeSize(params.out_data_type)),
         weights_buff_info(
             // weights_layout unsupported ... GetSwappedNCLayout(GetMemLayout_t(params.weights_layout))
             GetSwappedNCLayout(MemLayout_t::NCHW),
-            K, C, R, S, 1,
+            K, C, R, S,
             GetTypeSize(params.weights_data_type));
 
     int wino_xform_h = GetSolverWinoXformHWSize(params,0),
@@ -647,7 +647,7 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
                 }
                 else // Output and GEMM
                 {
-                    int m = N, n = K, k = wino_in.wino_c;
+                    int m = N, n = K, k = wino_in.buff_info.size.c;
                     int lda = k, ldb = k, ldc = n;
                     int batch_count       = wino_xform_h * wino_xform_w;
                     long long int strideA = m * k * 1LL, strideB = k * n * 1LL,
@@ -656,7 +656,7 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
                     // clang-format off
                     GemmDescriptor wino_gemm_desc{false,false,true,m,n,k,
                         lda,ldb,ldc,batch_count,strideA,strideB,
-                                strideC,alpha,beta,in_data_type};
+                                        strideC,alpha,beta,in_data_type};
 
                     if(!handle.IsProfilingEnabled())
                     {
@@ -694,7 +694,7 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
 
                     d_buf               = &(wino_out.buff_info);
                     o_buf               = &(out_buff_info);
-                    buff_in_adr         = invoke_params.workSpace;
+                    buff_in_adr         = workSpace;
                     buff_in_addr_offset = wino_out_offset;
                     buff_out_adr        = tensors.dw;
                 }
