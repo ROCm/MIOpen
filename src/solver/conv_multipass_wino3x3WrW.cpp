@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -96,7 +96,6 @@ struct InTransform
             R,
             S,
             GetSwappedNCLayout(MemLayout_t::HWCN),
-            1,
             GetTypeSize(params.in_data_type),
             ConvWinoBuffType::Input,
             wino_xform_h,
@@ -119,7 +118,7 @@ struct InTransform
                 && params.Is2d()
                 && H < u16limit
                 && W < u16limit
-                && wino_info.wino_c < (1<<30)
+                && wino_info.buff_info.size.c < (1<<30)
                 && N < u16limit
                 && chw_step < u16limit
                 && params.pad_h <= 3
@@ -175,7 +174,6 @@ struct InTransform
             R,
             S,
             MemLayout_t::HWNC,
-            1,
             GetTypeSize(params.in_data_type),
             ConvWinoBuffType::Input,
             wino_xform_h,
@@ -202,7 +200,6 @@ struct FilterTransform
             R,
             S,
             GetSwappedNCLayout(MemLayout_t::HWCN),
-            1,
             GetTypeSize(params.in_data_type),
             ConvWinoBuffType::Input,
             wino_xform_h,
@@ -224,7 +221,7 @@ struct FilterTransform
                 && params.Is2d()
                 && H < u16limit
                 && W < u16limit
-                && wino_info.wino_c < (1<<30)
+                && wino_info.buff_info.size.c < (1<<30)
                 && K < u16limit
                 && chw_step < u16limit
                 && params.pad_h <= 3
@@ -280,7 +277,6 @@ struct FilterTransform
                                   R,
                                   S,
                                   MemLayout_t::HWNC,
-                                  1,
                                   GetTypeSize(params.in_data_type),
                                   ConvWinoBuffType::Weight,
                                   wino_xform_h,
@@ -354,7 +350,6 @@ struct OutTransform
             R,
             S,
             GetSwappedNCLayout(MemLayout_t::HWNC),
-            1,
             GetTypeSize(params.in_data_type),
             ConvWinoBuffType::Output,
             wino_xform_h,
@@ -596,11 +591,11 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
             ConvWinoBuffType::Weight,
             wino_xform_h,
             wino_xform_w);
+    // clang-format on
 
     const size_t wino_in_offset = 0, wino_out_offset = wino_in.buff_info.total_byte_size,
-            wino_wei_offset = wino_out_offset + wino_out.buff_info.total_byte_size;
+                 wino_wei_offset = wino_out_offset + wino_out.buff_info.total_byte_size;
 
-    // clang-format on
     const auto in_data_type   = params.in_data_type;
     const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
     const auto pad_H          = params.pad_h;
@@ -615,8 +610,7 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
             if(invoke_params.workSpaceSize < ws_sz)
                 MIOPEN_THROW("Not enough workspace for ConvWinograd3x3MultipassWrW");
 
-            // clang-format on
-            for(auto&& kernel : kernels)
+            for(const auto& kernel : kernels)
             {
                 decltype(auto) cur_kernel = handle.Run(kernel);
                 const BuffInfo* d_buf     = nullptr;
@@ -662,19 +656,19 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
                     // clang-format off
                     GemmDescriptor wino_gemm_desc{false,false,true,m,n,k,
                         lda,ldb,ldc,batch_count,strideA,strideB,
-                        strideC,alpha,beta,in_data_type};
+                                strideC,alpha,beta,in_data_type};
 
                     if(!handle.IsProfilingEnabled())
                     {
                         CallGemmStridedBatched(handle,
-                                    wino_gemm_desc,
-                                    invoke_params.workSpace,
-                                    static_cast<int>(wino_in_offset / GetTypeSize(in_data_type)),
-                                    invoke_params.workSpace,
-                                    static_cast<int>(wino_wei_offset / GetTypeSize(in_data_type)),
-                                    invoke_params.workSpace,
-                                    static_cast<int>(wino_out_offset / GetTypeSize(in_data_type)),
-                                    nullptr,
+                                            wino_gemm_desc,
+                                            invoke_params.workSpace,
+                                            static_cast<int>(wino_in_offset / GetTypeSize(in_data_type)),
+                                            invoke_params.workSpace,
+                                            static_cast<int>(wino_wei_offset / GetTypeSize(in_data_type)),
+                                            invoke_params.workSpace,
+                                            static_cast<int>(wino_out_offset / GetTypeSize(in_data_type)),
+                                            nullptr,
                                     false,
                                     GemmBackend_t::rocblas);
                     }
@@ -695,6 +689,7 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
                         // clang-format on
                         cur_time = handle.GetKernelTime();
                         total_time += cur_time;
+                        MIOPEN_LOG_I2("WRW_WINO_GEMM: " << cur_time);
                     }
 
                     d_buf               = &(wino_out.buff_info);
