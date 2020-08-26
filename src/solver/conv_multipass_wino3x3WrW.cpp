@@ -694,7 +694,7 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
 
                     d_buf               = &(wino_out.buff_info);
                     o_buf               = &(out_buff_info);
-                    buff_in_adr         = workSpace;
+                    buff_in_adr         = invoke_params.workSpace;
                     buff_in_addr_offset = wino_out_offset;
                     buff_out_adr        = tensors.dw;
                 }
