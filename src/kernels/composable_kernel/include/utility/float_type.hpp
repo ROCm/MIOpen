@@ -21,6 +21,130 @@ typedef ushort ushort2_t __attribute__((ext_vector_type(2)));
 typedef ushort ushort4_t __attribute__((ext_vector_type(4)));
 typedef ushort ushort8_t __attribute__((ext_vector_type(8)));
 
+struct c_vec32_4_t
+{
+    union VecType
+    {
+        struct
+        {
+            float32_t x;
+            float32_t y;
+            float32_t z;
+            float32_t w;
+        } s;
+        float n[128];
+    };
+
+    __host__ __device__ static VecType GetZero()
+    {
+        VecType c;
+        c.s.x = 0;
+        c.s.y = 0;
+        c.s.z = 0;
+        c.s.w = 0;
+        return c;
+    }
+};
+
+struct c_vec32_2_t
+{
+    union VecType
+    {
+        struct
+        {
+            float32_t x;
+            float32_t y;
+        } s;
+        float n[64];
+    };
+
+    __host__ __device__ static VecType GetZero()
+    {
+        VecType c;
+        c.s.x = 0;
+        c.s.y = 0;
+        return c;
+    }
+};
+
+struct c_vec32_1_t
+{
+    union VecType
+    {
+        struct
+        {
+            float32_t x;
+        } s;
+        float n[32];
+    };
+
+    __host__ __device__ static VecType GetZero()
+    {
+        VecType c;
+        c.s.x = 0;
+        return c;
+    }
+};
+
+struct c_vec16_1_t
+{
+    union VecType
+    {
+        struct
+        {
+            float16_t x;
+        } s;
+        float n[16];
+    };
+
+    __host__ __device__ static VecType GetZero()
+    {
+        VecType c;
+        c.s.x = 0;
+        return c;
+    }
+};
+
+struct c_vec4_2_t
+{
+    union VecType
+    {
+        struct
+        {
+            float4_t x;
+            float4_t y;
+        } s;
+        float n[8];
+    };
+
+    __host__ __device__ static VecType GetZero()
+    {
+        VecType c;
+        c.s.x = 0;
+        c.s.y = 0;
+        return c;
+    }
+};
+
+struct c_vec4_1_t
+{
+    union VecType
+    {
+        struct
+        {
+            float4_t x;
+        } s;
+        float n[4];
+    };
+
+    __host__ __device__ static VecType GetZero()
+    {
+        VecType c;
+        c.s.x = 0;
+        return c;
+    }
+};
+
 template <class T, index_t N>
 struct vector_type
 {
@@ -28,65 +152,6 @@ struct vector_type
     {
         T scalar[N];
     } MemoryType;
-};
-
-union c_vec32_4_t
-{
-    struct
-    {
-        float32_t x;
-        float32_t y;
-        float32_t z;
-        float32_t w;
-    } s;
-    float n[128];
-};
-
-union c_vec32_2_t
-{
-    struct
-    {
-        float32_t x;
-        float32_t y;
-    } s;
-    float n[64];
-};
-
-union c_vec32_1_t
-{
-    struct
-    {
-        float32_t x;
-    } s;
-    float n[32];
-};
-
-union c_vec16_1_t
-{
-    struct
-    {
-        float16_t x;
-    } s;
-    float n[16];
-};
-
-union c_vec4_2_t
-{
-    struct
-    {
-        float4_t x;
-        float4_t y;
-    } s;
-    float n[8];
-};
-
-union c_vec4_1_t
-{
-    struct
-    {
-        float4_t x;
-    } s;
-    float n[4];
 };
 
 template <>

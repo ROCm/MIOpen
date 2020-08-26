@@ -335,7 +335,7 @@ struct mfma_info<mfma_instr::mfma_f32_4x4x4f16>
         const auto p_a = reinterpret_cast<const half4_t*>(a);
         const auto p_b = reinterpret_cast<const half4_t*>(b);
 
-        return intrin_mfma_f32_4x4x4f16<MPerXdlops, NPerXdlops>(p_a, p_b, reg_c);
+        return intrin_mfma_f32_4x4x4f16<MPerXdlops, NPerXdlops>{}.run(p_a, p_b, reg_c);
     }
 };
 
@@ -484,7 +484,7 @@ template <mfma_instr instr,
           index_t NPerXdlops_,
           index_t MRepeats_,
           index_t NRepeats_,
-          class output_vec_type_>
+          class OutputVecType_>
 struct xdlops_info
 {
     static constexpr auto mfma_type = mfma_info<instr>{};
@@ -501,7 +501,7 @@ struct xdlops_info
         return (mfma_type.num_output_blks == 1) && (mfma_type.num_input_blks > 1);
     }
 
-    static constexpr auto output_vec = output_vec_type_{};
+    static constexpr auto OutputVecType = OutputVecType_{};
 };
 
 template <class data_type,
@@ -1192,75 +1192,10 @@ struct XdlopsGemm_t
             return GetNumBlksPerXdlops() * MRepeats * NRepeats;
         }
 
-        template <class c_vec_type>
-        __device__ static constexpr auto GetOutputVecZero();
-
-        template <>
-        __device__ static constexpr auto GetOutputVecZero<c_vec32_4_t>()
+        __device__ static constexpr auto GetOutputVec()
         {
-            c_vec32_4_t c;
-
-            c.s.x = 0;
-            c.s.y = 0;
-            c.s.z = 0;
-            c.s.w = 0;
-
-            return c;
+            return GetXdlopsInfo().OutputVecType.GetZero();
         }
-
-        template <>
-        __device__ static constexpr auto GetOutputVecZero<c_vec32_2_t>()
-        {
-            c_vec32_2_t c;
-
-            c.s.x = 0;
-            c.s.y = 0;
-
-            return c;
-        }
-
-        template <>
-        __device__ static constexpr auto GetOutputVecZero<c_vec32_1_t>()
-        {
-            c_vec32_1_t c;
-
-            c.s.x = 0;
-
-            return c;
-        }
-
-        template <>
-        __device__ static constexpr auto GetOutputVecZero<c_vec16_1_t>()
-        {
-            c_vec16_1_t c;
-
-            c.s.x = 0;
-
-            return c;
-        }
-
-        template <>
-        __device__ static constexpr auto GetOutputVecZero<c_vec4_2_t>()
-        {
-            c_vec4_2_t c;
-
-            c.s.x = 0;
-            c.s.y = 0;
-
-            return c;
-        }
-
-        template <>
-        __device__ static constexpr auto GetOutputVecZero<c_vec4_1_t>()
-        {
-            c_vec4_1_t c;
-
-            c.s.x = 0;
-
-            return c;
-        }
-
-        __device__ static constexpr auto GetOutputVec() { return GetXdlopsInfo().output_vec; }
     };
 
     __device__ static constexpr auto GetOutputLayout() { return OutputLayout{}; }
