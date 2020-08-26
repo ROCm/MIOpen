@@ -24,16 +24,15 @@
  *
  *******************************************************************************/
 
+#include <cstddef>
 #include <miopen/solver.hpp>
-
 #include <miopen/conv/invokers/impl_gemm.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
-
 #include "implicitgemm_util.hpp"
-
-#include <cstddef>
+// TODO remove dependency on deprecated header
+#include "implicitgemm_util_deprecated.hpp"
 
 namespace miopen {
 namespace solver {
@@ -349,6 +348,7 @@ ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& c
         std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(GetEPackLength(ctx, false)) +
         std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
+        get_compiler_flag_for_supported_instruction(ctx) +
         ctx.general_compile_options;
     // clang-format on
 

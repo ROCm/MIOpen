@@ -31,8 +31,9 @@
 #include <miopen/implicitgemm_params.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/stringutils.hpp>
-
 #include "implicitgemm_util.hpp"
+// TODO remove dependency on deprecated header
+#include "implicitgemm_util_deprecated.hpp"
 
 namespace miopen {
 namespace solver {
@@ -531,6 +532,7 @@ ConvSolution ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::GetSolution(
         std::string(" -DCK_USE_AMD_XDLOPS=") + (IsXdlopsSupport(ctx) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + (miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}) ? '1' : '0') +
+        get_compiler_flag_for_supported_instruction(ctx) +
         ctx.general_compile_options;
     // clang-format on
 

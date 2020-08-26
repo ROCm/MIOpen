@@ -955,6 +955,7 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
         std::string(" -DCK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM=") + (miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM{}) ? '0' : '1') +
         std::string(" -DCK_WORKAROUND_SWDEV_229564=") + std::to_string(WORKAROUND_SWDEV_229564) +
         std::string(" -DCK_WORKAROUND_SWDEV_231101=") + std::to_string(WORKAROUND_SWDEV_231101) +
+        get_compiler_flag_for_supported_instruction(ctx) +
         ctx.general_compile_options;
     // clang-format on
 

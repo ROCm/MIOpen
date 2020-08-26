@@ -29,6 +29,8 @@
 #include <miopen/generic_search.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include "implicitgemm_util.hpp"
+// TODO remove dependency on deprecated header
+#include "implicitgemm_util_deprecated.hpp"
 
 namespace miopen {
 namespace solver {

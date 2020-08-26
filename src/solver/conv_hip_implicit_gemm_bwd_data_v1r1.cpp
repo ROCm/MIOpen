@@ -23,15 +23,15 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <cstddef>
 #include <miopen/conv/invokers/impl_gemm.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/hip_build_utils.hpp>
 #include <miopen/generic_search.hpp>
-
 #include "implicitgemm_util.hpp"
-
-#include <cstddef>
+// TODO remove dependency on deprecated header
+#include "implicitgemm_util_deprecated.hpp"
 
 #define WORKAROUND_ISSUE_309 1
 
@@ -857,7 +857,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1::GetSolution(
         std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size) +
         std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
-        std::string(" -DCK_USE_AMD_BUFFER_ATOMIC_ADD=") + (support_amd_buffer_atomic_add(ctx) ? '1' : '0') +
+        get_compiler_flag_for_supported_instruction(ctx) +
         ctx.general_compile_options;
     // clang-format on
     if(ctx.Is3d())

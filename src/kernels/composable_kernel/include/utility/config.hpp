@@ -11,6 +11,23 @@
 // device backend
 #define CK_DEVICE_BACKEND_AMD 1
 
+// hardware instruction support list
+#ifndef CK_HARDWARE_SUPPORT_AMD_V_MAC_F32
+#define CK_HARDWARE_SUPPORT_AMD_V_MAC_F32 1
+#endif
+
+#ifndef CK_HARDWARE_SUPPORT_AMD_V_DOT2_F32_F16
+#define CK_HARDWARE_SUPPORT_AMD_V_DOT2_F32_F16 1
+#endif
+
+#ifndef CK_HARDWARE_SUPPORT_AMD_XDLOPS
+#define CK_HARDWARE_SUPPORT_AMD_XDLOPS 0
+#endif
+
+#ifndef CK_HARDWARE_SUPPORT_AMD_BUFFER_ATOMIC_FADD
+#define CK_HARDWARE_SUPPORT_AMD_BUFFER_ATOMIC_FADD 0
+#endif
+
 // AMD inline asm
 #ifndef CK_USE_AMD_INLINE_ASM
 #define CK_USE_AMD_INLINE_ASM 1
@@ -23,11 +40,6 @@
 // AMD buffer addressing
 #ifndef CK_USE_AMD_BUFFER_ADDRESSING
 #define CK_USE_AMD_BUFFER_ADDRESSING 1
-#endif
-
-// only gfx908 support native floating point atomic add
-#ifndef CK_USE_AMD_BUFFER_ATOMIC_ADD
-#define CK_USE_AMD_BUFFER_ATOMIC_ADD 0
 #endif
 
 // AMD XDLOPS
