@@ -60,7 +60,6 @@ bool ConvAsm5x10u2v2f1::IsApplicable(const ConvolutionContext& params) const
     {
         return false;
     }
-    assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet.
 
     // Min image + padding shall be not smaller than filter matrix.
     const int min_in_width  = params.kernel_size_w - params.pad_w * 2;

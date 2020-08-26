@@ -482,7 +482,6 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
     {
         return false;
     }
-    assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet
     // clang-format off
     bool ok = (params.pad_w == 0         // -q  pad_w
         && params.pad_h == 0             // -p  pad_h

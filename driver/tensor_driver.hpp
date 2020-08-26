@@ -142,24 +142,16 @@ void LayoutToStrides(const std::vector<int>& len,
                    });
 }
 
-std::string GetDefaultTensorLayout(int size, const std::string& type)
+std::string GetDefaultTensorLayout(int size)
 {
     if(size != 4)
         return "";
 
-    if(type.compare("input") == 0)
-        return "NCHW";
-    if(type.compare("filter") == 0)
-        return "KCYX";
-    if(type.compare("output") == 0)
-        return "NKHW";
-
-    return "";
+    return "NCHW";
 }
 
 int SetTensorNd(miopenTensorDescriptor_t t,
                 std::vector<int>& len,
-                const std::string& type,
                 const std::string& layout,
                 miopenDataType_t data_type = miopenFloat)
 {
@@ -174,7 +166,7 @@ int SetTensorNd(miopenTensorDescriptor_t t,
     }
 
     // Dimension lengths vector 'len' comes with a default layout.
-    std::string len_layout = GetDefaultTensorLayout(layout.size(), type);
+    std::string len_layout = GetDefaultTensorLayout(layout.size());
     if(len_layout.empty())
     {
         return SetTensorNd(t, len, data_type);

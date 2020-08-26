@@ -161,7 +161,17 @@ struct ProblemDescription
     std::size_t GetInStrideD() const { return GetD5(GetSpatialDims(), in.GetStrides()); }
     std::size_t GetInStrideH() const { return GetH5(GetSpatialDims(), in.GetStrides()); }
     std::size_t GetInStrideW() const { return GetW5(GetSpatialDims(), in.GetStrides()); }
-    std::string GetInLayout() const { return in.GetLayout("NCHW"); }
+    std::string GetInLayout() const
+    {
+        if(GetSpatialDims() == 2)
+        {
+            return in.GetLayout("NCHW");
+        }
+        else
+        {
+            return in.GetLayout("NCDHW");
+        }
+    }
     std::size_t GetInElementSize() const { return GetTypeSize(GetInDataType()); }
 
     std::size_t GetInSize() const
@@ -185,13 +195,23 @@ struct ProblemDescription
     std::size_t GetOutStrideD() const { return GetD5(GetSpatialDims(), out.GetStrides()); }
     std::size_t GetOutStrideH() const { return GetH5(GetSpatialDims(), out.GetStrides()); }
     std::size_t GetOutStrideW() const { return GetW5(GetSpatialDims(), out.GetStrides()); }
-    std::string GetOutLayout() const { return out.GetLayout("NKHW"); }
+    std::string GetOutLayout() const
+    {
+        if(GetSpatialDims() == 2)
+        {
+            return out.GetLayout("NCHW");
+        }
+        else
+        {
+            return out.GetLayout("NCDHW");
+        }
+    }
     std::size_t GetOutElementSize() const { return GetTypeSize(GetOutDataType()); }
 
     std::size_t GetOutSize() const
     {
         // clang-format off
-        return (GetOutLayout() == "NKHW")
+        return (GetOutLayout() == "NCHW")
             ? GetOutBatchSize() * GetOutChannels() * GetOutDepth() * GetOutHeight() * GetOutWidth() * GetOutElementSize()
             : GetOutBatchSize() * GetOutBatchStride() * GetOutChannelStride() * GetOutStrideH() * GetOutStrideW() * GetOutElementSize(); // Todo: GetOutStrideD() ?
         // clang-format on
@@ -208,7 +228,17 @@ struct ProblemDescription
     // }
     // std::size_t GetWeightsStrideW() const { return GetW5(GetSpatialDims(), weights.GetStrides());
     // }
-    std::string GetWeightsLayout() const { return weights.GetLayout("KCYX"); }
+    std::string GetWeightsLayout() const
+    {
+        if(GetSpatialDims() == 2)
+        {
+            return weights.GetLayout("NCHW");
+        }
+        else
+        {
+            return weights.GetLayout("NCDHW");
+        }
+    }
     std::size_t GetWeightsElementSize() const { return GetTypeSize(GetWeightsDataType()); }
 
     std::size_t GetWeightsSize() const

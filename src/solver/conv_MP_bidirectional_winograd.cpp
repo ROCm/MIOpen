@@ -201,8 +201,6 @@ bool ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsA
         return false;
     }
 
-    assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet
-
     {
         unsigned int const waves_in_group = 512 / wave_size;
         unsigned int const tiles_per_wave = 8;
