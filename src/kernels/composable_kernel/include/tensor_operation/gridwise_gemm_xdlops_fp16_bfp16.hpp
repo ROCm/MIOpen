@@ -916,7 +916,7 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
         __shared__ ABFloat p_b_block[b_block_space];
 
         // register allocation for output
-        auto p_c_thread_vec = blockwise_gemm.GetOutputLayout().GetOutputVec();
+        auto p_c_thread_vec = blockwise_gemm.GetOutputVec();
 
         // preload data into LDS
         {

@@ -56,13 +56,36 @@ struct c_vec32_2_t
             float32_t y;
         } s;
         float n[64];
-    };
+    } l;
 
     __host__ __device__ static VecType GetZero()
     {
         VecType c;
         c.s.x = 0;
         c.s.y = 0;
+        return c;
+    }
+};
+
+struct c_vec32_2_2_t
+{
+    union VecType
+    {
+        struct
+        {
+            c_vec32_2_t x;
+            c_vec32_2_t y;
+        } s;
+        float n[128];
+    };
+
+    __host__ __device__ static VecType GetZero()
+    {
+        VecType c;
+        c.s.x.l.s.x = 0;
+        c.s.x.l.s.y = 0;
+        c.s.y.l.s.x = 0;
+        c.s.y.l.s.y = 0;
         return c;
     }
 };

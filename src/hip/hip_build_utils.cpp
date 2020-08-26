@@ -129,7 +129,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     }
     else if(IsHipClangCompiler())
     {
-        params += " -mllvm -amdgpu-enable-global-sgpr-addr";
+        // params += " -mllvm -amdgpu-enable-global-sgpr-addr";
         params += " -mllvm --amdgpu-spill-vgpr-to-agpr=0";
     }
 
