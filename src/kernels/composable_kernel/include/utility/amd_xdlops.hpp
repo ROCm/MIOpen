@@ -262,84 +262,144 @@ struct intrin_mfma_f32_4x4x4f16<8, 64>
     }
 };
 
+template <index_t MPerWave, index_t NPerWave, index_t AStride, index_t BStride>
+struct intrin_mfma_f32_32x32x2bf16;
+
+template <index_t AStride, index_t BStride>
+struct intrin_mfma_f32_32x32x2bf16<128, 64, AStride, BStride>
+{
+    __device__ static c_vec32_4_t::VecType
+    run(const ushort2_t* reg_a, const ushort2_t* reg_b, c_vec32_4_t::VecType reg_c)
+    {
+        reg_c.s.x = llvm_intrin_amdgcn_mfma_f32_32x32x2bf16(reg_a[0], reg_b[0], reg_c.s.x, 1, 0, 0);
+        reg_c.s.y = llvm_intrin_amdgcn_mfma_f32_32x32x2bf16(reg_a[0], reg_b[0], reg_c.s.y, 1, 1, 0);
+
+        reg_c.s.z =
+            llvm_intrin_amdgcn_mfma_f32_32x32x2bf16(reg_a[AStride], reg_b[0], reg_c.s.z, 1, 0, 0);
+        reg_c.s.w =
+            llvm_intrin_amdgcn_mfma_f32_32x32x2bf16(reg_a[AStride], reg_b[0], reg_c.s.w, 1, 1, 0);
+
+        return reg_c;
+    }
+};
+
+template <index_t AStride, index_t BStride>
+struct intrin_mfma_f32_32x32x2bf16<64, 128, AStride, BStride>
+{
+    __device__ static c_vec32_4_t::VecType
+    run(const ushort2_t* reg_a, const ushort2_t* reg_b, c_vec32_4_t::VecType reg_c)
+    {
+        reg_c.s.x = llvm_intrin_amdgcn_mfma_f32_32x32x2bf16(reg_a[0], reg_b[0], reg_c.s.x, 1, 0, 0);
+        reg_c.s.y = llvm_intrin_amdgcn_mfma_f32_32x32x2bf16(reg_a[0], reg_b[0], reg_c.s.y, 1, 1, 0);
+
+        reg_c.s.z =
+            llvm_intrin_amdgcn_mfma_f32_32x32x2bf16(reg_a[0], reg_b[BStride], reg_c.s.z, 1, 0, 0);
+        reg_c.s.w =
+            llvm_intrin_amdgcn_mfma_f32_32x32x2bf16(reg_a[0], reg_b[BStride], reg_c.s.w, 1, 1, 0);
+
+        return reg_c;
+    }
+};
+
+template <index_t AStride, index_t BStride>
+struct intrin_mfma_f32_32x32x2bf16<64, 64, AStride, BStride>
+{
+    __device__ static c_vec32_2_t::VecType
+    run(const ushort2_t* reg_a, const ushort2_t* reg_b, c_vec32_2_t::VecType reg_c)
+    {
+        reg_c.s.x = llvm_intrin_amdgcn_mfma_f32_32x32x2bf16(reg_a[0], reg_b[0], reg_c.s.x, 1, 0, 0);
+        reg_c.s.y = llvm_intrin_amdgcn_mfma_f32_32x32x2bf16(reg_a[0], reg_b[0], reg_c.s.y, 1, 1, 0);
+
+        return reg_c;
+    }
+};
+
+template <index_t AStride, index_t BStride>
+struct intrin_mfma_f32_32x32x2bf16<64, 32, AStride, BStride>
+{
+    __device__ static c_vec32_1_t::VecType
+    run(const ushort2_t* reg_a, const ushort2_t* reg_b, c_vec32_1_t::VecType reg_c)
+    {
+        reg_c.s.x = llvm_intrin_amdgcn_mfma_f32_32x32x2bf16(reg_a[0], reg_b[0], reg_c.s.x, 0, 0, 1);
+
+        return reg_c;
+    }
+};
+
+template <index_t AStride, index_t BStride>
+struct intrin_mfma_f32_32x32x2bf16<32, 64, AStride, BStride>
+{
+    __device__ static c_vec32_1_t::VecType
+    run(const ushort2_t* reg_a, const ushort2_t* reg_b, c_vec32_1_t::VecType reg_c)
+    {
+        reg_c.s.x = llvm_intrin_amdgcn_mfma_f32_32x32x2bf16(reg_a[0], reg_b[0], reg_c.s.x, 1, 0, 0);
+        return reg_c;
+    }
+};
+
+__device__ c_vec16_1_t::VecType intrin_mfma_f32_32x32x4bf16(const ushort2_t* reg_a,
+                                                            const ushort2_t* reg_b,
+                                                            c_vec16_1_t::VecType reg_c)
+{
+    reg_c.s.x = llvm_intrin_amdgcn_mfma_f32_32x32x4bf16(reg_a[0], reg_b[0], reg_c.s.x, 0, 0, 0);
+    return reg_c;
+}
+
+__device__ c_vec4_1_t::VecType intrin_mfma_f32_16x16x8bf16(const ushort2_t* reg_a,
+                                                           const ushort2_t* reg_b,
+                                                           c_vec4_1_t::VecType reg_c)
+{
+    reg_c.s.x = llvm_intrin_amdgcn_mfma_f32_16x16x8bf16(reg_a[0], reg_b[0], reg_c.s.x, 0, 0, 0);
+    return reg_c;
+}
+
 template <index_t MPerWave, index_t NPerWave>
-__device__ void
-intrin_mfma_f32_32x32x2bf16(const ushort2_t* reg_a, const ushort2_t* reg_b, float32_t* reg_c);
+__device__ c_vec16_1_t::VecType intrin_mfma_f32_16x16x2bf16(const ushort2_t* reg_a,
+                                                            const ushort2_t* reg_b,
+                                                            c_vec16_1_t::VecType reg_c);
 
 template <>
-__device__ void intrin_mfma_f32_32x32x2bf16<64, 64>(const ushort2_t* reg_a,
-                                                    const ushort2_t* reg_b,
-                                                    float32_t* reg_c)
+__device__ c_vec16_1_t::VecType intrin_mfma_f32_16x16x2bf16<16, 64>(const ushort2_t* reg_a,
+                                                                    const ushort2_t* reg_b,
+                                                                    c_vec16_1_t::VecType reg_c)
 {
-    reg_c[0] = llvm_intrin_amdgcn_mfma_f32_32x32x2bf16(reg_a[0], reg_b[0], reg_c[0], 1, 0, 0);
-    reg_c[1] = llvm_intrin_amdgcn_mfma_f32_32x32x2bf16(reg_a[0], reg_b[0], reg_c[1], 1, 1, 0);
-}
-
-template <>
-__device__ void intrin_mfma_f32_32x32x2bf16<32, 64>(const ushort2_t* reg_a,
-                                                    const ushort2_t* reg_b,
-                                                    float32_t* reg_c)
-{
-    reg_c[0] = llvm_intrin_amdgcn_mfma_f32_32x32x2bf16(reg_a[0], reg_b[0], reg_c[0], 1, 0, 0);
+    reg_c.s.x = llvm_intrin_amdgcn_mfma_f32_16x16x2bf16(reg_a[0], reg_b[0], reg_c.s.x, 2, 0, 0);
+    return reg_c;
 }
 
 template <>
-__device__ void intrin_mfma_f32_32x32x2bf16<64, 32>(const ushort2_t* reg_a,
-                                                    const ushort2_t* reg_b,
-                                                    float32_t* reg_c)
+__device__ c_vec16_1_t::VecType intrin_mfma_f32_16x16x2bf16<64, 16>(const ushort2_t* reg_a,
+                                                                    const ushort2_t* reg_b,
+                                                                    c_vec16_1_t::VecType reg_c)
 {
-    reg_c[0] = llvm_intrin_amdgcn_mfma_f32_32x32x2bf16(reg_a[0], reg_b[0], reg_c[0], 0, 0, 1);
-}
-
-__device__ void
-intrin_mfma_f32_32x32x4bf16(const ushort2_t* reg_a, const ushort2_t* reg_b, float16_t* reg_c)
-{
-    reg_c[0] = llvm_intrin_amdgcn_mfma_f32_32x32x4bf16(reg_a[0], reg_b[0], reg_c[0], 0, 0, 0);
-}
-
-__device__ void
-intrin_mfma_f32_16x16x8bf16(const ushort2_t* reg_a, const ushort2_t* reg_b, float4_t* reg_c)
-{
-    reg_c[0] = llvm_intrin_amdgcn_mfma_f32_16x16x8bf16(reg_a[0], reg_b[0], reg_c[0], 0, 0, 0);
+    reg_c.s.x = llvm_intrin_amdgcn_mfma_f32_16x16x2bf16(reg_a[0], reg_b[0], reg_c.s.x, 0, 0, 4);
+    return reg_c;
 }
 
 template <index_t MPerWave, index_t NPerWave>
-__device__ void
-intrin_mfma_f32_16x16x2bf16(const ushort2_t* reg_a, const ushort2_t* reg_b, float16_t* reg_c);
+struct intrin_mfma_f32_4x4x2bf16;
 
 template <>
-__device__ void intrin_mfma_f32_16x16x2bf16<16, 64>(const ushort2_t* reg_a,
-                                                    const ushort2_t* reg_b,
-                                                    float16_t* reg_c)
+struct intrin_mfma_f32_4x4x2bf16<4, 64>
 {
-    reg_c[0] = llvm_intrin_amdgcn_mfma_f32_16x16x2bf16(reg_a[0], reg_b[0], reg_c[0], 2, 0, 0);
-}
+    __device__ static c_vec4_1_t::VecType
+    run(const ushort2_t* reg_a, const ushort2_t* reg_b, c_vec4_1_t::VecType reg_c)
+    {
+        reg_c.s.x = llvm_intrin_amdgcn_mfma_f32_4x4x2bf16(reg_a[0], reg_b[0], reg_c.s.x, 4, 0, 0);
+        return reg_c;
+    }
+};
 
 template <>
-__device__ void intrin_mfma_f32_16x16x2bf16<64, 16>(const ushort2_t* reg_a,
-                                                    const ushort2_t* reg_b,
-                                                    float16_t* reg_c)
+struct intrin_mfma_f32_4x4x2bf16<8, 64>
 {
-    reg_c[0] = llvm_intrin_amdgcn_mfma_f32_16x16x2bf16(reg_a[0], reg_b[0], reg_c[0], 0, 0, 4);
-}
-
-template <index_t MPerWave, index_t NPerWave>
-__device__ void
-intrin_mfma_f32_4x4x2bf16(const ushort2_t* reg_a, const ushort2_t* reg_b, float4_t* reg_c);
-
-template <>
-__device__ void
-intrin_mfma_f32_4x4x2bf16<4, 64>(const ushort2_t* reg_a, const ushort2_t* reg_b, float4_t* reg_c)
-{
-    reg_c[0] = llvm_intrin_amdgcn_mfma_f32_4x4x2bf16(reg_a[0], reg_b[0], reg_c[0], 4, 0, 0);
-}
-
-template <>
-__device__ void
-intrin_mfma_f32_4x4x2bf16<8, 64>(const ushort2_t* reg_a, const ushort2_t* reg_b, float4_t* reg_c)
-{
-    reg_c[0] = llvm_intrin_amdgcn_mfma_f32_4x4x2bf16(reg_a[0], reg_b[0], reg_c[0], 4, 0, 0);
-    reg_c[1] = llvm_intrin_amdgcn_mfma_f32_4x4x2bf16(reg_a[0], reg_b[0], reg_c[1], 4, 1, 0);
-}
+    __device__ static c_vec4_2_t::VecType
+    run(const ushort2_t* reg_a, const ushort2_t* reg_b, c_vec4_2_t::VecType reg_c)
+    {
+        reg_c.s.x = llvm_intrin_amdgcn_mfma_f32_4x4x2bf16(reg_a[0], reg_b[0], reg_c.s.x, 4, 0, 0);
+        reg_c.s.y = llvm_intrin_amdgcn_mfma_f32_4x4x2bf16(reg_a[0], reg_b[0], reg_c.s.y, 4, 1, 0);
+        return reg_c;
+    }
+};
 }
 #endif
