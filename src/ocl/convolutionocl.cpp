@@ -3365,7 +3365,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
         decltype(auto) direction      = conv::Direction::BackwardWeights;
         decltype(auto) algorithm_name = AlgorithmName{ConvolutionAlgoToDirectionalString(
             static_cast<miopenConvAlgorithm_t>(algo), direction)};
-        decltype(auto) ctx = conv::ProblemDescription{xDesc, dwDesc, dyDesc, *this, direction};
+        decltype(auto) ctx = conv::ProblemDescription{dyDesc, dwDesc, xDesc, *this, direction};
         decltype(auto) network_config = ctx.BuildConfKey();
         decltype(auto) invoker = handle.GetInvoker(network_config, boost::none, algorithm_name);
 
