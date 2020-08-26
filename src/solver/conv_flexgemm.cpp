@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #include <sstream>
+#include <miopen/config.h>
 #include <miopen/kernel_info.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/solver.hpp>
@@ -147,14 +148,18 @@ namespace miopen {
 namespace solver {
 bool ConvFlexgemm::IsApplicable(const ConvolutionContext& ctx) const
 {
+    if(MIOPEN_BACKEND_OPENCL) return false;
     const auto name=ctx.GetStream().GetDeviceName();
     if((name!="gfx900"&&name!="gfx906")||ctx.direction.IsBackwardWrW()) return false;
+    if(((ctx.in_width +ctx.pad_w*2)<ctx.kernel_size_w)||
+       ((ctx.in_height+ctx.pad_h*2)<ctx.kernel_size_h))
+        return false;
     uint32_t pad=ctx.pad_w|ctx.pad_h|ctx.pad_d;
     uint32_t ksize=ctx.kernel_size_w|ctx.kernel_size_h|ctx.kernel_size_d;
     uint32_t stride=ctx.kernel_stride_w|ctx.kernel_stride_h|ctx.kernel_stride_d;
     uint32_t dilation=ctx.kernel_dilation_w|ctx.kernel_dilation_h|ctx.kernel_dilation_d;
     if(((ctx.n_inputs&7)!=0)&&!ctx.Is2d()) return false;
-    if(((ksize|stride|dilation)!=1)||(pad!=0)||((ctx.n_inputs&7)!=0)){
+    if(((ksize|stride|dilation)!=1)||(pad!=0)||((ctx.n_inputs&7)!=0)||((ctx.n_outputs&3)!=0)){
         if(!ctx.Is2d()) return false;
         if(!ctx.direction.IsForward()){
             if((ctx.kernel_stride_w|ctx.kernel_stride_h|ctx.kernel_dilation_w|ctx.kernel_dilation_h)!=1)
@@ -182,7 +187,7 @@ ConvSolution ConvFlexgemm::GetSolution(const ConvolutionContext& ctx) const
     uint32_t stride=ctx.kernel_stride_w|ctx.kernel_stride_h|ctx.kernel_stride_d;
     uint32_t dilation=ctx.kernel_dilation_w|ctx.kernel_dilation_h|ctx.kernel_dilation_d;
 
-    if(((ksize|stride|dilation)==1)&&(pad==0)&&((ctx.n_inputs&7)==0)){
+    if(((ksize|stride|dilation)==1)&&(pad==0)&&((ctx.n_inputs&7)==0)&&((ctx.n_outputs&3)==0)){
         flexgemm::param_ufconv_t params{};
         flexgemm::build_params_ufconv(params, ctx);
         sol.workspce_sz=0;

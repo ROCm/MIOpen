@@ -73,7 +73,7 @@ elseif(MIOPEN_TEST_BFLOAT16)
     endif()
     set(MIOPEN_TEST_FLOAT_ARG --bfloat16)
 elseif(MIOPEN_TEST_GFX908)
-    set(SKIP_TESTS test_main test_tensor_scale test_tensor_set test_tensor_transform test_tensor_vec test_w_supertensor test_dropout test_immed_conv3d test_conv3d test_soft_max test_fusion_aux test_activation test_lrn_test test_ctc test_conv2d_bias test_conv3d_bias test_cba_inference test_cbna_inference test_pooling2d test_na_train test_na_inference test_bn_aux test_conv_igemm_dynamic)
+    set(SKIP_TESTS test_main test_tensor_scale test_tensor_set test_tensor_transform test_tensor_vec test_w_supertensor test_dropout test_immed_conv3d test_conv3d test_soft_max test_fusion_aux test_activation test_lrn_test test_ctc test_conv2d_bias test_conv3d_bias test_cba_inference test_cbna_inference test_pooling2d test_na_train test_na_inference test_bn_aux test_conv_igemm_dynamic test_conv_flexgemm)
 endif()
 
 
@@ -657,15 +657,12 @@ COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS} $<TARGET_FILE:test_conv2d> --verbose --
 COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128  256 56 56 --weights 64  256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
 )
 
-set(FLEXGEMM_DISABLES
-    MIOPEN_DEBUG_DISABLE_FIND_DB=1
+set(FLEXGEMM_ENVS
     MIOPEN_DEBUG_CONV_DIRECT=0
     MIOPEN_DEBUG_CONV_FFT=0
     MIOPEN_DEBUG_CONV_GEMM=0
     MIOPEN_DEBUG_CONV_WINOGRAD=0
-    MIOPEN_DEBUG_CONV_IMPLICITGEMM=0)
-set(FLEXGEMM_ENVS
-    ${FLEXGEMM_DISABLES}
+    MIOPEN_DEBUG_CONV_IMPLICITGEMM=0
     MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvFlexgemm)
 
 add_custom_test(test_conv_flexgemm
