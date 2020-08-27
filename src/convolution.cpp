@@ -507,7 +507,7 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
             return std::max({workspace_size_gemm,
                              direct_workspace,
                              implicit_gemm_workspace,
-                             workspace_size_winograd
+                             workspace_size_winograd,
                              flexgemm_workspace});
         }
     }
