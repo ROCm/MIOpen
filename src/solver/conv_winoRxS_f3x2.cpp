@@ -295,23 +295,6 @@ ConvSolution ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& param
         int N, C, H, W, K, n_groups_, out_H, out_W, R, S, pad_H, pad_W;
         GetCompiledInParameters(
             params, &N, &C, &H, &W, &K, &n_groups_, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
-        MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
-                            << " n_groups="
-                            << n_groups_
-                            << " flags="
-                            << flags
-                            << " R="
-                            << R
-                            << " S="
-                            << S
-                            << " pad_H="
-                            << pad_H
-                            << " pad_W="
-                            << pad_W
-                            << " out_H="
-                            << out_H
-                            << " out_W="
-                            << out_W);
 
         flags += L_F_NKC_STRIDES;
         /// \todo Consider using BufferInfo to compute strides
@@ -323,18 +306,36 @@ ConvSolution ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& param
         int o_K_stride            = out_H * out_W * SIZEOF_DATA;
         int o_N_stride            = K * o_K_stride;
 
-        MIOPEN_LOG_I2("...flags=" << flags << " d_N_stride=" << d_N_stride << " d_C_stride="
-                                  << d_C_stride
-                                  << " f_K_stride="
-                                  << f_K_stride
-                                  << " f_C_stride="
-                                  << f_C_stride
-                                  << " o_N_stride="
-                                  << o_N_stride
-                                  << " o_K_stride="
-                                  << o_K_stride);
-
         return [=](const Handle& handle, const boost::any& ctx) {
+            MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
+                                << " n_groups="
+                                << n_groups_
+                                << " flags="
+                                << flags
+                                << " R="
+                                << R
+                                << " S="
+                                << S
+                                << " pad_H="
+                                << pad_H
+                                << " pad_W="
+                                << pad_W
+                                << " out_H="
+                                << out_H
+                                << " out_W="
+                                << out_W);
+
+            MIOPEN_LOG_I2("...flags=" << flags << " d_N_stride=" << d_N_stride << " d_C_stride="
+                                      << d_C_stride
+                                      << " f_K_stride="
+                                      << f_K_stride
+                                      << " f_C_stride="
+                                      << f_C_stride
+                                      << " o_N_stride="
+                                      << o_N_stride
+                                      << " o_K_stride="
+                                      << o_K_stride);
+
             const auto k        = handle.Run(kernels[0]);
             const auto fwd_ctx  = boost::any_cast<conv::DataInvokeParams>(ctx);
             const auto& tensors = fwd_ctx.tensors;
