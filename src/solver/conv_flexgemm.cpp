@@ -151,20 +151,31 @@ bool ConvFlexgemm::IsApplicable(const ConvolutionContext& ctx) const
     if(MIOPEN_BACKEND_OPENCL) return false;
     const auto name=ctx.GetStream().GetDeviceName();
     if((name!="gfx900"&&name!="gfx906")||ctx.direction.IsBackwardWrW()) return false;
-    if(((ctx.in_width +ctx.pad_w*2)<ctx.kernel_size_w)||
-       ((ctx.in_height+ctx.pad_h*2)<ctx.kernel_size_h))
-        return false;
     uint32_t pad=ctx.pad_w|ctx.pad_h|ctx.pad_d;
     uint32_t ksize=ctx.kernel_size_w|ctx.kernel_size_h|ctx.kernel_size_d;
     uint32_t stride=ctx.kernel_stride_w|ctx.kernel_stride_h|ctx.kernel_stride_d;
     uint32_t dilation=ctx.kernel_dilation_w|ctx.kernel_dilation_h|ctx.kernel_dilation_d;
-    if(((ctx.n_inputs&7)!=0)&&!ctx.Is2d()) return false;
-    if(((ksize|stride|dilation)!=1)||(pad!=0)||((ctx.n_inputs&7)!=0)||((ctx.n_outputs&3)!=0)){
-        if(!ctx.Is2d()) return false;
-        if(!ctx.direction.IsForward()){
-            if((ctx.kernel_stride_w|ctx.kernel_stride_h|ctx.kernel_dilation_w|ctx.kernel_dilation_h)!=1)
-                return false;
-        }
+    if(((ksize|stride|dilation)==1)&&(pad==0)&&(((ctx.n_inputs/ctx.group_counts)&7)==0))
+        return true;
+    if(!ctx.Is2d()) return false;
+    int pu=ctx.pad_w;
+    int pv=ctx.pad_h;
+    int su=ctx.kernel_stride_w;
+    int sv=ctx.kernel_stride_h;
+    int du=ctx.kernel_dilation_w;
+    int dv=ctx.kernel_dilation_h;
+    if(ctx.direction.IsForward()){
+        if(((ctx.in_width +(pu<<1))<ctx.kernel_size_w)||
+           ((ctx.in_height+(pv<<1))<ctx.kernel_size_h))
+            return false;
+        if((((ctx.in_width +(pu<<1)-du*(ctx.kernel_size_w-1)-1)/su+1)<=0)||
+           (((ctx.in_height+(pv<<1)-dv*(ctx.kernel_size_h-1)-1)/sv+1)<=0))
+            return false;
+    } else {
+        pu=ctx.kernel_size_w-pu-1;
+        pv=ctx.kernel_size_h-pv-1;
+        if(((stride|dilation)!=1)||(pu<0)||(pv<0))
+            return false;
     }
     return (ctx.IsFp32()&&(ctx.in_layout=="NCHW")&&(ctx.bias==0));
 }
@@ -174,7 +185,7 @@ size_t ConvFlexgemm::GetWorkspaceSize(const ConvolutionContext& ctx) const
     uint32_t ksize=ctx.kernel_size_w|ctx.kernel_size_h|ctx.kernel_size_d;
     uint32_t stride=ctx.kernel_stride_w|ctx.kernel_stride_h|ctx.kernel_stride_d;
     uint32_t dilation=ctx.kernel_dilation_w|ctx.kernel_dilation_h|ctx.kernel_dilation_d;
-    if(((ksize|stride|dilation)==1)&&(pad==0)&&((ctx.n_inputs&7)==0))
+    if(((ksize|stride|dilation)==1)&&(pad==0)&&(((ctx.n_inputs/ctx.group_counts)&7)==0))
         return 0;
     return get_auxbuf_size(ctx);
 }
@@ -186,8 +197,7 @@ ConvSolution ConvFlexgemm::GetSolution(const ConvolutionContext& ctx) const
     uint32_t ksize=ctx.kernel_size_w|ctx.kernel_size_h|ctx.kernel_size_d;
     uint32_t stride=ctx.kernel_stride_w|ctx.kernel_stride_h|ctx.kernel_stride_d;
     uint32_t dilation=ctx.kernel_dilation_w|ctx.kernel_dilation_h|ctx.kernel_dilation_d;
-
-    if(((ksize|stride|dilation)==1)&&(pad==0)&&((ctx.n_inputs&7)==0)&&((ctx.n_outputs&3)==0)){
+    if(((ksize|stride|dilation)==1)&&(pad==0)&&(((ctx.n_inputs/ctx.group_counts)&7)==0)){
         param_ufconv_t params{};
         build_params_ufconv(params, ctx);
         sol.workspce_sz=0;

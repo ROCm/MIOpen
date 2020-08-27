@@ -41,7 +41,6 @@ static inline uint32_t choose_routine_fconv(uint32_t n, uint32_t k)
 {
     uint32_t r=(n+31)>>5;
     uint32_t id=1+((r&3)==0?((k&15)==0?2:1):((r&1)^1));
-    id=(n&3)!=0?1:id;
     return ((k&7)!=0?4:id);
 }
 static inline uint32_t choose_routine_bconv(uint32_t n)
@@ -60,7 +59,7 @@ size_t get_auxbuf_size(const ConvolutionContext& ctx)
     uint32_t pv=ctx.pad_h;
     uint32_t ng=ctx.group_counts;
     uint32_t bs =ctx.batch_sz;
-    uint32_t inc=ctx.n_inputs;
+    uint32_t inc=ctx.n_inputs/ng;
     uint32_t anx=ctx.in_width;
     uint32_t any=ctx.in_height;
     uint32_t bnx=ctx.kernel_size_w;
@@ -74,7 +73,7 @@ size_t get_auxbuf_size(const ConvolutionContext& ctx)
     uint32_t pnx=anx+(pu<<1);
     uint32_t pny=any+(pv<<1);
     uint32_t k=bnx*bny*inc;
-    uint32_t n=ctx.n_outputs;
+    uint32_t n=ctx.n_outputs/ng;
     uint32_t ldc=cnx*cny;
     uint32_t m=ldc*bs;
     uint32_t fid=choose_routine_fconv(n,k);
@@ -105,9 +104,10 @@ size_t get_auxbuf_size(const param_conv_t& p)
 }
 void build_params_ufconv(param_ufconv_t& p, const ConvolutionContext& ctx)
 {
+    p.ng=ctx.group_counts;
     p.m=ctx.out_width*ctx.out_height;
-    p.n=ctx.n_outputs;
-    p.k=ctx.n_inputs;
+    p.n=ctx.n_outputs/p.ng;
+    p.k=ctx.n_inputs/p.ng;
     p.dir=ctx.direction.IsForward()?0:1;
     p.id=choose_routine_ufconv(p.m, p.n, p.k, p.dir);
     uint32_t tile=p.id&0xffff;
@@ -115,7 +115,6 @@ void build_params_ufconv(param_ufconv_t& p, const ConvolutionContext& ctx)
     uint32_t sx=(0x024>>(mode<<1))&0x3;
     uint32_t sy=(0xc00>>(tile*3+mode))&0x1;
     uint32_t alignment=(tile>0)&&(tile<3)?255:127;
-    p.ng   =ctx.group_counts;
     p.dimx =p.m*ctx.batch_sz;
     p.ntidx=(p.dimx+alignment)&(~alignment);
     p.amag =idiv_magic(p.ntidx>>sx,p.m>>sx);
@@ -134,7 +133,7 @@ void build_params_conv(param_conv_t& p, const ConvolutionContext& ctx)
     p.dir=ctx.direction.IsForward()?0:1;
     p.ng =ctx.group_counts;
     p.bs =ctx.batch_sz;
-    p.inc=ctx.n_inputs;
+    p.inc=ctx.n_inputs/p.ng;
     p.anx=ctx.in_width;
     p.any=ctx.in_height;
     p.bnx=ctx.kernel_size_w;
@@ -151,7 +150,7 @@ void build_params_conv(param_conv_t& p, const ConvolutionContext& ctx)
     p.sd=(dv<<18)|(du<<12)|(sv<<6)|su;
     p.ldc=p.cnx*p.cny;
     p.m=p.ldc*p.bs;
-    p.n=ctx.n_outputs;
+    p.n=ctx.n_outputs/p.ng;
     p.k=p.bnx*p.bny*p.inc;
     if(p.dir==0){
         p.id=choose_routine_fconv(p.n,p.k);
@@ -169,11 +168,11 @@ void build_params_conv(param_conv_t& p, const ConvolutionContext& ctx)
         }
     }
     temp=p.id!=3?7:15;
-    p.ags  =p.lda*p.inc;
-    p.spad =static_cast<size_t>(p.ng<<2)*p.ags;
+    p.ags=p.lda*p.inc;
+    p.spad=static_cast<size_t>(p.ng<<2)*p.ags;
     p.sperm=static_cast<size_t>(p.ng<<2)*((p.k+temp)&~temp)*((p.n+3)&~3);
-    p.sidx =(p.ntidx<<3)+(((p.k+15)&~15)<<2)+128;
-    p.spad =p.pad==0?0:p.spad;
+    p.sidx=(p.ntidx<<3)+(((p.k+15)&~15)<<2)+128;
+    p.spad=p.pad==0?0:p.spad;
     p.sperm=p.dir==0?0:p.sperm;
 }
 } // namespace solver
