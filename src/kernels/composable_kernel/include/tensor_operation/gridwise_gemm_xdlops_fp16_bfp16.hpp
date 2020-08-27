@@ -973,10 +973,11 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
             p_c_thread_vec = blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_c_thread_vec);
         }
 
-        // copy output: register to global memory
-#if 0
+// copy output: register to global memory
+#if 1
         {
-            constexpr auto c_thread_desc = blockwise_gemm.GetOutputLayout_v2().GetOutputThreadDesc();
+            constexpr auto c_thread_desc =
+                blockwise_gemm.GetOutputLayout_v2().GetOutputThreadDesc();
             constexpr auto CLayout = blockwise_gemm.GetOutputLayout_v2();
 
             constexpr index_t M_5 = CLayout.M5();

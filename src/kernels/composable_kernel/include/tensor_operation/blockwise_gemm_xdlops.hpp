@@ -211,7 +211,7 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
         return MatrixIndex{row, col};
     }
 
-     __device__ static MatrixIndex GetBeginOfThreadMatrixC_v2()
+    __device__ static MatrixIndex GetBeginOfThreadMatrixC_v2()
     {
 
         const index_t waveId = get_thread_local_1d_id() / WaveSize;

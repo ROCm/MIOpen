@@ -1092,7 +1092,6 @@ struct XdlopsGemm_t
         }
     };
 
-
     template <index_t MRepeats_ = MRepeats, index_t NRepeats_ = NRepeats>
     __device__ static constexpr auto GetOutputLayout_v2()
     {
