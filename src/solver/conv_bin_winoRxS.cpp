@@ -372,9 +372,9 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
         int N, C, H, W, K, out_H, out_W, R, S;
         GetCompiledInParameters(
             params, &N, &K, &out_H, &out_W, &C, &unused, &H, &W, &R, &S, &unused, &unused);
-        static const int F_FLIP_K_C    = 1 << 2;
-        static const int F_NKC_STRIDES = 1 << 9;
-        int flags                      = F_FLIP_K_C + F_NKC_STRIDES;
+        constexpr int F_FLIP_K_C       = 1 << 2;
+        constexpr int F_NKC_STRIDES    = 1 << 9;
+        constexpr int flags            = F_FLIP_K_C + F_NKC_STRIDES;
         int reserved                   = 0;
         int* reserved_ptr              = nullptr;
         using dataType                 = float;
