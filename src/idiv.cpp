@@ -25,6 +25,7 @@
  *******************************************************************************/
 #include <miopen/idiv.hpp>
 
+// clang-format off
 static inline uint32_t bfls( uint32_t n )
 {
     n=n|(n>>0x01);
@@ -54,4 +55,5 @@ magic_t idiv_magic( uint32_t nmax, uint32_t d )
     }
     return magic;
 }
-} //namespace miopen
+} // namespace miopen
+// clang-format off

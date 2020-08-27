@@ -57023,8 +57023,8 @@ amdhsa.kernels:
     .sgpr_count: 24
     .vgpr_count: 10
     .args:
-    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: f32 }
-    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: f32 }
+    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: u32 }
+    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: u32 }
     - { .size: 4, .offset: 12, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 16, .value_kind: by_value,      .value_type: u32 }
     - { .size: 4, .offset: 20, .value_kind: by_value,      .value_type: u32 }

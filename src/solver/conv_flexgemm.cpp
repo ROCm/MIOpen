@@ -177,7 +177,9 @@ bool ConvFlexgemm::IsApplicable(const ConvolutionContext& ctx) const
         if(((stride|dilation)!=1)||(pu<0)||(pv<0))
             return false;
     }
-    return (ctx.IsFp32()&&(ctx.in_layout=="NCHW")&&(ctx.bias==0));
+    //all kernels support group conv and tested passed in seperate testing program,
+    //but have some problem in miopen currently, will reopen after resolve
+    return (ctx.IsFp32()&&(ctx.in_layout=="NCHW")&&(ctx.bias==0)&&(ctx.group_counts==1));
 }
 size_t ConvFlexgemm::GetWorkspaceSize(const ConvolutionContext& ctx) const
 {

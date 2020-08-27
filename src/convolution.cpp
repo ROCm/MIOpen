@@ -582,10 +582,8 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
     size_t workspace_size_gemm = 0;
 
 #if MIOPEN_USE_GEMM
-    size_t tmp_max_workspace = std::max({direct_workspace,
-                                         implicit_gemm_workspace,
-                                         workspace_size_winograd,
-                                         flexgemm_workspace});
+    size_t tmp_max_workspace = std::max(
+        {direct_workspace, implicit_gemm_workspace, workspace_size_winograd, flexgemm_workspace});
     if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
     {
         workspace_size_gemm = BackwardDataGetWorkSpaceSizeGEMM(wDesc, dyDesc);

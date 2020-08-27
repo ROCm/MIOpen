@@ -30,7 +30,8 @@
 
 // clang-foramt off
 namespace miopen {
-struct magic_t{
+struct magic_t
+{
     uint32_t m;
     uint32_t s;
 };
