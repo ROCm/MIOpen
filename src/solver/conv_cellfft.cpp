@@ -524,6 +524,12 @@ bool ConvCellfft::IsApplicable( const ConvolutionContext& ctx ) const
     if(name!="gfx900" && name!="gfx906") return false;
     if((ctx.kernel_stride_w|ctx.kernel_stride_h|ctx.kernel_dilation_w|ctx.kernel_dilation_h|ctx.group_counts)!=1)
         return false;
+    if(!ctx.direction.IsForward()){
+        int pu=ctx.kernel_size_w-ctx.pad_w-1;
+        int pv=ctx.kernel_size_h-ctx.pad_h-1;
+        if((pu<0)||(pv<0))
+            return false;
+    }
     return (ctx.Is2d()&&ctx.IsFp32()&&(ctx.in_layout=="NCHW")&&(ctx.bias==0));
 }
 size_t ConvCellfft::GetWorkspaceSize( const ConvolutionContext& ctx ) const
