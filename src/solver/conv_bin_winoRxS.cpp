@@ -449,26 +449,14 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
         int N, C, H, W, K, n_groups_, out_H, out_W, R, S, pad_H, pad_W;
         GetCompiledInParameters(
             params, &N, &C, &H, &W, &K, &n_groups_, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
-        MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
-                            << " n_groups="
-                            << n_groups_
-                            << " flags="
-                            << flags
-                            << " R="
-                            << R
-                            << " S="
-                            << S
-                            << " pad_H="
-                            << pad_H
-                            << " pad_W="
-                            << pad_W
-                            << " out_H="
-                            << out_H
-                            << " out_W="
-                            << out_W);
 
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle, const boost::any& ctx) {
+                MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
+                                    << " n_groups=" << n_groups_ << " flags=" << flags << " R=" << R
+                                    << " S=" << S << " pad_H=" << pad_H << " pad_W=" << pad_W
+                                    << " out_H=" << out_H << " out_W=" << out_W);
+
                 const auto k        = handle.Run(kernels[0]);
                 const auto fwd_ctx  = boost::any_cast<conv::DataInvokeParams>(ctx);
                 const auto& tensors = fwd_ctx.tensors;
