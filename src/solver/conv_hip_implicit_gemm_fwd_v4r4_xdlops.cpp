@@ -958,6 +958,26 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
         ctx.general_compile_options;
     // clang-format on
 
+    if(ctx.IsFp16() || ctx.IsBfp16())
+    {
+        const auto y              = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+        const auto x              = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+        const auto in_left_pad_h  = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
+        const auto in_left_pad_w  = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
+        const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
+        const auto in_right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
+
+        if((y > 1 || x > 1) &&
+           (in_left_pad_h > 0 || in_left_pad_w > 0 || in_right_pad_h > 0 || in_right_pad_w > 0))
+            construction_parameters.comp_options += "";
+        else
+            construction_parameters.comp_options += " -mllvm -amdgpu-enable-global-sgpr-addr ";
+    }
+    else
+    {
+        construction_parameters.comp_options += " -mllvm -amdgpu-enable-global-sgpr-addr ";
+    }
+
     result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
     result.construction_params.push_back(construction_parameters);
     return result;
