@@ -292,9 +292,10 @@ ConvSolution ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& param
         int flags         = is_forward ? 0 : F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C;
         int reserved      = 0;
         int* reserved_ptr = nullptr;
-        int N, C, H, W, K, n_groups_, out_H, out_W, R, S, pad_H, pad_W;
+        int unused        = 0;
+        int N, C, H, W, K, out_H, out_W, R, S, pad_H, pad_W;
         GetCompiledInParameters(
-            params, &N, &C, &H, &W, &K, &n_groups_, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
+            params, &N, &C, &H, &W, &K, &unused, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
 
         flags += L_F_NKC_STRIDES;
         /// \todo Consider using BufferInfo to compute strides
@@ -309,7 +310,7 @@ ConvSolution ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& param
         return [=](const Handle& handle, const boost::any& ctx) {
             MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
                                 << " n_groups="
-                                << n_groups_
+                                << n_groups
                                 << " flags="
                                 << flags
                                 << " R="
@@ -345,7 +346,7 @@ ConvSolution ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& param
               H,
               W,
               K,
-              n_groups_,
+              n_groups,
               flags,
               reserved,
               tensors.in,
