@@ -404,11 +404,11 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenDropout.cl
         kernels/xform_data.s
         kernels/xform_filter.s
-        kernels/flexgemm_gfx900.s
-        kernels/flexgemm_gfx906.s)
         kernels/xform_bidirect_winograd_data.s
         kernels/xform_bidirect_winograd_filter.s
-        kernels/xform_bidirect_winograd_out.s)
+        kernels/xform_bidirect_winograd_out.s
+        kernels/flexgemm_gfx900.s
+        kernels/flexgemm_gfx906.s)
 
     add_kernels("${MIOPEN_KERNELS}")
     add_kernel_includes("${MIOPEN_KERNEL_INCLUDES}")
