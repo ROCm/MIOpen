@@ -40,9 +40,11 @@
 #include <chrono>
 #include <cassert>
 
-// Todo: remove
 #include <miopen/conv/context.hpp>
 #include <miopen/conv_solution.hpp>
+#include <miopen/logger.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/timer.hpp>
 
 namespace miopen {
 namespace solver {
@@ -150,24 +152,6 @@ class ComputedContainer
     }
     const_iterator begin() const { return {problem, spare}; }
     const_iterator end() const { return {}; }
-};
-
-class Timer
-{
-    public:
-    Timer(){};
-    void start() { st = std::chrono::steady_clock::now(); }
-    float elapsed_ms()
-    {
-        capture();
-        return std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(et - st)
-            .count();
-    }
-
-    private:
-    void capture() { et = std::chrono::steady_clock::now(); }
-    std::chrono::time_point<std::chrono::steady_clock> st;
-    std::chrono::time_point<std::chrono::steady_clock> et;
 };
 
 template <typename PerformanceConfig>
