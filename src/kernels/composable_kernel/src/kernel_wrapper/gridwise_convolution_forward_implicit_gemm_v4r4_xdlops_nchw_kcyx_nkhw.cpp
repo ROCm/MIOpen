@@ -103,7 +103,7 @@ extern "C" __global__
 
     // B matrix Copy
     constexpr index_t GemmBBlockCopyClusterLengths_GemmK =
-        CK_PARAM_DEPENDENT_GEMM_B_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_K;
+        CK_PARAM_DEPENDENT_GEMM_B_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_K * NWaves;
     constexpr index_t GemmBBlockCopyClusterLengths_B =
         CK_PARAM_DEPENDENT_GEMM_B_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_N / NWaves;
     constexpr index_t GemmBBlockCopyClusterLengths_GemmKPack =
