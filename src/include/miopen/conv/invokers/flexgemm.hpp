@@ -2,7 +2,7 @@
 *
 * MIT License
 *
-* Copyright (c) 2019 Advanced Micro Devices, Inc.
+* Copyright (c) 2020 Advanced Micro Devices, Inc.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -23,18 +23,17 @@
 * SOFTWARE.
 *
 *******************************************************************************/
-
-#ifndef MIOPEN_FLEXGEMM_H
-#define MIOPEN_FLEXGEMM_H
+#ifndef GUARD_MIOPEN_FLEXGEMM_HPP
+#define GUARD_MIOPEN_FLEXGEMM_HPP
 
 #include <miopen/invoker.hpp>
-#include "../../../../flexgemm/include/flexgemm_op.hpp"
+#include "../../../../solver/flexgemm/include/flexgemm_param.hpp"
 
 // clang-format off
 namespace miopen {
 namespace conv {
-InvokerFactory MakeFlexgemmInvokerFactory(const flexgemm::param_ufconv_t&, float);
-InvokerFactory MakeFlexgemmInvokerFactory(const flexgemm::param_conv_t&, float);
+InvokerFactory MakeFlexgemmInvokerFactory(const solver::param_ufconv_t&, float);
+InvokerFactory MakeFlexgemmInvokerFactory(const solver::param_conv_t&, float);
 } // namespace conv
 } // namespace miopen
 // clang-format on

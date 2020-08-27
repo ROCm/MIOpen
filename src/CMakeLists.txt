@@ -127,6 +127,7 @@ set( MIOpen_Source
     execution_context.cpp
     reducetensor.cpp
     reducetensor_api.cpp
+    idiv.cpp
     include/miopen/buffer_info.hpp
     include/miopen/temp_file.hpp
     include/miopen/bfloat16.hpp
@@ -140,6 +141,7 @@ set( MIOpen_Source
     include/miopen/convolution.hpp
     include/miopen/convolution_fft.hpp
     include/miopen/errors.hpp
+    include/miopen/idiv.hpp
     include/miopen/invoker.hpp
     include/miopen/handle.hpp
     include/miopen/kernel_cache.hpp
@@ -465,13 +467,11 @@ if( MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
 endif()
 
 list(APPEND MIOpen_Source
-    flexgemm/include/flexgemm_op.hpp
-    flexgemm/include/flexgemm_param.hpp
-    flexgemm/source/flexgemm_op.cpp
-    flexgemm/source/flexgemm_param.cpp
+    solver/flexgemm/include/flexgemm_param.hpp
+    solver/flexgemm/source/flexgemm_param.cpp
+    solver/conv_flexgemm.cpp
     include/miopen/conv/invokers/flexgemm.hpp
     conv/invokers/flexgemm.cpp
-    solver/conv_flexgemm.cpp
 )
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")

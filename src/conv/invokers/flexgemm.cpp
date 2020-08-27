@@ -2,7 +2,7 @@
 *
 * MIT License
 *
-* Copyright (c) 2019 Advanced Micro Devices, Inc.
+* Copyright (c) 2020 Advanced Micro Devices, Inc.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,6 @@
 * SOFTWARE.
 *
 *******************************************************************************/
-
 #include <miopen/conv/invokers/flexgemm.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/errors.hpp>
@@ -34,8 +33,41 @@
 
 // clang-format off
 namespace miopen {
+static void lk_ufconv(const Handle& handle, const Kernel& kern, const solver::param_ufconv_t& p, void* c, const void* a, const void* b, float alpha)
+{
+    handle.Run(kern)(a, b, p.ng, p.m, p.n, p.k, p.amag, p.cmag, c, alpha, p.dimx);
+}
+static void lk_padding2d(const Handle& handle, const Kernel& kern, const solver::param_conv_t& p, void* dst, const void* src)
+{
+    handle.Run(kern)(dst, src, p.anx, p.any, p.pad, p.ng*p.inc, p.lda);
+}
+static void lk_perm2d(const Handle& handle, const Kernel& kern, const solver::param_conv_t& p, void* dst, const void* src)
+{
+    uint32_t bnn=p.bnx*p.bny;
+    uint32_t lda=p.ng*p.n*bnn;
+    uint32_t align=p.id!=3?7:15;
+    handle.Run(kern)(dst, src, lda, (p.n+3)&~3, p.k, p.n, bnn, (p.k+align)&~align);
+}
+static void lk_genidx2d(const Handle& handle, const Kernel& kern, const solver::param_conv_t& p, void* dst)
+{
+    uint32_t npx=p.pnx*p.pny;
+    uint32_t inc=p.ng*p.inc;
+    uint32_t onc=p.ng*p.n;
+    uint32_t ldx=npx*(p.pad==0?inc:1);
+    handle.Run(kern)(dst, p.ntidx, p.pnx, p.sd, ldx, onc, p.m, p.cnx, p.cny, p.bnx, p.bny, p.lda, p.k);
+}
+static void lk_conv(const Handle& handle, const Kernel& kern, const solver::param_conv_t& p, void* c, const void* a, const void* b, const void* idx, float alpha)
+{
+    const uint8_t* relo=static_cast<const uint8_t*>(idx)+(p.ntidx<<3);
+    uint32_t align=p.id!=3?7:15;
+    uint32_t ldb=p.dir==0?(p.k*p.ng):((p.n+3)&~3);
+    uint32_t n=(p.pad!=0?0x80000000:0)|p.n;
+    uint32_t k=p.dir==0?p.k:((p.k+align)&~align);
+    handle.Run(kern)(idx, relo, ldb, n, k, p.ags, a, b, c, alpha, p.m, p.ldc);
+}
+
 namespace conv {
-InvokerFactory MakeFlexgemmInvokerFactory( const flexgemm::param_ufconv_t& p, float alpha )
+InvokerFactory MakeFlexgemmInvokerFactory( const solver::param_ufconv_t& p, float alpha )
 {
     return [=]( const std::vector<Kernel>& kernels )
     {
@@ -51,14 +83,14 @@ InvokerFactory MakeFlexgemmInvokerFactory( const flexgemm::param_ufconv_t& p, fl
         };
     };
 }
-InvokerFactory MakeFlexgemmInvokerFactory( const flexgemm::param_conv_t& p, float alpha )
+InvokerFactory MakeFlexgemmInvokerFactory( const solver::param_conv_t& p, float alpha )
 {
     return [=]( const std::vector<Kernel>& kernels )
     {
         return [=]( const Handle& handle, const boost::any& prim_params )
         {
             const auto& params=boost::any_cast<DataInvokeParams>(prim_params);
-            const size_t auxsize=flexgemm::get_auxbuf_size(p);
+            const size_t auxsize=get_auxbuf_size(p);
             if(params.workSpace==nullptr||params.workSpaceSize<auxsize)
                 MIOPEN_THROW("Workspace is not enough for cellfft");
             const auto& tensors=params.tensors;

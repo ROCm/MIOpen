@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,20 +23,15 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-#ifndef MIOPEN_FLEXGEMM_PARAM_H
-#define MIOPEN_FLEXGEMM_PARAM_H
+#ifndef GUARD_MIOPEN_FLEXGEMM_PARAM_HPP
+#define GUARD_MIOPEN_FLEXGEMM_PARAM_HPP
 
 #include <miopen/conv/context.hpp>
+#include <miopen/idiv.hpp>
 
 // clang-foramt off
 namespace miopen {
-namespace flexgemm {
-struct magic_t
-{
-    uint32_t m;
-    uint32_t s;
-};
+namespace solver {
 struct param_ufconv_t
 {
     magic_t amag;
@@ -82,7 +77,7 @@ size_t get_auxbuf_size(const ConvolutionContext&);
 size_t get_auxbuf_size(const param_conv_t&);
 void build_params_ufconv(param_ufconv_t&, const ConvolutionContext&);
 void build_params_conv(param_conv_t&, const ConvolutionContext&);
-} // namespace flexgemm
+} // namespace solver
 } // namespace miopen
 // clang-foramt on
 #endif

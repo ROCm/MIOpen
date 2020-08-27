@@ -35,7 +35,9 @@
 #include <miopen/conv/invokers/flexgemm.hpp>
 
 // clang-format off
-static void get_solution(miopen::solver::ConvSolution& sol, const miopen::ConvolutionContext& ctx, const miopen::flexgemm::param_ufconv_t& p, const std::string& file_name, uint32_t relu)
+namespace miopen {
+namespace solver {
+static void get_solution(ConvSolution& sol, const ConvolutionContext& ctx, const param_ufconv_t& p, const std::string& file_name, uint32_t relu)
 {
     static const char* knames_ufco[]=
     {
@@ -88,10 +90,10 @@ static void get_solution(miopen::solver::ConvSolution& sol, const miopen::Convol
     const std::vector<size_t> grid{gdy*blk,gdx,p.ng};
     std::ostringstream options;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3()?5:4);
-    miopen::solver::KernelInfo kinfo={ options.str(), block, grid, file_name, knames_ufco[routine] };
+    KernelInfo kinfo={ options.str(), block, grid, file_name, knames_ufco[routine] };
     sol.construction_params.push_back(kinfo);
 }
-static void get_solution(miopen::solver::ConvSolution& sol, const miopen::ConvolutionContext& ctx, const miopen::flexgemm::param_conv_t& p, const std::string& file_name, uint32_t relu)
+static void get_solution(ConvSolution& sol, const ConvolutionContext& ctx, const param_conv_t& p, const std::string& file_name, uint32_t relu)
 {
     std::ostringstream options;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3()?5:4);
@@ -99,7 +101,7 @@ static void get_solution(miopen::solver::ConvSolution& sol, const miopen::Convol
         const uint32_t gdx=(p.pnx*p.pny*p.ng*p.inc+255)>>8;
         const std::vector<size_t> block{256,1,1};
         const std::vector<size_t> grid{gdx<<8,p.bs,1};
-        miopen::solver::KernelInfo kinfo={ options.str(), block, grid, file_name, "padding2d" };
+        KernelInfo kinfo={ options.str(), block, grid, file_name, "padding2d" };
         sol.construction_params.push_back(kinfo);
     }
 
@@ -107,7 +109,7 @@ static void get_solution(miopen::solver::ConvSolution& sol, const miopen::Convol
         const uint32_t gdx=(((p.n+3)&~3)+63)>>6;
         const std::vector<size_t> block{64,1,1};
         const std::vector<size_t> grid{gdx<<6,p.inc,p.ng};
-        miopen::solver::KernelInfo kinfo={ options.str(), block, grid, file_name, "perm2d_flip" };
+        KernelInfo kinfo={ options.str(), block, grid, file_name, "perm2d_flip" };
         sol.construction_params.push_back(kinfo);
     }
 
@@ -117,7 +119,7 @@ static void get_solution(miopen::solver::ConvSolution& sol, const miopen::Convol
         const uint32_t gdx=(ntid+63)>>6;
         const std::vector<size_t> block{64,1,1};
         const std::vector<size_t> grid{gdx<<6,1,1};
-        miopen::solver::KernelInfo kinfo={ options.str(), block, grid, file_name, "genidx2d" };
+        KernelInfo kinfo={ options.str(), block, grid, file_name, "genidx2d" };
         sol.construction_params.push_back(kinfo);
     }
 
@@ -139,13 +141,11 @@ static void get_solution(miopen::solver::ConvSolution& sol, const miopen::Convol
         const uint32_t gdy=p.pad!=0?ngy:ngx;
         const std::vector<size_t> block{blk,1,1};
         const std::vector<size_t> grid{gdx*blk,gdy,p.ng};
-        miopen::solver::KernelInfo kinfo={ options.str(), block, grid, file_name, knames_co[routine] };
+        KernelInfo kinfo={ options.str(), block, grid, file_name, knames_co[routine] };
         sol.construction_params.push_back(kinfo);
     }
 }
 
-namespace miopen {
-namespace solver {
 bool ConvFlexgemm::IsApplicable(const ConvolutionContext& ctx) const
 {
     if(MIOPEN_BACKEND_OPENCL) return false;
@@ -176,7 +176,7 @@ size_t ConvFlexgemm::GetWorkspaceSize(const ConvolutionContext& ctx) const
     uint32_t dilation=ctx.kernel_dilation_w|ctx.kernel_dilation_h|ctx.kernel_dilation_d;
     if(((ksize|stride|dilation)==1)&&(pad==0)&&((ctx.n_inputs&7)==0))
         return 0;
-    return flexgemm::get_auxbuf_size(ctx);
+    return get_auxbuf_size(ctx);
 }
 ConvSolution ConvFlexgemm::GetSolution(const ConvolutionContext& ctx) const
 {
@@ -188,14 +188,14 @@ ConvSolution ConvFlexgemm::GetSolution(const ConvolutionContext& ctx) const
     uint32_t dilation=ctx.kernel_dilation_w|ctx.kernel_dilation_h|ctx.kernel_dilation_d;
 
     if(((ksize|stride|dilation)==1)&&(pad==0)&&((ctx.n_inputs&7)==0)&&((ctx.n_outputs&3)==0)){
-        flexgemm::param_ufconv_t params{};
-        flexgemm::build_params_ufconv(params, ctx);
+        param_ufconv_t params{};
+        build_params_ufconv(params, ctx);
         sol.workspce_sz=0;
         get_solution(sol, ctx, params, file_name, 0);
         sol.invoker_factory=conv::MakeFlexgemmInvokerFactory(params, 1.f);
     } else {
-        flexgemm::param_conv_t params{};
-        flexgemm::build_params_conv(params, ctx);
+        param_conv_t params{};
+        build_params_conv(params, ctx);
         sol.workspce_sz=params.spad+params.sperm+params.sidx;
         get_solution(sol, ctx, params, file_name, 0);
         sol.invoker_factory=conv::MakeFlexgemmInvokerFactory(params, 1.f);

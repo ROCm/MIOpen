@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,34 +27,6 @@
 // clang-format off
 #include "../include/flexgemm_param.hpp"
 
-static inline uint32_t bim_fls( uint32_t n )
-{
-    n=n|(n>>0x01);
-    n=n|(n>>0x02);
-    n=n|(n>>0x04);
-    n=n|(n>>0x08);
-    n=n|(n>>0x10);
-    return __builtin_popcount(n);
-}
-static inline miopen::flexgemm::magic_t idiv_magic( uint32_t nmax, uint32_t d )
-{
-    miopen::flexgemm::magic_t magic={1,0};
-    if(d==1) return magic;
-    uint64_t nc=((nmax+1)/d)*d-1;
-    uint32_t nbits=bim_fls(nmax);
-    uint32_t r=(nbits<<1)+1;
-    magic.m=-1; magic.s=-1;
-    for( uint32_t s=0; s<r; s++ ){
-        uint64_t exp=static_cast<uint64_t>(1u)<<s;
-        uint64_t mod=d-1-(exp-1)%d;
-        if(exp>(nc*mod)){
-            magic.m=static_cast<uint32_t>((exp+mod)/d);
-            magic.s=s;
-            break;
-        }
-    }
-    return magic;
-}
 static inline uint32_t choose_routine_ufconv(uint32_t m, uint32_t n, uint32_t k, int dir)
 {
     uint32_t r=(n+31)>>5;
@@ -81,7 +53,7 @@ static inline uint32_t choose_routine_bconv(uint32_t n)
 }
 
 namespace miopen {
-namespace flexgemm {
+namespace solver {
 size_t get_auxbuf_size(const ConvolutionContext& ctx)
 {
     uint32_t pu=ctx.pad_w;
@@ -204,6 +176,6 @@ void build_params_conv(param_conv_t& p, const ConvolutionContext& ctx)
     p.spad =p.pad==0?0:p.spad;
     p.sperm=p.dir==0?0:p.sperm;
 }
-} //namespace flexgemm
-} //namespace miopen
+} // namespace solver
+} // namespace miopen
 // clang-format on

@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,22 +23,35 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_FLEXGEMM_OP_H
-#define MIOPEN_FLEXGEMM_OP_H
+#include <miopen/idiv.hpp>
 
-#include <miopen/handle.hpp>
-#include <miopen/kernel.hpp>
-#include "flexgemm_param.hpp"
-
-// clang-format off
+static inline uint32_t bfls( uint32_t n )
+{
+    n=n|(n>>0x01);
+    n=n|(n>>0x02);
+    n=n|(n>>0x04);
+    n=n|(n>>0x08);
+    n=n|(n>>0x10);
+    return __builtin_popcount(n);
+}
 namespace miopen {
-namespace flexgemm {
-void lk_ufconv(const Handle&, const Kernel&, const param_ufconv_t&, void*, const void*, const void*, float);
-void lk_padding2d(const Handle&, const Kernel&, const param_conv_t&, void*, const void*);
-void lk_perm2d(const Handle&, const Kernel&, const param_conv_t&, void*, const void*);
-void lk_genidx2d(const Handle&, const Kernel&, const param_conv_t&, void*);
-void lk_conv(const Handle&, const Kernel&, const param_conv_t&, void*, const void*, const void*, const void*, float);
-} // namespace flexgemm
-} // namespace miopen
-// clang-format on
-#endif
+magic_t idiv_magic( uint32_t nmax, uint32_t d )
+{
+    magic_t magic={1,0};
+    if(d==1) return magic;
+    uint64_t nc=((nmax+1)/d)*d-1;
+    uint32_t nbits=bfls(nmax);
+    uint32_t r=(nbits<<1)+1;
+    magic.m=-1; magic.s=-1;
+    for( uint32_t s=0; s<r; s++ ){
+        uint64_t exp=static_cast<uint64_t>(1)<<s;
+        uint64_t mod=d-1-(exp-1)%d;
+        if(exp>(nc*mod)){
+            magic.m=static_cast<uint32_t>((exp+mod)/d);
+            magic.s=s;
+            break;
+        }
+    }
+    return magic;
+}
+} //namespace miopen
