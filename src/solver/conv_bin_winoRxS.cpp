@@ -369,9 +369,9 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
     if(params.direction.IsBackwardWrW())
     {
         int unused = 0;
-        int N, C, H, W, K, out_H, out_W, R, S;
+        int N, C, H, W, K, out_H, out_W, R, S, n_groups_;
         GetCompiledInParameters(
-            params, &N, &K, &out_H, &out_W, &C, &unused, &H, &W, &R, &S, &unused, &unused);
+            params, &N, &K, &out_H, &out_W, &C, &n_groups_, &H, &W, &R, &S, &unused, &unused);
         constexpr int F_FLIP_K_C       = 1 << 2;
         constexpr int F_NKC_STRIDES    = 1 << 9;
         constexpr int flags            = F_FLIP_K_C + F_NKC_STRIDES;
@@ -393,7 +393,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
                 const auto& tensors      = invoke_params.tensors;
                 // clang-format off
                 MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
-                        << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
+                        << " n_groups=" << n_groups_ << " flags=" << flags << " R=" << R << " S=" << S
                         << " pad_H=" << pad_H << " pad_W=" << pad_W << " out_H=" << out_H << " out_W=" << out_W
                         << " d_N_stride=" << d_N_stride << " d_C_stride=" << d_C_stride
                         << " f_K_stride=" << f_K_stride << " f_C_stride=" << f_C_stride
@@ -403,7 +403,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
                                        H,
                                        W,
                                        K,
-                                       n_groups,
+                                       n_groups_,
                                        flags,
                                        reserved,
                                        tensors.x,
