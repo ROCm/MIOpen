@@ -294,8 +294,7 @@ ConvSolution ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& param
     int N, C, H, W, K, n_groups_, out_H, out_W, R, S, pad_H, pad_W;
     GetCompiledInParameters(
         params, &N, &C, &H, &W, &K, &n_groups_, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
-    MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
-                        << " n_groups="
+    MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K << " n_groups="
                         << n_groups_
                         << " flags="
                         << flags
@@ -323,15 +322,15 @@ ConvSolution ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& param
     int o_N_stride            = K * o_K_stride;
 
     MIOPEN_LOG_I2("...flags=" << flags << " d_N_stride=" << d_N_stride << " d_C_stride="
-                                << d_C_stride
-                                << " f_K_stride="
-                                << f_K_stride
-                                << " f_C_stride="
-                                << f_C_stride
-                                << " o_N_stride="
-                                << o_N_stride
-                                << " o_K_stride="
-                                << o_K_stride);
+                              << d_C_stride
+                              << " f_K_stride="
+                              << f_K_stride
+                              << " f_C_stride="
+                              << f_C_stride
+                              << " o_N_stride="
+                              << o_N_stride
+                              << " o_K_stride="
+                              << o_K_stride);
 
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const boost::any& ctx) {

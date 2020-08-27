@@ -372,20 +372,20 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
         int N, C, H, W, K, out_H, out_W, R, S, n_groups_;
         GetCompiledInParameters(
             params, &N, &K, &out_H, &out_W, &C, &n_groups_, &H, &W, &R, &S, &unused, &unused);
-        constexpr int F_FLIP_K_C       = 1 << 2;
-        constexpr int F_NKC_STRIDES    = 1 << 9;
-        constexpr int flags            = F_FLIP_K_C + F_NKC_STRIDES;
-        int reserved                   = 0;
-        int* reserved_ptr              = nullptr;
-        using dataType                 = float;
-        int pad_H                      = params.pad_h;
-        int pad_W                      = params.pad_w;
-        int d_N_stride                 = H * W * static_cast<int>(sizeof(dataType));
-        int d_C_stride                 = C * d_N_stride;
-        int f_K_stride                 = out_H * out_W * static_cast<int>(sizeof(dataType));
-        int f_C_stride                 = K * f_K_stride;
-        int o_N_stride                 = R * S * static_cast<int>(sizeof(dataType));
-        int o_K_stride                 = C * o_N_stride;
+        constexpr int F_FLIP_K_C    = 1 << 2;
+        constexpr int F_NKC_STRIDES = 1 << 9;
+        constexpr int flags         = F_FLIP_K_C + F_NKC_STRIDES;
+        int reserved                = 0;
+        int* reserved_ptr           = nullptr;
+        using dataType              = float;
+        int pad_H                   = params.pad_h;
+        int pad_W                   = params.pad_w;
+        int d_N_stride              = H * W * static_cast<int>(sizeof(dataType));
+        int d_C_stride              = C * d_N_stride;
+        int f_K_stride              = out_H * out_W * static_cast<int>(sizeof(dataType));
+        int f_C_stride              = K * f_K_stride;
+        int o_N_stride              = R * S * static_cast<int>(sizeof(dataType));
+        int o_K_stride              = C * o_N_stride;
 
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle, const boost::any& primitive_params) {
@@ -453,9 +453,22 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle, const boost::any& ctx) {
                 MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
-                                    << " n_groups=" << n_groups_ << " flags=" << flags << " R=" << R
-                                    << " S=" << S << " pad_H=" << pad_H << " pad_W=" << pad_W
-                                    << " out_H=" << out_H << " out_W=" << out_W);
+                                    << " n_groups="
+                                    << n_groups_
+                                    << " flags="
+                                    << flags
+                                    << " R="
+                                    << R
+                                    << " S="
+                                    << S
+                                    << " pad_H="
+                                    << pad_H
+                                    << " pad_W="
+                                    << pad_W
+                                    << " out_H="
+                                    << out_H
+                                    << " out_W="
+                                    << out_W);
 
                 const auto k        = handle.Run(kernels[0]);
                 const auto fwd_ctx  = boost::any_cast<conv::DataInvokeParams>(ctx);
