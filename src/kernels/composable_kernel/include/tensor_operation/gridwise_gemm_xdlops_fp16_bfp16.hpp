@@ -797,13 +797,13 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
     {
         constexpr auto True = integral_constant<bool, true>{};
 
-        constexpr auto a_g_k_m_kpack_global_desc = AGlobalDesc{};
+        constexpr auto a_g_k_m_kpack_global_desc    = AGlobalDesc{};
         constexpr auto b_g_k_n1_b_kpack_global_desc = BGlobalDesc{};
-        constexpr auto c_g_m_n_global_desc       = CGlobalDesc{};
+        constexpr auto c_g_m_n_global_desc          = CGlobalDesc{};
 
-        constexpr auto G     = c_g_m_n_global_desc.GetLengths()[0];
-        constexpr auto M     = c_g_m_n_global_desc.GetLengths()[1];
-        constexpr auto N     = c_g_m_n_global_desc.GetLengths()[2];
+        constexpr auto G = c_g_m_n_global_desc.GetLengths()[0];
+        constexpr auto M = c_g_m_n_global_desc.GetLengths()[1];
+        constexpr auto N = c_g_m_n_global_desc.GetLengths()[2];
 
         constexpr auto K     = b_g_k_n1_b_kpack_global_desc.GetLengths()[1];
         constexpr auto in_N1 = b_g_k_n1_b_kpack_global_desc.GetLengths()[2];
@@ -909,7 +909,7 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
             1,
             1>{};
 
-        constexpr auto c_k_thread_mtx_desc = blockwise_gemm.GetThreadMatrixCDescriptor();
+        // constexpr auto c_k_thread_mtx_desc = blockwise_gemm.GetThreadMatrixCDescriptor();
 
         constexpr index_t a_block_space =
             math::integer_least_multiple(a_g_k_m_kpack_block_desc.GetElementSpace(), max_align);
@@ -921,11 +921,7 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
         __shared__ ABFloat p_b_block[b_block_space];
 
         // register allocation for output
-        AccFloat p_c_thread[c_k_thread_mtx_desc.GetElementSpace()];
-
-        // zero out threadwise output
-        threadwise_matrix_set_zero(c_k_thread_mtx_desc, p_c_thread);
-        blockwise_gemm.XdlopsMatrixCSetZero();
+        auto p_c_thread_vec = blockwise_gemm.GetOutputVec();
 
         // preload data into LDS
         {
@@ -959,7 +955,8 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
             const typename vector_type<ABFloat, KPack>::MemoryType* p_b_block_vec =
                 reinterpret_cast<const typename vector_type<ABFloat, KPack>::MemoryType*>(
                     p_b_block);
-            blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_c_thread);
+
+            p_c_thread_vec = blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_c_thread_vec);
 
             block_sync_lds();
 
@@ -979,11 +976,12 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
             const typename vector_type<ABFloat, KPack>::MemoryType* p_b_block_vec =
                 reinterpret_cast<const typename vector_type<ABFloat, KPack>::MemoryType*>(
                     p_b_block);
-            blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_c_thread);
+
+            p_c_thread_vec = blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_c_thread_vec);
         }
 
         // load data from xldop_acc_regs
-        blockwise_gemm.XdlopsMatrixCRead(p_c_thread);
+        // blockwise_gemm.XdlopsMatrixCRead(p_c_thread);
 
         // copy output: register to global memory
         {
@@ -1014,6 +1012,7 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
             constexpr index_t BlkSize = blockwise_gemm.GetBlkSize();
             constexpr index_t NumBlks = blockwise_gemm.GetNumBlks();
 
+#pragma unroll
             for(index_t i = 0; i < NumBlks; ++i)
             {
                 // calculate origin of thread output tensor on global memory
@@ -1044,7 +1043,7 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
                      m_thread_data_on_global % (M2 * M1) / M2,
                      m_thread_data_on_global % M2,
                      n_thread_data_on_global})
-                    .Run(p_c_thread + i * BlkSize, p_c_global);
+                    .Run(p_c_thread_vec.n + i * BlkSize, p_c_global);
             }
         }
     }
