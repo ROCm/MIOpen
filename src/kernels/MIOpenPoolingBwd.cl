@@ -323,7 +323,7 @@ mloPoolingMaxBwd(const __global _FLOAT* top_df,
                     int lcl_th = th - top_y;
                     int lcl_tw = tw - top_x;
 #if USE_IMG_INDEX == 1
-                    int img_idx = b_x + b_y * mlo_bot_height;
+                    index_t img_idx = b_x + b_y * mlo_bot_width;
 #else
                     int filter_x   = b_x - tw * MLO_POOLING_STRIDE0 + mlo_pad0;
                     int filter_y   = b_y - th * MLO_POOLING_STRIDE1 + mlo_pad1;
