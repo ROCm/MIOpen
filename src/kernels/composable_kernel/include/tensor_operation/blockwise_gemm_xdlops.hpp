@@ -58,7 +58,26 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
 
     __device__ constexpr auto GetOutputLayout_v2() const
     {
+#if CK_WORKAROUND_SWDEV_241664
         return XdlopsGemm.template GetOutputLayout_v2<MRepeats, NRepeats>();
+#else
+        return XdlopsGemm.GetOutputLayout_v2();
+#endif
+    }
+
+    __device__ constexpr auto GetOutputVec() const
+    {
+#if CK_WORKAROUND_SWDEV_241664
+
+#if CK_PARAM_TUNABLE_GEMM_M_PER_WAVE == 128 || CK_PARAM_TUNABLE_GEMM_N_PER_WAVE == 128
+        return c_vec32_2_2_t::GetZero();
+#else
+        return XdlopsGemm.GetOutputLayout().GetOutputVec();
+#endif
+
+#else
+        return XdlopsGemm.GetOutputLayout().GetOutputVec();
+#endif
     }
 
     __device__ constexpr auto GetNumBlks() const
@@ -103,9 +122,9 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
     }
 
     template <class FloatA, class FloatB, class FloatC>
-    __device__ void Run(const FloatA* __restrict__ p_a_block,
-                        const FloatB* __restrict__ p_b_block,
-                        FloatC* __restrict__ p_c_thread) const
+    __device__ FloatC Run(const FloatA* __restrict__ p_a_block,
+                          const FloatB* __restrict__ p_b_block,
+                          FloatC p_c_thread) const
 
     {
         constexpr index_t M = BlockMatrixA::NCol(); // A is transposed
@@ -113,34 +132,55 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
         constexpr index_t K = BlockMatrixA::NRow();
 
 #if CK_WORKAROUND_SWDEV_241664
-        constexpr auto reg_size_xdlops = MPerXdlops * NPerXdlops / WaveSize;
 
-        for(index_t m = 0; m < MRepeats; m++)
+#if CK_PARAM_TUNABLE_GEMM_M_PER_WAVE == 128 && CK_PARAM_TUNABLE_GEMM_N_PER_WAVE == 64
         {
-            for(index_t n = 0; n < NRepeats; n++)
-            {
+            index_t m = 0, n = 0;
+            p_c_thread.s.x.l =
                 XdlopsGemm.template Run<M, N, K>(&p_a_block[mMyWaveOffsetA + MPerXdlops * m],
                                                  &p_b_block[mMyWaveOffsetB + NPerXdlops * n],
-                                                 p_c_thread + (NRepeats * m + n) * reg_size_xdlops);
-            }
+                                                 p_c_thread.s.x.l);
+        }
+
+        {
+            index_t m = 1, n = 0;
+            p_c_thread.s.y.l =
+                XdlopsGemm.template Run<M, N, K>(&p_a_block[mMyWaveOffsetA + MPerXdlops * m],
+                                                 &p_b_block[mMyWaveOffsetB + NPerXdlops * n],
+                                                 p_c_thread.s.y.l);
+        }
+#elif CK_PARAM_TUNABLE_GEMM_M_PER_WAVE == 64 && CK_PARAM_TUNABLE_GEMM_N_PER_WAVE == 128
+        {
+            index_t m = 0, n = 0;
+            p_c_thread.s.x.l =
+                XdlopsGemm.template Run<M, N, K>(&p_a_block[mMyWaveOffsetA + MPerXdlops * m],
+                                                 &p_b_block[mMyWaveOffsetB + NPerXdlops * n],
+                                                 p_c_thread.s.x.l);
+        }
+
+        {
+            index_t m = 0, n = 1;
+            p_c_thread.s.y.l =
+                XdlopsGemm.template Run<M, N, K>(&p_a_block[mMyWaveOffsetA + MPerXdlops * m],
+                                                 &p_b_block[mMyWaveOffsetB + NPerXdlops * n],
+                                                 p_c_thread.s.y.l);
         }
 #else
-        XdlopsGemm.template Run<M, N, K>(
+        {
+            index_t m = 0, n = 0;
+            p_c_thread =
+                XdlopsGemm.template Run<M, N, K>(&p_a_block[mMyWaveOffsetA + MPerXdlops * m],
+                                                 &p_b_block[mMyWaveOffsetB + NPerXdlops * n],
+                                                 p_c_thread);
+        }
+#endif
+
+#else
+        p_c_thread = XdlopsGemm.template Run<M, N, K>(
             &p_a_block[mMyWaveOffsetA], &p_b_block[mMyWaveOffsetB], p_c_thread);
 #endif
-    }
 
-    __device__ static MatrixIndex GetBeginOfThreadMatrixC_v2()
-    {
-
-        const index_t waveId = get_thread_local_1d_id() / WaveSize;
-
-        const auto thread_mtx_on_blk = XdlopsGemm.GetBeginOfThreadXdlops();
-
-        const index_t col = (waveId % GemmNWaves) * GemmNPerWave + thread_mtx_on_blk.col;
-        const index_t row = (waveId / GemmNWaves) * GemmMPerWave + thread_mtx_on_blk.row;
-
-        return MatrixIndex{row, col};
+        return p_c_thread;
     }
 
     __device__ static MatrixIndex GetBeginOfThreadMatrixC(index_t i)
@@ -167,6 +207,19 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
         const index_t col = (waveId % GemmNWaves) * GemmNPerWave + thread_mtx_on_blk.col;
         const index_t row = (waveId / GemmNWaves) * GemmMPerWave + thread_mtx_on_blk.row;
 #endif
+
+        return MatrixIndex{row, col};
+    }
+
+     __device__ static MatrixIndex GetBeginOfThreadMatrixC_v2()
+    {
+
+        const index_t waveId = get_thread_local_1d_id() / WaveSize;
+
+        const auto thread_mtx_on_blk = XdlopsGemm.GetBeginOfThreadXdlops();
+
+        const index_t col = (waveId % GemmNWaves) * GemmNPerWave + thread_mtx_on_blk.col;
+        const index_t row = (waveId / GemmNWaves) * GemmMPerWave + thread_mtx_on_blk.row;
 
         return MatrixIndex{row, col};
     }

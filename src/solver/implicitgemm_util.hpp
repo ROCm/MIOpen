@@ -19,7 +19,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SY
 // workaround for buffer load/store fp16/bfp16 intrinsic bug
 #define WORKAROUND_SWDEV_231101 1
 // workaround compiler bug: GPU memory access fault when there is padding in fp16/bfp16 case
-#define WORKAROUND_SWDEV_239555 1
+#define WORKAROUND_SWDEV_239555 0
 // LLVM xdlops instrinsic will do unnecessey VGRP <--> AGPR movement, and result in
 // register spill, for bfloat16 datatype, when doing wave-wise GEMM larger than 64x64
 #define WORKAROUND_SWDEV_240356 1
@@ -521,22 +521,23 @@ static inline bool IsValidBlockwiseGemmXdlops(const ConvolutionContext& ctx,
         return false;
 
     // check M, N and K
-    std::vector<std::tuple<int, int, int>> validWaveGemmSize = {std::make_tuple(128, 64, 1),
-                                                                std::make_tuple(128, 32, 1),
-                                                                std::make_tuple(128, 16, 1),
+    std::vector<std::tuple<int, int, int>> validWaveGemmSize = {// std::make_tuple(128, 128, 1),
+                                                                std::make_tuple(128, 64, 1),
+                                                                // std::make_tuple(128, 32, 1),
+                                                                // std::make_tuple(128, 16, 1),
                                                                 std::make_tuple(64, 128, 1),
                                                                 std::make_tuple(64, 64, 1),
                                                                 std::make_tuple(64, 32, 1),
                                                                 std::make_tuple(64, 16, 1),
-                                                                std::make_tuple(32, 128, 1),
+                                                                // std::make_tuple(32, 128, 1),
                                                                 std::make_tuple(32, 64, 1),
                                                                 std::make_tuple(32, 32, 2),
-                                                                std::make_tuple(16, 128, 1),
+                                                                // std::make_tuple(16, 128, 1),
                                                                 std::make_tuple(16, 64, 1),
                                                                 std::make_tuple(16, 16, 4),
-                                                                std::make_tuple(8, 128, 1),
+                                                                // std::make_tuple(8, 128, 1),
                                                                 std::make_tuple(8, 64, 1),
-                                                                std::make_tuple(4, 128, 1),
+                                                                // std::make_tuple(4, 128, 1),
                                                                 std::make_tuple(4, 64, 1)};
 
     if(!std::any_of(validWaveGemmSize.cbegin(),
