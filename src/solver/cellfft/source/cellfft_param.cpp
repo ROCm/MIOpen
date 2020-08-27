@@ -25,39 +25,10 @@
  *******************************************************************************/
 
 // clang-format off
-
 #include "../include/cellfft_param.hpp"
 
 #define PSIZE(n,m) (((n)+(m))&(~(m)))
 
-static inline uint32_t bim_fls( uint32_t n )
-{
-    n=n|(n>>0x01);
-    n=n|(n>>0x02);
-    n=n|(n>>0x04);
-    n=n|(n>>0x08);
-    n=n|(n>>0x10);
-    return __builtin_popcount(n);
-}
-static inline miopen::cellfft::magic_t idiv_magic( uint32_t nmax, uint32_t d )
-{
-    miopen::cellfft::magic_t magic={1,0};
-    if(d==1) return magic;
-    uint64_t nc=((nmax+1)/d)*d-1;
-    uint32_t nbits=bim_fls(nmax);
-    uint32_t r=(nbits<<1)+1;
-    magic.m=-1; magic.s=-1;
-    for( uint32_t s=0; s<r; s++ ){
-        uint64_t exp=static_cast<uint64_t>(1u)<<s;
-        uint64_t mod=d-1-(exp-1)%d;
-        if(exp>(nc*mod)){
-            magic.m=static_cast<uint32_t>((exp+mod)/d);
-            magic.s=s;
-            break;
-        }
-    }
-    return magic;
-}
 static uint32_t choose_optimal_cell_id( uint32_t anx, uint32_t any, uint32_t bnx, uint32_t bny )
 {
     uint32_t id=1, n=0x7fffffff;
@@ -73,10 +44,8 @@ static uint32_t choose_optimal_cell_id( uint32_t anx, uint32_t any, uint32_t bnx
     return id;
 }
 
-namespace miopen
-{
-namespace cellfft
-{
+namespace miopen {
+namespace solver {
 size_t get_auxbuf_size( const ConvolutionContext& ctx )
 {
     uint32_t bs =ctx.batch_sz;
@@ -270,6 +239,6 @@ void build_cellfft_params_grad( cellfft_param_t& p, const ConvolutionContext& ct
         p.ymag=idiv_magic(reso,p.grid_x);
     }
 }
-} //namespace cellfft
-} //namespace miopen
+} // namespace solver
+} // namespace miopen
 // clang-format on

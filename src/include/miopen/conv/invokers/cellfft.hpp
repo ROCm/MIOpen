@@ -24,16 +24,16 @@
 *
 *******************************************************************************/
 // clang-format off
-#ifndef MIOPEN_CELLFFT_H
-#define MIOPEN_CELLFFT_H
+#ifndef GUARD_MIOPEN_CELLFFT_HPP
+#define GUARD_MIOPEN_CELLFFT_HPP
 
 #include <miopen/invoker.hpp>
-#include "../../../../cellfft/include/cellfft_param.hpp"
+#include "../../../../solver/cellfft/include/cellfft_param.hpp"
 
 namespace miopen {
 namespace conv {
-InvokerFactory MakeCellfftInvokerFactory( const cellfft::cellfft_param_t&, float );
-InvokerFactory MakeCellfftInvokerFactoryGrad( const cellfft::cellfft_param_t&, float );
+InvokerFactory MakeCellfftInvokerFactory(const solver::cellfft_param_t&, float);
+InvokerFactory MakeCellfftInvokerFactoryGrad(const solver::cellfft_param_t&, float);
 } // namespace conv
 } // namespace miopen
 // clang-format on

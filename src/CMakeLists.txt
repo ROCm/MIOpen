@@ -127,6 +127,7 @@ set( MIOpen_Source
     execution_context.cpp
     reducetensor.cpp
     reducetensor_api.cpp
+    idiv.cpp
     include/miopen/buffer_info.hpp
     include/miopen/temp_file.hpp
     include/miopen/bfloat16.hpp
@@ -140,6 +141,7 @@ set( MIOpen_Source
     include/miopen/convolution.hpp
     include/miopen/convolution_fft.hpp
     include/miopen/errors.hpp
+    include/miopen/idiv.hpp
     include/miopen/invoker.hpp
     include/miopen/handle.hpp
     include/miopen/kernel_cache.hpp
@@ -465,13 +467,11 @@ if( MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
 endif()
 
 list(APPEND MIOpen_Source
-    cellfft/include/cellfft_op.hpp
-    cellfft/include/cellfft_param.hpp
-    cellfft/source/cellfft_op.cpp
-    cellfft/source/cellfft_param.cpp
+    solver/cellfft/include/cellfft_param.hpp
+    solver/cellfft/source/cellfft_param.cpp
+    solver/conv_cellfft.cpp
     include/miopen/conv/invokers/cellfft.hpp
     conv/invokers/cellfft.cpp
-    solver/conv_cellfft.cpp
 )
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")

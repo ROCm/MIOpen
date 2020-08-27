@@ -23,62 +23,35 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/idiv.hpp>
 
-// clang-foramt off
-#ifndef MIOPEN_CELLFFT_PARAM_H
-#define MIOPEN_CELLFFT_PARAM_H
-
-#include <miopen/conv/context.hpp>
-
+static inline uint32_t bfls( uint32_t n )
+{
+    n=n|(n>>0x01);
+    n=n|(n>>0x02);
+    n=n|(n>>0x04);
+    n=n|(n>>0x08);
+    n=n|(n>>0x10);
+    return __builtin_popcount(n);
+}
 namespace miopen {
-namespace cellfft {
-struct magic_t
+magic_t idiv_magic( uint32_t nmax, uint32_t d )
 {
-    uint32_t m;
-    uint32_t s;
-};
-struct cellfft_param_t
-{
-    magic_t xmag;
-    magic_t ymag;
-    uint32_t grid_x;
-    uint32_t grid_y;
-    uint32_t tile_x;
-    uint32_t tile_y;
-    uint32_t m;
-    uint32_t n;
-    uint32_t k;
-    uint32_t lda;
-    uint32_t ldb;
-    uint32_t abks;
-    uint32_t bbks;
-    uint32_t cbks;
-    uint32_t aldx;
-    uint32_t aldy;
-    uint32_t bldx;
-    uint32_t bldy;
-    uint32_t cldx;
-    uint32_t cldy;
-    uint32_t anx;
-    uint32_t any;
-    uint32_t bnx;
-    uint32_t bny;
-    uint32_t cnx;
-    uint32_t cny;
-    uint32_t pad_l;
-    uint32_t pad_r;
-    uint32_t pad_t;
-    uint32_t pad_b;
-    uint32_t nbanks;
-    uint32_t id;
-    uint32_t dir;
-};
-size_t get_auxbuf_size(const ConvolutionContext&);
-size_t get_auxbuf_size_grad(const ConvolutionContext&);
-size_t get_auxbuf_size(const cellfft_param_t&);
-void build_cellfft_params(cellfft_param_t&, const ConvolutionContext&);
-void build_cellfft_params_grad(cellfft_param_t&, const ConvolutionContext&);
-} // namespace cellfft
-} // namespace miopen
-// clang-foramt on
-#endif
+    magic_t magic={1,0};
+    if(d==1) return magic;
+    uint64_t nc=((nmax+1)/d)*d-1;
+    uint32_t nbits=bfls(nmax);
+    uint32_t r=(nbits<<1)+1;
+    magic.m=-1; magic.s=-1;
+    for( uint32_t s=0; s<r; s++ ){
+        uint64_t exp=static_cast<uint64_t>(1)<<s;
+        uint64_t mod=d-1-(exp-1)%d;
+        if(exp>(nc*mod)){
+            magic.m=static_cast<uint32_t>((exp+mod)/d);
+            magic.s=s;
+            break;
+        }
+    }
+    return magic;
+}
+} //namespace miopen
