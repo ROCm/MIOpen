@@ -679,15 +679,6 @@ void BatchNormForwardInference(Handle& handle,
         unsigned int in_nstride = c * h * w;
         unsigned int in_cstride = h * w;
 
-        size_t xlocalsize = 1;
-        size_t ylocalsize = 256;
-
-        std::vector<size_t> vld;
-        std::vector<size_t> vgd;
-
-        auto xgridsize = std::size_t(handle.GetMaxComputeUnits());
-        auto ygridsize = 4096;
-
         std::string algo_name      = "miopenBatchNormalizationForwardInference";
         std::string network_config = "fp16" + std::to_string(static_cast<int>(bfp16parm)) + "fp32" +
                                      std::to_string(static_cast<int>(bfp32parm)) + "mode" +
@@ -712,16 +703,12 @@ void BatchNormForwardInference(Handle& handle,
         else
         {
             size_t xlocalsize = 1;
+            auto xgridsize    = std::size_t(handle.GetMaxComputeUnits());
             size_t ylocalsize = 256;
+            size_t ygridsize  = 4096;
+            size_t zlocalsize = 1;
+            size_t zgridsize  = 1;
 
-            std::vector<size_t> vld;
-            std::vector<size_t> vgd;
-
-            auto xgridsize = std::size_t(handle.GetMaxComputeUnits());
-            auto ygridsize = 4096;
-
-            size_t zlocalsize        = 1;
-            size_t zgridsize         = 1;
             std::string program_name = "MIOpenBatchNormFwdInfer"; // build this up
             std::string kernel_name  = "MIOpenBatchNormFwdInfer";
             if(bn_mode == miopenBNSpatial)
@@ -742,6 +729,8 @@ void BatchNormForwardInference(Handle& handle,
                 " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" +
                 std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
 
+            std::vector<size_t> vld;
+            std::vector<size_t> vgd;
             vld.push_back(xlocalsize);
             vld.push_back(ylocalsize);
             vld.push_back(zlocalsize);
