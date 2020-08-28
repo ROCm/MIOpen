@@ -711,6 +711,15 @@ void BatchNormForwardInference(Handle& handle,
         }
         else
         {
+            size_t xlocalsize = 1;
+            size_t ylocalsize = 256;
+
+            std::vector<size_t> vld;
+            std::vector<size_t> vgd;
+
+            auto xgridsize = std::size_t(handle.GetMaxComputeUnits());
+            auto ygridsize = 4096;
+
             size_t zlocalsize        = 1;
             size_t zgridsize         = 1;
             std::string program_name = "MIOpenBatchNormFwdInfer"; // build this up
