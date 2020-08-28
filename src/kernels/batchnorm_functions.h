@@ -165,6 +165,27 @@ static inline void running_stash(global _FLOAT_PREC* resultRunningMean,
         (_FLOAT_ACCUM)expAvgFactor * adjust);
 }
 
+static inline void running_stash_dyn(global _FLOAT_PREC* resultRunningMean,
+                                     global _FLOAT_PREC* resultRunningVariance,
+                                     double expAvgFactor,
+                                     _FLOAT_ACCUM mean,
+                                     _FLOAT_ACCUM variance,
+                                     uint channel,
+                                     uint NHW)
+{
+    _FLOAT_ACCUM pvt_runMean = (_FLOAT_ACCUM)(*(resultRunningMean + channel));
+    _FLOAT_ACCUM pvt_newRunMean =
+        mad((_FLOAT_ACCUM)-expAvgFactor, pvt_runMean, pvt_runMean); // tmp = oldRunMean*(1-factor)
+    resultRunningMean[channel] =
+        (_FLOAT_PREC)mad(mean, (_FLOAT_ACCUM)expAvgFactor, pvt_newRunMean); // newMean*factor + tmp
+    const _FLOAT_ACCUM adjust = (_FLOAT_ACCUM)(
+        (NHW == 1) ? variance
+                   : variance * ((_FLOAT_ACCUM)NHW / ((_FLOAT_ACCUM)NHW - (_FLOAT_ACCUM)1.0)));
+    resultRunningVariance[channel] = (_FLOAT_PREC)(
+        (1 - (_FLOAT_ACCUM)expAvgFactor) * (_FLOAT_ACCUM)(*(resultRunningVariance + channel)) +
+        (_FLOAT_ACCUM)expAvgFactor * adjust);
+}
+
 static inline void saved_stash(global _FLOAT_PREC* resultSaveMean,
                                global _FLOAT_PREC* resultSaveInvVariance,
                                _FLOAT_ACCUM mean,

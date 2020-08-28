@@ -41,47 +41,60 @@ MIOpenBatchNormFwdInferSpatialEst(const __global _FLOAT* __restrict in, /* x inp
                                   const __global _FLOAT_PREC* __restrict estimatedVariance,
                                   const __global _FLOAT_PREC* __restrict scale,
                                   const __global _FLOAT_PREC* __restrict bias,
-                                  double epsilon)
+                                  double epsilon,
+                                  unsigned int batchSize,
+                                  unsigned int imageDims,
+                                  unsigned int batchStride,
+                                  unsigned int channels)
 {
 
     int xgid = get_global_id(0);
     int ygid = get_global_id(1);
-    local _FLOAT_PREC lmean;
-    local _FLOAT_PREC lvar;
-    local _FLOAT_PREC lscale;
-    local _FLOAT_PREC lbias;
 
-    unsigned int cidx = xgid * MIO_BN_HW;
+    /*     local _FLOAT_PREC lmean;
+        local _FLOAT_PREC lvar;
+        local _FLOAT_PREC lscale;
+        local _FLOAT_PREC lbias; */
+
     unsigned int index;
 
     _FLOAT_PREC mean, variance, invVariance;
     _FLOAT_PREC inhat;
     _FLOAT_PREC pscale, pbias;
 
-    if(get_local_id(1) == 0)
-    {
-        lmean  = *(estimatedMean + xgid);
-        lvar   = *(estimatedVariance + xgid);
-        lscale = *(scale + xgid); // dims 1xCx1x1
-        lbias  = *(bias + xgid);
-    }
-    barrier(CLK_LOCAL_MEM_FENCE);
-    // move across the sections of the image mini_batch stack
-    if(ygid < MIO_BN_HW)
-    {
+    /*     if(get_local_id(1) == 0)
+        {
+            lmean  = *(estimatedMean + xgid);
+            lvar   = *(estimatedVariance + xgid);
+            lscale = *(scale + xgid);
+            lbias  = *(bias + xgid);
+        }
+        barrier(CLK_LOCAL_MEM_FENCE);
+
         mean        = lmean;
         variance    = lvar;
         pscale      = lscale;
         pbias       = lbias;
         invVariance = rsqrt(fabs(variance + epsilon));
+     */
+    for(int cidx = xgid; cidx < channels; cidx += get_global_size(0))
+    {
 
-#pragma unroll
-        for(int n = 0; n < MIO_BN_N; n++)
+        mean        = *(estimatedMean + cidx);
+        variance    = *(estimatedVariance + cidx);
+        pscale      = *(scale + cidx);
+        pbias       = *(bias + cidx);
+        invVariance = rsqrt(fabs(variance + epsilon));
+
+        for(int idx = ygid; idx < imageDims; idx += get_global_size(1))
         {
-            index      = n * MIO_BN_CHW + cidx + ygid;
-            inhat      = ((_FLOAT_PREC)(*(in + index)) - mean) * invVariance;
-            out[index] = (_FLOAT)(mad(pscale, inhat, pbias)); // y_i = gamma*x_hat + beta
-        }                                                     // end for(img_offset)
+            for(int n = 0; n < batchSize; n++)
+            {
+                index      = (n * batchStride) + (cidx * imageDims) + idx;
+                inhat      = ((_FLOAT_PREC)(*(in + index)) - mean) * invVariance;
+                out[index] = (_FLOAT)(mad(pscale, inhat, pbias));
+            }
+        }
     }
 } // end spatial norm
 

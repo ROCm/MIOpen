@@ -680,33 +680,37 @@ void BatchNormForwardInference(Handle& handle,
         unsigned int in_cstride = h * w;
 
         size_t xlocalsize = 1;
-        auto ylocalsize   = size_t((in_cstride > 1024) ? 1024 : ((64 >= in_cstride) ? 64 : 256));
+        size_t ylocalsize = 256;
 
         std::vector<size_t> vld;
         std::vector<size_t> vgd;
 
-        auto segment   = std::ceil(double(in_cstride) / double(ylocalsize));
-        auto xgridsize = size_t(c);
-        auto ygridsize = size_t(segment * ylocalsize);
+        auto xgridsize = std::size_t(handle.GetMaxComputeUnits());
+        auto ygridsize = 4096;
 
-        std::string algo_name = "miopenBatchNormalizationForwardInference";
-        std::string network_config =
-            "n" + std::to_string(n) + +"c" + std::to_string(c) + "hw" + std::to_string(in_cstride) +
-            "chw" + std::to_string(in_nstride) + "segment" + std::to_string(segment) + "gx" +
-            std::to_string(xgridsize) + "gy" + std::to_string(ygridsize) + "lx" +
-            std::to_string(xlocalsize) + "ly" + std::to_string(ylocalsize) + "fp16" +
-            std::to_string(static_cast<int>(bfp16parm)) + "fp32" +
-            std::to_string(static_cast<int>(bfp32parm)) + "mode" + std::to_string(bn_mode);
+        std::string algo_name      = "miopenBatchNormalizationForwardInference";
+        std::string network_config = "fp16" + std::to_string(static_cast<int>(bfp16parm)) + "fp32" +
+                                     std::to_string(static_cast<int>(bfp32parm)) + "mode" +
+                                     std::to_string(bn_mode);
 
         auto&& kernels = handle.GetKernels(algo_name, network_config);
         if(!kernels.empty())
         {
             auto kernel = kernels.front();
-            kernel(x, y, estimatedMean, estimatedVariance, bnScale, bnBias, epsilon);
+            kernel(x,
+                   y,
+                   estimatedMean,
+                   estimatedVariance,
+                   bnScale,
+                   bnBias,
+                   epsilon,
+                   n,
+                   in_cstride,
+                   in_nstride,
+                   c);
         }
         else
         {
-
             size_t zlocalsize        = 1;
             size_t zgridsize         = 1;
             std::string program_name = "MIOpenBatchNormFwdInfer"; // build this up
@@ -726,10 +730,8 @@ void BatchNormForwardInference(Handle& handle,
                 " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
                 " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
                 " -DMIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
-                " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_HW=" + std::to_string(in_cstride) +
-                " -DMIO_BN_CHW=" + std::to_string(in_nstride) + " -DMIO_BN_GRP0=" +
-                std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
-                " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
+                " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" +
+                std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
 
             vld.push_back(xlocalsize);
             vld.push_back(ylocalsize);
@@ -741,7 +743,17 @@ void BatchNormForwardInference(Handle& handle,
             MIOPEN_LOG_I2(kernel_name << ":: " << parms);
 
             handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-                x, y, estimatedMean, estimatedVariance, bnScale, bnBias, epsilon);
+                x,
+                y,
+                estimatedMean,
+                estimatedVariance,
+                bnScale,
+                bnBias,
+                epsilon,
+                n,
+                in_cstride,
+                in_nstride,
+                c);
         }
     }
     else // Need to recalculated everything, let's just call training kernel in that case
