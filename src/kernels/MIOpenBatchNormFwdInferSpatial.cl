@@ -51,32 +51,12 @@ MIOpenBatchNormFwdInferSpatialEst(const __global _FLOAT* __restrict in, /* x inp
     int xgid = get_global_id(0);
     int ygid = get_global_id(1);
 
-    /*     local _FLOAT_PREC lmean;
-        local _FLOAT_PREC lvar;
-        local _FLOAT_PREC lscale;
-        local _FLOAT_PREC lbias; */
-
     unsigned int index;
 
     _FLOAT_PREC mean, variance, invVariance;
     _FLOAT_PREC inhat;
     _FLOAT_PREC pscale, pbias;
 
-    /*     if(get_local_id(1) == 0)
-        {
-            lmean  = *(estimatedMean + xgid);
-            lvar   = *(estimatedVariance + xgid);
-            lscale = *(scale + xgid);
-            lbias  = *(bias + xgid);
-        }
-        barrier(CLK_LOCAL_MEM_FENCE);
-
-        mean        = lmean;
-        variance    = lvar;
-        pscale      = lscale;
-        pbias       = lbias;
-        invVariance = rsqrt(fabs(variance + epsilon));
-     */
     for(int cidx = xgid; cidx < channels; cidx += get_global_size(0))
     {
 
