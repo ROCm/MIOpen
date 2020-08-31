@@ -3,7 +3,7 @@
 #include "float_types.h"
 
 extern "C" __global__
-    __launch_bounds__(CK_PARAM_DEPENDENT_BLOCK_SIZE) void gridwise_convolution_backward_weights_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw_fp16(
+    __launch_bounds__(CK_PARAM_DEPENDENT_BLOCK_SIZE) void gridwise_convolution_backward_weights_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw(
         const FLOAT* const __restrict__ p_in_global,
         const FLOAT* const __restrict__ p_out_global,
         FLOAT_ACCUM* const __restrict__ p_wei_global)

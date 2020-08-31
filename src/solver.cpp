@@ -284,8 +284,8 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     ++id; // removed solver ConvHipImplicitGemmV4R4WrWXdlops
     RegisterWithSolver(
         registry, ++id, ConvHipImplicitGemmV4R4GenFwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
-    RegisterWithSolver(
-        registry, ++id, ConvHipImplicitGemmV4R4GenWrWXdlops{}, miopenConvolutionAlgoImplicitGEMM);
+//    RegisterWithSolver(
+//        registry, ++id, ConvHipImplicitGemmV4R4GenWrWXdlops{}, miopenConvolutionAlgoImplicitGEMM);
     RegisterWithSolver(registry, ++id, ConvBinWinogradRxSf2x3{}, miopenConvolutionAlgoWinograd);
 
     RegisterWithSolver(
