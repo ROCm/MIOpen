@@ -670,8 +670,8 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
                                 false,
                                 GemmBackend_t::rocblas);
                     // clang-format on
-                    
-                    if (handle.IsProfilingEnabled())
+
+                    if(handle.IsProfilingEnabled())
                     {
                         cur_time = handle.GetKernelTime();
                         total_time += cur_time;
