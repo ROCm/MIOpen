@@ -658,35 +658,21 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
                         lda,ldb,ldc,batch_count,strideA,strideB,
                                         strideC,alpha,beta,in_data_type};
 
-                    if(!handle.IsProfilingEnabled())
+                    CallGemmStridedBatched(handle,
+                                        wino_gemm_desc,
+                                        invoke_params.workSpace,
+                                        static_cast<int>(wino_in_offset / GetTypeSize(in_data_type)),
+                                        invoke_params.workSpace,
+                                        static_cast<int>(wino_wei_offset / GetTypeSize(in_data_type)),
+                                        invoke_params.workSpace,
+                                        static_cast<int>(wino_out_offset / GetTypeSize(in_data_type)),
+                                        nullptr,
+                                false,
+                                GemmBackend_t::rocblas);
+                    // clang-format on
+                    
+                    if (handle.IsProfilingEnabled())
                     {
-                        CallGemmStridedBatched(handle,
-                                            wino_gemm_desc,
-                                            invoke_params.workSpace,
-                                            static_cast<int>(wino_in_offset / GetTypeSize(in_data_type)),
-                                            invoke_params.workSpace,
-                                            static_cast<int>(wino_wei_offset / GetTypeSize(in_data_type)),
-                                            invoke_params.workSpace,
-                                            static_cast<int>(wino_out_offset / GetTypeSize(in_data_type)),
-                                            nullptr,
-                                    false,
-                                    GemmBackend_t::rocblas);
-                    }
-                    else
-                    {
-                        CallGemmTimeMeasure(handle,
-                                    wino_gemm_desc,
-                                    invoke_params.workSpace,
-                                    static_cast<int>(wino_in_offset / GetTypeSize(in_data_type)),
-                                    invoke_params.workSpace,
-                                    static_cast<int>(wino_wei_offset / GetTypeSize(in_data_type)),
-                                    invoke_params.workSpace,
-                                    static_cast<int>(wino_out_offset / GetTypeSize(in_data_type)),
-                                    nullptr,
-                                    time_precision,
-                                    CallGemmType_t::callGemmStridedBatched,
-                                    GemmBackend_t::rocblas);
-                        // clang-format on
                         cur_time = handle.GetKernelTime();
                         total_time += cur_time;
                         MIOPEN_LOG_I2("WRW_WINO_GEMM: " << cur_time);
