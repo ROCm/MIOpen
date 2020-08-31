@@ -231,7 +231,16 @@ if(MIOPEN_HIP_COMPILER MATCHES ".*clang\\+\\+$")
         PATHS /opt/rocm/llvm
     )
     # we are using hip-clang and need to remove repeated hip compiler args
-    string(REGEX REPLACE "-mllvm -amdgpu-early-inline-all=true -mllvm -amdgpu-function-calls=false" "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
+    string(REGEX MATCH " -mllvm -amdgpu-early-inline-all=(true|false)" MATCH_EARLY_INLINE "${HIP_COMPILER_FLAGS}")
+    if(MATCH_EARLY_INLINE)
+        string(REGEX REPLACE "${MATCH_EARLY_INLINE}" "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
+        message(STATUS "Removed ${MATCH_EARLY_INLINE} hip compiler flag to avoid repitition")
+    endif()
+    string(REGEX MATCH " -mllvm -amdgpu-function-calls=(false|true)" MATCH_FUNC_CALLS "${HIP_COMPILER_FLAGS}")
+    if(MATCH_FUNC_CALLS)
+        string(REGEX REPLACE "${MATCH_FUNC_CALLS}" "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
+        message(STATUS "Removed ${MATCH_FUNC_CALLS} hip compiler flag to avoid repitition")
+    endif()
 endif()
 message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
 
