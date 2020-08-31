@@ -23,6 +23,8 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SY
 // LLVM xdlops instrinsic will do unnecessey VGRP <--> AGPR movement, and result in
 // register spill, for bfloat16 datatype, when doing wave-wise GEMM larger than 64x64
 #define WORKAROUND_SWDEV_240356 1
+// workaround failure of ConvHipImplicitGemmV4R4GenWrWXdlops with vector load
+#define WORKAROUND_ISSUE_2532 1
 
 namespace miopen {
 
