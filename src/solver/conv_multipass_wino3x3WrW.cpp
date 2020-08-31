@@ -594,9 +594,9 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
     const size_t wino_in_offset = 0, wino_out_offset = wino_in.buff_info.total_byte_size,
                  wino_wei_offset = wino_out_offset + wino_out.buff_info.total_byte_size;
 
-    const auto in_data_type   = params.in_data_type;
-    const auto pad_H          = params.pad_h;
-    const auto pad_W          = params.pad_w;
+    const auto in_data_type = params.in_data_type;
+    const auto pad_H        = params.pad_h;
+    const auto pad_W        = params.pad_w;
 
     return [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const boost::any& primitive_params) {
