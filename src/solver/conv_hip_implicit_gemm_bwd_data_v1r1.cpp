@@ -734,9 +734,8 @@ int ConvHipImplicitGemmBwdDataV1R1::RunAndMeasureSolution(const miopen::Handle& 
 }
 
 ConvSolution ConvHipImplicitGemmBwdDataV1R1::GetSolution(
-    const ConvolutionContext& ctx, const PerformanceImplicitGemmBwdDataV1R1& config_, bool) const
+    const ConvolutionContext& ctx, const PerformanceImplicitGemmBwdDataV1R1& config, bool) const
 {
-    const PerformanceImplicitGemmBwdDataV1R1 config = {128,128,2,64,64,8,0,1};
     ConvSolution result;
     KernelInfo construction_parameters;
 
