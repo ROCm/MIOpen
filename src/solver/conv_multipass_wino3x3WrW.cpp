@@ -41,8 +41,6 @@
 #define WORKAROUND_SWDEV_234193 1
 #endif
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
-
 namespace miopen {
 namespace solver {
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X2)
@@ -597,7 +595,6 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
                  wino_wei_offset = wino_out_offset + wino_out.buff_info.total_byte_size;
 
     const auto in_data_type   = params.in_data_type;
-    const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
     const auto pad_H          = params.pad_h;
     const auto pad_W          = params.pad_w;
 
