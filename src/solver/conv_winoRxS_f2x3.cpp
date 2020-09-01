@@ -402,7 +402,6 @@ int ConvBinWinogradRxSf2x3::RunAndMeasureSolution(const miopen::Handle& profile_
                        C,
                        H,
                        W,
-                       1,
                        group_cnt,
                        GetTypeSize(config.in_data_type)),
             // cppcheck-suppress unreadVariable
@@ -411,7 +410,6 @@ int ConvBinWinogradRxSf2x3::RunAndMeasureSolution(const miopen::Handle& profile_
                   K,
                   out_H,
                   out_W,
-                  1,
                   group_cnt,
                   GetTypeSize(config.out_data_type)),
             // cppcheck-suppress unreadVariable
@@ -420,7 +418,6 @@ int ConvBinWinogradRxSf2x3::RunAndMeasureSolution(const miopen::Handle& profile_
                   C,
                   R,
                   S,
-                  1,
                   group_cnt,
                   GetTypeSize(config.weights_data_type));
 
@@ -671,7 +668,6 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
                    C,
                    H,
                    W,
-                   1,
                    group_cnt,
                    GetTypeSize(params.in_data_type)),
         // cppcheck-suppress unreadVariable
@@ -680,7 +676,6 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
               K,
               out_H,
               out_W,
-              1,
               group_cnt,
               GetTypeSize(params.out_data_type)),
         // cppcheck-suppress unreadVariable
@@ -690,7 +685,6 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
               C,
               R,
               S,
-              1,
               group_cnt,
               GetTypeSize(params.weights_data_type));
 

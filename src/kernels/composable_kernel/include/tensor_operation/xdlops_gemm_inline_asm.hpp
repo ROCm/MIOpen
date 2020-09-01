@@ -416,28 +416,6 @@ struct mfma_info_asm<mfma_instr::mfma_f32_4x4x2bf16>
     }
 };
 
-template <mfma_instr instr,
-          index_t MPerXdlops_,
-          index_t NPerXdlops_,
-          index_t MRepeats_,
-          index_t NRepeats_>
-struct xdlops_info_asm
-{
-    static constexpr auto mfma_type = mfma_info_asm<instr>{};
-
-    static constexpr index_t MPerXdlops = MPerXdlops_;
-    static constexpr index_t NPerXdlops = NPerXdlops_;
-    static constexpr index_t MRepeats   = MRepeats_;
-    static constexpr index_t NRepeats   = NRepeats_;
-
-    static constexpr bool IsABroadcast() { return NPerXdlops >= MPerXdlops; }
-
-    static constexpr bool IsKReduction()
-    {
-        return (mfma_type.num_output_blks == 1) && (mfma_type.num_input_blks > 1);
-    }
-};
-
 template <class data_type,
           index_t GemmMPerWave,
           index_t GemmNPerWave,
@@ -445,14 +423,42 @@ template <class data_type,
           index_t GemmDataPerReadB>
 struct XdlopsGemmAsm_t
 {
+    static constexpr index_t WaveSize = 64;
+
+    static constexpr index_t MRepeats = (GemmMPerWave > 64) ? (GemmMPerWave / 64) : 1;
+    static constexpr index_t NRepeats = (GemmNPerWave > 64) ? (GemmNPerWave / 64) : 1;
+
+    static constexpr index_t MPerXdlops = (GemmMPerWave > 64) ? 64 : GemmMPerWave;
+    static constexpr index_t NPerXdlops = (GemmNPerWave > 64) ? 64 : GemmNPerWave;
+
+    __device__ constexpr auto GetMRepeats() const { return MRepeats; }
+
+    __device__ constexpr auto GetNRepeats() const { return NRepeats; }
+
     struct MatrixIndex
     {
         index_t row;
         index_t col;
     };
 
+    template <index_t M1_, index_t M0_, index_t N1_, index_t N0_>
+    struct OutputLayout
+    {
+        __device__ static constexpr index_t M1() { return M1_; }
+        __device__ static constexpr index_t M0() { return M0_; }
+        __device__ static constexpr index_t N1() { return N1_; }
+        __device__ static constexpr index_t N0() { return N0_; }
+        __device__ static constexpr index_t GetBlkSize() { return GetMFMAInfo().num_regs_blk; }
+
+        __device__ static constexpr index_t GetNumBlks()
+        {
+            return GetNumBlksPerXdlops() * MRepeats * NRepeats;
+        }
+    };
+
     __device__ static constexpr index_t GetNumBlksPerXdlops()
     {
+        constexpr auto mfma_type = GetMFMAInfo();
         return (MPerXdlops * NPerXdlops) / (mfma_type.m * mfma_type.n);
     }
 
@@ -471,6 +477,8 @@ struct XdlopsGemmAsm_t
 
         static_assert(GemmDataPerReadA == 1 && GemmDataPerReadB == 1, "GemmDataPerReadA/B != 1");
 
+        constexpr auto mfma_type = GetMFMAInfo();
+
         static_assert(mfma_type.num_threads_blk == mfma_type.n, "n != num_threads_blk");
         static_assert(mfma_type.num_regs_blk * mfma_type.num_input_blks == mfma_type.m,
                       "m != num_input_blks * num_regs_blk");
@@ -485,7 +493,182 @@ struct XdlopsGemmAsm_t
 
     __device__ static constexpr index_t GetRegSizePerXdlops()
     {
-        return MPerXdlops * NPerXdlops / mfma_type.wave_size;
+        return MPerXdlops * NPerXdlops / WaveSize;
+    }
+
+    __device__ static constexpr bool IsABroadcast() { return NPerXdlops >= MPerXdlops; }
+
+    __device__ static constexpr bool IsKReduction()
+    {
+        constexpr auto mfma_type = GetMFMAInfo();
+        return (mfma_type.num_output_blks == 1) && (mfma_type.num_input_blks > 1);
+    }
+
+    template <class data_type_    = data_type,
+              index_t MPerXdlops_ = MPerXdlops,
+              index_t NPerXdlops_ = NPerXdlops>
+    __device__ static constexpr auto GetMFMAInfo();
+
+    template <>
+    __device__ static constexpr auto GetMFMAInfo<float, 32, 64>()
+    {
+        return mfma_info_asm<mfma_instr::mfma_f32_32x32x1xf32>{};
+    }
+
+    template <>
+    __device__ static constexpr auto GetMFMAInfo<float, 64, 64>()
+    {
+        return mfma_info_asm<mfma_instr::mfma_f32_32x32x1xf32>{};
+    }
+
+    template <>
+    __device__ static constexpr auto GetMFMAInfo<float, 64, 32>()
+    {
+        return mfma_info_asm<mfma_instr::mfma_f32_32x32x1xf32>{};
+    }
+
+    template <>
+    __device__ static constexpr auto GetMFMAInfo<float, 32, 32>()
+    {
+        return mfma_info_asm<mfma_instr::mfma_f32_32x32x2xf32>{};
+    }
+
+    template <>
+    __device__ static constexpr auto GetMFMAInfo<float, 16, 16>()
+    {
+        return mfma_info_asm<mfma_instr::mfma_f32_16x16x4xf32>{};
+    }
+
+    template <>
+    __device__ static constexpr auto GetMFMAInfo<float, 16, 64>()
+    {
+        return mfma_info_asm<mfma_instr::mfma_f32_16x16x1xf32>{};
+    }
+
+    template <>
+    __device__ static constexpr auto GetMFMAInfo<float, 64, 16>()
+    {
+        return mfma_info_asm<mfma_instr::mfma_f32_16x16x1xf32>{};
+    }
+
+    template <>
+    __device__ static constexpr auto GetMFMAInfo<float, 8, 64>()
+    {
+        return mfma_info_asm<mfma_instr::mfma_f32_4x4x1xf32>{};
+    }
+
+    template <>
+    __device__ static constexpr auto GetMFMAInfo<float, 4, 64>()
+    {
+        return mfma_info_asm<mfma_instr::mfma_f32_4x4x1xf32>{};
+    }
+
+    template <>
+    __device__ static constexpr auto GetMFMAInfo<half_t, 64, 64>()
+    {
+        return mfma_info_asm<mfma_instr::mfma_f32_32x32x4f16>{};
+    }
+
+    template <>
+    __device__ static constexpr auto GetMFMAInfo<half_t, 64, 32>()
+    {
+        return mfma_info_asm<mfma_instr::mfma_f32_32x32x4f16>{};
+    }
+
+    template <>
+    __device__ static constexpr auto GetMFMAInfo<half_t, 32, 64>()
+    {
+        return mfma_info_asm<mfma_instr::mfma_f32_32x32x4f16>{};
+    }
+
+    template <>
+    __device__ static constexpr auto GetMFMAInfo<half_t, 32, 32>()
+    {
+        return mfma_info_asm<mfma_instr::mfma_f32_32x32x8f16>{};
+    }
+
+    template <>
+    __device__ static constexpr auto GetMFMAInfo<half_t, 16, 16>()
+    {
+        return mfma_info_asm<mfma_instr::mfma_f32_16x16x16f16>{};
+    }
+
+    template <>
+    __device__ static constexpr auto GetMFMAInfo<half_t, 16, 64>()
+    {
+        return mfma_info_asm<mfma_instr::mfma_f32_16x16x4f16>{};
+    }
+
+    template <>
+    __device__ static constexpr auto GetMFMAInfo<half_t, 64, 16>()
+    {
+        return mfma_info_asm<mfma_instr::mfma_f32_16x16x4f16>{};
+    }
+
+    template <>
+    __device__ static constexpr auto GetMFMAInfo<half_t, 4, 64>()
+    {
+        return mfma_info_asm<mfma_instr::mfma_f32_4x4x4f16>{};
+    }
+
+    template <>
+    __device__ static constexpr auto GetMFMAInfo<half_t, 8, 64>()
+    {
+        return mfma_info_asm<mfma_instr::mfma_f32_4x4x4f16>{};
+    }
+
+    template <>
+    __device__ static constexpr auto GetMFMAInfo<ushort, 64, 64>()
+    {
+        return mfma_info_asm<mfma_instr::mfma_f32_32x32x2bf16>{};
+    }
+
+    template <>
+    __device__ static constexpr auto GetMFMAInfo<ushort, 64, 32>()
+    {
+        return mfma_info_asm<mfma_instr::mfma_f32_32x32x2bf16>{};
+    }
+
+    template <>
+    __device__ static constexpr auto GetMFMAInfo<ushort, 32, 64>()
+    {
+        return mfma_info_asm<mfma_instr::mfma_f32_32x32x2bf16>{};
+    }
+
+    template <>
+    __device__ static constexpr auto GetMFMAInfo<ushort, 32, 32>()
+    {
+        return mfma_info_asm<mfma_instr::mfma_f32_32x32x4bf16>{};
+    }
+
+    template <>
+    __device__ static constexpr auto GetMFMAInfo<ushort, 16, 16>()
+    {
+        return mfma_info_asm<mfma_instr::mfma_f32_16x16x8bf16>{};
+    }
+
+    template <>
+    __device__ static constexpr auto GetMFMAInfo<ushort, 16, 64>()
+    {
+        return mfma_info_asm<mfma_instr::mfma_f32_16x16x2bf16>{};
+    }
+
+    template <>
+    __device__ static constexpr auto GetMFMAInfo<ushort, 64, 16>()
+    {
+        return mfma_info_asm<mfma_instr::mfma_f32_16x16x2bf16>{};
+    }
+
+    template <>
+    __device__ static constexpr auto GetMFMAInfo<ushort, 4, 64>()
+    {
+        return mfma_info_asm<mfma_instr::mfma_f32_4x4x2bf16>{};
+    }
+
+    template <>
+    __device__ static constexpr auto GetMFMAInfo<ushort, 8, 64>()
+    {
+        return mfma_info_asm<mfma_instr::mfma_f32_4x4x2bf16>{};
     }
 
     template <index_t M, index_t N, index_t K, class FloatA, class FloatB, class FloatC>
@@ -493,12 +676,17 @@ struct XdlopsGemmAsm_t
                         const FloatB* const __restrict__ p_b_wave,
                         FloatC* const __restrict__) const
     {
+
+        static_assert(GemmDataPerReadA == 1 && GemmDataPerReadB == 1, "GemmDataPerReadA/B != 1");
+
         static_assert(is_same<FloatA, FloatB>::value, "FloatA != FloatB");
         static_assert(is_same<FloatC, float>::value, "FloatC != float");
 
         static_assert(is_same<data_type, float>::value || is_same<data_type, half_t>::value ||
                           is_same<data_type, ushort>::value,
                       "base data_type must be float, half, ushort!");
+
+        constexpr auto mfma_type = GetMFMAInfo();
 
         const index_t laneId = get_thread_local_1d_id() % mfma_type.wave_size;
 
@@ -508,22 +696,18 @@ struct XdlopsGemmAsm_t
         static_assert(sizeof(FloatA) % (sizeof(data_type) * mfma_type.k_base) == 0,
                       "wrong! FloatA is consistent with mfma");
 
-        constexpr index_t KRepeats = sizeof(FloatA) / (sizeof(data_type) * mfma_type.k_base);
+        constexpr index_t nxdlops = sizeof(FloatA) / (sizeof(data_type) * mfma_type.k_base);
 
-        static_assert(!IsKReduction || K % mfma_type.num_input_blks == 0,
+        static_assert(!IsKReduction() || K % mfma_type.num_input_blks == 0,
                       "K cannot divided by mfma_type.num_input_blks!");
 
-        static_assert(!IsKReduction || (MRepeats == 1 && NRepeats == 1),
-                      "KReduction does not support M/N Repeats!");
+        static_assert(!IsKReduction() || (MRepeats == 1 && NRepeats == 1),
+                      "KReduction does not support xdlops repeats");
 
-        // get pointer of registers
-        auto pa = reinterpret_cast<const data_type*>(&a);
-        auto pb = reinterpret_cast<const data_type*>(&b);
+        static_if<!IsKReduction()>{}([&](auto) {
 
-        static_if<!IsKReduction>{}([&](auto) {
-
-            constexpr index_t AStride = K * KRepeats;
-            constexpr index_t BStride = K * KRepeats;
+            constexpr index_t AStride = K * nxdlops;
+            constexpr index_t BStride = K * nxdlops;
 
             for(index_t m_i = 0; m_i < MRepeats; ++m_i)
                 for(index_t k_i      = 0; k_i < K; ++k_i)
@@ -533,13 +717,19 @@ struct XdlopsGemmAsm_t
                 for(index_t k_i      = 0; k_i < K; ++k_i)
                     b[k_i + n_i * K] = p_b_wave[k_i * N + laneId + NPerXdlops * n_i];
 
+            // get pointer of registers
+            auto pa = reinterpret_cast<const data_type*>(&a);
+            auto pb = reinterpret_cast<const data_type*>(&b);
+
 #if CK_WORKAROUND_SWDEV_229564
 #pragma unroll
 #endif
-            for(index_t k_i = 0; k_i < K * KRepeats; ++k_i)
+            for(index_t k_i = 0; k_i < K; ++k_i)
             {
-                mfma_type.template run<GemmMPerWave, GemmNPerWave, AStride, BStride>(
-                    &pa[k_i * mfma_type.k_base], &pb[k_i * mfma_type.k_base]);
+                for(index_t i = 0; i < nxdlops; ++i)
+                    mfma_type.template run<GemmMPerWave, GemmNPerWave, AStride, BStride>(
+                        &pa[(k_i * nxdlops + i) * mfma_type.k_base],
+                        &pb[(k_i * nxdlops + i) * mfma_type.k_base]);
             }
 
         }).Else([&](auto) {
@@ -554,15 +744,19 @@ struct XdlopsGemmAsm_t
                 b[k_i] = p_b_wave[(k_i + blk_id) * N + blk_td];
             }
 
+            // get pointer of registers
+            auto pa = reinterpret_cast<const data_type*>(&a);
+            auto pb = reinterpret_cast<const data_type*>(&b);
+
 #if CK_WORKAROUND_SWDEV_229564
 #pragma unroll
 #endif
             for(index_t k_i = 0; k_i < K; k_i += mfma_type.num_input_blks)
             {
-                for(index_t i = 0; i < KRepeats; ++i)
+                for(index_t i = 0; i < nxdlops; ++i)
                     mfma_type.template run<MPerXdlops, NPerXdlops>(
-                        &pa[(k_i * KRepeats + i) * mfma_type.k_base],
-                        &pb[(k_i * KRepeats + i) * mfma_type.k_base]);
+                        &pa[(k_i * nxdlops + i) * mfma_type.k_base],
+                        &pb[(k_i * nxdlops + i) * mfma_type.k_base]);
             }
 
         });
@@ -576,52 +770,38 @@ struct XdlopsGemmAsm_t
         const index_t m_i = xdlops_i / NRepeats;
         const index_t n_i = xdlops_i % NRepeats;
 
+        constexpr auto mfma_type = GetMFMAInfo();
+
         const index_t laneId = get_thread_local_1d_id() % mfma_type.wave_size;
         const index_t blk_id = laneId / mfma_type.num_threads_blk;
         const index_t blk_td = laneId % mfma_type.num_threads_blk;
 
         index_t col_blk = j % mfma_type.num_output_blks;
         index_t row_blk = j / mfma_type.num_output_blks;
+        index_t col     = col_blk * mfma_type.n + blk_td + n_i * NPerXdlops;
+        index_t row     = row_blk * mfma_type.m + blk_id * mfma_type.group_size + m_i * MPerXdlops;
 
-        static_if<!IsABroadcast>{}([&](auto) {
+        static_if<!IsABroadcast()>{}([&](auto) {
             col_blk = j / mfma_type.num_output_blks;
             row_blk = j % mfma_type.num_output_blks;
+            col     = col_blk * mfma_type.n + blk_td + n_i * NPerXdlops;
+            row     = row_blk * mfma_type.m + blk_id * mfma_type.group_size + m_i * MPerXdlops;
         });
 
-        index_t col = col_blk * mfma_type.n + blk_td + n_i * NPerXdlops;
-        index_t row = row_blk * mfma_type.m + blk_id * mfma_type.group_size + m_i * MPerXdlops;
-
         return MatrixIndex{row, col};
     }
 
-    __device__ static MatrixIndex GetBeginOfThreadXdlops()
+    __device__ static constexpr auto GetOutputLayout()
     {
-        const index_t laneId        = get_thread_local_1d_id() % mfma_type.wave_size;
-        const index_t thread_blk_id = laneId / mfma_type.num_threads_blk;
-        const index_t thread_blk_td = laneId % mfma_type.num_threads_blk;
+        constexpr auto mfma_type = GetMFMAInfo();
 
-        index_t col = thread_blk_td;
-        index_t row = thread_blk_id * mfma_type.group_size;
+        constexpr auto M1 = mfma_type.num_groups_blk;
+        constexpr auto M0 = mfma_type.group_size;
+        constexpr auto N1 = mfma_type.num_input_blks;
+        constexpr auto N0 = mfma_type.num_threads_blk;
 
-        return MatrixIndex{row, col};
+        return OutputLayout<M1, M0, N1, N0>{};
     }
-
-    struct OutputLayout
-    {
-        __device__ static constexpr index_t M1() { return mfma_type.num_groups_blk; }
-        __device__ static constexpr index_t M0() { return mfma_type.group_size; }
-        __device__ static constexpr index_t N1() { return mfma_type.num_input_blks; }
-        __device__ static constexpr index_t N0() { return mfma_type.num_threads_blk; }
-
-        __device__ static constexpr index_t GetBlkSize() { return mfma_type.num_regs_blk; }
-
-        __device__ static constexpr index_t GetNumBlks()
-        {
-            return GetNumBlksPerXdlops() * MRepeats * NRepeats;
-        }
-    };
-
-    __device__ static constexpr auto GetOutputLayout() { return OutputLayout{}; }
 
     __device__ void SetZeroXdlopsRegs() const
     {
@@ -632,350 +812,11 @@ struct XdlopsGemmAsm_t
     template <class FloatC>
     __device__ void ReadXdlopsRegs(FloatC* const __restrict__ p_c_thread) const
     {
-        constexpr auto reg_size = GetRegSizePerXdlops() * MRepeats * NRepeats;
+        constexpr auto mfma_type = GetMFMAInfo();
+        constexpr auto reg_size  = GetRegSizePerXdlops() * MRepeats * NRepeats;
         gcnasm_nop<mfma_type.cycles>();
         gcnasm_accvgpr_read<reg_size>(p_c_thread);
     }
-
-    protected:
-    template <class data_type_  = data_type,
-              index_t MPerWave_ = GemmMPerWave,
-              index_t NPerWave_ = GemmNPerWave>
-    static constexpr auto GetXdlopsInfo();
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 128, 128>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_32x32x1xf32, 64, 64, 2, 2>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 128, 64>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_32x32x1xf32, 64, 64, 2, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 128, 32>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_32x32x1xf32, 64, 32, 2, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 128, 16>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_16x16x1xf32, 64, 16, 2, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 64, 128>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_32x32x1xf32, 64, 64, 1, 2>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 64, 64>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_32x32x1xf32, 64, 64, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 64, 32>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_32x32x1xf32, 64, 32, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 64, 16>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_16x16x1xf32, 64, 16, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 32, 128>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_32x32x1xf32, 32, 64, 1, 2>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 32, 64>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_32x32x1xf32, 32, 64, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 32, 32>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_32x32x2xf32, 32, 32, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 16, 128>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_16x16x1xf32, 16, 64, 1, 2>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 16, 64>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_16x16x1xf32, 16, 64, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 16, 16>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_16x16x4xf32, 16, 16, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 8, 128>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_4x4x1xf32, 8, 64, 1, 2>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 8, 64>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_4x4x1xf32, 8, 64, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 4, 128>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_4x4x1xf32, 4, 64, 1, 2>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<float, 4, 64>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_4x4x1xf32, 4, 64, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 128, 128>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_32x32x4f16, 64, 64, 2, 2>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 128, 64>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_32x32x4f16, 64, 64, 2, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 128, 32>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_32x32x4f16, 64, 32, 2, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 128, 16>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_16x16x4f16, 64, 16, 2, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 64, 128>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_32x32x4f16, 64, 64, 1, 2>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 64, 64>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_32x32x4f16, 64, 64, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 64, 32>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_32x32x4f16, 64, 32, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 64, 16>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_16x16x4f16, 64, 16, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 32, 128>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_32x32x4f16, 32, 64, 1, 2>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 32, 64>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_32x32x4f16, 32, 64, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 32, 32>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_32x32x8f16, 32, 32, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 16, 128>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_16x16x4f16, 16, 64, 1, 2>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 16, 64>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_16x16x4f16, 16, 64, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 16, 16>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_16x16x16f16, 16, 16, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 8, 128>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_4x4x4f16, 8, 64, 1, 2>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 8, 64>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_4x4x4f16, 8, 64, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 4, 128>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_4x4x4f16, 4, 64, 1, 2>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<half_t, 4, 64>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_4x4x4f16, 4, 64, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<ushort, 128, 128>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_32x32x2bf16, 64, 64, 2, 2>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<ushort, 128, 64>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_32x32x2bf16, 64, 64, 2, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<ushort, 128, 32>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_32x32x2bf16, 64, 32, 2, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<ushort, 128, 16>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_16x16x2bf16, 64, 16, 2, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<ushort, 64, 128>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_32x32x2bf16, 64, 64, 1, 2>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<ushort, 64, 64>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_32x32x2bf16, 64, 64, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<ushort, 64, 32>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_32x32x2bf16, 64, 32, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<ushort, 64, 16>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_16x16x2bf16, 64, 16, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<ushort, 32, 128>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_32x32x2bf16, 32, 64, 1, 2>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<ushort, 32, 64>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_32x32x2bf16, 32, 64, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<ushort, 32, 32>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_32x32x4bf16, 32, 32, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<ushort, 16, 128>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_16x16x2bf16, 16, 64, 1, 2>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<ushort, 16, 64>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_16x16x2bf16, 16, 64, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<ushort, 16, 16>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_16x16x8bf16, 16, 16, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<ushort, 8, 128>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_4x4x2bf16, 8, 64, 1, 2>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<ushort, 8, 64>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_4x4x2bf16, 8, 64, 1, 1>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<ushort, 4, 128>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_4x4x2bf16, 4, 64, 1, 2>{};
-    }
-
-    template <>
-    static constexpr auto GetXdlopsInfo<ushort, 4, 64>()
-    {
-        return xdlops_info_asm<mfma_instr::mfma_f32_4x4x2bf16, 4, 64, 1, 1>{};
-    }
-
-    static constexpr index_t MRepeats   = GetXdlopsInfo().MRepeats;
-    static constexpr index_t NRepeats   = GetXdlopsInfo().NRepeats;
-    static constexpr index_t MPerXdlops = GetXdlopsInfo().MPerXdlops;
-    static constexpr index_t NPerXdlops = GetXdlopsInfo().NPerXdlops;
-
-    static constexpr bool IsKReduction = GetXdlopsInfo().IsKReduction();
-    static constexpr bool IsABroadcast = GetXdlopsInfo().IsABroadcast();
-
-    static constexpr auto mfma_type = GetXdlopsInfo().mfma_type;
 };
 
 } // namespace ck

@@ -40,8 +40,8 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
 #else
 
 #if CK_USE_AMD_XDLOPS_INLINE_ASM
-    static constexpr auto XdlopsGemm =
-        XdlopsGemmAsm_t<Float, GemmMPerWave, GemmNPerWave, GemmDataPerReadA, GemmDataPerReadB>{};
+    /// \to-do add inline support for vector type c
+    static_assert(false, "Does not support inline asm for vector type c")
 #else
     static constexpr auto XdlopsGemm =
         XdlopsGemm_t<Float, GemmMPerWave, GemmNPerWave, GemmDataPerReadA, GemmDataPerReadB>{};
@@ -56,20 +56,33 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
 
     __device__ constexpr auto GetOutputLayout() const { return XdlopsGemm.GetOutputLayout(); }
 
+#if CK_WORKAROUND_SWDEV_241664
+    template <index_t MRepeats_ = MRepeats, index_t NRepeats_ = NRepeats>
+    __device__ constexpr auto GetOutputVec() const;
+
+    template <>
+    __device__ constexpr auto GetOutputVec<2, 1>() const
+    {
+        return c_vec32_2_2_t::GetZero();
+    }
+
+    template <>
+    __device__ constexpr auto GetOutputVec<1, 2>() const
+    {
+        return c_vec32_2_2_t::GetZero();
+    }
+
+    template <>
+    __device__ constexpr auto GetOutputVec<1, 1>() const
+    {
+        return XdlopsGemm.GetOutputLayout().GetOutputVec();
+    }
+#else
     __device__ constexpr auto GetOutputVec() const
     {
-#if CK_WORKAROUND_SWDEV_241664
-
-#if CK_PARAM_TUNABLE_GEMM_M_PER_WAVE == 128 || CK_PARAM_TUNABLE_GEMM_N_PER_WAVE == 128
-        return c_vec32_2_2_t::GetZero();
-#else
         return XdlopsGemm.GetOutputLayout().GetOutputVec();
-#endif
-
-#else
-        return XdlopsGemm.GetOutputLayout().GetOutputVec();
-#endif
     }
+#endif
 
     __device__ constexpr auto GetNumBlks() const
     {
@@ -99,11 +112,6 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
         static_assert(BlockSize == GemmMWaves * GemmNWaves * WaveSize,
                       "BlockSize != GemmMWaves * GemmNWaves * WaveSize\n");
 
-#if CK_WORKAROUND_SWDEV_241664
-        static_assert((MRepeats == 1 && NRepeats == 1) || CK_USE_AMD_XDLOPS_INLINE_ASM == 0,
-                      "do not support xdlops repeat with inline asm");
-#endif
-
         const index_t waveId   = get_thread_local_1d_id() / WaveSize;
         const index_t waveId_m = waveId / GemmNWaves;
         const index_t waveId_n = waveId % GemmNWaves;
@@ -111,6 +119,57 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
         mMyWaveOffsetA = waveId_m * GemmMPerWave;
         mMyWaveOffsetB = waveId_n * GemmNPerWave;
     }
+
+#if CK_WORKAROUND_SWDEV_241664
+    template <index_t MRepeats_, index_t NRepeats_>
+    struct WithMNRepeats;
+
+    template <>
+    struct WithMNRepeats<2, 1>
+    {
+        template <index_t M, index_t N, index_t K, class FloatA, class FloatB, class FloatC>
+        __device__ static FloatC Run(const FloatA* __restrict__ p_a_block,
+                                     const FloatB* __restrict__ p_b_block,
+                                     FloatC p_c_thread)
+        {
+            p_c_thread.s.x.l =
+                XdlopsGemm.template Run<M, N, K>(p_a_block, p_b_block, p_c_thread.s.x.l);
+            p_c_thread.s.y.l = XdlopsGemm.template Run<M, N, K>(
+                p_a_block + MPerXdlops, p_b_block, p_c_thread.s.y.l);
+
+            return p_c_thread;
+        }
+    };
+
+    template <>
+    struct WithMNRepeats<1, 2>
+    {
+        template <index_t M, index_t N, index_t K, class FloatA, class FloatB, class FloatC>
+        __device__ static FloatC Run(const FloatA* __restrict__ p_a_block,
+                                     const FloatB* __restrict__ p_b_block,
+                                     FloatC p_c_thread)
+        {
+            p_c_thread.s.x.l =
+                XdlopsGemm.template Run<M, N, K>(p_a_block, p_b_block, p_c_thread.s.x.l);
+            p_c_thread.s.y.l = XdlopsGemm.template Run<M, N, K>(
+                p_a_block, p_b_block + NPerXdlops, p_c_thread.s.y.l);
+
+            return p_c_thread;
+        }
+    };
+
+    template <>
+    struct WithMNRepeats<1, 1>
+    {
+        template <index_t M, index_t N, index_t K, class FloatA, class FloatB, class FloatC>
+        __device__ static FloatC Run(const FloatA* __restrict__ p_a_block,
+                                     const FloatB* __restrict__ p_b_block,
+                                     FloatC p_c_thread)
+        {
+            return XdlopsGemm.template Run<M, N, K>(p_a_block, p_b_block, p_c_thread);
+        }
+    };
+#endif
 
     template <class FloatA, class FloatB, class FloatC>
     __device__ FloatC Run(const FloatA* __restrict__ p_a_block,
@@ -123,55 +182,12 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
         constexpr index_t K = BlockMatrixA::NRow();
 
 #if CK_WORKAROUND_SWDEV_241664
-
-#if CK_PARAM_TUNABLE_GEMM_M_PER_WAVE == 128 && CK_PARAM_TUNABLE_GEMM_N_PER_WAVE == 64
-        {
-            index_t m = 0, n = 0;
-            p_c_thread.s.x.l =
-                XdlopsGemm.template Run<M, N, K>(&p_a_block[mMyWaveOffsetA + MPerXdlops * m],
-                                                 &p_b_block[mMyWaveOffsetB + NPerXdlops * n],
-                                                 p_c_thread.s.x.l);
-        }
-
-        {
-            index_t m = 1, n = 0;
-            p_c_thread.s.y.l =
-                XdlopsGemm.template Run<M, N, K>(&p_a_block[mMyWaveOffsetA + MPerXdlops * m],
-                                                 &p_b_block[mMyWaveOffsetB + NPerXdlops * n],
-                                                 p_c_thread.s.y.l);
-        }
-#elif CK_PARAM_TUNABLE_GEMM_M_PER_WAVE == 64 && CK_PARAM_TUNABLE_GEMM_N_PER_WAVE == 128
-        {
-            index_t m = 0, n = 0;
-            p_c_thread.s.x.l =
-                XdlopsGemm.template Run<M, N, K>(&p_a_block[mMyWaveOffsetA + MPerXdlops * m],
-                                                 &p_b_block[mMyWaveOffsetB + NPerXdlops * n],
-                                                 p_c_thread.s.x.l);
-        }
-
-        {
-            index_t m = 0, n = 1;
-            p_c_thread.s.y.l =
-                XdlopsGemm.template Run<M, N, K>(&p_a_block[mMyWaveOffsetA + MPerXdlops * m],
-                                                 &p_b_block[mMyWaveOffsetB + NPerXdlops * n],
-                                                 p_c_thread.s.y.l);
-        }
+        return WithMNRepeats<MRepeats, NRepeats>::template Run<M, N, K>(
+            &p_a_block[mMyWaveOffsetA], &p_b_block[mMyWaveOffsetB], p_c_thread);
 #else
-        {
-            index_t m = 0, n = 0;
-            p_c_thread =
-                XdlopsGemm.template Run<M, N, K>(&p_a_block[mMyWaveOffsetA + MPerXdlops * m],
-                                                 &p_b_block[mMyWaveOffsetB + NPerXdlops * n],
-                                                 p_c_thread);
-        }
-#endif
-
-#else
-        p_c_thread = XdlopsGemm.template Run<M, N, K>(
+        return XdlopsGemm.template Run<M, N, K>(
             &p_a_block[mMyWaveOffsetA], &p_b_block[mMyWaveOffsetB], p_c_thread);
 #endif
-
-        return p_c_thread;
     }
 
     __device__ static MatrixIndex GetBeginOfThreadMatrixC(index_t i)

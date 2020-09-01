@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -93,7 +93,6 @@ struct InTransform
             R,
             S,
             GetSwappedNCLayout(MemLayout_t::HWCN),
-            1,
             GetTypeSize(params.in_data_type),
             ConvWinoBuffType::Input,
             wino_xform_h,
@@ -116,7 +115,7 @@ struct InTransform
                 && params.Is2d()
                 && H < u16limit
                 && W < u16limit
-                && wino_info.wino_c < (1<<30)
+                && wino_info.buff_info.size.c < (1<<30)
                 && N < u16limit
                 && chw_step < u16limit
                 && params.pad_h <= 3
@@ -172,7 +171,6 @@ struct InTransform
             R,
             S,
             MemLayout_t::HWNC,
-            1,
             GetTypeSize(params.in_data_type),
             ConvWinoBuffType::Input,
             wino_xform_h,
@@ -199,7 +197,6 @@ struct FilterTransform
             R,
             S,
             GetSwappedNCLayout(MemLayout_t::HWCN),
-            1,
             GetTypeSize(params.in_data_type),
             ConvWinoBuffType::Input,
             wino_xform_h,
@@ -221,7 +218,7 @@ struct FilterTransform
                 && params.Is2d()
                 && H < u16limit
                 && W < u16limit
-                && wino_info.wino_c < (1<<30)
+                && wino_info.buff_info.size.c < (1<<30)
                 && K < u16limit
                 && chw_step < u16limit
                 && params.pad_h <= 3
@@ -277,7 +274,6 @@ struct FilterTransform
                                   R,
                                   S,
                                   MemLayout_t::HWNC,
-                                  1,
                                   GetTypeSize(params.in_data_type),
                                   ConvWinoBuffType::Weight,
                                   wino_xform_h,
@@ -351,7 +347,6 @@ struct OutTransform
             R,
             S,
             GetSwappedNCLayout(MemLayout_t::HWNC),
-            1,
             GetTypeSize(params.in_data_type),
             ConvWinoBuffType::Output,
             wino_xform_h,

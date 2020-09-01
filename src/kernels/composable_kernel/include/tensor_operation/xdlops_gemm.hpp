@@ -606,9 +606,9 @@ struct XdlopsGemm_t
 #if CK_USE_AMD_XDLOPS_EMULATE
     // emulate xdlops
     template <index_t M, index_t N, index_t K, class FloatA, class FloatB, class FloatC>
-    __device__ void XdlopsEmulate(const FloatA* const __restrict__ p_a_wave,
-                                  const FloatB* const __restrict__ p_b_wave,
-                                  FloatC* const __restrict__ p_c_thread) const
+    __device__ FloatC XdlopsEmulate(const FloatA* const __restrict__ p_a_wave,
+                                    const FloatB* const __restrict__ p_b_wave,
+                                    FloatC p_c_thread) const
     {
         const index_t laneId = get_thread_local_1d_id() % mfma_type.wave_size;
         const index_t blk_id = laneId / mfma_type.num_threads_blk;
@@ -630,7 +630,7 @@ struct XdlopsGemm_t
                                          m / mfma_type.group_size *
                                              (mfma_type.group_size * mfma_type.num_input_blks);
                         index_t bindex = blk_td;
-                        p_c_thread[m + c_off] += inner_product_with_conversion<FloatC>{}(
+                        p_c_thread.n[m + c_off] += inner_product_with_conversion<float>{}(
                             p_a_wave[aindex + a_off], p_b_wave[bindex + b_off]);
                     }
                 }
@@ -665,8 +665,8 @@ struct XdlopsGemm_t
                                             m / mfma_type.group_size *
                                                 (mfma_type.group_size * mfma_type.num_input_blks);
                                         index_t bindex = blk_td;
-                                        p_c_thread[m + c_off] +=
-                                            inner_product_with_conversion<FloatC>{}(
+                                        p_c_thread.n[m + c_off] +=
+                                            inner_product_with_conversion<float>{}(
                                                 p_a_wave[aindex + a_off], p_b_wave[bindex + b_off]);
                                     }
                                 }
@@ -695,7 +695,7 @@ struct XdlopsGemm_t
                                     m / mfma_type.group_size *
                                         (mfma_type.group_size * mfma_type.num_input_blks);
                                 index_t bindex = blk_td;
-                                p_c_thread[m + c_off] += inner_product_with_conversion<FloatC>{}(
+                                p_c_thread.n[m + c_off] += inner_product_with_conversion<float>{}(
                                     p_a_wave[aindex + a_off], p_b_wave[bindex + b_off]);
                             }
                         }
@@ -703,6 +703,8 @@ struct XdlopsGemm_t
                 }
             });
         });
+
+        return p_c_thread;
     }
 #endif
 
@@ -718,7 +720,7 @@ struct XdlopsGemm_t
                       "base data_type must be float, half, ushort!");
 
 #if CK_USE_AMD_XDLOPS_EMULATE
-        XdlopsEmulate<M, N, K>(p_a_wave, p_b_wave, p_c_thread);
+        p_c_thread = XdlopsEmulate<M, N, K>(p_a_wave, p_b_wave, p_c_thread);
 #else
         const index_t laneId = get_thread_local_1d_id() % mfma_type.wave_size;
 
@@ -757,7 +759,10 @@ struct XdlopsGemm_t
 #endif
             for(index_t k_i = 0; k_i < K * KRepeats; ++k_i)
             {
-                p_c_thread = mfma_type.template run<GemmMPerWave, GemmNPerWave, AStride, BStride>(
+                p_c_thread = mfma_type.template run<MPerXdlops * MRepeats,
+                                                    NPerXdlops * NRepeats,
+                                                    AStride,
+                                                    BStride>(
                     &pa[k_i * mfma_type.k_base], &pb[k_i * mfma_type.k_base], p_c_thread);
             }
 
