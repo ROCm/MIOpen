@@ -759,7 +759,10 @@ struct XdlopsGemm_t
 #endif
             for(index_t k_i = 0; k_i < K * KRepeats; ++k_i)
             {
-                p_c_thread = mfma_type.template run<GemmMPerWave, GemmNPerWave, AStride, BStride>(
+                p_c_thread = mfma_type.template run<MPerXdlops * MRepeats,
+                                                    NPerXdlops * NRepeats,
+                                                    AStride,
+                                                    BStride>(
                     &pa[k_i * mfma_type.k_base], &pb[k_i * mfma_type.k_base], p_c_thread);
             }
 
