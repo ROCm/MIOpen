@@ -277,63 +277,62 @@ ConvSolution ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& param
     result.construction_params.push_back(kernel);
     const auto is_forward = params.direction.IsForward();
 
+    constexpr int F_REVERSE_R = 1 << 0;
+    constexpr int F_REVERSE_S = 1 << 1;
+    constexpr int F_FLIP_K_C  = 1 << 2;
+    // These are not used yet. Nevertheless let's keep as a shader documentation.
+    // constexpr int F_FLIP_DATA_N_C = 1 << 3; // Unsupported in f3x2.
+    // constexpr int F_FLIP_OUT_N_K = 1 << 4; // Unsupported in f3x2.
+    // constexpr int L_F_ADDR_INDIRECT  = 1 << 6;
+    // constexpr int L_F_BIAS  = 1 << 7;
+    // constexpr int L_F_LEAKY_RELU  = 1 << 8;
+    constexpr int L_F_NKC_STRIDES = 1 << 9;
+
+    int flags         = is_forward ? 0 : F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C;
+    int reserved      = 0;
+    int* reserved_ptr = nullptr;
+    int N, C, H, W, K, n_groups_, out_H, out_W, R, S, pad_H, pad_W;
+    GetCompiledInParameters(
+        params, &N, &C, &H, &W, &K, &n_groups_, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
+    MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K << " n_groups="
+                        << n_groups_
+                        << " flags="
+                        << flags
+                        << " R="
+                        << R
+                        << " S="
+                        << S
+                        << " pad_H="
+                        << pad_H
+                        << " pad_W="
+                        << pad_W
+                        << " out_H="
+                        << out_H
+                        << " out_W="
+                        << out_W);
+
+    flags += L_F_NKC_STRIDES;
+    /// \todo Consider using BufferInfo to compute strides
+    constexpr int SIZEOF_DATA = 4;
+    int d_C_stride            = H * W * SIZEOF_DATA;
+    int d_N_stride            = C * d_C_stride;
+    int f_C_stride            = R * S * SIZEOF_DATA * (is_forward ? 1 : K);
+    int f_K_stride            = R * S * SIZEOF_DATA * (is_forward ? C : 1);
+    int o_K_stride            = out_H * out_W * SIZEOF_DATA;
+    int o_N_stride            = K * o_K_stride;
+
+    MIOPEN_LOG_I2("...flags=" << flags << " d_N_stride=" << d_N_stride << " d_C_stride="
+                              << d_C_stride
+                              << " f_K_stride="
+                              << f_K_stride
+                              << " f_C_stride="
+                              << f_C_stride
+                              << " o_N_stride="
+                              << o_N_stride
+                              << " o_K_stride="
+                              << o_K_stride);
+
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-        constexpr int F_REVERSE_R = 1 << 0;
-        constexpr int F_REVERSE_S = 1 << 1;
-        constexpr int F_FLIP_K_C  = 1 << 2;
-        // These are not used yet. Nevertheless let's keep as a shader documentation.
-        // constexpr int F_FLIP_DATA_N_C = 1 << 3; // Unsupported in f3x2.
-        // constexpr int F_FLIP_OUT_N_K = 1 << 4; // Unsupported in f3x2.
-        // constexpr int L_F_ADDR_INDIRECT  = 1 << 6;
-        // constexpr int L_F_BIAS  = 1 << 7;
-        // constexpr int L_F_LEAKY_RELU  = 1 << 8;
-        constexpr int L_F_NKC_STRIDES = 1 << 9;
-
-        int flags         = is_forward ? 0 : F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C;
-        int reserved      = 0;
-        int* reserved_ptr = nullptr;
-        int N, C, H, W, K, n_groups_, out_H, out_W, R, S, pad_H, pad_W;
-        GetCompiledInParameters(
-            params, &N, &C, &H, &W, &K, &n_groups_, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
-        MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
-                            << " n_groups="
-                            << n_groups_
-                            << " flags="
-                            << flags
-                            << " R="
-                            << R
-                            << " S="
-                            << S
-                            << " pad_H="
-                            << pad_H
-                            << " pad_W="
-                            << pad_W
-                            << " out_H="
-                            << out_H
-                            << " out_W="
-                            << out_W);
-
-        flags += L_F_NKC_STRIDES;
-        /// \todo Consider using BufferInfo to compute strides
-        constexpr int SIZEOF_DATA = 4;
-        int d_C_stride            = H * W * SIZEOF_DATA;
-        int d_N_stride            = C * d_C_stride;
-        int f_C_stride            = R * S * SIZEOF_DATA * (is_forward ? 1 : K);
-        int f_K_stride            = R * S * SIZEOF_DATA * (is_forward ? C : 1);
-        int o_K_stride            = out_H * out_W * SIZEOF_DATA;
-        int o_N_stride            = K * o_K_stride;
-
-        MIOPEN_LOG_I2("...flags=" << flags << " d_N_stride=" << d_N_stride << " d_C_stride="
-                                  << d_C_stride
-                                  << " f_K_stride="
-                                  << f_K_stride
-                                  << " f_C_stride="
-                                  << f_C_stride
-                                  << " o_N_stride="
-                                  << o_N_stride
-                                  << " o_K_stride="
-                                  << o_K_stride);
-
         return [=](const Handle& handle, const boost::any& ctx) {
             const auto k        = handle.Run(kernels[0]);
             const auto fwd_ctx  = boost::any_cast<conv::DataInvokeParams>(ctx);

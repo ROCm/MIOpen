@@ -75,7 +75,13 @@ void ProblemDescription::BuildConfKey(std::string& conf_key) const
               'x', GetSpatialDims(), GetKernelStrideD(), GetKernelStrideH(), GetKernelStrideW());
     ss << 'x' << PrintDHW('x', GetSpatialDims(), GetDilationD(), GetDilationH(), GetDilationW());
     ss << 'x' << GetGroupCount();
-    ss << 'x' << (GetDirection() == Direction::Forward ? "1" : "0");
+
+    switch(GetDirection())
+    {
+    case Direction::Forward: ss << 'x' << "F"; break;
+    case Direction::BackwardData: ss << 'x' << "B"; break;
+    case Direction::BackwardWeights: ss << 'x' << "W"; break;
+    }
 
     conf_key = ss.str();
 }
