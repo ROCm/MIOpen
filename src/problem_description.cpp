@@ -26,25 +26,7 @@ std::ostream& operator<<(std::ostream& stream, std::function<void(std::ostream&)
 
 int ProblemDescription::mloBuildConf_Key(std::string& conf_key) const
 {
-    std::ostringstream ss;
-
-    ss << n_inputs;
-    ss << 'x' << PrintDHW('x', spatial_dims, in_depth, in_height, in_width);
-    ss << 'x' << PrintDHW('x', spatial_dims, kernel_size_d, kernel_size_h, kernel_size_w);
-    ss << 'x' << n_outputs;
-    ss << 'x' << PrintDHW('x', spatial_dims, out_depth, out_height, out_width);
-    ss << 'x' << batch_sz;
-    ss << 'x' << in_layout;
-    ss << 'x' << EncodeDataTypesForKey(in_data_type, weights_data_type, out_data_type);
-    ss << 'x' << PrintDHW('x', spatial_dims, pad_d, pad_h, pad_w);
-    ss << 'x' << PrintDHW('x', spatial_dims, kernel_stride_d, kernel_stride_h, kernel_stride_w);
-    ss << 'x'
-       << PrintDHW('x', spatial_dims, kernel_dilation_d, kernel_dilation_h, kernel_dilation_w);
-    ss << 'x' << group_counts;
-    ss << 'x' << (direction.IsForward() ? "1" : "0");
-
-    conf_key = ss.str();
-
+    conv_problem.BuildConfKey(conf_key);
     return (0);
 }
 

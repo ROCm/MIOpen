@@ -25,6 +25,7 @@
  *******************************************************************************/
 
 #include <miopen/invoker_cache.hpp>
+#include <miopen/logger.hpp>
 
 namespace miopen {
 
@@ -44,13 +45,27 @@ boost::optional<const Invoker&> InvokerCache::GetFound1_0(const std::string& net
                                                           const std::string& algorithm) const
 {
     const auto item = invokers.find(network_config);
-    if(item == invokers.end() || item->second.found_1_0.empty())
+    if(item == invokers.end())
+    {
+        MIOPEN_LOG_I2("No invokers found for " << network_config);
         return boost::none;
+    }
+    if(item->second.found_1_0.empty())
+    {
+        MIOPEN_LOG_I2("Invokers found for " << network_config
+                                            << " but there is no find 1.0 result.");
+        return boost::none;
+    }
     const auto& item_invokers = item->second.invokers;
     const auto& found_1_0_ids = item->second.found_1_0;
     const auto found_1_0_id   = found_1_0_ids.find(algorithm);
     if(found_1_0_id == found_1_0_ids.end())
+    {
+        MIOPEN_LOG_I2("Invokers found for " << network_config
+                                            << " but there is no one with an algorithm "
+                                            << algorithm);
         return boost::none;
+    }
     const auto invoker = item_invokers.find(found_1_0_id->second);
     if(invoker == item_invokers.end())
         MIOPEN_THROW("No invoker with solver_id of " + found_1_0_id->second +
@@ -65,6 +80,7 @@ void InvokerCache::Register(const Key& key, const Invoker& invoker)
         it->second.invokers.insert({key.second, invoker});
     auto& item = invokers.insert({key.first, Item{}}).first->second;
     item.invokers.insert({key.second, invoker});
+    MIOPEN_LOG_I2("Invoker registered for algorithm " << key.first << " and solver " << key.second);
 }
 
 void InvokerCache::SetAsFound1_0(const std::string& network_config,
@@ -85,6 +101,9 @@ void InvokerCache::SetAsFound1_0(const std::string& network_config,
     }
 
     item->second.found_1_0[algorithm] = solver_id;
+    MIOPEN_LOG_I2("Solver " << solver_id << " registered as find 1.0 best for " << algorithm
+                            << " in "
+                            << network_config);
 }
 
 } // namespace miopen

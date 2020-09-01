@@ -24,10 +24,10 @@
  *
  *******************************************************************************/
 
-#include <sstream>
-#include <limits>
-#include <cassert>
+#include <miopen/conv/compiled_in_parameters.hpp>
+#include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/gcn_asm_utils.hpp>
+#include <miopen/gemm_v2.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/env.hpp>
 #include <miopen/logger.hpp>
@@ -35,6 +35,7 @@
 #include <miopen/generic_search.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/solver.hpp>
+
 #if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
 #define WORKAROUND_SWDEV_203031 1 // See also issues #2075, #2067
 #define WORKAROUND_SWDEV_234193 1
@@ -529,8 +530,219 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Get
     result.construction_params.push_back(
         OutTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetKernel(params));
 
+    result.invoker_factory = PrepareInvokerFactory(params, result.workspce_sz);
+
     return result;
 }
+
+template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
+InvokerFactory
+ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::PrepareInvokerFactory(
+    const ConvolutionContext& params, std::size_t ws_sz) const
+{
+#if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
+    int flags         = 0;
+    int reserved      = 0;
+    int* reserved_ptr = nullptr;
+    int unused        = 0;
+    int N, C, H, W, K, n_groups, out_H, out_W, R, S;
+
+    GetCompiledInParameters(
+        params, &C, &K, &R, &S, &N, &n_groups, &H, &W, &out_H, &out_W, &unused, &unused);
+    // clang-format off
+    BuffInfo
+        in_buff_info(
+            GetSwappedNCLayout(GetMemLayout_t(params.in_layout)),
+            N, C, H, W,
+            GetTypeSize(params.in_data_type)),
+        out_buff_info(
+            GetSwappedNCLayout(GetMemLayout_t(params.out_layout)),
+            N, K, out_H, out_W,
+            GetTypeSize(params.out_data_type)),
+        weights_buff_info(
+            // weights_layout unsupported ... GetSwappedNCLayout(GetMemLayout_t(params.weights_layout))
+            GetSwappedNCLayout(MemLayout_t::NCHW),
+            K, C, R, S,
+            GetTypeSize(params.weights_data_type));
+
+    int wino_xform_h = GetSolverWinoXformHWSize(params,0),
+        wino_xform_w = GetSolverWinoXformHWSize(params,1);
+    WinogradBufferInfo <WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
+        // cppcheck-suppress unreadVariable
+        wino_in(N,K,C,out_H,out_W,R,S,
+            MemLayout_t::HWNC,
+            GetTypeSize(params.in_data_type),
+            ConvWinoBuffType::Input,
+            wino_xform_h,
+            wino_xform_w),
+        // cppcheck-suppress unreadVariable
+        wino_out(N,K,C,out_H,out_W,R,S,
+            MemLayout_t::HWNC,
+            GetTypeSize(params.out_data_type),
+            ConvWinoBuffType::Output,
+            wino_xform_h,
+            wino_xform_w),
+        // cppcheck-suppress unreadVariable
+        wino_wei(N,K,C,out_H,out_W,R,S,
+            MemLayout_t::HWNC,
+            GetTypeSize(params.weights_data_type),
+            ConvWinoBuffType::Weight,
+            wino_xform_h,
+            wino_xform_w);
+    // clang-format on
+
+    const size_t wino_in_offset = 0, wino_out_offset = wino_in.buff_info.total_byte_size,
+                 wino_wei_offset = wino_out_offset + wino_out.buff_info.total_byte_size;
+
+    const auto in_data_type = params.in_data_type;
+    const auto pad_H        = params.pad_h;
+    const auto pad_W        = params.pad_w;
+
+    return [=](const std::vector<Kernel>& kernels) {
+        return [=](const Handle& handle, const boost::any& primitive_params) {
+            const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
+            const auto& tensors      = invoke_params.tensors;
+            float total_time         = 0;
+
+            if(invoke_params.workSpaceSize < ws_sz)
+                MIOPEN_THROW("Not enough workspace for ConvWinograd3x3MultipassWrW");
+
+            for(const auto& kernel : kernels)
+            {
+                decltype(auto) cur_kernel = handle.Run(kernel);
+                const BuffInfo* d_buf     = nullptr;
+                const BuffInfo* o_buf     = nullptr;
+                Data_t buff_out_adr       = nullptr;
+                auto f_buf                = &weights_buff_info;
+                auto const_buff_in_adr    = tensors.x;
+                auto buff_in_adr          = invoke_params.workSpace;
+                bool const_input          = false;
+                float cur_time            = 0;
+                int flat_GroupCountMult   = 1;
+
+                size_t buff_in_addr_offset = 0, buff_out_addr_offset = 0;
+
+                if(cur_kernel.GetName() == GetSolverKernelNames(0)) // Input Transform
+                {
+                    d_buf               = &in_buff_info;
+                    o_buf               = &(wino_in.buff_info);
+                    const_buff_in_adr   = tensors.x;
+                    buff_out_adr        = invoke_params.workSpace;
+                    buff_in_addr_offset = wino_in_offset;
+                    const_input         = true;
+                    flat_GroupCountMult = GetGroupCountMult();
+                }
+                else if(cur_kernel.GetName() == GetSolverKernelNames(1)) // Filter Transform
+                {
+                    d_buf                = &weights_buff_info;
+                    o_buf                = &(wino_wei.buff_info);
+                    const_buff_in_adr    = tensors.dy;
+                    buff_out_adr         = invoke_params.workSpace;
+                    buff_out_addr_offset = wino_wei_offset;
+                    const_input          = true;
+                    flat_GroupCountMult  = GetGroupCountMult();
+                }
+                else // Output and GEMM
+                {
+                    int m = N, n = K, k = wino_in.buff_info.size.c;
+                    int lda = k, ldb = k, ldc = n;
+                    int batch_count       = wino_xform_h * wino_xform_w;
+                    long long int strideA = m * k * 1LL, strideB = k * n * 1LL,
+                                  strideC = m * n * 1LL;
+                    float alpha = 1., beta = 0.0;
+                    // clang-format off
+                    GemmDescriptor wino_gemm_desc{false,false,true,m,n,k,
+                        lda,ldb,ldc,batch_count,strideA,strideB,
+                                        strideC,alpha,beta,in_data_type};
+
+                    CallGemmStridedBatched(handle,
+                                        wino_gemm_desc,
+                                        invoke_params.workSpace,
+                                        static_cast<int>(wino_in_offset / GetTypeSize(in_data_type)),
+                                        invoke_params.workSpace,
+                                        static_cast<int>(wino_wei_offset / GetTypeSize(in_data_type)),
+                                        invoke_params.workSpace,
+                                        static_cast<int>(wino_out_offset / GetTypeSize(in_data_type)),
+                                        nullptr,
+                                false,
+                                GemmBackend_t::rocblas);
+                    // clang-format on
+
+                    if(handle.IsProfilingEnabled())
+                    {
+                        cur_time = handle.GetKernelTime();
+                        total_time += cur_time;
+                        MIOPEN_LOG_I2("WRW_WINO_GEMM: " << cur_time);
+                    }
+
+                    d_buf               = &(wino_out.buff_info);
+                    o_buf               = &(out_buff_info);
+                    buff_in_adr         = invoke_params.workSpace;
+                    buff_in_addr_offset = wino_out_offset;
+                    buff_out_adr        = tensors.dw;
+                }
+
+                const auto input_ptr = static_cast<const void*>(
+                    static_cast<const char*>(const_input ? const_buff_in_adr : buff_in_adr) +
+                    buff_in_addr_offset);
+                const auto output_ptr =
+                    static_cast<void*>(static_cast<char*>(buff_out_adr) + buff_out_addr_offset);
+
+                cur_kernel(N,
+                           C,
+                           H,
+                           W,
+                           K,
+                           n_groups * flat_GroupCountMult,
+                           flags,
+                           reserved,
+                           input_ptr,
+                           reserved_ptr,
+                           output_ptr,
+                           reserved_ptr,
+                           R,
+                           S,
+                           pad_H,
+                           pad_W,
+                           out_H,
+                           out_W,
+                           reserved_ptr,
+                           reserved,
+                           d_buf->byte_stride.nk,
+                           d_buf->byte_stride.c,
+                           d_buf->byte_stride.h,
+                           d_buf->byte_stride.w,
+                           f_buf->byte_stride.nk,
+                           f_buf->byte_stride.c,
+                           f_buf->byte_stride.h,
+                           f_buf->byte_stride.w,
+                           o_buf->byte_stride.nk,
+                           o_buf->byte_stride.c,
+                           o_buf->byte_stride.h,
+                           o_buf->byte_stride.w);
+
+                if(handle.IsProfilingEnabled())
+                {
+                    cur_time = handle.GetKernelTime();
+                    total_time += cur_time;
+                    MIOPEN_LOG_I2(cur_kernel.GetName() << ": " << cur_time);
+                }
+            }
+
+            if(handle.IsProfilingEnabled())
+            {
+                handle.ResetKernelTime();
+                handle.AccumKernelTime(total_time);
+            }
+        };
+    };
+#else
+    (void)params;
+    (void)ws_sz;
+    MIOPEN_THROW(miopenStatusBadParm, "MixedWrW3x3Winograd Unsupported ");
+#endif
+}
+
 template struct ConvWinograd3x3MultipassWrW<3, 2>;
 template struct ConvWinograd3x3MultipassWrW<3, 3>;
 template struct ConvWinograd3x3MultipassWrW<3, 4>;
