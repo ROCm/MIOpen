@@ -55,25 +55,23 @@ MIOpenBatchNormFwdInferPerActivationEst(const __global _FLOAT* in,
     unsigned int adjIndex, index;
     int ygid    = get_global_id(1);
     int yglb_sz = get_global_size(1);
+    int grpid   = get_group_id(0);
 
-    for(int cidx = get_group_id(0); cidx < channels; cidx += get_num_groups(0))
+    for(int img_offset = ygid; img_offset < imageDims; img_offset += yglb_sz)
     {
-        for(int img_offset = ygid; img_offset < imageDims; img_offset += yglb_sz)
-        {
-            adjIndex    = (cidx * imageDims) + img_offset;
-            mean        = estimatedMean[adjIndex];
-            variance    = estimatedVariance[adjIndex];
-            invVariance = rsqrt(fabs(variance + epsilon));
-            pvt_scale   = *(scale + adjIndex);
-            pvt_bias    = *(bias + adjIndex);
+        adjIndex    = (grpid * imageDims) + img_offset;
+        mean        = estimatedMean[adjIndex];
+        variance    = estimatedVariance[adjIndex];
+        invVariance = rsqrt(fabs(variance + epsilon));
+        pvt_scale   = *(scale + adjIndex);
+        pvt_bias    = *(bias + adjIndex);
 
-            for(int n = 0; n < batchSize; n++)
-            {
-                index      = batchStride * n + adjIndex;
-                elemStd    = (_FLOAT_PREC)(*(in + index)) - mean;
-                inhat      = elemStd * invVariance;
-                out[index] = (_FLOAT)(mad(pvt_scale, inhat, pvt_bias));
-            }
+        for(int n = 0; n < batchSize; n++)
+        {
+            index      = (batchStride * n) + adjIndex;
+            elemStd    = (_FLOAT_PREC)(*(in + index)) - mean;
+            inhat      = elemStd * invVariance;
+            out[index] = (_FLOAT)(mad(pvt_scale, inhat, pvt_bias));
         }
     }
 }

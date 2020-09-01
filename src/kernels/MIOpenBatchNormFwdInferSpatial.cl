@@ -57,23 +57,19 @@ MIOpenBatchNormFwdInferSpatialEst(const __global _FLOAT* __restrict in, /* x inp
     _FLOAT_PREC inhat;
     _FLOAT_PREC pscale, pbias;
 
-    for(int cidx = xgid; cidx < channels; cidx += get_global_size(0))
+    mean        = *(estimatedMean + xgid);
+    variance    = *(estimatedVariance + xgid);
+    pscale      = *(scale + xgid);
+    pbias       = *(bias + xgid);
+    invVariance = rsqrt(fabs(variance + epsilon));
+
+    for(int idx = ygid; idx < imageDims; idx += get_global_size(1))
     {
-
-        mean        = *(estimatedMean + cidx);
-        variance    = *(estimatedVariance + cidx);
-        pscale      = *(scale + cidx);
-        pbias       = *(bias + cidx);
-        invVariance = rsqrt(fabs(variance + epsilon));
-
-        for(int idx = ygid; idx < imageDims; idx += get_global_size(1))
+        for(int n = 0; n < batchSize; n++)
         {
-            for(int n = 0; n < batchSize; n++)
-            {
-                index      = (n * batchStride) + (cidx * imageDims) + idx;
-                inhat      = ((_FLOAT_PREC)(*(in + index)) - mean) * invVariance;
-                out[index] = (_FLOAT)(mad(pscale, inhat, pbias));
-            }
+            index      = (n * batchStride) + (xgid * imageDims) + idx;
+            inhat      = ((_FLOAT_PREC)(*(in + index)) - mean) * invVariance;
+            out[index] = (_FLOAT)(mad(pscale, inhat, pbias));
         }
     }
 } // end spatial norm
