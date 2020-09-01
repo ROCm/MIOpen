@@ -357,6 +357,7 @@ struct GridwiseGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
             constexpr index_t BlkSize = OutputLayout.GetBlkSize();
             constexpr index_t NumBlks = OutputLayout.GetNumBlks();
 
+// force unrolling the output loop to get ride of scratches
 #pragma unroll
             for(index_t i = 0; i < NumBlks; ++i)
             {
@@ -709,6 +710,7 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
             constexpr index_t BlkSize = CLayout.GetBlkSize();
             constexpr index_t NumBlks = CLayout.GetNumBlks();
 
+// force unrolling the output loop to get ride of scratches
 #pragma unroll
             for(index_t i = 0; i < NumBlks; ++i)
             {
@@ -988,6 +990,7 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
             constexpr index_t BlkSize = blockwise_gemm.GetBlkSize();
             constexpr index_t NumBlks = blockwise_gemm.GetNumBlks();
 
+// force unrolling the output loop to get ride of scratches
 #pragma unroll
             for(index_t i = 0; i < NumBlks; ++i)
             {
