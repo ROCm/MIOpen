@@ -3876,6 +3876,14 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                     AlgorithmName{"miopenConvolutionBwdWeightsAlgoImplicitGEMM"};
                 EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
             }
+
+            // cellfft
+            if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_CELLFFT{}))
+            {
+                const auto all = FindCellfftSolution(ctx);
+                const auto algo = AlgorithmName{"miopenConvolutionBwdWeightsAlgoCellfft"};
+                EvaluateInvokers(handle, all, algo, network_config, invoke_ctx, record);
+            }
         });
     }
 
