@@ -44,8 +44,7 @@ MIOpenBatchNormFwdInferSpatialEst(const __global _FLOAT* __restrict in, /* x inp
                                   double epsilon,
                                   unsigned int batchSize,
                                   unsigned int imageDims,
-                                  unsigned int batchStride,
-                                  unsigned int channels)
+                                  unsigned int batchStride)
 {
 
     int xgid = get_global_id(0);

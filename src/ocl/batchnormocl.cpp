@@ -697,8 +697,7 @@ void BatchNormForwardInference(Handle& handle,
                    epsilon,
                    n,
                    in_cstride,
-                   in_nstride,
-                   c);
+                   in_nstride);
         }
         else
         {
@@ -750,8 +749,7 @@ void BatchNormForwardInference(Handle& handle,
                 epsilon,
                 n,
                 in_cstride,
-                in_nstride,
-                c);
+                in_nstride);
         }
     }
     else // Need to recalculated everything, let's just call training kernel in that case

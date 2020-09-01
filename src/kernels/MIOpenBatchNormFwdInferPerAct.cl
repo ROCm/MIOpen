@@ -44,8 +44,7 @@ MIOpenBatchNormFwdInferPerActivationEst(const __global _FLOAT* in,
                                         double epsilon,
                                         unsigned int batchSize,
                                         unsigned int imageDims,
-                                        unsigned int batchStride,
-                                        unsigned int channels)
+                                        unsigned int batchStride)
 {
 
     // PER ACTIVATION
