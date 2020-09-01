@@ -35,7 +35,7 @@ struct c_vec32_4_t
         float n[128];
     };
 
-    __host__ __device__ static VecType GetZero()
+    __host__ __device__ static VecType CreateVecZero()
     {
         VecType c;
         c.s.x = 0;
@@ -58,7 +58,7 @@ struct c_vec32_2_t
         float n[64];
     } l;
 
-    __host__ __device__ static VecType GetZero()
+    __host__ __device__ static VecType CreateVecZero()
     {
         VecType c;
         c.s.x = 0;
@@ -79,7 +79,7 @@ struct c_vec32_2_2_t
         float n[128];
     };
 
-    __host__ __device__ static VecType GetZero()
+    __host__ __device__ static VecType CreateVecZero()
     {
         VecType c;
         c.s.x.l.s.x = 0;
@@ -101,7 +101,7 @@ struct c_vec32_1_t
         float n[32];
     };
 
-    __host__ __device__ static VecType GetZero()
+    __host__ __device__ static VecType CreateVecZero()
     {
         VecType c;
         c.s.x = 0;
@@ -120,7 +120,7 @@ struct c_vec16_1_t
         float n[16];
     };
 
-    __host__ __device__ static VecType GetZero()
+    __host__ __device__ static VecType CreateVecZero()
     {
         VecType c;
         c.s.x = 0;
@@ -140,7 +140,7 @@ struct c_vec4_2_t
         float n[8];
     };
 
-    __host__ __device__ static VecType GetZero()
+    __host__ __device__ static VecType CreateVecZero()
     {
         VecType c;
         c.s.x = 0;
@@ -160,7 +160,7 @@ struct c_vec4_1_t
         float n[4];
     };
 
-    __host__ __device__ static VecType GetZero()
+    __host__ __device__ static VecType CreateVecZero()
     {
         VecType c;
         c.s.x = 0;

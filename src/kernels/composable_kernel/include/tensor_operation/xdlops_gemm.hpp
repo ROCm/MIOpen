@@ -51,8 +51,8 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x1xf32>
 
     template <index_t MPerXdlops,
               index_t NPerXdlops,
-              index_t AStride = 1,
-              index_t BStride = 1,
+              index_t AStride,
+              index_t BStride,
               class FloatA,
               class FloatB,
               class FloatC>
@@ -85,8 +85,8 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x2xf32>
 
     template <index_t MPerXdlops,
               index_t NPerXdlops,
-              index_t AStride = 1,
-              index_t BStride = 1,
+              index_t AStride,
+              index_t BStride,
               class FloatA,
               class FloatB,
               class FloatC>
@@ -118,8 +118,8 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x4xf32>
 
     template <index_t MPerXdlops,
               index_t NPerXdlops,
-              index_t AStride = 1,
-              index_t BStride = 1,
+              index_t AStride,
+              index_t BStride,
               class FloatA,
               class FloatB,
               class FloatC>
@@ -151,8 +151,8 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x1xf32>
 
     template <index_t MPerXdlops,
               index_t NPerXdlops,
-              index_t AStride = 1,
-              index_t BStride = 1,
+              index_t AStride,
+              index_t BStride,
               class FloatA,
               class FloatB,
               class FloatC>
@@ -185,8 +185,8 @@ struct mfma_info<mfma_instr::mfma_f32_4x4x1xf32>
 
     template <index_t MPerXdlops,
               index_t NPerXdlops,
-              index_t AStride = 1,
-              index_t BStride = 1,
+              index_t AStride,
+              index_t BStride,
               class FloatA,
               class FloatB,
               class FloatC>
@@ -218,8 +218,8 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x4f16>
 
     template <index_t MPerXdlops,
               index_t NPerXdlops,
-              index_t AStride = 1,
-              index_t BStride = 1,
+              index_t AStride,
+              index_t BStride,
               class FloatA,
               class FloatB,
               class FloatC>
@@ -252,8 +252,8 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x8f16>
 
     template <index_t MPerXdlops,
               index_t NPerXdlops,
-              index_t AStride = 1,
-              index_t BStride = 1,
+              index_t AStride,
+              index_t BStride,
               class FloatA,
               class FloatB,
               class FloatC>
@@ -285,8 +285,8 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x16f16>
 
     template <index_t MPerXdlops,
               index_t NPerXdlops,
-              index_t AStride = 1,
-              index_t BStride = 1,
+              index_t AStride,
+              index_t BStride,
               class FloatA,
               class FloatB,
               class FloatC>
@@ -318,8 +318,8 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x4f16>
 
     template <index_t MPerXdlops,
               index_t NPerXdlops,
-              index_t AStride = 1,
-              index_t BStride = 1,
+              index_t AStride,
+              index_t BStride,
               class FloatA,
               class FloatB,
               class FloatC>
@@ -351,8 +351,8 @@ struct mfma_info<mfma_instr::mfma_f32_4x4x4f16>
 
     template <index_t MPerXdlops,
               index_t NPerXdlops,
-              index_t AStride = 1,
-              index_t BStride = 1,
+              index_t AStride,
+              index_t BStride,
               class FloatA,
               class FloatB,
               class FloatC>
@@ -384,8 +384,8 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x2bf16>
 
     template <index_t MPerXdlops,
               index_t NPerXdlops,
-              index_t AStride = 1,
-              index_t BStride = 1,
+              index_t AStride,
+              index_t BStride,
               class FloatA,
               class FloatB,
               class FloatC>
@@ -418,8 +418,8 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x4bf16>
 
     template <index_t MPerXdlops,
               index_t NPerXdlops,
-              index_t AStride = 1,
-              index_t BStride = 1,
+              index_t AStride,
+              index_t BStride,
               class FloatA,
               class FloatB,
               class FloatC>
@@ -451,8 +451,8 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x8bf16>
 
     template <index_t MPerXdlops,
               index_t NPerXdlops,
-              index_t AStride = 1,
-              index_t BStride = 1,
+              index_t AStride,
+              index_t BStride,
               class FloatA,
               class FloatB,
               class FloatC>
@@ -484,8 +484,8 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x2bf16>
 
     template <index_t MPerXdlops,
               index_t NPerXdlops,
-              index_t AStride = 1,
-              index_t BStride = 1,
+              index_t AStride,
+              index_t BStride,
               class FloatA,
               class FloatB,
               class FloatC>
@@ -517,8 +517,8 @@ struct mfma_info<mfma_instr::mfma_f32_4x4x2bf16>
 
     template <index_t MPerXdlops,
               index_t NPerXdlops,
-              index_t AStride = 1,
-              index_t BStride = 1,
+              index_t AStride,
+              index_t BStride,
               class FloatA,
               class FloatB,
               class FloatC>
@@ -1056,9 +1056,9 @@ struct XdlopsGemm_t
             return GetNumBlksPerXdlops() * MRepeats * NRepeats;
         }
 
-        __device__ static constexpr auto GetOutputVec()
+        __device__ static constexpr auto CreateOutputVecZero()
         {
-            return GetXdlopsInfo().OutputVecType.GetZero();
+            return GetXdlopsInfo().OutputVecType.CreateVecZero();
         }
     };
 

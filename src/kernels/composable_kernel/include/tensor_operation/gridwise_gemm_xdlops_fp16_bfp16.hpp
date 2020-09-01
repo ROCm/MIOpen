@@ -212,8 +212,8 @@ struct GridwiseGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
         __shared__ ABFloat p_a_block_double[2 * a_block_space];
         __shared__ ABFloat p_b_block_double[2 * b_block_space];
 
-        // register allocation for output
-        auto c_thread_vec = blockwise_gemm.GetOutputVec();
+        // get zero-initialized output register of vector type
+        auto c_thread_vec = blockwise_gemm.CreateOutputVecZero();
 
         // LDS double buffer: preload data into LDS
         {
@@ -559,8 +559,8 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
         __shared__ ABFloat p_a_block_double[2 * a_block_space];
         __shared__ ABFloat p_b_block_double[2 * b_block_space];
 
-        // register allocation for output
-        auto c_thread_vec = blockwise_gemm.GetOutputVec();
+        // get zero-initialized output register of vector type
+        auto c_thread_vec = blockwise_gemm.CreateOutputVecZero();
 
         // LDS double buffer: preload data into LDS
         {
@@ -901,8 +901,8 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
         __shared__ ABFloat p_a_block[a_block_space];
         __shared__ ABFloat p_b_block[b_block_space];
 
-        // register allocation for output
-        auto c_thread_vec = blockwise_gemm.GetOutputVec();
+        // get zero-initialized output register of vector type
+        auto c_thread_vec = blockwise_gemm.CreateOutputVecZero();
 
         // preload data into LDS
         {
