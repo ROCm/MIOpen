@@ -53,8 +53,6 @@ MIOpenBatchNormFwdInferPerActivationEst(const __global _FLOAT* in,
     _FLOAT_PREC invVariance, elemStd, inhat;
     _FLOAT_PREC pvt_scale, pvt_bias;
     unsigned int adjIndex, index;
-
-    // int xgid    = get_global_id(0);
     int ygid    = get_global_id(1);
     int yglb_sz = get_global_size(1);
 
@@ -62,7 +60,7 @@ MIOpenBatchNormFwdInferPerActivationEst(const __global _FLOAT* in,
     {
         for(int img_offset = ygid; img_offset < imageDims; img_offset += yglb_sz)
         {
-            adjIndex    = (cidx * imageDims) + img_offset; // gamma and beta tensor index
+            adjIndex    = (cidx * imageDims) + img_offset;
             mean        = estimatedMean[adjIndex];
             variance    = estimatedVariance[adjIndex];
             invVariance = rsqrt(fabs(variance + epsilon));
@@ -75,7 +73,7 @@ MIOpenBatchNormFwdInferPerActivationEst(const __global _FLOAT* in,
                 elemStd    = (_FLOAT_PREC)(*(in + index)) - mean;
                 inhat      = elemStd * invVariance;
                 out[index] = (_FLOAT)(mad(pvt_scale, inhat, pvt_bias));
-            } // end for
+            }
         }
     }
 }
