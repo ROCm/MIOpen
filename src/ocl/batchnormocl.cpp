@@ -160,6 +160,25 @@ void BatchNormForwardTraining(Handle& handle,
         unsigned int ldsgcn   = xlocalsize / 64;
         unsigned int ldsnogcn = xlocalsize;
         std::string algo_name = "miopenBatchNormForwardTrainingSpatial";
+
+        if(n < 3)
+        {
+            variant = 4;
+            xlocalsize   = 1;
+            ylocalsize   = 1024;
+            auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
+            xgridsize    = c;
+            ygridsize    = segment * ylocalsize;
+            single       = false;
+            ldsgcn       = ylocalsize / 64;
+            ldsnogcn     = ylocalsize;
+
+
+            
+
+        }
+
+
         if((in_nhw < 33554432 && in_cstride > 1024) || ((in_cstride > 60) && bfpmixparm))
         {
             //
@@ -1319,8 +1338,4 @@ void BatchNormBackward(Handle& handle,
     if(miopen::CheckNumericsEnabled())
     {
         miopen::checkNumericsOutput(handle, dxDesc, dx);
-        miopen::checkNumericsOutput(handle, bnScaleBiasDiffDesc, resultBnScaleDiff);
-        miopen::checkNumericsOutput(handle, bnScaleBiasDiffDesc, resultBnBiasDiff);
-    }
-}
-} // namespace miopen
+        miopen::checkNumericsOutput(ha

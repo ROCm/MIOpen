@@ -706,112 +706,68 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #elif(MIO_BN_VARIANT == 4)
 
 // Batch size 1 and 2
-
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
-                                __global _FLOAT* __restrict out,
-                                __constant _FLOAT_PREC* __restrict scale,
-                                __constant _FLOAT_PREC* __restrict bias,
-                                _FLOAT_PREC INHW,
-#if(MIO_RUNNING_RESULT == 1)
-                                double expAvgFactor,
-                                __global _FLOAT_PREC* __restrict resultRunningMean,
-                                __global _FLOAT_PREC* __restrict resultRunningVariance,
-#endif
-                                double epsilon
-#if(MIO_SAVE_MEAN_VARIANCE == 1)
-                                ,
-                                __global _FLOAT_PREC* __restrict resultSaveMean,
-                                __global _FLOAT_PREC* __restrict resultSaveInvVariance
-#endif
-                                ,   
-                                unsigned int imageDims,
-                                unsigned int batchStride,
-                                unsigned int channels)
+MIOpenBatchNormFwdInferSpatialEst(const __global _FLOAT* __restrict in, /* x input */
+                                  __global _FLOAT* __restrict out,      /* y output */
+                                  const __global _FLOAT_PREC* __restrict estimatedMean,
+                                  const __global _FLOAT_PREC* __restrict estimatedVariance,
+                                  const __global _FLOAT_PREC* __restrict scale,
+                                  const __global _FLOAT_PREC* __restrict bias,
+                                  double epsilon,
+                                  unsigned int batchSize,
+                                  unsigned int imageDims,
+                                  unsigned int batchStride,
+                                  unsigned int channels)
 {
 
-    // SPATIAL
-    _FLOAT_PREC mean        = (_FLOAT_PREC)0.;
-    _FLOAT_PREC variance    = (_FLOAT_PREC)0.;
-    _FLOAT_PREC invVariance = (_FLOAT_PREC)0.;
-    _FLOAT_PREC inhat       = (_FLOAT_PREC)0.;
-    _FLOAT_PREC pvscale     = (_FLOAT_PREC)0.;
-    _FLOAT_PREC pvbias      = (_FLOAT_PREC)0.;
-    _FLOAT_PREC xin         = (_FLOAT_PREC)0.;
+    int xgid = get_global_id(0);
+    int ygid = get_global_id(1);
 
-    local _FLOAT_PREC lcl_bias;
-    local _FLOAT_PREC lcl_scale;
+    unsigned int index;
 
-    unsigned int index = 0;
-    unsigned int lid   = get_local_id(0);
-    unsigned int grpid = get_group_id(0);
+    _FLOAT_PREC mean, variance, invVariance;
+    _FLOAT_PREC inhat;
+    _FLOAT_PREC pscale, pbias;
 
-    for(int cidx = grpid; cidx < channels; cidx += get_num_groups(0))
+
+
+    for(int cidx = xgid; cidx < channels; cidx += get_global_size(0))
     {
-        for(int idx = lid; idx < imageDims; idx += get_local_size(0))
-        {
 
-            index = (cidx * imageDims) + idx;
+            index = n * batchStride + cidx + lid;
             xin   = (_FLOAT_PREC)(*(in + index));
             mean += xin;
             variance     = mad(xin, xin, variance);
-#if(MIO_BN_N == 2)
-            index = batchStride + (cidx * imageDims) + idx;
-            xin   = (_FLOAT_PREC)(*(in + index));
-            mean += xin;
-            variance     = mad(xin, xin, variance);
-#endif
-        }
-        barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
 
-#ifndef __AMDGCN__
-        local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDS_SIZE];
-        local _FLOAT_ACCUM lcl_data_y[MIO_BN_LDS_SIZE];
-        lds_reduce2(&mean, &variance, (_FLOAT_ACCUM)INHW, lcl_data_x, lcl_data_y, lid);
-#else
-        local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDSGCN_SIZE];
-        local _FLOAT_ACCUM lcl_data_y[MIO_BN_LDSGCN_SIZE];
-        gcn_reduce2(&mean, &variance, (_FLOAT_ACCUM)INHW, lcl_data_x, lcl_data_y, lid);
-#endif
 
-        variance = mad(-mean, mean, variance);
-        variance = (variance <= 0.) ? 0. : variance;
-        invVariance = rsqrt(variance + (_FLOAT_PREC)epsilon);
-        
-        pvscale = *(scale + );
-        pvbias  = *(bias + grpid);
 
-        for(int idx = lid; idx < imageDims; idx += get_local_size(0))
+    for(int cidx = xgid; cidx < channels; cidx += get_global_size(0))
+    {
+
+        mean        = *(estimatedMean + cidx);
+        variance    = *(estimatedVariance + cidx);
+        pscale      = *(scale + cidx);
+        pbias       = *(bias + cidx);
+        invVariance = rsqrt(fabs(variance + epsilon));
+
+        for(int idx = ygid; idx < imageDims; idx += get_global_size(1))
         {
-            index      = (cidx *imageDims) + idx;
-            inhat = ((_FLOAT_PREC)(*(in + index)) - mean) * invVariance;
-            out[index] = (_FLOAT)mad(pvscale, inhat, pvbias);
-#if(MIO_BN_N == 2)
-            index      = batchStride + (cidx *imageDims) + idx;
-            inhat = ((_FLOAT_PREC)(*(in + index)) - mean) * invVariance;
-            out[index] = (_FLOAT)mad(pvscale, inhat, pvbias);
-#endif
-        }     // end if
-
-        if(lid == 0)
-        {
-#if(MIO_RUNNING_RESULT == 1)
-            running_stash(
-                resultRunningMean, resultRunningVariance, expAvgFactor, mean, variance, cidx);
-#endif
-
-#if(MIO_SAVE_MEAN_VARIANCE == 1)
-            saved_stash(resultSaveMean, resultSaveInvVariance, mean, invVariance, cidx);
-#endif
+            for(int n = 0; n < batchSize; n++)
+            {
+                index      = (n * batchStride) + (cidx * imageDims) + idx;
+                inhat      = ((_FLOAT_PREC)(*(in + index)) - mean) * invVariance;
+                out[index] = (_FLOAT)(mad(pscale, inhat, pbias));
+            }
         }
-    } // end channel for loop
-
+    }
 } // end spatial norm
 
 #endif
+
 
 // Restore warnings
 #ifdef __clang__
 #pragma clang diagnostic pop
 #pragma clang diagnostic pop
 #endif
+
