@@ -687,7 +687,7 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::IsFastToBeUsedForTuning(
             if(ratio > 6.21)
                 return false;
         }
-       
+
     }
 
     // don't need too many waves per block
