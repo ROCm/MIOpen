@@ -56,20 +56,33 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
 
     __device__ constexpr auto GetOutputLayout() const { return XdlopsGemm.GetOutputLayout(); }
 
+#if CK_WORKAROUND_SWDEV_241664
+    template <index_t MRepeats_ = MRepeats, index_t NRepeats_ = NRepeats>
+    __device__ constexpr auto GetOutputVec() const;
+
+    template <>
+    __device__ constexpr auto GetOutputVec<2, 1>() const
+    {
+        return c_vec32_2_2_t::GetZero();
+    }
+
+    template <>
+    __device__ constexpr auto GetOutputVec<1, 2>() const
+    {
+        return c_vec32_2_2_t::GetZero();
+    }
+
+    template <>
+    __device__ constexpr auto GetOutputVec<1, 1>() const
+    {
+        return XdlopsGemm.GetOutputLayout().GetOutputVec();
+    }
+#else
     __device__ constexpr auto GetOutputVec() const
     {
-#if CK_WORKAROUND_SWDEV_241664
-
-#if CK_PARAM_TUNABLE_GEMM_M_PER_WAVE == 128 || CK_PARAM_TUNABLE_GEMM_N_PER_WAVE == 128
-        return c_vec32_2_2_t::GetZero();
-#else
         return XdlopsGemm.GetOutputLayout().GetOutputVec();
-#endif
-
-#else
-        return XdlopsGemm.GetOutputLayout().GetOutputVec();
-#endif
     }
+#endif
 
     __device__ constexpr auto GetNumBlks() const
     {
@@ -107,6 +120,7 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
         mMyWaveOffsetB = waveId_n * GemmNPerWave;
     }
 
+#if CK_WORKAROUND_SWDEV_241664
     template <index_t MRepeats_, index_t NRepeats_>
     struct WithMNRepeats;
 
@@ -155,6 +169,7 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
             return XdlopsGemm.template Run<M, N, K>(p_a_block, p_b_block, p_c_thread);
         }
     };
+#endif
 
     template <class FloatA, class FloatB, class FloatC>
     __device__ FloatC Run(const FloatA* __restrict__ p_a_block,
