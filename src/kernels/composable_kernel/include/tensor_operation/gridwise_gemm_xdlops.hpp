@@ -169,7 +169,7 @@ struct GridwiseGemmTransposedANormalBNormalCXdlops_v1
         __shared__ Float p_b_block_double[2 * b_block_space];
 
         // register allocation for output
-        auto p_c_thread_vec = blockwise_gemm.GetOutputVec();
+        auto c_thread_vec = blockwise_gemm.GetOutputVec();
 
         // LDS double buffer: preload data into LDS
         {
@@ -212,7 +212,7 @@ struct GridwiseGemmTransposedANormalBNormalCXdlops_v1
                 b_blockwise_copy.RunLoadThreadBuffer(p_b_global, p_b_thread_buffer);
 
                 // LDS double buffer: GEMM on current data
-                p_c_thread_vec = blockwise_gemm.Run(p_a_block_now, p_b_block_now, p_c_thread_vec);
+                c_thread_vec = blockwise_gemm.Run(p_a_block_now, p_b_block_now, c_thread_vec);
 
                 // LDS double buffer: store next data to LDS
                 a_blockwise_copy.RunStoreThreadBuffer(p_a_thread_buffer, p_a_block_next);
@@ -239,8 +239,7 @@ struct GridwiseGemmTransposedANormalBNormalCXdlops_v1
                 b_blockwise_copy.RunLoadThreadBuffer(p_b_global, p_b_thread_buffer);
 
                 // LDS double buffer: GEMM on 2nd-last data
-                p_c_thread_vec =
-                    blockwise_gemm.Run(p_a_block_double, p_b_block_double, p_c_thread_vec);
+                c_thread_vec = blockwise_gemm.Run(p_a_block_double, p_b_block_double, c_thread_vec);
 
                 // LDS double buffer: store last data to LDS
                 a_blockwise_copy.RunStoreThreadBuffer(p_a_thread_buffer,
@@ -251,17 +250,16 @@ struct GridwiseGemmTransposedANormalBNormalCXdlops_v1
                 __syncthreads();
 
                 // LDS double buffer: GEMM on current data
-                p_c_thread_vec = blockwise_gemm.Run(p_a_block_double + a_block_space,
-                                                    p_b_block_double + b_block_space,
-                                                    p_c_thread_vec);
+                c_thread_vec = blockwise_gemm.Run(p_a_block_double + a_block_space,
+                                                  p_b_block_double + b_block_space,
+                                                  c_thread_vec);
             }
             else // if has 1 iteration left
             {
                 __syncthreads();
 
                 // LDS double buffer: GEMM on last data
-                p_c_thread_vec =
-                    blockwise_gemm.Run(p_a_block_double, p_b_block_double, p_c_thread_vec);
+                c_thread_vec = blockwise_gemm.Run(p_a_block_double, p_b_block_double, c_thread_vec);
             }
         }
 
@@ -320,7 +318,7 @@ struct GridwiseGemmTransposedANormalBNormalCXdlops_v1
                      m_thread_data_on_global % (M2 * M1) / M2,
                      m_thread_data_on_global % M2,
                      n_thread_data_on_global})
-                    .Run(p_c_thread_vec.n + i * BlkSize, p_c_global);
+                    .Run(c_thread_vec.n + i * BlkSize, p_c_global);
             }
         }
     }
@@ -492,7 +490,7 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlops_v1
         __shared__ Float p_b_block_double[2 * b_block_space];
 
         // register allocation for output
-        auto p_c_thread_vec = blockwise_gemm.GetOutputVec();
+        auto c_thread_vec = blockwise_gemm.GetOutputVec();
 
         // LDS double buffer: preload data into LDS
         {
@@ -535,7 +533,7 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlops_v1
                 b_blockwise_copy.RunLoadThreadBuffer(p_b_global, p_b_thread_buffer);
 
                 // LDS double buffer: GEMM on current data
-                p_c_thread_vec = blockwise_gemm.Run(p_a_block_now, p_b_block_now, p_c_thread_vec);
+                c_thread_vec = blockwise_gemm.Run(p_a_block_now, p_b_block_now, c_thread_vec);
 
                 // LDS double buffer: store next data to LDS
                 a_blockwise_copy.RunStoreThreadBuffer(p_a_thread_buffer, p_a_block_next);
@@ -562,8 +560,7 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlops_v1
                 b_blockwise_copy.RunLoadThreadBuffer(p_b_global, p_b_thread_buffer);
 
                 // LDS double buffer: GEMM on 2nd-last data
-                p_c_thread_vec =
-                    blockwise_gemm.Run(p_a_block_double, p_b_block_double, p_c_thread_vec);
+                c_thread_vec = blockwise_gemm.Run(p_a_block_double, p_b_block_double, c_thread_vec);
 
                 // LDS double buffer: store last data to LDS
                 a_blockwise_copy.RunStoreThreadBuffer(p_a_thread_buffer,
@@ -574,17 +571,16 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlops_v1
                 __syncthreads();
 
                 // LDS double buffer: GEMM on current data
-                p_c_thread_vec = blockwise_gemm.Run(p_a_block_double + a_block_space,
-                                                    p_b_block_double + b_block_space,
-                                                    p_c_thread_vec);
+                c_thread_vec = blockwise_gemm.Run(p_a_block_double + a_block_space,
+                                                  p_b_block_double + b_block_space,
+                                                  c_thread_vec);
             }
             else // if has 1 iteration left
             {
                 __syncthreads();
 
                 // LDS double buffer: GEMM on last data
-                p_c_thread_vec =
-                    blockwise_gemm.Run(p_a_block_double, p_b_block_double, p_c_thread_vec);
+                c_thread_vec = blockwise_gemm.Run(p_a_block_double, p_b_block_double, c_thread_vec);
             }
         }
 
@@ -644,7 +640,7 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlops_v1
                      m_thread_data_on_global % (M2 * M1) / M2,
                      m_thread_data_on_global % M2,
                      n_thread_data_on_global})
-                    .Run(p_c_thread_vec.n + i * BlkSize, p_c_global);
+                    .Run(c_thread_vec.n + i * BlkSize, p_c_global);
             }
         }
     }
