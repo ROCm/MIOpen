@@ -703,9 +703,9 @@ void BatchNormForwardInference(Handle& handle,
         else
         {
             size_t xlocalsize = 1;
-            auto xgridsize    = std::size_t(handle.GetMaxComputeUnits());
+            auto xgridsize    = c;
             size_t ylocalsize = 256;
-            size_t ygridsize  = 4096;
+            size_t ygridsize  = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
             size_t zlocalsize = 1;
             size_t zgridsize  = 1;
 
