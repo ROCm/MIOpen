@@ -1510,6 +1510,9 @@ struct ConvWinograd3x3MultipassWrW : SolverBase<ConvolutionContext>
         else
             return WinoDataW + (WinoFilterW - 1) * (WinoDataW == 7 ? 2 : ctx.kernel_stride_w);
     }
+
+    private:
+    InvokerFactory PrepareInvokerFactory(const ConvolutionContext& params, std::size_t ws_sz) const;
 };
 
 extern template struct ConvWinograd3x3MultipassWrW<3, 2>;
