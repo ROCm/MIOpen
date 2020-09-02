@@ -113,6 +113,9 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     std::size_t
     ForwardBackwardGetWorkSpaceSizeImplicitGemm(const miopen::ConvolutionContext& ctx) const;
 
+    std::size_t
+    ForwardBackwardDataGetWorkSpaceSizeWinograd(const miopen::ConvolutionContext& ctx) const;
+
     std::size_t ForwardGetWorkSpaceSizeFFT(const TensorDescriptor& wDesc,
                                            const TensorDescriptor& xDesc,
                                            const TensorDescriptor& yDesc) const;
@@ -463,12 +466,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                const ConvWrwTensors& tensors,
                                Data_t workSpace,
                                const TKernels& kernels) const;
-    template <class TKernels>
-    void BackwardWeightsWinograd(Handle& handle,
-                                 const ConvolutionContext& ctx,
-                                 const ConvWrwTensors& tensors,
-                                 Data_t workSpace,
-                                 const TKernels& kernels) const;
 
     std::size_t GetFwdSolutionWorkspaceSizeFallback(Handle& handle,
                                                     const TensorDescriptor& wDesc,
