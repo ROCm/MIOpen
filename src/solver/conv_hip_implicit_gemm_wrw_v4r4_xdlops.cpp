@@ -234,7 +234,6 @@ void PerformanceImplicitGemmWrwV4R4Xdlops::EuristicInit(const ConvolutionContext
     // second round: really valid
     if(!tmp.IsReallyValid(ctx))
     {
-        std::cout << "***************find again**************" << std::endl;
         get_euristic_config(
             [](auto config, auto conv_context) { return config.IsReallyValid(conv_context); });
     }
