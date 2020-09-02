@@ -682,12 +682,15 @@ void BatchNormForwardInference(Handle& handle,
         std::string algo_name      = "miopenBatchNormalizationForwardInference";
         std::string network_config = "fp16" + std::to_string(static_cast<int>(bfp16parm)) + "fp32" +
                                      std::to_string(static_cast<int>(bfp32parm)) + "mode" +
-                                     std::to_string(bn_mode);
+                                     std::to_string(bn_mode) + "HWdims" +
+                                     std::to_string(in_cstride) + "C" + std::to_string(c);
 
         auto&& kernels = handle.GetKernels(algo_name, network_config);
         if(!kernels.empty())
         {
             auto kernel = kernels.front();
+            std::cout << "network_config: " << network_config << std::endl;
+            std::cout << "network_config: " << network_config << std::endl;
             kernel(x,
                    y,
                    estimatedMean,
