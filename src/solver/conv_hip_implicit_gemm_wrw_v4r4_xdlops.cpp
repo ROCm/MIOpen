@@ -41,7 +41,7 @@ namespace solver {
 
 PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops()
     : PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops(
-          64, 64, 2, 32, 32, 4, false, false,4)
+          64, 64, 2, 32, 32, 4, false, false, 4)
 {
 }
 
@@ -121,7 +121,7 @@ void PerformanceImplicitGemmWrwV4R4Xdlops::EuristicInit(const ConvolutionContext
     auto get_euristic_config = [&](auto is_valid_func) {
         if(ctx.IsFp32())
         {
-            tmp = {256, 256, 8, 128, 128, 4, false, true,128};
+            tmp = {256, 256, 8, 128, 128, 4, false, true, 128};
 
             bool all_visited = false;
             do
@@ -154,8 +154,8 @@ void PerformanceImplicitGemmWrwV4R4Xdlops::EuristicInit(const ConvolutionContext
         }
         else if(ctx.IsFp16())
         {
-            tmp = {256, 256, 8, 128, 128, 8, false, true,128};
-            //tmp = {32, 32, 8, 64, 64, 8, false, true};
+            tmp = {256, 256, 8, 128, 128, 8, false, true, 128};
+            // tmp = {32, 32, 8, 64, 64, 8, false, true};
             bool all_visited = false;
             do
             {
@@ -177,8 +177,7 @@ void PerformanceImplicitGemmWrwV4R4Xdlops::EuristicInit(const ConvolutionContext
                         break;
                     if(!PreviousTwoPower<4, 256>(tmp.GemmMPerBlock))
                         break;
-                    
-                    
+
                     all_visited = true;
                 } while(false);
 
@@ -188,14 +187,14 @@ void PerformanceImplicitGemmWrwV4R4Xdlops::EuristicInit(const ConvolutionContext
         }
         else if(ctx.IsBfp16())
         {
-            tmp = {256, 256, 8, 128, 128, 8, false, true,128};
+            tmp = {256, 256, 8, 128, 128, 8, false, true, 128};
 
             bool all_visited = false;
             do
             {
                 do
                 {
-                    
+
                     // list in reverse order of importance,
                     // and favor large GEMM
                     if(!PreviousTwoPower<1, 128>(tmp.GemmKBlocks))
@@ -212,7 +211,7 @@ void PerformanceImplicitGemmWrwV4R4Xdlops::EuristicInit(const ConvolutionContext
                         break;
                     if(!PreviousTwoPower<4, 256>(tmp.GemmMPerBlock))
                         break;
-                    
+
                     all_visited = true;
                 } while(false);
 
@@ -327,14 +326,14 @@ PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGemmABlockCopyPerformanceParamete
 
         if(!valid)
             MIOPEN_THROW("invalid performance parameter");
-        
+
         // GemmKPack is src vector read dimension, bounded by GemmKPack
         SrcDataPerRead_GemmKPack = gcd(SrcDataPerRead_GemmKPack, GemmKPack);
 
-        //GemmPack bounded by ho*wo
-        const auto ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
-        const auto wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
-        SrcDataPerRead_GemmKPack = gcd(SrcDataPerRead_GemmKPack, ho*wo);
+        // GemmPack bounded by ho*wo
+        const auto ho            = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
+        const auto wo            = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
+        SrcDataPerRead_GemmKPack = gcd(SrcDataPerRead_GemmKPack, ho * wo);
 
         // calculate threadwise copy size
         auto data_per_thread_copy =
@@ -375,7 +374,7 @@ PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGemmABlockCopyPerformanceParamete
         ClusterLengths_GemmK     = GemmKPerBlock / data_per_thread_copy_gemmk;
         ClusterLengths_GemmM     = GemmMPerBlock / data_per_thread_copy_gemmm;
         ClusterLengths_GemmKPack = GemmKPack / data_per_thread_copy_gemmkpack;
-        
+
         if(ClusterLengths_GemmK < 0 || ClusterLengths_GemmM < 0 || ClusterLengths_GemmKPack < 0)
             MIOPEN_THROW("invalid performance parameter");
         // blockwise-copy support that block_size is larger than thread cluster size, which means
@@ -407,8 +406,9 @@ PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGemmBBlockCopyPerformanceParamete
     int ClusterLengths_GemmKPack = -1;
 
     int SrcDataPerRead_GemmKPack = ctx.IsFp32() ? amd_buffer_load_max_length<float>()
-                                                : amd_buffer_load_max_length<half_float::half>();;
-    int DstDataPerWrite_GemmKPack =  ctx.IsFp32() ? amd_lds_write_max_length<float>()
+                                                : amd_buffer_load_max_length<half_float::half>();
+    ;
+    int DstDataPerWrite_GemmKPack = ctx.IsFp32() ? amd_lds_write_max_length<float>()
                                                  : amd_lds_write_max_length<half_float::half>();
 
     try
@@ -464,7 +464,7 @@ PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGemmBBlockCopyPerformanceParamete
         SrcDataPerRead_GemmKPack = gcd(SrcDataPerRead_GemmKPack, GemmKPack);
 
         // calculate threadwise copy size
-        auto data_per_thread_copy = 
+        auto data_per_thread_copy =
             std::max(1, (GemmKPerBlock * GemmNPerBlock * GemmKPack) / block_size);
 
         // make sure a thread can do a full vector load, at the cost that some threads
@@ -472,7 +472,7 @@ PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGemmBBlockCopyPerformanceParamete
         data_per_thread_copy = lcm(data_per_thread_copy, SrcDataPerRead_GemmKPack);
 
         const auto data_per_thread_copy_gemmkpack = SrcDataPerRead_GemmKPack;
-        const auto tmp                        = data_per_thread_copy / data_per_thread_copy_gemmkpack;
+        const auto tmp = data_per_thread_copy / data_per_thread_copy_gemmkpack;
 
         int data_per_thread_copy_gemmn = -1;
         int data_per_thread_copy_gemmk = -1;
@@ -519,11 +519,10 @@ PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGemmBBlockCopyPerformanceParamete
                            SrcDataPerRead_GemmKPack,
                            DstDataPerWrite_GemmKPack,
                            true);
-   
 }
 
-std::tuple<std::size_t, bool> PerformanceImplicitGemmWrwV4R4Xdlops::CalculateLdsNumberOfByte(
-    const ConvolutionContext& ctx) const
+std::tuple<std::size_t, bool>
+PerformanceImplicitGemmWrwV4R4Xdlops::CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const
 {
     const auto a_block_space = GemmKPerBlock * GemmMPerBlock * GemmKPack;
     const auto b_block_space = GemmKPerBlock * GemmNPerBlock * GemmKPack;
@@ -560,10 +559,10 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::IsReallyValid(const ConvolutionContex
         return false;
 
     bool valid = false;
-    //n should be multiple of GemmKBlocks
+    // n should be multiple of GemmKBlocks
     {
-        const auto n  = ConvolutionContextInterpreter::GetBatchN(ctx);
-        if( n % GemmKBlocks !=0)
+        const auto n = ConvolutionContextInterpreter::GetBatchN(ctx);
+        if(n % GemmKBlocks != 0)
             return false;
     }
     // check blockwise GEMM size
@@ -659,8 +658,13 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::IsFastToBeUsedForTuning(
 
         const float ratio = float(grid_size) / grid_size_max_blockwise_gemm;
 
-        //std::cout << "gemm_m: " << gemm_m << " gemm_n: " << gemm_n << " gridsize: " << grid_size << " ratio: " << ratio << " grid_size_max_blockwise_gemm: " << grid_size_max_blockwise_gemm <<  std::endl;
-        //std::cout << "GemmMPerBlock: " << GemmMPerBlock << " GemmNPerBlock: " << GemmNPerBlock << " GemmKPerBlock: " << GemmKPerBlock << " GemmKPack: " << GemmKPack << " GemmMPerWave: " << GemmMPerWave << " GemmNPerWave: " << GemmNPerWave  << " GemmKBlocks: "<< GemmKBlocks << std::endl;
+        // std::cout << "gemm_m: " << gemm_m << " gemm_n: " << gemm_n << " gridsize: " << grid_size
+        // << " ratio: " << ratio << " grid_size_max_blockwise_gemm: " <<
+        // grid_size_max_blockwise_gemm <<  std::endl;
+        // std::cout << "GemmMPerBlock: " << GemmMPerBlock << " GemmNPerBlock: " << GemmNPerBlock <<
+        // " GemmKPerBlock: " << GemmKPerBlock << " GemmKPack: " << GemmKPack << " GemmMPerWave: "
+        // << GemmMPerWave << " GemmNPerWave: " << GemmNPerWave  << " GemmKBlocks: "<< GemmKBlocks
+        // << std::endl;
 
         if(grid_size_max_blockwise_gemm > 600)
         {
@@ -687,7 +691,6 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::IsFastToBeUsedForTuning(
             if(ratio > 6.21)
                 return false;
         }
-
     }
 
     // don't need too many waves per block
@@ -829,9 +832,7 @@ static inline bool is_support_amd_buffer_atomic_add(const ConvolutionContext& ct
     return StartsWith(device_name, "gfx908");
 }
 ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
-    const ConvolutionContext& ctx,
-    const PerformanceImplicitGemmWrwV4R4Xdlops& config,
-    bool) const
+    const ConvolutionContext& ctx, const PerformanceImplicitGemmWrwV4R4Xdlops& config, bool) const
 {
     ConvSolution result;
     KernelInfo construction_parameters;
@@ -884,8 +885,12 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
              GemmBBlockCopyDstDataPerWrite_GemmKPack,
              std::ignore) = config.CalculateGemmBBlockCopyPerformanceParameters(ctx);
 
-    //std::cout << "GemmABlockCopySrcDataPerRead_GemmKPack: " << GemmABlockCopySrcDataPerRead_GemmKPack << " GemmABlockCopyDstDataPerWrite_GemmKPack: " << GemmABlockCopyDstDataPerWrite_GemmKPack << std::endl;
-    //std::cout << "GemmBBlockCopySrcDataPerRead_GemmKPack: " << GemmBBlockCopySrcDataPerRead_GemmKPack << " GemmBBlockCopyDstDataPerWrite_GemmKPack: " << GemmBBlockCopyDstDataPerWrite_GemmKPack << std::endl;
+    // std::cout << "GemmABlockCopySrcDataPerRead_GemmKPack: " <<
+    // GemmABlockCopySrcDataPerRead_GemmKPack << " GemmABlockCopyDstDataPerWrite_GemmKPack: " <<
+    // GemmABlockCopyDstDataPerWrite_GemmKPack << std::endl;
+    // std::cout << "GemmBBlockCopySrcDataPerRead_GemmKPack: " <<
+    // GemmBBlockCopySrcDataPerRead_GemmKPack << " GemmBBlockCopyDstDataPerWrite_GemmKPack: " <<
+    // GemmBBlockCopyDstDataPerWrite_GemmKPack << std::endl;
     // clang-format off
     construction_parameters.comp_options =
         std::string(" -std=c++14 ") +
@@ -938,25 +943,28 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
 
     result.construction_params.push_back(construction_parameters);
 
-    const auto& conv         = ctx.conv_problem.GetConv();
-    const auto& lowp_quant   = conv.lowp_quant;
+    const auto& conv       = ctx.conv_problem.GetConv();
+    const auto& lowp_quant = conv.lowp_quant;
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const boost::any& primitive_params) {
             const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
             const auto& tensors      = invoke_params.tensors;
-            auto kernel = handle.Run(kernels[0]);
-            float elapsed = 0;
-            float zero            = 0.f;
-            if(ctx.IsFp16() || ctx.IsBfp16()){
+            auto kernel              = handle.Run(kernels[0]);
+            float elapsed            = 0;
+            float zero               = 0.f;
+            if(ctx.IsFp16() || ctx.IsBfp16())
+            {
                 const auto& workSpace = invoke_params.workSpace;
                 TensorDescriptor workspaceDesc(
                     miopenFloat, tensors.dwDesc.GetLengths(), tensors.dwDesc.GetStrides());
                 SetTensor(handle, workspaceDesc, workSpace, &zero);
-                if(handle.IsProfilingEnabled()){
+                if(handle.IsProfilingEnabled())
+                {
                     elapsed += handle.GetKernelTime();
                 }
                 kernel(tensors.x, tensors.dy, workSpace);
-                if(handle.IsProfilingEnabled()){
+                if(handle.IsProfilingEnabled())
+                {
                     elapsed += handle.GetKernelTime();
                 }
                 CastTensor(handle,
@@ -968,12 +976,14 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
                            0,
                            0);
             }
-            else{
+            else
+            {
                 SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
                 handle.Run(kernels[0])(tensors.x, tensors.dy, tensors.dw);
             }
 
-            if(handle.IsProfilingEnabled()){  
+            if(handle.IsProfilingEnabled())
+            {
                 elapsed += handle.GetKernelTime();
                 handle.ResetKernelTime();
                 handle.AccumKernelTime(elapsed);
@@ -985,13 +995,13 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
 }
 
 int ConvHipImplicitGemmWrwV4R4Xdlops::RunAndMeasureSolution(const miopen::Handle& profile_h,
-                                                                ConstData_t bot_buf,
-                                                                ConstData_t  top_buf,
-                                                                Data_t wei_buf,
-                                                                ConstData_t bias_buf,
-                                                                const ConvolutionContext& ctx,
-                                                                const ConvSolution& solution,
-                                                                float& elapsed_time) const
+                                                            ConstData_t bot_buf,
+                                                            ConstData_t top_buf,
+                                                            Data_t wei_buf,
+                                                            ConstData_t bias_buf,
+                                                            const ConvolutionContext& ctx,
+                                                            const ConvSolution& solution,
+                                                            float& elapsed_time) const
 {
     assert(bias_buf == nullptr);
     (void)bias_buf;
@@ -1047,17 +1057,16 @@ ConvHipImplicitGemmWrwV4R4Xdlops::Search(const ConvolutionContext& ctx) const
         return GenericSearchWrW(*this, ctx);
 }
 
-std::size_t
-ConvHipImplicitGemmWrwV4R4Xdlops::GetWorkspaceSize(const ConvolutionContext& ctx) const
+std::size_t ConvHipImplicitGemmWrwV4R4Xdlops::GetWorkspaceSize(const ConvolutionContext& ctx) const
 {
     if(ctx.IsFp32())
         return 0;
     else
     {
-        const auto k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
-        const auto c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
-        const auto y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-        const auto x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+        const auto k = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
+        const auto c = ConvolutionContextInterpreter::GetInputChannelC(ctx);
+        const auto y = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+        const auto x = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
 
         return k * c * y * x * miopen::GetTypeSize(miopenFloat);
     }

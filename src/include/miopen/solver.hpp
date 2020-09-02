@@ -1848,8 +1848,7 @@ struct gemm : SolverBase<ConvolutionContext>
     }
 };
 
-struct PerformanceImplicitGemmWrwV4R4Xdlops
-    : Serializable<PerformanceImplicitGemmWrwV4R4Xdlops>
+struct PerformanceImplicitGemmWrwV4R4Xdlops : Serializable<PerformanceImplicitGemmWrwV4R4Xdlops>
 {
     int GemmMPerBlock;
     int GemmNPerBlock;
@@ -1859,9 +1858,9 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops
     int GemmKPack;
     bool GemmAThreadCopyMoreGemmK;
     bool GemmBThreadCopyMoreGemmKPack;
-    int  GemmKBlocks;
+    int GemmKBlocks;
 
-    PerformanceImplicitGemmWrwV4R4Xdlops(int, int, int, int, int, int, bool, bool,int);
+    PerformanceImplicitGemmWrwV4R4Xdlops(int, int, int, int, int, int, bool, bool, int);
     PerformanceImplicitGemmWrwV4R4Xdlops();
     PerformanceImplicitGemmWrwV4R4Xdlops(bool) : PerformanceImplicitGemmWrwV4R4Xdlops() {}
 
@@ -1900,8 +1899,7 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops
 struct ConvHipImplicitGemmWrwV4R4Xdlops : SolverBase<ConvolutionContext>
 {
     static std::tuple<int, int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
-    PerformanceImplicitGemmWrwV4R4Xdlops
-    GetPerformanceConfig(const ConvolutionContext& ctx) const;
+    PerformanceImplicitGemmWrwV4R4Xdlops GetPerformanceConfig(const ConvolutionContext& ctx) const;
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const;
     bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
                                   const PerformanceImplicitGemmWrwV4R4Xdlops& c) const;
@@ -1914,7 +1912,7 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops : SolverBase<ConvolutionContext>
     int RunAndMeasureSolution(const miopen::Handle& profile_h,
                               ConstData_t bot_buf,
                               ConstData_t top_buf,
-                              Data_t      wei_buf,
+                              Data_t wei_buf,
                               ConstData_t bias_buf,
                               const ConvolutionContext& ctx,
                               const ConvSolution& solution,
