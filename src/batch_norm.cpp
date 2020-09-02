@@ -260,7 +260,7 @@ void bnFwdTrainSelectMulti(const Handle& handle,
     });
 }
 
-void bnFwdTrainSelectSingle(const Handle& handle,
+void bnFwdTrainSelectSingleEmpty(const Handle& handle,
                             miopenDataType_t dtype,
                             const std::string& program_name,
                             const std::string& algo_name,
@@ -281,7 +281,10 @@ void bnFwdTrainSelectSingle(const Handle& handle,
                             double epsilon,
                             Data_t resultSaveMean,
                             Data_t resultSaveInvVariance,
-                            float inhw)
+                            float inhw,
+                            unsigned int n,
+                            unsigned int in_cstride,
+                            unsigned int in_nstride)
 {
 
 #if(MIOPEN_BN_CPP_DEBUG == 1)
@@ -295,21 +298,45 @@ void bnFwdTrainSelectSingle(const Handle& handle,
 #endif
         if(resultsave && resultrunning)
         {
-            handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-                x,
-                y,
-                bnScale,
-                bnBias,
-                as_float(inhw),
-                expAvgFactor,
-                resultRunningMean,
-                resultRunningVariance,
-                epsilon,
-                resultSaveMean,
-                resultSaveInvVariance);
+            if(n > 2)
+            {
+                handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+                    x,
+                    y,
+                    bnScale,
+                    bnBias,
+                    as_float(inhw),
+                    expAvgFactor,
+                    resultRunningMean,
+                    resultRunningVariance,
+                    epsilon,
+                    resultSaveMean,
+                    resultSaveInvVariance);
+            }
+            else
+            {
+                handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+                    x,
+                    y,
+                    bnScale,
+                    bnBias,
+                    as_float(inhw),
+                    expAvgFactor,
+                    resultRunningMean,
+                    resultRunningVariance,
+                    epsilon,
+                    resultSaveMean,
+                    resultSaveInvVariance,
+                    n,
+                    in_cstride,
+                    in_nstride);
+            }
+            
         }
         else if(resultsave)
         {
+            if(n > 2)
+            {
             handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
                 x,
                 y,
@@ -319,9 +346,28 @@ void bnFwdTrainSelectSingle(const Handle& handle,
                 epsilon,
                 resultSaveMean,
                 resultSaveInvVariance);
+            }
+            else
+            {
+                handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+                    x,
+                    y,
+                    bnScale,
+                    bnBias,
+                    as_float(inhw),
+                    epsilon,
+                    resultSaveMean,
+                    resultSaveInvVariance,
+                    n,
+                    in_cstride,
+                    in_nstride);
+            }
+            
         }
         else if(resultrunning)
         {
+            if(n > 2)
+            {
             handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
                 x,
                 y,
@@ -332,14 +378,217 @@ void bnFwdTrainSelectSingle(const Handle& handle,
                 resultRunningMean,
                 resultRunningVariance,
                 epsilon);
+            }
+            else
+            {
+                handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+                    x,
+                    y,
+                    bnScale,
+                    bnBias,
+                    as_float(inhw),
+                    expAvgFactor,
+                    resultRunningMean,
+                    resultRunningVariance,
+                    epsilon,
+                    n,
+                    in_cstride,
+                    in_nstride);
+            }
         }
         else
         {
+            if(n > 2)
+            {
             handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
                 x, y, bnScale, bnBias, as_float(inhw), epsilon);
+            }
+            else
+            {
+                handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+                    x,
+                    y,
+                    bnScale,
+                    bnBias,
+                    as_float(inhw),
+                    epsilon,
+                    n,
+                    in_cstride,
+                    in_nstride);
+            }
         }
     });
 }
+
+
+void bnFwdTrainSelectSingleFull(const Handle& handle,
+                            miopenDataType_t dtype,
+                            const std::string& program_name,
+                            const std::string& algo_name,
+                            const std::string& kernel_name,
+                            const std::string& network_config,
+                            const std::string& parms,
+                            const std::vector<size_t>& vld,
+                            const std::vector<size_t>& vgd,
+                            ConstData_t x,
+                            Data_t y,
+                            ConstData_t bnScale,
+                            ConstData_t bnBias,
+                            bool resultsave,
+                            bool resultrunning,
+                            double expAvgFactor,
+                            Data_t resultRunningMean,
+                            Data_t resultRunningVariance,
+                            double epsilon,
+                            Data_t resultSaveMean,
+                            Data_t resultSaveInvVariance,
+                            float inhw,
+                            unsigned int n,
+                            unsigned int in_cstride,
+                            unsigned int in_nstride)
+{
+
+    auto&& kernels = handle.GetKernels(algo_name, network_config);
+   
+    if(!kernels.empty())
+    {
+        auto kernel = kernels.front();
+        visit_float(bnScaleBiasMeanVarDesc.GetType(), [&](auto as_float) {
+            if(resultsave && resultrunning)
+            {
+                if(n > 2)
+                {
+                    kernel(x,
+                            y,
+                            bnScale,
+                            bnBias,
+                            as_float(inhw),
+                            expAvgFactor,
+                            resultRunningMean,
+                            resultRunningVariance,
+                            epsilon,
+                            resultSaveMean,
+                            resultSaveInvVariance);
+                }
+                else
+                {
+                    kernel(x,
+                            y,
+                            bnScale,
+                            bnBias,
+                            as_float(inhw),
+                            expAvgFactor,
+                            resultRunningMean,
+                            resultRunningVariance,
+                            epsilon,
+                            resultSaveMean,
+                            resultSaveInvVariance,
+                            n,
+                            in_cstride,
+                            in_nstride);
+                }
+                
+            }
+            else if(resultsave)
+            {
+                if(n > 2)
+                {
+                    kernel(x,
+                            y,
+                            bnScale,
+                            bnBias,
+                            as_float(inhw),
+                            epsilon,
+                            resultSaveMean,
+                            resultSaveInvVariance);
+                }
+                else
+                {
+                    kernel(x,
+                            y,
+                            bnScale,
+                            bnBias,
+                            as_float(inhw),
+                            epsilon,
+                            resultSaveMean,
+                            resultSaveInvVariance,
+                            n,
+                            in_cstride,
+                            in_nstride);
+                }
+            }
+            else if(resultrunning)
+            {
+                kernel(x,
+                        y,
+                        bnScale,
+                        bnBias,
+                        as_float(inhw),
+                        expAvgFactor,
+                        resultRunningMean,
+                        resultRunningVariance,
+                        epsilon);
+                if(n > 2)
+                {
+                    kernel(x,
+                            y,
+                            bnScale,
+                            bnBias,
+                            as_float(inhw),
+                            expAvgFactor,
+                            resultRunningMean,
+                            resultRunningVariance,
+                            epsilon);
+                }
+                else
+                {
+                    kernel(x,
+                            y,
+                            bnScale,
+                            bnBias,
+                            as_float(inhw),
+                            expAvgFactor,
+                            resultRunningMean,
+                            resultRunningVariance,
+                            epsilon,
+                            n,
+                            in_cstride,
+                            in_nstride);
+                }
+            }
+            else
+            {
+                if(n > 2)
+                {
+                    kernel(x, y, bnScale, bnBias, as_float(inhw), epsilon);
+                }
+                else
+                {
+                    kernel(x, y, bnScale, bnBias, as_float(inhw), epsilon, n, in_cstride, in_nstride);
+                }
+            }
+        });
+    }
+    else
+    {
+        MIOPEN_LOG_E("MIOpen Batch Norm attempting to execute on empty kernel cache assumed full.");
+        MIOPEN_THROW(miopenStatusInternalError);
+    }
+    
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 void bnBwdTrainSelectSingle(const Handle& handle,
                             miopenDataType_t dtype,
@@ -376,6 +625,46 @@ void bnBwdTrainSelectSingle(const Handle& handle,
         }
     });
 }
+
+
+
+void bnBwdTrainSelectSingle(const Handle& handle,
+                            miopenDataType_t dtype,
+                            const std::string& program_name,
+                            const std::string& algo_name,
+                            const std::string& kernel_name,
+                            const std::string& network_config,
+                            const std::string& parms,
+                            const std::vector<size_t>& vld,
+                            const std::vector<size_t>& vgd,
+                            ConstData_t x,
+                            ConstData_t dy,
+                            Data_t dx,
+                            ConstData_t bnScale,
+                            Data_t dScale,
+                            Data_t dBias,
+                            bool useSaved,
+                            double epsilon,
+                            ConstData_t savedMean,
+                            ConstData_t savedInvVariance,
+                            float inhw)
+{
+
+    visit_float(dtype, [&](auto as_float) {
+        if(useSaved)
+        {
+            handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+                x, dy, dx, bnScale, dScale, dBias, savedMean, savedInvVariance, as_float(inhw));
+        }
+        else
+        {
+            handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+                x, dy, dx, bnScale, dScale, dBias, epsilon, as_float(inhw));
+        }
+    });
+}
+
+
 
 void bnBwdTrainSelectMulti(const Handle& handle,
                            miopenDataType_t dtype,

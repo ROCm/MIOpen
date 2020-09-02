@@ -164,22 +164,16 @@ void BatchNormForwardTraining(Handle& handle,
         if(n < 3)
         {
             variant = 4;
-            xlocalsize   = 1;
-            ylocalsize   = 1024;
-            auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
-            xgridsize    = c;
-            ygridsize    = segment * ylocalsize;
+            xlocalsize = 64 * ((in_cstride + 64 - 1) / 64;
+            xlocalsize = xlocalsize > 1024 ? 1024 : xlocalsize;
+            xgridsize    = c * xlocalsize;
+            ylocalsize = 1;
+            ygridsize  = 1;
             single       = false;
-            ldsgcn       = ylocalsize / 64;
-            ldsnogcn     = ylocalsize;
-
-
-            
-
+            ldsgcn       = 16;
+            ldsnogcn     = 1024;
         }
-
-
-        if((in_nhw < 33554432 && in_cstride > 1024) || ((in_cstride > 60) && bfpmixparm))
+        else if((in_nhw < 33554432 && in_cstride > 1024) || ((in_cstride > 60) && bfpmixparm))
         {
             //
         }
@@ -212,7 +206,18 @@ void BatchNormForwardTraining(Handle& handle,
             ldsnogcn     = ylocalsize;
         }
 
-        std::string network_config =
+        std::string network_config{};
+
+        if(n < 3)
+        {
+            "variant" + std::to_string(variant) + "rs" +
+            std::to_string(static_cast<int>(resultsave)) + "rr" +
+            std::to_string(static_cast<int>(resultrunning)) + "fp16" +
+            std::to_string(static_cast<int>(bfp16parm)) + "fp32" +
+            std::to_string(static_cast<int>(bfp32parm));
+        }
+        else
+        {
             "variant" + std::to_string(variant) + "gx" + std::to_string(xgridsize) + "gy" +
             std::to_string(ygridsize) + "xl" + std::to_string(xlocalsize) + "yl" +
             std::to_string(ylocalsize) + "ldsgcn" + std::to_string(ldsgcn) + "rs" +
@@ -222,96 +227,16 @@ void BatchNormForwardTraining(Handle& handle,
             std::to_string(static_cast<int>(bfp32parm)) + "single" +
             std::to_string(static_cast<int>(single)) + "n" + std::to_string(n) + "c" +
             std::to_string(c) + "hw" + std::to_string(in_cstride);
-
+        }
+        
         auto&& kernels = handle.GetKernels(algo_name, network_config);
 
         if(single)
         {
+
             if(!kernels.empty())
             {
-                auto kernel = kernels.front();
-                visit_float(bnScaleBiasMeanVarDesc.GetType(), [&](auto as_float) {
-                    if(resultsave && resultrunning)
-                    {
-
-                        kernel(x,
-                               y,
-                               bnScale,
-                               bnBias,
-                               as_float(inhw),
-                               expAvgFactor,
-                               resultRunningMean,
-                               resultRunningVariance,
-                               epsilon,
-                               resultSaveMean,
-                               resultSaveInvVariance);
-                    }
-                    else if(resultsave)
-                    {
-                        kernel(x,
-                               y,
-                               bnScale,
-                               bnBias,
-                               as_float(inhw),
-                               epsilon,
-                               resultSaveMean,
-                               resultSaveInvVariance);
-                    }
-                    else if(resultrunning)
-                    {
-                        kernel(x,
-                               y,
-                               bnScale,
-                               bnBias,
-                               as_float(inhw),
-                               expAvgFactor,
-                               resultRunningMean,
-                               resultRunningVariance,
-                               epsilon);
-                    }
-                    else
-                    {
-                        kernel(x, y, bnScale, bnBias, as_float(inhw), epsilon);
-                    }
-                });
-            }
-            else
-            {
-                std::string kernel_name;
-                std::string program_name;
-                std::string parms;
-
-                kernel_name  = "MIOpenBatchNormFwdTrainSpatial";
-                program_name = "MIOpenBatchNormFwdTrainSpatial.cl";
-
-                parms = " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
-                        " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
-                        " -DMIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
-                        " -DMIO_SAVE_MEAN_VARIANCE=" +
-                        std::to_string(static_cast<int>(resultsave)) + " -DMIO_RUNNING_RESULT=" +
-                        std::to_string(static_cast<int>(resultrunning)) + " -DMIO_BN_N=" +
-                        std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) + " -DMIO_BN_HW=" +
-                        std::to_string(in_cstride) + " -DMIO_BN_NHW=" + std::to_string(in_nhw) +
-                        " -DMIO_BN_CHW=" + std::to_string(in_nstride) + " -DMIO_BN_NCHW=" +
-                        std::to_string(in_nchw) + " -DMIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) +
-                        " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) + " -DMIO_BN_VARIANT=" +
-                        std::to_string(variant) + " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) +
-                        " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" +
-                        std::to_string(zlocalsize);
-
-                MIOPEN_LOG_I2(kernel_name << ":: " << algo_name);
-                MIOPEN_LOG_I2("..." << parms);
-                MIOPEN_LOG_I2("..." << network_config);
-
-                vld.push_back(xlocalsize);
-                vld.push_back(ylocalsize);
-                vld.push_back(zlocalsize);
-
-                vgd.push_back(xgridsize);
-                vgd.push_back(ygridsize);
-                vgd.push_back(zgridsize);
-
-                bnFwdTrainSelectSingle(handle,
+                bnFwdTrainSelectSingleFull(handle,
                                        bnScaleBiasMeanVarDesc.GetType(),
                                        program_name,
                                        algo_name,
@@ -332,7 +257,80 @@ void BatchNormForwardTraining(Handle& handle,
                                        epsilon,
                                        resultSaveMean,
                                        resultSaveInvVariance,
-                                       inhw);
+                                       inhw,
+                                       n,
+                                       in_cstride,
+                                       in_nstride);
+            }
+            else
+            {
+                std::string kernel_name;
+                std::string program_name;
+                std::string parms;
+
+                kernel_name  = "MIOpenBatchNormFwdTrainSpatial";
+                program_name = "MIOpenBatchNormFwdTrainSpatial.cl";
+
+                parms = " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
+                        " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
+                        " -DMIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
+                        " -DMIO_SAVE_MEAN_VARIANCE=" +
+                        std::to_string(static_cast<int>(resultsave)) + 
+                        " -DMIO_RUNNING_RESULT=" +
+                        std::to_string(static_cast<int>(resultrunning))
+                        " -DMIO_BN_VARIANT=" + std::to_string(variant) + 
+                        " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) +
+                        " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) + 
+                        " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) + 
+                        " -DMIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) +
+                        " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn);
+                        
+                if(n > 2)
+                {
+                    parms = parms + " -DMIO_BN_N=" +
+                        std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) + " -DMIO_BN_HW=" +
+                        std::to_string(in_cstride) + " -DMIO_BN_NHW=" + std::to_string(in_nhw) +
+                        " -DMIO_BN_CHW=" + std::to_string(in_nstride) + " -DMIO_BN_NCHW=" +
+                        std::to_string(in_nchw); 
+                }
+
+                MIOPEN_LOG_I2(kernel_name << ":: " << algo_name);
+                MIOPEN_LOG_I2("..." << parms);
+                MIOPEN_LOG_I2("..." << network_config);
+
+                vld.push_back(xlocalsize);
+                vld.push_back(ylocalsize);
+                vld.push_back(zlocalsize);
+
+                vgd.push_back(xgridsize);
+                vgd.push_back(ygridsize);
+                vgd.push_back(zgridsize);
+
+                bnFwdTrainSelectSingleEmpty(handle,
+                                       bnScaleBiasMeanVarDesc.GetType(),
+                                       program_name,
+                                       algo_name,
+                                       kernel_name,
+                                       network_config,
+                                       parms,
+                                       vld,
+                                       vgd,
+                                       x,
+                                       y,
+                                       bnScale,
+                                       bnBias,
+                                       resultsave,
+                                       resultrunning,
+                                       expAvgFactor,
+                                       resultRunningMean,
+                                       resultRunningVariance,
+                                       epsilon,
+                                       resultSaveMean,
+                                       resultSaveInvVariance,
+                                       inhw,
+                                       n,
+                                       in_cstride,
+                                       in_nstride);
             }
         }
         else

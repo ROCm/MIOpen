@@ -47,7 +47,7 @@ void DeriveBNTensorDescriptor(TensorDescriptor& derivedBnDesc,
 
 TensorDescriptor BuildReshaped4DTensorDescriptor(const miopen::TensorDescriptor& tDesc);
 
-void bnBwdTrainSelectSingle(const Handle& handle,
+void bnBwdTrainSelectSingleEmpty(const Handle& handle,
                             miopenDataType_t dtype,
                             const std::string& program_name,
                             const std::string& algo_name,
@@ -66,7 +66,37 @@ void bnBwdTrainSelectSingle(const Handle& handle,
                             double epsilon,
                             ConstData_t savedMean,
                             ConstData_t savedInvVariance,
-                            float inhw);
+                            float inhw,
+                            unsigned int n,
+                            unsigned int in_cstride,
+                            unsigned int in_nstride);
+
+
+void bnFwdTrainSelectSingleFull(const Handle& handle,
+                            miopenDataType_t dtype,
+                            const std::string& program_name,
+                            const std::string& algo_name,
+                            const std::string& kernel_name,
+                            const std::string& network_config,
+                            const std::string& parms,
+                            const std::vector<size_t>& vld,
+                            const std::vector<size_t>& vgd,
+                            ConstData_t x,
+                            Data_t y,
+                            ConstData_t bnScale,
+                            ConstData_t bnBias,
+                            bool resultsave,
+                            bool resultrunning,
+                            double expAvgFactor,
+                            Data_t resultRunningMean,
+                            Data_t resultRunningVariance,
+                            double epsilon,
+                            Data_t resultSaveMean,
+                            Data_t resultSaveInvVariance,
+                            float inhw,
+                            unsigned int n,
+                            unsigned int in_cstride,
+                            unsigned int in_nstride);
 
 void bnBwdTrainSelectMulti(const Handle& handle,
                            miopenDataType_t dtype,
