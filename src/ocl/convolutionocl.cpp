@@ -1410,6 +1410,10 @@ void ConvolutionDescriptor::ConvFwdFFT(const Handle& handle,
     }
 }
 
+static const char immFallbackSelected[] = "Immediate mode Fallback selected.";
+static const char immFallbackFailed[] =
+    "Requested convolution is not supported or Immediate mode Fallback has failed.";
+
 std::size_t ConvolutionDescriptor::GetFwdSolutionCountFallback(const TensorDescriptor& wDesc,
                                                                const TensorDescriptor& xDesc,
                                                                const TensorDescriptor& yDesc) const
@@ -1421,10 +1425,10 @@ std::size_t ConvolutionDescriptor::GetFwdSolutionCountFallback(const TensorDescr
     if(IsGemmApplicableFwd(wDesc, xDesc, yDesc) &&
        !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
     {
-        MIOPEN_LOG_I("Fallback path, GEMM");
+        MIOPEN_LOG_I(immFallbackSelected);
         return 1;
     }
-    MIOPEN_LOG_I("Fallback path, GEMM disabled");
+    MIOPEN_LOG_I(immFallbackFailed);
     /// When count=0 the reason could be:
     /// * (1) Convolution is not implemented in the library at all, so Find() would fail as
     ///   well. This is case when rc = miopenStatusNotImplemented is correct.
@@ -1436,8 +1440,7 @@ std::size_t ConvolutionDescriptor::GetFwdSolutionCountFallback(const TensorDescr
     ///
     /// We can't distinguish these three cases.
     /// Let's do like Find() does:
-    MIOPEN_THROW(miopenStatusNotImplemented,
-                 "Requested convolution is not supported or immedate mode fallback has failed.");
+    MIOPEN_THROW(miopenStatusNotImplemented, immFallbackFailed);
 }
 
 std::size_t ConvolutionDescriptor::GetBwdSolutionCountFallback(const TensorDescriptor& dyDesc,
@@ -1449,13 +1452,11 @@ std::size_t ConvolutionDescriptor::GetBwdSolutionCountFallback(const TensorDescr
     if(IsGemmApplicableBwd(dyDesc, wDesc, dxDesc) &&
        !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
     {
-        MIOPEN_LOG_I("Fallback path, GEMM");
+        MIOPEN_LOG_I(immFallbackSelected);
         return 1;
     }
-    MIOPEN_LOG_I("Fallback path, GEMM disabled");
-    // See comment in Forward method.
-    MIOPEN_THROW(miopenStatusNotImplemented,
-                 "Requested convolution is not supported or immedate mode fallback has failed.");
+    MIOPEN_LOG_I(immFallbackFailed);
+    MIOPEN_THROW(miopenStatusNotImplemented, immFallbackFailed);
 }
 
 bool ConvolutionDescriptor::IsGemmApplicableWrw(const TensorDescriptor& dyDesc,
@@ -1529,13 +1530,12 @@ std::size_t ConvolutionDescriptor::GetWrwSolutionCountFallback(const TensorDescr
     if(IsGemmApplicableWrw(xDesc, dyDesc, dwDesc) &&
        !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
     {
-        MIOPEN_LOG_I("Fallback path, GEMM");
+        MIOPEN_LOG_I(immFallbackSelected);
         return 1;
     }
-    MIOPEN_LOG_I("Fallback path, GEMM disabled");
+    MIOPEN_LOG_I(immFallbackFailed);
     // See comment in Forward method.
-    MIOPEN_THROW(miopenStatusNotImplemented,
-                 "Requested convolution is not supported or immedate mode fallback has failed.");
+    MIOPEN_THROW(miopenStatusNotImplemented, immFallbackFailed);
 }
 
 std::size_t GetSolutionCount(Handle& handle, const ProblemDescription& problem)
