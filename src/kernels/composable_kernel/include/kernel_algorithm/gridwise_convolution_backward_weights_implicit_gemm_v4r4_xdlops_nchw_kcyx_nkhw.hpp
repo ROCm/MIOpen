@@ -220,7 +220,7 @@ struct GridwiseConvolutionBackwardWeightsImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw
            }*/
 
         constexpr InMemoryDataOperation CGlobalMemoryDataOperation =
-            GemmG > 1 ? InMemoryDataOperation::AtomicAdd : InMemoryDataOperation::Set;
+            GemmKBlocks > 1 ? InMemoryDataOperation::AtomicAdd : InMemoryDataOperation::Set;
         // gridwise batch-GEMM
         constexpr auto gridwise_gemm = GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2<
             GridSize,
