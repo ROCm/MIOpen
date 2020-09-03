@@ -108,6 +108,20 @@ struct SolverBase
     /// says "I'm suitable" for a problem, it agrees to solve that problem correctly.
     bool IsApplicable(const Context&) const { return false; }
 
+    /// [Informative as of Sep 2020] The minimum requirement for Dynamic Solvers:
+    /// Batch size and input picture size (N, W, H) must NOT be compiled into the
+    /// kernel(s) that consist a Solution. These must go into the kernel as a
+    /// run-time parameters.
+    bool IsDynamic() const { return false; }
+
+    /// [Informative as of Sep 2020] Returns an approximated value of the expected
+    /// WTI or -2.0 when this value can't be computed. Tips:
+    /// * Value 1.0 corresponds to the 100% utilization of HW capabilities as
+    ///   if Direct computational algorithm is used.
+    /// * [Notice] WTI may exceed 1.0 hor highly optimized algorithms like Winograd.
+    /// * @see https://github.com/ROCmSoftwarePlatform/MIOpen/issues/410
+    float GetWti(const Context&) const { return -2.0; }
+
     // Returns the workspace size required by the solver for a given ConvolutionContext
     size_t GetWorkspaceSize(const Context&) const { return 0; };
 
