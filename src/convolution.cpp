@@ -421,6 +421,9 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
     auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
     ctx.SetStream(&handle);
     ctx.DetectRocm();
+    ctx.SetupFloats();
+    ctx.do_search             = false;
+    ctx.disable_perfdb_access = true;
 
     const size_t workspace_size_winograd = ForwardBackwardDataGetWorkSpaceSizeWinograd(ctx);
 
@@ -460,10 +463,6 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         MIOPEN_LOG_I2(sol.workspace_size);
         return sol.workspace_size;
     }
-
-    ctx.SetupFloats();
-    ctx.do_search             = false;
-    ctx.disable_perfdb_access = true;
 
     const size_t direct_workspace = ForwardBackwardDataGetWorkSpaceSizeDirect(ctx);
 
@@ -536,6 +535,9 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
     auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
     ctx.SetStream(&handle);
     ctx.DetectRocm();
+    ctx.SetupFloats();
+    ctx.do_search             = false;
+    ctx.disable_perfdb_access = true;
 
     const size_t workspace_size_winograd = ForwardBackwardDataGetWorkSpaceSizeWinograd(ctx);
     if(IsWinograd3x3SupportedAndFast(ctx))
@@ -561,10 +563,6 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         MIOPEN_LOG_I2(sol.workspace_size);
         return sol.workspace_size;
     }
-
-    ctx.SetupFloats();
-    ctx.do_search             = false;
-    ctx.disable_perfdb_access = true;
 
     const size_t direct_workspace = ForwardBackwardDataGetWorkSpaceSizeDirect(ctx);
 
