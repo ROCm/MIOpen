@@ -203,8 +203,6 @@ struct GridwiseGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
             GemmDataPerReadM,
             GemmDataPerReadN>{};
 
-        constexpr auto c_k_thread_mtx_desc = blockwise_gemm.GetThreadMatrixCDescriptor();
-
         constexpr index_t a_block_space =
             math::integer_least_multiple(a_k_m_kpack_block_desc.GetElementSpace(), max_align);
 
@@ -214,12 +212,8 @@ struct GridwiseGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
         __shared__ ABFloat p_a_block_double[2 * a_block_space];
         __shared__ ABFloat p_b_block_double[2 * b_block_space];
 
-        // register allocation for output
-        AccFloat p_c_thread[c_k_thread_mtx_desc.GetElementSpace()];
-
-        // zero out threadwise output
-        threadwise_matrix_set_zero(c_k_thread_mtx_desc, p_c_thread);
-        blockwise_gemm.XdlopsMatrixCSetZero();
+        // get zero-initialized output register of vector type
+        auto c_thread_vec = blockwise_gemm.CreateOutputVecZero();
 
         // LDS double buffer: preload data into LDS
         {
@@ -274,7 +268,7 @@ struct GridwiseGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
                 const typename vector_type<ABFloat, KPACK>::MemoryType* p_b_block_vec =
                     reinterpret_cast<const typename vector_type<ABFloat, KPACK>::MemoryType*>(
                         p_b_block_now);
-                blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_c_thread);
+                c_thread_vec = blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, c_thread_vec);
 
                 // LDS double buffer: store next data to LDS
                 a_blockwise_copy.RunStoreThreadBuffer(p_a_thread_buffer, p_a_block_next);
@@ -307,7 +301,7 @@ struct GridwiseGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
                 const typename vector_type<ABFloat, KPACK>::MemoryType* p_b_block_vec =
                     reinterpret_cast<const typename vector_type<ABFloat, KPACK>::MemoryType*>(
                         p_b_block_double);
-                blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_c_thread);
+                c_thread_vec = blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, c_thread_vec);
 
                 // LDS double buffer: store last data to LDS
                 a_blockwise_copy.RunStoreThreadBuffer(p_a_thread_buffer,
@@ -324,7 +318,7 @@ struct GridwiseGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
                 p_b_block_vec =
                     reinterpret_cast<const typename vector_type<ABFloat, KPACK>::MemoryType*>(
                         p_b_block_double + b_block_space);
-                blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_c_thread);
+                c_thread_vec = blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, c_thread_vec);
             }
             else // if has 1 iteration left
             {
@@ -337,11 +331,9 @@ struct GridwiseGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
                 const typename vector_type<ABFloat, KPACK>::MemoryType* p_b_block_vec =
                     reinterpret_cast<const typename vector_type<ABFloat, KPACK>::MemoryType*>(
                         p_b_block_double);
-                blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_c_thread);
+                c_thread_vec = blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, c_thread_vec);
             }
         }
-        // load data from xldop_acc_regs
-        blockwise_gemm.XdlopsMatrixCRead(p_c_thread);
 
         // copy output: register to global memory
         {
@@ -365,6 +357,8 @@ struct GridwiseGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
             constexpr index_t BlkSize = OutputLayout.GetBlkSize();
             constexpr index_t NumBlks = OutputLayout.GetNumBlks();
 
+// force unrolling the output loop to get ride of scratches
+#pragma unroll
             for(index_t i = 0; i < NumBlks; ++i)
             {
                 // calculate origin of thread output tensor on global memory
@@ -392,7 +386,7 @@ struct GridwiseGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
                                   k_thread_data_on_global % (K2 * K1) / K2,
                                   k_thread_data_on_global % K2,
                                   b_thread_data_on_global})
-                    .Run(p_c_thread + i * BlkSize, p_c_global);
+                    .Run(c_thread_vec.n + i * BlkSize, p_c_global);
             }
         }
     }
@@ -556,8 +550,6 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
             GemmDataPerReadM,
             GemmDataPerReadN>{};
 
-        constexpr auto c_k_thread_mtx_desc = blockwise_gemm.GetThreadMatrixCDescriptor();
-
         constexpr index_t a_block_space =
             math::integer_least_multiple(a_g_k_m_kpack_block_desc.GetElementSpace(), max_align);
 
@@ -567,12 +559,8 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
         __shared__ ABFloat p_a_block_double[2 * a_block_space];
         __shared__ ABFloat p_b_block_double[2 * b_block_space];
 
-        // register allocation for output
-        AccFloat p_c_thread[c_k_thread_mtx_desc.GetElementSpace()];
-
-        // zero out threadwise output
-        threadwise_matrix_set_zero(c_k_thread_mtx_desc, p_c_thread);
-        blockwise_gemm.XdlopsMatrixCSetZero();
+        // get zero-initialized output register of vector type
+        auto c_thread_vec = blockwise_gemm.CreateOutputVecZero();
 
         // LDS double buffer: preload data into LDS
         {
@@ -627,7 +615,7 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
                 const typename vector_type<ABFloat, KPACK>::MemoryType* p_b_block_vec =
                     reinterpret_cast<const typename vector_type<ABFloat, KPACK>::MemoryType*>(
                         p_b_block_now);
-                blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_c_thread);
+                c_thread_vec = blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, c_thread_vec);
 
                 // LDS double buffer: store next data to LDS
                 a_blockwise_copy.RunStoreThreadBuffer(p_a_thread_buffer, p_a_block_next);
@@ -660,7 +648,7 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
                 const typename vector_type<ABFloat, KPACK>::MemoryType* p_b_block_vec =
                     reinterpret_cast<const typename vector_type<ABFloat, KPACK>::MemoryType*>(
                         p_b_block_double);
-                blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_c_thread);
+                c_thread_vec = blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, c_thread_vec);
 
                 // LDS double buffer: store last data to LDS
                 a_blockwise_copy.RunStoreThreadBuffer(p_a_thread_buffer,
@@ -677,7 +665,7 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
                 p_b_block_vec =
                     reinterpret_cast<const typename vector_type<ABFloat, KPACK>::MemoryType*>(
                         p_b_block_double + b_block_space);
-                blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_c_thread);
+                c_thread_vec = blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, c_thread_vec);
             }
             else // if has 1 iteration left
             {
@@ -690,11 +678,9 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
                 const typename vector_type<ABFloat, KPACK>::MemoryType* p_b_block_vec =
                     reinterpret_cast<const typename vector_type<ABFloat, KPACK>::MemoryType*>(
                         p_b_block_double);
-                blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_c_thread);
+                c_thread_vec = blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, c_thread_vec);
             }
         }
-        // load data from xldop_acc_regs
-        blockwise_gemm.XdlopsMatrixCRead(p_c_thread);
 
         // copy output: register to global memory
         {
@@ -724,6 +710,8 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
             constexpr index_t BlkSize = CLayout.GetBlkSize();
             constexpr index_t NumBlks = CLayout.GetNumBlks();
 
+// force unrolling the output loop to get ride of scratches
+#pragma unroll
             for(index_t i = 0; i < NumBlks; ++i)
             {
                 // calculate origin of thread output tensor on global memory
@@ -752,7 +740,7 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
                      m_thread_data_on_global % (M2 * M1) / M2,
                      m_thread_data_on_global % M2,
                      n_thread_data_on_global})
-                    .Run(p_c_thread + i * BlkSize, p_c_global);
+                    .Run(c_thread_vec.n + i * BlkSize, p_c_global);
             }
         }
     }
@@ -904,8 +892,6 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
             1,
             1>{};
 
-        constexpr auto c_k_thread_mtx_desc = blockwise_gemm.GetThreadMatrixCDescriptor();
-
         constexpr index_t a_block_space =
             math::integer_least_multiple(a_g_k_m_kpack_block_desc.GetElementSpace(), max_align);
 
@@ -915,12 +901,8 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
         __shared__ ABFloat p_a_block[a_block_space];
         __shared__ ABFloat p_b_block[b_block_space];
 
-        // register allocation for output
-        AccFloat p_c_thread[c_k_thread_mtx_desc.GetElementSpace()];
-
-        // zero out threadwise output
-        threadwise_matrix_set_zero(c_k_thread_mtx_desc, p_c_thread);
-        blockwise_gemm.XdlopsMatrixCSetZero();
+        // get zero-initialized output register of vector type
+        auto c_thread_vec = blockwise_gemm.CreateOutputVecZero();
 
         // preload data into LDS
         {
@@ -954,7 +936,8 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
             const typename vector_type<ABFloat, KPack>::MemoryType* p_b_block_vec =
                 reinterpret_cast<const typename vector_type<ABFloat, KPack>::MemoryType*>(
                     p_b_block);
-            blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_c_thread);
+
+            c_thread_vec = blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, c_thread_vec);
 
             block_sync_lds();
 
@@ -974,11 +957,9 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
             const typename vector_type<ABFloat, KPack>::MemoryType* p_b_block_vec =
                 reinterpret_cast<const typename vector_type<ABFloat, KPack>::MemoryType*>(
                     p_b_block);
-            blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_c_thread);
-        }
 
-        // load data from xldop_acc_regs
-        blockwise_gemm.XdlopsMatrixCRead(p_c_thread);
+            c_thread_vec = blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, c_thread_vec);
+        }
 
         // copy output: register to global memory
         {
@@ -1009,6 +990,8 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
             constexpr index_t BlkSize = blockwise_gemm.GetBlkSize();
             constexpr index_t NumBlks = blockwise_gemm.GetNumBlks();
 
+// force unrolling the output loop to get ride of scratches
+#pragma unroll
             for(index_t i = 0; i < NumBlks; ++i)
             {
                 // calculate origin of thread output tensor on global memory
@@ -1037,7 +1020,7 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
                      m_thread_data_on_global % (M2 * M1) / M2,
                      m_thread_data_on_global % M2,
                      n_thread_data_on_global})
-                    .Run(p_c_thread + i * BlkSize, p_c_global);
+                    .Run(c_thread_vec.n + i * BlkSize, p_c_global);
             }
         }
     }
