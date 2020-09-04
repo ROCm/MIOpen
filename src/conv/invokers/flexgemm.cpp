@@ -92,7 +92,7 @@ InvokerFactory MakeFlexgemmInvokerFactory( const solver::param_conv_t& p, float 
             const auto& params=boost::any_cast<DataInvokeParams>(prim_params);
             const size_t auxsize=get_auxbuf_size(p);
             if(params.workSpace==nullptr||params.workSpaceSize<auxsize)
-                MIOPEN_THROW("Workspace is not enough for cellfft");
+                MIOPEN_THROW("Workspace is not enough for flexgemm");
             const auto& tensors=params.tensors;
             float elapsed=0.f;
             uint8_t* a=reinterpret_cast<uint8_t*>(params.workSpace);
