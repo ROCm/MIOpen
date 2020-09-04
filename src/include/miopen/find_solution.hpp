@@ -148,7 +148,7 @@ struct SolverContainer
                 else if(!solver.IsApplicable(search_params))
                     MIOPEN_LOG_I2(SolverDbId(solver) << ": Not applicable");
                 else if(search_params.use_dynamic_solutions_only && !solver.IsDynamic())
-                    MIOPEN_LOG_I(SolverDbId(solver) << ": Skipped (non-dynamic).");
+                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Skipped (non-dynamic)");
                 else
                 {
                     const Solution s = FindSolution(solver, search_params, db);
@@ -186,7 +186,7 @@ struct SolverContainer
                 else if(!solver.IsApplicable(search_params))
                     MIOPEN_LOG_I2(SolverDbId(solver) << ": Not applicable");
                 else if(search_params.use_dynamic_solutions_only && !solver.IsDynamic())
-                    MIOPEN_LOG_I(SolverDbId(solver) << ": Skipped (non-dynamic).");
+                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Skipped (non-dynamic)");
                 else
                 {
                     auto sz = solver.GetWorkspaceSize(search_params);
