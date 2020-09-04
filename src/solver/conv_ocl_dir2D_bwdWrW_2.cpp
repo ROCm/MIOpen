@@ -24,9 +24,9 @@
  *
  *******************************************************************************/
 
+#if MIOPEN_BACKEND_OPENCL
 #include <miopen/solver.hpp>
 
-#if MIOPEN_BACKEND_OPENCL
 #include <miopen/conv/invokers/ocl_wrw_rdc.hpp>
 #include <miopen/env.hpp>
 #include <miopen/generic_search.hpp>
