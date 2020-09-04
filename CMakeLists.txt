@@ -165,7 +165,7 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
         endif()
     endif()
 
-    # miopentensile temporarily not support opencl backend yet.
+    # MIOpenTensile does not support opencl backend yet.
     set(MIOPEN_USE_MIOPENTENSILE OFF CACHE BOOL "")
 
     # TODO (priority_low) Use to build HIP and ASM kernels.
