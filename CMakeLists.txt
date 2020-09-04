@@ -192,12 +192,8 @@ add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
 if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     set(MIOPEN_BACKEND_HIP 1)
     set(MIOPEN_USE_MIOPENGEMM OFF CACHE BOOL "")
-    # miopentensile
-    if(CMAKE_CXX_COMPILER MATCHES ".*/hcc$")
-        set(MIOPEN_USE_MIOPENTENSILE OFF CACHE BOOL "")
-    else()
-        set(MIOPEN_USE_MIOPENTENSILE ON CACHE BOOL "")
-    endif()
+    # miopentensile default off
+    set(MIOPEN_USE_MIOPENTENSILE OFF CACHE BOOL "")
 
     find_program(HIP_OC_COMPILER clang-ocl
         PATH_SUFFIXES bin
