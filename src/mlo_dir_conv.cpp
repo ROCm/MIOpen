@@ -188,14 +188,12 @@ static auto GetBwdWrW2DSolvers()
 {
     return miopen::solver::SolverContainer<miopen::solver::ConvAsmBwdWrW1x1,
                                            miopen::solver::ConvAsmBwdWrW3x3,
-#if MIOPEN_BACKEND_OPENCL
                                            miopen::solver::ConvOclBwdWrW2<1>,
                                            miopen::solver::ConvOclBwdWrW2<2>,
                                            miopen::solver::ConvOclBwdWrW2<4>,
                                            miopen::solver::ConvOclBwdWrW2<8>,
                                            miopen::solver::ConvOclBwdWrW2<16>,
                                            miopen::solver::ConvOclBwdWrW2NonTunable,
-#endif // MIOPEN_BACKEND_OPENCL
                                            miopen::solver::ConvOclBwdWrW53,
                                            miopen::solver::ConvOclBwdWrW1x1>{};
 }

@@ -1709,7 +1709,6 @@ struct ConvAsmBwdWrW1x1 : SolverBase<ConvolutionContext>
 ///     Required workspace size depends on it. However there is a restriction in the internal
 ///     Solver API that this shouldn't be so. Therefore the family of Solvers created.
 ///     Each Solver in the family has constant value of this parameter.
-#if MIOPEN_BACKEND_OPENCL
 template <int N_BATCH_LOOPS>
 struct PerformanceConfigConvOclBwdWrw2
     : Serializable<PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>>
@@ -1827,7 +1826,6 @@ struct ConvOclBwdWrW2NonTunable : ConvOclBwdWrW2<1>
                              const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& config,
                              bool disableConfigOverrideFromEnv = false) const;
 };
-#endif // MIOPEN_BACKEND_OPENCL
 
 struct ConvOclBwdWrW53 : SolverBase<ConvolutionContext>
 {

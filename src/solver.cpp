@@ -231,14 +231,12 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     RegisterWithSolver(registry, ++id, ConvBinWinogradRxS{}, miopenConvolutionAlgoWinograd);
     RegisterWithSolver(registry, ++id, ConvAsmBwdWrW3x3{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvAsmBwdWrW1x1{}, miopenConvolutionAlgoDirect);
-#if MIOPEN_BACKEND_OPENCL
     RegisterWithSolver(registry, ++id, ConvOclBwdWrW2<1>{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvOclBwdWrW2<2>{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvOclBwdWrW2<4>{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvOclBwdWrW2<8>{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvOclBwdWrW2<16>{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvOclBwdWrW2NonTunable{}, miopenConvolutionAlgoDirect);
-#endif // MIOPEN_BACKEND_OPENCL
     RegisterWithSolver(registry, ++id, ConvOclBwdWrW53{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvOclBwdWrW1x1{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(
