@@ -657,14 +657,6 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::IsFastToBeUsedForTuning(
 
         const float ratio = float(grid_size) / grid_size_max_blockwise_gemm;
 
-        // std::cout << "gemm_m: " << gemm_m << " gemm_n: " << gemm_n << " gridsize: " << grid_size
-        // << " ratio: " << ratio << " grid_size_max_blockwise_gemm: " <<
-        // grid_size_max_blockwise_gemm <<  std::endl;
-        // std::cout << "GemmMPerBlock: " << GemmMPerBlock << " GemmNPerBlock: " << GemmNPerBlock <<
-        // " GemmKPerBlock: " << GemmKPerBlock << " GemmKPack: " << GemmKPack << " GemmMPerWave: "
-        // << GemmMPerWave << " GemmNPerWave: " << GemmNPerWave  << " GemmKBlocks: "<< GemmKBlocks
-        // << std::endl;
-
         if(grid_size_max_blockwise_gemm > 600)
         {
             if(ratio > 1.41)
@@ -884,12 +876,6 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
              GemmBBlockCopyDstDataPerWrite_GemmKPack,
              std::ignore) = config.CalculateGemmBBlockCopyPerformanceParameters(ctx);
 
-    // std::cout << "GemmABlockCopySrcDataPerRead_GemmKPack: " <<
-    // GemmABlockCopySrcDataPerRead_GemmKPack << " GemmABlockCopyDstDataPerWrite_GemmKPack: " <<
-    // GemmABlockCopyDstDataPerWrite_GemmKPack << std::endl;
-    // std::cout << "GemmBBlockCopySrcDataPerRead_GemmKPack: " <<
-    // GemmBBlockCopySrcDataPerRead_GemmKPack << " GemmBBlockCopyDstDataPerWrite_GemmKPack: " <<
-    // GemmBBlockCopyDstDataPerWrite_GemmKPack << std::endl;
     // clang-format off
     construction_parameters.comp_options =
         std::string(" -std=c++14 ") +
