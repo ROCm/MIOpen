@@ -31,6 +31,8 @@
 #include <miopen/tensor_ops.hpp>
 #include <miopen/tensor.hpp>
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_FFT)
+
 namespace miopen {
 
 static size_t GetWorkSpaceSizeFFT(const TensorDescriptor& wDesc,
@@ -39,6 +41,9 @@ static size_t GetWorkSpaceSizeFFT(const TensorDescriptor& wDesc,
                                   const std::tuple<int, int, int, int> cparam,
                                   bool fwd)
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT{}))
+        return 0;
+
     int in_n, in_c, in_h, in_w;
     std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(xDesc.GetLengths());
 
