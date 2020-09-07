@@ -361,7 +361,7 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsReallyValid(const ConvolutionCo
     if(!valid)
         return false;
 
-    std::size_t lds_size      = 0;
+    std::size_t lds_size = 0;
     std::tie(lds_size, valid) = CalculateLdsNumberOfByte(ctx);
 
     return (valid and lds_size <= 64 * 1024);
@@ -445,7 +445,7 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsFastToBeUsedForTuning(
             return false;
         }
     }
-
+    /*3x3 should use these configs
     // avoid skinny blockwise GEMM whenever possible
     {
         int gemm_m = 0;
@@ -481,7 +481,7 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsFastToBeUsedForTuning(
                 return false;
         }
     }
-
+    */
     // each thread should not too much data
     {
         const int block_size = (GemmMPerBlock / GemmMPerWave) * (GemmNPerBlock / GemmNPerWave) * 64;
@@ -550,8 +550,8 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::PerformanceImplicitGemmBwdDataV4R1Xdlo
 {
 }
 
-bool PerformanceImplicitGemmBwdDataV4R1Xdlops::operator==(
-    const PerformanceImplicitGemmBwdDataV4R1Xdlops& other) const
+bool PerformanceImplicitGemmBwdDataV4R1Xdlops::
+operator==(const PerformanceImplicitGemmBwdDataV4R1Xdlops& other) const
 {
     // clang-format off
     return GemmNPerBlock == other.GemmNPerBlock
@@ -585,9 +585,9 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::SetNextValue()
             break;
         if(!NextFlag<true, false>(GemmAThreadCopyMoreGemmK))
             break;
-        if(!NextTwoPower<64, 256>(GemmNPerBlock))
+        if(!NextTwoPower<16, 256>(GemmNPerBlock))
             break;
-        if(!NextTwoPower<64, 256>(GemmMPerBlock))
+        if(!NextTwoPower<4, 256>(GemmMPerBlock))
             break;
         if(!NextTwoPower<1, 8>(GemmKPerBlock))
             break;
@@ -632,7 +632,7 @@ void PerformanceImplicitGemmBwdDataV4R1Xdlops::EuristicInit(const ConvolutionCon
                         break;
                     if(!PreviousTwoPower<4, 128>(tmp.GemmMPerWave))
                         break;
-                    if(!PreviousTwoPower<4, 256>(tmp.GemmNPerBlock))
+                    if(!PreviousTwoPower<16, 256>(tmp.GemmNPerBlock))
                         break;
                     if(!PreviousTwoPower<4, 256>(tmp.GemmMPerBlock))
                         break;
@@ -659,11 +659,6 @@ void PerformanceImplicitGemmBwdDataV4R1Xdlops::EuristicInit(const ConvolutionCon
                     if(!NextFlag<true, false>(GemmAThreadCopyMoreGemmK))
                         break;
 
-                    if(!NextFlag<true, false>(GemmBThreadCopyMoreGemmKPack))
-                        break;
-                    if(!NextFlag<true, false>(GemmAThreadCopyMoreGemmK))
-                        break;
-
                     if(!PreviousTwoPower<1, 8>(tmp.GemmKPerBlock))
                         break;
                     if(!PreviousTwoPower<4, 8>(tmp.GemmKPACKSize))
@@ -672,7 +667,7 @@ void PerformanceImplicitGemmBwdDataV4R1Xdlops::EuristicInit(const ConvolutionCon
                         break;
                     if(!PreviousTwoPower<4, 128>(tmp.GemmMPerWave))
                         break;
-                    if(!PreviousTwoPower<4, 256>(tmp.GemmNPerBlock))
+                    if(!PreviousTwoPower<16, 256>(tmp.GemmNPerBlock))
                         break;
                     if(!PreviousTwoPower<4, 256>(tmp.GemmMPerBlock))
                         break;
@@ -707,7 +702,7 @@ void PerformanceImplicitGemmBwdDataV4R1Xdlops::EuristicInit(const ConvolutionCon
                         break;
                     if(!PreviousTwoPower<4, 128>(tmp.GemmMPerWave))
                         break;
-                    if(!PreviousTwoPower<4, 256>(tmp.GemmNPerBlock))
+                    if(!PreviousTwoPower<16, 256>(tmp.GemmNPerBlock))
                         break;
                     if(!PreviousTwoPower<4, 256>(tmp.GemmMPerBlock))
                         break;
