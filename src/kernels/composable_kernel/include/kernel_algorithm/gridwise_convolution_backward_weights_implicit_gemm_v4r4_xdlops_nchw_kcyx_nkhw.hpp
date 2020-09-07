@@ -63,8 +63,8 @@ struct GridwiseConvolutionBackwardWeightsImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw
         constexpr index_t Ho = out_n_k_ho_wo_global_desc.GetLengths()[2];
         constexpr index_t Wo = out_n_k_ho_wo_global_desc.GetLengths()[3];
 
-        constexpr index_t Y = wei_k_cpergroup_y_x_global_desc.GetLengths()[2];
-        constexpr index_t X = wei_k_cpergroup_y_x_global_desc.GetLengths()[3];
+        constexpr index_t Y         = wei_k_cpergroup_y_x_global_desc.GetLengths()[2];
+        constexpr index_t X         = wei_k_cpergroup_y_x_global_desc.GetLengths()[3];
         constexpr index_t CPerGroup = C / G;
         constexpr index_t KPerGroup = K / G;
 
