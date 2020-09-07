@@ -467,17 +467,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                Data_t workSpace,
                                const TKernels& kernels) const;
 
-    std::size_t GetFwdSolutionWorkspaceSizeFallback(Handle& handle,
-                                                    const TensorDescriptor& wDesc,
-                                                    const TensorDescriptor& xDesc,
-                                                    const TensorDescriptor& yDesc,
-                                                    solver::Id solver_id) const;
-
-    std::size_t GetBwdSolutionWorkspaceSizeFallback(const TensorDescriptor& dyDesc,
-                                                    const TensorDescriptor& wDesc,
-                                                    const TensorDescriptor& dxDesc,
-                                                    solver::Id solver_id) const;
-
     void GetSolutionsFallback(Handle& handle,
                               const ProblemDescription& problem,
                               const size_t maxSolutionCount,
@@ -507,12 +496,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     std::size_t GetWrwSolutionCountFallback(const TensorDescriptor& dyDesc,
                                             const TensorDescriptor& xDesc,
                                             const TensorDescriptor& dwDesc) const;
-
-    std::size_t GetWrwSolutionWorkspaceSizeFallback(Handle& handle,
-                                                    const TensorDescriptor& dyDesc,
-                                                    const TensorDescriptor& xDesc,
-                                                    const TensorDescriptor& dwDesc,
-                                                    solver::Id solver_id) const;
 };
 
 void ConvolutionBackwardBias(const Handle& handle,

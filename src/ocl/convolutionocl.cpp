@@ -1744,74 +1744,6 @@ void ConvolutionDescriptor::GetForwardSolutions(Handle& handle,
         GetSolutionsFallback(handle, problem, maxSolutionCount, solutionCount, solutions);
 }
 
-std::size_t
-ConvolutionDescriptor::GetFwdSolutionWorkspaceSizeFallback(Handle& handle,
-                                                           const TensorDescriptor& wDesc,
-                                                           const TensorDescriptor& xDesc,
-                                                           const TensorDescriptor& yDesc,
-                                                           solver::Id solver_id) const
-{
-    ValidateGroupCount(xDesc, wDesc, *this);
-    if(solver_id == solver::Id::gemm() && IsGemmApplicableFwd(wDesc, xDesc, yDesc))
-    {
-        MIOPEN_LOG_I("Fallback path, GEMM");
-        return ForwardGetValidWorkSpaceSizeGemm(handle, wDesc, xDesc, yDesc);
-    }
-    MIOPEN_THROW(miopenStatusNotImplemented);
-}
-
-std::size_t
-ConvolutionDescriptor::BackwardGetValidWorkSpaceSizeGemm(const TensorDescriptor& dyDesc,
-                                                         const TensorDescriptor& wDesc,
-                                                         const TensorDescriptor& dxDesc) const
-{
-    const auto wei_spatial =
-        boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + GetSpatialDimension());
-
-    if(GetSpatialDimension() == 2 && miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-       miopen::all_of(GetConvPads(), [](auto v) { return v == 0; }) &&
-       miopen::all_of(GetConvStrides(), [](auto v) { return v == 2; }))
-        return BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc);
-
-    if(miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-       miopen::all_of(GetConvPads(), [](auto v) { return v == 0; }) &&
-       miopen::all_of(GetConvStrides(), [](auto v) { return v == 1; }))
-        return 0;
-
-    return BackwardDataGetWorkSpaceSizeGEMM(wDesc, dyDesc);
-}
-
-std::size_t
-ConvolutionDescriptor::GetBwdSolutionWorkspaceSizeFallback(const TensorDescriptor& dyDesc,
-                                                           const TensorDescriptor& wDesc,
-                                                           const TensorDescriptor& dxDesc,
-                                                           solver::Id solver_id) const
-{
-    ValidateGroupCount(dxDesc, wDesc, *this);
-    if(solver_id == solver::Id::gemm() && IsGemmApplicableBwd(dyDesc, wDesc, dxDesc))
-    {
-        MIOPEN_LOG_I("Fallback path, GEMM");
-        return BackwardGetValidWorkSpaceSizeGemm(dyDesc, wDesc, dxDesc);
-    }
-    MIOPEN_THROW(miopenStatusNotImplemented);
-}
-
-std::size_t
-ConvolutionDescriptor::GetWrwSolutionWorkspaceSizeFallback(Handle& /*handle*/,
-                                                           const TensorDescriptor& dyDesc,
-                                                           const TensorDescriptor& xDesc,
-                                                           const TensorDescriptor& dwDesc,
-                                                           solver::Id solver_id) const
-{
-    ValidateGroupCount(xDesc, dwDesc, *this);
-    if(solver_id == solver::Id::gemm() && IsGemmApplicableWrw(dyDesc, xDesc, dwDesc))
-    {
-        MIOPEN_LOG_I("Fallback path, GEMM");
-        return WrwGetValidWorkSpaceSizeGemm(dyDesc, xDesc, dwDesc);
-    }
-    MIOPEN_THROW(miopenStatusNotImplemented);
-}
-
 std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(Handle& handle,
                                                                    const TensorDescriptor& wDesc,
                                                                    const TensorDescriptor& xDesc,
@@ -1821,25 +1753,22 @@ std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(Handle& handl
     MIOPEN_LOG_I("solver_id = " << solver_id.ToString());
     if(!solver_id.IsValid())
         MIOPEN_THROW(miopenStatusBadParm, "invalid solution id = " + solver_id.ToString());
-    if(solver_id != solver::Id::gemm() && solver_id != solver::Id::fft())
-    {
-        auto sol = solver_id.GetSolver();
-        auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
-        ctx.SetStream(&handle);
-        ctx.DetectRocm();
-        if(sol.IsApplicable(ctx))
-            return sol.GetWorkspaceSize(ctx);
-        else
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "The supplied solution id: " + solver_id.ToString() +
-                             " is not applicable to the current problem");
-        }
-    }
-    else if(solver_id == solver::Id::fft())
+
+    if(solver_id == solver::Id::gemm())
+        return ForwardGetValidWorkSpaceSizeGemm(handle, wDesc, xDesc, yDesc);
+    if(solver_id == solver::Id::fft())
         return ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
-    // handles the GEMM case
-    return GetFwdSolutionWorkspaceSizeFallback(handle, wDesc, xDesc, yDesc, solver_id);
+
+    auto sol = solver_id.GetSolver();
+    auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
+    ctx.SetStream(&handle);
+    ctx.DetectRocm();
+    if(sol.IsApplicable(ctx))
+        return sol.GetWorkspaceSize(ctx);
+    else
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "The supplied solution id: " + solver_id.ToString() +
+                         " is not applicable to the current problem");
 }
 
 // Todo: remove when all immediate mode calls will support invokers
@@ -2914,24 +2843,22 @@ std::size_t ConvolutionDescriptor::GetBackwardSolutionWorkspaceSize(Handle& hand
     MIOPEN_LOG_I2("solver_id = " << solver_id.ToString());
     if(!solver_id.IsValid())
         MIOPEN_THROW(miopenStatusBadParm, "invalid solution id = " + solver_id.ToString());
-    if(solver_id != solver::Id::gemm() && solver_id != solver::Id::fft())
-    {
-        auto sol = solver_id.GetSolver();
-        auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
-        ctx.SetStream(&handle);
-        ctx.DetectRocm();
-        if(sol.IsApplicable(ctx))
-            return sol.GetWorkspaceSize(ctx);
-        else
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "The supplied solution id: " + solver_id.ToString() +
-                             " is not applicable to the current problem");
-        }
-    }
-    else if(solver_id == solver::Id::fft())
+
+    if(solver_id == solver::Id::gemm())
+        return BackwardGetValidWorkSpaceSizeGemm(dyDesc, wDesc, dxDesc);
+    if(solver_id == solver::Id::fft())
         return BackwardGetWorkSpaceSizeFFT(wDesc, dyDesc, dxDesc);
-    return GetBwdSolutionWorkspaceSizeFallback(dyDesc, wDesc, dxDesc, solver_id);
+
+    auto sol = solver_id.GetSolver();
+    auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
+    ctx.SetStream(&handle);
+    ctx.DetectRocm();
+    if(sol.IsApplicable(ctx))
+        return sol.GetWorkspaceSize(ctx);
+    else
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "The supplied solution id: " + solver_id.ToString() +
+                         " is not applicable to the current problem");
 }
 
 void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
@@ -3628,24 +3555,27 @@ std::size_t ConvolutionDescriptor::GetWrwSolutionWorkspaceSize(Handle& handle,
     MIOPEN_LOG_I2("solver_id = " << solver_id.ToString());
     if(!solver_id.IsValid())
         MIOPEN_THROW(miopenStatusBadParm, "invalid solution id = " + solver_id.ToString());
-    if(solver_id != solver::Id::gemm() && solver_id != solver::Id::fft())
-    {
-        auto sol = solver_id.GetSolver();
-        auto problem =
-            ProblemDescription{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
-        auto ctx = ConvolutionContext{problem};
-        ctx.SetStream(&handle);
-        ctx.DetectRocm();
-        if(sol.IsApplicable(ctx))
-            return sol.GetWorkspaceSize(ctx);
-        else
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "The supplied solution id: " + solver_id.ToString() +
-                             " is not applicable to the current problem");
-        }
-    }
-    return GetWrwSolutionWorkspaceSizeFallback(handle, dyDesc, xDesc, dwDesc, solver_id);
+
+    if(solver_id == solver::Id::fft())
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "The supplied solution id: " + solver_id.ToString() +
+                         " is not applicable to the current problem");
+
+    if(solver_id == solver::Id::gemm())
+        return WrwGetValidWorkSpaceSizeGemm(dyDesc, xDesc, dwDesc);
+
+    auto sol = solver_id.GetSolver();
+    auto problem =
+        ProblemDescription{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
+    auto ctx = ConvolutionContext{problem};
+    ctx.SetStream(&handle);
+    ctx.DetectRocm();
+    if(sol.IsApplicable(ctx))
+        return sol.GetWorkspaceSize(ctx);
+    else
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "The supplied solution id: " + solver_id.ToString() +
+                         " is not applicable to the current problem");
 }
 
 void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
