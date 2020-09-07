@@ -1410,7 +1410,6 @@ void ConvolutionDescriptor::ConvFwdFFT(const Handle& handle,
     }
 }
 
-static const char immFallbackSelected[] = "Immediate mode Fallback selected.";
 static const char immFallbackFailed[] =
     "Requested convolution is not supported or Immediate mode Fallback has failed.";
 
@@ -1425,7 +1424,6 @@ std::size_t ConvolutionDescriptor::GetFwdSolutionCountFallback(const TensorDescr
     if(IsGemmApplicableFwd(wDesc, xDesc, yDesc) &&
        !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
     {
-        MIOPEN_LOG_I(immFallbackSelected);
         return 1;
     }
     MIOPEN_LOG_I(immFallbackFailed);
@@ -1452,7 +1450,6 @@ std::size_t ConvolutionDescriptor::GetBwdSolutionCountFallback(const TensorDescr
     if(IsGemmApplicableBwd(dyDesc, wDesc, dxDesc) &&
        !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
     {
-        MIOPEN_LOG_I(immFallbackSelected);
         return 1;
     }
     MIOPEN_LOG_I(immFallbackFailed);
@@ -1530,7 +1527,6 @@ std::size_t ConvolutionDescriptor::GetWrwSolutionCountFallback(const TensorDescr
     if(IsGemmApplicableWrw(xDesc, dyDesc, dwDesc) &&
        !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
     {
-        MIOPEN_LOG_I(immFallbackSelected);
         return 1;
     }
     MIOPEN_LOG_I(immFallbackFailed);
@@ -1654,96 +1650,75 @@ void GetSolutions(Handle& handle,
     *solutionCount = i;
 }
 
-void ConvolutionDescriptor::GetForwardSolutionsFallback(Handle& handle,
-                                                        const TensorDescriptor& wDesc,
-                                                        const TensorDescriptor& xDesc,
-                                                        const TensorDescriptor& yDesc,
-                                                        const size_t maxSolutionCount,
-                                                        size_t* const solutionCount,
-                                                        miopenConvSolution_t* const solutions) const
+void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
+                                                 const ProblemDescription& problem,
+                                                 const size_t maxSolutionCount,
+                                                 size_t* const solutionCount,
+                                                 miopenConvSolution_t* const solutions) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
+    {
+        MIOPEN_LOG_I("Disabled via environment");
+        *solutionCount = 0;
+        return;
+    }
+
+    // FIXME This is terrific.
+    const auto& inDesc = problem.direction.IsForward() ? problem.conv_problem.GetIn()
+                                                       : problem.conv_problem.GetOut();
+    const auto& outDesc = problem.direction.IsForward() ? problem.conv_problem.GetOut()
+                                                        : problem.conv_problem.GetIn();
+    const auto& weightsDesc = problem.conv_problem.GetWeights();
+
     // This check is needed on fallback path only.
-    // Regular (find-db) path have been verified during Find().
-    ValidateGroupCount(xDesc, wDesc, *this);
+    // On regular path (find-db hit) this was checked during Find().
+    ValidateGroupCount(inDesc, weightsDesc, *this);
+
     auto i = std::size_t{0};
 
-    if(IsGemmApplicableFwd(wDesc, xDesc, yDesc) &&
-       !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
+    if(problem.direction.IsForward())
     {
-        MIOPEN_LOG_I("Fallback path, GEMM");
-        if(i < maxSolutionCount)
+        if(IsGemmApplicableFwd(weightsDesc, inDesc, outDesc) && (i < maxSolutionCount))
         {
             solutions[i].algorithm = miopenConvolutionAlgoGEMM;
-            solutions[i].time      = -1.0; /// \todo Evaluate time.
+            solutions[i].time      = -1.0;
             solutions[i].workspace_size =
-                ForwardGetValidWorkSpaceSizeGemm(handle, wDesc, xDesc, yDesc);
+                ForwardGetValidWorkSpaceSizeGemm(handle, weightsDesc, inDesc, outDesc);
+            solutions[i].solution_id = solver::Id::gemm().Value();
+            ++i;
+        }
+    }
+    else if(problem.direction.IsBackwardData())
+    {
+        if(IsGemmApplicableBwd(outDesc, weightsDesc, inDesc) && (i < maxSolutionCount))
+        {
+            solutions[i].algorithm = miopenConvolutionAlgoGEMM;
+            solutions[i].time      = -1.0;
+            solutions[i].workspace_size =
+                BackwardGetValidWorkSpaceSizeGemm(outDesc, weightsDesc, inDesc);
+            solutions[i].solution_id = solver::Id::gemm().Value();
+            ++i;
+        }
+    }
+    else if(problem.direction.IsBackwardWrW())
+    {
+        if(IsGemmApplicableWrw(outDesc, inDesc, weightsDesc) && (i < maxSolutionCount))
+        {
+            solutions[i].algorithm = miopenConvolutionAlgoGEMM;
+            solutions[i].time      = -1.0;
+            solutions[i].workspace_size =
+                WrwGetValidWorkSpaceSizeGemm(outDesc, inDesc, weightsDesc);
             solutions[i].solution_id = solver::Id::gemm().Value();
             ++i;
         }
     }
     else
-        MIOPEN_LOG_I("Fallback path, GEMM disabled");
-
-    *solutionCount = i;
-}
-
-void ConvolutionDescriptor::GetBwdSolutionsFallback(Handle& /*handle*/,
-                                                    const TensorDescriptor& dyDesc,
-                                                    const TensorDescriptor& wDesc,
-                                                    const TensorDescriptor& dxDesc,
-                                                    const size_t maxSolutionCount,
-                                                    size_t* const solutionCount,
-                                                    miopenConvSolution_t* const solutions) const
-{
-    ValidateGroupCount(dxDesc, wDesc, *this);
-    auto i = std::size_t{0};
-
-    if(IsGemmApplicableBwd(dyDesc, wDesc, dxDesc) &&
-       !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
     {
-        MIOPEN_LOG_I("Fallback path, GEMM");
-        if(i < maxSolutionCount)
-        {
-            solutions[i].algorithm      = miopenConvolutionAlgoGEMM;
-            solutions[i].time           = -1.0; /// \todo Evaluate time.
-            solutions[i].workspace_size = BackwardGetValidWorkSpaceSizeGemm(dyDesc, wDesc, dxDesc);
-            solutions[i].solution_id    = solver::Id::gemm().Value();
-            ++i;
-        }
+        MIOPEN_THROW("Unknown direction");
     }
-    else
-        MIOPEN_LOG_I("Fallback path, GEMM disabled");
 
-    *solutionCount = i;
-}
-
-void ConvolutionDescriptor::GetWrwSolutionsFallback(Handle& /*handle*/,
-                                                    const TensorDescriptor& dyDesc,
-                                                    const TensorDescriptor& xDesc,
-                                                    const TensorDescriptor& dwDesc,
-                                                    const size_t maxSolutionCount,
-                                                    size_t* const solutionCount,
-                                                    miopenConvSolution_t* const solutions) const
-{
-    ValidateGroupCount(xDesc, dwDesc, *this);
-    auto i = std::size_t{0};
-
-    if(IsGemmApplicableWrw(dyDesc, xDesc, dwDesc) &&
-       !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
-    {
-        MIOPEN_LOG_I("Fallback path, GEMM");
-        if(i < maxSolutionCount)
-        {
-            solutions[i].algorithm      = miopenConvolutionAlgoGEMM;
-            solutions[i].time           = -1.0; /// \todo Evaluate time.
-            solutions[i].workspace_size = WrwGetValidWorkSpaceSizeGemm(dyDesc, xDesc, dwDesc);
-            solutions[i].solution_id    = solver::Id::gemm().Value();
-            ++i;
-        }
-    }
-    else
-        MIOPEN_LOG_I("Fallback path, GEMM disabled");
-
+    if(i < 1)
+        MIOPEN_LOG_I("No solution found");
     *solutionCount = i;
 }
 
@@ -1766,8 +1741,7 @@ void ConvolutionDescriptor::GetForwardSolutions(Handle& handle,
         handle, problem, maxSolutionCount, solutionCount, solutions, StringToConvolutionFwdAlgo);
 
     if(*solutionCount == 0)
-        GetForwardSolutionsFallback(
-            handle, wDesc, xDesc, yDesc, maxSolutionCount, solutionCount, solutions);
+        GetSolutionsFallback(handle, problem, maxSolutionCount, solutionCount, solutions);
 }
 
 std::size_t
@@ -2908,8 +2882,7 @@ void ConvolutionDescriptor::GetBackwardSolutions(Handle& handle,
                  StringToConvolutionBwdDataAlgo);
 
     if(*solutionCount == 0)
-        GetBwdSolutionsFallback(
-            handle, dyDesc, wDesc, dxDesc, maxSolutionCount, solutionCount, solutions);
+        GetSolutionsFallback(handle, problem, maxSolutionCount, solutionCount, solutions);
 }
 
 void ConvolutionDescriptor::CompileBackwardSolution(Handle& handle,
@@ -3627,8 +3600,7 @@ void ConvolutionDescriptor::GetWrwSolutions(Handle& handle,
                  StringToConvolutionBwdWeightsAlgo);
 
     if(*solutionCount == 0)
-        GetWrwSolutionsFallback(
-            handle, dyDesc, xDesc, dwDesc, maxSolutionCount, solutionCount, solutions);
+        GetSolutionsFallback(handle, problem, maxSolutionCount, solutionCount, solutions);
 }
 
 void ConvolutionDescriptor::CompileWrwSolution(Handle& handle,

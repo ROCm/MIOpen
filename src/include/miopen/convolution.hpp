@@ -478,21 +478,11 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                                     const TensorDescriptor& dxDesc,
                                                     solver::Id solver_id) const;
 
-    void GetForwardSolutionsFallback(Handle& handle,
-                                     const TensorDescriptor& wDesc,
-                                     const TensorDescriptor& xDesc,
-                                     const TensorDescriptor& yDesc,
-                                     size_t maxSolutionCount,
-                                     size_t* solutionCount,
-                                     miopenConvSolution_t* solutions) const;
-
-    void GetBwdSolutionsFallback(Handle& handle,
-                                 const TensorDescriptor& dyDesc,
-                                 const TensorDescriptor& wDesc,
-                                 const TensorDescriptor& dxDesc,
-                                 size_t maxSolutionCount,
-                                 size_t* solutionCount,
-                                 miopenConvSolution_t* solutions) const;
+    void GetSolutionsFallback(Handle& handle,
+                              const ProblemDescription& problem,
+                              const size_t maxSolutionCount,
+                              size_t* const solutionCount,
+                              miopenConvSolution_t* const solutions) const;
 
     bool IsGemmApplicableFwd(const TensorDescriptor& wDesc,
                              const TensorDescriptor& xDesc,
@@ -517,14 +507,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     std::size_t GetWrwSolutionCountFallback(const TensorDescriptor& dyDesc,
                                             const TensorDescriptor& xDesc,
                                             const TensorDescriptor& dwDesc) const;
-
-    void GetWrwSolutionsFallback(Handle& handle,
-                                 const TensorDescriptor& dyDesc,
-                                 const TensorDescriptor& xDesc,
-                                 const TensorDescriptor& dwDesc,
-                                 size_t maxSolutionCount,
-                                 size_t* solutionCount,
-                                 miopenConvSolution_t* solutions) const;
 
     std::size_t GetWrwSolutionWorkspaceSizeFallback(Handle& handle,
                                                     const TensorDescriptor& dyDesc,
