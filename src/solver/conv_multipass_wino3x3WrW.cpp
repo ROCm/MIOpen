@@ -539,7 +539,7 @@ InvokerFactory
 ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::PrepareInvokerFactory(
     const ConvolutionContext& params, std::size_t ws_sz) const
 {
-#if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
+#if(MIOPEN_BACKEND_HIP && (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE))
     int flags         = 0;
     int reserved      = 0;
     int* reserved_ptr = nullptr;
@@ -664,7 +664,7 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
                                         static_cast<int>(wino_out_offset / GetTypeSize(in_data_type)),
                                         nullptr,
                                 false,
-                                GemmBackend_t::rocblas);
+                                GemmBackend_t::miopentensile);
                     // clang-format on
 
                     if(handle.IsProfilingEnabled())
