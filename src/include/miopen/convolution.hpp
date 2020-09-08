@@ -469,9 +469,9 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
 
     void GetSolutionsFallback(Handle& handle,
                               const ProblemDescription& problem,
-                              const size_t maxSolutionCount,
-                              size_t* const solutionCount,
-                              miopenConvSolution_t* const solutions) const;
+                              size_t maxSolutionCount,
+                              size_t* solutionCount,
+                              miopenConvSolution_t* solutions) const;
 
     bool IsGemmApplicableFwd(const TensorDescriptor& wDesc,
                              const TensorDescriptor& xDesc,
