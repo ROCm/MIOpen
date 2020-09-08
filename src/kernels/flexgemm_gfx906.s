@@ -417,9 +417,9 @@ genidx2d:
     s_and_b32 s15, s15, 63
     v_mul_lo_u32 v6, s0, v2
     s_mul_i32 s2, s16, s7
-    s_add_u32 s3, s1, 15
-    s_andn2_b32 s3, s3, 15
-    s_add_u32 s3, s3, 32
+    s_add_u32 s3, s1, 7
+    s_andn2_b32 s3, s3, 7
+    s_addk_i32 s3, 32
     v_mul_u32_u24 v7, s15, v5
     v_mad_u32_u24 v8, s2, v4, v6
     v_add_lshl_u32 v6, v7, v8, 2
@@ -468,21 +468,21 @@ sbco7x4:
     v_lshlrev_b32 v6, 3, v49
     global_load_dwordx2 v[42:43], v[6:7], s[4:5]
     s_load_dwordx4 s[4:7], s[0:1], 0x20
-    s_lshl_b32 s16, s38, 2
-    s_mul_i32 s17, s8, s10
-    s_mul_i32 s12, s16, s11
-    s_mul_hi_u32 s13, s16, s11
-    s_mul_i32 s14, s16, s17
-    s_mul_hi_u32 s15, s16, s17
-    s_lshl_b32 s11, s3, 4
+    s_lshl_b32 s12, s38, 2
+    s_lshl_b32 s37, s3, 4
+    s_mul_i32 s13, s8, s10
     s_load_dwordx2 s[2:3], s[0:1], 0x8
+    s_mul_i32 s20, s12, s11
+    s_mul_hi_u32 s21, s12, s11
+    s_mul_i32 s22, s12, s13
+    s_mul_hi_u32 s23, s12, s13
     v_sub_i32 v6, s9, 1
     s_waitcnt lgkmcnt(0)
-    s_add_u32 s4, s4, s12
-    s_addc_u32 s5, s5, s13
-    s_add_u32 s6, s6, s14
-    s_addc_u32 s7, s7, s15
     s_load_dwordx8 s[12:19], s[2:3], 0x0
+    s_add_u32 s4, s4, s20
+    s_addc_u32 s5, s5, s21
+    s_add_u32 s6, s6, s22
+    s_addc_u32 s7, s7, s23
     v_mul_lo_u32 v7, s8, v4
     v_cmp_gt_u32 vcc, s9, v5
     v_cndmask_b32 v5, v6, v5, vcc
@@ -547,8 +547,8 @@ sbco7x4:
     ds_write_b32 v46 v40, offset:0x1000
     s_sub_u32 s10, s10, 8
     s_lshl_b32 s8, s8, 5
-    s_movk_i32 s36, 64
-    s_movk_i32 s37, 4608
+    s_movk_i32 s11, 64
+    s_movk_i32 s36, 4608
     s_cmpk_eq_u32 s10, 0
     s_cmovk_i32 s8, 0
     s_add_u32 s20, s4, s12
@@ -576,9 +576,9 @@ sbco7x4:
 L3:
     ds_read_b128 v[24:27], v44 offset:0x200
     ds_read_b128 v[28:31], v45 offset:0x1040
-    v_xor_b32 v46, s37, v46
+    v_xor_b32 v46, s36, v46
     s_waitcnt lgkmcnt(2)
-    s_load_dwordx8 s[12:19], s[2:3], s36
+    s_load_dwordx8 s[12:19], s[2:3], s11
     global_load_dword v32, v[42:43], s[20:21]
     global_load_dword v33, v[42:43], s[22:23]
     global_load_dword v34, v[42:43], s[24:25]
@@ -604,7 +604,7 @@ L3:
     v_fmac_f32 v13, v17, v23
     v_fmac_f32 v14, v18, v23
     v_fmac_f32 v15, v19, v23
-    s_add_u32 s36, s36, 32
+    s_addk_i32 s11, 32
     s_waitcnt lgkmcnt(0)
     ds_read_b128 v[16:19], v44 offset:0x400
     ds_read_b128 v[20:23], v45 offset:0x1080
@@ -726,8 +726,8 @@ L3:
     ds_write2st64_b32 v46, v36, v37 offset0:0x8 offset1:0xa
     ds_write2st64_b32 v46, v38, v39 offset0:0xc offset1:0xe
     ds_write_b32 v46 v40, offset:0x1000
-    v_xor_b32 v44, s37, v44
-    v_xor_b32 v45, s37, v45
+    v_xor_b32 v44, s36, v44
+    v_xor_b32 v45, s36, v45
     v_fmac_f32 v0, v16, v20
     v_fmac_f32 v1, v17, v20
     v_fmac_f32 v2, v18, v20
@@ -768,160 +768,159 @@ L3:
     v_fmac_f32 v14, v26, v31
     v_fmac_f32 v15, v27, v31
     s_cbranch_scc0 L3
-    s_load_dword s10, s[0:1], 0x40
+    s_load_dword s8, s[0:1], 0x40
     s_load_dwordx4 s[0:3], s[0:1], 0x30
     s_mul_i32 s6, s38, s9
     s_mov_b64 s[4:5], exec
-    s_add_u32 s7, s6, s11
+    s_add_u32 s7, s6, s37
     s_waitcnt lgkmcnt(0)
-    s_lshl_b32 s8, s10, 2
-    s_lshl_b32 s10, s10, 4
-    s_mul_i32 s12, s7, s8
-    s_mul_hi_u32 s13, s7, s8
+    s_lshl_b32 s10, s8, 2
+    s_lshl_b32 s11, s8, 4
+    s_mul_i32 s12, s7, s10
+    s_mul_hi_u32 s13, s7, s10
     s_add_u32 s0, s0, s12
     s_addc_u32 s1, s1, s13
-    v_cmp_gt_u32 vcc, s3, v49
-    s_mov_b64 s[6:7], vcc
+    v_cmp_lt_u32 s[6:7], v49, s3
     s_mov_b64 s[12:13], s[0:1]
     ds_write_b128 v47, v[0:3]
-    s_add_u32 s14, s12, s10
+    s_add_u32 s14, s12, s11
     s_addc_u32 s15, s13, 0
-    s_add_u32 s16, s14, s10
+    s_add_u32 s16, s14, s11
     s_addc_u32 s17, s15, 0
-    s_add_u32 s18, s16, s10
+    s_add_u32 s18, s16, s11
     s_addc_u32 s19, s17, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
     ds_read2_b32 v[0:1], v48 offset0:0x0 offset1:0x40
     ds_read2_b32 v[2:3], v48 offset0:0x80 offset1:0xc0
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L7
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v0, s2, v0
     global_store_dword v[43:44], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L4
     v_mul_f32 v1, s2, v1
     global_store_dword v[43:44], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L4
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v2, s2, v2
     global_store_dword v[43:44], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L4
     v_mul_f32 v3, s2, v3
     global_store_dword v[43:44], v3, s[18:19]
 L4:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v47, v[4:7]
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
     ds_read2_b32 v[0:1], v48 offset0:0x0 offset1:0x40
     ds_read2_b32 v[2:3], v48 offset0:0x80 offset1:0xc0
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L7
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v0, s2, v0
     global_store_dword v[43:44], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L5
     v_mul_f32 v1, s2, v1
     global_store_dword v[43:44], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L5
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v2, s2, v2
     global_store_dword v[43:44], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L5
     v_mul_f32 v3, s2, v3
     global_store_dword v[43:44], v3, s[18:19]
 L5:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v47, v[8:11]
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
     ds_read2_b32 v[0:1], v48 offset0:0x0 offset1:0x40
     ds_read2_b32 v[2:3], v48 offset0:0x80 offset1:0xc0
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L7
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v0, s2, v0
     global_store_dword v[43:44], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L6
     v_mul_f32 v1, s2, v1
     global_store_dword v[43:44], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L6
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v2, s2, v2
     global_store_dword v[43:44], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L6
     v_mul_f32 v3, s2, v3
     global_store_dword v[43:44], v3, s[18:19]
 L6:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v47, v[12:15]
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
     ds_read2_b32 v[0:1], v48 offset0:0x0 offset1:0x40
     ds_read2_b32 v[2:3], v48 offset0:0x80 offset1:0xc0
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L7
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v0, s2, v0
     global_store_dword v[43:44], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L7
     v_mul_f32 v1, s2, v1
     global_store_dword v[43:44], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L7
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v2, s2, v2
     global_store_dword v[43:44], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L7
     v_mul_f32 v3, s2, v3
@@ -969,26 +968,25 @@ sbco8x5:
     v_lshlrev_b32 v8, 3, v73
     global_load_dwordx2 v[66:67], v[8:9], s[4:5]
     s_load_dwordx4 s[4:7], s[0:1], 0x20
-    s_lshl_b32 s16, s38, 2
-    s_mul_i32 s17, s8, s10
-    s_mul_i32 s12, s16, s11
-    s_mul_hi_u32 s13, s16, s11
-    s_mul_i32 s14, s16, s17
-    s_mul_hi_u32 s15, s16, s17
-    s_lshl_b32 s11, s3, 5
+    s_lshl_b32 s37, s3, 5
+    s_lshl_b32 s12, s38, 2
     s_load_dwordx2 s[2:3], s[0:1], 0x8
+    s_mul_i32 s13, s8, s10
+    s_mul_i32 s20, s12, s11
+    s_mul_hi_u32 s21, s12, s11
+    s_mul_i32 s22, s12, s13
+    s_mul_hi_u32 s23, s12, s13
+    v_sub_i32 v8, s9, 1
     s_waitcnt lgkmcnt(0)
-    s_add_u32 s4, s4, s12
-    s_addc_u32 s5, s5, s13
-    s_add_u32 s6, s6, s14
-    s_addc_u32 s7, s7, s15
     s_load_dwordx8 s[12:19], s[2:3], 0x0
-    s_sub_u32 s20, s9, 1
+    s_add_u32 s4, s4, s20
+    s_addc_u32 s5, s5, s21
+    s_add_u32 s6, s6, s22
+    s_addc_u32 s7, s7, s23
     v_cmp_gt_u32 vcc, s9, v7
-    v_mov_b32 v8, s20
     v_cndmask_b32 v7, v8, v7, vcc
-    v_mul_lo_u32 v8, s8, v4
-    v_add_lshl_u32 v65, v7, v8, 2
+    v_mul_lo_u32 v9, s8, v4
+    v_add_lshl_u32 v65, v7, v9, 2
     s_waitcnt lgkmcnt(0)
     s_add_u32 s20, s4, s12
     s_addc_u32 s21, s5, 0
@@ -1065,8 +1063,8 @@ sbco8x5:
     ds_write_b32 v70 v64, offset:0x2000
     s_sub_u32 s10, s10, 8
     s_lshl_b32 s8, s8, 5
-    s_movk_i32 s36, 64
-    s_movk_i32 s37, 9216
+    s_movk_i32 s11, 64
+    s_movk_i32 s36, 9216
     s_cmpk_eq_u32 s10, 0
     s_cmovk_i32 s8, 0
     s_add_u32 s20, s4, s12
@@ -1096,9 +1094,9 @@ L8:
     ds_read_b128 v[44:47], v68 offset:0x400
     ds_read_b128 v[48:51], v68 offset:0x480
     ds_read_b128 v[52:55], v69 offset:0x2080
-    v_xor_b32 v70, s37, v70
+    v_xor_b32 v70, s36, v70
     s_waitcnt lgkmcnt(3)
-    s_load_dwordx8 s[12:19], s[2:3], s36
+    s_load_dwordx8 s[12:19], s[2:3], s11
     global_load_dword v56, v[66:67], s[20:21]
     global_load_dword v57, v[66:67], s[22:23]
     global_load_dword v58, v[66:67], s[24:25]
@@ -1135,7 +1133,7 @@ L8:
     v_fmac_f32 v13, v37, v41
     v_fmac_f32 v14, v38, v41
     v_fmac_f32 v15, v39, v41
-    s_add_u32 s36, s36, 32
+    s_addk_i32 s11, 32
     v_fmac_f32 v20, v36, v42
     v_fmac_f32 v21, v37, v42
     v_fmac_f32 v22, v38, v42
@@ -1374,8 +1372,8 @@ L8:
     v_fmac_f32 v25, v33, v43
     v_fmac_f32 v26, v34, v43
     v_fmac_f32 v27, v35, v43
-    v_xor_b32 v68, s37, v68
-    v_xor_b32 v69, s37, v69
+    v_xor_b32 v68, s36, v68
+    v_xor_b32 v69, s36, v69
     s_waitcnt vmcnt(0)&lgkmcnt(3)
     ds_write2st64_b32 v70, v56, v57 offset0:0x0 offset1:0x4
     ds_write2st64_b32 v70, v58, v59 offset0:0x8 offset1:0xc
@@ -1441,36 +1439,35 @@ L8:
     v_fmac_f32 v31, v51, v55
     s_setprio 0
     s_cbranch_scc0 L8
-    s_load_dword s10, s[0:1], 0x40
+    s_load_dword s8, s[0:1], 0x40
     s_load_dwordx4 s[0:3], s[0:1], 0x30
     s_mul_i32 s6, s38, s9
     s_mov_b64 s[4:5], exec
-    s_add_u32 s7, s6, s11
+    s_add_u32 s7, s6, s37
     s_waitcnt lgkmcnt(0)
-    s_lshl_b32 s8, s10, 2
-    s_lshl_b32 s10, s10, 4
-    s_mul_i32 s12, s7, s8
-    s_mul_hi_u32 s13, s7, s8
+    s_lshl_b32 s10, s8, 2
+    s_lshl_b32 s11, s8, 4
+    s_mul_i32 s12, s7, s10
+    s_mul_hi_u32 s13, s7, s10
     s_add_u32 s0, s0, s12
     s_addc_u32 s1, s1, s13
-    v_cmp_gt_u32 vcc, s3, v73
-    s_mov_b64 s[6:7], vcc
+    v_cmp_lt_u32 s[6:7], v73, s3
     s_mov_b64 s[12:13], s[0:1]
     ds_write_b128 v71, v[0:3]
     ds_write_b128 v71, v[4:7] offset:0x80
-    s_add_u32 s14, s12, s10
+    s_add_u32 s14, s12, s11
     s_addc_u32 s15, s13, 0
-    s_add_u32 s16, s14, s10
+    s_add_u32 s16, s14, s11
     s_addc_u32 s17, s15, 0
-    s_add_u32 s18, s16, s10
+    s_add_u32 s18, s16, s11
     s_addc_u32 s19, s17, 0
-    s_add_u32 s20, s18, s10
+    s_add_u32 s20, s18, s11
     s_addc_u32 s21, s19, 0
-    s_add_u32 s22, s20, s10
+    s_add_u32 s22, s20, s11
     s_addc_u32 s23, s21, 0
-    s_add_u32 s24, s22, s10
+    s_add_u32 s24, s22, s11
     s_addc_u32 s25, s23, 0
-    s_add_u32 s26, s24, s10
+    s_add_u32 s26, s24, s11
     s_addc_u32 s27, s25, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -1478,69 +1475,69 @@ L8:
     ds_read2st64_b32 v[2:3], v72 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v72 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v72 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L12
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[67:68], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L9
     v_mul_f32 v1, s2, v1
     global_store_dword v[67:68], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L9
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[67:68], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L9
     v_mul_f32 v3, s2, v3
     global_store_dword v[67:68], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L9
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[67:68], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L9
     v_mul_f32 v5, s2, v5
     global_store_dword v[67:68], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L9
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[67:68], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L9
     v_mul_f32 v7, s2, v7
     global_store_dword v[67:68], v7, s[26:27]
 L9:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v71, v[8:11]
     ds_write_b128 v71, v[12:15] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -1548,69 +1545,69 @@ L9:
     ds_read2st64_b32 v[2:3], v72 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v72 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v72 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L12
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[67:68], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L10
     v_mul_f32 v1, s2, v1
     global_store_dword v[67:68], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L10
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[67:68], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L10
     v_mul_f32 v3, s2, v3
     global_store_dword v[67:68], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L10
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[67:68], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L10
     v_mul_f32 v5, s2, v5
     global_store_dword v[67:68], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L10
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[67:68], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L10
     v_mul_f32 v7, s2, v7
     global_store_dword v[67:68], v7, s[26:27]
 L10:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v71, v[16:19]
     ds_write_b128 v71, v[20:23] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -1618,69 +1615,69 @@ L10:
     ds_read2st64_b32 v[2:3], v72 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v72 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v72 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L12
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[67:68], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L11
     v_mul_f32 v1, s2, v1
     global_store_dword v[67:68], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L11
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[67:68], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L11
     v_mul_f32 v3, s2, v3
     global_store_dword v[67:68], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L11
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[67:68], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L11
     v_mul_f32 v5, s2, v5
     global_store_dword v[67:68], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L11
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[67:68], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L11
     v_mul_f32 v7, s2, v7
     global_store_dword v[67:68], v7, s[26:27]
 L11:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v71, v[24:27]
     ds_write_b128 v71, v[28:31] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -1688,45 +1685,45 @@ L11:
     ds_read2st64_b32 v[2:3], v72 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v72 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v72 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L12
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[67:68], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L12
     v_mul_f32 v1, s2, v1
     global_store_dword v[67:68], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L12
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[67:68], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L12
     v_mul_f32 v3, s2, v3
     global_store_dword v[67:68], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L12
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[67:68], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L12
     v_mul_f32 v5, s2, v5
     global_store_dword v[67:68], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L12
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[67:68], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L12
     v_mul_f32 v7, s2, v7
@@ -1774,27 +1771,28 @@ sbco8x6:
     v_lshlrev_b32 v8, 3, v115
     global_load_dwordx2 v[106:107], v[8:9], s[4:5]
     s_load_dwordx4 s[4:7], s[0:1], 0x20
-    s_lshl_b32 s16, s38, 2
-    s_mul_i32 s17, s8, s10
-    s_mul_i32 s12, s16, s11
-    s_mul_hi_u32 s13, s16, s11
-    s_mul_i32 s14, s16, s17
-    s_mul_hi_u32 s15, s16, s17
-    s_lshl_b32 s11, s3, 6
+    s_lshl_b32 s37, s3, 6
+    s_lshl_b32 s12, s38, 2
     s_load_dwordx2 s[2:3], s[0:1], 0x8
-    s_add_u32 s20, s9, 1
-    s_lshr_b32 s21, s20, 1
+    s_mul_i32 s13, s8, s10
+    s_add_u32 s24, s9, 1
+    s_mul_i32 s20, s12, s11
+    s_mul_hi_u32 s21, s12, s11
+    s_lshr_b32 s25, s24, 1
+    s_mul_i32 s22, s12, s13
+    s_mul_hi_u32 s23, s12, s13
+    v_sub_i32 v8, s25, 1
     s_waitcnt lgkmcnt(0)
-    s_add_u32 s4, s4, s12
-    s_addc_u32 s5, s5, s13
-    s_add_u32 s6, s6, s14
-    s_addc_u32 s7, s7, s15
     s_load_dwordx8 s[12:19], s[2:3], 0x0
-    v_cmp_gt_u32 vcc, s21, v7
-    v_cndmask_b32 v7, 0, v7, vcc
-    v_mul_lo_u32 v8, s8, v4
-    v_lshlrev_b32 v9, 3, v7
-    v_lshl_add_u32 v108, v8, 2, v9
+    s_add_u32 s4, s4, s20
+    s_addc_u32 s5, s5, s21
+    s_add_u32 s6, s6, s22
+    s_addc_u32 s7, s7, s23
+    v_cmp_gt_u32 vcc, s25, v7
+    v_cndmask_b32 v7, v8, v7, vcc
+    v_mul_lo_u32 v9, s8, v4
+    v_lshlrev_b32 v10, 3, v7
+    v_lshl_add_u32 v108, v9, 2, v10
     s_waitcnt lgkmcnt(0)
     s_add_u32 s20, s4, s12
     s_addc_u32 s21, s5, 0
@@ -1864,10 +1862,10 @@ sbco8x6:
     ds_write2st64_b32 v111, v100, v101 offset0:0x10 offset1:0x14
     ds_write2st64_b32 v111, v102, v103 offset0:0x18 offset1:0x1c
     ds_write_b64 v112, v[104:105] offset:0x2000
-    s_lshl_b32 s8, s8, 5
-    s_movk_i32 s36, 64
     s_sub_u32 s10, s10, 8
-    s_movk_i32 s37, 10240
+    s_lshl_b32 s8, s8, 5
+    s_movk_i32 s11, 64
+    s_movk_i32 s36, 10240
     s_cmpk_eq_u32 s10, 0
     s_cmovk_i32 s8, 0
     s_add_u32 s20, s4, s12
@@ -1899,9 +1897,9 @@ L13:
     ds_read_b128 v[84:87], v110 offset:0x2100
     ds_read_b128 v[88:91], v109 offset:0x480
     ds_read_b128 v[92:95], v110 offset:0x2180
-    v_xor_b32 v111, s37, v111
+    v_xor_b32 v111, s36, v111
     s_waitcnt lgkmcnt(4)
-    s_load_dwordx8 s[12:19], s[2:3], s36
+    s_load_dwordx8 s[12:19], s[2:3], s11
     v_fmac_f32 v0, v64, v68
     s_setprio 1
     v_fmac_f32 v1, v65, v68
@@ -1919,7 +1917,7 @@ L13:
     v_fmac_f32 v25, v65, v71
     v_fmac_f32 v26, v66, v71
     v_fmac_f32 v27, v67, v71
-    s_add_u32 s36, s36, 32
+    s_addk_i32 s11, 32
     v_fmac_f32 v4, v72, v68
     v_fmac_f32 v5, v73, v68
     v_fmac_f32 v6, v74, v68
@@ -2057,7 +2055,7 @@ L13:
     ds_read_b128 v[84:87], v110 offset:0x2300
     ds_read_b128 v[88:91], v109 offset:0xc80
     ds_read_b128 v[92:95], v110 offset:0x2380
-    v_xor_b32 v112, s37, v112
+    v_xor_b32 v112, s36, v112
     s_waitcnt lgkmcnt(4)
     v_fmac_f32 v0, v64, v68
     s_setprio 1
@@ -2391,14 +2389,14 @@ L13:
     v_fmac_f32 v30, v74, v71
     v_fmac_f32 v31, v75, v71
     s_setprio 0
-    v_xor_b32 v109, s37, v109
+    v_xor_b32 v109, s36, v109
     s_waitcnt vmcnt(0)&lgkmcnt(4)
     ds_write2st64_b32 v111, v96, v97 offset0:0x0 offset1:0x4
     ds_write2st64_b32 v111, v98, v99 offset0:0x8 offset1:0xc
     ds_write2st64_b32 v111, v100, v101 offset0:0x10 offset1:0x14
     ds_write2st64_b32 v111, v102, v103 offset0:0x18 offset1:0x1c
     ds_write_b64 v112, v[104:105] offset:0x2000
-    v_xor_b32 v110, s37, v110
+    v_xor_b32 v110, s36, v110
     v_fmac_f32 v32, v64, v76
     s_setprio 1
     v_fmac_f32 v33, v65, v76
@@ -2509,36 +2507,35 @@ L13:
     v_fmac_f32 v63, v91, v95
     s_setprio 0
     s_cbranch_scc0 L13
-    s_load_dword s10, s[0:1], 0x40
+    s_load_dword s8, s[0:1], 0x40
     s_load_dwordx4 s[0:3], s[0:1], 0x30
     s_mul_i32 s6, s38, s9
     s_mov_b64 s[4:5], exec
-    s_add_u32 s7, s6, s11
+    s_add_u32 s7, s6, s37
     s_waitcnt lgkmcnt(0)
-    s_lshl_b32 s8, s10, 2
-    s_lshl_b32 s10, s10, 4
-    s_mul_i32 s12, s7, s8
-    s_mul_hi_u32 s13, s7, s8
+    s_lshl_b32 s10, s8, 2
+    s_lshl_b32 s11, s8, 4
+    s_mul_i32 s12, s7, s10
+    s_mul_hi_u32 s13, s7, s10
     s_add_u32 s0, s0, s12
     s_addc_u32 s1, s1, s13
-    v_cmp_gt_u32 vcc, s3, v115
-    s_mov_b64 s[6:7], vcc
+    v_cmp_lt_u32 s[6:7], v115, s3
     s_mov_b64 s[12:13], s[0:1]
     ds_write_b128 v113, v[0:3]
     ds_write_b128 v113, v[4:7] offset:0x80
-    s_add_u32 s14, s12, s10
+    s_add_u32 s14, s12, s11
     s_addc_u32 s15, s13, 0
-    s_add_u32 s16, s14, s10
+    s_add_u32 s16, s14, s11
     s_addc_u32 s17, s15, 0
-    s_add_u32 s18, s16, s10
+    s_add_u32 s18, s16, s11
     s_addc_u32 s19, s17, 0
-    s_add_u32 s20, s18, s10
+    s_add_u32 s20, s18, s11
     s_addc_u32 s21, s19, 0
-    s_add_u32 s22, s20, s10
+    s_add_u32 s22, s20, s11
     s_addc_u32 s23, s21, 0
-    s_add_u32 s24, s22, s10
+    s_add_u32 s24, s22, s11
     s_addc_u32 s25, s23, 0
-    s_add_u32 s26, s24, s10
+    s_add_u32 s26, s24, s11
     s_addc_u32 s27, s25, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -2546,69 +2543,69 @@ L13:
     ds_read2st64_b32 v[2:3], v114 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v114 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v114 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L20
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[107:108], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L14
     v_mul_f32 v1, s2, v1
     global_store_dword v[107:108], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L14
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[107:108], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L14
     v_mul_f32 v3, s2, v3
     global_store_dword v[107:108], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L14
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[107:108], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L14
     v_mul_f32 v5, s2, v5
     global_store_dword v[107:108], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L14
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[107:108], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L14
     v_mul_f32 v7, s2, v7
     global_store_dword v[107:108], v7, s[26:27]
 L14:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v113, v[8:11]
     ds_write_b128 v113, v[12:15] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -2616,69 +2613,69 @@ L14:
     ds_read2st64_b32 v[2:3], v114 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v114 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v114 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L20
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[107:108], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L15
     v_mul_f32 v1, s2, v1
     global_store_dword v[107:108], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L15
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[107:108], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L15
     v_mul_f32 v3, s2, v3
     global_store_dword v[107:108], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L15
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[107:108], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L15
     v_mul_f32 v5, s2, v5
     global_store_dword v[107:108], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L15
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[107:108], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L15
     v_mul_f32 v7, s2, v7
     global_store_dword v[107:108], v7, s[26:27]
 L15:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v113, v[16:19]
     ds_write_b128 v113, v[20:23] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -2686,69 +2683,69 @@ L15:
     ds_read2st64_b32 v[2:3], v114 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v114 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v114 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L20
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[107:108], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L16
     v_mul_f32 v1, s2, v1
     global_store_dword v[107:108], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L16
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[107:108], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L16
     v_mul_f32 v3, s2, v3
     global_store_dword v[107:108], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L16
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[107:108], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L16
     v_mul_f32 v5, s2, v5
     global_store_dword v[107:108], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L16
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[107:108], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L16
     v_mul_f32 v7, s2, v7
     global_store_dword v[107:108], v7, s[26:27]
 L16:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v113, v[24:27]
     ds_write_b128 v113, v[28:31] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -2756,69 +2753,69 @@ L16:
     ds_read2st64_b32 v[2:3], v114 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v114 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v114 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L20
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[107:108], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L20
     v_mul_f32 v1, s2, v1
     global_store_dword v[107:108], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L20
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[107:108], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L20
     v_mul_f32 v3, s2, v3
     global_store_dword v[107:108], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L20
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[107:108], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L20
     v_mul_f32 v5, s2, v5
     global_store_dword v[107:108], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L20
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[107:108], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L20
     v_mul_f32 v7, s2, v7
     global_store_dword v[107:108], v7, s[26:27]
     s_mov_b64 exec, s[4:5]
-    s_lshl_b32 s28, s8, 5
-    s_add_u32 s11, s11, 29
+    s_lshl_b32 s28, s10, 5
+    s_addk_i32 s37, 29
     s_add_u32 s12, s0, s28
     s_addc_u32 s13, s1, 0
     ds_write_b128 v113, v[32:35]
     ds_write_b128 v113, v[36:39] offset:0x80
-    s_add_u32 s14, s12, s10
+    s_add_u32 s14, s12, s11
     s_addc_u32 s15, s13, 0
-    s_add_u32 s16, s14, s10
+    s_add_u32 s16, s14, s11
     s_addc_u32 s17, s15, 0
-    s_add_u32 s18, s16, s10
+    s_add_u32 s18, s16, s11
     s_addc_u32 s19, s17, 0
-    s_add_u32 s20, s18, s10
+    s_add_u32 s20, s18, s11
     s_addc_u32 s21, s19, 0
-    s_add_u32 s22, s20, s10
+    s_add_u32 s22, s20, s11
     s_addc_u32 s23, s21, 0
-    s_add_u32 s24, s22, s10
+    s_add_u32 s24, s22, s11
     s_addc_u32 s25, s23, 0
-    s_add_u32 s26, s24, s10
+    s_add_u32 s26, s24, s11
     s_addc_u32 s27, s25, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -2826,69 +2823,69 @@ L16:
     ds_read2st64_b32 v[2:3], v114 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v114 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v114 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L20
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[107:108], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L17
     v_mul_f32 v1, s2, v1
     global_store_dword v[107:108], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L17
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[107:108], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L17
     v_mul_f32 v3, s2, v3
     global_store_dword v[107:108], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L17
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[107:108], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L17
     v_mul_f32 v5, s2, v5
     global_store_dword v[107:108], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L17
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[107:108], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L17
     v_mul_f32 v7, s2, v7
     global_store_dword v[107:108], v7, s[26:27]
 L17:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v113, v[40:43]
     ds_write_b128 v113, v[44:47] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -2896,69 +2893,69 @@ L17:
     ds_read2st64_b32 v[2:3], v114 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v114 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v114 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L20
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[107:108], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L18
     v_mul_f32 v1, s2, v1
     global_store_dword v[107:108], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L18
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[107:108], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L18
     v_mul_f32 v3, s2, v3
     global_store_dword v[107:108], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L18
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[107:108], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L18
     v_mul_f32 v5, s2, v5
     global_store_dword v[107:108], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L18
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[107:108], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L18
     v_mul_f32 v7, s2, v7
     global_store_dword v[107:108], v7, s[26:27]
 L18:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v113, v[48:51]
     ds_write_b128 v113, v[52:55] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -2966,69 +2963,69 @@ L18:
     ds_read2st64_b32 v[2:3], v114 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v114 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v114 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L20
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[107:108], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L19
     v_mul_f32 v1, s2, v1
     global_store_dword v[107:108], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L19
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[107:108], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L19
     v_mul_f32 v3, s2, v3
     global_store_dword v[107:108], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L19
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[107:108], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L19
     v_mul_f32 v5, s2, v5
     global_store_dword v[107:108], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L19
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[107:108], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L19
     v_mul_f32 v7, s2, v7
     global_store_dword v[107:108], v7, s[26:27]
 L19:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v113, v[56:59]
     ds_write_b128 v113, v[60:63] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -3036,45 +3033,45 @@ L19:
     ds_read2st64_b32 v[2:3], v114 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v114 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v114 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L20
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[107:108], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L20
     v_mul_f32 v1, s2, v1
     global_store_dword v[107:108], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L20
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[107:108], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L20
     v_mul_f32 v3, s2, v3
     global_store_dword v[107:108], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L20
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[107:108], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L20
     v_mul_f32 v5, s2, v5
     global_store_dword v[107:108], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L20
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[107:108], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L20
     v_mul_f32 v7, s2, v7
@@ -3101,7 +3098,7 @@ L20:
 .p2align 8
 .type sbco7x7,@function
 sbco7x7:
-    s_mov_b32 s38, s4
+    s_mov_b32 s37, s4
     s_mov_b32 s12, s2
     s_load_dwordx2 s[4:5], s[0:1], 0x0
     s_load_dwordx4 s[8:11], s[0:1], 0x10
@@ -3121,35 +3118,36 @@ sbco7x7:
     v_lshl_or_b32 v121, s2, 7, v8
     v_lshl_or_b32 v7, s3, 5, v3
     v_lshlrev_b32 v9, 3, v121
-    v_readfirstlane_b32 s36, v2
+    v_readfirstlane_b32 s38, v2
     global_load_dwordx2 v[112:113], v[9:10], s[4:5]
     s_load_dwordx4 s[4:7], s[0:1], 0x20
-    s_mul_i32 s16, s8, s10
-    s_lshl_b32 s17, s38, 2
-    s_lshl_b32 s18, s3, 7
+    s_lshl_b32 s12, s3, 7
+    s_lshl_b32 s13, s37, 2
+    s_mul_i32 s14, s8, s10
     s_load_dwordx2 s[2:3], s[0:1], 0x8
-    s_mul_i32 s12, s17, s11
-    s_mul_hi_u32 s13, s17, s11
-    s_mul_i32 s14, s17, s16
-    s_mul_hi_u32 s15, s17, s16
-    s_lshr_b32 s37, s36, 1
-    s_lshl_b32 s16, s37, 5
-    s_or_b32 s11, s18, s37
+    s_mul_i32 s20, s13, s11
+    s_mul_hi_u32 s21, s13, s11
+    s_mul_i32 s22, s13, s14
+    s_mul_hi_u32 s23, s13, s14
+    s_lshr_b32 s39, s38, 1
+    s_lshl_b32 s15, s39, 5
+    s_or_b32 s36, s12, s39
     s_waitcnt lgkmcnt(0)
-    s_add_u32 s2, s2, s16
+    s_add_u32 s2, s2, s15
     s_addc_u32 s3, s3, 0
-    s_add_u32 s4, s4, s12
-    s_addc_u32 s5, s5, s13
-    s_add_u32 s6, s6, s14
-    s_addc_u32 s7, s7, s15
     s_load_dwordx8 s[12:19], s[2:3], 0x0
+    s_add_u32 s4, s4, s20
+    s_addc_u32 s5, s5, s21
+    s_add_u32 s6, s6, s22
+    s_addc_u32 s7, s7, s23
     s_add_u32 s20, s9, 3
     s_lshr_b32 s21, s20, 2
+    v_sub_i32 v8, s21, 1
     s_lshl_b32 s8, s8, 2
     v_cmp_gt_u32 vcc, s21, v7
-    v_cndmask_b32 v7, 0, v7, vcc
-    v_mul_lo_u32 v8, s8, v4
-    v_lshl_add_u32 v114, v7, 4, v8
+    v_cndmask_b32 v7, v8, v7, vcc
+    v_mul_lo_u32 v9, s8, v4
+    v_lshl_add_u32 v114, v7, 4, v9
     v_lshl_add_u32 v115, s8, 3, v114
     s_waitcnt lgkmcnt(0)
     s_add_u32 s20, s4, s12
@@ -3180,15 +3178,15 @@ sbco7x7:
     global_load_dwordx4 v[104:107], v[114:115], s[6:7]
     global_load_dwordx4 v[108:111], v[115:116], s[6:7]
     s_load_dwordx8 s[12:19], s[2:3], 0x40
-    s_and_b32 s20, s36, 1
-    s_lshl_b32 s21, s36, 11
+    s_and_b32 s20, s38, 1
+    s_lshl_b32 s21, s38, 11
     v_lshlrev_b32 v3, 4, v5
     v_lshlrev_b32 v4, 4, v6
     v_lshlrev_b32 v7, 2, v1
     v_lshlrev_b32 v118, 2, v0
     v_lshl_or_b32 v8, v6, 8, v3
     v_lshl_or_b32 v116, s20, 8, v3
-    v_lshl_or_b32 v117, s37, 10, v4
+    v_lshl_or_b32 v117, s39, 10, v4
     v_or_b32 v120, s21, v7
     v_or_b32 v119, s21, v8
     v_mov_b32 v0, 0
@@ -3266,7 +3264,7 @@ sbco7x7:
     ds_write2st64_b32 v118, v110, v111 offset0:0x38 offset1:0x3c
     s_sub_u32 s10, s10, 16
     s_lshl_b32 s8, s8, 4
-    s_movk_i32 s36, 16384
+    s_movk_i32 s11, 16384
     s_cmpk_eq_u32 s10, 0
     s_cmovk_i32 s8, 0
     s_addk_i32 s2, 128
@@ -3300,7 +3298,7 @@ L21:
     ds_read_b128 v[84:87], v117 offset:0x2080
     ds_read_b128 v[88:91], v116 offset:0x480
     ds_read_b128 v[92:95], v117 offset:0x2880
-    v_xor_b32 v118, s36, v118
+    v_xor_b32 v118, s11, v118
     s_waitcnt lgkmcnt(4)
     s_load_dwordx8 s[12:19], s[2:3], 0x0
     v_fmac_f32 v0, v64, v68
@@ -4375,8 +4373,8 @@ L21:
     ds_write2st64_b32 v118, v106, v107 offset0:0x28 offset1:0x2c
     ds_write2st64_b32 v118, v108, v109 offset0:0x30 offset1:0x34
     ds_write2st64_b32 v118, v110, v111 offset0:0x38 offset1:0x3c
-    v_xor_b32 v116, s36, v116
-    v_xor_b32 v117, s36, v117
+    v_xor_b32 v116, s11, v116
+    v_xor_b32 v117, s11, v117
     v_fmac_f32 v32, v64, v76
     s_setprio 1
     v_fmac_f32 v33, v65, v76
@@ -4485,38 +4483,37 @@ L21:
     v_fmac_f32 v63, v91, v95
     s_setprio 0
     s_cbranch_scc0 L21
-    s_load_dword s10, s[0:1], 0x40
+    s_load_dword s8, s[0:1], 0x40
     s_load_dwordx4 s[0:3], s[0:1], 0x30
-    s_mul_i32 s5, s38, s9
-    s_mov_b32 s28, s11
-    s_add_u32 s6, s5, s11
+    s_mul_i32 s5, s37, s9
+    s_mov_b32 s28, s36
+    s_add_u32 s6, s5, s36
     s_waitcnt lgkmcnt(0)
-    s_lshl_b32 s7, s10, 2
-    s_lshl_b32 s8, s10, 4
-    s_lshl_b32 s10, s10, 6
+    s_lshl_b32 s7, s8, 2
+    s_lshl_b32 s10, s8, 4
+    s_lshl_b32 s11, s8, 6
     s_mul_i32 s4, s6, s7
     s_mul_hi_u32 s5, s6, s7
     s_add_u32 s0, s0, s4
     s_addc_u32 s1, s1, s5
-    v_cmp_gt_u32 vcc, s3, v121
-    s_mov_b64 s[4:5], exec
-    s_mov_b64 s[6:7], vcc
+    v_cmp_lt_u32 s[6:7], v121, s3
     s_mov_b64 s[12:13], s[0:1]
+    s_mov_b64 s[4:5], exec
     ds_write_b128 v119, v[0:3]
     ds_write_b128 v119, v[4:7] offset:0x80
-    s_add_u32 s14, s12, s10
+    s_add_u32 s14, s12, s11
     s_addc_u32 s15, s13, 0
-    s_add_u32 s16, s14, s10
+    s_add_u32 s16, s14, s11
     s_addc_u32 s17, s15, 0
-    s_add_u32 s18, s16, s10
+    s_add_u32 s18, s16, s11
     s_addc_u32 s19, s17, 0
-    s_add_u32 s20, s18, s10
+    s_add_u32 s20, s18, s11
     s_addc_u32 s21, s19, 0
-    s_add_u32 s22, s20, s10
+    s_add_u32 s22, s20, s11
     s_addc_u32 s23, s21, 0
-    s_add_u32 s24, s22, s10
+    s_add_u32 s24, s22, s11
     s_addc_u32 s25, s23, 0
-    s_add_u32 s26, s24, s10
+    s_add_u32 s26, s24, s11
     s_addc_u32 s27, s25, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -4524,69 +4521,69 @@ L21:
     ds_read2st64_b32 v[2:3], v120 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v120 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v120 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s36, s9
     s_cbranch_scc0 L28
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[113:114], v0, s[12:13]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s36, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L22
     v_mul_f32 v1, s2, v1
     global_store_dword v[113:114], v1, s[14:15]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L22
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[113:114], v2, s[16:17]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L22
     v_mul_f32 v3, s2, v3
     global_store_dword v[113:114], v3, s[18:19]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L22
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[113:114], v4, s[20:21]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L22
     v_mul_f32 v5, s2, v5
     global_store_dword v[113:114], v5, s[22:23]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L22
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[113:114], v6, s[24:25]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L22
     v_mul_f32 v7, s2, v7
     global_store_dword v[113:114], v7, s[26:27]
 L22:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 4
+    s_addk_i32 s36, 4
     ds_write_b128 v119, v[8:11]
     ds_write_b128 v119, v[12:15] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -4594,69 +4591,69 @@ L22:
     ds_read2st64_b32 v[2:3], v120 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v120 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v120 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s36, s9
     s_cbranch_scc0 L28
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[113:114], v0, s[12:13]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s36, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L23
     v_mul_f32 v1, s2, v1
     global_store_dword v[113:114], v1, s[14:15]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L23
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[113:114], v2, s[16:17]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L23
     v_mul_f32 v3, s2, v3
     global_store_dword v[113:114], v3, s[18:19]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L23
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[113:114], v4, s[20:21]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L23
     v_mul_f32 v5, s2, v5
     global_store_dword v[113:114], v5, s[22:23]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L23
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[113:114], v6, s[24:25]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L23
     v_mul_f32 v7, s2, v7
     global_store_dword v[113:114], v7, s[26:27]
 L23:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 4
+    s_addk_i32 s36, 4
     ds_write_b128 v119, v[16:19]
     ds_write_b128 v119, v[20:23] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -4664,69 +4661,69 @@ L23:
     ds_read2st64_b32 v[2:3], v120 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v120 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v120 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s36, s9
     s_cbranch_scc0 L28
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[113:114], v0, s[12:13]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s36, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L24
     v_mul_f32 v1, s2, v1
     global_store_dword v[113:114], v1, s[14:15]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L24
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[113:114], v2, s[16:17]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L24
     v_mul_f32 v3, s2, v3
     global_store_dword v[113:114], v3, s[18:19]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L24
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[113:114], v4, s[20:21]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L24
     v_mul_f32 v5, s2, v5
     global_store_dword v[113:114], v5, s[22:23]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L24
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[113:114], v6, s[24:25]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L24
     v_mul_f32 v7, s2, v7
     global_store_dword v[113:114], v7, s[26:27]
 L24:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 4
+    s_addk_i32 s36, 4
     ds_write_b128 v119, v[24:27]
     ds_write_b128 v119, v[28:31] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -4734,69 +4731,69 @@ L24:
     ds_read2st64_b32 v[2:3], v120 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v120 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v120 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s36, s9
     s_cbranch_scc0 L28
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[113:114], v0, s[12:13]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s36, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L25
     v_mul_f32 v1, s2, v1
     global_store_dword v[113:114], v1, s[14:15]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L25
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[113:114], v2, s[16:17]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L25
     v_mul_f32 v3, s2, v3
     global_store_dword v[113:114], v3, s[18:19]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L25
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[113:114], v4, s[20:21]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L25
     v_mul_f32 v5, s2, v5
     global_store_dword v[113:114], v5, s[22:23]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L25
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[113:114], v6, s[24:25]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L25
     v_mul_f32 v7, s2, v7
     global_store_dword v[113:114], v7, s[26:27]
     s_mov_b64 exec, s[4:5]
-    s_lshr_b32 s3, s8, 1
-    s_add_u32 s11, s28, 2
+    s_lshr_b32 s3, s10, 1
+    s_add_u32 s36, s28, 2
     s_add_u32 s12, s0, s3
     s_addc_u32 s13, s1, 0
     ds_write_b128 v119, v[32:35]
     ds_write_b128 v119, v[36:39] offset:0x80
-    s_add_u32 s14, s12, s10
+    s_add_u32 s14, s12, s11
     s_addc_u32 s15, s13, 0
-    s_add_u32 s16, s14, s10
+    s_add_u32 s16, s14, s11
     s_addc_u32 s17, s15, 0
-    s_add_u32 s18, s16, s10
+    s_add_u32 s18, s16, s11
     s_addc_u32 s19, s17, 0
-    s_add_u32 s20, s18, s10
+    s_add_u32 s20, s18, s11
     s_addc_u32 s21, s19, 0
-    s_add_u32 s22, s20, s10
+    s_add_u32 s22, s20, s11
     s_addc_u32 s23, s21, 0
-    s_add_u32 s24, s22, s10
+    s_add_u32 s24, s22, s11
     s_addc_u32 s25, s23, 0
-    s_add_u32 s26, s24, s10
+    s_add_u32 s26, s24, s11
     s_addc_u32 s27, s25, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -4804,69 +4801,69 @@ L24:
     ds_read2st64_b32 v[2:3], v120 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v120 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v120 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s36, s9
     s_cbranch_scc0 L28
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[113:114], v0, s[12:13]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s36, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L25
     v_mul_f32 v1, s2, v1
     global_store_dword v[113:114], v1, s[14:15]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L25
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[113:114], v2, s[16:17]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L25
     v_mul_f32 v3, s2, v3
     global_store_dword v[113:114], v3, s[18:19]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L25
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[113:114], v4, s[20:21]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L25
     v_mul_f32 v5, s2, v5
     global_store_dword v[113:114], v5, s[22:23]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L25
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[113:114], v6, s[24:25]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L25
     v_mul_f32 v7, s2, v7
     global_store_dword v[113:114], v7, s[26:27]
 L25:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 4
+    s_addk_i32 s36, 4
     ds_write_b128 v119, v[40:43]
     ds_write_b128 v119, v[44:47] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -4874,69 +4871,69 @@ L25:
     ds_read2st64_b32 v[2:3], v120 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v120 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v120 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s36, s9
     s_cbranch_scc0 L28
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[113:114], v0, s[12:13]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s36, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L26
     v_mul_f32 v1, s2, v1
     global_store_dword v[113:114], v1, s[14:15]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L26
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[113:114], v2, s[16:17]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L26
     v_mul_f32 v3, s2, v3
     global_store_dword v[113:114], v3, s[18:19]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L26
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[113:114], v4, s[20:21]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L26
     v_mul_f32 v5, s2, v5
     global_store_dword v[113:114], v5, s[22:23]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L26
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[113:114], v6, s[24:25]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L26
     v_mul_f32 v7, s2, v7
     global_store_dword v[113:114], v7, s[26:27]
 L26:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 4
+    s_addk_i32 s36, 4
     ds_write_b128 v119, v[48:51]
     ds_write_b128 v119, v[52:55] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -4944,69 +4941,69 @@ L26:
     ds_read2st64_b32 v[2:3], v120 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v120 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v120 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s36, s9
     s_cbranch_scc0 L28
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[113:114], v0, s[12:13]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s36, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L27
     v_mul_f32 v1, s2, v1
     global_store_dword v[113:114], v1, s[14:15]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L27
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[113:114], v2, s[16:17]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L27
     v_mul_f32 v3, s2, v3
     global_store_dword v[113:114], v3, s[18:19]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L27
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[113:114], v4, s[20:21]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L27
     v_mul_f32 v5, s2, v5
     global_store_dword v[113:114], v5, s[22:23]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L27
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[113:114], v6, s[24:25]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L27
     v_mul_f32 v7, s2, v7
     global_store_dword v[113:114], v7, s[26:27]
 L27:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 4
+    s_addk_i32 s36, 4
     ds_write_b128 v119, v[56:59]
     ds_write_b128 v119, v[60:63] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -5014,45 +5011,45 @@ L27:
     ds_read2st64_b32 v[2:3], v120 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v120 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v120 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s36, s9
     s_cbranch_scc0 L28
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[113:114], v0, s[12:13]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s36, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L28
     v_mul_f32 v1, s2, v1
     global_store_dword v[113:114], v1, s[14:15]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L28
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[113:114], v2, s[16:17]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L28
     v_mul_f32 v3, s2, v3
     global_store_dword v[113:114], v3, s[18:19]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L28
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[113:114], v4, s[20:21]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L28
     v_mul_f32 v5, s2, v5
     global_store_dword v[113:114], v5, s[22:23]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L28
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[113:114], v6, s[24:25]
-    s_add_u32 s3, s3, 16
+    s_addk_i32 s3, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L28
     v_mul_f32 v7, s2, v7
@@ -5069,7 +5066,7 @@ L28:
     .amdhsa_system_sgpr_workgroup_id_z 1
     .amdhsa_system_vgpr_workitem_id 0
     .amdhsa_next_free_vgpr 122
-    .amdhsa_next_free_sgpr 43
+    .amdhsa_next_free_sgpr 44
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
@@ -5390,11 +5387,10 @@ L29:
     s_mul_i32 s4, s7, s8
     s_mul_hi_u32 s5, s7, s8
     s_waitcnt lgkmcnt(0)
-    v_cmp_gt_u32 vcc, s14, v56
     s_add_u32 s12, s0, s4
     s_addc_u32 s13, s1, s5
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
+    v_cmp_lt_u32 s[4:5], v56, s14
     ds_write_b128 v54, v[0:3]
     s_add_u32 s14, s12, s9
     s_addc_u32 s15, s13, 0
@@ -5428,7 +5424,7 @@ L29:
     v_mul_f32 v3, s2, v3
     global_store_dword v[50:51], v3, s[18:19]
 L30:
-    s_add_u32 s21, s21, 1
+    s_addk_i32 s21, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v54, v[4:7]
     s_add_u32 s12, s12, s8
@@ -5465,7 +5461,7 @@ L30:
     v_mul_f32 v3, s2, v3
     global_store_dword v[50:51], v3, s[18:19]
 L31:
-    s_add_u32 s21, s21, 1
+    s_addk_i32 s21, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v54, v[8:11]
     s_add_u32 s12, s12, s8
@@ -5502,7 +5498,7 @@ L31:
     v_mul_f32 v3, s2, v3
     global_store_dword v[50:51], v3, s[18:19]
 L32:
-    s_add_u32 s21, s21, 1
+    s_addk_i32 s21, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v54, v[12:15]
     s_add_u32 s12, s12, s8
@@ -5867,11 +5863,10 @@ L34:
     s_mul_i32 s4, s7, s8
     s_mul_hi_u32 s5, s7, s8
     s_waitcnt lgkmcnt(0)
-    v_cmp_gt_u32 vcc, s16, v53
     s_add_u32 s12, s0, s4
     s_addc_u32 s13, s1, s5
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
+    v_cmp_lt_u32 s[4:5], v53, s16
     ds_write_b128 v51, v[0:3]
     s_add_u32 s14, s12, s9
     s_addc_u32 s15, s13, 0
@@ -5905,7 +5900,7 @@ L34:
     v_mul_f32 v3, s2, v3
     global_store_dword v[46:47], v3, s[18:19]
 L35:
-    s_add_u32 s23, s23, 1
+    s_addk_i32 s23, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v51, v[4:7]
     s_add_u32 s12, s12, s8
@@ -5942,7 +5937,7 @@ L35:
     v_mul_f32 v3, s2, v3
     global_store_dword v[46:47], v3, s[18:19]
 L36:
-    s_add_u32 s23, s23, 1
+    s_addk_i32 s23, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v51, v[8:11]
     s_add_u32 s12, s12, s8
@@ -5979,7 +5974,7 @@ L36:
     v_mul_f32 v3, s2, v3
     global_store_dword v[46:47], v3, s[18:19]
 L37:
-    s_add_u32 s23, s23, 1
+    s_addk_i32 s23, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v51, v[12:15]
     s_add_u32 s12, s12, s8
@@ -6339,11 +6334,10 @@ L39:
     s_mul_i32 s4, s7, s8
     s_mul_hi_u32 s5, s7, s8
     s_waitcnt lgkmcnt(0)
-    v_cmp_gt_u32 vcc, s16, v51
     s_add_u32 s12, s0, s4
     s_addc_u32 s13, s1, s5
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
+    v_cmp_lt_u32 s[4:5], v51, s16
     ds_write_b128 v49, v[0:3]
     s_add_u32 s14, s12, s9
     s_addc_u32 s15, s13, 0
@@ -6377,7 +6371,7 @@ L39:
     v_mul_f32 v3, s2, v3
     global_store_dword v[44:45], v3, s[18:19]
 L40:
-    s_add_u32 s23, s23, 1
+    s_addk_i32 s23, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v49, v[4:7]
     s_add_u32 s12, s12, s8
@@ -6414,7 +6408,7 @@ L40:
     v_mul_f32 v3, s2, v3
     global_store_dword v[44:45], v3, s[18:19]
 L41:
-    s_add_u32 s23, s23, 1
+    s_addk_i32 s23, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v49, v[8:11]
     s_add_u32 s12, s12, s8
@@ -6451,7 +6445,7 @@ L41:
     v_mul_f32 v3, s2, v3
     global_store_dword v[44:45], v3, s[18:19]
 L42:
-    s_add_u32 s23, s23, 1
+    s_addk_i32 s23, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v49, v[12:15]
     s_add_u32 s12, s12, s8
@@ -6980,11 +6974,10 @@ L44:
     s_mul_i32 s4, s7, s8
     s_mul_hi_u32 s5, s7, s8
     s_waitcnt lgkmcnt(0)
-    v_cmp_gt_u32 vcc, s16, v80
     s_add_u32 s12, s0, s4
     s_addc_u32 s13, s1, s5
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
+    v_cmp_lt_u32 s[4:5], v80, s16
     ds_write_b128 v78, v[0:3]
     ds_write_b128 v78, v[4:7] offset:0x80
     s_add_u32 s14, s12, s9
@@ -7051,7 +7044,7 @@ L44:
     v_mul_f32 v7, s2, v7
     global_store_dword v[74:75], v7, s[26:27]
 L45:
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v78, v[8:11]
     ds_write_b128 v78, v[12:15] offset:0x80
@@ -7121,7 +7114,7 @@ L45:
     v_mul_f32 v7, s2, v7
     global_store_dword v[74:75], v7, s[26:27]
 L46:
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v78, v[16:19]
     ds_write_b128 v78, v[20:23] offset:0x80
@@ -7191,7 +7184,7 @@ L46:
     v_mul_f32 v7, s2, v7
     global_store_dword v[74:75], v7, s[26:27]
 L47:
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v78, v[24:27]
     ds_write_b128 v78, v[28:31] offset:0x80
@@ -7748,11 +7741,10 @@ L49:
     s_mul_i32 s4, s7, s8
     s_mul_hi_u32 s5, s7, s8
     s_waitcnt lgkmcnt(0)
-    v_cmp_gt_u32 vcc, s16, v77
     s_add_u32 s12, s0, s4
     s_addc_u32 s13, s1, s5
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
+    v_cmp_lt_u32 s[4:5], v77, s16
     ds_write_b128 v75, v[0:3]
     ds_write_b128 v75, v[4:7] offset:0x80
     s_add_u32 s14, s12, s9
@@ -7819,7 +7811,7 @@ L49:
     v_mul_f32 v7, s2, v7
     global_store_dword v[70:71], v7, s[26:27]
 L50:
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v75, v[8:11]
     ds_write_b128 v75, v[12:15] offset:0x80
@@ -7889,7 +7881,7 @@ L50:
     v_mul_f32 v7, s2, v7
     global_store_dword v[70:71], v7, s[26:27]
 L51:
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v75, v[16:19]
     ds_write_b128 v75, v[20:23] offset:0x80
@@ -7959,7 +7951,7 @@ L51:
     v_mul_f32 v7, s2, v7
     global_store_dword v[70:71], v7, s[26:27]
 L52:
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v75, v[24:27]
     ds_write_b128 v75, v[28:31] offset:0x80
@@ -8506,11 +8498,10 @@ L54:
     s_mul_i32 s4, s7, s8
     s_mul_hi_u32 s5, s7, s8
     s_waitcnt lgkmcnt(0)
-    v_cmp_gt_u32 vcc, s21, v75
     s_add_u32 s12, s0, s4
     s_addc_u32 s13, s1, s5
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
+    v_cmp_lt_u32 s[4:5], v75, s21
     ds_write_b128 v73, v[0:3]
     ds_write_b128 v73, v[4:7] offset:0x80
     s_add_u32 s14, s12, s9
@@ -8577,7 +8568,7 @@ L54:
     v_mul_f32 v7, s2, v7
     global_store_dword v[68:69], v7, s[26:27]
 L55:
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v73, v[8:11]
     ds_write_b128 v73, v[12:15] offset:0x80
@@ -8647,7 +8638,7 @@ L55:
     v_mul_f32 v7, s2, v7
     global_store_dword v[68:69], v7, s[26:27]
 L56:
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v73, v[16:19]
     ds_write_b128 v73, v[20:23] offset:0x80
@@ -8717,7 +8708,7 @@ L56:
     v_mul_f32 v7, s2, v7
     global_store_dword v[68:69], v7, s[26:27]
 L57:
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v73, v[24:27]
     ds_write_b128 v73, v[28:31] offset:0x80
@@ -9578,10 +9569,9 @@ L59:
     s_waitcnt lgkmcnt(0)
     s_add_u32 s0, s0, s4
     s_addc_u32 s1, s1, s5
-    v_cmp_gt_u32 vcc, s14, v122
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
     s_mov_b64 s[12:13], s[0:1]
+    v_cmp_lt_u32 s[4:5], v122, s14
     ds_write_b128 v120, v[0:3]
     ds_write_b128 v120, v[4:7] offset:0x80
     s_add_u32 s14, s12, s9
@@ -9648,7 +9638,7 @@ L59:
     v_mul_f32 v7, s2, v7
     global_store_dword v[115:116], v7, s[26:27]
 L60:
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v120, v[8:11]
     ds_write_b128 v120, v[12:15] offset:0x80
@@ -9718,7 +9708,7 @@ L60:
     v_mul_f32 v7, s2, v7
     global_store_dword v[115:116], v7, s[26:27]
 L61:
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v120, v[16:19]
     ds_write_b128 v120, v[20:23] offset:0x80
@@ -9788,7 +9778,7 @@ L61:
     v_mul_f32 v7, s2, v7
     global_store_dword v[115:116], v7, s[26:27]
 L62:
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v120, v[24:27]
     ds_write_b128 v120, v[28:31] offset:0x80
@@ -9928,7 +9918,7 @@ L62:
     v_mul_f32 v7, s2, v7
     global_store_dword v[115:116], v7, s[26:27]
 L63:
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v120, v[40:43]
     ds_write_b128 v120, v[44:47] offset:0x80
@@ -9998,7 +9988,7 @@ L63:
     v_mul_f32 v7, s2, v7
     global_store_dword v[115:116], v7, s[26:27]
 L64:
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v120, v[48:51]
     ds_write_b128 v120, v[52:55] offset:0x80
@@ -10068,7 +10058,7 @@ L64:
     v_mul_f32 v7, s2, v7
     global_store_dword v[115:116], v7, s[26:27]
 L65:
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v120, v[56:59]
     ds_write_b128 v120, v[60:63] offset:0x80
@@ -10923,10 +10913,9 @@ L67:
     s_waitcnt lgkmcnt(0)
     s_add_u32 s0, s0, s4
     s_addc_u32 s1, s1, s5
-    v_cmp_gt_u32 vcc, s16, v116
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
     s_mov_b64 s[12:13], s[0:1]
+    v_cmp_lt_u32 s[4:5], v116, s16
     ds_write_b128 v114, v[0:3]
     ds_write_b128 v114, v[4:7] offset:0x80
     s_add_u32 s14, s12, s9
@@ -10993,7 +10982,7 @@ L67:
     v_mul_f32 v7, s2, v7
     global_store_dword v[117:118], v7, s[26:27]
 L68:
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v114, v[8:11]
     ds_write_b128 v114, v[12:15] offset:0x80
@@ -11063,7 +11052,7 @@ L68:
     v_mul_f32 v7, s2, v7
     global_store_dword v[117:118], v7, s[26:27]
 L69:
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v114, v[16:19]
     ds_write_b128 v114, v[20:23] offset:0x80
@@ -11133,7 +11122,7 @@ L69:
     v_mul_f32 v7, s2, v7
     global_store_dword v[117:118], v7, s[26:27]
 L70:
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v114, v[24:27]
     ds_write_b128 v114, v[28:31] offset:0x80
@@ -11204,7 +11193,7 @@ L70:
     global_store_dword v[117:118], v7, s[26:27]
     s_lshl_b32 s3, s8, 5
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 29
+    s_addk_i32 s28, 29
     s_add_u32 s12, s0, s3
     s_addc_u32 s13, s1, 0
     ds_write_b128 v114, v[32:35]
@@ -11273,7 +11262,7 @@ L70:
     v_mul_f32 v7, s2, v7
     global_store_dword v[117:118], v7, s[26:27]
 L71:
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v114, v[40:43]
     ds_write_b128 v114, v[44:47] offset:0x80
@@ -11343,7 +11332,7 @@ L71:
     v_mul_f32 v7, s2, v7
     global_store_dword v[117:118], v7, s[26:27]
 L72:
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v114, v[48:51]
     ds_write_b128 v114, v[52:55] offset:0x80
@@ -11413,7 +11402,7 @@ L72:
     v_mul_f32 v7, s2, v7
     global_store_dword v[117:118], v7, s[26:27]
 L73:
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v114, v[56:59]
     ds_write_b128 v114, v[60:63] offset:0x80
@@ -12261,10 +12250,9 @@ L75:
     s_waitcnt lgkmcnt(0)
     s_add_u32 s0, s0, s4
     s_addc_u32 s1, s1, s5
-    v_cmp_gt_u32 vcc, s16, v116
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
     s_mov_b64 s[12:13], s[0:1]
+    v_cmp_lt_u32 s[4:5], v116, s16
     ds_write_b128 v114, v[0:3]
     ds_write_b128 v114, v[4:7] offset:0x80
     s_add_u32 s14, s12, s9
@@ -12331,7 +12319,7 @@ L75:
     v_mul_f32 v7, s2, v7
     global_store_dword v[109:110], v7, s[26:27]
 L76:
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v114, v[8:11]
     ds_write_b128 v114, v[12:15] offset:0x80
@@ -12401,7 +12389,7 @@ L76:
     v_mul_f32 v7, s2, v7
     global_store_dword v[109:110], v7, s[26:27]
 L77:
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v114, v[16:19]
     ds_write_b128 v114, v[20:23] offset:0x80
@@ -12471,7 +12459,7 @@ L77:
     v_mul_f32 v7, s2, v7
     global_store_dword v[109:110], v7, s[26:27]
 L78:
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v114, v[24:27]
     ds_write_b128 v114, v[28:31] offset:0x80
@@ -12611,7 +12599,7 @@ L78:
     v_mul_f32 v7, s2, v7
     global_store_dword v[109:110], v7, s[26:27]
 L79:
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v114, v[40:43]
     ds_write_b128 v114, v[44:47] offset:0x80
@@ -12681,7 +12669,7 @@ L79:
     v_mul_f32 v7, s2, v7
     global_store_dword v[109:110], v7, s[26:27]
 L80:
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v114, v[48:51]
     ds_write_b128 v114, v[52:55] offset:0x80
@@ -12751,7 +12739,7 @@ L80:
     v_mul_f32 v7, s2, v7
     global_store_dword v[109:110], v7, s[26:27]
 L81:
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     s_mov_b64 exec, s[6:7]
     ds_write_b128 v114, v[56:59]
     ds_write_b128 v114, v[60:63] offset:0x80
@@ -14200,10 +14188,9 @@ L83:
     s_waitcnt lgkmcnt(0)
     s_add_u32 s0, s0, s4
     s_addc_u32 s1, s1, s5
-    v_cmp_gt_u32 vcc, s14, v126
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
     s_mov_b64 s[12:13], s[0:1]
+    v_cmp_lt_u32 s[4:5], v126, s14
     ds_write_b128 v64, v[0:3]
     ds_write_b128 v64, v[4:7] offset:0x80
     s_add_u32 s14, s12, s9
@@ -14271,7 +14258,7 @@ L83:
     global_store_dword v[127:128], v7, s[26:27]
 L84:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s8, s8, 1
+    s_addk_i32 s8, 1
     ds_write_b128 v64, v[8:11]
     ds_write_b128 v64, v[12:15] offset:0x80
     s_add_u32 s12, s12, s11
@@ -14341,7 +14328,7 @@ L84:
     global_store_dword v[127:128], v7, s[26:27]
 L85:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s8, s8, 1
+    s_addk_i32 s8, 1
     ds_write_b128 v64, v[16:19]
     ds_write_b128 v64, v[20:23] offset:0x80
     s_add_u32 s12, s12, s11
@@ -14411,7 +14398,7 @@ L85:
     global_store_dword v[127:128], v7, s[26:27]
 L86:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s8, s8, 1
+    s_addk_i32 s8, 1
     ds_write_b128 v64, v[24:27]
     ds_write_b128 v64, v[28:31] offset:0x80
     s_add_u32 s12, s12, s11
@@ -14481,7 +14468,7 @@ L86:
     global_store_dword v[127:128], v7, s[26:27]
     s_mov_b64 exec, s[6:7]
     s_lshl_b32 s3, s11, 6
-    s_add_u32 s8, s8, 61
+    s_addk_i32 s8, 61
     s_add_u32 s12, s0, s3
     s_addc_u32 s13, s1, 0
     ds_write_b128 v64, v[32:35]
@@ -14551,7 +14538,7 @@ L86:
     global_store_dword v[127:128], v7, s[26:27]
 L87:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s8, s8, 1
+    s_addk_i32 s8, 1
     ds_write_b128 v64, v[40:43]
     ds_write_b128 v64, v[44:47] offset:0x80
     s_add_u32 s12, s12, s11
@@ -14621,7 +14608,7 @@ L87:
     global_store_dword v[127:128], v7, s[26:27]
 L88:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s8, s8, 1
+    s_addk_i32 s8, 1
     ds_write_b128 v64, v[48:51]
     ds_write_b128 v64, v[52:55] offset:0x80
     s_add_u32 s12, s12, s11
@@ -14691,7 +14678,7 @@ L88:
     global_store_dword v[127:128], v7, s[26:27]
 L89:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s8, s8, 1
+    s_addk_i32 s8, 1
     ds_write_b128 v64, v[56:59]
     ds_write_b128 v64, v[60:63] offset:0x80
     s_add_u32 s12, s12, s11
@@ -16117,10 +16104,9 @@ L91:
     s_lshr_b32 s16, s16, 1
     s_add_u32 s0, s0, s4
     s_addc_u32 s1, s1, s5
-    v_cmp_gt_u32 vcc, s16, v125
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
     s_mov_b64 s[12:13], s[0:1]
+    v_cmp_lt_u32 s[4:5], v125, s16
     ds_write_b128 v123, v[0:3]
     ds_write_b128 v123, v[4:7] offset:0x100
     s_add_u32 s14, s12, s20
@@ -16164,7 +16150,7 @@ L91:
     global_store_dwordx2 v[126:127], v[6:7], s[18:19]
 L92:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s8, s8, 1
+    s_addk_i32 s8, 1
     ds_write_b128 v123, v[8:11]
     ds_write_b128 v123, v[12:15] offset:0x100
     s_add_u32 s12, s12, s11
@@ -16210,7 +16196,7 @@ L92:
     global_store_dwordx2 v[126:127], v[6:7], s[18:19]
 L93:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s8, s8, 1
+    s_addk_i32 s8, 1
     ds_write_b128 v123, v[16:19]
     ds_write_b128 v123, v[20:23] offset:0x100
     s_add_u32 s12, s12, s11
@@ -16256,7 +16242,7 @@ L93:
     global_store_dwordx2 v[126:127], v[6:7], s[18:19]
 L94:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s8, s8, 1
+    s_addk_i32 s8, 1
     ds_write_b128 v123, v[24:27]
     ds_write_b128 v123, v[28:31] offset:0x100
     s_add_u32 s12, s12, s11
@@ -16302,7 +16288,7 @@ L94:
     global_store_dwordx2 v[126:127], v[6:7], s[18:19]
     s_mov_b64 exec, s[6:7]
     s_lshl_b32 s3, s11, 6
-    s_add_u32 s8, s8, 61
+    s_addk_i32 s8, 61
     s_add_u32 s12, s0, s3
     s_addc_u32 s13, s1, 0
     ds_write_b128 v123, v[32:35]
@@ -16348,7 +16334,7 @@ L94:
     global_store_dwordx2 v[126:127], v[6:7], s[18:19]
 L95:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s8, s8, 1
+    s_addk_i32 s8, 1
     ds_write_b128 v123, v[40:43]
     ds_write_b128 v123, v[44:47] offset:0x100
     s_add_u32 s12, s12, s11
@@ -16394,7 +16380,7 @@ L95:
     global_store_dwordx2 v[126:127], v[6:7], s[18:19]
 L96:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s8, s8, 1
+    s_addk_i32 s8, 1
     ds_write_b128 v123, v[48:51]
     ds_write_b128 v123, v[52:55] offset:0x100
     s_add_u32 s12, s12, s11
@@ -16440,7 +16426,7 @@ L96:
     global_store_dwordx2 v[126:127], v[6:7], s[18:19]
 L97:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s8, s8, 1
+    s_addk_i32 s8, 1
     ds_write_b128 v123, v[56:59]
     ds_write_b128 v123, v[60:63] offset:0x100
     s_add_u32 s12, s12, s11
@@ -17837,10 +17823,9 @@ L99:
     s_lshr_b32 s21, s21, 1
     s_add_u32 s0, s0, s4
     s_addc_u32 s1, s1, s5
-    v_cmp_gt_u32 vcc, s21, v121
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
     s_mov_b64 s[12:13], s[0:1]
+    v_cmp_lt_u32 s[4:5], v121, s21
     ds_write_b128 v119, v[0:3]
     ds_write_b128 v119, v[4:7] offset:0x100
     s_add_u32 s14, s12, s20
@@ -17884,7 +17869,7 @@ L99:
     global_store_dwordx2 v[122:123], v[6:7], s[18:19]
 L100:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s8, s8, 1
+    s_addk_i32 s8, 1
     ds_write_b128 v119, v[8:11]
     ds_write_b128 v119, v[12:15] offset:0x100
     s_add_u32 s12, s12, s11
@@ -17930,7 +17915,7 @@ L100:
     global_store_dwordx2 v[122:123], v[6:7], s[18:19]
 L101:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s8, s8, 1
+    s_addk_i32 s8, 1
     ds_write_b128 v119, v[16:19]
     ds_write_b128 v119, v[20:23] offset:0x100
     s_add_u32 s12, s12, s11
@@ -17976,7 +17961,7 @@ L101:
     global_store_dwordx2 v[122:123], v[6:7], s[18:19]
 L102:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s8, s8, 1
+    s_addk_i32 s8, 1
     ds_write_b128 v119, v[24:27]
     ds_write_b128 v119, v[28:31] offset:0x100
     s_add_u32 s12, s12, s11
@@ -18022,7 +18007,7 @@ L102:
     global_store_dwordx2 v[122:123], v[6:7], s[18:19]
     s_mov_b64 exec, s[6:7]
     s_lshl_b32 s3, s11, 6
-    s_add_u32 s8, s8, 61
+    s_addk_i32 s8, 61
     s_add_u32 s12, s0, s3
     s_addc_u32 s13, s1, 0
     ds_write_b128 v119, v[32:35]
@@ -18068,7 +18053,7 @@ L102:
     global_store_dwordx2 v[122:123], v[6:7], s[18:19]
 L103:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s8, s8, 1
+    s_addk_i32 s8, 1
     ds_write_b128 v119, v[40:43]
     ds_write_b128 v119, v[44:47] offset:0x100
     s_add_u32 s12, s12, s11
@@ -18114,7 +18099,7 @@ L103:
     global_store_dwordx2 v[122:123], v[6:7], s[18:19]
 L104:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s8, s8, 1
+    s_addk_i32 s8, 1
     ds_write_b128 v119, v[48:51]
     ds_write_b128 v119, v[52:55] offset:0x100
     s_add_u32 s12, s12, s11
@@ -18160,7 +18145,7 @@ L104:
     global_store_dwordx2 v[122:123], v[6:7], s[18:19]
 L105:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s8, s8, 1
+    s_addk_i32 s8, 1
     ds_write_b128 v119, v[56:59]
     ds_write_b128 v119, v[60:63] offset:0x100
     s_add_u32 s12, s12, s11
@@ -18246,26 +18231,26 @@ sfco:
     v_lshl_or_b32 v6, s3, 5, v5
     v_lshlrev_b32 v7, 3, v74
     global_load_dwordx2 v[66:67], v[7:8], s[4:5]
-    global_load_dwordx2 v[66:67], v[7:8], s[4:5]
     s_load_dwordx4 s[4:7], s[0:1], 0x20
-    s_lshl_b32 s16, s40, 2
-    s_mul_i32 s12, s16, s11
-    s_mul_hi_u32 s13, s16, s11
-    s_mul_i32 s14, s16, s10
-    s_mul_hi_u32 s15, s16, s10
-    s_lshl_b32 s11, s3, 5
+    s_lshl_b32 s37, s3, 5
+    s_lshl_b32 s12, s40, 2
     s_load_dwordx2 s[2:3], s[0:1], 0x8
+    s_mul_i32 s20, s12, s11
+    s_mul_hi_u32 s21, s12, s11
+    s_mul_i32 s22, s12, s10
+    s_mul_hi_u32 s23, s12, s10
+    v_sub_i32 v7, s9, 1
     s_waitcnt lgkmcnt(0)
-    s_add_u32 s4, s4, s12
-    s_addc_u32 s5, s5, s13
-    s_add_u32 s6, s6, s14
-    s_addc_u32 s7, s7, s15
     s_load_dwordx8 s[12:19], s[2:3], 0x0
+    s_add_u32 s4, s4, s20
+    s_addc_u32 s5, s5, s21
+    s_add_u32 s6, s6, s22
+    s_addc_u32 s7, s7, s23
     v_cmp_gt_u32 vcc, s9, v6
-    v_cndmask_b32 v6, 0, v6, vcc
-    v_lshlrev_b32 v7, 2, v3
-    v_mul_lo_u32 v8, s8, v6
-    v_lshl_add_u32 v65, v8, 2, v7
+    v_cndmask_b32 v6, v7, v6, vcc
+    v_lshlrev_b32 v8, 2, v3
+    v_mul_lo_u32 v9, s8, v6
+    v_lshl_add_u32 v65, v9, 2, v8
     s_waitcnt lgkmcnt(0)
     s_add_u32 s20, s4, s12
     s_addc_u32 s21, s5, 0
@@ -18346,8 +18331,8 @@ sfco:
     ds_write2st64_b32 v70, v62, v63 offset0:0x18 offset1:0x1c
     ds_write_b32 v71 v64, offset:0x2000
     s_movk_i32 s8, 32
-    s_movk_i32 s36, 64
-    s_movk_i32 s37, 9216
+    s_movk_i32 s11, 64
+    s_movk_i32 s36, 9216
     s_waitcnt lgkmcnt(0)
     s_barrier
     ds_read_b128 v[40:43], v69 offset:0x2000
@@ -18379,7 +18364,7 @@ L107:
     ds_read_b128 v[48:51], v68 offset:0x480
     s_sub_u32 s10, s10, 8
     s_waitcnt lgkmcnt(3)
-    s_load_dwordx8 s[12:19], s[2:3], s36
+    s_load_dwordx8 s[12:19], s[2:3], s11
     global_load_dword v56, v[66:67], s[20:21]
     global_load_dword v57, v[66:67], s[22:23]
     global_load_dword v58, v[66:67], s[24:25]
@@ -18425,12 +18410,12 @@ L107:
     v_fmac_f32 v30, v38, v43
     v_fmac_f32 v31, v39, v43
     s_setprio 0
-    s_add_u32 s36, s36, 32
+    s_addk_i32 s11, 32
     s_waitcnt lgkmcnt(0)
     ds_read_b128 v[40:43], v69 offset:0x2100
     ds_read_b128 v[32:35], v68 offset:0x800
     ds_read_b128 v[36:39], v68 offset:0x880
-    v_xor_b32 v70, s37, v70
+    v_xor_b32 v70, s36, v70
     s_waitcnt lgkmcnt(3)
     v_fmac_f32 v0, v44, v52
     s_setprio 1
@@ -18473,7 +18458,7 @@ L107:
     ds_read_b128 v[52:55], v69 offset:0x2180
     ds_read_b128 v[44:47], v68 offset:0xc00
     ds_read_b128 v[48:51], v68 offset:0xc80
-    v_xor_b32 v71, s37, v71
+    v_xor_b32 v71, s36, v71
     s_waitcnt lgkmcnt(3)
     v_fmac_f32 v0, v32, v40
     s_setprio 1
@@ -18666,8 +18651,8 @@ L107:
     ds_write2st64_b32 v70, v60, v61 offset0:0x10 offset1:0x14
     ds_write2st64_b32 v70, v62, v63 offset0:0x18 offset1:0x1c
     ds_write_b32 v71 v64, offset:0x2000
-    v_xor_b32 v68, s37, v68
-    v_xor_b32 v69, s37, v69
+    v_xor_b32 v68, s36, v68
+    v_xor_b32 v69, s36, v69
     v_fmac_f32 v4, v36, v40
     s_setprio 1
     v_fmac_f32 v5, v37, v40
@@ -19043,36 +19028,35 @@ L108:
     v_fmac_f32 v31, v51, v55
     s_setprio 0
 L109:
-    s_load_dword s10, s[0:1], 0x40
+    s_load_dword s8, s[0:1], 0x40
     s_load_dwordx4 s[0:3], s[0:1], 0x30
     s_mul_i32 s6, s40, s9
     s_mov_b64 s[4:5], exec
-    s_add_u32 s7, s6, s11
+    s_add_u32 s7, s6, s37
     s_waitcnt lgkmcnt(0)
-    s_lshl_b32 s8, s10, 2
-    s_lshl_b32 s10, s10, 4
-    s_mul_i32 s12, s7, s8
-    s_mul_hi_u32 s13, s7, s8
+    s_lshl_b32 s10, s8, 2
+    s_lshl_b32 s11, s8, 4
+    s_mul_i32 s12, s7, s10
+    s_mul_hi_u32 s13, s7, s10
     s_add_u32 s0, s0, s12
     s_addc_u32 s1, s1, s13
-    v_cmp_gt_u32 vcc, s3, v74
-    s_mov_b64 s[6:7], vcc
+    v_cmp_lt_u32 s[6:7], v74, s3
     s_mov_b64 s[12:13], s[0:1]
     ds_write_b128 v72, v[0:3]
     ds_write_b128 v72, v[4:7] offset:0x80
-    s_add_u32 s14, s12, s10
+    s_add_u32 s14, s12, s11
     s_addc_u32 s15, s13, 0
-    s_add_u32 s16, s14, s10
+    s_add_u32 s16, s14, s11
     s_addc_u32 s17, s15, 0
-    s_add_u32 s18, s16, s10
+    s_add_u32 s18, s16, s11
     s_addc_u32 s19, s17, 0
-    s_add_u32 s20, s18, s10
+    s_add_u32 s20, s18, s11
     s_addc_u32 s21, s19, 0
-    s_add_u32 s22, s20, s10
+    s_add_u32 s22, s20, s11
     s_addc_u32 s23, s21, 0
-    s_add_u32 s24, s22, s10
+    s_add_u32 s24, s22, s11
     s_addc_u32 s25, s23, 0
-    s_add_u32 s26, s24, s10
+    s_add_u32 s26, s24, s11
     s_addc_u32 s27, s25, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -19080,69 +19064,69 @@ L109:
     ds_read2st64_b32 v[2:3], v73 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v73 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v73 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L113
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[67:68], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L110
     v_mul_f32 v1, s2, v1
     global_store_dword v[67:68], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L110
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[67:68], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L110
     v_mul_f32 v3, s2, v3
     global_store_dword v[67:68], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L110
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[67:68], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L110
     v_mul_f32 v5, s2, v5
     global_store_dword v[67:68], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L110
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[67:68], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L110
     v_mul_f32 v7, s2, v7
     global_store_dword v[67:68], v7, s[26:27]
 L110:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v72, v[8:11]
     ds_write_b128 v72, v[12:15] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -19150,69 +19134,69 @@ L110:
     ds_read2st64_b32 v[2:3], v73 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v73 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v73 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L113
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[67:68], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L111
     v_mul_f32 v1, s2, v1
     global_store_dword v[67:68], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L111
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[67:68], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L111
     v_mul_f32 v3, s2, v3
     global_store_dword v[67:68], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L111
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[67:68], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L111
     v_mul_f32 v5, s2, v5
     global_store_dword v[67:68], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L111
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[67:68], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L111
     v_mul_f32 v7, s2, v7
     global_store_dword v[67:68], v7, s[26:27]
 L111:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v72, v[16:19]
     ds_write_b128 v72, v[20:23] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -19220,69 +19204,69 @@ L111:
     ds_read2st64_b32 v[2:3], v73 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v73 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v73 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L113
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[67:68], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L112
     v_mul_f32 v1, s2, v1
     global_store_dword v[67:68], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L112
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[67:68], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L112
     v_mul_f32 v3, s2, v3
     global_store_dword v[67:68], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L112
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[67:68], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L112
     v_mul_f32 v5, s2, v5
     global_store_dword v[67:68], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L112
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[67:68], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L112
     v_mul_f32 v7, s2, v7
     global_store_dword v[67:68], v7, s[26:27]
 L112:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v72, v[24:27]
     ds_write_b128 v72, v[28:31] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -19290,45 +19274,45 @@ L112:
     ds_read2st64_b32 v[2:3], v73 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v73 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v73 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L113
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[67:68], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L113
     v_mul_f32 v1, s2, v1
     global_store_dword v[67:68], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L113
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[67:68], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L113
     v_mul_f32 v3, s2, v3
     global_store_dword v[67:68], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L113
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[67:68], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L113
     v_mul_f32 v5, s2, v5
     global_store_dword v[67:68], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L113
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[67:68], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L113
     v_mul_f32 v7, s2, v7
@@ -19375,26 +19359,26 @@ sfco_relu:
     v_lshl_or_b32 v6, s3, 5, v5
     v_lshlrev_b32 v7, 3, v74
     global_load_dwordx2 v[66:67], v[7:8], s[4:5]
-    global_load_dwordx2 v[66:67], v[7:8], s[4:5]
     s_load_dwordx4 s[4:7], s[0:1], 0x20
-    s_lshl_b32 s16, s40, 2
-    s_mul_i32 s12, s16, s11
-    s_mul_hi_u32 s13, s16, s11
-    s_mul_i32 s14, s16, s10
-    s_mul_hi_u32 s15, s16, s10
-    s_lshl_b32 s11, s3, 5
+    s_lshl_b32 s37, s3, 5
+    s_lshl_b32 s12, s40, 2
     s_load_dwordx2 s[2:3], s[0:1], 0x8
+    s_mul_i32 s20, s12, s11
+    s_mul_hi_u32 s21, s12, s11
+    s_mul_i32 s22, s12, s10
+    s_mul_hi_u32 s23, s12, s10
+    v_sub_i32 v7, s9, 1
     s_waitcnt lgkmcnt(0)
-    s_add_u32 s4, s4, s12
-    s_addc_u32 s5, s5, s13
-    s_add_u32 s6, s6, s14
-    s_addc_u32 s7, s7, s15
     s_load_dwordx8 s[12:19], s[2:3], 0x0
+    s_add_u32 s4, s4, s20
+    s_addc_u32 s5, s5, s21
+    s_add_u32 s6, s6, s22
+    s_addc_u32 s7, s7, s23
     v_cmp_gt_u32 vcc, s9, v6
-    v_cndmask_b32 v6, 0, v6, vcc
-    v_lshlrev_b32 v7, 2, v3
-    v_mul_lo_u32 v8, s8, v6
-    v_lshl_add_u32 v65, v8, 2, v7
+    v_cndmask_b32 v6, v7, v6, vcc
+    v_lshlrev_b32 v8, 2, v3
+    v_mul_lo_u32 v9, s8, v6
+    v_lshl_add_u32 v65, v9, 2, v8
     s_waitcnt lgkmcnt(0)
     s_add_u32 s20, s4, s12
     s_addc_u32 s21, s5, 0
@@ -19475,8 +19459,8 @@ sfco_relu:
     ds_write2st64_b32 v70, v62, v63 offset0:0x18 offset1:0x1c
     ds_write_b32 v71 v64, offset:0x2000
     s_movk_i32 s8, 32
-    s_movk_i32 s36, 64
-    s_movk_i32 s37, 9216
+    s_movk_i32 s11, 64
+    s_movk_i32 s36, 9216
     s_waitcnt lgkmcnt(0)
     s_barrier
     ds_read_b128 v[40:43], v69 offset:0x2000
@@ -19508,7 +19492,7 @@ L114:
     ds_read_b128 v[48:51], v68 offset:0x480
     s_sub_u32 s10, s10, 8
     s_waitcnt lgkmcnt(3)
-    s_load_dwordx8 s[12:19], s[2:3], s36
+    s_load_dwordx8 s[12:19], s[2:3], s11
     global_load_dword v56, v[66:67], s[20:21]
     global_load_dword v57, v[66:67], s[22:23]
     global_load_dword v58, v[66:67], s[24:25]
@@ -19554,12 +19538,12 @@ L114:
     v_fmac_f32 v30, v38, v43
     v_fmac_f32 v31, v39, v43
     s_setprio 0
-    s_add_u32 s36, s36, 32
+    s_addk_i32 s11, 32
     s_waitcnt lgkmcnt(0)
     ds_read_b128 v[40:43], v69 offset:0x2100
     ds_read_b128 v[32:35], v68 offset:0x800
     ds_read_b128 v[36:39], v68 offset:0x880
-    v_xor_b32 v70, s37, v70
+    v_xor_b32 v70, s36, v70
     s_waitcnt lgkmcnt(3)
     v_fmac_f32 v0, v44, v52
     s_setprio 1
@@ -19602,7 +19586,7 @@ L114:
     ds_read_b128 v[52:55], v69 offset:0x2180
     ds_read_b128 v[44:47], v68 offset:0xc00
     ds_read_b128 v[48:51], v68 offset:0xc80
-    v_xor_b32 v71, s37, v71
+    v_xor_b32 v71, s36, v71
     s_waitcnt lgkmcnt(3)
     v_fmac_f32 v0, v32, v40
     s_setprio 1
@@ -19795,8 +19779,8 @@ L114:
     ds_write2st64_b32 v70, v60, v61 offset0:0x10 offset1:0x14
     ds_write2st64_b32 v70, v62, v63 offset0:0x18 offset1:0x1c
     ds_write_b32 v71 v64, offset:0x2000
-    v_xor_b32 v68, s37, v68
-    v_xor_b32 v69, s37, v69
+    v_xor_b32 v68, s36, v68
+    v_xor_b32 v69, s36, v69
     v_fmac_f32 v4, v36, v40
     s_setprio 1
     v_fmac_f32 v5, v37, v40
@@ -20172,36 +20156,35 @@ L115:
     v_fmac_f32 v31, v51, v55
     s_setprio 0
 L116:
-    s_load_dword s10, s[0:1], 0x40
+    s_load_dword s8, s[0:1], 0x40
     s_load_dwordx4 s[0:3], s[0:1], 0x30
     s_mul_i32 s6, s40, s9
     s_mov_b64 s[4:5], exec
-    s_add_u32 s7, s6, s11
+    s_add_u32 s7, s6, s37
     s_waitcnt lgkmcnt(0)
-    s_lshl_b32 s8, s10, 2
-    s_lshl_b32 s10, s10, 4
-    s_mul_i32 s12, s7, s8
-    s_mul_hi_u32 s13, s7, s8
+    s_lshl_b32 s10, s8, 2
+    s_lshl_b32 s11, s8, 4
+    s_mul_i32 s12, s7, s10
+    s_mul_hi_u32 s13, s7, s10
     s_add_u32 s0, s0, s12
     s_addc_u32 s1, s1, s13
-    v_cmp_gt_u32 vcc, s3, v74
-    s_mov_b64 s[6:7], vcc
+    v_cmp_lt_u32 s[6:7], v74, s3
     s_mov_b64 s[12:13], s[0:1]
     ds_write_b128 v72, v[0:3]
     ds_write_b128 v72, v[4:7] offset:0x80
-    s_add_u32 s14, s12, s10
+    s_add_u32 s14, s12, s11
     s_addc_u32 s15, s13, 0
-    s_add_u32 s16, s14, s10
+    s_add_u32 s16, s14, s11
     s_addc_u32 s17, s15, 0
-    s_add_u32 s18, s16, s10
+    s_add_u32 s18, s16, s11
     s_addc_u32 s19, s17, 0
-    s_add_u32 s20, s18, s10
+    s_add_u32 s20, s18, s11
     s_addc_u32 s21, s19, 0
-    s_add_u32 s22, s20, s10
+    s_add_u32 s22, s20, s11
     s_addc_u32 s23, s21, 0
-    s_add_u32 s24, s22, s10
+    s_add_u32 s24, s22, s11
     s_addc_u32 s25, s23, 0
-    s_add_u32 s26, s24, s10
+    s_add_u32 s26, s24, s11
     s_addc_u32 s27, s25, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -20209,52 +20192,52 @@ L116:
     ds_read2st64_b32 v[2:3], v73 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v73 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v73 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L120
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     v_max_f32 v0, 0, v0
     global_store_dword v[67:68], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L117
     v_mul_f32 v1, s2, v1
     v_max_f32 v1, 0, v1
     global_store_dword v[67:68], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L117
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     v_max_f32 v2, 0, v2
     global_store_dword v[67:68], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L117
     v_mul_f32 v3, s2, v3
     v_max_f32 v3, 0, v3
     global_store_dword v[67:68], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L117
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     v_max_f32 v4, 0, v4
     global_store_dword v[67:68], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L117
     v_mul_f32 v5, s2, v5
     v_max_f32 v5, 0, v5
     global_store_dword v[67:68], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L117
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     v_max_f32 v6, 0, v6
     global_store_dword v[67:68], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L117
     v_mul_f32 v7, s2, v7
@@ -20262,24 +20245,24 @@ L116:
     global_store_dword v[67:68], v7, s[26:27]
 L117:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v72, v[8:11]
     ds_write_b128 v72, v[12:15] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -20287,52 +20270,52 @@ L117:
     ds_read2st64_b32 v[2:3], v73 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v73 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v73 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L120
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     v_max_f32 v0, 0, v0
     global_store_dword v[67:68], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L118
     v_mul_f32 v1, s2, v1
     v_max_f32 v1, 0, v1
     global_store_dword v[67:68], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L118
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     v_max_f32 v2, 0, v2
     global_store_dword v[67:68], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L118
     v_mul_f32 v3, s2, v3
     v_max_f32 v3, 0, v3
     global_store_dword v[67:68], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L118
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     v_max_f32 v4, 0, v4
     global_store_dword v[67:68], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L118
     v_mul_f32 v5, s2, v5
     v_max_f32 v5, 0, v5
     global_store_dword v[67:68], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L118
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     v_max_f32 v6, 0, v6
     global_store_dword v[67:68], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L118
     v_mul_f32 v7, s2, v7
@@ -20340,24 +20323,24 @@ L117:
     global_store_dword v[67:68], v7, s[26:27]
 L118:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v72, v[16:19]
     ds_write_b128 v72, v[20:23] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -20365,52 +20348,52 @@ L118:
     ds_read2st64_b32 v[2:3], v73 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v73 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v73 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L120
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     v_max_f32 v0, 0, v0
     global_store_dword v[67:68], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L119
     v_mul_f32 v1, s2, v1
     v_max_f32 v1, 0, v1
     global_store_dword v[67:68], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L119
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     v_max_f32 v2, 0, v2
     global_store_dword v[67:68], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L119
     v_mul_f32 v3, s2, v3
     v_max_f32 v3, 0, v3
     global_store_dword v[67:68], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L119
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     v_max_f32 v4, 0, v4
     global_store_dword v[67:68], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L119
     v_mul_f32 v5, s2, v5
     v_max_f32 v5, 0, v5
     global_store_dword v[67:68], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L119
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     v_max_f32 v6, 0, v6
     global_store_dword v[67:68], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L119
     v_mul_f32 v7, s2, v7
@@ -20418,24 +20401,24 @@ L118:
     global_store_dword v[67:68], v7, s[26:27]
 L119:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v72, v[24:27]
     ds_write_b128 v72, v[28:31] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -20443,52 +20426,52 @@ L119:
     ds_read2st64_b32 v[2:3], v73 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v73 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v73 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L120
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     v_max_f32 v0, 0, v0
     global_store_dword v[67:68], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L120
     v_mul_f32 v1, s2, v1
     v_max_f32 v1, 0, v1
     global_store_dword v[67:68], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L120
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     v_max_f32 v2, 0, v2
     global_store_dword v[67:68], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L120
     v_mul_f32 v3, s2, v3
     v_max_f32 v3, 0, v3
     global_store_dword v[67:68], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L120
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     v_max_f32 v4, 0, v4
     global_store_dword v[67:68], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L120
     v_mul_f32 v5, s2, v5
     v_max_f32 v5, 0, v5
     global_store_dword v[67:68], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L120
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     v_max_f32 v6, 0, v6
     global_store_dword v[67:68], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L120
     v_mul_f32 v7, s2, v7
@@ -20535,23 +20518,24 @@ sfco7x4:
     v_lshlrev_b32 v6, 3, v50
     global_load_dwordx2 v[42:43], v[6:7], s[4:5]
     s_load_dwordx4 s[4:7], s[0:1], 0x20
-    s_lshl_b32 s16, s38, 2
-    s_mul_i32 s12, s16, s11
-    s_mul_hi_u32 s13, s16, s11
-    s_lshl_b32 s11, s3, 4
+    s_lshl_b32 s37, s3, 4
+    s_lshl_b32 s12, s38, 2
     s_load_dwordx2 s[2:3], s[0:1], 0x8
-    s_mul_i32 s14, s16, s10
-    s_mul_hi_u32 s15, s16, s10
+    s_mul_i32 s20, s12, s11
+    s_mul_hi_u32 s21, s12, s11
+    s_mul_i32 s22, s12, s10
+    s_mul_hi_u32 s23, s12, s10
+    v_sub_i32 v6, s9, 1
     s_waitcnt lgkmcnt(0)
-    s_add_u32 s4, s4, s12
-    s_addc_u32 s5, s5, s13
-    s_add_u32 s6, s6, s14
-    s_addc_u32 s7, s7, s15
     s_load_dwordx8 s[12:19], s[2:3], 0x0
     v_cmp_gt_u32 vcc, s9, v5
-    v_cndmask_b32 v5, 0, v5, vcc
-    v_lshlrev_b32 v6, 2, v3
-    v_mul_lo_u32 v7, s8, v5
+    v_cndmask_b32 v7, v6, v5, vcc
+    s_add_u32 s4, s4, s20
+    s_addc_u32 s5, s5, s21
+    s_add_u32 s6, s6, s22
+    s_addc_u32 s7, s7, s23
+    v_mul_lo_u32 v8, s8, v7
+    v_add_lshl_u32 v41, v3, v8, 2
     s_waitcnt lgkmcnt(0)
     s_add_u32 s20, s4, s12
     s_addc_u32 s21, s5, 0
@@ -20569,7 +20553,6 @@ sfco7x4:
     s_addc_u32 s33, s5, 0
     s_add_u32 s34, s4, s19
     s_addc_u32 s35, s5, 0
-    v_lshl_add_u32 v41, v7, 2, v6
     s_waitcnt vmcnt(0)
     global_load_dword v32, v[42:43], s[20:21]
     global_load_dword v33, v[42:43], s[22:23]
@@ -20585,12 +20568,13 @@ sfco7x4:
     v_lshrrev_b32 v6, 4, v1
     v_lshlrev_b32 v7, 6, v3
     v_lshlrev_b32 v8, 4, v5
+    v_lshlrev_b32 v9, 2, v1
     v_lshlrev_b32 v46, 2, v0
     v_lshlrev_b32 v48, 4, v0
     v_lshlrev_b32 v45, 4, v6
     v_lshl_or_b32 v47, v4, 2, v7
     v_lshl_or_b32 v44, v2, 8, v8
-    v_lshl_or_b32 v49, v2, 10, v6
+    v_lshl_or_b32 v49, v2, 10, v9
     v_mov_b32 v0, 0
     v_mov_b32 v1, 0
     v_mov_b32 v2, 0
@@ -20615,8 +20599,8 @@ sfco7x4:
     ds_write_b32 v47 v40, offset:0x1000
     s_sub_u32 s10, s10, 8
     s_movk_i32 s8, 32
-    s_movk_i32 s36, 64
-    s_movk_i32 s37, 4608
+    s_movk_i32 s11, 64
+    s_movk_i32 s36, 4608
     s_cmpk_eq_u32 s10, 0
     s_cmovk_i32 s8, 0
     s_waitcnt lgkmcnt(0)
@@ -20644,9 +20628,9 @@ sfco7x4:
 L121:
     ds_read_b128 v[24:27], v44 offset:0x200
     ds_read_b128 v[28:31], v45 offset:0x1040
-    v_xor_b32 v46, s37, v46
+    v_xor_b32 v46, s36, v46
     s_waitcnt lgkmcnt(2)
-    s_load_dwordx8 s[12:19], s[2:3], s36
+    s_load_dwordx8 s[12:19], s[2:3], s11
     global_load_dword v32, v[42:43], s[20:21]
     global_load_dword v33, v[42:43], s[22:23]
     global_load_dword v34, v[42:43], s[24:25]
@@ -20676,11 +20660,11 @@ L121:
     s_setprio 0
     s_cmpk_eq_u32 s10, 8
     s_cmovk_i32 s8, 0
-    s_add_u32 s36, s36, 32
+    s_addk_i32 s11, 32
     s_waitcnt lgkmcnt(0)
     ds_read_b128 v[16:19], v44 offset:0x400
     ds_read_b128 v[20:23], v45 offset:0x1080
-    v_xor_b32 v47, s37, v47
+    v_xor_b32 v47, s36, v47
     s_waitcnt lgkmcnt(2)
     s_add_u32 s20, s4, s12
     s_addc_u32 s21, s5, 0
@@ -20798,8 +20782,8 @@ L121:
     s_addc_u32 s31, s5, 0
     ds_read_b128 v[24:27], v44 offset:0xe00
     ds_read_b128 v[28:31], v45 offset:0x11c0
-    v_xor_b32 v44, s37, v44
-    v_xor_b32 v45, s37, v45
+    v_xor_b32 v44, s36, v44
+    v_xor_b32 v45, s36, v45
     s_waitcnt vmcnt(0)&lgkmcnt(2)
     s_add_u32 s32, s4, s18
     s_addc_u32 s33, s5, 0
@@ -20854,160 +20838,159 @@ L121:
     v_fmac_f32 v15, v27, v31
     s_setprio 0
     s_cbranch_scc0 L121
-    s_load_dword s10, s[0:1], 0x40
+    s_load_dword s8, s[0:1], 0x40
     s_load_dwordx4 s[0:3], s[0:1], 0x30
     s_mul_i32 s6, s38, s9
     s_mov_b64 s[4:5], exec
-    s_add_u32 s7, s6, s11
+    s_add_u32 s7, s6, s37
     s_waitcnt lgkmcnt(0)
-    s_lshl_b32 s8, s10, 2
-    s_lshl_b32 s10, s10, 4
-    s_mul_i32 s12, s7, s8
-    s_mul_hi_u32 s13, s7, s8
+    s_lshl_b32 s10, s8, 2
+    s_lshl_b32 s11, s8, 4
+    s_mul_i32 s12, s7, s10
+    s_mul_hi_u32 s13, s7, s10
     s_add_u32 s0, s0, s12
     s_addc_u32 s1, s1, s13
-    v_cmp_gt_u32 vcc, s3, v50
-    s_mov_b64 s[6:7], vcc
+    v_cmp_lt_u32 s[6:7], v50, s3
     s_mov_b64 s[12:13], s[0:1]
     ds_write_b128 v48, v[0:3]
-    s_add_u32 s14, s12, s10
+    s_add_u32 s14, s12, s11
     s_addc_u32 s15, s13, 0
-    s_add_u32 s16, s14, s10
+    s_add_u32 s16, s14, s11
     s_addc_u32 s17, s15, 0
-    s_add_u32 s18, s16, s10
+    s_add_u32 s18, s16, s11
     s_addc_u32 s19, s17, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
     ds_read2_b32 v[0:1], v49 offset0:0x0 offset1:0x40
     ds_read2_b32 v[2:3], v49 offset0:0x80 offset1:0xc0
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L125
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v0, s2, v0
     global_store_dword v[43:44], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L122
     v_mul_f32 v1, s2, v1
     global_store_dword v[43:44], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L122
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v2, s2, v2
     global_store_dword v[43:44], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L122
     v_mul_f32 v3, s2, v3
     global_store_dword v[43:44], v3, s[18:19]
 L122:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v48, v[4:7]
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
     ds_read2_b32 v[0:1], v49 offset0:0x0 offset1:0x40
     ds_read2_b32 v[2:3], v49 offset0:0x80 offset1:0xc0
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L125
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v0, s2, v0
     global_store_dword v[43:44], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L123
     v_mul_f32 v1, s2, v1
     global_store_dword v[43:44], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L123
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v2, s2, v2
     global_store_dword v[43:44], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L123
     v_mul_f32 v3, s2, v3
     global_store_dword v[43:44], v3, s[18:19]
 L123:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v48, v[8:11]
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
     ds_read2_b32 v[0:1], v49 offset0:0x0 offset1:0x40
     ds_read2_b32 v[2:3], v49 offset0:0x80 offset1:0xc0
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L125
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v0, s2, v0
     global_store_dword v[43:44], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L124
     v_mul_f32 v1, s2, v1
     global_store_dword v[43:44], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L124
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v2, s2, v2
     global_store_dword v[43:44], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L124
     v_mul_f32 v3, s2, v3
     global_store_dword v[43:44], v3, s[18:19]
 L124:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v48, v[12:15]
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
     ds_read2_b32 v[0:1], v49 offset0:0x0 offset1:0x40
     ds_read2_b32 v[2:3], v49 offset0:0x80 offset1:0xc0
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L125
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v0, s2, v0
     global_store_dword v[43:44], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L125
     v_mul_f32 v1, s2, v1
     global_store_dword v[43:44], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L125
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v2, s2, v2
     global_store_dword v[43:44], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L125
     v_mul_f32 v3, s2, v3
@@ -21053,23 +21036,24 @@ sfco7x4_relu:
     v_lshlrev_b32 v6, 3, v50
     global_load_dwordx2 v[42:43], v[6:7], s[4:5]
     s_load_dwordx4 s[4:7], s[0:1], 0x20
-    s_lshl_b32 s16, s38, 2
-    s_mul_i32 s12, s16, s11
-    s_mul_hi_u32 s13, s16, s11
-    s_lshl_b32 s11, s3, 4
+    s_lshl_b32 s37, s3, 4
+    s_lshl_b32 s12, s38, 2
     s_load_dwordx2 s[2:3], s[0:1], 0x8
-    s_mul_i32 s14, s16, s10
-    s_mul_hi_u32 s15, s16, s10
+    s_mul_i32 s20, s12, s11
+    s_mul_hi_u32 s21, s12, s11
+    s_mul_i32 s22, s12, s10
+    s_mul_hi_u32 s23, s12, s10
+    v_sub_i32 v6, s9, 1
     s_waitcnt lgkmcnt(0)
-    s_add_u32 s4, s4, s12
-    s_addc_u32 s5, s5, s13
-    s_add_u32 s6, s6, s14
-    s_addc_u32 s7, s7, s15
     s_load_dwordx8 s[12:19], s[2:3], 0x0
     v_cmp_gt_u32 vcc, s9, v5
-    v_cndmask_b32 v5, 0, v5, vcc
-    v_lshlrev_b32 v6, 2, v3
-    v_mul_lo_u32 v7, s8, v5
+    v_cndmask_b32 v7, v6, v5, vcc
+    s_add_u32 s4, s4, s20
+    s_addc_u32 s5, s5, s21
+    s_add_u32 s6, s6, s22
+    s_addc_u32 s7, s7, s23
+    v_mul_lo_u32 v8, s8, v7
+    v_add_lshl_u32 v41, v3, v8, 2
     s_waitcnt lgkmcnt(0)
     s_add_u32 s20, s4, s12
     s_addc_u32 s21, s5, 0
@@ -21087,7 +21071,6 @@ sfco7x4_relu:
     s_addc_u32 s33, s5, 0
     s_add_u32 s34, s4, s19
     s_addc_u32 s35, s5, 0
-    v_lshl_add_u32 v41, v7, 2, v6
     s_waitcnt vmcnt(0)
     global_load_dword v32, v[42:43], s[20:21]
     global_load_dword v33, v[42:43], s[22:23]
@@ -21103,12 +21086,13 @@ sfco7x4_relu:
     v_lshrrev_b32 v6, 4, v1
     v_lshlrev_b32 v7, 6, v3
     v_lshlrev_b32 v8, 4, v5
+    v_lshlrev_b32 v9, 2, v1
     v_lshlrev_b32 v46, 2, v0
     v_lshlrev_b32 v48, 4, v0
     v_lshlrev_b32 v45, 4, v6
     v_lshl_or_b32 v47, v4, 2, v7
     v_lshl_or_b32 v44, v2, 8, v8
-    v_lshl_or_b32 v49, v2, 10, v6
+    v_lshl_or_b32 v49, v2, 10, v9
     v_mov_b32 v0, 0
     v_mov_b32 v1, 0
     v_mov_b32 v2, 0
@@ -21133,8 +21117,8 @@ sfco7x4_relu:
     ds_write_b32 v47 v40, offset:0x1000
     s_sub_u32 s10, s10, 8
     s_movk_i32 s8, 32
-    s_movk_i32 s36, 64
-    s_movk_i32 s37, 4608
+    s_movk_i32 s11, 64
+    s_movk_i32 s36, 4608
     s_cmpk_eq_u32 s10, 0
     s_cmovk_i32 s8, 0
     s_waitcnt lgkmcnt(0)
@@ -21162,9 +21146,9 @@ sfco7x4_relu:
 L126:
     ds_read_b128 v[24:27], v44 offset:0x200
     ds_read_b128 v[28:31], v45 offset:0x1040
-    v_xor_b32 v46, s37, v46
+    v_xor_b32 v46, s36, v46
     s_waitcnt lgkmcnt(2)
-    s_load_dwordx8 s[12:19], s[2:3], s36
+    s_load_dwordx8 s[12:19], s[2:3], s11
     global_load_dword v32, v[42:43], s[20:21]
     global_load_dword v33, v[42:43], s[22:23]
     global_load_dword v34, v[42:43], s[24:25]
@@ -21194,11 +21178,11 @@ L126:
     s_setprio 0
     s_cmpk_eq_u32 s10, 8
     s_cmovk_i32 s8, 0
-    s_add_u32 s36, s36, 32
+    s_addk_i32 s11, 32
     s_waitcnt lgkmcnt(0)
     ds_read_b128 v[16:19], v44 offset:0x400
     ds_read_b128 v[20:23], v45 offset:0x1080
-    v_xor_b32 v47, s37, v47
+    v_xor_b32 v47, s36, v47
     s_waitcnt lgkmcnt(2)
     s_add_u32 s20, s4, s12
     s_addc_u32 s21, s5, 0
@@ -21316,8 +21300,8 @@ L126:
     s_addc_u32 s31, s5, 0
     ds_read_b128 v[24:27], v44 offset:0xe00
     ds_read_b128 v[28:31], v45 offset:0x11c0
-    v_xor_b32 v44, s37, v44
-    v_xor_b32 v45, s37, v45
+    v_xor_b32 v44, s36, v44
+    v_xor_b32 v45, s36, v45
     s_waitcnt vmcnt(0)&lgkmcnt(2)
     s_add_u32 s32, s4, s18
     s_addc_u32 s33, s5, 0
@@ -21372,52 +21356,51 @@ L126:
     v_fmac_f32 v15, v27, v31
     s_setprio 0
     s_cbranch_scc0 L126
-    s_load_dword s10, s[0:1], 0x40
+    s_load_dword s8, s[0:1], 0x40
     s_load_dwordx4 s[0:3], s[0:1], 0x30
     s_mul_i32 s6, s38, s9
     s_mov_b64 s[4:5], exec
-    s_add_u32 s7, s6, s11
+    s_add_u32 s7, s6, s37
     s_waitcnt lgkmcnt(0)
-    s_lshl_b32 s8, s10, 2
-    s_lshl_b32 s10, s10, 4
-    s_mul_i32 s12, s7, s8
-    s_mul_hi_u32 s13, s7, s8
+    s_lshl_b32 s10, s8, 2
+    s_lshl_b32 s11, s8, 4
+    s_mul_i32 s12, s7, s10
+    s_mul_hi_u32 s13, s7, s10
     s_add_u32 s0, s0, s12
     s_addc_u32 s1, s1, s13
-    v_cmp_gt_u32 vcc, s3, v50
-    s_mov_b64 s[6:7], vcc
+    v_cmp_lt_u32 s[6:7], v50, s3
     s_mov_b64 s[12:13], s[0:1]
     ds_write_b128 v48, v[0:3]
-    s_add_u32 s14, s12, s10
+    s_add_u32 s14, s12, s11
     s_addc_u32 s15, s13, 0
-    s_add_u32 s16, s14, s10
+    s_add_u32 s16, s14, s11
     s_addc_u32 s17, s15, 0
-    s_add_u32 s18, s16, s10
+    s_add_u32 s18, s16, s11
     s_addc_u32 s19, s17, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
     ds_read2_b32 v[0:1], v49 offset0:0x0 offset1:0x40
     ds_read2_b32 v[2:3], v49 offset0:0x80 offset1:0xc0
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L130
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v0, s2, v0
     v_max_f32 v0, 0, v0
     global_store_dword v[43:44], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L127
     v_mul_f32 v1, s2, v1
     v_max_f32 v1, 0, v1
     global_store_dword v[43:44], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L127
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v2, s2, v2
     v_max_f32 v2, 0, v2
     global_store_dword v[43:44], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L127
     v_mul_f32 v3, s2, v3
@@ -21425,40 +21408,40 @@ L126:
     global_store_dword v[43:44], v3, s[18:19]
 L127:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v48, v[4:7]
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
     ds_read2_b32 v[0:1], v49 offset0:0x0 offset1:0x40
     ds_read2_b32 v[2:3], v49 offset0:0x80 offset1:0xc0
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L130
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v0, s2, v0
     v_max_f32 v0, 0, v0
     global_store_dword v[43:44], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L128
     v_mul_f32 v1, s2, v1
     v_max_f32 v1, 0, v1
     global_store_dword v[43:44], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L128
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v2, s2, v2
     v_max_f32 v2, 0, v2
     global_store_dword v[43:44], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L128
     v_mul_f32 v3, s2, v3
@@ -21466,40 +21449,40 @@ L127:
     global_store_dword v[43:44], v3, s[18:19]
 L128:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v48, v[8:11]
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
     ds_read2_b32 v[0:1], v49 offset0:0x0 offset1:0x40
     ds_read2_b32 v[2:3], v49 offset0:0x80 offset1:0xc0
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L130
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v0, s2, v0
     v_max_f32 v0, 0, v0
     global_store_dword v[43:44], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L129
     v_mul_f32 v1, s2, v1
     v_max_f32 v1, 0, v1
     global_store_dword v[43:44], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L129
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v2, s2, v2
     v_max_f32 v2, 0, v2
     global_store_dword v[43:44], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L129
     v_mul_f32 v3, s2, v3
@@ -21507,40 +21490,40 @@ L128:
     global_store_dword v[43:44], v3, s[18:19]
 L129:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v48, v[12:15]
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
     ds_read2_b32 v[0:1], v49 offset0:0x0 offset1:0x40
     ds_read2_b32 v[2:3], v49 offset0:0x80 offset1:0xc0
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L130
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v0, s2, v0
     v_max_f32 v0, 0, v0
     global_store_dword v[43:44], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L130
     v_mul_f32 v1, s2, v1
     v_max_f32 v1, 0, v1
     global_store_dword v[43:44], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L130
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v2, s2, v2
     v_max_f32 v2, 0, v2
     global_store_dword v[43:44], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L130
     v_mul_f32 v3, s2, v3
@@ -21588,20 +21571,20 @@ sfco8x5:
     v_lshlrev_b32 v7, 3, v74
     global_load_dwordx2 v[66:67], v[7:8], s[4:5]
     s_load_dwordx4 s[4:7], s[0:1], 0x20
-    s_lshl_b32 s16, s38, 2
-    s_mul_i32 s12, s16, s11
-    s_mul_hi_u32 s13, s16, s11
-    s_mul_i32 s14, s16, s10
-    s_mul_hi_u32 s15, s16, s10
-    s_lshl_b32 s11, s3, 5
+    s_lshl_b32 s37, s3, 5
+    s_lshl_b32 s12, s38, 2
     s_load_dwordx2 s[2:3], s[0:1], 0x8
+    s_mul_i32 s20, s12, s11
+    s_mul_hi_u32 s21, s12, s11
+    s_mul_i32 s22, s12, s10
+    s_mul_hi_u32 s23, s12, s10
     v_sub_i32 v7, s9, 1
     s_waitcnt lgkmcnt(0)
-    s_add_u32 s4, s4, s12
-    s_addc_u32 s5, s5, s13
-    s_add_u32 s6, s6, s14
-    s_addc_u32 s7, s7, s15
     s_load_dwordx8 s[12:19], s[2:3], 0x0
+    s_add_u32 s4, s4, s20
+    s_addc_u32 s5, s5, s21
+    s_add_u32 s6, s6, s22
+    s_addc_u32 s7, s7, s23
     v_cmp_gt_u32 vcc, s9, v6
     v_cndmask_b32 v6, v7, v6, vcc
     v_lshlrev_b32 v8, 2, v3
@@ -21685,8 +21668,8 @@ sfco8x5:
     ds_write_b32 v71 v64, offset:0x2000
     s_sub_u32 s10, s10, 8
     s_movk_i32 s8, 32
-    s_movk_i32 s36, 64
-    s_movk_i32 s37, 9216
+    s_movk_i32 s11, 64
+    s_movk_i32 s36, 9216
     s_cmpk_eq_u32 s10, 0
     s_cmovk_i32 s8, 0
     s_add_u32 s20, s4, s12
@@ -21716,9 +21699,9 @@ L131:
     ds_read_b128 v[44:47], v68 offset:0x400
     ds_read_b128 v[48:51], v68 offset:0x480
     ds_read_b128 v[52:55], v69 offset:0x2080
-    v_xor_b32 v70, s37, v70
+    v_xor_b32 v70, s36, v70
     s_waitcnt lgkmcnt(3)
-    s_load_dwordx8 s[12:19], s[2:3], s36
+    s_load_dwordx8 s[12:19], s[2:3], s11
     global_load_dword v56, v[66:67], s[20:21]
     global_load_dword v57, v[66:67], s[22:23]
     global_load_dword v58, v[66:67], s[24:25]
@@ -21755,7 +21738,7 @@ L131:
     v_fmac_f32 v13, v37, v41
     v_fmac_f32 v14, v38, v41
     v_fmac_f32 v15, v39, v41
-    s_add_u32 s36, 32, s36
+    s_addk_i32 s11, 32
     v_fmac_f32 v20, v36, v42
     v_fmac_f32 v21, v37, v42
     v_fmac_f32 v22, v38, v42
@@ -21769,7 +21752,7 @@ L131:
     ds_read_b128 v[32:35], v68 offset:0x800
     ds_read_b128 v[36:39], v68 offset:0x880
     ds_read_b128 v[40:43], v69 offset:0x2100
-    v_xor_b32 v71, s37, v71
+    v_xor_b32 v71, s36, v71
     s_waitcnt lgkmcnt(3)
     v_fmac_f32 v0, v44, v52
     s_setprio 1
@@ -22002,8 +21985,8 @@ L131:
     ds_write2st64_b32 v70, v60, v61 offset0:0x10 offset1:0x14
     ds_write2st64_b32 v70, v62, v63 offset0:0x18 offset1:0x1c
     ds_write_b32 v71 v64, offset:0x2000
-    v_xor_b32 v68, s37, v68
-    v_xor_b32 v69, s37, v69
+    v_xor_b32 v68, s36, v68
+    v_xor_b32 v69, s36, v69
     v_fmac_f32 v4, v36, v40
     v_fmac_f32 v5, v37, v40
     v_fmac_f32 v6, v38, v40
@@ -22062,36 +22045,35 @@ L131:
     v_fmac_f32 v31, v51, v55
     s_setprio 0
     s_cbranch_scc0 L131
-    s_load_dword s10, s[0:1], 0x40
+    s_load_dword s8, s[0:1], 0x40
     s_load_dwordx4 s[0:3], s[0:1], 0x30
     s_mul_i32 s6, s38, s9
     s_mov_b64 s[4:5], exec
-    s_add_u32 s7, s6, s11
+    s_add_u32 s7, s6, s37
     s_waitcnt lgkmcnt(0)
-    s_lshl_b32 s8, s10, 2
-    s_lshl_b32 s10, s10, 4
-    s_mul_i32 s12, s7, s8
-    s_mul_hi_u32 s13, s7, s8
+    s_lshl_b32 s10, s8, 2
+    s_lshl_b32 s11, s8, 4
+    s_mul_i32 s12, s7, s10
+    s_mul_hi_u32 s13, s7, s10
     s_add_u32 s0, s0, s12
     s_addc_u32 s1, s1, s13
-    v_cmp_gt_u32 vcc, s3, v74
-    s_mov_b64 s[6:7], vcc
+    v_cmp_lt_u32 s[6:7], v74, s3
     s_mov_b64 s[12:13], s[0:1]
     ds_write_b128 v72, v[0:3]
     ds_write_b128 v72, v[4:7] offset:0x80
-    s_add_u32 s14, s12, s10
+    s_add_u32 s14, s12, s11
     s_addc_u32 s15, s13, 0
-    s_add_u32 s16, s14, s10
+    s_add_u32 s16, s14, s11
     s_addc_u32 s17, s15, 0
-    s_add_u32 s18, s16, s10
+    s_add_u32 s18, s16, s11
     s_addc_u32 s19, s17, 0
-    s_add_u32 s20, s18, s10
+    s_add_u32 s20, s18, s11
     s_addc_u32 s21, s19, 0
-    s_add_u32 s22, s20, s10
+    s_add_u32 s22, s20, s11
     s_addc_u32 s23, s21, 0
-    s_add_u32 s24, s22, s10
+    s_add_u32 s24, s22, s11
     s_addc_u32 s25, s23, 0
-    s_add_u32 s26, s24, s10
+    s_add_u32 s26, s24, s11
     s_addc_u32 s27, s25, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -22099,69 +22081,69 @@ L131:
     ds_read2st64_b32 v[2:3], v73 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v73 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v73 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L135
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[67:68], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L132
     v_mul_f32 v1, s2, v1
     global_store_dword v[67:68], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L132
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[67:68], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L132
     v_mul_f32 v3, s2, v3
     global_store_dword v[67:68], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L132
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[67:68], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L132
     v_mul_f32 v5, s2, v5
     global_store_dword v[67:68], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L132
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[67:68], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L132
     v_mul_f32 v7, s2, v7
     global_store_dword v[67:68], v7, s[26:27]
 L132:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v72, v[8:11]
     ds_write_b128 v72, v[12:15] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -22169,69 +22151,69 @@ L132:
     ds_read2st64_b32 v[2:3], v73 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v73 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v73 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L135
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[67:68], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L133
     v_mul_f32 v1, s2, v1
     global_store_dword v[67:68], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L133
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[67:68], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L133
     v_mul_f32 v3, s2, v3
     global_store_dword v[67:68], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L133
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[67:68], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L133
     v_mul_f32 v5, s2, v5
     global_store_dword v[67:68], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L133
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[67:68], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L133
     v_mul_f32 v7, s2, v7
     global_store_dword v[67:68], v7, s[26:27]
 L133:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v72, v[16:19]
     ds_write_b128 v72, v[20:23] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -22239,69 +22221,69 @@ L133:
     ds_read2st64_b32 v[2:3], v73 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v73 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v73 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L135
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[67:68], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L134
     v_mul_f32 v1, s2, v1
     global_store_dword v[67:68], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L134
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[67:68], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L134
     v_mul_f32 v3, s2, v3
     global_store_dword v[67:68], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L134
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[67:68], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L134
     v_mul_f32 v5, s2, v5
     global_store_dword v[67:68], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L134
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[67:68], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L134
     v_mul_f32 v7, s2, v7
     global_store_dword v[67:68], v7, s[26:27]
 L134:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v72, v[24:27]
     ds_write_b128 v72, v[28:31] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -22309,45 +22291,45 @@ L134:
     ds_read2st64_b32 v[2:3], v73 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v73 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v73 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L135
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[67:68], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L135
     v_mul_f32 v1, s2, v1
     global_store_dword v[67:68], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L135
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[67:68], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L135
     v_mul_f32 v3, s2, v3
     global_store_dword v[67:68], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L135
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[67:68], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L135
     v_mul_f32 v5, s2, v5
     global_store_dword v[67:68], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L135
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[67:68], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L135
     v_mul_f32 v7, s2, v7
@@ -22394,20 +22376,20 @@ sfco8x5_relu:
     v_lshlrev_b32 v7, 3, v74
     global_load_dwordx2 v[66:67], v[7:8], s[4:5]
     s_load_dwordx4 s[4:7], s[0:1], 0x20
-    s_lshl_b32 s16, s38, 2
-    s_mul_i32 s12, s16, s11
-    s_mul_hi_u32 s13, s16, s11
-    s_mul_i32 s14, s16, s10
-    s_mul_hi_u32 s15, s16, s10
-    s_lshl_b32 s11, s3, 5
+    s_lshl_b32 s37, s3, 5
+    s_lshl_b32 s12, s38, 2
     s_load_dwordx2 s[2:3], s[0:1], 0x8
+    s_mul_i32 s20, s12, s11
+    s_mul_hi_u32 s21, s12, s11
+    s_mul_i32 s22, s12, s10
+    s_mul_hi_u32 s23, s12, s10
     v_sub_i32 v7, s9, 1
     s_waitcnt lgkmcnt(0)
-    s_add_u32 s4, s4, s12
-    s_addc_u32 s5, s5, s13
-    s_add_u32 s6, s6, s14
-    s_addc_u32 s7, s7, s15
     s_load_dwordx8 s[12:19], s[2:3], 0x0
+    s_add_u32 s4, s4, s20
+    s_addc_u32 s5, s5, s21
+    s_add_u32 s6, s6, s22
+    s_addc_u32 s7, s7, s23
     v_cmp_gt_u32 vcc, s9, v6
     v_cndmask_b32 v6, v7, v6, vcc
     v_lshlrev_b32 v8, 2, v3
@@ -22491,8 +22473,8 @@ sfco8x5_relu:
     ds_write_b32 v71 v64, offset:0x2000
     s_sub_u32 s10, s10, 8
     s_movk_i32 s8, 32
-    s_movk_i32 s36, 64
-    s_movk_i32 s37, 9216
+    s_movk_i32 s11, 64
+    s_movk_i32 s36, 9216
     s_cmpk_eq_u32 s10, 0
     s_cmovk_i32 s8, 0
     s_add_u32 s20, s4, s12
@@ -22522,9 +22504,9 @@ L136:
     ds_read_b128 v[44:47], v68 offset:0x400
     ds_read_b128 v[48:51], v68 offset:0x480
     ds_read_b128 v[52:55], v69 offset:0x2080
-    v_xor_b32 v70, s37, v70
+    v_xor_b32 v70, s36, v70
     s_waitcnt lgkmcnt(3)
-    s_load_dwordx8 s[12:19], s[2:3], s36
+    s_load_dwordx8 s[12:19], s[2:3], s11
     global_load_dword v56, v[66:67], s[20:21]
     global_load_dword v57, v[66:67], s[22:23]
     global_load_dword v58, v[66:67], s[24:25]
@@ -22561,7 +22543,7 @@ L136:
     v_fmac_f32 v13, v37, v41
     v_fmac_f32 v14, v38, v41
     v_fmac_f32 v15, v39, v41
-    s_add_u32 s36, 32, s36
+    s_addk_i32 s11, 32
     v_fmac_f32 v20, v36, v42
     v_fmac_f32 v21, v37, v42
     v_fmac_f32 v22, v38, v42
@@ -22575,7 +22557,7 @@ L136:
     ds_read_b128 v[32:35], v68 offset:0x800
     ds_read_b128 v[36:39], v68 offset:0x880
     ds_read_b128 v[40:43], v69 offset:0x2100
-    v_xor_b32 v71, s37, v71
+    v_xor_b32 v71, s36, v71
     s_waitcnt lgkmcnt(3)
     v_fmac_f32 v0, v44, v52
     s_setprio 1
@@ -22808,8 +22790,8 @@ L136:
     ds_write2st64_b32 v70, v60, v61 offset0:0x10 offset1:0x14
     ds_write2st64_b32 v70, v62, v63 offset0:0x18 offset1:0x1c
     ds_write_b32 v71 v64, offset:0x2000
-    v_xor_b32 v68, s37, v68
-    v_xor_b32 v69, s37, v69
+    v_xor_b32 v68, s36, v68
+    v_xor_b32 v69, s36, v69
     v_fmac_f32 v4, v36, v40
     v_fmac_f32 v5, v37, v40
     v_fmac_f32 v6, v38, v40
@@ -22868,36 +22850,35 @@ L136:
     v_fmac_f32 v31, v51, v55
     s_setprio 0
     s_cbranch_scc0 L136
-    s_load_dword s10, s[0:1], 0x40
+    s_load_dword s8, s[0:1], 0x40
     s_load_dwordx4 s[0:3], s[0:1], 0x30
     s_mul_i32 s6, s38, s9
     s_mov_b64 s[4:5], exec
-    s_add_u32 s7, s6, s11
+    s_add_u32 s7, s6, s37
     s_waitcnt lgkmcnt(0)
-    s_lshl_b32 s8, s10, 2
-    s_lshl_b32 s10, s10, 4
-    s_mul_i32 s12, s7, s8
-    s_mul_hi_u32 s13, s7, s8
+    s_lshl_b32 s10, s8, 2
+    s_lshl_b32 s11, s8, 4
+    s_mul_i32 s12, s7, s10
+    s_mul_hi_u32 s13, s7, s10
     s_add_u32 s0, s0, s12
     s_addc_u32 s1, s1, s13
-    v_cmp_gt_u32 vcc, s3, v74
-    s_mov_b64 s[6:7], vcc
+    v_cmp_lt_u32 s[6:7], v74, s3
     s_mov_b64 s[12:13], s[0:1]
     ds_write_b128 v72, v[0:3]
     ds_write_b128 v72, v[4:7] offset:0x80
-    s_add_u32 s14, s12, s10
+    s_add_u32 s14, s12, s11
     s_addc_u32 s15, s13, 0
-    s_add_u32 s16, s14, s10
+    s_add_u32 s16, s14, s11
     s_addc_u32 s17, s15, 0
-    s_add_u32 s18, s16, s10
+    s_add_u32 s18, s16, s11
     s_addc_u32 s19, s17, 0
-    s_add_u32 s20, s18, s10
+    s_add_u32 s20, s18, s11
     s_addc_u32 s21, s19, 0
-    s_add_u32 s22, s20, s10
+    s_add_u32 s22, s20, s11
     s_addc_u32 s23, s21, 0
-    s_add_u32 s24, s22, s10
+    s_add_u32 s24, s22, s11
     s_addc_u32 s25, s23, 0
-    s_add_u32 s26, s24, s10
+    s_add_u32 s26, s24, s11
     s_addc_u32 s27, s25, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -22905,52 +22886,52 @@ L136:
     ds_read2st64_b32 v[2:3], v73 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v73 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v73 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L140
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     v_max_f32 v0, 0, v0
     global_store_dword v[67:68], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L137
     v_mul_f32 v1, s2, v1
     v_max_f32 v1, 0, v1
     global_store_dword v[67:68], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L137
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     v_max_f32 v2, 0, v2
     global_store_dword v[67:68], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L137
     v_mul_f32 v3, s2, v3
     v_max_f32 v3, 0, v3
     global_store_dword v[67:68], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L137
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     v_max_f32 v4, 0, v4
     global_store_dword v[67:68], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L137
     v_mul_f32 v5, s2, v5
     v_max_f32 v5, 0, v5
     global_store_dword v[67:68], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L137
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     v_max_f32 v6, 0, v6
     global_store_dword v[67:68], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L137
     v_mul_f32 v7, s2, v7
@@ -22958,24 +22939,24 @@ L136:
     global_store_dword v[67:68], v7, s[26:27]
 L137:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v72, v[8:11]
     ds_write_b128 v72, v[12:15] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -22983,52 +22964,52 @@ L137:
     ds_read2st64_b32 v[2:3], v73 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v73 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v73 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L140
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     v_max_f32 v0, 0, v0
     global_store_dword v[67:68], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L138
     v_mul_f32 v1, s2, v1
     v_max_f32 v1, 0, v1
     global_store_dword v[67:68], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L138
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     v_max_f32 v2, 0, v2
     global_store_dword v[67:68], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L138
     v_mul_f32 v3, s2, v3
     v_max_f32 v3, 0, v3
     global_store_dword v[67:68], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L138
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     v_max_f32 v4, 0, v4
     global_store_dword v[67:68], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L138
     v_mul_f32 v5, s2, v5
     v_max_f32 v5, 0, v5
     global_store_dword v[67:68], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L138
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     v_max_f32 v6, 0, v6
     global_store_dword v[67:68], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L138
     v_mul_f32 v7, s2, v7
@@ -23036,24 +23017,24 @@ L137:
     global_store_dword v[67:68], v7, s[26:27]
 L138:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v72, v[16:19]
     ds_write_b128 v72, v[20:23] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -23061,52 +23042,52 @@ L138:
     ds_read2st64_b32 v[2:3], v73 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v73 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v73 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L140
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     v_max_f32 v0, 0, v0
     global_store_dword v[67:68], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L139
     v_mul_f32 v1, s2, v1
     v_max_f32 v1, 0, v1
     global_store_dword v[67:68], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L139
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     v_max_f32 v2, 0, v2
     global_store_dword v[67:68], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L139
     v_mul_f32 v3, s2, v3
     v_max_f32 v3, 0, v3
     global_store_dword v[67:68], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L139
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     v_max_f32 v4, 0, v4
     global_store_dword v[67:68], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L139
     v_mul_f32 v5, s2, v5
     v_max_f32 v5, 0, v5
     global_store_dword v[67:68], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L139
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     v_max_f32 v6, 0, v6
     global_store_dword v[67:68], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L139
     v_mul_f32 v7, s2, v7
@@ -23114,24 +23095,24 @@ L138:
     global_store_dword v[67:68], v7, s[26:27]
 L139:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v72, v[24:27]
     ds_write_b128 v72, v[28:31] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -23139,52 +23120,52 @@ L139:
     ds_read2st64_b32 v[2:3], v73 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v73 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v73 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L140
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     v_max_f32 v0, 0, v0
     global_store_dword v[67:68], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L140
     v_mul_f32 v1, s2, v1
     v_max_f32 v1, 0, v1
     global_store_dword v[67:68], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L140
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     v_max_f32 v2, 0, v2
     global_store_dword v[67:68], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L140
     v_mul_f32 v3, s2, v3
     v_max_f32 v3, 0, v3
     global_store_dword v[67:68], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L140
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     v_max_f32 v4, 0, v4
     global_store_dword v[67:68], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L140
     v_mul_f32 v5, s2, v5
     v_max_f32 v5, 0, v5
     global_store_dword v[67:68], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L140
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     v_max_f32 v6, 0, v6
     global_store_dword v[67:68], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L140
     v_mul_f32 v7, s2, v7
@@ -23233,20 +23214,20 @@ sfco8x6:
     v_lshlrev_b32 v7, 3, v115
     global_load_dwordx2 v[106:107], v[7:8], s[4:5]
     s_load_dwordx4 s[4:7], s[0:1], 0x20
-    s_lshl_b32 s16, s38, 2
-    s_mul_i32 s12, s16, s11
-    s_mul_hi_u32 s13, s16, s11
-    s_mul_i32 s14, s16, s10
-    s_mul_hi_u32 s15, s16, s10
-    s_lshl_b32 s11, s3, 6
+    s_lshl_b32 s37, s3, 6
+    s_lshl_b32 s12, s38, 2
     s_load_dwordx2 s[2:3], s[0:1], 0x8
+    s_mul_i32 s20, s12, s11
+    s_mul_hi_u32 s21, s12, s11
+    s_mul_i32 s22, s12, s10
+    s_mul_hi_u32 s23, s12, s10
     v_sub_i32 v7, s9, 1
     s_waitcnt lgkmcnt(0)
-    s_add_u32 s4, s4, s12
-    s_addc_u32 s5, s5, s13
-    s_add_u32 s6, s6, s14
-    s_addc_u32 s7, s7, s15
     s_load_dwordx8 s[12:19], s[2:3], 0x0
+    s_add_u32 s4, s4, s20
+    s_addc_u32 s5, s5, s21
+    s_add_u32 s6, s6, s22
+    s_addc_u32 s7, s7, s23
     v_cmp_gt_u32 vcc, s9, v8
     v_cndmask_b32 v8, v7, v8, vcc
     v_lshlrev_b32 v9, 3, v5
@@ -23361,9 +23342,9 @@ sfco8x6:
     ds_write2st64_b32 v111, v102, v103 offset0:0x18 offset1:0x1c
     ds_write2st64_b32 v112, v104, v105 offset0:0x20 offset1:0x24
     s_movk_i32 s8, 32
-    s_movk_i32 s36, 64
+    s_movk_i32 s11, 64
     s_sub_u32 s10, s10, 8
-    s_movk_i32 s37, 10240
+    s_movk_i32 s36, 10240
     s_cmpk_eq_u32 s10, 0
     s_cmovk_i32 s8, 0
     s_add_u32 s20, s4, s12
@@ -23395,9 +23376,9 @@ L141:
     ds_read_b128 v[84:87], v110 offset:0x2400
     ds_read_b128 v[88:91], v109 offset:0x480
     ds_read_b128 v[92:95], v110 offset:0x2480
-    v_xor_b32 v111, s37, v111
+    v_xor_b32 v111, s36, v111
     s_waitcnt lgkmcnt(4)
-    s_load_dwordx8 s[12:19], s[2:3], s36
+    s_load_dwordx8 s[12:19], s[2:3], s11
     v_fmac_f32 v0, v64, v68
     s_setprio 1
     v_fmac_f32 v1, v65, v68
@@ -23456,7 +23437,7 @@ L141:
     v_fmac_f32 v57, v65, v79
     v_fmac_f32 v58, v66, v79
     v_fmac_f32 v59, v67, v79
-    s_add_u32 s36, 32, s36
+    s_addk_i32 s11, 32
     v_fmac_f32 v36, v72, v76
     v_fmac_f32 v37, v73, v76
     v_fmac_f32 v38, v74, v76
@@ -23553,7 +23534,7 @@ L141:
     ds_read_b128 v[84:87], v110 offset:0x2500
     ds_read_b128 v[88:91], v109 offset:0xc80
     ds_read_b128 v[92:95], v110 offset:0x2580
-    v_xor_b32 v112, s37, v112
+    v_xor_b32 v112, s36, v112
     s_waitcnt lgkmcnt(4)
     v_fmac_f32 v0, v64, v68
     s_setprio 1
@@ -23893,8 +23874,8 @@ L141:
     ds_write2st64_b32 v111, v100, v101 offset0:0x10 offset1:0x14
     ds_write2st64_b32 v111, v102, v103 offset0:0x18 offset1:0x1c
     ds_write2st64_b32 v112, v104, v105 offset0:0x20 offset1:0x24
-    v_xor_b32 v109, s37, v109
-    v_xor_b32 v110, s37, v110
+    v_xor_b32 v109, s36, v109
+    v_xor_b32 v110, s36, v110
     v_fmac_f32 v32, v64, v76
     s_setprio 1
     v_fmac_f32 v33, v65, v76
@@ -24005,36 +23986,35 @@ L141:
     v_fmac_f32 v63, v91, v95
     s_setprio 0
     s_cbranch_scc0 L141
-    s_load_dword s10, s[0:1], 0x40
+    s_load_dword s8, s[0:1], 0x40
     s_load_dwordx4 s[0:3], s[0:1], 0x30
     s_mul_i32 s6, s38, s9
     s_mov_b64 s[4:5], exec
-    s_add_u32 s7, s6, s11
+    s_add_u32 s7, s6, s37
     s_waitcnt lgkmcnt(0)
-    s_lshl_b32 s8, s10, 2
-    s_lshl_b32 s10, s10, 4
-    s_mul_i32 s12, s7, s8
-    s_mul_hi_u32 s13, s7, s8
+    s_lshl_b32 s10, s8, 2
+    s_lshl_b32 s11, s8, 4
+    s_mul_i32 s12, s7, s10
+    s_mul_hi_u32 s13, s7, s10
     s_add_u32 s0, s0, s12
     s_addc_u32 s1, s1, s13
-    v_cmp_gt_u32 vcc, s3, v115
-    s_mov_b64 s[6:7], vcc
+    v_cmp_lt_u32 s[6:7], v115, s3
     s_mov_b64 s[12:13], s[0:1]
     ds_write_b128 v113, v[0:3]
     ds_write_b128 v113, v[4:7] offset:0x80
-    s_add_u32 s14, s12, s10
+    s_add_u32 s14, s12, s11
     s_addc_u32 s15, s13, 0
-    s_add_u32 s16, s14, s10
+    s_add_u32 s16, s14, s11
     s_addc_u32 s17, s15, 0
-    s_add_u32 s18, s16, s10
+    s_add_u32 s18, s16, s11
     s_addc_u32 s19, s17, 0
-    s_add_u32 s20, s18, s10
+    s_add_u32 s20, s18, s11
     s_addc_u32 s21, s19, 0
-    s_add_u32 s22, s20, s10
+    s_add_u32 s22, s20, s11
     s_addc_u32 s23, s21, 0
-    s_add_u32 s24, s22, s10
+    s_add_u32 s24, s22, s11
     s_addc_u32 s25, s23, 0
-    s_add_u32 s26, s24, s10
+    s_add_u32 s26, s24, s11
     s_addc_u32 s27, s25, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -24042,69 +24022,69 @@ L141:
     ds_read2st64_b32 v[2:3], v114 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v114 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v114 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L148
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[107:108], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L142
     v_mul_f32 v1, s2, v1
     global_store_dword v[107:108], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L142
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[107:108], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L142
     v_mul_f32 v3, s2, v3
     global_store_dword v[107:108], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L142
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[107:108], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L142
     v_mul_f32 v5, s2, v5
     global_store_dword v[107:108], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L142
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[107:108], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L142
     v_mul_f32 v7, s2, v7
     global_store_dword v[107:108], v7, s[26:27]
 L142:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v113, v[8:11]
     ds_write_b128 v113, v[12:15] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -24112,69 +24092,69 @@ L142:
     ds_read2st64_b32 v[2:3], v114 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v114 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v114 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L148
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[107:108], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L143
     v_mul_f32 v1, s2, v1
     global_store_dword v[107:108], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L143
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[107:108], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L143
     v_mul_f32 v3, s2, v3
     global_store_dword v[107:108], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L143
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[107:108], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L143
     v_mul_f32 v5, s2, v5
     global_store_dword v[107:108], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L143
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[107:108], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L143
     v_mul_f32 v7, s2, v7
     global_store_dword v[107:108], v7, s[26:27]
 L143:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v113, v[16:19]
     ds_write_b128 v113, v[20:23] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -24182,69 +24162,69 @@ L143:
     ds_read2st64_b32 v[2:3], v114 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v114 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v114 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L148
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[107:108], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L144
     v_mul_f32 v1, s2, v1
     global_store_dword v[107:108], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L144
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[107:108], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L144
     v_mul_f32 v3, s2, v3
     global_store_dword v[107:108], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L144
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[107:108], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L144
     v_mul_f32 v5, s2, v5
     global_store_dword v[107:108], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L144
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[107:108], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L144
     v_mul_f32 v7, s2, v7
     global_store_dword v[107:108], v7, s[26:27]
 L144:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v113, v[24:27]
     ds_write_b128 v113, v[28:31] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -24252,69 +24232,69 @@ L144:
     ds_read2st64_b32 v[2:3], v114 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v114 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v114 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L148
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[107:108], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L148
     v_mul_f32 v1, s2, v1
     global_store_dword v[107:108], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L148
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[107:108], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L148
     v_mul_f32 v3, s2, v3
     global_store_dword v[107:108], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L148
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[107:108], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L148
     v_mul_f32 v5, s2, v5
     global_store_dword v[107:108], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L148
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[107:108], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L148
     v_mul_f32 v7, s2, v7
     global_store_dword v[107:108], v7, s[26:27]
     s_mov_b64 exec, s[4:5]
-    s_lshl_b32 s28, s8, 5
-    s_add_u32 s11, s11, 29
+    s_lshl_b32 s28, s10, 5
+    s_addk_i32 s37, 29
     s_add_u32 s12, s0, s28
     s_addc_u32 s13, s1, 0
     ds_write_b128 v113, v[32:35]
     ds_write_b128 v113, v[36:39] offset:0x80
-    s_add_u32 s14, s12, s10
+    s_add_u32 s14, s12, s11
     s_addc_u32 s15, s13, 0
-    s_add_u32 s16, s14, s10
+    s_add_u32 s16, s14, s11
     s_addc_u32 s17, s15, 0
-    s_add_u32 s18, s16, s10
+    s_add_u32 s18, s16, s11
     s_addc_u32 s19, s17, 0
-    s_add_u32 s20, s18, s10
+    s_add_u32 s20, s18, s11
     s_addc_u32 s21, s19, 0
-    s_add_u32 s22, s20, s10
+    s_add_u32 s22, s20, s11
     s_addc_u32 s23, s21, 0
-    s_add_u32 s24, s22, s10
+    s_add_u32 s24, s22, s11
     s_addc_u32 s25, s23, 0
-    s_add_u32 s26, s24, s10
+    s_add_u32 s26, s24, s11
     s_addc_u32 s27, s25, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -24322,69 +24302,69 @@ L144:
     ds_read2st64_b32 v[2:3], v114 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v114 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v114 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L148
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[107:108], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L145
     v_mul_f32 v1, s2, v1
     global_store_dword v[107:108], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L145
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[107:108], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L145
     v_mul_f32 v3, s2, v3
     global_store_dword v[107:108], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L145
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[107:108], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L145
     v_mul_f32 v5, s2, v5
     global_store_dword v[107:108], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L145
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[107:108], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L145
     v_mul_f32 v7, s2, v7
     global_store_dword v[107:108], v7, s[26:27]
 L145:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v113, v[40:43]
     ds_write_b128 v113, v[44:47] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -24392,69 +24372,69 @@ L145:
     ds_read2st64_b32 v[2:3], v114 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v114 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v114 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L148
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[107:108], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L146
     v_mul_f32 v1, s2, v1
     global_store_dword v[107:108], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L146
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[107:108], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L146
     v_mul_f32 v3, s2, v3
     global_store_dword v[107:108], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L146
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[107:108], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L146
     v_mul_f32 v5, s2, v5
     global_store_dword v[107:108], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L146
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[107:108], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L146
     v_mul_f32 v7, s2, v7
     global_store_dword v[107:108], v7, s[26:27]
 L146:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v113, v[48:51]
     ds_write_b128 v113, v[52:55] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -24462,69 +24442,69 @@ L146:
     ds_read2st64_b32 v[2:3], v114 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v114 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v114 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L148
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[107:108], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L147
     v_mul_f32 v1, s2, v1
     global_store_dword v[107:108], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L147
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[107:108], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L147
     v_mul_f32 v3, s2, v3
     global_store_dword v[107:108], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L147
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[107:108], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L147
     v_mul_f32 v5, s2, v5
     global_store_dword v[107:108], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L147
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[107:108], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L147
     v_mul_f32 v7, s2, v7
     global_store_dword v[107:108], v7, s[26:27]
 L147:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v113, v[56:59]
     ds_write_b128 v113, v[60:63] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -24532,45 +24512,45 @@ L147:
     ds_read2st64_b32 v[2:3], v114 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v114 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v114 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L148
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[107:108], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L148
     v_mul_f32 v1, s2, v1
     global_store_dword v[107:108], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L148
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[107:108], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L148
     v_mul_f32 v3, s2, v3
     global_store_dword v[107:108], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L148
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[107:108], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L148
     v_mul_f32 v5, s2, v5
     global_store_dword v[107:108], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L148
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[107:108], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L148
     v_mul_f32 v7, s2, v7
@@ -24618,20 +24598,20 @@ sfco8x6_relu:
     v_lshlrev_b32 v7, 3, v115
     global_load_dwordx2 v[106:107], v[7:8], s[4:5]
     s_load_dwordx4 s[4:7], s[0:1], 0x20
-    s_lshl_b32 s16, s38, 2
-    s_mul_i32 s12, s16, s11
-    s_mul_hi_u32 s13, s16, s11
-    s_mul_i32 s14, s16, s10
-    s_mul_hi_u32 s15, s16, s10
-    s_lshl_b32 s11, s3, 6
+    s_lshl_b32 s37, s3, 6
+    s_lshl_b32 s12, s38, 2
     s_load_dwordx2 s[2:3], s[0:1], 0x8
+    s_mul_i32 s20, s12, s11
+    s_mul_hi_u32 s21, s12, s11
+    s_mul_i32 s22, s12, s10
+    s_mul_hi_u32 s23, s12, s10
     v_sub_i32 v7, s9, 1
     s_waitcnt lgkmcnt(0)
-    s_add_u32 s4, s4, s12
-    s_addc_u32 s5, s5, s13
-    s_add_u32 s6, s6, s14
-    s_addc_u32 s7, s7, s15
     s_load_dwordx8 s[12:19], s[2:3], 0x0
+    s_add_u32 s4, s4, s20
+    s_addc_u32 s5, s5, s21
+    s_add_u32 s6, s6, s22
+    s_addc_u32 s7, s7, s23
     v_cmp_gt_u32 vcc, s9, v8
     v_cndmask_b32 v8, v7, v8, vcc
     v_lshlrev_b32 v9, 3, v5
@@ -24746,9 +24726,9 @@ sfco8x6_relu:
     ds_write2st64_b32 v111, v102, v103 offset0:0x18 offset1:0x1c
     ds_write2st64_b32 v112, v104, v105 offset0:0x20 offset1:0x24
     s_movk_i32 s8, 32
-    s_movk_i32 s36, 64
+    s_movk_i32 s11, 64
     s_sub_u32 s10, s10, 8
-    s_movk_i32 s37, 10240
+    s_movk_i32 s36, 10240
     s_cmpk_eq_u32 s10, 0
     s_cmovk_i32 s8, 0
     s_add_u32 s20, s4, s12
@@ -24780,9 +24760,9 @@ L149:
     ds_read_b128 v[84:87], v110 offset:0x2400
     ds_read_b128 v[88:91], v109 offset:0x480
     ds_read_b128 v[92:95], v110 offset:0x2480
-    v_xor_b32 v111, s37, v111
+    v_xor_b32 v111, s36, v111
     s_waitcnt lgkmcnt(4)
-    s_load_dwordx8 s[12:19], s[2:3], s36
+    s_load_dwordx8 s[12:19], s[2:3], s11
     v_fmac_f32 v0, v64, v68
     s_setprio 1
     v_fmac_f32 v1, v65, v68
@@ -24841,7 +24821,7 @@ L149:
     v_fmac_f32 v57, v65, v79
     v_fmac_f32 v58, v66, v79
     v_fmac_f32 v59, v67, v79
-    s_add_u32 s36, 32, s36
+    s_addk_i32 s11, 32
     v_fmac_f32 v36, v72, v76
     v_fmac_f32 v37, v73, v76
     v_fmac_f32 v38, v74, v76
@@ -24938,7 +24918,7 @@ L149:
     ds_read_b128 v[84:87], v110 offset:0x2500
     ds_read_b128 v[88:91], v109 offset:0xc80
     ds_read_b128 v[92:95], v110 offset:0x2580
-    v_xor_b32 v112, s37, v112
+    v_xor_b32 v112, s36, v112
     s_waitcnt lgkmcnt(4)
     v_fmac_f32 v0, v64, v68
     s_setprio 1
@@ -25278,8 +25258,8 @@ L149:
     ds_write2st64_b32 v111, v100, v101 offset0:0x10 offset1:0x14
     ds_write2st64_b32 v111, v102, v103 offset0:0x18 offset1:0x1c
     ds_write2st64_b32 v112, v104, v105 offset0:0x20 offset1:0x24
-    v_xor_b32 v109, s37, v109
-    v_xor_b32 v110, s37, v110
+    v_xor_b32 v109, s36, v109
+    v_xor_b32 v110, s36, v110
     v_fmac_f32 v32, v64, v76
     s_setprio 1
     v_fmac_f32 v33, v65, v76
@@ -25390,36 +25370,35 @@ L149:
     v_fmac_f32 v63, v91, v95
     s_setprio 0
     s_cbranch_scc0 L149
-    s_load_dword s10, s[0:1], 0x40
+    s_load_dword s8, s[0:1], 0x40
     s_load_dwordx4 s[0:3], s[0:1], 0x30
     s_mul_i32 s6, s38, s9
     s_mov_b64 s[4:5], exec
-    s_add_u32 s7, s6, s11
+    s_add_u32 s7, s6, s37
     s_waitcnt lgkmcnt(0)
-    s_lshl_b32 s8, s10, 2
-    s_lshl_b32 s10, s10, 4
-    s_mul_i32 s12, s7, s8
-    s_mul_hi_u32 s13, s7, s8
+    s_lshl_b32 s10, s8, 2
+    s_lshl_b32 s11, s8, 4
+    s_mul_i32 s12, s7, s10
+    s_mul_hi_u32 s13, s7, s10
     s_add_u32 s0, s0, s12
     s_addc_u32 s1, s1, s13
-    v_cmp_gt_u32 vcc, s3, v115
-    s_mov_b64 s[6:7], vcc
+    v_cmp_lt_u32 s[6:7], v115, s3
     s_mov_b64 s[12:13], s[0:1]
     ds_write_b128 v113, v[0:3]
     ds_write_b128 v113, v[4:7] offset:0x80
-    s_add_u32 s14, s12, s10
+    s_add_u32 s14, s12, s11
     s_addc_u32 s15, s13, 0
-    s_add_u32 s16, s14, s10
+    s_add_u32 s16, s14, s11
     s_addc_u32 s17, s15, 0
-    s_add_u32 s18, s16, s10
+    s_add_u32 s18, s16, s11
     s_addc_u32 s19, s17, 0
-    s_add_u32 s20, s18, s10
+    s_add_u32 s20, s18, s11
     s_addc_u32 s21, s19, 0
-    s_add_u32 s22, s20, s10
+    s_add_u32 s22, s20, s11
     s_addc_u32 s23, s21, 0
-    s_add_u32 s24, s22, s10
+    s_add_u32 s24, s22, s11
     s_addc_u32 s25, s23, 0
-    s_add_u32 s26, s24, s10
+    s_add_u32 s26, s24, s11
     s_addc_u32 s27, s25, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -25427,52 +25406,52 @@ L149:
     ds_read2st64_b32 v[2:3], v114 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v114 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v114 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L156
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     v_max_f32 v0, 0, v0
     global_store_dword v[107:108], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L150
     v_mul_f32 v1, s2, v1
     v_max_f32 v1, 0, v1
     global_store_dword v[107:108], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L150
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     v_max_f32 v2, 0, v2
     global_store_dword v[107:108], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L150
     v_mul_f32 v3, s2, v3
     v_max_f32 v3, 0, v3
     global_store_dword v[107:108], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L150
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     v_max_f32 v4, 0, v4
     global_store_dword v[107:108], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L150
     v_mul_f32 v5, s2, v5
     v_max_f32 v5, 0, v5
     global_store_dword v[107:108], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L150
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     v_max_f32 v6, 0, v6
     global_store_dword v[107:108], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L150
     v_mul_f32 v7, s2, v7
@@ -25480,24 +25459,24 @@ L149:
     global_store_dword v[107:108], v7, s[26:27]
 L150:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v113, v[8:11]
     ds_write_b128 v113, v[12:15] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -25505,52 +25484,52 @@ L150:
     ds_read2st64_b32 v[2:3], v114 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v114 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v114 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L156
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     v_max_f32 v0, 0, v0
     global_store_dword v[107:108], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L151
     v_mul_f32 v1, s2, v1
     v_max_f32 v1, 0, v1
     global_store_dword v[107:108], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L151
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     v_max_f32 v2, 0, v2
     global_store_dword v[107:108], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L151
     v_mul_f32 v3, s2, v3
     v_max_f32 v3, 0, v3
     global_store_dword v[107:108], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L151
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     v_max_f32 v4, 0, v4
     global_store_dword v[107:108], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L151
     v_mul_f32 v5, s2, v5
     v_max_f32 v5, 0, v5
     global_store_dword v[107:108], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L151
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     v_max_f32 v6, 0, v6
     global_store_dword v[107:108], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L151
     v_mul_f32 v7, s2, v7
@@ -25558,24 +25537,24 @@ L150:
     global_store_dword v[107:108], v7, s[26:27]
 L151:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v113, v[16:19]
     ds_write_b128 v113, v[20:23] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -25583,52 +25562,52 @@ L151:
     ds_read2st64_b32 v[2:3], v114 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v114 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v114 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L156
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     v_max_f32 v0, 0, v0
     global_store_dword v[107:108], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L152
     v_mul_f32 v1, s2, v1
     v_max_f32 v1, 0, v1
     global_store_dword v[107:108], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L152
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     v_max_f32 v2, 0, v2
     global_store_dword v[107:108], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L152
     v_mul_f32 v3, s2, v3
     v_max_f32 v3, 0, v3
     global_store_dword v[107:108], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L152
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     v_max_f32 v4, 0, v4
     global_store_dword v[107:108], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L152
     v_mul_f32 v5, s2, v5
     v_max_f32 v5, 0, v5
     global_store_dword v[107:108], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L152
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     v_max_f32 v6, 0, v6
     global_store_dword v[107:108], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L152
     v_mul_f32 v7, s2, v7
@@ -25636,24 +25615,24 @@ L151:
     global_store_dword v[107:108], v7, s[26:27]
 L152:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v113, v[24:27]
     ds_write_b128 v113, v[28:31] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -25661,77 +25640,77 @@ L152:
     ds_read2st64_b32 v[2:3], v114 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v114 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v114 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L156
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     v_max_f32 v0, 0, v0
     global_store_dword v[107:108], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L156
     v_mul_f32 v1, s2, v1
     v_max_f32 v1, 0, v1
     global_store_dword v[107:108], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L156
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     v_max_f32 v2, 0, v2
     global_store_dword v[107:108], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L156
     v_mul_f32 v3, s2, v3
     v_max_f32 v3, 0, v3
     global_store_dword v[107:108], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L156
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     v_max_f32 v4, 0, v4
     global_store_dword v[107:108], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L156
     v_mul_f32 v5, s2, v5
     v_max_f32 v5, 0, v5
     global_store_dword v[107:108], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L156
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     v_max_f32 v6, 0, v6
     global_store_dword v[107:108], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L156
     v_mul_f32 v7, s2, v7
     v_max_f32 v7, 0, v7
     global_store_dword v[107:108], v7, s[26:27]
     s_mov_b64 exec, s[4:5]
-    s_lshl_b32 s28, s8, 5
-    s_add_u32 s11, s11, 29
+    s_lshl_b32 s28, s10, 5
+    s_addk_i32 s37, 29
     s_add_u32 s12, s0, s28
     s_addc_u32 s13, s1, 0
     ds_write_b128 v113, v[32:35]
     ds_write_b128 v113, v[36:39] offset:0x80
-    s_add_u32 s14, s12, s10
+    s_add_u32 s14, s12, s11
     s_addc_u32 s15, s13, 0
-    s_add_u32 s16, s14, s10
+    s_add_u32 s16, s14, s11
     s_addc_u32 s17, s15, 0
-    s_add_u32 s18, s16, s10
+    s_add_u32 s18, s16, s11
     s_addc_u32 s19, s17, 0
-    s_add_u32 s20, s18, s10
+    s_add_u32 s20, s18, s11
     s_addc_u32 s21, s19, 0
-    s_add_u32 s22, s20, s10
+    s_add_u32 s22, s20, s11
     s_addc_u32 s23, s21, 0
-    s_add_u32 s24, s22, s10
+    s_add_u32 s24, s22, s11
     s_addc_u32 s25, s23, 0
-    s_add_u32 s26, s24, s10
+    s_add_u32 s26, s24, s11
     s_addc_u32 s27, s25, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -25739,52 +25718,52 @@ L152:
     ds_read2st64_b32 v[2:3], v114 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v114 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v114 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L156
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     v_max_f32 v0, 0, v0
     global_store_dword v[107:108], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L153
     v_mul_f32 v1, s2, v1
     v_max_f32 v1, 0, v1
     global_store_dword v[107:108], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L153
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     v_max_f32 v2, 0, v2
     global_store_dword v[107:108], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L153
     v_mul_f32 v3, s2, v3
     v_max_f32 v3, 0, v3
     global_store_dword v[107:108], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L153
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     v_max_f32 v4, 0, v4
     global_store_dword v[107:108], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L153
     v_mul_f32 v5, s2, v5
     v_max_f32 v5, 0, v5
     global_store_dword v[107:108], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L153
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     v_max_f32 v6, 0, v6
     global_store_dword v[107:108], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L153
     v_mul_f32 v7, s2, v7
@@ -25792,24 +25771,24 @@ L152:
     global_store_dword v[107:108], v7, s[26:27]
 L153:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v113, v[40:43]
     ds_write_b128 v113, v[44:47] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -25817,52 +25796,52 @@ L153:
     ds_read2st64_b32 v[2:3], v114 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v114 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v114 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L156
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     v_max_f32 v0, 0, v0
     global_store_dword v[107:108], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L154
     v_mul_f32 v1, s2, v1
     v_max_f32 v1, 0, v1
     global_store_dword v[107:108], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L154
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     v_max_f32 v2, 0, v2
     global_store_dword v[107:108], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L154
     v_mul_f32 v3, s2, v3
     v_max_f32 v3, 0, v3
     global_store_dword v[107:108], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L154
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     v_max_f32 v4, 0, v4
     global_store_dword v[107:108], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L154
     v_mul_f32 v5, s2, v5
     v_max_f32 v5, 0, v5
     global_store_dword v[107:108], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L154
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     v_max_f32 v6, 0, v6
     global_store_dword v[107:108], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L154
     v_mul_f32 v7, s2, v7
@@ -25870,24 +25849,24 @@ L153:
     global_store_dword v[107:108], v7, s[26:27]
 L154:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v113, v[48:51]
     ds_write_b128 v113, v[52:55] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -25895,52 +25874,52 @@ L154:
     ds_read2st64_b32 v[2:3], v114 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v114 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v114 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L156
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     v_max_f32 v0, 0, v0
     global_store_dword v[107:108], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L155
     v_mul_f32 v1, s2, v1
     v_max_f32 v1, 0, v1
     global_store_dword v[107:108], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L155
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     v_max_f32 v2, 0, v2
     global_store_dword v[107:108], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L155
     v_mul_f32 v3, s2, v3
     v_max_f32 v3, 0, v3
     global_store_dword v[107:108], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L155
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     v_max_f32 v4, 0, v4
     global_store_dword v[107:108], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L155
     v_mul_f32 v5, s2, v5
     v_max_f32 v5, 0, v5
     global_store_dword v[107:108], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L155
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     v_max_f32 v6, 0, v6
     global_store_dword v[107:108], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L155
     v_mul_f32 v7, s2, v7
@@ -25948,24 +25927,24 @@ L154:
     global_store_dword v[107:108], v7, s[26:27]
 L155:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s37, 1
     ds_write_b128 v113, v[56:59]
     ds_write_b128 v113, v[60:63] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -25973,52 +25952,52 @@ L155:
     ds_read2st64_b32 v[2:3], v114 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v114 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v114 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s37, s9
     s_cbranch_scc0 L156
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     v_max_f32 v0, 0, v0
     global_store_dword v[107:108], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s37, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L156
     v_mul_f32 v1, s2, v1
     v_max_f32 v1, 0, v1
     global_store_dword v[107:108], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s37, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L156
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     v_max_f32 v2, 0, v2
     global_store_dword v[107:108], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s37, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L156
     v_mul_f32 v3, s2, v3
     v_max_f32 v3, 0, v3
     global_store_dword v[107:108], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s37, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L156
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     v_max_f32 v4, 0, v4
     global_store_dword v[107:108], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s37, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L156
     v_mul_f32 v5, s2, v5
     v_max_f32 v5, 0, v5
     global_store_dword v[107:108], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s37, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L156
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     v_max_f32 v6, 0, v6
     global_store_dword v[107:108], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s37, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L156
     v_mul_f32 v7, s2, v7
@@ -26046,7 +26025,7 @@ L156:
 .p2align 8
 .type sfco7x7,@function
 sfco7x7:
-    s_mov_b32 s38, s4
+    s_mov_b32 s37, s4
     s_mov_b32 s12, s2
     s_load_dwordx2 s[4:5], s[0:1], 0x0
     s_load_dwordx4 s[8:11], s[0:1], 0x10
@@ -26067,29 +26046,29 @@ sfco7x7:
     v_lshl_or_b32 v7, s3, 7, v6
     v_lshlrev_b32 v9, 3, v122
     v_add_u32 v8, 64, v7
-    v_readfirstlane_b32 s36, v2
+    v_readfirstlane_b32 s38, v2
     global_load_dwordx2 v[112:113], v[9:10], s[4:5]
     s_load_dwordx4 s[4:7], s[0:1], 0x20
-    s_lshl_b32 s19, s38, 2
-    s_lshl_b32 s16, s3, 7
-    s_mul_i32 s12, s19, s11
-    s_mul_hi_u32 s13, s19, s11
-    s_mul_i32 s14, s19, s10
-    s_mul_hi_u32 s15, s19, s10
+    s_lshl_b32 s12, s3, 7
+    s_lshl_b32 s13, s37, 2
     s_load_dwordx2 s[2:3], s[0:1], 0x8
-    s_lshr_b32 s37, s36, 1
-    s_lshl_b32 s17, s37, 6
-    s_lshl_b32 s18, s37, 5
-    s_or_b32 s11, s16, s17
-    s_waitcnt lgkmcnt(0)
+    s_mul_i32 s20, s13, s11
+    s_mul_hi_u32 s21, s13, s11
+    s_mul_i32 s22, s13, s10
+    s_mul_hi_u32 s23, s13, s10
+    s_lshr_b32 s39, s38, 1
+    s_lshl_b32 s14, s39, 6
+    s_lshl_b32 s15, s39, 5
+    s_or_b32 s36, s12, s14
     v_sub_i32 v9, s9, 1
-    s_add_u32 s2, s2, s18
+    s_waitcnt lgkmcnt(0)
+    s_add_u32 s2, s2, s15
     s_addc_u32 s3, s3, 0
-    s_add_u32 s4, s4, s12
-    s_addc_u32 s5, s5, s13
-    s_add_u32 s6, s6, s14
-    s_addc_u32 s7, s7, s15
     s_load_dwordx8 s[12:19], s[2:3], 0x0
+    s_add_u32 s4, s4, s20
+    s_addc_u32 s5, s5, s21
+    s_add_u32 s6, s6, s22
+    s_addc_u32 s7, s7, s23
     v_cmp_gt_u32 vcc, s9, v7
     v_cndmask_b32 v7, v9, v7, vcc
     v_cmp_gt_u32 vcc, s9, v8
@@ -26128,7 +26107,7 @@ sfco7x7:
     global_load_dwordx4 v[104:107], v[114:115], s[6:7]
     global_load_dwordx4 v[108:111], v[115:116], s[6:7]
     s_load_dwordx8 s[12:19], s[2:3], 0x40
-    s_and_b32 s20, s36, 1
+    s_and_b32 s20, s38, 1
     v_lshlrev_b32 v7, 4, v3
     v_lshlrev_b32 v8, 4, v4
     v_lshlrev_b32 v9, 2, v6
@@ -26136,10 +26115,10 @@ sfco7x7:
     v_lshlrev_b32 v118, 2, v0
     v_lshl_or_b32 v3, v4, 8, v7
     v_lshl_or_b32 v116, s20, 8, v7
-    v_lshl_or_b32 v117, s37, 12, v8
+    v_lshl_or_b32 v117, s39, 12, v8
     v_lshl_or_b32 v119, v5, 8, v9
-    v_lshl_or_b32 v121, s36, 11, v2
-    v_lshl_or_b32 v120, s36, 11, v3
+    v_lshl_or_b32 v121, s38, 11, v2
+    v_lshl_or_b32 v120, s38, 11, v3
     v_mov_b32 v0, 0
     v_mov_b32 v1, 0
     v_mov_b32 v2, 0
@@ -26215,7 +26194,7 @@ sfco7x7:
     ds_write2st64_b32 v119, v110, v111 offset0:0x38 offset1:0x3c
     s_sub_u32 s10, s10, 16
     s_movk_i32 s8, 64
-    s_movk_i32 s36, 16384
+    s_movk_i32 s11, 16384
     s_cmpk_eq_u32 s10, 0
     s_cmovk_i32 s8, 0
     s_addk_i32 s2, 128
@@ -26249,7 +26228,7 @@ L157:
     ds_read_b128 v[84:87], v117 offset:0x2400
     ds_read_b128 v[88:91], v116 offset:0x480
     ds_read_b128 v[92:95], v117 offset:0x2480
-    v_xor_b32 v118, s36, v118
+    v_xor_b32 v118, s11, v118
     s_waitcnt lgkmcnt(4)
     s_load_dwordx8 s[12:19], s[2:3], 0x0
     v_fmac_f32 v0, v64, v68
@@ -26405,7 +26384,7 @@ L157:
     ds_read_b128 v[84:87], v117 offset:0x2c00
     ds_read_b128 v[88:91], v116 offset:0xc80
     ds_read_b128 v[92:95], v117 offset:0x2c80
-    v_xor_b32 v119, s36, v119
+    v_xor_b32 v119, s11, v119
     s_waitcnt lgkmcnt(4)
     v_fmac_f32 v0, v64, v68
     s_setprio 1
@@ -27326,8 +27305,8 @@ L157:
     ds_write2st64_b32 v119, v106, v107 offset0:0x28 offset1:0x2c
     ds_write2st64_b32 v119, v108, v109 offset0:0x30 offset1:0x34
     ds_write2st64_b32 v119, v110, v111 offset0:0x38 offset1:0x3c
-    v_xor_b32 v116, s36, v116
-    v_xor_b32 v117, s36, v117
+    v_xor_b32 v116, s11, v116
+    v_xor_b32 v117, s11, v117
     v_fmac_f32 v32, v64, v76
     s_setprio 1
     v_fmac_f32 v33, v65, v76
@@ -27435,36 +27414,35 @@ L157:
     v_fmac_f32 v63, v91, v95
     s_setprio 0
     s_cbranch_scc0 L157
-    s_load_dword s10, s[0:1], 0x40
+    s_load_dword s8, s[0:1], 0x40
     s_load_dwordx4 s[0:3], s[0:1], 0x30
-    s_mul_i32 s6, s38, s9
+    s_mul_i32 s6, s37, s9
     s_mov_b64 s[4:5], exec
-    s_add_u32 s7, s6, s11
+    s_add_u32 s7, s6, s36
     s_waitcnt lgkmcnt(0)
-    s_lshl_b32 s8, s10, 2
-    s_lshl_b32 s10, s10, 4
-    s_mul_i32 s12, s7, s8
-    s_mul_hi_u32 s13, s7, s8
+    s_lshl_b32 s10, s8, 2
+    s_lshl_b32 s11, s8, 4
+    s_mul_i32 s12, s7, s10
+    s_mul_hi_u32 s13, s7, s10
     s_add_u32 s0, s0, s12
     s_addc_u32 s1, s1, s13
-    v_cmp_gt_u32 vcc, s3, v122
-    s_mov_b64 s[6:7], vcc
+    v_cmp_lt_u32 s[6:7], v122, s3
     s_mov_b64 s[12:13], s[0:1]
     ds_write_b128 v120, v[0:3]
     ds_write_b128 v120, v[4:7] offset:0x80
-    s_add_u32 s14, s12, s10
+    s_add_u32 s14, s12, s11
     s_addc_u32 s15, s13, 0
-    s_add_u32 s16, s14, s10
+    s_add_u32 s16, s14, s11
     s_addc_u32 s17, s15, 0
-    s_add_u32 s18, s16, s10
+    s_add_u32 s18, s16, s11
     s_addc_u32 s19, s17, 0
-    s_add_u32 s20, s18, s10
+    s_add_u32 s20, s18, s11
     s_addc_u32 s21, s19, 0
-    s_add_u32 s22, s20, s10
+    s_add_u32 s22, s20, s11
     s_addc_u32 s23, s21, 0
-    s_add_u32 s24, s22, s10
+    s_add_u32 s24, s22, s11
     s_addc_u32 s25, s23, 0
-    s_add_u32 s26, s24, s10
+    s_add_u32 s26, s24, s11
     s_addc_u32 s27, s25, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -27472,69 +27450,69 @@ L157:
     ds_read2st64_b32 v[2:3], v121 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v121 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v121 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s36, s9
     s_cbranch_scc0 L164
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[113:114], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s36, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L158
     v_mul_f32 v1, s2, v1
     global_store_dword v[113:114], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s36, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L158
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[113:114], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s36, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L158
     v_mul_f32 v3, s2, v3
     global_store_dword v[113:114], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s36, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L158
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[113:114], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s36, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L158
     v_mul_f32 v5, s2, v5
     global_store_dword v[113:114], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s36, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L158
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[113:114], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s36, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L158
     v_mul_f32 v7, s2, v7
     global_store_dword v[113:114], v7, s[26:27]
 L158:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s36, 1
     ds_write_b128 v120, v[8:11]
     ds_write_b128 v120, v[12:15] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -27542,69 +27520,69 @@ L158:
     ds_read2st64_b32 v[2:3], v121 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v121 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v121 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s36, s9
     s_cbranch_scc0 L164
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[113:114], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s36, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L159
     v_mul_f32 v1, s2, v1
     global_store_dword v[113:114], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s36, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L159
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[113:114], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s36, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L159
     v_mul_f32 v3, s2, v3
     global_store_dword v[113:114], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s36, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L159
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[113:114], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s36, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L159
     v_mul_f32 v5, s2, v5
     global_store_dword v[113:114], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s36, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L159
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[113:114], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s36, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L159
     v_mul_f32 v7, s2, v7
     global_store_dword v[113:114], v7, s[26:27]
 L159:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s36, 1
     ds_write_b128 v120, v[16:19]
     ds_write_b128 v120, v[20:23] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -27612,69 +27590,69 @@ L159:
     ds_read2st64_b32 v[2:3], v121 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v121 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v121 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s36, s9
     s_cbranch_scc0 L164
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[113:114], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s36, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L160
     v_mul_f32 v1, s2, v1
     global_store_dword v[113:114], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s36, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L160
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[113:114], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s36, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L160
     v_mul_f32 v3, s2, v3
     global_store_dword v[113:114], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s36, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L160
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[113:114], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s36, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L160
     v_mul_f32 v5, s2, v5
     global_store_dword v[113:114], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s36, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L160
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[113:114], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s36, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L160
     v_mul_f32 v7, s2, v7
     global_store_dword v[113:114], v7, s[26:27]
 L160:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s36, 1
     ds_write_b128 v120, v[24:27]
     ds_write_b128 v120, v[28:31] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -27682,69 +27660,69 @@ L160:
     ds_read2st64_b32 v[2:3], v121 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v121 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v121 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s36, s9
     s_cbranch_scc0 L164
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[113:114], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s36, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L164
     v_mul_f32 v1, s2, v1
     global_store_dword v[113:114], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s36, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L164
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[113:114], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s36, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L164
     v_mul_f32 v3, s2, v3
     global_store_dword v[113:114], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s36, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L164
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[113:114], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s36, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L164
     v_mul_f32 v5, s2, v5
     global_store_dword v[113:114], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s36, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L164
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[113:114], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s36, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L164
     v_mul_f32 v7, s2, v7
     global_store_dword v[113:114], v7, s[26:27]
     s_mov_b64 exec, s[4:5]
-    s_lshl_b32 s28, s8, 5
-    s_add_u32 s11, s11, 29
+    s_lshl_b32 s28, s10, 5
+    s_addk_i32 s36, 29
     s_add_u32 s12, s0, s28
     s_addc_u32 s13, s1, 0
     ds_write_b128 v120, v[32:35]
     ds_write_b128 v120, v[36:39] offset:0x80
-    s_add_u32 s14, s12, s10
+    s_add_u32 s14, s12, s11
     s_addc_u32 s15, s13, 0
-    s_add_u32 s16, s14, s10
+    s_add_u32 s16, s14, s11
     s_addc_u32 s17, s15, 0
-    s_add_u32 s18, s16, s10
+    s_add_u32 s18, s16, s11
     s_addc_u32 s19, s17, 0
-    s_add_u32 s20, s18, s10
+    s_add_u32 s20, s18, s11
     s_addc_u32 s21, s19, 0
-    s_add_u32 s22, s20, s10
+    s_add_u32 s22, s20, s11
     s_addc_u32 s23, s21, 0
-    s_add_u32 s24, s22, s10
+    s_add_u32 s24, s22, s11
     s_addc_u32 s25, s23, 0
-    s_add_u32 s26, s24, s10
+    s_add_u32 s26, s24, s11
     s_addc_u32 s27, s25, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -27752,69 +27730,69 @@ L160:
     ds_read2st64_b32 v[2:3], v121 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v121 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v121 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s36, s9
     s_cbranch_scc0 L164
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[113:114], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s36, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L161
     v_mul_f32 v1, s2, v1
     global_store_dword v[113:114], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s36, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L161
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[113:114], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s36, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L161
     v_mul_f32 v3, s2, v3
     global_store_dword v[113:114], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s36, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L161
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[113:114], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s36, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L161
     v_mul_f32 v5, s2, v5
     global_store_dword v[113:114], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s36, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L161
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[113:114], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s36, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L161
     v_mul_f32 v7, s2, v7
     global_store_dword v[113:114], v7, s[26:27]
 L161:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s36, 1
     ds_write_b128 v120, v[40:43]
     ds_write_b128 v120, v[44:47] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -27822,69 +27800,69 @@ L161:
     ds_read2st64_b32 v[2:3], v121 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v121 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v121 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s36, s9
     s_cbranch_scc0 L164
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[113:114], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s36, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L162
     v_mul_f32 v1, s2, v1
     global_store_dword v[113:114], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s36, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L162
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[113:114], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s36, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L162
     v_mul_f32 v3, s2, v3
     global_store_dword v[113:114], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s36, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L162
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[113:114], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s36, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L162
     v_mul_f32 v5, s2, v5
     global_store_dword v[113:114], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s36, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L162
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[113:114], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s36, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L162
     v_mul_f32 v7, s2, v7
     global_store_dword v[113:114], v7, s[26:27]
 L162:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s36, 1
     ds_write_b128 v120, v[48:51]
     ds_write_b128 v120, v[52:55] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -27892,69 +27870,69 @@ L162:
     ds_read2st64_b32 v[2:3], v121 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v121 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v121 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s36, s9
     s_cbranch_scc0 L164
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[113:114], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s36, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L163
     v_mul_f32 v1, s2, v1
     global_store_dword v[113:114], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s36, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L163
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[113:114], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s36, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L163
     v_mul_f32 v3, s2, v3
     global_store_dword v[113:114], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s36, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L163
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[113:114], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s36, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L163
     v_mul_f32 v5, s2, v5
     global_store_dword v[113:114], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s36, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L163
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[113:114], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s36, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L163
     v_mul_f32 v7, s2, v7
     global_store_dword v[113:114], v7, s[26:27]
 L163:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s36, 1
     ds_write_b128 v120, v[56:59]
     ds_write_b128 v120, v[60:63] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -27962,45 +27940,45 @@ L163:
     ds_read2st64_b32 v[2:3], v121 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v121 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v121 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s36, s9
     s_cbranch_scc0 L164
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     global_store_dword v[113:114], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s36, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L164
     v_mul_f32 v1, s2, v1
     global_store_dword v[113:114], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s36, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L164
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     global_store_dword v[113:114], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s36, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L164
     v_mul_f32 v3, s2, v3
     global_store_dword v[113:114], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s36, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L164
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     global_store_dword v[113:114], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s36, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L164
     v_mul_f32 v5, s2, v5
     global_store_dword v[113:114], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s36, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L164
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     global_store_dword v[113:114], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s36, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L164
     v_mul_f32 v7, s2, v7
@@ -28017,7 +27995,7 @@ L164:
     .amdhsa_system_sgpr_workgroup_id_z 1
     .amdhsa_system_vgpr_workitem_id 0
     .amdhsa_next_free_vgpr 123
-    .amdhsa_next_free_sgpr 43
+    .amdhsa_next_free_sgpr 44
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
@@ -28027,7 +28005,7 @@ L164:
 .p2align 8
 .type sfco7x7_relu,@function
 sfco7x7_relu:
-    s_mov_b32 s38, s4
+    s_mov_b32 s37, s4
     s_mov_b32 s12, s2
     s_load_dwordx2 s[4:5], s[0:1], 0x0
     s_load_dwordx4 s[8:11], s[0:1], 0x10
@@ -28048,29 +28026,29 @@ sfco7x7_relu:
     v_lshl_or_b32 v7, s3, 7, v6
     v_lshlrev_b32 v9, 3, v122
     v_add_u32 v8, 64, v7
-    v_readfirstlane_b32 s36, v2
+    v_readfirstlane_b32 s38, v2
     global_load_dwordx2 v[112:113], v[9:10], s[4:5]
     s_load_dwordx4 s[4:7], s[0:1], 0x20
-    s_lshl_b32 s19, s38, 2
-    s_lshl_b32 s16, s3, 7
-    s_mul_i32 s12, s19, s11
-    s_mul_hi_u32 s13, s19, s11
-    s_mul_i32 s14, s19, s10
-    s_mul_hi_u32 s15, s19, s10
+    s_lshl_b32 s12, s3, 7
+    s_lshl_b32 s13, s37, 2
     s_load_dwordx2 s[2:3], s[0:1], 0x8
-    s_lshr_b32 s37, s36, 1
-    s_lshl_b32 s17, s37, 6
-    s_lshl_b32 s18, s37, 5
-    s_or_b32 s11, s16, s17
-    s_waitcnt lgkmcnt(0)
+    s_mul_i32 s20, s13, s11
+    s_mul_hi_u32 s21, s13, s11
+    s_mul_i32 s22, s13, s10
+    s_mul_hi_u32 s23, s13, s10
+    s_lshr_b32 s39, s38, 1
+    s_lshl_b32 s14, s39, 6
+    s_lshl_b32 s15, s39, 5
+    s_or_b32 s36, s12, s14
     v_sub_i32 v9, s9, 1
-    s_add_u32 s2, s2, s18
+    s_waitcnt lgkmcnt(0)
+    s_add_u32 s2, s2, s15
     s_addc_u32 s3, s3, 0
-    s_add_u32 s4, s4, s12
-    s_addc_u32 s5, s5, s13
-    s_add_u32 s6, s6, s14
-    s_addc_u32 s7, s7, s15
     s_load_dwordx8 s[12:19], s[2:3], 0x0
+    s_add_u32 s4, s4, s20
+    s_addc_u32 s5, s5, s21
+    s_add_u32 s6, s6, s22
+    s_addc_u32 s7, s7, s23
     v_cmp_gt_u32 vcc, s9, v7
     v_cndmask_b32 v7, v9, v7, vcc
     v_cmp_gt_u32 vcc, s9, v8
@@ -28109,7 +28087,7 @@ sfco7x7_relu:
     global_load_dwordx4 v[104:107], v[114:115], s[6:7]
     global_load_dwordx4 v[108:111], v[115:116], s[6:7]
     s_load_dwordx8 s[12:19], s[2:3], 0x40
-    s_and_b32 s20, s36, 1
+    s_and_b32 s20, s38, 1
     v_lshlrev_b32 v7, 4, v3
     v_lshlrev_b32 v8, 4, v4
     v_lshlrev_b32 v9, 2, v6
@@ -28117,10 +28095,10 @@ sfco7x7_relu:
     v_lshlrev_b32 v118, 2, v0
     v_lshl_or_b32 v3, v4, 8, v7
     v_lshl_or_b32 v116, s20, 8, v7
-    v_lshl_or_b32 v117, s37, 12, v8
+    v_lshl_or_b32 v117, s39, 12, v8
     v_lshl_or_b32 v119, v5, 8, v9
-    v_lshl_or_b32 v121, s36, 11, v2
-    v_lshl_or_b32 v120, s36, 11, v3
+    v_lshl_or_b32 v121, s38, 11, v2
+    v_lshl_or_b32 v120, s38, 11, v3
     v_mov_b32 v0, 0
     v_mov_b32 v1, 0
     v_mov_b32 v2, 0
@@ -28196,7 +28174,7 @@ sfco7x7_relu:
     ds_write2st64_b32 v119, v110, v111 offset0:0x38 offset1:0x3c
     s_sub_u32 s10, s10, 16
     s_movk_i32 s8, 64
-    s_movk_i32 s36, 16384
+    s_movk_i32 s11, 16384
     s_cmpk_eq_u32 s10, 0
     s_cmovk_i32 s8, 0
     s_addk_i32 s2, 128
@@ -28230,7 +28208,7 @@ L165:
     ds_read_b128 v[84:87], v117 offset:0x2400
     ds_read_b128 v[88:91], v116 offset:0x480
     ds_read_b128 v[92:95], v117 offset:0x2480
-    v_xor_b32 v118, s36, v118
+    v_xor_b32 v118, s11, v118
     s_waitcnt lgkmcnt(4)
     s_load_dwordx8 s[12:19], s[2:3], 0x0
     v_fmac_f32 v0, v64, v68
@@ -28386,7 +28364,7 @@ L165:
     ds_read_b128 v[84:87], v117 offset:0x2c00
     ds_read_b128 v[88:91], v116 offset:0xc80
     ds_read_b128 v[92:95], v117 offset:0x2c80
-    v_xor_b32 v119, s36, v119
+    v_xor_b32 v119, s11, v119
     s_waitcnt lgkmcnt(4)
     v_fmac_f32 v0, v64, v68
     s_setprio 1
@@ -29307,8 +29285,8 @@ L165:
     ds_write2st64_b32 v119, v106, v107 offset0:0x28 offset1:0x2c
     ds_write2st64_b32 v119, v108, v109 offset0:0x30 offset1:0x34
     ds_write2st64_b32 v119, v110, v111 offset0:0x38 offset1:0x3c
-    v_xor_b32 v116, s36, v116
-    v_xor_b32 v117, s36, v117
+    v_xor_b32 v116, s11, v116
+    v_xor_b32 v117, s11, v117
     v_fmac_f32 v32, v64, v76
     s_setprio 1
     v_fmac_f32 v33, v65, v76
@@ -29416,36 +29394,35 @@ L165:
     v_fmac_f32 v63, v91, v95
     s_setprio 0
     s_cbranch_scc0 L165
-    s_load_dword s10, s[0:1], 0x40
+    s_load_dword s8, s[0:1], 0x40
     s_load_dwordx4 s[0:3], s[0:1], 0x30
-    s_mul_i32 s6, s38, s9
+    s_mul_i32 s6, s37, s9
     s_mov_b64 s[4:5], exec
-    s_add_u32 s7, s6, s11
+    s_add_u32 s7, s6, s36
     s_waitcnt lgkmcnt(0)
-    s_lshl_b32 s8, s10, 2
-    s_lshl_b32 s10, s10, 4
-    s_mul_i32 s12, s7, s8
-    s_mul_hi_u32 s13, s7, s8
+    s_lshl_b32 s10, s8, 2
+    s_lshl_b32 s11, s8, 4
+    s_mul_i32 s12, s7, s10
+    s_mul_hi_u32 s13, s7, s10
     s_add_u32 s0, s0, s12
     s_addc_u32 s1, s1, s13
-    v_cmp_gt_u32 vcc, s3, v122
-    s_mov_b64 s[6:7], vcc
+    v_cmp_lt_u32 s[6:7], v122, s3
     s_mov_b64 s[12:13], s[0:1]
     ds_write_b128 v120, v[0:3]
     ds_write_b128 v120, v[4:7] offset:0x80
-    s_add_u32 s14, s12, s10
+    s_add_u32 s14, s12, s11
     s_addc_u32 s15, s13, 0
-    s_add_u32 s16, s14, s10
+    s_add_u32 s16, s14, s11
     s_addc_u32 s17, s15, 0
-    s_add_u32 s18, s16, s10
+    s_add_u32 s18, s16, s11
     s_addc_u32 s19, s17, 0
-    s_add_u32 s20, s18, s10
+    s_add_u32 s20, s18, s11
     s_addc_u32 s21, s19, 0
-    s_add_u32 s22, s20, s10
+    s_add_u32 s22, s20, s11
     s_addc_u32 s23, s21, 0
-    s_add_u32 s24, s22, s10
+    s_add_u32 s24, s22, s11
     s_addc_u32 s25, s23, 0
-    s_add_u32 s26, s24, s10
+    s_add_u32 s26, s24, s11
     s_addc_u32 s27, s25, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -29453,52 +29430,52 @@ L165:
     ds_read2st64_b32 v[2:3], v121 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v121 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v121 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s36, s9
     s_cbranch_scc0 L172
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     v_max_f32 v0, 0, v0
     global_store_dword v[113:114], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s36, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L166
     v_mul_f32 v1, s2, v1
     v_max_f32 v1, 0, v1
     global_store_dword v[113:114], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s36, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L166
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     v_max_f32 v2, 0, v2
     global_store_dword v[113:114], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s36, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L166
     v_mul_f32 v3, s2, v3
     v_max_f32 v3, 0, v3
     global_store_dword v[113:114], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s36, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L166
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     v_max_f32 v4, 0, v4
     global_store_dword v[113:114], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s36, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L166
     v_mul_f32 v5, s2, v5
     v_max_f32 v5, 0, v5
     global_store_dword v[113:114], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s36, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L166
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     v_max_f32 v6, 0, v6
     global_store_dword v[113:114], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s36, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L166
     v_mul_f32 v7, s2, v7
@@ -29506,24 +29483,24 @@ L165:
     global_store_dword v[113:114], v7, s[26:27]
 L166:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s36, 1
     ds_write_b128 v120, v[8:11]
     ds_write_b128 v120, v[12:15] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -29531,52 +29508,52 @@ L166:
     ds_read2st64_b32 v[2:3], v121 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v121 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v121 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s36, s9
     s_cbranch_scc0 L172
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     v_max_f32 v0, 0, v0
     global_store_dword v[113:114], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s36, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L167
     v_mul_f32 v1, s2, v1
     v_max_f32 v1, 0, v1
     global_store_dword v[113:114], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s36, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L167
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     v_max_f32 v2, 0, v2
     global_store_dword v[113:114], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s36, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L167
     v_mul_f32 v3, s2, v3
     v_max_f32 v3, 0, v3
     global_store_dword v[113:114], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s36, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L167
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     v_max_f32 v4, 0, v4
     global_store_dword v[113:114], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s36, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L167
     v_mul_f32 v5, s2, v5
     v_max_f32 v5, 0, v5
     global_store_dword v[113:114], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s36, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L167
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     v_max_f32 v6, 0, v6
     global_store_dword v[113:114], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s36, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L167
     v_mul_f32 v7, s2, v7
@@ -29584,24 +29561,24 @@ L166:
     global_store_dword v[113:114], v7, s[26:27]
 L167:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s36, 1
     ds_write_b128 v120, v[16:19]
     ds_write_b128 v120, v[20:23] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -29609,52 +29586,52 @@ L167:
     ds_read2st64_b32 v[2:3], v121 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v121 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v121 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s36, s9
     s_cbranch_scc0 L172
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     v_max_f32 v0, 0, v0
     global_store_dword v[113:114], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s36, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L168
     v_mul_f32 v1, s2, v1
     v_max_f32 v1, 0, v1
     global_store_dword v[113:114], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s36, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L168
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     v_max_f32 v2, 0, v2
     global_store_dword v[113:114], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s36, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L168
     v_mul_f32 v3, s2, v3
     v_max_f32 v3, 0, v3
     global_store_dword v[113:114], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s36, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L168
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     v_max_f32 v4, 0, v4
     global_store_dword v[113:114], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s36, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L168
     v_mul_f32 v5, s2, v5
     v_max_f32 v5, 0, v5
     global_store_dword v[113:114], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s36, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L168
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     v_max_f32 v6, 0, v6
     global_store_dword v[113:114], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s36, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L168
     v_mul_f32 v7, s2, v7
@@ -29662,24 +29639,24 @@ L167:
     global_store_dword v[113:114], v7, s[26:27]
 L168:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s36, 1
     ds_write_b128 v120, v[24:27]
     ds_write_b128 v120, v[28:31] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -29687,77 +29664,77 @@ L168:
     ds_read2st64_b32 v[2:3], v121 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v121 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v121 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s36, s9
     s_cbranch_scc0 L172
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     v_max_f32 v0, 0, v0
     global_store_dword v[113:114], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s36, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L172
     v_mul_f32 v1, s2, v1
     v_max_f32 v1, 0, v1
     global_store_dword v[113:114], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s36, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L172
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     v_max_f32 v2, 0, v2
     global_store_dword v[113:114], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s36, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L172
     v_mul_f32 v3, s2, v3
     v_max_f32 v3, 0, v3
     global_store_dword v[113:114], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s36, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L172
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     v_max_f32 v4, 0, v4
     global_store_dword v[113:114], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s36, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L172
     v_mul_f32 v5, s2, v5
     v_max_f32 v5, 0, v5
     global_store_dword v[113:114], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s36, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L172
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     v_max_f32 v6, 0, v6
     global_store_dword v[113:114], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s36, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L172
     v_mul_f32 v7, s2, v7
     v_max_f32 v7, 0, v7
     global_store_dword v[113:114], v7, s[26:27]
     s_mov_b64 exec, s[4:5]
-    s_lshl_b32 s28, s8, 5
-    s_add_u32 s11, s11, 29
+    s_lshl_b32 s28, s10, 5
+    s_addk_i32 s36, 29
     s_add_u32 s12, s0, s28
     s_addc_u32 s13, s1, 0
     ds_write_b128 v120, v[32:35]
     ds_write_b128 v120, v[36:39] offset:0x80
-    s_add_u32 s14, s12, s10
+    s_add_u32 s14, s12, s11
     s_addc_u32 s15, s13, 0
-    s_add_u32 s16, s14, s10
+    s_add_u32 s16, s14, s11
     s_addc_u32 s17, s15, 0
-    s_add_u32 s18, s16, s10
+    s_add_u32 s18, s16, s11
     s_addc_u32 s19, s17, 0
-    s_add_u32 s20, s18, s10
+    s_add_u32 s20, s18, s11
     s_addc_u32 s21, s19, 0
-    s_add_u32 s22, s20, s10
+    s_add_u32 s22, s20, s11
     s_addc_u32 s23, s21, 0
-    s_add_u32 s24, s22, s10
+    s_add_u32 s24, s22, s11
     s_addc_u32 s25, s23, 0
-    s_add_u32 s26, s24, s10
+    s_add_u32 s26, s24, s11
     s_addc_u32 s27, s25, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -29765,52 +29742,52 @@ L168:
     ds_read2st64_b32 v[2:3], v121 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v121 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v121 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s36, s9
     s_cbranch_scc0 L172
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     v_max_f32 v0, 0, v0
     global_store_dword v[113:114], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s36, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L169
     v_mul_f32 v1, s2, v1
     v_max_f32 v1, 0, v1
     global_store_dword v[113:114], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s36, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L169
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     v_max_f32 v2, 0, v2
     global_store_dword v[113:114], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s36, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L169
     v_mul_f32 v3, s2, v3
     v_max_f32 v3, 0, v3
     global_store_dword v[113:114], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s36, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L169
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     v_max_f32 v4, 0, v4
     global_store_dword v[113:114], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s36, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L169
     v_mul_f32 v5, s2, v5
     v_max_f32 v5, 0, v5
     global_store_dword v[113:114], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s36, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L169
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     v_max_f32 v6, 0, v6
     global_store_dword v[113:114], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s36, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L169
     v_mul_f32 v7, s2, v7
@@ -29818,24 +29795,24 @@ L168:
     global_store_dword v[113:114], v7, s[26:27]
 L169:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s36, 1
     ds_write_b128 v120, v[40:43]
     ds_write_b128 v120, v[44:47] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -29843,52 +29820,52 @@ L169:
     ds_read2st64_b32 v[2:3], v121 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v121 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v121 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s36, s9
     s_cbranch_scc0 L172
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     v_max_f32 v0, 0, v0
     global_store_dword v[113:114], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s36, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L170
     v_mul_f32 v1, s2, v1
     v_max_f32 v1, 0, v1
     global_store_dword v[113:114], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s36, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L170
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     v_max_f32 v2, 0, v2
     global_store_dword v[113:114], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s36, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L170
     v_mul_f32 v3, s2, v3
     v_max_f32 v3, 0, v3
     global_store_dword v[113:114], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s36, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L170
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     v_max_f32 v4, 0, v4
     global_store_dword v[113:114], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s36, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L170
     v_mul_f32 v5, s2, v5
     v_max_f32 v5, 0, v5
     global_store_dword v[113:114], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s36, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L170
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     v_max_f32 v6, 0, v6
     global_store_dword v[113:114], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s36, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L170
     v_mul_f32 v7, s2, v7
@@ -29896,24 +29873,24 @@ L169:
     global_store_dword v[113:114], v7, s[26:27]
 L170:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s36, 1
     ds_write_b128 v120, v[48:51]
     ds_write_b128 v120, v[52:55] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -29921,52 +29898,52 @@ L170:
     ds_read2st64_b32 v[2:3], v121 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v121 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v121 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s36, s9
     s_cbranch_scc0 L172
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     v_max_f32 v0, 0, v0
     global_store_dword v[113:114], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s36, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L171
     v_mul_f32 v1, s2, v1
     v_max_f32 v1, 0, v1
     global_store_dword v[113:114], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s36, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L171
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     v_max_f32 v2, 0, v2
     global_store_dword v[113:114], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s36, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L171
     v_mul_f32 v3, s2, v3
     v_max_f32 v3, 0, v3
     global_store_dword v[113:114], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s36, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L171
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     v_max_f32 v4, 0, v4
     global_store_dword v[113:114], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s36, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L171
     v_mul_f32 v5, s2, v5
     v_max_f32 v5, 0, v5
     global_store_dword v[113:114], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s36, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L171
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     v_max_f32 v6, 0, v6
     global_store_dword v[113:114], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s36, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L171
     v_mul_f32 v7, s2, v7
@@ -29974,24 +29951,24 @@ L170:
     global_store_dword v[113:114], v7, s[26:27]
 L171:
     s_mov_b64 exec, s[4:5]
-    s_add_u32 s11, s11, 1
+    s_addk_i32 s36, 1
     ds_write_b128 v120, v[56:59]
     ds_write_b128 v120, v[60:63] offset:0x80
-    s_add_u32 s12, s12, s8
+    s_add_u32 s12, s12, s10
     s_addc_u32 s13, s13, 0
-    s_add_u32 s14, s14, s8
+    s_add_u32 s14, s14, s10
     s_addc_u32 s15, s15, 0
-    s_add_u32 s16, s16, s8
+    s_add_u32 s16, s16, s10
     s_addc_u32 s17, s17, 0
-    s_add_u32 s18, s18, s8
+    s_add_u32 s18, s18, s10
     s_addc_u32 s19, s19, 0
-    s_add_u32 s20, s20, s8
+    s_add_u32 s20, s20, s10
     s_addc_u32 s21, s21, 0
-    s_add_u32 s22, s22, s8
+    s_add_u32 s22, s22, s10
     s_addc_u32 s23, s23, 0
-    s_add_u32 s24, s24, s8
+    s_add_u32 s24, s24, s10
     s_addc_u32 s25, s25, 0
-    s_add_u32 s26, s26, s8
+    s_add_u32 s26, s26, s10
     s_addc_u32 s27, s27, 0
     s_waitcnt lgkmcnt(0)
     s_mov_b64 exec, s[6:7]
@@ -29999,52 +29976,52 @@ L171:
     ds_read2st64_b32 v[2:3], v121 offset0:0x2 offset1:0x3
     ds_read2st64_b32 v[4:5], v121 offset0:0x4 offset1:0x5
     ds_read2st64_b32 v[6:7], v121 offset0:0x6 offset1:0x7
-    s_cmp_lt_u32 s11, s9
+    s_cmp_lt_u32 s36, s9
     s_cbranch_scc0 L172
     s_waitcnt lgkmcnt(3)
     v_mul_f32 v0, s2, v0
     v_max_f32 v0, 0, v0
     global_store_dword v[113:114], v0, s[12:13]
-    s_add_u32 s3, s11, 4
+    s_add_u32 s3, s36, 4
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L172
     v_mul_f32 v1, s2, v1
     v_max_f32 v1, 0, v1
     global_store_dword v[113:114], v1, s[14:15]
-    s_add_u32 s3, s11, 8
+    s_add_u32 s3, s36, 8
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L172
     s_waitcnt lgkmcnt(2)
     v_mul_f32 v2, s2, v2
     v_max_f32 v2, 0, v2
     global_store_dword v[113:114], v2, s[16:17]
-    s_add_u32 s3, s11, 12
+    s_add_u32 s3, s36, 12
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L172
     v_mul_f32 v3, s2, v3
     v_max_f32 v3, 0, v3
     global_store_dword v[113:114], v3, s[18:19]
-    s_add_u32 s3, s11, 16
+    s_add_u32 s3, s36, 16
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L172
     s_waitcnt lgkmcnt(1)
     v_mul_f32 v4, s2, v4
     v_max_f32 v4, 0, v4
     global_store_dword v[113:114], v4, s[20:21]
-    s_add_u32 s3, s11, 20
+    s_add_u32 s3, s36, 20
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L172
     v_mul_f32 v5, s2, v5
     v_max_f32 v5, 0, v5
     global_store_dword v[113:114], v5, s[22:23]
-    s_add_u32 s3, s11, 24
+    s_add_u32 s3, s36, 24
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L172
     s_waitcnt lgkmcnt(0)
     v_mul_f32 v6, s2, v6
     v_max_f32 v6, 0, v6
     global_store_dword v[113:114], v6, s[24:25]
-    s_add_u32 s3, s11, 28
+    s_add_u32 s3, s36, 28
     s_cmp_lt_u32 s3, s9
     s_cbranch_scc0 L172
     v_mul_f32 v7, s2, v7
@@ -30062,7 +30039,7 @@ L172:
     .amdhsa_system_sgpr_workgroup_id_z 1
     .amdhsa_system_vgpr_workitem_id 0
     .amdhsa_next_free_vgpr 123
-    .amdhsa_next_free_sgpr 43
+    .amdhsa_next_free_sgpr 44
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
@@ -30392,9 +30369,8 @@ L173:
     s_waitcnt lgkmcnt(0)
     s_add_u32 s12, s0, s4
     s_addc_u32 s13, s1, s5
-    v_cmp_gt_u32 vcc, s17, v57
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
+    v_cmp_lt_u32 s[4:5], v57, s17
     ds_write_b128 v55, v[0:3]
     s_add_u32 s14, s12, s9
     s_addc_u32 s15, s13, 0
@@ -30429,7 +30405,7 @@ L173:
     global_store_dword v[50:51], v3, s[18:19]
 L174:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v55, v[4:7]
     s_add_u32 s12, s12, s8
     s_addc_u32 s13, s13, 0
@@ -30466,7 +30442,7 @@ L174:
     global_store_dword v[50:51], v3, s[18:19]
 L175:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v55, v[8:11]
     s_add_u32 s12, s12, s8
     s_addc_u32 s13, s13, 0
@@ -30503,7 +30479,7 @@ L175:
     global_store_dword v[50:51], v3, s[18:19]
 L176:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v55, v[12:15]
     s_add_u32 s12, s12, s8
     s_addc_u32 s13, s13, 0
@@ -30880,9 +30856,8 @@ L178:
     s_waitcnt lgkmcnt(0)
     s_add_u32 s12, s0, s4
     s_addc_u32 s13, s1, s5
-    v_cmp_gt_u32 vcc, s17, v57
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
+    v_cmp_lt_u32 s[4:5], v57, s17
     ds_write_b128 v55, v[0:3]
     s_add_u32 s14, s12, s9
     s_addc_u32 s15, s13, 0
@@ -30921,7 +30896,7 @@ L178:
     global_store_dword v[50:51], v3, s[18:19]
 L179:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v55, v[4:7]
     s_add_u32 s12, s12, s8
     s_addc_u32 s13, s13, 0
@@ -30962,7 +30937,7 @@ L179:
     global_store_dword v[50:51], v3, s[18:19]
 L180:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v55, v[8:11]
     s_add_u32 s12, s12, s8
     s_addc_u32 s13, s13, 0
@@ -31003,7 +30978,7 @@ L180:
     global_store_dword v[50:51], v3, s[18:19]
 L181:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v55, v[12:15]
     s_add_u32 s12, s12, s8
     s_addc_u32 s13, s13, 0
@@ -31378,9 +31353,8 @@ L183:
     s_waitcnt lgkmcnt(0)
     s_add_u32 s12, s0, s4
     s_addc_u32 s13, s1, s5
-    v_cmp_gt_u32 vcc, s19, v53
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
+    v_cmp_lt_u32 s[4:5], v53, s19
     ds_write_b128 v51, v[0:3]
     s_add_u32 s14, s12, s9
     s_addc_u32 s15, s13, 0
@@ -31415,7 +31389,7 @@ L183:
     global_store_dword v[46:47], v3, s[18:19]
 L184:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v51, v[4:7]
     s_add_u32 s12, s12, s8
     s_addc_u32 s13, s13, 0
@@ -31452,7 +31426,7 @@ L184:
     global_store_dword v[46:47], v3, s[18:19]
 L185:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v51, v[8:11]
     s_add_u32 s12, s12, s8
     s_addc_u32 s13, s13, 0
@@ -31489,7 +31463,7 @@ L185:
     global_store_dword v[46:47], v3, s[18:19]
 L186:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v51, v[12:15]
     s_add_u32 s12, s12, s8
     s_addc_u32 s13, s13, 0
@@ -31860,9 +31834,8 @@ L188:
     s_waitcnt lgkmcnt(0)
     s_add_u32 s12, s0, s4
     s_addc_u32 s13, s1, s5
-    v_cmp_gt_u32 vcc, s19, v53
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
+    v_cmp_lt_u32 s[4:5], v53, s19
     ds_write_b128 v51, v[0:3]
     s_add_u32 s14, s12, s9
     s_addc_u32 s15, s13, 0
@@ -31901,7 +31874,7 @@ L188:
     global_store_dword v[46:47], v3, s[18:19]
 L189:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v51, v[4:7]
     s_add_u32 s12, s12, s8
     s_addc_u32 s13, s13, 0
@@ -31942,7 +31915,7 @@ L189:
     global_store_dword v[46:47], v3, s[18:19]
 L190:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v51, v[8:11]
     s_add_u32 s12, s12, s8
     s_addc_u32 s13, s13, 0
@@ -31983,7 +31956,7 @@ L190:
     global_store_dword v[46:47], v3, s[18:19]
 L191:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v51, v[12:15]
     s_add_u32 s12, s12, s8
     s_addc_u32 s13, s13, 0
@@ -32353,9 +32326,8 @@ L193:
     s_waitcnt lgkmcnt(0)
     s_add_u32 s12, s0, s4
     s_addc_u32 s13, s1, s5
-    v_cmp_gt_u32 vcc, s19, v51
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
+    v_cmp_lt_u32 s[4:5], v51, s19
     ds_write_b128 v49, v[0:3]
     s_add_u32 s14, s12, s9
     s_addc_u32 s15, s13, 0
@@ -32390,7 +32362,7 @@ L193:
     global_store_dword v[44:45], v3, s[18:19]
 L194:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v49, v[4:7]
     s_add_u32 s12, s12, s8
     s_addc_u32 s13, s13, 0
@@ -32427,7 +32399,7 @@ L194:
     global_store_dword v[44:45], v3, s[18:19]
 L195:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v49, v[8:11]
     s_add_u32 s12, s12, s8
     s_addc_u32 s13, s13, 0
@@ -32464,7 +32436,7 @@ L195:
     global_store_dword v[44:45], v3, s[18:19]
 L196:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v49, v[12:15]
     s_add_u32 s12, s12, s8
     s_addc_u32 s13, s13, 0
@@ -32830,9 +32802,8 @@ L198:
     s_waitcnt lgkmcnt(0)
     s_add_u32 s12, s0, s4
     s_addc_u32 s13, s1, s5
-    v_cmp_gt_u32 vcc, s19, v51
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
+    v_cmp_lt_u32 s[4:5], v51, s19
     ds_write_b128 v49, v[0:3]
     s_add_u32 s14, s12, s9
     s_addc_u32 s15, s13, 0
@@ -32871,7 +32842,7 @@ L198:
     global_store_dword v[44:45], v3, s[18:19]
 L199:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v49, v[4:7]
     s_add_u32 s12, s12, s8
     s_addc_u32 s13, s13, 0
@@ -32912,7 +32883,7 @@ L199:
     global_store_dword v[44:45], v3, s[18:19]
 L200:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v49, v[8:11]
     s_add_u32 s12, s12, s8
     s_addc_u32 s13, s13, 0
@@ -32953,7 +32924,7 @@ L200:
     global_store_dword v[44:45], v3, s[18:19]
 L201:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v49, v[12:15]
     s_add_u32 s12, s12, s8
     s_addc_u32 s13, s13, 0
@@ -33489,9 +33460,8 @@ L203:
     s_waitcnt lgkmcnt(0)
     s_add_u32 s12, s0, s4
     s_addc_u32 s13, s1, s5
-    v_cmp_gt_u32 vcc, s14, v81
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
+    v_cmp_lt_u32 s[4:5], v81, s14
     ds_write_b128 v79, v[0:3]
     ds_write_b128 v79, v[4:7] offset:0x80
     s_add_u32 s14, s12, s9
@@ -33559,7 +33529,7 @@ L203:
     global_store_dword v[74:75], v7, s[26:27]
 L204:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v79, v[8:11]
     ds_write_b128 v79, v[12:15] offset:0x80
     s_add_u32 s12, s12, s8
@@ -33629,7 +33599,7 @@ L204:
     global_store_dword v[74:75], v7, s[26:27]
 L205:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v79, v[16:19]
     ds_write_b128 v79, v[20:23] offset:0x80
     s_add_u32 s12, s12, s8
@@ -33699,7 +33669,7 @@ L205:
     global_store_dword v[74:75], v7, s[26:27]
 L206:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v79, v[24:27]
     ds_write_b128 v79, v[28:31] offset:0x80
     s_add_u32 s12, s12, s8
@@ -34264,9 +34234,8 @@ L208:
     s_waitcnt lgkmcnt(0)
     s_add_u32 s12, s0, s4
     s_addc_u32 s13, s1, s5
-    v_cmp_gt_u32 vcc, s14, v81
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
+    v_cmp_lt_u32 s[4:5], v81, s14
     ds_write_b128 v79, v[0:3]
     ds_write_b128 v79, v[4:7] offset:0x80
     s_add_u32 s14, s12, s9
@@ -34342,7 +34311,7 @@ L208:
     global_store_dword v[74:75], v7, s[26:27]
 L209:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v79, v[8:11]
     ds_write_b128 v79, v[12:15] offset:0x80
     s_add_u32 s12, s12, s8
@@ -34420,7 +34389,7 @@ L209:
     global_store_dword v[74:75], v7, s[26:27]
 L210:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v79, v[16:19]
     ds_write_b128 v79, v[20:23] offset:0x80
     s_add_u32 s12, s12, s8
@@ -34498,7 +34467,7 @@ L210:
     global_store_dword v[74:75], v7, s[26:27]
 L211:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v79, v[24:27]
     ds_write_b128 v79, v[28:31] offset:0x80
     s_add_u32 s12, s12, s8
@@ -35068,9 +35037,8 @@ L213:
     s_waitcnt lgkmcnt(0)
     s_add_u32 s12, s0, s4
     s_addc_u32 s13, s1, s5
-    v_cmp_gt_u32 vcc, s16, v77
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
+    v_cmp_lt_u32 s[4:5], v77, s16
     ds_write_b128 v75, v[0:3]
     ds_write_b128 v75, v[4:7] offset:0x80
     s_add_u32 s14, s12, s9
@@ -35138,7 +35106,7 @@ L213:
     global_store_dword v[70:71], v7, s[26:27]
 L214:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v75, v[8:11]
     ds_write_b128 v75, v[12:15] offset:0x80
     s_add_u32 s12, s12, s8
@@ -35208,7 +35176,7 @@ L214:
     global_store_dword v[70:71], v7, s[26:27]
 L215:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v75, v[16:19]
     ds_write_b128 v75, v[20:23] offset:0x80
     s_add_u32 s12, s12, s8
@@ -35278,7 +35246,7 @@ L215:
     global_store_dword v[70:71], v7, s[26:27]
 L216:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v75, v[24:27]
     ds_write_b128 v75, v[28:31] offset:0x80
     s_add_u32 s12, s12, s8
@@ -35840,9 +35808,8 @@ L218:
     s_waitcnt lgkmcnt(0)
     s_add_u32 s12, s0, s4
     s_addc_u32 s13, s1, s5
-    v_cmp_gt_u32 vcc, s16, v77
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
+    v_cmp_lt_u32 s[4:5], v77, s16
     ds_write_b128 v75, v[0:3]
     ds_write_b128 v75, v[4:7] offset:0x80
     s_add_u32 s14, s12, s9
@@ -35918,7 +35885,7 @@ L218:
     global_store_dword v[70:71], v7, s[26:27]
 L219:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v75, v[8:11]
     ds_write_b128 v75, v[12:15] offset:0x80
     s_add_u32 s12, s12, s8
@@ -35996,7 +35963,7 @@ L219:
     global_store_dword v[70:71], v7, s[26:27]
 L220:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v75, v[16:19]
     ds_write_b128 v75, v[20:23] offset:0x80
     s_add_u32 s12, s12, s8
@@ -36074,7 +36041,7 @@ L220:
     global_store_dword v[70:71], v7, s[26:27]
 L221:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v75, v[24:27]
     ds_write_b128 v75, v[28:31] offset:0x80
     s_add_u32 s12, s12, s8
@@ -36635,9 +36602,8 @@ L223:
     s_waitcnt lgkmcnt(0)
     s_add_u32 s12, s0, s4
     s_addc_u32 s13, s1, s5
-    v_cmp_gt_u32 vcc, s16, v75
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
+    v_cmp_lt_u32 s[4:5], v75, s16
     ds_write_b128 v73, v[0:3]
     ds_write_b128 v73, v[4:7] offset:0x80
     s_add_u32 s14, s12, s9
@@ -36705,7 +36671,7 @@ L223:
     global_store_dword v[68:69], v7, s[26:27]
 L224:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v73, v[8:11]
     ds_write_b128 v73, v[12:15] offset:0x80
     s_add_u32 s12, s12, s8
@@ -36775,7 +36741,7 @@ L224:
     global_store_dword v[68:69], v7, s[26:27]
 L225:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v73, v[16:19]
     ds_write_b128 v73, v[20:23] offset:0x80
     s_add_u32 s12, s12, s8
@@ -36845,7 +36811,7 @@ L225:
     global_store_dword v[68:69], v7, s[26:27]
 L226:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v73, v[24:27]
     ds_write_b128 v73, v[28:31] offset:0x80
     s_add_u32 s12, s12, s8
@@ -37398,9 +37364,8 @@ L228:
     s_waitcnt lgkmcnt(0)
     s_add_u32 s12, s0, s4
     s_addc_u32 s13, s1, s5
-    v_cmp_gt_u32 vcc, s16, v75
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
+    v_cmp_lt_u32 s[4:5], v75, s16
     ds_write_b128 v73, v[0:3]
     ds_write_b128 v73, v[4:7] offset:0x80
     s_add_u32 s14, s12, s9
@@ -37476,7 +37441,7 @@ L228:
     global_store_dword v[68:69], v7, s[26:27]
 L229:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v73, v[8:11]
     ds_write_b128 v73, v[12:15] offset:0x80
     s_add_u32 s12, s12, s8
@@ -37554,7 +37519,7 @@ L229:
     global_store_dword v[68:69], v7, s[26:27]
 L230:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v73, v[16:19]
     ds_write_b128 v73, v[20:23] offset:0x80
     s_add_u32 s12, s12, s8
@@ -37632,7 +37597,7 @@ L230:
     global_store_dword v[68:69], v7, s[26:27]
 L231:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v73, v[24:27]
     ds_write_b128 v73, v[28:31] offset:0x80
     s_add_u32 s12, s12, s8
@@ -38499,10 +38464,9 @@ L233:
     s_waitcnt lgkmcnt(0)
     s_add_u32 s0, s0, s4
     s_addc_u32 s1, s1, s5
-    v_cmp_gt_u32 vcc, s14, v122
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
     s_mov_b64 s[12:13], s[0:1]
+    v_cmp_lt_u32 s[4:5], v122, s14
     ds_write_b128 v120, v[0:3]
     ds_write_b128 v120, v[4:7] offset:0x80
     s_add_u32 s14, s12, s9
@@ -38570,7 +38534,7 @@ L233:
     global_store_dword v[115:116], v7, s[26:27]
 L234:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v120, v[8:11]
     ds_write_b128 v120, v[12:15] offset:0x80
     s_add_u32 s12, s12, s8
@@ -38640,7 +38604,7 @@ L234:
     global_store_dword v[115:116], v7, s[26:27]
 L235:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v120, v[16:19]
     ds_write_b128 v120, v[20:23] offset:0x80
     s_add_u32 s12, s12, s8
@@ -38710,7 +38674,7 @@ L235:
     global_store_dword v[115:116], v7, s[26:27]
 L236:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v120, v[24:27]
     ds_write_b128 v120, v[28:31] offset:0x80
     s_add_u32 s12, s12, s8
@@ -38780,7 +38744,7 @@ L236:
     global_store_dword v[115:116], v7, s[26:27]
     s_mov_b64 exec, s[6:7]
     s_lshl_b32 s3, s8, 5
-    s_add_u32 s28, s28, 29
+    s_addk_i32 s28, 29
     s_add_u32 s12, s0, s3
     s_addc_u32 s13, s1, 0
     ds_write_b128 v120, v[32:35]
@@ -38850,7 +38814,7 @@ L236:
     global_store_dword v[115:116], v7, s[26:27]
 L237:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v120, v[40:43]
     ds_write_b128 v120, v[44:47] offset:0x80
     s_add_u32 s12, s12, s8
@@ -38920,7 +38884,7 @@ L237:
     global_store_dword v[115:116], v7, s[26:27]
 L238:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v120, v[48:51]
     ds_write_b128 v120, v[52:55] offset:0x80
     s_add_u32 s12, s12, s8
@@ -38990,7 +38954,7 @@ L238:
     global_store_dword v[115:116], v7, s[26:27]
 L239:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v120, v[56:59]
     ds_write_b128 v120, v[60:63] offset:0x80
     s_add_u32 s12, s12, s8
@@ -39849,10 +39813,9 @@ L241:
     s_waitcnt lgkmcnt(0)
     s_add_u32 s0, s0, s4
     s_addc_u32 s1, s1, s5
-    v_cmp_gt_u32 vcc, s14, v122
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
     s_mov_b64 s[12:13], s[0:1]
+    v_cmp_lt_u32 s[4:5], v122, s14
     ds_write_b128 v120, v[0:3]
     ds_write_b128 v120, v[4:7] offset:0x80
     s_add_u32 s14, s12, s9
@@ -39928,7 +39891,7 @@ L241:
     global_store_dword v[115:116], v7, s[26:27]
 L242:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v120, v[8:11]
     ds_write_b128 v120, v[12:15] offset:0x80
     s_add_u32 s12, s12, s8
@@ -40006,7 +39969,7 @@ L242:
     global_store_dword v[115:116], v7, s[26:27]
 L243:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v120, v[16:19]
     ds_write_b128 v120, v[20:23] offset:0x80
     s_add_u32 s12, s12, s8
@@ -40084,7 +40047,7 @@ L243:
     global_store_dword v[115:116], v7, s[26:27]
 L244:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v120, v[24:27]
     ds_write_b128 v120, v[28:31] offset:0x80
     s_add_u32 s12, s12, s8
@@ -40162,7 +40125,7 @@ L244:
     global_store_dword v[115:116], v7, s[26:27]
     s_mov_b64 exec, s[6:7]
     s_lshl_b32 s3, s8, 5
-    s_add_u32 s28, s28, 29
+    s_addk_i32 s28, 29
     s_add_u32 s12, s0, s3
     s_addc_u32 s13, s1, 0
     ds_write_b128 v120, v[32:35]
@@ -40240,7 +40203,7 @@ L244:
     global_store_dword v[115:116], v7, s[26:27]
 L245:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v120, v[40:43]
     ds_write_b128 v120, v[44:47] offset:0x80
     s_add_u32 s12, s12, s8
@@ -40318,7 +40281,7 @@ L245:
     global_store_dword v[115:116], v7, s[26:27]
 L246:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v120, v[48:51]
     ds_write_b128 v120, v[52:55] offset:0x80
     s_add_u32 s12, s12, s8
@@ -40396,7 +40359,7 @@ L246:
     global_store_dword v[115:116], v7, s[26:27]
 L247:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v120, v[56:59]
     ds_write_b128 v120, v[60:63] offset:0x80
     s_add_u32 s12, s12, s8
@@ -41259,10 +41222,9 @@ L249:
     s_waitcnt lgkmcnt(0)
     s_add_u32 s0, s0, s4
     s_addc_u32 s1, s1, s5
-    v_cmp_gt_u32 vcc, s16, v118
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
     s_mov_b64 s[12:13], s[0:1]
+    v_cmp_lt_u32 s[4:5], v118, s16
     ds_write_b128 v116, v[0:3]
     ds_write_b128 v116, v[4:7] offset:0x80
     s_add_u32 s14, s12, s9
@@ -41330,7 +41292,7 @@ L249:
     global_store_dword v[111:112], v7, s[26:27]
 L250:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v116, v[8:11]
     ds_write_b128 v116, v[12:15] offset:0x80
     s_add_u32 s12, s12, s8
@@ -41400,7 +41362,7 @@ L250:
     global_store_dword v[111:112], v7, s[26:27]
 L251:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v116, v[16:19]
     ds_write_b128 v116, v[20:23] offset:0x80
     s_add_u32 s12, s12, s8
@@ -41470,7 +41432,7 @@ L251:
     global_store_dword v[111:112], v7, s[26:27]
 L252:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v116, v[24:27]
     ds_write_b128 v116, v[28:31] offset:0x80
     s_add_u32 s12, s12, s8
@@ -41540,7 +41502,7 @@ L252:
     global_store_dword v[111:112], v7, s[26:27]
     s_mov_b64 exec, s[6:7]
     s_lshl_b32 s3, s8, 5
-    s_add_u32 s28, s28, 29
+    s_addk_i32 s28, 29
     s_add_u32 s12, s0, s3
     s_addc_u32 s13, s1, 0
     ds_write_b128 v116, v[32:35]
@@ -41610,7 +41572,7 @@ L252:
     global_store_dword v[111:112], v7, s[26:27]
 L253:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v116, v[40:43]
     ds_write_b128 v116, v[44:47] offset:0x80
     s_add_u32 s12, s12, s8
@@ -41680,7 +41642,7 @@ L253:
     global_store_dword v[111:112], v7, s[26:27]
 L254:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v116, v[48:51]
     ds_write_b128 v116, v[52:55] offset:0x80
     s_add_u32 s12, s12, s8
@@ -41750,7 +41712,7 @@ L254:
     global_store_dword v[111:112], v7, s[26:27]
 L255:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v116, v[56:59]
     ds_write_b128 v116, v[60:63] offset:0x80
     s_add_u32 s12, s12, s8
@@ -42605,10 +42567,9 @@ L257:
     s_waitcnt lgkmcnt(0)
     s_add_u32 s0, s0, s4
     s_addc_u32 s1, s1, s5
-    v_cmp_gt_u32 vcc, s16, v118
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
     s_mov_b64 s[12:13], s[0:1]
+    v_cmp_lt_u32 s[4:5], v118, s16
     ds_write_b128 v116, v[0:3]
     ds_write_b128 v116, v[4:7] offset:0x80
     s_add_u32 s14, s12, s9
@@ -42684,7 +42645,7 @@ L257:
     global_store_dword v[111:112], v7, s[26:27]
 L258:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v116, v[8:11]
     ds_write_b128 v116, v[12:15] offset:0x80
     s_add_u32 s12, s12, s8
@@ -42762,7 +42723,7 @@ L258:
     global_store_dword v[111:112], v7, s[26:27]
 L259:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v116, v[16:19]
     ds_write_b128 v116, v[20:23] offset:0x80
     s_add_u32 s12, s12, s8
@@ -42840,7 +42801,7 @@ L259:
     global_store_dword v[111:112], v7, s[26:27]
 L260:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v116, v[24:27]
     ds_write_b128 v116, v[28:31] offset:0x80
     s_add_u32 s12, s12, s8
@@ -42918,7 +42879,7 @@ L260:
     global_store_dword v[111:112], v7, s[26:27]
     s_mov_b64 exec, s[6:7]
     s_lshl_b32 s3, s8, 5
-    s_add_u32 s28, s28, 29
+    s_addk_i32 s28, 29
     s_add_u32 s12, s0, s3
     s_addc_u32 s13, s1, 0
     ds_write_b128 v116, v[32:35]
@@ -42996,7 +42957,7 @@ L260:
     global_store_dword v[111:112], v7, s[26:27]
 L261:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v116, v[40:43]
     ds_write_b128 v116, v[44:47] offset:0x80
     s_add_u32 s12, s12, s8
@@ -43074,7 +43035,7 @@ L261:
     global_store_dword v[111:112], v7, s[26:27]
 L262:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v116, v[48:51]
     ds_write_b128 v116, v[52:55] offset:0x80
     s_add_u32 s12, s12, s8
@@ -43152,7 +43113,7 @@ L262:
     global_store_dword v[111:112], v7, s[26:27]
 L263:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v116, v[56:59]
     ds_write_b128 v116, v[60:63] offset:0x80
     s_add_u32 s12, s12, s8
@@ -44006,10 +43967,9 @@ L265:
     s_waitcnt lgkmcnt(0)
     s_add_u32 s0, s0, s4
     s_addc_u32 s1, s1, s5
-    v_cmp_gt_u32 vcc, s16, v116
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
     s_mov_b64 s[12:13], s[0:1]
+    v_cmp_lt_u32 s[4:5], v116, s16
     ds_write_b128 v114, v[0:3]
     ds_write_b128 v114, v[4:7] offset:0x80
     s_add_u32 s14, s12, s9
@@ -44077,7 +44037,7 @@ L265:
     global_store_dword v[109:110], v7, s[26:27]
 L266:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v114, v[8:11]
     ds_write_b128 v114, v[12:15] offset:0x80
     s_add_u32 s12, s12, s8
@@ -44147,7 +44107,7 @@ L266:
     global_store_dword v[109:110], v7, s[26:27]
 L267:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v114, v[16:19]
     ds_write_b128 v114, v[20:23] offset:0x80
     s_add_u32 s12, s12, s8
@@ -44217,7 +44177,7 @@ L267:
     global_store_dword v[109:110], v7, s[26:27]
 L268:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v114, v[24:27]
     ds_write_b128 v114, v[28:31] offset:0x80
     s_add_u32 s12, s12, s8
@@ -44287,7 +44247,7 @@ L268:
     global_store_dword v[109:110], v7, s[26:27]
     s_mov_b64 exec, s[6:7]
     s_lshl_b32 s3, s8, 5
-    s_add_u32 s28, s28, 29
+    s_addk_i32 s28, 29
     s_add_u32 s12, s0, s3
     s_addc_u32 s13, s1, 0
     ds_write_b128 v114, v[32:35]
@@ -44357,7 +44317,7 @@ L268:
     global_store_dword v[109:110], v7, s[26:27]
 L269:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v114, v[40:43]
     ds_write_b128 v114, v[44:47] offset:0x80
     s_add_u32 s12, s12, s8
@@ -44427,7 +44387,7 @@ L269:
     global_store_dword v[109:110], v7, s[26:27]
 L270:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v114, v[48:51]
     ds_write_b128 v114, v[52:55] offset:0x80
     s_add_u32 s12, s12, s8
@@ -44497,7 +44457,7 @@ L270:
     global_store_dword v[109:110], v7, s[26:27]
 L271:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v114, v[56:59]
     ds_write_b128 v114, v[60:63] offset:0x80
     s_add_u32 s12, s12, s8
@@ -45343,10 +45303,9 @@ L273:
     s_waitcnt lgkmcnt(0)
     s_add_u32 s0, s0, s4
     s_addc_u32 s1, s1, s5
-    v_cmp_gt_u32 vcc, s16, v116
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
     s_mov_b64 s[12:13], s[0:1]
+    v_cmp_lt_u32 s[4:5], v116, s16
     ds_write_b128 v114, v[0:3]
     ds_write_b128 v114, v[4:7] offset:0x80
     s_add_u32 s14, s12, s9
@@ -45422,7 +45381,7 @@ L273:
     global_store_dword v[109:110], v7, s[26:27]
 L274:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v114, v[8:11]
     ds_write_b128 v114, v[12:15] offset:0x80
     s_add_u32 s12, s12, s8
@@ -45500,7 +45459,7 @@ L274:
     global_store_dword v[109:110], v7, s[26:27]
 L275:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v114, v[16:19]
     ds_write_b128 v114, v[20:23] offset:0x80
     s_add_u32 s12, s12, s8
@@ -45578,7 +45537,7 @@ L275:
     global_store_dword v[109:110], v7, s[26:27]
 L276:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v114, v[24:27]
     ds_write_b128 v114, v[28:31] offset:0x80
     s_add_u32 s12, s12, s8
@@ -45656,7 +45615,7 @@ L276:
     global_store_dword v[109:110], v7, s[26:27]
     s_mov_b64 exec, s[6:7]
     s_lshl_b32 s3, s8, 5
-    s_add_u32 s28, s28, 29
+    s_addk_i32 s28, 29
     s_add_u32 s12, s0, s3
     s_addc_u32 s13, s1, 0
     ds_write_b128 v114, v[32:35]
@@ -45734,7 +45693,7 @@ L276:
     global_store_dword v[109:110], v7, s[26:27]
 L277:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v114, v[40:43]
     ds_write_b128 v114, v[44:47] offset:0x80
     s_add_u32 s12, s12, s8
@@ -45812,7 +45771,7 @@ L277:
     global_store_dword v[109:110], v7, s[26:27]
 L278:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v114, v[48:51]
     ds_write_b128 v114, v[52:55] offset:0x80
     s_add_u32 s12, s12, s8
@@ -45890,7 +45849,7 @@ L278:
     global_store_dword v[109:110], v7, s[26:27]
 L279:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v114, v[56:59]
     ds_write_b128 v114, v[60:63] offset:0x80
     s_add_u32 s12, s12, s8
@@ -47425,7 +47384,7 @@ L281:
     global_store_dword v[122:123], v7, s[26:27]
 L282:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v64, v[8:11]
     ds_write_b128 v64, v[12:15] offset:0x80
     s_add_u32 s12, s12, s8
@@ -47495,7 +47454,7 @@ L282:
     global_store_dword v[122:123], v7, s[26:27]
 L283:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v64, v[16:19]
     ds_write_b128 v64, v[20:23] offset:0x80
     s_add_u32 s12, s12, s8
@@ -47565,7 +47524,7 @@ L283:
     global_store_dword v[122:123], v7, s[26:27]
 L284:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v64, v[24:27]
     ds_write_b128 v64, v[28:31] offset:0x80
     s_add_u32 s12, s12, s8
@@ -47635,7 +47594,7 @@ L284:
     global_store_dword v[122:123], v7, s[26:27]
     s_mov_b64 exec, s[6:7]
     s_lshl_b32 s3, s8, 6
-    s_add_u32 s28, s28, 61
+    s_addk_i32 s28, 61
     s_add_u32 s12, s0, s3
     s_addc_u32 s13, s1, 0
     ds_write_b128 v64, v[32:35]
@@ -47705,7 +47664,7 @@ L284:
     global_store_dword v[122:123], v7, s[26:27]
 L285:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v64, v[40:43]
     ds_write_b128 v64, v[44:47] offset:0x80
     s_add_u32 s12, s12, s8
@@ -47775,7 +47734,7 @@ L285:
     global_store_dword v[122:123], v7, s[26:27]
 L286:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v64, v[48:51]
     ds_write_b128 v64, v[52:55] offset:0x80
     s_add_u32 s12, s12, s8
@@ -47845,7 +47804,7 @@ L286:
     global_store_dword v[122:123], v7, s[26:27]
 L287:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v64, v[56:59]
     ds_write_b128 v64, v[60:63] offset:0x80
     s_add_u32 s12, s12, s8
@@ -49380,7 +49339,7 @@ L289:
     global_store_dword v[122:123], v7, s[26:27]
 L290:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v64, v[8:11]
     ds_write_b128 v64, v[12:15] offset:0x80
     s_add_u32 s12, s12, s8
@@ -49458,7 +49417,7 @@ L290:
     global_store_dword v[122:123], v7, s[26:27]
 L291:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v64, v[16:19]
     ds_write_b128 v64, v[20:23] offset:0x80
     s_add_u32 s12, s12, s8
@@ -49536,7 +49495,7 @@ L291:
     global_store_dword v[122:123], v7, s[26:27]
 L292:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v64, v[24:27]
     ds_write_b128 v64, v[28:31] offset:0x80
     s_add_u32 s12, s12, s8
@@ -49614,7 +49573,7 @@ L292:
     global_store_dword v[122:123], v7, s[26:27]
     s_mov_b64 exec, s[6:7]
     s_lshl_b32 s3, s8, 6
-    s_add_u32 s28, s28, 61
+    s_addk_i32 s28, 61
     s_add_u32 s12, s0, s3
     s_addc_u32 s13, s1, 0
     ds_write_b128 v64, v[32:35]
@@ -49692,7 +49651,7 @@ L292:
     global_store_dword v[122:123], v7, s[26:27]
 L293:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v64, v[40:43]
     ds_write_b128 v64, v[44:47] offset:0x80
     s_add_u32 s12, s12, s8
@@ -49770,7 +49729,7 @@ L293:
     global_store_dword v[122:123], v7, s[26:27]
 L294:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v64, v[48:51]
     ds_write_b128 v64, v[52:55] offset:0x80
     s_add_u32 s12, s12, s8
@@ -49848,7 +49807,7 @@ L294:
     global_store_dword v[122:123], v7, s[26:27]
 L295:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s28, s28, 1
+    s_addk_i32 s28, 1
     ds_write_b128 v64, v[56:59]
     ds_write_b128 v64, v[60:63] offset:0x80
     s_add_u32 s12, s12, s8
@@ -51287,10 +51246,9 @@ L297:
     s_lshr_b32 s17, s17, 1
     s_add_u32 s0, s0, s4
     s_addc_u32 s1, s1, s5
-    v_cmp_gt_u32 vcc, s17, v125
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
     s_mov_b64 s[12:13], s[0:1]
+    v_cmp_lt_u32 s[4:5], v125, s17
     ds_write_b128 v123, v[0:3]
     ds_write_b128 v123, v[4:7] offset:0x100
     s_add_u32 s14, s12, s9
@@ -51334,7 +51292,7 @@ L297:
     global_store_dwordx2 v[118:119], v[6:7], s[18:19]
 L298:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v123, v[8:11]
     ds_write_b128 v123, v[12:15] offset:0x100
     s_add_u32 s12, s12, s8
@@ -51380,7 +51338,7 @@ L298:
     global_store_dwordx2 v[118:119], v[6:7], s[18:19]
 L299:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v123, v[16:19]
     ds_write_b128 v123, v[20:23] offset:0x100
     s_add_u32 s12, s12, s8
@@ -51426,7 +51384,7 @@ L299:
     global_store_dwordx2 v[118:119], v[6:7], s[18:19]
 L300:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v123, v[24:27]
     ds_write_b128 v123, v[28:31] offset:0x100
     s_add_u32 s12, s12, s8
@@ -51472,7 +51430,7 @@ L300:
     global_store_dwordx2 v[118:119], v[6:7], s[18:19]
     s_mov_b64 exec, s[6:7]
     s_lshl_b32 s3, s8, 6
-    s_add_u32 s20, s20, 61
+    s_addk_i32 s20, 61
     s_add_u32 s12, s0, s3
     s_addc_u32 s13, s1, 0
     ds_write_b128 v123, v[32:35]
@@ -51518,7 +51476,7 @@ L300:
     global_store_dwordx2 v[118:119], v[6:7], s[18:19]
 L301:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v123, v[40:43]
     ds_write_b128 v123, v[44:47] offset:0x100
     s_add_u32 s12, s12, s8
@@ -51564,7 +51522,7 @@ L301:
     global_store_dwordx2 v[118:119], v[6:7], s[18:19]
 L302:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v123, v[48:51]
     ds_write_b128 v123, v[52:55] offset:0x100
     s_add_u32 s12, s12, s8
@@ -51610,7 +51568,7 @@ L302:
     global_store_dwordx2 v[118:119], v[6:7], s[18:19]
 L303:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v123, v[56:59]
     ds_write_b128 v123, v[60:63] offset:0x100
     s_add_u32 s12, s12, s8
@@ -53017,10 +52975,9 @@ L305:
     s_lshr_b32 s17, s17, 1
     s_add_u32 s0, s0, s4
     s_addc_u32 s1, s1, s5
-    v_cmp_gt_u32 vcc, s17, v125
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
     s_mov_b64 s[12:13], s[0:1]
+    v_cmp_lt_u32 s[4:5], v125, s17
     ds_write_b128 v123, v[0:3]
     ds_write_b128 v123, v[4:7] offset:0x100
     s_add_u32 s14, s12, s9
@@ -53072,7 +53029,7 @@ L305:
     global_store_dwordx2 v[118:119], v[6:7], s[18:19]
 L306:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v123, v[8:11]
     ds_write_b128 v123, v[12:15] offset:0x100
     s_add_u32 s12, s12, s8
@@ -53126,7 +53083,7 @@ L306:
     global_store_dwordx2 v[118:119], v[6:7], s[18:19]
 L307:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v123, v[16:19]
     ds_write_b128 v123, v[20:23] offset:0x100
     s_add_u32 s12, s12, s8
@@ -53180,7 +53137,7 @@ L307:
     global_store_dwordx2 v[118:119], v[6:7], s[18:19]
 L308:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v123, v[24:27]
     ds_write_b128 v123, v[28:31] offset:0x100
     s_add_u32 s12, s12, s8
@@ -53234,7 +53191,7 @@ L308:
     global_store_dwordx2 v[118:119], v[6:7], s[18:19]
     s_mov_b64 exec, s[6:7]
     s_lshl_b32 s3, s8, 6
-    s_add_u32 s20, s20, 61
+    s_addk_i32 s20, 61
     s_add_u32 s12, s0, s3
     s_addc_u32 s13, s1, 0
     ds_write_b128 v123, v[32:35]
@@ -53288,7 +53245,7 @@ L308:
     global_store_dwordx2 v[118:119], v[6:7], s[18:19]
 L309:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v123, v[40:43]
     ds_write_b128 v123, v[44:47] offset:0x100
     s_add_u32 s12, s12, s8
@@ -53342,7 +53299,7 @@ L309:
     global_store_dwordx2 v[118:119], v[6:7], s[18:19]
 L310:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v123, v[48:51]
     ds_write_b128 v123, v[52:55] offset:0x100
     s_add_u32 s12, s12, s8
@@ -53396,7 +53353,7 @@ L310:
     global_store_dwordx2 v[118:119], v[6:7], s[18:19]
 L311:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v123, v[56:59]
     ds_write_b128 v123, v[60:63] offset:0x100
     s_add_u32 s12, s12, s8
@@ -54813,10 +54770,9 @@ L313:
     s_lshr_b32 s19, s19, 1
     s_add_u32 s0, s0, s4
     s_addc_u32 s1, s1, s5
-    v_cmp_gt_u32 vcc, s19, v123
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
     s_mov_b64 s[12:13], s[0:1]
+    v_cmp_lt_u32 s[4:5], v123, s19
     ds_write_b128 v121, v[0:3]
     ds_write_b128 v121, v[4:7] offset:0x100
     s_add_u32 s14, s12, s9
@@ -54860,7 +54816,7 @@ L313:
     global_store_dwordx2 v[116:117], v[6:7], s[18:19]
 L314:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v121, v[8:11]
     ds_write_b128 v121, v[12:15] offset:0x100
     s_add_u32 s12, s12, s8
@@ -54906,7 +54862,7 @@ L314:
     global_store_dwordx2 v[116:117], v[6:7], s[18:19]
 L315:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v121, v[16:19]
     ds_write_b128 v121, v[20:23] offset:0x100
     s_add_u32 s12, s12, s8
@@ -54952,7 +54908,7 @@ L315:
     global_store_dwordx2 v[116:117], v[6:7], s[18:19]
 L316:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v121, v[24:27]
     ds_write_b128 v121, v[28:31] offset:0x100
     s_add_u32 s12, s12, s8
@@ -54998,7 +54954,7 @@ L316:
     global_store_dwordx2 v[116:117], v[6:7], s[18:19]
     s_mov_b64 exec, s[6:7]
     s_lshl_b32 s3, s8, 6
-    s_add_u32 s20, s20, 61
+    s_addk_i32 s20, 61
     s_add_u32 s12, s0, s3
     s_addc_u32 s13, s1, 0
     ds_write_b128 v121, v[32:35]
@@ -55044,7 +55000,7 @@ L316:
     global_store_dwordx2 v[116:117], v[6:7], s[18:19]
 L317:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v121, v[40:43]
     ds_write_b128 v121, v[44:47] offset:0x100
     s_add_u32 s12, s12, s8
@@ -55090,7 +55046,7 @@ L317:
     global_store_dwordx2 v[116:117], v[6:7], s[18:19]
 L318:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v121, v[48:51]
     ds_write_b128 v121, v[52:55] offset:0x100
     s_add_u32 s12, s12, s8
@@ -55136,7 +55092,7 @@ L318:
     global_store_dwordx2 v[116:117], v[6:7], s[18:19]
 L319:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v121, v[56:59]
     ds_write_b128 v121, v[60:63] offset:0x100
     s_add_u32 s12, s12, s8
@@ -56545,10 +56501,9 @@ L321:
     s_lshr_b32 s19, s19, 1
     s_add_u32 s0, s0, s4
     s_addc_u32 s1, s1, s5
-    v_cmp_gt_u32 vcc, s19, v123
-    s_mov_b64 s[4:5], vcc
     s_mov_b64 s[6:7], exec
     s_mov_b64 s[12:13], s[0:1]
+    v_cmp_lt_u32 s[4:5], v123, s19
     ds_write_b128 v121, v[0:3]
     ds_write_b128 v121, v[4:7] offset:0x100
     s_add_u32 s14, s12, s9
@@ -56600,7 +56555,7 @@ L321:
     global_store_dwordx2 v[116:117], v[6:7], s[18:19]
 L322:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v121, v[8:11]
     ds_write_b128 v121, v[12:15] offset:0x100
     s_add_u32 s12, s12, s8
@@ -56654,7 +56609,7 @@ L322:
     global_store_dwordx2 v[116:117], v[6:7], s[18:19]
 L323:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v121, v[16:19]
     ds_write_b128 v121, v[20:23] offset:0x100
     s_add_u32 s12, s12, s8
@@ -56708,7 +56663,7 @@ L323:
     global_store_dwordx2 v[116:117], v[6:7], s[18:19]
 L324:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v121, v[24:27]
     ds_write_b128 v121, v[28:31] offset:0x100
     s_add_u32 s12, s12, s8
@@ -56762,7 +56717,7 @@ L324:
     global_store_dwordx2 v[116:117], v[6:7], s[18:19]
     s_mov_b64 exec, s[6:7]
     s_lshl_b32 s3, s8, 6
-    s_add_u32 s20, s20, 61
+    s_addk_i32 s20, 61
     s_add_u32 s12, s0, s3
     s_addc_u32 s13, s1, 0
     ds_write_b128 v121, v[32:35]
@@ -56816,7 +56771,7 @@ L324:
     global_store_dwordx2 v[116:117], v[6:7], s[18:19]
 L325:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v121, v[40:43]
     ds_write_b128 v121, v[44:47] offset:0x100
     s_add_u32 s12, s12, s8
@@ -56870,7 +56825,7 @@ L325:
     global_store_dwordx2 v[116:117], v[6:7], s[18:19]
 L326:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v121, v[48:51]
     ds_write_b128 v121, v[52:55] offset:0x100
     s_add_u32 s12, s12, s8
@@ -56924,7 +56879,7 @@ L326:
     global_store_dwordx2 v[116:117], v[6:7], s[18:19]
 L327:
     s_mov_b64 exec, s[6:7]
-    s_add_u32 s20, s20, 1
+    s_addk_i32 s20, 1
     ds_write_b128 v121, v[56:59]
     ds_write_b128 v121, v[60:63] offset:0x100
     s_add_u32 s12, s12, s8
@@ -57142,7 +57097,7 @@ amdhsa.kernels:
     .kernarg_segment_size: 68
     .reqd_workgroup_size: [ 256, 1, 1 ]
     .max_flat_workgroup_size: 256
-    .sgpr_count: 43
+    .sgpr_count: 44
     .vgpr_count: 122
     .args:
     - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: u32 }
@@ -57634,7 +57589,7 @@ amdhsa.kernels:
     .kernarg_segment_size: 68
     .reqd_workgroup_size: [ 256, 1, 1 ]
     .max_flat_workgroup_size: 256
-    .sgpr_count: 43
+    .sgpr_count: 44
     .vgpr_count: 123
     .args:
     - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: u32 }
@@ -57658,7 +57613,7 @@ amdhsa.kernels:
     .kernarg_segment_size: 68
     .reqd_workgroup_size: [ 256, 1, 1 ]
     .max_flat_workgroup_size: 256
-    .sgpr_count: 43
+    .sgpr_count: 44
     .vgpr_count: 123
     .args:
     - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: u32 }

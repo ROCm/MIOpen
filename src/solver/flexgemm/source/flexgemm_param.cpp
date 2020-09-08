@@ -40,8 +40,9 @@ static inline uint32_t choose_routine_ufconv(uint32_t m, uint32_t n, uint32_t k,
 static inline uint32_t choose_routine_fconv(uint32_t n, uint32_t k)
 {
     uint32_t r=(n+31)>>5;
+    uint32_t s=(n+15)>>4;
     uint32_t id=1+((r&3)==0?((k&15)==0?2:1):((r&1)^1));
-    return ((k&7)!=0?4:id);
+    return ((k&7)!=0?4:(((s&1)!=0)&&(n<=112)?0:id));
 }
 static inline uint32_t choose_routine_bconv(uint32_t n)
 {
