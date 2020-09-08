@@ -1413,49 +1413,6 @@ void ConvolutionDescriptor::ConvFwdFFT(const Handle& handle,
 static const char immFallbackFailed[] =
     "Requested convolution is not supported or Immediate mode Fallback has failed.";
 
-std::size_t ConvolutionDescriptor::GetFwdSolutionCountFallback(const TensorDescriptor& wDesc,
-                                                               const TensorDescriptor& xDesc,
-                                                               const TensorDescriptor& yDesc) const
-{
-    // This is needed on fallback path only.
-    // Regular (find-db) path have been verified during Find().
-    ValidateGroupCount(xDesc, wDesc, *this);
-
-    if(IsGemmApplicableFwd(wDesc, xDesc, yDesc) &&
-       !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
-    {
-        return 1;
-    }
-    MIOPEN_LOG_I(immFallbackFailed);
-    /// When count=0 the reason could be:
-    /// * (1) Convolution is not implemented in the library at all, so Find() would fail as
-    ///   well. This is case when rc = miopenStatusNotImplemented is correct.
-    /// * (2) Variant of the above: Convolution is implemented, but implementation is disabled,
-    ///   for example, rocBLAS is not installed or some convolutions are disabled by the
-    ///   environment setting.
-    /// * (3) There is none relevant record in the find-db and fallback path was unable to
-    ///   choose suitable solution.
-    ///
-    /// We can't distinguish these three cases.
-    /// Let's do like Find() does:
-    MIOPEN_THROW(miopenStatusNotImplemented, immFallbackFailed);
-}
-
-std::size_t ConvolutionDescriptor::GetBwdSolutionCountFallback(const TensorDescriptor& dyDesc,
-                                                               const TensorDescriptor& wDesc,
-                                                               const TensorDescriptor& dxDesc) const
-{
-    ValidateGroupCount(dxDesc, wDesc, *this); // See comment in Forward method.
-
-    if(IsGemmApplicableBwd(dyDesc, wDesc, dxDesc) &&
-       !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
-    {
-        return 1;
-    }
-    MIOPEN_LOG_I(immFallbackFailed);
-    MIOPEN_THROW(miopenStatusNotImplemented, immFallbackFailed);
-}
-
 bool ConvolutionDescriptor::IsGemmApplicableWrw(const TensorDescriptor& dyDesc,
                                                 const TensorDescriptor& xDesc,
                                                 const TensorDescriptor& dwDesc) const
@@ -1518,23 +1475,29 @@ bool ConvolutionDescriptor::IsGemmApplicableBwd(const TensorDescriptor& dyDesc,
 #endif
 }
 
-std::size_t ConvolutionDescriptor::GetWrwSolutionCountFallback(const TensorDescriptor& dyDesc,
-                                                               const TensorDescriptor& xDesc,
-                                                               const TensorDescriptor& dwDesc) const
+std::size_t ConvolutionDescriptor::GetSolutionCountFallback(Handle& handle,
+                                                            const ProblemDescription& problem) const
 {
-    ValidateGroupCount(xDesc, dwDesc, *this); // See comment in Forward method.
-
-    if(IsGemmApplicableWrw(xDesc, dyDesc, dwDesc) &&
-       !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
-    {
-        return 1;
-    }
+    size_t n = 0;
+    GetSolutionsFallback(handle, problem, 1, &n, nullptr);
+    if(n > 0)
+        return n;
     MIOPEN_LOG_I(immFallbackFailed);
-    // See comment in Forward method.
+    /// When count=0 the reason could be:
+    /// * (1) Convolution is not implemented in the library at all, so Find() would fail as
+    ///   well. This is case when rc = miopenStatusNotImplemented is correct.
+    /// * (2) Variant of the above: Convolution is implemented, but implementation is disabled,
+    ///   for example, rocBLAS is not installed or some convolutions are disabled by the
+    ///   environment setting.
+    /// * (3) There is none relevant record in the find-db and fallback path was unable to
+    ///   choose suitable solution.
+    ///
+    /// We can't distinguish these three cases.
+    /// Let's do like Find() does:
     MIOPEN_THROW(miopenStatusNotImplemented, immFallbackFailed);
 }
 
-std::size_t GetSolutionCount(Handle& handle, const ProblemDescription& problem)
+static std::size_t GetSolutionCount(Handle& handle, const ProblemDescription& problem)
 {
     const FindDbRecord fdb_record{handle, problem};
     if(fdb_record.empty())
@@ -1552,7 +1515,7 @@ std::size_t ConvolutionDescriptor::GetForwardSolutionCount(Handle& handle,
     const auto n       = GetSolutionCount(handle, problem);
     if(n > 0)
         return n;
-    return GetFwdSolutionCountFallback(wDesc, xDesc, yDesc);
+    return GetSolutionCountFallback(handle, problem);
 }
 
 static inline bool IsAlgorithmDisabled(const miopenConvAlgorithm_t algo)
@@ -1680,11 +1643,14 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
     {
         if(IsGemmApplicableFwd(weightsDesc, inDesc, outDesc) && (i < maxSolutionCount))
         {
-            solutions[i].algorithm = miopenConvolutionAlgoGEMM;
-            solutions[i].time      = -1.0;
-            solutions[i].workspace_size =
-                ForwardGetValidWorkSpaceSizeGemm(handle, weightsDesc, inDesc, outDesc);
-            solutions[i].solution_id = solver::Id::gemm().Value();
+            if(solutions != nullptr)
+            {
+                solutions[i].algorithm = miopenConvolutionAlgoGEMM;
+                solutions[i].time      = -1.0;
+                solutions[i].workspace_size =
+                    ForwardGetValidWorkSpaceSizeGemm(handle, weightsDesc, inDesc, outDesc);
+                solutions[i].solution_id = solver::Id::gemm().Value();
+            }
             ++i;
         }
     }
@@ -1692,11 +1658,14 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
     {
         if(IsGemmApplicableBwd(outDesc, weightsDesc, inDesc) && (i < maxSolutionCount))
         {
-            solutions[i].algorithm = miopenConvolutionAlgoGEMM;
-            solutions[i].time      = -1.0;
-            solutions[i].workspace_size =
-                BackwardGetValidWorkSpaceSizeGemm(outDesc, weightsDesc, inDesc);
-            solutions[i].solution_id = solver::Id::gemm().Value();
+            if(solutions != nullptr)
+            {
+                solutions[i].algorithm = miopenConvolutionAlgoGEMM;
+                solutions[i].time      = -1.0;
+                solutions[i].workspace_size =
+                    BackwardGetValidWorkSpaceSizeGemm(outDesc, weightsDesc, inDesc);
+                solutions[i].solution_id = solver::Id::gemm().Value();
+            }
             ++i;
         }
     }
@@ -1704,11 +1673,14 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
     {
         if(IsGemmApplicableWrw(outDesc, inDesc, weightsDesc) && (i < maxSolutionCount))
         {
-            solutions[i].algorithm = miopenConvolutionAlgoGEMM;
-            solutions[i].time      = -1.0;
-            solutions[i].workspace_size =
-                WrwGetValidWorkSpaceSizeGemm(outDesc, inDesc, weightsDesc);
-            solutions[i].solution_id = solver::Id::gemm().Value();
+            if(solutions != nullptr)
+            {
+                solutions[i].algorithm = miopenConvolutionAlgoGEMM;
+                solutions[i].time      = -1.0;
+                solutions[i].workspace_size =
+                    WrwGetValidWorkSpaceSizeGemm(outDesc, inDesc, weightsDesc);
+                solutions[i].solution_id = solver::Id::gemm().Value();
+            }
             ++i;
         }
     }
@@ -2784,7 +2756,7 @@ std::size_t ConvolutionDescriptor::GetBackwardSolutionCount(Handle& handle,
     const auto count = GetSolutionCount(handle, problem);
     if(count > 0)
         return count;
-    return GetBwdSolutionCountFallback(dyDesc, wDesc, dxDesc);
+    return GetSolutionCountFallback(handle, problem);
 }
 
 void ConvolutionDescriptor::GetBackwardSolutions(Handle& handle,
@@ -3501,7 +3473,7 @@ std::size_t ConvolutionDescriptor::GetWrwSolutionCount(Handle& handle,
     const auto count   = GetSolutionCount(handle, problem);
     if(count > 0)
         return count;
-    return GetWrwSolutionCountFallback(dyDesc, xDesc, dwDesc);
+    return GetSolutionCountFallback(handle, problem);
 }
 
 void ConvolutionDescriptor::GetWrwSolutions(Handle& handle,
