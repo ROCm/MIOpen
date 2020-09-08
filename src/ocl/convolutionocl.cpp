@@ -1410,9 +1410,6 @@ void ConvolutionDescriptor::ConvFwdFFT(const Handle& handle,
     }
 }
 
-static const char immFallbackFailed[] =
-    "Requested convolution is not supported or Immediate mode Fallback has failed.";
-
 bool ConvolutionDescriptor::IsGemmApplicableWrw(const TensorDescriptor& dyDesc,
                                                 const TensorDescriptor& xDesc,
                                                 const TensorDescriptor& dwDesc) const
@@ -1475,6 +1472,17 @@ bool ConvolutionDescriptor::IsGemmApplicableBwd(const TensorDescriptor& dyDesc,
 #endif
 }
 
+static std::size_t GetSolutionCount(Handle& handle, const ProblemDescription& problem)
+{
+    const FindDbRecord fdb_record{handle, problem};
+    if(fdb_record.empty())
+        return 0;
+    return std::distance(fdb_record.begin(), fdb_record.end());
+}
+
+static const char immFallbackFailed[] =
+    "Requested convolution is not supported or Immediate mode Fallback has failed.";
+
 std::size_t ConvolutionDescriptor::GetSolutionCountFallback(Handle& handle,
                                                             const ProblemDescription& problem) const
 {
@@ -1495,14 +1503,6 @@ std::size_t ConvolutionDescriptor::GetSolutionCountFallback(Handle& handle,
     /// We can't distinguish these three cases.
     /// Let's do like Find() does:
     MIOPEN_THROW(miopenStatusNotImplemented, immFallbackFailed);
-}
-
-static std::size_t GetSolutionCount(Handle& handle, const ProblemDescription& problem)
-{
-    const FindDbRecord fdb_record{handle, problem};
-    if(fdb_record.empty())
-        return 0;
-    return std::distance(fdb_record.begin(), fdb_record.end());
 }
 
 std::size_t ConvolutionDescriptor::GetForwardSolutionCount(Handle& handle,
@@ -1535,82 +1535,6 @@ static inline bool IsAlgorithmDisabled(const miopenConvAlgorithm_t algo)
     default: // Disable future algos by default to enforce explicit handling:
         return true;
     } // clang-format on
-}
-
-void GetSolutions(Handle& handle,
-                  const ProblemDescription& problem,
-                  const size_t maxSolutionCount,
-                  size_t* solutionCount,
-                  miopenConvSolution_t* solutions,
-                  std::function<int(const std::string&)>&& algoResolver)
-{
-    const FindDbRecord fdb_record{handle, problem};
-
-    if(fdb_record.empty())
-    {
-        *solutionCount = 0;
-        return;
-    }
-
-    // Read all what we have, then sort and write out up to max asked.
-    // Fallback path currently returns only one solution, so no need to sort there.
-    struct SortWrapper : miopenConvSolution_t // For emplace and sort.
-    {
-        SortWrapper(const float& t,
-                    const size_t& ws,
-                    const uint64_t& id,
-                    const miopenConvAlgorithm_t& algo)
-            : miopenConvSolution_t{t, ws, id, algo}
-        {
-        }
-        bool operator<(const SortWrapper& other) const { return (time < other.time); }
-    };
-    std::vector<SortWrapper> interim;
-    interim.reserve(maxSolutionCount); // For speed. In most cases we have less entries than asked.
-
-    // Individual Solvers can be enabled/disabled by environment settings.
-    // Applicability is also affected by presence of external tools (e.g. assembler)
-    // ROCm version, specific features of GPU (like xnack) etc.
-    // All the above can be found by calling IsApplicable().
-    // We need fully initialized context for this, see below.
-    auto ctx = ConvolutionContext{problem};
-    ctx.SetStream(&handle);
-    ctx.DetectRocm();
-
-    for(const auto& pair : fdb_record)
-    {
-        const auto algo = static_cast<miopenConvAlgorithm_t>(algoResolver(pair.first));
-        if(IsAlgorithmDisabled(algo))
-            continue;
-
-        const auto solver_id = solver::Id{pair.second.solver_id};
-        // Wrong IDs can't be used to call IsApplicable(), so let's
-        // ignore obsolete or invalid IDs read from find-db first.
-        if(!solver_id.IsValid())
-        {
-            // Do not disturb users with warnings unless detailed log is enabled.
-            MIOPEN_LOG_I("[Warning] incorrect solver_id: " << pair.second.solver_id);
-            continue;
-        }
-        // gemm and fft are always applicable.
-        // These can be disabled/enabled at algorithm level.
-        if(!(solver_id == solver::Id::gemm() || solver_id == solver::Id::fft()))
-            if(!solver_id.GetSolver().IsApplicable(ctx))
-                continue;
-
-        interim.emplace_back(pair.second.time, pair.second.workspace, solver_id.Value(), algo);
-    }
-    std::sort(begin(interim), end(interim));
-
-    auto i = std::size_t{0};
-    for(const auto& entry : interim)
-    {
-        if(i >= maxSolutionCount)
-            break;
-        solutions[i] = entry;
-        ++i;
-    }
-    *solutionCount = i;
 }
 
 void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
@@ -1691,6 +1615,82 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
 
     if(i < 1)
         MIOPEN_LOG_I("No solution found");
+    *solutionCount = i;
+}
+
+void GetSolutions(Handle& handle,
+                  const ProblemDescription& problem,
+                  const size_t maxSolutionCount,
+                  size_t* solutionCount,
+                  miopenConvSolution_t* solutions,
+                  std::function<int(const std::string&)>&& algoResolver)
+{
+    const FindDbRecord fdb_record{handle, problem};
+
+    if(fdb_record.empty())
+    {
+        *solutionCount = 0;
+        return;
+    }
+
+    // Read all what we have, then sort and write out up to max asked.
+    // Fallback path currently returns only one solution, so no need to sort there.
+    struct SortWrapper : miopenConvSolution_t // For emplace and sort.
+    {
+        SortWrapper(const float& t,
+                    const size_t& ws,
+                    const uint64_t& id,
+                    const miopenConvAlgorithm_t& algo)
+            : miopenConvSolution_t{t, ws, id, algo}
+        {
+        }
+        bool operator<(const SortWrapper& other) const { return (time < other.time); }
+    };
+    std::vector<SortWrapper> interim;
+    interim.reserve(maxSolutionCount); // For speed. In most cases we have less entries than asked.
+
+    // Individual Solvers can be enabled/disabled by environment settings.
+    // Applicability is also affected by presence of external tools (e.g. assembler)
+    // ROCm version, specific features of GPU (like xnack) etc.
+    // All the above can be found by calling IsApplicable().
+    // We need fully initialized context for this, see below.
+    auto ctx = ConvolutionContext{problem};
+    ctx.SetStream(&handle);
+    ctx.DetectRocm();
+
+    for(const auto& pair : fdb_record)
+    {
+        const auto algo = static_cast<miopenConvAlgorithm_t>(algoResolver(pair.first));
+        if(IsAlgorithmDisabled(algo))
+            continue;
+
+        const auto solver_id = solver::Id{pair.second.solver_id};
+        // Wrong IDs can't be used to call IsApplicable(), so let's
+        // ignore obsolete or invalid IDs read from find-db first.
+        if(!solver_id.IsValid())
+        {
+            // Do not disturb users with warnings unless detailed log is enabled.
+            MIOPEN_LOG_I("[Warning] incorrect solver_id: " << pair.second.solver_id);
+            continue;
+        }
+        // gemm and fft are always applicable.
+        // These can be disabled/enabled at algorithm level.
+        if(!(solver_id == solver::Id::gemm() || solver_id == solver::Id::fft()))
+            if(!solver_id.GetSolver().IsApplicable(ctx))
+                continue;
+
+        interim.emplace_back(pair.second.time, pair.second.workspace, solver_id.Value(), algo);
+    }
+    std::sort(begin(interim), end(interim));
+
+    auto i = std::size_t{0};
+    for(const auto& entry : interim)
+    {
+        if(i >= maxSolutionCount)
+            break;
+        solutions[i] = entry;
+        ++i;
+    }
     *solutionCount = i;
 }
 
