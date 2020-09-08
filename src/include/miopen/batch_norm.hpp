@@ -47,7 +47,7 @@ void DeriveBNTensorDescriptor(TensorDescriptor& derivedBnDesc,
 
 TensorDescriptor BuildReshaped4DTensorDescriptor(const miopen::TensorDescriptor& tDesc);
 
-void bnBwdTrainSelectSingleEmpty(const Handle& handle,
+void bnBwdTrainSelectSingle(const Handle& handle,
                             miopenDataType_t dtype,
                             const std::string& program_name,
                             const std::string& algo_name,
@@ -66,21 +66,13 @@ void bnBwdTrainSelectSingleEmpty(const Handle& handle,
                             double epsilon,
                             ConstData_t savedMean,
                             ConstData_t savedInvVariance,
-                            float inhw,
-                            unsigned int n,
-                            unsigned int in_cstride,
-                            unsigned int in_nstride);
+                            float inhw);
 
 
 void bnFwdTrainSelectSingleFull(const Handle& handle,
                             miopenDataType_t dtype,
-                            const std::string& program_name,
                             const std::string& algo_name,
-                            const std::string& kernel_name,
                             const std::string& network_config,
-                            const std::string& parms,
-                            const std::vector<size_t>& vld,
-                            const std::vector<size_t>& vgd,
                             ConstData_t x,
                             Data_t y,
                             ConstData_t bnScale,
@@ -119,7 +111,7 @@ void bnBwdTrainSelectMulti(const Handle& handle,
                            ConstData_t savedInvVariance,
                            float inhw);
 
-void bnFwdTrainSelectSingle(const Handle& handle,
+void bnFwdTrainSelectSingleEmpty(const Handle& handle,
                             miopenDataType_t dtype,
                             const std::string& program_name,
                             const std::string& algo_name,
@@ -140,7 +132,10 @@ void bnFwdTrainSelectSingle(const Handle& handle,
                             double epsilon,
                             Data_t resultSaveMean,
                             Data_t resultSaveInvVariance,
-                            float inhw);
+                            float inhw,
+                            unsigned int n,
+                            unsigned int in_cstride,
+                            unsigned int in_nstride);
 
 void bnFwdTrainSelectMulti(const Handle& handle,
                            miopenDataType_t dtype,
