@@ -152,6 +152,11 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         BBlockCopySrcDataPerRead_GemmN = 1;
     }
 
+#if WORKAROUND_ISSUE_2532
+    if(ctx.direction.IsBackwardWrW())
+        BBlockCopySrcDataPerRead_GemmN = 1;
+#endif
+
     std::size_t ABlockCopySrcDataPerRead_GemmK     = 1;
     std::size_t ABlockCopySrcDataPerRead_GemmKPACK = 1;
     if(ctx.IsFp32())
