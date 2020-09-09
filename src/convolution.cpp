@@ -768,14 +768,14 @@ std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeDirect(
 }
 
 std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeWinograd(
-    const miopen::ConvolutionContext& ctx) const
+    const miopen::ConvolutionContext& ctx, const miopen::AnyInvokeParams& invoke_ctx) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{}))
         return 0;
 
     try
     {
-        const auto ss  = FindAllWinogradSolutions(ctx);
+        const auto ss  = FindAllWinogradSolutions(ctx, invoke_ctx);
         std::size_t sz = 0;
         for(const auto& solution : ss)
         {

@@ -3272,7 +3272,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             {
                 const auto all = miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{})
                                      ? std::vector<miopen::solver::ConvSolution>()
-                                     : FindWinogradWrWAllSolutions(ctx);
+                                     : FindWinogradWrWAllSolutions(ctx, invoke_ctx);
                 const auto algorithm_name =
                     AlgorithmName{"miopenConvolutionBwdWeightsAlgoWinograd"};
                 EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
@@ -3376,7 +3376,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
         if(!invoker)
             MIOPEN_THROW("No invoker was registered for convolution weights. Was find executed?");
 
-        decltype(auto) invoke_ctx = conv::WrWInvokeParams{tensors, workSpace, workSpaceSize};
+        const auto invoke_ctx = conv::WrWInvokeParams{tensors, workSpace, workSpaceSize};
         (*invoker)(handle, invoke_ctx);
     });
 }

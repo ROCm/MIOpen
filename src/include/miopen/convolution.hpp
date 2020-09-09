@@ -32,6 +32,7 @@
 #include <miopen/object.hpp>
 #include <miopen/solver_id.hpp>
 #include <miopen/names.hpp>
+#include <miopen/invoke_params.hpp>
 
 #include <boost/any.hpp>
 
@@ -117,8 +118,9 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     std::size_t
     ForwardBackwardGetWorkSpaceSizeImplicitGemm(const miopen::ConvolutionContext& ctx) const;
 
-    std::size_t
-    ForwardBackwardDataGetWorkSpaceSizeWinograd(const miopen::ConvolutionContext& ctx) const;
+    std::size_t ForwardBackwardDataGetWorkSpaceSizeWinograd(
+        const miopen::ConvolutionContext& ctx,
+        const miopen::AnyInvokeParams& invoke_ctx = {}) const;
 
     std::size_t ForwardGetWorkSpaceSizeFFT(const TensorDescriptor& wDesc,
                                            const TensorDescriptor& xDesc,

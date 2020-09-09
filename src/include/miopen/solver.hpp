@@ -1168,16 +1168,8 @@ struct ConvHipImplicitGemmBwdDataV1R1Xdlops : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const PerformanceImplicitGemmBwdV1R1Xdlops& config,
                              bool disableConfigOverrideFromEnv = false) const;
-    PerformanceImplicitGemmXdlops Search(const ConvolutionContext&,
-                                         const AnyInvokeParams& invoke_ctx) const;
-    int RunAndMeasureSolution(const miopen::Handle& profile_h,
-                              ConstData_t bot_buf,
-                              Data_t top_buf,
-                              ConstData_t wei_buf,
-                              ConstData_t bias_buf,
-                              const ConvolutionContext& ctx,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
+    PerformanceImplicitGemmBwdV1R1Xdlops Search(const ConvolutionContext& ctx,
+                                                const AnyInvokeParams& invoke_ctx) const;
 };
 
 struct ConvAsmImplicitGemmV4R1DynamicFwd : SolverBase<ConvolutionContext>

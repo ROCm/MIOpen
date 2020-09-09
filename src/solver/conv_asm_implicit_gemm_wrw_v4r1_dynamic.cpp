@@ -385,8 +385,8 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ConvolutionCon
     const auto& conv_problem = ctx.conv_problem;
 
     result.invoker_factory = [conv_problem](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& handle, const boost::any& primitive_parameters) {
-            const auto data_ctx = boost::any_cast<conv::WrWInvokeParams>(primitive_parameters);
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+            const auto data_ctx = primitive_parameters.CastTo<conv::WrWInvokeParams>();
             const auto& tensors = data_ctx.tensors;
             MIOPEN_LOG_I("wrw workspace size: " << data_ctx.workSpaceSize);
             const auto& workSpace = data_ctx.workSpace;
