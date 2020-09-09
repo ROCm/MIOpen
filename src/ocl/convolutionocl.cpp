@@ -1550,19 +1550,86 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
         return;
     }
 
-    // FIXME This is terrific.
+    /// \todo This is terrible. Should do away when we converge to
+    /// single conv::ProblemDescription type.
     const auto& inDesc = problem.direction.IsForward() ? problem.conv_problem.GetIn()
                                                        : problem.conv_problem.GetOut();
     const auto& outDesc = problem.direction.IsForward() ? problem.conv_problem.GetOut()
                                                         : problem.conv_problem.GetIn();
     const auto& weightsDesc = problem.conv_problem.GetWeights();
-
     // This check is needed on fallback path only.
     // On regular path (find-db hit) this was checked during Find().
     ValidateGroupCount(inDesc, weightsDesc, *this);
 
     auto i = std::size_t{0};
 
+    // FIXME rework this dupe.
+    // Read all what we have, then sort and write out up to max asked.
+    // Fallback path currently returns only one solution, so no need to sort there.
+    struct SortWrapper : miopenConvSolution_t // For emplace and sort.
+    {
+        SortWrapper(const float& t,
+                    const size_t& ws,
+                    const uint64_t& id,
+                    const miopenConvAlgorithm_t& algo)
+            : miopenConvSolution_t{t, ws, id, algo}
+        {
+        }
+        bool operator<(const SortWrapper& other) const { return (time < other.time); }
+    };
+    std::vector<SortWrapper> interim;
+    interim.reserve(maxSolutionCount); // For speed. In most cases we have less entries than asked.
+
+    auto ctx = ConvolutionContext{problem};
+    ctx.SetStream(&handle);
+    ctx.DetectRocm();
+
+    const auto& map = miopen::solver::GetMapValueToAnySolver();
+    for(const auto& item : map)
+    {
+        const auto solver_id = solver::Id{item.first};
+        // solver_id is always valid here, because taken from registry.
+        // Validity check is not required.
+        const auto algo = solver_id.GetAlgo();
+        if(IsAlgorithmDisabled(algo)) // Algos can be disabled globally.
+            continue;
+        const auto& s = item.second;
+        if(!s.IsApplicable(ctx))
+            continue;
+        if(!s.IsDynamic()) // Allow non-dynamic later, if necessary.
+            continue;
+
+        // gemm can appear here only after actual (non-dummy) GEMM Solver is implemented.
+        if(solver_id == solver::Id::gemm())
+            MIOPEN_LOG_W("GEMM solver is ready, rework this function");
+
+        const auto wti = s.GetWti(ctx);
+        if(wti <= 0.0f) // Skip unknown WTIs and avoid DIV/0.
+            continue;
+        const auto time = 10.0f / wti; // Assume WTI == 1.0 (100%) is 10 ms.
+
+        interim.emplace_back(time, s.GetWorkspaceSize(ctx), solver_id.Value(), algo);
+    }
+
+    if(!interim.empty())
+    {
+        std::sort(begin(interim), end(interim));
+        for(const auto& entry : interim)
+        {
+            if(i >= maxSolutionCount)
+                break;
+            solutions[i] = entry;
+            ++i;
+        }
+        *solutionCount = i;
+        /// Right now we do not have GetWti() for GEMM.
+        /// And only those solutions that are faster than GEMM return WTI.
+        /// Therefore it is Ok for now to not use GEMM is some other solution is found.
+        /// \todo Rework this when we have GetWti() for GEMM.
+        return;
+    }
+
+    // GEMM. Remove/rework when GEMM Solver is ready.
     if(problem.direction.IsForward())
     {
         if(IsGemmApplicableFwd(weightsDesc, inDesc, outDesc) && (i < maxSolutionCount))
