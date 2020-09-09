@@ -31,6 +31,9 @@
 #include <miopen/md5.hpp>
 #include <miopen/problem_description.hpp>
 
+#if MIOPEN_EMBED_DB
+#include <miopen_data.hpp>
+#endif
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/path.hpp>
@@ -48,6 +51,9 @@
 #include <shared_mutex>
 #include <string>
 
+extern "C" {
+int miopen_sqlite3_memvfs_init(sqlite3* db, char** pzErrMsg, const sqlite3_api_routines* pApi);
+}
 namespace miopen {
 
 class SQLite::impl
@@ -59,25 +65,115 @@ class SQLite::impl
             const auto c_filename = sqlite3_db_filename(ptr, "main");
             std::string filename_((c_filename == nullptr) ? "" : c_filename);
             SQLite::Retry([&]() { return sqlite3_close(ptr); }, filename_);
+            // Future: Sync the file back to disk, unless disk I/O is disabled
+            // Get the page_count: pragma page_count;
+            // Get the page_size:  pragma page_size;
+            // Buffer size is page_count * page_size
         }
     };
+    using sqlite3_ptr = std::unique_ptr<sqlite3, SQLiteCloser>;
+#if MIOPEN_EMBED_DB
+    int CreateInMemDb(const boost::filesystem::path& filepath, bool is_system)
+    {
+        sqlite3* ptr_tmp = nullptr;
+        int rc           = 0;
+        sqlite3_auto_extension(reinterpret_cast<void (*)(void)>(miopen_sqlite3_memvfs_init));
+        // Open an in-memory database to use as a handle for loading the memvfs extension
+        if(sqlite3_open(":memory:", &ptr_tmp) != SQLITE_OK)
+        {
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "open :memory: " + std::string(sqlite3_errmsg(ptr_tmp)));
+        }
+        sqlite3_enable_load_extension(ptr_tmp, 1);
+        sqlite3_close(ptr_tmp);
+        if(is_system)
+        {
+
+            const auto& it_p = miopen_data().find(filepath.filename().string() + ".o");
+            if(it_p == miopen_data().end())
+            {
+                // Future: Try to load it from the disk system
+                // Also make a config point if Disk I/O is disabled
+                MIOPEN_THROW(miopenStatusInternalError,
+                             "Unknown database: " + filepath.string() + " in internal file cache");
+            }
+            const auto& p    = it_p->second;
+            ptrdiff_t ptr_sz = p.second - p.first;
+            char* memuri     = sqlite3_mprintf(
+                "file:ignoredFilename?ptr=0x%p&sz=%lld", p.first, static_cast<long long>(ptr_sz));
+            if(sqlite3_open_v2(
+                   memuri, &ptr_tmp, SQLITE_OPEN_READWRITE | SQLITE_OPEN_URI, nullptr) != SQLITE_OK)
+            {
+                MIOPEN_THROW(miopenStatusInternalError,
+                             "open memvfs: " + std::string(sqlite3_errmsg(ptr_tmp)));
+            }
+            sqlite3_free(memuri);
+        }
+        else
+        {
+            char* memuri = sqlite3_mprintf(":memory:");
+            if(sqlite3_open_v2(
+                   memuri, &ptr_tmp, SQLITE_OPEN_READWRITE | SQLITE_OPEN_URI, nullptr) != SQLITE_OK)
+            {
+                MIOPEN_THROW(miopenStatusInternalError,
+                             "open memvfs: " + std::string(sqlite3_errmsg(ptr_tmp)));
+            }
+            sqlite3_free(memuri);
+        }
+        // set journal mode to off
+        {
+            sqlite3_stmt* stmt;
+            if(sqlite3_prepare_v2(ptr_tmp, "PRAGMA journal_mode=off;", -1, &stmt, nullptr) !=
+               SQLITE_OK)
+            {
+                fprintf(stderr, "prepare: %s\n", sqlite3_errmsg(ptr_tmp));
+                sqlite3_close(ptr_tmp);
+                MIOPEN_THROW(miopenStatusInternalError);
+            }
+            for(rc = sqlite3_step(stmt); rc == SQLITE_ROW; rc = sqlite3_step(stmt))
+            {
+            }
+            if(rc == SQLITE_DONE)
+                rc = 0;
+
+            sqlite3_finalize(stmt);
+        }
+        ptrDb = sqlite3_ptr{ptr_tmp};
+        return rc;
+    }
+#endif
+    int CreateFileDb(const boost::filesystem::path& filepath, bool is_system)
+    {
+        sqlite3* ptr_tmp = nullptr;
+        int rc           = 0;
+        if(is_system)
+            rc =
+                sqlite3_open_v2(filepath.string().c_str(), &ptr_tmp, SQLITE_OPEN_READONLY, nullptr);
+        else
+        {
+            rc = sqlite3_open_v2(filepath.string().c_str(),
+                                 &ptr_tmp,
+                                 SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE,
+                                 nullptr);
+        }
+        ptrDb = sqlite3_ptr{ptr_tmp};
+        return rc;
+    }
 
     public:
     impl(const std::string& filename_, bool is_system)
     {
-        sqlite3* ptr_tmp;
+        boost::filesystem::path filepath(filename_);
         int rc = 0;
-        if(is_system)
-            rc = sqlite3_open_v2(filename_.c_str(), &ptr_tmp, SQLITE_OPEN_READONLY, nullptr);
-        else
-            rc = sqlite3_open_v2(
-                filename_.c_str(), &ptr_tmp, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
-        ptrDb = sqlite3_ptr{ptr_tmp};
+#if MIOPEN_EMBED_DB
+        rc = CreateInMemDb(filepath, is_system);
+#else
+        rc = CreateFileDb(filepath, is_system);
+#endif
         sqlite3_busy_timeout(ptrDb.get(), MIOPEN_SQL_BUSY_TIMEOUT_MS);
         isValid = (rc == 0);
     }
 
-    using sqlite3_ptr = std::unique_ptr<sqlite3, SQLiteCloser>;
     sqlite3_ptr ptrDb = nullptr;
     bool isValid;
 };

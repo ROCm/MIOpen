@@ -152,6 +152,11 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         BBlockCopySrcDataPerRead_GemmN = 1;
     }
 
+#if WORKAROUND_ISSUE_2532
+    if(ctx.direction.IsBackwardWrW())
+        BBlockCopySrcDataPerRead_GemmN = 1;
+#endif
+
     std::size_t ABlockCopySrcDataPerRead_GemmK     = 1;
     std::size_t ABlockCopySrcDataPerRead_GemmKPACK = 1;
     if(ctx.IsFp32())
@@ -433,6 +438,8 @@ ConvSolution ConvHipImplicitGemmV4R4GenWrWXdlops::GetSolution(
 
 bool ConvHipImplicitGemmV4R4GenFwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
+    if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
+        return false;
     if(!(ctx.IsFp16() || ctx.IsBfp16()))
         return false;
     if(!ctx.use_hip_kernels)
@@ -446,6 +453,8 @@ bool ConvHipImplicitGemmV4R4GenFwdXdlops::IsApplicable(const ConvolutionContext&
 
 bool ConvHipImplicitGemmV4R4GenWrWXdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
+    if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
+        return false;
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
     if(!ctx.use_hip_kernels)

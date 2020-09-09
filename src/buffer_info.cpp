@@ -1,3 +1,28 @@
+/*******************************************************************************
+*
+* MIT License
+*
+* Copyright (c) 2020 Advanced Micro Devices, Inc.
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+*
+*******************************************************************************/
 
 #include <miopen/buffer_info.hpp>
 #include <miopen/errors.hpp>
@@ -74,99 +99,53 @@ MemLayout_t GetGroupConvLayout(MemLayout_t layout, bool IsDataBuffer)
     MIOPEN_THROW(std::string("Internal error in GetGroupConvLayout: Unknown MemLayout_t "));
 }
 
-BuffInfo::BuffInfo(
-    MemLayout_t layout, int nk, int c, int h, int w, int vec_c, int _g, int data_len_t)
+BuffInfo::BuffInfo(MemLayout_t layout, int nk, int c, int h, int w, int g, int _element_size)
 {
-    if(!(vec_c != 0))
-        MIOPEN_THROW(std::string("Internal error in BuffInfo: (vec_c != 0) "));
 
-    const size_t c_hi  = (c + vec_c - 1) / vec_c;
-    const size_t count = nk * c_hi * h * w * vec_c;
-    total_byte_size    = count * data_len_t;
+    element_size       = _element_size;
+    const size_t count = nk * c * h * w * g;
+    total_byte_size    = count * element_size;
     size.nk            = nk;
-    size.g             = _g;
+    size.g             = g;
     size.c             = c;
     size.h             = h;
     size.w             = w;
 
+    using LayoutConstructor::FillLayoutStride;
     switch(layout)
     {
     case MemLayout_t::NCHW:
-        stride.w  = 1;
-        stride.h  = w;
-        stride.c  = w * h;
-        stride.nk = w * h * c_hi;
+        FillLayoutStride<LPart_t::W, LPart_t::H, LPart_t::C, LPart_t::N>(this);
         break;
     case MemLayout_t::CNHW:
-        stride.w  = 1;
-        stride.h  = w;
-        stride.nk = w * h;
-        stride.c  = w * h * nk;
+        FillLayoutStride<LPart_t::W, LPart_t::H, LPart_t::N, LPart_t::C>(this);
         break;
     case MemLayout_t::CHWN:
-        stride.nk = 1;
-        stride.w  = nk;
-        stride.h  = w * nk;
-        stride.c  = w * h * nk;
+        FillLayoutStride<LPart_t::N, LPart_t::W, LPart_t::H, LPart_t::C>(this);
         break;
     case MemLayout_t::NHWC:
-        stride.c  = 1;
-        stride.w  = c_hi;
-        stride.h  = c_hi * w;
-        stride.nk = c_hi * w * h;
+        FillLayoutStride<LPart_t::C, LPart_t::W, LPart_t::H, LPart_t::N>(this);
         break;
     case MemLayout_t::HWCN:
-        stride.nk = 1;
-        stride.c  = nk;
-        stride.w  = nk * c_hi;
-        stride.h  = nk * c_hi * w;
+        FillLayoutStride<LPart_t::N, LPart_t::C, LPart_t::W, LPart_t::H>(this);
         break;
     case MemLayout_t::HWNC:
-        stride.c  = 1;
-        stride.nk = c_hi;
-        stride.w  = c_hi * nk;
-        stride.h  = c_hi * nk * w;
+        FillLayoutStride<LPart_t::C, LPart_t::N, LPart_t::W, LPart_t::H>(this);
         break;
     case MemLayout_t::NGCHW:
-        stride.w  = 1;
-        stride.h  = w;
-        stride.c  = w * h;
-        stride.g  = w * h * c_hi;
-        stride.nk = w * h * c_hi * _g;
+        FillLayoutStride<LPart_t::W, LPart_t::H, LPart_t::C, LPart_t::G, LPart_t::N>(this);
         break;
     case MemLayout_t::GNCHW:
-        stride.w  = 1;
-        stride.h  = w;
-        stride.c  = w * h;
-        stride.nk = w * h * c_hi;
-        stride.g  = w * h * c_hi * nk;
+        FillLayoutStride<LPart_t::W, LPart_t::H, LPart_t::C, LPart_t::N, LPart_t::G>(this);
         break;
     case MemLayout_t::CGNHW:
-        stride.w  = 1;
-        stride.h  = w;
-        stride.nk = w * h;
-        stride.g  = w * h * nk;
-        stride.c  = w * h * nk * _g;
+        FillLayoutStride<LPart_t::W, LPart_t::H, LPart_t::N, LPart_t::G, LPart_t::C>(this);
         break;
     case MemLayout_t::GCNHW:
-        stride.w  = 1;
-        stride.h  = w;
-        stride.nk = w * h;
-        stride.c  = w * h * nk;
-        stride.g  = w * h * nk * c_hi;
+        FillLayoutStride<LPart_t::W, LPart_t::H, LPart_t::N, LPart_t::C, LPart_t::G>(this);
         break;
     default: MIOPEN_THROW(std::string("Internal error in BuffInfo(): Unknown MemLayout_t ")); break;
     }
-    stride.nk *= vec_c;
-    stride.g *= vec_c;
-    stride.c *= vec_c;
-    stride.h *= vec_c;
-    stride.w *= vec_c;
-    byte_stride.nk = stride.nk * data_len_t;
-    byte_stride.g  = stride.g * data_len_t;
-    byte_stride.c  = stride.c * data_len_t;
-    byte_stride.h  = stride.h * data_len_t;
-    byte_stride.w  = stride.w * data_len_t;
 }
 
 } // namespace miopen
