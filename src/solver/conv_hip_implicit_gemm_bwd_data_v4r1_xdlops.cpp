@@ -579,12 +579,10 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsValidValue() const
 
 bool PerformanceImplicitGemmBwdDataV4R1Xdlops::SetNextValue()
 {
+    GemmBThreadCopyMoreGemmKPack = true;
+    GemmAThreadCopyMoreGemmK     = true;
     do
     {
-        if(!NextFlag<true, false>(GemmBThreadCopyMoreGemmKPack))
-            break;
-        if(!NextFlag<true, false>(GemmAThreadCopyMoreGemmK))
-            break;
         if(!NextTwoPower<16, 256>(GemmNPerBlock))
             break;
         if(!NextTwoPower<4, 256>(GemmMPerBlock))
@@ -611,7 +609,7 @@ void PerformanceImplicitGemmBwdDataV4R1Xdlops::EuristicInit(const ConvolutionCon
     auto get_euristic_config = [&](auto is_valid_func) {
         if(ctx.IsFp32())
         {
-            tmp              = {256, 256, 8, 4, 128, 128, false, false};
+            tmp              = {256, 256, 8, 4, 128, 128, true, true};
             bool all_visited = false;
             do
             {
@@ -619,22 +617,17 @@ void PerformanceImplicitGemmBwdDataV4R1Xdlops::EuristicInit(const ConvolutionCon
                 {
                     // list in reverse order of importance,
                     // and favor large GEMM
-                    if(!NextFlag<true, false>(GemmBThreadCopyMoreGemmKPack))
-                        break;
-                    if(!NextFlag<true, false>(GemmAThreadCopyMoreGemmK))
-                        break;
-
                     if(!PreviousTwoPower<1, 8>(tmp.GemmKPerBlock))
                         break;
                     if(!PreviousTwoPower<1, 4>(tmp.GemmKPACKSize))
                         break;
-                    if(!PreviousTwoPower<4, 128>(tmp.GemmNPerWave))
+                    if(!PreviousTwoPower<64, 128>(tmp.GemmNPerWave))
                         break;
-                    if(!PreviousTwoPower<4, 128>(tmp.GemmMPerWave))
+                    if(!PreviousTwoPower<64, 128>(tmp.GemmMPerWave))
                         break;
-                    if(!PreviousTwoPower<16, 256>(tmp.GemmNPerBlock))
+                    if(!PreviousTwoPower<64, 256>(tmp.GemmNPerBlock))
                         break;
-                    if(!PreviousTwoPower<4, 256>(tmp.GemmMPerBlock))
+                    if(!PreviousTwoPower<64, 256>(tmp.GemmMPerBlock))
                         break;
 
                     all_visited = true;
@@ -646,7 +639,7 @@ void PerformanceImplicitGemmBwdDataV4R1Xdlops::EuristicInit(const ConvolutionCon
         }
         else if(ctx.IsFp16())
         {
-            tmp              = {256, 256, 8, 8, 128, 128, false, false};
+            tmp              = {256, 256, 8, 8, 128, 128, true, true};
             bool all_visited = false;
             do
             {
@@ -654,22 +647,17 @@ void PerformanceImplicitGemmBwdDataV4R1Xdlops::EuristicInit(const ConvolutionCon
                 {
                     // list in reverse order of importance,
                     // and favor large GEMM
-                    if(!NextFlag<true, false>(GemmBThreadCopyMoreGemmKPack))
-                        break;
-                    if(!NextFlag<true, false>(GemmAThreadCopyMoreGemmK))
-                        break;
-
                     if(!PreviousTwoPower<1, 8>(tmp.GemmKPerBlock))
                         break;
                     if(!PreviousTwoPower<4, 8>(tmp.GemmKPACKSize))
                         break;
-                    if(!PreviousTwoPower<4, 128>(tmp.GemmNPerWave))
+                    if(!PreviousTwoPower<64, 128>(tmp.GemmNPerWave))
                         break;
-                    if(!PreviousTwoPower<4, 128>(tmp.GemmMPerWave))
+                    if(!PreviousTwoPower<64, 128>(tmp.GemmMPerWave))
                         break;
-                    if(!PreviousTwoPower<16, 256>(tmp.GemmNPerBlock))
+                    if(!PreviousTwoPower<64, 256>(tmp.GemmNPerBlock))
                         break;
-                    if(!PreviousTwoPower<4, 256>(tmp.GemmMPerBlock))
+                    if(!PreviousTwoPower<64, 256>(tmp.GemmMPerBlock))
                         break;
 
                     all_visited = true;
@@ -681,7 +669,7 @@ void PerformanceImplicitGemmBwdDataV4R1Xdlops::EuristicInit(const ConvolutionCon
         }
         else if(ctx.IsBfp16())
         {
-            tmp              = {256, 256, 8, 8, 128, 128, false, false};
+            tmp              = {256, 256, 8, 8, 128, 128, true, true};
             bool all_visited = false;
             do
             {
@@ -689,22 +677,17 @@ void PerformanceImplicitGemmBwdDataV4R1Xdlops::EuristicInit(const ConvolutionCon
                 {
                     // list in reverse order of importance,
                     // and favor large GEMM
-                    if(!NextFlag<true, false>(GemmBThreadCopyMoreGemmKPack))
-                        break;
-                    if(!NextFlag<true, false>(GemmAThreadCopyMoreGemmK))
-                        break;
-
                     if(!PreviousTwoPower<1, 8>(tmp.GemmKPerBlock))
                         break;
                     if(!PreviousTwoPower<2, 8>(tmp.GemmKPACKSize))
                         break;
-                    if(!PreviousTwoPower<4, 128>(tmp.GemmNPerWave))
+                    if(!PreviousTwoPower<64, 128>(tmp.GemmNPerWave))
                         break;
-                    if(!PreviousTwoPower<4, 128>(tmp.GemmMPerWave))
+                    if(!PreviousTwoPower<64, 128>(tmp.GemmMPerWave))
                         break;
-                    if(!PreviousTwoPower<16, 256>(tmp.GemmNPerBlock))
+                    if(!PreviousTwoPower<64, 256>(tmp.GemmNPerBlock))
                         break;
-                    if(!PreviousTwoPower<4, 256>(tmp.GemmMPerBlock))
+                    if(!PreviousTwoPower<64, 256>(tmp.GemmMPerBlock))
                         break;
 
                     all_visited = true;
@@ -978,9 +961,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
             result.workspce_sz = 0;
 
             int GemmABlockCopySrcDataPerRead_GemmM  = 1;
-            int GemmABlockCopyDstDataPerWrite_GemmM = 1;
             int GemmBBlockCopySrcDataPerRead_GemmN  = 1;
-            int GemmBBlockCopyDstDataPerWrite_GemmN = 1;
             int GemmABlockCopyClusterLengths_GemmK  = 0;
             int GemmABlockCopyClusterLengths_GemmM  = 0;
             int GemmBBlockCopyClusterLengths_GemmK  = 0;
