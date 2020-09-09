@@ -960,12 +960,12 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
             // TODO: add fp16 calculation by GetWorkspaceSize(ctx);
             result.workspce_sz = 0;
 
-            int GemmABlockCopySrcDataPerRead_GemmM  = 1;
-            int GemmBBlockCopySrcDataPerRead_GemmN  = 1;
-            int GemmABlockCopyClusterLengths_GemmK  = 0;
-            int GemmABlockCopyClusterLengths_GemmM  = 0;
-            int GemmBBlockCopyClusterLengths_GemmK  = 0;
-            int GemmBBlockCopyClusterLengths_GemmN  = 0;
+            int GemmABlockCopySrcDataPerRead_GemmM = 1;
+            int GemmBBlockCopySrcDataPerRead_GemmN = 1;
+            int GemmABlockCopyClusterLengths_GemmK = 0;
+            int GemmABlockCopyClusterLengths_GemmM = 0;
+            int GemmBBlockCopyClusterLengths_GemmK = 0;
+            int GemmBBlockCopyClusterLengths_GemmN = 0;
 
             int GemmABlockCopyClusterLengths_GemmKPack  = 1;
             int GemmABlockCopyDstDataPerWrite_GemmKPack = 1;
