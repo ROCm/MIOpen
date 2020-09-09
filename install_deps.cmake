@@ -89,7 +89,7 @@ if(NOT DEFINED ENV{CC} AND NOT DEFINED CMAKE_C_COMPILER AND NOT DEFINED CMAKE_TO
 	if(CLANGC)
 	    set(ENV{CC} ${CLANGC})
 	else()
-        message(FATAL_ERROR "Cannot find clang")
+        message(STATUS "Cannot find clang to set to CC")
 	endif()
 endif()
 
