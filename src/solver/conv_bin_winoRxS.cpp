@@ -26,6 +26,8 @@
 
 #include <miopen/solver.hpp>
 
+#include <miopen/conv/compiled_in_parameters.hpp>
+#include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/env.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/conv/compiled_in_parameters.hpp>
@@ -363,9 +365,71 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
     kernel.kernel_file += ".s";
 
     result.construction_params.push_back(kernel);
-    const auto is_forward = params.direction.IsForward();
 
-    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+    if(params.direction.IsBackwardWrW())
+    {
+        int unused = 0;
+        int N, C, H, W, K, out_H, out_W, R, S, n_groups_;
+        GetCompiledInParameters(
+            params, &N, &K, &out_H, &out_W, &C, &n_groups_, &H, &W, &R, &S, &unused, &unused);
+        constexpr int F_FLIP_K_C    = 1 << 2;
+        constexpr int F_NKC_STRIDES = 1 << 9;
+        constexpr int flags         = F_FLIP_K_C + F_NKC_STRIDES;
+        int reserved                = 0;
+        int* reserved_ptr           = nullptr;
+        using dataType              = float;
+        int pad_H                   = params.pad_h;
+        int pad_W                   = params.pad_w;
+        int d_N_stride              = H * W * static_cast<int>(sizeof(dataType));
+        int d_C_stride              = C * d_N_stride;
+        int f_K_stride              = out_H * out_W * static_cast<int>(sizeof(dataType));
+        int f_C_stride              = K * f_K_stride;
+        int o_N_stride              = R * S * static_cast<int>(sizeof(dataType));
+        int o_K_stride              = C * o_N_stride;
+
+        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+            return [=](const Handle& handle, const boost::any& primitive_params) {
+                const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
+                const auto& tensors      = invoke_params.tensors;
+                // clang-format off
+                MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
+                        << " n_groups=" << n_groups_ << " flags=" << flags << " R=" << R << " S=" << S
+                        << " pad_H=" << pad_H << " pad_W=" << pad_W << " out_H=" << out_H << " out_W=" << out_W
+                        << " d_N_stride=" << d_N_stride << " d_C_stride=" << d_C_stride
+                        << " f_K_stride=" << f_K_stride << " f_C_stride=" << f_C_stride
+                        << " o_N_stride=" << o_N_stride << " o_K_stride=" << o_K_stride); // clang-format on
+                handle.Run(kernels[0])(C,
+                                       N,
+                                       H,
+                                       W,
+                                       K,
+                                       n_groups_,
+                                       flags,
+                                       reserved,
+                                       tensors.x,
+                                       tensors.dy,
+                                       tensors.dw,
+                                       reserved_ptr, // Unused return_addr.
+                                       out_H,
+                                       out_W,
+                                       pad_H, // Like Fwd wino.
+                                       pad_W,
+                                       R,
+                                       S,
+                                       reserved_ptr, // Unused bias_addr.
+                                       reserved,     // Unused relu_alpha.
+                                       d_N_stride,
+                                       d_C_stride,
+                                       f_K_stride,
+                                       f_C_stride,
+                                       o_N_stride,
+                                       o_K_stride);
+            };
+        };
+    }
+    else
+    {
+        const auto is_forward     = params.direction.IsForward();
         constexpr int F_REVERSE_R = 1 << 0;
         constexpr int F_REVERSE_S = 1 << 1;
         constexpr int F_FLIP_K_C  = 1 << 2;
@@ -385,49 +449,52 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
         int N, C, H, W, K, n_groups_, out_H, out_W, R, S, pad_H, pad_W;
         GetCompiledInParameters(
             params, &N, &C, &H, &W, &K, &n_groups_, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
-        MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
-                            << " n_groups="
-                            << n_groups_
-                            << " flags="
-                            << flags
-                            << " R="
-                            << R
-                            << " S="
-                            << S
-                            << " pad_H="
-                            << pad_H
-                            << " pad_W="
-                            << pad_W
-                            << " out_H="
-                            << out_H
-                            << " out_W="
-                            << out_W);
 
-        return [=](const Handle& handle, const boost::any& ctx) {
-            const auto k        = handle.Run(kernels[0]);
-            const auto fwd_ctx  = boost::any_cast<conv::DataInvokeParams>(ctx);
-            const auto& tensors = fwd_ctx.tensors;
+        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+            return [=](const Handle& handle, const boost::any& ctx) {
+                MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
+                                    << " n_groups="
+                                    << n_groups_
+                                    << " flags="
+                                    << flags
+                                    << " R="
+                                    << R
+                                    << " S="
+                                    << S
+                                    << " pad_H="
+                                    << pad_H
+                                    << " pad_W="
+                                    << pad_W
+                                    << " out_H="
+                                    << out_H
+                                    << " out_W="
+                                    << out_W);
 
-            k(N,
-              C,
-              H,
-              W,
-              K,
-              n_groups_,
-              flags,
-              reserved,
-              tensors.in,
-              tensors.w,
-              tensors.out,
-              reserved_ptr,
-              R,
-              S,
-              pad_H,
-              pad_W,
-              out_H,
-              out_W);
+                const auto k        = handle.Run(kernels[0]);
+                const auto fwd_ctx  = boost::any_cast<conv::DataInvokeParams>(ctx);
+                const auto& tensors = fwd_ctx.tensors;
+
+                k(N,
+                  C,
+                  H,
+                  W,
+                  K,
+                  n_groups_,
+                  flags,
+                  reserved,
+                  tensors.in,
+                  tensors.w,
+                  tensors.out,
+                  reserved_ptr,
+                  R,
+                  S,
+                  pad_H,
+                  pad_W,
+                  out_H,
+                  out_W);
+            };
         };
-    };
+    }
 
     return result;
 }
