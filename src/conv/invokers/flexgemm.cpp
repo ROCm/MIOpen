@@ -44,7 +44,7 @@ static void lk_padding2d(const Handle& handle, const Kernel& kern, const solver:
 static void lk_perm2d(const Handle& handle, const Kernel& kern, const solver::param_conv_t& p, void* dst, const void* src)
 {
     uint32_t bnn=p.bnx*p.bny;
-    uint32_t lda=p.ng*p.n*bnn;
+    uint32_t lda=p.n*bnn;
     uint32_t align=p.id!=3?7:15;
     handle.Run(kern)(dst, src, lda, (p.n+3)&~3, p.k, p.n, bnn, (p.k+align)&~align);
 }
@@ -59,11 +59,14 @@ static void lk_genidx2d(const Handle& handle, const Kernel& kern, const solver::
 static void lk_conv(const Handle& handle, const Kernel& kern, const solver::param_conv_t& p, void* c, const void* a, const void* b, const void* idx, float alpha)
 {
     const uint8_t* relo=static_cast<const uint8_t*>(idx)+(p.ntidx<<3);
-    uint32_t align=p.id!=3?7:15;
-    uint32_t ldb=p.dir==0?(p.k*p.ng):((p.n+3)&~3);
     uint32_t n=(p.pad!=0?0x80000000:0)|p.n;
-    uint32_t k=p.dir==0?p.k:((p.k+align)&~align);
-    handle.Run(kern)(idx, relo, ldb, n, k, p.ags, a, b, c, alpha, p.m, p.ldc);
+    if(p.dir==0){
+        handle.Run(kern)(idx, relo, n, p.k, p.ags, alpha, a, b, c, p.m, p.ldc);
+    } else {
+        uint32_t align=p.id!=3?7:15;
+        uint32_t k=(p.k+align)&~align;
+        handle.Run(kern)(idx, relo, (p.n+3)&~3, n, k, p.ags, a, b, c, alpha, p.m, p.ldc);
+    }
 }
 
 namespace conv {
