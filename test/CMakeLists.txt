@@ -83,6 +83,7 @@ if(MIOPEN_TEST_MIOTENSILE)
 endif()
 
 function(add_test_command NAME EXE)
+    # Restrict the use of SKIP_ALL_EXCEPT_TESTS list in the low-precision and miopentensile tests
     if((NOT (NAME IN_LIST SKIP_ALL_EXCEPT_TESTS)) AND (MIOPEN_TEST_INT8 OR MIOPEN_TEST_BFLOAT16 OR MIOPEN_TEST_MIOTENSILE))
         add_test(NAME ${NAME} COMMAND echo skipped)
         set_tests_properties(${NAME} PROPERTIES DISABLED On)
