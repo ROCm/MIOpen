@@ -1537,6 +1537,19 @@ static inline bool IsAlgorithmDisabled(const miopenConvAlgorithm_t algo)
     } // clang-format on
 }
 
+// Helper class used for emplace and sort.
+struct SolutionSortWrapper : miopenConvSolution_t
+{
+    SolutionSortWrapper(const float& t,
+                        const size_t& ws,
+                        const uint64_t& id,
+                        const miopenConvAlgorithm_t& algo)
+        : miopenConvSolution_t{t, ws, id, algo}
+    {
+    }
+    bool operator<(const SolutionSortWrapper& other) const { return (time < other.time); }
+};
+
 void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
                                                  const ProblemDescription& problem,
                                                  const size_t maxSolutionCount,
@@ -1563,21 +1576,7 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
 
     auto i = std::size_t{0};
 
-    // FIXME rework this dupe.
-    // Read all what we have, then sort and write out up to max asked.
-    // Fallback path currently returns only one solution, so no need to sort there.
-    struct SortWrapper : miopenConvSolution_t // For emplace and sort.
-    {
-        SortWrapper(const float& t,
-                    const size_t& ws,
-                    const uint64_t& id,
-                    const miopenConvAlgorithm_t& algo)
-            : miopenConvSolution_t{t, ws, id, algo}
-        {
-        }
-        bool operator<(const SortWrapper& other) const { return (time < other.time); }
-    };
-    std::vector<SortWrapper> interim;
+    std::vector<SolutionSortWrapper> interim;
     interim.reserve(maxSolutionCount); // For speed. In most cases we have less entries than asked.
 
     auto ctx = ConvolutionContext{problem};
@@ -1700,20 +1699,7 @@ void GetSolutions(Handle& handle,
         return;
     }
 
-    // Read all what we have, then sort and write out up to max asked.
-    // Fallback path currently returns only one solution, so no need to sort there.
-    struct SortWrapper : miopenConvSolution_t // For emplace and sort.
-    {
-        SortWrapper(const float& t,
-                    const size_t& ws,
-                    const uint64_t& id,
-                    const miopenConvAlgorithm_t& algo)
-            : miopenConvSolution_t{t, ws, id, algo}
-        {
-        }
-        bool operator<(const SortWrapper& other) const { return (time < other.time); }
-    };
-    std::vector<SortWrapper> interim;
+    std::vector<SolutionSortWrapper> interim;
     interim.reserve(maxSolutionCount); // For speed. In most cases we have less entries than asked.
 
     // Individual Solvers can be enabled/disabled by environment settings.
