@@ -511,6 +511,9 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmBBlockCopyPerformancePara
         {
             MIOPEN_THROW("invalid performance parameter");
         }
+
+        const auto N1 = GemmNPerBlock / GemmNPerWave;
+
         if(!(GemmKPerBlock % data_per_thread_copy_gemmk == 0 &&
              GemmNPerBlock % data_per_thread_copy_gemmn == 0 &&
              GemmKPack % data_per_thread_copy_gemmkpack == 0))
@@ -519,6 +522,9 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmBBlockCopyPerformancePara
         ClusterLengths_GemmK     = GemmKPerBlock / data_per_thread_copy_gemmk;
         ClusterLengths_GemmN     = GemmNPerBlock / data_per_thread_copy_gemmn;
         ClusterLengths_GemmKPack = GemmKPack / data_per_thread_copy_gemmkpack;
+
+        if(!(ClusterLengths_GemmN % N1 == 0 && GemmKPerBlock % (ClusterLengths_GemmK * N1) == 0))
+            MIOPEN_THROW("invalid performance parameter");
 
         // blockwise-copy support that block_size is larger than thread cluster size, which means
         // some threads may not do threadwise copy
