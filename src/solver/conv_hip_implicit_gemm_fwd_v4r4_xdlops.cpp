@@ -1005,22 +1005,6 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops::IsApplicable(const ConvolutionContext
     if(!IsIndexRangeLargeEnough(ctx))
         return false;
 
-#if WORKAROUND_SWDEV_239555
-    if(ctx.IsFp16() || ctx.IsBfp16())
-    {
-        const auto y              = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-        const auto x              = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
-        const auto in_left_pad_h  = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
-        const auto in_left_pad_w  = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
-        const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
-        const auto in_right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
-
-        if((y > 1 || x > 1) &&
-           (in_left_pad_h > 0 || in_left_pad_w > 0 || in_right_pad_h > 0 || in_right_pad_w > 0))
-            return false;
-    }
-#endif
-
     // gemm size
     {
         int gemm_g       = -1;
