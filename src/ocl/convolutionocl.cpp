@@ -1617,7 +1617,8 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
         {
             if(i >= maxSolutionCount)
                 break;
-            solutions[i] = entry;
+            if(solutions != nullptr)
+                solutions[i] = entry;
             ++i;
         }
         *solutionCount = i;
