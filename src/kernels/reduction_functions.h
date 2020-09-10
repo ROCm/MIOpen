@@ -54,6 +54,7 @@ regLDSreduce(_FLOAT_ACCUM* value, local _FLOAT_ACCUM* data, uint localID, _FLOAT
     barrier(CLK_LOCAL_MEM_FENCE);
     *value = data[0] * scale;
 }
+
 #endif
 
 #ifdef __AMDGCN__
