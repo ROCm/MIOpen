@@ -63,5 +63,7 @@ RUN cget -p $PREFIX install RadeonOpenCompute/rocm-cmake@master
 RUN cget -p $PREFIX install pfultz2/rocm-recipes
 ADD min-requirements.txt /min-requirements.txt
 RUN CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -f /min-requirements.txt
+RUN export HIPCC_LINK_FLAGS_APPEND='-O3 -parallel-jobs=4'
+RUN export HIPCC_COMPILE_FLAGS_APPEND='-O3 -Wno-format-nonliteral -parallel-jobs=4'
 RUN cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@729cdc76c1790f9f4185cf26d4697bfc088b02f3
 
