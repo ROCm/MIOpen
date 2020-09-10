@@ -239,7 +239,8 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                              const TensorDescriptor& yDesc,
                              size_t maxSolutionCount,
                              size_t* solutionCount,
-                             miopenConvSolution_t* solutions) const;
+                             miopenConvSolution_t* solutions,
+                             bool* fallbackPathTaken) const;
 
     void CompileForwardSolution(Handle& handle,
                                 const TensorDescriptor& wDesc,
@@ -317,7 +318,8 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                               const TensorDescriptor& dxDesc,
                               size_t maxSolutionCount,
                               size_t* solutionCount,
-                              miopenConvSolution_t* solutions) const;
+                              miopenConvSolution_t* solutions,
+                              bool* fallbackPathTaken) const;
 
     void CompileBackwardSolution(Handle& handle,
                                  const TensorDescriptor& dyDesc,
@@ -353,7 +355,8 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                          const TensorDescriptor& dwDesc,
                          size_t maxSolutionCount,
                          size_t* solutionCount,
-                         miopenConvSolution_t* solutions) const;
+                         miopenConvSolution_t* solutions,
+                         bool* fallbackPathTaken) const;
 
     void CompileWrwSolution(Handle& handle,
                             const TensorDescriptor& dyDesc,

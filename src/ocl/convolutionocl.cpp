@@ -778,8 +778,9 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     if((fm.IsFast() || fm.IsHybrid()) && !use_winograd_only)
     {
         size_t count;
-        GetForwardSolutions(handle, wDesc, xDesc, yDesc, 1, &count, &sol);
-        use_immediate_solution = (count > 0) && !(fm.IsHybrid() && sol.time < 0);
+        bool fallback;
+        GetForwardSolutions(handle, wDesc, xDesc, yDesc, 1, &count, &sol, &fallback);
+        use_immediate_solution = (count > 0) && !(fm.IsHybrid() && fallback);
         // In Hybrid Find mode, we use Normal Find instead of Immediate fallback kernels.
     }
 
@@ -1748,13 +1749,18 @@ void GetSolutions(Handle& handle,
     *solutionCount = i;
 }
 
+/// \todo Extend miopenConvSolution_t with an attribute indicating
+/// how the solution was obtained (benchmarked on the current system,
+/// taken from the System find-db, heuristically estimated, produced by
+/// MLP classifier...) and then remove the fallbackPathTaken out param.
 void ConvolutionDescriptor::GetForwardSolutions(Handle& handle,
                                                 const TensorDescriptor& wDesc,
                                                 const TensorDescriptor& xDesc,
                                                 const TensorDescriptor& yDesc,
                                                 const size_t maxSolutionCount,
                                                 size_t* const solutionCount,
-                                                miopenConvSolution_t* const solutions) const
+                                                miopenConvSolution_t* const solutions,
+                                                bool* const fallbackPathTaken) const
 {
     MIOPEN_LOG_I("");
     if(solutionCount == nullptr)
@@ -1766,6 +1772,8 @@ void ConvolutionDescriptor::GetForwardSolutions(Handle& handle,
     GetSolutions(
         handle, problem, maxSolutionCount, solutionCount, solutions, StringToConvolutionFwdAlgo);
 
+    if(fallbackPathTaken != nullptr)
+        *fallbackPathTaken = (*solutionCount == 0);
     if(*solutionCount == 0)
         GetSolutionsFallback(handle, problem, maxSolutionCount, solutionCount, solutions);
 }
@@ -2054,8 +2062,9 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     if((fm.IsFast() || fm.IsHybrid()) && !use_winograd_only)
     {
         size_t count;
-        GetBackwardSolutions(handle, dyDesc, wDesc, dxDesc, 1, &count, &imm_sol);
-        use_immediate_solution = (count > 0) && !(fm.IsHybrid() && imm_sol.time < 0);
+        bool fallback;
+        GetBackwardSolutions(handle, dyDesc, wDesc, dxDesc, 1, &count, &imm_sol, &fallback);
+        use_immediate_solution = (count > 0) && !(fm.IsHybrid() && fallback);
     }
 
     if(use_immediate_solution)
@@ -2819,7 +2828,8 @@ void ConvolutionDescriptor::GetBackwardSolutions(Handle& handle,
                                                  const TensorDescriptor& dxDesc,
                                                  size_t maxSolutionCount,
                                                  size_t* solutionCount,
-                                                 miopenConvSolution_t* solutions) const
+                                                 miopenConvSolution_t* solutions,
+                                                 bool* const fallbackPathTaken) const
 {
     MIOPEN_LOG_I("");
     if(solutionCount == nullptr)
@@ -2836,6 +2846,8 @@ void ConvolutionDescriptor::GetBackwardSolutions(Handle& handle,
                  solutions,
                  StringToConvolutionBwdDataAlgo);
 
+    if(fallbackPathTaken != nullptr)
+        *fallbackPathTaken = (*solutionCount == 0);
     if(*solutionCount == 0)
         GetSolutionsFallback(handle, problem, maxSolutionCount, solutionCount, solutions);
 }
@@ -3021,8 +3033,9 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     if(fm.IsFast() || fm.IsHybrid())
     {
         size_t count;
-        GetWrwSolutions(handle, dyDesc, xDesc, dwDesc, 1, &count, &imm_sol);
-        use_immediate_solution = (count > 0) && !(fm.IsHybrid() && imm_sol.time < 0);
+        bool fallback;
+        GetWrwSolutions(handle, dyDesc, xDesc, dwDesc, 1, &count, &imm_sol, &fallback);
+        use_immediate_solution = (count > 0) && !(fm.IsHybrid() && fallback);
     }
 
     if(use_immediate_solution)
@@ -3536,7 +3549,8 @@ void ConvolutionDescriptor::GetWrwSolutions(Handle& handle,
                                             const TensorDescriptor& dwDesc,
                                             size_t maxSolutionCount,
                                             size_t* solutionCount,
-                                            miopenConvSolution_t* solutions) const
+                                            miopenConvSolution_t* solutions,
+                                            bool* const fallbackPathTaken) const
 {
     MIOPEN_LOG_I("");
     if(solutionCount == nullptr)
@@ -3552,6 +3566,8 @@ void ConvolutionDescriptor::GetWrwSolutions(Handle& handle,
                  solutions,
                  StringToConvolutionBwdWeightsAlgo);
 
+    if(fallbackPathTaken != nullptr)
+        *fallbackPathTaken = (*solutionCount == 0);
     if(*solutionCount == 0)
         GetSolutionsFallback(handle, problem, maxSolutionCount, solutionCount, solutions);
 }

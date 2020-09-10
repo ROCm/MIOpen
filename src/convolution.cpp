@@ -483,8 +483,9 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         /// actually required workspace here.
         size_t count;
         miopenConvSolution_t sol;
-        GetForwardSolutions(handle, wDesc, xDesc, yDesc, 1, &count, &sol);
-        if(count < 1 || (fm.IsHybrid() && sol.time < 0))
+        bool fallback;
+        GetForwardSolutions(handle, wDesc, xDesc, yDesc, 1, &count, &sol, &fallback);
+        if(count < 1 || (fm.IsHybrid() && fallback))
         {
             ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
                 fm.IsFastHybrid();
@@ -581,8 +582,9 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         /// \ref ffind_gwss_why_not_0
         size_t count;
         miopenConvSolution_t sol;
-        GetBackwardSolutions(handle, dyDesc, wDesc, dxDesc, 1, &count, &sol);
-        if(count < 1 || (fm.IsHybrid() && sol.time < 0))
+        bool fallback;
+        GetBackwardSolutions(handle, dyDesc, wDesc, dxDesc, 1, &count, &sol, &fallback);
+        if(count < 1 || (fm.IsHybrid() && fallback))
         {
             ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
                 fm.IsFastHybrid();
@@ -909,8 +911,9 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
         /// \ref ffind_gwss_why_not_0
         size_t count;
         miopenConvSolution_t sol;
-        GetWrwSolutions(handle, dyDesc, xDesc, dwDesc, 1, &count, &sol);
-        if(count < 1 || (fm.IsHybrid() && sol.time < 0))
+        bool fallback;
+        GetWrwSolutions(handle, dyDesc, xDesc, dwDesc, 1, &count, &sol, &fallback);
+        if(count < 1 || (fm.IsHybrid() && fallback))
         {
             ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
                 fm.IsFastHybrid();
