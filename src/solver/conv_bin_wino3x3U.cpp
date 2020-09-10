@@ -40,6 +40,14 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_3X3)
 namespace miopen {
 namespace solver {
 
+float ConvBinWinograd3x3U::GetWti(const ConvolutionContext& params) const
+{
+    // Temporary implementation that matches IsWinograd3x3SupportedAndFast().
+    if(params.n_outputs >= 16 && params.n_outputs % 2 == 0)
+        return 2.0;
+    return -2.0;
+}
+
 bool ConvBinWinograd3x3U::IsApplicable(const ConvolutionContext& params) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_3X3{}))
