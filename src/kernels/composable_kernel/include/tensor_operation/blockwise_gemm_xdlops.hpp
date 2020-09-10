@@ -190,36 +190,8 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
 #endif
     }
 
+    template <index_t AStride = GemmMPerWave, index_t BStride = GemmNPerWave>
     __device__ static MatrixIndex GetBeginOfThreadMatrixC(index_t i)
-    {
-
-        const index_t waveId = get_thread_local_1d_id() / WaveSize;
-
-#if CK_WORKAROUND_SWDEV_241664
-        const index_t xdlops_i = i / XdlopsGemm.GetOutputLayout().GetNumBlks();
-        const index_t j        = i % XdlopsGemm.GetOutputLayout().GetNumBlks();
-
-        const index_t m = xdlops_i / NRepeats;
-        const index_t n = xdlops_i % NRepeats;
-
-        const auto thread_mtx_on_blk = XdlopsGemm.GetBeginOfThreadBlk(j);
-
-        const index_t col =
-            (waveId % GemmNWaves) * GemmNPerWave + n * NPerXdlops + thread_mtx_on_blk.col;
-        const index_t row =
-            (waveId / GemmNWaves) * GemmMPerWave + m * MPerXdlops + thread_mtx_on_blk.row;
-#else
-        const auto thread_mtx_on_blk = XdlopsGemm.GetBeginOfThreadBlk(i);
-
-        const index_t col            = (waveId % GemmNWaves) * GemmNPerWave + thread_mtx_on_blk.col;
-        const index_t row            = (waveId / GemmNWaves) * GemmMPerWave + thread_mtx_on_blk.row;
-#endif
-
-        return MatrixIndex{row, col};
-    }
-
-    template <index_t AStride, index_t BStride>
-    __device__ static MatrixIndex GetBeginOfThreadMatrixCv2(index_t i)
     {
 
         const index_t waveId = get_thread_local_1d_id() / WaveSize;

@@ -1280,7 +1280,7 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gkn1bkpack_gmn_v2
                 // calculate origin of thread output tensor on global memory
                 //     blockwise GEMM c matrix starting index
                 const auto c_thread_mtx_on_block =
-                    blockwise_gemm.template GetBeginOfThreadMatrixCv2<MPerWave, B>(i);
+                    blockwise_gemm.template GetBeginOfThreadMatrixC<MPerWave, B>(i);
 
                 const index_t m_thread_data_on_global =
                     m_block_data_on_global + c_thread_mtx_on_block.row;
