@@ -51,10 +51,11 @@ extern "C" __global__
 
     // read params: tunning parameters
     constexpr index_t GemmMPerBlock = CK_PARAM_TUNABLE_GEMM_M_PER_BLOCK;
-    constexpr index_t GemmNPerBlock = CK_PARAM_TUNABLE_GEMM_N_PER_BLOCK;
+    constexpr index_t BPerBlock     = CK_PARAM_TUNABLE_GEMM_B_PER_BLOCK;
     constexpr index_t GemmKPerBlock = CK_PARAM_TUNABLE_GEMM_K_PER_BLOCK;
     constexpr index_t GemmMPerWave  = CK_PARAM_TUNABLE_GEMM_M_PER_WAVE;
-    constexpr index_t GemmNPerWave  = CK_PARAM_TUNABLE_GEMM_N_PER_WAVE;
+    constexpr index_t BPerWave      = CK_PARAM_TUNABLE_GEMM_B_PER_WAVE;
+    constexpr index_t N1            = CK_PARAM_TUNABLE_N1;
     constexpr index_t GemmKPack     = CK_PARAM_TUNABLE_GEMM_KPACK;
 
     // read params: dependent parameters
@@ -98,14 +99,11 @@ extern "C" __global__
     constexpr index_t GemmABlockCopyDstDataPerWrite_GemmKPack =
         CK_PARAM_DEPENDENT_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK;
 
-    constexpr index_t N1        = GemmNPerBlock / GemmNPerWave;
-    constexpr index_t BPerBlock = GemmNPerBlock / N1;
-
     // B matrix Copy
     constexpr index_t GemmBBlockCopyClusterLengths_GemmK =
-        CK_PARAM_DEPENDENT_GEMM_B_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_K * N1;
+        CK_PARAM_DEPENDENT_GEMM_B_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_K;
     constexpr index_t GemmBBlockCopyClusterLengths_B =
-        CK_PARAM_DEPENDENT_GEMM_B_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_N / N1;
+        CK_PARAM_DEPENDENT_GEMM_B_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_B;
     constexpr index_t GemmBBlockCopyClusterLengths_GemmKPack =
         CK_PARAM_DEPENDENT_GEMM_B_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_KPACK;
 
@@ -162,10 +160,10 @@ extern "C" __global__
             InLeftPads,
             InRightPads,
             GemmMPerBlock,
-            GemmNPerBlock,
+            BPerBlock,
             GemmKPerBlock,
             GemmMPerWave,
-            GemmNPerWave,
+            BPerWave,
             N1,
             GemmKPack,
             GemmABlockCopySubLengths_GemmG_GemmK_GemmM_GemmKPack,

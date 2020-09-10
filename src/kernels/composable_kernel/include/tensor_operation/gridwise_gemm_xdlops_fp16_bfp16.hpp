@@ -755,10 +755,10 @@ template <index_t GridSize,
           class BGlobalDesc,
           class CGlobalDesc,
           index_t MPerBlock,
-          index_t NPerBlock,
+          index_t BPerBlock,
           index_t KPerBlock,
           index_t MPerWave,
-          index_t NPerWave,
+          index_t BPerWave,
           class ABlockCopyThreadSliceLengths_G_K_M_KPACK,
           class ABlockCopyThreadClusterLengths_G_K_M_KPACK,
           class ABlockCopyThreadClusterArrangeOrder,
@@ -777,7 +777,7 @@ template <index_t GridSize,
           index_t BBlockCopyDstDataPerWrite_KPACK,
           InMemoryDataOperation CGlobalMemoryOp,
           WorkgroupScheduleOrder WorkgroupSchdOrder>
-struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
+struct GridwiseBatchGemmXdlops_gkmkpack_gkn1bkpack_gmn_v2
 {
     __device__ void Run(const ABFloat* const __restrict__ p_a_global,
                         const ABFloat* const __restrict__ p_b_global,
@@ -798,20 +798,18 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
         constexpr auto B     = b_g_k_n1_b_kpack_global_desc.GetLengths()[3];
         constexpr auto KPack = b_g_k_n1_b_kpack_global_desc.GetLengths()[4];
 
-        constexpr index_t BPerBlock = NPerBlock / in_N1;
-
         // divide block work by [M, N]
         static_assert(M % MPerBlock == 0 && B % BPerBlock == 0 && K % KPerBlock == 0,
                       "wrong! cannot divide work evenly among block");
 
         constexpr index_t MBlockWork = M / MPerBlock;
-        constexpr index_t NBlockWork = N / NPerBlock;
+        constexpr index_t BBlockWork = B / BPerBlock;
 
         constexpr index_t MWavePerBlock = MPerBlock / MPerWave;
-        constexpr index_t NWavePerBlock = NPerBlock / NPerWave;
+        constexpr index_t BWavePerBlock = in_N1;
 
         constexpr auto block_work_sequence =
-            make_batch_block_work_sequence<G, MBlockWork, NBlockWork, WorkgroupSchdOrder>{}.get();
+            make_batch_block_work_sequence<G, MBlockWork, BBlockWork, WorkgroupSchdOrder>{}.get();
         constexpr auto block_work_desc = make_cluster_descriptor(block_work_sequence);
 
         const auto block_work_id = block_work_desc.CalculateClusterIndex(get_block_1d_id());
@@ -877,13 +875,13 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
         // GEMM definition
         // c_mtx += transpose(a_mtx) * b_mtx
         //     a_mtx[KPerBlock, MPerBlock] is in LDS
-        //     b_mtx[KPerBlocl, NPerBlock] is in LDS
-        //     c_mtx[MPerBlock, NPerBlock] is distributed among threads, and saved in
+        //     b_mtx[KPerBlocl, BPerBlock * in_N1] is in LDS
+        //     c_mtx[MPerBlock, BPerBlock * in_N1] is distributed among threads, and saved in
         //     register
         constexpr auto a_k_m_block_mtx_desc =
             make_ConstantMatrixDescriptor_packed(Number<KPerBlock>{}, Number<MPerBlock>{});
         constexpr auto b_k_n_block_mtx_desc =
-            make_ConstantMatrixDescriptor_packed(Number<KPerBlock>{}, Number<NPerBlock>{});
+            make_ConstantMatrixDescriptor_packed(Number<KPerBlock>{}, Number<BPerBlock * in_N1>{});
 
         const auto blockwise_gemm = BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops<
             BlockSize,
@@ -891,9 +889,9 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
             decltype(b_k_n_block_mtx_desc),
             ABFloat,
             MPerWave,
-            NPerWave,
+            BPerWave * in_N1,
             MWavePerBlock,
-            NWavePerBlock,
+            BWavePerBlock,
             1,
             1>{};
 
@@ -1001,15 +999,14 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
             {
                 // calculate origin of thread output tensor on global memory
                 //     blockwise GEMM c matrix starting index
-                const auto c_thread_mtx_on_block = blockwise_gemm.GetBeginOfThreadMatrixC(i);
+                const auto c_thread_mtx_on_block =
+                    blockwise_gemm.template GetBeginOfThreadMatrixCv2<MPerWave, B>(i);
 
                 const index_t m_thread_data_on_global =
                     m_block_data_on_global + c_thread_mtx_on_block.row;
 
-                const auto wave_id = get_thread_local_1d_id() / 64;
-
                 const index_t n_thread_data_on_global =
-                    b_block_data_on_global + c_thread_mtx_on_block.col + (wave_id % in_N1) * B;
+                    b_block_data_on_global + c_thread_mtx_on_block.col;
 
                 ThreadwiseGenericTensorSliceCopy_v4r2<decltype(c_g_m0_m1_m2_n_thread_desc),
                                                       decltype(c_g_m0_m1_m2_n_global_desc),

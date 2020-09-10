@@ -23,10 +23,10 @@ template <index_t GridSize,
           class InLeftPads,
           class InRightPads,
           index_t GemmMPerBlock,
-          index_t GemmNPerBlock,
+          index_t BPerBlock,
           index_t GemmKPerBlock,
           index_t GemmMPerWave,
-          index_t GemmNPerWave,
+          index_t BPerWave,
           index_t N1,
           index_t GemmKPack,
           class GemmABlockCopyThreadSliceLengths_GemmG_GemmK_GemmM_GemmKPack,
@@ -77,9 +77,7 @@ struct GridwiseConvolutionForwardImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw
         constexpr index_t ConvDilationH = ConvDilations{}[0];
         constexpr index_t ConvDilationW = ConvDilations{}[1];
 
-        constexpr index_t N0        = N / N1;
-        constexpr index_t BPerBlock = GemmNPerBlock / N1;
-
+        constexpr index_t N0         = N / N1;
         constexpr index_t GemmG      = G;
         constexpr index_t GemmM      = KPerGroup;
         constexpr index_t B          = N0 * Ho * Wo;
@@ -171,7 +169,7 @@ struct GridwiseConvolutionForwardImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw
 
 #if 1
         // gridwise batch-GEMM
-        constexpr auto gridwise_gemm = GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2<
+        constexpr auto gridwise_gemm = GridwiseBatchGemmXdlops_gkmkpack_gkn1bkpack_gmn_v2<
             GridSize,
             BlockSize,
             ABFloat,
@@ -181,10 +179,10 @@ struct GridwiseConvolutionForwardImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw
             decltype(in_gemmg_gemmk_n1_b_gemmkpack_global_desc),
             decltype(out_gemmg_gemmm_gemmn_global_desc),
             GemmMPerBlock,
-            GemmNPerBlock,
+            BPerBlock,
             GemmKPerBlock,
             GemmMPerWave,
-            GemmNPerWave,
+            BPerWave,
             GemmABlockCopyThreadSliceLengths_GemmG_GemmK_GemmM_GemmKPack,
             GemmABlockCopyThreadClusterLengths_GemmG_GemmK_GemmM_GemmKPack,
             GemmABlockCopyThreadClusterArrangeOrder,
