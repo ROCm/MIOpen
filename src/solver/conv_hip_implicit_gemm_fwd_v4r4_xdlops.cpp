@@ -916,7 +916,9 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
              GemmBBlockCopyDstDataPerWrite_GemmKPack,
              std::ignore) = config.CalculateGemmBBlockCopyPerformanceParameters(ctx);
 
-    const auto N1 = config.GemmNPerBlock / config.GemmNPerWave;
+    const auto N1        = config.GemmNPerBlock / config.GemmNPerWave;
+    const auto BPerBlock = config.GemmNPerBlock / N1;
+    const auto BPerWave  = config.GemmNPerWave / N1;
 
     // clang-format off
     construction_parameters.comp_options =
@@ -940,10 +942,10 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
         std::string(" -DCK_PARAM_PROBLEM_IN_RIGHT_PAD_H=") + std::to_string(ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx)) +
         std::string(" -DCK_PARAM_PROBLEM_IN_RIGHT_PAD_W=") + std::to_string(ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx)) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_M_PER_BLOCK=") + std::to_string(config.GemmMPerBlock) +
-        std::string(" -DCK_PARAM_TUNABLE_GEMM_B_PER_BLOCK=") + std::to_string(config.GemmNPerBlock / N1) +
+        std::string(" -DCK_PARAM_TUNABLE_GEMM_B_PER_BLOCK=") + std::to_string(BPerBlock) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_K_PER_BLOCK=") + std::to_string(config.GemmKPerBlock) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_M_PER_WAVE=") + std::to_string(config.GemmMPerWave) +
-        std::string(" -DCK_PARAM_TUNABLE_GEMM_B_PER_WAVE=") + std::to_string(config.GemmNPerWave / N1) +
+        std::string(" -DCK_PARAM_TUNABLE_GEMM_B_PER_WAVE=") + std::to_string(BPerWave) +
         std::string(" -DCK_PARAM_TUNABLE_N1=") + std::to_string(N1) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_KPACK=") + std::to_string(config.GemmKPack) +
         std::string(" -DCK_PARAM_DEPENDENT_BLOCK_SIZE=") + std::to_string(block_size) +
