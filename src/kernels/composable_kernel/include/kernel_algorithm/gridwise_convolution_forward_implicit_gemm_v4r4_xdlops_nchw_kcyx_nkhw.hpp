@@ -167,7 +167,6 @@ struct GridwiseConvolutionForwardImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw
             make_tuple(Sequence<0>{}, Sequence<2>{}, Sequence<1, 3, 4>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
 
-#if 1
         // gridwise batch-GEMM
         constexpr auto gridwise_gemm = GridwiseBatchGemmXdlops_gkmkpack_gkn1bkpack_gmn_v2<
             GridSize,
@@ -203,7 +202,6 @@ struct GridwiseConvolutionForwardImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw
             WorkgroupSchdOrder>{};
 
         gridwise_gemm.Run(p_wei_global, p_in_global, p_out_global);
-#endif
     }
 };
 
