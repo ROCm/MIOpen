@@ -262,7 +262,8 @@ void BatchNormForwardTraining(Handle& handle,
                         std::to_string(variant) + " -DMIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) +
                         " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) + " -DMIO_BN_N=" +
                         std::to_string(n) + " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) +
-                            " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
+                        " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" +
+                        std::to_string(zlocalsize);
 
                 if(variant != 4)
                 {
