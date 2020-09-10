@@ -629,8 +629,8 @@ struct verify_forward_conv : conv_base<T, Tout>
                                                 rout.desc,
                                                 1,
                                                 &count,
-                                                &selected &
-                                                    fallback_path_taken); /// \ref read_solver_name
+                                                &selected,
+                                                &fallback_path_taken); /// \ref read_solver_name
                 }
                 else
                 {
@@ -1463,7 +1463,8 @@ struct verify_forward_conv_int8 : conv_base<T>
         }
 
         // std::cout << "Forward Conv solutions available: " << count << std::endl;
-        auto solutions = std::vector<miopenConvSolution_t>(count);
+        auto solutions           = std::vector<miopenConvSolution_t>(count);
+        bool fallback_path_taken = false;
 
         filter.GetForwardSolutions(handle,
                                    (is_transform ? weight_vpad_desc : weights.desc),
@@ -1472,7 +1473,7 @@ struct verify_forward_conv_int8 : conv_base<T>
                                    count,
                                    &count,
                                    solutions.data(),
-                                   fallback_path_taken);
+                                   &fallback_path_taken);
 
         if(count == 0)
         {
