@@ -455,18 +455,6 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
     ctx.do_search             = false;
     ctx.disable_perfdb_access = true;
 
-    const size_t workspace_size_winograd = ForwardBackwardDataGetWorkSpaceSizeWinograd(ctx);
-
-    if(IsWinograd3x3SupportedAndFast(ctx))
-    {
-        // In some cases ConvMPBidirectWinograd solution faster than single pass
-        // versions and it requires non zero workspace.
-        // So we can't send 0 and cut off the potentially fastest solution.
-        MIOPEN_LOG_I2(workspace_size_winograd);
-        return workspace_size_winograd;
-    }
-
-    /// \ref ffind_special_cases
     const miopen::FindMode fm(ctx);
     while(fm.IsFast() || fm.IsHybrid())
     {
@@ -493,6 +481,16 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         }
         MIOPEN_LOG_I2(sol.workspace_size);
         return sol.workspace_size;
+    }
+
+    const size_t workspace_size_winograd = ForwardBackwardDataGetWorkSpaceSizeWinograd(ctx);
+    if(IsWinograd3x3SupportedAndFast(ctx))
+    {
+        // In some cases ConvMPBidirectWinograd solution faster than single pass
+        // versions and it requires non zero workspace.
+        // So we can't send 0 and cut off the potentially fastest solution.
+        MIOPEN_LOG_I2(workspace_size_winograd);
+        return workspace_size_winograd;
     }
 
     const size_t direct_workspace = ForwardBackwardDataGetWorkSpaceSizeDirect(ctx);
@@ -568,14 +566,6 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
     ctx.do_search             = false;
     ctx.disable_perfdb_access = true;
 
-    const size_t workspace_size_winograd = ForwardBackwardDataGetWorkSpaceSizeWinograd(ctx);
-    if(IsWinograd3x3SupportedAndFast(ctx))
-    {
-        MIOPEN_LOG_I2(workspace_size_winograd);
-        return workspace_size_winograd;
-    }
-
-    /// \ref ffind_special_cases
     const miopen::FindMode fm(ctx);
     while(fm.IsFast() || fm.IsHybrid())
     {
@@ -592,6 +582,13 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         }
         MIOPEN_LOG_I2(sol.workspace_size);
         return sol.workspace_size;
+    }
+
+    const size_t workspace_size_winograd = ForwardBackwardDataGetWorkSpaceSizeWinograd(ctx);
+    if(IsWinograd3x3SupportedAndFast(ctx))
+    {
+        MIOPEN_LOG_I2(workspace_size_winograd);
+        return workspace_size_winograd;
     }
 
     const size_t direct_workspace = ForwardBackwardDataGetWorkSpaceSizeDirect(ctx);

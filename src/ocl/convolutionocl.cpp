@@ -752,30 +752,15 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     *returnedAlgoCount = 0;
 
     const ProblemDescription problem(xDesc, wDesc, yDesc, *this, conv::Direction::Forward);
-
     auto ctx = ConvolutionContext{problem};
     ctx.SetStream(&handle);
-    ctx.DetectRocm();
-    ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
-    bufs.SetFwd(x, w, y);
-    ctx.SetBufs(bufs);
-    const bool use_winograd_only = IsWinograd3x3SupportedAndFast(ctx);
 
     std::vector<PerfField> perf_db;
 
     const miopen::FindMode fm(ctx);
-    /// \section ffind_special_cases
-    /// Fast Find mode: Let's allow known fast-to-build special cases
-    /// (this is only Winograd 3x3 so far) to override switching to Immediate mode.
-    /// This minimizes performance drop in Fast Find mode at for free.
-    /// Otherwise we can hit Immediate mode fallback (which is just GEMM
-    /// right now) in many cases. -- atamazov 21 Nov 2019.
-    ///
-    /// \todo Revise this (and similar cases) when Immediate mode
-    /// will be better elaborated.
     bool use_immediate_solution = false;
     miopenConvSolution_t sol;
-    if((fm.IsFast() || fm.IsHybrid()) && !use_winograd_only)
+    if(fm.IsFast() || fm.IsHybrid())
     {
         size_t count;
         bool fallback;
@@ -795,6 +780,10 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     }
     else
     {
+        ctx.DetectRocm();
+        ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
+        bufs.SetFwd(x, w, y);
+        ctx.SetBufs(bufs);
         ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
             miopen::FindMode(ctx).IsFastHybrid();
         perf_db = UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
@@ -811,7 +800,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                             exhaustiveSearch,
                             record,
                             ctx,
-                            use_winograd_only);
+                            IsWinograd3x3SupportedAndFast(ctx));
         });
     }
 
@@ -2045,21 +2034,12 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     AutoEnableProfiling enableProfiling{handle};
 
     const ProblemDescription problem(dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData);
-
-    const auto use_winograd_only = [&]() {
-        auto ctx = ConvolutionContext{problem};
-        ctx.SetStream(&handle);
-        ctx.DetectRocm();
-        return IsWinograd3x3SupportedAndFast(ctx);
-    }();
-
     std::vector<PerfField> perf_db;
 
     const miopen::FindMode fm(problem);
-    /// \ref ffind_special_cases
     bool use_immediate_solution = false;
     miopenConvSolution_t imm_sol;
-    if((fm.IsFast() || fm.IsHybrid()) && !use_winograd_only)
+    if(fm.IsFast() || fm.IsHybrid())
     {
         size_t count;
         bool fallback;
@@ -2078,6 +2058,13 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     }
     else
     {
+        const auto use_winograd_only = [&]() {
+            auto ctx = ConvolutionContext{problem};
+            ctx.SetStream(&handle);
+            ctx.DetectRocm();
+            return IsWinograd3x3SupportedAndFast(ctx);
+        }();
+
         perf_db = UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
             const auto network_config = problem.BuildConfKey();
             const auto invoke_ctx     = conv::DataInvokeParams{
