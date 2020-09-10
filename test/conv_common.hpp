@@ -1793,7 +1793,7 @@ struct conv_driver : test_driver
                 }
 #endif
 
-                // bwd53 kernel (large images supported) doesnt support stride !=1 and dialation and
+                // bwd53 kernel (large images supported) doesnt support stride !=1 and dilation and
                 // pad.
                 if(filter.GetSpatialDimension() == 2 && in_spatial_len[1] >= 2048 &&
                    ((filter.GetConvStrides()[0] != 1) || (filter.GetConvStrides()[1] != 1) ||

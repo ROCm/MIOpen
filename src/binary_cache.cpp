@@ -87,15 +87,28 @@ boost::filesystem::path GetCachePath(bool is_system)
     static const boost::filesystem::path user_path = ComputeUserCachePath();
     static const boost::filesystem::path sys_path  = ComputeSysCachePath();
     if(is_system)
-        return sys_path;
+    {
+        if(MIOPEN_DISABLE_SYSDB)
+            return {};
+        else
+            return sys_path;
+    }
     else
-        return user_path;
+    {
+        if(MIOPEN_DISABLE_USERDB)
+            return {};
+        else
+            return user_path;
+    }
 }
 
 static bool IsCacheDisabled()
 {
 #ifdef MIOPEN_CACHE_DIR
-    return miopen::IsEnabled(MIOPEN_DISABLE_CACHE{});
+    if(MIOPEN_DISABLE_USERDB && MIOPEN_DISABLE_SYSDB)
+        return true;
+    else
+        return miopen::IsEnabled(MIOPEN_DISABLE_CACHE{});
 #else
     return true;
 #endif
@@ -143,9 +156,15 @@ std::string LoadBinary(const std::string& device,
     MIOPEN_LOG_I2("Loading binary for: " << name << " ;args: " << args);
     auto record = db.FindRecord(cfg);
     if(record)
+    {
+        MIOPEN_LOG_I2("Sucessfully loaded binary for: " << name << " ;args: " << args);
         return record.get();
+    }
     else
+    {
+        MIOPEN_LOG_I2("Unable to load binary for: " << name << " ;args: " << args);
         return {};
+    }
 }
 
 void SaveBinary(const std::string& hsaco,

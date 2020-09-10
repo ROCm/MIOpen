@@ -73,6 +73,10 @@
 #ifndef CK_WORKAROUND_SWDEV_231101
 #define CK_WORKAROUND_SWDEV_231101 1
 #endif
+// workaround for accvgpr over-allocation
+#ifndef CK_WORKAROUND_SWDEV_241664
+#define CK_WORKAROUND_SWDEV_241664 1
+#endif
 
 namespace ck {
 
@@ -96,7 +100,7 @@ using index_t = uint32_t;
 using index_t = int32_t;
 #endif
 
-// int32x4_t use by buffer_load and buffer_store llvm intrinsic
+// int32x4_t used by buffer addressing LLVM intrinsic
 typedef int32_t int32x4_t __attribute__((ext_vector_type(4)));
 
 } // namespace ck
