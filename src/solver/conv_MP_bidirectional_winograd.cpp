@@ -156,7 +156,7 @@ bool ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsA
         return false;
     if(!params.Is2d())
         return false;
-    if(params.direction.IsBackwardWrW())
+    if(!(params.direction.IsForward() || params.direction.IsBackwardData()))
         return false;
     if(!params.IsFp32())
         return false;
@@ -390,7 +390,7 @@ ConvSolution ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilte
             const auto tensors  = data_ctx.tensors;
             Data_t workSpace = data_ctx.workSpace;
             float total_time    = 0;
-            
+
             for(int i = 0, cur=0; i < 4; i++)
             {
                 std::string kernel_name ;
