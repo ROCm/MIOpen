@@ -261,30 +261,30 @@ void bnFwdTrainSelectMulti(const Handle& handle,
 }
 
 void bnFwdTrainSelectSingleEmpty(const Handle& handle,
-                            miopenDataType_t dtype,
-                            const std::string& program_name,
-                            const std::string& algo_name,
-                            const std::string& kernel_name,
-                            const std::string& network_config,
-                            const std::string& parms,
-                            const std::vector<size_t>& vld,
-                            const std::vector<size_t>& vgd,
-                            ConstData_t x,
-                            Data_t y,
-                            ConstData_t bnScale,
-                            ConstData_t bnBias,
-                            bool resultsave,
-                            bool resultrunning,
-                            double expAvgFactor,
-                            Data_t resultRunningMean,
-                            Data_t resultRunningVariance,
-                            double epsilon,
-                            Data_t resultSaveMean,
-                            Data_t resultSaveInvVariance,
-                            float inhw,
-                            unsigned int n,
-                            unsigned int in_cstride,
-                            unsigned int in_nstride)
+                                 miopenDataType_t dtype,
+                                 const std::string& program_name,
+                                 const std::string& algo_name,
+                                 const std::string& kernel_name,
+                                 const std::string& network_config,
+                                 const std::string& parms,
+                                 const std::vector<size_t>& vld,
+                                 const std::vector<size_t>& vgd,
+                                 ConstData_t x,
+                                 Data_t y,
+                                 ConstData_t bnScale,
+                                 ConstData_t bnBias,
+                                 bool resultsave,
+                                 bool resultrunning,
+                                 double expAvgFactor,
+                                 Data_t resultRunningMean,
+                                 Data_t resultRunningVariance,
+                                 double epsilon,
+                                 Data_t resultSaveMean,
+                                 Data_t resultSaveInvVariance,
+                                 float inhw,
+                                 unsigned int n,
+                                 unsigned int in_cstride,
+                                 unsigned int in_nstride)
 {
 
     visit_float(dtype, [&](auto as_float) {
@@ -293,7 +293,8 @@ void bnFwdTrainSelectSingleEmpty(const Handle& handle,
         {
             if(n > 2)
             {
-                handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+                handle.AddKernel(
+                    algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
                     x,
                     y,
                     bnScale,
@@ -308,7 +309,8 @@ void bnFwdTrainSelectSingleEmpty(const Handle& handle,
             }
             else
             {
-                handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+                handle.AddKernel(
+                    algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
                     x,
                     y,
                     bnScale,
@@ -323,13 +325,13 @@ void bnFwdTrainSelectSingleEmpty(const Handle& handle,
                     in_cstride,
                     in_nstride);
             }
-            
         }
         else if(resultsave)
         {
             if(n > 2)
             {
-                handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+                handle.AddKernel(
+                    algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
                     x,
                     y,
                     bnScale,
@@ -341,7 +343,8 @@ void bnFwdTrainSelectSingleEmpty(const Handle& handle,
             }
             else
             {
-                handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+                handle.AddKernel(
+                    algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
                     x,
                     y,
                     bnScale,
@@ -353,13 +356,13 @@ void bnFwdTrainSelectSingleEmpty(const Handle& handle,
                     in_cstride,
                     in_nstride);
             }
-            
         }
         else if(resultrunning)
         {
             if(n > 2)
             {
-                handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+                handle.AddKernel(
+                    algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
                     x,
                     y,
                     bnScale,
@@ -372,7 +375,8 @@ void bnFwdTrainSelectSingleEmpty(const Handle& handle,
             }
             else
             {
-                handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+                handle.AddKernel(
+                    algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
                     x,
                     y,
                     bnScale,
@@ -390,46 +394,40 @@ void bnFwdTrainSelectSingleEmpty(const Handle& handle,
         {
             if(n > 2)
             {
-                handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+                handle.AddKernel(
+                    algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
                     x, y, bnScale, bnBias, as_float(inhw), epsilon);
             }
             else
             {
-                handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-                    x,
-                    y,
-                    bnScale,
-                    bnBias,
-                    as_float(inhw),
-                    epsilon,
-                    in_cstride,
-                    in_nstride);
+                handle.AddKernel(
+                    algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+                    x, y, bnScale, bnBias, as_float(inhw), epsilon, in_cstride, in_nstride);
             }
         }
     });
 }
 
-
 void bnFwdTrainSelectSingleFull(const Handle& handle,
-                            miopenDataType_t dtype,
-                            const std::string& algo_name,
-                            const std::string& network_config,
-                            ConstData_t x,
-                            Data_t y,
-                            ConstData_t bnScale,
-                            ConstData_t bnBias,
-                            bool resultsave,
-                            bool resultrunning,
-                            double expAvgFactor,
-                            Data_t resultRunningMean,
-                            Data_t resultRunningVariance,
-                            double epsilon,
-                            Data_t resultSaveMean,
-                            Data_t resultSaveInvVariance,
-                            float inhw,
-                            unsigned int n,
-                            unsigned int in_cstride,
-                            unsigned int in_nstride)
+                                miopenDataType_t dtype,
+                                const std::string& algo_name,
+                                const std::string& network_config,
+                                ConstData_t x,
+                                Data_t y,
+                                ConstData_t bnScale,
+                                ConstData_t bnBias,
+                                bool resultsave,
+                                bool resultrunning,
+                                double expAvgFactor,
+                                Data_t resultRunningMean,
+                                Data_t resultRunningVariance,
+                                double epsilon,
+                                Data_t resultSaveMean,
+                                Data_t resultSaveInvVariance,
+                                float inhw,
+                                unsigned int n,
+                                unsigned int in_cstride,
+                                unsigned int in_nstride)
 {
 
     auto&& kernels = handle.GetKernels(algo_name, network_config);
@@ -442,59 +440,59 @@ void bnFwdTrainSelectSingleFull(const Handle& handle,
                 if(n > 2)
                 {
                     kernel(x,
-                            y,
-                            bnScale,
-                            bnBias,
-                            as_float(inhw),
-                            expAvgFactor,
-                            resultRunningMean,
-                            resultRunningVariance,
-                            epsilon,
-                            resultSaveMean,
-                            resultSaveInvVariance);
+                           y,
+                           bnScale,
+                           bnBias,
+                           as_float(inhw),
+                           expAvgFactor,
+                           resultRunningMean,
+                           resultRunningVariance,
+                           epsilon,
+                           resultSaveMean,
+                           resultSaveInvVariance);
                 }
                 else
                 {
                     kernel(x,
-                            y,
-                            bnScale,
-                            bnBias,
-                            as_float(inhw),
-                            expAvgFactor,
-                            resultRunningMean,
-                            resultRunningVariance,
-                            epsilon,
-                            resultSaveMean,
-                            resultSaveInvVariance,
-                            in_cstride,
-                            in_nstride);
-                }   
+                           y,
+                           bnScale,
+                           bnBias,
+                           as_float(inhw),
+                           expAvgFactor,
+                           resultRunningMean,
+                           resultRunningVariance,
+                           epsilon,
+                           resultSaveMean,
+                           resultSaveInvVariance,
+                           in_cstride,
+                           in_nstride);
+                }
             }
             else if(resultsave)
             {
                 if(n > 2)
                 {
                     kernel(x,
-                            y,
-                            bnScale,
-                            bnBias,
-                            as_float(inhw),
-                            epsilon,
-                            resultSaveMean,
-                            resultSaveInvVariance);
+                           y,
+                           bnScale,
+                           bnBias,
+                           as_float(inhw),
+                           epsilon,
+                           resultSaveMean,
+                           resultSaveInvVariance);
                 }
                 else
                 {
                     kernel(x,
-                            y,
-                            bnScale,
-                            bnBias,
-                            as_float(inhw),
-                            epsilon,
-                            resultSaveMean,
-                            resultSaveInvVariance,
-                            in_cstride,
-                            in_nstride);
+                           y,
+                           bnScale,
+                           bnBias,
+                           as_float(inhw),
+                           epsilon,
+                           resultSaveMean,
+                           resultSaveInvVariance,
+                           in_cstride,
+                           in_nstride);
                 }
             }
             else if(resultrunning)
@@ -502,28 +500,28 @@ void bnFwdTrainSelectSingleFull(const Handle& handle,
                 if(n > 2)
                 {
                     kernel(x,
-                            y,
-                            bnScale,
-                            bnBias,
-                            as_float(inhw),
-                            expAvgFactor,
-                            resultRunningMean,
-                            resultRunningVariance,
-                            epsilon);
+                           y,
+                           bnScale,
+                           bnBias,
+                           as_float(inhw),
+                           expAvgFactor,
+                           resultRunningMean,
+                           resultRunningVariance,
+                           epsilon);
                 }
                 else
                 {
                     kernel(x,
-                            y,
-                            bnScale,
-                            bnBias,
-                            as_float(inhw),
-                            expAvgFactor,
-                            resultRunningMean,
-                            resultRunningVariance,
-                            epsilon,
-                            in_cstride,
-                            in_nstride);
+                           y,
+                           bnScale,
+                           bnBias,
+                           as_float(inhw),
+                           expAvgFactor,
+                           resultRunningMean,
+                           resultRunningVariance,
+                           epsilon,
+                           in_cstride,
+                           in_nstride);
                 }
             }
             else
@@ -543,15 +541,8 @@ void bnFwdTrainSelectSingleFull(const Handle& handle,
     {
         MIOPEN_LOG_E("MIOpen Batch Norm attempting to execute on empty kernel cache assumed full.");
         MIOPEN_THROW(miopenStatusInternalError);
-    }  
+    }
 }
-
-
-
-
-
-
-
 
 void bnBwdTrainSelectSingle(const Handle& handle,
                             miopenDataType_t dtype,
@@ -588,8 +579,6 @@ void bnBwdTrainSelectSingle(const Handle& handle,
         }
     });
 }
-
-
 
 void bnBwdTrainSelectMulti(const Handle& handle,
                            miopenDataType_t dtype,
