@@ -1,4 +1,5 @@
-
+import groovy.transform.NamedParam
+import groovy.transform.NamedDelegate
 
 def rocmnode(name) {
     def node_name = 'rocmtest'
@@ -57,7 +58,8 @@ def cmake_build(compiler, flags, env4make, prefixpath){
     }
 }
 
-def buildJob(compiler, flags, env4make, image, prefixpath="/opt/rocm", cmd = ""){
+@NamedVariant
+def buildJob(compiler, @NamedParam flags = "", @NamedParam env4make= "", @NamedParam image = "miopen", @NamedParam prefixpath="/opt/rocm", @NamedParam cmd = ""){
 
         env.HSA_ENABLE_SDMA=0 
         checkout scm
@@ -157,7 +159,7 @@ pipeline {
                         cmd = "rm -rf build; mkdir build; cd build; CXX='clang++-3.8' cmake -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
                     }
                     steps{
-                        buildJob('hcc', '-DCMAKE_BUILD_TYPE=release', "", image, "", cmd)
+                        buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd)
                     }
                 }
 
@@ -175,7 +177,7 @@ pipeline {
                                 | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-3.8 -style=file {} | diff - {}\'"
                     }
                     steps{
-                        buildJob('hcc', '-DCMAKE_BUILD_TYPE=release', "", image, "", cmd)
+                        buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd)
                     }
                 }
 
@@ -185,7 +187,7 @@ pipeline {
                         cmd = "rm -rf build; mkdir build; cd build; CXX=/usr/local/bin/hcc cmake -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
                     }
                     steps{
-                        buildJob('hcc', '-DCMAKE_BUILD_TYPE=release', "", image, "", cmd)
+                        buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd)
                     }
                 }
             }
@@ -197,42 +199,42 @@ pipeline {
                stage('Clang Debug') {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildJob('clang++-3.8', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', "", image, "")
+                        buildJob('clang++-3.8', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
                     }
                 }
 
                 stage('Clang Release') {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildJob('clang++-3.8', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', "", image, "")
+                        buildJob('clang++-3.8', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release')
                     }
                 }
 
                 stage('GCC Debug') {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildJob('g++-5', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', "", image, "")
+                        buildJob('g++-5', 'flags: -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
                     }
                 }
 
                 stage('GCC Release') {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildJob('g++-5', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', "", image, "")
+                        buildJob('g++-5', 'flags: -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release')
                     }
                 }
 
                 stage('Fiji GCC Debug') {
                     agent{ label rocmnode("fiji") }
                     steps{
-                        buildJob('g++-5', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', "", image, "")
+                        buildJob('g++-5', 'flags: -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
                     }
                 }
 
                 stage('Hip Release') {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildJob('hcc', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', "", image + "rocm")
+                        buildJob('hcc', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image + "rocm")
                     }
                 }
 
@@ -259,7 +261,7 @@ pipeline {
                 stage('gfx908 Hip debug') {
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildJob('hcc', '-DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', "", image + "rocm")
+                        buildJob('hcc', '-DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', image: image+"rocm")
                     }
                 }
             }
@@ -361,7 +363,7 @@ pipeline {
                 stage('Hip Release on /usr/local') {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildJob('hcc', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', "", image, "")
+                        buildJob('hcc', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release')
                     }
                 }
 
@@ -374,63 +376,63 @@ pipeline {
                 stage('Half Hip Release') {
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildJob('hcc', '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', "", image + "rocm")
+                        buildJob('hcc', flags: '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image+"rocm")
                     }
                 }
 
                 stage('Half GCC Debug') {
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildJob('g++-5', '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', "", image, "")
+                        buildJob('g++-5', flags: '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
                     }
                 }
     
                 stage('Half GCC Release') {
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildJob('g++-5', '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', "", image, "")
+                        buildJob('g++-5', flags: '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release')
                     }
                 }
 
                 stage('Int8 Hip Release') {
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildJob('hcc', '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', "", image + "rocm")
+                        buildJob('hcc', flags: '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image+"rocm")
                     }
                 }
 
                 stage('Int8 GCC Debug') {
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildJob('g++-5', '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', "", image, "")
+                        buildJob('g++-5', flags: '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
                     }
                 }
 
                 stage('Int8 GCC Release') {
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildJob('g++-5', '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', "", image, "")
+                        buildJob('g++-5', flags: '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release')
                     }
                 }
 
                 stage('Bfloat16 Hip Release') {
                     agent{ label rocmnode("vega20") }   
                     steps{
-                        buildJob('hcc', '-DMIOPEN_TEST_BFLOAT16=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', "", image + "rocm")
+                        buildJob('hcc', flags: '-DMIOPEN_TEST_BFLOAT16=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image+"rocm")
                     }
                 }
 
                 stage('Bfloat16 gfx908 Hip Debug') {
                     agent{ label rocmnode("gfx908") }   
                     steps{
-                        buildJob('hcc', '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', "", image + "rocm")
+                        buildJob('hcc', flags: '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', image: image+"rocm")
                     }
                 }
 
                 stage('Half gfx908 Hip Debug') {
                     agent{ label rocmnode("gfx908") }   
                     steps{
-                        buildJob('hcc', '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', "", image + "rocm")
+                        buildJob('hcc', flags: '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', image: image+"rocm")
                     }
                 }
             }
@@ -441,7 +443,7 @@ pipeline {
                 stage('Int8 Hip Release All') {
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildJob('hcc', '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', "", image + "rocm")
+                        buildJob('hcc', flags: '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image: image+"rocm")
                     }
                 }
 
@@ -487,7 +489,7 @@ pipeline {
                 stage('GCC Release All') {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildJob('g++-5', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', "", image, "")
+                        buildJob('g++-5', flags: '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
                     }
                 }
                 
@@ -574,13 +576,13 @@ pipeline {
                 stage('GCC OpenCL Release package') {
                     agent{ label rocmnode("rocmtest") }
                     steps{
-                        buildJob('g++-5', '-DCMAKE_BUILD_TYPE=release', "", image, "")
+                        buildJob('g++-5', flags: '-DCMAKE_BUILD_TYPE=release', "", image, "")
                     }
                 }
                 stage("HCC HIP Release package"){
                     agent{ label rocmnode("rocmtest") }
                     steps{
-                        buildJob('hcc', '-DCMAKE_BUILD_TYPE=release', "", image + "rocm")
+                        buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', image: image+"rocm")
                     }
                 }
             }
