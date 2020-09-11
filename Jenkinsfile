@@ -28,7 +28,7 @@ def cmake_build(compiler, flags, env4make, prefixpath){
     def debug_flags = "-g -fno-omit-frame-pointer -fsanitize=undefined -fno-sanitize-recover=undefined"
     def compilerpath = ""
     def configargs = ""
-    if (prefixpath == "")
+    if (prefixpath == "/usr/local")
         compilerpath = compiler;
     else
     {
