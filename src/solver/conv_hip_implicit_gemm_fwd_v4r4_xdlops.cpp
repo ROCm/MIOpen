@@ -399,10 +399,10 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmBBlockCopyPerformancePara
     // B tensor shape [GemmG, GemmK, GemmN, GemmKPack]
 
     int ClusterLengths_GemmK     = -1;
-    int ClusterLengths_GemmN     = -1;
+    int ClusterLengths_B         = -1;
     int ClusterLengths_GemmKPack = -1;
-    int SrcDataPerRead_GemmN     = ctx.IsFp32() ? amd_buffer_load_max_length<float>()
-                                            : amd_buffer_load_max_length<half_float::half>();
+    int SrcDataPerRead_B         = ctx.IsFp32() ? amd_buffer_load_max_length<float>()
+                                        : amd_buffer_load_max_length<half_float::half>();
     int DstDataPerWrite_GemmKPack = ctx.IsFp32() ? amd_lds_write_max_length<float>()
                                                  : amd_lds_write_max_length<half_float::half>();
 
@@ -439,36 +439,39 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmBBlockCopyPerformancePara
         if(y == 1 && x == 1 && conv_stride_h == 1 && conv_stride_w == 1 && in_left_pad_h == 0 &&
            in_left_pad_w == 0 && in_right_pad_h == 0 && in_right_pad_w == 0)
         {
-            SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, ho * wo);
+            SrcDataPerRead_B = gcd(SrcDataPerRead_B, ho * wo);
         }
         else if(conv_stride_w == 1 && in_left_pad_w == 0 && in_right_pad_w == 0)
         {
-            SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, wo);
+            SrcDataPerRead_B = gcd(SrcDataPerRead_B, wo);
         }
         else if(conv_stride_w == 1)
         {
-            SrcDataPerRead_GemmN =
-                gcd(SrcDataPerRead_GemmN, wo, in_left_pad_w, in_right_pad_w, conv_dilation_w);
+            SrcDataPerRead_B =
+                gcd(SrcDataPerRead_B, wo, in_left_pad_w, in_right_pad_w, conv_dilation_w);
         }
         else
         {
-            SrcDataPerRead_GemmN = 1;
+            SrcDataPerRead_B = 1;
         }
 
-        // SrcDataPerRead_GemmN also bounded by GemmNPerBlock
-        SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, GemmNPerBlock);
+        const auto N1        = GemmNPerBlock / GemmNPerWave;
+        const auto BPerBlock = GemmNPerBlock / N1;
+
+        // SrcDataPerRead_B also bounded by GemmNPerBlock
+        SrcDataPerRead_B = gcd(SrcDataPerRead_B, BPerBlock);
 
         // calculate threadwise copy size
         auto data_per_thread_copy =
-            std::max(1, (GemmKPerBlock * GemmNPerBlock * GemmKPack) / block_size);
+            std::max(1, (GemmKPerBlock * BPerBlock * GemmKPack * N1) / block_size);
         if(miopen::IsEnabled(
                MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_FWD_V4R4_XDLOPS_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM{}))
         {
             if(ctx.IsFp16())
             {
-                if(SrcDataPerRead_GemmN >= GemmBThreadDataPerRead_GemmN)
+                if(SrcDataPerRead_B >= GemmBThreadDataPerRead_GemmN)
                 {
-                    SrcDataPerRead_GemmN = GemmBThreadDataPerRead_GemmN;
+                    SrcDataPerRead_B = GemmBThreadDataPerRead_GemmN;
                 }
                 else
                 {
@@ -477,18 +480,14 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmBBlockCopyPerformancePara
             }
             else
             {
-                if(SrcDataPerRead_GemmN != GemmBThreadDataPerRead_GemmN)
+                if(SrcDataPerRead_B != GemmBThreadDataPerRead_GemmN)
                 {
                     MIOPEN_THROW("invalid performance parameter");
                 }
             }
         }
-        // make sure a thread can do a full vector load, at the cost that some threads
-        // may not do threadwise copy at all
-        // data_per_thread_copy = lcm(data_per_thread_copy, SrcDataPerRead_GemmN);
-
-        const auto data_per_thread_copy_gemmn = SrcDataPerRead_GemmN;
-        const auto tmp                        = data_per_thread_copy / data_per_thread_copy_gemmn;
+        const auto data_per_thread_copy_b = SrcDataPerRead_B;
+        const auto tmp                    = data_per_thread_copy / (data_per_thread_copy_b * N1);
 
         int data_per_thread_copy_gemmkpack = -1;
         int data_per_thread_copy_gemmk     = -1;
@@ -507,28 +506,23 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmBBlockCopyPerformancePara
         DstDataPerWrite_GemmKPack = gcd(DstDataPerWrite_GemmKPack, data_per_thread_copy_gemmkpack);
 
         if(!(data_per_thread_copy_gemmkpack > 0 && data_per_thread_copy_gemmk > 0 &&
-             data_per_thread_copy_gemmn > 0))
+             data_per_thread_copy_b > 0))
         {
             MIOPEN_THROW("invalid performance parameter");
         }
 
-        const auto N1 = GemmNPerBlock / GemmNPerWave;
-
         if(!(GemmKPerBlock % data_per_thread_copy_gemmk == 0 &&
-             GemmNPerBlock % data_per_thread_copy_gemmn == 0 &&
+             GemmNPerBlock % data_per_thread_copy_b == 0 &&
              GemmKPack % data_per_thread_copy_gemmkpack == 0))
             MIOPEN_THROW("invalid performance parameter");
 
         ClusterLengths_GemmK     = GemmKPerBlock / data_per_thread_copy_gemmk;
-        ClusterLengths_GemmN     = GemmNPerBlock / data_per_thread_copy_gemmn;
+        ClusterLengths_B         = BPerBlock / data_per_thread_copy_b;
         ClusterLengths_GemmKPack = GemmKPack / data_per_thread_copy_gemmkpack;
-
-        if(!(ClusterLengths_GemmN % N1 == 0 && GemmKPerBlock % (ClusterLengths_GemmK * N1) == 0))
-            MIOPEN_THROW("invalid performance parameter");
 
         // blockwise-copy support that block_size is larger than thread cluster size, which means
         // some threads may not do threadwise copy
-        if(block_size != ClusterLengths_GemmK * ClusterLengths_GemmN * ClusterLengths_GemmKPack)
+        if(block_size != ClusterLengths_GemmK * ClusterLengths_B * ClusterLengths_GemmKPack * N1)
             MIOPEN_THROW("invalid performance parameter");
     }
     catch(...)
@@ -537,9 +531,9 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmBBlockCopyPerformancePara
     }
 
     return std::make_tuple(ClusterLengths_GemmK,
-                           ClusterLengths_GemmN,
+                           ClusterLengths_B,
                            ClusterLengths_GemmKPack,
-                           SrcDataPerRead_GemmN,
+                           SrcDataPerRead_B,
                            DstDataPerWrite_GemmKPack,
                            true);
 }
@@ -897,7 +891,7 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
     int GemmABlockCopyDstDataPerWrite_GemmKPack = -1;
 
     int GemmBBlockCopyClusterLengths_GemmK      = -1;
-    int GemmBBlockCopyClusterLengths_GemmN      = -1;
+    int GemmBBlockCopyClusterLengths_B          = -1;
     int GemmBBlockCopyClusterLengths_GemmKPack  = -1;
     int GemmBBlockCopySrcDataPerRead_GemmN      = -1;
     int GemmBBlockCopyDstDataPerWrite_GemmKPack = -1;
@@ -910,17 +904,15 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
              std::ignore) = config.CalculateGemmABlockCopyPerformanceParameters(ctx);
 
     std::tie(GemmBBlockCopyClusterLengths_GemmK,
-             GemmBBlockCopyClusterLengths_GemmN,
+             GemmBBlockCopyClusterLengths_B,
              GemmBBlockCopyClusterLengths_GemmKPack,
              GemmBBlockCopySrcDataPerRead_GemmN,
              GemmBBlockCopyDstDataPerWrite_GemmKPack,
              std::ignore) = config.CalculateGemmBBlockCopyPerformanceParameters(ctx);
 
-    const auto N1                             = config.GemmNPerBlock / config.GemmNPerWave;
-    const auto BPerBlock                      = config.GemmNPerBlock / N1;
-    const auto BPerWave                       = config.GemmNPerWave / N1;
-    const auto GemmBBlockCopyClusterLengths_B = GemmBBlockCopyClusterLengths_GemmN / N1;
-    GemmBBlockCopyClusterLengths_GemmK        = GemmBBlockCopyClusterLengths_GemmK * N1;
+    const auto N1        = config.GemmNPerBlock / config.GemmNPerWave;
+    const auto BPerBlock = config.GemmNPerBlock / N1;
+    const auto BPerWave  = config.GemmNPerWave / N1;
 
     // clang-format off
     construction_parameters.comp_options =
