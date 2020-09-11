@@ -145,7 +145,11 @@ struct SolverContainer
                 if(find_only.IsValid() && find_only != Id{SolverDbId(solver)})
                 { // Do nothing (and keep silence for the sake of Tuna), just skip.
                 }
-                else if(solver.IsApplicable(search_params))
+                else if(!solver.IsApplicable(search_params))
+                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Not applicable");
+                else if(search_params.use_dynamic_solutions_only && !solver.IsDynamic())
+                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Skipped (non-dynamic)");
+                else
                 {
                     const Solution s = FindSolution(solver, search_params, db);
                     if(s.Succeeded())
@@ -165,10 +169,6 @@ struct SolverContainer
                                      << ": [Warning] Applicable Solver not succeeded.");
                     }
                 }
-                else
-                {
-                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Not applicable");
-                }
             },
             Solvers{}...);
         return ss;
@@ -183,14 +183,14 @@ struct SolverContainer
                 if(find_only.IsValid() && find_only != Id{SolverDbId(solver)})
                 { // Do nothing (and keep silence for the sake of Tuna), just skip.
                 }
-                else if(solver.IsApplicable(search_params))
+                else if(!solver.IsApplicable(search_params))
+                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Not applicable");
+                else if(search_params.use_dynamic_solutions_only && !solver.IsDynamic())
+                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Skipped (non-dynamic)");
+                else
                 {
                     auto sz = solver.GetWorkspaceSize(search_params);
                     res.push_back(std::make_pair(SolverDbId(solver), sz));
-                }
-                else
-                {
-                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Not applicable");
                 }
             },
             Solvers{}...);
