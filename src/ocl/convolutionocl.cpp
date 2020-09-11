@@ -1585,14 +1585,18 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
         const auto& s = item.second;
         if(!s.IsApplicable(ctx))
             continue;
-        if(!s.IsDynamic()) // Allow non-dynamic later, if necessary.
+        if(!s.IsDynamic()) // Let's allow non-dynamic later, if necessary.
+        {
+            MIOPEN_LOG_I2(solver_id.ToString() << " Not dynamic, skipped");
             continue;
+        }
 
         // gemm can appear here only after actual (non-dummy) GEMM Solver is implemented.
         if(solver_id == solver::Id::gemm())
             MIOPEN_LOG_W("GEMM solver is ready, rework this function");
 
         const auto wti = s.GetWti(ctx);
+        MIOPEN_LOG_I2(solver_id.ToString() << " Estimated WTI = " << wti);
         if(wti <= 0.0f) // Skip unknown WTIs and avoid DIV/0.
             continue;
         const auto time = 10.0f / wti; // Assume WTI == 1.0 (100%) is 10 ms.
