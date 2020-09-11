@@ -1,5 +1,3 @@
-import groovy.transform.NamedParam
-import groovy.transform.NamedDelegate
 
 def rocmnode(name) {
     def node_name = 'rocmtest'
@@ -58,11 +56,15 @@ def cmake_build(compiler, flags, env4make, prefixpath){
     }
 }
 
-@NamedVariant
-def buildJob(compiler, @NamedParam flags = "", @NamedParam env4make= "", @NamedParam image = "miopen", @NamedParam prefixpath="/opt/rocm", @NamedParam cmd = ""){
+def buildJob(Map conf, compiler){
 
         env.HSA_ENABLE_SDMA=0 
         checkout scm
+        def prefixpath = conf.get("prefixpath", "/opt/rocm")
+        def flags = conf.get("flags", "")
+        def env4make = conf.get("env4make", "")
+        def image = conf.get("image", "miopen")
+        def cmd = conf.get("cmd", "")
         def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
         def dockerArgs = "--build-arg PREFIX=${prefixpath} "
         if(prefixpath == "")
