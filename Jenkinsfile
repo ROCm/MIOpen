@@ -211,21 +211,21 @@ pipeline {
                 stage('GCC Debug') {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildJob('g++-5', 'flags: -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
+                        buildJob('g++-5', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
                     }
                 }
 
                 stage('GCC Release') {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildJob('g++-5', 'flags: -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release')
+                        buildJob('g++-5', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release')
                     }
                 }
 
                 stage('Fiji GCC Debug') {
                     agent{ label rocmnode("fiji") }
                     steps{
-                        buildJob('g++-5', 'flags: -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
+                        buildJob('g++-5', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
                     }
                 }
 
@@ -574,7 +574,7 @@ pipeline {
                 stage('GCC OpenCL Release package') {
                     agent{ label rocmnode("rocmtest") }
                     steps{
-                        buildJob('g++-5', flags: '-DCMAKE_BUILD_TYPE=release', "", image, "")
+                        buildJob('g++-5', flags: '-DCMAKE_BUILD_TYPE=release')
                     }
                 }
                 stage("HCC HIP Release package"){
