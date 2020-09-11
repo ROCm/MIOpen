@@ -195,6 +195,7 @@ const char* ToCString(const FindMode::Values mode)
     case FindMode::Values::Fast: return "FAST";
     case FindMode::Values::Hybrid: return "HYBRID";
     case FindMode::Values::FastHybrid: return "FAST_HYBRID";
+    case FindMode::Values::DynamicHybrid: return "DYNAMIC_HYBRID";
     case FindMode::Values::End_: break;
     }
     return "<Unknown>";
@@ -221,6 +222,8 @@ FindMode::Values GetFindModeValueImpl2()
         return FindMode::Values::Hybrid;
     else if(str == "FAST_HYBRID")
         return FindMode::Values::FastHybrid;
+    else if(str == "DYNAMIC_HYBRID")
+        return FindMode::Values::DynamicHybrid;
     else
     { // Nop. Fall down & try numerics.
     }
