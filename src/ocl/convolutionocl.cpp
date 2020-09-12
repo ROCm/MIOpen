@@ -72,9 +72,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMMED_FALLBACK)
 #if MIOPEN_USE_GEMM
 #ifdef CPPCHECK
 // Keep the value unknown in cppcheck since this can differ between opencl and hip
-static bool IsUseRocBlas;
+static bool IsBF16PathValid;
 #else
-static const bool IsUseRocBlas = (MIOPEN_USE_ROCBLAS == 1);
+static const bool IsBF16PathValid = (MIOPEN_USE_ROCBLAS == 1 || MIOPEN_USE_MIOPENTENSILE == 1);
 #endif
 
 static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
@@ -334,7 +334,7 @@ static void DirConvFindCore(Handle& handle,
 
 #if MIOPEN_USE_GEMM
     if(!use_winograd_only && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) &&
-       !(IsAnyBufferBF16(xDesc, yDesc, wDesc) && !IsUseRocBlas))
+       !(IsAnyBufferBF16(xDesc, yDesc, wDesc) && !IsBF16PathValid))
     { // GEMM algo
         std::size_t in_n, in_c;
         std::tie(in_n, in_c) = tie_pick<0, 1>()(xDesc.GetLengths());
@@ -960,7 +960,7 @@ void ConvolutionDescriptor::ConvFwdGemm(Handle& handle,
     {
         MIOPEN_THROW("GEMM convolution is disabled");
     }
-    if(IsAnyBufferBF16(tensors.xDesc, tensors.yDesc, tensors.wDesc) && !IsUseRocBlas)
+    if(IsAnyBufferBF16(tensors.xDesc, tensors.yDesc, tensors.wDesc) && !IsBF16PathValid)
     {
         MIOPEN_THROW("GEMM convolution is unsupported");
     }
@@ -1464,7 +1464,7 @@ bool ConvolutionDescriptor::IsGemmApplicableWrw(const TensorDescriptor& dyDesc,
 {
 #if MIOPEN_USE_GEMM
     if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) &&
-       !(IsAnyBufferBF16(xDesc, dyDesc, dwDesc) && !IsUseRocBlas))
+       !(IsAnyBufferBF16(xDesc, dyDesc, dwDesc) && !IsBF16PathValid))
     {
         const std::size_t spatial_dim = GetSpatialDimension();
         const auto wei_spatial = boost::adaptors::slice(dwDesc.GetLengths(), 2, 2 + spatial_dim);
@@ -1496,7 +1496,7 @@ bool ConvolutionDescriptor::IsGemmApplicableFwd(const TensorDescriptor& wDesc,
 {
 #if MIOPEN_USE_GEMM
     return !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) &&
-           !(IsAnyBufferBF16(xDesc, yDesc, wDesc) && !IsUseRocBlas);
+           !(IsAnyBufferBF16(xDesc, yDesc, wDesc) && !IsBF16PathValid);
 #else
     std::ignore = wDesc;
     std::ignore = xDesc;
@@ -1511,7 +1511,7 @@ bool ConvolutionDescriptor::IsGemmApplicableBwd(const TensorDescriptor& dyDesc,
 {
 #if MIOPEN_USE_GEMM
     return !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) &&
-           !(IsAnyBufferBF16(dxDesc, dyDesc, wDesc) && !IsUseRocBlas);
+           !(IsAnyBufferBF16(dxDesc, dyDesc, wDesc) && !IsBF16PathValid);
 #else
     std::ignore = dyDesc;
     std::ignore = wDesc;
@@ -2223,7 +2223,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
 #if MIOPEN_USE_GEMM
             if(!use_winograd_only && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) &&
-               !(IsAnyBufferBF16(dxDesc, dyDesc, wDesc) && !IsUseRocBlas))
+               !(IsAnyBufferBF16(dxDesc, dyDesc, wDesc) && !IsBF16PathValid))
             { // GEMM based
                 ValidateGroupCount(dxDesc, wDesc, *this);
 
@@ -2556,7 +2556,7 @@ void ConvolutionDescriptor::ConvBwdGemm(Handle& handle,
     {
         MIOPEN_THROW("GEMM convolution is disabled");
     }
-    if(IsAnyBufferBF16(tensors.dxDesc, tensors.dyDesc, tensors.wDesc) && !IsUseRocBlas)
+    if(IsAnyBufferBF16(tensors.dxDesc, tensors.dyDesc, tensors.wDesc) && !IsBF16PathValid)
     {
         MIOPEN_THROW("GEMM convolution is unsupported");
     }
@@ -3114,7 +3114,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         perf_db = UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
 #if MIOPEN_USE_GEMM
             if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) &&
-               !(IsAnyBufferBF16(xDesc, dyDesc, dwDesc) && !IsUseRocBlas))
+               !(IsAnyBufferBF16(xDesc, dyDesc, dwDesc) && !IsBF16PathValid))
             {
                 const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
 
@@ -3388,7 +3388,7 @@ void ConvolutionDescriptor::BackwardWeightsGemm(Handle& handle,
     {
         MIOPEN_THROW("GEMM convolution is disabled");
     }
-    if(IsAnyBufferBF16(tensors.xDesc, tensors.dyDesc, tensors.dwDesc) && !IsUseRocBlas)
+    if(IsAnyBufferBF16(tensors.xDesc, tensors.dyDesc, tensors.dwDesc) && !IsBF16PathValid)
     {
         MIOPEN_THROW("GEMM convolution is unsupported");
     }
