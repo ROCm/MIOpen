@@ -32,10 +32,9 @@
 #pragma clang diagnostic ignored "-Wsometimes-uninitialized"
 #endif
 
-/*#ifdef __AMDGCN__
+#ifdef __AMDGCN__
 #undef __AMDGCN__
 #endif
-*/
 
 #include "batchnorm_functions.h"
 #include "reduction_functions.h"
@@ -702,6 +701,128 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #endif
     }
 } // end spatial norm
+
+#elif(MIO_BN_VARIANT == 4)
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-variable"
+#endif
+// Batch size 1 and 2
+/* __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2)))  */
+__kernel void MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
+                                             __global _FLOAT* __restrict out,
+                                             __constant _FLOAT_PREC* __restrict scale,
+                                             __constant _FLOAT_PREC* __restrict bias,
+                                             _FLOAT_PREC INHW,
+#if(MIO_RUNNING_RESULT == 1)
+                                             double expAvgFactor,
+                                             __global _FLOAT_PREC* __restrict resultRunningMean,
+                                             __global _FLOAT_PREC* __restrict resultRunningVariance,
+#endif
+                                             double epsilon
+#if(MIO_SAVE_MEAN_VARIANCE == 1)
+                                             ,
+                                             __global _FLOAT_PREC* __restrict resultSaveMean,
+                                             __global _FLOAT_PREC* __restrict resultSaveInvVariance
+#endif
+                                             ,
+                                             unsigned int imageDims,
+                                             unsigned int batchStride)
+{
+
+    unsigned int grpid = get_group_id(0);
+    unsigned int lid   = get_local_id(0);
+    unsigned int lsz   = get_local_size(0);
+
+    _FLOAT_PREC mean        = (_FLOAT_PREC)0.;
+    _FLOAT_PREC variance    = (_FLOAT_PREC)0.;
+    _FLOAT_PREC invVariance = (_FLOAT_PREC)0.;
+    _FLOAT_PREC pvscale     = (_FLOAT_PREC)0.;
+    _FLOAT_PREC pvbias      = (_FLOAT_PREC)0.;
+    _FLOAT_PREC xin         = (_FLOAT_PREC)0.;
+
+    unsigned int index0 = 0;
+#if(MIO_BN_N == 2)
+    unsigned int index1 = 0;
+#endif
+
+    local _FLOAT_PREC lcl_bias;
+    local _FLOAT_PREC lcl_scale;
+
+    if(lid == 0)
+    {
+        lcl_scale = *(scale + grpid);
+        lcl_bias  = *(bias + grpid);
+    }
+
+    unsigned int cidx = grpid * imageDims;
+    for(int idx = lid; idx < imageDims; idx += lsz)
+    {
+        index0 = cidx + idx;
+        xin    = (_FLOAT_PREC)(*(in + index0));
+        mean += xin;
+        variance = mad(xin, xin, variance);
+#if(MIO_BN_N == 2)
+        index0 += batchStride;
+        xin = (_FLOAT_PREC)(*(in + index0));
+        mean += xin;
+        variance = mad(xin, xin, variance);
+#endif
+    }
+    barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
+
+#ifndef __AMDGCN__
+    local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDS_SIZE];
+    local _FLOAT_ACCUM lcl_data_y[MIO_BN_LDS_SIZE];
+    lds_reduce2(&mean, &variance, (_FLOAT_ACCUM)INHW, lcl_data_x, lcl_data_y, lid);
+#else
+    local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDSGCN_SIZE];
+    local _FLOAT_ACCUM lcl_data_y[MIO_BN_LDSGCN_SIZE];
+    gcn_reduce2(&mean, &variance, (_FLOAT_ACCUM)INHW, lcl_data_x, lcl_data_y, lid);
+#endif
+
+    variance    = mad(-mean, mean, variance);
+    variance    = variance > 0. ? variance : 0.;
+    invVariance = rsqrt(variance + (_FLOAT_PREC)epsilon);
+    pvscale     = lcl_scale;
+    pvbias      = lcl_bias;
+
+    for(int idx = lid; idx < imageDims; idx += lsz)
+    {
+        index0             = cidx + idx;
+#if(MIO_BN_N == 2)
+        index1             = batchStride + index0;
+#endif
+        _FLOAT_PREC inhat0 = ((_FLOAT_PREC)(*(in + index0)) - mean) * invVariance;
+#if(MIO_BN_N == 2)
+        _FLOAT_PREC inhat1 = ((_FLOAT_PREC)(*(in + index1)) - mean) * invVariance;
+#endif
+        out[index0]        = (_FLOAT)mad(pvscale, inhat0, pvbias);
+#if(MIO_BN_N == 2)
+        out[index1]        = (_FLOAT)mad(pvscale, inhat1, pvbias);
+#endif
+    }
+
+    if(lid == 0)
+    {
+#if(MIO_RUNNING_RESULT == 1)
+        running_stash_dyn(
+            resultRunningMean, resultRunningVariance, expAvgFactor, mean, variance, grpid, INHW);
+#endif
+
+#if(MIO_SAVE_MEAN_VARIANCE == 1)
+        saved_stash(resultSaveMean, resultSaveInvVariance, mean, invVariance, grpid);
+#endif
+    }
+} // end spatial norm
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#pragma clang diagnostic pop
+#endif
 
 #endif
 
