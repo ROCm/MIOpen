@@ -689,8 +689,6 @@ void BatchNormForwardInference(Handle& handle,
         if(!kernels.empty())
         {
             auto kernel = kernels.front();
-            std::cout << "network_config: " << network_config << std::endl;
-            std::cout << "network_config: " << network_config << std::endl;
             kernel(x,
                    y,
                    estimatedMean,
