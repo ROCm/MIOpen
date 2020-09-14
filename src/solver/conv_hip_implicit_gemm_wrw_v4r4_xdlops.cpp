@@ -90,7 +90,7 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::SetNextValue()
             break;
         if(!NextFlag<false, false>(GemmAThreadCopyMoreGemmK))
             break;
-        if(!NextTwoPower<4, 8>(GemmKPack))
+        if(!NextTwoPower<1, 8>(GemmKPack))
             break;
         if(!NextTwoPower<32, 128>(GemmNPerWave))
             break;
@@ -292,6 +292,7 @@ PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGridSize(const ConvolutionContext
 
 int PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGemmKBlocks(const ConvolutionContext& ctx) const
 {
+    const int MaxBlocks = 2400;
     int GemmKBlocks  = 1;
     int gemm_g       = -1;
     int gemm_m       = -1;
@@ -304,7 +305,7 @@ int PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGemmKBlocks(const Convolution
     if(!(gemm_m % GemmMPerBlock == 0 && gemm_n % GemmNPerBlock == 0))
         return GemmKBlocks;
     int GridSize = gemm_g * (gemm_m / GemmMPerBlock) * (gemm_n / GemmNPerBlock);
-    int Blocks   = std::max(1200 / GridSize, 1);
+    int Blocks   = std::max(MaxBlocks / GridSize, 1);
     Blocks       = std::min(Blocks, n);
 
     if(gemm_k_total % GemmKPack != 0)
@@ -331,7 +332,6 @@ PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGemmABlockCopyPerformanceParamete
     const ConvolutionContext& ctx) const
 {
     // A tensor shape [GemmG, GemmK, GemmM, GemmKPack]
-
     int ClusterLengths_GemmK     = -1;
     int ClusterLengths_GemmM     = -1;
     int ClusterLengths_GemmKPack = -1;
@@ -566,7 +566,6 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::IsValidValue() const
         && IsTwoPower<4, 128>(GemmMPerWave)
         && IsTwoPower<4, 128>(GemmNPerWave)
         && IsTwoPower<1, 8>(GemmKPack);
-        //&& IsTwoPower<1, 128>(GemmKBlocks);
     // clang-format on
 }
 
