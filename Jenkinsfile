@@ -183,7 +183,7 @@ pipeline {
     stages{
         // Run all static analysis tests
 
-                stage("Full tests II"){
+            stage("Full tests II"){
             parallel{
                 
                 stage('Hip Clang Release All') {
@@ -195,14 +195,14 @@ pipeline {
                             mkdir build
                             cd build
                             CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug -DMIOPEN_GPU_SYNC=On -DMIOPEN_USE_COMGR=Off -DMIOPEN_TEST_ALL=On -DMIOPEN_TEST_LIMIT=2 -DMIOPEN_TEST_FLAGS="--disable-verification-cache" .. 
-                            CTEST_PARALLEL_LEVEL=4 MIOPEN_LOG_LEVEL=6 MIOPEN_ENABLE_LOGGING_CMD=1 make -j\$(nproc) check
+                            MIOPEN_LOG_LEVEL=6 MIOPEN_ENABLE_LOGGING_CMD=1 ./bin/test_conv3d --all --limit=2 --disable-verification-cache
                         """
                     }
                     steps{
                         buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd)
                     }
                 }
-                
+                // CTEST_PARALLEL_LEVEL=4 MIOPEN_LOG_LEVEL=6 MIOPEN_ENABLE_LOGGING_CMD=1 make -j\$(nproc) check
                 stage('FP32 gfx908 Hip Release All subset') {
                     agent{ label rocmnode("gfx908") }
                     environment{
