@@ -73,7 +73,6 @@ def buildJob(Map conf, compiler){
         if (codecov) {
             extradebugflags = "-fprofile-arcs -ftest-coverage"
         }
-        def 
         def retimage
         try {
             retimage = docker.build("${image}", dockerArgs + '.')
