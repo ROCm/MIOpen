@@ -104,7 +104,7 @@ def buildHipClangJob(compiler, flags, env4make, image, prefixpath="/opt/rocm", c
         env.HSA_ENABLE_SDMA=0 
         checkout scm
         def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
-        def dockerArgs = "--build-arg PREFIX=${prefixpath} --build-arg AMDGPU_TARGETS='${gpu_arch}' -f hip-clang.docker "
+        def dockerArgs = "--build-arg PREFIX=${prefixpath} --build-arg MIOTENSILE_GPU_TARGETS='${gpu_arch}' -f hip-clang.docker "
         def retimage
         try {
             retimage = docker.build("${image}", dockerArgs + '.')
