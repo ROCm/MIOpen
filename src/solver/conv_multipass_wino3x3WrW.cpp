@@ -599,7 +599,7 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
 
     return [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            const auto invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+            decltype(auto) invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
             const auto& tensors      = invoke_params.tensors;
             float total_time         = 0;
 

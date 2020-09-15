@@ -386,7 +386,7 @@ ConvSolution ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilte
 
     result.invoker_factory = [=](std::vector<Kernel> kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& ctx) {
-            const auto data_ctx = ctx.CastTo<conv::DataInvokeParams>();
+            decltype(auto) data_ctx = ctx.CastTo<conv::DataInvokeParams>();
             const auto tensors  = data_ctx.tensors;
             Data_t workSpace = data_ctx.workSpace;
             float total_time    = 0;
