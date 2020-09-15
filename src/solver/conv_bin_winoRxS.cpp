@@ -470,9 +470,9 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
                                     << " out_W="
                                     << out_W);
 
-                decltype(auto) k        = handle.Run(kernels[0]);
-                decltype(auto) fwd_ctx  = ctx.CastTo<conv::DataInvokeParams>();
-                const auto& tensors     = fwd_ctx.tensors;
+                decltype(auto) k       = handle.Run(kernels[0]);
+                decltype(auto) fwd_ctx = ctx.CastTo<conv::DataInvokeParams>();
+                const auto& tensors    = fwd_ctx.tensors;
 
                 k(N,
                   C,
