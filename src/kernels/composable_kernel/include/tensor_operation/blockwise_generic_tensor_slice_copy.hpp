@@ -59,8 +59,8 @@ struct BlockwiseGenericTensorSliceCopy_v4
         static_assert(BlockSize >= mThreadClusterDesc.GetElementSize(),
                       "wrong! BlockSize too small");
 
-        // if(BlockSize == mThreadClusterDesc.GetElementSize() or
-        // get_thread_local_1d_id() < mThreadClusterDesc.GetElementSize())
+        if(BlockSize == mThreadClusterDesc.GetElementSize() or
+           get_thread_local_1d_id() < mThreadClusterDesc.GetElementSize())
         {
             const auto thread_cluster_id =
                 mThreadClusterDesc.CalculateClusterIndex(get_thread_local_1d_id());
@@ -89,8 +89,8 @@ struct BlockwiseGenericTensorSliceCopy_v4
         constexpr bool has_optimized_address_calculation =
             decltype(mThreadwiseStore)::HasWorkingOptimizedAddressCalculation();
 
-        // if(BlockSize == mThreadClusterDesc.GetElementSize() or
-        // get_thread_local_1d_id() < mThreadClusterDesc.GetElementSize())
+        if(BlockSize == mThreadClusterDesc.GetElementSize() or
+           get_thread_local_1d_id() < mThreadClusterDesc.GetElementSize())
         {
             // TODO: threadwise copy is still being tweaked
             if(has_optimized_address_calculation)
@@ -114,8 +114,8 @@ struct BlockwiseGenericTensorSliceCopy_v4
         constexpr bool has_optimized_address_calculation =
             decltype(mThreadwiseStore)::HasWorkingOptimizedAddressCalculation();
 
-        // if(BlockSize == mThreadClusterDesc.GetElementSize() or
-        // get_thread_local_1d_id() < mThreadClusterDesc.GetElementSize())
+        if(BlockSize == mThreadClusterDesc.GetElementSize() or
+           get_thread_local_1d_id() < mThreadClusterDesc.GetElementSize())
         {
             // TODO: threadwise copy is still being tweaked
             if(has_optimized_address_calculation)
@@ -144,8 +144,8 @@ struct BlockwiseGenericTensorSliceCopy_v4
 
         BlockSrcData p_thread_buffer[GetThreadBufferSize()];
 
-        // if(BlockSize == mThreadClusterDesc.GetElementSize() or
-        // get_thread_local_1d_id() < mThreadClusterDesc.GetElementSize())
+        if(BlockSize == mThreadClusterDesc.GetElementSize() or
+           get_thread_local_1d_id() < mThreadClusterDesc.GetElementSize())
         {
             RunLoadThreadBuffer(p_block_src, p_thread_buffer, src_out_of_bound_value);
 
@@ -159,8 +159,8 @@ struct BlockwiseGenericTensorSliceCopy_v4
     MoveSrcSliceWindow(const T& step_sizes,
                        integral_constant<bool, PositiveDirection> positive_direction)
     {
-        // if(BlockSize == mThreadClusterDesc.GetElementSize() or
-        // get_thread_local_1d_id() < mThreadClusterDesc.GetElementSize())
+        if(BlockSize == mThreadClusterDesc.GetElementSize() or
+           get_thread_local_1d_id() < mThreadClusterDesc.GetElementSize())
         {
             mThreadwiseLoad.MoveSrcSliceWindow(step_sizes, positive_direction);
         }
@@ -171,8 +171,8 @@ struct BlockwiseGenericTensorSliceCopy_v4
     MoveDstSliceWindow(const T& step_sizes,
                        integral_constant<bool, PositiveDirection> positive_direction)
     {
-        // if(BlockSize == mThreadClusterDesc.GetElementSize() or
-        // get_thread_local_1d_id() < mThreadClusterDesc.GetElementSize())
+        if(BlockSize == mThreadClusterDesc.GetElementSize() or
+           get_thread_local_1d_id() < mThreadClusterDesc.GetElementSize())
         {
             mThreadwiseStore.MoveDstSliceWindow(step_sizes, positive_direction);
         }

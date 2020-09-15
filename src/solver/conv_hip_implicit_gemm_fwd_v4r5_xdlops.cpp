@@ -916,7 +916,7 @@ ConvSolution ConvHipImplicitGemmForwardV4R5Xdlops::GetSolution(
 
     const auto NWaves    = config.GemmNPerBlock / config.GemmNPerWave;
     const auto BPerBlock = config.GemmNPerBlock / NWaves;
-    const auto BPerWave  = config.GemmNPerWave / NWaves;
+    const auto BPerWave  = config.GemmNPerWave;
 
     // clang-format off
     construction_parameters.comp_options =

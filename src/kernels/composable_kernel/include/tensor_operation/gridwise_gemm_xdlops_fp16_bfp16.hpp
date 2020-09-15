@@ -1169,7 +1169,7 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gkn1bkpack_gmn_v2
             decltype(b_k_n_block_mtx_desc),
             ABFloat,
             MPerWave,
-            BPerWave * in_N1,
+            BPerWave,
             MWavePerBlock,
             BWavePerBlock,
             1,
