@@ -1003,6 +1003,13 @@ bool ConvHipImplicitGemmForwardV4R5Xdlops::IsApplicable(const ConvolutionContext
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
 
+    const auto y = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+    const auto x = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+
+    // disable the solver for conv1x1 due to perf regression
+    if(y == 1 && x == 1)
+        return false;
+
     if(!ctx.direction.IsForward())
         return false;
 
