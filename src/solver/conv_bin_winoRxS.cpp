@@ -389,8 +389,8 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
 
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-                const auto invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
-                const auto& tensors      = invoke_params.tensors;
+                decltype(auto) invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+                const auto& tensors          = invoke_params.tensors;
                 // clang-format off
                 MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
                         << " n_groups=" << n_groups_ << " flags=" << flags << " R=" << R << " S=" << S
@@ -470,9 +470,9 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
                                     << " out_W="
                                     << out_W);
 
-                const auto k        = handle.Run(kernels[0]);
-                const auto fwd_ctx  = ctx.CastTo<conv::DataInvokeParams>();
-                const auto& tensors = fwd_ctx.tensors;
+                decltype(auto) k        = handle.Run(kernels[0]);
+                decltype(auto) fwd_ctx  = ctx.CastTo<conv::DataInvokeParams>();
+                const auto& tensors     = fwd_ctx.tensors;
 
                 k(N,
                   C,
