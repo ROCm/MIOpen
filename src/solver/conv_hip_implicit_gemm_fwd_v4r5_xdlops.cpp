@@ -512,7 +512,7 @@ PerformanceImplicitGemmForwardV4R5Xdlops::CalculateGemmBBlockCopyPerformancePara
             MIOPEN_THROW("invalid performance parameter");
         }
 
-        const auto N1 = GemmNPerBlock / GemmNPerWave;
+        const auto NWaves = GemmNPerBlock / GemmNPerWave;
 
         if(!(GemmKPerBlock % data_per_thread_copy_gemmk == 0 &&
              GemmNPerBlock % data_per_thread_copy_gemmn == 0 &&
@@ -523,7 +523,8 @@ PerformanceImplicitGemmForwardV4R5Xdlops::CalculateGemmBBlockCopyPerformancePara
         ClusterLengths_GemmN     = GemmNPerBlock / data_per_thread_copy_gemmn;
         ClusterLengths_GemmKPack = GemmKPack / data_per_thread_copy_gemmkpack;
 
-        if(!(ClusterLengths_GemmN % N1 == 0 && GemmKPerBlock % (ClusterLengths_GemmK * N1) == 0))
+        if(!(ClusterLengths_GemmN % NWaves == 0 &&
+             GemmKPerBlock % (ClusterLengths_GemmK * NWaves) == 0))
             MIOPEN_THROW("invalid performance parameter");
 
         // blockwise-copy support that block_size is larger than thread cluster size, which means
@@ -916,11 +917,11 @@ ConvSolution ConvHipImplicitGemmForwardV4R5Xdlops::GetSolution(
              GemmBBlockCopyDstDataPerWrite_GemmKPack,
              std::ignore) = config.CalculateGemmBBlockCopyPerformanceParameters(ctx);
 
-    const auto N1                             = config.GemmNPerBlock / config.GemmNPerWave;
-    const auto BPerBlock                      = config.GemmNPerBlock / N1;
-    const auto BPerWave                       = config.GemmNPerWave / N1;
-    const auto GemmBBlockCopyClusterLengths_B = GemmBBlockCopyClusterLengths_GemmN / N1;
-    GemmBBlockCopyClusterLengths_GemmK        = GemmBBlockCopyClusterLengths_GemmK * N1;
+    const auto NWaves                         = config.GemmNPerBlock / config.GemmNPerWave;
+    const auto BPerBlock                      = config.GemmNPerBlock / NWaves;
+    const auto BPerWave                       = config.GemmNPerWave / NWaves;
+    const auto GemmBBlockCopyClusterLengths_B = GemmBBlockCopyClusterLengths_GemmN / NWaves;
+    GemmBBlockCopyClusterLengths_GemmK        = GemmBBlockCopyClusterLengths_GemmK * NWaves;
 
     // clang-format off
     construction_parameters.comp_options =
@@ -948,7 +949,7 @@ ConvSolution ConvHipImplicitGemmForwardV4R5Xdlops::GetSolution(
         std::string(" -DCK_PARAM_TUNABLE_GEMM_K_PER_BLOCK=") + std::to_string(config.GemmKPerBlock) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_M_PER_WAVE=") + std::to_string(config.GemmMPerWave) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_B_PER_WAVE=") + std::to_string(BPerWave) +
-        std::string(" -DCK_PARAM_TUNABLE_N1=") + std::to_string(N1) +
+        std::string(" -DCK_PARAM_TUNABLE_NWAVES=") + std::to_string(NWaves) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_KPACK=") + std::to_string(config.GemmKPack) +
         std::string(" -DCK_PARAM_DEPENDENT_BLOCK_SIZE=") + std::to_string(block_size) +
         std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size) +

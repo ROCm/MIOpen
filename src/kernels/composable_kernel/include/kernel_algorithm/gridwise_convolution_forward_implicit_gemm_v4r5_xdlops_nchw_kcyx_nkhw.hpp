@@ -27,7 +27,7 @@ template <index_t GridSize,
           index_t GemmKPerBlock,
           index_t GemmMPerWave,
           index_t BPerWave,
-          index_t N1,
+          index_t NWaves,
           index_t GemmKPack,
           class GemmABlockCopyThreadSliceLengths_GemmG_GemmK_GemmM_GemmKPack,
           class GemmABlockCopyThreadClusterLengths_GemmG_GemmK_GemmM_GemmKPack,
@@ -36,8 +36,8 @@ template <index_t GridSize,
           class GemmABlockCopyDstAccessOrder,
           index_t GemmABlockCopySrcDataPerRead_GemmKPack,
           index_t GemmABlockCopyDstDataPerWrite_GemmKPack,
-          class GemmBBlockCopyThreadSliceLengths_GemmG_GemmK_N1_B_GemmKPack,
-          class GemmBBlockCopyThreadClusterLengths_GemmG_GemmK_N1_B_GemmKPack,
+          class GemmBBlockCopyThreadSliceLengths_GemmG_GemmK_NWaves_B_GemmKPack,
+          class GemmBBlockCopyThreadClusterLengths_GemmG_GemmK_NWaves_B_GemmKPack,
           class GemmBBlockCopyThreadClusterArrangeOrder,
           class GemmBBlockCopySrcAccessOrder,
           class GemmBBlockCopyDstAccessOrder,
@@ -77,7 +77,7 @@ struct GridwiseConvolutionForwardImplicitGemm_v4r5_xdlops_nchw_kcyx_nkhw
         constexpr index_t ConvDilationH = ConvDilations{}[0];
         constexpr index_t ConvDilationW = ConvDilations{}[1];
 
-        constexpr index_t N0         = N / N1;
+        constexpr index_t N0         = N / NWaves;
         constexpr index_t GemmG      = G;
         constexpr index_t GemmM      = KPerGroup;
         constexpr index_t B          = N0 * Ho * Wo;
@@ -120,7 +120,7 @@ struct GridwiseConvolutionForwardImplicitGemm_v4r5_xdlops_nchw_kcyx_nkhw
         constexpr auto in_g_n1_n0_cpergroup_y_ho_x_wo_global_desc = transform_tensor_descriptor(
             in_g_n_cpergroup_hip_wip_global_desc,
             make_tuple(PassThrough<G>{},
-                       UnMerge<Sequence<N1, N0>>{},
+                       UnMerge<Sequence<NWaves, N0>>{},
                        PassThrough<CPerGroup>{},
                        Embed<Hip, Sequence<Y, Ho>, Sequence<ConvDilationH, ConvStrideH, 0>>{},
                        Embed<Wip, Sequence<X, Wo>, Sequence<ConvDilationW, ConvStrideW, 0>>{}),
@@ -135,7 +135,7 @@ struct GridwiseConvolutionForwardImplicitGemm_v4r5_xdlops_nchw_kcyx_nkhw
             in_g_n1_n0_cpergroup_y_ho_x_wo_global_desc,
             make_tuple(PassThrough<G>{},
                        Merge<Sequence<C, Y, X>>{},
-                       PassThrough<N1>{},
+                       PassThrough<NWaves>{},
                        Merge<Sequence<N0, Ho, Wo>>{}),
             make_tuple(Sequence<0>{}, Sequence<3, 4, 6>{}, Sequence<1>{}, Sequence<2, 5, 7>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}));
@@ -144,7 +144,7 @@ struct GridwiseConvolutionForwardImplicitGemm_v4r5_xdlops_nchw_kcyx_nkhw
             in_gemmg_gemmktotal_n1_b_global_desc,
             make_tuple(PassThrough<GemmG>{},
                        UnMerge<Sequence<GemmK, GemmKPack>>{},
-                       PassThrough<N1>{},
+                       PassThrough<NWaves>{},
                        PassThrough<B>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
             make_tuple(Sequence<0>{}, Sequence<1, 4>{}, Sequence<2>{}, Sequence<3>{}));
@@ -190,8 +190,8 @@ struct GridwiseConvolutionForwardImplicitGemm_v4r5_xdlops_nchw_kcyx_nkhw
             3, // src vector read dimension of A matrix is GemmKPack
             GemmABlockCopySrcDataPerRead_GemmKPack,
             GemmABlockCopyDstDataPerWrite_GemmKPack,
-            GemmBBlockCopyThreadSliceLengths_GemmG_GemmK_N1_B_GemmKPack,
-            GemmBBlockCopyThreadClusterLengths_GemmG_GemmK_N1_B_GemmKPack,
+            GemmBBlockCopyThreadSliceLengths_GemmG_GemmK_NWaves_B_GemmKPack,
+            GemmBBlockCopyThreadClusterLengths_GemmG_GemmK_NWaves_B_GemmKPack,
             GemmBBlockCopyThreadClusterArrangeOrder,
             GemmBBlockCopySrcAccessOrder,
             GemmBBlockCopyDstAccessOrder,
