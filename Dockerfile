@@ -1,6 +1,7 @@
 FROM ubuntu:18.04
 
 ARG PREFIX=/usr/local
+ARG MIOTENSILE_GPU_TARGETS=";"
 
 # Support multiarch
 RUN dpkg --add-architecture i386
@@ -81,7 +82,9 @@ ADD dev-requirements.txt /dev-requirements.txt
 ADD requirements.txt /requirements.txt
 ADD min-requirements.txt /min-requirements.txt
 RUN locale
-RUN CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -f /dev-requirements.txt
+RUN export HIPCC_LINK_FLAGS_APPEND='-O3 -parallel-jobs=4' && \
+    export HIPCC_COMPILE_FLAGS_APPEND='-O3 -Wno-format-nonliteral -parallel-jobs=4' && \
+    CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -DMIOTENSILE_GPU_TARGETS=${MIOTENSILE_GPU_TARGETS} -f /dev-requirements.txt
 
 # Install doc requirements
 ADD doc/requirements.txt /doc-requirements.txt
