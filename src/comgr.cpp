@@ -196,8 +196,9 @@ static void RemoveCommonOptionsUnwanted(OptionList& list)
                          [&](const auto& option) { // clang-format off
                              return miopen::StartsWith(option, "-mcpu=")
                                 || (option == "-hc")
-                                || (option == "-x hip")
+                                || (option == "-x hip") || (option == "-xhip")
                                 || (option == "--hip-link")
+                                || (option == "-lclang_rt.builtins-x86_64")
                                 || miopen::StartsWith(option, "-mllvm -amdgpu-early-inline-all")
                                 || miopen::StartsWith(option, "-mllvm -amdgpu-function-calls")
                                 || miopen::StartsWith(option, "--hip-device-lib-path="); // clang-format on
@@ -677,6 +678,10 @@ void BuildHip(const std::string& name,
             action.SetOptionList(optLink);
             const Dataset linkedBc;
             action.Do(AMD_COMGR_ACTION_LINK_BC_TO_BC, withDevLibs, linkedBc);
+
+            OptionList codegenBcToRel;
+            codegenBcToRel.push_back("-O3"); // Nothing more is required at this step.
+            action.SetOptionList(codegenBcToRel);
             const Dataset relocatable;
             action.Do(AMD_COMGR_ACTION_CODEGEN_BC_TO_RELOCATABLE, linkedBc, relocatable);
 
