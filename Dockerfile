@@ -1,7 +1,6 @@
 FROM ubuntu:18.04
 
 ARG PREFIX=/usr/local
-ARG MIOTENSILE_GPU_TARGETS=";"
 
 # Support multiarch
 RUN dpkg --add-architecture i386
@@ -74,6 +73,9 @@ RUN LDFLAGS=-fuse-ld=gold cget -p $PREFIX install hcc,/hcc  && rm -rf /hcc
 # Make sure /opt/rcom is in the paths
 ENV PATH="/opt/rocm:${PATH}"
 
+# Specify GPU architecture(s) for MIOpenTensile
+ARG MIOTENSILE_GPU_TARGETS=";"
+
 # Build using hcc
 RUN cget -p $PREFIX init --cxx $PREFIX/bin/hcc --std=c++14
 
@@ -84,7 +86,7 @@ ADD min-requirements.txt /min-requirements.txt
 RUN locale
 RUN export HIPCC_LINK_FLAGS_APPEND='-O3 -parallel-jobs=4' && \
     export HIPCC_COMPILE_FLAGS_APPEND='-O3 -Wno-format-nonliteral -parallel-jobs=4' && \
-    CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -DMIOTENSILE_GPU_TARGETS=${MIOTENSILE_GPU_TARGETS} -f /dev-requirements.txt
+    CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -f /dev-requirements.txt
 
 # Install doc requirements
 ADD doc/requirements.txt /doc-requirements.txt
