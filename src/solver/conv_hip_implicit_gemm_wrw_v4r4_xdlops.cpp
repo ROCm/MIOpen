@@ -65,8 +65,8 @@ PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops(
 {
 }
 
-bool PerformanceImplicitGemmWrwV4R4Xdlops::operator==(
-    const PerformanceImplicitGemmWrwV4R4Xdlops& other) const
+bool PerformanceImplicitGemmWrwV4R4Xdlops::
+operator==(const PerformanceImplicitGemmWrwV4R4Xdlops& other) const
 {
     // clang-format off
     return GemmMPerBlock == other.GemmMPerBlock
@@ -293,11 +293,11 @@ PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGridSize(const ConvolutionContext
 int PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGemmKBlocks(const ConvolutionContext& ctx) const
 {
     const int MaxBlocks = 2400;
-    int GemmKBlocks  = 1;
-    int gemm_g       = -1;
-    int gemm_m       = -1;
-    int gemm_n       = -1;
-    int gemm_k_total = -1;
+    int GemmKBlocks     = 1;
+    int gemm_g          = -1;
+    int gemm_m          = -1;
+    int gemm_n          = -1;
+    int gemm_k_total    = -1;
 
     std::tie(gemm_g, gemm_m, gemm_n, gemm_k_total) =
         ConvHipImplicitGemmWrwV4R4Xdlops::CalculateGemmSize(ctx);
@@ -619,7 +619,7 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::IsReallyValid(const ConvolutionContex
     }
 
     // check LDS allocation
-    std::size_t lds_size      = 0;
+    std::size_t lds_size = 0;
     std::tie(lds_size, valid) = CalculateLdsNumberOfByte(ctx);
 
     return (valid and lds_size <= get_lds_max_number_of_byte());
@@ -651,7 +651,7 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::IsFastToBeUsedForTuning(
 
         // this the the biggest blockwise-GEMM you can do
         int max_blockwise_gemm_size =
-        std::max(gcd(256, gemm_m) * gcd(128, gemm_n), gcd(128, gemm_m) * gcd(256, gemm_n));
+            std::max(gcd(256, gemm_m) * gcd(128, gemm_n), gcd(128, gemm_m) * gcd(256, gemm_n));
 
         // this is the grid size using the biggest blockwise-GEMM
         auto grid_size_max_blockwise_gemm =
@@ -838,12 +838,12 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
     construction_parameters.kernel_name =
         "gridwise_convolution_backward_weights_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw";
 
-    int grid_size                     = 0;
-    int block_size                    = 0;
-    int GemmKBlocks                   = 1;
-    GemmKBlocks                       = config.CalculateGemmKBlocks(ctx);
-    std::tie(grid_size, std::ignore)  = config.CalculateGridSize(ctx);
-    grid_size                         = grid_size * GemmKBlocks;
+    int grid_size   = 0;
+    int block_size  = 0;
+    int GemmKBlocks = 1;
+    GemmKBlocks     = config.CalculateGemmKBlocks(ctx);
+    std::tie(grid_size, std::ignore) = config.CalculateGridSize(ctx);
+    grid_size = grid_size * GemmKBlocks;
     std::tie(block_size, std::ignore) = config.CalculateBlockSize();
 
     construction_parameters.l_wk.push_back(block_size);
@@ -928,18 +928,18 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
         std::string(" -DCK_USE_AMD_BUFFER_ATOMIC_ADD=") + (is_support_amd_buffer_atomic_add(ctx) ? '1' : '0') +
         ctx.general_compile_options;
     // clang-format on
-        if(ctx.IsFp16() || ctx.IsBfp16()) 
-        {     
-            const auto in_left_pad_h  = ConvolutionContextInterpreter::GetInputLeftPadH(ctx); 
-            const auto in_left_pad_w  = ConvolutionContextInterpreter::GetInputLeftPadW(ctx); 
-            const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx); 
-            const auto in_right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx); 
- 
-            if(in_left_pad_h == 0 && in_left_pad_w == 0 && in_right_pad_h == 0 && in_right_pad_w == 0) 
-            {     
-                construction_parameters.comp_options += " -mllvm -amdgpu-enable-global-sgpr-addr"; 
-            }     
+    if(ctx.IsFp16() || ctx.IsBfp16())
+    {
+        const auto in_left_pad_h  = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
+        const auto in_left_pad_w  = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
+        const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
+        const auto in_right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
+
+        if(in_left_pad_h == 0 && in_left_pad_w == 0 && in_right_pad_h == 0 && in_right_pad_w == 0)
+        {
+            construction_parameters.comp_options += " -mllvm -amdgpu-enable-global-sgpr-addr";
         }
+    }
 
     result.construction_params.push_back(construction_parameters);
 
@@ -979,7 +979,7 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
             else
             {
                 SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
-		if(handle.IsProfilingEnabled())
+                if(handle.IsProfilingEnabled())
                 {
                     elapsed += handle.GetKernelTime();
                 }
