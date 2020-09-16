@@ -129,6 +129,7 @@ class FindMode
         Fast,
         Hybrid,
         FastHybrid,
+        DynamicHybrid,
         End_,
         Default_ = Hybrid,
     };
@@ -142,9 +143,15 @@ class FindMode
     bool IsFast() const { return value == Values::Fast && !debug::FindModeDisable; }
     bool IsHybrid() const
     {
-        return (value == Values::Hybrid || value == Values::FastHybrid) && !debug::FindModeDisable;
+        return (value == Values::Hybrid || value == Values::FastHybrid ||
+                value == Values::DynamicHybrid) &&
+               !debug::FindModeDisable;
     }
     bool IsFastHybrid() const { return value == Values::FastHybrid && !debug::FindModeDisable; }
+    bool IsDynamicHybrid() const
+    {
+        return value == Values::DynamicHybrid && !debug::FindModeDisable;
+    }
     friend std::ostream& operator<<(std::ostream&, const FindMode&);
 };
 
