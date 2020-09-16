@@ -29,7 +29,6 @@
 #include <miopen/conv/context.hpp>
 #include <miopen/idiv.hpp>
 
-// clang-foramt off
 namespace miopen {
 namespace solver {
 struct param_ufconv_t
@@ -79,5 +78,4 @@ void build_params_ufconv(param_ufconv_t&, const ConvolutionContext&);
 void build_params_conv(param_conv_t&, const ConvolutionContext&);
 } // namespace solver
 } // namespace miopen
-// clang-foramt on
 #endif
