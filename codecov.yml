@@ -1,5 +1,4 @@
 ignore:
   - "addkernels/"
   - "driver/"
-  - "driver/"
   - "build/" 
