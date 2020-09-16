@@ -385,6 +385,9 @@ PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGemmABlockCopyPerformanceParamete
             data_per_thread_copy_gemmm = gcd(GemmMPerBlock, tmp);
             data_per_thread_copy_gemmk = tmp / data_per_thread_copy_gemmm;
         }
+	
+	if(data_per_thread_copy_gemmk <= 0 || data_per_thread_copy_gemmm <= 0 || data_per_thread_copy_gemmkpack <= 0)
+            MIOPEN_THROW("invalid performance parameter");
 
         // vector write into LDS
         DstDataPerWrite_GemmKPack = gcd(DstDataPerWrite_GemmKPack, data_per_thread_copy_gemmkpack);
@@ -510,6 +513,9 @@ PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGemmBBlockCopyPerformanceParamete
             data_per_thread_copy_gemmn = gcd(GemmKPerBlock, tmp);
             data_per_thread_copy_gemmk = tmp / data_per_thread_copy_gemmn;
         }
+
+	if(data_per_thread_copy_gemmk <= 0 || data_per_thread_copy_gemmn <= 0 || data_per_thread_copy_gemmkpack <= 0)
+            MIOPEN_THROW("invalid performance parameter");
 
         // vector write into LDS
         DstDataPerWrite_GemmKPack = gcd(DstDataPerWrite_GemmKPack, data_per_thread_copy_gemmkpack);
