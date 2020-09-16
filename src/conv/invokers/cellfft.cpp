@@ -27,7 +27,7 @@
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/errors.hpp>
-#include <miopen/h.hpp>
+#include <miopen/handle.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/tensor.hpp>
 #include <boost/any.hpp>
