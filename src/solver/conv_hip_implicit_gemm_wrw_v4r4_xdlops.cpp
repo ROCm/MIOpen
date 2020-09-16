@@ -928,6 +928,18 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
         std::string(" -DCK_USE_AMD_BUFFER_ATOMIC_ADD=") + (is_support_amd_buffer_atomic_add(ctx) ? '1' : '0') +
         ctx.general_compile_options;
     // clang-format on
+        if(ctx.IsFp16() || ctx.IsBfp16()) 
+        {     
+            const auto in_left_pad_h  = ConvolutionContextInterpreter::GetInputLeftPadH(ctx); 
+            const auto in_left_pad_w  = ConvolutionContextInterpreter::GetInputLeftPadW(ctx); 
+            const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx); 
+            const auto in_right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx); 
+ 
+            if(in_left_pad_h == 0 && in_left_pad_w == 0 && in_right_pad_h == 0 && in_right_pad_w == 0) 
+            {     
+                construction_parameters.comp_options += " -mllvm -amdgpu-enable-global-sgpr-addr"; 
+            }     
+        }
 
     result.construction_params.push_back(construction_parameters);
 
@@ -967,6 +979,10 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
             else
             {
                 SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
+		if(handle.IsProfilingEnabled())
+                {
+                    elapsed += handle.GetKernelTime();
+                }
                 handle.Run(kernels[0])(tensors.x, tensors.dy, tensors.dw);
             }
 
