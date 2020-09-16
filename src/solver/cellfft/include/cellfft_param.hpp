@@ -23,8 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-// clang-foramt off
 #ifndef GUARD_MIOPEN_CELLFFT_PARAM_HPP
 #define GUARD_MIOPEN_CELLFFT_PARAM_HPP
 
@@ -76,5 +74,4 @@ void build_cellfft_params(cellfft_param_t&, const ConvolutionContext&);
 void build_cellfft_params_grad(cellfft_param_t&, const ConvolutionContext&);
 } // namespace solver
 } // namespace miopen
-// clang-foramt on
 #endif
