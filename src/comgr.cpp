@@ -65,17 +65,15 @@
     ((MIOPEN_AMD_COMGR_VERSION_MAJOR * 1000 + MIOPEN_AMD_COMGR_VERSION_MINOR) * 1000 + \
      MIOPEN_AMD_COMGR_VERSION_PATCH)
 
-#if HIP_PACKAGE_VERSION >= 3009020372 && COMGR_VERSION >= 1008000 && 1 // FIXME
+#if HIP_PACKAGE_VERSION >= 3009999999 && COMGR_VERSION >= 1008000
 #define USE_HIP_PCH 1
-/// __hipGetPCH() is not yet available (3.9.20372)
-#define FIXME_WORKAROUND_HIP_GET_PCH 1
 #else
 #define USE_HIP_PCH 0
 #endif
 
 #if USE_HIP_PCH
 // Enables __hipGetPCH() in hip_runtime_api.h.
-// This must be defined above the inclusion of any of the headers,
+// This must be defined *prior* inclusion of any of the headers,
 // because hip_runtime_api.h may be included in any of those.
 #define ENABLE_HIP_PCH 1
 #endif
@@ -87,11 +85,6 @@
 #include <miopen/kernel.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/stringutils.hpp>
-
-#if FIXME_WORKAROUND_HIP_GET_PCH
-#include <miopen/mlo_utils.hpp> // for mloFile
-#endif
-
 #include <amd_comgr.h>
 #include <hip/hip_runtime_api.h>
 #include <algorithm>
@@ -495,9 +488,9 @@ class Data : ComgrOwner
         ECI_THROW(amd_comgr_set_data(handle, bytes.size(), bytes.data()), bytes.size());
     }
 #if USE_HIP_PCH
-    void SetFromBuffer(const void* const buffer, const size_t size) const
+    void SetFromBuffer(const char* const buffer, const size_t size) const
     {
-        ECI_THROW(amd_comgr_set_data(handle, size, static_cast<const char*>(buffer)), size);
+        ECI_THROW(amd_comgr_set_data(handle, size, buffer), size);
     }
 #endif
 
@@ -703,20 +696,11 @@ void BuildHip(const std::string& name,
 
 #if USE_HIP_PCH
         {
-#if FIXME_WORKAROUND_HIP_GET_PCH
-            const char pch_pathname[] = "../../src/kernels/hip.pch";
-            mloFile pch_file;
-            pch_file.readBinaryFromFile(pch_pathname);
-            inputs.AddData(pch_pathname, pch_file.source(), AMD_COMGR_DATA_KIND_PRECOMPILED_HEADER);
-#else
             const char* pch       = nullptr;
             unsigned int pch_size = 0;
             __hipGetPCH(&pch, &pch_size);
-            MIOPEN_LOG_I("PCH: ptr = " << static_cast<const void*>(pch) << " size = " << pch_size);
+            MIOPEN_LOG_I2("PCH: ptr = " << static_cast<const void*>(pch) << " size = " << pch_size);
             inputs.AddDataHipPch(pch, pch_size);
-            int c = *pch;
-            MIOPEN_LOG_I("c = " << c);
-#endif
         }
 #endif
 
