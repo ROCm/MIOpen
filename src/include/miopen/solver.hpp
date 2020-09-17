@@ -1335,6 +1335,37 @@ struct ConvAsmImplicitGemmV4R1DynamicBwd : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext&) const;
 };
 
+struct TunableImplicitGemmGTCDynamic_t
+{
+    int direction;
+    int precision;
+    int nxb;
+    int nxe;
+
+    int gemm_m_per_block;
+    int gemm_n_per_block;
+    int gemm_k_per_block;
+
+    int wave_tile_m;
+    int wave_tile_n;
+    int wave_step_m;
+    int wave_step_n;
+    int wave_repeat_m;
+    int wave_repeat_n;
+
+    int tensor_a_thread_lengths[4];
+    int tensor_a_cluster_lengths[4];
+    int tensor_b_thread_lengths[4];
+    int tensor_b_cluster_lengths[4];
+};
+
+struct ConvAsmImplicitGemmGTCDynamicBwd : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    bool IsDynamic() const { return true; }
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+};
+
 /// Holds common member functions for the Solvers which share the same
 /// "legacy exhaustive search" machinery.
 struct ConvOclDirectFwdLegacyExhaustiveSearch : SolverBase<ConvolutionContext>

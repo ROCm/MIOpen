@@ -141,7 +141,8 @@ static auto GetImplicitGemmSolvers()
                                            miopen::solver::ConvHipImplicitGemmBwdDataV4R1,
                                            miopen::solver::ConvAsmImplicitGemmV4R1DynamicFwd_1x1,
                                            miopen::solver::ConvAsmImplicitGemmV4R1DynamicFwd,
-                                           miopen::solver::ConvAsmImplicitGemmV4R1DynamicBwd>{};
+                                           miopen::solver::ConvAsmImplicitGemmV4R1DynamicBwd,
+                                           miopen::solver::ConvAsmImplicitGemmGTCDynamicBwd>{};
 }
 
 static auto GetWindogradSolvers()
