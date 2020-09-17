@@ -66,15 +66,15 @@ RUN pip3 install cget
 # Install rclone
 RUN pip install https://github.com/pfultz2/rclone/archive/master.tar.gz
 
+# Add symlink to /opt/rocm
+RUN [ -d /opt/rocm ] || ln -sd $(realpath /opt/rocm-*) /opt/rocm
+
 # Install hcc from ROCm 3.0
 RUN rclone -b roc-3.0.x -c 286651a04d9c3a8e3052dd84b1822985498cd27d https://github.com/RadeonOpenCompute/hcc.git /hcc
 RUN LDFLAGS=-fuse-ld=gold cget -p $PREFIX install hcc,/hcc  && rm -rf /hcc
 
 # Make sure /opt/rcom is in the paths
 ENV PATH="/opt/rocm:${PATH}"
-
-# Specify GPU architecture(s) for MIOpenTensile
-ARG MIOTENSILE_GPU_TARGETS=";"
 
 # Build using hcc
 RUN cget -p $PREFIX init --cxx $PREFIX/bin/hcc --std=c++14
