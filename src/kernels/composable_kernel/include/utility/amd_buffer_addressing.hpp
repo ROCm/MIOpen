@@ -197,6 +197,8 @@ __device__ half_t amd_buffer_load<half_t, 1>(const half_t* p_src_block,
     index_t src_thread_addr_offset = src_thread_data_offset * sizeof(half_t);
     index_t src_const_addr_offset  = src_const_data_offset * sizeof(half_t);
 
+    // current code cannot isolate Soffset and Voffset, so Soffset is hard-coded to 0, and
+    // everything is passed to Voffset
     return __llvm_amdgcn_raw_buffer_load_f16(
         src_block_config.data, src_thread_addr_offset + src_const_addr_offset, 0, 0);
 }
@@ -287,6 +289,8 @@ __device__ ushort amd_buffer_load<ushort, 1>(const ushort* p_src_block,
     index_t src_thread_addr_offset = src_thread_data_offset * sizeof(ushort);
     index_t src_const_addr_offset  = src_const_data_offset * sizeof(ushort);
 
+    // current code cannot isolate Soffset and Voffset, so Soffset is hard-coded to 0, and
+    // everything is passed to Voffset
     return __llvm_amdgcn_raw_buffer_load_bf16(
         src_block_config.data, src_thread_addr_offset + src_const_addr_offset, 0, 0);
 }
@@ -456,6 +460,8 @@ __device__ void amd_buffer_store<half_t, 1>(const half_t* p_src,
     index_t dst_thread_addr_offset = dst_thread_data_offset * sizeof(half_t);
     index_t dst_const_addr_offset  = dst_const_data_offset * sizeof(half_t);
 
+    // current code cannot isolate Soffset and Voffset, so Soffset is hard-coded to 0, and
+    // everything is passed to Voffset
     __llvm_amdgcn_raw_buffer_store_f16(
         *p_src, dst_block_config.data, dst_thread_addr_offset + dst_const_addr_offset, 0, 0);
 }
@@ -534,6 +540,8 @@ __device__ void amd_buffer_store<ushort, 1>(const ushort* p_src,
     index_t dst_thread_addr_offset = dst_thread_data_offset * sizeof(ushort);
     index_t dst_const_addr_offset  = dst_const_data_offset * sizeof(ushort);
 
+    // current code cannot isolate Soffset and Voffset, so Soffset is hard-coded to 0, and
+    // everything is passed to Voffset
     __llvm_amdgcn_raw_buffer_store_bf16(
         *p_src, dst_block_config.data, dst_thread_addr_offset + dst_const_addr_offset, 0, 0);
 }
