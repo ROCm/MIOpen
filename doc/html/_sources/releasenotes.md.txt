@@ -2,7 +2,7 @@
 ## MIOpen Release notes
 
 
-### 09/14/2020 [ 2.7.0 ]
+### 09/18/2020 [ 2.7.0 ]
 
 - This release contains a new reduction API; see [API documentation](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/apireference.html) for more information. Additional features for embedded builds have been added, and further support for 3D convolutional networks. 
 
