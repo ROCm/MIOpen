@@ -2420,14 +2420,13 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                     time_gemm += in_n * time_col2im;
 
                     if(gemm_status == miopenStatusSuccess)
-                        record.SetValues(
-                            "miopenConvolutionBwdDataAlgoGEMM",
-                            FindDbData{
-                                "gemm",
-                                time_gemm,
-                                BackwardDataGetWorkSpaceSizeGEMM(wDesc, dyDesc) * group_count,
-                                kcache_key,
-                            });
+                        record.SetValues("miopenConvolutionBwdDataAlgoGEMM",
+                                         FindDbData{
+                                             "gemm",
+                                             time_gemm,
+                                             BackwardDataGetWorkSpaceSizeGEMM(wDesc, dyDesc),
+                                             kcache_key,
+                                         });
                 }
             }
 #endif
