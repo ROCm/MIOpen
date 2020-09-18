@@ -35,16 +35,16 @@
 #include <miopen/conv/invokers/cellfft.hpp>
 
 // clang-format off
-#define START_R2C_S   0
-#define START_C2R_S   (START_R2C_S+8)
-#define START_R2C_X   (START_C2R_S+22)
-#define START_R2C_Xg  (START_R2C_X+6)
-#define START_C2R_X   (START_R2C_Xg+8)
-#define START_R2C     (START_C2R_X+4)
-#define START_R2C_PAD (START_R2C+96)
-#define START_C2R     (START_R2C_PAD+48)
+constexpr int start_r2c_s   = 0;
+constexpr int start_c2r_s   = start_r2c_s+8;
+constexpr int start_r2c_x   = start_c2r_s+22;
+constexpr int start_r2c_xg  = start_r2c_x+6;
+constexpr int start_c2r_x   = start_r2c_xg+8;
+constexpr int start_r2c     = start_c2r_x+4;
+constexpr int start_r2c_pad = start_r2c+96;
+constexpr int start_c2r     = start_r2c_pad+48;
 
-static const char* g_knames[]=
+static const char* g_knames[] =
 {
     "sfft4x4_r2c_perm_s3x3",
     "sfft4x4_r2c_perm_s5x5",
@@ -354,9 +354,8 @@ static uint32_t choose_cgemm_id(uint32_t m, uint32_t n)
 
 namespace miopen {
 namespace solver {
-static KernelInfo get_kernel_cgemm(const ConvolutionContext& ctx,
-                                   const cellfft_param_t& p,
-                                   const std::string& file_name)
+static KernelInfo
+get_kinfo_cgemm(const ConvolutionContext& ctx, const cellfft_param_t& p, const std::string& fname)
 {
     static const uint32_t blk[]    = {64, 64, 128, 64, 128, 256};
     static const char* knames[][2] = {{"scgemm5x4", "scgemm5x4_ck"},
@@ -372,21 +371,20 @@ static KernelInfo get_kernel_cgemm(const ConvolutionContext& ctx,
     const uint32_t gdx     = (p.m + (1 << shx) - 1) >> shx;
     const uint32_t gdy     = (p.n + (1 << shy) - 1) >> shy;
     const uint32_t gdz     = p.nbanks >> shz;
+    const uint32_t kid     = (p.k & 7) != 0 ? 1 : 0;
     const std::vector<size_t> block{blk[tile_id], 1, 1};
     const std::vector<size_t> grid{gdx * blk[tile_id], gdy, gdz};
     std::ostringstream options;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
-    return KernelInfo{
-        options.str(), block, grid, file_name, knames[tile_id][(p.k & 7) != 0 ? 1 : 0]};
+    return KernelInfo{options.str(), block, grid, fname, knames[tile_id][kid]};
 }
-static KernelInfo get_kernel_r2c_a(const ConvolutionContext& ctx,
-                                   const cellfft_param_t& p,
-                                   const std::string& file_name)
+static KernelInfo
+get_kinfo_r2c_a(const ConvolutionContext& ctx, const cellfft_param_t& p, const std::string& fname)
 {
-    uint32_t kid = START_R2C + (p.id << 4) + p.any - 1;
+    uint32_t kid = start_r2c + (p.id << 4) + p.any - 1;
     if((p.pad_l | p.pad_t) != 0)
     {
-        kid = START_R2C_PAD + (p.id << 4) + p.pad_t;
+        kid = start_r2c_pad + (p.id << 4) + p.pad_t;
     }
     const uint32_t r = (p.m + 15) >> 4;
     const size_t bdx = p.id == 0 ? 256 : 512;
@@ -396,16 +394,15 @@ static KernelInfo get_kernel_r2c_a(const ConvolutionContext& ctx,
     const std::vector<size_t> grid{gdx * bdx, gdy, 1};
     std::ostringstream options;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
-    return KernelInfo{options.str(), block, grid, file_name, g_knames[kid]};
+    return KernelInfo{options.str(), block, grid, fname, g_knames[kid]};
 }
-static KernelInfo get_kernel_r2c_b(const ConvolutionContext& ctx,
-                                   const cellfft_param_t& p,
-                                   const std::string& file_name)
+static KernelInfo
+get_kinfo_r2c_b(const ConvolutionContext& ctx, const cellfft_param_t& p, const std::string& fname)
 {
-    uint32_t kid = START_R2C + (p.dir != 1 ? 0 : 48) + (p.id << 4) + p.bny - 1;
+    uint32_t kid = start_r2c + (p.dir != 1 ? 0 : 48) + (p.id << 4) + p.bny - 1;
     if((p.bnx == p.bny) && ((p.bnx == 3) || (p.bnx == 5)))
     {
-        kid = START_R2C_S + ((p.id << 2) | ((p.dir & 1) << 1) | (p.bnx == 3 ? 0 : 1));
+        kid = start_r2c_s + ((p.id << 2) | ((p.dir & 1) << 1) | (p.bnx == 3 ? 0 : 1));
     }
     const uint32_t r = (p.n + 15) >> 4;
     const size_t bdx = p.id == 0 ? 256 : 512;
@@ -415,134 +412,131 @@ static KernelInfo get_kernel_r2c_b(const ConvolutionContext& ctx,
     const std::vector<size_t> grid{gdx * bdx, gdy, 1};
     std::ostringstream options;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
-    return KernelInfo{options.str(), block, grid, file_name, g_knames[kid]};
+    return KernelInfo{options.str(), block, grid, fname, g_knames[kid]};
 }
-static KernelInfo get_kernel_r2c_grid(const ConvolutionContext& ctx,
-                                      const cellfft_param_t& p,
-                                      const std::string& file_name)
+static KernelInfo
+get_kinfo_r2c_x(const ConvolutionContext& ctx, const cellfft_param_t& p, const std::string& fname)
 {
     const uint32_t nx  = p.tile_x * p.grid_x + p.bnx - 1;
     const uint32_t ny  = p.tile_y * p.grid_y + p.bny - 1;
     const uint32_t ex  = ((nx != p.anx) || (ny != p.any)) ? 1 : 0;
-    const uint32_t kid = START_R2C_X + p.id * 3 + ((p.pad_l | p.pad_t) != 0 ? 2 : ex);
+    const uint32_t kid = start_r2c_x + p.id * 3 + ((p.pad_l | p.pad_t) != 0 ? 2 : ex);
     const size_t bdx   = p.id == 0 ? 256 : 512;
     const size_t gdx   = (p.m + 15) >> 4;
     const std::vector<size_t> block{bdx, 1, 1};
     const std::vector<size_t> grid{gdx * bdx, p.k, 1};
     std::ostringstream options;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
-    return KernelInfo{options.str(), block, grid, file_name, g_knames[kid]};
+    return KernelInfo{options.str(), block, grid, fname, g_knames[kid]};
 }
-static KernelInfo get_kernel_r2c_xgrad_a(const ConvolutionContext& ctx,
-                                         const cellfft_param_t& p,
-                                         const std::string& file_name)
+static KernelInfo
+get_kinfo_r2c_xga(const ConvolutionContext& ctx, const cellfft_param_t& p, const std::string& fname)
 {
     const uint32_t nx  = p.tile_x * p.grid_x + p.bnx - 1;
     const uint32_t ny  = p.tile_y * p.grid_y + p.bny - 1;
     const uint32_t ex  = ((nx != p.anx) || (ny != p.any)) ? 1 : 0;
-    const uint32_t kid = START_R2C_Xg + (p.id << 2) + ((p.pad_l | p.pad_t) != 0 ? 2 : ex);
+    const uint32_t kid = start_r2c_xg + (p.id << 2) + ((p.pad_l | p.pad_t) != 0 ? 2 : ex);
     const size_t bdx   = p.id == 0 ? 256 : 512;
     const size_t gdx   = (p.m + 15) >> 4;
     const std::vector<size_t> block{bdx, 1, 1};
     const std::vector<size_t> grid{gdx * bdx, p.k, 1};
     std::ostringstream options;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
-    return KernelInfo{options.str(), block, grid, file_name, g_knames[kid]};
+    return KernelInfo{options.str(), block, grid, fname, g_knames[kid]};
 }
-static KernelInfo get_kernel_r2c_xgrad_b(const ConvolutionContext& ctx,
-                                         const cellfft_param_t& p,
-                                         const std::string& file_name)
+static KernelInfo
+get_kinfo_r2c_xgb(const ConvolutionContext& ctx, const cellfft_param_t& p, const std::string& fname)
 {
-    const uint32_t kid = START_R2C_Xg + ((p.id << 2) | 3);
+    const uint32_t kid = start_r2c_xg + ((p.id << 2) | 3);
     const size_t bdx   = p.id == 0 ? 256 : 512;
     const size_t gdx   = (p.n + 15) >> 4;
     const std::vector<size_t> block{bdx, 1, 1};
     const std::vector<size_t> grid{gdx * bdx, p.k, 1};
     std::ostringstream options;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
-    return KernelInfo{options.str(), block, grid, file_name, g_knames[kid]};
+    return KernelInfo{options.str(), block, grid, fname, g_knames[kid]};
 }
-static KernelInfo get_kernel_c2r(const ConvolutionContext& ctx,
-                                 const cellfft_param_t& p,
-                                 const std::string& file_name,
-                                 uint32_t relu)
+static KernelInfo get_kinfo_c2r(const ConvolutionContext& ctx,
+                                const cellfft_param_t& p,
+                                const std::string& fname,
+                                uint32_t relu)
 {
     const uint32_t shx = 4 - p.id;
-    const uint32_t kid = START_C2R + (p.id << 5) + (relu << (p.id + 4)) + p.cny - 1;
+    const uint32_t kid = start_c2r + (p.id << 5) + (relu << (p.id + 4)) + p.cny - 1;
     const size_t gdx   = (p.m + (1 << shx) - 1) >> shx;
     const std::vector<size_t> block{256, 1, 1};
     const std::vector<size_t> grid{gdx << 8, p.n, 1};
     std::ostringstream options;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
-    return KernelInfo{options.str(), block, grid, file_name, g_knames[kid]};
+    return KernelInfo{options.str(), block, grid, fname, g_knames[kid]};
 }
-static KernelInfo get_kernel_c2r_grid(const ConvolutionContext& ctx,
-                                      const cellfft_param_t& p,
-                                      const std::string& file_name,
-                                      uint32_t relu)
+static KernelInfo get_kinfo_c2r_x(const ConvolutionContext& ctx,
+                                  const cellfft_param_t& p,
+                                  const std::string& fname,
+                                  uint32_t relu)
 {
     const uint32_t shx = 4 - p.id;
-    const uint32_t kid = START_C2R_X + ((p.id << 1) | relu);
+    const uint32_t kid = start_c2r_x + ((p.id << 1) | relu);
     const size_t gdx   = (p.m + (1 << shx) - 1) >> shx;
     const std::vector<size_t> block{256, 1, 1};
     const std::vector<size_t> grid{gdx << 8, p.n, 1};
     std::ostringstream options;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
-    return KernelInfo{options.str(), block, grid, file_name, g_knames[kid]};
+    return KernelInfo{options.str(), block, grid, fname, g_knames[kid]};
 }
-static KernelInfo get_kernel_c2r_grad(const ConvolutionContext& ctx,
-                                      const cellfft_param_t& p,
-                                      const std::string& file_name)
+static KernelInfo
+get_kinfo_c2r_g(const ConvolutionContext& ctx, const cellfft_param_t& p, const std::string& fname)
 {
     uint32_t nmax = p.cnx > p.cny ? p.cnx : p.cny;
     uint32_t nmin = p.cnx > p.cny ? p.cny : p.cnx;
     uint32_t shx  = 4 - p.id;
-    uint32_t kid  = START_C2R + (p.id << 5) + p.cny - 1;
+    uint32_t kid  = start_c2r + (p.id << 5) + p.cny - 1;
     bool cc0      = (p.cnx == p.cny) && ((p.cnx == 3) || (p.cnx == 5) || (p.cnx == 7));
     bool cc1      = (nmin == 1) && ((nmax & 1) != 0) && (nmax > 1) && (nmax <= 9);
     if(cc0 || cc1)
     {
-        kid = START_C2R_S + 11 * p.id + (cc0 ? 8 : (p.cnx > p.cny ? 0 : 4)) + (nmax >> 1) - 1;
+        kid = start_c2r_s + 11 * p.id + (cc0 ? 8 : (p.cnx > p.cny ? 0 : 4)) + (nmax >> 1) - 1;
     }
     size_t gdx = (p.m + (1 << shx) - 1) >> shx;
     const std::vector<size_t> block{256, 1, 1};
     const std::vector<size_t> grid{gdx << 8, p.n, 1};
     std::ostringstream options;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
-    return KernelInfo{options.str(), block, grid, file_name, g_knames[kid]};
+    return KernelInfo{options.str(), block, grid, fname, g_knames[kid]};
 }
-static void get_solution(const ConvolutionContext& ctx, ConvSolution& sol, const cellfft_param_t& p)
+static void
+fill_kernels_info(ConvSolution& sol, const ConvolutionContext& ctx, const cellfft_param_t& p)
 {
-    const std::string file_name = "cellfft_" + ctx.GetStream().GetDeviceName() + ".s";
-    sol.construction_params.push_back(get_kernel_cgemm(ctx, p, file_name));
+    const std::string fname = "cellfft_" + ctx.GetStream().GetDeviceName() + ".s";
+    sol.construction_params.push_back(get_kinfo_cgemm(ctx, p, fname));
     if(p.dir != 2)
     {
         if((p.grid_x | p.grid_y) > 1)
         {
-            sol.construction_params.push_back(get_kernel_r2c_grid(ctx, p, file_name));
-            sol.construction_params.push_back(get_kernel_r2c_b(ctx, p, file_name));
-            sol.construction_params.push_back(get_kernel_c2r_grid(ctx, p, file_name, 0));
+            sol.construction_params.push_back(get_kinfo_r2c_x(ctx, p, fname));
+            sol.construction_params.push_back(get_kinfo_r2c_b(ctx, p, fname));
+            sol.construction_params.push_back(get_kinfo_c2r_x(ctx, p, fname, 0));
         }
         else
         {
-            sol.construction_params.push_back(get_kernel_r2c_a(ctx, p, file_name));
-            sol.construction_params.push_back(get_kernel_r2c_b(ctx, p, file_name));
-            sol.construction_params.push_back(get_kernel_c2r(ctx, p, file_name, 0));
+            sol.construction_params.push_back(get_kinfo_r2c_a(ctx, p, fname));
+            sol.construction_params.push_back(get_kinfo_r2c_b(ctx, p, fname));
+            sol.construction_params.push_back(get_kinfo_c2r(ctx, p, fname, 0));
         }
     }
     else
     {
         if((p.grid_x | p.grid_y) > 1)
         {
-            sol.construction_params.push_back(get_kernel_r2c_xgrad_a(ctx, p, file_name));
-            sol.construction_params.push_back(get_kernel_r2c_xgrad_b(ctx, p, file_name));
+            sol.construction_params.push_back(get_kinfo_r2c_xga(ctx, p, fname));
+            sol.construction_params.push_back(get_kinfo_r2c_xgb(ctx, p, fname));
         }
         else
         {
-            sol.construction_params.push_back(get_kernel_r2c_a(ctx, p, file_name));
-            sol.construction_params.push_back(get_kernel_r2c_b(ctx, p, file_name));
+            sol.construction_params.push_back(get_kinfo_r2c_a(ctx, p, fname));
+            sol.construction_params.push_back(get_kinfo_r2c_b(ctx, p, fname));
         }
-        sol.construction_params.push_back(get_kernel_c2r_grad(ctx, p, file_name));
+        sol.construction_params.push_back(get_kinfo_c2r_g(ctx, p, fname));
     }
 }
 bool ConvCellfft::IsApplicable(const ConvolutionContext& ctx) const
@@ -588,7 +582,7 @@ ConvSolution ConvCellfft::GetSolution(const ConvolutionContext& ctx) const
         build_cellfft_params_grad(params, ctx);
     }
     sol.workspce_sz = get_auxbuf_size(params);
-    get_solution(ctx, sol, params);
+    fill_kernels_info(sol, ctx, params);
     if(!ctx.direction.IsBackwardWrW())
     {
         sol.invoker_factory = conv::MakeCellfftInvokerFactory(params, 1.f);
