@@ -91,6 +91,7 @@
 
 default pipe_config, 0
 default use_exec_for_vmem, 1 // todo test and remove
+default XDLOPS_CONV_GEMM, 0
 
 .if pipe_config == 0
     r_pipe_depth  = 8
@@ -149,18 +150,27 @@ static_assert(fdilation_h == 1)
     out_tile_height = xformy_d_size
     tile_step_x = xformx_f_size
     tile_step_y = xformy_f_size
-    NK = K
-    CK = C
+    .if XDLOPS_CONV_GEMM
+        NK = C
+        CK = K
+        x_N_stride = o_N_stride
+        x_C_stride = o_C_stride
+        s_N_stride = d_C_stride
+        s_C_stride = d_N_stride
+    .else
+        NK = K
+        CK = C
+        x_N_stride = o_N_stride
+        x_C_stride = o_C_stride
+        s_N_stride = d_N_stride
+        s_C_stride = d_C_stride
+    .endif
     HR = R
     WS = S
     x_G_stride = o_G_stride // transformed strides
-    x_N_stride = o_N_stride
-    x_C_stride = o_C_stride
     x_H_stride = o_H_stride
     x_W_stride = o_W_stride
     s_G_stride = d_G_stride // standard non-transformed strides
-    s_N_stride = d_N_stride
-    s_C_stride = d_C_stride
     s_H_stride = d_H_stride
     s_W_stride = d_W_stride
 .elseif xform_data
