@@ -129,6 +129,7 @@ static inline int RunAndMeasureSolutionDynamicBase(miopen::Handle& profile_h,
     {
         elapsed_time = float(0);
         std::vector<KernelInvoke> kernels;
+        const auto& conv_problem = ctx.conv_problem;
 
         for(auto& k_info : solution.construction_params)
         {
@@ -141,8 +142,14 @@ static inline int RunAndMeasureSolutionDynamicBase(miopen::Handle& profile_h,
                                               k_info.comp_options);
             kernels.push_back(kernel);
         }
-        float time =
-            conv::CallImplicitGemmDynamic(profile_h, ctx, bot_buf, top_buf, wei_buf, kernels);
+        bool kernel_is_1x1 = (kernels[0].GetName().find("igemm_v4r1_1x1_dynamic") == 0);
+        float time;
+        if(kernel_is_1x1)
+            time = conv::CallImplGemmDynamicForward1x1(
+                profile_h, conv_problem, bot_buf, top_buf, wei_buf, kernels);
+        else
+            time = conv::CallImplGemmDynamicForward(
+                profile_h, conv_problem, bot_buf, top_buf, wei_buf, kernels);
         elapsed_time += time;
     }
 #ifdef NDEBUG
@@ -530,8 +537,9 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
 
     std::string kernel_name = GetKernelNameImplicitGemmV4R1Dynamic(config, kernel_type);
 
-    int block_size = GetImplicitGemmV4R1DynamicBlockSize(config);
-    int grid_size  = GetImplicitGemmV4R1DynamicGridSize(ctx, config);
+    int block_size     = GetImplicitGemmV4R1DynamicBlockSize(config);
+    int grid_size      = GetImplicitGemmV4R1DynamicGridSize(ctx, config);
+    bool kernel_is_1x1 = (kernel_name.find("igemm_v4r1_1x1_dynamic") == 0);
 
     KernelInfo kernel;
     std::ostringstream options;
@@ -557,7 +565,10 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
 
     MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
 
-    result.invoker_factory = conv::MakeImplGemmDynamicDataInvokerFactory(ctx);
+    if(kernel_is_1x1)
+        result.invoker_factory = conv::MakeImplGemmDynamicForward1x1InvokerFactory(ctx);
+    else
+        result.invoker_factory = conv::MakeImplGemmDynamicForwardInvokerFactory(ctx);
     result.construction_params.push_back(kernel);
     return result;
 }
