@@ -2,7 +2,7 @@
 ## MIOpen Release notes
 
 
-### 09/24/2020 [ 2.7.0 ]
+### 09/18/2020 [ 2.7.0 ]
 
 - This release contains a new reduction API; see [API documentation](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/apireference.html) for more information. Additional features for embedded builds have been added, and further support for 3D convolutional networks. 
 
@@ -28,6 +28,7 @@
 - Fixed various issues with implicit GEMM static assert failures
 - Removed inactive implicit GEMM convolution solvers
 - Removed SCGEMM convolutional algorithm from MIOpen
+
 
 ### 07/10/2020 [ 2.5.0 ]
 
