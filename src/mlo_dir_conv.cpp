@@ -157,7 +157,7 @@ static auto GetWindogradSolvers()
                                            miopen::solver::ConvMPBidirectWinograd_xdlops<3, 3>,
                                            miopen::solver::ConvMPBidirectWinograd_xdlops<4, 3>,
                                            miopen::solver::ConvMPBidirectWinograd_xdlops<5, 3>,
-                                           miopen::solver::ConvMPBidirectWinograd_xdlops<6, 3> >{};
+                                           miopen::solver::ConvMPBidirectWinograd_xdlops<6, 3>>{};
 }
 
 static auto GetImplicitGemmWrWSolvers()
