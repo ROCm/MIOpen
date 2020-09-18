@@ -43,8 +43,8 @@ template <index_t GridSize,
           index_t GemmBBlockCopySrcDataPerRead_GemmN,
           index_t GemmBBlockCopyDstDataPerWrite_GemmKPack,
           index_t Extra_M,
-	  index_t Extra_N,
-	  index_t Extra_K,
+          index_t Extra_N,
+          index_t Extra_K,
           WorkgroupScheduleOrder WorkgroupSchdOrder>
 struct GridwiseConvolutionForwardImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw_universal
 {
@@ -137,14 +137,17 @@ struct GridwiseConvolutionForwardImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw_univers
 
         constexpr auto in_gemmg_gemmktotalextra_gemmn_global_desc = transform_tensor_descriptor(
             in_gemmg_gemmktotal_gemmn_global_desc,
-            make_tuple(PassThrough<G>{}, Pad<Sequence<C* Y* X>, Sequence<0>, Sequence<Extra_K>>{}, PassThrough<N* Ho* Wo>{}),
+            make_tuple(PassThrough<G>{},
+                       Pad<Sequence<C * Y * X>, Sequence<0>, Sequence<Extra_K>>{},
+                       PassThrough<N * Ho * Wo>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
 
         constexpr auto in_gemmg_gemmk_gemmn_gemmkpack_global_desc = transform_tensor_descriptor(
             in_gemmg_gemmktotalextra_gemmn_global_desc,
-            make_tuple(
-                PassThrough<GemmG>{}, UnMerge<Sequence<GemmK, GemmKPack>>{}, Pad<Sequence<GemmN - Extra_N>, Sequence<0>, Sequence<Extra_N>>{}),
+            make_tuple(PassThrough<GemmG>{},
+                       UnMerge<Sequence<GemmK, GemmKPack>>{},
+                       Pad<Sequence<GemmN - Extra_N>, Sequence<0>, Sequence<Extra_N>>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
             make_tuple(Sequence<0>{}, Sequence<1, 3>{}, Sequence<2>{}));
 
@@ -152,10 +155,12 @@ struct GridwiseConvolutionForwardImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw_univers
         constexpr auto wei_gemmg_gemmm_gemmktotal_global_desc = unfold_tensor_descriptor(
             wei_g_kpergroup_cpergroup_y_x_global_desc, Number<2>{}, Number<4>{});
 
-        constexpr auto wei_gemmg_gemmmextra_gemmktotalextra_global_desc = transform_tensor_descriptor(
-            wei_gemmg_gemmm_gemmktotal_global_desc,
-            make_tuple(
-                PassThrough<GemmG>{},  Pad<Sequence<GemmM - Extra_M>, Sequence<0>, Sequence<Extra_M>>{}, Pad<Sequence<C* Y* X>, Sequence<0>, Sequence<Extra_K>>{}),
+        constexpr auto wei_gemmg_gemmmextra_gemmktotalextra_global_desc =
+            transform_tensor_descriptor(
+                wei_gemmg_gemmm_gemmktotal_global_desc,
+                make_tuple(PassThrough<GemmG>{},
+                           Pad<Sequence<GemmM - Extra_M>, Sequence<0>, Sequence<Extra_M>>{},
+                           Pad<Sequence<C * Y * X>, Sequence<0>, Sequence<Extra_K>>{}),
                 make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
                 make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
 
@@ -169,13 +174,17 @@ struct GridwiseConvolutionForwardImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw_univers
         // output tensor
         constexpr auto out_gemmg_gemmmextra_gemmn_global_desc = transform_tensor_descriptor(
             out_g_n_kpergroup_ho_wo_global_desc,
-            make_tuple(PassThrough<G>{},  Pad<Sequence<GemmM - Extra_M>, Sequence<0>, Sequence<Extra_M>>{}, Merge<Sequence<N, Ho, Wo>>{}),
+            make_tuple(PassThrough<G>{},
+                       Pad<Sequence<GemmM - Extra_M>, Sequence<0>, Sequence<Extra_M>>{},
+                       Merge<Sequence<N, Ho, Wo>>{}),
             make_tuple(Sequence<0>{}, Sequence<2>{}, Sequence<1, 3, 4>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
 
         constexpr auto out_gemmg_gemmm_gemmn_global_desc = transform_tensor_descriptor(
             out_gemmg_gemmmextra_gemmn_global_desc,
-            make_tuple(PassThrough<G>{},  PassThrough<GemmM>{}, Pad<Sequence<GemmN - Extra_N>, Sequence<0>, Sequence<Extra_N>>{}),
+            make_tuple(PassThrough<G>{},
+                       PassThrough<GemmM>{},
+                       Pad<Sequence<GemmN - Extra_N>, Sequence<0>, Sequence<Extra_N>>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
 

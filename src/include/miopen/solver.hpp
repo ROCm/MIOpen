@@ -1031,9 +1031,13 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops_Universal
     bool GemmBThreadCopyMoreGemmKPack;
     int GemmBThreadDataPerRead_GemmN;
 
-    PerformanceImplicitGemmForwardV4R4Xdlops_Universal(int, int, int, int, int, int, int, int, int, bool, bool, int);
+    PerformanceImplicitGemmForwardV4R4Xdlops_Universal(
+        int, int, int, int, int, int, int, int, int, bool, bool, int);
     PerformanceImplicitGemmForwardV4R4Xdlops_Universal();
-    PerformanceImplicitGemmForwardV4R4Xdlops_Universal(bool) : PerformanceImplicitGemmForwardV4R4Xdlops_Universal() {}
+    PerformanceImplicitGemmForwardV4R4Xdlops_Universal(bool)
+        : PerformanceImplicitGemmForwardV4R4Xdlops_Universal()
+    {
+    }
 
     template <class Self, class F>
     static void Visit(Self&& self, F f)
@@ -1164,11 +1168,13 @@ struct ConvHipImplicitGemmForwardV4R4Xdlops : SolverBase<ConvolutionContext>
 
 struct ConvHipImplicitGemmForwardV4R4Xdlops_Universal : SolverBase<ConvolutionContext>
 {
-    static std::tuple<int, int, int, int, int, int, int> CalculateGemmSize(const ConvolutionContext& ctx, int Mfactor, int Nfactor, int Kfactor);
+    static std::tuple<int, int, int, int, int, int, int>
+    CalculateGemmSize(const ConvolutionContext& ctx, int Mfactor, int Nfactor, int Kfactor);
     PerformanceImplicitGemmForwardV4R4Xdlops_Universal
     GetPerformanceConfig(const ConvolutionContext& ctx) const;
-    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                  const PerformanceImplicitGemmForwardV4R4Xdlops_Universal& c) const;
+    bool
+    IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                             const PerformanceImplicitGemmForwardV4R4Xdlops_Universal& c) const;
     bool IsApplicable(const ConvolutionContext& ctx) const;
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const PerformanceImplicitGemmForwardV4R4Xdlops_Universal& config,
