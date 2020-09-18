@@ -1,6 +1,7 @@
 FROM ubuntu:18.04
 
 ARG PREFIX=/usr/local
+ARG GPU_ARCH=";"
 
 # Support multiarch
 RUN dpkg --add-architecture i386
@@ -77,7 +78,7 @@ RUN LDFLAGS=-fuse-ld=gold cget -p $PREFIX install hcc,/hcc  && rm -rf /hcc
 ENV PATH="/opt/rocm:${PATH}"
 
 # Build using hcc
-RUN cget -p $PREFIX init --cxx $PREFIX/bin/hcc --std=c++14
+RUN cget -p $PREFIX init --cxx $PREFIX/bin/hcc --std=c++14 -DTensile_ARCHITECTURE=${GPU_ARCH} -DAMDGPU_TARGETS=${GPU_ARCH}
 
 # Install dependencies
 ADD dev-requirements.txt /dev-requirements.txt
