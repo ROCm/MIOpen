@@ -1042,23 +1042,96 @@ struct XdlopsGemm_t
 
     static constexpr auto mfma_type = GetXdlopsInfo().mfma_type;
 
+    __device__ static constexpr index_t GetNumXdlops()
+    {
+        return (MPerXdlops * NPerXdlops) / (mfma_type.m * mfma_type.n * mfma_type.num_output_blks);
+    }
+
     struct OutputLayout
     {
+        __device__ static constexpr index_t M3() { return GetNumXdlops(); }
+        __device__ static constexpr index_t M2() { return mfma_type.num_output_blks; }
         __device__ static constexpr index_t M1() { return mfma_type.num_groups_blk; }
         __device__ static constexpr index_t M0() { return mfma_type.group_size; }
-        __device__ static constexpr index_t N1() { return mfma_type.num_input_blks; }
+        __device__ static constexpr index_t N1() { return mfma_type.num_output_blks; }
         __device__ static constexpr index_t N0() { return mfma_type.num_threads_blk; }
 
+        __device__ static constexpr auto CreateOutputVecZero()
+        {
+            return GetXdlopsInfo().OutputVecType.CreateVecZero();
+        }
+
         __device__ static constexpr index_t GetBlkSize() { return mfma_type.num_regs_blk; }
+
+        __device__ static constexpr index_t GetSize()
+        {
+            return MPerXdlops * NPerXdlops / mfma_type.wave_size;
+        }
 
         __device__ static constexpr index_t GetNumBlks()
         {
             return GetNumBlksPerXdlops() * MRepeats * NRepeats;
         }
 
-        __device__ static constexpr auto CreateOutputVecZero()
+        __device__ static constexpr index_t GetNum() { return MRepeats * NRepeats; }
+
+        template <class AccFloat>
+        __device__ static constexpr index_t GetShflBuffSize()
         {
-            return GetXdlopsInfo().OutputVecType.CreateVecZero();
+            return mfma_type.wave_size * sizeof(AccFloat) * mfma_type.group_size;
+        }
+
+        template <class T>
+        __device__ static void merge2x2(T* ar1, T* ar2)
+        {
+            T tmp;
+            tmp    = ar1[1];
+            ar1[1] = ar2[0];
+            ar2[0] = tmp;
+        }
+
+        template <class AccFloat, class CFloat>
+        __device__ CFloat OutputShfl(AccFloat* lds_buff, CFloat p_c_thread)
+        {
+            const index_t thread_id = get_thread_local_1d_id();
+            const index_t wave_id   = thread_id / mfma_type.wave_size;
+            const index_t lane_id   = thread_id % mfma_type.wave_size;
+            const index_t blk_id    = lane_id / mfma_type.num_threads_blk;
+            const index_t blk_td    = lane_id % mfma_type.num_threads_blk;
+
+            using group_t = typename vector_type<AccFloat, mfma_type.group_size>::MemoryType;
+
+            group_t* shfl_buff =
+                reinterpret_cast<group_t*>(lds_buff) + wave_id * mfma_type.wave_size;
+
+#pragma unroll
+            for(index_t i = 0; i < GetNumBlks(); ++i)
+            {
+                // num of groups need to be shffled
+                constexpr index_t shfl_size = mfma_type.num_groups_blk / mfma_type.num_input_blks;
+
+                group_t* reg_c_blk =
+                    reinterpret_cast<group_t*>(p_c_thread.n + i * mfma_type.num_regs_blk);
+
+#pragma unroll
+                for(index_t j = 0; j < shfl_size; ++j)
+                {
+                    const index_t dst_blk_id = (blk_id + 1) % mfma_type.num_input_blks;
+
+                    // get idx of local reg to be shffled
+                    const index_t idx = dst_blk_id * shfl_size + j;
+
+                    // store to current blk
+                    shfl_buff[blk_id * mfma_type.num_threads_blk + blk_td] = reg_c_blk[idx];
+
+                    // load from next blk
+                    reg_c_blk[idx] = shfl_buff[dst_blk_id * mfma_type.num_threads_blk + blk_td];
+                }
+
+                merge2x2(&reg_c_blk[0], &reg_c_blk[shfl_size]);
+            }
+
+            return p_c_thread;
         }
     };
 
