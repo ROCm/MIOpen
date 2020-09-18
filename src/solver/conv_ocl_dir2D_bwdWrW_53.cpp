@@ -52,6 +52,8 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))
         return false;
+    if(!params.direction.IsBackwardWrW())
+        return false;
 
     bool workaround = false;
 

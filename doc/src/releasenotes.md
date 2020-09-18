@@ -2,6 +2,17 @@
 ## MIOpen Release notes
 
 
+### 09/14/2020 [ 2.7.0 ]
+
+- This release contains a new reduction API; see [API documentation](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/apireference.html) for more information. Additional features for embedded builds have been added, and further support for 3D convolutional networks. 
+
+- Added additional tunings into performance database
+- Added general reduction API
+- Added cmake flag for embedding binary database into a static MIOpen build
+- Added cmake flag for embedding system find-db text files into static MIOpen build
+- Fixed issue with GEMM workspace size calculation for backwards data convolutions [#381](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/381)
+- Fixed issue with 3D pooling indexing [#365](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/365)
+
 
 ### 08/20/2020 [ 2.6.0 ]
 

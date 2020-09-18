@@ -73,7 +73,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 2.6.0)
+rocm_setup_version(VERSION 2.7.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -115,6 +115,8 @@ set(MIOPEN_INSTALL_CXX_HEADERS Off CACHE BOOL "Install MIOpen's C++ header inter
 
 
 # Embedded Build Configuration
+set(MIOPEN_EMBED_DB "" CACHE STRING "Semi-colon separated list of of architecture CU pairs to embed on-disk DBs in the binary. Example gfx906_60:gfx900_56")
+set(MIOPEN_BINCACHE_PATH "" CACHE STRING "URL or path containing binary cache files to embed")
 option(MIOPEN_EMBED_BUILD "Build with the set of embed flags." Off)
 option(MIOPEN_USE_COMGR "Use comgr to build kernels instead of offline tools" ${MIOPEN_EMBED_BUILD})
 option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD})
@@ -124,9 +126,11 @@ option(MIOPEN_DISABLE_SYSDB  "Disable sys database access" ${MIOPEN_EMBED_BUILD}
 if(MIOPEN_EMBED_BUILD)
     option(BUILD_SHARED_LIBS "Build as a shared library" Off)
     option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." Off)
+    option(MIOPEN_BUILD_DRIVER "Build MIOpenDriver" Off)
 else()
     option(BUILD_SHARED_LIBS "Build as a shared library" ON)
     option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." On)
+    option(MIOPEN_BUILD_DRIVER "Build MIOpenDriver" On)
 endif()
 
 
@@ -449,6 +453,7 @@ enable_cppcheck(
         unusedStructMember
         # Ignore initializer lists in the tests
         useInitializationList:*test/*.cpp
+        *:*src/sqlite/*.cpp
         *:*.cl
         *:*src/kernels/*.h
         knownConditionTrueFalse:*src/kernels/composable_kernel/*/*
@@ -474,6 +479,7 @@ enable_cppcheck(
         __linux__=1
 )
 
+
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
@@ -481,7 +487,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 add_subdirectory(addkernels)
 add_subdirectory(doc)
 add_subdirectory(src)
-add_subdirectory(driver)
+if(MIOPEN_BUILD_DRIVER)
+    add_subdirectory(driver)
+endif()
 add_subdirectory(test)
 add_subdirectory(speedtests)
 add_subdirectory(utils)
