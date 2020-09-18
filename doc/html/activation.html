@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                2.6.0
+                2.7.0
               </div>
             
           
@@ -85,6 +85,7 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/14/2020 [ 2.7.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/20/2020 [ 2.6.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/10/2020 [ 2.5.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">06/02/2020 [ 2.4.0 ]</a></li>
@@ -496,49 +497,49 @@
 <p><em>Values:</em></p>
 <dl class="enumerator">
 <dt id="_CPPv223miopenActivationPASTHRU">
-<span class="target" id="miopen_8h_1ga5fd27264d844b20dd8d63ab678f09af6a3a85417a19911daeecf6e9e5f8952d3b"></span><code class="descname">miopenActivationPASTHRU</code> = 0<a class="headerlink" href="#_CPPv223miopenActivationPASTHRU" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="group__activation_1ga5fd27264d844b20dd8d63ab678f09af6a3a85417a19911daeecf6e9e5f8952d3b"></span><code class="descname">miopenActivationPASTHRU</code> = 0<a class="headerlink" href="#_CPPv223miopenActivationPASTHRU" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>No activation, pass through the data </p>
 </dd></dl>
 
 <dl class="enumerator">
 <dt id="_CPPv224miopenActivationLOGISTIC">
-<span class="target" id="miopen_8h_1ga5fd27264d844b20dd8d63ab678f09af6a4a7e7a529bed5bc42fc4966d47ea29b4"></span><code class="descname">miopenActivationLOGISTIC</code> = 1<a class="headerlink" href="#_CPPv224miopenActivationLOGISTIC" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="group__activation_1ga5fd27264d844b20dd8d63ab678f09af6a4a7e7a529bed5bc42fc4966d47ea29b4"></span><code class="descname">miopenActivationLOGISTIC</code> = 1<a class="headerlink" href="#_CPPv224miopenActivationLOGISTIC" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Sigmoid function: <span class="math">\(1 / (1 + e^{-x})\)</span> </p>
 </dd></dl>
 
 <dl class="enumerator">
 <dt id="_CPPv220miopenActivationTANH">
-<span class="target" id="miopen_8h_1ga5fd27264d844b20dd8d63ab678f09af6aebc2804e6806816dc8db6554d0c670b2"></span><code class="descname">miopenActivationTANH</code> = 2<a class="headerlink" href="#_CPPv220miopenActivationTANH" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="group__activation_1ga5fd27264d844b20dd8d63ab678f09af6aebc2804e6806816dc8db6554d0c670b2"></span><code class="descname">miopenActivationTANH</code> = 2<a class="headerlink" href="#_CPPv220miopenActivationTANH" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Tanh activation <span class="math">\( \beta * tanh( \alpha * x) \)</span> </p>
 </dd></dl>
 
 <dl class="enumerator">
 <dt id="_CPPv220miopenActivationRELU">
-<span class="target" id="miopen_8h_1ga5fd27264d844b20dd8d63ab678f09af6a66fb3d3c74e40e1e1a460fb409be62c0"></span><code class="descname">miopenActivationRELU</code> = 3<a class="headerlink" href="#_CPPv220miopenActivationRELU" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="group__activation_1ga5fd27264d844b20dd8d63ab678f09af6a66fb3d3c74e40e1e1a460fb409be62c0"></span><code class="descname">miopenActivationRELU</code> = 3<a class="headerlink" href="#_CPPv220miopenActivationRELU" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Rectified Linear Unit <span class="math">\( max(0, x) \)</span> </p>
 </dd></dl>
 
 <dl class="enumerator">
 <dt id="_CPPv224miopenActivationSOFTRELU">
-<span class="target" id="miopen_8h_1ga5fd27264d844b20dd8d63ab678f09af6ad022a217df2f21174c4d515294f0e727"></span><code class="descname">miopenActivationSOFTRELU</code> = 4<a class="headerlink" href="#_CPPv224miopenActivationSOFTRELU" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="group__activation_1ga5fd27264d844b20dd8d63ab678f09af6ad022a217df2f21174c4d515294f0e727"></span><code class="descname">miopenActivationSOFTRELU</code> = 4<a class="headerlink" href="#_CPPv224miopenActivationSOFTRELU" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p><span class="math">\(log(1 + e^x)\)</span> </p>
 </dd></dl>
 
 <dl class="enumerator">
 <dt id="_CPPv219miopenActivationABS">
-<span class="target" id="miopen_8h_1ga5fd27264d844b20dd8d63ab678f09af6a481c9203a79996016e88e0b1baee55b5"></span><code class="descname">miopenActivationABS</code> = 5<a class="headerlink" href="#_CPPv219miopenActivationABS" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="group__activation_1ga5fd27264d844b20dd8d63ab678f09af6a481c9203a79996016e88e0b1baee55b5"></span><code class="descname">miopenActivationABS</code> = 5<a class="headerlink" href="#_CPPv219miopenActivationABS" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Absolute value <span class="math">\(abs(x)\)</span> </p>
 </dd></dl>
 
 <dl class="enumerator">
 <dt id="_CPPv221miopenActivationPOWER">
-<span class="target" id="miopen_8h_1ga5fd27264d844b20dd8d63ab678f09af6a7dbe18fe7783fcf9bb4e46d34b8e1d51"></span><code class="descname">miopenActivationPOWER</code> = 6<a class="headerlink" href="#_CPPv221miopenActivationPOWER" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="group__activation_1ga5fd27264d844b20dd8d63ab678f09af6a7dbe18fe7783fcf9bb4e46d34b8e1d51"></span><code class="descname">miopenActivationPOWER</code> = 6<a class="headerlink" href="#_CPPv221miopenActivationPOWER" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Scaled and shifted power <span class="math">\((\alpha + \beta * x)^{gamma}\)</span> </p>
 </dd></dl>
 
 <dl class="enumerator">
 <dt id="_CPPv227miopenActivationCLIPPEDRELU">
-<span class="target" id="miopen_8h_1ga5fd27264d844b20dd8d63ab678f09af6a5ac41058b9593346704ed86235228f4b"></span><code class="descname">miopenActivationCLIPPEDRELU</code><p>=</p>
+<span class="target" id="group__activation_1ga5fd27264d844b20dd8d63ab678f09af6a5ac41058b9593346704ed86235228f4b"></span><code class="descname">miopenActivationCLIPPEDRELU</code><p>=</p>
 <p>        7</p>
 <a class="headerlink" href="#_CPPv227miopenActivationCLIPPEDRELU" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Clipped Rectified Linear Unit <span class="math">\( min(\alpha, max(0,x)) \)</span> </p>
@@ -546,7 +547,7 @@
 
 <dl class="enumerator">
 <dt id="_CPPv225miopenActivationLEAKYRELU">
-<span class="target" id="miopen_8h_1ga5fd27264d844b20dd8d63ab678f09af6a03c0f145db198f95b49b372470e64f29"></span><code class="descname">miopenActivationLEAKYRELU</code><p>=</p>
+<span class="target" id="group__activation_1ga5fd27264d844b20dd8d63ab678f09af6a03c0f145db198f95b49b372470e64f29"></span><code class="descname">miopenActivationLEAKYRELU</code><p>=</p>
 <p>        8</p>
 <a class="headerlink" href="#_CPPv225miopenActivationLEAKYRELU" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Leaky Rectified Linear Unit <span class="math">\( \alpha * x | x &lt;= 0; x | x &gt; 0 \)</span> </p>
@@ -554,7 +555,7 @@
 
 <dl class="enumerator">
 <dt id="_CPPv219miopenActivationELU">
-<span class="target" id="miopen_8h_1ga5fd27264d844b20dd8d63ab678f09af6ac95a28635391882b82df5d1a9dcbc0a3"></span><code class="descname">miopenActivationELU</code><p>=</p>
+<span class="target" id="group__activation_1ga5fd27264d844b20dd8d63ab678f09af6ac95a28635391882b82df5d1a9dcbc0a3"></span><code class="descname">miopenActivationELU</code><p>=</p>
 <p>        9</p>
 <a class="headerlink" href="#_CPPv219miopenActivationELU" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Exponential Rectified Linear Unit <span class="math">\( \alpha * (e^{x} - 1) | x &lt;= 0; x | x &gt; 0 \)</span> </p>
@@ -749,7 +750,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.6.0',
+            VERSION:'2.7.0',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
