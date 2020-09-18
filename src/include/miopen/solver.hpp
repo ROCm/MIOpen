@@ -1015,6 +1015,62 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops
     std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
 };
 
+struct PerformanceImplicitGemmForwardV4R4Xdlops_Universal
+    : Serializable<PerformanceImplicitGemmForwardV4R4Xdlops_Universal>
+{
+    int GemmMPerBlock;
+    int GemmNPerBlock;
+    int GemmKPerBlock;
+    int GemmMPerWave;
+    int GemmNPerWave;
+    int GemmKPack;
+    int Mfactor;
+    int Nfactor;
+    int Kfactor;
+    bool GemmAThreadCopyMoreGemmK;
+    bool GemmBThreadCopyMoreGemmKPack;
+    int GemmBThreadDataPerRead_GemmN;
+
+    PerformanceImplicitGemmForwardV4R4Xdlops_Universal(int, int, int, int, int, int, int, int, int, bool, bool, int);
+    PerformanceImplicitGemmForwardV4R4Xdlops_Universal();
+    PerformanceImplicitGemmForwardV4R4Xdlops_Universal(bool) : PerformanceImplicitGemmForwardV4R4Xdlops_Universal() {}
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.GemmMPerBlock, "GemmMPerBlock");
+        f(self.GemmNPerBlock, "GemmNPerBlock");
+        f(self.GemmKPerBlock, "GemmKPerBlock");
+        f(self.GemmMPerWave, "GemmMPerWave");
+        f(self.GemmNPerWave, "GemmNPerWave");
+        f(self.GemmKPack, "GemmKPack");
+        f(self.Mfactor, "Mfactor");
+        f(self.Nfactor, "Nfactor");
+        f(self.Kfactor, "Kfactor");
+        f(self.GemmAThreadCopyMoreGemmK, "GemmAThreadCopyMoreGemmK");
+        f(self.GemmBThreadCopyMoreGemmKPack, "GemmBThreadCopyMoreGemmKPack");
+        f(self.GemmBThreadDataPerRead_GemmN, "GemmBThreadDataPerRead_GemmN");
+    }
+
+    bool operator==(const PerformanceImplicitGemmForwardV4R4Xdlops_Universal& other) const;
+    std::string ToString() const;
+
+    void EuristicInit(const ConvolutionContext& ctx);
+    bool SetNextValue();
+    bool IsValidValue() const;
+    bool IsValid(const ConvolutionContext& ctx) const;
+    bool IsReallyValid(const ConvolutionContext& ctx) const;
+    bool IsFastToBeUsedForTuning(const ConvolutionContext& ctx) const;
+
+    std::tuple<int, bool> CalculateBlockSize() const;
+    std::tuple<int, bool> CalculateGridSize(const ConvolutionContext& ctx) const;
+    std::tuple<int, int, int, int, int, bool>
+    CalculateGemmABlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
+    std::tuple<int, int, int, int, int, bool>
+    CalculateGemmBBlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
+    std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
+};
+
 struct PerformanceImplicitGemmBwdV1R1Xdlops : Serializable<PerformanceImplicitGemmBwdV1R1Xdlops>
 {
     int GemmMPerBlock;
@@ -1096,6 +1152,29 @@ struct ConvHipImplicitGemmForwardV4R4Xdlops : SolverBase<ConvolutionContext>
                              bool disableConfigOverrideFromEnv = false) const;
 
     PerformanceImplicitGemmForwardV4R4Xdlops Search(const ConvolutionContext&) const;
+    int RunAndMeasureSolution(const miopen::Handle& profile_h,
+                              ConstData_t bot_buf,
+                              Data_t top_buf,
+                              ConstData_t wei_buf,
+                              ConstData_t bias_buf,
+                              const ConvolutionContext& ctx,
+                              const ConvSolution& solution,
+                              float& elapsed_time) const;
+};
+
+struct ConvHipImplicitGemmForwardV4R4Xdlops_Universal : SolverBase<ConvolutionContext>
+{
+    static std::tuple<int, int, int, int, int, int, int> CalculateGemmSize(const ConvolutionContext& ctx, int Mfactor, int Nfactor, int Kfactor);
+    PerformanceImplicitGemmForwardV4R4Xdlops_Universal
+    GetPerformanceConfig(const ConvolutionContext& ctx) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                  const PerformanceImplicitGemmForwardV4R4Xdlops_Universal& c) const;
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const PerformanceImplicitGemmForwardV4R4Xdlops_Universal& config,
+                             bool disableConfigOverrideFromEnv = false) const;
+
+    PerformanceImplicitGemmForwardV4R4Xdlops_Universal Search(const ConvolutionContext&) const;
     int RunAndMeasureSolution(const miopen::Handle& profile_h,
                               ConstData_t bot_buf,
                               Data_t top_buf,
