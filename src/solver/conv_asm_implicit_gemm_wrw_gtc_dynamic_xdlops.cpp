@@ -40,49 +40,6 @@ namespace solver {
 //{  16, 128,  16,   2,   4,   4,   4,   4,   4,   4,  16,   1,  16,   1,   16,  16},
 //{   8,  32,   4,   2,   2,   2,   2,   4,   4,   2,   4,   2,   8,   1,    4,  16}
 
-struct TunableImplicitGemmGTCWrwDynamic
-{
-    std::string tensor_layout;
-    int gemm_m_per_block;
-    int gemm_n_per_block;
-    int gemm_k_per_block;
-    std::string fma_type;
-    union{
-        struct{
-            int gemm_m_per_thread;
-            int gemm_m_level0_cluster;
-            int gemm_m_level1_cluster;
-            int gemm_n_per_thread;
-            int gemm_n_level0_cluster;
-            int gemm_n_level1_cluster;
-        };
-        struct{
-            int wave_tile_m;
-            int wave_step_m;
-            int wave_repeat_m;
-            int wave_tile_n;
-            int wave_step_n;
-            int wave_repeat_n;
-        };
-    };
-    std::vector<int> tensor_a_thread_lengths;
-    std::vector<int> tensor_a_cluster_lengths;
-    std::vector<int> tensor_b_thread_lengths;
-    std::vector<int> tensor_b_cluster_lengths;
-    std::string direction;
-    std::string precision;
-    int nxb;
-    int nxe;
-    int gemm_m_unmerge_cluster;
-    int gemm_n_unmerge_cluster;
-    int gemm_k_unmerge_cluster;
-    int multihead;
-    int use_atomic_add;
-    TunableImplicitGemmGTCWrwDynamic(
-        int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int);
-    bool IsValid(const ConvolutionContext& ctx) const;
-};
-
 static inline std::vector<string>& GetImplicitGemmWrwGTCDynamicXdlopsKernelNameList()
 {
     // retrieve dynamic igemm wrw pass's possible kernel name
