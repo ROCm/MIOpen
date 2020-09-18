@@ -25,6 +25,7 @@
  *******************************************************************************/
 #include <miopen/idiv.hpp>
 
+// Find the position of the least significant bit set to 1 in a 32 bit integer
 static inline uint32_t bfls(uint32_t n)
 {
     n = n | (n >> 0x01);

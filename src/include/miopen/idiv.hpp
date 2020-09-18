@@ -31,9 +31,10 @@
 namespace miopen {
 struct magic_t
 {
-    uint32_t m;
-    uint32_t s;
+    uint32_t m; // magic number
+    uint32_t s; // shift
 };
+// get magic&shift of faster integer division
 magic_t idiv_magic(uint32_t, uint32_t);
 } // namespace miopen
 #endif
