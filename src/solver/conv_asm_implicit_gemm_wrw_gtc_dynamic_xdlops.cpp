@@ -83,7 +83,7 @@ struct TunableImplicitGemmGTCWrwDynamic
     bool IsValid(const ConvolutionContext& ctx) const;
 };
 
-static inline std::vector<string>& GetImplicitGemmWrwGTCDynamicXdlopsKernelNameList()
+static inline const std::vector<string>& GetImplicitGemmWrwGTCDynamicXdlopsKernelNameList()
 {
     // retrieve dynamic igemm wrw pass's possible kernel name
     // clang-format off
