@@ -87,7 +87,7 @@ static inline const std::vector<string>& GetImplicitGemmWrwGTCDynamicXdlopsKerne
 {
     // retrieve dynamic igemm wrw pass's possible kernel name
     // clang-format off
-    static const std::vector<string> kernel_name_list = {
+    static const std::vector<string> kernel_name_list {
         "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x16_wt32x32_ws1x1_wr2x2_ta2x1x4x1_1x8x1x32_tb2x1x4x1_1x8x1x32",
         "igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt128x128x16_wt32x32_ws1x1_wr2x2_ta1x4x2x1_1x4x1x64_tb1x4x2x1_1x4x1x64",
         "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x16_wt32x32_ws1x1_wr2x2_ta2x1x4x1_1x8x1x32_tb2x1x4x1_1x8x1x32_atadd",   
