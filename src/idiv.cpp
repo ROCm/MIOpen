@@ -25,35 +25,38 @@
  *******************************************************************************/
 #include <miopen/idiv.hpp>
 
-// clang-format off
-static inline uint32_t bfls( uint32_t n )
+static inline uint32_t bfls(uint32_t n)
 {
-    n=n|(n>>0x01);
-    n=n|(n>>0x02);
-    n=n|(n>>0x04);
-    n=n|(n>>0x08);
-    n=n|(n>>0x10);
+    n = n | (n >> 0x01);
+    n = n | (n >> 0x02);
+    n = n | (n >> 0x04);
+    n = n | (n >> 0x08);
+    n = n | (n >> 0x10);
     return __builtin_popcount(n);
 }
+
 namespace miopen {
-magic_t idiv_magic( uint32_t nmax, uint32_t d )
+magic_t idiv_magic(uint32_t nmax, uint32_t d)
 {
-    magic_t magic={1,0};
-    if(d==1) return magic;
-    uint64_t nc=((nmax+1)/d)*d-1;
-    uint32_t nbits=bfls(nmax);
-    uint32_t r=(nbits<<1)+1;
-    magic.m=-1; magic.s=-1;
-    for( uint32_t s=0; s<r; s++ ){
-        uint64_t exp=static_cast<uint64_t>(1)<<s;
-        uint64_t mod=d-1-(exp-1)%d;
-        if(exp>(nc*mod)){
-            magic.m=static_cast<uint32_t>((exp+mod)/d);
-            magic.s=s;
+    magic_t magic = {1, 0};
+    if(d == 1)
+        return magic;
+    uint64_t nc    = ((nmax + 1) / d) * d - 1;
+    uint32_t nbits = bfls(nmax);
+    uint32_t r     = (nbits << 1) + 1;
+    magic.m        = -1;
+    magic.s        = -1;
+    for(uint32_t s = 0; s < r; s++)
+    {
+        uint64_t exp = static_cast<uint64_t>(1) << s;
+        uint64_t mod = d - 1 - (exp - 1) % d;
+        if(exp > (nc * mod))
+        {
+            magic.m = static_cast<uint32_t>((exp + mod) / d);
+            magic.s = s;
             break;
         }
     }
     return magic;
 }
 } // namespace miopen
-// clang-format off

@@ -36,11 +36,11 @@
 
 namespace miopen {
 namespace solver {
-static void get_solution(ConvSolution& sol,
-                         const ConvolutionContext& ctx,
-                         const param_ufconv_t& p,
-                         const std::string& file_name,
-                         uint32_t relu)
+static void fill_kernels_info(ConvSolution& sol,
+                              const ConvolutionContext& ctx,
+                              const param_ufconv_t& p,
+                              const std::string& fname,
+                              uint32_t relu)
 {
     static const char* knames_ufco[] = {
         "suffco7x4_om", "suffco7x4_om_relu", "suffco7x4_dm", "suffco7x4_dm_relu",
@@ -65,14 +65,14 @@ static void get_solution(ConvSolution& sol,
     const std::vector<size_t> grid{gdy * blk, gdx, p.ng};
     std::ostringstream options;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
-    KernelInfo kinfo = {options.str(), block, grid, file_name, knames_ufco[routine]};
+    KernelInfo kinfo = {options.str(), block, grid, fname, knames_ufco[routine]};
     sol.construction_params.push_back(kinfo);
 }
-static void get_solution(ConvSolution& sol,
-                         const ConvolutionContext& ctx,
-                         const param_conv_t& p,
-                         const std::string& file_name,
-                         uint32_t relu)
+static void fill_kernels_info(ConvSolution& sol,
+                              const ConvolutionContext& ctx,
+                              const param_conv_t& p,
+                              const std::string& fname,
+                              uint32_t relu)
 {
     std::ostringstream options;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
@@ -81,7 +81,7 @@ static void get_solution(ConvSolution& sol,
         const uint32_t gdx = (p.pnx * p.pny * p.ng * p.inc + 255) >> 8;
         const std::vector<size_t> block{256, 1, 1};
         const std::vector<size_t> grid{gdx << 8, p.bs, 1};
-        KernelInfo kinfo = {options.str(), block, grid, file_name, "padding2d"};
+        KernelInfo kinfo = {options.str(), block, grid, fname, "padding2d"};
         sol.construction_params.push_back(kinfo);
     }
 
@@ -90,7 +90,7 @@ static void get_solution(ConvSolution& sol,
         const uint32_t gdx = (((p.n + 3) & ~3) + 63) >> 6;
         const std::vector<size_t> block{64, 1, 1};
         const std::vector<size_t> grid{gdx << 6, p.inc, p.ng};
-        KernelInfo kinfo = {options.str(), block, grid, file_name, "perm2d_flip"};
+        KernelInfo kinfo = {options.str(), block, grid, fname, "perm2d_flip"};
         sol.construction_params.push_back(kinfo);
     }
 
@@ -100,7 +100,7 @@ static void get_solution(ConvSolution& sol,
         const uint32_t gdx   = (ntid + 63) >> 6;
         const std::vector<size_t> block{64, 1, 1};
         const std::vector<size_t> grid{gdx << 6, 1, 1};
-        KernelInfo kinfo = {options.str(), block, grid, file_name, "genidx2d"};
+        KernelInfo kinfo = {options.str(), block, grid, fname, "genidx2d"};
         sol.construction_params.push_back(kinfo);
     }
 
@@ -129,7 +129,7 @@ static void get_solution(ConvSolution& sol,
         const uint32_t gdy     = p.pad != 0 ? ngy : ngx;
         const std::vector<size_t> block{blk, 1, 1};
         const std::vector<size_t> grid{gdx * blk, gdy, p.ng};
-        KernelInfo kinfo = {options.str(), block, grid, file_name, knames_co[routine]};
+        KernelInfo kinfo = {options.str(), block, grid, fname, knames_co[routine]};
         sol.construction_params.push_back(kinfo);
     }
 }
@@ -188,18 +188,18 @@ size_t ConvFlexgemm::GetWorkspaceSize(const ConvolutionContext& ctx) const
 ConvSolution ConvFlexgemm::GetSolution(const ConvolutionContext& ctx) const
 {
     ConvSolution sol{};
-    const std::string file_name = "flexgemm_" + ctx.GetStream().GetDeviceName() + ".s";
-    uint32_t pad                = ctx.pad_w | ctx.pad_h | ctx.pad_d;
-    uint32_t ksize              = ctx.kernel_size_w | ctx.kernel_size_h | ctx.kernel_size_d;
-    uint32_t stride             = ctx.kernel_stride_w | ctx.kernel_stride_h | ctx.kernel_stride_d;
-    uint32_t dilation = ctx.kernel_dilation_w | ctx.kernel_dilation_h | ctx.kernel_dilation_d;
+    const std::string fname = "flexgemm_" + ctx.GetStream().GetDeviceName() + ".s";
+    uint32_t pad            = ctx.pad_w | ctx.pad_h | ctx.pad_d;
+    uint32_t ksize          = ctx.kernel_size_w | ctx.kernel_size_h | ctx.kernel_size_d;
+    uint32_t stride         = ctx.kernel_stride_w | ctx.kernel_stride_h | ctx.kernel_stride_d;
+    uint32_t dilation       = ctx.kernel_dilation_w | ctx.kernel_dilation_h | ctx.kernel_dilation_d;
     if(((ksize | stride | dilation) == 1) && (pad == 0) &&
        (((ctx.n_inputs / ctx.group_counts) & 7) == 0))
     {
         param_ufconv_t params{};
         build_params_ufconv(params, ctx);
         sol.workspce_sz = 0;
-        get_solution(sol, ctx, params, file_name, 0);
+        fill_kernels_info(sol, ctx, params, fname, 0);
         sol.invoker_factory = conv::MakeFlexgemmInvokerFactory(params, 1.f);
     }
     else
@@ -207,7 +207,7 @@ ConvSolution ConvFlexgemm::GetSolution(const ConvolutionContext& ctx) const
         param_conv_t params{};
         build_params_conv(params, ctx);
         sol.workspce_sz = params.spad + params.sperm + params.sidx;
-        get_solution(sol, ctx, params, file_name, 0);
+        fill_kernels_info(sol, ctx, params, fname, 0);
         sol.invoker_factory = conv::MakeFlexgemmInvokerFactory(params, 1.f);
     }
     return sol;

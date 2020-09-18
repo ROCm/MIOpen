@@ -28,7 +28,6 @@
 
 #include <cstdint>
 
-// clang-foramt off
 namespace miopen {
 struct magic_t
 {
@@ -37,4 +36,3 @@ struct magic_t
 };
 magic_t idiv_magic(uint32_t, uint32_t);
 } // namespace miopen
-#endif
