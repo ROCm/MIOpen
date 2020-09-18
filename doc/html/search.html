@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                2.3.0
+                2.6.0
               </div>
             
           
@@ -83,7 +83,10 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/31/2020 [ 2.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/20/2020 [ 2.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/10/2020 [ 2.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">06/02/2020 [ 2.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/01/2020 [ 2.3.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">01/24/2020 [ 2.2.1 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2019 [ 2.2.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/25/2019 [ 2.1.0 ]</a></li>
@@ -114,15 +117,21 @@
 <li class="toctree-l1"><a class="reference internal" href="install.html">Build and Install Instructions</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="install.html#prerequisites">Prerequisites</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#installing-miopen-with-pre-built-packages">Installing MIOpen with pre-built packages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#installing-miopen-kernels-package">Installing MIOpen kernels package</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#installing-the-dependencies">Installing the dependencies</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#installing-minimum-dependencies-in-rocm-environment">Installing minimum dependencies in ROCm environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#building-miopen-from-source">Building MIOpen from source</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="install.html#configuring-with-cmake">Configuring with cmake</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install.html#for-opencl-run">For OpenCL, run:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#for-hip-run">For HIP, run:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#for-the-hip-backend-on-rocm-3-3-and-earlier-run">For the HIP backend on ROCm 3.3 and earlier, run:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#for-the-hip-backend-on-rocm-3-5-and-later-run">For the HIP backend on ROCm 3.5 and later, run:</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install.html#setting-up-locations">Setting Up Locations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install.html#system-performance-database-and-user-database">System Performance Database and User Database</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#persistent-program-cache">Persistent Program Cache</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#persistent-program-cache">Persistent Program Cache</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="install.html#for-miopen-version-2-3-and-earlier">For MIOpen version 2.3 and earlier</a></li>
+<li class="toctree-l4"><a class="reference internal" href="install.html#for-miopen-version-2-4-and-later">For MIOpen version 2.4 and later</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="install.html#changing-the-cmake-configuration">Changing the cmake configuration</a></li>
 </ul>
 </li>
@@ -155,9 +164,11 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="DebugAndLogging.html#rocblas-logging-and-behavior">rocBlas Logging and Behavior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DebugAndLogging.html#numerical-checking">Numerical Checking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DebugAndLogging.html#controlling-parallel-compilation">Controlling Parallel Compilation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="DebugAndLogging.html#experimental-controls">Experimental controls</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="DebugAndLogging.html#code-object-co-version-selection-experimental">Code Object (CO) version selection (EXPERIMENTAL)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="DebugAndLogging.html#miopen-debug-amd-winograd-mpass-workspace-max"><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="DebugAndLogging.html#winograd-multi-pass-maximum-workspace-throttling">Winograd Multi-pass Maximum Workspace throttling</a></li>
 </ul>
 </li>
 </ul>
@@ -166,6 +177,7 @@
 <li class="toctree-l2"><a class="reference internal" href="cache.html#clear-the-cache">Clear the cache</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cache.html#disabling-the-cache">Disabling the cache</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cache.html#updating-miopen-and-removing-the-cache">Updating MIOpen and removing the cache</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cache.html#installing-pre-compiled-kernels">Installing pre-compiled kernels</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="perfdatabase.html">Performance Database</a><ul>
@@ -190,6 +202,7 @@
 <li class="toctree-l2"><a class="reference internal" href="find_and_immediate.html#limitations-of-immediate-mode">Limitations of Immediate Mode</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="find_and_immediate.html#architectual-limitations">Architectual Limitations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="find_and_immediate.html#backend-limitations">Backend Limitations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="find_and_immediate.html#find-modes">Find Modes</a></li>
 </ul>
 </li>
 </ul>
@@ -253,6 +266,7 @@
 <li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvbwdweightsalgorithm-t">miopenConvBwdWeightsAlgorithm_t</a></li>
 <li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvbwddataalgorithm-t">miopenConvBwdDataAlgorithm_t</a></li>
 <li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvalgoperf-t">miopenConvAlgoPerf_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvsolution-t">miopenConvSolution_t</a></li>
 <li class="toctree-l3"><a class="reference internal" href="convolution.html#miopencreateconvolutiondescriptor">miopenCreateConvolutionDescriptor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="convolution.html#miopeninitconvolutiondescriptor">miopenInitConvolutionDescriptor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="convolution.html#miopeninitconvolutionnddescriptor">miopenInitConvolutionNdDescriptor</a></li>
@@ -286,8 +300,10 @@
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopenrnngemmalgomode-t">miopenRNNGEMMalgoMode_t</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopencreaternndescriptor">miopenCreateRNNDescriptor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnndescriptor">miopenGetRNNDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnndescriptor-v2">miopenGetRNNDescriptor_V2</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopendestroyrnndescriptor">miopenDestroyRNNDescriptor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopensetrnndescriptor">miopenSetRNNDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopensetrnndescriptor-v2">miopenSetRNNDescriptor_V2</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnnworkspacesize">miopenGetRNNWorkspaceSize</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnntrainingreservesize">miopenGetRNNTrainingReserveSize</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnnparamssize">miopenGetRNNParamsSize</a></li>
@@ -508,7 +524,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.3.0',
+            VERSION:'2.6.0',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

@@ -194,8 +194,9 @@ struct FindDbTest : test_driver
 
         const auto find_db_speedup = time1ms / time2ms;
         MIOPEN_LOG_I("Speedup: " << find_db_speedup);
-
+#if !MIOPEN_DISABLE_USERDB
         EXPECT_OP(find_db_speedup, >=, 3);
+#endif
     }
 };
 } // namespace miopen

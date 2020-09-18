@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                2.3.0
+                2.6.0
               </div>
             
           
@@ -85,7 +85,10 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/31/2020 [ 2.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/20/2020 [ 2.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/10/2020 [ 2.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">06/02/2020 [ 2.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/01/2020 [ 2.3.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">01/24/2020 [ 2.2.1 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2019 [ 2.2.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/25/2019 [ 2.1.0 ]</a></li>
@@ -116,15 +119,21 @@
 <li class="toctree-l1"><a class="reference internal" href="install.html">Build and Install Instructions</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="install.html#prerequisites">Prerequisites</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#installing-miopen-with-pre-built-packages">Installing MIOpen with pre-built packages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#installing-miopen-kernels-package">Installing MIOpen kernels package</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#installing-the-dependencies">Installing the dependencies</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#installing-minimum-dependencies-in-rocm-environment">Installing minimum dependencies in ROCm environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#building-miopen-from-source">Building MIOpen from source</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="install.html#configuring-with-cmake">Configuring with cmake</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install.html#for-opencl-run">For OpenCL, run:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#for-hip-run">For HIP, run:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#for-the-hip-backend-on-rocm-3-3-and-earlier-run">For the HIP backend on ROCm 3.3 and earlier, run:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#for-the-hip-backend-on-rocm-3-5-and-later-run">For the HIP backend on ROCm 3.5 and later, run:</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install.html#setting-up-locations">Setting Up Locations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install.html#system-performance-database-and-user-database">System Performance Database and User Database</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#persistent-program-cache">Persistent Program Cache</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#persistent-program-cache">Persistent Program Cache</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="install.html#for-miopen-version-2-3-and-earlier">For MIOpen version 2.3 and earlier</a></li>
+<li class="toctree-l4"><a class="reference internal" href="install.html#for-miopen-version-2-4-and-later">For MIOpen version 2.4 and later</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="install.html#changing-the-cmake-configuration">Changing the cmake configuration</a></li>
 </ul>
 </li>
@@ -157,9 +166,11 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#rocblas-logging-and-behavior">rocBlas Logging and Behavior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#numerical-checking">Numerical Checking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#controlling-parallel-compilation">Controlling Parallel Compilation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#experimental-controls">Experimental controls</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#code-object-co-version-selection-experimental">Code Object (CO) version selection (EXPERIMENTAL)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#miopen-debug-amd-winograd-mpass-workspace-max"><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#winograd-multi-pass-maximum-workspace-throttling">Winograd Multi-pass Maximum Workspace throttling</a></li>
 </ul>
 </li>
 </ul>
@@ -168,6 +179,7 @@
 <li class="toctree-l2"><a class="reference internal" href="cache.html#clear-the-cache">Clear the cache</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cache.html#disabling-the-cache">Disabling the cache</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cache.html#updating-miopen-and-removing-the-cache">Updating MIOpen and removing the cache</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cache.html#installing-pre-compiled-kernels">Installing pre-compiled kernels</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="perfdatabase.html">Performance Database</a><ul>
@@ -192,6 +204,7 @@
 <li class="toctree-l2"><a class="reference internal" href="find_and_immediate.html#limitations-of-immediate-mode">Limitations of Immediate Mode</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="find_and_immediate.html#architectual-limitations">Architectual Limitations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="find_and_immediate.html#backend-limitations">Backend Limitations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="find_and_immediate.html#find-modes">Find Modes</a></li>
 </ul>
 </li>
 </ul>
@@ -255,6 +268,7 @@
 <li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvbwdweightsalgorithm-t">miopenConvBwdWeightsAlgorithm_t</a></li>
 <li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvbwddataalgorithm-t">miopenConvBwdDataAlgorithm_t</a></li>
 <li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvalgoperf-t">miopenConvAlgoPerf_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvsolution-t">miopenConvSolution_t</a></li>
 <li class="toctree-l3"><a class="reference internal" href="convolution.html#miopencreateconvolutiondescriptor">miopenCreateConvolutionDescriptor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="convolution.html#miopeninitconvolutiondescriptor">miopenInitConvolutionDescriptor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="convolution.html#miopeninitconvolutionnddescriptor">miopenInitConvolutionNdDescriptor</a></li>
@@ -288,8 +302,10 @@
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopenrnngemmalgomode-t">miopenRNNGEMMalgoMode_t</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopencreaternndescriptor">miopenCreateRNNDescriptor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnndescriptor">miopenGetRNNDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnndescriptor-v2">miopenGetRNNDescriptor_V2</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopendestroyrnndescriptor">miopenDestroyRNNDescriptor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopensetrnndescriptor">miopenSetRNNDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopensetrnndescriptor-v2">miopenSetRNNDescriptor_V2</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnnworkspacesize">miopenGetRNNWorkspaceSize</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnntrainingreservesize">miopenGetRNNTrainingReserveSize</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnnparamssize">miopenGetRNNParamsSize</a></li>
@@ -334,10 +350,13 @@
 <li class="toctree-l3"><a class="reference internal" href="pooling.html#miopenindextype-t">miopenIndexType_t</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pooling.html#miopencreatepoolingdescriptor">miopenCreatePoolingDescriptor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pooling.html#miopenset2dpoolingdescriptor">miopenSet2dPoolingDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pooling.html#miopensetndpoolingdescriptor">miopenSetNdPoolingDescriptor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pooling.html#miopensetpoolingindextype">miopenSetPoolingIndexType</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pooling.html#miopengetpoolingindextype">miopenGetPoolingIndexType</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pooling.html#miopenget2dpoolingdescriptor">miopenGet2dPoolingDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pooling.html#miopengetndpoolingdescriptor">miopenGetNdPoolingDescriptor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pooling.html#miopengetpoolingforwardoutputdim">miopenGetPoolingForwardOutputDim</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pooling.html#miopengetpoolingndforwardoutputdim">miopenGetPoolingNdForwardOutputDim</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pooling.html#miopenpoolinggetworkspacesize">miopenPoolingGetWorkSpaceSize</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pooling.html#miopenpoolinggetworkspacesizev2">miopenPoolingGetWorkSpaceSizeV2</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pooling.html#miopenpoolingforward">miopenPoolingForward</a></li>
@@ -538,7 +557,8 @@
 <div class="section" id="filtering-by-build-method">
 <span id="filtering-by-build-method"></span><h3>Filtering by build method<a class="headerlink" href="#filtering-by-build-method" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_GCN_ASM_KERNELS</span></code> - Kernels written in assembly language. Currently these include some Direct solvers, Winograd kernels and SCGEMM.</li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_GCN_ASM_KERNELS</span></code> - Kernels written in assembly language. Currently these used in many convolutions (some Direct solvers, Winograd kernels, fused convolutions), batch normalization.</li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_HIP_KERNELS</span></code> - Convoluton kernels written in HIP (today, all these implement ImplicitGemm algorithm).</li>
 <li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_OPENCL_CONVOLUTIONS</span></code> - Convolution kernels written in OpenCL (note that <em>only</em> convolutions affected).</li>
 <li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES</span></code> - Binary kernels. Right now the library does not use binaries.</li>
 </ul>
@@ -631,7 +651,26 @@ both MIOpenGEMM and rocBlas depending on the input configuration:</p>
 <li><code class="docutils literal"><span class="pre">MIOPEN_GEMM_ENFORCE_BACKEND=&lt;any</span> <span class="pre">other</span> <span class="pre">value&gt;</span></code>, use default behavior</li>
 </ul>
 <p>To disable using rocBlas entirely, set the configuration flag <code class="docutils literal"><span class="pre">-DMIOPEN_USE_ROCBLAS=Off</span></code> during MIOpen configuration.</p>
-<p>More information on logging with RocBlas can be found <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/rocBLAS/wiki/5.Logging">here</a>.</p>
+<p>More information on logging with rocBlas can be found <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/rocBLAS/wiki/5.Logging">here</a>.</p>
+</div>
+<div class="section" id="numerical-checking">
+<span id="numerical-checking"></span><h2>Numerical Checking<a class="headerlink" href="#numerical-checking" title="Permalink to this headline">¶</a></h2>
+<p>MIOpen provides the environmental variable <code class="docutils literal"><span class="pre">MIOPEN_CHECK_NUMERICS</span></code> to allow users to debug potential numerical abnormalities. Setting this variable will scan all inputs and outputs of each kernel called and attempt to detect infinities (infs), not-a-number (NaN), or all zeros. The environment variable has several settings that will help with debugging:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">MIOPEN_CHECK_NUMERICS=0x01</span></code>: Fully informative, prints results from all checks to console</li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_CHECK_NUMERICS=0x02</span></code>: Warning information, prints results only if abnormality detected</li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_CHECK_NUMERICS=0x04</span></code>: Throw error on detection, MIOpen execute MIOPEN_THROW on abnormal result</li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_CHECK_NUMERICS=0x08</span></code>: Abort on abnormal result, this will allow users to drop into a debugging session</li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_CHECK_NUMERICS=0x10</span></code>: Print stats, this will compute and print mean/absmean/min/max (note, this is much slower)</li>
+</ul>
+</div>
+<div class="section" id="controlling-parallel-compilation">
+<span id="controlling-parallel-compilation"></span><h2>Controlling Parallel Compilation<a class="headerlink" href="#controlling-parallel-compilation" title="Permalink to this headline">¶</a></h2>
+<p>MIOpen's Convolution Find() calls will compile and benchmark a set of <code class="docutils literal"><span class="pre">solvers</span></code> contained in <code class="docutils literal"><span class="pre">miopenConvAlgoPerf_t</span></code> this is done in parallel per <code class="docutils literal"><span class="pre">miopenConvAlgorithm_t</span></code>. Parallelism per algorithm is set to 20 threads. Typically there are far fewer threads spawned due to the limited number of kernels under any given algorithm. The level of parallelism can be controlled using the environment variable <code class="docutils literal"><span class="pre">MIOPEN_COMPILE_PARALLEL_LEVEL</span></code>.</p>
+<p>For example, to disable multi-threaded compilation:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">export</span> <span class="n">MIOPEN_COMPILE_PARALLEL_LEVEL</span><span class="o">=</span><span class="mi">1</span>
+</pre></div>
+</div>
 </div>
 <div class="section" id="experimental-controls">
 <span id="experimental-controls"></span><h2>Experimental controls<a class="headerlink" href="#experimental-controls" title="Permalink to this headline">¶</a></h2>
@@ -671,8 +710,9 @@ both MIOpenGEMM and rocBlas depending on the input configuration:</p>
 </li>
 </ul>
 </div>
-<div class="section" id="miopen-debug-amd-winograd-mpass-workspace-max">
-<span id="miopen-debug-amd-winograd-mpass-workspace-max"></span><h3><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX</span></code><a class="headerlink" href="#miopen-debug-amd-winograd-mpass-workspace-max" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="winograd-multi-pass-maximum-workspace-throttling">
+<span id="winograd-multi-pass-maximum-workspace-throttling"></span><h3>Winograd Multi-pass Maximum Workspace throttling<a class="headerlink" href="#winograd-multi-pass-maximum-workspace-throttling" title="Permalink to this headline">¶</a></h3>
+<p><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX</span></code></p>
 <p>Syntax of value:</p>
 <ul class="simple">
 <li>decimal or hex (with <code class="docutils literal"><span class="pre">0x</span></code> prefix) value that should fit into <code class="docutils literal"><span class="pre">unsigned</span> <span class="pre">long</span></code> (64 bits).</li>
@@ -736,7 +776,7 @@ both MIOpenGEMM and rocBlas depending on the input configuration:</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.3.0',
+            VERSION:'2.6.0',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

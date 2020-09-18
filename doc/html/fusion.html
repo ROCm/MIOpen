@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                2.3.0
+                2.6.0
               </div>
             
           
@@ -85,7 +85,10 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/31/2020 [ 2.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/20/2020 [ 2.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/10/2020 [ 2.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">06/02/2020 [ 2.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/01/2020 [ 2.3.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">01/24/2020 [ 2.2.1 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2019 [ 2.2.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/25/2019 [ 2.1.0 ]</a></li>
@@ -116,15 +119,21 @@
 <li class="toctree-l1"><a class="reference internal" href="install.html">Build and Install Instructions</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="install.html#prerequisites">Prerequisites</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#installing-miopen-with-pre-built-packages">Installing MIOpen with pre-built packages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#installing-miopen-kernels-package">Installing MIOpen kernels package</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#installing-the-dependencies">Installing the dependencies</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#installing-minimum-dependencies-in-rocm-environment">Installing minimum dependencies in ROCm environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#building-miopen-from-source">Building MIOpen from source</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="install.html#configuring-with-cmake">Configuring with cmake</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install.html#for-opencl-run">For OpenCL, run:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#for-hip-run">For HIP, run:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#for-the-hip-backend-on-rocm-3-3-and-earlier-run">For the HIP backend on ROCm 3.3 and earlier, run:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#for-the-hip-backend-on-rocm-3-5-and-later-run">For the HIP backend on ROCm 3.5 and later, run:</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install.html#setting-up-locations">Setting Up Locations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install.html#system-performance-database-and-user-database">System Performance Database and User Database</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#persistent-program-cache">Persistent Program Cache</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#persistent-program-cache">Persistent Program Cache</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="install.html#for-miopen-version-2-3-and-earlier">For MIOpen version 2.3 and earlier</a></li>
+<li class="toctree-l4"><a class="reference internal" href="install.html#for-miopen-version-2-4-and-later">For MIOpen version 2.4 and later</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="install.html#changing-the-cmake-configuration">Changing the cmake configuration</a></li>
 </ul>
 </li>
@@ -157,9 +166,11 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="DebugAndLogging.html#rocblas-logging-and-behavior">rocBlas Logging and Behavior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DebugAndLogging.html#numerical-checking">Numerical Checking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DebugAndLogging.html#controlling-parallel-compilation">Controlling Parallel Compilation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="DebugAndLogging.html#experimental-controls">Experimental controls</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="DebugAndLogging.html#code-object-co-version-selection-experimental">Code Object (CO) version selection (EXPERIMENTAL)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="DebugAndLogging.html#miopen-debug-amd-winograd-mpass-workspace-max"><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="DebugAndLogging.html#winograd-multi-pass-maximum-workspace-throttling">Winograd Multi-pass Maximum Workspace throttling</a></li>
 </ul>
 </li>
 </ul>
@@ -168,6 +179,7 @@
 <li class="toctree-l2"><a class="reference internal" href="cache.html#clear-the-cache">Clear the cache</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cache.html#disabling-the-cache">Disabling the cache</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cache.html#updating-miopen-and-removing-the-cache">Updating MIOpen and removing the cache</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cache.html#installing-pre-compiled-kernels">Installing pre-compiled kernels</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="perfdatabase.html">Performance Database</a><ul>
@@ -192,6 +204,7 @@
 <li class="toctree-l2"><a class="reference internal" href="find_and_immediate.html#limitations-of-immediate-mode">Limitations of Immediate Mode</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="find_and_immediate.html#architectual-limitations">Architectual Limitations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="find_and_immediate.html#backend-limitations">Backend Limitations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="find_and_immediate.html#find-modes">Find Modes</a></li>
 </ul>
 </li>
 </ul>
@@ -255,6 +268,7 @@
 <li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvbwdweightsalgorithm-t">miopenConvBwdWeightsAlgorithm_t</a></li>
 <li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvbwddataalgorithm-t">miopenConvBwdDataAlgorithm_t</a></li>
 <li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvalgoperf-t">miopenConvAlgoPerf_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvsolution-t">miopenConvSolution_t</a></li>
 <li class="toctree-l3"><a class="reference internal" href="convolution.html#miopencreateconvolutiondescriptor">miopenCreateConvolutionDescriptor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="convolution.html#miopeninitconvolutiondescriptor">miopenInitConvolutionDescriptor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="convolution.html#miopeninitconvolutionnddescriptor">miopenInitConvolutionNdDescriptor</a></li>
@@ -288,8 +302,10 @@
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopenrnngemmalgomode-t">miopenRNNGEMMalgoMode_t</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopencreaternndescriptor">miopenCreateRNNDescriptor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnndescriptor">miopenGetRNNDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnndescriptor-v2">miopenGetRNNDescriptor_V2</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopendestroyrnndescriptor">miopenDestroyRNNDescriptor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopensetrnndescriptor">miopenSetRNNDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopensetrnndescriptor-v2">miopenSetRNNDescriptor_V2</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnnworkspacesize">miopenGetRNNWorkspaceSize</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnntrainingreservesize">miopenGetRNNTrainingReserveSize</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnnparamssize">miopenGetRNNParamsSize</a></li>
@@ -497,7 +513,7 @@
 <h2>miopenCreateFusionPlan<a class="headerlink" href="#miopencreatefusionplan" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="_CPPv222miopenCreateFusionPlanP28miopenFusionPlanDescriptor_tK23miopenFusionDirection_tK24miopenTensorDescriptor_t">
-<span id="miopenCreateFusionPlan__miopenFusionPlanDescriptor_tP.miopenFusionDirection_tC.miopenTensorDescriptor_tC"></span><span class="target" id="group__FUSION_1ga786ed6fb93c782827aac2eb72a5e2ed9"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenCreateFusionPlan</code><span class="sig-paren">(</span>miopenFusionPlanDescriptor_t *<em>fusePlanDesc</em>, <em class="property">const</em> <a class="reference internal" href="#_CPPv223miopenFusionDirection_t" title="miopenFusionDirection_t">miopenFusionDirection_t</a> <em>fuseDirection</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>inputDesc</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv222miopenCreateFusionPlanP28miopenFusionPlanDescriptor_tK23miopenFusionDirection_tK24miopenTensorDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
+<span id="miopenCreateFusionPlan__miopenFusionPlanDescriptor_tP.miopenFusionDirection_tC.miopenTensorDescriptor_tC"></span><span class="target" id="group__FUSION_1ga786ed6fb93c782827aac2eb72a5e2ed9"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenCreateFusionPlan</code><span class="sig-paren">(</span>miopenFusionPlanDescriptor_t *<em>fusePlanDesc</em>, <em class="property">const</em> <a class="reference internal" href="#_CPPv223miopenFusionDirection_t" title="miopenFusionDirection_t">miopenFusionDirection_t</a> <em>fuseDirection</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>inputDesc</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv222miopenCreateFusionPlanP28miopenFusionPlanDescriptor_tK23miopenFusionDirection_tK24miopenTensorDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Creates the kenrel fusion plan descriptor object. </p>
 <p><dl class="docutils">
 <dt><strong>Return</strong></dt>
@@ -518,7 +534,7 @@
 <h2>miopenDestroyFusionPlan<a class="headerlink" href="#miopendestroyfusionplan" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="_CPPv223miopenDestroyFusionPlan28miopenFusionPlanDescriptor_t">
-<span id="miopenDestroyFusionPlan__miopenFusionPlanDescriptor_t"></span><span class="target" id="group__FUSION_1ga0de911e81c18206f9b6b70fb5ee8ade4"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenDestroyFusionPlan</code><span class="sig-paren">(</span>miopenFusionPlanDescriptor_t <em>fusePlanDesc</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv223miopenDestroyFusionPlan28miopenFusionPlanDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
+<span id="miopenDestroyFusionPlan__miopenFusionPlanDescriptor_t"></span><span class="target" id="group__FUSION_1ga0de911e81c18206f9b6b70fb5ee8ade4"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenDestroyFusionPlan</code><span class="sig-paren">(</span>miopenFusionPlanDescriptor_t <em>fusePlanDesc</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv223miopenDestroyFusionPlan28miopenFusionPlanDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Destroy the fusion plan descriptor object. </p>
 <p><dl class="docutils">
 <dt><strong>Return</strong></dt>
@@ -537,7 +553,7 @@
 <h2>miopenCompileFusionPlan<a class="headerlink" href="#miopencompilefusionplan" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="_CPPv223miopenCompileFusionPlan14miopenHandle_t28miopenFusionPlanDescriptor_t">
-<span id="miopenCompileFusionPlan__miopenHandle_t.miopenFusionPlanDescriptor_t"></span><span class="target" id="group__FUSION_1ga617eed589623c320393b1ececc6e03a2"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenCompileFusionPlan</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em>, miopenFusionPlanDescriptor_t <em>fusePlanDesc</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv223miopenCompileFusionPlan14miopenHandle_t28miopenFusionPlanDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
+<span id="miopenCompileFusionPlan__miopenHandle_t.miopenFusionPlanDescriptor_t"></span><span class="target" id="group__FUSION_1ga617eed589623c320393b1ececc6e03a2"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenCompileFusionPlan</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em>, miopenFusionPlanDescriptor_t <em>fusePlanDesc</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv223miopenCompileFusionPlan14miopenHandle_t28miopenFusionPlanDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Compiles the fusion plan. </p>
 <p><dl class="docutils">
 <dt><strong>Return</strong></dt>
@@ -557,7 +573,7 @@
 <h2>miopenFusionPlanGetOp<a class="headerlink" href="#miopenfusionplangetop" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="_CPPv221miopenFusionPlanGetOp28miopenFusionPlanDescriptor_tKiP26miopenFusionOpDescriptor_t">
-<span id="miopenFusionPlanGetOp__miopenFusionPlanDescriptor_t.iC.miopenFusionOpDescriptor_tP"></span><span class="target" id="group__FUSION_1ga4b2bc3895702bdd702350d7694a3df8d"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenFusionPlanGetOp</code><span class="sig-paren">(</span>miopenFusionPlanDescriptor_t <em>fusePlanDesc</em>, <em class="property">const</em> int <em>op_idx</em>, miopenFusionOpDescriptor_t *<em>op</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv221miopenFusionPlanGetOp28miopenFusionPlanDescriptor_tKiP26miopenFusionOpDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
+<span id="miopenFusionPlanGetOp__miopenFusionPlanDescriptor_t.iC.miopenFusionOpDescriptor_tP"></span><span class="target" id="group__FUSION_1ga4b2bc3895702bdd702350d7694a3df8d"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenFusionPlanGetOp</code><span class="sig-paren">(</span>miopenFusionPlanDescriptor_t <em>fusePlanDesc</em>, <em class="property">const</em> int <em>op_idx</em>, miopenFusionOpDescriptor_t *<em>op</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv221miopenFusionPlanGetOp28miopenFusionPlanDescriptor_tKiP26miopenFusionOpDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Allows access to the operators in a fusion plan. </p>
 <p>This api call does bounds checking on the supplied op_idx and would return miopenStatusError if the index is out of bounds</p>
 <p><dl class="docutils">
@@ -579,7 +595,7 @@
 <h2>miopenFusionPlanGetWorkSpaceSize<a class="headerlink" href="#miopenfusionplangetworkspacesize" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="_CPPv232miopenFusionPlanGetWorkSpaceSize14miopenHandle_t28miopenFusionPlanDescriptor_tP6size_t24miopenConvFwdAlgorithm_t">
-<span id="miopenFusionPlanGetWorkSpaceSize__miopenHandle_t.miopenFusionPlanDescriptor_t.sP.miopenConvFwdAlgorithm_t"></span><span class="target" id="group__FUSION_1ga1468d3cd197b44dac9aa0ff6d4048d0f"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenFusionPlanGetWorkSpaceSize</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em>, miopenFusionPlanDescriptor_t <em>fusePlanDesc</em>, size_t *<em>workSpaceSize</em>, <a class="reference internal" href="convolution.html#_CPPv224miopenConvFwdAlgorithm_t" title="miopenConvFwdAlgorithm_t">miopenConvFwdAlgorithm_t</a> <em>algo</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv232miopenFusionPlanGetWorkSpaceSize14miopenHandle_t28miopenFusionPlanDescriptor_tP6size_t24miopenConvFwdAlgorithm_t" title="Permalink to this definition">¶</a><br /></dt>
+<span id="miopenFusionPlanGetWorkSpaceSize__miopenHandle_t.miopenFusionPlanDescriptor_t.sP.miopenConvFwdAlgorithm_t"></span><span class="target" id="group__FUSION_1ga1468d3cd197b44dac9aa0ff6d4048d0f"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenFusionPlanGetWorkSpaceSize</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em>, miopenFusionPlanDescriptor_t <em>fusePlanDesc</em>, size_t *<em>workSpaceSize</em>, <a class="reference internal" href="convolution.html#_CPPv224miopenConvFwdAlgorithm_t" title="miopenConvFwdAlgorithm_t">miopenConvFwdAlgorithm_t</a> <em>algo</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv232miopenFusionPlanGetWorkSpaceSize14miopenHandle_t28miopenFusionPlanDescriptor_tP6size_t24miopenConvFwdAlgorithm_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Query the workspace size required for the fusion plan. </p>
 <p><dl class="docutils">
 <dt><strong>Return</strong></dt>
@@ -599,7 +615,7 @@
 <h2>miopenFusionPlanConvolutionGetAlgo<a class="headerlink" href="#miopenfusionplanconvolutiongetalgo" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="_CPPv234miopenFusionPlanConvolutionGetAlgo28miopenFusionPlanDescriptor_tKiPiP24miopenConvFwdAlgorithm_t">
-<span id="miopenFusionPlanConvolutionGetAlgo__miopenFusionPlanDescriptor_t.iC.iP.miopenConvFwdAlgorithm_tP"></span><span class="target" id="group__FUSION_1ga64ff478dbee19eb78f9d55fbdcb85e61"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenFusionPlanConvolutionGetAlgo</code><span class="sig-paren">(</span>miopenFusionPlanDescriptor_t <em>fusePlanDesc</em>, <em class="property">const</em> int <em>requestAlgoCount</em>, int *<em>returnedAlgoCount</em>, <a class="reference internal" href="convolution.html#_CPPv224miopenConvFwdAlgorithm_t" title="miopenConvFwdAlgorithm_t">miopenConvFwdAlgorithm_t</a> *<em>returnedAlgos</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv234miopenFusionPlanConvolutionGetAlgo28miopenFusionPlanDescriptor_tKiPiP24miopenConvFwdAlgorithm_t" title="Permalink to this definition">¶</a><br /></dt>
+<span id="miopenFusionPlanConvolutionGetAlgo__miopenFusionPlanDescriptor_t.iC.iP.miopenConvFwdAlgorithm_tP"></span><span class="target" id="group__FUSION_1ga64ff478dbee19eb78f9d55fbdcb85e61"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenFusionPlanConvolutionGetAlgo</code><span class="sig-paren">(</span>miopenFusionPlanDescriptor_t <em>fusePlanDesc</em>, <em class="property">const</em> int <em>requestAlgoCount</em>, int *<em>returnedAlgoCount</em>, <a class="reference internal" href="convolution.html#_CPPv224miopenConvFwdAlgorithm_t" title="miopenConvFwdAlgorithm_t">miopenConvFwdAlgorithm_t</a> *<em>returnedAlgos</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv234miopenFusionPlanConvolutionGetAlgo28miopenFusionPlanDescriptor_tKiPiP24miopenConvFwdAlgorithm_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Returns the supported algorithms for the convolution operator in the Fusion Plan. </p>
 <p>A Convolution operator in a fusion plan may be implemented by different algorithms representing different tradeoffs of memory and performance. The returned list of algorithms is sorted in decreasing order of priority. Therefore, if the user does not request an algorithm to be set using the miopenFusionPlanConvolutionSetAlgo call, the first algorithm in the list would be used to execute the convolution in the fusion plan. Moreover this call must be immediately preceded by the miopenCreateOpConvForward call for the op in question.</p>
 <p><dl class="docutils">
@@ -622,7 +638,7 @@
 <h2>miopenCreateOpConvForward<a class="headerlink" href="#miopencreateopconvforward" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="_CPPv225miopenCreateOpConvForward28miopenFusionPlanDescriptor_tP26miopenFusionOpDescriptor_t29miopenConvolutionDescriptor_tK24miopenTensorDescriptor_t">
-<span id="miopenCreateOpConvForward__miopenFusionPlanDescriptor_t.miopenFusionOpDescriptor_tP.miopenConvolutionDescriptor_t.miopenTensorDescriptor_tC"></span><span class="target" id="group__FUSION_1gae96ae815b72f3115644e0602bcc47d5b"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenCreateOpConvForward</code><span class="sig-paren">(</span>miopenFusionPlanDescriptor_t <em>fusePlanDesc</em>, miopenFusionOpDescriptor_t *<em>convOp</em>, miopenConvolutionDescriptor_t <em>convDesc</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>wDesc</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv225miopenCreateOpConvForward28miopenFusionPlanDescriptor_tP26miopenFusionOpDescriptor_t29miopenConvolutionDescriptor_tK24miopenTensorDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
+<span id="miopenCreateOpConvForward__miopenFusionPlanDescriptor_t.miopenFusionOpDescriptor_tP.miopenConvolutionDescriptor_t.miopenTensorDescriptor_tC"></span><span class="target" id="group__FUSION_1gae96ae815b72f3115644e0602bcc47d5b"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenCreateOpConvForward</code><span class="sig-paren">(</span>miopenFusionPlanDescriptor_t <em>fusePlanDesc</em>, miopenFusionOpDescriptor_t *<em>convOp</em>, miopenConvolutionDescriptor_t <em>convDesc</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>wDesc</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv225miopenCreateOpConvForward28miopenFusionPlanDescriptor_tP26miopenFusionOpDescriptor_t29miopenConvolutionDescriptor_tK24miopenTensorDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Creates forward convolution operator. </p>
 <p><dl class="docutils">
 <dt><strong>Return</strong></dt>
@@ -644,7 +660,7 @@
 <h2>miopenCreateOpActivationForward<a class="headerlink" href="#miopencreateopactivationforward" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="_CPPv231miopenCreateOpActivationForward28miopenFusionPlanDescriptor_tP26miopenFusionOpDescriptor_t22miopenActivationMode_t">
-<span id="miopenCreateOpActivationForward__miopenFusionPlanDescriptor_t.miopenFusionOpDescriptor_tP.miopenActivationMode_t"></span><span class="target" id="group__FUSION_1gae232f032b236d4f88ba93c094b982183"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenCreateOpActivationForward</code><span class="sig-paren">(</span>miopenFusionPlanDescriptor_t <em>fusePlanDesc</em>, miopenFusionOpDescriptor_t *<em>activFwdOp</em>, <a class="reference internal" href="activation.html#_CPPv222miopenActivationMode_t" title="miopenActivationMode_t">miopenActivationMode_t</a> <em>mode</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv231miopenCreateOpActivationForward28miopenFusionPlanDescriptor_tP26miopenFusionOpDescriptor_t22miopenActivationMode_t" title="Permalink to this definition">¶</a><br /></dt>
+<span id="miopenCreateOpActivationForward__miopenFusionPlanDescriptor_t.miopenFusionOpDescriptor_tP.miopenActivationMode_t"></span><span class="target" id="group__FUSION_1gae232f032b236d4f88ba93c094b982183"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenCreateOpActivationForward</code><span class="sig-paren">(</span>miopenFusionPlanDescriptor_t <em>fusePlanDesc</em>, miopenFusionOpDescriptor_t *<em>activFwdOp</em>, <a class="reference internal" href="activation.html#_CPPv222miopenActivationMode_t" title="miopenActivationMode_t">miopenActivationMode_t</a> <em>mode</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv231miopenCreateOpActivationForward28miopenFusionPlanDescriptor_tP26miopenFusionOpDescriptor_t22miopenActivationMode_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Creates a forward activation operator. </p>
 <p><dl class="docutils">
 <dt><strong>Return</strong></dt>
@@ -665,7 +681,7 @@
 <h2>miopenCreateOpBiasForward<a class="headerlink" href="#miopencreateopbiasforward" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="_CPPv225miopenCreateOpBiasForward28miopenFusionPlanDescriptor_tP26miopenFusionOpDescriptor_tK24miopenTensorDescriptor_t">
-<span id="miopenCreateOpBiasForward__miopenFusionPlanDescriptor_t.miopenFusionOpDescriptor_tP.miopenTensorDescriptor_tC"></span><span class="target" id="group__FUSION_1gaf5a822fe15a763ca76ef9bf4c802e746"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenCreateOpBiasForward</code><span class="sig-paren">(</span>miopenFusionPlanDescriptor_t <em>fusePlanDesc</em>, miopenFusionOpDescriptor_t *<em>biasOp</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>bDesc</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv225miopenCreateOpBiasForward28miopenFusionPlanDescriptor_tP26miopenFusionOpDescriptor_tK24miopenTensorDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
+<span id="miopenCreateOpBiasForward__miopenFusionPlanDescriptor_t.miopenFusionOpDescriptor_tP.miopenTensorDescriptor_tC"></span><span class="target" id="group__FUSION_1gaf5a822fe15a763ca76ef9bf4c802e746"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenCreateOpBiasForward</code><span class="sig-paren">(</span>miopenFusionPlanDescriptor_t <em>fusePlanDesc</em>, miopenFusionOpDescriptor_t *<em>biasOp</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>bDesc</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv225miopenCreateOpBiasForward28miopenFusionPlanDescriptor_tP26miopenFusionOpDescriptor_tK24miopenTensorDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Creates a forward bias operator. </p>
 <p><dl class="docutils">
 <dt><strong>Return</strong></dt>
@@ -686,7 +702,7 @@
 <h2>miopenCreateOpBatchNormInference<a class="headerlink" href="#miopencreateopbatchnorminference" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="_CPPv232miopenCreateOpBatchNormInference28miopenFusionPlanDescriptor_tP26miopenFusionOpDescriptor_tK21miopenBatchNormMode_tK24miopenTensorDescriptor_t">
-<span id="miopenCreateOpBatchNormInference__miopenFusionPlanDescriptor_t.miopenFusionOpDescriptor_tP.miopenBatchNormMode_tC.miopenTensorDescriptor_tC"></span><span class="target" id="group__FUSION_1gaf5dc84d1f7fd4e0ec1746d710a312156"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenCreateOpBatchNormInference</code><span class="sig-paren">(</span>miopenFusionPlanDescriptor_t <em>fusePlanDesc</em>, miopenFusionOpDescriptor_t *<em>bnOp</em>, <em class="property">const</em> <a class="reference internal" href="batchnorm.html#_CPPv221miopenBatchNormMode_t" title="miopenBatchNormMode_t">miopenBatchNormMode_t</a> <em>bn_mode</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>bnScaleBiasMeanVarDesc</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv232miopenCreateOpBatchNormInference28miopenFusionPlanDescriptor_tP26miopenFusionOpDescriptor_tK21miopenBatchNormMode_tK24miopenTensorDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
+<span id="miopenCreateOpBatchNormInference__miopenFusionPlanDescriptor_t.miopenFusionOpDescriptor_tP.miopenBatchNormMode_tC.miopenTensorDescriptor_tC"></span><span class="target" id="group__FUSION_1gaf5dc84d1f7fd4e0ec1746d710a312156"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenCreateOpBatchNormInference</code><span class="sig-paren">(</span>miopenFusionPlanDescriptor_t <em>fusePlanDesc</em>, miopenFusionOpDescriptor_t *<em>bnOp</em>, <em class="property">const</em> <a class="reference internal" href="batchnorm.html#_CPPv221miopenBatchNormMode_t" title="miopenBatchNormMode_t">miopenBatchNormMode_t</a> <em>bn_mode</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>bnScaleBiasMeanVarDesc</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv232miopenCreateOpBatchNormInference28miopenFusionPlanDescriptor_tP26miopenFusionOpDescriptor_tK21miopenBatchNormMode_tK24miopenTensorDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Creates a forward inference batch normalization operator. </p>
 <p><dl class="docutils">
 <dt><strong>Return</strong></dt>
@@ -708,7 +724,7 @@
 <h2>miopenCreateOperatorArgs<a class="headerlink" href="#miopencreateoperatorargs" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="_CPPv224miopenCreateOperatorArgsP20miopenOperatorArgs_t">
-<span id="miopenCreateOperatorArgs__miopenOperatorArgs_tP"></span><span class="target" id="group__FUSION_1ga5a3912006417bac0e079da001c55cf97"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenCreateOperatorArgs</code><span class="sig-paren">(</span>miopenOperatorArgs_t *<em>args</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv224miopenCreateOperatorArgsP20miopenOperatorArgs_t" title="Permalink to this definition">¶</a><br /></dt>
+<span id="miopenCreateOperatorArgs__miopenOperatorArgs_tP"></span><span class="target" id="group__FUSION_1ga5a3912006417bac0e079da001c55cf97"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenCreateOperatorArgs</code><span class="sig-paren">(</span>miopenOperatorArgs_t *<em>args</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv224miopenCreateOperatorArgsP20miopenOperatorArgs_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Creates an operator argument object. </p>
 <p><dl class="docutils">
 <dt><strong>Return</strong></dt>
@@ -727,7 +743,7 @@
 <h2>miopenDestroyOperatorArgs<a class="headerlink" href="#miopendestroyoperatorargs" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="_CPPv225miopenDestroyOperatorArgs20miopenOperatorArgs_t">
-<span id="miopenDestroyOperatorArgs__miopenOperatorArgs_t"></span><span class="target" id="group__FUSION_1ga60a2b09c32fd8a8de33fb13cefb28225"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenDestroyOperatorArgs</code><span class="sig-paren">(</span>miopenOperatorArgs_t <em>args</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv225miopenDestroyOperatorArgs20miopenOperatorArgs_t" title="Permalink to this definition">¶</a><br /></dt>
+<span id="miopenDestroyOperatorArgs__miopenOperatorArgs_t"></span><span class="target" id="group__FUSION_1ga60a2b09c32fd8a8de33fb13cefb28225"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenDestroyOperatorArgs</code><span class="sig-paren">(</span>miopenOperatorArgs_t <em>args</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv225miopenDestroyOperatorArgs20miopenOperatorArgs_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Destroys an operator argument object. </p>
 <p><dl class="docutils">
 <dt><strong>Return</strong></dt>
@@ -746,7 +762,7 @@
 <h2>miopenSetOpArgsConvForward<a class="headerlink" href="#miopensetopargsconvforward" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="_CPPv226miopenSetOpArgsConvForward20miopenOperatorArgs_tK26miopenFusionOpDescriptor_tPKvPKvPKv">
-<span id="miopenSetOpArgsConvForward__miopenOperatorArgs_t.miopenFusionOpDescriptor_tC.voidCP.voidCP.voidCP"></span><span class="target" id="group__FUSION_1ga9971f543c7c889fd5dd4c8a7e85a0ee4"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenSetOpArgsConvForward</code><span class="sig-paren">(</span>miopenOperatorArgs_t <em>args</em>, <em class="property">const</em> miopenFusionOpDescriptor_t <em>convOp</em>, <em class="property">const</em> void *<em>alpha</em>, <em class="property">const</em> void *<em>beta</em>, <em class="property">const</em> void *<em>w</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv226miopenSetOpArgsConvForward20miopenOperatorArgs_tK26miopenFusionOpDescriptor_tPKvPKvPKv" title="Permalink to this definition">¶</a><br /></dt>
+<span id="miopenSetOpArgsConvForward__miopenOperatorArgs_t.miopenFusionOpDescriptor_tC.voidCP.voidCP.voidCP"></span><span class="target" id="group__FUSION_1ga9971f543c7c889fd5dd4c8a7e85a0ee4"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenSetOpArgsConvForward</code><span class="sig-paren">(</span>miopenOperatorArgs_t <em>args</em>, <em class="property">const</em> miopenFusionOpDescriptor_t <em>convOp</em>, <em class="property">const</em> void *<em>alpha</em>, <em class="property">const</em> void *<em>beta</em>, <em class="property">const</em> void *<em>w</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv226miopenSetOpArgsConvForward20miopenOperatorArgs_tK26miopenFusionOpDescriptor_tPKvPKvPKv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Sets the arguments for forward convolution op. </p>
 <p><dl class="docutils">
 <dt><strong>Return</strong></dt>
@@ -769,7 +785,7 @@
 <h2>miopenSetOpArgsBatchNormInference<a class="headerlink" href="#miopensetopargsbatchnorminference" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="_CPPv233miopenSetOpArgsBatchNormInference20miopenOperatorArgs_tK26miopenFusionOpDescriptor_tPKvPKvPKvPKvPKvPKvd">
-<span id="miopenSetOpArgsBatchNormInference__miopenOperatorArgs_t.miopenFusionOpDescriptor_tC.voidCP.voidCP.voidCP.voidCP.voidCP.voidCP.double"></span><span class="target" id="group__FUSION_1ga7f7db3aebd16563f9eeafca533cc38e2"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenSetOpArgsBatchNormInference</code><span class="sig-paren">(</span>miopenOperatorArgs_t <em>args</em>, <em class="property">const</em> miopenFusionOpDescriptor_t <em>bnOp</em>, <em class="property">const</em> void *<em>alpha</em>, <em class="property">const</em> void *<em>beta</em>, <em class="property">const</em> void *<em>bnScale</em>, <em class="property">const</em> void *<em>bnBias</em>, <em class="property">const</em> void *<em>estimatedMean</em>, <em class="property">const</em> void *<em>estimatedVariance</em>, double <em>epsilon</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv233miopenSetOpArgsBatchNormInference20miopenOperatorArgs_tK26miopenFusionOpDescriptor_tPKvPKvPKvPKvPKvPKvd" title="Permalink to this definition">¶</a><br /></dt>
+<span id="miopenSetOpArgsBatchNormInference__miopenOperatorArgs_t.miopenFusionOpDescriptor_tC.voidCP.voidCP.voidCP.voidCP.voidCP.voidCP.double"></span><span class="target" id="group__FUSION_1ga7f7db3aebd16563f9eeafca533cc38e2"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenSetOpArgsBatchNormInference</code><span class="sig-paren">(</span>miopenOperatorArgs_t <em>args</em>, <em class="property">const</em> miopenFusionOpDescriptor_t <em>bnOp</em>, <em class="property">const</em> void *<em>alpha</em>, <em class="property">const</em> void *<em>beta</em>, <em class="property">const</em> void *<em>bnScale</em>, <em class="property">const</em> void *<em>bnBias</em>, <em class="property">const</em> void *<em>estimatedMean</em>, <em class="property">const</em> void *<em>estimatedVariance</em>, double <em>epsilon</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv233miopenSetOpArgsBatchNormInference20miopenOperatorArgs_tK26miopenFusionOpDescriptor_tPKvPKvPKvPKvPKvPKvd" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Sets the arguments for inference batch normalization op. </p>
 <p><dl class="docutils">
 <dt><strong>Return</strong></dt>
@@ -796,7 +812,7 @@
 <h2>miopenSetOpArgsBiasForward<a class="headerlink" href="#miopensetopargsbiasforward" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="_CPPv226miopenSetOpArgsBiasForward20miopenOperatorArgs_tK26miopenFusionOpDescriptor_tPKvPKvPKv">
-<span id="miopenSetOpArgsBiasForward__miopenOperatorArgs_t.miopenFusionOpDescriptor_tC.voidCP.voidCP.voidCP"></span><span class="target" id="group__FUSION_1gac4b40f65187483d4999e6b5679672086"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenSetOpArgsBiasForward</code><span class="sig-paren">(</span>miopenOperatorArgs_t <em>args</em>, <em class="property">const</em> miopenFusionOpDescriptor_t <em>biasOp</em>, <em class="property">const</em> void *<em>alpha</em>, <em class="property">const</em> void *<em>beta</em>, <em class="property">const</em> void *<em>bias</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv226miopenSetOpArgsBiasForward20miopenOperatorArgs_tK26miopenFusionOpDescriptor_tPKvPKvPKv" title="Permalink to this definition">¶</a><br /></dt>
+<span id="miopenSetOpArgsBiasForward__miopenOperatorArgs_t.miopenFusionOpDescriptor_tC.voidCP.voidCP.voidCP"></span><span class="target" id="group__FUSION_1gac4b40f65187483d4999e6b5679672086"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenSetOpArgsBiasForward</code><span class="sig-paren">(</span>miopenOperatorArgs_t <em>args</em>, <em class="property">const</em> miopenFusionOpDescriptor_t <em>biasOp</em>, <em class="property">const</em> void *<em>alpha</em>, <em class="property">const</em> void *<em>beta</em>, <em class="property">const</em> void *<em>bias</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv226miopenSetOpArgsBiasForward20miopenOperatorArgs_tK26miopenFusionOpDescriptor_tPKvPKvPKv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Sets the arguments for forward bias op. </p>
 <p><dl class="docutils">
 <dt><strong>Return</strong></dt>
@@ -819,7 +835,7 @@
 <h2>miopenExecuteFusionPlan<a class="headerlink" href="#miopenexecutefusionplan" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="_CPPv223miopenExecuteFusionPlanK14miopenHandle_tK28miopenFusionPlanDescriptor_tK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPv20miopenOperatorArgs_t">
-<span id="miopenExecuteFusionPlan__miopenHandle_tC.miopenFusionPlanDescriptor_tC.miopenTensorDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidP.miopenOperatorArgs_t"></span><span class="target" id="group__FUSION_1gaaf26136a4596b7fbed905d6b4b59b16b"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenExecuteFusionPlan</code><span class="sig-paren">(</span><em class="property">const</em> miopenHandle_t <em>handle</em>, <em class="property">const</em> miopenFusionPlanDescriptor_t <em>fusePlanDesc</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>inputDesc</em>, <em class="property">const</em> void *<em>input</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>outputDesc</em>, void *<em>output</em>, miopenOperatorArgs_t <em>args</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv223miopenExecuteFusionPlanK14miopenHandle_tK28miopenFusionPlanDescriptor_tK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPv20miopenOperatorArgs_t" title="Permalink to this definition">¶</a><br /></dt>
+<span id="miopenExecuteFusionPlan__miopenHandle_tC.miopenFusionPlanDescriptor_tC.miopenTensorDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidP.miopenOperatorArgs_t"></span><span class="target" id="group__FUSION_1gaaf26136a4596b7fbed905d6b4b59b16b"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenExecuteFusionPlan</code><span class="sig-paren">(</span><em class="property">const</em> miopenHandle_t <em>handle</em>, <em class="property">const</em> miopenFusionPlanDescriptor_t <em>fusePlanDesc</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>inputDesc</em>, <em class="property">const</em> void *<em>input</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>outputDesc</em>, void *<em>output</em>, miopenOperatorArgs_t <em>args</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv223miopenExecuteFusionPlanK14miopenHandle_tK28miopenFusionPlanDescriptor_tK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPv20miopenOperatorArgs_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Executes the fusion plan. </p>
 <p><dl class="docutils">
 <dt><strong>Return</strong></dt>
@@ -884,7 +900,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.3.0',
+            VERSION:'2.6.0',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

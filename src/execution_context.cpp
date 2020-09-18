@@ -39,6 +39,7 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HIP_KERNELS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_METADATA_ENFORCE)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER)
@@ -153,7 +154,9 @@ static rocm_meta_version AmdRocmMetadataVersionDetect(const miopen::ExecutionCon
         if(num_begin != std::string::npos)
         {
             const int num = std::stoi(platform_version.substr(num_begin + 1));
-            if(num >= 3029) // ROCm 2.10 RC 1341
+            if(num >= 3137) // ROCm 3.5 RC
+                rmv = rocm_meta_version::AMDHSA_COv3;
+            else if(num >= 3029) // ROCm 2.10 RC 1341
                 rmv = rocm_meta_version::AMDHSA_COv2_COv3;
             else
                 rmv = rocm_meta_version::AMDHSA_COv2;
@@ -164,8 +167,11 @@ static rocm_meta_version AmdRocmMetadataVersionDetect(const miopen::ExecutionCon
         }
 #else
         (void)context;
-        if(miopen::HipGetHccVersion() >=
-           miopen::external_tool_version_t{2, 10, 19392}) // ROCm 2.10 RC 1341
+        if(miopen::HipCompilerVersion() >=
+           miopen::external_tool_version_t{3, 5, 0}) // ROCm 3.5 RC and up
+            rmv = rocm_meta_version::AMDHSA_COv3;
+        else if(miopen::HipCompilerVersion() >=
+                miopen::external_tool_version_t{2, 10, 19392}) // ROCm 2.10 RC 1341
             rmv = rocm_meta_version::AMDHSA_COv2_COv3;
         else
             rmv = rocm_meta_version::Default;
@@ -195,11 +201,20 @@ static bool IsAmdRocmOpencl(miopen::ExecutionContext& context)
     return ret_bool;
 }
 
+static bool IsHipKernelsEnabled()
+{
+#if MIOPEN_USE_HIP_KERNELS
+    return !miopen::IsDisabled(MIOPEN_DEBUG_HIP_KERNELS{});
+#else
+    return miopen::IsEnabled(MIOPEN_DEBUG_HIP_KERNELS{});
+#endif
+}
+
 void miopen::ExecutionContext::DetectRocm()
 {
-    // Detect assembly kernels
     use_binaries            = false;
     use_asm_kernels         = false;
+    use_hip_kernels         = IsHipKernelsEnabled();
     use_opencl_convolutions = !miopen::IsDisabled(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS{});
     rmv                     = rocm_meta_version::Default;
     if(IsAmdRocmOpencl(*this))

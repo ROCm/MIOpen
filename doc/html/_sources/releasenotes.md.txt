@@ -2,7 +2,49 @@
 ## MIOpen Release notes
 
 
-### 03/31/2020 [ 2.3.0 ]
+
+### 08/20/2020 [ 2.6.0 ]
+
+- This release contains convolution performance improvements, improved multi-threading behavior, and improved stability for half precision convolutions. Initial iteration time has been reduced with the introduction of hybrid find mode. Builds for a static library have been refined for this release.
+
+- Added MIOPEN_FIND_MODE=3 as the new default convolution Find mode; see documentation [here](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/find_and_immediate.html#find-modes) for details
+- Added a more runtime-parameterized version of pooling to reduce the number of online compilations
+- Improved the performance of backwards spatial batch normalization for small images
+- Fixed issue with std::logic_error in SQLite deleter [#306](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/306)
+- Fixed issues with half precision stability for convolutions
+- Fixed issues with multi-threaded SQLite database accesses
+- Fixed issues with 3-D convolutions and incorrect parameters
+- Fixed various issues with implicit GEMM static assert failures
+- Removed inactive implicit GEMM convolution solvers
+- Removed SCGEMM convolutional algorithm from MIOpen
+
+
+### 07/10/2020 [ 2.5.0 ]
+
+- This release contains convolution performance improvements, various minor fixes and documentation updates.
+
+- Added a script to detect and install appropriate precompiled kernels
+- Added 3D convolution backwards weights implicit GEMM implementation 
+- Improve performance of convolution implicit GEMM algorithm
+- Improved database coverage for batch size 1
+- Improved logging and error reporting
+- Improved documentation for debugging with numeric checks
+- Fixed issue with potential infinities and NaNs appearing during low precision training on CNNs
+
+
+### 06/02/2020 [ 2.4.0 ]
+
+- This release contains new implementations of 3D convolutions using implicitGEMM, general performance improvements for convolutions, bug fixes, better versioning in directories, integration with the new rocclr, and dropout support in RNNs.
+
+- Added 3D convolutions for the implicitGEMM algorithm in the forward and backward-data passes
+- Added dropout support for RNN layer; e.g., RNN-vanilla, GRU, and LSTM
+- Added support for AMD's rocclr runtime and compiler
+- Improved performance for implicitGEMM and Winograd algorithms
+- Improved database locking
+- Fixed issue with GPU memory segmentation fault on asymmetric padding [#142](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/142)
+
+
+### 03/01/2020 [ 2.3.0 ]
 
 - This release contains new implementations of the implicitGEMM and Winograd algorithms, performance improvements for convolutions, further support for 3D convolutional networks, and various bug fixes.
 

@@ -162,7 +162,7 @@ ConvSolution ConvBinWinograd3x3U::GetSolution(const ConvolutionContext& params) 
                             << " out_W="
                             << out_W);
 
-        return [=](Handle& handle, const boost::any& ctx) {
+        return [=](const Handle& handle, const boost::any& ctx) {
             const auto k        = handle.Run(kernels[0]);
             const auto fwd_ctx  = boost::any_cast<conv::DataInvokeParams>(ctx);
             const auto& tensors = fwd_ctx.tensors;

@@ -98,12 +98,6 @@ struct
 
         constexpr index_t GemmKSub = GemmK / GemmKBlocks;
 
-        // sanity-check for vectorized memory load
-        static_assert((Wo == 1 || (ConvStrideW == 1 || GemmBBlockCopySrcDataPerRead_GemmN == 1)) &&
-                          (X == 1 || ConvDilationW % GemmBBlockCopySrcDataPerRead_GemmN == 0),
-                      "wrong! aligment requirement for vectorized global load of input tensor will "
-                      "be violated");
-
         constexpr auto in_g_n_c_hip_wip_global_desc = transform_tensor_descriptor(
             in_g_n_c_hi_wi_global_desc,
             make_tuple(PassThrough<G>{},
@@ -258,7 +252,9 @@ struct
                 GemmBBlockCopySrcDataPerRead_GemmN,
                 GemmBBlockCopyDstDataPerWrite_GemmKPACK,
                 CGlobalMemoryDataOperation,
-                MBlock1NBlock0>{};
+                MBlock1NBlock0,
+                1,
+                ConvStrideW>{};
 
         gridwise_batched_gemm.Run(p_wei_global, p_in_global, p_out_global);
     }

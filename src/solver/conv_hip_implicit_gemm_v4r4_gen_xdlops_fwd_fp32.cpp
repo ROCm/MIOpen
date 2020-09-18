@@ -113,12 +113,11 @@ PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::CalculateGemmBBlockCopyPerformanceP
         const auto x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
         const auto hi = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
         const auto wi = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
+        const auto wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
         const auto conv_stride_h =
             ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
         const auto conv_stride_w =
             ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
-        const auto conv_dilation_w =
-            ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx);
         const auto in_left_pad_h  = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
         const auto in_left_pad_w  = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
         const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
@@ -130,10 +129,13 @@ PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::CalculateGemmBBlockCopyPerformanceP
             // \todo there are more configs that can go through this if branch
             SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, hi * wi);
         }
+        else if(in_left_pad_w == 0 && in_right_pad_w == 0)
+        {
+            SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, wo);
+        }
         else if(conv_stride_w == 1)
         {
-            SrcDataPerRead_GemmN =
-                gcd(SrcDataPerRead_GemmN, in_left_pad_w, wi, in_right_pad_w, conv_dilation_w);
+            SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, in_left_pad_w, wi, in_right_pad_w);
         }
         else
         {
@@ -247,9 +249,9 @@ bool PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::IsValid(const ConvolutionConte
     // heuristic to reduce search space
     {
         // use largest XdlopsGemm
-        if(GemmMPerBlock >= 64 && GemmMPerWave != 64)
+        if(GemmMPerBlock >= 64 && GemmMPerWave < 64)
             return false;
-        if(GemmNPerBlock >= 64 && GemmNPerWave != 64)
+        if(GemmNPerBlock >= 64 && GemmNPerWave < 64)
             return false;
         if((GemmMPerBlock == 32 || GemmMPerBlock == 16) && GemmMPerWave != GemmMPerBlock)
             return false;
@@ -333,8 +335,8 @@ bool PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::IsValidValue() const
         IsTwoPower<4,128>(GemmMPerBlock)
         && IsTwoPower<16,128>(GemmNPerBlock)
         && IsTwoPower<4,16>(GemmKPerBlock)
-        && IsTwoPower<4,64>(GemmMPerWave)
-        && IsTwoPower<16,64>(GemmNPerWave);
+        && IsTwoPower<4,128>(GemmMPerWave)
+        && IsTwoPower<16,128>(GemmNPerWave);
     // clang-format on
 }
 
@@ -348,9 +350,9 @@ bool PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::SetNextValue()
             break;
         if(!NextTwoPower<4, 16>(GemmKPerBlock))
             break;
-        if(!NextTwoPower<4, 64>(GemmMPerWave))
+        if(!NextTwoPower<4, 128>(GemmMPerWave))
             break;
-        if(!NextTwoPower<16, 64>(GemmNPerWave))
+        if(!NextTwoPower<16, 128>(GemmNPerWave))
             break;
         return false;
     } while(false);
@@ -529,7 +531,6 @@ ConvSolution ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::GetSolution(
         std::string(" -DCK_USE_AMD_XDLOPS=") + (IsXdlopsSupport(ctx) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + (miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}) ? '1' : '0') +
-        std::string(" -D__HIP_PLATFORM_HCC__=1") +
         ctx.general_compile_options;
     // clang-format on
 
@@ -538,7 +539,7 @@ ConvSolution ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::GetSolution(
     return result;
 }
 
-int ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                                                    ConstData_t bot_buf,
                                                                    Data_t top_buf,
                                                                    ConstData_t wei_buf,
@@ -558,10 +559,10 @@ bool ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::IsApplicable(const ConvolutionCont
 {
     if(!(ctx.IsFp32()))
         return false;
-
+    if(!ctx.use_hip_kernels)
+        return false;
     if(!ctx.direction.IsForward())
         return false;
-
     if(!ctx.Is2d())
         return false;
 

@@ -891,7 +891,7 @@ void BatchNormBackward(Handle& handle,
         // N*H*W < 32M and H*W > 1024, use batchnorm variant#1 implementation which parallelize
         // work groups over channels and loop through NHW.
         //*************************************************************************************************
-        if((in_nhw < (32 * 1024 * 1024) && in_cstride > 1024) || (n > 768))
+        if((in_nhw < (32 * 1024 * 1024) && in_cstride > 1024) || ((n > 768) && (in_cstride > 63)))
         {
             variant    = 1;
             xlocalsize = 1024;

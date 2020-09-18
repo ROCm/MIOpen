@@ -6,24 +6,34 @@
 #include <miopen/hip_build_utils.hpp>
 #include <miopen/mlo_internal.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS)
-MIOPEN_DECLARE_ENV_VAR(
-    MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE) // For internal debug purposes
-
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM)
 
 #define WORKAROUND_SWDEV_200782 1
-
 #define WORKAROUND_SWDEV_229277_227616_229195 1
+// workaround for unnecessary VGPA <--> AGRP data movement when using mfma LLVM intrinsic
+#define WORKAROUND_SWDEV_229564 1
+// workaround for buffer load/store fp16/bfp16 intrinsic bug
+#define WORKAROUND_SWDEV_231101 1
+// workaround compiler bug: GPU memory access fault when there is padding in fp16/bfp16 case
+#define WORKAROUND_SWDEV_239555 1
+// LLVM xdlops instrinsic will do unnecessey VGRP <--> AGPR movement, and result in
+// register spill, for bfloat16 datatype, when doing wave-wise GEMM larger than 64x64
+#define WORKAROUND_SWDEV_240356 1
 
 namespace miopen {
+
 namespace solver {
 
 // greatest common divisor, aka highest common factor
 template <typename T>
 T gcd(T x, T y)
 {
+    assert(!(x == 0 && y == 0));
+
     if(x == y || x == 0)
     {
         return y;
@@ -380,6 +390,33 @@ inline static bool NextTwoPower(int& v)
     return false;
 }
 
+template <int L, int H>
+inline static bool PreviousTwoPower(int& v)
+{
+    static_assert((((L - 1) & L) == 0), "L is not power of 2");
+    static_assert((((H - 1) & H) == 0), "H is not power of 2");
+    assert((IsTwoPower<L, H>(v)));
+    if(v == L)
+    {
+        v = H;
+        return true;
+    }
+    v /= 2;
+    return false;
+}
+
+template <bool L, bool H>
+inline static bool NextFlag(bool& v)
+{
+    if(v == H)
+    {
+        v = L;
+        return true;
+    }
+    v = H;
+    return false;
+}
+
 static inline bool IsXdlopsSupport(const ConvolutionContext& c)
 {
     if(miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}))
@@ -391,7 +428,7 @@ static inline bool IsXdlopsSupport(const ConvolutionContext& c)
     return StartsWith(c.GetStream().GetDeviceName(), "gfx908") &&
 #if WORKAROUND_SWDEV_200782
            /// \todo Remove workaround when we drop suport of HCC older than 2.10.19392.
-           ((miopen::HipGetHccVersion() >= external_tool_version_t{2, 10, 19392})
+           ((miopen::HipCompilerVersion() >= external_tool_version_t{2, 10, 19392})
                 ? !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS{})
                 : miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS{}));
 #else
@@ -399,11 +436,13 @@ static inline bool IsXdlopsSupport(const ConvolutionContext& c)
 #endif
 }
 
+///\todo remove
 inline static uint32_t GetReadWriteVectorSize(const int v)
 {
     return v % 4 == 0 ? 4 : (v % 2 == 0 ? 2 : 1);
 }
 
+///\todo remove
 inline static uint32_t GetEPackLength(const ConvolutionContext& ctx, bool isXdlopsInvoked)
 {
     // Based on data type, Es are packed
@@ -423,6 +462,7 @@ inline static uint32_t GetEPackLength(const ConvolutionContext& ctx, bool isXdlo
     return EPACK;
 }
 
+///\todo remove
 static inline bool IsValidXdlopsGemm(const int GemmMPerBlock,
                                      const int GemmNPerBlock,
                                      const int GemmKPackedPerBlock, // packed
@@ -442,12 +482,88 @@ static inline bool IsValidXdlopsGemm(const int GemmMPerBlock,
         return false;
     if(GemmMPerWave == 16 && GemmNPerWave == 16 && GemmKPackedPerBlock % 4 != 0)
         return false;
+    if(GemmMPerWave > 64 && GemmNPerWave < 64)
+        return false;
+    if(GemmNPerWave > 64 && GemmMPerWave < 64)
+        return false;
 
-    const auto WaveSize  = 64;
-    const auto BlockSize = GemmNPerBlock * GemmMPerBlock / (GemmMPerWave * GemmNPerWave) * WaveSize;
+    const auto WaveSize = 64;
+    const auto BlockSize =
+        (GemmNPerBlock * GemmMPerBlock) / (GemmMPerWave * GemmNPerWave) * WaveSize;
 
-    // fail with blockSize >= 512
-    /// \todo fix the issue with blockSize >= 512
+    if(BlockSize < 64 || BlockSize > 256)
+        return false;
+
+    return (GemmMPerBlock % GemmMPerWave) == 0 && (GemmNPerBlock % GemmNPerWave) == 0;
+}
+
+static inline bool IsIndexRangeLargeEnough(const ConvolutionContext& ctx)
+{
+    // composable kernel use int32_t for memory offset, which covers 2GB of memory maximum
+    const std::size_t max_index_range = std::size_t(2) * 1024 * 1024 * 1024;
+
+    return ctx.bot_sz < max_index_range && ctx.weights_sz < max_index_range &&
+           ctx.top_sz < max_index_range;
+}
+
+static inline bool IsValidBlockwiseGemmXdlops(const ConvolutionContext& ctx,
+                                              const int GemmMPerBlock,
+                                              const int GemmNPerBlock,
+                                              const int GemmKPerBlock,
+                                              const int GemmMPerWave,
+                                              const int GemmNPerWave,
+                                              const int GemmKPack)
+{
+    // check k
+    if(ctx.IsFp16() && GemmKPack % 4 != 0)
+        return false;
+    if(ctx.IsBfp16() && GemmKPack % 2 != 0)
+        return false;
+
+    if(GemmMPerWave == 32 && GemmNPerWave == 32 && GemmKPerBlock % 2 != 0)
+        return false;
+    if(GemmMPerWave == 16 && GemmNPerWave == 16 && GemmKPerBlock % 4 != 0)
+        return false;
+
+    // check M and N
+    std::vector<std::tuple<int, int>> validWaveGemmSize = {std::make_tuple(64, 64),
+                                                           std::make_tuple(64, 32),
+                                                           std::make_tuple(64, 16),
+                                                           std::make_tuple(32, 64),
+                                                           std::make_tuple(32, 32),
+                                                           std::make_tuple(16, 64),
+                                                           std::make_tuple(16, 16),
+                                                           std::make_tuple(8, 64),
+                                                           std::make_tuple(4, 64)};
+
+    // xdlops repeat only supported by llvm intrinsic
+    if(!miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}))
+    {
+        validWaveGemmSize.emplace_back(std::make_tuple(128, 128));
+        validWaveGemmSize.emplace_back(std::make_tuple(128, 64));
+        validWaveGemmSize.emplace_back(std::make_tuple(64, 128));
+    }
+
+    bool IsValidWaveGemm = false;
+
+    for(auto& it : validWaveGemmSize)
+    {
+        int validGemmMPerWave, validGemmNPerWave;
+        std::tie(validGemmMPerWave, validGemmNPerWave) = it;
+        if(validGemmMPerWave == GemmMPerWave && validGemmNPerWave == GemmNPerWave)
+        {
+            IsValidWaveGemm = true;
+            break;
+        }
+    }
+
+    if(!IsValidWaveGemm)
+        return false;
+
+    const auto WaveSize = 64;
+    const auto BlockSize =
+        (GemmNPerBlock * GemmMPerBlock) / (GemmMPerWave * GemmNPerWave) * WaveSize;
+
     if(BlockSize < 64 || BlockSize > 256)
         return false;
 
@@ -467,6 +583,7 @@ IsValidGridGemmXdlops(const std::size_t GemmM, const std::size_t GemmN, const st
            (GemmK * GemmN) % WaveSize == 0 && GemmN % 16 == 0 && GemmM % 4 == 0 && GemmK % 4 == 0;
 }
 
+///\todo remove
 static inline bool IsApplicableXdlops(const ConvolutionContext& ctx)
 {
     if(!IsXdlopsSupport(ctx))
@@ -518,6 +635,7 @@ static inline bool IsApplicableXdlops(const ConvolutionContext& ctx)
     return IsValidGridGemmXdlops(GemmM, GemmN, GemmK);
 }
 
+///\todo remove
 template <class PerformanceImplicitGemm_t>
 inline static auto GetPerformanceConfigBase(const ConvolutionContext& ctx)
 {
@@ -527,6 +645,7 @@ inline static auto GetPerformanceConfigBase(const ConvolutionContext& ctx)
     return pp;
 }
 
+///\todo remove
 static inline size_t ComputeLDSRequiredSize(const ConvolutionContext& ctx,
                                             const int BPerBlock,
                                             const int KPerBlock,
@@ -558,7 +677,7 @@ static inline size_t ComputeLDSRequiredSize(const ConvolutionContext& ctx,
 }
 
 template <typename BotBufType, typename TopBufType, typename WeiBufType>
-static inline int RunAndMeasureSolutionBase(miopen::Handle& profile_h,
+static inline int RunAndMeasureSolutionBase(const miopen::Handle& profile_h,
                                             BotBufType bot_buf,
                                             TopBufType top_buf,
                                             WeiBufType wei_buf,
@@ -635,6 +754,10 @@ int amd_buffer_load_max_length()
     {
         return 4;
     }
+    else if(std::is_same<half_float::half, T>())
+    {
+        return 8;
+    }
     else
     {
         MIOPEN_LOG_I("not implemented");
@@ -648,6 +771,10 @@ int amd_buffer_store_max_length()
     if(std::is_same<float, T>())
     {
         return 4;
+    }
+    else if(std::is_same<half_float::half, T>())
+    {
+        return 8;
     }
     else
     {
@@ -663,6 +790,10 @@ int amd_lds_read_max_length()
     {
         return 4;
     }
+    else if(std::is_same<half_float::half, T>())
+    {
+        return 8;
+    }
     else
     {
         MIOPEN_LOG_I("not implemented");
@@ -677,6 +808,10 @@ int amd_lds_write_max_length()
     {
         return 4;
     }
+    else if(std::is_same<half_float::half, T>())
+    {
+        return 8;
+    }
     else
     {
         MIOPEN_LOG_I("not implemented");
@@ -688,4 +823,5 @@ constexpr std::size_t get_lds_max_number_of_byte() { return 65536; }
 
 } // namespace solver
 } // namespace miopen
+
 #endif

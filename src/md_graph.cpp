@@ -67,7 +67,7 @@ std::ostream& operator<<(std::ostream& stream, const MDGraph_vertex& v)
     return stream;
 }
 
-MDGraph_vertex_ptr FusionMDGraph::GetCurVertex(Handle& handle)
+MDGraph_vertex_ptr FusionMDGraph::GetCurVertex(const Handle& handle)
 {
     int weight             = -1;
     MDGraph_vertex_ptr ptr = nullptr;
@@ -112,7 +112,7 @@ std::vector<solver::AnySolver> FusionMDGraph::GetSolvers()
     return res;
 }
 
-std::string FusionMDGraph::GetProgramName(Handle& handle)
+std::string FusionMDGraph::GetProgramName(const Handle& handle)
 {
     auto ptr = GetCurVertex(handle);
 
@@ -127,7 +127,7 @@ std::string FusionMDGraph::GetProgramName(Handle& handle)
     }
 }
 
-std::string FusionMDGraph::GetKernelName(Handle& handle)
+std::string FusionMDGraph::GetKernelName(const Handle& handle)
 {
     auto ptr = GetCurVertex(handle);
     if(ptr != nullptr)
@@ -141,7 +141,7 @@ std::string FusionMDGraph::GetKernelName(Handle& handle)
     }
 }
 
-std::string FusionMDGraph::GetAlgoName(Handle& handle)
+std::string FusionMDGraph::GetAlgoName(const Handle& handle)
 {
     auto ptr = GetCurVertex(handle);
     if(ptr != nullptr)
@@ -155,7 +155,7 @@ std::string FusionMDGraph::GetAlgoName(Handle& handle)
     }
 }
 
-std::vector<DefaultKernelArg> FusionMDGraph::GetKernelArgs(Handle& handle)
+std::vector<DefaultKernelArg> FusionMDGraph::GetKernelArgs(const Handle& handle)
 {
     auto ptr = GetCurVertex(handle);
     if(ptr != nullptr)
@@ -169,7 +169,7 @@ std::vector<DefaultKernelArg> FusionMDGraph::GetKernelArgs(Handle& handle)
     }
 }
 
-std::vector<miopenConvFwdAlgorithm_t> FusionMDGraph::GetConvAlgos()
+std::vector<miopenConvFwdAlgorithm_t> FusionMDGraph::GetConvAlgos() const
 {
     std::vector<miopenConvFwdAlgorithm_t> ret(conv_algo_set.begin(), conv_algo_set.end());
     return ret;

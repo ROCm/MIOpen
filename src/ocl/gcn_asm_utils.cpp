@@ -168,7 +168,7 @@ static std::string CleanupPath(const char* p)
  * Not intended to be used in production code, so error handling is very straghtforward,
  * just catch whatever possible and throw an exception.
  */
-void AmdgcnAssemble(std::string& source, const std::string& params)
+std::string AmdgcnAssemble(const std::string& source, const std::string& params)
 {
 #ifdef __linux__
     miopen::TempFile outfile("amdgcn-asm-out-XXXXXX");
@@ -197,6 +197,7 @@ void AmdgcnAssemble(std::string& source, const std::string& params)
         MIOPEN_THROW("Assembly error(" + std::to_string(clang_rc) + ")");
     }
 
+    std::string out;
     std::ifstream file(outfile, std::ios::binary | std::ios::ate);
     bool outfile_read_failed = false;
     do
@@ -207,14 +208,14 @@ void AmdgcnAssemble(std::string& source, const std::string& params)
             outfile_read_failed = true;
             break;
         }
-        source.resize(size, '\0');
+        out.resize(size, '\0');
         file.seekg(std::ios::beg);
         if(file.fail())
         {
             outfile_read_failed = true;
             break;
         }
-        if(file.rdbuf()->sgetn(&source[0], size) != size)
+        if(file.rdbuf()->sgetn(&out[0], size) != size)
         {
             outfile_read_failed = true;
             break;
@@ -225,6 +226,7 @@ void AmdgcnAssemble(std::string& source, const std::string& params)
     {
         MIOPEN_THROW("Error: X-AMDGCN-ASM: outfile_read_failed");
     }
+    return out;
 #else
     (void)source; // -warning
     (void)params; // -warning

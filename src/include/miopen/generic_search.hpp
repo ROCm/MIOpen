@@ -210,7 +210,8 @@ class HeartBeat
         {
             elapsed_cumulative += elapsed;
             const float eta_sec =
-                n_recent != 0u ? ((n_total - n_recent) * (elapsed_cumulative / n_recent) / 1000)
+                n_recent != 0u ? (static_cast<float>(n_total - n_recent) *
+                                  (elapsed_cumulative / static_cast<float>(n_recent)) / 1000.0f)
                                : 0.0f; // paraniod
             MIOPEN_LOG_W(n_recent << '/' << n_failed << '/' << n_total << ' ' << total_best
                                   << ", best within recent "

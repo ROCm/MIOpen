@@ -381,6 +381,17 @@ typedef enum {
     miopenPoolingAverageInclusive = 2, /*!< Inclusive Average pooling */
 } miopenPoolingMode_t;
 
+/*! @ingroup pooling
+ * @enum miopenPoolingWorkspaceIndexMode_t
+ * Pooling layer workspace index mode. miopenPoolingWorkspaceIndexMask mode records indices
+ * indicating the max values' positions in the filter/mask. miopenPoolingWorkspaceIndexImage mode
+ * records indices indicating the max values' positions in the image.
+*/
+typedef enum {
+    miopenPoolingWorkspaceIndexMask  = 0, /*!< Use mask indices, 2D pooling only */
+    miopenPoolingWorkspaceIndexImage = 1, /*!< Use image indices */
+} miopenPoolingWorkspaceIndexMode_t;
+
 /*! @ingroup LRN
  * @enum miopenLRNMode_t
  * Local Response Normalization layer mode
@@ -850,7 +861,6 @@ typedef enum {
     miopenConvolutionFwdAlgoFFT          = 2, /*!< Fast Fourier Transform indirect convolutions */
     miopenConvolutionFwdAlgoWinograd     = 3, /*!< Winograd indirect convolutions */
     miopenConvolutionFwdAlgoImplicitGEMM = 5, /*!< Implicit GEMM convolutions, fp32 only */
-    miopenConvolutionFwdAlgoStaticCompiledGEMM = 6, /*!< Static Compiled GEMM convolutions */
 } miopenConvFwdAlgorithm_t;
 
 /*! @enum miopenConvBwdWeightsAlgorithm_t
@@ -885,7 +895,6 @@ typedef enum {
     miopenConvolutionAlgoFFT          = 2, /*!< Fast Fourier Transform indirect convolutions */
     miopenConvolutionAlgoWinograd     = 3, /*!< Winograd indirect convolutions */
     miopenConvolutionAlgoImplicitGEMM = 5, /*!< Implicit GEMM convolutions, fp32 only */
-    miopenConvolutionAlgoStaticCompiledGEMM = 6, /*!< Static Compiled GEMM convolutions */
 } miopenConvAlgorithm_t;
 
 /*! @brief Perf struct for forward, backward filter, or backward data algorithms
@@ -1792,6 +1801,25 @@ MIOPEN_EXPORT miopenStatus_t miopenSetPoolingIndexType(miopenPoolingDescriptor_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenGetPoolingIndexType(miopenPoolingDescriptor_t poolDesc,
                                                        miopenIndexType_t* index_type);
+
+/*! @brief Set workspace index mode for pooling layer. The default mode is
+ * miopenPoolingWorkSpaceIndexMask.
+ *
+ * @param poolDesc         Pointer to a pooling layer descriptor (input/output)
+ * @param workspace_index  Workspace index mode (input)
+ * @return                 miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSetPoolingWorkSpaceIndexMode(
+    miopenPoolingDescriptor_t poolDesc, miopenPoolingWorkspaceIndexMode_t workspace_index);
+
+/*! @brief Get workspace index mode for pooling layer.
+ *
+ * @param poolDesc         Pointer to a pooling layer descriptor (input)
+ * @param workspace_index  Workspace index mode (output)
+ * @return                 miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetPoolingWorkSpaceIndexMode(
+    miopenPoolingDescriptor_t poolDesc, miopenPoolingWorkspaceIndexMode_t* workspace_index);
 
 /*! @brief Sets a 2-D pooling layer descriptor details.
  *

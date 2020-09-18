@@ -100,12 +100,12 @@ struct FusionMDGraph
     bool CmpOpKey(const FusionMDGraph_Edge_Map& edge_val,
                   std::function<bool(const std::string& sym, int& val)> attr_fun,
                   std::unordered_map<std::string, int>& syms) const;
-    MDGraph_vertex_ptr GetCurVertex(Handle& handle);
-    std::string GetProgramName(Handle& handle);
-    std::string GetKernelName(Handle& handle);
-    std::string GetAlgoName(Handle& handle);
-    std::vector<DefaultKernelArg> GetKernelArgs(Handle& handle);
-    std::vector<miopenConvFwdAlgorithm_t> GetConvAlgos();
+    MDGraph_vertex_ptr GetCurVertex(const Handle& handle);
+    std::string GetProgramName(const Handle& handle);
+    std::string GetKernelName(const Handle& handle);
+    std::string GetAlgoName(const Handle& handle);
+    std::vector<DefaultKernelArg> GetKernelArgs(const Handle& handle);
+    std::vector<miopenConvFwdAlgorithm_t> GetConvAlgos() const;
     bool SetConvAlgo(miopenConvFwdAlgorithm_t algo);
     std::vector<solver::AnySolver> GetSolvers();
     void WriteToFile(std::string filename = "");

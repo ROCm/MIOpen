@@ -137,57 +137,33 @@ int mlo_construct_pooling2D::mloConstructFwd()
     while(_grp_tile0 * _grp_tile1 > 256 && _grp_tile0 > 1)
         _grp_tile0 >>= 1;
 
-    _comp_options = std::string(" -DMLO_POOLING_OP_ID=") +
-                    std::to_string(static_cast<long long>(_pooling_method)) +
-                    std::string(" -DMLO_POOLING_KERNEL_SZ1=") +
-                    std::to_string(static_cast<long long>(_search_params.kernel_size_h)) +
-                    std::string(" -DMLO_POOLING_PAD1=") +
-                    std::to_string(static_cast<long long>(_search_params.pad_h)) +
-                    std::string(" -DMLO_POOLING_STRIDE1=") +
-                    std::to_string(static_cast<long long>(_search_params.kernel_stride_h)) +
-                    std::string(" -DMLO_POOLING_KERNEL_SZ0=") +
-                    std::to_string(static_cast<long long>(_search_params.kernel_size_w)) +
-                    std::string(" -DMLO_POOLING_PAD0=") +
-                    std::to_string(static_cast<long long>(_search_params.pad_w)) +
-                    std::string(" -DMLO_POOLING_STRIDE0=") +
-                    std::to_string(static_cast<long long>(_search_params.kernel_stride_w)) +
-                    std::string(" -DMLO_POOLING_N_OUTPUTS=") +
-                    std::to_string(static_cast<long long>(_search_params.n_outputs)) +
-                    std::string(" -DMLO_POOLING_N_CHANNELS=") +
-                    std::to_string(static_cast<long long>(_search_params.n_inputs)) +
-                    std::string(" -DMLO_POOLING_N_HORIZ_OUT_PIX=") +
-                    std::to_string(static_cast<long long>(_out_pix_tile0)) +
-                    std::string(" -DMLO_POOLING_N_VERT_OUT_PIX=") +
-                    std::to_string(static_cast<long long>(_out_pix_tile1)) +
-                    std::string(" -DMLO_POOLING_GROUP_SZ0=") +
-                    std::to_string(static_cast<long long>(_grp_tile0)) +
-                    std::string(" -DMLO_POOLING_GROUP_SZ1=") +
-                    std::to_string(static_cast<long long>(_grp_tile1)) +
-                    std::string(" -DMLO_POOLING_BOT_BATCH_STRIDE=") +
-                    std::to_string(static_cast<long long>(_search_params.in_batch_stride)) +
-                    std::string(" -DMLO_POOLING_BOT_CHANNEL_STRIDE=") +
-                    std::to_string(static_cast<long long>(_search_params.in_channel_stride)) +
-                    std::string(" -DMLO_POOLING_BOT_STRIDE=") +
-                    std::to_string(static_cast<long long>(_search_params.in_stride)) +
-                    std::string(" -DMLO_POOLING_TOP_BATCH_STRIDE=") +
-                    std::to_string(static_cast<long long>(_search_params.out_batch_stride)) +
-                    std::string(" -DMLO_POOLING_TOP_CHANNEL_STRIDE=") +
-                    std::to_string(static_cast<long long>(_search_params.out_channel_stride)) +
-                    std::string(" -DMLO_POOLING_TOP_STRIDE=") +
-                    std::to_string(static_cast<long long>(_search_params.out_stride)) +
-                    std::string(" -DMLO_POOLING_BOT_WIDTH=") +
-                    std::to_string(static_cast<long long>(_search_params.in_width)) +
-                    std::string(" -DMLO_POOLING_BOT_HEIGHT=") +
-                    std::to_string(static_cast<long long>(_search_params.in_height)) +
-                    std::string(" -DMLO_POOLING_TOP_WIDTH=") +
-                    std::to_string(static_cast<long long>(_search_params.out_width)) +
-                    std::string(" -DMLO_POOLING_TOP_HEIGHT=") +
-                    std::to_string(static_cast<long long>(_search_params.out_height)) +
-                    std::string(_do_backward ? " -DMLO_POOLING_SAVE_INDEX" : "") +
-                    std::string(" -DMLO_POOLING_INDEX_TYPE=") +
-                    get_pooling_index_type_name(_index_type) +
-                    std::string(" -DMLO_POOLING_INDEX_MAX=") +
-                    get_pooling_index_type_max_name(_index_type) + getGeneralCompOptions();
+    _comp_options =
+        std::string(" -DMLO_POOLING_OP_ID=") +
+        std::to_string(static_cast<long long>(_pooling_method)) +
+        std::string(" -DMLO_POOLING_KERNEL_SZ1=") +
+        std::to_string(static_cast<long long>(_search_params.kernel_size_h)) +
+        std::string(" -DMLO_POOLING_STRIDE1=") +
+        std::to_string(static_cast<long long>(_search_params.kernel_stride_h)) +
+        std::string(" -DMLO_POOLING_KERNEL_SZ0=") +
+        std::to_string(static_cast<long long>(_search_params.kernel_size_w)) +
+        std::string(" -DMLO_POOLING_STRIDE0=") +
+        std::to_string(static_cast<long long>(_search_params.kernel_stride_w)) +
+        std::string(" -DMLO_POOLING_N_HORIZ_OUT_PIX=") +
+        std::to_string(static_cast<long long>(_out_pix_tile0)) +
+        std::string(" -DMLO_POOLING_N_VERT_OUT_PIX=") +
+        std::to_string(static_cast<long long>(_out_pix_tile1)) +
+        std::string(" -DMLO_POOLING_GROUP_SZ0=") +
+        std::to_string(static_cast<long long>(_grp_tile0)) +
+        std::string(" -DMLO_POOLING_GROUP_SZ1=") +
+        std::to_string(static_cast<long long>(_grp_tile1)) +
+        std::string(_do_backward ? " -DMLO_POOLING_SAVE_INDEX" : "") +
+        std::string(" -DMLO_POOLING_INDEX_TYPE=") + get_pooling_index_type_name(_index_type) +
+        std::string(" -DMLO_POOLING_INDEX_MAX=") + get_pooling_index_type_max_name(_index_type) +
+        std::string(_do_backward
+                        ? (_wsp_index == miopenPoolingWorkspaceIndexImage ? " -DUSE_IMG_INDEX=1"
+                                                                          : " -DUSE_IMG_INDEX=0")
+                        : "") +
+        getGeneralCompOptions();
 
     int g_wk_width = ((_search_params.out_width + _grp_tile0 * _out_pix_tile0 - 1) /
                       (_grp_tile0 * _out_pix_tile0));
@@ -218,59 +194,72 @@ int mlo_construct_pooling2D::mloConstructBwd()
     _grp_tile0 = 8;
     _grp_tile1 = 8;
 
-    //_out_pix_tile0 = _kernel_stride0;
-    //_out_pix_tile1 = _kernel_stride1;
-    _out_pix_tile0 = (_search_params.out_width < _grp_tile0 * 2) ? 1 : 2;
-    _out_pix_tile1 = (_search_params.out_height < _grp_tile1 * 2) ? 1 : 2;
+    _out_pix_tile0 = 1;
+    _out_pix_tile1 = 1;
 
-    _comp_options = std::string(" -DMLO_POOLING_OP_ID=") +
-                    std::to_string(static_cast<long long>(_pooling_method)) +
-                    std::string(" -DMLO_POOLING_KERNEL_SZ1=") +
-                    std::to_string(static_cast<long long>(_search_params.kernel_size_h)) +
-                    std::string(" -DMLO_POOLING_PAD1=") +
-                    std::to_string(static_cast<long long>(_search_params.pad_h)) +
-                    std::string(" -DMLO_POOLING_STRIDE1=") +
-                    std::to_string(static_cast<long long>(_search_params.kernel_stride_h)) +
-                    std::string(" -DMLO_POOLING_KERNEL_SZ0=") +
-                    std::to_string(static_cast<long long>(_search_params.kernel_size_w)) +
-                    std::string(" -DMLO_POOLING_PAD0=") +
-                    std::to_string(static_cast<long long>(_search_params.pad_w)) +
-                    std::string(" -DMLO_POOLING_STRIDE0=") +
-                    std::to_string(static_cast<long long>(_search_params.kernel_stride_w)) +
-                    std::string(" -DMLO_POOLING_N_OUTPUTS=") +
-                    std::to_string(static_cast<long long>(_search_params.n_outputs)) +
-                    std::string(" -DMLO_POOLBWD_N_HORIZ_OUT_PIX=") +
-                    std::to_string(static_cast<long long>(_out_pix_tile0)) +
-                    std::string(" -DMLO_POOLBWD_N_VERT_OUT_PIX=") +
-                    std::to_string(static_cast<long long>(_out_pix_tile1)) +
-                    std::string(" -DMLO_POOLBWD_GROUP_SZ0=") +
-                    std::to_string(static_cast<long long>(_grp_tile0)) +
-                    std::string(" -DMLO_POOLBWD_GROUP_SZ1=") +
-                    std::to_string(static_cast<long long>(_grp_tile1)) +
-                    std::string(" -DMLO_POOLBWD_BOT_WIDTH=") +
-                    std::to_string(static_cast<long long>(_search_params.in_width)) +
-                    std::string(" -DMLO_POOLBWD_BOT_HEIGHT=") +
-                    std::to_string(static_cast<long long>(_search_params.in_height)) +
-                    std::string(" -DMLO_POOLBWD_TOP_WIDTH=") +
-                    std::to_string(static_cast<long long>(_search_params.out_width)) +
-                    std::string(" -DMLO_POOLBWD_TOP_HEIGHT=") +
-                    std::to_string(static_cast<long long>(_search_params.out_height)) +
-                    std::string(" -DMLO_POOLBWD_BOTDF_BATCH_STRIDE=") +
-                    std::to_string(static_cast<long long>(_in_df_batch_stride)) +
-                    std::string(" -DMLO_POOLBWD_BOTDF_CHANNEL_STRIDE=") +
-                    std::to_string(static_cast<long long>(_in_df_channel_stride)) +
-                    std::string(" -DMLO_POOLBWD_BOTDF_STRIDE=") +
-                    std::to_string(static_cast<long long>(_in_df_stride)) +
-                    std::string(" -DMLO_POOLBWD_TOPDF_BATCH_STRIDE=") +
-                    std::to_string(static_cast<long long>(_out_df_batch_stride)) +
-                    std::string(" -DMLO_POOLBWD_TOPDF_CHANNEL_STRIDE=") +
-                    std::to_string(static_cast<long long>(_out_df_channel_stride)) +
-                    std::string(" -DMLO_POOLBWD_TOPDF_STRIDE=") +
-                    std::to_string(static_cast<long long>(_out_df_stride)) +
-                    std::string(" -DMLO_POOLING_INDEX_TYPE=") +
-                    get_pooling_index_type_name(_index_type) +
-                    std::string(" -DMLO_POOLING_INDEX_MAX=") +
-                    get_pooling_index_type_max_name(_index_type) + getGeneralCompOptions();
+    if(_pooling_method == MLO_POOLING_OP_MAX)
+    {
+        _grp_tile0 =
+            _search_params.in_width <= 8
+                ? 8
+                : (_search_params.in_width <= 16
+                       ? 4
+                       : (_search_params.in_width <= 24
+                              ? 8
+                              : (_search_params.in_width <= 32
+                                     ? 32
+                                     : (_search_params.in_width <= 64
+                                            ? 8
+                                            : (_search_params.in_width <= 96
+                                                   ? 16
+                                                   : (_search_params.in_width <= 128 ? 16
+                                                                                     : 32))))));
+        _grp_tile1 =
+            _search_params.in_width <= 8
+                ? 8
+                : (_search_params.in_width <= 16
+                       ? 16
+                       : (_search_params.in_width <= 24
+                              ? 8
+                              : (_search_params.in_width <= 32
+                                     ? 4
+                                     : (_search_params.in_width <= 64
+                                            ? 8
+                                            : (_search_params.in_width <= 96
+                                                   ? 4
+                                                   : (_search_params.in_width <= 128 ? 16 : 4))))));
+
+        _out_pix_tile0 = _search_params.in_width > 8 && _search_params.in_width <= 24 ? 4 : 1;
+        _out_pix_tile1 =
+            _search_params.in_width <= 24
+                ? 1
+                : (_search_params.in_width > 64 && _search_params.in_width <= 96 ? 4 : 8);
+    }
+
+    _comp_options =
+        std::string(" -DMLO_POOLING_OP_ID=") +
+        std::to_string(static_cast<long long>(_pooling_method)) +
+        std::string(" -DMLO_POOLING_KERNEL_SZ1=") +
+        std::to_string(static_cast<long long>(_search_params.kernel_size_h)) +
+        std::string(" -DMLO_POOLING_STRIDE1=") +
+        std::to_string(static_cast<long long>(_search_params.kernel_stride_h)) +
+        std::string(" -DMLO_POOLING_KERNEL_SZ0=") +
+        std::to_string(static_cast<long long>(_search_params.kernel_size_w)) +
+        std::string(" -DMLO_POOLING_STRIDE0=") +
+        std::to_string(static_cast<long long>(_search_params.kernel_stride_w)) +
+        std::string(" -DMLO_POOLBWD_N_HORIZ_OUT_PIX=") +
+        std::to_string(static_cast<long long>(_out_pix_tile0)) +
+        std::string(" -DMLO_POOLBWD_N_VERT_OUT_PIX=") +
+        std::to_string(static_cast<long long>(_out_pix_tile1)) +
+        std::string(" -DMLO_POOLBWD_GROUP_SZ0=") +
+        std::to_string(static_cast<long long>(_grp_tile0)) +
+        std::string(" -DMLO_POOLBWD_GROUP_SZ1=") +
+        std::to_string(static_cast<long long>(_grp_tile1)) +
+        std::string(" -DMLO_POOLING_INDEX_TYPE=") + get_pooling_index_type_name(_index_type) +
+        std::string(" -DMLO_POOLING_INDEX_MAX=") + get_pooling_index_type_max_name(_index_type) +
+        std::string(_wsp_index == miopenPoolingWorkspaceIndexImage ? " -DUSE_IMG_INDEX=1"
+                                                                   : " -DUSE_IMG_INDEX=0") +
+        getGeneralCompOptions();
 
     int g_wk_width = ((_search_params.in_width + _grp_tile0 * _out_pix_tile0 - 1) /
                       (_grp_tile0 * _out_pix_tile0));

@@ -117,7 +117,7 @@ static bool IsBitmapLeadingOnes(unsigned int bitmap, int n_size, int first_not_o
     return leading_ones;
 }
 
-void OpTensor3d(Handle& handle,
+void OpTensor3d(const Handle& handle,
                 miopenTensorOp_t tensorOp,
                 const void* alpha0,
                 const TensorDescriptor& aTensorDesc,
@@ -439,7 +439,7 @@ void OpTensor3d(Handle& handle,
     });
 }
 
-void OpTensor4d(Handle& handle,
+void OpTensor4d(const Handle& handle,
                 miopenTensorOp_t tensorOp,
                 const void* alpha0,
                 const TensorDescriptor& aTensorDesc,
@@ -965,7 +965,7 @@ void OpTensor4d(Handle& handle,
     });
 }
 
-void OpTensorOther(Handle& handle,
+void OpTensorOther(const Handle& handle,
                    miopenTensorOp_t tensorOp,
                    const void* alpha0,
                    const TensorDescriptor& aTensorDesc,
@@ -1248,7 +1248,7 @@ void OpTensorOther(Handle& handle,
     });
 }
 
-void OpTensor(Handle& handle,
+void OpTensor(const Handle& handle,
               miopenTensorOp_t tensorOp,
               const void* alpha0,
               const TensorDescriptor& aTensorDesc,
@@ -1416,8 +1416,11 @@ static std::vector<std::size_t> get_worker_sizes(const std::vector<std::size_t>&
     return worker_sizes;
 }
 
-void SetTensor(
-    Handle& handle, const TensorDescriptor& yDesc, Data_t y, const void* alpha, const int offset)
+void SetTensor(const Handle& handle,
+               const TensorDescriptor& yDesc,
+               Data_t y,
+               const void* alpha,
+               const int offset)
 {
     if(y == nullptr || alpha == nullptr)
     {
@@ -1572,8 +1575,11 @@ void SetTensor(
     }
 }
 
-void ScaleTensor(
-    Handle& handle, const TensorDescriptor& yDesc, Data_t y, const void* alpha, const int offset)
+void ScaleTensor(const Handle& handle,
+                 const TensorDescriptor& yDesc,
+                 Data_t y,
+                 const void* alpha,
+                 const int offset)
 {
     if(y == nullptr || alpha == nullptr)
     {
@@ -1735,7 +1741,7 @@ void ScaleTensor(
     }
 }
 
-void CopyTensor(Handle& handle,
+void CopyTensor(const Handle& handle,
                 const TensorDescriptor& srcDesc,
                 ConstData_t src,
                 const TensorDescriptor& dstDesc,
@@ -1947,7 +1953,7 @@ std::string GetCastTensorBuildOptionFromType(const std::string& buildOption, mio
     }
 }
 
-void CastTensor(Handle& handle,
+void CastTensor(const Handle& handle,
                 const void* alpha,
                 const TensorDescriptor& srcDesc,
                 ConstData_t src,
@@ -2158,7 +2164,7 @@ void CastTensor(Handle& handle,
     }
 }
 
-void TransformTensor(Handle& handle,
+void TransformTensor(const Handle& handle,
                      const void* alpha,
                      const TensorDescriptor& xDesc,
                      ConstData_t x,

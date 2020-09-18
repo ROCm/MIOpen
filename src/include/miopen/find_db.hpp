@@ -102,9 +102,13 @@ class FindDbRecord_t
     FindDbRecord_t(Handle& handle, const TProblemDescription& problem, is_find_t<TTestDb> = 0)
         : path(testing_find_db_path_override() ? *testing_find_db_path_override()
                                                : GetUserPath(handle)),
+#if MIOPEN_DISABLE_USERDB
+          db(boost::optional<DbTimer<TDb>>{})
+#else
           db(boost::make_optional<DbTimer<TDb>>(testing_find_db_enabled &&
                                                     !IsEnabled(MIOPEN_DEBUG_DISABLE_FIND_DB{}),
                                                 DbTimer<TDb>{path, false, "", 0}))
+#endif
     {
         if(!db.is_initialized())
             return;

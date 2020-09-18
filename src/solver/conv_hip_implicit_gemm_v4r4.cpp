@@ -348,9 +348,9 @@ std::tuple<int, bool> PerformanceImplicitGemmV4R4Fwd::CalculateGemmCThreadCopyPe
         const auto ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
         const auto wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
         DstDataPerWrite_GemmN1 =
-            (ctx.Is3d()) ? gcd(DstDataPerWrite_GemmN1,
-                               ho * wo * ConvolutionContextInterpreter::GetOutputDepthDo(ctx))
-                         : gcd(DstDataPerWrite_GemmN1, ho * wo);
+            ctx.Is3d() ? gcd(DstDataPerWrite_GemmN1,
+                             ho * wo * ConvolutionContextInterpreter::GetOutputDepthDo(ctx))
+                       : gcd(DstDataPerWrite_GemmN1, ho * wo);
     }
     catch(...)
     {
@@ -412,9 +412,9 @@ bool PerformanceImplicitGemmV4R4Fwd::IsValidValue() const
 {
     // clang-format off
     return IsTwoPower<64, 256>(BlockSize) &&
-           IsTwoPower<32, 128>(GemmMPerBlock) && 
+           IsTwoPower<32, 128>(GemmMPerBlock) &&
            IsTwoPower<32, 128>(GemmNPerBlock) &&
-           IsTwoPower<4, 16>(GemmKPerBlock) && 
+           IsTwoPower<4, 16>(GemmKPerBlock) &&
            IsTwoPower<2, 4>(GemmMPerThread) &&
            IsTwoPower<2, 4>(GemmNPerThread);
     // clang-format on
@@ -572,11 +572,11 @@ ConvHipImplicitGemmV4R4Fwd::CalculateGemmSize(const ConvolutionContext& ctx)
     const auto x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
 
     const auto gemm_m = k;
-    const auto gemm_n = (ctx.Is3d())
+    const auto gemm_n = ctx.Is3d()
                             ? n * ho * wo * ConvolutionContextInterpreter::GetOutputDepthDo(ctx)
                             : n * ho * wo;
     const auto gemm_k =
-        (ctx.Is3d()) ? c * y * x * ConvolutionContextInterpreter::GetFilterDepthZ(ctx) : c * y * x;
+        ctx.Is3d() ? c * y * x * ConvolutionContextInterpreter::GetFilterDepthZ(ctx) : c * y * x;
 
     return std::make_tuple(gemm_m, gemm_n, gemm_k);
 }
@@ -585,13 +585,12 @@ bool ConvHipImplicitGemmV4R4Fwd::IsApplicable(const ConvolutionContext& ctx) con
 {
     if(!ctx.direction.IsForward())
         return false;
-
+    if(!ctx.use_hip_kernels)
+        return false;
     if(!ctx.Is2d() && !ctx.Is3d())
         return false;
-
     if(!ctx.IsFp32())
         return false;
-
     if(ctx.group_counts != 1)
         return false;
 
@@ -622,7 +621,7 @@ ConvHipImplicitGemmV4R4Fwd::Search(const ConvolutionContext& context) const
     return GenericSearchFwd(*this, context);
 }
 
-int ConvHipImplicitGemmV4R4Fwd::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvHipImplicitGemmV4R4Fwd::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                                       ConstData_t bot_buf,
                                                       Data_t top_buf,
                                                       ConstData_t wei_buf,
@@ -713,7 +712,7 @@ ConvSolution ConvHipImplicitGemmV4R4Fwd::GetSolution(const ConvolutionContext& c
         config.CalculateGemmCThreadCopyPerformanceParameters(ctx);
 
     // clang-format off
-    construction_parameters.comp_options = 
+    construction_parameters.comp_options =
         std::string(" -std=c++14 ") +
         std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(ConvolutionContextInterpreter::GetBatchN(ctx)) +
         std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(ConvolutionContextInterpreter::GetOutputChannelK(ctx)) +

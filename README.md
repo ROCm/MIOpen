@@ -20,7 +20,9 @@ MIOpen supports two programming models -
 * [Half](http://half.sourceforge.net/) - IEEE 754-based half-precision floating point library
 * [Boost](http://www.boost.org/) at least version 1.58
   * MIOpen uses `boost-system` and `boost-filesystem` packages to enable persistent [kernel cache](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/cache.html)
-* [rocBlas](https://github.com/ROCmSoftwarePlatform/rocBLAS) Minimum version branch [master-rocm-2.10](https://github.com/ROCmSoftwarePlatform/rocBLAS/tree/master-rocm-2.10)
+* [rocBlas](https://github.com/ROCmSoftwarePlatform/rocBLAS) 
+  * Minimum version branch for pre-ROCm 3.5 [master-rocm-2.10](https://github.com/ROCmSoftwarePlatform/rocBLAS/tree/master-rocm-2.10)
+  * Minimum version branch for post-ROCm 3.5 [master-rocm-3.5](https://github.com/ROCmSoftwarePlatform/rocBLAS/releases/tag/rocm-3.5.0)
 
 
 ## Installing MIOpen with pre-built packages
@@ -35,16 +37,25 @@ Currently both the backends cannot be installed on the same system simultaneousl
 
 ## Installing MIOpen kernels package
 
-MIOpen provides an optional pre-compiled kernels package to reduce the startup latency. To install the kernels package for your GPU architecture, use the following command:
+MIOpen provides an optional pre-compiled kernels package to reduce the startup latency. These precompiled kernels comprise a select set of popular input configurations and will expand in future release to contain additional coverage.
+
+To install the kernels package for your GPU architecture, use the following command:
 
 ```
-apt-get install miopen-kernels-<arch>-<num cu>
+apt-get install miopenkernels-<arch>-<num cu>
 ```
 
 Where `<arch>` is the GPU architecture ( for example, `gfx900`, `gfx906` ) and `<num cu>` is the number of CUs available in the GPU (for example 56 or 64 etc). 
 
 Not installing these packages would not impact the functioning of MIOpen, since MIOpen will compile these kernels on the target machine once the kernel is run. However, the compilation step may significantly increase the startup time for different operations.
 
+The script `utils/install_precompiled_kernels.sh` provided as part of MIOpen automates the above process, it queries the user machine for the GPU architecture and then installs the appropriate package. It may be invoked as: 
+
+```
+./utils/install_precompiled_kernels.sh
+```
+
+The above script depends on the __rocminfo__ package to query the GPU architecture.
 
 ## Installing the dependencies
 

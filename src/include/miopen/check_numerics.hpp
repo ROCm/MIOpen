@@ -18,10 +18,10 @@ struct CheckNumerics
 };
 bool CheckNumericsEnabled(int bitMask = -1);
 
-bool checkNumericsInput(Handle& handle, const TensorDescriptor& dDesc, ConstData_t data);
-bool checkNumericsOutput(Handle& handle, const TensorDescriptor& dDesc, ConstData_t data);
+bool checkNumericsInput(const Handle& handle, const TensorDescriptor& dDesc, ConstData_t data);
+bool checkNumericsOutput(const Handle& handle, const TensorDescriptor& dDesc, ConstData_t data);
 bool checkNumericsImpl(
-    Handle& handle, int mode, const TensorDescriptor& dDesc, ConstData_t data, bool isInput);
+    const Handle& handle, int mode, const TensorDescriptor& dDesc, ConstData_t data, bool isInput);
 } // namespace miopen
 
 #endif // GUARD_MIOPEN_CHECK_NUMERICS_HPP

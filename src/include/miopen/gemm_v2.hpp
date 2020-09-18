@@ -77,7 +77,7 @@ struct GemmDescriptor
     friend std::ostream& operator<<(std::ostream& stream, const GemmDescriptor& gemm_desc);
 };
 
-miopenStatus_t CallGemmTimeMeasure(Handle& handle,
+miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
                                    GemmDescriptor gemm_desc,
                                    ConstData_t A,
                                    int a_offset,
@@ -90,7 +90,7 @@ miopenStatus_t CallGemmTimeMeasure(Handle& handle,
                                    CallGemmType_t call_gemm_type,
                                    GemmBackend_t gemm_backend = GemmBackend_t::rocblas);
 
-miopenStatus_t CallGemm(Handle& handle,
+miopenStatus_t CallGemm(const Handle& handle,
                         GemmDescriptor gemm_desc,
                         ConstData_t A,
                         int a_offset,
@@ -102,7 +102,7 @@ miopenStatus_t CallGemm(Handle& handle,
                         bool enqueue_dummy_kernel,
                         GemmBackend_t gemm_backend = GemmBackend_t::rocblas);
 
-miopenStatus_t CallGemmStridedBatched(Handle& handle,
+miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                                       GemmDescriptor gemm_desc,
                                       ConstData_t A,
                                       int a_offset,
@@ -115,7 +115,7 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
                                       GemmBackend_t gemm_backend = GemmBackend_t::rocblas);
 
 miopenStatus_t
-CallGemmStridedBatchedSequential(Handle& handle,
+CallGemmStridedBatchedSequential(const Handle& handle,
                                  GemmDescriptor gemm_desc,
                                  ConstData_t A,
                                  int a_offset,

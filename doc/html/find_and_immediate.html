@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                2.3.0
+                2.6.0
               </div>
             
           
@@ -85,7 +85,10 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/31/2020 [ 2.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/20/2020 [ 2.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/10/2020 [ 2.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">06/02/2020 [ 2.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/01/2020 [ 2.3.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">01/24/2020 [ 2.2.1 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2019 [ 2.2.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/25/2019 [ 2.1.0 ]</a></li>
@@ -116,15 +119,21 @@
 <li class="toctree-l1"><a class="reference internal" href="install.html">Build and Install Instructions</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="install.html#prerequisites">Prerequisites</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#installing-miopen-with-pre-built-packages">Installing MIOpen with pre-built packages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#installing-miopen-kernels-package">Installing MIOpen kernels package</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#installing-the-dependencies">Installing the dependencies</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#installing-minimum-dependencies-in-rocm-environment">Installing minimum dependencies in ROCm environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#building-miopen-from-source">Building MIOpen from source</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="install.html#configuring-with-cmake">Configuring with cmake</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install.html#for-opencl-run">For OpenCL, run:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#for-hip-run">For HIP, run:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#for-the-hip-backend-on-rocm-3-3-and-earlier-run">For the HIP backend on ROCm 3.3 and earlier, run:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#for-the-hip-backend-on-rocm-3-5-and-later-run">For the HIP backend on ROCm 3.5 and later, run:</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install.html#setting-up-locations">Setting Up Locations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install.html#system-performance-database-and-user-database">System Performance Database and User Database</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#persistent-program-cache">Persistent Program Cache</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#persistent-program-cache">Persistent Program Cache</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="install.html#for-miopen-version-2-3-and-earlier">For MIOpen version 2.3 and earlier</a></li>
+<li class="toctree-l4"><a class="reference internal" href="install.html#for-miopen-version-2-4-and-later">For MIOpen version 2.4 and later</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="install.html#changing-the-cmake-configuration">Changing the cmake configuration</a></li>
 </ul>
 </li>
@@ -157,9 +166,11 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="DebugAndLogging.html#rocblas-logging-and-behavior">rocBlas Logging and Behavior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DebugAndLogging.html#numerical-checking">Numerical Checking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DebugAndLogging.html#controlling-parallel-compilation">Controlling Parallel Compilation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="DebugAndLogging.html#experimental-controls">Experimental controls</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="DebugAndLogging.html#code-object-co-version-selection-experimental">Code Object (CO) version selection (EXPERIMENTAL)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="DebugAndLogging.html#miopen-debug-amd-winograd-mpass-workspace-max"><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="DebugAndLogging.html#winograd-multi-pass-maximum-workspace-throttling">Winograd Multi-pass Maximum Workspace throttling</a></li>
 </ul>
 </li>
 </ul>
@@ -168,6 +179,7 @@
 <li class="toctree-l2"><a class="reference internal" href="cache.html#clear-the-cache">Clear the cache</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cache.html#disabling-the-cache">Disabling the cache</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cache.html#updating-miopen-and-removing-the-cache">Updating MIOpen and removing the cache</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cache.html#installing-pre-compiled-kernels">Installing pre-compiled kernels</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="perfdatabase.html">Performance Database</a><ul>
@@ -192,6 +204,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#limitations-of-immediate-mode">Limitations of Immediate Mode</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#architectual-limitations">Architectual Limitations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#backend-limitations">Backend Limitations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#find-modes">Find Modes</a></li>
 </ul>
 </li>
 </ul>
@@ -255,6 +268,7 @@
 <li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvbwdweightsalgorithm-t">miopenConvBwdWeightsAlgorithm_t</a></li>
 <li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvbwddataalgorithm-t">miopenConvBwdDataAlgorithm_t</a></li>
 <li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvalgoperf-t">miopenConvAlgoPerf_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvsolution-t">miopenConvSolution_t</a></li>
 <li class="toctree-l3"><a class="reference internal" href="convolution.html#miopencreateconvolutiondescriptor">miopenCreateConvolutionDescriptor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="convolution.html#miopeninitconvolutiondescriptor">miopenInitConvolutionDescriptor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="convolution.html#miopeninitconvolutionnddescriptor">miopenInitConvolutionNdDescriptor</a></li>
@@ -288,8 +302,10 @@
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopenrnngemmalgomode-t">miopenRNNGEMMalgoMode_t</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopencreaternndescriptor">miopenCreateRNNDescriptor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnndescriptor">miopenGetRNNDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnndescriptor-v2">miopenGetRNNDescriptor_V2</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopendestroyrnndescriptor">miopenDestroyRNNDescriptor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopensetrnndescriptor">miopenSetRNNDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopensetrnndescriptor-v2">miopenSetRNNDescriptor_V2</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnnworkspacesize">miopenGetRNNWorkspaceSize</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnntrainingreservesize">miopenGetRNNTrainingReserveSize</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnnparamssize">miopenGetRNNParamsSize</a></li>
@@ -334,10 +350,13 @@
 <li class="toctree-l3"><a class="reference internal" href="pooling.html#miopenindextype-t">miopenIndexType_t</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pooling.html#miopencreatepoolingdescriptor">miopenCreatePoolingDescriptor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pooling.html#miopenset2dpoolingdescriptor">miopenSet2dPoolingDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pooling.html#miopensetndpoolingdescriptor">miopenSetNdPoolingDescriptor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pooling.html#miopensetpoolingindextype">miopenSetPoolingIndexType</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pooling.html#miopengetpoolingindextype">miopenGetPoolingIndexType</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pooling.html#miopenget2dpoolingdescriptor">miopenGet2dPoolingDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pooling.html#miopengetndpoolingdescriptor">miopenGetNdPoolingDescriptor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pooling.html#miopengetpoolingforwardoutputdim">miopenGetPoolingForwardOutputDim</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pooling.html#miopengetpoolingndforwardoutputdim">miopenGetPoolingNdForwardOutputDim</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pooling.html#miopenpoolinggetworkspacesize">miopenPoolingGetWorkSpaceSize</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pooling.html#miopenpoolinggetworkspacesizev2">miopenPoolingGetWorkSpaceSizeV2</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pooling.html#miopenpoolingforward">miopenPoolingForward</a></li>
@@ -520,6 +539,7 @@
 </div>
 <p>The results of Find() are returned in an array of <code class="docutils literal"><span class="pre">miopenConvAlgoPerf_t</span></code> structs in order of performance, with the fastest at index 0.</p>
 <p>This call sequence is executed once per session as it is inherently expensive. Of those, <code class="docutils literal"><span class="pre">miopenFindConvolution*()</span></code> is the most expensive call. It caches its own results on disk, so the subsequent calls during the same MIOpen session will execute faster. However, it is better to remember results of <code class="docutils literal"><span class="pre">miopenFindConvolution*()</span></code> in the application, as recommended above.</p>
+<p>Internally MIOpen's Find calls will compile and benchmark a set of <code class="docutils literal"><span class="pre">solvers</span></code> contained in <code class="docutils literal"><span class="pre">miopenConvAlgoPerf_t</span></code> this is done in parallel per <code class="docutils literal"><span class="pre">miopenConvAlgorithm_t</span></code>. The level of parallelism can be controlled using an environment variable. See the debugging section <a class="reference external" href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/DebugAndLogging.html#controlling-parallel-compilation">controlling parallel compilation</a> for more details.</p>
 </div>
 <div class="section" id="immediate-mode-api">
 <span id="immediate-mode-api"></span><h2>Immediate Mode API<a class="headerlink" href="#immediate-mode-api" title="Permalink to this headline">¶</a></h2>
@@ -529,7 +549,7 @@
 <li>With the above data structures, the user calls <code class="docutils literal"><span class="pre">miopenConvolution*GetSolutionCount</span></code> to get the <strong>maximum</strong> number of supported solutions for the convolution descriptor in question.</li>
 <li>The count obtained above is used to allocate memory for the <code class="docutils literal"><span class="pre">miopenConvSolution_t</span></code> structure introduced in MIOpen v2.0</li>
 <li>The user calls <code class="docutils literal"><span class="pre">miopenConvolution*GetSolution</span></code> to populate the <code class="docutils literal"><span class="pre">miopenConvSolution_t</span></code> structures allocated above. The returned list is ordered in the order of best performance, thus the first element would be the fastest.</li>
-<li>While the above structure returns the amount of workspace required for an alogrithm, the user may inquire the amount of a workspace required for a known solution id by using the <code class="docutils literal"><span class="pre">miopenConvolution*GetSolutionWorkspaceSize</span></code> API call. However, this is not a requirement, since the strucure returned by <code class="docutils literal"><span class="pre">miopenConvolution*GetSolution</span></code> would already have this information.</li>
+<li>While the above structure returns the amount of workspace required for an algorithm, the user may inquire the amount of a workspace required for a known solution id by using the <code class="docutils literal"><span class="pre">miopenConvolution*GetSolutionWorkspaceSize</span></code> API call. However, this is not a requirement, since the strucure returned by <code class="docutils literal"><span class="pre">miopenConvolution*GetSolution</span></code> would already have this information.</li>
 <li>Now the user may initiate the convolution operation in <em>immediate</em> mode by calling <code class="docutils literal"><span class="pre">miopenConvolution*Immediate</span></code>. Which would populate the output tensor descriptor with the respective convolution result. However, the first call to <code class="docutils literal"><span class="pre">miopenConvolution*Immediate</span></code> may consume more time since the kernel may not be present in the kernel cache and may need to be compiled.</li>
 <li>Optionally, the user may compile the solution of choice by calling <code class="docutils literal"><span class="pre">miopenConvolution*CompileSolution</span></code> which would ensure that the kernel represented by the chosen solution is populated in the kernel cache a priori, removing the necessity for compiling the kernel in question.</li>
 </ul>
@@ -611,6 +631,23 @@
 <span id="backend-limitations"></span><h3>Backend Limitations<a class="headerlink" href="#backend-limitations" title="Permalink to this headline">¶</a></h3>
 <p>OpenCL support for immediate mode via the fallback is limited to fp32 datatypes. This is because this current release's fallback path goes through GEMM which on the OpenCL is serviced through MIOpenGEMM -- which itself only contains support for fp32. The HIP backend uses rocBLAS as its fallback path which contains a richer set of datatypes.</p>
 </div>
+<div class="section" id="find-modes">
+<span id="find-modes"></span><h3>Find Modes<a class="headerlink" href="#find-modes" title="Permalink to this headline">¶</a></h3>
+<p>MIOpen provides a set of Find modes which are used to accelerate the Find calls. The different modes are set by using the environment variable <code class="docutils literal"><span class="pre">MIOPEN_FIND_MODE</span></code>, and setting it to one of the values:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">NORMAL</span></code>, or <code class="docutils literal"><span class="pre">1</span></code>: Normal Find: This is the full Find mode call, which will benchmark all the solvers and return a list.</li>
+<li><code class="docutils literal"><span class="pre">FAST</span></code>, or <code class="docutils literal"><span class="pre">2</span></code>: Fast Find: Checks the <a class="reference external" href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/finddb.html">Find-Db</a> for an entry. If there is a Find-Db hit, use that entry. If there is a miss, utilize the Immediate mode fallback. If Start-up times are expected to be faster, but worse GPU performance.</li>
+<li><code class="docutils literal"><span class="pre">HYBRID</span></code>, or <code class="docutils literal"><span class="pre">3</span></code>, or unset <code class="docutils literal"><span class="pre">MIOPEN_FIND_MODE</span></code>: Hybrid Find: Checks the <a class="reference external" href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/finddb.html">Find-Db</a> for an entry. If there is a Find-Db hit, use that entry. If there is a miss, use the existing Find machinery. Slower start-up times than Fast Find, but no GPU performance drop.</li>
+</ul>
+<p>As of MIOpen 2.6, the default mode is set to <code class="docutils literal"><span class="pre">HYBRID</span></code> mode as default. To run the full <code class="docutils literal"><span class="pre">NORMAL</span></code> Find mode, set the environment as:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">export</span> <span class="n">MIOPEN_FIND_MODE</span><span class="o">=</span><span class="n">NORMAL</span>
+</pre></div>
+</div>
+<p>Or,</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span> <span class="n">export</span> <span class="n">MIOPEN_FIND_MODE</span><span class="o">=</span><span class="mi">1</span>
+</pre></div>
+</div>
+</div>
 </div>
 </div>
 
@@ -656,7 +693,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.3.0',
+            VERSION:'2.6.0',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

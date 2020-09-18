@@ -35,9 +35,9 @@
 #include <miopen/generic_search.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/solver.hpp>
-
 #if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
 #define WORKAROUND_SWDEV_203031 1 // See also issues #2075, #2067
+#define WORKAROUND_SWDEV_234193 1
 #endif
 
 namespace miopen {
@@ -381,15 +381,35 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
         if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X3{}) ||
            params.kernel_stride_h == 1)
             return false;
-    if(wino_data_tile == 3 && wino_filter_tile == 4)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4{}))
-            return false;
-    if(wino_data_tile == 3 && wino_filter_tile == 5)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5{}))
-            return false;
-    if(wino_data_tile == 3 && wino_filter_tile == 6)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6{}))
-            return false;
+
+    const std::string name = params.GetStream().GetDeviceName();
+#if WORKAROUND_SWDEV_234193
+    if(params.IsFp16() && (StartsWith(name, "gfx908") || StartsWith(name, "gfx906")))
+    {
+        if(wino_data_tile == 3 && wino_filter_tile == 4)
+            if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4{}))
+                return false;
+        if(wino_data_tile == 3 && wino_filter_tile == 5)
+            if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5{}))
+                return false;
+        if(wino_data_tile == 3 && wino_filter_tile == 6)
+            if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6{}))
+                return false;
+    }
+    else
+#endif
+    {
+        if(wino_data_tile == 3 && wino_filter_tile == 4)
+            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4{}))
+                return false;
+        if(wino_data_tile == 3 && wino_filter_tile == 5)
+            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5{}))
+                return false;
+        if(wino_data_tile == 3 && wino_filter_tile == 6)
+            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6{}))
+                return false;
+    }
+
     if(wino_data_tile == 7 && wino_filter_tile == 2)
         if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X2{}))
             return false;
@@ -418,7 +438,6 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
          FilterTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(params)))
         return false;
 
-    const std::string name = params.GetStream().GetDeviceName();
     if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")))
         return false;
 

@@ -196,6 +196,11 @@ void PerformanceConfigConvBinWinogradRxSf2x3::EuristicInit(const ConvolutionCont
 {
     const auto n_inputs_per_group  = config.n_inputs / config.group_counts,
                n_outputs_per_group = config.n_outputs / config.group_counts;
+    if(config.group_counts == 1)
+    {
+        n_groups = config.GetStream().GetMaxComputeUnits();
+        return;
+    }
 
     if(config.direction.IsBackwardWrW())
     {
@@ -331,7 +336,7 @@ inline void FillVarsFromConfig(int& H,
 }
 
 template <typename B, typename T, typename TW>
-int ConvBinWinogradRxSf2x3::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvBinWinogradRxSf2x3::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                                   B bot_ocl_buf,
                                                   T top_ocl_buf,
                                                   TW wei_ocl_buf,
@@ -480,7 +485,7 @@ bool ConvBinWinogradRxSf2x3::IsApplicable(const ConvolutionContext& params) cons
 {
     if(!params.Is2d())
         return false;
-    if(!params.IsFp32())
+    if(!(params.IsFp32() || params.IsFp16()))
         return false;
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3{}))
         return false;
@@ -491,6 +496,8 @@ bool ConvBinWinogradRxSf2x3::IsApplicable(const ConvolutionContext& params) cons
 
     const auto name = params.GetStream().GetDeviceName();
     if(!(StartsWith(name, "gfx9")))
+        return false;
+    if(params.IsFp16() && !(StartsWith(name, "gfx906") || StartsWith(name, "gfx908")))
         return false;
 
     // clang-format off
@@ -602,21 +609,34 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
 
+    std::string kernel_name    = "miopenSp3AsmConv";
+    std::string kernel_file    = "Conv_Winograd";
+    std::string kernel_postfix = "_v21_1_0_gfx9";
+
+    if(params.IsFp32())
+        kernel_postfix += "_fp32";
+    else
+    {
+        kernel_postfix += "_fp16_dot2_edc";
+    }
     if(params.kernel_stride_w == 1)
     {
-        kernel.kernel_name = "miopenSp3AsmConv_group_20_5_23_M_stride1";
-        kernel.kernel_file = "Conv_Winograd_v20_5_23_M_stride1.s";
+        kernel_postfix += "_stride1";
     }
     else if(params.kernel_stride_w == 2 && !params.direction.IsBackwardData())
     {
-        kernel.kernel_name = "miopenSp3AsmConv_group_20_5_23_M_stride2";
-        kernel.kernel_file = "Conv_Winograd_v20_5_23_M_stride2.s";
+        kernel_postfix += "_stride2";
     }
     else // if(params.kernel_dilation_h == 2)
     {
-        kernel.kernel_name = "miopenSp3AsmConv_group_20_5_23_M_dilation2";
-        kernel.kernel_file = "Conv_Winograd_v20_5_23_M_dilation2.s";
+        kernel_postfix += "_dilation2";
     }
+
+    if(params.group_counts != 1 || params.direction.IsBackwardWrW())
+        kernel_postfix += "_group";
+
+    kernel.kernel_name = "miopenSp3AsmConv" + kernel_postfix;
+    kernel.kernel_file = "Conv_Winograd" + kernel_postfix + ".s";
 
     result.construction_params.push_back(kernel);
 
@@ -675,7 +695,7 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
               GetTypeSize(params.weights_data_type));
 
     result.invoker_factory = [=](std::vector<Kernel> kernels) {
-        return [=](Handle& handle, const boost::any& primitive_params) {
+        return [=](const Handle& handle, const boost::any& primitive_params) {
             const auto k        = handle.Run(kernels[0]);
             const auto data_ctx = boost::any_cast<conv::DataInvokeParams>(primitive_params);
             const auto tensors  = data_ctx.tensors;

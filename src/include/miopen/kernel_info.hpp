@@ -50,7 +50,7 @@ struct KernelInfo
     friend std::ostream& operator<<(std::ostream& os, const KernelInfo& k);
 };
 
-std::vector<Program> PrecompileKernels(Handle& h, const std::vector<KernelInfo>& kernels);
+std::vector<Program> PrecompileKernels(const Handle& h, const std::vector<KernelInfo>& kernels);
 
 } // namespace solver
 } // namespace miopen

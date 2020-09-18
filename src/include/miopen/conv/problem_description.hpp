@@ -228,7 +228,7 @@ struct ProblemDescription
     Direction GetDirection() const { return direction; }
     int GetBias() const { return bias; }
 
-    std::size_t GetBaiasSize()
+    std::size_t GetBaiasSize() const
     {
         return (GetBias() != 0) ? (GetOutChannels() * GetOutElementSize()) : 0;
     }

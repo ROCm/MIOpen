@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                2.3.0
+                2.6.0
               </div>
             
           
@@ -85,7 +85,10 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/31/2020 [ 2.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/20/2020 [ 2.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/10/2020 [ 2.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">06/02/2020 [ 2.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/01/2020 [ 2.3.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">01/24/2020 [ 2.2.1 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2019 [ 2.2.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/25/2019 [ 2.1.0 ]</a></li>
@@ -116,15 +119,21 @@
 <li class="toctree-l1"><a class="reference internal" href="install.html">Build and Install Instructions</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="install.html#prerequisites">Prerequisites</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#installing-miopen-with-pre-built-packages">Installing MIOpen with pre-built packages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#installing-miopen-kernels-package">Installing MIOpen kernels package</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#installing-the-dependencies">Installing the dependencies</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#installing-minimum-dependencies-in-rocm-environment">Installing minimum dependencies in ROCm environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#building-miopen-from-source">Building MIOpen from source</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="install.html#configuring-with-cmake">Configuring with cmake</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install.html#for-opencl-run">For OpenCL, run:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#for-hip-run">For HIP, run:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#for-the-hip-backend-on-rocm-3-3-and-earlier-run">For the HIP backend on ROCm 3.3 and earlier, run:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#for-the-hip-backend-on-rocm-3-5-and-later-run">For the HIP backend on ROCm 3.5 and later, run:</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install.html#setting-up-locations">Setting Up Locations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install.html#system-performance-database-and-user-database">System Performance Database and User Database</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#persistent-program-cache">Persistent Program Cache</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#persistent-program-cache">Persistent Program Cache</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="install.html#for-miopen-version-2-3-and-earlier">For MIOpen version 2.3 and earlier</a></li>
+<li class="toctree-l4"><a class="reference internal" href="install.html#for-miopen-version-2-4-and-later">For MIOpen version 2.4 and later</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="install.html#changing-the-cmake-configuration">Changing the cmake configuration</a></li>
 </ul>
 </li>
@@ -157,9 +166,11 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="DebugAndLogging.html#rocblas-logging-and-behavior">rocBlas Logging and Behavior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DebugAndLogging.html#numerical-checking">Numerical Checking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DebugAndLogging.html#controlling-parallel-compilation">Controlling Parallel Compilation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="DebugAndLogging.html#experimental-controls">Experimental controls</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="DebugAndLogging.html#code-object-co-version-selection-experimental">Code Object (CO) version selection (EXPERIMENTAL)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="DebugAndLogging.html#miopen-debug-amd-winograd-mpass-workspace-max"><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="DebugAndLogging.html#winograd-multi-pass-maximum-workspace-throttling">Winograd Multi-pass Maximum Workspace throttling</a></li>
 </ul>
 </li>
 </ul>
@@ -168,6 +179,7 @@
 <li class="toctree-l2"><a class="reference internal" href="cache.html#clear-the-cache">Clear the cache</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cache.html#disabling-the-cache">Disabling the cache</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cache.html#updating-miopen-and-removing-the-cache">Updating MIOpen and removing the cache</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cache.html#installing-pre-compiled-kernels">Installing pre-compiled kernels</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="perfdatabase.html">Performance Database</a><ul>
@@ -192,6 +204,7 @@
 <li class="toctree-l2"><a class="reference internal" href="find_and_immediate.html#limitations-of-immediate-mode">Limitations of Immediate Mode</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="find_and_immediate.html#architectual-limitations">Architectual Limitations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="find_and_immediate.html#backend-limitations">Backend Limitations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="find_and_immediate.html#find-modes">Find Modes</a></li>
 </ul>
 </li>
 </ul>
@@ -255,6 +268,7 @@
 <li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvbwdweightsalgorithm-t">miopenConvBwdWeightsAlgorithm_t</a></li>
 <li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvbwddataalgorithm-t">miopenConvBwdDataAlgorithm_t</a></li>
 <li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvalgoperf-t">miopenConvAlgoPerf_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvsolution-t">miopenConvSolution_t</a></li>
 <li class="toctree-l3"><a class="reference internal" href="convolution.html#miopencreateconvolutiondescriptor">miopenCreateConvolutionDescriptor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="convolution.html#miopeninitconvolutiondescriptor">miopenInitConvolutionDescriptor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="convolution.html#miopeninitconvolutionnddescriptor">miopenInitConvolutionNdDescriptor</a></li>
@@ -288,8 +302,10 @@
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopenrnngemmalgomode-t">miopenRNNGEMMalgoMode_t</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopencreaternndescriptor">miopenCreateRNNDescriptor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnndescriptor">miopenGetRNNDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnndescriptor-v2">miopenGetRNNDescriptor_V2</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopendestroyrnndescriptor">miopenDestroyRNNDescriptor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopensetrnndescriptor">miopenSetRNNDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopensetrnndescriptor-v2">miopenSetRNNDescriptor_V2</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnnworkspacesize">miopenGetRNNWorkspaceSize</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnntrainingreservesize">miopenGetRNNTrainingReserveSize</a></li>
 <li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnnparamssize">miopenGetRNNParamsSize</a></li>
@@ -537,7 +553,7 @@
 <h2>miopenCreatePoolingDescriptor<a class="headerlink" href="#miopencreatepoolingdescriptor" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="_CPPv229miopenCreatePoolingDescriptorP25miopenPoolingDescriptor_t">
-<span id="miopenCreatePoolingDescriptor__miopenPoolingDescriptor_tP"></span><span class="target" id="group__pooling_1gaee3b91f36d5ac236530ff21012dbc866"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenCreatePoolingDescriptor</code><span class="sig-paren">(</span>miopenPoolingDescriptor_t *<em>poolDesc</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv229miopenCreatePoolingDescriptorP25miopenPoolingDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
+<span id="miopenCreatePoolingDescriptor__miopenPoolingDescriptor_tP"></span><span class="target" id="group__pooling_1gaee3b91f36d5ac236530ff21012dbc866"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenCreatePoolingDescriptor</code><span class="sig-paren">(</span>miopenPoolingDescriptor_t *<em>poolDesc</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv229miopenCreatePoolingDescriptorP25miopenPoolingDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Creates a pooling layer descriptor. </p>
 <p><dl class="docutils">
 <dt><strong>Return</strong></dt>
@@ -556,7 +572,7 @@
 <h2>miopenSet2dPoolingDescriptor<a class="headerlink" href="#miopenset2dpoolingdescriptor" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="_CPPv228miopenSet2dPoolingDescriptor25miopenPoolingDescriptor_t19miopenPoolingMode_tiiiiii">
-<span id="miopenSet2dPoolingDescriptor__miopenPoolingDescriptor_t.miopenPoolingMode_t.i.i.i.i.i.i"></span><span class="target" id="group__pooling_1ga4ab945bf9085c3fe0642c03fe667a78f"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenSet2dPoolingDescriptor</code><span class="sig-paren">(</span>miopenPoolingDescriptor_t <em>poolDesc</em>, <a class="reference internal" href="#_CPPv219miopenPoolingMode_t" title="miopenPoolingMode_t">miopenPoolingMode_t</a> <em>mode</em>, int <em>windowHeight</em>, int <em>windowWidth</em>, int <em>pad_h</em>, int <em>pad_w</em>, int <em>stride_h</em>, int <em>stride_w</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv228miopenSet2dPoolingDescriptor25miopenPoolingDescriptor_t19miopenPoolingMode_tiiiiii" title="Permalink to this definition">¶</a><br /></dt>
+<span id="miopenSet2dPoolingDescriptor__miopenPoolingDescriptor_t.miopenPoolingMode_t.i.i.i.i.i.i"></span><span class="target" id="group__pooling_1ga4ab945bf9085c3fe0642c03fe667a78f"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenSet2dPoolingDescriptor</code><span class="sig-paren">(</span>miopenPoolingDescriptor_t <em>poolDesc</em>, <a class="reference internal" href="#_CPPv219miopenPoolingMode_t" title="miopenPoolingMode_t">miopenPoolingMode_t</a> <em>mode</em>, int <em>windowHeight</em>, int <em>windowWidth</em>, int <em>pad_h</em>, int <em>pad_w</em>, int <em>stride_h</em>, int <em>stride_w</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv228miopenSet2dPoolingDescriptor25miopenPoolingDescriptor_t19miopenPoolingMode_tiiiiii" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Sets a 2-D pooling layer descriptor details. </p>
 <p>Sets the window shape, padding, and stride for a previously created 2-D pooling descriptor.</p>
 <p><dl class="docutils">
@@ -583,7 +599,7 @@
 <h2>miopenSetNdPoolingDescriptor<a class="headerlink" href="#miopensetndpoolingdescriptor" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="_CPPv228miopenSetNdPoolingDescriptor25miopenPoolingDescriptor_tK19miopenPoolingMode_tiPiPiPi">
-<span id="miopenSetNdPoolingDescriptor__miopenPoolingDescriptor_t.miopenPoolingMode_tC.i.iP.iP.iP"></span><span class="target" id="group__pooling_1ga5863a5ef14d7539c9486d7b0b5029c84"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenSetNdPoolingDescriptor</code><span class="sig-paren">(</span>miopenPoolingDescriptor_t <em>poolDesc</em>, <em class="property">const</em> <a class="reference internal" href="#_CPPv219miopenPoolingMode_t" title="miopenPoolingMode_t">miopenPoolingMode_t</a> <em>mode</em>, int <em>nbDims</em>, int *<em>windowDimA</em>, int *<em>padA</em>, int *<em>stridesA</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv228miopenSetNdPoolingDescriptor25miopenPoolingDescriptor_tK19miopenPoolingMode_tiPiPiPi" title="Permalink to this definition">¶</a><br /></dt>
+<span id="miopenSetNdPoolingDescriptor__miopenPoolingDescriptor_t.miopenPoolingMode_tC.i.iP.iP.iP"></span><span class="target" id="group__pooling_1ga5863a5ef14d7539c9486d7b0b5029c84"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenSetNdPoolingDescriptor</code><span class="sig-paren">(</span>miopenPoolingDescriptor_t <em>poolDesc</em>, <em class="property">const</em> <a class="reference internal" href="#_CPPv219miopenPoolingMode_t" title="miopenPoolingMode_t">miopenPoolingMode_t</a> <em>mode</em>, int <em>nbDims</em>, int *<em>windowDimA</em>, int *<em>padA</em>, int *<em>stridesA</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv228miopenSetNdPoolingDescriptor25miopenPoolingDescriptor_tK19miopenPoolingMode_tiPiPiPi" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set details of a N-D pooling layer descriptor. </p>
 <p>Set the window shape, padding, and stride for a previously created N-D pooling descriptor.</p>
 <p><dl class="docutils">
@@ -608,7 +624,7 @@
 <h2>miopenSetPoolingIndexType<a class="headerlink" href="#miopensetpoolingindextype" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="_CPPv225miopenSetPoolingIndexType25miopenPoolingDescriptor_t17miopenIndexType_t">
-<span id="miopenSetPoolingIndexType__miopenPoolingDescriptor_t.miopenIndexType_t"></span><span class="target" id="group__pooling_1gaaee5ecf18448f0b104bbdb568f8bab2b"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenSetPoolingIndexType</code><span class="sig-paren">(</span>miopenPoolingDescriptor_t <em>poolDesc</em>, <a class="reference internal" href="#_CPPv217miopenIndexType_t" title="miopenIndexType_t">miopenIndexType_t</a> <em>index_type</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv225miopenSetPoolingIndexType25miopenPoolingDescriptor_t17miopenIndexType_t" title="Permalink to this definition">¶</a><br /></dt>
+<span id="miopenSetPoolingIndexType__miopenPoolingDescriptor_t.miopenIndexType_t"></span><span class="target" id="group__pooling_1gaaee5ecf18448f0b104bbdb568f8bab2b"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenSetPoolingIndexType</code><span class="sig-paren">(</span>miopenPoolingDescriptor_t <em>poolDesc</em>, <a class="reference internal" href="#_CPPv217miopenIndexType_t" title="miopenIndexType_t">miopenIndexType_t</a> <em>index_type</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv225miopenSetPoolingIndexType25miopenPoolingDescriptor_t17miopenIndexType_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set index data type for pooling layer. The default indexing type is uint8_t. Users can set the index type to any of the miopenIndexType_t sizes; 8, 16, 32, or 64 bit unsigned integers. </p>
 <p><dl class="docutils">
 <dt><strong>Return</strong></dt>
@@ -628,7 +644,7 @@
 <h2>miopenGetPoolingIndexType<a class="headerlink" href="#miopengetpoolingindextype" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="_CPPv225miopenGetPoolingIndexType25miopenPoolingDescriptor_tP17miopenIndexType_t">
-<span id="miopenGetPoolingIndexType__miopenPoolingDescriptor_t.miopenIndexType_tP"></span><span class="target" id="group__pooling_1gafba4598f25dbc0b9ef2c947a8165f769"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenGetPoolingIndexType</code><span class="sig-paren">(</span>miopenPoolingDescriptor_t <em>poolDesc</em>, <a class="reference internal" href="#_CPPv217miopenIndexType_t" title="miopenIndexType_t">miopenIndexType_t</a> *<em>index_type</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv225miopenGetPoolingIndexType25miopenPoolingDescriptor_tP17miopenIndexType_t" title="Permalink to this definition">¶</a><br /></dt>
+<span id="miopenGetPoolingIndexType__miopenPoolingDescriptor_t.miopenIndexType_tP"></span><span class="target" id="group__pooling_1gafba4598f25dbc0b9ef2c947a8165f769"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenGetPoolingIndexType</code><span class="sig-paren">(</span>miopenPoolingDescriptor_t <em>poolDesc</em>, <a class="reference internal" href="#_CPPv217miopenIndexType_t" title="miopenIndexType_t">miopenIndexType_t</a> *<em>index_type</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv225miopenGetPoolingIndexType25miopenPoolingDescriptor_tP17miopenIndexType_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Get the index data type for pooling layer. The index type to any of the miopenIndexType_t sizes; 8, 16, 32, or 64 bit unsigned integers. </p>
 <p><dl class="docutils">
 <dt><strong>Return</strong></dt>
@@ -648,7 +664,7 @@
 <h2>miopenGet2dPoolingDescriptor<a class="headerlink" href="#miopenget2dpoolingdescriptor" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="_CPPv228miopenGet2dPoolingDescriptorK25miopenPoolingDescriptor_tP19miopenPoolingMode_tPiPiPiPiPiPi">
-<span id="miopenGet2dPoolingDescriptor__miopenPoolingDescriptor_tC.miopenPoolingMode_tP.iP.iP.iP.iP.iP.iP"></span><span class="target" id="group__pooling_1ga3e9227415fcfba5f1b66a856e71d9905"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenGet2dPoolingDescriptor</code><span class="sig-paren">(</span><em class="property">const</em> miopenPoolingDescriptor_t <em>poolDesc</em>, <a class="reference internal" href="#_CPPv219miopenPoolingMode_t" title="miopenPoolingMode_t">miopenPoolingMode_t</a> *<em>mode</em>, int *<em>windowHeight</em>, int *<em>windowWidth</em>, int *<em>pad_h</em>, int *<em>pad_w</em>, int *<em>stride_h</em>, int *<em>stride_w</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv228miopenGet2dPoolingDescriptorK25miopenPoolingDescriptor_tP19miopenPoolingMode_tPiPiPiPiPiPi" title="Permalink to this definition">¶</a><br /></dt>
+<span id="miopenGet2dPoolingDescriptor__miopenPoolingDescriptor_tC.miopenPoolingMode_tP.iP.iP.iP.iP.iP.iP"></span><span class="target" id="group__pooling_1ga3e9227415fcfba5f1b66a856e71d9905"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenGet2dPoolingDescriptor</code><span class="sig-paren">(</span><em class="property">const</em> miopenPoolingDescriptor_t <em>poolDesc</em>, <a class="reference internal" href="#_CPPv219miopenPoolingMode_t" title="miopenPoolingMode_t">miopenPoolingMode_t</a> *<em>mode</em>, int *<em>windowHeight</em>, int *<em>windowWidth</em>, int *<em>pad_h</em>, int *<em>pad_w</em>, int *<em>stride_h</em>, int *<em>stride_w</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv228miopenGet2dPoolingDescriptorK25miopenPoolingDescriptor_tP19miopenPoolingMode_tPiPiPiPiPiPi" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Gets a 2-D pooling layer descriptor details. </p>
 <p>Gets the window shape, padding, and stride for a previously created 2-D pooling descriptor.</p>
 <p><dl class="docutils">
@@ -675,7 +691,7 @@
 <h2>miopenGetNdPoolingDescriptor<a class="headerlink" href="#miopengetndpoolingdescriptor" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="_CPPv228miopenGetNdPoolingDescriptorK25miopenPoolingDescriptor_tiP19miopenPoolingMode_tPiPiPiPi">
-<span id="miopenGetNdPoolingDescriptor__miopenPoolingDescriptor_tC.i.miopenPoolingMode_tP.iP.iP.iP.iP"></span><span class="target" id="group__pooling_1gacbeb7fdb0e7150f1b4249b90ce734edc"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenGetNdPoolingDescriptor</code><span class="sig-paren">(</span><em class="property">const</em> miopenPoolingDescriptor_t <em>poolDesc</em>, int <em>nbDimsRequested</em>, <a class="reference internal" href="#_CPPv219miopenPoolingMode_t" title="miopenPoolingMode_t">miopenPoolingMode_t</a> *<em>mode</em>, int *<em>nbDims</em>, int *<em>windowDimA</em>, int *<em>padA</em>, int *<em>stridesA</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv228miopenGetNdPoolingDescriptorK25miopenPoolingDescriptor_tiP19miopenPoolingMode_tPiPiPiPi" title="Permalink to this definition">¶</a><br /></dt>
+<span id="miopenGetNdPoolingDescriptor__miopenPoolingDescriptor_tC.i.miopenPoolingMode_tP.iP.iP.iP.iP"></span><span class="target" id="group__pooling_1gacbeb7fdb0e7150f1b4249b90ce734edc"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenGetNdPoolingDescriptor</code><span class="sig-paren">(</span><em class="property">const</em> miopenPoolingDescriptor_t <em>poolDesc</em>, int <em>nbDimsRequested</em>, <a class="reference internal" href="#_CPPv219miopenPoolingMode_t" title="miopenPoolingMode_t">miopenPoolingMode_t</a> *<em>mode</em>, int *<em>nbDims</em>, int *<em>windowDimA</em>, int *<em>padA</em>, int *<em>stridesA</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv228miopenGetNdPoolingDescriptorK25miopenPoolingDescriptor_tiP19miopenPoolingMode_tPiPiPiPi" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Get details of a N-D pooling layer descriptor. </p>
 <p>Get the window shape, padding, and stride for a previously created N-D pooling descriptor.</p>
 <p><dl class="docutils">
@@ -701,7 +717,7 @@
 <h2>miopenGetPoolingForwardOutputDim<a class="headerlink" href="#miopengetpoolingforwardoutputdim" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="_CPPv232miopenGetPoolingForwardOutputDimK25miopenPoolingDescriptor_tK24miopenTensorDescriptor_tPiPiPiPi">
-<span id="miopenGetPoolingForwardOutputDim__miopenPoolingDescriptor_tC.miopenTensorDescriptor_tC.iP.iP.iP.iP"></span><span class="target" id="group__pooling_1gad8041b7eb674be4aada6c87c3c92f30e"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenGetPoolingForwardOutputDim</code><span class="sig-paren">(</span><em class="property">const</em> miopenPoolingDescriptor_t <em>poolDesc</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>tensorDesc</em>, int *<em>n</em>, int *<em>c</em>, int *<em>h</em>, int *<em>w</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv232miopenGetPoolingForwardOutputDimK25miopenPoolingDescriptor_tK24miopenTensorDescriptor_tPiPiPiPi" title="Permalink to this definition">¶</a><br /></dt>
+<span id="miopenGetPoolingForwardOutputDim__miopenPoolingDescriptor_tC.miopenTensorDescriptor_tC.iP.iP.iP.iP"></span><span class="target" id="group__pooling_1gad8041b7eb674be4aada6c87c3c92f30e"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenGetPoolingForwardOutputDim</code><span class="sig-paren">(</span><em class="property">const</em> miopenPoolingDescriptor_t <em>poolDesc</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>tensorDesc</em>, int *<em>n</em>, int *<em>c</em>, int *<em>h</em>, int *<em>w</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv232miopenGetPoolingForwardOutputDimK25miopenPoolingDescriptor_tK24miopenTensorDescriptor_tPiPiPiPi" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Gets the shape of the output tensor for 2-D pooling. </p>
 <p>Retrieve the tensor dimensions for the forward 2-D pooling. This call is required for the forward if the output dimensions are different than the input tensor dimensions.</p>
 <p><dl class="docutils">
@@ -726,7 +742,7 @@
 <h2>miopenGetPoolingNdForwardOutputDim<a class="headerlink" href="#miopengetpoolingndforwardoutputdim" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="_CPPv234miopenGetPoolingNdForwardOutputDimK25miopenPoolingDescriptor_tK24miopenTensorDescriptor_tiPi">
-<span id="miopenGetPoolingNdForwardOutputDim__miopenPoolingDescriptor_tC.miopenTensorDescriptor_tC.i.iP"></span><span class="target" id="group__pooling_1ga8c9206972e267f133514166a6a2f2f11"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenGetPoolingNdForwardOutputDim</code><span class="sig-paren">(</span><em class="property">const</em> miopenPoolingDescriptor_t <em>poolDesc</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>tensorDesc</em>, int <em>dims</em>, int *<em>tensorDimArr</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv234miopenGetPoolingNdForwardOutputDimK25miopenPoolingDescriptor_tK24miopenTensorDescriptor_tiPi" title="Permalink to this definition">¶</a><br /></dt>
+<span id="miopenGetPoolingNdForwardOutputDim__miopenPoolingDescriptor_tC.miopenTensorDescriptor_tC.i.iP"></span><span class="target" id="group__pooling_1ga8c9206972e267f133514166a6a2f2f11"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenGetPoolingNdForwardOutputDim</code><span class="sig-paren">(</span><em class="property">const</em> miopenPoolingDescriptor_t <em>poolDesc</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>tensorDesc</em>, int <em>dims</em>, int *<em>tensorDimArr</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv234miopenGetPoolingNdForwardOutputDimK25miopenPoolingDescriptor_tK24miopenTensorDescriptor_tiPi" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Gets the shape of the output tensor for N-D pooling. </p>
 <p>Retrieve the tensor dimensions for the forward N-D pooling. This call is required for the forward if the output dimensions are different than the input tensor dimensions.</p>
 <p><dl class="docutils">
@@ -749,7 +765,7 @@
 <h2>miopenPoolingGetWorkSpaceSize<a class="headerlink" href="#miopenpoolinggetworkspacesize" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="_CPPv229miopenPoolingGetWorkSpaceSizeK24miopenTensorDescriptor_tP6size_t">
-<span id="miopenPoolingGetWorkSpaceSize__miopenTensorDescriptor_tC.sP"></span><span class="target" id="group__pooling_1gac3e91a6d2a3d61feabe345e0add1f08b"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenPoolingGetWorkSpaceSize</code><span class="sig-paren">(</span><em class="property">const</em> miopenTensorDescriptor_t <em>yDesc</em>, size_t *<em>workSpaceSize</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv229miopenPoolingGetWorkSpaceSizeK24miopenTensorDescriptor_tP6size_t" title="Permalink to this definition">¶</a><br /></dt>
+<span id="miopenPoolingGetWorkSpaceSize__miopenTensorDescriptor_tC.sP"></span><span class="target" id="group__pooling_1gac3e91a6d2a3d61feabe345e0add1f08b"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenPoolingGetWorkSpaceSize</code><span class="sig-paren">(</span><em class="property">const</em> miopenTensorDescriptor_t <em>yDesc</em>, size_t *<em>workSpaceSize</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv229miopenPoolingGetWorkSpaceSizeK24miopenTensorDescriptor_tP6size_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Get the amount of GPU memory required for pooling. </p>
 <p>Retrieves the amount of workspace in bytes require for pooling. This call is required to determine the amount of GPU memory needed for the backwards pooling algorithms. For max- pooling, an assumption is that index data type is uint8_t, therefore the returned workspace size will be based on this assumption even if the user sets the index type with <a class="reference internal" href="#group__pooling_1gaaee5ecf18448f0b104bbdb568f8bab2b"><span class="std std-ref">miopenSetPoolingIndexType()</span></a>.</p>
 <p><dl class="docutils">
@@ -770,7 +786,7 @@
 <h2>miopenPoolingGetWorkSpaceSizeV2<a class="headerlink" href="#miopenpoolinggetworkspacesizev2" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="_CPPv231miopenPoolingGetWorkSpaceSizeV2K25miopenPoolingDescriptor_tK24miopenTensorDescriptor_tP6size_t">
-<span id="miopenPoolingGetWorkSpaceSizeV2__miopenPoolingDescriptor_tC.miopenTensorDescriptor_tC.sP"></span><span class="target" id="group__pooling_1ga4ef03b15376969504c2f0879f62ee481"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenPoolingGetWorkSpaceSizeV2</code><span class="sig-paren">(</span><em class="property">const</em> miopenPoolingDescriptor_t <em>poolDesc</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>yDesc</em>, size_t *<em>workSpaceSize</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv231miopenPoolingGetWorkSpaceSizeV2K25miopenPoolingDescriptor_tK24miopenTensorDescriptor_tP6size_t" title="Permalink to this definition">¶</a><br /></dt>
+<span id="miopenPoolingGetWorkSpaceSizeV2__miopenPoolingDescriptor_tC.miopenTensorDescriptor_tC.sP"></span><span class="target" id="group__pooling_1ga4ef03b15376969504c2f0879f62ee481"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenPoolingGetWorkSpaceSizeV2</code><span class="sig-paren">(</span><em class="property">const</em> miopenPoolingDescriptor_t <em>poolDesc</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>yDesc</em>, size_t *<em>workSpaceSize</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv231miopenPoolingGetWorkSpaceSizeV2K25miopenPoolingDescriptor_tK24miopenTensorDescriptor_tP6size_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Get the amount of GPU memory required for pooling. </p>
 <p>Retrieves the amount of workspace in bytes require for pooling. This call is required to determine the amount of GPU memory needed for the backwards pooling algorithms. For max- pooling, there is no assumption on index data type. As the user can set the index datatype size using <a class="reference internal" href="#group__pooling_1gaaee5ecf18448f0b104bbdb568f8bab2b"><span class="std std-ref">miopenSetPoolingIndexType()</span></a>.</p>
 <p><dl class="docutils">
@@ -792,7 +808,7 @@
 <h2>miopenPoolingForward<a class="headerlink" href="#miopenpoolingforward" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="_CPPv220miopenPoolingForward14miopenHandle_tK25miopenPoolingDescriptor_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPvbPv6size_t">
-<span id="miopenPoolingForward__miopenHandle_t.miopenPoolingDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidCP.voidCP.miopenTensorDescriptor_tC.voidP.b.voidP.s"></span><span class="target" id="group__pooling_1ga9b66f73ce5ea748d7b5cda4529b3e4f0"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenPoolingForward</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em>, <em class="property">const</em> miopenPoolingDescriptor_t <em>poolDesc</em>, <em class="property">const</em> void *<em>alpha</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>xDesc</em>, <em class="property">const</em> void *<em>x</em>, <em class="property">const</em> void *<em>beta</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>yDesc</em>, void *<em>y</em>, bool <em>do_backward</em>, void *<em>workSpace</em>, size_t <em>workSpaceSize</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv220miopenPoolingForward14miopenHandle_tK25miopenPoolingDescriptor_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPvbPv6size_t" title="Permalink to this definition">¶</a><br /></dt>
+<span id="miopenPoolingForward__miopenHandle_t.miopenPoolingDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidCP.voidCP.miopenTensorDescriptor_tC.voidP.b.voidP.s"></span><span class="target" id="group__pooling_1ga9b66f73ce5ea748d7b5cda4529b3e4f0"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenPoolingForward</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em>, <em class="property">const</em> miopenPoolingDescriptor_t <em>poolDesc</em>, <em class="property">const</em> void *<em>alpha</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>xDesc</em>, <em class="property">const</em> void *<em>x</em>, <em class="property">const</em> void *<em>beta</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>yDesc</em>, void *<em>y</em>, bool <em>do_backward</em>, void *<em>workSpace</em>, size_t <em>workSpaceSize</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv220miopenPoolingForward14miopenHandle_tK25miopenPoolingDescriptor_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPvbPv6size_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Execute a forward pooling layer. </p>
 <p>Runs forward pooling. <a class="reference internal" href="#group__pooling_1gad8041b7eb674be4aada6c87c3c92f30e"><span class="std std-ref">miopenGetPoolingForwardOutputDim()</span></a> should be called before <a class="reference internal" href="#group__pooling_1ga9b66f73ce5ea748d7b5cda4529b3e4f0"><span class="std std-ref">miopenPoolingForward()</span></a>. If the parameter do_backward == 0, then set workSpace = nullptr and workSpaceSize = 0. However, for back-propagation do_backwards must be set to 1 in <a class="reference internal" href="#group__pooling_1ga9b66f73ce5ea748d7b5cda4529b3e4f0"><span class="std std-ref">miopenPoolingForward()</span></a>.</p>
 <p><dl class="docutils">
@@ -822,7 +838,7 @@
 <h2>miopenPoolingBackward<a class="headerlink" href="#miopenpoolingbackward" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="_CPPv221miopenPoolingBackward14miopenHandle_tK25miopenPoolingDescriptor_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPvPKv">
-<span id="miopenPoolingBackward__miopenHandle_t.miopenPoolingDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidCP.voidCP.miopenTensorDescriptor_tC.voidP.voidCP"></span><span class="target" id="group__pooling_1gad90d6a7f19424ce80d54491983c1a8e5"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenPoolingBackward</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em>, <em class="property">const</em> miopenPoolingDescriptor_t <em>poolDesc</em>, <em class="property">const</em> void *<em>alpha</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>yDesc</em>, <em class="property">const</em> void *<em>y</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>dyDesc</em>, <em class="property">const</em> void *<em>dy</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>xDesc</em>, <em class="property">const</em> void *<em>x</em>, <em class="property">const</em> void *<em>beta</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>dxDesc</em>, void *<em>dx</em>, <em class="property">const</em> void *<em>workSpace</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv221miopenPoolingBackward14miopenHandle_tK25miopenPoolingDescriptor_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPvPKv" title="Permalink to this definition">¶</a><br /></dt>
+<span id="miopenPoolingBackward__miopenHandle_t.miopenPoolingDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidCP.voidCP.miopenTensorDescriptor_tC.voidP.voidCP"></span><span class="target" id="group__pooling_1gad90d6a7f19424ce80d54491983c1a8e5"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenPoolingBackward</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em>, <em class="property">const</em> miopenPoolingDescriptor_t <em>poolDesc</em>, <em class="property">const</em> void *<em>alpha</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>yDesc</em>, <em class="property">const</em> void *<em>y</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>dyDesc</em>, <em class="property">const</em> void *<em>dy</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>xDesc</em>, <em class="property">const</em> void *<em>x</em>, <em class="property">const</em> void *<em>beta</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>dxDesc</em>, void *<em>dx</em>, <em class="property">const</em> void *<em>workSpace</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv221miopenPoolingBackward14miopenHandle_tK25miopenPoolingDescriptor_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPvPKv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Execute a backward pooling layer. </p>
 <p>Runs backward pooling. <a class="reference internal" href="#group__pooling_1gac3e91a6d2a3d61feabe345e0add1f08b"><span class="std std-ref">miopenPoolingGetWorkSpaceSize()</span></a> must be called before <a class="reference internal" href="#group__pooling_1gad90d6a7f19424ce80d54491983c1a8e5"><span class="std std-ref">miopenPoolingBackward()</span></a> to determine the amount of workSpace to be allocated.</p>
 <p><dl class="docutils">
@@ -854,7 +870,7 @@
 <h2>miopenDestroyPoolingDescriptor<a class="headerlink" href="#miopendestroypoolingdescriptor" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="_CPPv230miopenDestroyPoolingDescriptor25miopenPoolingDescriptor_t">
-<span id="miopenDestroyPoolingDescriptor__miopenPoolingDescriptor_t"></span><span class="target" id="group__pooling_1gabbf825f2ff54e8dfdbe63514d1c3da93"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenDestroyPoolingDescriptor</code><span class="sig-paren">(</span>miopenPoolingDescriptor_t <em>poolDesc</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv230miopenDestroyPoolingDescriptor25miopenPoolingDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
+<span id="miopenDestroyPoolingDescriptor__miopenPoolingDescriptor_t"></span><span class="target" id="group__pooling_1gabbf825f2ff54e8dfdbe63514d1c3da93"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenDestroyPoolingDescriptor</code><span class="sig-paren">(</span>miopenPoolingDescriptor_t <em>poolDesc</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv230miopenDestroyPoolingDescriptor25miopenPoolingDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Destroys the pooling descriptor object. </p>
 <p><dl class="docutils">
 <dt><strong>Return</strong></dt>
@@ -913,7 +929,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.3.0',
+            VERSION:'2.6.0',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

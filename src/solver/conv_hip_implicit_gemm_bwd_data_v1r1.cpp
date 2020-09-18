@@ -26,11 +26,14 @@
 #include <miopen/conv/invokers/impl_gemm.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/handle.hpp>
+#include <miopen/hip_build_utils.hpp>
 #include <miopen/generic_search.hpp>
 
 #include "implicitgemm_util.hpp"
 
 #include <cstddef>
+
+#define WORKAROUND_ISSUE_309 1
 
 namespace miopen {
 namespace solver {
@@ -443,9 +446,9 @@ bool PerformanceImplicitGemmBwdDataV1R1::IsValidValue() const
 {
     // clang-format off
     return IsTwoPower<64, 256>(BlockSize) &&
-           IsTwoPower<32, 128>(GemmMPerBlock) && 
+           IsTwoPower<32, 128>(GemmMPerBlock) &&
            IsTwoPower<32, 128>(GemmNPerBlock) &&
-           IsTwoPower<4, 16>(GemmKPerBlock) && 
+           IsTwoPower<4, 16>(GemmKPerBlock) &&
            IsTwoPower<2, 4>(GemmMPerThread) &&
            IsTwoPower<2, 4>(GemmNPerThread);
     // clang-format on
@@ -634,15 +637,19 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx)
 {
     if(!ctx.direction.IsBackwardData())
         return false;
-
-    if(!ctx.Is2d() && !ctx.Is3d())
+    if(!ctx.use_hip_kernels)
         return false;
-
+    if(!ctx.Is2d() && !(ctx.Is3d() && ctx.IsFp32()))
+        return false;
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
-
     if(ctx.group_counts != 1)
         return false;
+#if WORKAROUND_ISSUE_309
+    if(miopen::HipCompilerVersion() >= external_tool_version_t{3, 5, 0})
+        if(ctx.IsBfp16())
+            return false;
+#endif
 
     const auto k = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
     if(k % GetEPackLength(ctx, false) != 0)
@@ -680,7 +687,7 @@ ConvHipImplicitGemmBwdDataV1R1::Search(const ConvolutionContext& ctx) const
         return GenericSearchBwd(*this, ctx);
 }
 
-int ConvHipImplicitGemmBwdDataV1R1::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvHipImplicitGemmBwdDataV1R1::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                                           ConstData_t bot_buf,
                                                           Data_t top_buf,
                                                           ConstData_t wei_buf,
@@ -806,7 +813,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1::GetSolution(
     result.workspce_sz = GetWorkspaceSize(ctx);
 
     // clang-format off
-    construction_parameters.comp_options = 
+    construction_parameters.comp_options =
         std::string(" -std=c++14 ") +
         std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(ConvolutionContextInterpreter::GetBatchN(ctx)) +
         std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(ConvolutionContextInterpreter::GetOutputChannelK(ctx)) +

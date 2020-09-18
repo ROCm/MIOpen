@@ -64,7 +64,7 @@ The results of Find() are returned in an array of `miopenConvAlgoPerf_t` structs
 
 This call sequence is executed once per session as it is inherently expensive. Of those, `miopenFindConvolution*()` is the most expensive call. It caches its own results on disk, so the subsequent calls during the same MIOpen session will execute faster. However, it is better to remember results of `miopenFindConvolution*()` in the application, as recommended above. 
 
-
+Internally MIOpen's Find calls will compile and benchmark a set of `solvers` contained in `miopenConvAlgoPerf_t` this is done in parallel per `miopenConvAlgorithm_t`. The level of parallelism can be controlled using an environment variable. See the debugging section [controlling parallel compilation](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/DebugAndLogging.html#controlling-parallel-compilation) for more details.
 
 
 ## Immediate Mode API
@@ -75,7 +75,7 @@ MIOpen v2.0 introduces the immediate which removes the requirement for the `miop
 * With the above data structures, the user calls `miopenConvolution*GetSolutionCount` to get the **maximum** number of supported solutions for the convolution descriptor in question.
 * The count obtained above is used to allocate memory for the `miopenConvSolution_t` structure introduced in MIOpen v2.0
 * The user calls `miopenConvolution*GetSolution` to populate the `miopenConvSolution_t` structures allocated above. The returned list is ordered in the order of best performance, thus the first element would be the fastest. 
-* While the above structure returns the amount of workspace required for an alogrithm, the user may inquire the amount of a workspace required for a known solution id by using the `miopenConvolution*GetSolutionWorkspaceSize` API call. However, this is not a requirement, since the strucure returned by `miopenConvolution*GetSolution` would already have this information. 
+* While the above structure returns the amount of workspace required for an algorithm, the user may inquire the amount of a workspace required for a known solution id by using the `miopenConvolution*GetSolutionWorkspaceSize` API call. However, this is not a requirement, since the strucure returned by `miopenConvolution*GetSolution` would already have this information. 
 * Now the user may initiate the convolution operation in _immediate_ mode by calling `miopenConvolution*Immediate`. Which would populate the output tensor descriptor with the respective convolution result. However, the first call to `miopenConvolution*Immediate` may consume more time since the kernel may not be present in the kernel cache and may need to be compiled.
 * Optionally, the user may compile the solution of choice by calling `miopenConvolution*CompileSolution` which would ensure that the kernel represented by the chosen solution is populated in the kernel cache a priori, removing the necessity for compiling the kernel in question. 
 
@@ -158,3 +158,22 @@ If the user's architecture is not listed above they will need to run the Find AP
 ### Backend Limitations
 
 OpenCL support for immediate mode via the fallback is limited to fp32 datatypes. This is because this current release's fallback path goes through GEMM which on the OpenCL is serviced through MIOpenGEMM -- which itself only contains support for fp32. The HIP backend uses rocBLAS as its fallback path which contains a richer set of datatypes.
+
+
+### Find Modes
+
+MIOpen provides a set of Find modes which are used to accelerate the Find calls. The different modes are set by using the environment variable `MIOPEN_FIND_MODE`, and setting it to one of the values:
+
+- `NORMAL`, or `1`: Normal Find: This is the full Find mode call, which will benchmark all the solvers and return a list.
+- `FAST`, or `2`: Fast Find: Checks the [Find-Db](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/finddb.html) for an entry. If there is a Find-Db hit, use that entry. If there is a miss, utilize the Immediate mode fallback. If Start-up times are expected to be faster, but worse GPU performance.
+- `HYBRID`, or `3`, or unset `MIOPEN_FIND_MODE`: Hybrid Find: Checks the [Find-Db](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/finddb.html) for an entry. If there is a Find-Db hit, use that entry. If there is a miss, use the existing Find machinery. Slower start-up times than Fast Find, but no GPU performance drop.
+
+ As of MIOpen 2.6, the default mode is set to `HYBRID` mode as default. To run the full `NORMAL` Find mode, set the environment as:
+ ```
+ export MIOPEN_FIND_MODE=NORMAL
+ ```
+ Or,
+ ```
+  export MIOPEN_FIND_MODE=1
+ ```
+ 

@@ -70,6 +70,8 @@
 
 #include <boost/optional.hpp>
 
+#define WORKAROUND_ISSUE_2176 1 // https://github.com/AMDComputeLibraries/MLOpen/issues/2176
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_PAD_BUFFERS_2M)
 
 #if MIOPEN_BACKEND_OPENCL
@@ -158,6 +160,11 @@ bool readBufferFromFile(T* data, size_t dataNumItems, const char* fileName)
 template <typename Tgpu, typename Tref>
 class ConvDriver : public Driver
 {
+#if MIOPEN_BACKEND_OPENCL
+    typedef cl_context context_t;
+#elif MIOPEN_BACKEND_HIP
+    typedef uint32_t context_t;
+#endif
     public:
     ConvDriver() : Driver()
     {
@@ -199,17 +206,20 @@ class ConvDriver : public Driver
 
     int FindForward(int& ret_algo_count,
                     int request_algo_count,
-                    std::vector<miopenConvAlgoPerf_t>& perf_results);
+                    std::vector<miopenConvAlgoPerf_t>& perf_results,
+                    context_t ctx);
     int RunForwardGPU();
     int RunForwardCPU();
     int RunWarmupFindForwardGPU();
 
     int FindBackwardData(int& ret_algo_count,
                          int request_algo_count,
-                         std::vector<miopenConvAlgoPerf_t>& perf_results);
+                         std::vector<miopenConvAlgoPerf_t>& perf_results,
+                         context_t ctx);
     int FindBackwardWeights(int& ret_algo_count,
                             int request_algo_count,
-                            std::vector<miopenConvAlgoPerf_t>& perf_results);
+                            std::vector<miopenConvAlgoPerf_t>& perf_results,
+                            context_t ctx);
     int RunBackwardGPU();
     int RunBackwardDataCPU();
     int RunBackwardWeightsCPU();
@@ -295,6 +305,9 @@ class ConvDriver : public Driver
 
     bool is_wrw = true, is_bwd = true, is_fwd = true;
     bool is_wrw_winograd = false;
+    bool is_wrw_igemm    = false;
+    bool is_fwd_igemm    = false;
+    bool is_bwd_igemm    = false;
     bool time_enabled    = false;
     bool wall_enabled    = false;
     bool warmup_enabled  = false;
@@ -326,17 +339,39 @@ class ConvDriver : public Driver
     int RunBackwardWrwGpuImmed();
     int RunBackwardWrwGpuFind();
 
-    std::string GetVerificationCacheFileName() const;
-    std::string GetVCacheFwdOutBasename() const;
-    std::string GetVCacheBwdDataBasename() const;
-    std::string GetVCacheBwdWeightBasename() const;
-    std::string GetVCacheBiasBwdDataBasename() const;
+    double GetDefaultTolerance() const
+    {
+        // Computation error of fp16 is ~2^13 (=8192) bigger than
+        // the one of fp32 because mantissa is shorter by 13 bits.
+        auto tolerance = (sizeof(Tgpu) == 4 || sizeof(Tgpu) == 1) ? 1e-6 : 8.2e-3;
+        // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
+        if(std::is_same<Tgpu, bfloat16>::value)
+            tolerance *= 8.0;
+        return tolerance;
+    }
+
+    enum class Direction
+    {
+        Fwd,
+        Bwd,
+        WrW,
+        BwdBias
+    };
+
+    std::string GetVerificationCacheFileName(const Direction& direction) const;
     bool IsInputTensorTransform() const;
 
-    bool TryReadVerificationCache(const std::string& file_name,
+    bool TryReadVerificationCache(const Direction& direction,
                                   miopenTensorDescriptor_t& tensorDesc,
                                   Tref* data) const;
-    void TrySaveVerificationCache(const std::string& file_name, std::vector<Tref>& data) const;
+    void TrySaveVerificationCache(const Direction& direction, std::vector<Tref>& data) const;
+
+    void ResizeWorkspaceDev(context_t ctx, std::size_t size)
+    {
+        workspace_dev.reset();
+        if(size > 0)
+            workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, size, 1));
+    }
 
     // Helper functions, can be moved out of class.
     void PrintImmedSolutionInfo(const miopenConvSolution_t& s) const
@@ -355,12 +390,6 @@ class ConvDriver : public Driver
         return oss.str();
     }
 
-    enum class Direction
-    {
-        Fwd,
-        Bwd,
-        WrW
-    };
     /// Find() updates find-db with the most recent information (unless find-db is disabled).
     /// Therefore, after Find(), Immediate mode returns the "best" found solution
     /// as the 1st solution in the list, and we can use Immediate mode to find out
@@ -1031,13 +1060,6 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             std::cout << "Error getting workspace size, status = " << rc << std::endl;
             return rc;
         }
-
-        const auto wsSizeof =
-            std::max(std::max(ws_sizeof_find_bwd, ws_sizeof_find_wrw), ws_sizeof_find_fwd);
-        if(wsSizeof != 0)
-        {
-            workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, wsSizeof, 1));
-        }
     }
 
     if(is_fwd || is_wrw)
@@ -1261,10 +1283,12 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::FindForward(int& ret_algo_count,
                                         int request_algo_count,
-                                        std::vector<miopenConvAlgoPerf_t>& perf_results)
+                                        std::vector<miopenConvAlgoPerf_t>& perf_results,
+                                        context_t ctx)
 {
     bool is_transform = IsInputTensorTransform();
     fwd_auxiliary.resume(wall_enabled);
+    ResizeWorkspaceDev(ctx, ws_sizeof_find_fwd);
     const auto rc = miopenFindConvolutionForwardAlgorithm(
         GetHandle(),
         (is_transform ? inputTensor_vect4 : inputTensor),
@@ -1592,9 +1616,11 @@ void ConvDriver<Tgpu, Tref>::GetSolutionAfterFind(
     case Direction::WrW:
         found_algo = static_cast<miopenConvAlgorithm_t>(found.bwd_weights_algo);
         break;
+    case Direction::BwdBias: // nop
+        MIOPEN_THROW("BwdBias is not supported");
     }
-    std::size_t immed_count;
-    miopenStatus_t rc = miopenStatusUnknownError;
+    std::size_t immed_count = 0;
+    miopenStatus_t rc       = miopenStatusUnknownError;
     switch(direction)
     {
     case Direction::Fwd:
@@ -1608,6 +1634,8 @@ void ConvDriver<Tgpu, Tref>::GetSolutionAfterFind(
     case Direction::WrW:
         rc = miopenConvolutionBackwardWeightsGetSolution(
             handle, out_tensor, in_tensor, convDesc, wei_tensor, 1, &immed_count, &solution);
+        break;
+    case Direction::BwdBias: // nop
         break;
     }
     if(rc != miopenStatusSuccess // (formatting)
@@ -1634,7 +1662,15 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuFind(const bool is_transform)
     // requested, -- so perf-db and find-db are fully updated.
     std::vector<miopenConvAlgoPerf_t> perf_results(request_algo_count);
 
-    auto rc = FindForward(ret_algo_count, request_algo_count, perf_results);
+#if MIOPEN_BACKEND_OPENCL
+    cl_context ctx;
+
+    clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
+#elif MIOPEN_BACKEND_HIP
+    uint32_t ctx = 0;
+#endif
+
+    auto rc = FindForward(ret_algo_count, request_algo_count, perf_results, ctx);
     if(rc != miopenStatusSuccess)
         return rc;
 
@@ -1646,6 +1682,11 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuFind(const bool is_transform)
     float kernel_total_time = 0.0;
     float kernel_first_time = 0.0;
 
+    const auto algo    = perf_results[0].fwd_algo; // use the fastest algo
+    const auto ws_size = perf_results[0].memory;
+    is_fwd_igemm       = (algo == miopenConvolutionFwdAlgoImplicitGEMM);
+
+    ResizeWorkspaceDev(ctx, ws_size);
     wall.start(wall_enabled);
 
     auto in_tens  = (is_transform ? inputTensor_vect4 : inputTensor);
@@ -1662,12 +1703,12 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuFind(const bool is_transform)
                                       wei_tens,
                                       wei_buff,
                                       convDesc,
-                                      perf_results[0].fwd_algo, // use the fastest algo
+                                      algo,
                                       &beta,
                                       outputTensor,
                                       out_dev->GetMem(),
                                       workspace_dev != nullptr ? workspace_dev->GetMem() : nullptr,
-                                      perf_results[0].memory);
+                                      ws_size);
         if(rc != miopenStatusSuccess)
             return rc;
 
@@ -1852,6 +1893,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
         PrintForwardTime(kernel_total_time, kernel_first_time);
     }
 
+    is_fwd_igemm = (selected->algorithm == miopenConvolutionAlgoImplicitGEMM);
     return miopenStatusSuccess;
 }
 
@@ -1900,16 +1942,18 @@ int ConvDriver<Tgpu, Tref>::RunForwardCPU()
         dumpBufferToFile<Tref>("dump_fwd_out_cpu.bin", outhost.data.data(), outhost.data.size());
     }
 
-    TrySaveVerificationCache(GetVCacheFwdOutBasename(), outhost.data);
+    TrySaveVerificationCache(Direction::Fwd, outhost.data);
     return 0;
 }
 
 template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::FindBackwardData(int& ret_algo_count,
                                              int request_algo_count,
-                                             std::vector<miopenConvAlgoPerf_t>& perf_results)
+                                             std::vector<miopenConvAlgoPerf_t>& perf_results,
+                                             context_t ctx)
 {
     bwd_auxiliary.resume(wall_enabled);
+    ResizeWorkspaceDev(ctx, ws_sizeof_find_bwd);
     const auto rc = miopenFindConvolutionBackwardDataAlgorithm(
         GetHandle(),
         outputTensor,
@@ -1932,9 +1976,11 @@ int ConvDriver<Tgpu, Tref>::FindBackwardData(int& ret_algo_count,
 template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::FindBackwardWeights(int& ret_algo_count,
                                                 int request_algo_count,
-                                                std::vector<miopenConvAlgoPerf_t>& perf_results)
+                                                std::vector<miopenConvAlgoPerf_t>& perf_results,
+                                                context_t ctx)
 {
     wrw_auxiliary.resume(wall_enabled);
+    ResizeWorkspaceDev(ctx, ws_sizeof_find_wrw);
     const auto rc = miopenFindConvolutionBackwardWeightsAlgorithm(
         GetHandle(),
         outputTensor,
@@ -2025,7 +2071,15 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuFind()
     int request_algo_count = 2;
     std::vector<miopenConvAlgoPerf_t> perf_results_data(request_algo_count);
 
-    auto rc = FindBackwardData(ret_algo_count, request_algo_count, perf_results_data);
+#if MIOPEN_BACKEND_OPENCL
+    cl_context ctx;
+
+    clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
+#elif MIOPEN_BACKEND_HIP
+    uint32_t ctx = 0;
+#endif
+
+    auto rc = FindBackwardData(ret_algo_count, request_algo_count, perf_results_data, ctx);
     if(rc != miopenStatusSuccess)
         return rc;
 
@@ -2036,6 +2090,11 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuFind()
     float kernel_first_time = 0.0;
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
+    const auto algo    = perf_results_data[0].bwd_data_algo;
+    const auto ws_size = perf_results_data[0].memory;
+    is_bwd_igemm       = (algo == miopenConvolutionBwdDataAlgoImplicitGEMM);
+
+    ResizeWorkspaceDev(ctx, ws_size);
     wall.start(wall_enabled);
 
     for(int i = 0; i < num_iterations; i++)
@@ -2047,13 +2106,13 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuFind()
                                            weightTensor,
                                            wei_dev->GetMem(),
                                            convDesc,
-                                           perf_results_data[0].bwd_data_algo,
+                                           algo,
                                            &beta,
                                            inputTensor,
                                            din_dev->GetMem(),
                                            workspace_dev != nullptr ? workspace_dev->GetMem()
                                                                     : nullptr,
-                                           perf_results_data[0].memory);
+                                           ws_size);
         if(rc != miopenStatusSuccess)
             return rc;
 
@@ -2218,7 +2277,15 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuFind()
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
     std::vector<miopenConvAlgoPerf_t> perf_results_weights(request_algo_count);
 
-    auto rc = FindBackwardWeights(ret_algo_count, request_algo_count, perf_results_weights);
+#if MIOPEN_BACKEND_OPENCL
+    cl_context ctx;
+
+    clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
+#elif MIOPEN_BACKEND_HIP
+    uint32_t ctx = 0;
+#endif
+
+    auto rc = FindBackwardWeights(ret_algo_count, request_algo_count, perf_results_weights, ctx);
     if(rc != miopenStatusSuccess)
         return rc;
 
@@ -2231,7 +2298,9 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuFind()
     const auto algo    = perf_results_weights[0].bwd_weights_algo;
     const auto ws_size = perf_results_weights[0].memory;
     is_wrw_winograd    = (algo == miopenConvolutionBwdWeightsAlgoWinograd);
+    is_wrw_igemm       = (algo == miopenConvolutionBwdWeightsAlgoImplicitGEMM);
 
+    ResizeWorkspaceDev(ctx, ws_size);
     wall.start(wall_enabled);
 
     for(int i = 0; i < num_iterations; i++)
@@ -2305,7 +2374,7 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardWrwTime(float kernel_total_time, float
            kernel_average_time);
 
     const auto num_dim = miopen::deref(inputTensor).GetSize() - 2;
-    if(num_dim != 2)
+    if(num_dim != 2 && num_dim != 3)
     {
         printf("stats: <not implemented> for conv%dd\n", num_dim);
         return;
@@ -2313,39 +2382,85 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardWrwTime(float kernel_total_time, float
 
     int group_count = std::max(inflags.GetValueInt("group_count"), 1);
 
-    int in_n, in_c, in_h, in_w;
-    std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(miopen::deref(inputTensor).GetLengths());
-    int wei_c, wei_n, wei_h, wei_w;
-    std::tie(wei_c, wei_n, wei_h, wei_w) =
-        miopen::tien<4>(miopen::deref(weightTensor).GetLengths());
-    int out_n, out_c, out_h, out_w;
-    std::tie(out_n, out_c, out_h, out_w) =
-        miopen::tien<4>(miopen::deref(outputTensor).GetLengths());
+    if(num_dim == 2)
+    {
+        int in_n, in_c, in_h, in_w;
+        std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(miopen::deref(inputTensor).GetLengths());
+        int wei_c, wei_n, wei_h, wei_w;
+        std::tie(wei_c, wei_n, wei_h, wei_w) =
+            miopen::tien<4>(miopen::deref(weightTensor).GetLengths());
+        int out_n, out_c, out_h, out_w;
+        std::tie(out_n, out_c, out_h, out_w) =
+            miopen::tien<4>(miopen::deref(outputTensor).GetLengths());
 
-    size_t flopCnt     = 2L * in_n * in_c * wei_h * wei_w * out_c * out_h * out_w / group_count;
-    size_t readBytes   = 0;
-    size_t outputBytes = 0;
+        size_t flopCnt     = 2L * in_n * in_c * wei_h * wei_w * out_c * out_h * out_w / group_count;
+        size_t readBytes   = 0;
+        size_t outputBytes = 0;
 
-    printf("stats: name, n, c, ho, wo, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
-           "GB/s, timeMs\n");
-    printf("stats: %s%dx%du%d, %u, %u, %u, %u, %u, %u, %u,  %zu, %zu, %zu, %.0f, %.0f, %f\n",
-           "bwdw-conv",
-           wei_h,
-           wei_w,
-           miopen::deref(convDesc).GetConvStrides()[0],
-           in_n,
-           in_c,
-           out_h,
-           out_w,
-           wei_h,
-           wei_w,
-           out_c,
-           flopCnt,
-           readBytes,
-           outputBytes,
-           flopCnt / kernel_average_time / 1e6,
-           (readBytes + outputBytes) / kernel_average_time / 1e6,
-           kernel_average_time);
+        printf("stats: name, n, c, ho, wo, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
+               "GB/s, timeMs\n");
+        printf("stats: %s%dx%du%d, %u, %u, %u, %u, %u, %u, %u,  %zu, %zu, %zu, %.0f, %.0f, %f\n",
+               "bwdw-conv",
+               wei_h,
+               wei_w,
+               miopen::deref(convDesc).GetConvStrides()[0],
+               in_n,
+               in_c,
+               out_h,
+               out_w,
+               wei_h,
+               wei_w,
+               out_c,
+               flopCnt,
+               readBytes,
+               outputBytes,
+               flopCnt / kernel_average_time / 1e6,
+               (readBytes + outputBytes) / kernel_average_time / 1e6,
+               kernel_average_time);
+    }
+    else
+    { // 3d
+        int in_n, in_c, in_d, in_h, in_w;
+        std::tie(in_n, in_c, in_d, in_h, in_w) =
+            miopen::tien<5>(miopen::deref(inputTensor).GetLengths());
+        int wei_c, wei_n, wei_d, wei_h, wei_w;
+        std::tie(wei_c, wei_n, wei_d, wei_h, wei_w) =
+            miopen::tien<5>(miopen::deref(weightTensor).GetLengths());
+        int out_n, out_c, out_d, out_h, out_w;
+        std::tie(out_n, out_c, out_d, out_h, out_w) =
+            miopen::tien<5>(miopen::deref(outputTensor).GetLengths());
+
+        size_t flopCnt =
+            2L * in_n * in_c * wei_d * wei_h * wei_w * out_c * out_d * out_h * out_w / group_count;
+        size_t readBytes   = 0;
+        size_t outputBytes = 0;
+
+        printf(
+            "stats: name, n, c, do, ho, wo, z, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
+            "GB/s, timeMs\n");
+        printf("stats: %s%dx%dx%du%d, %u, %u, %u, %u, %u, %u, %u, %u, %u,  %zu, %zu, %zu, %.0f, "
+               "%.0f, %f\n ",
+               "bwdw-conv",
+               wei_d,
+               wei_h,
+               wei_w,
+               miopen::deref(convDesc).GetConvStrides()[0],
+               in_n,
+               in_c,
+               out_d,
+               out_h,
+               out_w,
+               wei_d,
+               wei_h,
+               wei_w,
+               out_c,
+               flopCnt,
+               readBytes,
+               outputBytes,
+               flopCnt / kernel_average_time / 1e6,
+               (readBytes + outputBytes) / kernel_average_time / 1e6,
+               kernel_average_time);
+    }
 }
 
 template <typename Tgpu, typename Tref>
@@ -2472,6 +2587,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuImmed()
         PrintBackwardDataTime(kernel_total_time, kernel_first_time);
     }
 
+    is_bwd_igemm = (selected->algorithm == miopenConvolutionAlgoImplicitGEMM);
     din_dev->FromGPU(GetStream(), din.data());
     return rc;
 }
@@ -2600,6 +2716,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuImmed()
     }
 
     is_wrw_winograd = (selected->algorithm == miopenConvolutionAlgoWinograd);
+    is_wrw_igemm    = (selected->algorithm == miopenConvolutionAlgoImplicitGEMM);
     dwei_dev->FromGPU(GetStream(), dwei.data());
     return rc;
 }
@@ -2636,7 +2753,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWeightsCPU()
             "dump_bwd_dwei_cpu.bin", dwei_host.data.data(), dwei_host.data.size());
     }
 
-    TrySaveVerificationCache(GetVCacheBwdWeightBasename(), dwei_host.data);
+    TrySaveVerificationCache(Direction::WrW, dwei_host.data);
     return 0;
 }
 
@@ -2671,7 +2788,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataCPU()
         dumpBufferToFile<Tref>("dump_bwd_din_cpu.bin", din_host.data.data(), din_host.data.size());
     }
 
-    TrySaveVerificationCache(GetVCacheBwdDataBasename(), din_host.data);
+    TrySaveVerificationCache(Direction::Bwd, din_host.data);
     return 0;
 }
 
@@ -2685,12 +2802,13 @@ int ConvDriver<Tgpu, Tref>::RunBackwardBiasCPU()
         dumpBufferToFile<Tref>("dump_bwd_db_cpu.bin", db_host.data.data(), db_host.data.size());
     }
 
-    TrySaveVerificationCache(GetVCacheBiasBwdDataBasename(), db_host.data);
+    TrySaveVerificationCache(Direction::BwdBias, db_host.data);
     return 0;
 }
 
 template <typename Tgpu, typename Tref>
-std::string ConvDriver<Tgpu, Tref>::GetVerificationCacheFileName() const
+std::string ConvDriver<Tgpu, Tref>::GetVerificationCacheFileName(
+    const ConvDriver<Tgpu, Tref>::Direction& direction) const
 {
     std::ostringstream ss;
 
@@ -2710,6 +2828,17 @@ std::string ConvDriver<Tgpu, Tref>::GetVerificationCacheFileName() const
                                      conv_strides.data(),
                                      conv_dilations.data(),
                                      &mode);
+
+    auto get_basename_string = [&]() {
+        switch(direction)
+        {
+        case Direction::Fwd: return "conv_fwd_out";
+        case Direction::Bwd: return "conv_bwd_dat";
+        case Direction::WrW: return "conv_bwd_wei";
+        case Direction::BwdBias: return "bias_bwd_dat";
+        }
+        return "<error in get_basename_string>"; // For gcc.
+    };
 
     auto get_datatype_string = [](auto type) {
         if(std::is_same<decltype(type), int8_t>::value)
@@ -2738,7 +2867,8 @@ std::string ConvDriver<Tgpu, Tref>::GetVerificationCacheFileName() const
         }
     };
 
-    ss << mode;
+    ss << get_basename_string();
+    ss << "_" << mode;
     ss << "_" << spatial_dim;
     ss << "_" << miopen::deref(convDesc).paddingMode;
     ss << "_" << miopen::deref(convDesc).GetGroupCount();
@@ -2759,16 +2889,17 @@ std::string ConvDriver<Tgpu, Tref>::GetVerificationCacheFileName() const
 }
 
 template <typename Tgpu, typename Tref>
-bool ConvDriver<Tgpu, Tref>::TryReadVerificationCache(const std::string& file_name,
-                                                      miopenTensorDescriptor_t& tensorDesc,
-                                                      Tref* data) const
+bool ConvDriver<Tgpu, Tref>::TryReadVerificationCache(
+    const ConvDriver<Tgpu, Tref>::Direction& direction,
+    miopenTensorDescriptor_t& tensorDesc,
+    Tref* data) const
 {
     const auto verification_cache_path = inflags.GetValueStr("verification_cache");
 
     if(!verification_cache_path.empty())
     {
         const auto file_path =
-            verification_cache_path + "/" + file_name + "_" + GetVerificationCacheFileName();
+            verification_cache_path + "/" + GetVerificationCacheFileName(direction);
 
         if(std::ifstream(file_path).good())
         {
@@ -2783,40 +2914,16 @@ bool ConvDriver<Tgpu, Tref>::TryReadVerificationCache(const std::string& file_na
 }
 
 template <typename Tgpu, typename Tref>
-void ConvDriver<Tgpu, Tref>::TrySaveVerificationCache(const std::string& file_name,
-                                                      std::vector<Tref>& data) const
+void ConvDriver<Tgpu, Tref>::TrySaveVerificationCache(
+    const ConvDriver<Tgpu, Tref>::Direction& direction, std::vector<Tref>& data) const
 {
     const auto verification_cache_path = inflags.GetValueStr("verification_cache");
     if(!verification_cache_path.empty())
     {
         const auto file_path =
-            verification_cache_path + "/" + file_name + "_" + GetVerificationCacheFileName();
+            verification_cache_path + "/" + GetVerificationCacheFileName(direction);
         dumpBufferToFile<Tref>(file_path.c_str(), data.data(), data.size());
     }
-}
-
-template <typename Tgpu, typename Tref>
-std::string ConvDriver<Tgpu, Tref>::GetVCacheFwdOutBasename() const
-{
-    return "conv_fwd_out";
-}
-
-template <typename Tgpu, typename Tref>
-std::string ConvDriver<Tgpu, Tref>::GetVCacheBwdDataBasename() const
-{
-    return "conv_bwd_dat";
-}
-
-template <typename Tgpu, typename Tref>
-std::string ConvDriver<Tgpu, Tref>::GetVCacheBwdWeightBasename() const
-{
-    return "conv_bwd_wei";
-}
-
-template <typename Tgpu, typename Tref>
-std::string ConvDriver<Tgpu, Tref>::GetVCacheBiasBwdDataBasename() const
-{
-    return "bias_bwd_dat";
 }
 
 template <typename Tgpu, typename Tref>
@@ -2826,7 +2933,7 @@ int ConvDriver<Tgpu, Tref>::VerifyForward()
         return 0;
 
     if(!is_fwd_run_failed)
-        if(!TryReadVerificationCache(GetVCacheFwdOutBasename(), outputTensor, outhost.data.data()))
+        if(!TryReadVerificationCache(Direction::Fwd, outputTensor, outhost.data.data()))
             RunForwardCPU();
 
     const auto isInt8 = (data_type == miopenInt8 || data_type == miopenInt8x4);
@@ -2834,11 +2941,15 @@ int ConvDriver<Tgpu, Tref>::VerifyForward()
                                    : (isInt8 ? miopen::rms_range(outhost.data, out_int8)
                                              : miopen::rms_range(outhost.data, out.data));
 
-    const Tref tolerance = ((sizeof(Tgpu) == 4 || sizeof(Tgpu) == 1) ? static_cast<Tref>(1e-6)
-                                                                     : static_cast<Tref>(7e-2));
-    if(!(error < tolerance))
+    auto tolerance = GetDefaultTolerance();
+    // iGemm's deviation is higher than other algorithms.
+    // The reason is most likely different order of computations.
+    if(is_fwd_igemm)
+        tolerance = tolerance * 10;
+
+    if(error > tolerance)
     {
-        std::cout << "Forward Convolution Failed: " << error << std::endl;
+        std::cout << "Forward Convolution Failed: " << error << " > " << tolerance << std::endl;
         return EC_VerifyFwd;
     }
     std::cout << "Forward Convolution Verifies on CPU and GPU (" << error << ')' << std::endl;
@@ -2857,22 +2968,26 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
     if(!(is_bwd || is_wrw))
         return 0;
 
-    const double tolerance = sizeof(Tgpu) == 4 ? 1e-6 : 7e-2;
-
     int cumulative_rc = 0;
     if(is_bwd)
     {
         if(!is_bwd_run_failed)
-            if(!TryReadVerificationCache(
-                   GetVCacheBwdDataBasename(), inputTensor, din_host.data.data()))
+            if(!TryReadVerificationCache(Direction::Bwd, inputTensor, din_host.data.data()))
                 RunBackwardDataCPU();
 
         auto error_data = is_bwd_run_failed ? std::numeric_limits<double>::max()
                                             : miopen::rms_range(din_host.data, din);
 
-        if(!(error_data < tolerance))
+        auto tolerance = GetDefaultTolerance();
+        // iGemm's deviation is higher than other algorithms.
+        // The reason is most likely different order of computations.
+        if(is_bwd_igemm)
+            tolerance = tolerance * 10;
+
+        if(error_data > tolerance)
         {
-            std::cout << "Backward Convolution Data Failed: " << error_data << std::endl;
+            std::cout << "Backward Convolution Data Failed: " << error_data << " > " << tolerance
+                      << std::endl;
             cumulative_rc |= EC_VerifyBwd;
         }
         else
@@ -2885,23 +3000,36 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
     if(is_wrw)
     {
         if(!is_wrw_run_failed)
-            if(!TryReadVerificationCache(
-                   GetVCacheBwdWeightBasename(), weightTensor, dwei_host.data.data()))
+            if(!TryReadVerificationCache(Direction::WrW, weightTensor, dwei_host.data.data()))
                 RunBackwardWeightsCPU();
 
-        // Winograd algorithm has worse precision than Direct and Gemm.
-        // Winograd-specific precision loss is roughly 2+2 bits.
-        // Affects only WrW FP32 for now.
-        auto tolerance_wrw = tolerance;
+        // WrW deviation is ~twice worse than Bwd due to more FP computations involved,
+        // which means more roundings, so GPU amd CPU computations diverge more.
+        auto tolerance = 2 * GetDefaultTolerance();
+        // Winograd and iGemm WrW algorithms reveal bigger deviation than other algos.
         if(is_wrw_winograd && std::is_same<Tgpu, float>::value)
-            tolerance_wrw *= 16.0;
+        {
+            tolerance *= 10;
+        }
+        else if(is_wrw_igemm)
+        {
+            if(std::is_same<Tgpu, float>::value)
+#if WORKAROUND_ISSUE_2176
+                tolerance = 0.01;
+#else
+                tolerance *= 10;
+#endif
+            else if(std::is_same<Tgpu, float16>::value)
+                tolerance *= 5;
+        }
 
         auto error_weights = is_wrw_run_failed ? std::numeric_limits<double>::max()
                                                : miopen::rms_range(dwei_host.data, dwei);
 
-        if(!(error_weights < tolerance_wrw))
+        if(error_weights > tolerance)
         {
-            std::cout << "Backward Convolution Weights Failed: " << error_weights << std::endl;
+            std::cout << "Backward Convolution Weights Failed: " << error_weights << " > "
+                      << tolerance << std::endl;
             cumulative_rc |= EC_VerifyWrw;
         }
         else
@@ -2913,16 +3041,17 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
 
     if(inflags.GetValueInt("bias") != 0)
     {
-        if(!TryReadVerificationCache(
-               GetVCacheBiasBwdDataBasename(), biasTensor, db_host.data.data()))
+        if(!TryReadVerificationCache(Direction::BwdBias, biasTensor, db_host.data.data()))
         {
             RunBackwardBiasCPU();
         }
 
-        auto error_bias = miopen::rms_range(db_host.data, db);
-        if(!(error_bias < tolerance))
+        auto error_bias      = miopen::rms_range(db_host.data, db);
+        const auto tolerance = GetDefaultTolerance();
+        if(error_bias > tolerance)
         {
-            std::cout << "Backward Convolution Bias Failed: " << error_bias << std::endl;
+            std::cout << "Backward Convolution Bias Failed: " << error_bias << " > " << tolerance
+                      << std::endl;
             cumulative_rc |= EC_VerifyBwdBias;
         }
         else

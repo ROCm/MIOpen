@@ -102,7 +102,7 @@ static void cgemm_grid(size_t* global_work_size,
     global_work_size[1] = totalWorkGroups1 * local_work_size[1];
 }
 
-static int FindFFTKernel(Handle& handle,
+static int FindFFTKernel(const Handle& handle,
                          const TensorDescriptor& xDesc,
                          const TensorDescriptor& wDesc,
                          const TensorDescriptor& yDesc,
@@ -333,7 +333,7 @@ static int FindFFTKernel(Handle& handle,
     return 0;
 }
 
-int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
+int ConvolutionDescriptor::FindFwdFFTKernel(const Handle& handle,
                                             const TensorDescriptor& xDesc,
                                             const TensorDescriptor& wDesc,
                                             const TensorDescriptor& yDesc,
@@ -345,7 +345,7 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
     return FindFFTKernel(handle, xDesc, wDesc, yDesc, workSpaceSize, kernels, true, kcache_key);
 }
 
-int ConvolutionDescriptor::FindBwdFFTKernel(Handle& handle,
+int ConvolutionDescriptor::FindBwdFFTKernel(const Handle& handle,
                                             const TensorDescriptor& dyDesc,
                                             const TensorDescriptor& wDesc,
                                             const TensorDescriptor& dxDesc,
@@ -357,7 +357,7 @@ int ConvolutionDescriptor::FindBwdFFTKernel(Handle& handle,
     return FindFFTKernel(handle, dyDesc, wDesc, dxDesc, workSpaceSize, kernels, false, kcache_key);
 }
 
-static float ExecuteFFTKernel(Handle& handle,
+static float ExecuteFFTKernel(const Handle& handle,
                               const TensorDescriptor& xDesc,
                               ConstData_t x,
                               const TensorDescriptor& wDesc,
@@ -440,7 +440,7 @@ static float ExecuteFFTKernel(Handle& handle,
     return time_fft;
 }
 
-float ConvolutionDescriptor::ExecuteFwdFFTKernel(Handle& handle,
+float ConvolutionDescriptor::ExecuteFwdFFTKernel(const Handle& handle,
                                                  const TensorDescriptor& xDesc,
                                                  ConstData_t x,
                                                  const TensorDescriptor& wDesc,
@@ -457,7 +457,7 @@ float ConvolutionDescriptor::ExecuteFwdFFTKernel(Handle& handle,
         handle, xDesc, x, wDesc, w, yDesc, y, workSpace, workSpaceSize, timed, true, kcache_key);
 }
 
-float ConvolutionDescriptor::ExecuteBwdFFTKernel(Handle& handle,
+float ConvolutionDescriptor::ExecuteBwdFFTKernel(const Handle& handle,
                                                  const TensorDescriptor& dyDesc,
                                                  ConstData_t dy,
                                                  const TensorDescriptor& wDesc,
