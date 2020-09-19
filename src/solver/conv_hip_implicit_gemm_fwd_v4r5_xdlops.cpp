@@ -568,7 +568,8 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsValidValue() const
         && IsTwoPower<1, 8>(GemmKPerBlock)
         && IsTwoPower<4, 128>(GemmMPerWave)
         && IsTwoPower<4, 128>(GemmNPerWave)
-        && IsTwoPower<1, 8>(GemmKPack);
+        && IsTwoPower<1, 8>(GemmKPack)
+        && IsTwoPower<1, 8>(GemmBThreadDataPerRead_GemmN);
     // clang-format on
 }
 
@@ -642,13 +643,6 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsFastToBeUsedForTuning(
             return false;
     }
 
-#if WORKAROUND_SWDEV_240356
-    {
-        if(ctx.IsBfp16() && GemmMPerWave * GemmNPerWave > 64 * 64)
-            return false;
-    }
-#endif
-
     // don't need too many blocks
     {
         int gemm_m = 0;
@@ -662,11 +656,7 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsFastToBeUsedForTuning(
 
         // this the the biggest blockwise-GEMM you can do
         int max_blockwise_gemm_size =
-#if WORKAROUND_SWDEV_240356
-            gcd(128, gemm_m) * gcd(128, gemm_n);
-#else
             std::max(gcd(256, gemm_m) * gcd(128, gemm_n), gcd(128, gemm_m) * gcd(256, gemm_n));
-#endif
 
         // this is the grid size using the biggest blockwise-GEMM
         auto grid_size_max_blockwise_gemm =
