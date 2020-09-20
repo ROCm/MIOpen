@@ -106,7 +106,7 @@ def buildJob(Map conf, compiler){
         withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
             timeout(time: 5, unit: 'HOURS')
             {
-                cmake_build(compiler, flags, env4make, prefixpath, cmd, testflags)
+                cmake_build(compiler, flags, env4make, prefixpath, cmd)
             }
         }
         return retimage
