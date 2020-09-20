@@ -581,7 +581,7 @@ endif()
 target_internal_library(MIOpen
     Boost::filesystem
 )
-list(APPEND PACKAGE_STATIC_DEPENDS PACKAGE Boost COMPONTENTS filesystem)
+list(APPEND PACKAGE_STATIC_DEPENDS PACKAGE Boost COMPONENTS filesystem)
 if(NOT WIN32 AND NOT APPLE)
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/lib.def "
 MIOPEN_${MIOPEN_BACKEND}_1

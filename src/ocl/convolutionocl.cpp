@@ -193,9 +193,10 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
     auto ctx       = ConvolutionContext{xDesc, wDesc, yDesc, *this, dir};
     ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
         miopen::FindMode(ctx).IsFastHybrid();
-    ctx.do_search               = exhaustiveSearch;
-    ctx.save_srch_req           = true;
-    ctx.general_compile_options = "";
+    ctx.use_dynamic_solutions_only = miopen::FindMode(ctx).IsDynamicHybrid();
+    ctx.do_search                  = exhaustiveSearch;
+    ctx.save_srch_req              = true;
+    ctx.general_compile_options    = "";
     ctx.SetStream(&handle);
     ctx.SetBufs(bufs);
     ctx.DetectRocm();
@@ -230,9 +231,10 @@ ConvolutionDescriptor::FindDataImplicitGemmSolutions(Handle& handle,
 
     ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
         miopen::FindMode(ctx).IsFastHybrid();
-    ctx.do_search               = exhaustiveSearch;
-    ctx.save_srch_req           = true;
-    ctx.general_compile_options = "";
+    ctx.use_dynamic_solutions_only = miopen::FindMode(ctx).IsDynamicHybrid();
+    ctx.do_search                  = exhaustiveSearch;
+    ctx.save_srch_req              = true;
+    ctx.general_compile_options    = "";
     ctx.SetStream(&handle);
     ctx.SetBufs(bufs);
     ctx.DetectRocm();
@@ -796,6 +798,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     {
         ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
             miopen::FindMode(ctx).IsFastHybrid();
+        ctx.use_dynamic_solutions_only = miopen::FindMode(ctx).IsDynamicHybrid();
         perf_db = UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
             DirConvFindCore(handle,
                             xDesc,
@@ -2152,6 +2155,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 auto ctx = ConvolutionContext{problem};
                 ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
                     miopen::FindMode(ctx).IsFastHybrid();
+                ctx.use_dynamic_solutions_only = miopen::FindMode(ctx).IsDynamicHybrid();
                 ctx.SetBufs(bufs);
                 ctx.SetStream(&handle);
                 ctx.DetectRocm();
@@ -3248,7 +3252,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 ConvolutionContext{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
             ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
                 miopen::FindMode(ctx).IsFastHybrid();
-            ctx.do_search = exhaustiveSearch;
+            ctx.use_dynamic_solutions_only = miopen::FindMode(ctx).IsDynamicHybrid();
+            ctx.do_search                  = exhaustiveSearch;
             ctx.SetStream(&handle);
             ctx.SetBufs(bufs);
             ctx.SetupFloats();
