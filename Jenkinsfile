@@ -18,13 +18,15 @@ def rocmnode(name) {
 }
 
 
-def cmake_build(compiler, flags, env4make, prefixpath="/opt/rocm", cmd="", testflags=""){
+
+def cmake_build(compiler, flags, env4make, extradebugflags, prefixpath, cmd="", testflags=""){
+
     def workspace_dir = pwd()
     def vcache = "/var/jenkins/.cache/miopen/vcache"
     def archive = (flags == '-DCMAKE_BUILD_TYPE=release')
     def config_targets = "check doc MIOpenDriver"
     def test_flags = "--disable-verification-cache " + testflags
-    def debug_flags = "-g -fno-omit-frame-pointer -fsanitize=undefined -fno-sanitize-recover=undefined"
+    def debug_flags = "-g ${extradebugflags} -fno-omit-frame-pointer -fsanitize=undefined -fno-sanitize-recover=undefined"
     def compilerpath = ""
     def configargs = ""
     if (prefixpath == "/usr/local")
@@ -76,14 +78,20 @@ def cmake_build(compiler, flags, env4make, prefixpath="/opt/rocm", cmd="", testf
 def buildJob(Map conf, compiler){
 
         env.HSA_ENABLE_SDMA=0 
+        env.CODECOV_TOKEN="aec031be-7673-43b5-9840-d8fb71a2354e"
         checkout scm
         def prefixpath = conf.get("prefixpath", "/usr/local")
         def flags = conf.get("flags", "")
         def env4make = conf.get("env4make", "")
         def image = conf.get("image", "miopen")
         def cmd = conf.get("cmd", "")
+        def codecov = conf.get("codecov", false)
         def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
         def dockerArgs = "--build-arg PREFIX=${prefixpath} "
+        def extradebugflags = ""
+        if (codecov) {
+            extradebugflags = "-fprofile-arcs -ftest-coverage"
+        }
         def retimage
         try {
             retimage = docker.build("${image}", dockerArgs + '.')
@@ -106,7 +114,18 @@ def buildJob(Map conf, compiler){
         withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
             timeout(time: 5, unit: 'HOURS')
             {
-                cmake_build(compiler, flags, env4make, prefixpath, cmd)
+                cmake_build(compiler, flags, env4make, extradebugflags, prefixpath, cmd)
+
+                if (codecov) {
+                    sh '''
+                        cd build
+                        lcov --directory . --capture --output-file $(pwd)/coverage.info
+                        lcov --remove $(pwd)/coverage.info '/usr/*' --output-file $(pwd)/coverage.info
+                        lcov --list $(pwd)/coverage.info
+                        curl -s https://codecov.io/bash | bash
+                        echo "Uploaded"
+                    '''
+                }
             }
         }
         return retimage
@@ -245,7 +264,7 @@ pipeline {
                 stage('GCC Debug') {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildJob('g++-5', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
+                        buildJob('g++-5', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', codecov: true)
                     }
                 }
 
