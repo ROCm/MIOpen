@@ -179,12 +179,6 @@ pipeline {
     }
     environment{
         image = "miopen"
-        hipclangcmd = """
-                            ulimit -c unlimited
-                            rm -rf build
-                            mkdir build
-                            cd build
-                      """
     }
     stages{
         // Run all static analysis tests
@@ -262,14 +256,7 @@ pipeline {
                     }
                 }
 
-                stage('Hip Release') {
-                    agent{ label rocmnode("vega") }
-                    steps{
-                        buildJob('hcc', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image + "rocm")
-                    }
-                }
-
-                stage('Hip clang debug') {
+                stage('Hip debug') {
                     agent{ label rocmnode("vega") }
                     environment{
                         cmd = """
@@ -278,6 +265,24 @@ pipeline {
                             mkdir build
                             cd build
                             CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_FLAGS=--disable-verification-cache .. 
+                            CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
+                        """
+
+                    }
+                    steps{
+                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd)
+                    }
+                }
+
+                stage('Hip release') {
+                    agent{ label rocmnode("vega") }
+                    environment{
+                        cmd = """
+                            ulimit -c unlimited
+                            rm -rf build
+                            mkdir build
+                            cd build
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_FLAGS=--disable-verification-cache .. 
                             CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
                         """
 
@@ -343,7 +348,7 @@ pipeline {
                             rm -rf build
                             mkdir build
                             cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DBUILD_SHARED_LIBS=Off -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_FLAGS=--disable-verification-cache .. 
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DBUILD_EMBED_BUILD=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_FLAGS=--disable-verification-cache .. 
                             CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
                         """
 
@@ -441,8 +446,7 @@ pipeline {
                     }
                 }
 
-
-                stage('GCC Release All') {
+                stage('GCC Release conv2d') {
                     agent{ label rocmnode("vega") }
                     environment{
                         cmd = """
@@ -483,7 +487,7 @@ pipeline {
         stage("Full tests II"){
             parallel{
                 
-                stage('Hip Clang Release All') {
+                stage('Hip Clang conv3d') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
@@ -493,7 +497,7 @@ pipeline {
                             cd build
                             CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug -DMIOPEN_GPU_SYNC=On -DMIOPEN_USE_COMGR=Off -DMIOPEN_TEST_ALL=On -DMIOPEN_TEST_LIMIT=2 -DMIOPEN_TEST_FLAGS="--disable-verification-cache" .. 
                             make -j test_conv3d
-                            MIOPEN_LOG_LEVEL=6 MIOPEN_ENABLE_LOGGING_CMD=1 bin/test_conv3d --all --limit=2 --disable-verification-cache
+                            bin/test_conv3d --all --limit=2 --disable-verification-cache
                         """
                     }
                     steps{
@@ -501,7 +505,24 @@ pipeline {
                     }
                 }
                 
-                CTEST_PARALLEL_LEVEL=4 MIOPEN_LOG_LEVEL=6 MIOPEN_ENABLE_LOGGING_CMD=1 make -j\$(nproc) check
+                stage('Hip Clang Release All') {
+                    agent{ label rocmnode("vega20") }
+                    environment{
+                        cmd = """
+                            ulimit -c unlimited
+                            rm test/conv3d.cpp
+                            rm -rf build
+                            mkdir build
+                            cd build
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug -DMIOPEN_GPU_SYNC=On -DMIOPEN_USE_COMGR=Off -DMIOPEN_TEST_ALL=On -DMIOPEN_TEST_LIMIT=2 -DMIOPEN_TEST_FLAGS="--disable-verification-cache" .. 
+                            CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
+                        """
+                    }
+                    steps{
+                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd)
+                    }
+                }
+
                 stage('FP32 gfx908 Hip Release All subset') {
                     agent{ label rocmnode("gfx908") }
                     environment{
