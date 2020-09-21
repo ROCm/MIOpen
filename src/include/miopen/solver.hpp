@@ -737,22 +737,14 @@ struct PerformanceImplicitGemmBwdDataV4R1Xdlops
 
     bool GemmAThreadCopyMoreGemmK;
     bool GemmBThreadCopyMoreGemmKPack;
-    bool use_spare_set;
 
-    PerformanceImplicitGemmBwdDataV4R1Xdlops(int, int, int, int, int, int, bool, bool, bool);
+    PerformanceImplicitGemmBwdDataV4R1Xdlops(int, int, int, int, int, int, bool, bool);
 
-    PerformanceImplicitGemmBwdDataV4R1Xdlops()
-        : PerformanceImplicitGemmBwdDataV4R1Xdlops(-1, -1, -1, -1, -1, -1, false, false, false)
+    PerformanceImplicitGemmBwdDataV4R1Xdlops();
+    PerformanceImplicitGemmBwdDataV4R1Xdlops(bool)
+        : PerformanceImplicitGemmBwdDataV4R1Xdlops()
     {
     }
-
-    PerformanceImplicitGemmBwdDataV4R1Xdlops(
-        int a, int b, int c, int d, int e, int f, bool g, bool h)
-        : PerformanceImplicitGemmBwdDataV4R1Xdlops(a, b, c, d, e, f, g, h, false)
-    {
-    }
-
-    PerformanceImplicitGemmBwdDataV4R1Xdlops(bool spare);
 
     bool operator==(const PerformanceImplicitGemmBwdDataV4R1Xdlops& other) const;
 

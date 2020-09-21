@@ -512,20 +512,19 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsValid(const ConvolutionContext&
     return IsReallyValid(ctx) && IsFastToBeUsedForTuning(ctx);
 }
 
-PerformanceImplicitGemmBwdDataV4R1Xdlops::PerformanceImplicitGemmBwdDataV4R1Xdlops(bool spare)
+PerformanceImplicitGemmBwdDataV4R1Xdlops::PerformanceImplicitGemmBwdDataV4R1Xdlops()
 {
-    GemmNPerBlock = spare ? 16 : 64;
-    GemmMPerBlock = spare ? 4 : 64;
-    GemmKPerBlock = spare ? 4 : 8;
+    GemmNPerBlock = 64;
+    GemmMPerBlock = 64;
+    GemmKPerBlock = 8;
 
     GemmKPACKSize = 1;
 
-    GemmMPerWave = spare ? 4 : 64;
-    GemmNPerWave = spare ? 16 : 64;
+    GemmMPerWave = 64;
+    GemmNPerWave = 64;
 
     GemmAThreadCopyMoreGemmK     = false;
     GemmBThreadCopyMoreGemmKPack = false;
-    use_spare_set                = spare;
 }
 
 PerformanceImplicitGemmBwdDataV4R1Xdlops::PerformanceImplicitGemmBwdDataV4R1Xdlops(
@@ -536,8 +535,7 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::PerformanceImplicitGemmBwdDataV4R1Xdlo
     int GemmMPerWave_,
     int GemmNPerWave_,
     bool GemmAThreadCopyMoreGemmK_,
-    bool GemmBThreadCopyMoreGemmKPack_,
-    bool use_spare_set_)
+    bool GemmBThreadCopyMoreGemmKPack_)
     : GemmNPerBlock(GemmNPerBlock_),
       GemmMPerBlock(GemmMPerBlock_),
       GemmKPerBlock(GemmKPerBlock_),
@@ -545,8 +543,7 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::PerformanceImplicitGemmBwdDataV4R1Xdlo
       GemmMPerWave(GemmMPerWave_),
       GemmNPerWave(GemmNPerWave_),
       GemmAThreadCopyMoreGemmK(GemmAThreadCopyMoreGemmK_),
-      GemmBThreadCopyMoreGemmKPack(GemmBThreadCopyMoreGemmKPack_),
-      use_spare_set(use_spare_set_)
+      GemmBThreadCopyMoreGemmKPack(GemmBThreadCopyMoreGemmKPack_)
 {
 }
 
@@ -561,8 +558,7 @@ operator==(const PerformanceImplicitGemmBwdDataV4R1Xdlops& other) const
         && GemmMPerWave == other.GemmMPerWave
         && GemmNPerWave == other.GemmNPerWave
 	&& GemmAThreadCopyMoreGemmK  == other.GemmAThreadCopyMoreGemmK
-	&& GemmBThreadCopyMoreGemmKPack  == other.GemmBThreadCopyMoreGemmKPack
-        && use_spare_set == other.use_spare_set;
+	&& GemmBThreadCopyMoreGemmKPack  == other.GemmBThreadCopyMoreGemmKPack;
     // clang-format on
 }
 
