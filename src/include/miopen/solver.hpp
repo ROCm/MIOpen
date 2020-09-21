@@ -1393,7 +1393,7 @@ struct TunableImplicitGemmGTCDynamic_t
                        std::to_string(tensor_b_cluster_lengths[1]) + "x" +
                        std::to_string(tensor_b_cluster_lengths[2]) + "x" +
                        std::to_string(tensor_b_cluster_lengths[3]);
-        if(use_atomic_add)
+        if(use_atomic_add != 0)
             kernel_name += std::string("_atadd");
 
         return kernel_name;
