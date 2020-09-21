@@ -508,31 +508,6 @@ igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt4x64x16_wt4x64_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4
     v_lshl_add_u32 v[v_out_os], v[v_tmp], 2, v[v_out_os_base]
     s_waitcnt lgkmcnt(0)
     s_barrier
-
-    ; load input
-    .v_clear_nc v_gld_b, 16
-    v_cmp_eq_u32 vcc, 1, v[v_in_flag]
-    s_and_saveexec_b64 s[s_tmp+4:s_tmp+5], vcc
-    buffer_load_dword v[v_gld_b+0], v[v_in_os], s[s_p_in:s_p_in+3], 0 offen offset:0
-    buffer_load_dword v[v_gld_b+1], v[v_in_os], s[s_p_in:s_p_in+3], s[s_in_stride_c0] offen offset:0
-    buffer_load_dword v[v_gld_b+2], v[v_in_os], s[s_p_in:s_p_in+3], s[s_in_offset+0] offen offset:0
-    buffer_load_dword v[v_gld_b+3], v[v_in_os], s[s_p_in:s_p_in+3], s[s_in_offset+1] offen offset:0
-    buffer_load_dword v[v_gld_b+4], v[v_in_os], s[s_p_in:s_p_in+3], s[s_in_offset+2] offen offset:0
-    buffer_load_dword v[v_gld_b+5], v[v_in_os], s[s_p_in:s_p_in+3], s[s_in_offset+3] offen offset:0
-    buffer_load_dword v[v_gld_b+6], v[v_in_os], s[s_p_in:s_p_in+3], s[s_in_offset+4] offen offset:0
-    buffer_load_dword v[v_gld_b+7], v[v_in_os], s[s_p_in:s_p_in+3], s[s_in_offset+5] offen offset:0
-    buffer_load_dword v[v_gld_b+8], v[v_in_os], s[s_p_in:s_p_in+3], s[s_in_offset+6] offen offset:0
-    buffer_load_dword v[v_gld_b+9], v[v_in_os], s[s_p_in:s_p_in+3], s[s_in_offset+7] offen offset:0
-    buffer_load_dword v[v_gld_b+10], v[v_in_os], s[s_p_in:s_p_in+3], s[s_in_offset+8] offen offset:0
-    buffer_load_dword v[v_gld_b+11], v[v_in_os], s[s_p_in:s_p_in+3], s[s_in_offset+9] offen offset:0
-    buffer_load_dword v[v_gld_b+12], v[v_in_os], s[s_p_in:s_p_in+3], s[s_in_offset+10] offen offset:0
-    buffer_load_dword v[v_gld_b+13], v[v_in_os], s[s_p_in:s_p_in+3], s[s_in_offset+11] offen offset:0
-    buffer_load_dword v[v_gld_b+14], v[v_in_os], s[s_p_in:s_p_in+3], s[s_in_offset+12] offen offset:0
-    buffer_load_dword v[v_gld_b+15], v[v_in_os], s[s_p_in:s_p_in+3], s[s_in_offset+13] offen offset:0
-    s_or_b64 exec, exec, s[s_tmp+4:s_tmp+5]
-    ; load output
-    buffer_load_dword v[v_gld_a+0], v[v_out_os], s[s_p_out:s_p_out+3], 0 offen offset:0
-
 L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt4x64x16_wt4x64_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4_atadd_mfma_body:
     ; do fma accumulate with unroll 16
     ds_read_b32 v[v_a], v[v_sld_a_os] 
@@ -667,7 +642,6 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt4x64x16_wt4x64_ws1x1_wr1x1_ta1x1x1x1_1x16x1
     ds_write2_b32 v[v_sst_b_os], v[v_gld_b+14], v[v_gld_b+14+1], offset0:56, offset1:60
     s_waitcnt vmcnt(0)
     ds_write_b32 v[v_sst_a_os], v[v_gld_a+0]
-    s_waitcnt lgkmcnt(0)
     v_mfma_f32_4x4x1f32 a[a_c+0:a_c+3], v[v_a], v[v_b], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
     s_sub_i32 s[s_kitr], s[s_kitr], 16
     s_cmp_gt_i32 s[s_kitr], 0
@@ -1294,31 +1268,6 @@ igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt4x64x16_wt4x64_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4
     v_lshl_add_u32 v[v_out_os], v[v_tmp], 2, v[v_out_os_base]
     s_waitcnt lgkmcnt(0)
     s_barrier
-
-    ; load input
-    .v_clear_nc v_gld_b, 16
-    v_cmp_eq_u32 vcc, 1, v[v_in_flag]
-    s_and_saveexec_b64 s[s_tmp+4:s_tmp+5], vcc
-    buffer_load_dword v[v_gld_b+0], v[v_in_os], s[s_p_in:s_p_in+3], 0 offen offset:0
-    buffer_load_dword v[v_gld_b+1], v[v_in_os], s[s_p_in:s_p_in+3], s[s_in_stride_c0] offen offset:0
-    buffer_load_dword v[v_gld_b+2], v[v_in_os], s[s_p_in:s_p_in+3], s[s_in_offset+0] offen offset:0
-    buffer_load_dword v[v_gld_b+3], v[v_in_os], s[s_p_in:s_p_in+3], s[s_in_offset+1] offen offset:0
-    buffer_load_dword v[v_gld_b+4], v[v_in_os], s[s_p_in:s_p_in+3], s[s_in_offset+2] offen offset:0
-    buffer_load_dword v[v_gld_b+5], v[v_in_os], s[s_p_in:s_p_in+3], s[s_in_offset+3] offen offset:0
-    buffer_load_dword v[v_gld_b+6], v[v_in_os], s[s_p_in:s_p_in+3], s[s_in_offset+4] offen offset:0
-    buffer_load_dword v[v_gld_b+7], v[v_in_os], s[s_p_in:s_p_in+3], s[s_in_offset+5] offen offset:0
-    buffer_load_dword v[v_gld_b+8], v[v_in_os], s[s_p_in:s_p_in+3], s[s_in_offset+6] offen offset:0
-    buffer_load_dword v[v_gld_b+9], v[v_in_os], s[s_p_in:s_p_in+3], s[s_in_offset+7] offen offset:0
-    buffer_load_dword v[v_gld_b+10], v[v_in_os], s[s_p_in:s_p_in+3], s[s_in_offset+8] offen offset:0
-    buffer_load_dword v[v_gld_b+11], v[v_in_os], s[s_p_in:s_p_in+3], s[s_in_offset+9] offen offset:0
-    buffer_load_dword v[v_gld_b+12], v[v_in_os], s[s_p_in:s_p_in+3], s[s_in_offset+10] offen offset:0
-    buffer_load_dword v[v_gld_b+13], v[v_in_os], s[s_p_in:s_p_in+3], s[s_in_offset+11] offen offset:0
-    buffer_load_dword v[v_gld_b+14], v[v_in_os], s[s_p_in:s_p_in+3], s[s_in_offset+12] offen offset:0
-    buffer_load_dword v[v_gld_b+15], v[v_in_os], s[s_p_in:s_p_in+3], s[s_in_offset+13] offen offset:0
-    s_or_b64 exec, exec, s[s_tmp+4:s_tmp+5]
-    ; load output
-    buffer_load_dword v[v_gld_a+0], v[v_out_os], s[s_p_out:s_p_out+3], 0 offen offset:0
-
 L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt4x64x16_wt4x64_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4_mfma_body:
     ; do fma accumulate with unroll 16
     ds_read_b32 v[v_a], v[v_sld_a_os] 
@@ -1453,7 +1402,6 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt4x64x16_wt4x64_ws1x1_wr1x1_ta1x1x1x1_1x16x1
     ds_write2_b32 v[v_sst_b_os], v[v_gld_b+14], v[v_gld_b+14+1], offset0:56, offset1:60
     s_waitcnt vmcnt(0)
     ds_write_b32 v[v_sst_a_os], v[v_gld_a+0]
-    s_waitcnt lgkmcnt(0)
     v_mfma_f32_4x4x1f32 a[a_c+0:a_c+3], v[v_a], v[v_b], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
     s_sub_i32 s[s_kitr], s[s_kitr], 16
     s_cmp_gt_i32 s[s_kitr], 0

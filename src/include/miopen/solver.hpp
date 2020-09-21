@@ -1343,6 +1343,63 @@ struct TunableImplicitGemmGTCDynamic_t
     int tensor_b_thread_lengths[4];
     int tensor_b_cluster_lengths[4];
     int use_atomic_add;
+
+    const int amd_gpu_wave_size = 64;
+
+    int config_block_size(){
+        int waves_per_m = gemm_m_per_block / (wave_tile_m * wave_step_m * wave_repeat_m);
+        int waves_per_n = gemm_n_per_block / (wave_tile_n * wave_step_n * wave_repeat_n);
+        return waves_per_m * waves_per_n * amd_gpu_wave_size;
+    }
+    
+    //bool IsValid(const ConvolutionContext& ctx) const;
+
+    std::string config_kernel_string() {
+        std::string kernel_name = std::string("igemm_");
+        if (direction == 0)
+            kernel_name += std::string("fwd_");
+        else if (direction == 1)
+            kernel_name += std::string("bwd_");
+        else if (direction == 2)
+            kernel_name += std::string("wrw_");
+        kernel_name += std::string("gtcx_nchw_");
+        switch(precision)
+        {
+        case 0: kernel_name += "fp32"; break;
+        case 1: kernel_name += "fp16"; break;
+        case 2: kernel_name += "bfp16"; break;
+        }
+        kernel_name +=
+            "_bx" + std::to_string(nxb) + "_ex" + std::to_string(nxe) + "_bt" +
+            std::to_string(gemm_m_per_block) + "x" +
+            std::to_string(gemm_n_per_block) + "x" +
+            std::to_string(gemm_k_per_block) + "_wt" +
+            std::to_string(wave_tile_m) + "x" + std::to_string(wave_tile_n) +
+            "_ws" + std::to_string(wave_step_m) + "x" +
+            std::to_string(wave_step_n) + "_wr" + std::to_string(wave_repeat_m) +
+            "x" + std::to_string(wave_repeat_n) + "_ta" +
+            std::to_string(tensor_a_thread_lengths[0]) + "x" +
+            std::to_string(tensor_a_thread_lengths[1]) + "x" +
+            std::to_string(tensor_a_thread_lengths[2]) + "x" +
+            std::to_string(tensor_a_thread_lengths[3]) + "_" +
+            std::to_string(tensor_a_cluster_lengths[0]) + "x" +
+            std::to_string(tensor_a_cluster_lengths[1]) + "x" +
+            std::to_string(tensor_a_cluster_lengths[2]) + "x" +
+            std::to_string(tensor_a_cluster_lengths[3]) + "_tb" +
+            std::to_string(tensor_b_thread_lengths[0]) + "x" +
+            std::to_string(tensor_b_thread_lengths[1]) + "x" +
+            std::to_string(tensor_b_thread_lengths[2]) + "x" +
+            std::to_string(tensor_b_thread_lengths[3]) + "_" +
+            std::to_string(tensor_b_cluster_lengths[0]) + "x" +
+            std::to_string(tensor_b_cluster_lengths[1]) + "x" +
+            std::to_string(tensor_b_cluster_lengths[2]) + "x" +
+            std::to_string(tensor_b_cluster_lengths[3]);
+            if (use_atomic_add)
+                kernel_name += std::string("_atadd");
+
+        return kernel_name;
+    }
+
 };
 
 struct ConvAsmImplicitGemmV4R1DynamicWrw : SolverBase<ConvolutionContext>

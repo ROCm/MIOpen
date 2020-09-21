@@ -31,6 +31,7 @@
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include "implicitgemm_util.hpp"
 #include <miopen/gcn_asm_utils.hpp>
+#include <miopen/tensor_ops.hpp>
 
 namespace miopen {
 namespace solver {
@@ -40,80 +41,99 @@ namespace solver {
 //{  16, 128,  16,   2,   4,   4,   4,   4,   4,   4,  16,   1,  16,   1,   16,  16},
 //{   8,  32,   4,   2,   2,   2,   2,   4,   4,   2,   4,   2,   8,   1,    4,  16}
 
-static inline std::vector<string>& GetImplicitGemmWrwGTCDynamicXdlopsKernelNameList()
+static inline std::vector<TunableImplicitGemmGTCDynamic_t>& GetImplicitGemmWrwGTCDynamicXdlopsKernelList()
 {
     // retrieve dynamic igemm wrw pass's possible kernel name
     // clang-format off
-    static const std::vector<string> kernel_name_list = {
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x16_wt32x32_ws1x1_wr2x2_ta2x1x4x1_1x8x1x32_tb2x1x4x1_1x8x1x32",
-        "igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt128x128x16_wt32x32_ws1x1_wr2x2_ta1x4x2x1_1x4x1x64_tb1x4x2x1_1x4x1x64",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x16_wt32x32_ws1x1_wr2x2_ta2x1x4x1_1x8x1x32_tb2x1x4x1_1x8x1x32_atadd",   
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x16_wt32x32_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x8x1_1x16x1x16_atadd", 
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x16_wt32x32_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x8x1_1x16x1x16",       
-        "igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt128x128x16_wt32x32_ws1x1_wr2x2_ta1x4x2x1_1x4x1x64_tb1x4x2x1_1x4x1x64_atadd",   
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x8_wt32x32_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x4x1_1x8x1x32",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x8_wt32x32_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x4x1_1x8x1x32_atadd",    
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x128x16_wt64x32_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x8x1_1x16x1x16",      
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x128x8_wt64x32_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x4x1_1x8x1x32",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x128x16_wt64x32_ws1x1_wr2x2_ta2x1x8x1_1x8x1x32_tb2x1x4x1_1x8x1x32_atadd",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x128x16_wt64x32_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x8x1_1x16x1x16_atadd",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x4_wt64x16_ws1x1_wr2x2_ta1x1x4x1_1x4x1x64_tb1x1x1x1_1x4x1x64_atadd",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x4_wt64x16_ws1x1_wr2x2_ta1x1x4x1_1x4x1x64_tb1x1x1x1_1x4x1x64",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x8_wt64x16_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x2x1_1x8x1x32_atadd",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x8_wt64x16_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x2x1_1x8x1x32",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x16_wt64x16_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x4x1_1x16x1x16_atadd",
-        "igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x64x16_wt64x16_ws1x1_wr2x2_ta1x4x4x1_1x4x1x64_tb1x4x1x1_1x4x1x64_atadd",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x16_wt64x16_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x4x1_1x16x1x16",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x16_wt16x16_ws1x1_wr2x2_ta2x1x2x1_1x8x1x32_tb2x1x2x1_1x8x1x32_atadd",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x16_wt16x16_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x4x1_1x16x1x16_atadd",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x8_wt16x16_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x2x1_1x8x1x32_atadd",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x16_wt16x16_ws1x1_wr2x2_ta2x1x2x1_1x8x1x32_tb2x1x2x1_1x8x1x32",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x16_wt16x16_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x4x1_1x16x1x16",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x8_wt16x16_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x2x1_1x8x1x32",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt4x64x16_wt4x64_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4_atadd",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt4x64x16_wt4x64_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt32x32x8_wt16x16_ws1x1_wr1x1_ta1x1x1x1_1x8x1x32_tb1x1x1x1_1x8x1x32_atadd",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt32x32x8_wt16x16_ws1x1_wr1x1_ta1x1x1x1_1x8x1x32_tb1x1x1x1_1x8x1x32",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x32x8_wt32x8_ws1x2_wr1x1_ta1x1x2x1_1x8x1x32_tb1x1x1x1_1x8x1x32",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x32x8_wt32x8_ws1x2_wr1x1_ta1x1x2x1_1x8x1x32_tb1x1x1x1_1x8x1x32_atadd",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x32x16_wt32x8_ws1x2_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x2x1_1x16x1x16",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x32x16_wt32x8_ws1x2_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x2x1_1x16x1x16_atadd",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x16_wt64x4_ws1x2_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x2x1_1x16x1x16",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x16_wt64x4_ws1x2_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x2x1_1x16x1x16_atadd",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x8_wt64x4_ws1x2_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x1x1_1x8x1x32",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x8_wt64x4_ws1x2_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x1x1_1x8x1x32_atadd",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_atadd",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_atadd",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x256x8_wt16x64_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x8x1_1x8x1x32_atadd",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x256x8_wt16x64_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x8x1_1x8x1x32",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x256x16_wt16x64_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x16x1_1x16x1x16_atadd",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x256x16_wt16x64_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x16x1_1x16x1x16",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x16x16_wt64x4_ws1x1_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x1x1_1x16x1x16",
-        "igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x16x16_wt64x4_ws1x1_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x1x1_1x16x1x16_atadd"
+    static std::vector<TunableImplicitGemmGTCDynamic_t> kernel_param_list {
+        { 2,   0,   4,   0, 256, 128,  16,  64,  32,   1,   1,   2,   2,   {1,   4,   4,   1},   {1,   4,   1,  64},   {1,   4,   2,   1},   {1,   4,   1,  64} ,	0  },
+		{ 2,   0,   4,   0, 256, 128,  16,  64,  32,   1,   1,   2,   2,   {1,   4,   4,   1},   {1,   4,   1,  64},   {1,   4,   2,   1},   {1,   4,   1,  64} ,	1  },
+		{ 2,   0,   4,   0, 256, 128,   8,  64,  32,   1,   1,   2,   2,   {1,   4,   2,   1},   {1,   2,   1, 128},   {1,   4,   1,   1},   {1,   2,   1, 128} ,	0  },
+		{ 2,   0,   4,   0, 256, 128,   8,  64,  32,   1,   1,   2,   2,   {1,   4,   2,   1},   {1,   2,   1, 128},   {1,   4,   1,   1},   {1,   2,   1, 128} ,	1  },
+		{ 2,   0,   1,   1, 256, 128,  16,  64,  32,   1,   1,   2,   2,   {1,   1,  16,   1},   {1,  16,   1,  16},   {1,   1,   8,   1},   {1,  16,   1,  16} ,	0  },
+		{ 2,   0,   1,   1, 256, 128,  16,  64,  32,   1,   1,   2,   2,   {1,   1,  16,   1},   {1,  16,   1,  16},   {1,   1,   8,   1},   {1,  16,   1,  16} ,	1  },
+		{ 2,   0,   1,   1, 256, 128,   8,  64,  32,   1,   1,   2,   2,   {1,   1,   8,   1},   {1,   8,   1,  32},   {1,   1,   4,   1},   {1,   8,   1,  32} ,	0  },
+		{ 2,   0,   1,   1, 256, 128,   8,  64,  32,   1,   1,   2,   2,   {1,   1,   8,   1},   {1,   8,   1,  32},   {1,   1,   4,   1},   {1,   8,   1,  32} ,	1  },
+		{ 2,   0,   4,   0, 256,  64,  16,  64,  16,   1,   1,   2,   2,   {1,   4,   4,   1},   {1,   4,   1,  64},   {1,   4,   1,   1},   {1,   4,   1,  64} ,	0  },
+		{ 2,   0,   4,   0, 256,  64,  16,  64,  16,   1,   1,   2,   2,   {1,   4,   4,   1},   {1,   4,   1,  64},   {1,   4,   1,   1},   {1,   4,   1,  64} ,	1  },
+		{ 2,   0,   1,   1, 256,  64,  16,  64,  16,   1,   1,   2,   2,   {1,   1,  16,   1},   {1,  16,   1,  16},   {1,   1,   4,   1},   {1,  16,   1,  16} ,	0  },
+		{ 2,   0,   1,   1, 256,  64,  16,  64,  16,   1,   1,   2,   2,   {1,   1,  16,   1},   {1,  16,   1,  16},   {1,   1,   4,   1},   {1,  16,   1,  16} ,	1  },
+		{ 2,   0,   1,   1, 256,  64,   8,  64,  16,   1,   1,   2,   2,   {1,   1,   8,   1},   {1,   8,   1,  32},   {1,   1,   2,   1},   {1,   8,   1,  32} ,	0  },
+		{ 2,   0,   1,   1, 256,  64,   8,  64,  16,   1,   1,   2,   2,   {1,   1,   8,   1},   {1,   8,   1,  32},   {1,   1,   2,   1},   {1,   8,   1,  32} ,	1  },
+		{ 2,   0,   1,   1, 256,  64,   4,  64,  16,   1,   1,   2,   2,   {1,   1,   4,   1},   {1,   4,   1,  64},   {1,   1,   1,   1},   {1,   4,   1,  64} ,	0  },
+		{ 2,   0,   1,   1, 256,  64,   4,  64,  16,   1,   1,   2,   2,   {1,   1,   4,   1},   {1,   4,   1,  64},   {1,   1,   1,   1},   {1,   4,   1,  64} ,	1  },
+		{ 2,   0,   1,   1, 256,  32,  16,  64,   4,   1,   2,   2,   2,   {1,   1,  16,   1},   {1,  16,   1,  16},   {1,   1,   2,   1},   {1,  16,   1,  16} ,	0  },
+		{ 2,   0,   1,   1, 256,  32,  16,  64,   4,   1,   2,   2,   2,   {1,   1,  16,   1},   {1,  16,   1,  16},   {1,   1,   2,   1},   {1,  16,   1,  16} ,	1  },
+		{ 2,   0,   1,   1, 256,  32,   8,  64,   4,   1,   2,   2,   2,   {1,   1,   8,   1},   {1,   8,   1,  32},   {1,   1,   1,   1},   {1,   8,   1,  32} ,	0  },
+		{ 2,   0,   1,   1, 256,  32,   8,  64,   4,   1,   2,   2,   2,   {1,   1,   8,   1},   {1,   8,   1,  32},   {1,   1,   1,   1},   {1,   8,   1,  32} ,	1  },
+		{ 2,   0,   4,   0, 128, 128,  16,  32,  32,   1,   1,   2,   2,   {1,   4,   2,   1},   {1,   4,   1,  64},   {1,   4,   2,   1},   {1,   4,   1,  64} ,	0  },
+		{ 2,   0,   4,   0, 128, 128,  16,  32,  32,   1,   1,   2,   2,   {1,   4,   2,   1},   {1,   4,   1,  64},   {1,   4,   2,   1},   {1,   4,   1,  64} ,	1  },
+		{ 2,   0,   1,   1, 128, 128,  16,  32,  32,   1,   1,   2,   2,   {1,   1,   8,   1},   {1,  16,   1,  16},   {1,   1,   8,   1},   {1,  16,   1,  16} ,	1  },
+		{ 2,   0,   1,   1, 128, 128,  16,  32,  32,   1,   1,   2,   2,   {1,   1,   8,   1},   {1,  16,   1,  16},   {1,   1,   8,   1},   {1,  16,   1,  16} ,	0  },
+		{ 2,   0,   1,   1, 128, 128,   8,  32,  32,   1,   1,   2,   2,   {1,   1,   4,   1},   {1,   8,   1,  32},   {1,   1,   4,   1},   {1,   8,   1,  32} ,	0  },
+		{ 2,   0,   1,   1, 128, 128,   8,  32,  32,   1,   1,   2,   2,   {1,   1,   4,   1},   {1,   8,   1,  32},   {1,   1,   4,   1},   {1,   8,   1,  32} ,	1  },
+		{ 2,   0,   4,   0, 128,  64,  16,  32,   8,   1,   2,   2,   2,   {1,   4,   2,   1},   {1,   4,   1,  64},   {1,   4,   1,   1},   {1,   4,   1,  64} ,	0  },
+		{ 2,   0,   4,   0, 128,  64,  16,  32,   8,   1,   2,   2,   2,   {1,   4,   2,   1},   {1,   4,   1,  64},   {1,   4,   1,   1},   {1,   4,   1,  64} ,	1  },
+		{ 2,   0,   1,   1, 128,  64,  16,  32,   8,   1,   2,   2,   2,   {1,   1,   8,   1},   {1,  16,   1,  16},   {1,   1,   4,   1},   {1,  16,   1,  16} ,	0  },
+		{ 2,   0,   1,   1, 128,  64,  16,  32,   8,   1,   2,   2,   2,   {1,   1,   8,   1},   {1,  16,   1,  16},   {1,   1,   4,   1},   {1,  16,   1,  16} ,	1  },
+		{ 2,   0,   1,   1, 128,  64,   8,  32,   8,   1,   2,   2,   2,   {1,   1,   4,   1},   {1,   8,   1,  32},   {1,   1,   2,   1},   {1,   8,   1,  32} ,	0  },
+		{ 2,   0,   1,   1, 128,  64,   8,  32,   8,   1,   2,   2,   2,   {1,   1,   4,   1},   {1,   8,   1,  32},   {1,   1,   2,   1},   {1,   8,   1,  32} ,	1  },
+		{ 2,   0,   1,   1, 128,  32,  16,  32,   8,   1,   1,   2,   2,   {1,   1,   8,   1},   {1,  16,   1,  16},   {1,   1,   2,   1},   {1,  16,   1,  16} ,	0  },
+		{ 2,   0,   1,   1, 128,  32,  16,  32,   8,   1,   1,   2,   2,   {1,   1,   8,   1},   {1,  16,   1,  16},   {1,   1,   2,   1},   {1,  16,   1,  16} ,	1  },
+		{ 2,   0,   1,   1, 128,  32,   8,  32,   8,   1,   1,   2,   2,   {1,   1,   4,   1},   {1,   8,   1,  32},   {1,   1,   1,   1},   {1,   8,   1,  32} ,	0  },
+		{ 2,   0,   1,   1, 128,  32,   8,  32,   8,   1,   1,   2,   2,   {1,   1,   4,   1},   {1,   8,   1,  32},   {1,   1,   1,   1},   {1,   8,   1,  32} ,	1  },
+		{ 2,   0,   1,   1,  64, 256,  16,  16,  64,   1,   1,   2,   2,   {1,   1,   4,   1},   {1,  16,   1,  16},   {1,   1,  16,   1},   {1,  16,   1,  16} ,	0  },
+		{ 2,   0,   1,   1,  64, 256,  16,  16,  64,   1,   1,   2,   2,   {1,   1,   4,   1},   {1,  16,   1,  16},   {1,   1,  16,   1},   {1,  16,   1,  16} ,	1  },
+		{ 2,   0,   1,   1,  64, 256,   8,  16,  64,   1,   1,   2,   2,   {1,   1,   2,   1},   {1,   8,   1,  32},   {1,   1,   8,   1},   {1,   8,   1,  32} ,	0  },
+		{ 2,   0,   1,   1,  64, 256,   8,  16,  64,   1,   1,   2,   2,   {1,   1,   2,   1},   {1,   8,   1,  32},   {1,   1,   8,   1},   {1,   8,   1,  32} ,	1  },
+		{ 2,   0,   1,   1,  64, 128,  16,   8,  32,   2,   1,   2,   2,   {1,   1,   4,   1},   {1,  16,   1,  16},   {1,   1,   8,   1},   {1,  16,   1,  16} ,	0  },
+		{ 2,   0,   1,   1,  64, 128,  16,   8,  32,   2,   1,   2,   2,   {1,   1,   4,   1},   {1,  16,   1,  16},   {1,   1,   8,   1},   {1,  16,   1,  16} ,	1  },
+		{ 2,   0,   1,   1,  64, 128,   8,   8,  32,   2,   1,   2,   2,   {1,   1,   2,   1},   {1,   8,   1,  32},   {1,   1,   4,   1},   {1,   8,   1,  32} ,	0  },
+		{ 2,   0,   1,   1,  64, 128,   8,   8,  32,   2,   1,   2,   2,   {1,   1,   2,   1},   {1,   8,   1,  32},   {1,   1,   4,   1},   {1,   8,   1,  32} ,	1  },
+		{ 2,   0,   1,   1,  64,  64,  16,  16,  16,   1,   1,   2,   2,   {1,   1,   4,   1},   {1,  16,   1,  16},   {1,   1,   4,   1},   {1,  16,   1,  16} ,	0  },
+		{ 2,   0,   1,   1,  64,  64,  16,  16,  16,   1,   1,   2,   2,   {1,   1,   4,   1},   {1,  16,   1,  16},   {1,   1,   4,   1},   {1,  16,   1,  16} ,	1  },
+		{ 2,   0,   1,   1,  64,  64,   8,  16,  16,   1,   1,   2,   2,   {1,   1,   2,   1},   {1,   8,   1,  32},   {1,   1,   2,   1},   {1,   8,   1,  32} ,	0  },
+		{ 2,   0,   1,   1,  64,  64,   8,  16,  16,   1,   1,   2,   2,   {1,   1,   2,   1},   {1,   8,   1,  32},   {1,   1,   2,   1},   {1,   8,   1,  32} ,	1  },
+		{ 2,   0,   1,   1,  64,  32,  16,  32,   8,   1,   2,   1,   1,   {1,   1,   4,   1},   {1,  16,   1,  16},   {1,   1,   2,   1},   {1,  16,   1,  16} ,	0  },
+		{ 2,   0,   1,   1,  64,  32,  16,  32,   8,   1,   2,   1,   1,   {1,   1,   4,   1},   {1,  16,   1,  16},   {1,   1,   2,   1},   {1,  16,   1,  16} ,	1  },
+		{ 2,   0,   1,   1,  64,  32,   8,  32,   8,   1,   2,   1,   1,   {1,   1,   2,   1},   {1,   8,   1,  32},   {1,   1,   1,   1},   {1,   8,   1,  32} ,	0  },
+		{ 2,   0,   1,   1,  64,  32,   8,  32,   8,   1,   2,   1,   1,   {1,   1,   2,   1},   {1,   8,   1,  32},   {1,   1,   1,   1},   {1,   8,   1,  32} ,	1  },
+		{ 2,   0,   1,   1,  64,  16,  16,  64,   4,   1,   1,   1,   1,   {1,   1,   4,   1},   {1,  16,   1,  16},   {1,   1,   1,   1},   {1,  16,   1,  16} ,	0  },
+		{ 2,   0,   1,   1,  64,  16,  16,  64,   4,   1,   1,   1,   1,   {1,   1,   4,   1},   {1,  16,   1,  16},   {1,   1,   1,   1},   {1,  16,   1,  16} ,	1  },
+		{ 2,   0,   1,   1,   4,  64,  16,   4,  64,   1,   1,   1,   1,   {1,   1,   1,   1},   {1,  16,   1,   4},   {1,   1,  16,   1},   {1,  16,   1,   4} ,	1  },
+		{ 2,   0,   1,   1,   4,  64,  16,   4,  64,   1,   1,   1,   1,   {1,   1,   1,   1},   {1,  16,   1,   4},   {1,   1,  16,   1},   {1,  16,   1,   4} ,	0  },
+		{ 2,   0,   1,   1,  32,  32,   8,  16,  16,   1,   1,   1,   1,   {1,   1,   1,   1},   {1,   8,   1,  32},   {1,   1,   1,   1},   {1,   8,   1,  32} ,	1  },
+		{ 2,   0,   1,   1,  32,  32,   8,  16,  16,   1,   1,   1,   1,   {1,   1,   1,   1},   {1,   8,   1,  32},   {1,   1,   1,   1},   {1,   8,   1,  32} ,	0  },
+		{ 2,   0,   1,   1,  16,  32,  16,   8,  32,   1,   1,   1,   1,   {1,   1,   2,   1},   {1,  16,   1,   8},   {1,   1,   4,   1},   {1,  16,   1,   8} ,	0  },
+		{ 2,   0,   1,   1,  16,  32,  16,   8,  32,   1,   1,   1,   1,   {1,   1,   2,   1},   {1,  16,   1,   8},   {1,   1,   4,   1},   {1,  16,   1,   8} ,	1  },
+		{ 2,   0,   1,   1,  16,  32,   8,   8,  32,   1,   1,   1,   1,   {1,   1,   1,   1},   {1,   8,   1,  16},   {1,   1,   2,   1},   {1,   8,   1,  16} ,	0  },
+		{ 2,   0,   1,   1,  16,  32,   8,   8,  32,   1,   1,   1,   1,   {1,   1,   1,   1},   {1,   8,   1,  16},   {1,   1,   2,   1},   {1,   8,   1,  16} ,	1  }
     };
-    return kernel_name_list;
+    return kernel_param_list;
 }
-
-//static inline 
 
 static inline int
 GetImplicitGemmWrwGTCDynamicXdlopsGemmkSplits(const conv::ProblemDescription& conv_problem,
-                                              const int& GemmKPerBlock)
+                                              const int GemmKPerBlock,
+                                              const int grid_size)
 {
     int n            = conv_problem.GetInBatchSize();
     int ho           = conv_problem.GetInHeight();
     int wo           = conv_problem.GetInWidth();
-    int gemmk        = n * ho * wo;
-    int gemmk_splits = 1;
+    int gemmk_splits = 0;
+
+    int max_grid_size = 1200;
+
     int n_per_group;
-    for(int i = 0; i < 6; i++)
+    for(int i = 0; i < 8; i++)
     {
+        if ((grid_size << i) > max_grid_size){
+            break;
+        }
         if(0 == n % (1 << i))
         {
             n_per_group = n >> i;
-            if(0 == (gemmk % (n_per_group * GemmKPerBlock)))
+            if(0 == ((n_per_group * ho * wo) % GemmKPerBlock))
                 gemmk_splits = i;
             else
                 break;
@@ -121,8 +141,94 @@ GetImplicitGemmWrwGTCDynamicXdlopsGemmkSplits(const conv::ProblemDescription& co
         else
             break;
     }
-    // gemmk_splits = 0;
+
     return gemmk_splits;
+}
+
+// tuple<log2_gemmk_splits, grid_size>
+static inline std::tuple<int, int> 
+get_grid_size(const ConvolutionContext& ctx,
+              const TunableImplicitGemmGTCDynamic_t *tunable) 
+{
+    int k     = ctx.n_inputs;
+    int c     = ctx.n_outputs;
+    int y     = ctx.kernel_size_h;
+    int x     = ctx.kernel_size_w;
+    
+
+    int gemm_m_per_block         = tunable->gemm_m_per_block;
+    int gemm_n_per_block         = tunable->gemm_n_per_block;
+    int gemm_k_per_block         = tunable->gemm_k_per_block;
+    int use_atomic_add           = tunable->use_atomic_add;
+    int log2_gemmk_splits        = 0;
+
+    int gemm_m = k;
+    int gemm_n = c * y * x;
+
+    // assume that gemm m/n can be divided with no remainder by gemm m/n per block
+    int grid_size = (gemm_m / gemm_m_per_block) * (gemm_n / gemm_n_per_block);
+
+    if (use_atomic_add == 1)
+        log2_gemmk_splits = GetImplicitGemmWrwGTCDynamicXdlopsGemmkSplits(ctx.conv_problem, gemm_k_per_block, grid_size);
+    else
+        log2_gemmk_splits = 0; 
+    
+    int num_of_gemm = 1 << log2_gemmk_splits;
+    grid_size *= num_of_gemm;
+    return std::make_tuple(log2_gemmk_splits, grid_size);
+}
+
+static inline int find_tunable(const std::vector<TunableImplicitGemmGTCDynamic_t> tunables, 
+                               const int gemm_m_per_block,
+                               const int gemm_n_per_block,
+                               const int gemm_k_per_block,
+                               const int need_atomic_add,
+                               const int nxb,
+                               const int nxe)
+{
+    int i;
+    for (i = 0; i < tunables.size(); i++) {
+        if ((tunables[i].gemm_m_per_block == gemm_m_per_block) &&
+            (tunables[i].gemm_n_per_block == gemm_n_per_block) &&
+            (tunables[i].gemm_k_per_block == gemm_k_per_block) &&
+            (tunables[i].use_atomic_add   == need_atomic_add) &&
+            (tunables[i].nxb == nxb) &&
+            (tunables[i].nxe == nxe)){
+            break;
+        }
+    }
+    return i;
+}
+
+static inline int if_need_atomic_add(const ConvolutionContext& ctx,
+                                     const int gemm_m_per_block,
+                                     const int gemm_n_per_block,
+                                     const int gemm_k_per_block)
+{
+    int need_atomic_add = 0;
+    int n     = ctx.batch_sz;
+    int k     = ctx.n_inputs;
+    int c     = ctx.n_outputs;
+    int ho    = ctx.in_height;
+    int wo    = ctx.in_width;
+    int y     = ctx.kernel_size_h;
+    int x     = ctx.kernel_size_w;
+
+    int gemm_m = k;
+    int gemm_n = c * y * x;
+
+    int max_grid_size = 1200;
+
+    int grid_size;
+    // assume that gemm m/n can be divided with no remainder by gemm m/n per block
+    grid_size = (gemm_m / gemm_m_per_block) * (gemm_n / gemm_n_per_block);
+    if ((n % 2 == 0) && (grid_size < max_grid_size) && ((n >> 1) * ho * wo % gemm_k_per_block == 0)){
+        need_atomic_add = 1;
+    }
+    else {
+        need_atomic_add = 0;
+    }
+    return need_atomic_add;
 }
 
 static inline float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
@@ -130,7 +236,8 @@ static inline float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
                                                ConstData_t src,
                                                ConstData_t dst,
                                                Data_t wei,
-                                               const std::vector<KernelInvoke>& kernels)
+                                               const std::vector<KernelInvoke>& kernels,
+                                               const int log2_gemm_k_splits)
 {
     float elapsed = 0.0f;
 
@@ -138,36 +245,31 @@ static inline float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
     // clang-format off
     int hi           = conv_problem.GetOutHeight();
     int wi           = conv_problem.GetOutWidth();
-    int n            = conv_problem.GetOutChannels();
+    int n            = conv_problem.GetInBatchSize();
     int k            = conv_problem.GetInChannels();
-    int c            = conv_problem.GetInBatchSize();
-    int ho           = conv_problem.GetWeightsHeight();
-    int wo           = conv_problem.GetWeightsWidth();
-    int dilation_h   = conv_problem.GetInHeight() > 1 ? conv_problem.GetKernelStrideH() : 1;
-    int dilation_w   = conv_problem.GetInWidth() > 1 ? conv_problem.GetKernelStrideW() : 1;
-    int stride_h     = conv_problem.GetWeightsHeight() > 1? conv_problem.GetDilationH() : 1;
-    int stride_w     = conv_problem.GetWeightsWidth() > 1? conv_problem.GetDilationW() : 1;
+    int c            = conv_problem.GetOutChannels();
+    int ho           = conv_problem.GetInHeight();
+    int wo           = conv_problem.GetInWidth();
+    int stride_h     = conv_problem.GetInHeight() > 1 ? conv_problem.GetKernelStrideH() : 1;
+    int stride_w     = conv_problem.GetInWidth() > 1 ? conv_problem.GetKernelStrideW() : 1;
+    int dilation_h   = conv_problem.GetWeightsHeight() > 1? conv_problem.GetDilationH() : 1;
+    int dilation_w   = conv_problem.GetWeightsWidth() > 1? conv_problem.GetDilationW() : 1;
     int pad_h        = conv_problem.GetPadH();
     int pad_w        = conv_problem.GetPadW();
-    int y            = conv_problem.GetInHeight();
-    int x            = conv_problem.GetInWidth();
-    int gemmk_groups = 0;
-    int GemmKPerBlock;
-
-    if((k % 128 == 0) && ((n * ho * wo) % 128 == 0))
-        GemmKPerBlock = 16;
-    else
-        GemmKPerBlock = 4;
-
-    gemmk_groups = GetImplicitGemmWrwGTCDynamicXdlopsGemmkGroups(conv_problem, GemmKPerBlock);
-
-    MIOPEN_LOG_I2(kernel.GetName() << " with groups for reduction: " << (1 << gemmk_groups) << " GemmKPerBlock: " << GemmKPerBlock);
+    int y            = conv_problem.GetWeightsHeight();
+    int x            = conv_problem.GetWeightsWidth();
+    
+    //std::cout << "nchiwi: " << n << " " << c  << " " << hi << " " << wi << std::endl;
+    //std::cout << "nkhowo: " << n << " " << k  << " " << ho << " " << wo << std::endl;
+    //std::cout << "kcyx: " << k << " " << c  << " " << y << " " << x << std::endl;
+    
+    MIOPEN_LOG_I2(kernel.GetName() << " with groups for reduction: " << (1 << log2_gemm_k_splits));
 
     // clang-format on
     std::vector<OpKernelArg> opArgs;
     opArgs.emplace_back(src);
-    opArgs.emplace_back(dst);
     opArgs.emplace_back(wei);
+    opArgs.emplace_back(dst);
     opArgs.emplace_back(hi);
     opArgs.emplace_back(wi);
     opArgs.emplace_back(n);
@@ -183,102 +285,180 @@ static inline float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
     opArgs.emplace_back(pad_w);
     opArgs.emplace_back(y);
     opArgs.emplace_back(x);
-    opArgs.emplace_back(gemmk_groups);
+    opArgs.emplace_back(log2_gemm_k_splits);
     kernel(opArgs);
 
     if(handle.IsProfilingEnabled())
-        elapsed += handle.GetKernelTime();
+        elapsed = handle.GetKernelTime();
 
     return elapsed;
 }
 
 // find wrw dynamic kernel by a simple algo
 // check wether this kernel can be applicable
-static inline bool FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx,
-                                                        std::string& kernel_name,
-                                                        int& block_size,
-                                                        int& grid_size)
+static inline std::tuple<bool, int>
+FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
 {
-    int n     = ctx.batch_sz;
-    int k     = ctx.n_inputs;
-    int c     = ctx.n_outputs;
-    int ho    = ctx.in_height;
-    int wo    = ctx.in_width;
-    int y     = ctx.kernel_size_h;
-    int x     = ctx.kernel_size_w;
-    int GemmN = c * y * x;
-    int GemmM = k;
-    int GemmK = n * ho * wo;
-    int GemmNRepeat;
-    int GemmNPerThreadSubC;
-    int GemmN0YXPerBlock;
-    int GemmMPerBlock;
-    int GemmKPerBlock;
-    int GemmKGroups;
+    int n      = ctx.batch_sz;
+    int k      = ctx.n_inputs;
+    int c      = ctx.n_outputs;
+    int ho     = ctx.in_height;
+    int wo     = ctx.in_width;
+    int y      = ctx.kernel_size_h;
+    int x      = ctx.kernel_size_w;
+    const auto stride_h = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
+    const auto stride_w = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
+    
+    int gemm_n = c * y * x;
+    int gemm_m = k;
+    int gemm_k = n * ho * wo;
 
-    if((GemmM % 128 == 0) && (GemmN % 128 == 0))
-    {
-        GemmNRepeat        = 2;
-        GemmNPerThreadSubC = 4;
-        GemmN0YXPerBlock   = 16;
-        GemmMPerBlock      = 128;
-        GemmKPerBlock      = 16;
+    int gemm_m_per_block = 0;
+    int gemm_n_per_block = 0;
+    int gemm_k_per_block = 0;
+    int need_atomic_add = 0;
 
-        if(c % (GemmNRepeat * GemmNPerThreadSubC) != 0)
-            return false;
-        if(GemmN % (GemmNRepeat * GemmNPerThreadSubC * GemmN0YXPerBlock) != 0)
-            return false;
-        if(GemmM % GemmMPerBlock != 0)
-            return false;
+    int grid_size;
+    int block_size;
+    int nxb = 1;
+    int nxe = 1;
 
-        int log2_gemmk_groups =
-            GetImplicitGemmWrwGTCDynamicXdlopsGemmkSplits(ctx.conv_problem, GemmKPerBlock);
-        GemmKGroups = 1 << log2_gemmk_groups;
-        if(GemmK % (GemmKGroups * GemmKPerBlock) != 0)
-            return false;
+    int sel_index = -1;
 
-        block_size = 256;
-        grid_size  = (GemmM / GemmMPerBlock) *
-                    (GemmN / (GemmNRepeat * GemmNPerThreadSubC * GemmN0YXPerBlock)) * GemmKGroups;
+    std::vector<TunableImplicitGemmGTCDynamic_t> tunables = GetImplicitGemmWrwGTCDynamicXdlopsKernelList();
 
-        if((ho * wo) % 4 == 0)
-            kernel_name = "igemm_v4r1_dynamic_wrw_128x128x16_8x8_4x4x4x4x4x4_16x1x16x1_4x64";
-        else
-            kernel_name = "igemm_v4r1_dynamic_wrw_128x128x16_8x8_4x4x4x4x4x4_16x1x16x1_16x16";
+    std::string selected_kernel = std::string("NONE");
 
-        return true;
+    /* applicable table (except 128x128 case):
+    gemm_m/gemmn        256 64  32  16  4
+                --------------------------
+                256 |   0  |1  |0  |0  |0
+                64  |   1  |1  |0  |0  |1
+                32  |   1  |1  |1  |1  |0
+                16  |   0  |1  |0  |0  |0
+    
+    */
+    int i, j, r, l;
+    int max_grid_size = 0;
+    int cur_grid_size = 0;
+    int num_cu = 120;
+    int max_block_size = 0;
+
+    // i=log2(gemm_m_per_block*gemm_n_per_block)  to find largest kernel
+    // switch l r to get differnet kernel size like 256*64 or 64*256
+    for (i = 15; i > 7; i--){
+        r = (i + 1) >> 1;
+        l = i - r;
+        while (l > 1 && r < 9){
+            for (int swap = 0; swap < 2; swap++){
+                if (swap == 0){
+                    gemm_m_per_block = 1 << r;
+                    gemm_n_per_block = 1 << l;
+                }
+                else{
+                    gemm_m_per_block = 1 << l;
+                    gemm_n_per_block = 1 << r;
+                }
+                    
+                if (gemm_m % gemm_m_per_block != 0 || gemm_n % gemm_n_per_block != 0)
+                    continue;
+                for (j = 4; j > 1; j--){
+                    gemm_k_per_block = 1 << j;
+                    if (gemm_k % gemm_k_per_block != 0)
+                        continue;
+                    need_atomic_add = if_need_atomic_add(ctx, 
+                                                         gemm_m_per_block, 
+                                                         gemm_n_per_block,
+                                                         gemm_k_per_block);
+
+                    nxb = 1;
+                    nxe = 1;
+                    int tunable_index = -1;
+                        
+                    if ((x * y * stride_h * stride_w == 1) && (ho * wo % 4 == 0)){
+                        nxb = 4;
+                        nxe = 0;
+                        tunable_index = find_tunable(tunables, gemm_m_per_block, gemm_n_per_block, gemm_k_per_block, need_atomic_add, nxb, nxe);
+                        if (tunable_index < 0 || tunable_index >= tunables.size()){
+                            nxb = 1;
+                            nxe = 1;
+
+                            // std::cout << gemm_m_per_block << ", " << gemm_n_per_block << ", " << gemm_k_per_block << std::endl;
+                        
+                            tunable_index = find_tunable(tunables, gemm_m_per_block, gemm_n_per_block, gemm_k_per_block, need_atomic_add, nxb, nxe);
+
+                        }
+                    }
+                    else{
+                        tunable_index = find_tunable(tunables, gemm_m_per_block, gemm_n_per_block, gemm_k_per_block, need_atomic_add, nxb, nxe);
+                    }
+
+                        
+                    if (tunable_index < 0 || tunable_index >= tunables.size())
+                        continue;
+
+                    int gemmk_splits = 0;
+                    grid_size = (gemm_m / gemm_m_per_block) * (gemm_n / gemm_n_per_block);
+                    for (int gs = 0; gs < 8; gs++){
+                        if ((grid_size << gs) > 1200)
+                            break;
+                            
+                        if ((n % (1 << gs)) != 0){
+                            break;
+                        }
+                
+                        if ((n >> gs) * ho * wo % gemm_k_per_block !=0){
+                            break;
+                        }
+                        gemmk_splits = gs;
+                    }
+
+                    if (!need_atomic_add)
+                        gemmk_splits = 0;
+
+                    //std::cout << tunable_index << std::endl;
+
+                    block_size = tunables[tunable_index].config_block_size();
+
+                    cur_grid_size = grid_size << gemmk_splits;
+
+                    if (block_size >= max_block_size && cur_grid_size > max_grid_size)
+                    {
+                        max_block_size = block_size;
+                        max_grid_size = cur_grid_size;
+                        sel_index = tunable_index;
+                    }
+                        
+                    if (max_grid_size > num_cu * 2)
+                        break;
+                    
+                }
+                if (max_grid_size > num_cu * 2)
+                    break;
+            }
+            if (max_grid_size > num_cu * 2)
+                break;
+                
+            r++;
+            l--;
+        }
+        if (max_grid_size > num_cu)
+            break;
     }
-    else if((GemmM % 32 == 0) && (GemmN % 32 == 0))
+    //std::cout << "sel_index:" << sel_index << std::endl;
+    bool is_valid = false;
+
+    if (sel_index < 0 || sel_index >= tunables.size())
     {
-        GemmNRepeat        = 2;
-        GemmNPerThreadSubC = 2;
-        GemmN0YXPerBlock   = 8;
-        GemmMPerBlock      = 32;
-        GemmKPerBlock      = 4;
-
-        if(c % (GemmNRepeat * GemmNPerThreadSubC) != 0)
-            return false;
-        if(GemmN % (GemmNRepeat * GemmNPerThreadSubC * GemmN0YXPerBlock) != 0)
-            return false;
-        if(GemmM % GemmMPerBlock != 0)
-            return false;
-
-        int log2_gemmk_groups =
-            GetImplicitGemmWrwGTCDynamicXdlopsGemmkSplits(ctx.conv_problem, GemmKPerBlock);
-        GemmKGroups = 1 << log2_gemmk_groups;
-        if(GemmK % (GemmKGroups * GemmKPerBlock) != 0)
-            return false;
-
-        block_size = 64;
-        grid_size  = (GemmM / GemmMPerBlock) *
-                    (GemmN / (GemmNRepeat * GemmNPerThreadSubC * GemmN0YXPerBlock)) * GemmKGroups;
-
-        kernel_name = "igemm_v4r1_dynamic_wrw_32x32x4_4x4_2x2x4x2x4x2_4x2x8x1_4x16";
-
-        return true;
+        is_valid = false;
     }
     else
-        return false;
+    {
+        is_valid = true;
+    }
+
+    return std::make_tuple(is_valid, sel_index);
+
 }
 
 bool ConvAsmImplicitGemmGTCDynamicWrwXdlops::IsApplicable(const ConvolutionContext& ctx) const
@@ -305,11 +485,10 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlops::IsApplicable(const ConvolutionConte
     if(ctx.group_counts != 1)
         return false;
 
-    std::string kernel_name;
-    int block_size;
-    int grid_size;
+    bool is_valid;
+    std::tie(is_valid, std::ignore) = FindImplicitGemmWrwGTCDynamicXdlopsKernel(ctx);
 
-    return FindImplicitGemmWrwGTCDynamicXdlopsKernel(ctx, kernel_name, block_size, grid_size);
+    return is_valid;
 }
 
 ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ctx) const
@@ -319,28 +498,28 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const Convoluti
     KernelInfo kernel;
     std::ostringstream options;
 
+    std::vector<TunableImplicitGemmGTCDynamic_t> kernel_configs = GetImplicitGemmWrwGTCDynamicXdlopsKernelList();
+
     int block_size;
     int grid_size;
     std::string kernel_name;
-    bool ret = FindImplicitGemmWrwGTCDynamicXdlopsKernel(ctx, kernel_name, block_size, grid_size);
+    bool is_valid = false;
+    int kernel_index = -1;
+    std::tie(is_valid, kernel_index) = FindImplicitGemmWrwGTCDynamicXdlopsKernel(ctx);
 
-    if(!ret)
+    if(!is_valid)
         MIOPEN_THROW("this kernel should not run with igemm dynamic!");
 
-    int k = ctx.n_inputs;
-    int c = ctx.n_outputs;
-    int y = ctx.kernel_size_h;
-    int x = ctx.kernel_size_w;
-    int GemmKPerBlock;
-    int GemmN = c * y * x;
+    kernel_name = kernel_configs[kernel_index].config_kernel_string();
+    block_size  = kernel_configs[kernel_index].config_block_size();
 
-    if((k % 128 == 0) && (GemmN % 128 == 0))
-        GemmKPerBlock = 16;
-    else
-        GemmKPerBlock = 4;
-    int gemmk_groups  = GetImplicitGemmWrwGTCDynamicXdlopsGemmkSplits(ctx.conv_problem, GemmKPerBlock);
+    int log2_gemm_k_splits = 0;
 
-    result.workspce_sz = GetWorkspaceSize(ctx);
+    std::tie(log2_gemm_k_splits, grid_size) = get_grid_size(ctx, &kernel_configs[kernel_index]);
+
+    //std::cout << "tuple=" << grid_size << " " << log2_gemm_k_splits << std::endl;
+
+    result.workspce_sz = 0;
 
     kernel.kernel_file = "igemm_wrw_gtc_gfx908.s";
     kernel.kernel_name = kernel_name;
@@ -367,7 +546,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const Convoluti
 
     const auto& conv_problem = ctx.conv_problem;
 
-    result.invoker_factory = [conv_problem](const std::vector<Kernel>& kernels) {
+    result.invoker_factory = [conv_problem, log2_gemm_k_splits](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const boost::any& primitive_parameters) {
             const auto data_ctx = boost::any_cast<conv::WrWInvokeParams>(primitive_parameters);
             const auto& tensors = data_ctx.tensors;
@@ -377,8 +556,14 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const Convoluti
                            std::back_inserter(ks),
                            [&](const Kernel& k_wrw) { return handle.Run(k_wrw); });
             float elapsed = 0;
-            elapsed       = CallImplicitGemmWrwDynamic(
-                handle, conv_problem, tensors.x, tensors.dy, tensors.dw, ks);
+            float zero               = 0.f;
+            
+            SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
+            if(handle.IsProfilingEnabled())
+                elapsed += handle.GetKernelTime();
+            
+            elapsed += CallImplicitGemmWrwDynamic(
+                handle, conv_problem, tensors.x, tensors.dy, tensors.dw, ks, log2_gemm_k_splits);
             if(handle.IsProfilingEnabled())
             {
                 handle.ResetKernelTime();
