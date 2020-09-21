@@ -433,10 +433,10 @@ pipeline {
                     }
                 }
 
-                stage('Int8 HCC Release') {
+                stage('Int8 Hip Release All') {
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildJob('hcc', flags: '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image+"rocm", prefixpath: '/opt/rocm')
+                        buildJob('hcc', flags: '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image: image+"rocm", prefixpath: '/opt/rocm')
                     }
                 }
 
@@ -456,12 +456,23 @@ pipeline {
             }
         }
 
-        stage("Full tests I"){
+        stage("Long Tests I"){
             parallel{
-                stage('Int8 Hip Release All') {
-                    agent{ label rocmnode("vega20") }
+                stage('Int8 conv2d Release conv2d') {
+                    agent{ label rocmnode("vega") }
+                    environment{
+                        cmd = """
+                            ulimit -c unlimited
+                            rm -rf build
+                            mkdir build
+                            cd build
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_TEST_INT8=On -DMIOPEN_USE_COMGR=Off -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=Release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_ALL=On -DMIOPEN_TEST_LIMIT=2 -DMIOPEN_TEST_FLAGS="--disable-verification-cache" .. 
+                            make -j test_conv2d
+                            MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --limit 3 --disable-verification-cache
+                        """
+                    }
                     steps{
-                        buildJob('hcc', flags: '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image: image+"rocm", prefixpath: '/opt/rocm')
+                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd)
                     }
                 }
 
@@ -503,7 +514,7 @@ pipeline {
             }
         }
 
-        stage("Full tests II"){
+        stage("Long Tests II"){
             parallel{
                 
                 stage('Hip Clang conv3d') {
@@ -561,7 +572,7 @@ pipeline {
             }
         }
 
-        stage("Full tests III"){
+        stage("Long Tests III"){
             parallel{
                 stage('Half Hip Clang Release All') {
                     agent{ label rocmnode("vega20") }
