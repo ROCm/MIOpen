@@ -280,8 +280,7 @@ size_t ConvAsmImplicitGemmV4R1DynamicWrw::GetWorkspaceSize(const ConvolutionCont
 bool ConvAsmImplicitGemmV4R1DynamicWrw::IsApplicable(const ConvolutionContext& ctx) const
 {
     const auto device_name = ctx.GetStream().GetDeviceName();
-    if(!(StartsWith(device_name, "gfx900") || StartsWith(device_name, "gfx906") ||
-         StartsWith(device_name, "gfx908")))
+    if(!(StartsWith(device_name, "gfx900") || StartsWith(device_name, "gfx906")))
         return false;
 
     if(!ctx.direction.IsBackwardWrW())
