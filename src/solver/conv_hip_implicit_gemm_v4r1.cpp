@@ -468,7 +468,7 @@ ConvSolution ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& c
     const auto& WeiBlockCopySubLengths_E = e_per_block / config.WeiBlockCopyClusterLengths_E;
     const auto& WeiBlockCopySubLengths_K = k_per_block / config.WeiBlockCopyClusterLengths_K;
 
-    auto WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(WeiBlockCopySubLengths_E);
+    auto WeiBlockCopySrcDataPerRead_E = gcd(WeiBlockCopySubLengths_E, 4, ho * wo);
 
     const auto& InBlockCopySubLengths_B  = b_per_block / config.InBlockCopyClusterLengths_B;
     const auto& InBlockCopySubLengths_N2 = N2 / config.InBlockCopyClusterLengths_N2;
