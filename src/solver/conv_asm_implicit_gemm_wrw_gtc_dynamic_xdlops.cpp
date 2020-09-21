@@ -41,7 +41,8 @@ namespace solver {
 //{  16, 128,  16,   2,   4,   4,   4,   4,   4,   4,  16,   1,  16,   1,   16,  16},
 //{   8,  32,   4,   2,   2,   2,   2,   4,   4,   2,   4,   2,   8,   1,    4,  16}
 
-static inline std::vector<TunableImplicitGemmGTCDynamic_t>& GetImplicitGemmWrwGTCDynamicXdlopsKernelList()
+static inline std::vector<TunableImplicitGemmGTCDynamic_t>&
+GetImplicitGemmWrwGTCDynamicXdlopsKernelList()
 {
     // retrieve dynamic igemm wrw pass's possible kernel name
     // clang-format off
@@ -299,16 +300,16 @@ static inline float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
 static inline std::tuple<bool, int>
 FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
 {
-    int n      = ctx.batch_sz;
-    int k      = ctx.n_inputs;
-    int c      = ctx.n_outputs;
-    int ho     = ctx.in_height;
-    int wo     = ctx.in_width;
-    int y      = ctx.kernel_size_h;
-    int x      = ctx.kernel_size_w;
+    int n               = ctx.batch_sz;
+    int k               = ctx.n_inputs;
+    int c               = ctx.n_outputs;
+    int ho              = ctx.in_height;
+    int wo              = ctx.in_width;
+    int y               = ctx.kernel_size_h;
+    int x               = ctx.kernel_size_w;
     const auto stride_h = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
     const auto stride_w = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
-    
+
     int gemm_n = c * y * x;
     int gemm_m = k;
     int gemm_k = n * ho * wo;
@@ -316,7 +317,7 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
     int gemm_m_per_block = 0;
     int gemm_n_per_block = 0;
     int gemm_k_per_block = 0;
-    int need_atomic_add = 0;
+    int need_atomic_add  = 0;
 
     int grid_size;
     int block_size;
@@ -325,7 +326,8 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
 
     int sel_index = -1;
 
-    std::vector<TunableImplicitGemmGTCDynamic_t> tunables = GetImplicitGemmWrwGTCDynamicXdlopsKernelList();
+    std::vector<TunableImplicitGemmGTCDynamic_t> tunables =
+        GetImplicitGemmWrwGTCDynamicXdlopsKernelList();
 
     std::string selected_kernel = std::string("NONE");
 
@@ -336,119 +338,145 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
                 64  |   1  |1  |0  |0  |1
                 32  |   1  |1  |1  |1  |0
                 16  |   0  |1  |0  |0  |0
-    
+
     */
     int i, j, r, l;
-    int max_grid_size = 0;
-    int cur_grid_size = 0;
-    int num_cu = 120;
+    int max_grid_size  = 0;
+    int cur_grid_size  = 0;
+    int num_cu         = 120;
     int max_block_size = 0;
 
     // i=log2(gemm_m_per_block*gemm_n_per_block)  to find largest kernel
     // switch l r to get differnet kernel size like 256*64 or 64*256
-    for (i = 15; i > 7; i--){
+    for(i = 15; i > 7; i--)
+    {
         r = (i + 1) >> 1;
         l = i - r;
-        while (l > 1 && r < 9){
-            for (int swap = 0; swap < 2; swap++){
-                if (swap == 0){
+        while(l > 1 && r < 9)
+        {
+            for(int swap = 0; swap < 2; swap++)
+            {
+                if(swap == 0)
+                {
                     gemm_m_per_block = 1 << r;
                     gemm_n_per_block = 1 << l;
                 }
-                else{
+                else
+                {
                     gemm_m_per_block = 1 << l;
                     gemm_n_per_block = 1 << r;
                 }
-                    
-                if (gemm_m % gemm_m_per_block != 0 || gemm_n % gemm_n_per_block != 0)
-                    continue;
-                for (j = 4; j > 1; j--){
-                    gemm_k_per_block = 1 << j;
-                    if (gemm_k % gemm_k_per_block != 0)
-                        continue;
-                    need_atomic_add = if_need_atomic_add(ctx, 
-                                                         gemm_m_per_block, 
-                                                         gemm_n_per_block,
-                                                         gemm_k_per_block);
 
-                    nxb = 1;
-                    nxe = 1;
+                if(gemm_m % gemm_m_per_block != 0 || gemm_n % gemm_n_per_block != 0)
+                    continue;
+                for(j = 4; j > 1; j--)
+                {
+                    gemm_k_per_block = 1 << j;
+                    if(gemm_k % gemm_k_per_block != 0)
+                        continue;
+                    need_atomic_add = if_need_atomic_add(
+                        ctx, gemm_m_per_block, gemm_n_per_block, gemm_k_per_block);
+
+                    nxb               = 1;
+                    nxe               = 1;
                     int tunable_index = -1;
-                        
-                    if ((x * y * stride_h * stride_w == 1) && (ho * wo % 4 == 0)){
-                        nxb = 4;
-                        nxe = 0;
-                        tunable_index = find_tunable(tunables, gemm_m_per_block, gemm_n_per_block, gemm_k_per_block, need_atomic_add, nxb, nxe);
-                        if (tunable_index < 0 || tunable_index >= tunables.size()){
+
+                    if((x * y * stride_h * stride_w == 1) && (ho * wo % 4 == 0))
+                    {
+                        nxb           = 4;
+                        nxe           = 0;
+                        tunable_index = find_tunable(tunables,
+                                                     gemm_m_per_block,
+                                                     gemm_n_per_block,
+                                                     gemm_k_per_block,
+                                                     need_atomic_add,
+                                                     nxb,
+                                                     nxe);
+                        if(tunable_index < 0 || tunable_index >= tunables.size())
+                        {
                             nxb = 1;
                             nxe = 1;
 
-                            // std::cout << gemm_m_per_block << ", " << gemm_n_per_block << ", " << gemm_k_per_block << std::endl;
-                        
-                            tunable_index = find_tunable(tunables, gemm_m_per_block, gemm_n_per_block, gemm_k_per_block, need_atomic_add, nxb, nxe);
+                            // std::cout << gemm_m_per_block << ", " << gemm_n_per_block << ", " <<
+                            // gemm_k_per_block << std::endl;
 
+                            tunable_index = find_tunable(tunables,
+                                                         gemm_m_per_block,
+                                                         gemm_n_per_block,
+                                                         gemm_k_per_block,
+                                                         need_atomic_add,
+                                                         nxb,
+                                                         nxe);
                         }
                     }
-                    else{
-                        tunable_index = find_tunable(tunables, gemm_m_per_block, gemm_n_per_block, gemm_k_per_block, need_atomic_add, nxb, nxe);
+                    else
+                    {
+                        tunable_index = find_tunable(tunables,
+                                                     gemm_m_per_block,
+                                                     gemm_n_per_block,
+                                                     gemm_k_per_block,
+                                                     need_atomic_add,
+                                                     nxb,
+                                                     nxe);
                     }
 
-                        
-                    if (tunable_index < 0 || tunable_index >= tunables.size())
+                    if(tunable_index < 0 || tunable_index >= tunables.size())
                         continue;
 
                     int gemmk_splits = 0;
-                    grid_size = (gemm_m / gemm_m_per_block) * (gemm_n / gemm_n_per_block);
-                    for (int gs = 0; gs < 8; gs++){
-                        if ((grid_size << gs) > 1200)
+                    grid_size        = (gemm_m / gemm_m_per_block) * (gemm_n / gemm_n_per_block);
+                    for(int gs = 0; gs < 8; gs++)
+                    {
+                        if((grid_size << gs) > 1200)
                             break;
-                            
-                        if ((n % (1 << gs)) != 0){
+
+                        if((n % (1 << gs)) != 0)
+                        {
                             break;
                         }
-                
-                        if ((n >> gs) * ho * wo % gemm_k_per_block !=0){
+
+                        if((n >> gs) * ho * wo % gemm_k_per_block != 0)
+                        {
                             break;
                         }
                         gemmk_splits = gs;
                     }
 
-                    if (!need_atomic_add)
+                    if(!need_atomic_add)
                         gemmk_splits = 0;
 
-                    //std::cout << tunable_index << std::endl;
+                    // std::cout << tunable_index << std::endl;
 
                     block_size = tunables[tunable_index].config_block_size();
 
                     cur_grid_size = grid_size << gemmk_splits;
 
-                    if (block_size >= max_block_size && cur_grid_size > max_grid_size)
+                    if(block_size >= max_block_size && cur_grid_size > max_grid_size)
                     {
                         max_block_size = block_size;
-                        max_grid_size = cur_grid_size;
-                        sel_index = tunable_index;
+                        max_grid_size  = cur_grid_size;
+                        sel_index      = tunable_index;
                     }
-                        
-                    if (max_grid_size > num_cu * 2)
+
+                    if(max_grid_size > num_cu * 2)
                         break;
-                    
                 }
-                if (max_grid_size > num_cu * 2)
+                if(max_grid_size > num_cu * 2)
                     break;
             }
-            if (max_grid_size > num_cu * 2)
+            if(max_grid_size > num_cu * 2)
                 break;
-                
+
             r++;
             l--;
         }
-        if (max_grid_size > num_cu)
+        if(max_grid_size > num_cu)
             break;
     }
-    //std::cout << "sel_index:" << sel_index << std::endl;
+    // std::cout << "sel_index:" << sel_index << std::endl;
     bool is_valid = false;
 
-    if (sel_index < 0 || sel_index >= tunables.size())
+    if(sel_index < 0 || sel_index >= tunables.size())
     {
         is_valid = false;
     }
@@ -458,7 +486,6 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
     }
 
     return std::make_tuple(is_valid, sel_index);
-
 }
 
 bool ConvAsmImplicitGemmGTCDynamicWrwXdlops::IsApplicable(const ConvolutionContext& ctx) const
@@ -491,19 +518,21 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlops::IsApplicable(const ConvolutionConte
     return is_valid;
 }
 
-ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ctx) const
+ConvSolution
+ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ctx) const
 {
     ConvSolution result;
 
     KernelInfo kernel;
     std::ostringstream options;
 
-    std::vector<TunableImplicitGemmGTCDynamic_t> kernel_configs = GetImplicitGemmWrwGTCDynamicXdlopsKernelList();
+    std::vector<TunableImplicitGemmGTCDynamic_t> kernel_configs =
+        GetImplicitGemmWrwGTCDynamicXdlopsKernelList();
 
     int block_size;
     int grid_size;
     std::string kernel_name;
-    bool is_valid = false;
+    bool is_valid    = false;
     int kernel_index = -1;
     std::tie(is_valid, kernel_index) = FindImplicitGemmWrwGTCDynamicXdlopsKernel(ctx);
 
@@ -517,7 +546,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const Convoluti
 
     std::tie(log2_gemm_k_splits, grid_size) = get_grid_size(ctx, &kernel_configs[kernel_index]);
 
-    //std::cout << "tuple=" << grid_size << " " << log2_gemm_k_splits << std::endl;
+    // std::cout << "tuple=" << grid_size << " " << log2_gemm_k_splits << std::endl;
 
     result.workspce_sz = 0;
 
@@ -546,7 +575,8 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const Convoluti
 
     const auto& conv_problem = ctx.conv_problem;
 
-    result.invoker_factory = [conv_problem, log2_gemm_k_splits](const std::vector<Kernel>& kernels) {
+    result.invoker_factory = [conv_problem,
+                              log2_gemm_k_splits](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const boost::any& primitive_parameters) {
             const auto data_ctx = boost::any_cast<conv::WrWInvokeParams>(primitive_parameters);
             const auto& tensors = data_ctx.tensors;
@@ -556,12 +586,12 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const Convoluti
                            std::back_inserter(ks),
                            [&](const Kernel& k_wrw) { return handle.Run(k_wrw); });
             float elapsed = 0;
-            float zero               = 0.f;
-            
+            float zero    = 0.f;
+
             SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
             if(handle.IsProfilingEnabled())
                 elapsed += handle.GetKernelTime();
-            
+
             elapsed += CallImplicitGemmWrwDynamic(
                 handle, conv_problem, tensors.x, tensors.dy, tensors.dw, ks, log2_gemm_k_splits);
             if(handle.IsProfilingEnabled())
