@@ -45,6 +45,11 @@
 #include <vector>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_CALLS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)
+
+/// 0: Off.
+/// 1: Logs each option on a separate line.
+/// 2: Logs all options altogether, on single line.
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_OPTIONS)
 
 /// Integer, set to max number of first characters
@@ -358,7 +363,9 @@ static bool PrintVersionImpl()
     std::size_t major = 0;
     std::size_t minor = 0;
     (void)amd_comgr_get_version(&major, &minor);
-    MIOPEN_LOG_NQI("comgr v." << major << '.' << minor);
+    MIOPEN_LOG_NQI("COMgr v." << major << '.' << minor << '.' << MIOPEN_AMD_COMGR_VERSION_PATCH
+                              << ", USE_HIP_PCH: "
+                              << USE_HIP_PCH);
     return true;
 }
 
@@ -509,7 +516,8 @@ class Dataset : ComgrOwner
                  const amd_comgr_data_kind_t type) const
     {
         const Data d(type);
-        MIOPEN_LOG_I2(name << ' ' << content.size() << " bytes");
+        if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES{}))
+            MIOPEN_LOG_I(name << ' ' << content.size() << " bytes");
         d.SetName(name);
         d.SetBytes(content);
         AddData(d);
@@ -527,7 +535,9 @@ class Dataset : ComgrOwner
     {
         const char name[] = "hip.pch";
         const Data d(AMD_COMGR_DATA_KIND_PRECOMPILED_HEADER);
-        MIOPEN_LOG_I2(name << ' ' << size << " bytes");
+        if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES{}))
+            MIOPEN_LOG_I(
+                name << ' ' << size << " bytes,  ptr = " << static_cast<const void*>(content));
         d.SetName(name);
         d.SetFromBuffer(content, size);
         AddData(d);
@@ -676,7 +686,6 @@ void BuildHip(const std::string& name,
             const char* pch       = nullptr;
             unsigned int pch_size = 0;
             __hipGetPCH(&pch, &pch_size);
-            MIOPEN_LOG_I2("PCH: ptr = " << static_cast<const void*>(pch) << " size = " << pch_size);
             inputs.AddDataHipPch(pch, pch_size);
         }
 #endif
