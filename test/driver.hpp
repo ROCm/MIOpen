@@ -85,6 +85,18 @@ struct tensor_elem_gen_checkboard_sign
     }
 };
 
+template <class V, class... Ts>
+auto is_const_cpu(const V& v, Ts&&... xs) -> decltype(v.cpu(xs...), std::true_type{})
+{
+    return {};
+}
+
+template <class V, class... Ts>
+auto is_const_cpu(V& v, Ts&&... xs) -> decltype(v.cpu(xs...), std::false_type{})
+{
+    return {};
+}
+
 // Run cpu in parallel if it can be ran as const
 template <class V, class... Ts>
 auto cpu_async(const V& v, Ts&&... xs) -> std::future<decltype(v.cpu(xs...))>
@@ -656,7 +668,7 @@ struct test_driver
     auto run_cpu(bool retry, bool& miss, V& v, Ts&&... xs) -> std::future<decltype(v.cpu(xs...))>
     {
         using result_type = decltype(v.cpu(xs...));
-        if(is_cache_disabled())
+        if(is_cache_disabled() or not is_const_cpu(v, xs...))
             return cpu_async(v, xs...);
         auto key = miopen::get_type_name<V>() + "-" + miopen::md5(get_command_args());
         auto p =
