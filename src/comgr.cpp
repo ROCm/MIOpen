@@ -26,58 +26,6 @@
 
 #include <miopen/config.h>
 
-#ifndef HIP_PACKAGE_VERSION_MAJOR
-#define HIP_PACKAGE_VERSION_MAJOR 0
-#endif
-#ifndef HIP_PACKAGE_VERSION_MINOR
-#define HIP_PACKAGE_VERSION_MINOR 0
-#endif
-#ifndef HIP_PACKAGE_VERSION_PATCH
-#define HIP_PACKAGE_VERSION_PATCH 0
-#endif
-
-// 3 decimal digits for major and minor, 6 digits for patch number.
-// Max number is 999,999,999999 == 0xE8,D4A5,0FFF that fits into 64-bit math.
-#if HIP_PACKAGE_VERSION_MAJOR > 999 || HIP_PACKAGE_VERSION_MAJOR > 999 || \
-    HIP_PACKAGE_VERSION_PATCH > 999999
-#error "Too big HIP version number(s)"
-#endif
-#define HIP_PACKAGE_VERSION                                                     \
-    ((HIP_PACKAGE_VERSION_MAJOR * 1000 + HIP_PACKAGE_VERSION_MINOR) * 1000000 + \
-     HIP_PACKAGE_VERSION_PATCH)
-
-#ifndef MIOPEN_AMD_COMGR_VERSION_MAJOR
-#define MIOPEN_AMD_COMGR_VERSION_MAJOR 0
-#endif
-#ifndef MIOPEN_AMD_COMGR_VERSION_MINOR
-#define MIOPEN_AMD_COMGR_VERSION_MINOR 0
-#endif
-#ifndef MIOPEN_AMD_COMGR_VERSION_PATCH
-#define MIOPEN_AMD_COMGR_VERSION_PATCH 0
-#endif
-
-// 3 decimal digits per each number.
-#if MIOPEN_AMD_COMGR_VERSION_MAJOR > 999 || MIOPEN_AMD_COMGR_VERSION_MINOR > 999 || \
-    MIOPEN_AMD_COMGR_VERSION_PATCH > 999
-#error "Too big COMGR version number(s)"
-#endif
-#define COMGR_VERSION                                                                  \
-    ((MIOPEN_AMD_COMGR_VERSION_MAJOR * 1000 + MIOPEN_AMD_COMGR_VERSION_MINOR) * 1000 + \
-     MIOPEN_AMD_COMGR_VERSION_PATCH)
-
-#if HIP_PACKAGE_VERSION >= 3009999999 && COMGR_VERSION >= 1008000
-#define USE_HIP_PCH 1
-#else
-#define USE_HIP_PCH 0
-#endif
-
-#if USE_HIP_PCH
-// Enables __hipGetPCH() in hip_runtime_api.h.
-// This must be defined *prior* inclusion of any of the headers,
-// because hip_runtime_api.h may be included in any of those.
-#define ENABLE_HIP_PCH 1
-#endif
-
 #include <miopen/comgr.hpp>
 #include <miopen/algorithm.hpp>
 #include <miopen/env.hpp>
@@ -85,8 +33,10 @@
 #include <miopen/kernel.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/stringutils.hpp>
+
 #include <amd_comgr.h>
 #include <hip/hip_runtime_api.h>
+
 #include <algorithm>
 #include <exception>
 #include <cstddef>
@@ -108,6 +58,33 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_HIP_BUILD_FATBIN)
 
 /// \todo see issue #1222, PR #1316
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
+
+#ifndef MIOPEN_AMD_COMGR_VERSION_MAJOR
+#define MIOPEN_AMD_COMGR_VERSION_MAJOR 0
+#endif
+#ifndef MIOPEN_AMD_COMGR_VERSION_MINOR
+#define MIOPEN_AMD_COMGR_VERSION_MINOR 0
+#endif
+#ifndef MIOPEN_AMD_COMGR_VERSION_PATCH
+#define MIOPEN_AMD_COMGR_VERSION_PATCH 0
+#endif
+
+// 3 decimal digits per each number.
+#if MIOPEN_AMD_COMGR_VERSION_MAJOR > 999 || MIOPEN_AMD_COMGR_VERSION_MINOR > 999 || \
+    MIOPEN_AMD_COMGR_VERSION_PATCH > 999
+#error "Too big COMGR version number(s)"
+#endif
+#define COMGR_VERSION                                                                  \
+    ((MIOPEN_AMD_COMGR_VERSION_MAJOR * 1000 + MIOPEN_AMD_COMGR_VERSION_MINOR) * 1000 + \
+     MIOPEN_AMD_COMGR_VERSION_PATCH)
+
+// If HIP runtime provides PCH functionality, and COMGR is able to use it,
+// then enable PCH usage automatically.
+#if defined(__HIP_HAS_GET_PCH) && __HIP_HAS_GET_PCH && COMGR_VERSION >= 1008000
+#define USE_HIP_PCH 1
+#else
+#define USE_HIP_PCH 0
+#endif
 
 #define COMPILER_LC 1
 
