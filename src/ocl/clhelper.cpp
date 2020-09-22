@@ -63,12 +63,13 @@ static cl_program CreateProgram(cl_context ctx, const char* char_source, size_t 
     return result;
 }
 
-static void ClAssemble(cl_device_id device, std::string& source, const std::string& params)
+static std::string
+ClAssemble(cl_device_id device, const std::string& source, const std::string& params)
 {
     // Add device nmae
     std::string name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(device);
     ParseDevName(name);
-    AmdgcnAssemble(source, std::string("-mcpu=") + name + " " + params);
+    return AmdgcnAssemble(source, std::string("-mcpu=") + name + " " + params);
 }
 
 static cl_program
@@ -147,8 +148,8 @@ ClProgramPtr LoadProgram(cl_context ctx,
             source  = kernel_src;
         auto is_asm = miopen::EndsWith(program_name, ".s");
         if(is_asm)
-        { // Overwrites source (asm text) by binary results of assembly:
-            ClAssemble(device, source, params);
+        {
+            source    = ClAssemble(device, source, params);
             is_binary = true;
         }
         else

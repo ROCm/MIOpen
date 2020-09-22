@@ -38,6 +38,7 @@
 
 #include <miopen/logger.hpp>
 #include <miopen/handle.hpp>
+#include <miopen/timer.hpp>
 
 namespace miopen {
 namespace solver {
@@ -145,24 +146,6 @@ class ComputedContainer
     const_iterator end() const { return {}; }
 };
 
-class Timer
-{
-    public:
-    Timer(){};
-    void start() { st = std::chrono::steady_clock::now(); }
-    float elapsed_ms()
-    {
-        capture();
-        return std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(et - st)
-            .count();
-    }
-
-    private:
-    void capture() { et = std::chrono::steady_clock::now(); }
-    std::chrono::time_point<std::chrono::steady_clock> st;
-    std::chrono::time_point<std::chrono::steady_clock> et;
-};
-
 template <typename PerformanceConfig>
 class HeartBeat
 {
@@ -210,7 +193,8 @@ class HeartBeat
         {
             elapsed_cumulative += elapsed;
             const float eta_sec =
-                n_recent != 0u ? ((n_total - n_recent) * (elapsed_cumulative / n_recent) / 1000)
+                n_recent != 0u ? (static_cast<float>(n_total - n_recent) *
+                                  (elapsed_cumulative / static_cast<float>(n_recent)) / 1000.0f)
                                : 0.0f; // paraniod
             MIOPEN_LOG_W(n_recent << '/' << n_failed << '/' << n_total << ' ' << total_best
                                   << ", best within recent "

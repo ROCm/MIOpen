@@ -28,16 +28,22 @@
 #define GUARD_MIOPEN_FIND_CONTROLS_HPP_
 
 #include <miopen/solver_id.hpp>
+#include <miopen/conv/context.hpp>
 #include <ostream>
 
 namespace miopen {
 
 namespace debug {
 
-/// Disable observation of FIND_ENFORCE env.vars for debugging/testing purposes.
+/// Disable MIOPEN_FIND_ENFORCE. Intended for debugging/testing purposes.
 /// Currently used during warm-up phase in MIOpenDriver.
 /// WARNING: This switch is not intended for use in multi-threaded applications.
 extern bool FindEnforceDisable;
+
+/// Disable MIOPEN_FIND_MODE. Intended for debugging/testing purposes.
+/// Currently used during warm-up phase in MIOpenDriver.
+/// WARNING: This switch is not intended for use in multi-threaded applications.
+extern bool FindModeDisable;
 
 } // namespace debug
 
@@ -112,6 +118,42 @@ class FindEnforce
 };
 
 solver::Id GetEnvFindOnlySolver();
+
+class FindMode
+{
+    public:
+    enum class Values
+    {
+        Begin_ = 1, // 0 is returned for non-numeric env.vars.
+        Normal = Begin_,
+        Fast,
+        Hybrid,
+        FastHybrid,
+        DynamicHybrid,
+        End_,
+        Default_ = Hybrid,
+    };
+
+    private:
+    Values value;
+
+    public:
+    FindMode(const ConvolutionContext& ctx);
+
+    bool IsFast() const { return value == Values::Fast && !debug::FindModeDisable; }
+    bool IsHybrid() const
+    {
+        return (value == Values::Hybrid || value == Values::FastHybrid ||
+                value == Values::DynamicHybrid) &&
+               !debug::FindModeDisable;
+    }
+    bool IsFastHybrid() const { return value == Values::FastHybrid && !debug::FindModeDisable; }
+    bool IsDynamicHybrid() const
+    {
+        return value == Values::DynamicHybrid && !debug::FindModeDisable;
+    }
+    friend std::ostream& operator<<(std::ostream&, const FindMode&);
+};
 
 } // namespace miopen
 

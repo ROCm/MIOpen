@@ -475,7 +475,7 @@ struct TransformedTensorDescriptor
 #endif
 
     // a multi-index is valid if there is a corresponding point for it in the tensor
-    __host__ __device__ constexpr bool IsUpperIndexValid(const UpperIndex& idx_up) const
+    __host__ __device__ static constexpr bool IsUpperIndexValid(const UpperIndex& idx_up)
     {
         bool flag = true;
 

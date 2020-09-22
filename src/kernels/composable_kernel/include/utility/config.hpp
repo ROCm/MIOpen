@@ -25,11 +25,7 @@
 #define CK_USE_AMD_BUFFER_ADDRESSING 1
 #endif
 
-#ifndef CK_USE_AMD_BUFFER_ADDRESSING_INTRINSIC
-#define CK_USE_AMD_BUFFER_ADDRESSING_INTRINSIC 1
-#endif
-
-// only support gfx908
+// only gfx908 support native floating point atomic add
 #ifndef CK_USE_AMD_BUFFER_ATOMIC_ADD
 #define CK_USE_AMD_BUFFER_ATOMIC_ADD 0
 #endif
@@ -47,6 +43,11 @@
 #define CK_USE_AMD_XDLOPS_EMULATE 0 // For internal debug purposes
 #endif
 
+// block synchronization only s_wait lgkmcnt(0), not vmcnt(0)
+#ifndef CK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM
+#define CK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM 1
+#endif
+
 // experimental implementation
 #define CK_EXPERIMENTAL_BLOCKWISE_GEMM_USE_PIPELINE 1
 #define CK_EXPERIMENTAL_TENSOR_COORDINATE_USE_CALCULATE_OFFSET_DIFF 0
@@ -54,8 +55,28 @@
 #define CK_EXPERIMENTAL_USE_MORE_COMPILE_STATIC_BLOCKWISE_GENERIC_SLICE_COPY_V1 0
 #define CK_EXPERIMENTAL_USE_MORE_COMPILE_STATIC_THREADWISE_GENERIC_TENSOR_SLICE_COPY_V1R2 0
 #define CK_EXPERIMENTAL_USE_MORE_COMPILE_STATIC_THREADWISE_GENERIC_TENSOR_SLICE_COPY_V2R1 0
+
+#ifndef CK_EXPERIMENTAL_IMPLICIT_GEMM_BACKWARD_DATA_V4R1_OUTPUT_SKIP_OUT_OF_BOUND_CHECK
 #define CK_EXPERIMENTAL_IMPLICIT_GEMM_BACKWARD_DATA_V4R1_OUTPUT_SKIP_OUT_OF_BOUND_CHECK 0
+#endif
+
+#ifndef CK_EXPERIMENTAL_IMPLICIT_GEMM_BACKWARD_DATA_V4R1_INPUT_SKIP_OUT_OF_BOUND_CHECK
 #define CK_EXPERIMENTAL_IMPLICIT_GEMM_BACKWARD_DATA_V4R1_INPUT_SKIP_OUT_OF_BOUND_CHECK 0
+#endif
+
+// workaround: put all workaround here
+// workaround for unnecessary VGPA <--> AGRP data movement when using mfma LLVM intrinsic
+#ifndef CK_WORKAROUND_SWDEV_229564
+#define CK_WORKAROUND_SWDEV_229564 1
+#endif
+// workaround for buffer load/store fp16/bfp16 intrinsic bug
+#ifndef CK_WORKAROUND_SWDEV_231101
+#define CK_WORKAROUND_SWDEV_231101 1
+#endif
+// workaround for accvgpr over-allocation
+#ifndef CK_WORKAROUND_SWDEV_241664
+#define CK_WORKAROUND_SWDEV_241664 1
+#endif
 
 namespace ck {
 
@@ -79,7 +100,7 @@ using index_t = uint32_t;
 using index_t = int32_t;
 #endif
 
-// int32x4_t use by buffer_load and buffer_store llvm intrinsic
+// int32x4_t used by buffer addressing LLVM intrinsic
 typedef int32_t int32x4_t __attribute__((ext_vector_type(4)));
 
 } // namespace ck

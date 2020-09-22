@@ -59,7 +59,7 @@ void set_offsets_to_uint(std::string& clstr)
 } // namespace tempfix_v2
 
 // TODO: doesn't support offset to A, B, C yet
-void AddMiopengemmSolution(Handle& handle,
+void AddMiopengemmSolution(const Handle& handle,
                            const std::string& algorithm_name,
                            const std::string& network_config,
                            const MIOpenGEMM::Geometry& mgg,
@@ -159,7 +159,7 @@ void AddMiopengemmSolution(Handle& handle,
 #endif
 }
 
-void RunMiopengemmSolution(Handle& handle,
+void RunMiopengemmSolution(const Handle& handle,
                            const decltype(handle.GetKernels("_", "_"))& kernels,
                            float alpha,
                            ConstData_t A,

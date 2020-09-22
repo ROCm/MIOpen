@@ -1228,6 +1228,8 @@ miopenConvolutionBackwardWeights(miopenHandle_t handle,
                         dw,
                         workSpace,
                         workSpaceSize);
+    LogCmdConvolution(xDesc, dwDesc, convDesc, ConvDirection::WrW, false);
+
     return miopen::try_([&] {
         miopen::deref(convDesc).ConvolutionBackwardWeights(
             miopen::deref(handle),

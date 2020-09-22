@@ -6,20 +6,37 @@
 #include <miopen/hip_build_utils.hpp>
 #include <miopen/mlo_internal.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS)
-MIOPEN_DECLARE_ENV_VAR(
-    MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE) // For internal debug purposes
-
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM)
+
+#define WORKAROUND_SWDEV_200782 1
+#define WORKAROUND_SWDEV_229277_227616_229195 1
+// workaround for unnecessary VGPA <--> AGRP data movement when using mfma LLVM intrinsic
+#define WORKAROUND_SWDEV_229564 1
+// workaround for buffer load/store fp16/bfp16 intrinsic bug
+#define WORKAROUND_SWDEV_231101 1
+// LLVM xdlops instrinsic will do unnecessey VGRP <--> AGPR movement, and result in
+// register spill, for bfloat16 datatype, when doing wave-wise GEMM larger than 64x64
+#define WORKAROUND_SWDEV_240356 1
+// due to compiler bug, iGEMM xdlops kernels fail verification in some cases, if using "-O3" flag,
+// (but will pass verification with "-O1" flag)
+#define WORKAROUND_SWDEV_251757 1
+// workaround failure of ConvHipImplicitGemmV4R4GenWrWXdlops with vector load
+#define WORKAROUND_ISSUE_2532 1
 
 namespace miopen {
+
 namespace solver {
 
 // greatest common divisor, aka highest common factor
 template <typename T>
 T gcd(T x, T y)
 {
+    assert(!(x == 0 && y == 0));
+
     if(x == y || x == 0)
     {
         return y;
@@ -106,6 +123,14 @@ struct ConvolutionContextInterpreter
             return c.n_outputs;
     }
 
+    static auto GetInputDepthDi(const ConvolutionContext& c)
+    {
+        if(c.direction.IsForward())
+            return c.in_depth;
+        else
+            return c.out_depth;
+    }
+
     static auto GetInputHeightHi(const ConvolutionContext& c)
     {
         if(c.direction.IsForward())
@@ -120,6 +145,14 @@ struct ConvolutionContextInterpreter
             return c.in_width;
         else
             return c.out_width;
+    }
+
+    static auto GetOutputDepthDo(const ConvolutionContext& c)
+    {
+        if(c.direction.IsForward())
+            return c.out_depth;
+        else
+            return c.in_depth;
     }
 
     static auto GetOutputHeightHo(const ConvolutionContext& c)
@@ -138,9 +171,17 @@ struct ConvolutionContextInterpreter
             return c.in_width;
     }
 
+    static auto GetFilterDepthZ(const ConvolutionContext& c) { return c.kernel_size_d; }
+
     static auto GetFilterHeightY(const ConvolutionContext& c) { return c.kernel_size_h; }
 
     static auto GetFilterWidthX(const ConvolutionContext& c) { return c.kernel_size_w; }
+
+    // adjust conv_stride_d to 1 if Do is 1
+    static auto GetAdjustedConvolutionStrideD(const ConvolutionContext& c)
+    {
+        return GetOutputDepthDo(c) > 1 ? c.kernel_stride_d : 1;
+    }
 
     // adjust conv_stride_h to 1 if Ho is 1
     static auto GetAdjustedConvolutionStrideH(const ConvolutionContext& c)
@@ -152,6 +193,12 @@ struct ConvolutionContextInterpreter
     static auto GetAdjustedConvolutionStrideW(const ConvolutionContext& c)
     {
         return GetOutputWidthWo(c) > 1 ? c.kernel_stride_w : 1;
+    }
+
+    // adjust conv_dilation_d to 1 if Z is 1
+    static auto GetAdjustedConvolutionDilationD(const ConvolutionContext& c)
+    {
+        return GetFilterDepthZ(c) > 1 ? c.kernel_dilation_d : 1;
     }
 
     // adjust conv_dilation_h to 1 if Y is 1
@@ -166,9 +213,29 @@ struct ConvolutionContextInterpreter
         return GetFilterWidthX(c) > 1 ? c.kernel_dilation_w : 1;
     }
 
+    static auto GetInputLeftPadD(const ConvolutionContext& c) { return c.pad_d; }
+
     static auto GetInputLeftPadH(const ConvolutionContext& c) { return c.pad_h; }
 
     static auto GetInputLeftPadW(const ConvolutionContext& c) { return c.pad_w; }
+
+    // adjust right padding size to align with the way implicit GEMM deal with padding
+    static auto GetAdjustedInputRightPadD(const ConvolutionContext& c)
+    {
+        int di              = GetInputDepthDi(c);
+        int dout            = GetOutputDepthDo(c);
+        int z               = GetFilterDepthZ(c);
+        int conv_stride_d   = GetAdjustedConvolutionStrideD(c);
+        int conv_dilation_d = GetAdjustedConvolutionDilationD(c);
+        int in_left_pad_d   = GetInputLeftPadD(c);
+
+        int di_padded = 1 + (z - 1) * conv_dilation_d + (dout - 1) * conv_stride_d;
+
+        int in_right_pad_d =
+            di_padded > (in_left_pad_d + di) ? di_padded - (in_left_pad_d + di) : 0;
+
+        return in_right_pad_d;
+    }
 
     // adjust right padding size to align with the way implicit GEMM deal with padding
     static auto GetAdjustedInputRightPadH(const ConvolutionContext& c)
@@ -326,27 +393,59 @@ inline static bool NextTwoPower(int& v)
     return false;
 }
 
+template <int L, int H>
+inline static bool PreviousTwoPower(int& v)
+{
+    static_assert((((L - 1) & L) == 0), "L is not power of 2");
+    static_assert((((H - 1) & H) == 0), "H is not power of 2");
+    assert((IsTwoPower<L, H>(v)));
+    if(v == L)
+    {
+        v = H;
+        return true;
+    }
+    v /= 2;
+    return false;
+}
+
+template <bool L, bool H>
+inline static bool NextFlag(bool& v)
+{
+    if(v == H)
+    {
+        v = L;
+        return true;
+    }
+    v = H;
+    return false;
+}
+
 static inline bool IsXdlopsSupport(const ConvolutionContext& c)
 {
     if(miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}))
         return true;
 
+    // disable xdlops kernels by default due to possible failures:
+    // 1) inline asm may crash
+    // 2) llvm intrin may has incorrect results
     return StartsWith(c.GetStream().GetDeviceName(), "gfx908") &&
-           // disable xdlops kernels by default due to possible failures:
-           // 1) inline asm may crash
-           // 2) llvm intrin may has incorrect results
-           /// \todo enable xdlops kernels by default after llvm intrin fix (SWDEV-200782) in
-           /// release
-           ((miopen::HipGetHccVersion() >= external_tool_version_t{2, 10, 19392})
+#if WORKAROUND_SWDEV_200782
+           /// \todo Remove workaround when we drop suport of HCC older than 2.10.19392.
+           ((miopen::HipCompilerVersion() >= external_tool_version_t{2, 10, 19392})
                 ? !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS{})
                 : miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS{}));
+#else
+           !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS{});
+#endif
 }
 
+///\todo remove
 inline static uint32_t GetReadWriteVectorSize(const int v)
 {
     return v % 4 == 0 ? 4 : (v % 2 == 0 ? 2 : 1);
 }
 
+///\todo remove
 inline static uint32_t GetEPackLength(const ConvolutionContext& ctx, bool isXdlopsInvoked)
 {
     // Based on data type, Es are packed
@@ -366,6 +465,123 @@ inline static uint32_t GetEPackLength(const ConvolutionContext& ctx, bool isXdlo
     return EPACK;
 }
 
+///\todo remove
+static inline bool IsValidXdlopsGemm(const int GemmMPerBlock,
+                                     const int GemmNPerBlock,
+                                     const int GemmKPackedPerBlock, // packed
+                                     const int GemmMPerWave,
+                                     const int GemmNPerWave)
+{
+    // unsupported xdlops-gemm
+    if(GemmMPerWave == 16 && GemmNPerWave == 32)
+        return false;
+    if(GemmMPerWave == 32 && GemmNPerWave == 16)
+        return false;
+    if(GemmMPerWave == 8 && GemmNPerWave != 64)
+        return false;
+    if(GemmMPerWave == 4 && GemmNPerWave != 64)
+        return false;
+    if(GemmMPerWave == 32 && GemmNPerWave == 32 && GemmKPackedPerBlock % 2 != 0)
+        return false;
+    if(GemmMPerWave == 16 && GemmNPerWave == 16 && GemmKPackedPerBlock % 4 != 0)
+        return false;
+    if(GemmMPerWave > 64 && GemmNPerWave < 64)
+        return false;
+    if(GemmNPerWave > 64 && GemmMPerWave < 64)
+        return false;
+
+    const auto WaveSize = 64;
+    const auto BlockSize =
+        (GemmNPerBlock * GemmMPerBlock) / (GemmMPerWave * GemmNPerWave) * WaveSize;
+
+    if(BlockSize < 64 || BlockSize > 256)
+        return false;
+
+    return (GemmMPerBlock % GemmMPerWave) == 0 && (GemmNPerBlock % GemmNPerWave) == 0;
+}
+
+static inline bool IsIndexRangeLargeEnough(const ConvolutionContext& ctx)
+{
+    // composable kernel use int32_t for memory offset, which covers 2GB of memory maximum
+    const std::size_t max_index_range = std::size_t(2) * 1024 * 1024 * 1024;
+
+    return ctx.bot_sz < max_index_range && ctx.weights_sz < max_index_range &&
+           ctx.top_sz < max_index_range;
+}
+
+static inline bool IsValidBlockwiseGemmXdlops(const ConvolutionContext& ctx,
+                                              const int GemmMPerBlock,
+                                              const int GemmNPerBlock,
+                                              const int GemmKPerBlock,
+                                              const int GemmMPerWave,
+                                              const int GemmNPerWave,
+                                              const int GemmKPack)
+{
+#if WORKAROUND_SWDEV_251757
+    if(ctx.IsFp32() && GemmKPerBlock == 1 && GemmKPack == 8)
+        return false;
+#endif
+
+    // check k
+    if(ctx.IsFp16() && GemmKPack % 4 != 0)
+        return false;
+    if(ctx.IsBfp16() && GemmKPack % 2 != 0)
+        return false;
+
+    // check M, N and K
+    std::vector<std::tuple<int, int, int>> validWaveGemmSize = {// std::make_tuple(128, 128, 1),
+                                                                std::make_tuple(128, 64, 1),
+                                                                // std::make_tuple(128, 32, 1),
+                                                                // std::make_tuple(128, 16, 1),
+                                                                std::make_tuple(64, 128, 1),
+                                                                std::make_tuple(64, 64, 1),
+                                                                std::make_tuple(64, 32, 1),
+                                                                std::make_tuple(64, 16, 1),
+                                                                // std::make_tuple(32, 128, 1),
+                                                                std::make_tuple(32, 64, 1),
+                                                                std::make_tuple(32, 32, 2),
+                                                                // std::make_tuple(16, 128, 1),
+                                                                std::make_tuple(16, 64, 1),
+                                                                std::make_tuple(16, 16, 4),
+                                                                // std::make_tuple(8, 128, 1),
+                                                                std::make_tuple(8, 64, 1),
+                                                                // std::make_tuple(4, 128, 1),
+                                                                std::make_tuple(4, 64, 1)};
+
+    if(!std::any_of(validWaveGemmSize.cbegin(),
+                    validWaveGemmSize.cend(),
+                    [ GemmMPerWave, GemmNPerWave, GemmKPerBlock ](const auto it) noexcept->bool {
+                        int validMPerWave, validNPerWave, validKPerWave;
+                        std::tie(validMPerWave, validNPerWave, validKPerWave) = it;
+                        return (GemmMPerWave == validMPerWave) && (GemmNPerWave == validNPerWave) &&
+                               (GemmKPerBlock % validKPerWave == 0);
+                    }))
+        return false;
+
+    const auto WaveSize = 64;
+    const auto BlockSize =
+        (GemmNPerBlock * GemmMPerBlock) / (GemmMPerWave * GemmNPerWave) * WaveSize;
+
+    if(BlockSize < 64 || BlockSize > 256)
+        return false;
+
+    return (GemmMPerBlock % GemmMPerWave) == 0 && (GemmNPerBlock % GemmNPerWave) == 0;
+}
+
+static inline bool
+IsValidGridGemmXdlops(const std::size_t GemmM, const std::size_t GemmN, const std::size_t GemmK)
+{
+    // unsupported xdlops-gemm
+    if(GemmM % 16 != 0 && GemmN % 64 != 0)
+        return false;
+
+    const auto WaveSize = 64;
+
+    return (GemmM * GemmN) % 256 == 0 && (GemmK * GemmM) % WaveSize == 0 &&
+           (GemmK * GemmN) % WaveSize == 0 && GemmN % 16 == 0 && GemmM % 4 == 0 && GemmK % 4 == 0;
+}
+
+///\todo remove
 static inline bool IsApplicableXdlops(const ConvolutionContext& ctx)
 {
     if(!IsXdlopsSupport(ctx))
@@ -383,6 +599,9 @@ static inline bool IsApplicableXdlops(const ConvolutionContext& ctx)
     // forward
     if(ctx.direction.IsForward())
     {
+        // TBD/ Since bfp16/fp16 fwd kernel extracts epack from c*y*x,
+        //      one could relax the following restriction for bfp16/fp16,
+        //      allowing c=1 when y*x=epack.
         if(c % GetEPackLength(ctx, true) != 0)
             return false;
         const auto nonVectorizedC = c / GetEPackLength(ctx, true);
@@ -411,16 +630,10 @@ static inline bool IsApplicableXdlops(const ConvolutionContext& ctx)
         GemmK                     = static_cast<std::size_t>(nonVectorizedN) * ho * wo;
     }
 
-    // unsupported xdlops-gemm
-    if(GemmM % 16 != 0 && GemmN % 64 != 0)
-        return false;
-
-    const auto WaveSize = 64;
-
-    return (GemmM * GemmN) % 256 == 0 && (GemmK * GemmM) % WaveSize == 0 &&
-           (GemmK * GemmN) % WaveSize == 0 && GemmN % 16 == 0 && GemmM % 4 == 0 && GemmK % 4 == 0;
+    return IsValidGridGemmXdlops(GemmM, GemmN, GemmK);
 }
 
+///\todo remove
 template <class PerformanceImplicitGemm_t>
 inline static auto GetPerformanceConfigBase(const ConvolutionContext& ctx)
 {
@@ -430,6 +643,7 @@ inline static auto GetPerformanceConfigBase(const ConvolutionContext& ctx)
     return pp;
 }
 
+///\todo remove
 static inline size_t ComputeLDSRequiredSize(const ConvolutionContext& ctx,
                                             const int BPerBlock,
                                             const int KPerBlock,
@@ -438,14 +652,14 @@ static inline size_t ComputeLDSRequiredSize(const ConvolutionContext& ctx,
                                             const unsigned int GemmDataPerReadB,
                                             const unsigned int InBlockCopySubLengths_B,
                                             const unsigned int WeiBlockCopySubLengths_K,
-                                            bool isXdlopsUsed)
+                                            const unsigned int EPACKSize)
 {
     // Extend lds size by to take into account alignment
     // See max_algin code inside kernel_aglorithm files
     const std::size_t worst_case_alignment_adjustment =
         (ctx.IsBfp16() || ctx.IsFp16())
-            ? std::max({GetReadWriteVectorSize(static_cast<int>(InBlockCopySubLengths_B)),
-                        GetEPackLength(ctx, isXdlopsUsed)})
+            ? std::max(
+                  {GetReadWriteVectorSize(static_cast<int>(InBlockCopySubLengths_B)), EPACKSize})
             : std::max({GetReadWriteVectorSize(static_cast<int>(WeiBlockCopySubLengths_K)),
                         GetReadWriteVectorSize(static_cast<int>(InBlockCopySubLengths_B)),
                         GemmDataPerReadA,
@@ -453,17 +667,18 @@ static inline size_t ComputeLDSRequiredSize(const ConvolutionContext& ctx,
 
     // Multiplied worst_case_alignment_adjustment by 2 as
     // Both A and B matrix LDS size is increased.
-    const std::size_t lds_size = (BPerBlock + KPerBlock) * EPerBlock * GetEPackLength(ctx, true) *
-                                     GetTypeSize(ctx.in_data_type) * 2 +
-                                 2 * worst_case_alignment_adjustment;
+    const std::size_t lds_size =
+        (BPerBlock + KPerBlock) * EPerBlock * EPACKSize * GetTypeSize(ctx.in_data_type) * 2 +
+        2 * worst_case_alignment_adjustment;
 
     return lds_size;
 }
 
-static inline int RunAndMeasureSolutionBase(miopen::Handle& profile_h,
-                                            ConstData_t bot_buf,
-                                            Data_t top_buf,
-                                            ConstData_t wei_buf,
+template <typename BotBufType, typename TopBufType, typename WeiBufType>
+static inline int RunAndMeasureSolutionBase(const miopen::Handle& profile_h,
+                                            BotBufType bot_buf,
+                                            TopBufType top_buf,
+                                            WeiBufType wei_buf,
                                             const ConvolutionContext& ctx,
                                             const ConvSolution& solution,
                                             float& elapsed_time)
@@ -486,7 +701,7 @@ static inline int RunAndMeasureSolutionBase(miopen::Handle& profile_h,
 
             if(ctx.direction.IsBackwardWrW())
             {
-                kernel(bot_buf, top_buf, wei_buf);
+                kernel(top_buf, bot_buf, wei_buf);
             }
             if(ctx.direction.IsBackwardData())
             {
@@ -537,6 +752,10 @@ int amd_buffer_load_max_length()
     {
         return 4;
     }
+    else if(std::is_same<half_float::half, T>())
+    {
+        return 8;
+    }
     else
     {
         MIOPEN_LOG_I("not implemented");
@@ -550,6 +769,10 @@ int amd_buffer_store_max_length()
     if(std::is_same<float, T>())
     {
         return 4;
+    }
+    else if(std::is_same<half_float::half, T>())
+    {
+        return 8;
     }
     else
     {
@@ -565,6 +788,10 @@ int amd_lds_read_max_length()
     {
         return 4;
     }
+    else if(std::is_same<half_float::half, T>())
+    {
+        return 8;
+    }
     else
     {
         MIOPEN_LOG_I("not implemented");
@@ -579,6 +806,10 @@ int amd_lds_write_max_length()
     {
         return 4;
     }
+    else if(std::is_same<half_float::half, T>())
+    {
+        return 8;
+    }
     else
     {
         MIOPEN_LOG_I("not implemented");
@@ -590,4 +821,5 @@ constexpr std::size_t get_lds_max_number_of_byte() { return 65536; }
 
 } // namespace solver
 } // namespace miopen
+
 #endif

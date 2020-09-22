@@ -472,6 +472,8 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ConvolutionContext& p
         return false;
     if(!params.Is2d())
         return false;
+    if(params.IsAsymmetricPadH() || params.IsAsymmetricPadW())
+        return false;
     if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))
         return false;
 
@@ -745,7 +747,7 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
 
 template <int N_BATCH_LOOPS>
 template <typename Tgpu>
-int ConvOclBwdWrW2<N_BATCH_LOOPS>::RunAndMeasureSolutionImpl(miopen::Handle& profile_h,
+int ConvOclBwdWrW2<N_BATCH_LOOPS>::RunAndMeasureSolutionImpl(const miopen::Handle& profile_h,
                                                              ConstData_t bot_ocl_buf,
                                                              ConstData_t top_ocl_buf,
                                                              Data_t wei_ocl_buf,
@@ -793,7 +795,7 @@ int ConvOclBwdWrW2<N_BATCH_LOOPS>::RunAndMeasureSolutionImpl(miopen::Handle& pro
 }
 
 template <int N_BATCH_LOOPS>
-int ConvOclBwdWrW2<N_BATCH_LOOPS>::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvOclBwdWrW2<N_BATCH_LOOPS>::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                                          ConstData_t bot_ocl_buf,
                                                          ConstData_t top_ocl_buf,
                                                          Data_t wei_ocl_buf,

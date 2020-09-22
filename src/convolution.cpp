@@ -27,6 +27,7 @@
 #include <miopen/convolution.hpp>
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
+#include <miopen/find_controls.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/miopen.h>
@@ -34,7 +35,6 @@
 #include <miopen/solver.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/algorithm.hpp>
-#include <miopen/scgemm_utils.hpp>
 
 #include <cassert>
 #include <cstddef>
@@ -47,7 +47,6 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_SCGEMM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_WINOGRAD)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_GEMM)
 
@@ -278,7 +277,7 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMM(const TensorDescr
                                                        out_spatial.end(),
                                                        std::size_t(1),
                                                        std::multiplies<std::size_t>()) *
-                                       GetTypeSize(wDesc.GetType());
+                                       GetTypeSize(wDesc.GetType()) * group_count;
 
     // No workspace is needed for 1x1 convolutions
     if(miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
@@ -363,7 +362,7 @@ ConvolutionDescriptor::ForwardGetValidWorkSpaceSizeGemm(Handle& handle,
             return gemm_trans;
         }
 
-        size_t workspace_size_gemm = ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc) * group_count;
+        size_t workspace_size_gemm = ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc);
         /// \todo WORKAROUND for issue 1430
         if(workspace_size_gemm > MAX_MEM_ALLOC_SZ /* handle.GetMaxMemoryAllocSize() */)
             workspace_size_gemm = 0;
@@ -395,7 +394,7 @@ ConvolutionDescriptor::WrwGetValidWorkSpaceSizeGemm(const TensorDescriptor& dyDe
         if((miopen::any_of(wei_spatial, [](auto v) { return v != 1; }) ||
             miopen::any_of(GetConvPads(), [](auto v) { return v != 0; }) ||
             miopen::any_of(GetConvStrides(), [](auto v) { return v != 1; })))
-            return BackwardWeightsGetWorkSpaceSizeGEMM(dyDesc, dwDesc) * group_count;
+            return BackwardWeightsGetWorkSpaceSizeGEMM(dyDesc, dwDesc);
 
         if(miopen::any_of(wei_spatial, [](auto v) { return v == 1; }) &&
            miopen::any_of(GetConvPads(), [](auto v) { return v == 0; }) &&
@@ -422,19 +421,53 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
     auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
     ctx.SetStream(&handle);
     ctx.DetectRocm();
-
-    if(IsWinograd3x3SupportedAndFast(ctx))
-        return 0;
-
     ctx.SetupFloats();
     ctx.do_search             = false;
     ctx.disable_perfdb_access = true;
 
+    const size_t workspace_size_winograd = ForwardBackwardDataGetWorkSpaceSizeWinograd(ctx);
+
+    if(IsWinograd3x3SupportedAndFast(ctx))
+    {
+        // In some cases ConvMPBidirectWinograd solution faster than single pass
+        // versions and it requires non zero workspace.
+        // So we can't send 0 and cut off the potentially fastest solution.
+        MIOPEN_LOG_I2(workspace_size_winograd);
+        return workspace_size_winograd;
+    }
+
+    /// \ref ffind_special_cases
+    const miopen::FindMode fm(ctx);
+    while(fm.IsFast() || fm.IsHybrid())
+    {
+        /// \section ffind_gwss_why_not_0
+        /// Basically we can return 0 here because
+        /// * (A) Find() emulated by Immediate mode does not execute kernels.
+        /// * (B) We expect that applications read output of Find() and
+        ///   allocate WS for Run phase as indicated there
+        ///   (in miopenConvAlgoPerf_t::memory).
+        ///
+        /// However there are some known apps that allocate WS once
+        /// (using size returned by *this* call) and then re-use
+        /// the same workspace for Run phase. That is why we shall return
+        /// actually required workspace here.
+        size_t count;
+        miopenConvSolution_t sol;
+        GetForwardSolutions(handle, wDesc, xDesc, yDesc, 1, &count, &sol);
+        if(count < 1 || (fm.IsHybrid() && sol.time < 0))
+        {
+            ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
+                fm.IsFastHybrid();
+            ctx.use_dynamic_solutions_only = fm.IsDynamicHybrid();
+            break; // Fall down to Normal Find.
+        }
+        MIOPEN_LOG_I2(sol.workspace_size);
+        return sol.workspace_size;
+    }
+
     const size_t direct_workspace = ForwardBackwardDataGetWorkSpaceSizeDirect(ctx);
 
     const size_t implicit_gemm_workspace = ForwardBackwardGetWorkSpaceSizeImplicitGemm(ctx);
-
-    const size_t workspace_size_scgemm = ForwardBackwardDataGetWorkSpaceSizeSCGemm(handle, ctx);
 
     size_t workspace_size_gemm = 0;
 #if MIOPEN_USE_GEMM
@@ -443,7 +476,7 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         const std::size_t spatial_dim = GetSpatialDimension();
         const auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
 
-        workspace_size_gemm = ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc) * group_count;
+        workspace_size_gemm = ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc);
         /// \todo WORKAROUND for issue 1430
         if(workspace_size_gemm > MAX_MEM_ALLOC_SZ /* handle.GetMaxMemoryAllocSize() */)
             workspace_size_gemm = 0;
@@ -460,15 +493,15 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
             if(gemm_trans > MAX_MEM_ALLOC_SZ /* handle.GetMaxMemoryAllocSize() */)
                 gemm_trans = 0;
             return std::max(
-                {gemm_trans, direct_workspace, workspace_size_scgemm, implicit_gemm_workspace});
+                {gemm_trans, direct_workspace, implicit_gemm_workspace, workspace_size_winograd});
         }
 
         if(miopen::any_of(GetConvDilations(), [](auto v) { return v > 1; }))
         {
             return std::max({workspace_size_gemm,
                              direct_workspace,
-                             workspace_size_scgemm,
-                             implicit_gemm_workspace});
+                             implicit_gemm_workspace,
+                             workspace_size_winograd});
         }
     }
 #endif
@@ -479,7 +512,7 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
                                             workspace_size_gemm,
                                             direct_workspace,
                                             implicit_gemm_workspace,
-                                            workspace_size_scgemm});
+                                            workspace_size_winograd});
 
     MIOPEN_LOG_I2(workspace_size);
     return workspace_size;
@@ -496,13 +529,35 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
     auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
     ctx.SetStream(&handle);
     ctx.DetectRocm();
-
-    if(IsWinograd3x3SupportedAndFast(ctx))
-        return 0;
-
     ctx.SetupFloats();
     ctx.do_search             = false;
     ctx.disable_perfdb_access = true;
+
+    const size_t workspace_size_winograd = ForwardBackwardDataGetWorkSpaceSizeWinograd(ctx);
+    if(IsWinograd3x3SupportedAndFast(ctx))
+    {
+        MIOPEN_LOG_I2(workspace_size_winograd);
+        return workspace_size_winograd;
+    }
+
+    /// \ref ffind_special_cases
+    const miopen::FindMode fm(ctx);
+    while(fm.IsFast() || fm.IsHybrid())
+    {
+        /// \ref ffind_gwss_why_not_0
+        size_t count;
+        miopenConvSolution_t sol;
+        GetBackwardSolutions(handle, dyDesc, wDesc, dxDesc, 1, &count, &sol);
+        if(count < 1 || (fm.IsHybrid() && sol.time < 0))
+        {
+            ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
+                fm.IsFastHybrid();
+            ctx.use_dynamic_solutions_only = fm.IsDynamicHybrid();
+            break; // Fall down to Normal Find.
+        }
+        MIOPEN_LOG_I2(sol.workspace_size);
+        return sol.workspace_size;
+    }
 
     const size_t direct_workspace = ForwardBackwardDataGetWorkSpaceSizeDirect(ctx);
 
@@ -511,10 +566,11 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
     size_t workspace_size_gemm = 0;
 
 #if MIOPEN_USE_GEMM
-    size_t tmp_max_workspace = std::max({direct_workspace, implicit_gemm_workspace});
+    size_t tmp_max_workspace =
+        std::max({direct_workspace, implicit_gemm_workspace, workspace_size_winograd});
     if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
     {
-        workspace_size_gemm = BackwardDataGetWorkSpaceSizeGEMM(wDesc, dyDesc) * group_count;
+        workspace_size_gemm = BackwardDataGetWorkSpaceSizeGEMM(wDesc, dyDesc);
         /// \todo WORKAROUND for issue 1430
         if(workspace_size_gemm > MAX_MEM_ALLOC_SZ /*  handle.GetMaxMemoryAllocSize() */)
             workspace_size_gemm = 0;
@@ -545,8 +601,11 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
 
     const size_t workspace_size_fft = ForwardBackwardDataGetWorkSpaceSizeFFT(ctx);
 
-    const size_t workspace_size = std::max(
-        {workspace_size_fft, workspace_size_gemm, direct_workspace, implicit_gemm_workspace});
+    const size_t workspace_size = std::max({workspace_size_fft,
+                                            workspace_size_gemm,
+                                            direct_workspace,
+                                            implicit_gemm_workspace,
+                                            workspace_size_winograd});
     MIOPEN_LOG_I2(workspace_size);
     return workspace_size;
 }
@@ -570,7 +629,7 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSizeGEMM(const TensorDescriptor& 
                                             out_spatial.end(),
                                             std::size_t(1),
                                             std::multiplies<std::size_t>()) *
-                            GetTypeSize(dyDesc.GetType());
+                            GetTypeSize(dyDesc.GetType()) * group_count;
 
     // No workspace is needed for 1x1_stride=1 convolutions
     if(miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
@@ -613,13 +672,16 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeGEMM(const TensorDescripto
 
     const std::size_t wei_c = dwDesc.GetLengths()[1];
 
-    const std::size_t gemm_size =
-        GetTypeSize(dyDesc.GetType()) * wei_c * std::accumulate(out_spatial.begin(),
-                                                                out_spatial.end(),
-                                                                std::size_t(1),
-                                                                std::multiplies<std::size_t>()) *
-        std::accumulate(
-            wei_spatial.begin(), wei_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
+    const std::size_t gemm_size = GetTypeSize(dyDesc.GetType()) * wei_c *
+                                  std::accumulate(out_spatial.begin(),
+                                                  out_spatial.end(),
+                                                  std::size_t(1),
+                                                  std::multiplies<std::size_t>()) *
+                                  std::accumulate(wei_spatial.begin(),
+                                                  wei_spatial.end(),
+                                                  std::size_t(1),
+                                                  std::multiplies<std::size_t>()) *
+                                  group_count;
 
     // No workspace is needed for 1x1_stride=1 convolutions
     if(miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
@@ -690,48 +752,22 @@ std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeDirect(
     }
 }
 
-std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeSCGemm(
-    Handle& handle, const miopen::ConvolutionContext& ctx) const
-{
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_SCGEMM{}))
-    {
-        return 0;
-    }
-
-    std::size_t sz = 0;
-
-#if MIOPEN_USE_SCGEMM
-    /// Workaround for the following problem: This function reports non-zero workspace
-    /// even if none SCGEMM solutions are applicable.
-    /// \todo Full-blown fix.
-    if(FindAllFwdSCGemmSolutions(ctx).empty())
-        return 0;
-
-    sz = GetMaximumSCGemmConvFwdWorkSpaceSize(ctx);
-    if(sz > MAX_MEM_ALLOC_SZ)
-        sz = 0;
-#else
-    (void)MAX_MEM_ALLOC_SZ;
-    (void)handle;
-    (void)ctx;
-#endif
-
-    return sz;
-}
-
-std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeFFT(
+std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeWinograd(
     const miopen::ConvolutionContext& ctx) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{}))
+        return 0;
+
     try
     {
-        const auto sz_v = AllFFTForwardBackwardDataWorkspaceSize(ctx);
-        std::size_t sz  = 0;
-        for(const auto& pr : sz_v)
+        const auto ss  = FindAllWinogradSolutions(ctx);
+        std::size_t sz = 0;
+        for(const auto& solution : ss)
         {
-            if(sz < pr.second)
+            if(sz < solution.workspce_sz)
             {
-                MIOPEN_LOG_I2(sz << " < " << pr.second);
-                sz = pr.second;
+                MIOPEN_LOG_I2(sz << " < " << solution.workspce_sz);
+                sz = solution.workspce_sz;
             }
         }
         return sz;
@@ -742,7 +778,6 @@ std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeFFT(
         return 0;
     }
 }
-
 std::size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(
     const miopen::ConvolutionContext& ctx) const
 {
@@ -831,8 +866,25 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
                                                        const TensorDescriptor& dwDesc) const
 {
     MIOPEN_LOG_I("");
-
     auto ctx = ConvolutionContext(xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights);
+    const miopen::FindMode fm(ctx);
+    while(fm.IsFast() || fm.IsHybrid())
+    {
+        /// \ref ffind_gwss_why_not_0
+        size_t count;
+        miopenConvSolution_t sol;
+        GetWrwSolutions(handle, dyDesc, xDesc, dwDesc, 1, &count, &sol);
+        if(count < 1 || (fm.IsHybrid() && sol.time < 0))
+        {
+            ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
+                fm.IsFastHybrid();
+            ctx.use_dynamic_solutions_only = fm.IsDynamicHybrid();
+            break; // Fall down to Normal Find.
+        }
+        MIOPEN_LOG_I2(sol.workspace_size);
+        return sol.workspace_size;
+    }
+
     ctx.SetStream(&handle);
     ctx.DetectRocm();
     ctx.SetupFloats();
@@ -843,7 +895,7 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
 #if MIOPEN_USE_GEMM
     if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
     {
-        workspace_size_gemm = BackwardWeightsGetWorkSpaceSizeGEMM(dyDesc, dwDesc) * group_count;
+        workspace_size_gemm = BackwardWeightsGetWorkSpaceSizeGEMM(dyDesc, dwDesc);
         /// \todo WORKAROUND for issue 1430
         if(workspace_size_gemm > MAX_MEM_ALLOC_SZ /*  handle.GetMaxMemoryAllocSize() */)
             workspace_size_gemm = 0;
@@ -854,9 +906,7 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
                                             BackwardWeightsGetWorkSpaceSizeWinograd(ctx),
                                             BackwardWeightsGetWorkSpaceSizeDirect(ctx),
                                             workspace_size_gemm});
-
     MIOPEN_LOG_I2(workspace_size);
-
     return workspace_size;
 }
 

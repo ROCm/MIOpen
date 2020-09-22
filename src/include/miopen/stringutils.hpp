@@ -26,9 +26,14 @@
 #ifndef GUARD_MIOPEN_STRINGUTILS_HPP
 #define GUARD_MIOPEN_STRINGUTILS_HPP
 
+#include <miopen/algorithm.hpp>
+#include <miopen/errors.hpp>
 #include <algorithm>
+#include <iterator>
 #include <numeric>
 #include <string>
+#include <vector>
+#include <sstream>
 
 #define MIOPEN_STRINGIZE_1(...) #__VA_ARGS__
 #define MIOPEN_STRINGIZE(...) MIOPEN_STRINGIZE_1(__VA_ARGS__)
@@ -90,6 +95,37 @@ inline std::string RemovePrefix(std::string s, std::string prefix)
         return s.substr(prefix.length());
     else
         return s;
+}
+
+inline std::vector<std::string> SplitSpaceSeparated(const std::string& in)
+{
+    std::istringstream ss(in);
+    std::istream_iterator<std::string> begin(ss), end;
+    return {begin, end};
+}
+
+inline std::vector<std::string> SplitSpaceSeparated(const std::string& in,
+                                                    const std::vector<std::string>& dontSplitAfter)
+{
+    std::vector<std::string> rv;
+    std::istringstream ss(in);
+    std::string s;
+    while(ss >> s)
+    {
+        if(any_of(dontSplitAfter, [&](const auto& dont) { return dont == s; }))
+        {
+            std::string s2;
+            if(ss >> s2)
+            {
+                s += std::string(" ").append(s2); // Exactly one space is important.
+                rv.push_back(s);
+                continue;
+            }
+            MIOPEN_THROW("Error parsing string: '" + in + '\'');
+        }
+        rv.push_back(s);
+    }
+    return rv;
 }
 
 } // namespace miopen

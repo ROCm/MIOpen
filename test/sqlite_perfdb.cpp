@@ -49,6 +49,7 @@
 #include <thread>
 #include <vector>
 
+#if MIOPEN_ENABLE_SQLITE
 namespace miopen {
 namespace tests {
 static boost::filesystem::path& exe_path()
@@ -225,12 +226,16 @@ std::ostream& operator<<(std::ostream& s, const SolverData& td)
 class DbTest
 {
     public:
-    DbTest() : temp_file("miopen.tests.perfdb") {}
+    DbTest()
+        : temp_file("miopen.tests.perfdb"), db_inst{std::string(temp_file), false, "gfx906", 64}
+    {
+    }
 
     virtual ~DbTest() {}
 
     protected:
     TempFile temp_file;
+    SQLitePerfDb db_inst;
 
     static const std::array<std::pair<std::string, SolverData>, 2>& common_data()
     {
@@ -243,11 +248,10 @@ class DbTest
 
     void ClearDb(SQLitePerfDb& db) const
     {
-        auto res = db.SQLExec("delete from config; delete from perf_db;");
-        EXPECT(res);
+        db.sql.Exec("delete from config; delete from perf_db;");
     }
 
-    void ResetDb() const {}
+    void ResetDb() const { db_inst.sql.Exec("delete from config; delete from perf_db;"); }
 
     static const ProblemData& key()
     {
@@ -328,35 +332,25 @@ class SchemaTest : public DbTest
     public:
     void Run() const
     {
-        SQLitePerfDb db_inst(std::string(temp_file), false, "gfx906", 64);
-
         // check if the config and perf_db tables exist
-        SQLitePerfDb::SQLRes_t res;
-        if(db_inst.SQLExec(
-               // clang-format off
-               "SELECT name, sql "
-               "FROM sqlite_master "
-               "WHERE type='table' "
-                 "AND name = 'config';"
-               // clang-format on
-               ,
-               res))
-            EXPECT(res.size() == 1);
-        else
-            EXPECT(false);
-        if(db_inst.SQLExec(
-               // clang-format off
-               "SELECT name, sql "
-               "FROM sqlite_master "
-               "WHERE type='table' "
-                 "AND name = 'perf_db';"
-               // clang-format on
-               ,
-               res))
-
-            EXPECT(res.size() == 1);
-        else
-            EXPECT(false);
+        SQLite::result_type res = db_inst.sql.Exec(
+            // clang-format off
+                "SELECT name, sql "
+                "FROM sqlite_master "
+                "WHERE type='table' "
+                "AND name = 'config';"
+            // clang-format on
+            );
+        EXPECT(res.size() == 1);
+        res = db_inst.sql.Exec(
+            // clang-format off
+                "SELECT name, sql "
+                "FROM sqlite_master "
+                "WHERE type='table' "
+                "AND name = 'perf_db';"
+            // clang-format on
+            );
+        EXPECT(res.size() == 1);
         // TODO: check for indices
     }
 };
@@ -364,10 +358,9 @@ class SchemaTest : public DbTest
 class DbFindTest : public DbTest
 {
     public:
-    void Run() const
+    void Run()
     {
-        SQLitePerfDb db_inst(std::string(temp_file), false, "gfx906", 64);
-        ResetDb(); // redundant
+        ResetDb();
 
         const ProblemData p;
         db_inst.InsertConfig(p);
@@ -375,17 +368,15 @@ class DbFindTest : public DbTest
         auto no_rec = db_inst.FindRecord(p);
         EXPECT(!no_rec);
 
-        auto ids = db_inst.GetConfigIDs(p);
-        EXPECT(ids.size() == 1);
-
+        auto id = db_inst.GetConfigIDs(p);
         const SolverData sol;
         std::ostringstream ss;
         sol.Serialize(ss);
-        EXPECT(db_inst.SQLExec(
+        db_inst.sql.Exec(
             // clang-formagt off
-            "INSERT INTO perf_db(config, solver, params, arch, num_cu) "
+            "INSERT OR IGNORE INTO perf_db(config, solver, params, arch, num_cu) "
             "VALUES( " +
-            ids[0]["id"] + ", '" + id0() + "', '" + ss.str() + "', 'gfx906', 64);"));
+            id + ", '" + id0() + "', '" + ss.str() + "', 'gfx906', 64);");
         // clang-fromat on
 
         auto sol_res = db_inst.FindRecord(p);
@@ -718,8 +709,8 @@ class DBMultiThreadedTestWork
 };
 
 unsigned int DBMultiThreadedTestWork::threads_count    = 16;
-unsigned int DBMultiThreadedTestWork::common_part_size = 32;
-unsigned int DBMultiThreadedTestWork::unique_part_size = 32;
+unsigned int DBMultiThreadedTestWork::common_part_size = 16;
+unsigned int DBMultiThreadedTestWork::unique_part_size = 16;
 
 class DbMultiThreadedTest : public DbTest
 {
@@ -1116,7 +1107,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
         std::cout << "Remove test..." << std::endl;
 
         MultiFileDb<SQLitePerfDb, SQLitePerfDb, true> db(temp_file, user_db_path, "gfx906", 64);
-        EXPECT(!db.Remove(key(), id0()));
+        EXPECT(db.Remove(key(), id0()));
         EXPECT(db.Remove(key(), id1()));
 
         ValidateData(db, value2());
@@ -1244,14 +1235,10 @@ struct PerfDbDriver : test_driver
 
         if(full_set)
         {
-            tests::full_set() = true;
-#if MIOPEN_BACKEND_HIP
-            DBMultiThreadedTestWork::threads_count = 20;
-#else
-            DBMultiThreadedTestWork::threads_count = 64;
-#endif
-            DBMultiThreadedTestWork::common_part_size = 64;
-            DBMultiThreadedTestWork::unique_part_size = 64;
+            tests::full_set()                         = true;
+            DBMultiThreadedTestWork::threads_count    = 32;
+            DBMultiThreadedTestWork::common_part_size = 128;
+            DBMultiThreadedTestWork::unique_part_size = 128;
         }
         if(mt_child_id >= 0)
         {
@@ -1265,12 +1252,14 @@ struct PerfDbDriver : test_driver
         DbMultiThreadedReadTest().Run();
         DbMultiProcessReadTest().Run();
         DbMultiProcessTest().Run();
+#if !MIOPEN_DISABLE_USERDB
         DbMultiFileReadTest<true>().Run();
         DbMultiFileReadTest<false>().Run();
         DbMultiFileWriteTest().Run();
         DbMultiFileOperationsTest().Run();
         DbMultiFileMultiThreadedReadTest().Run();
         DbMultiFileMultiThreadedTest().Run();
+#endif
     }
 
     private:
@@ -1282,9 +1271,14 @@ struct PerfDbDriver : test_driver
 };
 } // namespace tests
 } // namespace miopen
-
+#endif
 int main(int argc, const char* argv[])
 {
+#if MIOPEN_ENABLE_SQLITE && !MIOPEN_EMBED_DB
     miopen::tests::exe_path() = argv[0];
     test_drive<miopen::tests::PerfDbDriver>(argc, argv);
+#else
+    (void)(argc);
+    (void)(argv);
+#endif
 }

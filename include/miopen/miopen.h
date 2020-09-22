@@ -59,6 +59,7 @@
  * @defgroup RNN
  * @defgroup fusion
  * @defgroup LossFunction
+ * @defgroup TensorReduce
  *
 */
 
@@ -313,6 +314,11 @@ MIOPEN_DECLARE_OBJECT(miopenCTCLossDescriptor);
 */
 MIOPEN_DECLARE_OBJECT(miopenDropoutDescriptor);
 
+/*! @ingroup TensorReduce
+ * @brief Creates the miopenReduceTensorDescriptor_t type
+*/
+MIOPEN_DECLARE_OBJECT(miopenReduceTensorDescriptor);
+
 /*! @ingroup tensor
  * @enum miopenDataType_t
  * MIOpen floating point datatypes. Both 32-bit and 16-bit floats are supported in MIOpen.
@@ -381,6 +387,17 @@ typedef enum {
     miopenPoolingAverageInclusive = 2, /*!< Inclusive Average pooling */
 } miopenPoolingMode_t;
 
+/*! @ingroup pooling
+ * @enum miopenPoolingWorkspaceIndexMode_t
+ * Pooling layer workspace index mode. miopenPoolingWorkspaceIndexMask mode records indices
+ * indicating the max values' positions in the filter/mask. miopenPoolingWorkspaceIndexImage mode
+ * records indices indicating the max values' positions in the image.
+*/
+typedef enum {
+    miopenPoolingWorkspaceIndexMask  = 0, /*!< Use mask indices, 2D pooling only */
+    miopenPoolingWorkspaceIndexImage = 1, /*!< Use image indices */
+} miopenPoolingWorkspaceIndexMode_t;
+
 /*! @ingroup LRN
  * @enum miopenLRNMode_t
  * Local Response Normalization layer mode
@@ -439,6 +456,59 @@ typedef enum {
     MIOPEN_SOFTMAX_MODE_CHANNEL =
         1, /*!< compute per spatial location (H, W) per image (N) across C */
 } miopenSoftmaxMode_t;
+
+/*! @ingroup TensorReduce
+ * @enum miopenReduceTensorOp_t
+ * Tensor Reduction operation types
+*/
+typedef enum {
+    MIOPEN_REDUCE_TENSOR_ADD = 0, /*!< the operation is adding the values of the reduced elements */
+    MIOPEN_REDUCE_TENSOR_MUL =
+        1, /*!< the operation is multiplying the values of the reduced elements */
+    MIOPEN_REDUCE_TENSOR_MIN =
+        2, /*!< the operation is getting the minimum value of the reduced elements */
+    MIOPEN_REDUCE_TENSOR_MAX =
+        3, /*!< the operation is getting the maximum value of the reduced elements */
+    // MIOPEN_REDUCE_TENSOR_AMAX =
+    //    4, /*!< the operation is getting the maximum absolute value of the reduced elements */
+    // MIOPEN_REDUCE_TENSOR_AVG =
+    //    5, /*!< the operation is getting the averaged value of the reduced elements */
+    // MIOPEN_REDUCE_TENSOR_NORM1 =
+    //    6, /*!< the operation is adding the absolute values of the reduced elements */
+    // MIOPEN_REDUCE_TENSOR_NORM2 = 7, /*!< the operation is getting the square root of the sum of
+    //                                   squares of the reduced elements */
+    // MIOPEN_REDUCE_TENSOR_MUL_NO_ZEROS =
+    //    8, /*!< the operation is same as MUL, but does not have the zero values considered */
+} miopenReduceTensorOp_t;
+
+/*! @ingroup TensorReduce
+ * @enum miopenReduceTensorOp_t
+ * Nan numbers propagation modes
+*/
+typedef enum {
+    MIOPEN_NOT_PROPAGATE_NAN = 0, /*!< does not propagate Nan number */
+    MIOPEN_PROPAGATE_NAN     = 1, /*!< propagate the Nan number by the Reduction operation */
+} miopenNanPropagation_t;
+
+/*! @ingroup TensorReduce
+ * @enum miopenReduceTensorIndices_t
+ * Reduction Indices computation modes
+*/
+typedef enum {
+    MIOPEN_REDUCE_TENSOR_NO_INDICES        = 0, /*!< Does not compuate indices */
+    MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES = 1, /*!< Compute the relative, flatted indices */
+} miopenReduceTensorIndices_t;
+
+/*! @ingroup TensorReduce
+ * @enum miopenIndicesType_t
+ * Reduction Indices types
+*/
+typedef enum {
+    MIOPEN_32BIT_INDICES = 0, /*!< unsigned integer indices */
+    MIOPEN_64BIT_INDICES = 1, /*!< unsigned long indices */
+    MIOPEN_16BIT_INDICES = 2, /*!< unsigned short indices */
+    MIOPEN_8BIT_INDICES  = 3, /*!< unsigned char indices */
+} miopenIndicesType_t;
 
 /** @addtogroup tensor
  *
@@ -850,7 +920,6 @@ typedef enum {
     miopenConvolutionFwdAlgoFFT          = 2, /*!< Fast Fourier Transform indirect convolutions */
     miopenConvolutionFwdAlgoWinograd     = 3, /*!< Winograd indirect convolutions */
     miopenConvolutionFwdAlgoImplicitGEMM = 5, /*!< Implicit GEMM convolutions, fp32 only */
-    miopenConvolutionFwdAlgoStaticCompiledGEMM = 6, /*!< Static Compiled GEMM convolutions */
 } miopenConvFwdAlgorithm_t;
 
 /*! @enum miopenConvBwdWeightsAlgorithm_t
@@ -876,18 +945,18 @@ typedef enum {
     miopenConvolutionBwdDataAlgoImplicitGEMM = 5, /*!< Implicit GEMM convolutions, fp32 only */
 } miopenConvBwdDataAlgorithm_t;
 
+/*! @enum miopenConvAlgorithm_t
+ * Top-level convolutional algorithm mode
+ */
 typedef enum {
     miopenConvolutionAlgoGEMM         = 0, /*!< GEMM variant */
     miopenConvolutionAlgoDirect       = 1, /*!< Direct convolutions */
     miopenConvolutionAlgoFFT          = 2, /*!< Fast Fourier Transform indirect convolutions */
     miopenConvolutionAlgoWinograd     = 3, /*!< Winograd indirect convolutions */
     miopenConvolutionAlgoImplicitGEMM = 5, /*!< Implicit GEMM convolutions, fp32 only */
-    miopenConvolutionAlgoStaticCompiledGEMM = 6, /*!< Static Compiled GEMM convolutions */
 } miopenConvAlgorithm_t;
 
-/*! @struct miopenConvAlgoPerf_t
-
- * @brief Perf struct for forward, backward filter, or backward data algorithms
+/*! @brief Perf struct for forward, backward filter, or backward data algorithms
  *
  * Contains the union to hold the selected convolution algorithm for forward, or backwards layers,
  * and also contains the time it took to run the algorithm and the workspace required to run the
@@ -903,16 +972,16 @@ typedef struct
         miopenConvBwdDataAlgorithm_t
             bwd_data_algo; /*!< Back propagation on data convolution algorithm enum selection */
     };
+
     float time;    /*!< Time to exectued the selected algorithm represented in the union */
     size_t memory; /*!< Workspace required to run the selected algorithm represented in the union */
+
 } miopenConvAlgoPerf_t;
 
-/*! @struct miopenConvSolution_t
-
- * @brief Performance struct for forward, backward filter, or backward data algorithms in immediate
- mode
+/*! @brief Performance struct for forward, backward filter, or backward data algorithms in
+ * immediate mode
  *
- * Contains an integer identifying the solution and the algorithm for the solution,
+ * Contains a 64-bit integer identifying the solution and the algorithm for the solution,
  * as well as the runtime, workspace size and a boolean flag indicating whether the returned
  * solution is a heuristic or resulting from an actual run
  *
@@ -921,11 +990,12 @@ typedef struct
 {
     float time; /*!< Represents the approximate time required to execute this solution on the GPU,
                      in milliseconds. This value may either be based on an acutal kernel run or an
-                     esitmate based on a heuristic.*/
+                     estimate based on a heuristic.*/
     size_t workspace_size; /*!< Workspace required to run the selected algorithm represented in the
                               union */
     uint64_t solution_id;  /*!< Identifier for the returned solution */
     miopenConvAlgorithm_t algorithm; /*!< The algorithm used to compute the solution */
+
 } miopenConvSolution_t;
 
 /*! @brief Query the maximum number of solutions applicable for the given input/output and weights
@@ -1790,6 +1860,25 @@ MIOPEN_EXPORT miopenStatus_t miopenSetPoolingIndexType(miopenPoolingDescriptor_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenGetPoolingIndexType(miopenPoolingDescriptor_t poolDesc,
                                                        miopenIndexType_t* index_type);
+
+/*! @brief Set workspace index mode for pooling layer. The default mode is
+ * miopenPoolingWorkSpaceIndexMask.
+ *
+ * @param poolDesc         Pointer to a pooling layer descriptor (input/output)
+ * @param workspace_index  Workspace index mode (input)
+ * @return                 miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSetPoolingWorkSpaceIndexMode(
+    miopenPoolingDescriptor_t poolDesc, miopenPoolingWorkspaceIndexMode_t workspace_index);
+
+/*! @brief Get workspace index mode for pooling layer.
+ *
+ * @param poolDesc         Pointer to a pooling layer descriptor (input)
+ * @param workspace_index  Workspace index mode (output)
+ * @return                 miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetPoolingWorkSpaceIndexMode(
+    miopenPoolingDescriptor_t poolDesc, miopenPoolingWorkspaceIndexMode_t* workspace_index);
 
 /*! @brief Sets a 2-D pooling layer descriptor details.
  *
@@ -3043,6 +3132,33 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNDescriptor(miopenRNNDescriptor_t rnnDes
                                                     int* hiddenSize,
                                                     int* layer);
 
+/*! @brief Retrieves a RNN layer descriptor's details version 2. This version enables retrieving
+* information of the dropout descriptor of the rnn descriptor.
+*
+* @param rnnDesc     RNN layer descriptor (input)
+* @param hiddenSize  Size of hidden state (output)
+* @param layer       Number of stacked layers (output)
+* @param dropoutDesc Pre-configured dropout descriptor for dropout layer in between RNN layers
+* (output)
+* @param inputMode   RNN data input mode (output)
+* @param dirMode     Uni or bi direction mode (output)
+* @param rnnMode     RNN mode (output)
+* @param biasMode    Bias used (output)
+* @param algoMode    RNN algorithm mode (output)
+* @param dataType    Data type of RNN (output)
+* @return            miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenGetRNNDescriptor_V2(miopenRNNDescriptor_t rnnDesc,
+                                                       int* hiddenSize,
+                                                       int* layer,
+                                                       miopenDropoutDescriptor_t* dropoutDesc,
+                                                       miopenRNNInputMode_t* inputMode,
+                                                       miopenRNNDirectionMode_t* dirMode,
+                                                       miopenRNNMode_t* rnnMode,
+                                                       miopenRNNBiasMode_t* biasMode,
+                                                       miopenRNNAlgo_t* algoMode,
+                                                       miopenDataType_t* dataType);
+
 /*! @brief Destroys the tensor descriptor object
 *
 * @param rnnDesc RNN tensor descriptor type (input)
@@ -3074,6 +3190,35 @@ MIOPEN_EXPORT miopenStatus_t miopenSetRNNDescriptor(miopenRNNDescriptor_t rnnDes
                                                     miopenRNNBiasMode_t biasMode,
                                                     miopenRNNAlgo_t algo,
                                                     miopenDataType_t dataType);
+
+/*! @brief Set the details of the RNN descriptor version 2. This version enables the use of dropout
+ * in rnn.
+ *
+ * Interface for setting the values of the RNN descriptor object. This function requires specific
+ * algorithm selection.
+ * @param rnnDesc      RNN layer descriptor type (input/output)
+ * @param hsize        Hidden layer size (input)
+ * @param nlayers      Number of layers (input)
+ * @param dropoutDesc  Pre-initialized dropout descriptor for dropout layer in between RNN layers
+ * (input)
+ * @param inMode       RNN first layer input mode (input)
+ * @param direction    RNN direction (input)
+ * @param rnnMode      RNN model type (input)
+ * @param biasMode     RNN bias included (input)
+ * @param algo         RNN algorithm selected (input)
+ * @param dataType     Only fp32 currently supported for RNNs (input)
+ * @return             miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenSetRNNDescriptor_V2(miopenRNNDescriptor_t rnnDesc,
+                                                       const int hsize,
+                                                       const int nlayers,
+                                                       miopenDropoutDescriptor_t dropoutDesc,
+                                                       miopenRNNInputMode_t inMode,
+                                                       miopenRNNDirectionMode_t direction,
+                                                       miopenRNNMode_t rnnMode,
+                                                       miopenRNNBiasMode_t biasMode,
+                                                       miopenRNNAlgo_t algo,
+                                                       miopenDataType_t dataType);
 
 /*! @brief Query the amount of memory required to execute the RNN layer
  *
@@ -4279,6 +4424,143 @@ MIOPEN_EXPORT miopenStatus_t miopenDropoutBackward(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT DROPOUT DOXYGEN GROUP
+
+// TensorReduce APIs
+/** @addtogroup TensorReduce
+ *
+ *  @{
+ */
+
+/*! @brief Creates the ReduceTensor descriptor object
+ *
+ * @param reduceTensorDesc Pointer to a ReduceTensor descriptor type
+ * @return            miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateReduceTensorDescriptor(miopenReduceTensorDescriptor_t* reduceTensorDesc);
+
+/*! @brief Destroy the ReduceTensor descriptor object
+ *
+ * @param reduceTensorDesc  ReduceTensor descriptor type (input)
+ * @return            miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenDestroyReduceTensorDescriptor(miopenReduceTensorDescriptor_t reduceTensorDesc);
+
+/*! @brief Initialize a ReduceTensor descriptor object
+ *
+ * @param reduceTensorDesc         Pointer to the ReduceTensor descriptor object (output)
+ * @param reduceTensorOp           Enumerant specifying the operation used by ReduceTensor (input)
+ * @param reduceTensorCompType     Enumerant specifying the data type used with ReduceTensor
+ * operation (input)
+ * @param reduceTensorNanOpt       Enumerant specifying the Nan number propagation mode (input)
+ * @param reduceTensorIndices      Enumerant specifying the indices modes used by ReduceTensor
+ * (input)
+ * @param reduceTensorIndicesType  Enumerant specifying the data type of the indices (input)
+ * @return           miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenSetReduceTensorDescriptor(miopenReduceTensorDescriptor_t reduceTensorDesc,
+                                miopenReduceTensorOp_t reduceTensorOp,
+                                miopenDataType_t reduceTensorCompType,
+                                miopenNanPropagation_t reduceTensorNanOpt,
+                                miopenReduceTensorIndices_t reduceTensorIndices,
+                                miopenIndicesType_t reduceTensorIndicesType);
+
+/*! @brief Query a ReduceTensor descriptor object
+ *
+ * @param reduceTensorDesc         Pointer to the ReduceTensor descriptor object (input)
+ * @param reduceTensorOp           Pointer to enumerant specifying the operation used by
+ * ReduceTensor (output)
+ * @param reduceTensorCompType     Pointer to enumerant specifying the data type used with
+ * ReduceTensor operation (output)
+ * @param reduceTensorNanOpt       Pointer to enumerant specifying the Nan number propagation mode
+ * (output)
+ * @param reduceTensorIndices      Pointer to enumerant specifying the indices modes used by
+ * ReduceTensor (output)
+ * @param reduceTensorIndicesType  Pointer to enumerant specifying the data type of the indices
+ * (output)
+ * @return           miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenGetReduceTensorDescriptor(const miopenReduceTensorDescriptor_t reduceTensorDesc,
+                                miopenReduceTensorOp_t* reduceTensorOp,
+                                miopenDataType_t* reduceTensorCompType,
+                                miopenNanPropagation_t* reduceTensorNanOpt,
+                                miopenReduceTensorIndices_t* reduceTensorIndices,
+                                miopenIndicesType_t* reduceTensorIndicesType);
+
+/*! @brief Helper function to query the minimum index space size required by the ReduceTensor call
+ *
+ * @param handle                   MIOpen Handle (input)
+ * @param reduceTensorDesc         Pointer to the ReduceTensor descriptor object (input)
+ * @param aDesc                    Pointer to the input tensor descriptor (input)
+ * @param cDesc                    Pointer to the output tensor descriptor (input)
+ * @param sizeInBytes              Pointer to data to return the minimum index space size
+ * @return           miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenGetReductionIndicesSize(miopenHandle_t handle,
+                              const miopenReduceTensorDescriptor_t reduceTensorDesc,
+                              const miopenTensorDescriptor_t aDesc,
+                              const miopenTensorDescriptor_t cDesc,
+                              size_t* sizeInBytes);
+
+/*! @brief Helper function to query the minimum workspace size required by the ReduceTensor call
+ *
+ * @param handle                   MIOpen Handle (input)
+ * @param reduceTensorDesc         Pointer to the ReduceTensor descriptor object (input)
+ * @param aDesc                    Pointer to the input tensor descriptor (input)
+ * @param cDesc                    Pointer to the output tensor descriptor (input)
+ * @param sizeInBytes              Pointer to data to return the minimum workspace size
+ * @return           miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenGetReductionWorkspaceSize(miopenHandle_t handle,
+                                const miopenReduceTensorDescriptor_t reduceTensorDesc,
+                                const miopenTensorDescriptor_t aDesc,
+                                const miopenTensorDescriptor_t cDesc,
+                                size_t* sizeInBytes);
+
+/*! @brief TensorReduce function doing reduction on tensor A by implementing C = alpha * reduceOp(A)
+ * + beta * C
+ *
+ * The length of each dimension of output tensor C must match the length of the corresponding
+ * dimension of
+ * input tensor A or must be equal to 1. The dimensions with length equal to 1 indicate the
+ * dimensions
+ * of A to be reduced.
+ *
+ * @param handle                   MIOpen Handle (input)
+ * @param reduceTensorDesc         Pointer to the ReduceTensor descriptor object (input)
+ * @param indices                  Address of the allocated indices data space (output)
+ * @param indicesSizeInBytes       Size in bytes of the allocated indices data space (input)
+ * @param workspace                Address of the allocated workspace data (input)
+ * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
+ * @param alpha                    Pointer to scale factor for data in input tensor A (input)
+ * @param aDesc                    Pointer to the tensor descriptor for input tensor A (input)
+ * @param A                        Pointer to the data of input tensor A (input)
+ * @param beta                     Pointer to scale factor for data in output tensor C (input)
+ * @param cDesc                    Pointer to the tensor descriptor for output tensor C (input)
+ * @param C                        Pointer to the data of output tensor C (output)
+ * @return           miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenReduceTensor(miopenHandle_t handle,
+                   const miopenReduceTensorDescriptor_t reduceTensorDesc,
+                   void* indices,
+                   size_t indicesSizeInBytes,
+                   void* workspace,
+                   size_t workspaceSizeInBytes,
+                   const void* alpha,
+                   const miopenTensorDescriptor_t aDesc,
+                   const void* A,
+                   const void* beta,
+                   const miopenTensorDescriptor_t cDesc,
+                   void* C);
+
+/** @} */
+// CLOSEOUT TensorReduce DOXYGEN GROUP
 
 #ifdef __cplusplus
 }

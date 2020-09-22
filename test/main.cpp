@@ -67,7 +67,7 @@ struct input_tensor_fixture
 
     ~input_tensor_fixture() { miopenDestroyTensorDescriptor(inputTensor); }
 
-    void run()
+    void run() const
     {
         int n, c, h, w;
         int nStride, cStride, hStride, wStride;
@@ -117,7 +117,7 @@ struct conv_filter_fixture : virtual handle_fixture
         miopenDestroyConvolutionDescriptor(convDesc);
     }
 
-    void run()
+    void run() const
     {
         // TODO: Update API to not require mode by pointer
         miopenConvolutionMode_t lcmode = c_mode;
@@ -186,6 +186,10 @@ struct conv_forward : output_tensor_fixture
         size_t sz_fwd_workspace;
         STATUS(miopenConvolutionForwardGetWorkSpaceSize(
             handle, convFilter, inputTensor, convDesc, outputTensor, &sz_fwd_workspace));
+        // OCL fails to allocate zero workspace. Let's allocate small workspace instead to simplify
+        // subsequent code.
+        if(sz_fwd_workspace == 0)
+            sz_fwd_workspace = 256;
 
         std::vector<float> in(sz_in);
         std::vector<float> wei(sz_wei);
@@ -284,7 +288,7 @@ struct conv_forward : output_tensor_fixture
                                             convFilter,
                                             wei_dev,
                                             convDesc,
-                                            miopenConvolutionFwdAlgoDirect,
+                                            perf.fwd_algo,
                                             &beta,
                                             outputTensor,
                                             out_dev,

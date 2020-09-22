@@ -48,7 +48,11 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!params.Is2d())
         return false;
+    if(params.IsAsymmetricPadH() || params.IsAsymmetricPadW())
+        return false;
     if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))
+        return false;
+    if(!params.direction.IsBackwardWrW())
         return false;
 
     bool workaround = false;
@@ -87,6 +91,14 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
                      (params.IsFp32() && params.kernel_size_w == 3 && params.kernel_size_h == 3 &&
                       params.pad_h == 2 && params.pad_w == 2 && params.out_width == 1024);
     }
+
+    /// Resolve NaN issue on gfx908, manifested on Jenkins.
+    /// Note that there is another solver, ConvOclBwdWrW2, that has very similar
+    /// performance and applicable for the affected "popular" configs (7x7 filter, 1x1 padding).
+    const auto name = params.GetStream().GetDeviceName();
+    workaround =
+        workaround || (params.IsFp16() && (name == "gfx908") && params.kernel_size_w == 7 &&
+                       params.kernel_size_h == 7 && params.pad_w == 1);
 
     return (params.kernel_dilation_w == 1 && params.kernel_dilation_h == 1) &&
            (params.kernel_stride_w == 1 && params.kernel_stride_h == 1) &&

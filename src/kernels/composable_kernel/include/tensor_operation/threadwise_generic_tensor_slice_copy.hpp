@@ -23,7 +23,9 @@ template <typename SrcDesc,
           index_t DstDataPerWrite,
           AddressSpace SrcAddressSpace     = AddressSpace::Generic,
           AddressSpace DstAddressSpace     = AddressSpace::Generic,
-          InMemoryDataOperation DstInMemOp = InMemoryDataOperation::Set>
+          InMemoryDataOperation DstInMemOp = InMemoryDataOperation::Set,
+          index_t SrcDataStride            = 1,
+          index_t DstDataStride            = 1>
 struct ThreadwiseGenericTensorSliceCopy_v4r2
 {
     static constexpr index_t nDim = SliceLengths::Size();
@@ -68,7 +70,9 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
     }
 
     template <typename SrcData, typename DstData>
-    __device__ void Run(const SrcData* p_src, DstData* p_dst) const
+    __device__ void Run(const SrcData* p_src,
+                        DstData* p_dst,
+                        SrcData src_out_of_bound_value = type_convert<SrcData>{}(0.0f)) const
     {
         constexpr auto vector_access_dim = Number<SrcDstVectorReadWriteDim>{};
 
@@ -94,7 +98,7 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
             // zero out buffer
             for(index_t i = 0; i < long_vector_size; ++i)
             {
-                p_src_long_vector[i] = 0;
+                p_src_long_vector[i] = src_out_of_bound_value;
             }
 
             // load data from src to the long-vector buffer
@@ -116,7 +120,9 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
                                   SrcDataPerRead,
                                   SrcAddressSpace,
                                   AddressSpace::Vgpr,
-                                  InMemoryDataOperation::Set>(
+                                  InMemoryDataOperation::Set,
+                                  SrcDataStride,
+                                  1>(
                         p_src, src_coord.GetOffset(), p_src_long_vector, buffer_offset);
                 }
             }
@@ -148,7 +154,9 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
                                   DstDataPerWrite,
                                   AddressSpace::Vgpr,
                                   DstAddressSpace,
-                                  DstInMemOp>(
+                                  DstInMemOp,
+                                  1,
+                                  DstDataStride>(
                         p_dst_long_vector, buffer_offset, p_dst, dst_coord.GetOffset());
                 }
             }
@@ -168,8 +176,10 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
     // This version is optimized for address calculation of src tensor
     // TODO: this function is not compiled to expected ISA
     template <typename SrcData, typename DstData>
-    __device__ void Run_optimized_src_address_calculation(const SrcData* p_src,
-                                                          DstData* p_dst) const
+    __device__ void Run_optimized_src_address_calculation(
+        const SrcData* p_src,
+        DstData* p_dst,
+        SrcData src_out_of_bound_value = type_convert<SrcData>{}(0.0f)) const
     {
         constexpr auto vector_access_dim = Number<SrcDstVectorReadWriteDim>{};
 
@@ -225,7 +235,7 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
                 // zero out buffer
                 for(index_t i = 0; i < long_vector_size; ++i)
                 {
-                    p_src_long_vector[i] = 0;
+                    p_src_long_vector[i] = src_out_of_bound_value;
                 }
 
                 // Loop over SrcDstVectorReadWriteDim, and load data from src to the
@@ -316,8 +326,10 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
     // This version is optimized for address calculation of dst tensor
     // TODO: this function is not compiled to expected ISA
     template <typename SrcData, typename DstData>
-    __device__ void Run_optimized_dst_address_calculation(const SrcData* p_src,
-                                                          DstData* p_dst) const
+    __device__ void Run_optimized_dst_address_calculation(
+        const SrcData* p_src,
+        DstData* p_dst,
+        SrcData src_out_of_bound_value = type_convert<SrcData>{}(0.0f)) const
     {
         constexpr auto vector_access_dim = Number<SrcDstVectorReadWriteDim>{};
 
@@ -373,7 +385,7 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
                 // zero out buffer
                 for(index_t i = 0; i < long_vector_size; ++i)
                 {
-                    p_src_long_vector[i] = 0;
+                    p_src_long_vector[i] = src_out_of_bound_value;
                 }
 
                 // Loop over SrcDstVectorReadWriteDim, and load data from src to the

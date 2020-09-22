@@ -114,9 +114,9 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
 
     std::size_t
     ForwardBackwardGetWorkSpaceSizeImplicitGemm(const miopen::ConvolutionContext& ctx) const;
+
     std::size_t
-    ForwardBackwardDataGetWorkSpaceSizeSCGemm(Handle& handle,
-                                              const miopen::ConvolutionContext& ctx) const;
+    ForwardBackwardDataGetWorkSpaceSizeWinograd(const miopen::ConvolutionContext& ctx) const;
 
     bool IsWinograd3x3SupportedAndFast(miopen::ConvolutionContext& ctx) const;
 
@@ -172,15 +172,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                   bool exhaustiveSearch,
                                   bool isForward,
                                   const ConvolutionUserBuffers& bufs) const;
-
-    std::vector<miopen::solver::ConvSolution>
-    FindSCGemmSolutions(Handle& handle,
-                        const TensorDescriptor& xDesc,
-                        const TensorDescriptor& wDesc,
-                        const TensorDescriptor& yDesc,
-                        bool exhaustiveSearch,
-                        bool isForward,
-                        const ConvolutionUserBuffers& bufs) const;
 
     void ConvolutionForward(Handle& handle,
                             const void* alpha,
@@ -418,12 +409,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                const ConvWrwTensors& tensors,
                                Data_t workSpace,
                                const TKernels& kernels) const;
-    template <class TKernels>
-    void BackwardWeightsWinograd(Handle& handle,
-                                 const ConvolutionContext& ctx,
-                                 const ConvWrwTensors& tensors,
-                                 Data_t workSpace,
-                                 const TKernels& kernels) const;
 
     std::size_t GetFwdSolutionWorkspaceSizeFallback(Handle& handle,
                                                     const TensorDescriptor& wDesc,
@@ -491,7 +476,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                                     solver::Id solver_id) const;
 };
 
-void ConvolutionBackwardBias(Handle& handle,
+void ConvolutionBackwardBias(const Handle& handle,
                              const void* alpha,
                              const TensorDescriptor& dyDesc,
                              ConstData_t dy,

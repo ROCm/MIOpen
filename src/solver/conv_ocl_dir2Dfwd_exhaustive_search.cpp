@@ -129,7 +129,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig(const ConvolutionCo
 * Measure the current configuration performance.
 */
 template <typename Tgpu, class... Solvers>
-static int MeasurePerfConfig(Handle& handle,
+static int MeasurePerfConfig(const Handle& handle,
                              ConstData_t bot_ocl_buf,
                              Data_t top_ocl_buf,
                              ConstData_t wei_ocl_buf,

@@ -54,7 +54,7 @@ struct CheckNumericsResult
 };
 
 bool checkNumericsImpl(
-    Handle& handle, int mode, const TensorDescriptor& dDesc, ConstData_t data, bool isInput)
+    const Handle& handle, int mode, const TensorDescriptor& dDesc, ConstData_t data, bool isInput)
 {
     int numElements = dDesc.GetElementSize();
 
@@ -135,7 +135,7 @@ bool checkNumericsImpl(
 
 // Checks data for input
 // Returns: 1 if abnormal value (inf or nan) detected in specified data, 0 otherwise
-bool checkNumericsInput(Handle& handle, const TensorDescriptor& dDesc, ConstData_t data)
+bool checkNumericsInput(const Handle& handle, const TensorDescriptor& dDesc, ConstData_t data)
 {
     return checkNumericsImpl(
         handle, static_cast<int>(miopen::Value(MIOPEN_CHECK_NUMERICS{})), dDesc, data, true);
@@ -143,7 +143,7 @@ bool checkNumericsInput(Handle& handle, const TensorDescriptor& dDesc, ConstData
 
 // Synchronizes to wait for kernel to finish, then checks data for output:
 // Returns: 1 if abnormal value (inf or nan) detected in specified data, 0 otherwise
-bool checkNumericsOutput(Handle& handle, const TensorDescriptor& dDesc, ConstData_t data)
+bool checkNumericsOutput(const Handle& handle, const TensorDescriptor& dDesc, ConstData_t data)
 {
     handle.Finish();
 

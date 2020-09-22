@@ -42,6 +42,7 @@
 #include <fstream>
 #include <memory>
 #include <miopen/miopen.h>
+#include <miopen/rnn.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/env.hpp>
 #include <numeric>
@@ -64,6 +65,8 @@ class RNNDriver : public Driver
         workspace_dev    = nullptr;
         reservespace_dev = nullptr;
         data_type        = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
+
+        miopenCreateDropoutDescriptor(&DropoutDesc);
     }
 
     int AddCmdLineArgs();
@@ -122,6 +125,7 @@ class RNNDriver : public Driver
     std::unique_ptr<GPUMem> dcy_dev;
     std::unique_ptr<GPUMem> workspace_dev;
     std::unique_ptr<GPUMem> reservespace_dev;
+    std::unique_ptr<GPUMem> dropout_states_dev;
 
     std::vector<Tgpu> in;
     std::vector<Tgpu> din;
@@ -148,12 +152,17 @@ class RNNDriver : public Driver
     std::vector<Tref> cy_host;
     std::vector<Tref> dhx_host;
     std::vector<Tref> dcx_host;
+    std::vector<prngStates> dropout_states_host;
 
     miopenRNNDescriptor_t rnnDesc;
 
     int batchsize;
     int adjustedSeqLen;
     std::vector<int> batchseq;
+
+    miopenDropoutDescriptor_t DropoutDesc;
+    float dropout_rate;
+    unsigned long long dropout_seed;
 
     //    std::string GetVerificationCacheFileName() const;
     //    bool TryReadVerificationCache(const std::string& file_name,
@@ -262,6 +271,14 @@ int RNNDriver<Tgpu, Tref>::AddCmdLineArgs()
                          "RNN forward being training or inference, Default training (Default=0)",
                          "int");
     inflags.AddInputFlag("datatype", 'f', "1", "16-bit or 32-bit fp (Default=1)", "int");
+
+    inflags.AddInputFlag(
+        "use_dropout", 'U', "0", "Use dropout: 1; Not use dropout: 0 (Default=0)", "int");
+    inflags.AddInputFlag("dropout", 'P', "0.0", "Dropout rate (Default=0.0)", "float");
+    inflags.AddInputFlag(
+        "seed_low", 'L', "0", "Least significant 32 bits of seed (Default=0)", "int");
+    inflags.AddInputFlag(
+        "seed_high", 'M', "0", "Most significant 32 bits of seed (Default=0)", "int");
 
     return 0;
 }
@@ -448,8 +465,56 @@ int RNNDriver<Tgpu, Tref>::SetRNNDescriptorFromCmdLineArgs()
         exit(0);
     }
 
-    miopenSetRNNDescriptor(
-        rnnDesc, wei_hh, layer, inMode, directionMode, mode, biasMode, algo, data_type);
+    if(inflags.GetValueInt("use_dropout"))
+    {
+        dropout_rate = static_cast<float>(inflags.GetValueDouble("dropout"));
+        auto dropout_seed_low =
+            static_cast<unsigned long long>(std::max(inflags.GetValueInt("seed_low"), 0));
+        auto dropout_seed_high =
+            static_cast<unsigned long long>(std::max(inflags.GetValueInt("seed_high"), 0));
+        dropout_seed = dropout_seed_high << 32 | dropout_seed_low;
+
+        size_t statesSizeInBytes = 0;
+        miopenDropoutGetStatesSize(GetHandle(), &statesSizeInBytes);
+        size_t states_size = statesSizeInBytes / sizeof(prngStates);
+
+#if MIOPEN_BACKEND_OPENCL
+        cl_context ctx;
+
+        clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
+#elif MIOPEN_BACKEND_HIP
+        uint32_t ctx = 0;
+#endif
+
+        dropout_states_dev =
+            std::unique_ptr<GPUMem>(new GPUMem(ctx, states_size, sizeof(prngStates)));
+
+        miopenSetDropoutDescriptor(DropoutDesc,
+                                   GetHandle(),
+                                   dropout_rate,
+                                   dropout_states_dev->GetMem(),
+                                   dropout_states_dev->GetSize(),
+                                   dropout_seed,
+                                   false,
+                                   false,
+                                   MIOPEN_RNG_PSEUDO_XORWOW);
+
+        miopenSetRNNDescriptor_V2(rnnDesc,
+                                  wei_hh,
+                                  layer,
+                                  DropoutDesc,
+                                  inMode,
+                                  directionMode,
+                                  mode,
+                                  biasMode,
+                                  algo,
+                                  data_type);
+    }
+    else
+    {
+        miopenSetRNNDescriptor(
+            rnnDesc, wei_hh, layer, inMode, directionMode, mode, biasMode, algo, data_type);
+    }
 
     return miopenStatusSuccess;
 }
@@ -490,14 +555,14 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     hy_sz /= sizeof(Tgpu);
     wei_sz /= sizeof(Tgpu);
     workSpace_sz /= sizeof(Tgpu);
-    reserveSpace_sz /= sizeof(Tgpu);
+    reserveSpace_sz = (reserveSpace_sz + sizeof(Tgpu) - 1) / sizeof(Tgpu);
 
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
 
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #elif MIOPEN_BACKEND_HIP
-    uint32_t ctx = 0;
+    uint32_t ctx     = 0;
 #endif
 
     in_dev           = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
@@ -544,19 +609,25 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     outhost        = std::vector<Tref>(out_sz, static_cast<Tref>(0));
     workspace_host = std::vector<Tref>(workSpace_sz, static_cast<Tref>(0));
 
-    if(inflags.GetValueStr("mode") == "lstm" && inflags.GetValueInt("rnnalgo") == 0)
+    int nseq              = inflags.GetValueInt("seq_len");
+    std::vector<int> in_n = GetInputTensorLengthsFromCmdLine();
+    std::size_t inputBatchLenSum;
+    inputBatchLenSum = std::accumulate(in_n.begin(), in_n.begin() + nseq, 0);
+
+    int hid_h = inflags.GetValueInt("hid_h");
+    int layer = inflags.GetValueInt("num_layer");
+    int bidir = inflags.GetValueInt("bidirection");
+
+    reserveSpace_sz = 2 * (inflags.GetValueStr("mode") == "lstm"
+                               ? 6
+                               : (inflags.GetValueStr("mode") == "gru" ? 4 : 1)) *
+                      layer * inputBatchLenSum * hid_h * (bidir + 1);
+    if(inflags.GetValueInt("use_dropout"))
     {
-        int nseq              = inflags.GetValueInt("seq_len");
-        std::vector<int> in_n = GetInputTensorLengthsFromCmdLine();
-        std::size_t inputBatchLenSum;
-        inputBatchLenSum = std::accumulate(in_n.begin(), in_n.begin() + nseq, 0);
-
-        int hid_h = inflags.GetValueInt("hid_h");
-        int layer = inflags.GetValueInt("num_layer");
-        int bidir = inflags.GetValueInt("bidirection");
-
-        reserveSpace_sz -= layer * inputBatchLenSum * hid_h * (bidir + 1);
-        reserveSpace_sz *= 2;
+        reserveSpace_sz += (layer - 1) * inputBatchLenSum * hid_h * (bidir + 1);
+        reserveSpace_sz *= sizeof(Tref);
+        reserveSpace_sz += (layer - 1) * inputBatchLenSum * hid_h * (bidir + 1);
+        reserveSpace_sz = (reserveSpace_sz + sizeof(Tref) - 1) / sizeof(Tref);
     }
     reservespace_host = std::vector<Tref>(reserveSpace_sz, static_cast<Tref>(0));
 
@@ -848,9 +919,26 @@ int RNNDriver<Tgpu, Tref>::RunForwardCPU()
     miopenRNNDirectionMode_t dirMode;
     miopenRNNBiasMode_t biasMode;
     int hiddenSize;
+    miopenDropoutDescriptor_t drop_desc;
 
-    miopenGetRNNDescriptor(
-        rnnDesc, &mode, &algoMode, &inputMode, &dirMode, &biasMode, &hiddenSize, &layer);
+    if(inflags.GetValueInt("use_dropout"))
+    {
+        miopenGetRNNDescriptor_V2(rnnDesc,
+                                  &hiddenSize,
+                                  &layer,
+                                  &drop_desc,
+                                  &inputMode,
+                                  &dirMode,
+                                  &mode,
+                                  &biasMode,
+                                  &algoMode,
+                                  nullptr);
+    }
+    else
+    {
+        miopenGetRNNDescriptor(
+            rnnDesc, &mode, &algoMode, &inputMode, &dirMode, &biasMode, &hiddenSize, &layer);
+    }
 
     bidirection = (dirMode == miopenRNNbidirection);
     biased      = (biasMode == miopenRNNwithBias);
@@ -863,7 +951,8 @@ int RNNDriver<Tgpu, Tref>::RunForwardCPU()
     if(mode == miopenRNNRELU || mode == miopenRNNTANH)
     {
         printf("verify rnn fwd \n");
-        RunRNNForwardGEMMCPUVerify(in,
+        RunRNNForwardGEMMCPUVerify(GetHandle(),
+                                   in,
                                    wei,
                                    hy_host,
                                    hx,
@@ -879,13 +968,16 @@ int RNNDriver<Tgpu, Tref>::RunForwardCPU()
                                    out_h,
                                    mode,
                                    inputMode,
-                                   reservespace_host);
+                                   reservespace_host,
+                                   bool(inflags.GetValueInt("use_dropout")),
+                                   DropoutDesc);
     }
     else if(mode == miopenLSTM)
     {
         printf("verify lstm fwd \n");
 
-        RunLSTMForwardGEMMCPUVerify(in,
+        RunLSTMForwardGEMMCPUVerify(GetHandle(),
+                                    in,
                                     wei,
                                     hy_host,
                                     hx,
@@ -902,13 +994,16 @@ int RNNDriver<Tgpu, Tref>::RunForwardCPU()
                                     hy_h,
                                     out_h,
                                     inputMode,
-                                    reservespace_host);
+                                    reservespace_host,
+                                    bool(inflags.GetValueInt("use_dropout")),
+                                    DropoutDesc);
     }
     else if(mode == miopenGRU)
     {
         printf("verify gru fwd \n");
 
-        RunGRUForwardGEMMCPUVerify(in,
+        RunGRUForwardGEMMCPUVerify(GetHandle(),
+                                   in,
                                    wei,
                                    hy_host,
                                    hx,
@@ -923,7 +1018,9 @@ int RNNDriver<Tgpu, Tref>::RunForwardCPU()
                                    hy_h,
                                    out_h,
                                    inputMode,
-                                   reservespace_host);
+                                   reservespace_host,
+                                   bool(inflags.GetValueInt("use_dropout")),
+                                   DropoutDesc);
     }
     else
     {
@@ -1101,9 +1198,26 @@ int RNNDriver<Tgpu, Tref>::RunBackwardWeightsCPU()
     miopenRNNDirectionMode_t dirMode;
     miopenRNNBiasMode_t biasMode;
     int hiddenSize;
+    miopenDropoutDescriptor_t drop_desc;
 
-    miopenGetRNNDescriptor(
-        rnnDesc, &mode, &algoMode, &inputMode, &dirMode, &biasMode, &hiddenSize, &layer);
+    if(inflags.GetValueInt("use_dropout"))
+    {
+        miopenGetRNNDescriptor_V2(rnnDesc,
+                                  &hiddenSize,
+                                  &layer,
+                                  &drop_desc,
+                                  &inputMode,
+                                  &dirMode,
+                                  &mode,
+                                  &biasMode,
+                                  &algoMode,
+                                  nullptr);
+    }
+    else
+    {
+        miopenGetRNNDescriptor(
+            rnnDesc, &mode, &algoMode, &inputMode, &dirMode, &biasMode, &hiddenSize, &layer);
+    }
 
     bidirection = (dirMode == miopenRNNbidirection);
     biased      = (biasMode == miopenRNNwithBias);
@@ -1133,7 +1247,8 @@ int RNNDriver<Tgpu, Tref>::RunBackwardWeightsCPU()
                                           mode,
                                           inputMode,
                                           reservespace_host,
-                                          workspace_host);
+                                          workspace_host,
+                                          bool(inflags.GetValueInt("use_dropout")));
     }
     else if(mode == miopenLSTM)
     {
@@ -1154,7 +1269,8 @@ int RNNDriver<Tgpu, Tref>::RunBackwardWeightsCPU()
                                            out_h,
                                            inputMode,
                                            reservespace_host,
-                                           workspace_host);
+                                           workspace_host,
+                                           bool(inflags.GetValueInt("use_dropout")));
     }
     else if(mode == miopenGRU)
     {
@@ -1175,7 +1291,8 @@ int RNNDriver<Tgpu, Tref>::RunBackwardWeightsCPU()
                                           out_h,
                                           inputMode,
                                           reservespace_host,
-                                          workspace_host);
+                                          workspace_host,
+                                          bool(inflags.GetValueInt("use_dropout")));
     }
     else
     {
@@ -1210,9 +1327,26 @@ int RNNDriver<Tgpu, Tref>::RunBackwardDataCPU()
     miopenRNNDirectionMode_t dirMode;
     miopenRNNBiasMode_t biasMode;
     int hiddenSize;
+    miopenDropoutDescriptor_t drop_desc;
 
-    miopenGetRNNDescriptor(
-        rnnDesc, &mode, &algoMode, &inputMode, &dirMode, &biasMode, &hiddenSize, &layer);
+    if(inflags.GetValueInt("use_dropout"))
+    {
+        miopenGetRNNDescriptor_V2(rnnDesc,
+                                  &hiddenSize,
+                                  &layer,
+                                  &drop_desc,
+                                  &inputMode,
+                                  &dirMode,
+                                  &mode,
+                                  &biasMode,
+                                  &algoMode,
+                                  nullptr);
+    }
+    else
+    {
+        miopenGetRNNDescriptor(
+            rnnDesc, &mode, &algoMode, &inputMode, &dirMode, &biasMode, &hiddenSize, &layer);
+    }
 
     bidirection = (dirMode == miopenRNNbidirection);
     biased      = (biasMode == miopenRNNwithBias);
@@ -1245,7 +1379,9 @@ int RNNDriver<Tgpu, Tref>::RunBackwardDataCPU()
                                         mode,
                                         inputMode,
                                         reservespace_host,
-                                        workspace_host);
+                                        workspace_host,
+                                        bool(inflags.GetValueInt("use_dropout")),
+                                        DropoutDesc);
     }
     else if(mode == miopenLSTM)
     {
@@ -1272,7 +1408,9 @@ int RNNDriver<Tgpu, Tref>::RunBackwardDataCPU()
                                          out_h,
                                          inputMode,
                                          reservespace_host,
-                                         workspace_host);
+                                         workspace_host,
+                                         bool(inflags.GetValueInt("use_dropout")),
+                                         DropoutDesc);
     }
     else if(mode == miopenGRU)
     {
@@ -1296,7 +1434,9 @@ int RNNDriver<Tgpu, Tref>::RunBackwardDataCPU()
                                         out_h,
                                         inputMode,
                                         reservespace_host,
-                                        workspace_host);
+                                        workspace_host,
+                                        bool(inflags.GetValueInt("use_dropout")),
+                                        DropoutDesc);
     }
     else
     {
@@ -1396,9 +1536,26 @@ int RNNDriver<Tgpu, Tref>::VerifyForward()
     miopenRNNDirectionMode_t dirMode;
     miopenRNNBiasMode_t biasMode;
     int hiddenSize;
+    miopenDropoutDescriptor_t drop_desc;
 
-    miopenGetRNNDescriptor(
-        rnnDesc, &mode, &algoMode, &inputMode, &dirMode, &biasMode, &hiddenSize, &layer);
+    if(inflags.GetValueInt("use_dropout"))
+    {
+        miopenGetRNNDescriptor_V2(rnnDesc,
+                                  &hiddenSize,
+                                  &layer,
+                                  &drop_desc,
+                                  &inputMode,
+                                  &dirMode,
+                                  &mode,
+                                  &biasMode,
+                                  &algoMode,
+                                  nullptr);
+    }
+    else
+    {
+        miopenGetRNNDescriptor(
+            rnnDesc, &mode, &algoMode, &inputMode, &dirMode, &biasMode, &hiddenSize, &layer);
+    }
 
     if(CheckGuard(in_h, out_h, hy_d, hy_n, hy_h, dirMode, inputMode))
     {
@@ -1469,9 +1626,26 @@ int RNNDriver<Tgpu, Tref>::VerifyBackward()
     miopenRNNDirectionMode_t dirMode;
     miopenRNNBiasMode_t biasMode;
     int hiddenSize;
+    miopenDropoutDescriptor_t drop_desc;
 
-    miopenGetRNNDescriptor(
-        rnnDesc, &mode, &algoMode, &inputMode, &dirMode, &biasMode, &hiddenSize, &layer);
+    if(inflags.GetValueInt("use_dropout"))
+    {
+        miopenGetRNNDescriptor_V2(rnnDesc,
+                                  &hiddenSize,
+                                  &layer,
+                                  &drop_desc,
+                                  &inputMode,
+                                  &dirMode,
+                                  &mode,
+                                  &biasMode,
+                                  &algoMode,
+                                  nullptr);
+    }
+    else
+    {
+        miopenGetRNNDescriptor(
+            rnnDesc, &mode, &algoMode, &inputMode, &dirMode, &biasMode, &hiddenSize, &layer);
+    }
 
     if(CheckGuard(in_h, out_h, hy_d, hy_n, hy_h, dirMode, inputMode))
     {

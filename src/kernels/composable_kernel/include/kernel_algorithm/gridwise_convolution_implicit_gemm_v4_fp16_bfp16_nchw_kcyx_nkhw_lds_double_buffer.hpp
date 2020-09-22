@@ -405,12 +405,12 @@ struct GridwiseConvolutionImplicitGemm_v4_fp16_bfp16_nchw_kcyx_nkhw_lds_double_b
                 blockwise_wei_copy.RunLoadThreadBuffer(p_wei_block_on_global, p_wei_thread_buffer);
 
                 // LDS double buffer: GEMM on current data
-                // Vectorize the pointer to match with how half/bfloat16 datatypes are
-                // processed in gemm operation. Half type packs 4 half values while
+                // Vectorize the pointer to match with how fp16/bfloat16 datatypes are
+                // processed in gemm operation. fp16 type packs 4 fp16 values while
                 // bfloat16 packs 2 bfloat16 values. Since gemm's matrix A and B
                 // 2D indexes are computed with a single value in mind (e.g. float),
-                // to retain the same 2D indexes for half/bfloat16, we recast datatype
-                // from a single half to 4 packed half/2 packed bfloat16 respectively.
+                // to retain the same 2D indexes for fp16/bfloat16, we recast datatype
+                // from a single fp16 to 4 packed fp16/2 packed bfloat16 respectively.
                 const typename vector_type<Float, EPACK>::MemoryType* p_a_block_vec =
                     reinterpret_cast<const typename vector_type<Float, EPACK>::MemoryType*>(
                         p_wei_block_double);

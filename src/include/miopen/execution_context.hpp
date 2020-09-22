@@ -28,6 +28,9 @@
 
 #include <miopen/db_path.hpp>
 #include <miopen/handle.hpp>
+#include <miopen/sqlite_db.hpp>
+
+#include <boost/filesystem.hpp>
 
 #include <string>
 
@@ -64,6 +67,7 @@ struct ExecutionContext
     bool do_search               = false;
     bool save_srch_req           = false;
     bool use_asm_kernels         = false;
+    bool use_hip_kernels         = true;
     bool use_opencl_convolutions = true;
     bool use_binaries            = true;
     rocm_meta_version rmv        = rocm_meta_version::Default;
@@ -72,7 +76,9 @@ struct ExecutionContext
     // to optimize the getWorkspaceSize() calls for speed. This specific optimization is correct
     // because Solvers shall be written so that the required workspace size does not depend on the
     // performance config.
-    bool disable_perfdb_access = false;
+    bool disable_perfdb_access                                                = false;
+    bool skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage = false;
+    bool use_dynamic_solutions_only                                           = false;
 
     inline Handle& GetStream() const { return *stream; }
     inline void SetStream(Handle* stream_) { stream = stream_; }
@@ -83,32 +89,39 @@ struct ExecutionContext
 
     std::string GetPerfDbPath() const
     {
-        // clang-format off
-        return GetSystemDbPath()
+        boost::filesystem::path pdb_path(GetSystemDbPath());
+        std::ostringstream filename;
+// clang-format off
 #if MIOPEN_ENABLE_SQLITE
-            + "/miopen.db";
+            filename << "miopen.db";
 #else
-            + "/"
-            + GetStream().GetDbBasename()
-            + ".cd.pdb.txt";
+            filename << GetStream().GetDbBasename()
+            << ".cd.pdb.txt";
 #endif
         // clang-format on
+        return (pdb_path / filename.str()).string();
     }
 
     std::string GetUserPerfDbPath() const
     {
+        // an empty user-db path indicates user intent to disable
+        // the database. Default in when dev builds are on
         // clang-format off
-        return GetUserDbPath()
+	const auto& udb = GetUserDbPath();
+	if(udb.empty())
+		return "";
+        boost::filesystem::path pdb_path(udb);
+        std::ostringstream filename;
 #if MIOPEN_ENABLE_SQLITE
-             + "/miopen.udb";
+             filename << "miopen_" << SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER << ".udb";
 #else
-             + "/"
-             + GetStream().GetDbBasename()
-             + "."
-             + GetUserDbSuffix()
-             + ".cd.updb.txt";
+             filename << GetStream().GetDbBasename()
+             << "."
+             << GetUserDbSuffix()
+             << ".cd.updb.txt";
 #endif
         // clang-format on
+        return (pdb_path / filename.str()).string();
     }
 
     private:

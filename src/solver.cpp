@@ -32,6 +32,7 @@
 #include <miopen/par_for.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/any_solver.hpp>
+#include <miopen/timer.hpp>
 
 #include <boost/range/adaptor/transformed.hpp>
 #include <ostream>
@@ -52,19 +53,24 @@ std::ostream& operator<<(std::ostream& os, const KernelInfo& k)
     return os << "} '" << k.comp_options << '\'';
 }
 
-std::vector<Program> PrecompileKernels(Handle& h, const std::vector<KernelInfo>& kernels)
+std::vector<Program> PrecompileKernels(const Handle& h, const std::vector<KernelInfo>& kernels)
 {
+    CompileTimer ct;
     std::vector<Program> programs(kernels.size());
+
+    // clang-format off
     par_for(kernels.size(),
             max_threads{Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, 20)},
             [&](auto i) {
                 const KernelInfo& k = kernels[i];
                 programs[i]         = h.LoadProgram(k.kernel_file, k.comp_options, false, "");
             });
+    // clang-format on
+    ct.Log("PrecompileKernels");
     return programs;
 }
 
-void PrecompileSolutions(Handle& h, const std::vector<ConvSolution>& sols)
+void PrecompileSolutions(const Handle& h, const std::vector<ConvSolution>& sols)
 {
     // Find all kernels that need to be compiled from the solutions
     std::vector<KernelInfo> kernels;
@@ -235,29 +241,20 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     RegisterWithSolver(registry, ++id, ConvOclBwdWrW1x1{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(
         registry, ++id, ConvHipImplicitGemmV4R1Fwd{}, miopenConvolutionAlgoImplicitGEMM);
-    RegisterWithSolver(
-        registry, ++id, ConvHipImplicitGemmV4Fwd{}, miopenConvolutionAlgoImplicitGEMM);
-    RegisterWithSolver(
-        registry, ++id, ConvHipImplicitGemmV4_1x1{}, miopenConvolutionAlgoImplicitGEMM);
-    RegisterWithSolver(
-        registry, ++id, ConvHipImplicitGemmV4R4FwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
-    RegisterWithSolver(
-        registry, ++id, ConvHipImplicitGemmV4R4Xdlops_1x1{}, miopenConvolutionAlgoImplicitGEMM);
+    ++id; // removed solver ConvHipImplicitGemmV4Fwd
+    ++id; // removed solver ConvHipImplicitGemmV4_1x1
+    ++id; // removed solver ConvHipImplicitGemmV4R4FwdXdlops
+    ++id; // removed solver ConvHipImplicitGemmV4R4Xdlops_1x1
     RegisterWithSolver(
         registry, ++id, ConvHipImplicitGemmV4R1WrW{}, miopenConvolutionAlgoImplicitGEMM);
-    RegisterWithSolver(
-        registry, ++id, ConvHipImplicitGemmV4WrW{}, miopenConvolutionAlgoImplicitGEMM);
+    ++id; // removed solver ConvHipImplicitGemmV4WrW
 
     // Several ids w/o solver for immediate mode
     Register(registry, ++id, "gemm", miopenConvolutionAlgoGEMM);
     RegisterWithSolver(registry, ++id, FFT{}, miopenConvolutionAlgoFFT);
     RegisterWithSolver(
         registry, ++id, ConvWinograd3x3MultipassWrW<3, 4>{}, miopenConvolutionAlgoWinograd);
-#if MIOPEN_USE_SCGEMM
-    RegisterWithSolver(registry, ++id, ConvSCGemmFGemm{}, miopenConvolutionAlgoStaticCompiledGEMM);
-#else
     ++id; // Id for ConvSCGemmFGemm.
-#endif
     RegisterWithSolver(registry, ++id, ConvBinWinogradRxSf3x2{}, miopenConvolutionAlgoWinograd);
     RegisterWithSolver(
         registry, ++id, ConvWinograd3x3MultipassWrW<3, 5>{}, miopenConvolutionAlgoWinograd);
@@ -284,8 +281,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     RegisterWithSolver(
         registry, ++id, ConvWinograd3x3MultipassWrW<5, 4>{}, miopenConvolutionAlgoWinograd);
 
-    RegisterWithSolver(
-        registry, ++id, ConvHipImplicitGemmV4R4WrWXdlops{}, miopenConvolutionAlgoImplicitGEMM);
+    ++id; // removed solver ConvHipImplicitGemmV4R4WrWXdlops
     RegisterWithSolver(
         registry, ++id, ConvHipImplicitGemmV4R4GenFwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
     RegisterWithSolver(
@@ -302,6 +298,48 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     RegisterWithSolver(
         registry, ++id, ConvHipImplicitGemmBwdDataV1R1Xdlops{}, miopenConvolutionAlgoImplicitGEMM);
+
+    RegisterWithSolver(registry,
+                       ++id,
+                       ConvHipImplicitGemmV4R4GenXdlopsFwdFp32{},
+                       miopenConvolutionAlgoImplicitGEMM);
+
+    RegisterWithSolver(registry,
+                       ++id,
+                       ConvHipImplicitGemmV4R4GenXdlopsWrWFp32{},
+                       miopenConvolutionAlgoImplicitGEMM);
+
+    RegisterWithSolver(
+        registry, ++id, ConvHipImplicitGemmBwdDataV4R1Xdlops{}, miopenConvolutionAlgoImplicitGEMM);
+
+    RegisterWithSolver(
+        registry, ++id, ConvHipImplicitGemmV4R4WrW{}, miopenConvolutionAlgoImplicitGEMM);
+
+    RegisterWithSolver(
+        registry, ++id, ConvAsmImplicitGemmV4R1DynamicFwd{}, miopenConvolutionAlgoImplicitGEMM);
+
+    RegisterWithSolver(
+        registry, ++id, ConvAsmImplicitGemmV4R1DynamicFwd_1x1{}, miopenConvolutionAlgoImplicitGEMM);
+
+    RegisterWithSolver(
+        registry, ++id, ConvHipImplicitGemmForwardV4R4Xdlops{}, miopenConvolutionAlgoImplicitGEMM);
+
+    RegisterWithSolver(
+        registry, ++id, ConvAsmImplicitGemmV4R1DynamicBwd{}, miopenConvolutionAlgoImplicitGEMM);
+
+    RegisterWithSolver(
+        registry, ++id, ConvAsmImplicitGemmV4R1DynamicWrw{}, miopenConvolutionAlgoImplicitGEMM);
+
+    RegisterWithSolver(
+        registry, ++id, ConvMPBidirectWinograd<2, 3>{}, miopenConvolutionAlgoWinograd);
+    RegisterWithSolver(
+        registry, ++id, ConvMPBidirectWinograd<3, 3>{}, miopenConvolutionAlgoWinograd);
+    RegisterWithSolver(
+        registry, ++id, ConvMPBidirectWinograd<4, 3>{}, miopenConvolutionAlgoWinograd);
+    RegisterWithSolver(
+        registry, ++id, ConvMPBidirectWinograd<5, 3>{}, miopenConvolutionAlgoWinograd);
+    RegisterWithSolver(
+        registry, ++id, ConvMPBidirectWinograd<6, 3>{}, miopenConvolutionAlgoWinograd);
 }
 
 } // namespace solver

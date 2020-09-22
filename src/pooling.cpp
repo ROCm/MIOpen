@@ -56,7 +56,9 @@ PoolingDescriptor::PoolingDescriptor(miopenPoolingMode_t m,
       pads(ppads, ppads + size),
       mode(m),
       pmode(pm),
-      indexType(miopenIndexUint8)
+      indexType(miopenIndexUint8),
+      workspaceIndexMode(size == 3 ? miopenPoolingWorkspaceIndexImage
+                                   : miopenPoolingWorkspaceIndexMask)
 {
 }
 
@@ -65,15 +67,33 @@ PoolingDescriptor::PoolingDescriptor(miopenPoolingMode_t m,
                                      const std::vector<int>& plens,
                                      const std::vector<int>& pstrides,
                                      const std::vector<int>& ppads)
-    : lens(plens), strides(pstrides), pads(ppads), mode(m), pmode(pm), indexType(miopenIndexUint8)
+    : lens(plens),
+      strides(pstrides),
+      pads(ppads),
+      mode(m),
+      pmode(pm),
+      indexType(miopenIndexUint8),
+      workspaceIndexMode(miopenPoolingWorkspaceIndexMask)
 {
+    if(plens.size() == 3)
+        workspaceIndexMode = miopenPoolingWorkspaceIndexImage;
 }
 
 void PoolingDescriptor::SetIndexType(miopenIndexType_t index_type) { indexType = index_type; }
 
 miopenIndexType_t PoolingDescriptor::GetIndexType() const { return indexType; }
 
-miopenPoolingMode_t PoolingDescriptor::GetMode() const { return (mode); }
+void PoolingDescriptor::SetWorkspaceIndexMode(miopenPoolingWorkspaceIndexMode_t workspace_index)
+{
+    workspaceIndexMode = workspace_index;
+}
+
+miopenPoolingWorkspaceIndexMode_t PoolingDescriptor::GetWorkspaceIndexMode() const
+{
+    return workspaceIndexMode;
+}
+
+miopenPoolingMode_t PoolingDescriptor::GetMode() const { return mode; }
 
 miopenPaddingMode_t PoolingDescriptor::GetPaddingMode() const { return (pmode); }
 
@@ -82,8 +102,6 @@ const std::vector<int>& PoolingDescriptor::GetLengths() const { return lens; }
 const std::vector<int>& PoolingDescriptor::GetStrides() const { return strides; }
 
 const std::vector<int>& PoolingDescriptor::GetPads() const { return pads; }
-
-miopenPoolingMode_t PoolingDescriptor::GetMode() { return mode; }
 
 int PoolingDescriptor::GetSize() const
 {

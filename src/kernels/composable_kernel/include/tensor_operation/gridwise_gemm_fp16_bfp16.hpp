@@ -49,7 +49,9 @@ template <index_t GridSize,
           index_t BBlockCopyDstDataPerWrite_KPACK,
           typename CThreadCopySrcDstAccessOrder,
           index_t CThreadCopySrcDstVectorReadWriteDim,
-          index_t CThreadCopyDstDataPerWrite>
+          index_t CThreadCopyDstDataPerWrite,
+          index_t ABlockCopySrcDataStride = 1,
+          index_t BBlockCopySrcDataStride = 1>
 struct GridwiseGemmTransposedANormalBNormalCFp16Bfp16_v1
 {
     __host__ __device__ static constexpr index_t GetSharedMemoryNumberOfByte()
@@ -144,7 +146,8 @@ struct GridwiseGemmTransposedANormalBNormalCFp16Bfp16_v1
                                                AddressSpace::Generic,
                                                AddressSpace::Vgpr,
                                                AddressSpace::Lds,
-                                               InMemoryDataOperation::Set>(
+                                               InMemoryDataOperation::Set,
+                                               ABlockCopySrcDataStride>(
                 {0, m_block_data_on_global, 0}, {0, 0, 0});
 
         // B matrix in LDS memory, dst of blockwise copy
@@ -170,7 +173,8 @@ struct GridwiseGemmTransposedANormalBNormalCFp16Bfp16_v1
                                                AddressSpace::Generic,
                                                AddressSpace::Vgpr,
                                                AddressSpace::Lds,
-                                               InMemoryDataOperation::Set>(
+                                               InMemoryDataOperation::Set,
+                                               BBlockCopySrcDataStride>(
                 {0, n_block_data_on_global, 0}, {0, 0, 0});
 
         // GEMM definition
@@ -241,7 +245,7 @@ struct GridwiseGemmTransposedANormalBNormalCFp16Bfp16_v1
         for(index_t k_block_data_begin = 0; k_block_data_begin + 2 * KPerBlock < K;
             k_block_data_begin += 2 * KPerBlock)
         {
-#pragma unroll
+#pragma unroll 2
             for(index_t iloop = 0; iloop < 2; ++iloop)
             {
                 const bool even_loop = (iloop % 2 == 0);
@@ -269,11 +273,11 @@ struct GridwiseGemmTransposedANormalBNormalCFp16Bfp16_v1
                 b_blockwise_copy.RunLoadThreadBuffer(p_b_global, p_b_thread_buffer);
 
                 // LDS double buffer: GEMM on current data
-                // Vectorize the pointer to match with how half/bfloat16 datatypes are
-                // processed in gemm operation. Half type packs 4 half values while
+                // Vectorize the pointer to match with how fp16/bfloat16 datatypes are
+                // processed in gemm operation. fp16 type packs 4 fp16 values while
                 // bfloat16 packs 2 bfloat16 values. Since gemm's matrix A and B
                 // 2D indexes are computed with vectorized value in mind (e.g. float, half2, half4),
-                // we recast datatype from a single half to 4 packed half/2 packed bfloat16
+                // we recast datatype from a single fp16 to 4 packed fp16/2 packed bfloat16
                 // respectively.
                 const typename vector_type<ABFloat, KPACK>::MemoryType* p_a_block_vec =
                     reinterpret_cast<const typename vector_type<ABFloat, KPACK>::MemoryType*>(

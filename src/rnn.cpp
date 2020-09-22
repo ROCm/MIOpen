@@ -24,13 +24,8 @@
  *
  *******************************************************************************/
 
-#include <miopen/errors.hpp>
-#include <miopen/common.hpp>
 #include <miopen/handle.hpp>
-#include <miopen/miopen.h>
 #include <miopen/rnn.hpp>
-#include <miopen/tensor.hpp>
-#include <miopen/tensor_ops.hpp>
 
 #include <cassert>
 #include <cstddef>
@@ -48,7 +43,7 @@
 
 namespace miopen {
 
-void profileRNNkernels(Handle& handle, unsigned char select, float& ctime)
+void profileRNNkernels(const Handle& handle, unsigned char select, float& ctime)
 {
 
     float ktime = 0.;
@@ -114,7 +109,7 @@ void profileRNNkernels(Handle& handle, unsigned char select, float& ctime)
 
 size_t RNNDescriptor::biasOffsetCalculation(const TensorDescriptor& /*xDesc*/,
                                             const int layer,
-                                            const int biasID)
+                                            const int biasID) const
 {
     if(biasMode == miopenRNNNoBias)
     {
@@ -148,7 +143,7 @@ size_t RNNDescriptor::biasOffsetCalculation(const TensorDescriptor& /*xDesc*/,
 
 size_t RNNDescriptor::paramsOffsetCalculation(const TensorDescriptor& xDesc,
                                               const int layer,
-                                              const int paramID)
+                                              const int paramID) const
 {
     auto inputVectorLen = xDesc.GetLengths()[1];
     if(inputMode == miopenRNNskip)
@@ -225,7 +220,7 @@ size_t RNNDescriptor::paramsOffsetCalculation(const TensorDescriptor& xDesc,
 
 std::vector<int> RNNDescriptor::pTensorLengthsCalculation(const TensorDescriptor& xDesc,
                                                           const int layer,
-                                                          const int paramID)
+                                                          const int paramID) const
 {
     auto inputVectorLen = xDesc.GetLengths()[1];
     if(inputMode == miopenRNNskip)
@@ -286,17 +281,18 @@ std::vector<int> RNNDescriptor::pTensorLengthsCalculation(const TensorDescriptor
 
 RNNDescriptor::RNNDescriptor()
 {
-    nLayers                = 1;
-    hsize                  = 0;
-    nHiddenTensorsPerLayer = 0;
-    rnnMode                = miopenRNNTANH;
-    dirMode                = miopenRNNunidirection;
-    biasMode               = miopenRNNNoBias;
-    algoMode               = miopenRNNdefault;
-    inputMode              = miopenRNNlinear;
-    dataType               = miopenFloat;
-    typeSize               = 4;
-    workspaceScale         = 1;
+    nLayers                     = 1;
+    hsize                       = 0;
+    nHiddenTensorsPerLayer      = 0;
+    rnnMode                     = miopenRNNTANH;
+    dirMode                     = miopenRNNunidirection;
+    biasMode                    = miopenRNNNoBias;
+    algoMode                    = miopenRNNdefault;
+    inputMode                   = miopenRNNlinear;
+    dataType                    = miopenFloat;
+    typeSize                    = 4;
+    workspaceScale              = 1;
+    miopen::deref(&dropoutDesc) = new miopen::DropoutDescriptor();
 }
 
 RNNDescriptor::RNNDescriptor(int hsz,
@@ -311,38 +307,125 @@ RNNDescriptor::RNNDescriptor(int hsz,
 
     if(hsz < 0 || layers < 0)
     {
-        MIOPEN_THROW(miopenStatusBadParm, "Parameter to RNN must be a positive integer.");
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "RNNDescriptor: Bad parameter(s). RNN hidden size and "
+                     "layer number must be positive integers.");
     }
     if(!(rmode == miopenRNNRELU || rmode == miopenRNNTANH || rmode == miopenLSTM ||
          rmode == miopenGRU))
     {
-        MIOPEN_THROW(miopenStatusBadParm, "RNN mode not supported");
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "RNNDescriptor: Bad parameter(s). RNN mode must be "
+                     "vanilla activated with ReLU or Tanh, LSTM or GRU.");
     }
     if(bidir != 0 && bidir != 1)
     {
-        MIOPEN_THROW(miopenStatusBadParm, "Parameters to RNN directional type not supported");
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "RNNDescriptor: Bad parameter(s). Parameters to RNN "
+                     "directional type must be 0 for uni-direction or 1 for "
+                     "bi-direction.");
     }
     if(bmode != 0 && bmode != 1)
     {
-        MIOPEN_THROW(miopenStatusBadParm, "Parameters to RNN bias type not supported");
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "RNNDescriptor: Bad parameter(s). Parameters to RNN bias "
+                     "type must be 0 for disabled bias or 1 for enabled "
+                     "bias.");
     }
     if(dType != miopenFloat && dType != miopenHalf)
     {
-        MIOPEN_THROW(miopenStatusBadParm, "Parameters to RNN datatype is not supported");
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "RNNDescriptor: Bad parameter(s). RNN datatype must be float or half.");
     }
     else
     {
-        typeSize = 4;
+        typeSize = dType == miopenHalf ? 2 : 4;
     }
 
-    hsize     = hsz;
-    nLayers   = layers;
-    inputMode = inMode;
-    dirMode   = bidir;
-    rnnMode   = rmode;
-    algoMode  = amode;
-    biasMode  = bmode;
-    dataType  = dType;
+    hsize                       = hsz;
+    nLayers                     = layers;
+    inputMode                   = inMode;
+    dirMode                     = bidir;
+    rnnMode                     = rmode;
+    algoMode                    = amode;
+    biasMode                    = bmode;
+    dataType                    = dType;
+    miopen::deref(&dropoutDesc) = new miopen::DropoutDescriptor();
+
+    switch(rmode)
+    {
+    case 0: // RNN vanilla
+    case 1: // RNN vanilla
+        nHiddenTensorsPerLayer = 1;
+        workspaceScale         = 1;
+        break;
+    case 2: // LSTM
+        nHiddenTensorsPerLayer = 4;
+        workspaceScale         = 6;
+        break;
+    case 3: // GRU
+        nHiddenTensorsPerLayer = 3;
+        workspaceScale         = 4;
+        break;
+    }
+}
+
+RNNDescriptor::RNNDescriptor(int hsz,
+                             int layers,
+                             miopenRNNMode_t rmode,
+                             miopenRNNInputMode_t inMode,
+                             miopenRNNDirectionMode_t bidir,
+                             miopenRNNBiasMode_t bmode,
+                             miopenRNNAlgo_t amode,
+                             miopenDataType_t dType,
+                             miopenDropoutDescriptor_t dropDesc)
+    : hsize(size_t(hsz)),
+      nLayers(size_t(layers)),
+      rnnMode(rmode),
+      dirMode(bidir),
+      algoMode(amode),
+      inputMode(inMode),
+      biasMode(bmode),
+      dataType(dType),
+      dropoutDesc(dropDesc)
+{
+
+    if(hsz < 0 || layers < 0)
+    {
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "RNNDescriptor: Bad parameter(s). RNN hidden size and "
+                     "layer number must be positive integers.");
+    }
+    if(!(rmode == miopenRNNRELU || rmode == miopenRNNTANH || rmode == miopenLSTM ||
+         rmode == miopenGRU))
+    {
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "RNNDescriptor: Bad parameter(s). RNN mode must be "
+                     "vanilla activated with ReLU or Tanh, LSTM or GRU.");
+    }
+    if(bidir != 0 && bidir != 1)
+    {
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "RNNDescriptor: Bad parameter(s). Parameters to RNN "
+                     "directional type must be 0 for uni-direction or 1 for "
+                     "bi-direction.");
+    }
+    if(bmode != 0 && bmode != 1)
+    {
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "RNNDescriptor: Bad parameter(s). Parameters to RNN bias "
+                     "type must be 0 for disabled bias or 1 for enabled "
+                     "bias.");
+    }
+    if(dType != miopenFloat && dType != miopenHalf)
+    {
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "RNNDescriptor: Bad parameter(s). RNN datatype must be float or half.");
+    }
+    else
+    {
+        typeSize = dType == miopenHalf ? 2 : 4;
+    }
 
     switch(rmode)
     {
@@ -401,12 +484,17 @@ size_t RNNDescriptor::GetReserveSize(Handle& /* handle */,
         x /= 2;
         x += nLayers * inputBatchLenSum * hsize * typeSize;
     }
+    if(!float_equal(miopen::deref(dropoutDesc).dropout, 0))
+    {
+        x += (nLayers - 1) * inputBatchLenSum * hsize * typeSize;
+        x += (nLayers - 1) * inputBatchLenSum * hsize * sizeof(bool);
+    }
     return size_t(dirMode == miopenRNNbidirection ? 2 * x : x);
 }
 
 size_t RNNDescriptor::GetParamsSize(Handle& /* handle */,
                                     const TensorDescriptor& xDesc,
-                                    miopenDataType_t dtype)
+                                    miopenDataType_t dtype) const
 {
     if(xDesc.GetType() != dataType || dtype != dataType)
     {
@@ -432,7 +520,7 @@ size_t RNNDescriptor::GetParamsSize(Handle& /* handle */,
 
 size_t RNNDescriptor::GetRNNInputSuperTensorSize(Handle& /* handle */,
                                                  const int seqLength,
-                                                 c_array_view<miopenTensorDescriptor_t> xDesc)
+                                                 c_array_view<miopenTensorDescriptor_t> xDesc) const
 {
     if(xDesc[0].GetType() != dataType)
     {
@@ -447,8 +535,9 @@ size_t RNNDescriptor::GetRNNInputSuperTensorSize(Handle& /* handle */,
     return size_t(x);
 }
 
-size_t RNNDescriptor::GetRNNHiddenSuperTensorSize(Handle& /* handle */,
-                                                  c_array_view<miopenTensorDescriptor_t> xDesc)
+size_t
+RNNDescriptor::GetRNNHiddenSuperTensorSize(Handle& /* handle */,
+                                           c_array_view<miopenTensorDescriptor_t> xDesc) const
 {
     if(xDesc[0].GetType() != dataType)
     {
@@ -461,7 +550,7 @@ size_t RNNDescriptor::GetRNNHiddenSuperTensorSize(Handle& /* handle */,
 void RNNDescriptor::GetParamsDescriptor(Handle& /* handle */,
                                         const TensorDescriptor& xDesc,
                                         TensorDescriptor& wDesc,
-                                        miopenDataType_t dtype)
+                                        miopenDataType_t dtype) const
 {
 
     if(dtype != dataType)
@@ -489,7 +578,7 @@ void RNNDescriptor::GetParamsDescriptor(Handle& /* handle */,
 std::size_t RNNDescriptor::GetLayerParamSize(Handle& /*handle*/,
                                              int layer,
                                              const TensorDescriptor& xDesc,
-                                             int paramID)
+                                             int paramID) const
 {
     if(xDesc.GetType() != dataType)
     {
@@ -518,19 +607,20 @@ std::size_t RNNDescriptor::GetLayerParamSize(Handle& /*handle*/,
     }
 }
 
-std::size_t RNNDescriptor::GetLayerBiasSize(Handle& /* handle */, int /*layer*/, int /*biasID*/)
+std::size_t
+RNNDescriptor::GetLayerBiasSize(Handle& /* handle */, int /*layer*/, int /*biasID*/) const
 {
     return size_t(typeSize * hsize); // is ther more needed here?
 }
 
-void RNNDescriptor::GetLayerParam(Handle& handle,
+void RNNDescriptor::GetLayerParam(const Handle& handle,
                                   const int layer,
                                   const TensorDescriptor& xDesc,
                                   const TensorDescriptor& /* wDesc */,
                                   ConstData_t w,
                                   const int paramID,
                                   TensorDescriptor& paramDesc,
-                                  Data_t param)
+                                  Data_t param) const
 {
 
     if(!isNotRNNskip() && (((dirMode != 0u) && layer <= 1 && paramID < nHiddenTensorsPerLayer) ||
@@ -563,14 +653,14 @@ void RNNDescriptor::GetLayerParam(Handle& handle,
     miopen::CopyTensor(handle, paramDesc, w, paramDesc, param, poffset, 0);
 }
 
-void RNNDescriptor::GetLayerBias(Handle& handle,
+void RNNDescriptor::GetLayerBias(const Handle& handle,
                                  const int layer,
                                  const TensorDescriptor& xDesc,
                                  const TensorDescriptor& /* wDesc */,
                                  ConstData_t w,
                                  const int biasID,
                                  TensorDescriptor& biasDesc,
-                                 Data_t bias)
+                                 Data_t bias) const
 {
     if(biasMode == miopenRNNNoBias)
     {
@@ -605,14 +695,14 @@ void RNNDescriptor::GetLayerBias(Handle& handle,
     miopen::CopyTensor(handle, biasDesc, w, biasDesc, bias, boffset, 0);
 }
 
-void RNNDescriptor::SetLayerParam(Handle& handle,
+void RNNDescriptor::SetLayerParam(const Handle& handle,
                                   const int layer,
                                   const TensorDescriptor& xDesc,
                                   const TensorDescriptor& /* wDesc */,
                                   Data_t w,
                                   const int paramID,
                                   const TensorDescriptor& paramDesc,
-                                  ConstData_t param)
+                                  ConstData_t param) const
 {
     if(!isNotRNNskip() && (((dirMode != 0u) && layer <= 1 && paramID < nHiddenTensorsPerLayer) ||
                            ((dirMode == 0u) && layer < 1 && paramID < nHiddenTensorsPerLayer)))
@@ -657,14 +747,14 @@ void RNNDescriptor::SetLayerParam(Handle& handle,
     miopen::CopyTensor(handle, paramDesc, param, paramSrc, w, 0, poffset);
 }
 
-void RNNDescriptor::SetLayerBias(Handle& handle,
+void RNNDescriptor::SetLayerBias(const Handle& handle,
                                  const int layer,
                                  const TensorDescriptor& xDesc,
                                  const TensorDescriptor& /* wDesc */,
                                  Data_t w,
                                  const int biasID,
                                  const TensorDescriptor& biasDesc,
-                                 ConstData_t bias)
+                                 ConstData_t bias) const
 {
     if(biasMode == miopenRNNNoBias)
     {
@@ -714,7 +804,7 @@ void RNNDescriptor::GetLayerParamOffset(const int layer,
                                         const TensorDescriptor& xDesc,
                                         const int paramID,
                                         TensorDescriptor& paramDesc,
-                                        size_t* paramOffset)
+                                        size_t* paramOffset) const
 {
     if(!isNotRNNskip() && (((dirMode != 0u) && layer <= 1 && paramID < nHiddenTensorsPerLayer) ||
                            ((dirMode == 0u) && layer < 1 && paramID < nHiddenTensorsPerLayer)))
@@ -747,7 +837,7 @@ void RNNDescriptor::GetLayerBiasOffset(const int layer,
                                        const TensorDescriptor& xDesc,
                                        const int biasID,
                                        TensorDescriptor& biasDesc,
-                                       size_t* biasOffset)
+                                       size_t* biasOffset) const
 {
     // Get the dimensions of the parameter matrix
     if(biasMode == miopenRNNNoBias)
@@ -789,6 +879,7 @@ std::ostream& operator<<(std::ostream& stream, const RNNDescriptor& r)
     stream << r.algoMode << ", ";
     stream << r.inputMode << ", ";
     stream << r.biasMode << ", ";
+    stream << r.dropoutDesc << ", ";
     return stream;
 }
 

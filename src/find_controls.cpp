@@ -36,12 +36,14 @@
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_FIND_ENFORCE)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_FIND_ENFORCE_SCOPE)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_FIND_MODE)
 
 namespace miopen {
 
 namespace debug {
 
 bool FindEnforceDisable = false;
+bool FindModeDisable    = false;
 
 } // namespace debug
 
@@ -182,5 +184,85 @@ solver::Id GetEnvFindOnlySolver()
     static const auto once = GetEnvFindOnlySolverImpl();
     return once;
 }
+
+namespace {
+
+const char* ToCString(const FindMode::Values mode)
+{
+    switch(mode)
+    {
+    case FindMode::Values::Normal: return "NORMAL";
+    case FindMode::Values::Fast: return "FAST";
+    case FindMode::Values::Hybrid: return "HYBRID";
+    case FindMode::Values::FastHybrid: return "FAST_HYBRID";
+    case FindMode::Values::DynamicHybrid: return "DYNAMIC_HYBRID";
+    case FindMode::Values::End_: break;
+    }
+    return "<Unknown>";
+}
+
+std::ostream& operator<<(std::ostream& os, const FindMode::Values& v)
+{
+    return os << ToCString(v) << "(" << static_cast<int>(v) << ')';
+}
+
+FindMode::Values GetFindModeValueImpl2()
+{
+    const char* const p_asciz = miopen::GetStringEnv(MIOPEN_FIND_MODE{});
+    if(p_asciz == nullptr)
+        return FindMode::Values::Default_;
+    std::string str = p_asciz;
+    for(auto& c : str)
+        c = toupper(static_cast<unsigned char>(c));
+    if(str == "NORMAL")
+        return FindMode::Values::Normal;
+    else if(str == "FAST")
+        return FindMode::Values::Fast;
+    else if(str == "HYBRID")
+        return FindMode::Values::Hybrid;
+    else if(str == "FAST_HYBRID")
+        return FindMode::Values::FastHybrid;
+    else if(str == "DYNAMIC_HYBRID")
+        return FindMode::Values::DynamicHybrid;
+    else
+    { // Nop. Fall down & try numerics.
+    }
+    const auto val = static_cast<FindMode::Values>(miopen::Value(MIOPEN_FIND_MODE{}));
+    if(FindMode::Values::Begin_ <= val && val < FindMode::Values::End_)
+        return val;
+    MIOPEN_LOG_NQE("Wrong MIOPEN_FIND_MODE, using default.");
+    return FindMode::Values::Default_;
+}
+
+FindMode::Values GetFindModeValueImpl(const ConvolutionContext& ctx)
+{
+    auto rv = GetFindModeValueImpl2();
+    if(rv != FindMode::Values::Normal)
+    {
+        const FindEnforce find_enforce;
+        if(find_enforce.IsDbClean(ctx) || find_enforce.IsSearch(ctx) ||
+           find_enforce.IsDbUpdate(ctx))
+        {
+            rv = FindMode::Values::Normal;
+            MIOPEN_LOG_NQI("MIOPEN_FIND_MODE enforced to " << rv << " due to MIOPEN_FIND_ENFORCE");
+        }
+    }
+    if(rv == FindMode::Values::Default_) // To reduce spam.
+        MIOPEN_LOG_NQI2("MIOPEN_FIND_MODE = " << rv);
+    else
+        MIOPEN_LOG_NQI("MIOPEN_FIND_MODE = " << rv);
+    return rv;
+}
+
+FindMode::Values GetFindModeValue(const ConvolutionContext& ctx)
+{
+    static const FindMode::Values val = GetFindModeValueImpl(ctx);
+    return val;
+}
+
+} // namespace
+
+FindMode::FindMode(const ConvolutionContext& ctx) { value = GetFindModeValue(ctx); }
+std::ostream& operator<<(std::ostream& os, const FindMode& obj) { return os << obj.value; }
 
 } // namespace miopen

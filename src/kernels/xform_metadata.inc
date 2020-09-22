@@ -50,6 +50,10 @@
 .end_amdhsa_kernel
 .endm
 
+/// Concatenating a macro argument with ".kd" is non trivial.
+/// The period character (".") is allowed inside identifiers.
+/// Therefore we have to use "\()" as a separator.
+
 .altmacro
 .macro METADATA sc, vc, wg_x, lds_size, kernarg_size, kernel_name
 .amdgpu_metadata
@@ -57,7 +61,7 @@
 amdhsa.version: [ 1, 0 ]
 amdhsa.kernels:
   - .name: \kernel_name
-    .symbol: \kernel_name.kd
+    .symbol: \kernel_name\().kd
     .sgpr_count: \sc
     .vgpr_count: \vc
     .language: "OpenCL C"

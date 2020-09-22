@@ -47,10 +47,14 @@ struct external_tool_version_t
     int major = -1;
     int minor = -1;
     int patch = -1;
+    bool operator>(const external_tool_version_t& rhs) const;
     bool operator>=(const external_tool_version_t& rhs) const;
 };
 
-external_tool_version_t HipGetHccVersion();
+external_tool_version_t HipCompilerVersion();
+
+bool IsHccCompiler();
+bool IsHipClangCompiler();
 
 } // namespace miopen
 

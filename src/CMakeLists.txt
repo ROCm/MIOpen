@@ -27,6 +27,7 @@
 cmake_policy(SET CMP0057 NEW)
 
 include (GenerateExportHeader)
+add_subdirectory(sqlite)
 
 # Truncation rounding or (default) rounding to nearest even (RNE) is enabled.
 # This switch controls two related but different aspects of MIOpen behavior
@@ -123,7 +124,8 @@ set( MIOpen_Source
     dropout_api.cpp
     readonlyramdb.cpp
     execution_context.cpp
-    kern_db.cpp
+    reducetensor.cpp
+    reducetensor_api.cpp
     include/miopen/buffer_info.hpp
     include/miopen/temp_file.hpp
     include/miopen/bfloat16.hpp
@@ -171,6 +173,11 @@ set( MIOpen_Source
     include/miopen/dropout.hpp
     include/miopen/readonlyramdb.hpp
     include/miopen/rnn_util.hpp
+    include/miopen/bz2.hpp
+    include/miopen/comgr.hpp
+    include/miopen/numeric.hpp
+    include/miopen/reducetensor.hpp
+    include/miopen/reduce_common.hpp
     md_graph.cpp
     mdg_expr.cpp
     conv/invokers/gcn_asm_1x1u.cpp
@@ -178,6 +185,8 @@ set( MIOpen_Source
     conv/invokers/gcn_asm_1x1u_us.cpp
     conv/invokers/gen_x_w_y_pad.cpp
     conv/invokers/ocl_wrw_rdc.cpp
+    conv/invokers/impl_gemm.cpp
+    conv/invokers/impl_gemm_dynamic.cpp
     invoker_cache.cpp
     tensor.cpp
     tensor_api.cpp
@@ -192,6 +201,7 @@ set( MIOpen_Source
     solver/conv_asm_dir_BwdWrW3x3.cpp
     solver/conv_asm_dir_BwdWrW1x1.cpp
     solver/conv_multipass_wino3x3WrW.cpp
+    solver/conv_MP_bidirectional_winograd.cpp
     solver/conv_bin_wino3x3U.cpp
     solver/conv_bin_winoRxS.cpp
     solver/conv_winoRxS_f3x2.cpp
@@ -206,16 +216,22 @@ set( MIOpen_Source
     solver/conv_ocl_dir2Dfwd_exhaustive_search.cpp
     solver/conv_ocl_dir2Dfwd.cpp
     solver/conv_ocl_dir2Dfwd1x1.cpp
-    solver/conv_hip_implicit_gemm_v4.cpp
     solver/conv_hip_implicit_gemm_v4r1.cpp
     solver/conv_hip_implicit_gemm_v4r4.cpp
-    solver/conv_hip_implicit_gemm_v4r4_xdlops.cpp
+    solver/conv_hip_implicit_gemm_wrw_weights_v4r4.cpp
     solver/conv_hip_implicit_gemm_v4r4_gen_xdlops.cpp
+    solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops.cpp
+    solver/conv_hip_implicit_gemm_v4r4_gen_xdlops_wrw_fp32.cpp
     solver/conv_hip_implicit_gemm_xdlops_common.cpp
     solver/conv_hip_implicit_gemm_nonxdlops_common.cpp
     solver/conv_hip_implicit_gemm_bwd_data_v1r1.cpp
     solver/conv_hip_implicit_gemm_bwd_data_v4r1.cpp
-    solver/conv_hip_implicit_gemm_bwd_data_v1r1_xdlops.cpp
+    solver/conv_hip_implicit_gemm_bwd_data_v4r1_xdlops.cpp
+    solver/conv_asm_implicit_gemm_v4r1_dynamic.cpp
+    solver/conv_asm_implicit_gemm_wrw_v4r1_dynamic.cpp
+    solver/conv_hip_implicit_gemm_v4r4_gen_xdlops_fwd_fp32.cpp
+    solver/conv_hip_implicit_gemm_bwd_v1r1_xdlops_nchw_kcyx_nkhw.cpp
+    solver/conv_asm_implicit_gemm_bwd_v4r1_dynamic.cpp
     )
 
 list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
@@ -223,9 +239,15 @@ if(MIOPEN_ENABLE_SQLITE)
     list(APPEND MIOpen_Source sqlite_db.cpp include/miopen/sqlite_db.hpp )
 endif()
 
+if(MIOPEN_ENABLE_SQLITE AND MIOPEN_ENABLE_SQLITE_KERN_CACHE)
+    list(APPEND MIOpen_Source kern_db.cpp bz2.cpp include/miopen/kern_db.hpp)
+endif()
+
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     file(GLOB_RECURSE COMPOSABLE_KERNEL_INCLUDE "kernels/composable_kernel/include/*/*.hpp")
     file(GLOB_RECURSE COMPOSABLE_KERNEL_SOURCE "kernels/composable_kernel/src/*/*.cpp")
+    file(GLOB_RECURSE COMPOSABLE_KERNEL_DYNAMIC_ASM_SOURCE "kernels/dynamic_igemm/*.s")
+    file(GLOB_RECURSE COMPOSABLE_KERNEL_DYNAMIC_CPP_SOURCE "kernels/dynamic_igemm/*.cpp")
 
     set(MIOPEN_KERNEL_INCLUDES
         ${COMPOSABLE_KERNEL_INCLUDE}
@@ -256,15 +278,20 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil.inc
         kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec.inc
         kernels/conv_3x3_wheel_alpha_v9_0_15.inc
-        kernels/Conv_Winograd_v20_5_23_M_dilation2_prologue.inc
-        kernels/Conv_Winograd_v20_5_23_M_dilation2.inc
-        kernels/Conv_Winograd_v20_5_23_M_dilation2_epilogue.inc
-        kernels/Conv_Winograd_v20_5_23_M_stride1_prologue.inc
-        kernels/Conv_Winograd_v20_5_23_M_stride1.inc
-        kernels/Conv_Winograd_v20_5_23_M_stride1_epilogue.inc
-        kernels/Conv_Winograd_v20_5_23_M_stride2_prologue.inc
-        kernels/Conv_Winograd_v20_5_23_M_stride2.inc
-        kernels/Conv_Winograd_v20_5_23_M_stride2_epilogue.inc
+        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_dilation2.inc
+        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride1.inc
+        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride2.inc
+        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_dilation2.inc
+        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride1.inc
+        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride2.inc
+        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_dilation2_group.inc
+        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride1_group.inc
+        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride2_group.inc
+        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_dilation2_group.inc
+        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride1_group.inc
+        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride2_group.inc
+        kernels/Conv_Winograd_v21_1_0_metadata.inc
+        kernels/xform_bidirect_winograd_code.inc
         kernels/rocm_version.inc
         kernels/inst_wrappers.inc
         kernels/conv_common.inc
@@ -281,6 +308,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
 
     set(MIOPEN_KERNELS
         ${COMPOSABLE_KERNEL_SOURCE}
+        ${COMPOSABLE_KERNEL_DYNAMIC_ASM_SOURCE}
+        ${COMPOSABLE_KERNEL_DYNAMIC_CPP_SOURCE}
         kernels/MIOpenCheckNumerics.cl
         kernels/MIOpenBatchNormActivBwdPerAct.cl
         kernels/MIOpenBatchNormActivBwdSpatial.cl
@@ -355,22 +384,27 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv_3x3_wheel_alpha_v3_0b.s
         kernels/conv_3x3_wheel_alpha_v9_2_7.s
         kernels/conv_3x3_wheel_alpha_v9_2_7_stride_2_dec.s
-        kernels/Conv_Winograd_v20_5_23_M_stride1.s
-        kernels/Conv_Winograd_v20_5_23_M_stride2.s
-        kernels/Conv_Winograd_v20_5_23_M_dilation2.s
+        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_dilation2.s
+        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride1.s
+        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride2.s
+        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_dilation2.s
+        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride1.s
+        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride2.s
+        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_dilation2_group.s
+        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride1_group.s
+        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride2_group.s
+        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_dilation2_group.s
+        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride1_group.s
+        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride2_group.s
         kernels/MIOpenConvBwdBias.cl
         kernels/MIOpenBatchNormActivInfer.cl
         kernels/MIOpenCTCLoss.cl
         kernels/MIOpenDropout.cl
         kernels/xform_data.s
-        kernels/xform_filter.s)
-
-    if(MIOPEN_USE_SCGEMM)
-        list(APPEND MIOPEN_KERNELS
-            kernels/scgemm_v0_5_0_gfx906.so
-            kernels/SCGemmUtils.cl
-        )
-    endif()
+        kernels/xform_filter.s
+        kernels/xform_bidirect_winograd_data.s
+        kernels/xform_bidirect_winograd_filter.s
+        kernels/xform_bidirect_winograd_out.s)
 
     add_kernels("${MIOPEN_KERNELS}")
     add_kernel_includes("${MIOPEN_KERNEL_INCLUDES}")
@@ -458,27 +492,14 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     add_dependencies(tidy miopen_tidy_inlining)
 endif()
 
-if(MIOPEN_USE_SCGEMM)
-    list(APPEND MIOpen_Source
-        scgemm/scgemm.cpp
-        include/miopen/scgemm/scgemm.hpp
-        include/miopen/scgemm/tensorshape.hpp
-        include/miopen/scgemm/conv.hpp
-        include/miopen/scgemm/gemm.hpp
-        include/miopen/scgemm/scgemm_op.hpp
-        scgemm/tensorshape.cpp
-        scgemm/conv.cpp
-        scgemm/gemm.cpp
-        include/miopen/scgemm_utils.hpp
-        scgemm_utils.cpp
-        solver/conv_scgemm_fwd.cpp
-    )
-
+if(MIOPEN_USE_COMGR)
+    list(APPEND MIOpen_Source comgr.cpp)
 endif()
 
 # build library
 add_library( MIOpen
     ${MIOpen_Source}
+    $<TARGET_OBJECTS:sqlite_memvfs>
     )
 
 rocm_set_soversion(MIOpen ${MIOpen_SOVERSION})
@@ -504,11 +525,13 @@ target_include_directories(MIOpen PUBLIC
 )
 
 target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
-
+target_include_directories(MIOpen SYSTEM PRIVATE ${BZIP2_INCLUDE_DIR})
+target_link_libraries(MIOpen PRIVATE ${CMAKE_THREAD_LIBS_INIT} ${BZIP2_LIBRARIES})
 generate_export_header(MIOpen
     EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/miopen/export.h
 )
 set(PACKAGE_DEPENDS)
+set(PACKAGE_STATIC_DEPENDS)
 ############################################################
 # MIOpen depends on OpenCL
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
@@ -533,11 +556,18 @@ endif()
 if(miopengemm_FOUND)
     list(APPEND PACKAGE_DEPENDS PACKAGE miopengemm)
     target_internal_library(MIOpen miopengemm)
+    list(APPEND PACKAGE_STATIC_DEPENDS PACKAGE miopengemm)
+endif()
+
+if(MIOPEN_USE_COMGR)
+    list(APPEND PACKAGE_DEPENDS PACKAGE amd_comgr)
+    target_internal_library(MIOpen amd_comgr)
 endif()
 
 if(rocblas_FOUND)
     target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:roc::rocblas> )
     target_link_libraries( MIOpen PRIVATE roc::rocblas )
+    list(APPEND PACKAGE_STATIC_DEPENDS PACKAGE rocblas)
 endif()
 
 if(WIN32 AND NOT MSVC)
@@ -547,13 +577,10 @@ if(WIN32 AND NOT MSVC)
     target_link_libraries(MIOpen PUBLIC -Wl,--whole-archive -lgcc -lstdc++-6 -Wl,--no-whole-archive -Wl,--allow-multiple-definition)
 endif()
 
-target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${Boost_INCLUDE_DIRS}>)
 target_internal_library(MIOpen
-    optimized ${Boost_FILESYSTEM_LIBRARY_RELEASE}
-    optimized ${Boost_SYSTEM_LIBRARY_RELEASE}
-    debug ${Boost_FILESYSTEM_LIBRARY_DEBUG}
-    debug ${Boost_SYSTEM_LIBRARY_DEBUG}
+    Boost::filesystem
 )
+list(APPEND PACKAGE_STATIC_DEPENDS PACKAGE Boost COMPONTENTS filesystem)
 if(NOT WIN32 AND NOT APPLE)
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/lib.def "
 MIOPEN_${MIOPEN_BACKEND}_1
@@ -572,7 +599,7 @@ local:
 ")
     target_link_libraries(MIOpen PRIVATE "-Wl,--version-script=${CMAKE_CURRENT_BINARY_DIR}/lib.def")
     target_link_libraries(MIOpen PRIVATE "-Wl,--exclude-libs,ALL")
-    # set_target_properties(MIOpen PROPERTIES CXX_VISIBILITY_PRESET protected)
+    # set_target_properties(MIOpen PROPERTIES CXX_VISIBILITY_PRESET hidden)
     set_target_properties(MIOpen PROPERTIES VISIBILITY_INLINES_HIDDEN 1)
 endif()
 #######################################
@@ -597,38 +624,57 @@ endif()
 
 ############################################################
 # Installation
+set(MIOPEN_CXX_HEADER_PATH)
+if(MIOPEN_INSTALL_CXX_HEADERS)
+set(MIOPEN_CXX_HEADER_PATH ${PROJECT_SOURCE_DIR}/src/include)
+endif()
+
 rocm_install_targets(
   TARGETS MIOpen
   INCLUDE
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_BINARY_DIR}/include
+    ${MIOPEN_CXX_HEADER_PATH}
   PREFIX ${MIOPEN_INSTALL_DIR}
- )
+)
 
 rocm_export_targets(
   TARGETS MIOpen
   PREFIX ${MIOPEN_INSTALL_DIR}
   DEPENDS
     ${PACKAGE_DEPENDS}
+  STATIC_DEPENDS
+    ${PACKAGE_STATIC_DEPENDS}
 )
 
-
-
 # Install db files
-install(FILES
-    kernels/miopen.db
-    kernels/gfx803_36.HIP.fdb.txt
-    kernels/gfx803_64.HIP.fdb.txt
-    kernels/gfx900_64.HIP.fdb.txt
-    kernels/gfx900_56.HIP.fdb.txt
-    kernels/gfx906_64.HIP.fdb.txt
-    kernels/gfx906_60.HIP.fdb.txt
-    kernels/gfx803_36.OpenCL.fdb.txt
-    kernels/gfx803_64.OpenCL.fdb.txt
-    kernels/gfx900_64.OpenCL.fdb.txt
-    kernels/gfx900_56.OpenCL.fdb.txt
-    kernels/gfx906_64.OpenCL.fdb.txt
-    kernels/gfx906_60.OpenCL.fdb.txt
- DESTINATION ${DATA_INSTALL_DIR}/db)
-
+if(NOT MIOPEN_EMBED_DB STREQUAL "")
+    include(embed)
+    set(CODE_OBJECTS)
+# embed perf db
+    list(APPEND CODE_OBJECTS "kernels/miopen.db")
+# embed find db
+    foreach(EMBED_ARCH ${MIOPEN_EMBED_DB})
+        message(STATUS "Adding find db for arch: ${EMBED_ARCH}")
+        list(APPEND CODE_OBJECTS "kernels/${EMBED_ARCH}.${MIOPEN_BACKEND}.fdb.txt")
+    endforeach()
+# Embed Bin Cache
+    if(NOT MIOPEN_BINCACHE_PATH STREQUAL "")
+        foreach(EMBED_ARCH ${MIOPEN_EMBED_DB})
+            message(STATUS "Adding binary cache for arch: ${EMBED_ARCH}")
+            download_binary(OUTPUT_PATH "${MIOPEN_BINCACHE_PATH}" "${EMBED_ARCH}")
+            list(APPEND CODE_OBJECTS "${OUTPUT_PATH}")
+        endforeach()
+    endif()
+    add_embed_library(miopen_data ${CODE_OBJECTS})
+    target_link_libraries(MIOpen PRIVATE $<BUILD_INTERFACE:miopen_data> )
+else()
+    file(GLOB FIND_DB_FILES kernels/*.fdb.txt)
+    list(APPEND FIND_DB_FILES kernels/miopen.db)
+    if(NOT MIOPEN_DISABLE_SYSDB)
+        install(FILES
+            ${FIND_DB_FILES}
+         DESTINATION ${DATA_INSTALL_DIR}/db)
+    endif()
+endif()
 rocm_install_symlink_subdir(${MIOPEN_INSTALL_DIR})

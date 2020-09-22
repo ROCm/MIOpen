@@ -24,20 +24,20 @@
  *
  *******************************************************************************/
 
-#include "miopen/solver.hpp"
-#include "miopen/handle.hpp"
+#include <miopen/solver.hpp>
+
+#include <miopen/conv/invokers/impl_gemm.hpp>
+#include <miopen/conv/wrw_invoke_params.hpp>
+#include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
-#include "miopen/stringutils.hpp"
+#include <miopen/stringutils.hpp>
+#include <miopen/tensor_ops.hpp>
+#include <miopen/implicitgemm_params.hpp>
+
 #include "implicitgemm_util.hpp"
-#include "miopen/implicitgemm_params.hpp"
-#include <miopen/env.hpp>
 
 namespace miopen {
 namespace solver {
-
-// fail with vector load for some cases
-/// \todo enable vector load after fix it
-#define WORKAROUND_FAILED_VECTOR_LOAD 1
 
 PerformanceImplicitGemmXdlops
 ConvHipImplicitGemmV4R4GenFwdXdlops::GetPerformanceConfig(const ConvolutionContext& ctx) const
@@ -94,7 +94,7 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
             construction_parameters.kernel_file =
                 "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_double_buffer.cpp";
 
-            construction_parameters.kernel_name = 
+            construction_parameters.kernel_name =
 		"gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_double_buffer";
         }
         else
@@ -103,66 +103,103 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
             construction_parameters.kernel_file =
                 "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_nchw_kcyx_nkhw_lds_double_buffer.cpp";
 
-            construction_parameters.kernel_name = 
+            construction_parameters.kernel_name =
 		"gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_nchw_kcyx_nkhw_lds_double_buffer";
         }
         // clang-format on
+    }
+    else
+    {
+        MIOPEN_THROW("invalid value of 'kernel'");
     }
 
     std::size_t ABlockCopySubLengths_GemmK = GemmKPerBlock / config.WeiBlockCopyClusterLengths_E;
     std::size_t ABlockCopySubLengths_GemmM = GemmMPerBlock / config.WeiBlockCopyClusterLengths_K;
     std::size_t BBlockCopySubLengths_GemmN = GemmNPerBlock / config.InBlockCopyClusterLengths_B;
 
-// Ensure that vectorized b is read via right alignment from global memory
-// Consider slicing window's stride and dilation to ensure global memory reads of B are aligned
-// with vector length.
-#if WORKAROUND_FAILED_VECTOR_LOAD
-    std::size_t BBlockCopySrcDataPerRead_B = 1;
-#else
-    size_t kernel_filter_x          = KernelFilterWidthX(ctx);
-    size_t kernel_filter_stride_w   = KernelFilterStrideW(ctx);
-    size_t kernel_filter_dilation_w = KernelFilterDilationW(ctx);
+    // Ensure that vectorized b is read via right alignment from global memory
+    // Consider slicing window's stride and dilation to ensure global memory reads of B are aligned
+    // with vector length.
+    int BBlockCopySrcDataPerRead_GemmN = GetReadWriteVectorSize(BBlockCopySubLengths_GemmN);
 
-    auto BBlockCopySrcDataPerRead_B = GetReadWriteVectorSize(BBlockCopySubLengths_GemmN);
-    BBlockCopySrcDataPerRead_B =
-        kernel_filter_x > 1
-            ? std::min(BBlockCopySrcDataPerRead_B, GetReadWriteVectorSize(kernel_filter_dilation_w))
-            : BBlockCopySrcDataPerRead_B;
-    BBlockCopySrcDataPerRead_B = kernel_filter_stride_w > 1 ? 1 : BBlockCopySrcDataPerRead_B;
-#endif
+    const int Y              = KernelFilterHeightY(ctx);
+    const int X              = KernelFilterWidthX(ctx);
+    const int C              = KernelInputChannelC(ctx);
+    const auto hi            = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
+    const auto wi            = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
+    const auto conv_stride_h = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
+    const auto conv_stride_w = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
+    const auto conv_dilation_w =
+        ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx);
+    const auto in_left_pad_h  = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
+    const auto in_left_pad_w  = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
+    const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
+    const auto in_right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
 
-    const int Y = KernelFilterHeightY(ctx);
-    const int X = KernelFilterWidthX(ctx);
-
-    // Disable vectorized read in backward data case. Why?
-    unsigned int ABlockCopySrcDataPerRead_E = 1;
-    if(ctx.IsFp32())
+    if(Y == 1 && X == 1 && conv_stride_h == 1 && conv_stride_w == 1 && in_left_pad_h == 0 &&
+       in_left_pad_w == 0 && in_right_pad_h == 0 && in_right_pad_w == 0)
     {
-        ABlockCopySrcDataPerRead_E = GetReadWriteVectorSize(ABlockCopySubLengths_GemmK);
+        // \todo there are more configs that can go through this if branch
+        BBlockCopySrcDataPerRead_GemmN = gcd(BBlockCopySrcDataPerRead_GemmN, hi * wi);
+    }
+    else if(conv_stride_w == 1 && conv_dilation_w == 1)
+    {
+        BBlockCopySrcDataPerRead_GemmN =
+            gcd(BBlockCopySrcDataPerRead_GemmN, in_left_pad_w, wi, in_right_pad_w);
     }
     else
     {
-        // For fp32, E = C*Y*X
-        // For fp16, E = C/EPack * Y * X
-        // Since C/EPack are not in contiguous memory along with Y*X, vector length
-        // can' be more than Y*X
-        ABlockCopySrcDataPerRead_E = (X * Y) % ABlockCopySubLengths_GemmK != 0
-                                         ? 1
-                                         : GetReadWriteVectorSize(ABlockCopySubLengths_GemmK);
+        BBlockCopySrcDataPerRead_GemmN = 1;
     }
 
+#if WORKAROUND_ISSUE_2532
     if(ctx.direction.IsBackwardWrW())
-        ABlockCopySrcDataPerRead_E =
-            (X * Y) % ABlockCopySubLengths_GemmK != 0 ? 1 : ABlockCopySrcDataPerRead_E;
+        BBlockCopySrcDataPerRead_GemmN = 1;
+#endif
 
-    ABlockCopySrcDataPerRead_E = ctx.direction.IsBackwardData() ? 1 : ABlockCopySrcDataPerRead_E;
+    std::size_t ABlockCopySrcDataPerRead_GemmK     = 1;
+    std::size_t ABlockCopySrcDataPerRead_GemmKPACK = 1;
+    if(ctx.IsFp32())
+    {
+        ABlockCopySrcDataPerRead_GemmK = GetReadWriteVectorSize(ABlockCopySubLengths_GemmK);
+    }
+    else
+    {
+        if(ctx.group_counts > 1)
+        {
+            // For bfp16/fp16 group fwd cases, E = C/EPack * Y * X, where C/EPack are in
+            // continuous memory with Y*X because EPack is extracted from
+            ABlockCopySrcDataPerRead_GemmK =
+                (((C / config.EPACKSize) * Y * X) % ABlockCopySubLengths_GemmK) != 0
+                    ? 1
+                    : GetReadWriteVectorSize(ABlockCopySubLengths_GemmK);
+        }
+        else
+        {
+            // For fp16 non-group fwd cases, E = (C * Y * X)/EPack
+            // Since C*Y*X are in contiguous memory, EPack extracted from it, could be vectorized.
+            ABlockCopySrcDataPerRead_GemmKPACK =
+                (C * Y * X) % config.EPACKSize != 0 ? 1 : config.EPACKSize;
+        }
+    }
+
+    // For wrw cases in fp16/bfp16,
+    // Since C/EPack are not in contiguous memory along with Y*X, vector length
+    // needs to be in multiple of Y*X
+    if(ctx.direction.IsBackwardWrW())
+        ABlockCopySrcDataPerRead_GemmK = (Y * X) % ABlockCopySubLengths_GemmK != 0
+                                             ? 1
+                                             : GetReadWriteVectorSize(ABlockCopySubLengths_GemmK);
+
+    ABlockCopySrcDataPerRead_GemmK =
+        ctx.direction.IsBackwardData() ? 1 : ABlockCopySrcDataPerRead_GemmK;
 
     const auto ABlockCopyDstDataPerWrite_GemmM =
         ctx.IsFp32() ? GetReadWriteVectorSize(ABlockCopySubLengths_GemmM) : 1;
     const auto BBlockCopyDstDataPerWrite_GemmN =
         ctx.IsFp32() ? GetReadWriteVectorSize(BBlockCopySubLengths_GemmN) : 1;
-    const auto ABlockCopyDstDataPerWrite_GemmKPACK = !ctx.IsFp32() ? GetEPackLength(ctx, true) : 1;
-    const auto BBlockCopyDstDataPerWrite_GemmKPACK = !ctx.IsFp32() ? GetEPackLength(ctx, true) : 1;
+    const auto ABlockCopyDstDataPerWrite_GemmKPACK = !ctx.IsFp32() ? config.EPACKSize : 1;
+    const auto BBlockCopyDstDataPerWrite_GemmKPACK = !ctx.IsFp32() ? config.EPACKSize : 1;
 
     const ImplicitGemmDirection direction =
         ctx.direction.IsForward()
@@ -257,9 +294,8 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_N=") + std::to_string(config.InBlockCopyClusterLengths_B) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_K=") + std::to_string(config.WeiBlockCopyClusterLengths_E) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_M=") + std::to_string(config.WeiBlockCopyClusterLengths_K) +
-        std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_N=") + std::to_string(BBlockCopySrcDataPerRead_B) +
-        std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_K=") + std::to_string(ABlockCopySrcDataPerRead_E) +
-        std::string(" -DCK_PARAM_GEMM_KPACK_LENGTH=") + std::to_string(GetEPackLength(ctx,true)) +
+        std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_N=") + std::to_string(BBlockCopySrcDataPerRead_GemmN) +
+        std::string(" -DCK_PARAM_GEMM_KPACK_LENGTH=") + std::to_string(config.EPACKSize) +
         std::string(" -DCK_USE_AMD_XDLOPS=") + std::to_string(IsXdlopsSupport(ctx) ? 1 : 0) +
         std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + std::to_string(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}) ? 1 : 0) +
         std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}) ? '1' : '0') +
@@ -272,7 +308,9 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
             std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_N=") +
             std::to_string(BBlockCopyDstDataPerWrite_GemmN) +
             std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_M=") +
-            std::to_string(ABlockCopyDstDataPerWrite_GemmM);
+            std::to_string(ABlockCopyDstDataPerWrite_GemmM) +
+            std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_K=") +
+            std::to_string(ABlockCopySrcDataPerRead_GemmK);
     }
     else
     {
@@ -281,9 +319,93 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
             std::to_string(BBlockCopyDstDataPerWrite_GemmKPACK) +
             std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK=") +
             std::to_string(ABlockCopyDstDataPerWrite_GemmKPACK);
+
+        if(ctx.direction.IsBackwardWrW() || ctx.group_counts > 1)
+        {
+            construction_parameters.comp_options +=
+                std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_K=") +
+                std::to_string(ABlockCopySrcDataPerRead_GemmK);
+        }
+        else // only fwd non-group case
+        {
+            construction_parameters.comp_options +=
+                std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_KPACK=") +
+                std::to_string(ABlockCopySrcDataPerRead_GemmKPACK);
+        }
     }
 
     result.construction_params.push_back(construction_parameters);
+    const auto& dwDesc = ctx.conv_problem.GetWeights();
+
+    if(ctx.direction.IsForward() || ctx.direction.IsBackwardData())
+    {
+        result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
+    }
+    else if(dwDesc.GetType() == miopenHalf || dwDesc.GetType() == miopenBFloat16)
+    {
+        const auto lowp_quant  = ctx.conv_problem.GetConv().lowp_quant;
+        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+            return [=](const Handle& handle, const boost::any& primitive_params) {
+                const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
+                const auto& tensors      = invoke_params.tensors;
+                float zero               = 0.f;
+                TensorDescriptor workSpaceDesc(
+                    miopenFloat, tensors.dwDesc.GetLengths(), tensors.dwDesc.GetStrides());
+                SetTensor(handle, workSpaceDesc, invoke_params.workSpace, &zero);
+                float elapsed = std::numeric_limits<float>::max();
+                if(handle.IsProfilingEnabled())
+                    elapsed = handle.GetKernelTime();
+
+                handle.Run(kernels[0])(tensors.x, tensors.dy, invoke_params.workSpace);
+                if(handle.IsProfilingEnabled())
+                    elapsed += handle.GetKernelTime();
+
+                CastTensor(handle,
+                           &lowp_quant,
+                           workSpaceDesc,
+                           invoke_params.workSpace,
+                           tensors.dwDesc,
+                           tensors.dw,
+                           0,
+                           0);
+
+                if(handle.IsProfilingEnabled())
+                {
+                    elapsed += handle.GetKernelTime();
+                    handle.ResetKernelTime();
+                    handle.AccumKernelTime(elapsed);
+                }
+            };
+        };
+    }
+    else
+    {
+        result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+            return [=](const Handle& handle, const boost::any& primitive_params) {
+                const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
+                const auto& tensors      = invoke_params.tensors;
+                float zero               = 0.f;
+                auto elapsed             = 0.f;
+
+                if(tensors.dwDesc.GetType() != miopenHalf &&
+                   tensors.dwDesc.GetType() != miopenBFloat16)
+                {
+                    SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
+                    if(handle.IsProfilingEnabled())
+                        elapsed += handle.GetKernelTime();
+                }
+
+                handle.Run(kernels[0])(tensors.x, tensors.dy, tensors.dw);
+                if(handle.IsProfilingEnabled())
+                {
+                    elapsed += handle.GetKernelTime();
+                    handle.ResetKernelTime();
+                    handle.AccumKernelTime(elapsed);
+                }
+            };
+        };
+    }
+
     return result;
 }
 
@@ -314,7 +436,7 @@ ConvSolution ConvHipImplicitGemmV4R4GenWrWXdlops::GetSolution(
     return result;
 }
 
-int ConvHipImplicitGemmV4R4GenFwdXdlops::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvHipImplicitGemmV4R4GenFwdXdlops::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                                                ConstData_t bot_buf,
                                                                Data_t top_buf,
                                                                ConstData_t wei_buf,
@@ -330,7 +452,7 @@ int ConvHipImplicitGemmV4R4GenFwdXdlops::RunAndMeasureSolution(miopen::Handle& p
         profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
 }
 
-int ConvHipImplicitGemmV4R4GenWrWXdlops::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvHipImplicitGemmV4R4GenWrWXdlops::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                                                ConstData_t bot_buf,
                                                                ConstData_t top_buf,
                                                                Data_t wei_buf,
@@ -341,60 +463,40 @@ int ConvHipImplicitGemmV4R4GenWrWXdlops::RunAndMeasureSolution(miopen::Handle& p
 {
     assert(bias_buf == nullptr);
     (void)bias_buf;
-    (void)ctx;
 
-    KernelInfo k_info = solution.construction_params[0];
-
-#ifdef NDEBUG
-    try
-#endif
-    {
-        elapsed_time = std::numeric_limits<float>::max();
-        auto kernel  = profile_h.AddKernel("",
-                                          "",
-                                          k_info.kernel_file,
-                                          k_info.kernel_name,
-                                          k_info.l_wk,
-                                          k_info.g_wk,
-                                          k_info.comp_options);
-
-        kernel(bot_buf, top_buf, wei_buf);
-
-        elapsed_time = profile_h.GetKernelTime();
-    }
-#ifdef NDEBUG
-    catch(miopen::Exception& ex)
-    {
-        MIOPEN_LOG_WE(ex.what());
-        return -1;
-    }
-#endif
-    return 0;
+    return RunAndMeasureSolutionBase(
+        profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
 }
 
 bool ConvHipImplicitGemmV4R4GenFwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
-    if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
+    if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
         return false;
-
+    if(!(ctx.IsFp16() || ctx.IsBfp16()))
+        return false;
+    if(!ctx.use_hip_kernels)
+        return false;
     if(!ctx.direction.IsForward())
         return false;
-
     if(!ctx.Is2d())
         return false;
-
     return IsApplicableXdlops(ctx);
 }
 
 bool ConvHipImplicitGemmV4R4GenWrWXdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
+    if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
+        return false;
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
-
+    if(!ctx.use_hip_kernels)
+        return false;
     if(!ctx.direction.IsBackwardWrW())
         return false;
-
     if(!ctx.Is2d())
+        return false;
+
+    if(ConvHipImplicitGemmV4R4GenXdlopsWrWFp32{}.IsApplicable(ctx))
         return false;
 
     return IsApplicableXdlops(ctx);
@@ -431,7 +533,7 @@ ConvHipImplicitGemmV4R4GenWrWXdlops::Search(const ConvolutionContext& ctx) const
 {
     // fp16/bfp16 uses fp32 workspace to leverage fp32 atomic add
     if(ctx.IsFp16() || ctx.IsBfp16())
-        return GenericSearchWrW(*this, ctx, SearchTweak::WorkspaceInsteadOfXBuffer);
+        return GenericSearchWrW(*this, ctx, SearchTweak::WorkspaceInsteadOfWeightsBuffer);
     else
         return GenericSearchWrW(*this, ctx);
 }

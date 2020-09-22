@@ -25,9 +25,15 @@
  *******************************************************************************/
 
 #include <miopen/solver.hpp>
+
 #include <miopen/env.hpp>
-#include <miopen/stringutils.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/stringutils.hpp>
+#include <miopen/conv/compiled_in_parameters.hpp>
+#include <miopen/conv/data_invoke_params.hpp>
+#include <miopen/conv/tensors.hpp>
+
+#include <boost/any.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_3X3)
 
@@ -115,6 +121,67 @@ ConvSolution ConvBinWinograd3x3U::GetSolution(const ConvolutionContext& params) 
         MIOPEN_THROW("Unsupported device.");
 
     result.construction_params.push_back(kernel);
+
+    const auto is_forward = params.direction.IsForward();
+
+    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+        constexpr int F_REVERSE_R = 1 << 0;
+        constexpr int F_REVERSE_S = 1 << 1;
+        constexpr int F_FLIP_K_C  = 1 << 2;
+        // These are not used yet. Nevertheless let's keep as a shader documentation.
+        // constexpr int F_FLIP_DATA_N_C = 1 << 3; // Unsupported in f3x2.
+        // constexpr int F_FLIP_OUT_N_K = 1 << 4; // Unsupported in f3x2.
+        // constexpr int L_F_ADDR_INDIRECT  = 1 << 6;
+        // constexpr int L_F_BIAS  = 1 << 7;
+        // constexpr int L_F_LEAKY_RELU  = 1 << 8;
+
+        // not used in this particular kernel
+        // constexpr int L_F_NKC_STRIDES = 1 << 9;
+
+        int flags         = is_forward ? 0 : F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C;
+        int reserved      = 0;
+        int* reserved_ptr = nullptr;
+        int N, C, H, W, K, n_groups_, out_H, out_W, R, S, pad_H, pad_W;
+        GetCompiledInParameters(
+            params, &N, &C, &H, &W, &K, &n_groups_, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
+        MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
+                            << " n_groups="
+                            << n_groups_
+                            << " flags="
+                            << flags
+                            << " R="
+                            << R
+                            << " S="
+                            << S
+                            << " pad_H="
+                            << pad_H
+                            << " pad_W="
+                            << pad_W
+                            << " out_H="
+                            << out_H
+                            << " out_W="
+                            << out_W);
+
+        return [=](const Handle& handle, const boost::any& ctx) {
+            const auto k        = handle.Run(kernels[0]);
+            const auto fwd_ctx  = boost::any_cast<conv::DataInvokeParams>(ctx);
+            const auto& tensors = fwd_ctx.tensors;
+
+            k(N,
+              C,
+              H,
+              W,
+              K,
+              n_groups_,
+              flags,
+              reserved,
+              tensors.in,
+              tensors.w,
+              tensors.out,
+              reserved_ptr);
+        };
+    };
+
     return result;
 }
 } // namespace solver

@@ -23,11 +23,17 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <cstddef>
-#include "miopen/solver.hpp"
-#include "miopen/handle.hpp"
+#include <miopen/conv/invokers/impl_gemm.hpp>
+#include <miopen/solver.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/hip_build_utils.hpp>
 #include <miopen/generic_search.hpp>
+
 #include "implicitgemm_util.hpp"
+
+#include <cstddef>
+
+#define WORKAROUND_ISSUE_309 1
 
 namespace miopen {
 namespace solver {
@@ -334,20 +340,51 @@ PerformanceImplicitGemmBwdDataV1R1::CalculateGemmCThreadCopyPerformanceParameter
         const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
         const auto in_right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
 
-        if(y == 1 && x == 1 && conv_stride_h == 1 && conv_stride_w == 1 && in_left_pad_h == 0 &&
-           in_left_pad_w == 0 && in_right_pad_h == 0 && in_right_pad_w == 0)
+        if(ctx.Is3d())
         {
-            // \todo there are more configs that can go through this if branch
-            DstDataPerWrite_GemmN1 = gcd(DstDataPerWrite_GemmN1, hi * wi);
-        }
-        else if(conv_stride_w == 1)
-        {
-            DstDataPerWrite_GemmN1 =
-                gcd(DstDataPerWrite_GemmN1, in_left_pad_w, wi, in_right_pad_w, conv_dilation_w);
+            const auto di = ConvolutionContextInterpreter::GetInputDepthDi(ctx);
+            const auto z  = ConvolutionContextInterpreter::GetFilterDepthZ(ctx);
+            const auto conv_stride_d =
+                ConvolutionContextInterpreter::GetAdjustedConvolutionStrideD(ctx);
+            const auto in_right_pad_d =
+                ConvolutionContextInterpreter::GetAdjustedInputRightPadD(ctx);
+            const auto in_left_pad_d = ConvolutionContextInterpreter::GetInputLeftPadD(ctx);
+
+            if(z == 1 && y == 1 && x == 1 && conv_stride_d == 1 && conv_stride_h == 1 &&
+               conv_stride_w == 1 && in_left_pad_d == 0 && in_left_pad_h == 0 &&
+               in_left_pad_w == 0 && in_right_pad_d == 0 && in_right_pad_h == 0 &&
+               in_right_pad_w == 0)
+            {
+                // \todo there are more configs that can go through this if branch
+                DstDataPerWrite_GemmN1 = gcd(DstDataPerWrite_GemmN1, di * hi * wi);
+            }
+            else if(conv_stride_w == 1)
+            {
+                DstDataPerWrite_GemmN1 =
+                    gcd(DstDataPerWrite_GemmN1, in_left_pad_w, wi, in_right_pad_w, conv_dilation_w);
+            }
+            else
+            {
+                DstDataPerWrite_GemmN1 = 1;
+            }
         }
         else
         {
-            DstDataPerWrite_GemmN1 = 1;
+            if(y == 1 && x == 1 && conv_stride_h == 1 && conv_stride_w == 1 && in_left_pad_h == 0 &&
+               in_left_pad_w == 0 && in_right_pad_h == 0 && in_right_pad_w == 0)
+            {
+                // \todo there are more configs that can go through this if branch
+                DstDataPerWrite_GemmN1 = gcd(DstDataPerWrite_GemmN1, hi * wi);
+            }
+            else if(conv_stride_w == 1)
+            {
+                DstDataPerWrite_GemmN1 =
+                    gcd(DstDataPerWrite_GemmN1, in_left_pad_w, wi, in_right_pad_w, conv_dilation_w);
+            }
+            else
+            {
+                DstDataPerWrite_GemmN1 = 1;
+            }
         }
     }
     catch(...)
@@ -409,9 +446,9 @@ bool PerformanceImplicitGemmBwdDataV1R1::IsValidValue() const
 {
     // clang-format off
     return IsTwoPower<64, 256>(BlockSize) &&
-           IsTwoPower<32, 128>(GemmMPerBlock) && 
+           IsTwoPower<32, 128>(GemmMPerBlock) &&
            IsTwoPower<32, 128>(GemmNPerBlock) &&
-           IsTwoPower<4, 16>(GemmKPerBlock) && 
+           IsTwoPower<4, 16>(GemmKPerBlock) &&
            IsTwoPower<2, 4>(GemmMPerThread) &&
            IsTwoPower<2, 4>(GemmNPerThread);
     // clang-format on
@@ -568,8 +605,10 @@ ConvHipImplicitGemmBwdDataV1R1::CalculateGemmSize(const ConvolutionContext& ctx)
     const auto y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
     const auto x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
 
-    const auto gemm_m = c * y * x;
-    const auto gemm_n = n * ho * wo;
+    const auto gemm_m =
+        c * y * x * (ctx.Is3d() ? ConvolutionContextInterpreter::GetFilterDepthZ(ctx) : 1);
+    const auto gemm_n =
+        n * ho * wo * (ctx.Is3d() ? ConvolutionContextInterpreter::GetOutputDepthDo(ctx) : 1);
     const auto gemm_k = k / GetEPackLength(ctx, false);
 
     return std::make_tuple(gemm_m, gemm_n, gemm_k);
@@ -589,23 +628,33 @@ size_t ConvHipImplicitGemmBwdDataV1R1::GetWorkspaceSize(const ConvolutionContext
         std::size_t c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
         std::size_t hi = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
         std::size_t wi = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
-        return n * c * hi * wi * miopen::GetTypeSize(miopenFloat);
+        return n * c * (ctx.Is3d() ? ConvolutionContextInterpreter::GetInputDepthDi(ctx) : 1) * hi *
+               wi * miopen::GetTypeSize(miopenFloat);
     }
 }
 
 bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx) const
 {
+    if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
+        return false;
     if(!ctx.direction.IsBackwardData())
         return false;
-
-    if(!ctx.Is2d())
+    if(!ctx.use_hip_kernels)
+        return false;
+    if(!ctx.Is2d() && !(ctx.Is3d() && ctx.IsFp32()))
         return false;
 
-    if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
+    // TBD Renable fp16 once the root cause of
+    // fp16 failures, observed in CI, is resolved.
+    if(!(ctx.IsFp32() || ctx.IsBfp16()))
         return false;
-
     if(ctx.group_counts != 1)
         return false;
+#if WORKAROUND_ISSUE_309
+    if(miopen::HipCompilerVersion() >= external_tool_version_t{3, 5, 0})
+        if(ctx.IsBfp16())
+            return false;
+#endif
 
     const auto k = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
     if(k % GetEPackLength(ctx, false) != 0)
@@ -643,7 +692,7 @@ ConvHipImplicitGemmBwdDataV1R1::Search(const ConvolutionContext& ctx) const
         return GenericSearchBwd(*this, ctx);
 }
 
-int ConvHipImplicitGemmBwdDataV1R1::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvHipImplicitGemmBwdDataV1R1::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                                           ConstData_t bot_buf,
                                                           Data_t top_buf,
                                                           ConstData_t wei_buf,
@@ -705,10 +754,12 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1::GetSolution(
     construction_parameters.g_wk.push_back(1);
 
     construction_parameters.kernel_file =
-        "gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw.cpp";
+        ctx.Is3d() ? "gridwise_convolution_backward_data_implicit_gemm_v1r1_ncdhw_kczyx_nkdhw.cpp"
+                   : "gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw.cpp";
 
     construction_parameters.kernel_name =
-        "gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw";
+        ctx.Is3d() ? "gridwise_convolution_backward_data_implicit_gemm_v1r1_ncdhw_kczyx_nkdhw"
+                   : "gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw";
 
     int GemmMLevel0Cluster                      = 0;
     int GemmNLevel0Cluster                      = 0;
@@ -767,7 +818,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1::GetSolution(
     result.workspce_sz = GetWorkspaceSize(ctx);
 
     // clang-format off
-    construction_parameters.comp_options = 
+    construction_parameters.comp_options =
         std::string(" -std=c++14 ") +
         std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(ConvolutionContextInterpreter::GetBatchN(ctx)) +
         std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(ConvolutionContextInterpreter::GetOutputChannelK(ctx)) +
@@ -809,6 +860,24 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1::GetSolution(
         std::string(" -DCK_USE_AMD_BUFFER_ATOMIC_ADD=") + (support_amd_buffer_atomic_add(ctx) ? '1' : '0') +
         ctx.general_compile_options;
     // clang-format on
+    if(ctx.Is3d())
+    {
+        construction_parameters.comp_options +=
+            std::string(" -DCK_PARAM_PROBLEM_DI=") +
+            std::to_string(ConvolutionContextInterpreter::GetInputDepthDi(ctx)) +
+            std::string(" -DCK_PARAM_PROBLEM_DO=") +
+            std::to_string(ConvolutionContextInterpreter::GetOutputDepthDo(ctx)) +
+            std::string(" -DCK_PARAM_PROBLEM_Z=") +
+            std::to_string(ConvolutionContextInterpreter::GetFilterDepthZ(ctx)) +
+            std::string(" -DCK_PARAM_PROBLEM_CONV_STRIDE_D=") +
+            std::to_string(ConvolutionContextInterpreter::GetAdjustedConvolutionStrideD(ctx)) +
+            std::string(" -DCK_PARAM_PROBLEM_CONV_DILATION_D=") +
+            std::to_string(ConvolutionContextInterpreter::GetAdjustedConvolutionDilationD(ctx)) +
+            std::string(" -DCK_PARAM_PROBLEM_IN_LEFT_PAD_D=") +
+            std::to_string(ConvolutionContextInterpreter::GetInputLeftPadD(ctx)) +
+            std::string(" -DCK_PARAM_PROBLEM_IN_RIGHT_PAD_D=") +
+            std::to_string(ConvolutionContextInterpreter::GetAdjustedInputRightPadD(ctx));
+    }
 
     if(ctx.IsFp32())
     {
@@ -828,6 +897,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1::GetSolution(
             std::to_string(GemmBBlockCopyDstDataPerWrite_GemmKPACK);
     }
 
+    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
     result.construction_params.push_back(construction_parameters);
     return result;
 }

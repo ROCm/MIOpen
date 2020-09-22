@@ -39,6 +39,7 @@
 #include <vector>
 #include <array>
 #include <miopen/dropout.hpp>
+#include <miopen/float_equal.hpp>
 #include <miopen/precalc_xorwow_skipahead_matrices.hpp>
 #include <miopen/precalc_xorwow_skipahead_sequence_matrices.hpp>
 #include "xorwow_skipahead_generator.hpp"
@@ -225,7 +226,7 @@ void RunDropoutForwardEmulator(miopenHandle_t handle,
 
     auto use_mask     = miopen::deref(dropoutDesc).use_mask;
     auto dropout_rate = miopen::deref(dropoutDesc).dropout;
-    if(dropout_rate < 0.0 || dropout_rate >= 1.0)
+    if(dropout_rate < 0.0 || dropout_rate > 1.0)
     {
         printf("CPU verification: Invalid dropout rate\n");
     }
@@ -272,7 +273,7 @@ void RunDropoutForwardEmulator(miopenHandle_t handle,
                                 uniform_distribution_emu(xorwow_next(&states[si % glb_sz])) >
                                 dropout_rate;
 
-                        out[oi] = bool(reservespace[ri])
+                        out[oi] = bool(reservespace[ri]) && !miopen::float_equal(dropout_rate, 1.0)
                                       ? static_cast<Tref>(in[ii] / (1 - dropout_rate))
                                       : 0;
                     }
@@ -308,7 +309,7 @@ void RunDropoutBackwardEmulator(const miopenDropoutDescriptor_t dropoutDesc,
     }
 
     auto dropout_rate = miopen::deref(dropoutDesc).dropout;
-    if(dropout_rate < 0.0 || dropout_rate >= 1.0)
+    if(dropout_rate < 0.0 || dropout_rate > 1.0)
     {
         printf("CPU verification: Invalid dropout rate\n");
     }
@@ -343,8 +344,10 @@ void RunDropoutBackwardEmulator(const miopenDropoutDescriptor_t dropoutDesc,
                                     i1 * in_len[2] * in_len[3] * in_len[4] +
                                     i2 * in_len[3] * in_len[4] + i3 * in_len[4] + i4;
 
-                        din[ii] = static_cast<Tref>(
-                            bool(reservespace[ri]) ? dout[oi] / (1 - dropout_rate) : 0);
+                        din[ii] = static_cast<Tref>(bool(reservespace[ri]) &&
+                                                            !miopen::float_equal(dropout_rate, 1.0)
+                                                        ? dout[oi] / (1 - dropout_rate)
+                                                        : 0);
                     }
 }
 

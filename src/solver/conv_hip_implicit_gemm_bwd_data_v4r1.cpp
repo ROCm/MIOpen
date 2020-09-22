@@ -23,12 +23,15 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/conv/invokers/impl_gemm.hpp>
+#include <miopen/solver.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/generic_search.hpp>
+
+#include "implicitgemm_util.hpp"
+
 #include <cstddef>
 #include <numeric>
-#include "miopen/solver.hpp"
-#include "miopen/handle.hpp"
-#include <miopen/generic_search.hpp>
-#include "implicitgemm_util.hpp"
 
 namespace miopen {
 namespace solver {
@@ -190,8 +193,17 @@ PerformanceImplicitGemmBwdDataV4R1::CalculateGemmABlockCopyPerformanceParameters
         const auto x = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
 
         // \todo too conservative
-        if(!(y == 1 && x == 1))
-            SrcDataPerRead_GemmM = 1;
+        if(ctx.Is3d())
+        {
+            const auto z = ConvolutionContextInterpreter::GetFilterDepthZ(ctx);
+            if(!(z == 1 && y == 1 && x == 1))
+                SrcDataPerRead_GemmM = 1;
+        }
+        else
+        {
+            if(!(y == 1 && x == 1))
+                SrcDataPerRead_GemmM = 1;
+        }
 
         // calculate threadwise copy size
         const auto a_data_per_thread_copy = (GemmKPerBlock * GemmMPerBlock) / BlockSize;
@@ -247,16 +259,35 @@ PerformanceImplicitGemmBwdDataV4R1::CalculateGemmBBlockCopyPerformanceParameters
         const auto x = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
 
         // \todo too conversative
-        if(y == 1 && x == 1)
+        if(ctx.Is3d())
         {
-            const auto ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
-            const auto wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
+            const auto z = ConvolutionContextInterpreter::GetFilterDepthZ(ctx);
+            if(z == 1 && y == 1 && x == 1)
+            {
+                const auto dout = ConvolutionContextInterpreter::GetOutputDepthDo(ctx);
+                const auto ho   = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
+                const auto wo   = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
 
-            SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, ho * wo);
+                SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, dout * ho * wo);
+            }
+            else
+            {
+                SrcDataPerRead_GemmN = 1;
+            }
         }
         else
         {
-            SrcDataPerRead_GemmN = 1;
+            if(y == 1 && x == 1)
+            {
+                const auto ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
+                const auto wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
+
+                SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, ho * wo);
+            }
+            else
+            {
+                SrcDataPerRead_GemmN = 1;
+            }
         }
 
         // calculate threadwise copy size
@@ -321,15 +352,41 @@ PerformanceImplicitGemmBwdDataV4R1::CalculateGemmCThreadCopyPerformanceParameter
         const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
         const auto in_right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
 
-        if(y == 1 && x == 1 && conv_stride_h == 1 && conv_stride_w == 1 && in_left_pad_h == 0 &&
-           in_left_pad_w == 0 && in_right_pad_h == 0 && in_right_pad_w == 0)
+        if(ctx.Is3d())
         {
-            // \todo too conservative, there are more configs that can go through this if branch
-            DstDataPerWrite_GemmN1 = gcd(DstDataPerWrite_GemmN1, hi * wi);
+            const auto z = ConvolutionContextInterpreter::GetFilterDepthZ(ctx);
+            const auto conv_stride_d =
+                ConvolutionContextInterpreter::GetAdjustedConvolutionStrideD(ctx);
+            const auto in_left_pad_d = ConvolutionContextInterpreter::GetInputLeftPadD(ctx);
+            const auto in_right_pad_d =
+                ConvolutionContextInterpreter::GetAdjustedInputRightPadD(ctx);
+
+            if(z == 1 && y == 1 && x == 1 && conv_stride_d == 1 && conv_stride_h == 1 &&
+               conv_stride_w == 1 && in_left_pad_d == 0 && in_left_pad_h == 0 &&
+               in_left_pad_w == 0 && in_right_pad_d == 0 && in_right_pad_h == 0 &&
+               in_right_pad_w == 0)
+            {
+                // \todo too conservative, there are more configs that can go through this if branch
+                const auto di          = ConvolutionContextInterpreter::GetInputDepthDi(ctx);
+                DstDataPerWrite_GemmN1 = gcd(DstDataPerWrite_GemmN1, di * hi * wi);
+            }
+            else
+            {
+                DstDataPerWrite_GemmN1 = 1;
+            }
         }
         else
         {
-            DstDataPerWrite_GemmN1 = 1;
+            if(y == 1 && x == 1 && conv_stride_h == 1 && conv_stride_w == 1 && in_left_pad_h == 0 &&
+               in_left_pad_w == 0 && in_right_pad_h == 0 && in_right_pad_w == 0)
+            {
+                // \todo too conservative, there are more configs that can go through this if branch
+                DstDataPerWrite_GemmN1 = gcd(DstDataPerWrite_GemmN1, hi * wi);
+            }
+            else
+            {
+                DstDataPerWrite_GemmN1 = 1;
+            }
         }
     }
     catch(...)
@@ -392,9 +449,9 @@ bool PerformanceImplicitGemmBwdDataV4R1::IsValidValue() const
 {
     // clang-format off
     return IsTwoPower<64, 256>(BlockSize) &&
-           IsTwoPower<32, 128>(GemmMPerBlock) && 
+           IsTwoPower<32, 128>(GemmMPerBlock) &&
            IsTwoPower<32, 128>(GemmNPerBlock) &&
-           IsTwoPower<4, 16>(GemmKPerBlock) && 
+           IsTwoPower<4, 16>(GemmKPerBlock) &&
            IsTwoPower<2, 4>(GemmMPerThread) &&
            IsTwoPower<2, 4>(GemmNPerThread);
     // clang-format on
@@ -561,6 +618,18 @@ int ConvHipImplicitGemmBwdDataV4R1::CalculateNumberOfGemm(const ConvolutionConte
     const auto ytilda = conv_stride_h / gcd_stride_dilation_h;
     const auto xtilda = conv_stride_w / gcd_stride_dilation_w;
 
+    if(ctx.Is3d())
+    {
+        const auto conv_stride_d =
+            ConvolutionContextInterpreter::GetAdjustedConvolutionStrideD(ctx);
+        const auto conv_dilation_d =
+            ConvolutionContextInterpreter::GetAdjustedConvolutionDilationD(ctx);
+        const auto gcd_stride_dilation_d = gcd(conv_stride_d, conv_dilation_d);
+        const auto ztilda                = conv_stride_d / gcd_stride_dilation_d;
+
+        return ztilda * ytilda * xtilda;
+    }
+
     return ytilda * xtilda;
 }
 
@@ -611,28 +680,73 @@ ConvHipImplicitGemmBwdDataV4R1::CalculateGemmSize(const ConvolutionContext& ctx,
     const auto htilda_slice = htilda_right - htilda_left;
     const auto wtilda_slice = wtilda_right - wtilda_left;
 
-    // gemm_k size is different for each GEMM
-    const auto i_ytilda = gemm_id / xtilda;
-    const auto i_xtilda = gemm_id % xtilda;
+    if(ctx.Is3d())
+    {
+        const auto i_ytilda   = (gemm_id % (xtilda * ytilda)) / xtilda;
+        const auto i_xtilda   = (gemm_id % (xtilda * ytilda)) % xtilda;
+        const auto ydot_slice = (i_ytilda + 1) * ydot <= y ? ydot : y % ydot;
+        const auto xdot_slice = (i_xtilda + 1) * xdot <= x ? xdot : x % xdot;
 
-    const auto ydot_slice = (i_ytilda + 1) * ydot <= y ? ydot : y % ydot;
-    const auto xdot_slice = (i_xtilda + 1) * xdot <= x ? xdot : x % xdot;
+        const auto di   = ConvolutionContextInterpreter::GetInputDepthDi(ctx);
+        const auto dout = ConvolutionContextInterpreter::GetOutputDepthDo(ctx);
+        const auto z    = ConvolutionContextInterpreter::GetFilterDepthZ(ctx);
+        const auto conv_stride_d =
+            ConvolutionContextInterpreter::GetAdjustedConvolutionStrideD(ctx);
+        const auto conv_dilation_d =
+            ConvolutionContextInterpreter::GetAdjustedConvolutionDilationD(ctx);
+        const auto in_left_pad_d         = ConvolutionContextInterpreter::GetInputLeftPadD(ctx);
+        const auto gcd_stride_dilation_z = gcd(conv_stride_d, conv_dilation_d);
+        const auto ztilda                = conv_stride_d / gcd_stride_dilation_z;
+        const auto zdot                  = integer_divide_ceil(z, ztilda);
+        const auto dtilda = dout + integer_divide_ceil(conv_dilation_d * (z - 1), conv_stride_d);
 
-    const auto gemm_m = c;
-    const auto gemm_n = n * htilda_slice * wtilda_slice;
-    const auto gemm_k = k * ydot_slice * xdot_slice;
+        const auto dtilda_left =
+            std::max(0, in_left_pad_d - conv_dilation_d * (ztilda - 1)) / conv_stride_d;
+        const auto dtilda_right =
+            std::min(dtilda, integer_divide_ceil(in_left_pad_d + di - 1, conv_stride_d) + 1);
+        const auto dtilda_slice = dtilda_right - dtilda_left;
+        const auto i_ztilda     = gemm_id / (xtilda * ytilda);
+        const auto zdot_slice   = (i_ztilda + 1) * zdot <= z ? zdot : z % zdot;
 
-    return std::make_tuple(gemm_m, gemm_n, gemm_k);
+        const auto gemm_m_3d = c;
+        const auto gemm_n_3d = n * dtilda_slice * htilda_slice * wtilda_slice;
+        const auto gemm_k_3d = k * zdot_slice * ydot_slice * xdot_slice;
+
+        return std::make_tuple(gemm_m_3d, gemm_n_3d, gemm_k_3d);
+    }
+    else
+    {
+        // gemm_k size is different for each GEMM
+        const auto i_ytilda = gemm_id / xtilda;
+        const auto i_xtilda = gemm_id % xtilda;
+
+        const auto ydot_slice = (i_ytilda + 1) * ydot <= y ? ydot : y % ydot;
+        const auto xdot_slice = (i_xtilda + 1) * xdot <= x ? xdot : x % xdot;
+
+        const auto gemm_m = c;
+        const auto gemm_n = n * htilda_slice * wtilda_slice;
+        const auto gemm_k = k * ydot_slice * xdot_slice;
+
+        return std::make_tuple(gemm_m, gemm_n, gemm_k);
+    }
 }
 
 bool ConvHipImplicitGemmBwdDataV4R1::IsApplicable(const ConvolutionContext& ctx) const
 {
-    bool is_applicable = true;
+    if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
+        return false;
+#if WORKAROUND_SWDEV_229277_227616_229195
+    if(!IsHccCompiler())
+        return false;
+#endif
 
     if(!ctx.direction.IsBackwardData())
         return false;
 
-    if(!ctx.Is2d())
+    if(!ctx.use_hip_kernels)
+        return false;
+
+    if(!ctx.Is2d() && !ctx.Is3d())
         return false;
 
     if(!ctx.IsFp32())
@@ -646,18 +760,17 @@ bool ConvHipImplicitGemmBwdDataV4R1::IsApplicable(const ConvolutionContext& ctx)
 
     std::tie(gemm_m, gemm_n, std::ignore) = CalculateGemmSize(ctx, 0);
 
-    is_applicable = is_applicable && gemm_m % 32 == 0 && gemm_n % 32 == 0;
-
     for(int gemm_id = 0; gemm_id < CalculateNumberOfGemm(ctx); ++gemm_id)
     {
         int gemm_k = 0;
 
         std::tie(std::ignore, std::ignore, gemm_k) = CalculateGemmSize(ctx, gemm_id);
 
-        is_applicable = is_applicable && gemm_k % 4 == 0;
+        if(gemm_k % 4 != 0)
+            return false;
     }
 
-    return is_applicable;
+    return (gemm_m % 32 == 0 && gemm_n % 32 == 0);
 }
 
 PerformanceImplicitGemmBwdDataV4R1
@@ -679,7 +792,7 @@ ConvHipImplicitGemmBwdDataV4R1::Search(const ConvolutionContext& context) const
     return GenericSearchFwd(*this, context);
 }
 
-int ConvHipImplicitGemmBwdDataV4R1::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvHipImplicitGemmBwdDataV4R1::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                                           ConstData_t bot_buf,
                                                           Data_t top_buf,
                                                           ConstData_t wei_buf,
@@ -728,11 +841,22 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1::GetSolution(
             construction_parameters.g_wk.push_back(1);
             construction_parameters.g_wk.push_back(1);
 
-            construction_parameters.kernel_file =
-                "gridwise_convolution_backward_data_implicit_gemm_v4r1_nchw_kcyx_nkhw.cpp";
+            if(ctx.Is3d())
+            {
+                construction_parameters.kernel_file =
+                    "gridwise_convolution_backward_data_implicit_gemm_v4r1_ncdhw_kczyx_nkdhw.cpp";
 
-            construction_parameters.kernel_name =
-                "gridwise_convolution_backward_data_implicit_gemm_v4r1_nchw_kcyx_nkhw";
+                construction_parameters.kernel_name =
+                    "gridwise_convolution_backward_data_implicit_gemm_v4r1_ncdhw_kczyx_nkdhw";
+            }
+            else
+            {
+                construction_parameters.kernel_file =
+                    "gridwise_convolution_backward_data_implicit_gemm_v4r1_nchw_kcyx_nkhw.cpp";
+
+                construction_parameters.kernel_name =
+                    "gridwise_convolution_backward_data_implicit_gemm_v4r1_nchw_kcyx_nkhw";
+            }
 
             int GemmMLevel0Cluster                    = 0;
             int GemmNLevel0Cluster                    = 0;
@@ -815,10 +939,32 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1::GetSolution(
                 ctx.general_compile_options;
             // clang-format on
 
+            if(ctx.Is3d())
+            {
+                construction_parameters.comp_options +=
+                    std::string(" -DCK_PARAM_PROBLEM_DI=") +
+                    std::to_string(ConvolutionContextInterpreter::GetInputDepthDi(ctx)) +
+                    std::string(" -DCK_PARAM_PROBLEM_DO=") +
+                    std::to_string(ConvolutionContextInterpreter::GetOutputDepthDo(ctx)) +
+                    std::string(" -DCK_PARAM_PROBLEM_Z=") +
+                    std::to_string(ConvolutionContextInterpreter::GetFilterDepthZ(ctx)) +
+                    std::string(" -DCK_PARAM_PROBLEM_CONV_STRIDE_D=") +
+                    std::to_string(
+                        ConvolutionContextInterpreter::GetAdjustedConvolutionStrideD(ctx)) +
+                    std::string(" -DCK_PARAM_PROBLEM_CONV_DILATION_D=") +
+                    std::to_string(
+                        ConvolutionContextInterpreter::GetAdjustedConvolutionDilationD(ctx)) +
+                    std::string(" -DCK_PARAM_PROBLEM_IN_LEFT_PAD_D=") +
+                    std::to_string(ConvolutionContextInterpreter::GetInputLeftPadD(ctx)) +
+                    std::string(" -DCK_PARAM_PROBLEM_IN_RIGHT_PAD_D=") +
+                    std::to_string(ConvolutionContextInterpreter::GetAdjustedInputRightPadD(ctx));
+            }
+
             result.construction_params.push_back(construction_parameters);
         }
     }
 
+    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
     return result;
 }
 
