@@ -202,7 +202,7 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
         const index_t m = xdlops_i / NRepeats;
         const index_t n = xdlops_i % NRepeats;
 
-        const auto thread_mtx_on_blk = XdlopsGemm.GetBeginOfThreadBlk(j);
+        const auto thread_mtx_on_blk = XdlopsGemm.GetOutputLayout().GetBeginOfThreadBlk(j);
 
         const index_t col =
             (waveId % GemmNWaves) * GemmNPerWave + n * NPerXdlops + thread_mtx_on_blk.col;
@@ -210,7 +210,7 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
         const index_t row =
             (waveId / GemmNWaves) * GemmMPerWave + m * MPerXdlops + thread_mtx_on_blk.row;
 #else
-        const auto thread_mtx_on_blk = XdlopsGemm.GetBeginOfThreadBlk(i);
+        const auto thread_mtx_on_blk = XdlopsGemm.GetOutputLayout().GetBeginOfThreadBlk(i);
 
         const index_t col = (waveId % GemmNWaves) * GemmNPerWave + thread_mtx_on_blk.col;
         const index_t row = (waveId / GemmNWaves) * GemmMPerWave + thread_mtx_on_blk.row;
