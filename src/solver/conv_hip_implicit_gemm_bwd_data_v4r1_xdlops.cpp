@@ -119,14 +119,14 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmABlockCopyPerformancePara
 
         DstDataPerWrite_GemmKPack = gcd(DstDataPerWrite_GemmKPack, data_per_thread_copy_gemmkpack);
 
-        if(!(GemmKPerBlock % data_per_thread_copy_gemmk == 0 &&
-             GemmMPerBlock % a_data_per_thread_copy_gemmm == 0 &&
-             GemmKPACKSize % data_per_thread_copy_gemmkpack == 0))
-            MIOPEN_THROW("invalid performance parameter");
-
         if(data_per_thread_copy_gemmk != 0 && a_data_per_thread_copy_gemmm != 0 &&
            data_per_thread_copy_gemmkpack != 0)
         {
+            if(!(GemmKPerBlock % data_per_thread_copy_gemmk == 0 &&
+                 GemmMPerBlock % a_data_per_thread_copy_gemmm == 0 &&
+                 GemmKPACKSize % data_per_thread_copy_gemmkpack == 0))
+                MIOPEN_THROW("invalid performance parameter");
+
             ClusterLengths_GemmK     = GemmKPerBlock / data_per_thread_copy_gemmk;
             ClusterLengths_GemmM     = GemmMPerBlock / a_data_per_thread_copy_gemmm;
             ClusterLengths_GemmKPack = GemmKPACKSize / data_per_thread_copy_gemmkpack;
