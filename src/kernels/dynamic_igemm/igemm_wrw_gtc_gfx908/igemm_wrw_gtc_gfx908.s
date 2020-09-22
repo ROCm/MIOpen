@@ -244,9 +244,9 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x128x16_wt64x32_ws1x1_wr2x2_ta1x4x4x1_1x4x1x64_tb1x4x2x1_1x4x1x64_atadd
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x128x16_wt64x32_ws1x1_wr2x2_ta1x4x4x1_1x4x1x64_tb1x4x2x1_1x4x1x64_atadd.kd
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x128x16_wt64x32_ws1x1_wr2x2_ta1x4x4x1_1x4x1x64_tb1x4x2x1_1x4x1x64_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x128x16_wt64x32_ws1x1_wr2x2_ta1x4x4x1_1x4x1x64_tb1x4x2x1_1x4x1x64_gkgs.kd
     .sgpr_count: 74
     .vgpr_count: 128
     .kernarg_segment_align: 8
@@ -275,7 +275,7 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x128x8_wt64x32_ws1x1_wr2x2_ta1x4x2x1_1x2x1x128_tb1x4x1x1_1x2x1x128
     .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x128x8_wt64x32_ws1x1_wr2x2_ta1x4x2x1_1x2x1x128_tb1x4x1x1_1x2x1x128.kd
     .sgpr_count: 72
@@ -306,9 +306,9 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x128x8_wt64x32_ws1x1_wr2x2_ta1x4x2x1_1x2x1x128_tb1x4x1x1_1x2x1x128_atadd
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x128x8_wt64x32_ws1x1_wr2x2_ta1x4x2x1_1x2x1x128_tb1x4x1x1_1x2x1x128_atadd.kd
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x128x8_wt64x32_ws1x1_wr2x2_ta1x4x2x1_1x2x1x128_tb1x4x1x1_1x2x1x128_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x128x8_wt64x32_ws1x1_wr2x2_ta1x4x2x1_1x2x1x128_tb1x4x1x1_1x2x1x128_gkgs.kd
     .sgpr_count: 72
     .vgpr_count: 128
     .kernarg_segment_align: 8
@@ -337,7 +337,7 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x128x16_wt64x32_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x8x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x128x16_wt64x32_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x8x1_1x16x1x16.kd
     .sgpr_count: 92
@@ -368,9 +368,9 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x128x16_wt64x32_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x8x1_1x16x1x16_atadd
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x128x16_wt64x32_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x8x1_1x16x1x16_atadd.kd
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x128x16_wt64x32_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x128x16_wt64x32_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs.kd
     .sgpr_count: 92
     .vgpr_count: 128
     .kernarg_segment_align: 8
@@ -399,7 +399,7 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x128x8_wt64x32_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x4x1_1x8x1x32
     .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x128x8_wt64x32_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x4x1_1x8x1x32.kd
     .sgpr_count: 80
@@ -430,9 +430,9 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x128x8_wt64x32_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x4x1_1x8x1x32_atadd
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x128x8_wt64x32_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x4x1_1x8x1x32_atadd.kd
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x128x8_wt64x32_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x4x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x128x8_wt64x32_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x4x1_1x8x1x32_gkgs.kd
     .sgpr_count: 80
     .vgpr_count: 128
     .kernarg_segment_align: 8
@@ -461,7 +461,7 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x64x16_wt64x16_ws1x1_wr2x2_ta1x4x4x1_1x4x1x64_tb1x4x1x1_1x4x1x64
     .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x64x16_wt64x16_ws1x1_wr2x2_ta1x4x4x1_1x4x1x64_tb1x4x1x1_1x4x1x64.kd
     .sgpr_count: 74
@@ -492,9 +492,9 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x64x16_wt64x16_ws1x1_wr2x2_ta1x4x4x1_1x4x1x64_tb1x4x1x1_1x4x1x64_atadd
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x64x16_wt64x16_ws1x1_wr2x2_ta1x4x4x1_1x4x1x64_tb1x4x1x1_1x4x1x64_atadd.kd
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x64x16_wt64x16_ws1x1_wr2x2_ta1x4x4x1_1x4x1x64_tb1x4x1x1_1x4x1x64_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x64x16_wt64x16_ws1x1_wr2x2_ta1x4x4x1_1x4x1x64_tb1x4x1x1_1x4x1x64_gkgs.kd
     .sgpr_count: 74
     .vgpr_count: 74
     .kernarg_segment_align: 8
@@ -523,7 +523,7 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x16_wt64x16_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x4x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x16_wt64x16_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x4x1_1x16x1x16.kd
     .sgpr_count: 88
@@ -554,9 +554,9 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x16_wt64x16_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x4x1_1x16x1x16_atadd
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x16_wt64x16_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x4x1_1x16x1x16_atadd.kd
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x16_wt64x16_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x16_wt64x16_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs.kd
     .sgpr_count: 88
     .vgpr_count: 74
     .kernarg_segment_align: 8
@@ -585,7 +585,7 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x8_wt64x16_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x2x1_1x8x1x32
     .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x8_wt64x16_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x2x1_1x8x1x32.kd
     .sgpr_count: 78
@@ -616,9 +616,9 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x8_wt64x16_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x2x1_1x8x1x32_atadd
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x8_wt64x16_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x2x1_1x8x1x32_atadd.kd
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x8_wt64x16_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x2x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x8_wt64x16_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x2x1_1x8x1x32_gkgs.kd
     .sgpr_count: 78
     .vgpr_count: 64
     .kernarg_segment_align: 8
@@ -647,7 +647,7 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x4_wt64x16_ws1x1_wr2x2_ta1x1x4x1_1x4x1x64_tb1x1x1x1_1x4x1x64
     .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x4_wt64x16_ws1x1_wr2x2_ta1x1x4x1_1x4x1x64_tb1x1x1x1_1x4x1x64.kd
     .sgpr_count: 74
@@ -678,9 +678,9 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x4_wt64x16_ws1x1_wr2x2_ta1x1x4x1_1x4x1x64_tb1x1x1x1_1x4x1x64_atadd
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x4_wt64x16_ws1x1_wr2x2_ta1x1x4x1_1x4x1x64_tb1x1x1x1_1x4x1x64_atadd.kd
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x4_wt64x16_ws1x1_wr2x2_ta1x1x4x1_1x4x1x64_tb1x1x1x1_1x4x1x64_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x4_wt64x16_ws1x1_wr2x2_ta1x1x4x1_1x4x1x64_tb1x1x1x1_1x4x1x64_gkgs.kd
     .sgpr_count: 74
     .vgpr_count: 64
     .kernarg_segment_align: 8
@@ -709,7 +709,7 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x16_wt64x4_ws1x2_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x2x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x16_wt64x4_ws1x2_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x2x1_1x16x1x16.kd
     .sgpr_count: 86
@@ -740,9 +740,9 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x16_wt64x4_ws1x2_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x2x1_1x16x1x16_atadd
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x16_wt64x4_ws1x2_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x2x1_1x16x1x16_atadd.kd
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x16_wt64x4_ws1x2_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x16_wt64x4_ws1x2_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs.kd
     .sgpr_count: 86
     .vgpr_count: 76
     .kernarg_segment_align: 8
@@ -771,7 +771,7 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x8_wt64x4_ws1x2_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x1x1_1x8x1x32
     .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x8_wt64x4_ws1x2_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x1x1_1x8x1x32.kd
     .sgpr_count: 78
@@ -802,9 +802,9 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x8_wt64x4_ws1x2_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x1x1_1x8x1x32_atadd
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x8_wt64x4_ws1x2_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x1x1_1x8x1x32_atadd.kd
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x8_wt64x4_ws1x2_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x8_wt64x4_ws1x2_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs.kd
     .sgpr_count: 78
     .vgpr_count: 68
     .kernarg_segment_align: 8
@@ -833,7 +833,7 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt128x128x16_wt32x32_ws1x1_wr2x2_ta1x4x2x1_1x4x1x64_tb1x4x2x1_1x4x1x64
     .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt128x128x16_wt32x32_ws1x1_wr2x2_ta1x4x2x1_1x4x1x64_tb1x4x2x1_1x4x1x64.kd
     .sgpr_count: 72
@@ -864,9 +864,9 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt128x128x16_wt32x32_ws1x1_wr2x2_ta1x4x2x1_1x4x1x64_tb1x4x2x1_1x4x1x64_atadd
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt128x128x16_wt32x32_ws1x1_wr2x2_ta1x4x2x1_1x4x1x64_tb1x4x2x1_1x4x1x64_atadd.kd
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt128x128x16_wt32x32_ws1x1_wr2x2_ta1x4x2x1_1x4x1x64_tb1x4x2x1_1x4x1x64_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt128x128x16_wt32x32_ws1x1_wr2x2_ta1x4x2x1_1x4x1x64_tb1x4x2x1_1x4x1x64_gkgs.kd
     .sgpr_count: 72
     .vgpr_count: 70
     .kernarg_segment_align: 8
@@ -895,9 +895,9 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x16_wt32x32_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x8x1_1x16x1x16_atadd
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x16_wt32x32_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x8x1_1x16x1x16_atadd.kd
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x16_wt32x32_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x16_wt32x32_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs.kd
     .sgpr_count: 84
     .vgpr_count: 70
     .kernarg_segment_align: 8
@@ -926,7 +926,7 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x16_wt32x32_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x8x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x16_wt32x32_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x8x1_1x16x1x16.kd
     .sgpr_count: 84
@@ -957,7 +957,7 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x8_wt32x32_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x4x1_1x8x1x32
     .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x8_wt32x32_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x4x1_1x8x1x32.kd
     .sgpr_count: 76
@@ -988,9 +988,9 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x8_wt32x32_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x4x1_1x8x1x32_atadd
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x8_wt32x32_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x4x1_1x8x1x32_atadd.kd
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x8_wt32x32_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x4x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x8_wt32x32_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x4x1_1x8x1x32_gkgs.kd
     .sgpr_count: 76
     .vgpr_count: 64
     .kernarg_segment_align: 8
@@ -1019,7 +1019,7 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt128x64x16_wt32x8_ws1x2_wr2x2_ta1x4x2x1_1x4x1x64_tb1x4x1x1_1x4x1x64
     .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt128x64x16_wt32x8_ws1x2_wr2x2_ta1x4x2x1_1x4x1x64_tb1x4x1x1_1x4x1x64.kd
     .sgpr_count: 72
@@ -1050,9 +1050,9 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt128x64x16_wt32x8_ws1x2_wr2x2_ta1x4x2x1_1x4x1x64_tb1x4x1x1_1x4x1x64_atadd
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt128x64x16_wt32x8_ws1x2_wr2x2_ta1x4x2x1_1x4x1x64_tb1x4x1x1_1x4x1x64_atadd.kd
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt128x64x16_wt32x8_ws1x2_wr2x2_ta1x4x2x1_1x4x1x64_tb1x4x1x1_1x4x1x64_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt128x64x16_wt32x8_ws1x2_wr2x2_ta1x4x2x1_1x4x1x64_tb1x4x1x1_1x4x1x64_gkgs.kd
     .sgpr_count: 72
     .vgpr_count: 70
     .kernarg_segment_align: 8
@@ -1081,7 +1081,7 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x64x16_wt32x8_ws1x2_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x4x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x64x16_wt32x8_ws1x2_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x4x1_1x16x1x16.kd
     .sgpr_count: 80
@@ -1112,9 +1112,9 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x64x16_wt32x8_ws1x2_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x4x1_1x16x1x16_atadd
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x64x16_wt32x8_ws1x2_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x4x1_1x16x1x16_atadd.kd
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x64x16_wt32x8_ws1x2_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x64x16_wt32x8_ws1x2_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs.kd
     .sgpr_count: 80
     .vgpr_count: 70
     .kernarg_segment_align: 8
@@ -1143,7 +1143,7 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x64x8_wt32x8_ws1x2_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x2x1_1x8x1x32
     .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x64x8_wt32x8_ws1x2_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x2x1_1x8x1x32.kd
     .sgpr_count: 74
@@ -1174,9 +1174,9 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x64x8_wt32x8_ws1x2_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x2x1_1x8x1x32_atadd
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x64x8_wt32x8_ws1x2_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x2x1_1x8x1x32_atadd.kd
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x64x8_wt32x8_ws1x2_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x2x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x64x8_wt32x8_ws1x2_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x2x1_1x8x1x32_gkgs.kd
     .sgpr_count: 74
     .vgpr_count: 64
     .kernarg_segment_align: 8
@@ -1205,7 +1205,7 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x16_wt32x8_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x2x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x16_wt32x8_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x2x1_1x16x1x16.kd
     .sgpr_count: 78
@@ -1236,9 +1236,9 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x16_wt32x8_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x2x1_1x16x1x16_atadd
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x16_wt32x8_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x2x1_1x16x1x16_atadd.kd
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x16_wt32x8_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x16_wt32x8_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs.kd
     .sgpr_count: 78
     .vgpr_count: 64
     .kernarg_segment_align: 8
@@ -1267,7 +1267,7 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x8_wt32x8_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x1x1_1x8x1x32
     .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x8_wt32x8_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x1x1_1x8x1x32.kd
     .sgpr_count: 74
@@ -1298,9 +1298,9 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x8_wt32x8_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x1x1_1x8x1x32_atadd
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x8_wt32x8_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x1x1_1x8x1x32_atadd.kd
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x8_wt32x8_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x8_wt32x8_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs.kd
     .sgpr_count: 74
     .vgpr_count: 60
     .kernarg_segment_align: 8
@@ -1329,7 +1329,7 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x256x16_wt16x64_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x16x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x256x16_wt16x64_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x16x1_1x16x1x16.kd
     .sgpr_count: 88
@@ -1360,9 +1360,9 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x256x16_wt16x64_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x16x1_1x16x1x16_atadd
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x256x16_wt16x64_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x16x1_1x16x1x16_atadd.kd
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x256x16_wt16x64_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x16x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x256x16_wt16x64_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x16x1_1x16x1x16_gkgs.kd
     .sgpr_count: 88
     .vgpr_count: 74
     .kernarg_segment_align: 8
@@ -1391,7 +1391,7 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x256x8_wt16x64_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x8x1_1x8x1x32
     .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x256x8_wt16x64_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x8x1_1x8x1x32.kd
     .sgpr_count: 78
@@ -1422,9 +1422,9 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x256x8_wt16x64_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x8x1_1x8x1x32_atadd
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x256x8_wt16x64_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x8x1_1x8x1x32_atadd.kd
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x256x8_wt16x64_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x8x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x256x8_wt16x64_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x8x1_1x8x1x32_gkgs.kd
     .sgpr_count: 78
     .vgpr_count: 68
     .kernarg_segment_align: 8
@@ -1453,7 +1453,7 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x128x16_wt8x32_ws2x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x8x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x128x16_wt8x32_ws2x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x8x1_1x16x1x16.kd
     .sgpr_count: 80
@@ -1484,9 +1484,9 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x128x16_wt8x32_ws2x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x8x1_1x16x1x16_atadd
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x128x16_wt8x32_ws2x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x8x1_1x16x1x16_atadd.kd
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x128x16_wt8x32_ws2x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x128x16_wt8x32_ws2x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs.kd
     .sgpr_count: 80
     .vgpr_count: 70
     .kernarg_segment_align: 8
@@ -1515,7 +1515,7 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x128x8_wt8x32_ws2x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x4x1_1x8x1x32
     .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x128x8_wt8x32_ws2x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x4x1_1x8x1x32.kd
     .sgpr_count: 74
@@ -1546,9 +1546,9 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x128x8_wt8x32_ws2x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x4x1_1x8x1x32_atadd
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x128x8_wt8x32_ws2x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x4x1_1x8x1x32_atadd.kd
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x128x8_wt8x32_ws2x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x4x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x128x8_wt8x32_ws2x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x4x1_1x8x1x32_gkgs.kd
     .sgpr_count: 74
     .vgpr_count: 64
     .kernarg_segment_align: 8
@@ -1577,7 +1577,7 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x16_wt16x16_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x4x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x16_wt16x16_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x4x1_1x16x1x16.kd
     .sgpr_count: 76
@@ -1608,9 +1608,9 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x16_wt16x16_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x4x1_1x16x1x16_atadd
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x16_wt16x16_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x4x1_1x16x1x16_atadd.kd
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x16_wt16x16_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x16_wt16x16_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs.kd
     .sgpr_count: 76
     .vgpr_count: 62
     .kernarg_segment_align: 8
@@ -1639,7 +1639,7 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x8_wt16x16_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x2x1_1x8x1x32
     .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x8_wt16x16_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x2x1_1x8x1x32.kd
     .sgpr_count: 72
@@ -1670,9 +1670,9 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x8_wt16x16_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x2x1_1x8x1x32_atadd
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x8_wt16x16_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x2x1_1x8x1x32_atadd.kd
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x8_wt16x16_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x2x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x8_wt16x16_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x2x1_1x8x1x32_gkgs.kd
     .sgpr_count: 72
     .vgpr_count: 58
     .kernarg_segment_align: 8
@@ -1701,7 +1701,7 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x32x16_wt32x8_ws1x2_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x2x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x32x16_wt32x8_ws1x2_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x2x1_1x16x1x16.kd
     .sgpr_count: 74
@@ -1732,9 +1732,9 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x32x16_wt32x8_ws1x2_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x2x1_1x16x1x16_atadd
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x32x16_wt32x8_ws1x2_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x2x1_1x16x1x16_atadd.kd
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x32x16_wt32x8_ws1x2_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x32x16_wt32x8_ws1x2_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs.kd
     .sgpr_count: 74
     .vgpr_count: 58
     .kernarg_segment_align: 8
@@ -1763,7 +1763,7 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x32x8_wt32x8_ws1x2_wr1x1_ta1x1x2x1_1x8x1x32_tb1x1x1x1_1x8x1x32
     .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x32x8_wt32x8_ws1x2_wr1x1_ta1x1x2x1_1x8x1x32_tb1x1x1x1_1x8x1x32.kd
     .sgpr_count: 72
@@ -1794,9 +1794,9 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x32x8_wt32x8_ws1x2_wr1x1_ta1x1x2x1_1x8x1x32_tb1x1x1x1_1x8x1x32_atadd
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x32x8_wt32x8_ws1x2_wr1x1_ta1x1x2x1_1x8x1x32_tb1x1x1x1_1x8x1x32_atadd.kd
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x32x8_wt32x8_ws1x2_wr1x1_ta1x1x2x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x32x8_wt32x8_ws1x2_wr1x1_ta1x1x2x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs.kd
     .sgpr_count: 72
     .vgpr_count: 56
     .kernarg_segment_align: 8
@@ -1825,7 +1825,7 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x16x16_wt64x4_ws1x1_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x1x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x16x16_wt64x4_ws1x1_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x1x1_1x16x1x16.kd
     .sgpr_count: 74
@@ -1856,9 +1856,9 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x16x16_wt64x4_ws1x1_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x1x1_1x16x1x16_atadd
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x16x16_wt64x4_ws1x1_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x1x1_1x16x1x16_atadd.kd
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x16x16_wt64x4_ws1x1_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x1x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x16x16_wt64x4_ws1x1_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x1x1_1x16x1x16_gkgs.kd
     .sgpr_count: 74
     .vgpr_count: 56
     .kernarg_segment_align: 8
@@ -1887,9 +1887,9 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt4x64x16_wt4x64_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4_atadd
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt4x64x16_wt4x64_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4_atadd.kd
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt4x64x16_wt4x64_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt4x64x16_wt4x64_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4_gkgs.kd
     .sgpr_count: 86
     .vgpr_count: 68
     .kernarg_segment_align: 8
@@ -1918,7 +1918,7 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt4x64x16_wt4x64_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4
     .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt4x64x16_wt4x64_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4.kd
     .sgpr_count: 86
@@ -1949,9 +1949,9 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt32x32x8_wt16x16_ws1x1_wr1x1_ta1x1x1x1_1x8x1x32_tb1x1x1x1_1x8x1x32_atadd
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt32x32x8_wt16x16_ws1x1_wr1x1_ta1x1x1x1_1x8x1x32_tb1x1x1x1_1x8x1x32_atadd.kd
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt32x32x8_wt16x16_ws1x1_wr1x1_ta1x1x1x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt32x32x8_wt16x16_ws1x1_wr1x1_ta1x1x1x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs.kd
     .sgpr_count: 72
     .vgpr_count: 52
     .kernarg_segment_align: 8
@@ -1980,7 +1980,7 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt32x32x8_wt16x16_ws1x1_wr1x1_ta1x1x1x1_1x8x1x32_tb1x1x1x1_1x8x1x32
     .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt32x32x8_wt16x16_ws1x1_wr1x1_ta1x1x1x1_1x8x1x32_tb1x1x1x1_1x8x1x32.kd
     .sgpr_count: 72
@@ -2011,7 +2011,7 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8
     .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8.kd
     .sgpr_count: 74
@@ -2042,9 +2042,9 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_atadd
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_atadd.kd
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_gkgs.kd
     .sgpr_count: 74
     .vgpr_count: 56
     .kernarg_segment_align: 8
@@ -2073,7 +2073,7 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16.kd
     .sgpr_count: 72
@@ -2104,9 +2104,9 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_atadd
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_atadd.kd
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_gkgs.kd
     .sgpr_count: 72
     .vgpr_count: 54
     .kernarg_segment_align: 8
@@ -2135,6 +2135,6 @@ amdhsa.kernels:
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
 ...
 .end_amdgpu_metadata

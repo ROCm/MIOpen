@@ -42,68 +42,69 @@ GetImplicitGemmWrwGTCDynamicXdlopsKernelList()
     // retrieve dynamic igemm wrw pass's possible kernel name
     // clang-format off
     static std::vector<TunableImplicitGemmGTCDynamic_t> kernel_param_list {
-        { 2,   0,   4,   0, 256, 128,  16,  64,  32,   1,   1,   2,   2,   {1,   4,   4,   1},   {1,   4,   1,  64},   {1,   4,   2,   1},   {1,   4,   1,  64} ,	0  },
-		{ 2,   0,   4,   0, 256, 128,  16,  64,  32,   1,   1,   2,   2,   {1,   4,   4,   1},   {1,   4,   1,  64},   {1,   4,   2,   1},   {1,   4,   1,  64} ,	1  },
-		{ 2,   0,   4,   0, 256, 128,   8,  64,  32,   1,   1,   2,   2,   {1,   4,   2,   1},   {1,   2,   1, 128},   {1,   4,   1,   1},   {1,   2,   1, 128} ,	0  },
-		{ 2,   0,   4,   0, 256, 128,   8,  64,  32,   1,   1,   2,   2,   {1,   4,   2,   1},   {1,   2,   1, 128},   {1,   4,   1,   1},   {1,   2,   1, 128} ,	1  },
-		{ 2,   0,   1,   1, 256, 128,  16,  64,  32,   1,   1,   2,   2,   {1,   1,  16,   1},   {1,  16,   1,  16},   {1,   1,   8,   1},   {1,  16,   1,  16} ,	0  },
-		{ 2,   0,   1,   1, 256, 128,  16,  64,  32,   1,   1,   2,   2,   {1,   1,  16,   1},   {1,  16,   1,  16},   {1,   1,   8,   1},   {1,  16,   1,  16} ,	1  },
-		{ 2,   0,   1,   1, 256, 128,   8,  64,  32,   1,   1,   2,   2,   {1,   1,   8,   1},   {1,   8,   1,  32},   {1,   1,   4,   1},   {1,   8,   1,  32} ,	0  },
-		{ 2,   0,   1,   1, 256, 128,   8,  64,  32,   1,   1,   2,   2,   {1,   1,   8,   1},   {1,   8,   1,  32},   {1,   1,   4,   1},   {1,   8,   1,  32} ,	1  },
-		{ 2,   0,   4,   0, 256,  64,  16,  64,  16,   1,   1,   2,   2,   {1,   4,   4,   1},   {1,   4,   1,  64},   {1,   4,   1,   1},   {1,   4,   1,  64} ,	0  },
-		{ 2,   0,   4,   0, 256,  64,  16,  64,  16,   1,   1,   2,   2,   {1,   4,   4,   1},   {1,   4,   1,  64},   {1,   4,   1,   1},   {1,   4,   1,  64} ,	1  },
-		{ 2,   0,   1,   1, 256,  64,  16,  64,  16,   1,   1,   2,   2,   {1,   1,  16,   1},   {1,  16,   1,  16},   {1,   1,   4,   1},   {1,  16,   1,  16} ,	0  },
-		{ 2,   0,   1,   1, 256,  64,  16,  64,  16,   1,   1,   2,   2,   {1,   1,  16,   1},   {1,  16,   1,  16},   {1,   1,   4,   1},   {1,  16,   1,  16} ,	1  },
-		{ 2,   0,   1,   1, 256,  64,   8,  64,  16,   1,   1,   2,   2,   {1,   1,   8,   1},   {1,   8,   1,  32},   {1,   1,   2,   1},   {1,   8,   1,  32} ,	0  },
-		{ 2,   0,   1,   1, 256,  64,   8,  64,  16,   1,   1,   2,   2,   {1,   1,   8,   1},   {1,   8,   1,  32},   {1,   1,   2,   1},   {1,   8,   1,  32} ,	1  },
-		{ 2,   0,   1,   1, 256,  64,   4,  64,  16,   1,   1,   2,   2,   {1,   1,   4,   1},   {1,   4,   1,  64},   {1,   1,   1,   1},   {1,   4,   1,  64} ,	0  },
-		{ 2,   0,   1,   1, 256,  64,   4,  64,  16,   1,   1,   2,   2,   {1,   1,   4,   1},   {1,   4,   1,  64},   {1,   1,   1,   1},   {1,   4,   1,  64} ,	1  },
-		{ 2,   0,   1,   1, 256,  32,  16,  64,   4,   1,   2,   2,   2,   {1,   1,  16,   1},   {1,  16,   1,  16},   {1,   1,   2,   1},   {1,  16,   1,  16} ,	0  },
-		{ 2,   0,   1,   1, 256,  32,  16,  64,   4,   1,   2,   2,   2,   {1,   1,  16,   1},   {1,  16,   1,  16},   {1,   1,   2,   1},   {1,  16,   1,  16} ,	1  },
-		{ 2,   0,   1,   1, 256,  32,   8,  64,   4,   1,   2,   2,   2,   {1,   1,   8,   1},   {1,   8,   1,  32},   {1,   1,   1,   1},   {1,   8,   1,  32} ,	0  },
-		{ 2,   0,   1,   1, 256,  32,   8,  64,   4,   1,   2,   2,   2,   {1,   1,   8,   1},   {1,   8,   1,  32},   {1,   1,   1,   1},   {1,   8,   1,  32} ,	1  },
-		{ 2,   0,   4,   0, 128, 128,  16,  32,  32,   1,   1,   2,   2,   {1,   4,   2,   1},   {1,   4,   1,  64},   {1,   4,   2,   1},   {1,   4,   1,  64} ,	0  },
-		{ 2,   0,   4,   0, 128, 128,  16,  32,  32,   1,   1,   2,   2,   {1,   4,   2,   1},   {1,   4,   1,  64},   {1,   4,   2,   1},   {1,   4,   1,  64} ,	1  },
-		{ 2,   0,   1,   1, 128, 128,  16,  32,  32,   1,   1,   2,   2,   {1,   1,   8,   1},   {1,  16,   1,  16},   {1,   1,   8,   1},   {1,  16,   1,  16} ,	1  },
-		{ 2,   0,   1,   1, 128, 128,  16,  32,  32,   1,   1,   2,   2,   {1,   1,   8,   1},   {1,  16,   1,  16},   {1,   1,   8,   1},   {1,  16,   1,  16} ,	0  },
-		{ 2,   0,   1,   1, 128, 128,   8,  32,  32,   1,   1,   2,   2,   {1,   1,   4,   1},   {1,   8,   1,  32},   {1,   1,   4,   1},   {1,   8,   1,  32} ,	0  },
-		{ 2,   0,   1,   1, 128, 128,   8,  32,  32,   1,   1,   2,   2,   {1,   1,   4,   1},   {1,   8,   1,  32},   {1,   1,   4,   1},   {1,   8,   1,  32} ,	1  },
-		{ 2,   0,   4,   0, 128,  64,  16,  32,   8,   1,   2,   2,   2,   {1,   4,   2,   1},   {1,   4,   1,  64},   {1,   4,   1,   1},   {1,   4,   1,  64} ,	0  },
-		{ 2,   0,   4,   0, 128,  64,  16,  32,   8,   1,   2,   2,   2,   {1,   4,   2,   1},   {1,   4,   1,  64},   {1,   4,   1,   1},   {1,   4,   1,  64} ,	1  },
-		{ 2,   0,   1,   1, 128,  64,  16,  32,   8,   1,   2,   2,   2,   {1,   1,   8,   1},   {1,  16,   1,  16},   {1,   1,   4,   1},   {1,  16,   1,  16} ,	0  },
-		{ 2,   0,   1,   1, 128,  64,  16,  32,   8,   1,   2,   2,   2,   {1,   1,   8,   1},   {1,  16,   1,  16},   {1,   1,   4,   1},   {1,  16,   1,  16} ,	1  },
-		{ 2,   0,   1,   1, 128,  64,   8,  32,   8,   1,   2,   2,   2,   {1,   1,   4,   1},   {1,   8,   1,  32},   {1,   1,   2,   1},   {1,   8,   1,  32} ,	0  },
-		{ 2,   0,   1,   1, 128,  64,   8,  32,   8,   1,   2,   2,   2,   {1,   1,   4,   1},   {1,   8,   1,  32},   {1,   1,   2,   1},   {1,   8,   1,  32} ,	1  },
-		{ 2,   0,   1,   1, 128,  32,  16,  32,   8,   1,   1,   2,   2,   {1,   1,   8,   1},   {1,  16,   1,  16},   {1,   1,   2,   1},   {1,  16,   1,  16} ,	0  },
-		{ 2,   0,   1,   1, 128,  32,  16,  32,   8,   1,   1,   2,   2,   {1,   1,   8,   1},   {1,  16,   1,  16},   {1,   1,   2,   1},   {1,  16,   1,  16} ,	1  },
-		{ 2,   0,   1,   1, 128,  32,   8,  32,   8,   1,   1,   2,   2,   {1,   1,   4,   1},   {1,   8,   1,  32},   {1,   1,   1,   1},   {1,   8,   1,  32} ,	0  },
-		{ 2,   0,   1,   1, 128,  32,   8,  32,   8,   1,   1,   2,   2,   {1,   1,   4,   1},   {1,   8,   1,  32},   {1,   1,   1,   1},   {1,   8,   1,  32} ,	1  },
-		{ 2,   0,   1,   1,  64, 256,  16,  16,  64,   1,   1,   2,   2,   {1,   1,   4,   1},   {1,  16,   1,  16},   {1,   1,  16,   1},   {1,  16,   1,  16} ,	0  },
-		{ 2,   0,   1,   1,  64, 256,  16,  16,  64,   1,   1,   2,   2,   {1,   1,   4,   1},   {1,  16,   1,  16},   {1,   1,  16,   1},   {1,  16,   1,  16} ,	1  },
-		{ 2,   0,   1,   1,  64, 256,   8,  16,  64,   1,   1,   2,   2,   {1,   1,   2,   1},   {1,   8,   1,  32},   {1,   1,   8,   1},   {1,   8,   1,  32} ,	0  },
-		{ 2,   0,   1,   1,  64, 256,   8,  16,  64,   1,   1,   2,   2,   {1,   1,   2,   1},   {1,   8,   1,  32},   {1,   1,   8,   1},   {1,   8,   1,  32} ,	1  },
-		{ 2,   0,   1,   1,  64, 128,  16,   8,  32,   2,   1,   2,   2,   {1,   1,   4,   1},   {1,  16,   1,  16},   {1,   1,   8,   1},   {1,  16,   1,  16} ,	0  },
-		{ 2,   0,   1,   1,  64, 128,  16,   8,  32,   2,   1,   2,   2,   {1,   1,   4,   1},   {1,  16,   1,  16},   {1,   1,   8,   1},   {1,  16,   1,  16} ,	1  },
-		{ 2,   0,   1,   1,  64, 128,   8,   8,  32,   2,   1,   2,   2,   {1,   1,   2,   1},   {1,   8,   1,  32},   {1,   1,   4,   1},   {1,   8,   1,  32} ,	0  },
-		{ 2,   0,   1,   1,  64, 128,   8,   8,  32,   2,   1,   2,   2,   {1,   1,   2,   1},   {1,   8,   1,  32},   {1,   1,   4,   1},   {1,   8,   1,  32} ,	1  },
-		{ 2,   0,   1,   1,  64,  64,  16,  16,  16,   1,   1,   2,   2,   {1,   1,   4,   1},   {1,  16,   1,  16},   {1,   1,   4,   1},   {1,  16,   1,  16} ,	0  },
-		{ 2,   0,   1,   1,  64,  64,  16,  16,  16,   1,   1,   2,   2,   {1,   1,   4,   1},   {1,  16,   1,  16},   {1,   1,   4,   1},   {1,  16,   1,  16} ,	1  },
-		{ 2,   0,   1,   1,  64,  64,   8,  16,  16,   1,   1,   2,   2,   {1,   1,   2,   1},   {1,   8,   1,  32},   {1,   1,   2,   1},   {1,   8,   1,  32} ,	0  },
-		{ 2,   0,   1,   1,  64,  64,   8,  16,  16,   1,   1,   2,   2,   {1,   1,   2,   1},   {1,   8,   1,  32},   {1,   1,   2,   1},   {1,   8,   1,  32} ,	1  },
-		{ 2,   0,   1,   1,  64,  32,  16,  32,   8,   1,   2,   1,   1,   {1,   1,   4,   1},   {1,  16,   1,  16},   {1,   1,   2,   1},   {1,  16,   1,  16} ,	0  },
-		{ 2,   0,   1,   1,  64,  32,  16,  32,   8,   1,   2,   1,   1,   {1,   1,   4,   1},   {1,  16,   1,  16},   {1,   1,   2,   1},   {1,  16,   1,  16} ,	1  },
-		{ 2,   0,   1,   1,  64,  32,   8,  32,   8,   1,   2,   1,   1,   {1,   1,   2,   1},   {1,   8,   1,  32},   {1,   1,   1,   1},   {1,   8,   1,  32} ,	0  },
-		{ 2,   0,   1,   1,  64,  32,   8,  32,   8,   1,   2,   1,   1,   {1,   1,   2,   1},   {1,   8,   1,  32},   {1,   1,   1,   1},   {1,   8,   1,  32} ,	1  },
-		{ 2,   0,   1,   1,  64,  16,  16,  64,   4,   1,   1,   1,   1,   {1,   1,   4,   1},   {1,  16,   1,  16},   {1,   1,   1,   1},   {1,  16,   1,  16} ,	0  },
-		{ 2,   0,   1,   1,  64,  16,  16,  64,   4,   1,   1,   1,   1,   {1,   1,   4,   1},   {1,  16,   1,  16},   {1,   1,   1,   1},   {1,  16,   1,  16} ,	1  },
-		{ 2,   0,   1,   1,   4,  64,  16,   4,  64,   1,   1,   1,   1,   {1,   1,   1,   1},   {1,  16,   1,   4},   {1,   1,  16,   1},   {1,  16,   1,   4} ,	1  },
-		{ 2,   0,   1,   1,   4,  64,  16,   4,  64,   1,   1,   1,   1,   {1,   1,   1,   1},   {1,  16,   1,   4},   {1,   1,  16,   1},   {1,  16,   1,   4} ,	0  },
-		{ 2,   0,   1,   1,  32,  32,   8,  16,  16,   1,   1,   1,   1,   {1,   1,   1,   1},   {1,   8,   1,  32},   {1,   1,   1,   1},   {1,   8,   1,  32} ,	1  },
-		{ 2,   0,   1,   1,  32,  32,   8,  16,  16,   1,   1,   1,   1,   {1,   1,   1,   1},   {1,   8,   1,  32},   {1,   1,   1,   1},   {1,   8,   1,  32} ,	0  },
-		{ 2,   0,   1,   1,  16,  32,  16,   8,  32,   1,   1,   1,   1,   {1,   1,   2,   1},   {1,  16,   1,   8},   {1,   1,   4,   1},   {1,  16,   1,   8} ,	0  },
-		{ 2,   0,   1,   1,  16,  32,  16,   8,  32,   1,   1,   1,   1,   {1,   1,   2,   1},   {1,  16,   1,   8},   {1,   1,   4,   1},   {1,  16,   1,   8} ,	1  },
-		{ 2,   0,   1,   1,  16,  32,   8,   8,  32,   1,   1,   1,   1,   {1,   1,   1,   1},   {1,   8,   1,  16},   {1,   1,   2,   1},   {1,   8,   1,  16} ,	0  },
-		{ 2,   0,   1,   1,  16,  32,   8,   8,  32,   1,   1,   1,   1,   {1,   1,   1,   1},   {1,   8,   1,  16},   {1,   1,   2,   1},   {1,   8,   1,  16} ,	1  }
+        { "wrw", "fp32",   4,   0, 256, 128,  16,  64,  32,   1,   1,   2,   2,   {1,   4,   4,   1},   {1,   4,   1,  64},   {1,   4,   2,   1},   {1,   4,   1,  64},   0},
+		{ "wrw", "fp32",   4,   0, 256, 128,  16,  64,  32,   1,   1,   2,   2,   {1,   4,   4,   1},   {1,   4,   1,  64},   {1,   4,   2,   1},   {1,   4,   1,  64},   1},
+		{ "wrw", "fp32",   4,   0, 256, 128,   8,  64,  32,   1,   1,   2,   2,   {1,   4,   2,   1},   {1,   2,   1, 128},   {1,   4,   1,   1},   {1,   2,   1, 128},   0},
+		{ "wrw", "fp32",   4,   0, 256, 128,   8,  64,  32,   1,   1,   2,   2,   {1,   4,   2,   1},   {1,   2,   1, 128},   {1,   4,   1,   1},   {1,   2,   1, 128},   1},
+		{ "wrw", "fp32",   1,   1, 256, 128,  16,  64,  32,   1,   1,   2,   2,   {1,   1,  16,   1},   {1,  16,   1,  16},   {1,   1,   8,   1},   {1,  16,   1,  16},   0},
+		{ "wrw", "fp32",   1,   1, 256, 128,  16,  64,  32,   1,   1,   2,   2,   {1,   1,  16,   1},   {1,  16,   1,  16},   {1,   1,   8,   1},   {1,  16,   1,  16},   1},
+		{ "wrw", "fp32",   1,   1, 256, 128,   8,  64,  32,   1,   1,   2,   2,   {1,   1,   8,   1},   {1,   8,   1,  32},   {1,   1,   4,   1},   {1,   8,   1,  32},   0},
+		{ "wrw", "fp32",   1,   1, 256, 128,   8,  64,  32,   1,   1,   2,   2,   {1,   1,   8,   1},   {1,   8,   1,  32},   {1,   1,   4,   1},   {1,   8,   1,  32},   1},
+		{ "wrw", "fp32",   4,   0, 256,  64,  16,  64,  16,   1,   1,   2,   2,   {1,   4,   4,   1},   {1,   4,   1,  64},   {1,   4,   1,   1},   {1,   4,   1,  64},   0},
+		{ "wrw", "fp32",   4,   0, 256,  64,  16,  64,  16,   1,   1,   2,   2,   {1,   4,   4,   1},   {1,   4,   1,  64},   {1,   4,   1,   1},   {1,   4,   1,  64},   1},
+		{ "wrw", "fp32",   1,   1, 256,  64,  16,  64,  16,   1,   1,   2,   2,   {1,   1,  16,   1},   {1,  16,   1,  16},   {1,   1,   4,   1},   {1,  16,   1,  16},   0},
+		{ "wrw", "fp32",   1,   1, 256,  64,  16,  64,  16,   1,   1,   2,   2,   {1,   1,  16,   1},   {1,  16,   1,  16},   {1,   1,   4,   1},   {1,  16,   1,  16},   1},
+		{ "wrw", "fp32",   1,   1, 256,  64,   8,  64,  16,   1,   1,   2,   2,   {1,   1,   8,   1},   {1,   8,   1,  32},   {1,   1,   2,   1},   {1,   8,   1,  32},   0},
+		{ "wrw", "fp32",   1,   1, 256,  64,   8,  64,  16,   1,   1,   2,   2,   {1,   1,   8,   1},   {1,   8,   1,  32},   {1,   1,   2,   1},   {1,   8,   1,  32},   1},
+		{ "wrw", "fp32",   1,   1, 256,  64,   4,  64,  16,   1,   1,   2,   2,   {1,   1,   4,   1},   {1,   4,   1,  64},   {1,   1,   1,   1},   {1,   4,   1,  64},   0},
+		{ "wrw", "fp32",   1,   1, 256,  64,   4,  64,  16,   1,   1,   2,   2,   {1,   1,   4,   1},   {1,   4,   1,  64},   {1,   1,   1,   1},   {1,   4,   1,  64},   1},
+		{ "wrw", "fp32",   1,   1, 256,  32,  16,  64,   4,   1,   2,   2,   2,   {1,   1,  16,   1},   {1,  16,   1,  16},   {1,   1,   2,   1},   {1,  16,   1,  16},   0},
+		{ "wrw", "fp32",   1,   1, 256,  32,  16,  64,   4,   1,   2,   2,   2,   {1,   1,  16,   1},   {1,  16,   1,  16},   {1,   1,   2,   1},   {1,  16,   1,  16},   1},
+		{ "wrw", "fp32",   1,   1, 256,  32,   8,  64,   4,   1,   2,   2,   2,   {1,   1,   8,   1},   {1,   8,   1,  32},   {1,   1,   1,   1},   {1,   8,   1,  32},   0},
+		{ "wrw", "fp32",   1,   1, 256,  32,   8,  64,   4,   1,   2,   2,   2,   {1,   1,   8,   1},   {1,   8,   1,  32},   {1,   1,   1,   1},   {1,   8,   1,  32},   1},
+		{ "wrw", "fp32",   4,   0, 128, 128,  16,  32,  32,   1,   1,   2,   2,   {1,   4,   2,   1},   {1,   4,   1,  64},   {1,   4,   2,   1},   {1,   4,   1,  64},   0},
+		{ "wrw", "fp32",   4,   0, 128, 128,  16,  32,  32,   1,   1,   2,   2,   {1,   4,   2,   1},   {1,   4,   1,  64},   {1,   4,   2,   1},   {1,   4,   1,  64},   1},
+		{ "wrw", "fp32",   1,   1, 128, 128,  16,  32,  32,   1,   1,   2,   2,   {1,   1,   8,   1},   {1,  16,   1,  16},   {1,   1,   8,   1},   {1,  16,   1,  16},   1},
+		{ "wrw", "fp32",   1,   1, 128, 128,  16,  32,  32,   1,   1,   2,   2,   {1,   1,   8,   1},   {1,  16,   1,  16},   {1,   1,   8,   1},   {1,  16,   1,  16},   0},
+		{ "wrw", "fp32",   1,   1, 128, 128,   8,  32,  32,   1,   1,   2,   2,   {1,   1,   4,   1},   {1,   8,   1,  32},   {1,   1,   4,   1},   {1,   8,   1,  32},   0},
+		{ "wrw", "fp32",   1,   1, 128, 128,   8,  32,  32,   1,   1,   2,   2,   {1,   1,   4,   1},   {1,   8,   1,  32},   {1,   1,   4,   1},   {1,   8,   1,  32},   1},
+		{ "wrw", "fp32",   4,   0, 128,  64,  16,  32,   8,   1,   2,   2,   2,   {1,   4,   2,   1},   {1,   4,   1,  64},   {1,   4,   1,   1},   {1,   4,   1,  64},   0},
+		{ "wrw", "fp32",   4,   0, 128,  64,  16,  32,   8,   1,   2,   2,   2,   {1,   4,   2,   1},   {1,   4,   1,  64},   {1,   4,   1,   1},   {1,   4,   1,  64},   1},
+		{ "wrw", "fp32",   1,   1, 128,  64,  16,  32,   8,   1,   2,   2,   2,   {1,   1,   8,   1},   {1,  16,   1,  16},   {1,   1,   4,   1},   {1,  16,   1,  16},   0},
+		{ "wrw", "fp32",   1,   1, 128,  64,  16,  32,   8,   1,   2,   2,   2,   {1,   1,   8,   1},   {1,  16,   1,  16},   {1,   1,   4,   1},   {1,  16,   1,  16},   1},
+		{ "wrw", "fp32",   1,   1, 128,  64,   8,  32,   8,   1,   2,   2,   2,   {1,   1,   4,   1},   {1,   8,   1,  32},   {1,   1,   2,   1},   {1,   8,   1,  32},   0},
+		{ "wrw", "fp32",   1,   1, 128,  64,   8,  32,   8,   1,   2,   2,   2,   {1,   1,   4,   1},   {1,   8,   1,  32},   {1,   1,   2,   1},   {1,   8,   1,  32},   1},
+		{ "wrw", "fp32",   1,   1, 128,  32,  16,  32,   8,   1,   1,   2,   2,   {1,   1,   8,   1},   {1,  16,   1,  16},   {1,   1,   2,   1},   {1,  16,   1,  16},   0},
+		{ "wrw", "fp32",   1,   1, 128,  32,  16,  32,   8,   1,   1,   2,   2,   {1,   1,   8,   1},   {1,  16,   1,  16},   {1,   1,   2,   1},   {1,  16,   1,  16},   1},
+		{ "wrw", "fp32",   1,   1, 128,  32,   8,  32,   8,   1,   1,   2,   2,   {1,   1,   4,   1},   {1,   8,   1,  32},   {1,   1,   1,   1},   {1,   8,   1,  32},   0},
+		{ "wrw", "fp32",   1,   1, 128,  32,   8,  32,   8,   1,   1,   2,   2,   {1,   1,   4,   1},   {1,   8,   1,  32},   {1,   1,   1,   1},   {1,   8,   1,  32},   1},
+		{ "wrw", "fp32",   1,   1,  64, 256,  16,  16,  64,   1,   1,   2,   2,   {1,   1,   4,   1},   {1,  16,   1,  16},   {1,   1,  16,   1},   {1,  16,   1,  16},   0},
+		{ "wrw", "fp32",   1,   1,  64, 256,  16,  16,  64,   1,   1,   2,   2,   {1,   1,   4,   1},   {1,  16,   1,  16},   {1,   1,  16,   1},   {1,  16,   1,  16},   1},
+		{ "wrw", "fp32",   1,   1,  64, 256,   8,  16,  64,   1,   1,   2,   2,   {1,   1,   2,   1},   {1,   8,   1,  32},   {1,   1,   8,   1},   {1,   8,   1,  32},   0},
+		{ "wrw", "fp32",   1,   1,  64, 256,   8,  16,  64,   1,   1,   2,   2,   {1,   1,   2,   1},   {1,   8,   1,  32},   {1,   1,   8,   1},   {1,   8,   1,  32},   1},
+		{ "wrw", "fp32",   1,   1,  64, 128,  16,   8,  32,   2,   1,   2,   2,   {1,   1,   4,   1},   {1,  16,   1,  16},   {1,   1,   8,   1},   {1,  16,   1,  16},   0},
+		{ "wrw", "fp32",   1,   1,  64, 128,  16,   8,  32,   2,   1,   2,   2,   {1,   1,   4,   1},   {1,  16,   1,  16},   {1,   1,   8,   1},   {1,  16,   1,  16},   1},
+		{ "wrw", "fp32",   1,   1,  64, 128,   8,   8,  32,   2,   1,   2,   2,   {1,   1,   2,   1},   {1,   8,   1,  32},   {1,   1,   4,   1},   {1,   8,   1,  32},   0},
+		{ "wrw", "fp32",   1,   1,  64, 128,   8,   8,  32,   2,   1,   2,   2,   {1,   1,   2,   1},   {1,   8,   1,  32},   {1,   1,   4,   1},   {1,   8,   1,  32},   1},
+		{ "wrw", "fp32",   1,   1,  64,  64,  16,  16,  16,   1,   1,   2,   2,   {1,   1,   4,   1},   {1,  16,   1,  16},   {1,   1,   4,   1},   {1,  16,   1,  16},   0},
+		{ "wrw", "fp32",   1,   1,  64,  64,  16,  16,  16,   1,   1,   2,   2,   {1,   1,   4,   1},   {1,  16,   1,  16},   {1,   1,   4,   1},   {1,  16,   1,  16},   1},
+		{ "wrw", "fp32",   1,   1,  64,  64,   8,  16,  16,   1,   1,   2,   2,   {1,   1,   2,   1},   {1,   8,   1,  32},   {1,   1,   2,   1},   {1,   8,   1,  32},   0},
+		{ "wrw", "fp32",   1,   1,  64,  64,   8,  16,  16,   1,   1,   2,   2,   {1,   1,   2,   1},   {1,   8,   1,  32},   {1,   1,   2,   1},   {1,   8,   1,  32},   1},
+		{ "wrw", "fp32",   1,   1,  64,  32,  16,  32,   8,   1,   2,   1,   1,   {1,   1,   4,   1},   {1,  16,   1,  16},   {1,   1,   2,   1},   {1,  16,   1,  16},   0},
+		{ "wrw", "fp32",   1,   1,  64,  32,  16,  32,   8,   1,   2,   1,   1,   {1,   1,   4,   1},   {1,  16,   1,  16},   {1,   1,   2,   1},   {1,  16,   1,  16},   1},
+		{ "wrw", "fp32",   1,   1,  64,  32,   8,  32,   8,   1,   2,   1,   1,   {1,   1,   2,   1},   {1,   8,   1,  32},   {1,   1,   1,   1},   {1,   8,   1,  32},   0},
+		{ "wrw", "fp32",   1,   1,  64,  32,   8,  32,   8,   1,   2,   1,   1,   {1,   1,   2,   1},   {1,   8,   1,  32},   {1,   1,   1,   1},   {1,   8,   1,  32},   1},
+		{ "wrw", "fp32",   1,   1,  64,  16,  16,  64,   4,   1,   1,   1,   1,   {1,   1,   4,   1},   {1,  16,   1,  16},   {1,   1,   1,   1},   {1,  16,   1,  16},   0},
+		{ "wrw", "fp32",   1,   1,  64,  16,  16,  64,   4,   1,   1,   1,   1,   {1,   1,   4,   1},   {1,  16,   1,  16},   {1,   1,   1,   1},   {1,  16,   1,  16},   1},
+		{ "wrw", "fp32",   1,   1,   4,  64,  16,   4,  64,   1,   1,   1,   1,   {1,   1,   1,   1},   {1,  16,   1,   4},   {1,   1,  16,   1},   {1,  16,   1,   4},   1},
+		{ "wrw", "fp32",   1,   1,   4,  64,  16,   4,  64,   1,   1,   1,   1,   {1,   1,   1,   1},   {1,  16,   1,   4},   {1,   1,  16,   1},   {1,  16,   1,   4},   0},
+		{ "wrw", "fp32",   1,   1,  32,  32,   8,  16,  16,   1,   1,   1,   1,   {1,   1,   1,   1},   {1,   8,   1,  32},   {1,   1,   1,   1},   {1,   8,   1,  32},   1},
+		{ "wrw", "fp32",   1,   1,  32,  32,   8,  16,  16,   1,   1,   1,   1,   {1,   1,   1,   1},   {1,   8,   1,  32},   {1,   1,   1,   1},   {1,   8,   1,  32},   0},
+		{ "wrw", "fp32",   1,   1,  16,  32,  16,   8,  32,   1,   1,   1,   1,   {1,   1,   2,   1},   {1,  16,   1,   8},   {1,   1,   4,   1},   {1,  16,   1,   8},   0},
+		{ "wrw", "fp32",   1,   1,  16,  32,  16,   8,  32,   1,   1,   1,   1,   {1,   1,   2,   1},   {1,  16,   1,   8},   {1,   1,   4,   1},   {1,  16,   1,   8},   1},
+		{ "wrw", "fp32",   1,   1,  16,  32,   8,   8,  32,   1,   1,   1,   1,   {1,   1,   1,   1},   {1,   8,   1,  16},   {1,   1,   2,   1},   {1,   8,   1,  16},   0},
+		{ "wrw", "fp32",   1,   1,  16,  32,   8,   8,  32,   1,   1,   1,   1,   {1,   1,   1,   1},   {1,   8,   1,  16},   {1,   1,   2,   1},   {1,   8,   1,  16},   1},
+
     };
     return kernel_param_list;
 }
@@ -116,7 +117,7 @@ GetImplicitGemmWrwGTCDynamicXdlopsGemmkSplits(const conv::ProblemDescription& co
     int n            = conv_problem.GetInBatchSize();
     int ho           = conv_problem.GetInHeight();
     int wo           = conv_problem.GetInWidth();
-    int gemmk_splits = 0;
+    int gemm_k_global_split = 0;
 
     int max_grid_size = 1200;
 
@@ -130,7 +131,7 @@ GetImplicitGemmWrwGTCDynamicXdlopsGemmkSplits(const conv::ProblemDescription& co
         {
             n_per_group = n >> i;
             if(0 == ((n_per_group * ho * wo) % GemmKPerBlock))
-                gemmk_splits = i;
+                gemm_k_global_split = i;
             else
                 break;
         }
@@ -138,10 +139,10 @@ GetImplicitGemmWrwGTCDynamicXdlopsGemmkSplits(const conv::ProblemDescription& co
             break;
     }
 
-    return gemmk_splits;
+    return gemm_k_global_split;
 }
 
-// tuple<log2_gemmk_splits, grid_size>
+// tuple<log2_gemm_k_global_split, grid_size>
 static inline std::tuple<int, int> 
 get_grid_size(const ConvolutionContext& ctx,
               const TunableImplicitGemmGTCDynamic_t *tunable) 
@@ -155,8 +156,8 @@ get_grid_size(const ConvolutionContext& ctx,
     int gemm_m_per_block         = tunable->gemm_m_per_block;
     int gemm_n_per_block         = tunable->gemm_n_per_block;
     int gemm_k_per_block         = tunable->gemm_k_per_block;
-    int use_atomic_add           = tunable->use_atomic_add;
-    int log2_gemmk_splits        = 0;
+    int gemm_k_global_split     = tunable->gemm_k_global_split;
+    int log2_gemm_k_global_split        = 0;
 
     int gemm_m = k;
     int gemm_n = c * y * x;
@@ -164,30 +165,30 @@ get_grid_size(const ConvolutionContext& ctx,
     // assume that gemm m/n can be divided with no remainder by gemm m/n per block
     int grid_size = (gemm_m / gemm_m_per_block) * (gemm_n / gemm_n_per_block);
 
-    if (use_atomic_add == 1)
-        log2_gemmk_splits = GetImplicitGemmWrwGTCDynamicXdlopsGemmkSplits(ctx.conv_problem, gemm_k_per_block, grid_size);
+    if (gemm_k_global_split == 1)
+        log2_gemm_k_global_split = GetImplicitGemmWrwGTCDynamicXdlopsGemmkSplits(ctx.conv_problem, gemm_k_per_block, grid_size);
     else
-        log2_gemmk_splits = 0; 
+        log2_gemm_k_global_split = 0; 
     
-    int num_of_gemm = 1 << log2_gemmk_splits;
+    int num_of_gemm = 1 << log2_gemm_k_global_split;
     grid_size *= num_of_gemm;
-    return std::make_tuple(log2_gemmk_splits, grid_size);
+    return std::make_tuple(log2_gemm_k_global_split, grid_size);
 }
 
 static inline int find_tunable(const std::vector<TunableImplicitGemmGTCDynamic_t> tunables, 
                                const int gemm_m_per_block,
                                const int gemm_n_per_block,
                                const int gemm_k_per_block,
-                               const int need_atomic_add,
+                               const int gemm_k_global_split,
                                const int nxb,
                                const int nxe)
 {
     int i;
     for (i = 0; i < tunables.size(); i++) {
-        if ((tunables[i].gemm_m_per_block == gemm_m_per_block) &&
-            (tunables[i].gemm_n_per_block == gemm_n_per_block) &&
-            (tunables[i].gemm_k_per_block == gemm_k_per_block) &&
-            (tunables[i].use_atomic_add   == need_atomic_add) &&
+        if ((tunables[i].gemm_m_per_block     == gemm_m_per_block) &&
+            (tunables[i].gemm_n_per_block     == gemm_n_per_block) &&
+            (tunables[i].gemm_k_per_block     == gemm_k_per_block) &&
+            (tunables[i].gemm_k_global_split == gemm_k_global_split) &&
             (tunables[i].nxb == nxb) &&
             (tunables[i].nxe == nxe)){
             break;
@@ -196,12 +197,12 @@ static inline int find_tunable(const std::vector<TunableImplicitGemmGTCDynamic_t
     return i;
 }
 
-static inline int if_need_atomic_add(const ConvolutionContext& ctx,
+static inline int if_gemm_k_global_split(const ConvolutionContext& ctx,
                                      const int gemm_m_per_block,
                                      const int gemm_n_per_block,
                                      const int gemm_k_per_block)
 {
-    int need_atomic_add = 0;
+    int gemm_k_global_split = 0;
     int n     = ctx.batch_sz;
     int k     = ctx.n_inputs;
     int c     = ctx.n_outputs;
@@ -219,12 +220,12 @@ static inline int if_need_atomic_add(const ConvolutionContext& ctx,
     // assume that gemm m/n can be divided with no remainder by gemm m/n per block
     grid_size = (gemm_m / gemm_m_per_block) * (gemm_n / gemm_n_per_block);
     if ((n % 2 == 0) && (grid_size < max_grid_size) && ((n >> 1) * ho * wo % gemm_k_per_block == 0)){
-        need_atomic_add = 1;
+        gemm_k_global_split = 1;
     }
     else {
-        need_atomic_add = 0;
+        gemm_k_global_split = 0;
     }
-    return need_atomic_add;
+    return gemm_k_global_split;
 }
 
 static inline float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
@@ -233,7 +234,7 @@ static inline float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
                                                ConstData_t dst,
                                                Data_t wei,
                                                const std::vector<KernelInvoke>& kernels,
-                                               const int log2_gemm_k_splits)
+                                               const int log2_gemm_k_global_splits)
 {
     float elapsed = 0.0f;
 
@@ -259,7 +260,7 @@ static inline float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
     //std::cout << "nkhowo: " << n << " " << k  << " " << ho << " " << wo << std::endl;
     //std::cout << "kcyx: " << k << " " << c  << " " << y << " " << x << std::endl;
     
-    MIOPEN_LOG_I2(kernel.GetName() << " with groups for reduction: " << (1 << log2_gemm_k_splits));
+    MIOPEN_LOG_I2(kernel.GetName() << " with groups for reduction: " << (1 << log2_gemm_k_global_splits));
 
     // clang-format on
     std::vector<OpKernelArg> opArgs;
@@ -281,7 +282,7 @@ static inline float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
     opArgs.emplace_back(pad_w);
     opArgs.emplace_back(y);
     opArgs.emplace_back(x);
-    opArgs.emplace_back(log2_gemm_k_splits);
+    opArgs.emplace_back(log2_gemm_k_global_splits);
     kernel(opArgs);
 
     if(handle.IsProfilingEnabled())
@@ -309,10 +310,10 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
     int gemm_m = k;
     int gemm_k = n * ho * wo;
 
-    int gemm_m_per_block = 0;
-    int gemm_n_per_block = 0;
-    int gemm_k_per_block = 0;
-    int need_atomic_add  = 0;
+    int gemm_m_per_block    = 0;
+    int gemm_n_per_block    = 0;
+    int gemm_k_per_block    = 0;
+    int gemm_k_global_split = 0;
 
     int grid_size;
     int block_size;
@@ -369,7 +370,7 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
                     gemm_k_per_block = 1 << j;
                     if(gemm_k % gemm_k_per_block != 0)
                         continue;
-                    need_atomic_add = if_need_atomic_add(
+                    gemm_k_global_split = if_gemm_k_global_split(
                         ctx, gemm_m_per_block, gemm_n_per_block, gemm_k_per_block);
 
                     nxb               = 1;
@@ -384,7 +385,7 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
                                                      gemm_m_per_block,
                                                      gemm_n_per_block,
                                                      gemm_k_per_block,
-                                                     need_atomic_add,
+                                                     gemm_k_global_split,
                                                      nxb,
                                                      nxe);
                         if(tunable_index < 0 || tunable_index >= tunables.size())
@@ -399,7 +400,7 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
                                                          gemm_m_per_block,
                                                          gemm_n_per_block,
                                                          gemm_k_per_block,
-                                                         need_atomic_add,
+                                                         gemm_k_global_split,
                                                          nxb,
                                                          nxe);
                         }
@@ -410,7 +411,7 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
                                                      gemm_m_per_block,
                                                      gemm_n_per_block,
                                                      gemm_k_per_block,
-                                                     need_atomic_add,
+                                                     gemm_k_global_split,
                                                      nxb,
                                                      nxe);
                     }
@@ -418,8 +419,8 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
                     if(tunable_index < 0 || tunable_index >= tunables.size())
                         continue;
 
-                    int gemmk_splits = 0;
-                    grid_size        = (gemm_m / gemm_m_per_block) * (gemm_n / gemm_n_per_block);
+                    int log2_gemm_k_global_splits = 0;
+                    grid_size = (gemm_m / gemm_m_per_block) * (gemm_n / gemm_n_per_block);
                     for(int gs = 0; gs < 8; gs++)
                     {
                         if((grid_size << gs) > 1200)
@@ -434,17 +435,17 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
                         {
                             break;
                         }
-                        gemmk_splits = gs;
+                        log2_gemm_k_global_splits = gs;
                     }
 
-                    if(!need_atomic_add)
-                        gemmk_splits = 0;
+                    if(gemm_k_global_split == 0)
+                        log2_gemm_k_global_splits = 0;
 
                     // std::cout << tunable_index << std::endl;
 
-                    block_size = tunables[tunable_index].config_block_size();
+                    block_size = tunables[tunable_index].GetBlockSize();
 
-                    cur_grid_size = grid_size << gemmk_splits;
+                    cur_grid_size = grid_size << log2_gemm_k_global_splits;
 
                     if(block_size >= max_block_size && cur_grid_size > max_grid_size)
                     {
@@ -469,16 +470,7 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
             break;
     }
     // std::cout << "sel_index:" << sel_index << std::endl;
-    bool is_valid = false;
-
-    if(sel_index < 0 || sel_index >= tunables.size())
-    {
-        is_valid = false;
-    }
-    else
-    {
-        is_valid = true;
-    }
+    bool is_valid = !(sel_index < 0 || sel_index >= tunables.size());
 
     return std::make_tuple(is_valid, sel_index);
 }
@@ -534,14 +526,15 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
     if(!is_valid)
         MIOPEN_THROW("this kernel should not run with igemm dynamic!");
 
-    kernel_name = kernel_configs[kernel_index].config_kernel_string();
-    block_size  = kernel_configs[kernel_index].config_block_size();
+    kernel_name = kernel_configs[kernel_index].GetKernelName();
+    block_size  = kernel_configs[kernel_index].GetBlockSize();
 
-    int log2_gemm_k_splits = 0;
+    int log2_gemm_k_global_splits = 0;
 
-    std::tie(log2_gemm_k_splits, grid_size) = get_grid_size(ctx, &kernel_configs[kernel_index]);
+    std::tie(log2_gemm_k_global_splits, grid_size) =
+        get_grid_size(ctx, &kernel_configs[kernel_index]);
 
-    // std::cout << "tuple=" << grid_size << " " << log2_gemm_k_splits << std::endl;
+    // std::cout << "tuple=" << grid_size << " " << log2_gemm_k_global_splits << std::endl;
 
     result.workspce_sz = 0;
 
@@ -571,7 +564,7 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
     const auto& conv_problem = ctx.conv_problem;
 
     result.invoker_factory = [conv_problem,
-                              log2_gemm_k_splits](const std::vector<Kernel>& kernels) {
+                              log2_gemm_k_global_splits](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const boost::any& primitive_parameters) {
             const auto data_ctx = boost::any_cast<conv::WrWInvokeParams>(primitive_parameters);
             const auto& tensors = data_ctx.tensors;
@@ -587,8 +580,13 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
             if(handle.IsProfilingEnabled())
                 elapsed += handle.GetKernelTime();
 
-            elapsed += CallImplicitGemmWrwDynamic(
-                handle, conv_problem, tensors.x, tensors.dy, tensors.dw, ks, log2_gemm_k_splits);
+            elapsed += CallImplicitGemmWrwDynamic(handle,
+                                                  conv_problem,
+                                                  tensors.x,
+                                                  tensors.dy,
+                                                  tensors.dw,
+                                                  ks,
+                                                  log2_gemm_k_global_splits);
             if(handle.IsProfilingEnabled())
             {
                 handle.ResetKernelTime();

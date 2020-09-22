@@ -67,7 +67,7 @@
 .set k_pad_w, 72
 .set k_y, 76
 .set k_x, 80
-.set k_gemmk_groups, 84
+.set k_gemm_k_global_split, 84
 .set k_pack0, 84
 .set k_end, 88
 
@@ -91,7 +91,7 @@
 .set s_pad_w, 28
 .set s_y, 29
 .set s_x, 30
-.set s_gemmkgroups, 31
+.set s_gemmk_split, 31
 .set s_out_stride_k, 32
 .set s_out_stride_k0, 33
 .set s_out_stride_n, 34
@@ -237,7 +237,7 @@ igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x
     ; add block i_n
     ; gemm_m_per_block:16, gemm_n_per_block:32
     s_lshr_b32 s[0], s[s_wei_stride_k], 5
-    s_lshr_b32 s[s_sub_n], s[s_n], s[s_gemmkgroups]
+    s_lshr_b32 s[s_sub_n], s[s_n], s[s_gemmk_split]
     s_lshr_b32 s[s_tmp], s[s_k], 4
     s_mul_i32 s[s_group_stride], s[0], s[s_tmp]
     .v_u32_div_rem_ss s_group_left, s_block_gtc_in, s_bx, s_group_stride, v_tmp+5, v_tmp, s_tmp
@@ -762,7 +762,7 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x
 .end_amdhsa_kernel
 
 ;----------------------------------------------------------
-; starting of kernel igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_atadd
+; starting of kernel igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_gkgs
 ; tensor_layout              : nchw
 ; gemm_m_per_block           : 16
 ; gemm_n_per_block           : 32
@@ -803,7 +803,7 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x
 .set k_pad_w, 72
 .set k_y, 76
 .set k_x, 80
-.set k_gemmk_groups, 84
+.set k_gemm_k_global_split, 84
 .set k_pack0, 84
 .set k_end, 88
 
@@ -827,7 +827,7 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x
 .set s_pad_w, 28
 .set s_y, 29
 .set s_x, 30
-.set s_gemmkgroups, 31
+.set s_gemmk_split, 31
 .set s_out_stride_k, 32
 .set s_out_stride_k0, 33
 .set s_out_stride_n, 34
@@ -913,10 +913,10 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x
 .set a_end, 4
 
 .text
-.globl igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_atadd
+.globl igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_gkgs
 .p2align 8
-.type igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_atadd,@function
-igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_atadd:
+.type igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_gkgs,@function
+igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_gkgs:
     ; unmerge_sub_n:16, unmerge_sub_n1:16, unmerge_sub_c:32, unmerge_sub_c1:8
     ; gemm_m_unmerge_cluster:0, gemm_n_unmerge_cluster:0, gemm_k_unmerge_cluster:0
     s_load_dwordx2  s[s_p_in+0:s_p_in+1],       s[s_ka+0:s_ka+1],    0+k_p_in
@@ -973,7 +973,7 @@ igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x
     ; add block i_n
     ; gemm_m_per_block:16, gemm_n_per_block:32
     s_lshr_b32 s[0], s[s_wei_stride_k], 5
-    s_lshr_b32 s[s_sub_n], s[s_n], s[s_gemmkgroups]
+    s_lshr_b32 s[s_sub_n], s[s_n], s[s_gemmk_split]
     s_lshr_b32 s[s_tmp], s[s_k], 4
     s_mul_i32 s[s_group_stride], s[0], s[s_tmp]
     .v_u32_div_rem_ss s_group_left, s_block_gtc_in, s_bx, s_group_stride, v_tmp+5, v_tmp, s_tmp
@@ -1188,7 +1188,7 @@ igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x
     ; make sure acc WAR harzard, at least 1 nop for src_c
     s_sub_i32 s[s_kitr], s[s_knum], 16
     s_cmp_gt_i32 s[s_kitr], 0
-    s_cbranch_scc0 L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_atadd_mfma_end
+    s_cbranch_scc0 L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_gkgs_mfma_end
 
     v_add_u32 v[v_move_slice_n_idswo], s[s_move_slice_n_dswo], v[v_move_slice_n_idswo]
     v_cmpx_le_u32 vcc, s[s_wo], v[v_move_slice_n_idswo]
@@ -1237,7 +1237,7 @@ igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x
     v_lshl_add_u32 v[v_out_os], v[v_tmp], 2, v[v_out_os_base]
     s_waitcnt lgkmcnt(0)
     s_barrier
-L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_atadd_mfma_body:
+L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_gkgs_mfma_body:
     ; do fma accumulate with unroll 16
     ds_read_b32 v[v_a], v[v_sld_a_os] 
     ds_read_b32 v[v_b], v[v_sld_b_os] 
@@ -1357,14 +1357,14 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x
     v_mfma_f32_4x4x1f32 a[a_c+0:a_c+3], v[v_a], v[v_b], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
     s_sub_i32 s[s_kitr], s[s_kitr], 16
     s_cmp_gt_i32 s[s_kitr], 0
-    s_cbranch_scc0 L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_atadd_mfma_finishing
+    s_cbranch_scc0 L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_gkgs_mfma_finishing
     v_mfma_f32_4x4x1f32 a[a_c+0:a_c+3], v[v_a+1], v[v_b+1], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
     s_waitcnt lgkmcnt(0)
     s_barrier
-    s_branch L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_atadd_mfma_body
-L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_atadd_mfma_finishing:
+    s_branch L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_gkgs_mfma_body
+L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_gkgs_mfma_finishing:
     v_mfma_f32_4x4x1f32 a[a_c+0:a_c+3], v[v_a+1], v[v_b+1], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
-L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_atadd_mfma_end:
+L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_gkgs_mfma_end:
     s_waitcnt lgkmcnt(0)
     s_barrier
     ds_read_b32 v[v_a], v[v_sld_a_os] 
@@ -1459,14 +1459,14 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x
     s_mul_i32 s[s_tmp], 3, s[s_wei_stride_k]   ; i_m:3(i_m0:0,i_m1:3)
     buffer_atomic_add_f32 v[v_c+3], v[v_wei_os], s[s_p_wei:s_p_wei+3], s[s_tmp] offen offset:0
 
-    s_branch L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_atadd_out
+    s_branch L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_gkgs_out
     ; debug code to cpy vgpr to host
-    L_debug_L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_atadd_out_1:
+    L_debug_L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_gkgs_out_1:
     s_waitcnt lgkmcnt(0)
     s_waitcnt vmcnt(0)
     s_barrier
     s_cmp_lg_u32 s[s_bx], 0
-    s_cbranch_scc1 L_program_end_L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_atadd_out_1
+    s_cbranch_scc1 L_program_end_L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_gkgs_out_1
     ;s_cmp_lg_u32 s[s_wave_id], 0
     ;s_cbranch_scc1  L_program_end
     ;v_add_co_u32 v34, vcc, 0, v[v_a0+2]
@@ -1476,17 +1476,17 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x
     s_waitcnt vmcnt(0)
     s_barrier
 
-    L_program_end_L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_atadd_out_1:
+    L_program_end_L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_gkgs_out_1:
     s_nop 2
     s_waitcnt lgkmcnt(0)
     s_waitcnt vmcnt(0)
     s_barrier
 
-L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_atadd_out:
+L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_gkgs_out:
     s_endpgm
 .rodata
 .p2align 6
-.amdhsa_kernel igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_atadd
+.amdhsa_kernel igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_gkgs
     .amdhsa_group_segment_fixed_size 4096
     .amdhsa_user_sgpr_kernarg_segment_ptr 1
     .amdhsa_system_sgpr_workgroup_id_x 1
@@ -1539,7 +1539,7 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x
 .set k_pad_w, 72
 .set k_y, 76
 .set k_x, 80
-.set k_gemmk_groups, 84
+.set k_gemm_k_global_split, 84
 .set k_pack0, 84
 .set k_end, 88
 
@@ -1563,7 +1563,7 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x
 .set s_pad_w, 28
 .set s_y, 29
 .set s_x, 30
-.set s_gemmkgroups, 31
+.set s_gemmk_split, 31
 .set s_out_stride_k, 32
 .set s_out_stride_k0, 33
 .set s_out_stride_n, 34
@@ -1708,7 +1708,7 @@ igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16
     ; add block i_n
     ; gemm_m_per_block:16, gemm_n_per_block:32
     s_lshr_b32 s[0], s[s_wei_stride_k], 5
-    s_lshr_b32 s[s_sub_n], s[s_n], s[s_gemmkgroups]
+    s_lshr_b32 s[s_sub_n], s[s_n], s[s_gemmk_split]
     s_lshr_b32 s[s_tmp], s[s_k], 4
     s_mul_i32 s[s_group_stride], s[0], s[s_tmp]
     .v_u32_div_rem_ss s_group_left, s_block_gtc_in, s_bx, s_group_stride, v_tmp+5, v_tmp, s_tmp
@@ -2159,7 +2159,7 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x
 .end_amdhsa_kernel
 
 ;----------------------------------------------------------
-; starting of kernel igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_atadd
+; starting of kernel igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_gkgs
 ; tensor_layout              : nchw
 ; gemm_m_per_block           : 16
 ; gemm_n_per_block           : 32
@@ -2200,7 +2200,7 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x
 .set k_pad_w, 72
 .set k_y, 76
 .set k_x, 80
-.set k_gemmk_groups, 84
+.set k_gemm_k_global_split, 84
 .set k_pack0, 84
 .set k_end, 88
 
@@ -2224,7 +2224,7 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x
 .set s_pad_w, 28
 .set s_y, 29
 .set s_x, 30
-.set s_gemmkgroups, 31
+.set s_gemmk_split, 31
 .set s_out_stride_k, 32
 .set s_out_stride_k0, 33
 .set s_out_stride_n, 34
@@ -2310,10 +2310,10 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x
 .set a_end, 4
 
 .text
-.globl igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_atadd
+.globl igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_gkgs
 .p2align 8
-.type igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_atadd,@function
-igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_atadd:
+.type igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_gkgs,@function
+igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_gkgs:
     ; unmerge_sub_n:8, unmerge_sub_n1:8, unmerge_sub_c:32, unmerge_sub_c1:16
     ; gemm_m_unmerge_cluster:0, gemm_n_unmerge_cluster:0, gemm_k_unmerge_cluster:0
     s_load_dwordx2  s[s_p_in+0:s_p_in+1],       s[s_ka+0:s_ka+1],    0+k_p_in
@@ -2369,7 +2369,7 @@ igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16
     ; add block i_n
     ; gemm_m_per_block:16, gemm_n_per_block:32
     s_lshr_b32 s[0], s[s_wei_stride_k], 5
-    s_lshr_b32 s[s_sub_n], s[s_n], s[s_gemmkgroups]
+    s_lshr_b32 s[s_sub_n], s[s_n], s[s_gemmk_split]
     s_lshr_b32 s[s_tmp], s[s_k], 4
     s_mul_i32 s[s_group_stride], s[0], s[s_tmp]
     .v_u32_div_rem_ss s_group_left, s_block_gtc_in, s_bx, s_group_stride, v_tmp+5, v_tmp, s_tmp
@@ -2578,7 +2578,7 @@ igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16
     ; make sure acc WAR harzard, at least 1 nop for src_c
     s_sub_i32 s[s_kitr], s[s_knum], 8
     s_cmp_gt_i32 s[s_kitr], 0
-    s_cbranch_scc0 L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_atadd_mfma_end
+    s_cbranch_scc0 L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_gkgs_mfma_end
 
     v_add_u32 v[v_move_slice_n_idswo], s[s_move_slice_n_dswo], v[v_move_slice_n_idswo]
     v_cmpx_le_u32 vcc, s[s_wo], v[v_move_slice_n_idswo]
@@ -2627,7 +2627,7 @@ igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16
     v_lshl_add_u32 v[v_out_os], v[v_tmp], 2, v[v_out_os_base]
     s_waitcnt lgkmcnt(0)
     s_barrier
-L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_atadd_mfma_body:
+L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_gkgs_mfma_body:
     ; do fma accumulate with unroll 8
     ds_read_b32 v[v_a], v[v_sld_a_os] 
     ds_read_b32 v[v_b], v[v_sld_b_os] 
@@ -2711,14 +2711,14 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x
     v_mfma_f32_4x4x1f32 a[a_c+0:a_c+3], v[v_a], v[v_b], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
     s_sub_i32 s[s_kitr], s[s_kitr], 8
     s_cmp_gt_i32 s[s_kitr], 0
-    s_cbranch_scc0 L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_atadd_mfma_finishing
+    s_cbranch_scc0 L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_gkgs_mfma_finishing
     v_mfma_f32_4x4x1f32 a[a_c+0:a_c+3], v[v_a+1], v[v_b+1], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
     s_waitcnt lgkmcnt(0)
     s_barrier
-    s_branch L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_atadd_mfma_body
-L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_atadd_mfma_finishing:
+    s_branch L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_gkgs_mfma_body
+L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_gkgs_mfma_finishing:
     v_mfma_f32_4x4x1f32 a[a_c+0:a_c+3], v[v_a+1], v[v_b+1], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
-L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_atadd_mfma_end:
+L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_gkgs_mfma_end:
     s_waitcnt lgkmcnt(0)
     s_barrier
     ds_read_b32 v[v_a], v[v_sld_a_os] 
@@ -2781,14 +2781,14 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x
     s_mul_i32 s[s_tmp], 3, s[s_wei_stride_k]   ; i_m:3(i_m0:0,i_m1:3)
     buffer_atomic_add_f32 v[v_c+3], v[v_wei_os], s[s_p_wei:s_p_wei+3], s[s_tmp] offen offset:0
 
-    s_branch L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_atadd_out
+    s_branch L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_gkgs_out
     ; debug code to cpy vgpr to host
-    L_debug_L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_atadd_out_1:
+    L_debug_L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_gkgs_out_1:
     s_waitcnt lgkmcnt(0)
     s_waitcnt vmcnt(0)
     s_barrier
     s_cmp_lg_u32 s[s_bx], 0
-    s_cbranch_scc1 L_program_end_L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_atadd_out_1
+    s_cbranch_scc1 L_program_end_L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_gkgs_out_1
     ;s_cmp_lg_u32 s[s_wave_id], 0
     ;s_cbranch_scc1  L_program_end
     ;v_add_co_u32 v34, vcc, 0, v[v_a0+2]
@@ -2798,17 +2798,17 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x
     s_waitcnt vmcnt(0)
     s_barrier
 
-    L_program_end_L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_atadd_out_1:
+    L_program_end_L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_gkgs_out_1:
     s_nop 2
     s_waitcnt lgkmcnt(0)
     s_waitcnt vmcnt(0)
     s_barrier
 
-L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_atadd_out:
+L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_gkgs_out:
     s_endpgm
 .rodata
 .p2align 6
-.amdhsa_kernel igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_atadd
+.amdhsa_kernel igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_gkgs
     .amdhsa_group_segment_fixed_size 2048
     .amdhsa_user_sgpr_kernarg_segment_ptr 1
     .amdhsa_system_sgpr_workgroup_id_x 1
