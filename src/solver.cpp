@@ -330,8 +330,10 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     RegisterWithSolver(
         registry, ++id, ConvAsmImplicitGemmV4R1DynamicWrw{}, miopenConvolutionAlgoImplicitGEMM);
 
-    RegisterWithSolver(
-        registry, ++id, ConvAsmImplicitGemmGTCDynamicBwd{}, miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(registry,
+                       ++id,
+                       ConvAsmImplicitGemmGTCDynamicBwdXdlops{},
+                       miopenConvolutionAlgoImplicitGEMM);
 
     RegisterWithSolver(
         registry, ++id, ConvMPBidirectWinograd<2, 3>{}, miopenConvolutionAlgoWinograd);
