@@ -117,9 +117,7 @@ void BatchNormForwardTraining(Handle& handle,
     auto inhw               = float(1.0 / in_nhw);
 
     size_t xlocalsize = 1024;
-    if((in_cstride < 256) && (n < 256))
-        xlocalsize = 256;
-    else if((in_cstride < 100) && (n <= 256))
+    if(((in_cstride < 256) && (n < 256)) || ((in_cstride < 100) && (n <= 256)))
         xlocalsize = 256;
 
     size_t ylocalsize = 1;
