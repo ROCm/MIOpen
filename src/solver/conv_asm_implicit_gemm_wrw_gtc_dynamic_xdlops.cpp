@@ -310,8 +310,8 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
     int gemm_m = k;
     int gemm_k = n * ho * wo;
 
-    int gemm_m_per_block    = 0;
-    int gemm_n_per_block    = 0;
+    int gemm_m_per_block;
+    int gemm_n_per_block;
     int gemm_k_per_block    = 0;
     int gemm_k_global_split = 0;
 
@@ -336,7 +336,7 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
                 16  |   0  |1  |0  |0  |0
 
     */
-    int i, j, r, l;
+    int i, j;
     int max_grid_size  = 0;
     int cur_grid_size  = 0;
     int num_cu         = 120;
@@ -346,6 +346,7 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
     // switch l r to get differnet kernel size like 256*64 or 64*256
     for(i = 15; i > 7; i--)
     {
+        int r, l;
         r = (i + 1) >> 1;
         l = i - r;
         while(l > 1 && r < 9)
