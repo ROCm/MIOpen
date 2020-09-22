@@ -143,18 +143,14 @@ inline bool IsApplicableGEMM(const ConvolutionContext& params)
 {
 #if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
     // int offset for Workspace buffers.
-    if(((GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(params,
-                                                                       ConvWinoBuffType::Input))
-                .buff_info.total_byte_size /
-            GetTypeSize(params.in_data_type) +
-        (GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(params,
-                                                                       ConvWinoBuffType::Output))
-                .buff_info.total_byte_size /
-            GetTypeSize(params.in_data_type)) >= (1LL << 31))
-    {
-        return false;
-    }
-    return true;
+    return !(((GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(
+                   params, ConvWinoBuffType::Input))
+                      .buff_info.total_byte_size /
+                  GetTypeSize(params.in_data_type) +
+              (GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(
+                   params, ConvWinoBuffType::Output))
+                      .buff_info.total_byte_size /
+                  GetTypeSize(params.in_data_type)) >= (1LL << 31));
 #else
     (void)params;
     return false;
@@ -633,6 +629,7 @@ template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 ConvolutionContext ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::
     GetTransformedConvContext(const ConvolutionContext& ctx) const
 {
+#if(MIOPEN_BACKEND_HIP)
     DEFINE_GETXFORMHWSIZE(ctx)
     int batch_count = wino_xform_h * wino_xform_w * ctx.group_counts;
 
@@ -677,7 +674,7 @@ ConvolutionContext ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDat
     auto dir = conv::Direction::Forward;
 
     ConvolutionContext transformed_ctx(in, wei, out, conv_desc, dir, 0);
-    transformed_ctx.ExecutionContext::operator=(ExecutionContext(ctx));
+    transformed_ctx.ExecutionContext::operator=(ctx);
 
     DEFINE_WORKSPACE_OFFSETS(wino_in.buff_info.total_byte_size,
                              wino_wei.buff_info.total_byte_size,
@@ -698,6 +695,10 @@ ConvolutionContext ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDat
     transformed_ctx.SetBufs(buff);
     transformed_ctx.SetupFloats();
     return transformed_ctx;
+#else
+    (void)ctx;
+    MIOPEN_THROW(miopenStatusBadParm, "ConvMPBidirectWinograd Unsupported ");
+#endif
 }
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
@@ -754,8 +755,7 @@ ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::G
     result.construction_params.push_back(wino_transform.construction_params[0]);
     result.construction_params.push_back(wino_transform.construction_params[1]);
     result.construction_params.push_back(wino_transform.construction_params[2]);
-    const std::string name = ctx.GetStream().GetDeviceName();
-    result.construction_params.push_back(wino_transform.construction_params[2]);
+    result.construction_params.push_back(xdlops_conv.construction_params[0]);
 
     result.invoker_factory =
         MakeWinogradInvokerFactory<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(
