@@ -2279,6 +2279,7 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
                               const bool pnohy        = false,
                               const bool pnocy        = false,
                               const bool puse_dropout = false)
+        : RSVgpu(pRSVgpu.begin()), RSVcpu(pRSVcpu.begin())
     {
         input          = px;
         initHidden     = phx;
@@ -2300,8 +2301,6 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
         nohy           = pnohy;
         nocy           = pnocy;
         use_dropout    = puse_dropout;
-        RSVgpu         = pRSVgpu.begin();
-        RSVcpu         = pRSVcpu.begin();
 
         if(!nohx)
             initHidden = phx; // this may be intentionally a nullptr
