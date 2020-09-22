@@ -117,6 +117,11 @@ void BatchNormForwardTraining(Handle& handle,
     auto inhw               = float(1.0 / in_nhw);
 
     size_t xlocalsize = 1024;
+    if((in_cstride < 256) && (n < 256))
+        xlocalsize = 256;
+    else if((in_cstride < 100) && (n <= 256))
+        xlocalsize = 256;
+
     size_t ylocalsize = 1;
     size_t zlocalsize = 1;
 
@@ -171,7 +176,9 @@ void BatchNormForwardTraining(Handle& handle,
             ldsgcn     = 8;
             ldsnogcn   = 512;
         }
-        else if((in_nhw < 33554432 && in_cstride > 1024) || ((in_cstride > 60) && bfpmixparm))
+        else if((in_nhw < 33554432 && in_cstride > 1024) ||
+                ((n >= 256) && (in_cstride > 60) && bfpmixparm) ||
+                ((in_cstride > 512) && bfpmixparm))
         {
             //
         }
@@ -910,7 +917,7 @@ void BatchNormBackward(Handle& handle,
         // N*H*W < 32M and H*W > 1024, use batchnorm variant#1 implementation which parallelize
         // work groups over channels and loop through NHW.
         //*************************************************************************************************
-        if((in_nhw < (32 * 1024 * 1024) && in_cstride > 1024) || ((n > 768) && (in_cstride > 63)))
+        if((in_nhw < (32 * 1024 * 1024) && in_cstride > 1024) || (n > 768))
         {
             variant    = 1;
             xlocalsize = 1024;
@@ -949,8 +956,8 @@ void BatchNormBackward(Handle& handle,
             else
             {
                 variant    = 0;
-                xlocalsize = 1024;
-                xgridsize  = 1024 * c;
+                xlocalsize = 256;
+                xgridsize  = 256 * c;
                 ldsgcn     = xlocalsize / 64;
                 ldsnogcn   = xlocalsize;
             }
