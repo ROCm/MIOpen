@@ -78,7 +78,7 @@ struct verify_forward_lstm
     bool nocy{};
 
     void LSTMFwdCPUVerify(miopen::Handle& handle,
-                          const bool use_dropout,
+                          bool use_dropout,
                           const miopen::DropoutDescriptor& dropoutDesc,
                           const std::vector<T>& in,
                           const std::vector<T>& wei,
@@ -89,17 +89,17 @@ struct verify_forward_lstm
                           std::vector<T>& out_host,
                           const std::vector<int>& in_n,
                           int in_h,
-                          const int seqLength,
-                          const int bidirection,
-                          const int biased,
-                          const int hy_d,
-                          const int hy_n,
-                          const int hy_h,
-                          const int out_h,
-                          const int inputMode,
+                          int seqLength_cpu,
+                          int bidirection,
+                          int biased,
+                          int hy_d,
+                          int hy_n,
+                          int hy_h,
+                          int out_h,
+                          int inputMode_cpu,
                           std::vector<T>& rsvspace,
-                          const bool hx_is_null = false,
-                          const bool cx_is_null = false) const;
+                          bool hx_is_null = false,
+                          bool cx_is_null = false) const;
 };
 
 //****************************************************
@@ -212,7 +212,7 @@ struct verify_backward_data_lstm
             dcy.resize(realHiddenSize);
     }
 
-    void LSTMBwdDataCPUVerify(const bool use_dropout,
+    void LSTMBwdDataCPUVerify(bool use_dropout_cpu,
                               const miopen::DropoutDescriptor& dropoutDesc,
                               std::vector<T>& din_host,
                               const std::vector<T>& wei,
@@ -226,19 +226,19 @@ struct verify_backward_data_lstm
                               const std::vector<T>& dout,
                               const std::vector<int>& in_n,
                               int in_h,
-                              const int seqLength,
-                              const int bidirection,
-                              const int,
-                              const int hy_d,
-                              const int hy_n,
-                              const int hy_h,
-                              const int out_h,
-                              const int inputMode,
+                              int seqLength_cpu,
+                              int bidirection,
+                              int,
+                              int hy_d,
+                              int hy_n,
+                              int hy_h,
+                              int out_h,
+                              int inputMode_cpu,
                               std::vector<T>& rsvspace,
                               std::vector<T>& wkspace,
-                              const bool cx_is_null  = false,
-                              const bool dhy_is_null = false,
-                              const bool dcy_is_null = false) const;
+                              bool cx_is_null  = false,
+                              bool dhy_is_null = false,
+                              bool dcy_is_null = false) const;
 
     std::tuple<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>> cpu() const;
     std::tuple<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>> gpu() const;
@@ -356,24 +356,24 @@ struct verify_backward_weights_lstm
             initHidden.resize(realHiddenSize);
     }
 
-    void LSTMBwdWeightCPUVerify(const bool use_dropout,
+    void LSTMBwdWeightCPUVerify(bool use_dropout_cpu,
                                 const std::vector<T>& in,
                                 std::vector<T>& dwei_host,
                                 const std::vector<T>& hx,
                                 const std::vector<T>& dout,
                                 const std::vector<int>& in_n,
                                 int in_h,
-                                const int seqLength,
-                                const int bidirection,
-                                const int biased,
-                                const int hy_d,
-                                const int hy_n,
-                                const int hy_h,
-                                const int out_h,
-                                const int inputMode,
+                                int seqLength_cpu,
+                                int bidirection,
+                                int biased,
+                                int hy_d,
+                                int hy_n,
+                                int hy_h,
+                                int out_h,
+                                int inputMode_cpu,
                                 const std::vector<T>& rsvspace,
                                 const std::vector<T>& wkspace,
-                                const bool hx_is_null = false) const;
+                                bool hx_is_null = false) const;
 
     std::vector<T> cpu() const;
     std::vector<T> gpu() const;
@@ -415,7 +415,7 @@ struct verify_backward_weights_lstm
 template <class T>
 void verify_forward_lstm<T>::LSTMFwdCPUVerify(
     miopen::Handle& handle,
-    const bool use_dropout,
+    bool use_dropout,
     const miopen::DropoutDescriptor& dropoutDesc,
     const std::vector<T>& in,
     const std::vector<T>& wei, // [ input_state_weight_trans
@@ -429,24 +429,24 @@ void verify_forward_lstm<T>::LSTMFwdCPUVerify(
     std::vector<T>& out_host,
     const std::vector<int>& in_n, // input batch size
     int in_h,                     // input data length
-    const int seqLength_cpu,      // Number of iterations to unroll over
-    const int bidirection,        // whether using bidirectional net
-    const int biased,             // whether using bias
-    const int hy_d,               // 1 by numlayer (number of stacks of hidden layers) for
+    int seqLength_cpu,            // Number of iterations to unroll over
+    int bidirection,              // whether using bidirectional net
+    int biased,                   // whether using bias
+    int hy_d,                     // 1 by numlayer (number of stacks of hidden layers) for
                                   // unidirection, 2 by numlayer for bidirection
-    const int hy_n,               // equal to input batch size in_n[0]
-    const int hy_h,               // hidden state number
-    const int out_h,              // 1 by hy_h related function for unidirection, 2 by hy_h
+    int hy_n,                     // equal to input batch size in_n[0]
+    int hy_h,                     // hidden state number
+    int out_h,                    // 1 by hy_h related function for unidirection, 2 by hy_h
                                   // related function for bidirection
-    const int inputMode_cpu,
+    int inputMode_cpu,
     std::vector<T>& rsvspace,
-    const bool hx_is_null,
-    const bool cx_is_null) const
+    bool hx_is_null,
+    bool cx_is_null) const
 {
     int batch_n_cpu = sumvc(in_n);
 
-    int numlayer = bidirection ? hy_d / 2 : hy_d;
-    int bi       = bidirection ? 2 : 1;
+    int numlayer = bidirection == 1 ? hy_d / 2 : hy_d;
+    int bi       = bidirection == 1 ? 2 : 1;
 
     int in_stride  = in_h;
     int out_stride = out_h;
@@ -520,7 +520,7 @@ void verify_forward_lstm<T>::LSTMFwdCPUVerify(
                         {
                             rsvspace.at(hid_shift + bs * hy_stride + gi * hy_h + h) +=
                                 in.at(bs * in_stride + h);
-                            if(bidirection)
+                            if(bidirection == 1)
                             {
                                 rsvspace.at(hid_shift + bs * hy_stride + (gi + 4) * hy_h + h) +=
                                     in.at(bs * in_stride + h);
@@ -530,7 +530,7 @@ void verify_forward_lstm<T>::LSTMFwdCPUVerify(
                 }
 
                 // from bias
-                if(biased)
+                if(biased == 1)
                 {
                     for(int bs = 0; bs < batch_n_cpu; bs++)
                     {
@@ -563,7 +563,7 @@ void verify_forward_lstm<T>::LSTMFwdCPUVerify(
                               1);
 
                 // from bias
-                if(biased)
+                if(biased == 1)
                 {
                     for(int bs = 0; bs < batch_n_cpu; bs++)
                     {
@@ -620,7 +620,7 @@ void verify_forward_lstm<T>::LSTMFwdCPUVerify(
                           1);
 
             // from bias
-            if(biased)
+            if(biased == 1)
             {
                 int wei_shift_bias_temp = wei_shift_bias + li * 2 * wei_stride;
 
@@ -666,7 +666,7 @@ void verify_forward_lstm<T>::LSTMFwdCPUVerify(
                                   1);
 
                     // from bias
-                    if(biased)
+                    if(biased == 1)
                     {
                         int wei_shift_bias_temp = wei_shift_bias + (li * 2 + 1) * wei_stride;
 
@@ -680,7 +680,7 @@ void verify_forward_lstm<T>::LSTMFwdCPUVerify(
                         }
                     }
 
-                    if(bidirection)
+                    if(bidirection == 1)
                     {
                         RNN_mm_cpu<T>(&hx[hx_shift + hy_n * hy_h],
                                       hy_h,
@@ -701,7 +701,7 @@ void verify_forward_lstm<T>::LSTMFwdCPUVerify(
                                       1);
 
                         // from bias
-                        if(biased)
+                        if(biased == 1)
                         {
                             int wei_shift_bias_temp = wei_shift_bias + (li * 2 + 1) * wei_stride;
 
@@ -739,7 +739,7 @@ void verify_forward_lstm<T>::LSTMFwdCPUVerify(
                               1);
 
                 // from bias
-                if(biased)
+                if(biased == 1)
                 {
                     int wei_shift_bias_temp = wei_shift_bias + (li * 2 + 1) * wei_stride;
 
@@ -753,7 +753,7 @@ void verify_forward_lstm<T>::LSTMFwdCPUVerify(
                     }
                 }
 
-                if(bidirection)
+                if(bidirection == 1)
                 {
 
                     if(!hx_is_null && in_n.at(seqLength_cpu - 1 - ti) > in_n.at(seqLength_cpu - ti))
@@ -780,7 +780,7 @@ void verify_forward_lstm<T>::LSTMFwdCPUVerify(
                             1);
 
                         // from bias
-                        if(biased)
+                        if(biased == 1)
                         {
                             int wei_shift_bias_temp = wei_shift_bias + (li * 2 + 1) * wei_stride;
 
@@ -817,7 +817,7 @@ void verify_forward_lstm<T>::LSTMFwdCPUVerify(
                                   1);
 
                     // from bias
-                    if(biased)
+                    if(biased == 1)
                     {
                         int wei_shift_bias_temp = wei_shift_bias + (li * 2 + 1) * wei_stride;
 
@@ -898,7 +898,7 @@ void verify_forward_lstm<T>::LSTMFwdCPUVerify(
                 }
             }
 
-            if(bidirection)
+            if(bidirection == 1)
             {
                 for(int bs = 0; bs < in_n.at(seqLength_cpu - 1 - ti); bs++)
                 {
@@ -1033,7 +1033,7 @@ void verify_forward_lstm<T>::LSTMFwdCPUVerify(
 
 template <class T>
 void verify_backward_data_lstm<T>::LSTMBwdDataCPUVerify(
-    const bool use_dropout_cpu,
+    bool use_dropout_cpu,
     const miopen::DropoutDescriptor& dropoutDesc,
     std::vector<T>& din_host,
     const std::vector<T>& wei,     // [ input_state_weight_trans
@@ -1050,28 +1050,28 @@ void verify_backward_data_lstm<T>::LSTMBwdDataCPUVerify(
     const std::vector<T>& dout,
     const std::vector<int>& in_n, // input batch size
     int in_h,                     // input data length
-    const int seqLength_cpu,      // Number of iterations to unroll over
-    const int bidirection,        // whether using bidirectional net
-    const int,                    // whether using bias
-    const int hy_d,               // 1 by numlayer (number of stacks of hidden layers)
+    int seqLength_cpu,            // Number of iterations to unroll over
+    int bidirection,              // whether using bidirectional net
+    int,                          // whether using bias
+    int hy_d,                     // 1 by numlayer (number of stacks of hidden layers)
                                   // for unidirection, 2 by numlayer for bidirection
-    const int hy_n,               // equal to input batch size in_n[0]
-    const int hy_h,               // hidden state number
-    const int out_h,              // 1 by hy_h related function for unidirection, 2 by
+    int hy_n,                     // equal to input batch size in_n[0]
+    int hy_h,                     // hidden state number
+    int out_h,                    // 1 by hy_h related function for unidirection, 2 by
                                   // hy_h related function for bidirection
-    const int inputMode_cpu,
+    int inputMode_cpu,
     std::vector<T>& rsvspace,
     std::vector<T>& wkspace,
-    const bool cx_is_null,
-    const bool dhy_is_null,
-    const bool dcy_is_null) const
+    bool cx_is_null,
+    bool dhy_is_null,
+    bool dcy_is_null) const
 {
     int batch_n_cpu = sumvc(in_n);
     (void)out;
     (void)hx;
 
-    int numlayer = bidirection ? hy_d / 2 : hy_d;
-    int bi       = bidirection ? 2 : 1;
+    int numlayer = bidirection == 1 ? hy_d / 2 : hy_d;
+    int bi       = bidirection == 1 ? 2 : 1;
 
     int in_stride  = in_h;
     int out_stride = out_h;
@@ -1198,7 +1198,7 @@ void verify_backward_data_lstm<T>::LSTMBwdDataCPUVerify(
                     }
                 }
 
-                if(bidirection)
+                if(bidirection == 1)
                 {
                     for(int bs = 0; bs < in_n.at(seqLength_cpu - 1 - ti); bs++)
                     {
@@ -1267,7 +1267,7 @@ void verify_backward_data_lstm<T>::LSTMBwdDataCPUVerify(
                               1,
                               1);
 
-                if(bidirection)
+                if(bidirection == 1)
                 {
                     pretime_shift = li * batch_n_cpu * hy_stride +
                                     (baccbi - in_n.at(seqLength_cpu - 2 - ti)) * hy_stride +
@@ -1363,7 +1363,7 @@ void verify_backward_data_lstm<T>::LSTMBwdDataCPUVerify(
                 }
             }
 
-            if(bidirection)
+            if(bidirection == 1)
             {
                 for(int bs = 0; bs < in_n.at(seqLength_cpu - 1 - ti); bs++)
                 {
@@ -1506,7 +1506,7 @@ void verify_backward_data_lstm<T>::LSTMBwdDataCPUVerify(
             }
         }
 
-        if(bidirection)
+        if(bidirection == 1)
         {
             int ti = seqLength_cpu - 1, cur_bat = 0, pre_bat = batch_n_cpu;
 
@@ -1563,7 +1563,7 @@ void verify_backward_data_lstm<T>::LSTMBwdDataCPUVerify(
                 for(int gi = 0; gi < 4; gi++)
                 {
                     din_host.at(bs * in_stride + h) += wkspace.at(bs * hy_stride + gi * hy_h + h);
-                    if(bidirection)
+                    if(bidirection == 1)
                     {
                         din_host.at(bs * in_stride + h) +=
                             wkspace.at(bs * hy_stride + (gi + 4) * hy_h + h);
@@ -1596,7 +1596,7 @@ void verify_backward_data_lstm<T>::LSTMBwdDataCPUVerify(
 
 template <class T>
 void verify_backward_weights_lstm<T>::LSTMBwdWeightCPUVerify(
-    const bool use_dropout_cpu,
+    bool use_dropout_cpu,
     const std::vector<T>& in,
     std::vector<T>& dwei_host, // [ input_state_weight_trans
                                // hidden_state_weight0_trans
@@ -1607,24 +1607,24 @@ void verify_backward_weights_lstm<T>::LSTMBwdWeightCPUVerify(
     const std::vector<T>& dout,
     const std::vector<int>& in_n, // input batch size
     int in_h,                     // input data length
-    const int seqLength_cpu,      // Number of iterations to unroll over
-    const int bidirection,        // whether using bidirectional net
-    const int biased,             // whether using bias
-    const int hy_d,               // 1 by numlayer (number of stacks of hidden
+    int seqLength_cpu,            // Number of iterations to unroll over
+    int bidirection,              // whether using bidirectional net
+    int biased,                   // whether using bias
+    int hy_d,                     // 1 by numlayer (number of stacks of hidden
                                   // layers) for unidirection, 2 by numlayer for
                                   // bidirection
-    const int hy_n,               // equal to input batch size in_n[0]
-    const int hy_h,               // hidden state number
-    const int out_h,              // 1 by hy_h related function for unidirection, 2
+    int hy_n,                     // equal to input batch size in_n[0]
+    int hy_h,                     // hidden state number
+    int out_h,                    // 1 by hy_h related function for unidirection, 2
                                   // by hy_h related function for bidirection
-    const int inputMode_cpu,
+    int inputMode_cpu,
     const std::vector<T>& rsvspace,
     const std::vector<T>& wkspace,
-    const bool hx_is_null) const
+    bool hx_is_null) const
 {
     int batch_n_cpu = sumvc(in_n);
-    int numlayer    = bidirection ? hy_d / 2 : hy_d;
-    int bi          = bidirection ? 2 : 1;
+    int numlayer    = bidirection == 1 ? hy_d / 2 : hy_d;
+    int bi          = bidirection == 1 ? 2 : 1;
 
     int in_stride  = in_h;
     int wei_stride = bi * 4 * hy_h;
@@ -1676,7 +1676,7 @@ void verify_backward_weights_lstm<T>::LSTMBwdWeightCPUVerify(
                               1);
             }
 
-            if(biased)
+            if(biased == 1)
             {
                 for(int h = 0; h < wei_stride; h++)
                 {
@@ -1714,7 +1714,7 @@ void verify_backward_weights_lstm<T>::LSTMBwdWeightCPUVerify(
                           1,
                           1);
 
-            if(biased)
+            if(biased == 1)
             {
                 wei_shift = wei_shift_bias + li * 2 * wei_stride;
 
@@ -1760,7 +1760,7 @@ void verify_backward_weights_lstm<T>::LSTMBwdWeightCPUVerify(
                                   1,
                                   1);
 
-                    if(biased)
+                    if(biased == 1)
                     {
                         int bias_shift = wei_shift_bias + li * 2 * wei_stride + wei_stride;
 
@@ -1798,7 +1798,7 @@ void verify_backward_weights_lstm<T>::LSTMBwdWeightCPUVerify(
                               1,
                               1);
 
-                if(biased)
+                if(biased == 1)
                 {
                     int bias_shift = wei_shift_bias + li * 2 * wei_stride + wei_stride;
 
@@ -1813,7 +1813,7 @@ void verify_backward_weights_lstm<T>::LSTMBwdWeightCPUVerify(
                 }
             }
 
-            if(bidirection)
+            if(bidirection == 1)
             {
                 if(ti == seqLength_cpu - 1)
                 {
@@ -1837,7 +1837,7 @@ void verify_backward_weights_lstm<T>::LSTMBwdWeightCPUVerify(
                                       1,
                                       1);
 
-                        if(biased)
+                        if(biased == 1)
                         {
                             int bias_shift = wei_shift_bias + li * 2 * wei_stride + wei_stride;
 
@@ -1874,7 +1874,7 @@ void verify_backward_weights_lstm<T>::LSTMBwdWeightCPUVerify(
                                       1,
                                       1);
 
-                        if(biased)
+                        if(biased == 1)
                         {
                             int bias_shift = wei_shift_bias + li * 2 * wei_stride + wei_stride;
 
@@ -1910,7 +1910,7 @@ void verify_backward_weights_lstm<T>::LSTMBwdWeightCPUVerify(
                                   1,
                                   1);
 
-                    if(biased)
+                    if(biased == 1)
                     {
                         int bias_shift = wei_shift_bias + li * 2 * wei_stride + wei_stride;
 
