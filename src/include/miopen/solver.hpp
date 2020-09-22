@@ -1357,7 +1357,7 @@ struct TunableImplicitGemmGTCDynamic_t
     int tensor_a_cluster_lengths[4];
     int tensor_b_thread_lengths[4];
     int tensor_b_cluster_lengths[4];
-    int atomic_add;
+    int gemm_k_global_split;
 
     int GetBlockSize()
     {
@@ -1371,7 +1371,7 @@ struct TunableImplicitGemmGTCDynamic_t
     std::string GetKernelName()
     {
         std::string kernel_name = std::string("igemm_");
-        kernel_name += direction + std::string("gtcx_nchw_") + precision;
+        kernel_name += direction + std::string("_gtcx_nchw_") + precision;
         kernel_name += "_bx" + std::to_string(nxb) + "_ex" + std::to_string(nxe) + "_bt" +
                        std::to_string(gemm_m_per_block) + "x" + std::to_string(gemm_n_per_block) +
                        "x" + std::to_string(gemm_k_per_block) + "_wt" +
@@ -1394,8 +1394,8 @@ struct TunableImplicitGemmGTCDynamic_t
                        std::to_string(tensor_b_cluster_lengths[1]) + "x" +
                        std::to_string(tensor_b_cluster_lengths[2]) + "x" +
                        std::to_string(tensor_b_cluster_lengths[3]);
-        if(atomic_add != 0)
-            kernel_name += std::string("_atadd");
+        if(gemm_k_global_split != 0)
+            kernel_name += std::string("_gkgs");
 
         return kernel_name;
     }
