@@ -32,8 +32,6 @@
 
 #include <cstddef>
 
-#define WORKAROUND_ISSUE_456 1
-
 namespace miopen {
 namespace solver {
 
@@ -758,7 +756,7 @@ bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ConvolutionContext
 /// \todo Fix and remove this workaround.
 /// There are failures with certain configs,
 /// see https://github.com/ROCmSoftwarePlatform/MIOpen/pull/456
-#if WORKAROUND_ISSUE_456
+#if WORKAROUND_SWDEV_251757
     (void)ctx;
     return false;
 #else
