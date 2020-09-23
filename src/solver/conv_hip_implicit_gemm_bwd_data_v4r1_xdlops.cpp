@@ -101,6 +101,8 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmABlockCopyPerformancePara
 
         // decide threadwise copy lengths
         const auto a_data_per_thread_copy_gemmm = SrcDataPerRead_GemmM;
+        if(!(a_data_per_thread_copy_gemmm > 0))
+            MIOPEN_THROW("invalid performance parameter");
         const auto tmp = a_data_per_thread_copy / a_data_per_thread_copy_gemmm;
 
         int data_per_thread_copy_gemmk     = -1;
@@ -108,13 +110,21 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmABlockCopyPerformancePara
 
         if(GemmAThreadCopyMoreGemmK)
         {
-            data_per_thread_copy_gemmk     = gcd(GemmKPerBlock, tmp);
+            data_per_thread_copy_gemmk = gcd(GemmKPerBlock, tmp);
+            if(!(data_per_thread_copy_gemmk > 0))
+                MIOPEN_THROW("invalid performance parameter");
             data_per_thread_copy_gemmkpack = tmp / data_per_thread_copy_gemmk;
+            if(!(data_per_thread_copy_gemmkpack > 0))
+                MIOPEN_THROW("invalid performance parameter");
         }
         else
         {
             data_per_thread_copy_gemmkpack = gcd(GemmKPACKSize, tmp);
-            data_per_thread_copy_gemmk     = tmp / data_per_thread_copy_gemmkpack;
+            if(!(data_per_thread_copy_gemmkpack > 0))
+                MIOPEN_THROW("invalid performance parameter");
+            data_per_thread_copy_gemmk = tmp / data_per_thread_copy_gemmkpack;
+            if(!(data_per_thread_copy_gemmk > 0))
+                MIOPEN_THROW("invalid performance parameter");
         }
 
         DstDataPerWrite_GemmKPack = gcd(DstDataPerWrite_GemmKPack, data_per_thread_copy_gemmkpack);
@@ -199,7 +209,9 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmBBlockCopyPerformancePara
         // GemmBBlockCopySrcDataPerRead_GemmN also bounded by size of threadwise copy
         SrcDataPerRead_GemmN                  = gcd(SrcDataPerRead_GemmN, b_data_per_thread_copy);
         const auto data_per_thread_copy_gemmn = SrcDataPerRead_GemmN;
-        const auto tmp                        = b_data_per_thread_copy / data_per_thread_copy_gemmn;
+        if(!(data_per_thread_copy_gemmn > 0))
+            MIOPEN_THROW("invalid performance parameter");
+        const auto tmp = b_data_per_thread_copy / data_per_thread_copy_gemmn;
 
         int data_per_thread_copy_gemmkpack = -1;
         int data_per_thread_copy_gemmk     = -1;
@@ -207,12 +219,20 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmBBlockCopyPerformancePara
         if(GemmBThreadCopyMoreGemmKPack)
         {
             data_per_thread_copy_gemmkpack = gcd(GemmKPACKSize, tmp);
-            data_per_thread_copy_gemmk     = tmp / data_per_thread_copy_gemmkpack;
+            if(!(data_per_thread_copy_gemmkpack > 0))
+                MIOPEN_THROW("invalid performance parameter");
+            data_per_thread_copy_gemmk = tmp / data_per_thread_copy_gemmkpack;
+            if(!(data_per_thread_copy_gemmk > 0))
+                MIOPEN_THROW("invalid performance parameter");
         }
         else
         {
-            data_per_thread_copy_gemmk     = gcd(GemmKPerBlock, tmp);
+            data_per_thread_copy_gemmk = gcd(GemmKPerBlock, tmp);
+            if(!(data_per_thread_copy_gemmk > 0))
+                MIOPEN_THROW("invalid performance parameter");
             data_per_thread_copy_gemmkpack = tmp / data_per_thread_copy_gemmk;
+            if(!(data_per_thread_copy_gemmkpack > 0))
+                MIOPEN_THROW("invalid performance parameter");
         }
 
         // vector write into LDS
@@ -384,13 +404,6 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsFastToBeUsedForTuning(
             return false;
     }
 
-#if WORKAROUND_SWDEV_240356
-    {
-        if(ctx.IsBfp16() && GemmMPerWave * GemmNPerWave > 64 * 64)
-            return false;
-    }
-#endif
-
     // don't need too many blocks
     {
         int gemm_m = 0;
@@ -404,11 +417,7 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsFastToBeUsedForTuning(
 
         // this the the biggest blockwise-GEMM you can do
         int max_blockwise_gemm_size =
-#if WORKAROUND_SWDEV_240356
-            gcd(128, gemm_m) * gcd(128, gemm_n);
-#else
             std::max(gcd(256, gemm_m) * gcd(128, gemm_n), gcd(128, gemm_m) * gcd(256, gemm_n));
-#endif
 
         // this is the grid size using the biggest blockwise-GEMM
         auto grid_size_max_blockwise_gemm =
