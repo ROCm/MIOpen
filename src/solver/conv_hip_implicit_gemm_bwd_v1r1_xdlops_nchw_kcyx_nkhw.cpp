@@ -753,9 +753,6 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const ConvolutionContext&
 
 bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
-/// \todo Fix and remove this workaround.
-/// There are failures with certain configs,
-/// see https://github.com/ROCmSoftwarePlatform/MIOpen/pull/456
 #if WORKAROUND_SWDEV_251757
     (void)ctx;
     return false;
