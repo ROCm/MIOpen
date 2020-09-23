@@ -343,7 +343,7 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
     int max_block_size = 0;
 
     // i=log2(gemm_m_per_block*gemm_n_per_block)  to find largest kernel
-    // switch l r to get differnet kernel size like 256*64 or 64*256
+    // switch l and r to get differnet kernel size like 256*64 or 64*256
     for(i = 15; i > 7; i--)
     {
         int r, l;
