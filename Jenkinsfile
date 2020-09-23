@@ -540,7 +540,6 @@ pipeline {
                     environment{
                         cmd = """
                             ulimit -c unlimited
-                            rm test/conv3d.cpp
                             rm -rf build
                             mkdir build
                             cd build
