@@ -754,10 +754,9 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const ConvolutionContext&
 bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
 #if WORKAROUND_SWDEV_251757
-    (void)ctx;
     if(miopen::HipCompilerVersion() >= external_tool_version_t{3, 7, 0})
         return false;
-#else
+#endif
     if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
         return false;
 
@@ -785,7 +784,6 @@ bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ConvolutionContext
     std::tie(gemm_g, gemm_m, gemm_n, gemm_k_total) = CalculateGemmSize(ctx);
 
     return IsValidGridGemmXdlops(gemm_m, gemm_n, gemm_k_total);
-#endif
 }
 
 int ConvHipImplicitGemmBwdDataV1R1Xdlops::RunAndMeasureSolution(const miopen::Handle& profile_h,
