@@ -101,7 +101,14 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmABlockCopyPerformancePara
 
         // decide threadwise copy lengths
         const auto a_data_per_thread_copy_gemmm = SrcDataPerRead_GemmM;
-        const auto tmp = a_data_per_thread_copy / a_data_per_thread_copy_gemmm;
+        if(a_data_per_thread_copy_gemmm != 0)
+        {
+            const auto tmp = a_data_per_thread_copy / a_data_per_thread_copy_gemmm;
+        }
+        else
+        {
+            MIOPEN_THROW("invalid performance parameter");
+        }
 
         int data_per_thread_copy_gemmk     = -1;
         int data_per_thread_copy_gemmkpack = -1;
