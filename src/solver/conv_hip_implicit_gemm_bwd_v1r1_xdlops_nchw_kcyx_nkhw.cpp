@@ -755,7 +755,8 @@ bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ConvolutionContext
 {
 #if WORKAROUND_SWDEV_251757
     (void)ctx;
-    return false;
+    if(miopen::HipCompilerVersion() >= external_tool_version_t{3, 7, 0})
+        return false;
 #else
     if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
         return false;
