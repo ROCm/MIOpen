@@ -32,6 +32,8 @@
 
 #include <cstddef>
 
+#define WORKAROUND_ISSUE_456 1
+
 namespace miopen {
 namespace solver {
 
@@ -753,6 +755,13 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const ConvolutionContext&
 
 bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
+/// \todo Fix and remove this workaround.
+/// There are failures with certain configs,
+/// see https://github.com/ROCmSoftwarePlatform/MIOpen/pull/456
+#if WORKAROUND_ISSUE_456
+    (void)ctx;
+    return false;
+#else
     if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
         return false;
 
@@ -780,6 +789,7 @@ bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ConvolutionContext
     std::tie(gemm_g, gemm_m, gemm_n, gemm_k_total) = CalculateGemmSize(ctx);
 
     return IsValidGridGemmXdlops(gemm_m, gemm_n, gemm_k_total);
+#endif
 }
 
 int ConvHipImplicitGemmBwdDataV1R1Xdlops::RunAndMeasureSolution(const miopen::Handle& profile_h,
