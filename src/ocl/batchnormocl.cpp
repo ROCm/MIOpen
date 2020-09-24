@@ -953,11 +953,19 @@ void BatchNormBackward(Handle& handle,
             }
             else
             {
-                variant    = 0;
-                xlocalsize = 256;
-                xgridsize  = 256 * c;
-                ldsgcn     = xlocalsize / 64;
-                ldsnogcn   = xlocalsize;
+                variant = 0;
+                if(bfp32parm == false)
+                {
+                    xlocalsize = 256;
+                    xgridsize  = 256 * c;
+                }
+                else
+                {
+                    xlocalsize = 1024;
+                    xgridsize  = 1024 * c;
+                }
+                ldsgcn   = xlocalsize / 64;
+                ldsnogcn = xlocalsize;
             }
         }
         //*************************************************************************************************
@@ -983,6 +991,7 @@ void BatchNormBackward(Handle& handle,
             ldsgcn     = xlocalsize / 64;
             ldsnogcn   = xlocalsize;
         }
+
         std::string algo_name = "miopenBatchNormBackwardPropSpatial";
         std::string network_config =
             "variant" + std::to_string(variant) + "gx" + std::to_string(xgridsize) + "n" +
