@@ -1,5 +1,5 @@
-#ifndef CK_GRIDWISE_GROUP_CONVOLUTION_FORWARD_IMPLICIT_GEMM_V4R4_XDLOPS_GNCHW_GKCYX_GNKHW_UNIVERSAL_HPP
-#define CK_GRIDWISE_GROUP_CONVOLUTION_FORWARD_IMPLICIT_GEMM_V4R4_XDLOPS_GNCHW_GKCYX_GNKHW_UNIVERSAL_HPP
+#ifndef CK_GRIDWISE_GROUP_CONVOLUTION_FORWARD_IMPLICIT_GEMM_V4R4_XDLOPS_GNCHW_GKCYX_GNKHW_PADDED_GEMM_HPP
+#define CK_GRIDWISE_GROUP_CONVOLUTION_FORWARD_IMPLICIT_GEMM_V4R4_XDLOPS_GNCHW_GKCYX_GNKHW_PADDED_GEMM_HPP
 
 #include "common_header.hpp"
 #include "tensor_descriptor.hpp"
@@ -46,7 +46,7 @@ template <index_t GridSize,
           index_t GemmNPad,
           index_t GemmKPad,
           WorkgroupScheduleOrder WorkgroupSchdOrder>
-struct GridwiseConvolutionForwardImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw_universal
+struct GridwiseConvolutionForwardImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw_padded_gemm
 {
     __device__ void Run(const ABFloat* const __restrict__ p_in_global,
                         const ABFloat* const __restrict__ p_wei_global,

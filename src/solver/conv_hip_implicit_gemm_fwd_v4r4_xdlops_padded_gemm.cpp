@@ -896,10 +896,10 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::GetSolution(
     assert(config.IsReallyValid(ctx));
 
     construction_parameters.kernel_file =
-        "gridwise_convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw_universal.cpp";
+        "gridwise_convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw_padded_gemm.cpp";
 
     construction_parameters.kernel_name =
-        "gridwise_convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw_universal";
+        "gridwise_convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw_padded_gemm";
 
     int grid_size  = 0;
     int block_size = 0;
