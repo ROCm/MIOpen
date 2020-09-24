@@ -1015,8 +1015,8 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops
     std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
 };
 
-struct PerformanceImplicitGemmForwardV4R4Xdlops_Universal
-    : Serializable<PerformanceImplicitGemmForwardV4R4Xdlops_Universal>
+struct PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm
+    : Serializable<PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm>
 {
     int GemmMPerBlock;
     int GemmNPerBlock;
@@ -1024,18 +1024,18 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops_Universal
     int GemmMPerWave;
     int GemmNPerWave;
     int GemmKPack;
-    int Mfactor;
-    int Nfactor;
-    int Kfactor;
+    int GemmMFactor;
+    int GemmNFactor;
+    int GemmKFactor;
     bool GemmAThreadCopyMoreGemmK;
     bool GemmBThreadCopyMoreGemmKPack;
     int GemmBThreadDataPerRead_GemmN;
 
-    PerformanceImplicitGemmForwardV4R4Xdlops_Universal(
+    PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm(
         int, int, int, int, int, int, int, int, int, bool, bool, int);
-    PerformanceImplicitGemmForwardV4R4Xdlops_Universal();
-    PerformanceImplicitGemmForwardV4R4Xdlops_Universal(bool)
-        : PerformanceImplicitGemmForwardV4R4Xdlops_Universal()
+    PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm();
+    PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm(bool)
+        : PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm()
     {
     }
 
@@ -1048,15 +1048,15 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops_Universal
         f(self.GemmMPerWave, "GemmMPerWave");
         f(self.GemmNPerWave, "GemmNPerWave");
         f(self.GemmKPack, "GemmKPack");
-        f(self.Mfactor, "Mfactor");
-        f(self.Nfactor, "Nfactor");
-        f(self.Kfactor, "Kfactor");
+        f(self.GemmMFactor, "GemmMFactor");
+        f(self.GemmNFactor, "GemmNFactor");
+        f(self.GemmKFactor, "GemmKFactor");
         f(self.GemmAThreadCopyMoreGemmK, "GemmAThreadCopyMoreGemmK");
         f(self.GemmBThreadCopyMoreGemmKPack, "GemmBThreadCopyMoreGemmKPack");
         f(self.GemmBThreadDataPerRead_GemmN, "GemmBThreadDataPerRead_GemmN");
     }
 
-    bool operator==(const PerformanceImplicitGemmForwardV4R4Xdlops_Universal& other) const;
+    bool operator==(const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm& other) const;
     std::string ToString() const;
 
     void EuristicInit(const ConvolutionContext& ctx);
@@ -1166,21 +1166,21 @@ struct ConvHipImplicitGemmForwardV4R4Xdlops : SolverBase<ConvolutionContext>
                               float& elapsed_time) const;
 };
 
-struct ConvHipImplicitGemmForwardV4R4Xdlops_Universal : SolverBase<ConvolutionContext>
+struct ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm : SolverBase<ConvolutionContext>
 {
     static std::tuple<int, int, int, int, int, int, int>
-    CalculateGemmSize(const ConvolutionContext& ctx, int Mfactor, int Nfactor, int Kfactor);
-    PerformanceImplicitGemmForwardV4R4Xdlops_Universal
+    CalculateGemmSize(const ConvolutionContext& ctx, int GemmMFactor, int GemmNFactor, int GemmKFactor);
+    PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm
     GetPerformanceConfig(const ConvolutionContext& ctx) const;
     bool
     IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemmForwardV4R4Xdlops_Universal& c) const;
+                             const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm& c) const;
     bool IsApplicable(const ConvolutionContext& ctx) const;
     ConvSolution GetSolution(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemmForwardV4R4Xdlops_Universal& config,
+                             const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm& config,
                              bool disableConfigOverrideFromEnv = false) const;
 
-    PerformanceImplicitGemmForwardV4R4Xdlops_Universal Search(const ConvolutionContext&) const;
+    PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm Search(const ConvolutionContext&) const;
     int RunAndMeasureSolution(const miopen::Handle& profile_h,
                               ConstData_t bot_buf,
                               Data_t top_buf,

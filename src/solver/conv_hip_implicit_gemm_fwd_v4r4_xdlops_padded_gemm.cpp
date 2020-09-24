@@ -41,24 +41,24 @@ MIOPEN_DECLARE_ENV_VAR(
 namespace miopen {
 namespace solver {
 
-PerformanceImplicitGemmForwardV4R4Xdlops_Universal::
-    PerformanceImplicitGemmForwardV4R4Xdlops_Universal()
-    : PerformanceImplicitGemmForwardV4R4Xdlops_Universal::
-          PerformanceImplicitGemmForwardV4R4Xdlops_Universal(
+PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::
+    PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm()
+    : PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::
+          PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm(
               4, 4, 1, 4, 4, 1, 16, 16, 16, false, false, 1)
 {
 }
 
-PerformanceImplicitGemmForwardV4R4Xdlops_Universal::
-    PerformanceImplicitGemmForwardV4R4Xdlops_Universal(int GemmMPerBlock_,
+PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::
+    PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm(int GemmMPerBlock_,
                                                        int GemmNPerBlock_,
                                                        int GemmKPerBlock_,
                                                        int GemmMPerWave_,
                                                        int GemmNPerWave_,
                                                        int GemmKPack_,
-                                                       int Mfactor_,
-                                                       int Nfactor_,
-                                                       int Kfactor_,
+                                                       int GemmMFactor_,
+                                                       int GemmNFactor_,
+                                                       int GemmKFactor_,
                                                        bool GemmAThreadCopyMoreGemmK_,
                                                        bool GemmBThreadCopyMoreGemmKPack_,
                                                        int GemmBThreadDataPerRead_GemmN_)
@@ -68,17 +68,17 @@ PerformanceImplicitGemmForwardV4R4Xdlops_Universal::
       GemmMPerWave(GemmMPerWave_),
       GemmNPerWave(GemmNPerWave_),
       GemmKPack(GemmKPack_),
-      Mfactor(Mfactor_),
-      Nfactor(Nfactor_),
-      Kfactor(Kfactor_),
+      GemmMFactor(GemmMFactor_),
+      GemmNFactor(GemmNFactor_),
+      GemmKFactor(GemmKFactor_),
       GemmAThreadCopyMoreGemmK(GemmAThreadCopyMoreGemmK_),
       GemmBThreadCopyMoreGemmKPack(GemmBThreadCopyMoreGemmKPack_),
       GemmBThreadDataPerRead_GemmN(GemmBThreadDataPerRead_GemmN_)
 {
 }
 
-bool PerformanceImplicitGemmForwardV4R4Xdlops_Universal::
-operator==(const PerformanceImplicitGemmForwardV4R4Xdlops_Universal& other) const
+bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::
+operator==(const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm& other) const
 {
     // clang-format off
     return GemmMPerBlock == other.GemmMPerBlock
@@ -87,16 +87,16 @@ operator==(const PerformanceImplicitGemmForwardV4R4Xdlops_Universal& other) cons
         && GemmMPerWave == other.GemmMPerWave
         && GemmNPerWave == other.GemmNPerWave
         && GemmKPack == other.GemmKPack
-        && Mfactor == other.Mfactor
-        && Nfactor == other.Nfactor
-        && Kfactor == other.Kfactor
+        && GemmMFactor == other.GemmMFactor
+        && GemmNFactor == other.GemmNFactor
+        && GemmKFactor == other.GemmKFactor
         && GemmAThreadCopyMoreGemmK  == other.GemmAThreadCopyMoreGemmK
         && GemmBThreadCopyMoreGemmKPack  == other.GemmBThreadCopyMoreGemmKPack
         && GemmBThreadDataPerRead_GemmN  == other.GemmBThreadDataPerRead_GemmN;
     // clang-format on
 }
 
-bool PerformanceImplicitGemmForwardV4R4Xdlops_Universal::SetNextValue()
+bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::SetNextValue()
 {
     do
     {
@@ -130,9 +130,9 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Universal::SetNextValue()
     return true;
 }
 
-void PerformanceImplicitGemmForwardV4R4Xdlops_Universal::EuristicInit(const ConvolutionContext& ctx)
+void PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::EuristicInit(const ConvolutionContext& ctx)
 {
-    PerformanceImplicitGemmForwardV4R4Xdlops_Universal tmp;
+    PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm tmp;
 
     // loop over certain ranges of tuning parameter
     auto get_euristic_config = [&](auto is_valid_func) {
@@ -263,14 +263,14 @@ void PerformanceImplicitGemmForwardV4R4Xdlops_Universal::EuristicInit(const Conv
     MIOPEN_LOG_I(ToString());
 }
 
-std::string PerformanceImplicitGemmForwardV4R4Xdlops_Universal::ToString() const
+std::string PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::ToString() const
 {
     std::ostringstream ss;
     Serialize(ss);
     return ss.str();
 }
 
-std::tuple<int, bool> PerformanceImplicitGemmForwardV4R4Xdlops_Universal::CalculateBlockSize() const
+std::tuple<int, bool> PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateBlockSize() const
 {
     int block_size = 0;
 
@@ -290,7 +290,7 @@ std::tuple<int, bool> PerformanceImplicitGemmForwardV4R4Xdlops_Universal::Calcul
     return std::make_tuple(block_size, true);
 }
 
-std::tuple<int, bool> PerformanceImplicitGemmForwardV4R4Xdlops_Universal::CalculateGridSize(
+std::tuple<int, bool> PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGridSize(
     const ConvolutionContext& ctx) const
 {
     int GridSize = 0;
@@ -302,8 +302,8 @@ std::tuple<int, bool> PerformanceImplicitGemmForwardV4R4Xdlops_Universal::Calcul
         int gemm_n = -1;
 
         std::tie(gemm_g, gemm_m, gemm_n, std::ignore, std::ignore, std::ignore, std::ignore) =
-            ConvHipImplicitGemmForwardV4R4Xdlops_Universal::CalculateGemmSize(
-                ctx, Mfactor, Nfactor, Kfactor);
+            ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmSize(
+                ctx, GemmMFactor, GemmNFactor, GemmKFactor);
 
         if(!(gemm_m % GemmMPerBlock == 0 && gemm_n % GemmNPerBlock == 0))
             MIOPEN_THROW("invalid performance parameter");
@@ -319,7 +319,7 @@ std::tuple<int, bool> PerformanceImplicitGemmForwardV4R4Xdlops_Universal::Calcul
 }
 
 std::tuple<int, int, int, int, int, bool>
-PerformanceImplicitGemmForwardV4R4Xdlops_Universal::CalculateGemmABlockCopyPerformanceParameters(
+PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmABlockCopyPerformanceParameters(
     const ConvolutionContext& ctx) const
 {
     // A tensor shape [GemmG, GemmK, GemmM, GemmKPack]
@@ -405,7 +405,7 @@ PerformanceImplicitGemmForwardV4R4Xdlops_Universal::CalculateGemmABlockCopyPerfo
 }
 
 std::tuple<int, int, int, int, int, bool>
-PerformanceImplicitGemmForwardV4R4Xdlops_Universal::CalculateGemmBBlockCopyPerformanceParameters(
+PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmBBlockCopyPerformanceParameters(
     const ConvolutionContext& ctx) const
 {
     // B tensor shape [GemmG, GemmK, GemmN, GemmKPack]
@@ -551,7 +551,7 @@ PerformanceImplicitGemmForwardV4R4Xdlops_Universal::CalculateGemmBBlockCopyPerfo
 }
 
 std::tuple<std::size_t, bool>
-PerformanceImplicitGemmForwardV4R4Xdlops_Universal::CalculateLdsNumberOfByte(
+PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateLdsNumberOfByte(
     const ConvolutionContext& ctx) const
 {
     const auto a_block_space = GemmKPerBlock * GemmMPerBlock * GemmKPack;
@@ -564,7 +564,7 @@ PerformanceImplicitGemmForwardV4R4Xdlops_Universal::CalculateLdsNumberOfByte(
 }
 
 // Used by IsReallyValid()
-bool PerformanceImplicitGemmForwardV4R4Xdlops_Universal::IsValidValue() const
+bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsValidValue() const
 {
     // clang-format off
     return IsTwoPower<4, 256>(GemmMPerBlock)
@@ -578,7 +578,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Universal::IsValidValue() const
 
 // Used by EuristicInit() and GenericSearch
 // Only return false if a performance config will violate requirements given by kernel algorithm
-bool PerformanceImplicitGemmForwardV4R4Xdlops_Universal::IsReallyValid(
+bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsReallyValid(
     const ConvolutionContext& ctx) const
 {
     if(!IsValidValue())
@@ -597,8 +597,8 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Universal::IsReallyValid(
         int gemm_k_total = -1;
 
         std::tie(std::ignore, gemm_m, gemm_n, gemm_k_total, std::ignore, std::ignore, std::ignore) =
-            ConvHipImplicitGemmForwardV4R4Xdlops_Universal::CalculateGemmSize(
-                ctx, Mfactor, Nfactor, Kfactor);
+            ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmSize(
+                ctx, GemmMFactor, GemmNFactor, GemmKFactor);
 
         if(gemm_k_total % GemmKPack != 0)
             return false;
@@ -638,7 +638,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Universal::IsReallyValid(
 // Used by GenericSearch, not used by EuristicInit
 // Return false if a performance config is known to be sub-optimal, comparing to other performance
 // config inside tuning range
-bool PerformanceImplicitGemmForwardV4R4Xdlops_Universal::IsFastToBeUsedForTuning(
+bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsFastToBeUsedForTuning(
     const ConvolutionContext& ctx) const
 {
     // somehow, 128x128 wave-wise GEMM tend to spill register
@@ -661,8 +661,8 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Universal::IsFastToBeUsedForTuning
         int gemm_n = 0;
 
         std::tie(std::ignore, gemm_m, gemm_n, std::ignore, std::ignore, std::ignore, std::ignore) =
-            ConvHipImplicitGemmForwardV4R4Xdlops_Universal::CalculateGemmSize(
-                ctx, Mfactor, Nfactor, Kfactor);
+            ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmSize(
+                ctx, GemmMFactor, GemmNFactor, GemmKFactor);
 
         // this is grid size using current blockwise-GEMM
         const int grid_size = (gemm_m * gemm_n) / (GemmMPerBlock * GemmNPerBlock);
@@ -724,8 +724,8 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Universal::IsFastToBeUsedForTuning
         int gemm_n = 0;
 
         std::tie(std::ignore, gemm_m, gemm_n, std::ignore, std::ignore, std::ignore, std::ignore) =
-            ConvHipImplicitGemmForwardV4R4Xdlops_Universal::CalculateGemmSize(
-                ctx, Mfactor, Nfactor, Kfactor);
+            ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmSize(
+                ctx, GemmMFactor, GemmNFactor, GemmKFactor);
 
         if(GemmMPerBlock > 2 * GemmNPerBlock)
         {
@@ -827,25 +827,25 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Universal::IsFastToBeUsedForTuning
 // Return false, if you don't want to this to be included in tuning range used by generic search
 // A performance config may still be valid w.r.t algorithm correctness, even when IsValid() return
 // false
-bool PerformanceImplicitGemmForwardV4R4Xdlops_Universal::IsValid(
+bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsValid(
     const ConvolutionContext& ctx) const
 {
     return IsReallyValid(ctx) && IsFastToBeUsedForTuning(ctx);
 }
 
 // Used by GenericSearch, not used by EuristicInit
-bool ConvHipImplicitGemmForwardV4R4Xdlops_Universal::IsValidPerformanceConfig(
+bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsValidPerformanceConfig(
     const ConvolutionContext& ctx,
-    const PerformanceImplicitGemmForwardV4R4Xdlops_Universal& c) const
+    const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm& c) const
 {
     return c.IsReallyValid(ctx);
 }
 
 std::tuple<int, int, int, int, int, int, int>
-ConvHipImplicitGemmForwardV4R4Xdlops_Universal::CalculateGemmSize(const ConvolutionContext& ctx,
-                                                                  int Mfactor,
-                                                                  int Nfactor,
-                                                                  int Kfactor)
+ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmSize(const ConvolutionContext& ctx,
+                                                                  int GemmMFactor,
+                                                                  int GemmNFactor,
+                                                                  int GemmKFactor)
 {
     const auto g  = ConvolutionContextInterpreter::GetGroupCountG(ctx);
     const auto n  = ConvolutionContextInterpreter::GetBatchN(ctx);
@@ -860,11 +860,11 @@ ConvHipImplicitGemmForwardV4R4Xdlops_Universal::CalculateGemmSize(const Convolut
     const auto c_per_group = c / g;
 
     const auto gemm_m_extra =
-        (k_per_group % (Mfactor) == 0) ? 0 : (Mfactor - (k_per_group % Mfactor));
+        (k_per_group % (GemmMFactor) == 0) ? 0 : (GemmMFactor - (k_per_group % GemmMFactor));
     const auto gemm_n_extra =
-        (n * ho * wo % Nfactor == 0) ? 0 : (Nfactor - ((n * ho * wo) % Nfactor));
+        (n * ho * wo % GemmNFactor == 0) ? 0 : (GemmNFactor - ((n * ho * wo) % GemmNFactor));
     const auto gemm_k_extra =
-        ((c_per_group * y * x) % Kfactor == 0) ? 0 : (Kfactor - ((c_per_group * y * x) % Kfactor));
+        ((c_per_group * y * x) % GemmKFactor == 0) ? 0 : (GemmKFactor - ((c_per_group * y * x) % GemmKFactor));
 
     const auto gemm_g       = g;
     const auto gemm_m       = k_per_group + gemm_m_extra;
@@ -875,19 +875,19 @@ ConvHipImplicitGemmForwardV4R4Xdlops_Universal::CalculateGemmSize(const Convolut
         gemm_g, gemm_m, gemm_n, gemm_k_total, gemm_m_extra, gemm_n_extra, gemm_k_extra);
 }
 
-PerformanceImplicitGemmForwardV4R4Xdlops_Universal
-ConvHipImplicitGemmForwardV4R4Xdlops_Universal::GetPerformanceConfig(
+PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm
+ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::GetPerformanceConfig(
     const ConvolutionContext& ctx) const
 {
-    PerformanceImplicitGemmForwardV4R4Xdlops_Universal config;
+    PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm config;
     config.EuristicInit(ctx);
     MIOPEN_LOG_I(config.ToString());
     return config;
 }
 
-ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops_Universal::GetSolution(
+ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::GetSolution(
     const ConvolutionContext& ctx,
-    const PerformanceImplicitGemmForwardV4R4Xdlops_Universal& config,
+    const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm& config,
     bool) const
 {
     ConvSolution result;
@@ -951,8 +951,8 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops_Universal::GetSolution(
              gemm_m_extra,
              gemm_n_extra,
              gemm_k_extra) =
-        ConvHipImplicitGemmForwardV4R4Xdlops_Universal::CalculateGemmSize(
-            ctx, config.Mfactor, config.Nfactor, config.Kfactor);
+        ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmSize(
+            ctx, config.GemmMFactor, config.GemmNFactor, config.GemmKFactor);
 
     // clang-format off
     construction_parameters.comp_options =
@@ -993,9 +993,9 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops_Universal::GetSolution(
         std::string(" -DCK_PARAM_DEPENDENT_GEMM_B_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_KPACK=") + std::to_string(GemmBBlockCopyClusterLengths_GemmKPack) +
         std::string(" -DCK_PARAM_DEPENDENT_GEMM_B_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_N=") + std::to_string(GemmBBlockCopySrcDataPerRead_GemmN) +
         std::string(" -DCK_PARAM_DEPENDENT_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK=") + std::to_string(GemmBBlockCopyDstDataPerWrite_GemmKPack) +
-        std::string(" -DCK_EXTRA_M=") + std::to_string(gemm_m_extra) +
-        std::string(" -DCK_EXTRA_N=") + std::to_string(gemm_n_extra) +
-        std::string(" -DCK_EXTRA_K=") + std::to_string(gemm_k_extra) +
+        std::string(" -DCK_GEMM_M_PAD=") + std::to_string(gemm_m_extra) +
+        std::string(" -DCK_GEMM_N_PAD=") + std::to_string(gemm_n_extra) +
+        std::string(" -DCK_GEMM_K_PAD=") + std::to_string(gemm_k_extra) +
         std::string(" -DCK_USE_AMD_XDLOPS=") + std::to_string(IsXdlopsSupport(ctx) ? 1 : 0) +
         std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + std::to_string(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}) ? 1 : 0) +
         std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}) ? '1' : '0') +
@@ -1010,7 +1010,7 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops_Universal::GetSolution(
     return result;
 }
 
-int ConvHipImplicitGemmForwardV4R4Xdlops_Universal::RunAndMeasureSolution(
+int ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::RunAndMeasureSolution(
     const miopen::Handle& profile_h,
     ConstData_t bot_buf,
     Data_t top_buf,
@@ -1027,7 +1027,7 @@ int ConvHipImplicitGemmForwardV4R4Xdlops_Universal::RunAndMeasureSolution(
         profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
 }
 
-bool ConvHipImplicitGemmForwardV4R4Xdlops_Universal::IsApplicable(
+bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
     const ConvolutionContext& ctx) const
 {
     if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
@@ -1070,14 +1070,14 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Universal::IsApplicable(
 
     // this particular EuristicInit is so comprehensive, that if it cannot predict a valid
     // performance config, the problem is probably not applicable
-    PerformanceImplicitGemmForwardV4R4Xdlops_Universal config;
+    PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm config;
     config.EuristicInit(ctx);
 
     return config.IsReallyValid(ctx);
 }
 
-PerformanceImplicitGemmForwardV4R4Xdlops_Universal
-ConvHipImplicitGemmForwardV4R4Xdlops_Universal::Search(const ConvolutionContext& ctx) const
+PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm
+ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::Search(const ConvolutionContext& ctx) const
 
 {
     return GenericSearchFwd(*this, ctx);
