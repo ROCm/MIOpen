@@ -145,10 +145,10 @@ GetImplicitGemmGtcDynamicBwdTunablesList()
 * Return with true if kernel is found, and its kernel_name, block_size, grid_size as well.
 * Return with false if no kernel can be executed with input ConvolutionContext
 */
-static inline bool FindImplicitGemmGtcDynamicBwdKernel(const ConvolutionContext& ctx,
-                                                       std::string& kernel_name,
-                                                       int& block_size,
-                                                       int& grid_size)
+static bool FindImplicitGemmGtcDynamicBwdKernel(const ConvolutionContext& ctx,
+                                                std::string& kernel_name,
+                                                int& block_size,
+                                                int& grid_size)
 {
     auto tunables  = GetImplicitGemmGtcDynamicBwdTunablesList();
     auto pConfig   = tunables.begin();
@@ -202,8 +202,7 @@ static inline bool FindImplicitGemmGtcDynamicBwdKernel(const ConvolutionContext&
                 continue;
             }
         }
-        if((gemm_n % pConfig->gemm_n_per_block != 0) || (gemm_m % pConfig->gemm_m_per_block != 0) ||
-           (k % pConfig->gemm_k_per_block != 0))
+        if((gemm_n % pConfig->gemm_n_per_block != 0) || (gemm_m % pConfig->gemm_m_per_block != 0))
         {
             continue;
         }
@@ -250,10 +249,6 @@ static inline bool FindImplicitGemmGtcDynamicBwdKernel(const ConvolutionContext&
                     integer_divide_ceil(gemm_n, pConfig->gemm_n_per_block);
         return true;
     }
-    if(pConfig == tunables.end())
-        MIOPEN_THROW(
-            miopenStatusInternalError,
-            "no solution found in igemm gtc dynamic bwd, should call IsApplicable() first.");
     return false;
 }
 
