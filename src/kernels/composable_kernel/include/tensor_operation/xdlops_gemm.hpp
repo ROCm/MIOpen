@@ -1030,6 +1030,8 @@ struct XdlopsGemm_t
         __device__ static constexpr index_t N1() { return mfma_type.num_output_blks; }
         __device__ static constexpr index_t N0() { return mfma_type.num_threads_blk; }
 
+        __device__ static constexpr auto GetMfmaType() { return mfma_type; }
+
         __device__ static MatrixIndex GetBeginOfThreadBlk(index_t i)
         {
             const index_t xdlops_i = i / GetNumBlksPerXdlops();
