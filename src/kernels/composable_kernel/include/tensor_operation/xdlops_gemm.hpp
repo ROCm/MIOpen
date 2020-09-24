@@ -1081,7 +1081,7 @@ struct XdlopsGemm_t
             return mfma_type.wave_size * sizeof(AccFloat) * mfma_type.group_size;
         }
 
-        template <index_t MRepeats_, index_t NRepeats_, class AccFloat, class CFloat>
+        template <class AccFloat, class CFloat>
         __device__ CFloat OutputShfl(AccFloat* lds_buff, CFloat p_c_thread)
         {
             const index_t thread_id = get_thread_local_1d_id();
@@ -1097,7 +1097,7 @@ struct XdlopsGemm_t
             auto reg_c = p_c_thread.n;
 
 #pragma unroll
-            for(index_t i = 0; i < GetNumBlks() * MRepeats_ * NRepeats_; ++i)
+            for(index_t i = 0; i < GetNumBlks(); ++i)
             {
 #pragma unroll
                 for(index_t j = 0; j < mfma_type.num_groups_blk; ++j)
