@@ -453,43 +453,7 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsFastToBeUsedForTuning(
             return false;
         }
     }
-    /*3x3 should use these configs
-    // avoid skinny blockwise GEMM whenever possible
-    {
-        int gemm_m = 0;
-        int gemm_n = 0;
 
-        std::tie(std::ignore, gemm_m, gemm_n, std::ignore) =
-            ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateGemmSize(ctx, 0);
-
-        if(GemmMPerBlock > 2 * GemmNPerBlock)
-        {
-            if(gemm_n % (2 * GemmNPerBlock) == 0)
-                return false;
-        }
-
-        if(GemmNPerBlock > 2 * GemmMPerBlock)
-        {
-            if(gemm_m % (2 * GemmMPerBlock) == 0)
-                return false;
-        }
-    }
-
-    // avoid skinny wavewise GEMM whenever possible
-    {
-        if(GemmMPerWave > 2 * GemmNPerWave)
-        {
-            if(GemmNPerBlock % (2 * GemmNPerWave) == 0)
-                return false;
-        }
-
-        if(GemmNPerWave > 2 * GemmMPerWave)
-        {
-            if(GemmMPerBlock % (2 * GemmMPerWave) == 0)
-                return false;
-        }
-    }
-    */
     // each thread should not too much data
     {
         const int block_size = (GemmMPerBlock / GemmMPerWave) * (GemmNPerBlock / GemmNPerWave) * 64;
