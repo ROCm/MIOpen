@@ -1070,17 +1070,10 @@ struct XdlopsGemm_t
 
         __device__ static constexpr index_t GetBlkSize() { return mfma_type.num_regs_blk; }
 
-        __device__ static constexpr index_t GetSize()
-        {
-            return MPerXdlops * NPerXdlops / mfma_type.wave_size;
-        }
-
         __device__ static constexpr index_t GetNumBlks()
         {
             return GetNumBlksPerXdlops() * MRepeats * NRepeats;
         }
-
-        __device__ static constexpr index_t GetNum() { return MRepeats * NRepeats; }
 
         template <class AccFloat>
         __device__ static constexpr index_t GetShflBuffSize()
@@ -1088,7 +1081,7 @@ struct XdlopsGemm_t
             return mfma_type.wave_size * sizeof(AccFloat) * mfma_type.group_size;
         }
 
-        template <class AccFloat, class CFloat>
+        template <index_t MRepeats_, index_t NRepeats_, class AccFloat, class CFloat>
         __device__ CFloat OutputShfl(AccFloat* lds_buff, CFloat p_c_thread)
         {
             const index_t thread_id = get_thread_local_1d_id();
@@ -1104,7 +1097,7 @@ struct XdlopsGemm_t
             auto reg_c = p_c_thread.n;
 
 #pragma unroll
-            for(index_t i = 0; i < GetNumBlks(); ++i)
+            for(index_t i = 0; i < GetNumBlks() * MRepeats_ * NRepeats_; ++i)
             {
 #pragma unroll
                 for(index_t j = 0; j < mfma_type.num_groups_blk; ++j)

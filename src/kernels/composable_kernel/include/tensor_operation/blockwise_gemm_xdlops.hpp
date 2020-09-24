@@ -56,7 +56,6 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
 
     __device__ constexpr auto GetOutputLayout() const { return XdlopsGemm.GetOutputLayout(); }
 
-#if CK_WORKAROUND_SWDEV_241664
     template <index_t MRepeats_ = MRepeats, index_t NRepeats_ = NRepeats>
     __device__ constexpr auto CreateOutputVecZero() const;
 
@@ -78,10 +77,10 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
         return XdlopsGemm.GetOutputLayout().CreateOutputVecZero();
     }
 #else
-    __device__ constexpr auto CreateOutputVecZero() const
-    {
-        return XdlopsGemm.GetOutputLayout().CreateOutputVecZero();
-    }
+__device__ constexpr auto CreateOutputVecZero() const
+{
+    return XdlopsGemm.GetOutputLayout().CreateOutputVecZero();
+}
 #endif
 
     __device__ constexpr auto GetNumBlks() const
@@ -92,6 +91,15 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
         return XdlopsGemm.GetOutputLayout().GetNumBlks();
 #endif
     }
+
+    template <class AccFloat, class FloatC>
+    __device__ constexpr auto OutputShfl(AccFloat* lds_buff, FloatC p_c_thread) const
+    {
+        return XdlopsGemm.GetOutputLayout().template OutputShfl<MRepeats, NRepeats>(lds_buff,
+                                                                                    p_c_thread);
+    }
+
+#if CK_WORKAROUND_SWDEV_241664
 
     __device__ constexpr auto GetBlkSize() const
     {
