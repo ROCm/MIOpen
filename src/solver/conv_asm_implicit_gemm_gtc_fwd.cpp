@@ -441,7 +441,7 @@ static inline bool FindImplicitGemmGtcDynamicFwdKernel(const ConvolutionContext&
                 continue;
             }
         };
-        if((gemm_n % pConfig->gemm_n_per_block != 0) || (gemm_m % pConfig->gemm_m_per_block != 0) || (gemm_k % pConfig->gemm_k_per_block != 0)) 
+        if((gemm_n % pConfig->gemm_n_per_block != 0) || (gemm_m % pConfig->gemm_m_per_block != 0) || (gemm_k % pConfig->gemm_k_per_block != 0))
 	{
             continue;
         };
@@ -453,7 +453,7 @@ static inline bool FindImplicitGemmGtcDynamicFwdKernel(const ConvolutionContext&
 
         if(n % (pConfig->gemm_n_per_block / pConfig->nxb) != 0)
 	{
-            continue;	
+            continue;
         };
 
         if( (ho * wo) % pConfig->nxb != 0)
@@ -473,16 +473,16 @@ static inline bool FindImplicitGemmGtcDynamicFwdKernel(const ConvolutionContext&
 
     if(pConfig != tunables.end())
     {
-        if ( p_kernel_name )
-	     *p_kernel_name = pConfig->GetKernelName(); 
+        if ( p_kernel_name != nullptr )
+	     *p_kernel_name = pConfig->GetKernelName();
 
-        if ( p_block_size ) { 
-	     *p_block_size = pConfig->GetBlockSize(); 
+        if ( p_block_size != nullptr ) {
+	     *p_block_size = pConfig->GetBlockSize();
         }; 	
 
-        if ( p_grid_size ) {
-	     *p_grid_size = (gemm_m / pConfig->gemm_m_per_block) * (gemm_n / pConfig->gemm_n_per_block); 
-	}; 
+        if ( p_grid_size != nullptr ) {
+	     *p_grid_size = (gemm_m / pConfig->gemm_m_per_block) * (gemm_n / pConfig->gemm_n_per_block);
+	};
 
         return true;
     };
