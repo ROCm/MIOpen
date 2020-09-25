@@ -461,6 +461,12 @@ static inline bool FindImplicitGemmGtcDynamicFwdKernel(const ConvolutionContext&
             continue;
         };
 
+        // tensor_b_thread_lengths[c1e] > 1 can only be used with x=y=1
+        if ( pConfig->tensor_b_thread_lengths[1] > 1 && ( x !=1 || y != 1) )
+	{
+            continue;
+	};
+
         // just quit if one valid configuration is found 
         break;
     };
