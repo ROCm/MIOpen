@@ -51,17 +51,17 @@ PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::
 
 PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::
     PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm(int GemmMPerBlock_,
-                                                       int GemmNPerBlock_,
-                                                       int GemmKPerBlock_,
-                                                       int GemmMPerWave_,
-                                                       int GemmNPerWave_,
-                                                       int GemmKPack_,
-                                                       int GemmMFactor_,
-                                                       int GemmNFactor_,
-                                                       int GemmKFactor_,
-                                                       bool GemmAThreadCopyMoreGemmK_,
-                                                       bool GemmBThreadCopyMoreGemmKPack_,
-                                                       int GemmBThreadDataPerRead_GemmN_)
+                                                         int GemmNPerBlock_,
+                                                         int GemmKPerBlock_,
+                                                         int GemmMPerWave_,
+                                                         int GemmNPerWave_,
+                                                         int GemmKPack_,
+                                                         int GemmMFactor_,
+                                                         int GemmNFactor_,
+                                                         int GemmKFactor_,
+                                                         bool GemmAThreadCopyMoreGemmK_,
+                                                         bool GemmBThreadCopyMoreGemmKPack_,
+                                                         int GemmBThreadDataPerRead_GemmN_)
     : GemmMPerBlock(GemmMPerBlock_),
       GemmNPerBlock(GemmNPerBlock_),
       GemmKPerBlock(GemmKPerBlock_),
@@ -130,7 +130,8 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::SetNextValue()
     return true;
 }
 
-void PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::EuristicInit(const ConvolutionContext& ctx)
+void PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::EuristicInit(
+    const ConvolutionContext& ctx)
 {
     PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm tmp;
 
@@ -270,7 +271,8 @@ std::string PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::ToString() con
     return ss.str();
 }
 
-std::tuple<int, bool> PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateBlockSize() const
+std::tuple<int, bool>
+PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateBlockSize() const
 {
     int block_size = 0;
 
@@ -864,7 +866,9 @@ ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmSize(const Convol
     const auto gemm_n_extra =
         (n * ho * wo % GemmNFactor == 0) ? 0 : (GemmNFactor - ((n * ho * wo) % GemmNFactor));
     const auto gemm_k_extra =
-        ((c_per_group * y * x) % GemmKFactor == 0) ? 0 : (GemmKFactor - ((c_per_group * y * x) % GemmKFactor));
+        ((c_per_group * y * x) % GemmKFactor == 0)
+            ? 0
+            : (GemmKFactor - ((c_per_group * y * x) % GemmKFactor));
 
     const auto gemm_g       = g;
     const auto gemm_m       = k_per_group + gemm_m_extra;
