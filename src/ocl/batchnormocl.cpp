@@ -954,15 +954,15 @@ void BatchNormBackward(Handle& handle,
             else
             {
                 variant = 0;
-                if(bfp32parm == false)
-                {
-                    xlocalsize = 256;
-                    xgridsize  = 256 * c;
-                }
-                else
+                if(bfp32parm)
                 {
                     xlocalsize = 1024;
                     xgridsize  = 1024 * c;
+                }
+                else
+                {
+                    xlocalsize = 256;
+                    xgridsize  = 256 * c;
                 }
                 ldsgcn   = xlocalsize / 64;
                 ldsnogcn = xlocalsize;
