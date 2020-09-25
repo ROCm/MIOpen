@@ -845,9 +845,9 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsValidPerformanceConfig(
 
 std::tuple<int, int, int, int, int, int, int>
 ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmSize(const ConvolutionContext& ctx,
-                                                                  int GemmMFactor,
-                                                                  int GemmNFactor,
-                                                                  int GemmKFactor)
+                                                                    int GemmMFactor,
+                                                                    int GemmNFactor,
+                                                                    int GemmKFactor)
 {
     const auto g  = ConvolutionContextInterpreter::GetGroupCountG(ctx);
     const auto n  = ConvolutionContextInterpreter::GetBatchN(ctx);
@@ -865,10 +865,9 @@ ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmSize(const Convol
         (k_per_group % (GemmMFactor) == 0) ? 0 : (GemmMFactor - (k_per_group % GemmMFactor));
     const auto gemm_n_extra =
         (n * ho * wo % GemmNFactor == 0) ? 0 : (GemmNFactor - ((n * ho * wo) % GemmNFactor));
-    const auto gemm_k_extra =
-        ((c_per_group * y * x) % GemmKFactor == 0)
-            ? 0
-            : (GemmKFactor - ((c_per_group * y * x) % GemmKFactor));
+    const auto gemm_k_extra = ((c_per_group * y * x) % GemmKFactor == 0)
+                                  ? 0
+                                  : (GemmKFactor - ((c_per_group * y * x) % GemmKFactor));
 
     const auto gemm_g       = g;
     const auto gemm_m       = k_per_group + gemm_m_extra;
