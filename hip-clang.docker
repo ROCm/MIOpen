@@ -2,6 +2,7 @@ FROM ubuntu:18.04
 
 ARG PREFIX=/usr/local
 ARG GPU_ARCH=";"
+ARG MIOTENSILE_VER="default"
 
 # Support multiarch
 RUN dpkg --add-architecture i386
@@ -64,7 +65,8 @@ RUN cget -p $PREFIX install RadeonOpenCompute/rocm-cmake@master
 RUN cget -p $PREFIX install pfultz2/rocm-recipes
 ADD min-requirements.txt /min-requirements.txt
 RUN CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -f /min-requirements.txt
-RUN export HIPCC_LINK_FLAGS_APPEND='-O3 -parallel-jobs=4' && \
-    export HIPCC_COMPILE_FLAGS_APPEND='-O3 -Wno-format-nonliteral -parallel-jobs=4' && \
-    cget -p $PREFIX install -DAMDGPU_TARGETS=${GPU_ARCH} ROCmSoftwarePlatform/MIOpenTensile@c693b0ade7ba714403ddf4e22a6d3027d644944d
+RUN export HIPCC_LINK_FLAGS_APPEND='-O3 -parallel-jobs=4'
+RUN export HIPCC_COMPILE_FLAGS_APPEND='-O3 -Wno-format-nonliteral -parallel-jobs=4'
+# install last released miopentensile in default, install latest commits when MIOTENSILE_VER="latest"
+RUN if [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install -DAMDGPU_TARGETS=${GPU_ARCH} ROCmSoftwarePlatform/MIOpenTensile@e258bbaed0bd9de546ea38c9a5c42f71fa41d9a0; else cget -p $PREFIX install -DAMDGPU_TARGETS=${GPU_ARCH} ROCmSoftwarePlatform/MIOpenTensile@2e3e792b2674bf8cdf2620749a298ed5313351bb; fi
 
