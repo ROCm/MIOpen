@@ -903,6 +903,8 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
         constexpr index_t copy_buff_size = (a_block_space + b_block_space) * sizeof(ABFloat);
         constexpr index_t shfl_buff_size =
             blockwise_gemm.GetOutputLayout().template GetShflBuffSize<AccFloat>() * num_waves;
+        static_assert(copy_buff_size > shfl_buff_size,
+                      "shfl_buff_size is larger than copy_buff_size!");
         constexpr index_t lds_buff_size =
             copy_buff_size > shfl_buff_size ? copy_buff_size : shfl_buff_size;
 
@@ -1022,8 +1024,8 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
                                                       CThreadCopySliceLengths,
                                                       arithmetic_sequence_gen<0, 4, 1>::type,
                                                       3,
-                                                      1,
-                                                      1,
+                                                      4,
+                                                      4,
                                                       AddressSpace::Vgpr,
                                                       AddressSpace::Global,
                                                       CGlobalMemoryOp>(

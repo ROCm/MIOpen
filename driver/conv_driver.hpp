@@ -2937,12 +2937,14 @@ int ConvDriver<Tgpu, Tref>::VerifyForward()
         if(!TryReadVerificationCache(Direction::Fwd, outputTensor, outhost.data.data()))
             RunForwardCPU();
 
+#if 0
     for(int i = 0; i < outhost.data.size(); i++)
     {
         if(outhost.data.data()[i] != out.data.data()[i])
             std::cout << " CPU = " << outhost.data.data()[i] << " GPU = " << out.data.data()[i]
                       << std::endl;
     }
+#endif
 
     const auto isInt8 = (data_type == miopenInt8 || data_type == miopenInt8x4);
     auto error        = is_fwd_run_failed ? std::numeric_limits<double>::max()

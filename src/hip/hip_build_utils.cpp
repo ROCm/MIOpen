@@ -148,7 +148,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
         }
         else if(IsHipClangCompiler())
         {
-            params += " -gline-tables-only";
+            // params += " -gline-tables-only";
             params += " -save-temps";
         }
     }

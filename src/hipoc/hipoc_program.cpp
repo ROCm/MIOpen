@@ -215,11 +215,7 @@ struct HIPOCProgramImpl
 
         if(miopen::EndsWith(filename, ".cpp"))
         {
-#if MIOPEN_BUILD_DEV
-            params += " -Werror" + HipKernelWarningsString();
-#else
             params += " -Wno-everything";
-#endif
         }
         else if(miopen::EndsWith(filename, ".cl"))
         {

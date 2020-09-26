@@ -1116,7 +1116,7 @@ struct XdlopsGemm_t
                     auto blk_shfl_buff_vec =
                         reinterpret_cast<float4_t*>(blk_shfl_buff + blk_td * mfma_type.group_size);
                     auto reg_c_vec = reinterpret_cast<float4_t*>(reg_c + reg_group_off);
-                    reg_c_vec[0] = blk_shfl_buff_vec[0];
+                    reg_c_vec[0]   = blk_shfl_buff_vec[0];
 #else
                     for(index_t k                = 0; k < mfma_type.group_size; k++)
                         reg_c[reg_group_off + k] = blk_shfl_buff[blk_td * mfma_type.group_size + k];
