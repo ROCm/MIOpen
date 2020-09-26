@@ -345,10 +345,10 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     {
         const auto lowp_quant  = ctx.conv_problem.GetConv().lowp_quant;
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-            return [=](const Handle& handle, const boost::any& primitive_params) {
-                const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
-                const auto& tensors      = invoke_params.tensors;
-                float zero               = 0.f;
+            return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
+                const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+                const auto& tensors       = invoke_params.tensors;
+                float zero                = 0.f;
                 TensorDescriptor workSpaceDesc(
                     miopenFloat, tensors.dwDesc.GetLengths(), tensors.dwDesc.GetStrides());
                 SetTensor(handle, workSpaceDesc, invoke_params.workSpace, &zero);
@@ -381,11 +381,11 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     else
     {
         result.invoker_factory = [](const std::vector<Kernel>& kernels) {
-            return [=](const Handle& handle, const boost::any& primitive_params) {
-                const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
-                const auto& tensors      = invoke_params.tensors;
-                float zero               = 0.f;
-                auto elapsed             = 0.f;
+            return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
+                const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+                const auto& tensors       = invoke_params.tensors;
+                float zero                = 0.f;
+                auto elapsed              = 0.f;
 
                 if(tensors.dwDesc.GetType() != miopenHalf &&
                    tensors.dwDesc.GetType() != miopenBFloat16)
@@ -434,38 +434,6 @@ ConvSolution ConvHipImplicitGemmV4R4GenWrWXdlops::GetSolution(
 
     result.workspce_sz = GetWorkspaceSize(ctx);
     return result;
-}
-
-int ConvHipImplicitGemmV4R4GenFwdXdlops::RunAndMeasureSolution(const miopen::Handle& profile_h,
-                                                               ConstData_t bot_buf,
-                                                               Data_t top_buf,
-                                                               ConstData_t wei_buf,
-                                                               ConstData_t bias_buf,
-                                                               const ConvolutionContext& ctx,
-                                                               const ConvSolution& solution,
-                                                               float& elapsed_time) const
-{
-    assert(bias_buf == nullptr);
-    (void)bias_buf;
-
-    return RunAndMeasureSolutionBase(
-        profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
-}
-
-int ConvHipImplicitGemmV4R4GenWrWXdlops::RunAndMeasureSolution(const miopen::Handle& profile_h,
-                                                               ConstData_t bot_buf,
-                                                               ConstData_t top_buf,
-                                                               Data_t wei_buf,
-                                                               ConstData_t bias_buf,
-                                                               const ConvolutionContext& ctx,
-                                                               const ConvSolution& solution,
-                                                               float& elapsed_time) const
-{
-    assert(bias_buf == nullptr);
-    (void)bias_buf;
-
-    return RunAndMeasureSolutionBase(
-        profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
 }
 
 bool ConvHipImplicitGemmV4R4GenFwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
@@ -523,19 +491,17 @@ bool ConvHipImplicitGemmV4R4GenWrWXdlops::IsValidPerformanceConfig(
 }
 
 PerformanceImplicitGemmXdlops
-ConvHipImplicitGemmV4R4GenFwdXdlops::Search(const ConvolutionContext& ctx) const
+ConvHipImplicitGemmV4R4GenFwdXdlops::Search(const ConvolutionContext& ctx,
+                                            const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearchFwd(*this, ctx);
+    return GenericSearch(*this, ctx, invoke_ctx);
 }
 
 PerformanceImplicitGemmXdlops
-ConvHipImplicitGemmV4R4GenWrWXdlops::Search(const ConvolutionContext& ctx) const
+ConvHipImplicitGemmV4R4GenWrWXdlops::Search(const ConvolutionContext& ctx,
+                                            const AnyInvokeParams& invoke_ctx) const
 {
-    // fp16/bfp16 uses fp32 workspace to leverage fp32 atomic add
-    if(ctx.IsFp16() || ctx.IsBfp16())
-        return GenericSearchWrW(*this, ctx, SearchTweak::WorkspaceInsteadOfWeightsBuffer);
-    else
-        return GenericSearchWrW(*this, ctx);
+    return GenericSearch(*this, ctx, invoke_ctx);
 }
 
 size_t ConvHipImplicitGemmV4R4GenWrWXdlops::GetWorkspaceSize(const ConvolutionContext& ctx) const

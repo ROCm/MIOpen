@@ -388,9 +388,9 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
         int o_K_stride              = C * o_N_stride;
 
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-            return [=](const Handle& handle, const boost::any& primitive_params) {
-                const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
-                const auto& tensors      = invoke_params.tensors;
+            return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
+                decltype(auto) invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+                const auto& tensors          = invoke_params.tensors;
                 // clang-format off
                 MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
                         << " n_groups=" << n_groups_ << " flags=" << flags << " R=" << R << " S=" << S
@@ -451,7 +451,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
             params, &N, &C, &H, &W, &K, &n_groups_, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
 
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-            return [=](const Handle& handle, const boost::any& ctx) {
+            return [=](const Handle& handle, const AnyInvokeParams& ctx) {
                 MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
                                     << " n_groups="
                                     << n_groups_
@@ -470,9 +470,9 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
                                     << " out_W="
                                     << out_W);
 
-                const auto k        = handle.Run(kernels[0]);
-                const auto fwd_ctx  = boost::any_cast<conv::DataInvokeParams>(ctx);
-                const auto& tensors = fwd_ctx.tensors;
+                decltype(auto) k       = handle.Run(kernels[0]);
+                decltype(auto) fwd_ctx = ctx.CastTo<conv::DataInvokeParams>();
+                const auto& tensors    = fwd_ctx.tensors;
 
                 k(N,
                   C,

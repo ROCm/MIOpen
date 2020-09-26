@@ -618,25 +618,10 @@ bool ConvHipImplicitGemmV4R4Fwd::IsValidPerformanceConfig(
 }
 
 PerformanceImplicitGemmV4R4Fwd
-ConvHipImplicitGemmV4R4Fwd::Search(const ConvolutionContext& context) const
+ConvHipImplicitGemmV4R4Fwd::Search(const ConvolutionContext& context,
+                                   const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearchFwd(*this, context);
-}
-
-int ConvHipImplicitGemmV4R4Fwd::RunAndMeasureSolution(const miopen::Handle& profile_h,
-                                                      ConstData_t bot_buf,
-                                                      Data_t top_buf,
-                                                      ConstData_t wei_buf,
-                                                      ConstData_t bias_buf,
-                                                      const ConvolutionContext& ctx,
-                                                      const ConvSolution& solution,
-                                                      float& elapsed_time) const
-{
-    assert(bias_buf == nullptr);
-    (void)bias_buf;
-
-    return RunAndMeasureSolutionBase(
-        profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
+    return GenericSearch(*this, context, invoke_ctx);
 }
 
 ConvSolution ConvHipImplicitGemmV4R4Fwd::GetSolution(const ConvolutionContext& ctx,

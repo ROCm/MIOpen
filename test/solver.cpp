@@ -26,10 +26,11 @@
 
 #include <miopen/convolution.hpp>
 #include <miopen/db.hpp>
-#include <miopen/solver.hpp>
-#include <miopen/mlo_internal.hpp>
-#include <miopen/temp_file.hpp>
 #include <miopen/find_solution.hpp>
+#include <miopen/invoke_params.hpp>
+#include <miopen/mlo_internal.hpp>
+#include <miopen/solver.hpp>
+#include <miopen/temp_file.hpp>
 
 #include <cstdlib>
 #include <functional>
@@ -91,7 +92,7 @@ class SearchableTestSolver : public solver::SolverBase<ConvolutionContext>
         return true;
     }
 
-    TestConfig Search(const ConvolutionContext&) const
+    TestConfig Search(const ConvolutionContext&, const AnyInvokeParams&) const
     {
         TestConfig config;
         config.str = FileName();
@@ -124,7 +125,7 @@ static solver::ConvSolution FindSolution(const ConvolutionContext& ctx, const st
 
     const auto solvers = solver::SolverContainer<TrivialTestSolver, SearchableTestSolver>{};
 
-    return solvers.SearchForAllSolutions(ctx, db, 1).front();
+    return solvers.SearchForAllSolutions(ctx, db, {}, 1).front();
 }
 
 class SolverTest

@@ -32,8 +32,6 @@
 #include <miopen/tensor.hpp>
 #include <miopen/visit_float.hpp>
 
-#include <boost/any.hpp>
-
 namespace miopen {
 namespace conv {
 
@@ -42,13 +40,11 @@ InvokerFactory MakeOclWrWRdcInvokerFactory(bool twoKernels, size_t workspaceSize
     if(twoKernels)
     {
         return [workspaceSize](const std::vector<Kernel>& kernels) {
-            return [=](const Handle& handle, const boost::any& primitive_params) {
-                const auto main_kernel   = handle.Run(kernels[0]);
-                const auto rdc_kernel    = handle.Run(kernels[1]);
-                const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
-                const auto& tensors      = invoke_params.tensors;
-                const auto padding_val   = 0.f;
-                auto elapsed             = 0.f;
+            return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
+                const auto main_kernel    = handle.Run(kernels[0]);
+                const auto& invoke_params = primitive_params.CastTo<WrWInvokeParams>();
+                const auto& tensors       = invoke_params.tensors;
+                const auto padding_val    = 0.f;
 
                 if(invoke_params.workSpaceSize < workspaceSize)
                     MIOPEN_THROW("Not enough workspace for invoker");
@@ -57,27 +53,33 @@ InvokerFactory MakeOclWrWRdcInvokerFactory(bool twoKernels, size_t workspaceSize
                     main_kernel(
                         tensors.dy, tensors.x, invoke_params.workSpace, as_float(padding_val));
                 });
-                if(handle.IsProfilingEnabled())
-                    elapsed = handle.GetKernelTime();
 
-                rdc_kernel(invoke_params.workSpace, tensors.dw); // reduction
-                if(handle.IsProfilingEnabled())
+                if(invoke_params.type != InvokeType::AutoTune)
                 {
-                    elapsed += handle.GetKernelTime();
-                    handle.ResetKernelTime();
-                    handle.AccumKernelTime(elapsed);
-                };
+                    auto elapsed = 0.f;
+                    if(handle.IsProfilingEnabled())
+                        elapsed = handle.GetKernelTime();
+
+                    const auto rdc_kernel = handle.Run(kernels[1]);
+                    rdc_kernel(invoke_params.workSpace, tensors.dw); // reduction
+                    if(handle.IsProfilingEnabled())
+                    {
+                        elapsed += handle.GetKernelTime();
+                        handle.ResetKernelTime();
+                        handle.AccumKernelTime(elapsed);
+                    };
+                }
             };
         };
     }
     else
     {
         return [](const std::vector<Kernel>& kernels) {
-            return [=](const Handle& handle, const boost::any& primitive_params) {
-                const auto main_kernel   = handle.Run(kernels[0]);
-                const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
-                const auto& tensors      = invoke_params.tensors;
-                const auto padding_val   = 0.f;
+            return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
+                const auto main_kernel    = handle.Run(kernels[0]);
+                const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+                const auto& tensors       = invoke_params.tensors;
+                const auto padding_val    = 0.f;
                 visit_float(tensors.dyDesc.GetType(), [&](auto as_float) {
                     main_kernel(tensors.dy, tensors.x, tensors.dw, as_float(padding_val));
                 });
