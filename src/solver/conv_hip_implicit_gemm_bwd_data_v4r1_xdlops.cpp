@@ -291,6 +291,9 @@ std::tuple<std::size_t, bool> PerformanceImplicitGemmBwdDataV4R1Xdlops::Calculat
         if(!valid)
             MIOPEN_THROW("invalid performance parameter");
 
+        if(GemmABlockCopyClusterLengths_GemmM == 0 || GemmBBlockCopyClusterLengths_GemmN == 0)
+            MIOPEN_THROW("invalid performance parameter");
+
         const auto ThreadGemmDataPerRead_GemmM = GemmMPerBlock / GemmABlockCopyClusterLengths_GemmM;
         const auto ThreadGemmDataPerRead_GemmN = GemmNPerBlock / GemmBBlockCopyClusterLengths_GemmN;
 
