@@ -674,57 +674,6 @@ static inline size_t ComputeLDSRequiredSize(const ConvolutionContext& ctx,
     return lds_size;
 }
 
-template <typename BotBufType, typename TopBufType, typename WeiBufType>
-static inline int RunAndMeasureSolutionBase(const miopen::Handle& profile_h,
-                                            BotBufType bot_buf,
-                                            TopBufType top_buf,
-                                            WeiBufType wei_buf,
-                                            const ConvolutionContext& ctx,
-                                            const ConvSolution& solution,
-                                            float& elapsed_time)
-{
-#ifdef NDEBUG
-    try
-#endif
-    {
-        elapsed_time = float(0);
-
-        for(auto& k_info : solution.construction_params)
-        {
-            auto kernel = profile_h.AddKernel("",
-                                              "",
-                                              k_info.kernel_file,
-                                              k_info.kernel_name,
-                                              k_info.l_wk,
-                                              k_info.g_wk,
-                                              k_info.comp_options);
-
-            if(ctx.direction.IsBackwardWrW())
-            {
-                kernel(top_buf, bot_buf, wei_buf);
-            }
-            if(ctx.direction.IsBackwardData())
-            {
-                kernel(top_buf, wei_buf, bot_buf);
-            }
-            if(ctx.direction.IsForward())
-            {
-                kernel(bot_buf, wei_buf, top_buf);
-            }
-
-            elapsed_time += profile_h.GetKernelTime();
-        }
-    }
-#ifdef NDEBUG
-    catch(miopen::Exception& ex)
-    {
-        MIOPEN_LOG_WE(ex.what());
-        return -1;
-    }
-#endif
-    return 0;
-}
-
 static inline bool use_amd_inline_asm(const ConvolutionContext& ctx)
 {
 

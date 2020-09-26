@@ -539,22 +539,6 @@ ConvSolution ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::GetSolution(
     return result;
 }
 
-int ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::RunAndMeasureSolution(const miopen::Handle& profile_h,
-                                                                   ConstData_t bot_buf,
-                                                                   Data_t top_buf,
-                                                                   ConstData_t wei_buf,
-                                                                   ConstData_t bias_buf,
-                                                                   const ConvolutionContext& ctx,
-                                                                   const ConvSolution& solution,
-                                                                   float& elapsed_time) const
-{
-    assert(bias_buf == nullptr);
-    (void)bias_buf;
-
-    return RunAndMeasureSolutionBase(
-        profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
-}
-
 bool ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::IsApplicable(const ConvolutionContext& ctx) const
 {
     if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
@@ -591,9 +575,10 @@ bool ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::IsValidPerformanceConfig(
 }
 
 PerformanceImplicitGemmV4R4GenXdlopsFwdFp32
-ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::Search(const ConvolutionContext& ctx) const
+ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::Search(const ConvolutionContext& ctx,
+                                                const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearchFwd(*this, ctx);
+    return GenericSearch(*this, ctx, invoke_ctx);
 }
 
 } // namespace solver
