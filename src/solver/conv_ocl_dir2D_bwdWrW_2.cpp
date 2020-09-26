@@ -746,105 +746,11 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
 }
 
 template <int N_BATCH_LOOPS>
-template <typename Tgpu>
-int ConvOclBwdWrW2<N_BATCH_LOOPS>::RunAndMeasureSolutionImpl(const miopen::Handle& profile_h,
-                                                             ConstData_t bot_ocl_buf,
-                                                             ConstData_t top_ocl_buf,
-                                                             Data_t wei_ocl_buf,
-                                                             ConstData_t bias_ocl_buf,
-                                                             const ConvolutionContext&,
-                                                             const ConvSolution& solution,
-                                                             float& elapsed_time) const
-{
-    assert(bias_ocl_buf == nullptr);
-    (void)bias_ocl_buf;
-
-#ifdef NDEBUG
-    try
-#endif
-    {
-        /// \note This is used during auto-tune process.
-        /// The performance of the 2nd kernel does not depend on the PerformanceConfig
-        /// (provided that n_batch_loops is constant), and thus considered constant
-        /// for all available Solutions. Therefore we do not need to benchmark the 2nd kernel here.
-        elapsed_time = std::numeric_limits<float>::max();
-
-        KernelInfo k_info = solution.construction_params[0];
-        // ConvolutionContext::general_compile_options is for OpenCL kernels
-        // and thus not applicable for assembly.
-        auto kernel = profile_h.AddKernel("",
-                                          "",
-                                          k_info.kernel_file,
-                                          k_info.kernel_name,
-                                          k_info.l_wk,
-                                          k_info.g_wk,
-                                          k_info.comp_options);
-
-        Tgpu padding_val = static_cast<Tgpu>(0);
-        kernel(bot_ocl_buf, top_ocl_buf, wei_ocl_buf, padding_val);
-        elapsed_time = profile_h.GetKernelTime();
-    }
-#ifdef NDEBUG
-    catch(miopen::Exception& ex)
-    {
-        MIOPEN_LOG_WE(ex.what());
-        return -1;
-    }
-#endif
-    return 0;
-}
-
-template <int N_BATCH_LOOPS>
-int ConvOclBwdWrW2<N_BATCH_LOOPS>::RunAndMeasureSolution(const miopen::Handle& profile_h,
-                                                         ConstData_t bot_ocl_buf,
-                                                         ConstData_t top_ocl_buf,
-                                                         Data_t wei_ocl_buf,
-                                                         ConstData_t bias_ocl_buf,
-                                                         const ConvolutionContext& context,
-                                                         const ConvSolution& solution,
-                                                         float& elapsed_time) const
-{
-    if(context.IsFp16())
-        return RunAndMeasureSolutionImpl<half_float::half>(profile_h,
-                                                           bot_ocl_buf,
-                                                           top_ocl_buf,
-                                                           wei_ocl_buf,
-                                                           bias_ocl_buf,
-                                                           context,
-                                                           solution,
-                                                           elapsed_time);
-    else if(context.IsFp32())
-        return RunAndMeasureSolutionImpl<float>(profile_h,
-                                                bot_ocl_buf,
-                                                top_ocl_buf,
-                                                wei_ocl_buf,
-                                                bias_ocl_buf,
-                                                context,
-                                                solution,
-                                                elapsed_time);
-    else if(context.IsBfp16())
-        return RunAndMeasureSolutionImpl<bfloat16>(profile_h,
-                                                   bot_ocl_buf,
-                                                   top_ocl_buf,
-                                                   wei_ocl_buf,
-                                                   bias_ocl_buf,
-                                                   context,
-                                                   solution,
-                                                   elapsed_time);
-    else
-    {
-        MIOPEN_THROW("Unsupported float_size");
-    }
-}
-
-template <int N_BATCH_LOOPS>
 PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
-ConvOclBwdWrW2<N_BATCH_LOOPS>::Search(const ConvolutionContext& context) const
+ConvOclBwdWrW2<N_BATCH_LOOPS>::Search(const ConvolutionContext& context,
+                                      const AnyInvokeParams& invoke_ctx) const
 {
-    if(GetNBatchBlks<N_BATCH_LOOPS>(context) > 1)
-        return GenericSearchWrW(*this, context, SearchTweak::WorkspaceInsteadOfWeightsBuffer);
-    else
-        return GenericSearchWrW(*this, context);
+    return GenericSearch(*this, context, invoke_ctx);
 }
 
 /// We need to instantiate required classes implicitly.

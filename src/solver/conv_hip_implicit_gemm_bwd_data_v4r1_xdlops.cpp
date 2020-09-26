@@ -824,55 +824,10 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsValidPerformanceConfig(
     return c.IsReallyValid(ctx);
 }
 PerformanceImplicitGemmBwdDataV4R1Xdlops
-ConvHipImplicitGemmBwdDataV4R1Xdlops::Search(const ConvolutionContext& ctx) const
+ConvHipImplicitGemmBwdDataV4R1Xdlops::Search(const ConvolutionContext& ctx,
+                                             const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearchBwd(*this, ctx);
-}
-
-int ConvHipImplicitGemmBwdDataV4R1Xdlops::RunAndMeasureSolution(const miopen::Handle& profile_h,
-                                                                ConstData_t bot_buf,
-                                                                Data_t top_buf,
-                                                                ConstData_t wei_buf,
-                                                                ConstData_t bias_buf,
-                                                                const ConvolutionContext&,
-                                                                const ConvSolution& solution,
-                                                                float& elapsed_time) const
-{
-    assert(bias_buf == nullptr);
-    (void)bias_buf;
-
-#ifdef NDEBUG
-    try
-#endif
-    {
-
-        elapsed_time = float(0);
-
-        for(auto& k_info : solution.construction_params)
-        {
-
-            auto kernel = profile_h.AddKernel("",
-                                              "",
-                                              k_info.kernel_file,
-                                              k_info.kernel_name,
-                                              k_info.l_wk,
-                                              k_info.g_wk,
-                                              k_info.comp_options);
-
-            kernel(bot_buf, wei_buf, top_buf);
-
-            elapsed_time += profile_h.GetKernelTime();
-        }
-    }
-
-#ifdef NDEBUG
-    catch(miopen::Exception& ex)
-    {
-        MIOPEN_LOG_WE(ex.what());
-        return -1;
-    }
-#endif
-    return 0;
+    return GenericSearch(*this, ctx, invoke_ctx);
 }
 
 ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
