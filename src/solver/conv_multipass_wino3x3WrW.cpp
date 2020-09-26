@@ -369,113 +369,113 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
     if(!(params.IsFp16() || params.IsBfp16()))
     {
 #endif
-    static const int wino_data_tile   = std::max(WinoDataH, WinoDataW);
-    static const int wino_filter_tile = std::max(WinoFilterH, WinoFilterW);
+        static const int wino_data_tile   = std::max(WinoDataH, WinoDataW);
+        static const int wino_filter_tile = std::max(WinoFilterH, WinoFilterW);
 
-    if(wino_data_tile == 3 && wino_filter_tile == 2)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X2{}) ||
-           params.kernel_stride_h == 1)
-            return false;
-    if(wino_data_tile == 3 && wino_filter_tile == 3)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X3{}) ||
-           params.kernel_stride_h == 1)
-            return false;
+        if(wino_data_tile == 3 && wino_filter_tile == 2)
+            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X2{}) ||
+               params.kernel_stride_h == 1)
+                return false;
+        if(wino_data_tile == 3 && wino_filter_tile == 3)
+            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X3{}) ||
+               params.kernel_stride_h == 1)
+                return false;
 
-    const std::string name = params.GetStream().GetDeviceName();
+        const std::string name = params.GetStream().GetDeviceName();
 #if WORKAROUND_SWDEV_234193
-    if(params.IsFp16() && (StartsWith(name, "gfx908") || StartsWith(name, "gfx906")))
-    {
-        if(wino_data_tile == 3 && wino_filter_tile == 4)
-            if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4{}))
-                return false;
-        if(wino_data_tile == 3 && wino_filter_tile == 5)
-            if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5{}))
-                return false;
-        if(wino_data_tile == 3 && wino_filter_tile == 6)
-            if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6{}))
-                return false;
-    }
-    else
-#endif
-    {
-        if(wino_data_tile == 3 && wino_filter_tile == 4)
-            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4{}))
-                return false;
-        if(wino_data_tile == 3 && wino_filter_tile == 5)
-            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5{}))
-                return false;
-        if(wino_data_tile == 3 && wino_filter_tile == 6)
-            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6{}))
-                return false;
-    }
-
-    if(wino_data_tile == 7 && wino_filter_tile == 2)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X2{}))
-            return false;
-    if(wino_data_tile == 7 && wino_filter_tile == 3)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X3{}))
-            return false;
-    if(wino_data_tile == 5 && wino_filter_tile == 3)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F5X3{}))
-            return false;
-    if(wino_data_tile == 5 && wino_filter_tile == 4)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F5X4{}))
-            return false;
-    if(!params.use_asm_kernels)
-        return false;
-    if(!params.rmv.IsV2orV3())
-        return false;
-    if(!params.Is2d())
-        return false;
-    if(!params.direction.IsBackwardWrW())
-        return false;
-    if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))
-        return false;
-
-    if(!(InTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(params) &&
-         OutTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(params) &&
-         FilterTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(params)))
-        return false;
-
-    if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")))
-        return false;
-
-    {
-        std::size_t limit = miopen::Value(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX{});
-#if WORKAROUND_SWDEV_203031
-        if(limit == 0)
+        if(params.IsFp16() && (StartsWith(name, "gfx908") || StartsWith(name, "gfx906")))
         {
-            if(name == "gfx900" ||
-               (name == "gfx906" && params.GetStream().GetMaxComputeUnits() <= 60))
-                limit = 2000000000ULL; // ~1.862 GiB
-            else
-                limit = std::numeric_limits<std::size_t>::max();
+            if(wino_data_tile == 3 && wino_filter_tile == 4)
+                if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4{}))
+                    return false;
+            if(wino_data_tile == 3 && wino_filter_tile == 5)
+                if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5{}))
+                    return false;
+            if(wino_data_tile == 3 && wino_filter_tile == 6)
+                if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6{}))
+                    return false;
         }
+        else
+#endif
+        {
+            if(wino_data_tile == 3 && wino_filter_tile == 4)
+                if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4{}))
+                    return false;
+            if(wino_data_tile == 3 && wino_filter_tile == 5)
+                if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5{}))
+                    return false;
+            if(wino_data_tile == 3 && wino_filter_tile == 6)
+                if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6{}))
+                    return false;
+        }
+
+        if(wino_data_tile == 7 && wino_filter_tile == 2)
+            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X2{}))
+                return false;
+        if(wino_data_tile == 7 && wino_filter_tile == 3)
+            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X3{}))
+                return false;
+        if(wino_data_tile == 5 && wino_filter_tile == 3)
+            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F5X3{}))
+                return false;
+        if(wino_data_tile == 5 && wino_filter_tile == 4)
+            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F5X4{}))
+                return false;
+        if(!params.use_asm_kernels)
+            return false;
+        if(!params.rmv.IsV2orV3())
+            return false;
+        if(!params.Is2d())
+            return false;
+        if(!params.direction.IsBackwardWrW())
+            return false;
+        if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))
+            return false;
+
+        if(!(InTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(params) &&
+             OutTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(params) &&
+             FilterTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(params)))
+            return false;
+
+        if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")))
+            return false;
+
+        {
+            std::size_t limit = miopen::Value(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX{});
+#if WORKAROUND_SWDEV_203031
+            if(limit == 0)
+            {
+                if(name == "gfx900" ||
+                   (name == "gfx906" && params.GetStream().GetMaxComputeUnits() <= 60))
+                    limit = 2000000000ULL; // ~1.862 GiB
+                else
+                    limit = std::numeric_limits<std::size_t>::max();
+            }
 #else
         if(limit == 0)
             limit = std::numeric_limits<std::size_t>::max();
 #endif
-        if(limit != std::numeric_limits<std::size_t>::max())
-        {
-            const auto required = GetWorkspaceSize(params);
-            MIOPEN_LOG_I2("Workspace required: " << required << ", limit: " << limit);
-            if(required > limit)
-                return false;
+            if(limit != std::numeric_limits<std::size_t>::max())
+            {
+                const auto required = GetWorkspaceSize(params);
+                MIOPEN_LOG_I2("Workspace required: " << required << ", limit: " << limit);
+                if(required > limit)
+                    return false;
+            }
         }
-    }
 
-    // int offset for Workspace buffers.
-    if((InTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetBufferSize(params) /
-            GetTypeSize(params.in_data_type) +
-        OutTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetBufferSize(params) /
-            GetTypeSize(params.in_data_type)) >= (1LL << 31))
-    {
-        return false;
-    }
+        // int offset for Workspace buffers.
+        if((InTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetBufferSize(params) /
+                GetTypeSize(params.in_data_type) +
+            OutTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetBufferSize(params) /
+                GetTypeSize(params.in_data_type)) >= (1LL << 31))
+        {
+            return false;
+        }
 
-    assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet
+        assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet
 
-    // clang-format off
+        // clang-format off
     {
         const long input_line_size = 4 * params.in_width;
         const long input_feature_map_size = input_line_size * params.in_height;
@@ -500,8 +500,8 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
         && params.bias == 0
         && params.in_layout == "NCHW"
         && params.group_counts == 1);
-    // clang-format on
-    return ok;
+        // clang-format on
+        return ok;
 #if(!MIOPEN_USE_ROCBLAS)
     }
     return false;
@@ -552,15 +552,15 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
     if(!(params.IsFp16() || params.IsBfp16()))
     {
 #endif
-    int flags         = 0;
-    int reserved      = 0;
-    int* reserved_ptr = nullptr;
-    int unused        = 0;
-    int N, C, H, W, K, n_groups, out_H, out_W, R, S;
+        int flags         = 0;
+        int reserved      = 0;
+        int* reserved_ptr = nullptr;
+        int unused        = 0;
+        int N, C, H, W, K, n_groups, out_H, out_W, R, S;
 
-    GetCompiledInParameters(
-        params, &C, &K, &R, &S, &N, &n_groups, &H, &W, &out_H, &out_W, &unused, &unused);
-    // clang-format off
+        GetCompiledInParameters(
+            params, &C, &K, &R, &S, &N, &n_groups, &H, &W, &out_H, &out_W, &unused, &unused);
+        // clang-format off
     BuffInfo
         in_buff_info(
             GetSwappedNCLayout(GetMemLayout_t(params.in_layout)),
@@ -600,68 +600,68 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
             ConvWinoBuffType::Weight,
             wino_xform_h,
             wino_xform_w);
-    // clang-format on
+        // clang-format on
 
-    const size_t wino_in_offset = 0, wino_out_offset = wino_in.buff_info.total_byte_size,
-                 wino_wei_offset = wino_out_offset + wino_out.buff_info.total_byte_size;
+        const size_t wino_in_offset = 0, wino_out_offset = wino_in.buff_info.total_byte_size,
+                     wino_wei_offset = wino_out_offset + wino_out.buff_info.total_byte_size;
 
-    const auto in_data_type = params.in_data_type;
-    const auto pad_H        = params.pad_h;
-    const auto pad_W        = params.pad_w;
+        const auto in_data_type = params.in_data_type;
+        const auto pad_H        = params.pad_h;
+        const auto pad_W        = params.pad_w;
 
-    return [=](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& handle, const boost::any& primitive_params) {
-            const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
-            const auto& tensors      = invoke_params.tensors;
-            float total_time         = 0;
+        return [=](const std::vector<Kernel>& kernels) {
+            return [=](const Handle& handle, const boost::any& primitive_params) {
+                const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
+                const auto& tensors      = invoke_params.tensors;
+                float total_time         = 0;
 
-            if(invoke_params.workSpaceSize < ws_sz)
-                MIOPEN_THROW("Not enough workspace for ConvWinograd3x3MultipassWrW");
+                if(invoke_params.workSpaceSize < ws_sz)
+                    MIOPEN_THROW("Not enough workspace for ConvWinograd3x3MultipassWrW");
 
-            for(const auto& kernel : kernels)
-            {
-                decltype(auto) cur_kernel = handle.Run(kernel);
-                const BuffInfo* d_buf     = nullptr;
-                const BuffInfo* o_buf     = nullptr;
-                Data_t buff_out_adr       = nullptr;
-                auto f_buf                = &weights_buff_info;
-                auto const_buff_in_adr    = tensors.x;
-                auto buff_in_adr          = invoke_params.workSpace;
-                bool const_input          = false;
-                float cur_time            = 0;
-                int flat_GroupCountMult   = 1;
-
-                size_t buff_in_addr_offset = 0, buff_out_addr_offset = 0;
-
-                if(cur_kernel.GetName() == GetSolverKernelNames(0)) // Input Transform
+                for(const auto& kernel : kernels)
                 {
-                    d_buf               = &in_buff_info;
-                    o_buf               = &(wino_in.buff_info);
-                    const_buff_in_adr   = tensors.x;
-                    buff_out_adr        = invoke_params.workSpace;
-                    buff_in_addr_offset = wino_in_offset;
-                    const_input         = true;
-                    flat_GroupCountMult = GetGroupCountMult();
-                }
-                else if(cur_kernel.GetName() == GetSolverKernelNames(1)) // Filter Transform
-                {
-                    d_buf                = &weights_buff_info;
-                    o_buf                = &(wino_wei.buff_info);
-                    const_buff_in_adr    = tensors.dy;
-                    buff_out_adr         = invoke_params.workSpace;
-                    buff_out_addr_offset = wino_wei_offset;
-                    const_input          = true;
-                    flat_GroupCountMult  = GetGroupCountMult();
-                }
-                else // Output and GEMM
-                {
-                    int m = N, n = K, k = wino_in.buff_info.size.c;
-                    int lda = k, ldb = k, ldc = n;
-                    int batch_count       = wino_xform_h * wino_xform_w;
-                    long long int strideA = m * k * 1LL, strideB = k * n * 1LL,
-                                  strideC = m * n * 1LL;
-                    float alpha = 1., beta = 0.0;
-                    // clang-format off
+                    decltype(auto) cur_kernel = handle.Run(kernel);
+                    const BuffInfo* d_buf     = nullptr;
+                    const BuffInfo* o_buf     = nullptr;
+                    Data_t buff_out_adr       = nullptr;
+                    auto f_buf                = &weights_buff_info;
+                    auto const_buff_in_adr    = tensors.x;
+                    auto buff_in_adr          = invoke_params.workSpace;
+                    bool const_input          = false;
+                    float cur_time            = 0;
+                    int flat_GroupCountMult   = 1;
+
+                    size_t buff_in_addr_offset = 0, buff_out_addr_offset = 0;
+
+                    if(cur_kernel.GetName() == GetSolverKernelNames(0)) // Input Transform
+                    {
+                        d_buf               = &in_buff_info;
+                        o_buf               = &(wino_in.buff_info);
+                        const_buff_in_adr   = tensors.x;
+                        buff_out_adr        = invoke_params.workSpace;
+                        buff_in_addr_offset = wino_in_offset;
+                        const_input         = true;
+                        flat_GroupCountMult = GetGroupCountMult();
+                    }
+                    else if(cur_kernel.GetName() == GetSolverKernelNames(1)) // Filter Transform
+                    {
+                        d_buf                = &weights_buff_info;
+                        o_buf                = &(wino_wei.buff_info);
+                        const_buff_in_adr    = tensors.dy;
+                        buff_out_adr         = invoke_params.workSpace;
+                        buff_out_addr_offset = wino_wei_offset;
+                        const_input          = true;
+                        flat_GroupCountMult  = GetGroupCountMult();
+                    }
+                    else // Output and GEMM
+                    {
+                        int m = N, n = K, k = wino_in.buff_info.size.c;
+                        int lda = k, ldb = k, ldc = n;
+                        int batch_count       = wino_xform_h * wino_xform_w;
+                        long long int strideA = m * k * 1LL, strideB = k * n * 1LL,
+                                      strideC = m * n * 1LL;
+                        float alpha = 1., beta = 0.0;
+                        // clang-format off
                     GemmDescriptor wino_gemm_desc{false,false,true,m,n,k,
                         lda,ldb,ldc,batch_count,strideA,strideB,
                                         strideC,alpha,beta,in_data_type};
@@ -677,76 +677,76 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
                                         nullptr,
                                 false,
                                 GemmBackend_t::miopentensile);
-                    // clang-format on
+                        // clang-format on
+
+                        if(handle.IsProfilingEnabled())
+                        {
+                            cur_time = handle.GetKernelTime();
+                            total_time += cur_time;
+                            MIOPEN_LOG_I2("WRW_WINO_GEMM: " << cur_time);
+                        }
+
+                        d_buf               = &(wino_out.buff_info);
+                        o_buf               = &(out_buff_info);
+                        buff_in_adr         = invoke_params.workSpace;
+                        buff_in_addr_offset = wino_out_offset;
+                        buff_out_adr        = tensors.dw;
+                    }
+
+                    const auto input_ptr = static_cast<const void*>(
+                        static_cast<const char*>(const_input ? const_buff_in_adr : buff_in_adr) +
+                        buff_in_addr_offset);
+                    const auto output_ptr =
+                        static_cast<void*>(static_cast<char*>(buff_out_adr) + buff_out_addr_offset);
+
+                    cur_kernel(N,
+                               C,
+                               H,
+                               W,
+                               K,
+                               n_groups * flat_GroupCountMult,
+                               flags,
+                               reserved,
+                               input_ptr,
+                               reserved_ptr,
+                               output_ptr,
+                               reserved_ptr,
+                               R,
+                               S,
+                               pad_H,
+                               pad_W,
+                               out_H,
+                               out_W,
+                               reserved_ptr,
+                               reserved,
+                               d_buf->byte_stride.nk,
+                               d_buf->byte_stride.c,
+                               d_buf->byte_stride.h,
+                               d_buf->byte_stride.w,
+                               f_buf->byte_stride.nk,
+                               f_buf->byte_stride.c,
+                               f_buf->byte_stride.h,
+                               f_buf->byte_stride.w,
+                               o_buf->byte_stride.nk,
+                               o_buf->byte_stride.c,
+                               o_buf->byte_stride.h,
+                               o_buf->byte_stride.w);
 
                     if(handle.IsProfilingEnabled())
                     {
                         cur_time = handle.GetKernelTime();
                         total_time += cur_time;
-                        MIOPEN_LOG_I2("WRW_WINO_GEMM: " << cur_time);
+                        MIOPEN_LOG_I2(cur_kernel.GetName() << ": " << cur_time);
                     }
-
-                    d_buf               = &(wino_out.buff_info);
-                    o_buf               = &(out_buff_info);
-                    buff_in_adr         = invoke_params.workSpace;
-                    buff_in_addr_offset = wino_out_offset;
-                    buff_out_adr        = tensors.dw;
                 }
-
-                const auto input_ptr = static_cast<const void*>(
-                    static_cast<const char*>(const_input ? const_buff_in_adr : buff_in_adr) +
-                    buff_in_addr_offset);
-                const auto output_ptr =
-                    static_cast<void*>(static_cast<char*>(buff_out_adr) + buff_out_addr_offset);
-
-                cur_kernel(N,
-                           C,
-                           H,
-                           W,
-                           K,
-                           n_groups * flat_GroupCountMult,
-                           flags,
-                           reserved,
-                           input_ptr,
-                           reserved_ptr,
-                           output_ptr,
-                           reserved_ptr,
-                           R,
-                           S,
-                           pad_H,
-                           pad_W,
-                           out_H,
-                           out_W,
-                           reserved_ptr,
-                           reserved,
-                           d_buf->byte_stride.nk,
-                           d_buf->byte_stride.c,
-                           d_buf->byte_stride.h,
-                           d_buf->byte_stride.w,
-                           f_buf->byte_stride.nk,
-                           f_buf->byte_stride.c,
-                           f_buf->byte_stride.h,
-                           f_buf->byte_stride.w,
-                           o_buf->byte_stride.nk,
-                           o_buf->byte_stride.c,
-                           o_buf->byte_stride.h,
-                           o_buf->byte_stride.w);
 
                 if(handle.IsProfilingEnabled())
                 {
-                    cur_time = handle.GetKernelTime();
-                    total_time += cur_time;
-                    MIOPEN_LOG_I2(cur_kernel.GetName() << ": " << cur_time);
+                    handle.ResetKernelTime();
+                    handle.AccumKernelTime(total_time);
                 }
-            }
-
-            if(handle.IsProfilingEnabled())
-            {
-                handle.ResetKernelTime();
-                handle.AccumKernelTime(total_time);
-            }
+            };
         };
-    };
 #if(!MIOPEN_USE_ROCBLAS)
     }
     MIOPEN_THROW(miopenStatusBadParm, "MixedWrW3x3Winograd Unsupported ");
