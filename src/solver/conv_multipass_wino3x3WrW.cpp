@@ -365,6 +365,10 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
 // ROCBLAS for GEMM step
 
 #if(MIOPEN_BACKEND_HIP && (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE))
+#if(!MIOPEN_USE_ROCBLAS)
+    if(!(params.IsFp16() || params.IsBfp16()))
+    {
+#endif
     static const int wino_data_tile   = std::max(WinoDataH, WinoDataW);
     static const int wino_filter_tile = std::max(WinoFilterH, WinoFilterW);
 
@@ -498,6 +502,10 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
         && params.group_counts == 1);
     // clang-format on
     return ok;
+#if(!MIOPEN_USE_ROCBLAS)
+    }
+    return false;
+#endif
 #else
     (void)params;
     return false;
@@ -540,6 +548,10 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
     const ConvolutionContext& params, std::size_t ws_sz) const
 {
 #if(MIOPEN_BACKEND_HIP && (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE))
+#if(!MIOPEN_USE_ROCBLAS)
+    if(!(params.IsFp16() || params.IsBfp16()))
+    {
+#endif
     int flags         = 0;
     int reserved      = 0;
     int* reserved_ptr = nullptr;
@@ -735,6 +747,10 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
             }
         };
     };
+#if(!MIOPEN_USE_ROCBLAS)
+    }
+    MIOPEN_THROW(miopenStatusBadParm, "MixedWrW3x3Winograd Unsupported ");
+#endif
 #else
     (void)params;
     (void)ws_sz;
