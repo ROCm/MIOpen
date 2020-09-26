@@ -106,19 +106,17 @@ GetImplicitGemmWrwGTCDynamicXdlopsKernelList()
 		{ "wrw", "fp32",   1,   1,  16,  32,  16,   8,  32,   1,   1,   1,   1,   {1,   1,   2,   1},   {1,  16,   1,   8},   {1,   1,   4,   1},   {1,  16,   1,   8},   1},
 		{ "wrw", "fp32",   1,   1,  16,  32,   8,   8,  32,   1,   1,   1,   1,   {1,   1,   1,   1},   {1,   8,   1,  16},   {1,   1,   2,   1},   {1,   8,   1,  16},   0},
 		{ "wrw", "fp32",   1,   1,  16,  32,   8,   8,  32,   1,   1,   1,   1,   {1,   1,   1,   1},   {1,   8,   1,  16},   {1,   1,   2,   1},   {1,   8,   1,  16},   1},
-
+        // clang-format on
     };
     return kernel_param_list;
 }
 
-static inline int
-GetImplicitGemmWrwGTCDynamicXdlopsGemmkSplits(const conv::ProblemDescription& conv_problem,
-                                              const int GemmKPerBlock,
-                                              const int grid_size)
+static inline int GetImplicitGemmWrwGTCDynamicXdlopsGemmkSplits(
+    const conv::ProblemDescription& conv_problem, const int GemmKPerBlock, const int grid_size)
 {
-    int n            = conv_problem.GetInBatchSize();
-    int ho           = conv_problem.GetInHeight();
-    int wo           = conv_problem.GetInWidth();
+    int n                   = conv_problem.GetInBatchSize();
+    int ho                  = conv_problem.GetInHeight();
+    int wo                  = conv_problem.GetInWidth();
     int gemm_k_global_split = 0;
 
     int max_grid_size = 1200;
@@ -126,7 +124,8 @@ GetImplicitGemmWrwGTCDynamicXdlopsGemmkSplits(const conv::ProblemDescription& co
     int n_per_group;
     for(int i = 0; i < 8; i++)
     {
-        if ((grid_size << i) > max_grid_size){
+        if((grid_size << i) > max_grid_size)
+        {
             break;
         }
         if(0 == n % (1 << i))
@@ -145,21 +144,19 @@ GetImplicitGemmWrwGTCDynamicXdlopsGemmkSplits(const conv::ProblemDescription& co
 }
 
 // tuple<log2_gemm_k_global_split, grid_size>
-static inline std::tuple<int, int> 
-get_grid_size(const ConvolutionContext& ctx,
-              const TunableImplicitGemmGTCDynamic_t *tunable) 
+static inline std::tuple<int, int> get_grid_size(const ConvolutionContext& ctx,
+                                                 const TunableImplicitGemmGTCDynamic_t* tunable)
 {
-    int k     = ctx.n_inputs;
-    int c     = ctx.n_outputs;
-    int y     = ctx.kernel_size_h;
-    int x     = ctx.kernel_size_w;
-    
+    int k = ctx.n_inputs;
+    int c = ctx.n_outputs;
+    int y = ctx.kernel_size_h;
+    int x = ctx.kernel_size_w;
 
     int gemm_m_per_block         = tunable->gemm_m_per_block;
     int gemm_n_per_block         = tunable->gemm_n_per_block;
     int gemm_k_per_block         = tunable->gemm_k_per_block;
-    int gemm_k_global_split     = tunable->gemm_k_global_split;
-    int log2_gemm_k_global_split        = 0;
+    int gemm_k_global_split      = tunable->gemm_k_global_split;
+    int log2_gemm_k_global_split = 0;
 
     int gemm_m = k;
     int gemm_n = c * y * x;
@@ -167,17 +164,18 @@ get_grid_size(const ConvolutionContext& ctx,
     // assume that gemm m/n can be divided with no remainder by gemm m/n per block
     int grid_size = (gemm_m / gemm_m_per_block) * (gemm_n / gemm_n_per_block);
 
-    if (gemm_k_global_split == 1)
-        log2_gemm_k_global_split = GetImplicitGemmWrwGTCDynamicXdlopsGemmkSplits(ctx.conv_problem, gemm_k_per_block, grid_size);
+    if(gemm_k_global_split == 1)
+        log2_gemm_k_global_split = GetImplicitGemmWrwGTCDynamicXdlopsGemmkSplits(
+            ctx.conv_problem, gemm_k_per_block, grid_size);
     else
-        log2_gemm_k_global_split = 0; 
-    
+        log2_gemm_k_global_split = 0;
+
     int num_of_gemm = 1 << log2_gemm_k_global_split;
     grid_size *= num_of_gemm;
     return std::make_tuple(log2_gemm_k_global_split, grid_size);
 }
 
-static inline int find_tunable(const std::vector<TunableImplicitGemmGTCDynamic_t> tunables, 
+static inline int find_tunable(const std::vector<TunableImplicitGemmGTCDynamic_t> tunables,
                                const int gemm_m_per_block,
                                const int gemm_n_per_block,
                                const int gemm_k_per_block,
@@ -186,13 +184,14 @@ static inline int find_tunable(const std::vector<TunableImplicitGemmGTCDynamic_t
                                const int nxe)
 {
     int i;
-    for (i = 0; i < tunables.size(); i++) {
-        if ((tunables[i].gemm_m_per_block     == gemm_m_per_block) &&
-            (tunables[i].gemm_n_per_block     == gemm_n_per_block) &&
-            (tunables[i].gemm_k_per_block     == gemm_k_per_block) &&
-            (tunables[i].gemm_k_global_split == gemm_k_global_split) &&
-            (tunables[i].nxb == nxb) &&
-            (tunables[i].nxe == nxe)){
+    for(i = 0; i < tunables.size(); i++)
+    {
+        if((tunables[i].gemm_m_per_block == gemm_m_per_block) &&
+           (tunables[i].gemm_n_per_block == gemm_n_per_block) &&
+           (tunables[i].gemm_k_per_block == gemm_k_per_block) &&
+           (tunables[i].gemm_k_global_split == gemm_k_global_split) && (tunables[i].nxb == nxb) &&
+           (tunables[i].nxe == nxe))
+        {
             break;
         }
     }
@@ -200,18 +199,18 @@ static inline int find_tunable(const std::vector<TunableImplicitGemmGTCDynamic_t
 }
 
 static inline int if_gemm_k_global_split(const ConvolutionContext& ctx,
-                                     const int gemm_m_per_block,
-                                     const int gemm_n_per_block,
-                                     const int gemm_k_per_block)
+                                         const int gemm_m_per_block,
+                                         const int gemm_n_per_block,
+                                         const int gemm_k_per_block)
 {
     int gemm_k_global_split = 0;
-    int n     = ctx.batch_sz;
-    int k     = ctx.n_inputs;
-    int c     = ctx.n_outputs;
-    int ho    = ctx.in_height;
-    int wo    = ctx.in_width;
-    int y     = ctx.kernel_size_h;
-    int x     = ctx.kernel_size_w;
+    int n                   = ctx.batch_sz;
+    int k                   = ctx.n_inputs;
+    int c                   = ctx.n_outputs;
+    int ho                  = ctx.in_height;
+    int wo                  = ctx.in_width;
+    int y                   = ctx.kernel_size_h;
+    int x                   = ctx.kernel_size_w;
 
     int gemm_m = k;
     int gemm_n = c * y * x;
@@ -221,10 +220,12 @@ static inline int if_gemm_k_global_split(const ConvolutionContext& ctx,
     int grid_size;
     // assume that gemm m/n can be divided with no remainder by gemm m/n per block
     grid_size = (gemm_m / gemm_m_per_block) * (gemm_n / gemm_n_per_block);
-    if ((n % 2 == 0) && (grid_size < max_grid_size) && ((n >> 1) * ho * wo % gemm_k_per_block == 0)){
+    if((n % 2 == 0) && (grid_size < max_grid_size) && ((n >> 1) * ho * wo % gemm_k_per_block == 0))
+    {
         gemm_k_global_split = 1;
     }
-    else {
+    else
+    {
         gemm_k_global_split = 0;
     }
     return gemm_k_global_split;
