@@ -1545,18 +1545,8 @@ struct ConvMPBidirectWinograd_xdlops : SolverBase<ConvolutionContext>
     }
 
     PerformanceImplicitGemmForwardV4R4Xdlops Search(const ConvolutionContext&) const;
-
-    template <typename B, typename T>
-    int RunAndMeasureSolution(const miopen::Handle& handle,
-                              B bot_buf,
-                              T top_buf,
-                              ConstData_t wei_buf,
-                              ConstData_t bias_buf,
-                              const ConvolutionContext& ctx,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
 };
-extern template struct ConvMPBidirectWinograd_xdlops<2, 3>;
+
 extern template struct ConvMPBidirectWinograd_xdlops<3, 3>;
 extern template struct ConvMPBidirectWinograd_xdlops<4, 3>;
 extern template struct ConvMPBidirectWinograd_xdlops<5, 3>;
