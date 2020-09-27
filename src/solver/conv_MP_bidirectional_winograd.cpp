@@ -415,8 +415,8 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
 
         auto gemm_conv_invoker = gemm_conv_factory(conv_kernels);
 
-        return [=](const Handle& handle, const boost::any& ctx) {
-            const auto data_ctx = boost::any_cast<conv::DataInvokeParams>(ctx);
+        return [=](const Handle& handle, const AnyInvokeParams& ctx) {
+            decltype(auto) data_ctx = ctx.CastTo<conv::DataInvokeParams>();
             const auto tensors  = data_ctx.tensors;
             Data_t workSpace = data_ctx.workSpace;
             auto workSpaceSize = data_ctx.workSpaceSize;

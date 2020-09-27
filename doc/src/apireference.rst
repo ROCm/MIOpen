@@ -20,3 +20,5 @@ API Reference
     fusion
     loss
     dropout
+    reduction
+
