@@ -52,6 +52,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F4X3)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F5X3)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F6X3)
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F2X3)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F3X3)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F4X3)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F5X3)
@@ -723,6 +724,9 @@ bool ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilter
     if(wino_data_tile == 3 && wino_filter_tile == 3)
         if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F3X3{}))
             return false;
+    if(wino_data_tile == 2 && wino_filter_tile == 3)
+        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F2X3{}))
+            return false;
 
     return IsApplicableTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(ctx) &&
            ConvHipImplicitGemmForwardV4R4Xdlops().IsApplicable(GetTransformedConvContext(ctx));
@@ -774,6 +778,7 @@ ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::S
     return ConvHipImplicitGemmForwardV4R4Xdlops().Search(GetTransformedConvContext(ctx));
 }
 
+template struct ConvMPBidirectWinograd_xdlops<2, 3>;
 template struct ConvMPBidirectWinograd_xdlops<3, 3>;
 template struct ConvMPBidirectWinograd_xdlops<4, 3>;
 template struct ConvMPBidirectWinograd_xdlops<5, 3>;
