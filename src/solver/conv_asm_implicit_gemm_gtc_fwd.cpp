@@ -433,59 +433,44 @@ static inline bool FindImplicitGemmGtcDynamicFwdKernel(const ConvolutionContext&
     int gemm_n = n * ho * wo;
     int gemm_k = c * y * x; 
 
-    auto pConfig   = tunables.begin();
-    for(; pConfig != tunables.end(); pConfig++)
-    {
-        if(pConfig->nxe == 0)
-        {
+    for(auto cfg : tunables) {
+        if(cfg.nxe == 0) {
             if((x != 1) || (y != 1) || (stride_h != 1) || (stride_w != 1) || (dilation_h != 1) ||
-               (dilation_w != 1) || (pad_h != 0) || (pad_w != 0))
-            {
+               (dilation_w != 1) || (pad_h != 0) || (pad_w != 0)) {
                 continue;
             }
         };
-        if((gemm_n % pConfig->gemm_n_per_block != 0) || (gemm_m % pConfig->gemm_m_per_block != 0) || (gemm_k % pConfig->gemm_k_per_block != 0))
-	{
+        if((gemm_n % cfg.gemm_n_per_block != 0) || (gemm_m % cfg.gemm_m_per_block != 0) || (gemm_k % cfg.gemm_k_per_block != 0)) {
             continue;
         };
         // Don't have to check, assuming the tunable itself is already valid
-        if(pConfig->gemm_n_per_block % pConfig->nxb != 0)
-	{
+        if(cfg.gemm_n_per_block % cfg.nxb != 0) {
             continue;
         };
 
-        if(n % (pConfig->gemm_n_per_block / pConfig->nxb) != 0)
-	{
+        if(n % (cfg.gemm_n_per_block / cfg.nxb) != 0) {
             continue;
         };
 
-        if( (ho * wo) % pConfig->nxb != 0)
-	{
+        if( (ho * wo) % cfg.nxb != 0) {
             continue;
         };
 
         // tensor_b_thread_lengths[c1e] > 1 can only be used with x=y=1
-        if ( pConfig->tensor_b_thread_lengths[1] > 1 && ( x !=1 || y != 1) )
-	{
+        if ( cfg.tensor_b_thread_lengths[1] > 1 && ( x !=1 || y != 1) ) {
             continue;
-	};
+        };
 
-        // just quit if one valid configuration is found 
-        break;
-    };
-
-    if(pConfig != tunables.end())
-    {
         if ( p_kernel_name != nullptr )
-	     *p_kernel_name = pConfig->GetKernelName();
+             *p_kernel_name = cfg.GetKernelName();
 
         if ( p_block_size != nullptr ) {
-	     *p_block_size = pConfig->GetBlockSize();
-        }; 	
+             *p_block_size = cfg.GetBlockSize();
+        };
 
         if ( p_grid_size != nullptr ) {
-	     *p_grid_size = (gemm_m / pConfig->gemm_m_per_block) * (gemm_n / pConfig->gemm_n_per_block);
-	};
+             *p_grid_size = (gemm_m / cfg.gemm_m_per_block) * (gemm_n / cfg.gemm_n_per_block);
+        };
 
         return true;
     };
