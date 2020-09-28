@@ -824,22 +824,22 @@ bool ConvHipImplicitGemmForwardV4R5Xdlops::IsValidPerformanceConfig(
 std::tuple<int, int, int, int>
 ConvHipImplicitGemmForwardV4R5Xdlops::CalculateGemmSize(const ConvolutionContext& ctx)
 {
-    const auto g  = ConvolutionContextInterpreter::GetGroupCountG(ctx);
-    const auto n  = ConvolutionContextInterpreter::GetBatchN(ctx);
-    const auto k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
-    const auto c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
-    const auto ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
-    const auto wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
-    const auto y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-    const auto x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+    const std::size_t g  = ConvolutionContextInterpreter::GetGroupCountG(ctx);
+    const std::size_t n  = ConvolutionContextInterpreter::GetBatchN(ctx);
+    const std::size_t k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
+    const std::size_t c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
+    const std::size_t ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
+    const std::size_t wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
+    const std::size_t y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+    const std::size_t x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
 
-    const auto k_per_group = k / g;
-    const auto c_per_group = c / g;
+    const std::size_t k_per_group = k / g;
+    const std::size_t c_per_group = c / g;
 
-    const auto gemm_g       = g;
-    const auto gemm_m       = k_per_group;
-    const auto gemm_n       = n * ho * wo;
-    const auto gemm_k_total = c_per_group * y * x;
+    const std::size_t gemm_g       = g;
+    const std::size_t gemm_m       = k_per_group;
+    const std::size_t gemm_n       = n * ho * wo;
+    const std::size_t gemm_k_total = c_per_group * y * x;
 
     return std::make_tuple(gemm_g, gemm_m, gemm_n, gemm_k_total);
 }
