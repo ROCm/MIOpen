@@ -252,9 +252,9 @@ InvokerFactory MakeImplGemmDynamicForwardInvokerFactory(const ConvolutionContext
     const auto& conv_problem = ctx.conv_problem;
     return [conv_problem](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            const auto data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
-            const auto& tensors = data_ctx.tensors;
-            auto kernel         = handle.Run(kernels[0]);
+            decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
+            const auto& tensors     = data_ctx.tensors;
+            auto kernel             = handle.Run(kernels[0]);
 
             std::vector<KernelInvoke> ks;
             std::transform(kernels.begin(),
@@ -278,9 +278,9 @@ InvokerFactory MakeImplGemmDynamicForward1x1InvokerFactory(const ConvolutionCont
     const auto& conv_problem = ctx.conv_problem;
     return [conv_problem](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            const auto data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
-            const auto& tensors = data_ctx.tensors;
-            auto kernel         = handle.Run(kernels[0]);
+            decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
+            const auto& tensors     = data_ctx.tensors;
+            auto kernel             = handle.Run(kernels[0]);
 
             std::vector<KernelInvoke> ks;
             std::transform(kernels.begin(),
@@ -304,9 +304,9 @@ InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory(const ConvolutionCo
     const auto& conv_problem = ctx.conv_problem;
     return [conv_problem](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            const auto data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
-            const auto& tensors = data_ctx.tensors;
-            auto kernel         = handle.Run(kernels[0]);
+            decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
+            const auto& tensors     = data_ctx.tensors;
+            auto kernel             = handle.Run(kernels[0]);
 
             std::vector<KernelInvoke> ks;
             std::transform(kernels.begin(),
