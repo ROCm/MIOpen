@@ -1405,7 +1405,8 @@ struct ConvMPBidirectWinograd_xdlops : SolverBase<ConvolutionContext>
             GetTransformedConvContext(ctx));
     }
 
-    PerformanceImplicitGemmForwardV4R4Xdlops Search(const ConvolutionContext&) const;
+    PerformanceImplicitGemmForwardV4R4Xdlops Search(const ConvolutionContext&,
+                                                    const AnyInvokeParams&) const;
 };
 
 extern template struct ConvMPBidirectWinograd_xdlops<2, 3>;

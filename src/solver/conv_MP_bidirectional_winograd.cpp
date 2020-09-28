@@ -378,14 +378,16 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
         GemmDescriptor wino_gemm_desc{isColMajor,transA,transB,m,n,k,
             lda,ldb,ldc,batch_count,strideA,strideB,
             strideC,alpha,beta,params.in_data_type};
+        // clang-format on
 
-        gemm_conv_factory = [=](const std::vector<Kernel> &) {
+        gemm_conv_factory = [=](const std::vector<Kernel>&) {
 
-            return [=](const Handle& handle, const boost::any& ctx) {
+            return [=](const Handle& handle, const AnyInvokeParams& ctx) {
 #if MIOPEN_USE_ROCBLAS
-                const auto data_ctx = boost::any_cast<conv::DataInvokeParams>(ctx);
-                Data_t workSpace = data_ctx.workSpace;
-                CallGemmStridedBatched(handle,
+                const auto data_ctx = ctx.CastTo<conv::DataInvokeParams>();
+                Data_t workSpace    = data_ctx.workSpace;
+                CallGemmStridedBatched(
+                    handle,
                     wino_gemm_desc,
                     workSpace,
                     static_cast<int>(wino_wei_offset / GetTypeSize(params.in_data_type)),
@@ -404,83 +406,85 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
             };
 
         };
-
     }
 
     return [=](const std::vector<Kernel>& kernels) {
-        
-        const std::vector<Kernel> transform_kernels = std::vector<Kernel>{kernels[0], kernels[1], kernels[2]};
 
-        const std::vector<Kernel> conv_kernels = isXdlops ? std::vector<Kernel>{kernels[3]} : std::vector<Kernel>{};
+        const std::vector<Kernel> transform_kernels =
+            std::vector<Kernel>{kernels[0], kernels[1], kernels[2]};
+
+        const std::vector<Kernel> conv_kernels =
+            isXdlops ? std::vector<Kernel>{kernels[3]} : std::vector<Kernel>{};
 
         auto gemm_conv_invoker = gemm_conv_factory(conv_kernels);
 
         return [=](const Handle& handle, const AnyInvokeParams& ctx) {
-            decltype(auto) data_ctx = ctx.CastTo<conv::DataInvokeParams>();
-            const auto tensors  = data_ctx.tensors;
-            Data_t workSpace = data_ctx.workSpace;
-            auto workSpaceSize = data_ctx.workSpaceSize;
-            float total_time    = 0;
-            auto wino_in_ptr = static_cast<void*>( reinterpret_cast<char*>(workSpace) + wino_in_offset);
-            auto wino_w_ptr = static_cast<void*>( reinterpret_cast<char*>(workSpace) + wino_wei_offset);
-            auto wino_out_ptr = static_cast<void*>( reinterpret_cast<char*>(workSpace) + wino_out_offset);
+            const auto& data_ctx = ctx.CastTo<conv::DataInvokeParams>();
+            const auto tensors   = data_ctx.tensors;
+            Data_t workSpace     = data_ctx.workSpace;
+            auto workSpaceSize   = data_ctx.workSpaceSize;
+            float total_time     = 0;
+            auto wino_in_ptr =
+                static_cast<void*>(reinterpret_cast<char*>(workSpace) + wino_in_offset);
+            auto wino_w_ptr =
+                static_cast<void*>(reinterpret_cast<char*>(workSpace) + wino_wei_offset);
+            auto wino_out_ptr =
+                static_cast<void*>(reinterpret_cast<char*>(workSpace) + wino_out_offset);
 
-            for(int i = 0, cur=0; i < 4; i++)
+            for(int i = 0, cur = 0; i < 4; i++)
             {
-                std::string kernel_name ;
+                std::string kernel_name;
                 if(i == 2) // GEMM
                 {
-                    //rocblas_gemm use workSpace pointer and constant offset
-                    //xdlops_conv use tensors.in, tensors.w, tensors.out
-                    ConvDataTensors xdlops_tensor = ConvDataTensors(
-                        ConvFwdTensors{
-                            zeroDesc, wino_in_ptr,
-                            zeroDesc, wino_w_ptr,
-                            zeroDesc, wino_out_ptr}
-                    );
-                    const auto invoke_params = conv::DataInvokeParams{xdlops_tensor, workSpace, workSpaceSize};
+                    // rocblas_gemm use workSpace pointer and constant offset
+                    // xdlops_conv use tensors.in, tensors.w, tensors.out
+                    ConvDataTensors xdlops_tensor = ConvDataTensors(ConvFwdTensors{
+                        zeroDesc, wino_in_ptr, zeroDesc, wino_w_ptr, zeroDesc, wino_out_ptr});
+                    const auto invoke_params =
+                        conv::DataInvokeParams{xdlops_tensor, workSpace, workSpaceSize};
 
                     gemm_conv_invoker(handle, invoke_params);
                     kernel_name = gemm_conv_kernel_name;
                 }
                 else
                 {
-                    const auto kernel        = handle.Run(transform_kernels[cur++]);
-                    const BuffInfo* d_buf    = nullptr;
-                    const BuffInfo* o_buf    = nullptr;
-                    void *  buff_out_addr     = nullptr;
+                    const auto kernel     = handle.Run(transform_kernels[cur++]);
+                    const BuffInfo* d_buf = nullptr;
+                    const BuffInfo* o_buf = nullptr;
+                    void* buff_out_addr   = nullptr;
 
-                    auto const_buff_in_adr  = tensors.in;
-                    auto buff_in_adr        = wino_out_ptr;
-                    bool const_input        = false;
-                    kernel_name = kernel.GetName();
+                    auto const_buff_in_adr = tensors.in;
+                    auto buff_in_adr       = wino_out_ptr;
+                    bool const_input       = false;
+                    kernel_name            = kernel.GetName();
 
-                    if(i==0) // Input
-                    {// Transform
-                        d_buf               = &in_buff;
-                        o_buf               = &(wino_in.buff_info);
-                        const_buff_in_adr   = tensors.in;
-                        buff_out_addr        = wino_in_ptr;
-                        const_input         = true;
+                    if(i == 0) // Input
+                    {          // Transform
+                        d_buf             = &in_buff;
+                        o_buf             = &(wino_in.buff_info);
+                        const_buff_in_adr = tensors.in;
+                        buff_out_addr     = wino_in_ptr;
+                        const_input       = true;
                     }
-                    else if(i==1) // filter
-                    {// Transform
-                        d_buf                = &weights_buff;
-                        o_buf                = &(wino_wei.buff_info);
-                        const_buff_in_adr    = tensors.w;
-                        buff_out_addr         = wino_w_ptr;
-                        const_input          = true;
+                    else if(i == 1) // filter
+                    {               // Transform
+                        d_buf             = &weights_buff;
+                        o_buf             = &(wino_wei.buff_info);
+                        const_buff_in_adr = tensors.w;
+                        buff_out_addr     = wino_w_ptr;
+                        const_input       = true;
                     }
-                    else if (i==3)
-                    { //Output
-                        d_buf               = &(wino_out.buff_info);
-                        o_buf               = &(out_buff);
-                        buff_in_adr         = wino_out_ptr;
-                        buff_out_addr        = tensors.out;
-                        const_input          = false;
+                    else if(i == 3)
+                    { // Output
+                        d_buf         = &(wino_out.buff_info);
+                        o_buf         = &(out_buff);
+                        buff_in_adr   = wino_out_ptr;
+                        buff_out_addr = tensors.out;
+                        const_input   = false;
                     }
 
-                    const auto input_ptr = static_cast<const void*>(const_input ? const_buff_in_adr : buff_in_adr);
+                    const auto input_ptr =
+                        static_cast<const void*>(const_input ? const_buff_in_adr : buff_in_adr);
                     const auto output_ptr = buff_out_addr;
                     // clang-format off
                     MIOPEN_LOG_I2(" N=" << N << " G=" << group_cnt << " C=" << C << " H=" << H << " W=" << W << " K=" << K
@@ -632,7 +636,6 @@ template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 ConvolutionContext ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::
     GetTransformedConvContext(const ConvolutionContext& ctx) const
 {
-#if MIOPEN_BACKEND_HIP
     DEFINE_GETXFORMHWSIZE(ctx)
     int batch_count = wino_xform_h * wino_xform_w * ctx.group_counts;
 
@@ -679,26 +682,52 @@ ConvolutionContext ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDat
     ConvolutionContext transformed_ctx(in, wei, out, conv_desc, dir, 0);
     transformed_ctx.ExecutionContext::operator=(ctx);
 
+    transformed_ctx.SetupFloats();
+    return transformed_ctx;
+}
+
+// must be same as invoke_params in Invoker
+template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
+conv::DataInvokeParams GetTransformedInvokeContext(const ConvolutionContext& ctx,
+                                                   const AnyInvokeParams& invoke_ctx)
+{
+#if MIOPEN_BACKEND_HIP
+    WinogradBufferInfo<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
+        wino_in = GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(
+            ctx, ConvWinoBuffType::Input),
+        wino_out = GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(
+            ctx, ConvWinoBuffType::Output),
+        wino_wei = GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(
+            ctx, ConvWinoBuffType::Weight);
+
     DEFINE_WORKSPACE_OFFSETS(wino_in.buff_info.total_byte_size,
                              wino_wei.buff_info.total_byte_size,
                              wino_out.buff_info.total_byte_size)
-    auto transform_workSpaceSize = wino_in.buff_info.total_byte_size +
-                                   wino_wei.buff_info.total_byte_size +
-                                   wino_out.buff_info.total_byte_size;
-    auto transform_workSpace = static_cast<char*>(ctx.GetBufs().workSpace);
-    auto gemm_workSpaceSize  = ctx.GetBufs().workSpaceSize - transform_workSpaceSize;
-    auto gemm_workSpace      = (transform_workSpace) + transform_workSpaceSize;
 
-    ConvolutionUserBuffers buff(gemm_workSpace, gemm_workSpaceSize);
+    const auto& data_ctx = invoke_ctx.CastTo<conv::DataInvokeParams>();
 
-    buff.SetFwd(transform_workSpace + wino_in_offset,
-                transform_workSpace + wino_wei_offset,
-                transform_workSpace + wino_out_offset);
+    auto workSpace = data_ctx.workSpace;
 
-    transformed_ctx.SetBufs(buff);
-    transformed_ctx.SetupFloats();
-    return transformed_ctx;
+    const auto wino_in_ptr =
+        static_cast<void*>(reinterpret_cast<char*>(workSpace) + wino_in_offset);
+    const auto wino_w_ptr =
+        static_cast<void*>(reinterpret_cast<char*>(workSpace) + wino_wei_offset);
+    const auto wino_out_ptr =
+        static_cast<void*>(reinterpret_cast<char*>(workSpace) + wino_out_offset);
+
+    const auto transform_workSpaceSize = wino_in.buff_info.total_byte_size +
+                                         wino_wei.buff_info.total_byte_size +
+                                         wino_out.buff_info.total_byte_size;
+
+    const auto gemm_workSpaceSize = data_ctx.workSpaceSize - transform_workSpaceSize;
+    const auto gemm_workSpace =
+        static_cast<void*>(reinterpret_cast<char*>(workSpace) + transform_workSpaceSize);
+    const auto zeroDesc           = TensorDescriptor();
+    ConvDataTensors xdlops_tensor = ConvDataTensors(
+        ConvFwdTensors{zeroDesc, wino_in_ptr, zeroDesc, wino_w_ptr, zeroDesc, wino_out_ptr});
+    return conv::DataInvokeParams{xdlops_tensor, gemm_workSpace, gemm_workSpaceSize};
 #else
+    (void)invoke_ctx;
     (void)ctx;
     MIOPEN_THROW(miopenStatusBadParm, "ConvMPBidirectWinograd Unsupported ");
 #endif
@@ -773,9 +802,11 @@ ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::G
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 PerformanceImplicitGemmForwardV4R4Xdlops
 ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Search(
-    const ConvolutionContext& ctx) const
+    const ConvolutionContext& ctx, const AnyInvokeParams& invoke_ctx) const
 {
-    return ConvHipImplicitGemmForwardV4R4Xdlops().Search(GetTransformedConvContext(ctx));
+    const auto transformed_invoke_ctx = GetTransformedInvokeContext<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(ctx, invoke_ctx);
+    return ConvHipImplicitGemmForwardV4R4Xdlops().Search(GetTransformedConvContext(ctx),
+                                                         transformed_invoke_ctx);
 }
 
 template struct ConvMPBidirectWinograd_xdlops<2, 3>;
