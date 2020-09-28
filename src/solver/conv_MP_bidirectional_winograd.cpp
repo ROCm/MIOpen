@@ -804,7 +804,9 @@ PerformanceImplicitGemmForwardV4R4Xdlops
 ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Search(
     const ConvolutionContext& ctx, const AnyInvokeParams& invoke_ctx) const
 {
-    const auto transformed_invoke_ctx = GetTransformedInvokeContext<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(ctx, invoke_ctx);
+    const auto transformed_invoke_ctx =
+        GetTransformedInvokeContext<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(ctx,
+                                                                                    invoke_ctx);
     return ConvHipImplicitGemmForwardV4R4Xdlops().Search(GetTransformedConvContext(ctx),
                                                          transformed_invoke_ctx);
 }
