@@ -333,9 +333,9 @@ ConvSolution ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& param
                               << o_K_stride);
 
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& handle, const boost::any& ctx) {
+        return [=](const Handle& handle, const AnyInvokeParams& ctx) {
             const auto k        = handle.Run(kernels[0]);
-            const auto fwd_ctx  = boost::any_cast<conv::DataInvokeParams>(ctx);
+            const auto& fwd_ctx = ctx.CastTo<conv::DataInvokeParams>();
             const auto& tensors = fwd_ctx.tensors;
 
             k(N,
