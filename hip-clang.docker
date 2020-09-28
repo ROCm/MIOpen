@@ -51,6 +51,14 @@ ENV LANG=C.UTF-8
 # Install cget
 RUN pip3 install cget
 
+
+#update ca cert for github
+RUN mkdir /usr/local/share/ca-certificates/cacert.org
+RUN wget -P /usr/local/share/ca-certificates/cacert.org http://www.cacert.org/certs/root.crt http://www.cacert.org/certs/class3.crt
+RUN update-ca-certificates
+RUN git config --global http.sslCAinfo /etc/ssl/certs/ca-certificates.crt
+
+
 # Build using hip-clang
 RUN cget -p $PREFIX init --cxx /opt/rocm/llvm/bin/clang++ --std=c++14
 
