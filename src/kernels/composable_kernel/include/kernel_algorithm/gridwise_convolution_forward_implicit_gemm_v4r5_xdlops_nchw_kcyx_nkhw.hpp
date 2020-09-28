@@ -134,7 +134,7 @@ struct GridwiseConvolutionForwardImplicitGemm_v4r5_xdlops_nchw_kcyx_nkhw
         constexpr auto in_gemmg_gemmktotal_n1_b_global_desc = transform_tensor_descriptor(
             in_g_n1_n0_cpergroup_y_ho_x_wo_global_desc,
             make_tuple(PassThrough<G>{},
-                       Merge<Sequence<C, Y, X>>{},
+                       Merge<Sequence<CPerGroup, Y, X>>{},
                        PassThrough<NWaves>{},
                        Merge<Sequence<N0, Ho, Wo>>{}),
             make_tuple(Sequence<0>{}, Sequence<3, 4, 6>{}, Sequence<1>{}, Sequence<2, 5, 7>{}),
