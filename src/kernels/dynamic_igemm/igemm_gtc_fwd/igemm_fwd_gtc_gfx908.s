@@ -229,7 +229,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 128
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -260,7 +260,7 @@ amdhsa.kernels:
     .sgpr_count: 74
     .vgpr_count: 128
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -291,7 +291,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 128
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -322,7 +322,7 @@ amdhsa.kernels:
     .sgpr_count: 74
     .vgpr_count: 128
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -353,7 +353,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 128
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -384,7 +384,7 @@ amdhsa.kernels:
     .sgpr_count: 76
     .vgpr_count: 128
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -415,7 +415,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 128
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -446,7 +446,7 @@ amdhsa.kernels:
     .sgpr_count: 76
     .vgpr_count: 128
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -477,7 +477,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 128
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -508,7 +508,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 128
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -539,7 +539,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 128
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -570,7 +570,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 128
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -601,7 +601,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 128
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -632,7 +632,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 128
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -663,7 +663,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 128
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -694,7 +694,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 128
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -725,7 +725,7 @@ amdhsa.kernels:
     .sgpr_count: 54
     .vgpr_count: 128
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -756,7 +756,7 @@ amdhsa.kernels:
     .sgpr_count: 68
     .vgpr_count: 128
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -787,7 +787,7 @@ amdhsa.kernels:
     .sgpr_count: 54
     .vgpr_count: 128
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -818,7 +818,7 @@ amdhsa.kernels:
     .sgpr_count: 68
     .vgpr_count: 128
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -849,7 +849,7 @@ amdhsa.kernels:
     .sgpr_count: 56
     .vgpr_count: 128
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -880,7 +880,7 @@ amdhsa.kernels:
     .sgpr_count: 70
     .vgpr_count: 128
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -911,7 +911,7 @@ amdhsa.kernels:
     .sgpr_count: 56
     .vgpr_count: 128
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -942,7 +942,7 @@ amdhsa.kernels:
     .sgpr_count: 70
     .vgpr_count: 128
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -973,7 +973,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 128
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1004,7 +1004,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 128
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1035,7 +1035,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 128
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1066,7 +1066,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 128
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1097,7 +1097,7 @@ amdhsa.kernels:
     .sgpr_count: 50
     .vgpr_count: 128
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1128,7 +1128,7 @@ amdhsa.kernels:
     .sgpr_count: 64
     .vgpr_count: 128
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1159,7 +1159,7 @@ amdhsa.kernels:
     .sgpr_count: 50
     .vgpr_count: 128
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1190,7 +1190,7 @@ amdhsa.kernels:
     .sgpr_count: 64
     .vgpr_count: 128
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1221,7 +1221,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 70
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1252,7 +1252,7 @@ amdhsa.kernels:
     .sgpr_count: 74
     .vgpr_count: 72
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1283,7 +1283,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 70
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1314,7 +1314,7 @@ amdhsa.kernels:
     .sgpr_count: 74
     .vgpr_count: 72
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1345,7 +1345,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 70
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1376,7 +1376,7 @@ amdhsa.kernels:
     .sgpr_count: 74
     .vgpr_count: 72
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1407,7 +1407,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 70
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1438,7 +1438,7 @@ amdhsa.kernels:
     .sgpr_count: 74
     .vgpr_count: 72
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1469,7 +1469,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 64
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1500,7 +1500,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 66
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1531,7 +1531,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 64
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1562,7 +1562,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 66
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1593,7 +1593,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 64
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1624,7 +1624,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 66
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1655,7 +1655,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 64
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1686,7 +1686,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 66
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1717,7 +1717,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 64
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1748,7 +1748,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 66
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1779,7 +1779,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 64
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1810,7 +1810,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 66
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1841,7 +1841,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 64
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1872,7 +1872,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 66
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1903,7 +1903,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 64
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1934,7 +1934,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 66
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1965,7 +1965,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 66
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1996,7 +1996,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 68
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -2027,7 +2027,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 66
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -2058,7 +2058,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 68
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -2089,7 +2089,7 @@ amdhsa.kernels:
     .sgpr_count: 54
     .vgpr_count: 66
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -2120,7 +2120,7 @@ amdhsa.kernels:
     .sgpr_count: 68
     .vgpr_count: 68
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -2151,7 +2151,7 @@ amdhsa.kernels:
     .sgpr_count: 54
     .vgpr_count: 66
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -2182,7 +2182,7 @@ amdhsa.kernels:
     .sgpr_count: 68
     .vgpr_count: 68
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -2213,7 +2213,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 64
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -2244,7 +2244,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 64
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -2275,7 +2275,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 64
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -2306,7 +2306,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 64
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -2337,7 +2337,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 64
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -2368,7 +2368,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 64
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -2399,7 +2399,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 64
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -2430,7 +2430,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 64
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -2461,7 +2461,7 @@ amdhsa.kernels:
     .sgpr_count: 50
     .vgpr_count: 70
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -2492,7 +2492,7 @@ amdhsa.kernels:
     .sgpr_count: 64
     .vgpr_count: 72
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -2523,7 +2523,7 @@ amdhsa.kernels:
     .sgpr_count: 50
     .vgpr_count: 70
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -2554,7 +2554,7 @@ amdhsa.kernels:
     .sgpr_count: 64
     .vgpr_count: 72
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -2585,7 +2585,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 70
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -2616,7 +2616,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 72
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -2647,7 +2647,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 70
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -2678,7 +2678,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 72
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -2709,7 +2709,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 64
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -2740,7 +2740,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 64
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -2771,7 +2771,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 64
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -2802,7 +2802,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 64
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -2833,7 +2833,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 64
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -2864,7 +2864,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 64
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -2895,7 +2895,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 64
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -2926,7 +2926,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 64
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -2957,7 +2957,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 64
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -2988,7 +2988,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 64
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -3019,7 +3019,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 64
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -3050,7 +3050,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 64
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -3081,7 +3081,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 72
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -3112,7 +3112,7 @@ amdhsa.kernels:
     .sgpr_count: 74
     .vgpr_count: 74
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -3143,7 +3143,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 72
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -3174,7 +3174,7 @@ amdhsa.kernels:
     .sgpr_count: 74
     .vgpr_count: 74
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -3205,7 +3205,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 72
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -3236,7 +3236,7 @@ amdhsa.kernels:
     .sgpr_count: 74
     .vgpr_count: 74
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -3267,7 +3267,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 72
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -3298,7 +3298,7 @@ amdhsa.kernels:
     .sgpr_count: 74
     .vgpr_count: 74
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -3329,7 +3329,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -3360,7 +3360,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 66
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -3391,7 +3391,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -3422,7 +3422,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 66
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -3453,7 +3453,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -3484,7 +3484,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 66
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -3515,7 +3515,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -3546,7 +3546,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 66
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -3577,7 +3577,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 78
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -3608,7 +3608,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 66
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -3639,7 +3639,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 68
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -3670,7 +3670,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 66
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -3701,7 +3701,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 68
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -3732,7 +3732,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 66
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -3763,7 +3763,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 68
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -3794,7 +3794,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 66
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -3825,7 +3825,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 68
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -3856,7 +3856,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -3887,7 +3887,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -3918,7 +3918,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -3949,7 +3949,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -3980,7 +3980,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -4011,7 +4011,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -4042,7 +4042,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -4073,7 +4073,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -4104,7 +4104,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 56
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -4135,7 +4135,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -4166,7 +4166,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 56
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -4197,7 +4197,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -4228,7 +4228,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 56
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -4259,7 +4259,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -4290,7 +4290,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 56
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -4321,7 +4321,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -4352,7 +4352,7 @@ amdhsa.kernels:
     .sgpr_count: 54
     .vgpr_count: 78
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -4383,7 +4383,7 @@ amdhsa.kernels:
     .sgpr_count: 68
     .vgpr_count: 80
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -4414,7 +4414,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 66
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -4445,7 +4445,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 68
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -4476,7 +4476,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 66
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -4507,7 +4507,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 68
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -4538,7 +4538,7 @@ amdhsa.kernels:
     .sgpr_count: 50
     .vgpr_count: 66
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -4569,7 +4569,7 @@ amdhsa.kernels:
     .sgpr_count: 64
     .vgpr_count: 68
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -4600,7 +4600,7 @@ amdhsa.kernels:
     .sgpr_count: 50
     .vgpr_count: 66
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -4631,7 +4631,7 @@ amdhsa.kernels:
     .sgpr_count: 64
     .vgpr_count: 68
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -4662,7 +4662,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -4693,7 +4693,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -4724,7 +4724,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -4755,7 +4755,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -4786,7 +4786,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -4817,7 +4817,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -4848,7 +4848,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -4879,7 +4879,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -4910,7 +4910,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 56
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -4941,7 +4941,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -4972,7 +4972,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 56
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5003,7 +5003,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5034,7 +5034,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 72
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5065,7 +5065,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 74
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5096,7 +5096,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 72
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5127,7 +5127,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 74
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5158,7 +5158,7 @@ amdhsa.kernels:
     .sgpr_count: 50
     .vgpr_count: 72
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5189,7 +5189,7 @@ amdhsa.kernels:
     .sgpr_count: 64
     .vgpr_count: 74
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5220,7 +5220,7 @@ amdhsa.kernels:
     .sgpr_count: 50
     .vgpr_count: 72
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5251,7 +5251,7 @@ amdhsa.kernels:
     .sgpr_count: 64
     .vgpr_count: 74
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5282,7 +5282,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5313,7 +5313,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 66
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5344,7 +5344,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5375,7 +5375,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 66
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5406,7 +5406,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 70
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5437,7 +5437,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5468,7 +5468,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5499,7 +5499,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5530,7 +5530,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5561,7 +5561,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5592,7 +5592,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5623,7 +5623,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5654,7 +5654,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5685,7 +5685,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5716,7 +5716,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 58
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5747,7 +5747,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5778,7 +5778,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 58
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5809,7 +5809,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5840,7 +5840,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 58
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5871,7 +5871,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5902,7 +5902,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 58
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5933,7 +5933,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 82
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5964,7 +5964,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 58
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -5995,7 +5995,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -6026,7 +6026,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 58
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -6057,7 +6057,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -6088,7 +6088,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 58
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -6119,7 +6119,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -6150,7 +6150,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 58
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -6181,7 +6181,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -6212,7 +6212,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -6243,7 +6243,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 56
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -6274,7 +6274,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -6305,7 +6305,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 56
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -6336,7 +6336,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -6367,7 +6367,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 56
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -6398,7 +6398,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -6429,7 +6429,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 56
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -6460,7 +6460,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -6491,7 +6491,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -6522,7 +6522,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -6553,7 +6553,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -6584,7 +6584,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -6615,7 +6615,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -6646,7 +6646,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -6677,7 +6677,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -6708,7 +6708,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -6739,7 +6739,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 58
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -6770,7 +6770,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -6801,7 +6801,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 58
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -6832,7 +6832,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -6863,7 +6863,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 56
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -6894,7 +6894,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -6925,7 +6925,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 56
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -6956,7 +6956,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -6987,7 +6987,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 56
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -7018,7 +7018,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -7049,7 +7049,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 56
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -7080,7 +7080,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 50
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -7111,7 +7111,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -7142,7 +7142,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 50
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -7173,7 +7173,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -7204,7 +7204,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 50
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -7235,7 +7235,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -7266,7 +7266,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 50
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -7297,7 +7297,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -7328,7 +7328,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -7359,7 +7359,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 56
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -7390,7 +7390,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -7421,7 +7421,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 56
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -7452,7 +7452,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -7483,7 +7483,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 56
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -7514,7 +7514,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -7545,7 +7545,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 56
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -7576,7 +7576,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 50
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -7607,7 +7607,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -7638,7 +7638,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 50
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -7669,7 +7669,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -7700,7 +7700,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 50
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -7731,7 +7731,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -7762,7 +7762,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 50
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -7793,7 +7793,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -7824,7 +7824,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 50
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -7855,7 +7855,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -7886,7 +7886,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 50
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -7917,7 +7917,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -7948,7 +7948,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 58
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -7979,7 +7979,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -8010,7 +8010,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 58
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -8041,7 +8041,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -8072,7 +8072,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 58
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -8103,7 +8103,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -8134,7 +8134,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 58
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -8165,7 +8165,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -8196,7 +8196,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 52
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -8227,7 +8227,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 56
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -8258,7 +8258,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 52
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -8289,7 +8289,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 56
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -8320,7 +8320,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 52
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -8351,7 +8351,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 56
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -8382,7 +8382,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 52
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -8413,7 +8413,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 56
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -8444,7 +8444,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 50
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -8475,7 +8475,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 52
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -8506,7 +8506,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 50
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -8537,7 +8537,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 52
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -8568,7 +8568,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 50
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -8599,7 +8599,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 52
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -8630,7 +8630,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 50
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -8661,7 +8661,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 52
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -8692,7 +8692,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 50
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -8723,7 +8723,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -8754,7 +8754,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 50
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -8785,7 +8785,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -8816,7 +8816,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 58
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -8847,7 +8847,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -8878,7 +8878,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 58
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -8909,7 +8909,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -8940,7 +8940,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 58
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -8971,7 +8971,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9002,7 +9002,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 58
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9033,7 +9033,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9064,7 +9064,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 52
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9095,7 +9095,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 56
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9126,7 +9126,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 52
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9157,7 +9157,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 56
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9188,7 +9188,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9219,7 +9219,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 58
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9250,7 +9250,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9281,7 +9281,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 58
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9312,7 +9312,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9343,7 +9343,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 58
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9374,7 +9374,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9405,7 +9405,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 58
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9436,7 +9436,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 52
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9467,7 +9467,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9498,7 +9498,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 52
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9529,7 +9529,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9560,7 +9560,7 @@ amdhsa.kernels:
     .sgpr_count: 50
     .vgpr_count: 52
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9591,7 +9591,7 @@ amdhsa.kernels:
     .sgpr_count: 64
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9622,7 +9622,7 @@ amdhsa.kernels:
     .sgpr_count: 50
     .vgpr_count: 52
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9653,7 +9653,7 @@ amdhsa.kernels:
     .sgpr_count: 64
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9684,7 +9684,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9715,7 +9715,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9746,7 +9746,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9777,7 +9777,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9808,7 +9808,7 @@ amdhsa.kernels:
     .sgpr_count: 54
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9839,7 +9839,7 @@ amdhsa.kernels:
     .sgpr_count: 68
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9870,7 +9870,7 @@ amdhsa.kernels:
     .sgpr_count: 54
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9901,7 +9901,7 @@ amdhsa.kernels:
     .sgpr_count: 68
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9932,7 +9932,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 2048
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9963,7 +9963,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 56
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 2048
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -9994,7 +9994,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 2048
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -10025,7 +10025,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 56
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 2048
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -10056,7 +10056,7 @@ amdhsa.kernels:
     .sgpr_count: 50
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 2048
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -10087,7 +10087,7 @@ amdhsa.kernels:
     .sgpr_count: 64
     .vgpr_count: 56
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 2048
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -10118,7 +10118,7 @@ amdhsa.kernels:
     .sgpr_count: 50
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 2048
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -10149,7 +10149,7 @@ amdhsa.kernels:
     .sgpr_count: 64
     .vgpr_count: 56
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 2048
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -10180,7 +10180,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 52
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -10211,7 +10211,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -10242,7 +10242,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 52
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -10273,7 +10273,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -10304,7 +10304,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 52
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -10335,7 +10335,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -10366,7 +10366,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 52
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -10397,7 +10397,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -10428,7 +10428,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -10459,7 +10459,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -10490,7 +10490,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -10521,7 +10521,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -10552,7 +10552,7 @@ amdhsa.kernels:
     .sgpr_count: 50
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -10583,7 +10583,7 @@ amdhsa.kernels:
     .sgpr_count: 64
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -10614,7 +10614,7 @@ amdhsa.kernels:
     .sgpr_count: 50
     .vgpr_count: 60
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -10645,7 +10645,7 @@ amdhsa.kernels:
     .sgpr_count: 64
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -10676,7 +10676,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 2048
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -10707,7 +10707,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 56
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 2048
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -10738,7 +10738,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 2048
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -10769,7 +10769,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 56
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 2048
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -10800,7 +10800,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 2048
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -10831,7 +10831,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 56
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 2048
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -10862,7 +10862,7 @@ amdhsa.kernels:
     .sgpr_count: 48
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 2048
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -10893,7 +10893,7 @@ amdhsa.kernels:
     .sgpr_count: 62
     .vgpr_count: 56
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 2048
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -10924,7 +10924,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -10955,7 +10955,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 58
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -10986,7 +10986,7 @@ amdhsa.kernels:
     .sgpr_count: 52
     .vgpr_count: 54
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -11017,7 +11017,7 @@ amdhsa.kernels:
     .sgpr_count: 66
     .vgpr_count: 58
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -11048,7 +11048,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -11079,7 +11079,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -11110,7 +11110,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -11141,7 +11141,7 @@ amdhsa.kernels:
     .sgpr_count: 74
     .vgpr_count: 66
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -11172,7 +11172,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -11203,7 +11203,7 @@ amdhsa.kernels:
     .sgpr_count: 74
     .vgpr_count: 66
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -11234,7 +11234,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -11265,7 +11265,7 @@ amdhsa.kernels:
     .sgpr_count: 74
     .vgpr_count: 66
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -11296,7 +11296,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -11327,7 +11327,7 @@ amdhsa.kernels:
     .sgpr_count: 74
     .vgpr_count: 66
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -11358,7 +11358,7 @@ amdhsa.kernels:
     .sgpr_count: 46
     .vgpr_count: 48
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 1024
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -11389,7 +11389,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -11420,7 +11420,7 @@ amdhsa.kernels:
     .sgpr_count: 74
     .vgpr_count: 66
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -11451,7 +11451,7 @@ amdhsa.kernels:
     .sgpr_count: 60
     .vgpr_count: 62
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -11482,7 +11482,7 @@ amdhsa.kernels:
     .sgpr_count: 74
     .vgpr_count: 66
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 84
+    .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
