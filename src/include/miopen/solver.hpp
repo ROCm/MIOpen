@@ -1239,34 +1239,24 @@ struct TunableImplicitGemmGTCDynamic_t
 
     std::string GetKernelName()
     {
-        std::string kernel_name = std::string("igemm_");
-        kernel_name += direction + std::string("_gtcx_nchw_") + precision;
-        kernel_name += "_bx" + std::to_string(nxb) + "_ex" + std::to_string(nxe) + "_bt" +
-                       std::to_string(gemm_m_per_block) + "x" + std::to_string(gemm_n_per_block) +
-                       "x" + std::to_string(gemm_k_per_block) + "_wt" +
-                       std::to_string(wave_tile_m) + "x" + std::to_string(wave_tile_n) + "_ws" +
-                       std::to_string(wave_step_m) + "x" + std::to_string(wave_step_n) + "_wr" +
-                       std::to_string(wave_repeat_m) + "x" + std::to_string(wave_repeat_n) + "_ta" +
-                       std::to_string(tensor_a_thread_lengths[0]) + "x" +
-                       std::to_string(tensor_a_thread_lengths[1]) + "x" +
-                       std::to_string(tensor_a_thread_lengths[2]) + "x" +
-                       std::to_string(tensor_a_thread_lengths[3]) + "_" +
-                       std::to_string(tensor_a_cluster_lengths[0]) + "x" +
-                       std::to_string(tensor_a_cluster_lengths[1]) + "x" +
-                       std::to_string(tensor_a_cluster_lengths[2]) + "x" +
-                       std::to_string(tensor_a_cluster_lengths[3]) + "_tb" +
-                       std::to_string(tensor_b_thread_lengths[0]) + "x" +
-                       std::to_string(tensor_b_thread_lengths[1]) + "x" +
-                       std::to_string(tensor_b_thread_lengths[2]) + "x" +
-                       std::to_string(tensor_b_thread_lengths[3]) + "_" +
-                       std::to_string(tensor_b_cluster_lengths[0]) + "x" +
-                       std::to_string(tensor_b_cluster_lengths[1]) + "x" +
-                       std::to_string(tensor_b_cluster_lengths[2]) + "x" +
-                       std::to_string(tensor_b_cluster_lengths[3]);
+        std::ostringstream kernel_name;
+        kernel_name << "igemm_" << direction << "_gtcx_nchw_" << precision << "_bx" << nxb << "_ex"
+                    << nxe << "_bt" << gemm_m_per_block << "x" << gemm_n_per_block << "x"
+                    << gemm_k_per_block << "_wt" << wave_tile_m << "x" << wave_tile_n << "_ws"
+                    << wave_step_m << "x" << wave_step_n << "_wr" << wave_repeat_m << "x"
+                    << wave_repeat_n << "_ta" << tensor_a_thread_lengths[0] << "x"
+                    << tensor_a_thread_lengths[1] << "x" << tensor_a_thread_lengths[2] << "x"
+                    << tensor_a_thread_lengths[3] << "_" << tensor_a_cluster_lengths[0] << "x"
+                    << tensor_a_cluster_lengths[1] << "x" << tensor_a_cluster_lengths[2] << "x"
+                    << tensor_a_cluster_lengths[3] << "_tb" << tensor_b_thread_lengths[0] << "x"
+                    << tensor_b_thread_lengths[1] << "x" << tensor_b_thread_lengths[2] << "x"
+                    << tensor_b_thread_lengths[3] << "_" << tensor_b_cluster_lengths[0] << "x"
+                    << tensor_b_cluster_lengths[1] << "x" << tensor_b_cluster_lengths[2] << "x"
+                    << tensor_b_cluster_lengths[3];
         if(gemm_k_global_split != 0)
-            kernel_name += std::string("_gkgs");
+            kernel_name << "_gkgs";
 
-        return kernel_name;
+        return kernel_name.str();
     }
 };
 
