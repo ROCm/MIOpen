@@ -569,9 +569,9 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
 
     result.invoker_factory = [conv_problem,
                               log2_gemm_k_global_splits](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& handle, const boost::any& primitive_parameters) {
-            const auto data_ctx = boost::any_cast<conv::WrWInvokeParams>(primitive_parameters);
-            const auto& tensors = data_ctx.tensors;
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+            decltype(auto) data_ctx = primitive_parameters.CastTo<conv::WrWInvokeParams>();
+            const auto& tensors     = data_ctx.tensors;
             std::vector<KernelInvoke> ks;
             std::transform(kernels.begin(),
                            kernels.end(),
