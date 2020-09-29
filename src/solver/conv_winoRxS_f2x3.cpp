@@ -25,14 +25,16 @@
 *******************************************************************************/
 
 #include <miopen/solver.hpp>
-#include <miopen/env.hpp>
-#include <miopen/stringutils.hpp>
-#include <miopen/sequences.hpp>
-#include <miopen/kernel_build_params.hpp>
-#include <miopen/generic_search.hpp>
+
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/compiled_in_parameters.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
+#include <miopen/env.hpp>
+#include <miopen/generic_search.hpp>
+#include <miopen/invoke_params.hpp>
+#include <miopen/kernel_build_params.hpp>
+#include <miopen/sequences.hpp>
+#include <miopen/stringutils.hpp>
 
 #include <boost/any.hpp>
 
@@ -290,12 +292,10 @@ bool ConvBinWinogradRxSf2x3::IsValidPerformanceConfig(
 }
 
 PerformanceConfigConvBinWinogradRxSf2x3
-ConvBinWinogradRxSf2x3::Search(const ConvolutionContext& context) const
+ConvBinWinogradRxSf2x3::Search(const ConvolutionContext& context,
+                               const AnyInvokeParams& invoke_ctx) const
 {
-    if(context.direction.IsForward())
-        return GenericSearchFwd(*this, context);
-    else
-        return GenericSearchBwd(*this, context);
+    return GenericSearch(*this, context, invoke_ctx);
 }
 
 inline void FillVarsFromConfig(int& H,
@@ -334,149 +334,6 @@ inline void FillVarsFromConfig(int& H,
     N           = config.batch_sz;
     idilation_w = config.kernel_dilation_h;
     idilation_h = config.kernel_dilation_w;
-}
-
-template <typename B, typename T, typename TW>
-int ConvBinWinogradRxSf2x3::RunAndMeasureSolution(const miopen::Handle& profile_h,
-                                                  B bot_ocl_buf,
-                                                  T top_ocl_buf,
-                                                  TW wei_ocl_buf,
-                                                  ConstData_t bias_ocl_buf,
-                                                  const ConvolutionContext& config,
-                                                  const ConvSolution& solution,
-                                                  float& elapsed_time) const
-{
-    assert(bias_ocl_buf == nullptr);
-    (void)bias_ocl_buf;
-    const KernelInfo k_info = solution.construction_params.back();
-#ifdef NDEBUG
-    try
-#endif
-    {
-        elapsed_time = std::numeric_limits<float>::max();
-        // ConvolutionContext::general_compile_options is for OpenCL kernels
-        // and thus not applicable for assembly.
-        auto kernel = profile_h.AddKernel("",
-                                          "",
-                                          k_info.kernel_file,
-                                          k_info.kernel_name,
-                                          k_info.l_wk,
-                                          k_info.g_wk,
-                                          k_info.comp_options);
-
-        int reserved      = 0;
-        int* reserved_ptr = nullptr;
-
-        static const int F_REVERSE_R     = 1 << 0;
-        static const int F_REVERSE_S     = 1 << 1;
-        static const int F_FLIP_K_C      = 1 << 2;
-        static const int F_NKC_STRIDES   = 1 << 9;
-        static const int F_GROUP_STRIDES = 1 << 10;
-
-        const auto is_forward = config.direction.IsForward();
-        const auto is_wrw     = config.direction.IsBackwardWrW();
-
-        int H, W, R, S, R_stride, S_stride, C, K, out_H, out_W, pad_H, pad_W, N, idilation_w,
-            idilation_h, n_groups, group_cnt;
-        // clang-format off
-        FillVarsFromConfig(H, W, R, S, R_stride, S_stride, C, K, out_H, out_W, pad_H,
-                           pad_W, N, idilation_w, idilation_h, n_groups, group_cnt, config);
-        // clang-format on
-        int flags = ((is_forward || is_wrw) ? 0 : F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C) +
-                    F_NKC_STRIDES + F_GROUP_STRIDES;
-
-        C = C / group_cnt;
-        K = K / group_cnt;
-        // cppcheck-suppress unreadVariable
-
-        const auto in_layout = (is_wrw) ? GetSwappedNCLayout(GetMemLayout_t(config.in_layout))
-                                        : GetMemLayout_t(config.in_layout);
-        const auto out_layout = (is_wrw) ? GetSwappedNCLayout(GetMemLayout_t(config.out_layout))
-                                         : GetMemLayout_t(config.out_layout);
-        const auto wei_layout =
-            (is_wrw) ? GetSwappedNCLayout(MemLayout_t::NCHW)
-                     : (is_forward ? (MemLayout_t::NCHW) : GetSwappedNCLayout(MemLayout_t::NCHW));
-
-        // cppcheck-suppress unreadVariable
-        BuffInfo d_buf(GetGroupConvLayout(in_layout, true),
-                       N,
-                       C,
-                       H,
-                       W,
-                       group_cnt,
-                       GetTypeSize(config.in_data_type)),
-            // cppcheck-suppress unreadVariable
-            o_buf(GetGroupConvLayout(out_layout, true),
-                  N,
-                  K,
-                  out_H,
-                  out_W,
-                  group_cnt,
-                  GetTypeSize(config.out_data_type)),
-            // cppcheck-suppress unreadVariable
-            f_buf(GetGroupConvLayout(wei_layout, false),
-                  K,
-                  C,
-                  R,
-                  S,
-                  group_cnt,
-                  GetTypeSize(config.weights_data_type));
-
-        if(k_info.l_wk[0] != 0)
-            n_groups = solver::ConvBinWinogradRxSf2x3::GetNGroups(config.group_counts,
-                                                                  k_info.g_wk[0] / k_info.l_wk[0]);
-        else
-            n_groups = solver::ConvBinWinogradRxSf2x3::GetNGroups(
-                config.group_counts,
-                k_info.g_wk[0] / 512); // For OCL runtime. Issue #1724
-
-        kernel(N,
-               C,
-               H,
-               W,
-               K,
-               n_groups,
-               flags,
-               reserved,
-               bot_ocl_buf,
-               wei_ocl_buf,
-               top_ocl_buf,
-               reserved_ptr, // Unused return_addr.
-               R,
-               S,
-               pad_H, // Like Fwd wino.
-               pad_W,
-               out_H,
-               out_W,
-               reserved_ptr, // Unused bias_addr.
-               reserved,     // Unused relu_alpha.
-               d_buf.byte_stride.nk,
-               d_buf.byte_stride.c,
-               d_buf.byte_stride.h,
-               d_buf.byte_stride.w,
-               f_buf.byte_stride.nk,
-               f_buf.byte_stride.c,
-               f_buf.byte_stride.h,
-               f_buf.byte_stride.w,
-               o_buf.byte_stride.nk,
-               o_buf.byte_stride.c,
-               o_buf.byte_stride.h,
-               o_buf.byte_stride.w,
-               group_cnt,
-               d_buf.byte_stride.g,
-               f_buf.byte_stride.g,
-               o_buf.byte_stride.g);
-
-        elapsed_time = profile_h.GetKernelTime();
-    }
-#ifdef NDEBUG
-    catch(miopen::Exception& ex)
-    {
-        MIOPEN_LOG_WE(ex.what());
-        return -1;
-    }
-#endif
-    return 0;
 }
 
 bool ConvBinWinogradRxSf2x3::IsApplicable(const ConvolutionContext& params) const
@@ -693,9 +550,9 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
                   GetTypeSize(params.weights_data_type));
 
         result.invoker_factory = [=](std::vector<Kernel> kernels) {
-            return [=](const Handle& handle, const boost::any& primitive_params) {
+            return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
                 const auto k         = handle.Run(kernels[0]);
-                const auto& data_ctx = boost::any_cast<conv::DataInvokeParams>(primitive_params);
+                const auto& data_ctx = primitive_params.CastTo<conv::DataInvokeParams>();
                 const auto& tensors  = data_ctx.tensors;
 
                 // clang-format off
@@ -792,10 +649,9 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
         decltype(auto) n_inputs = params.n_inputs;
 
         result.invoker_factory = [=](std::vector<Kernel> kernels) {
-            return [=](const Handle& handle, const boost::any& primitive_params) {
-                decltype(auto) invoke_params =
-                    boost::any_cast<conv::WrWInvokeParams>(primitive_params);
-                const auto& tensors = invoke_params.tensors;
+            return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
+                decltype(auto) invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+                const auto& tensors          = invoke_params.tensors;
 
                 // clang-format off
                 MIOPEN_LOG_I2(" N=" << N << " G=" << group_cnt << " C=" << C << " H=" << H << " W=" << W << " K=" << K
