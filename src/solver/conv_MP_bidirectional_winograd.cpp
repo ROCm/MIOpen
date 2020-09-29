@@ -389,8 +389,8 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
 
             return [=](const Handle& handle, const AnyInvokeParams& ctx) {
 #if MIOPEN_USE_ROCBLAS
-                const auto data_ctx = ctx.CastTo<conv::DataInvokeParams>();
-                Data_t workSpace    = data_ctx.workSpace;
+                const auto& data_ctx = ctx.CastTo<conv::DataInvokeParams>();
+                Data_t workSpace     = data_ctx.workSpace;
                 CallGemmStridedBatched(
                     handle,
                     wino_gemm_desc,
