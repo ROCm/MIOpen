@@ -116,7 +116,7 @@ def buildJob(Map conf, compiler){
         return retimage
 }
 
-def buildHipClangJob(compiler, flags, env4make, image, prefixpath="/opt/rocm", cmd = "", gpu_arch="all"i, miot_ver="default"){
+def buildHipClangJob(compiler, flags, env4make, image, prefixpath="/opt/rocm", cmd = "", gpu_arch="all", miot_ver="default"){
 
         env.HSA_ENABLE_SDMA=0 
         checkout scm
