@@ -620,7 +620,7 @@ pipeline {
                     }
                 }
 
-                stage('MIOpenTensile Release') {
+                stage('MIOpenTensile Latest Version Release') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
@@ -637,7 +637,7 @@ pipeline {
                     }
                 }
 
-                stage('MIOpenTensile FP32 gfx908 Hip Release') {
+                stage('MIOpenTensile Latest Version FP32 gfx908 Hip Release') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
