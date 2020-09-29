@@ -352,7 +352,7 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
         compile_and_run = c_and_r;
     }
 
-    if(compile_and_run=="0"){
+    /*if(compile_and_run=="0"){
         for(const auto& current_config : all_configs)
         {
             ConvSolution current_solution = s.GetSolution(context, current_config, true);
@@ -368,7 +368,7 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
 
         }
         MIOPEN_THROW("Search escaped, compiling only");
-    }
+    }*/
 
     for(const auto& current_config : all_configs)
     {
@@ -383,6 +383,19 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
         try
         {
             current_solution = s.GetSolution(context, current_config, true);
+
+            if(compile_and_run=="0"){
+                std::vector<KernelInfo> kernels;
+                for(auto&& kernel : current_solution.construction_params)
+                {
+                    if(profile_h.HasProgram(kernel.kernel_file, kernel.comp_options))
+                        continue;
+                     kernels.push_back(kernel);
+                }
+
+                std::vector<Program> programs = PrecompileKernels(profile_h, kernels);
+                continue;
+            }
 
             if(default_solution.workspce_sz != current_solution.workspce_sz)
             {

@@ -67,7 +67,7 @@ void OCLKernelInvoke::run() const
     const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
     if(arch != nullptr && strlen(arch) > 0)
     {
-        MIOPEN_THROW("Escaping launching kernel");
+        MIOPEN_THROW("MIOPEN_DEVICE_ARCH used, escaping launching kernel");
     }
 
     cl_event ev;
