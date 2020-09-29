@@ -163,6 +163,11 @@ inline bool IsShaderContraintsMet(const int R,
             return false;
     }
     const auto grid_workgroup_count_x = params.GetStream().GetMaxComputeUnits();
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
+
     // clang-format off
         // Check implementation limits.
         return N < std::pow(2, 16)

@@ -351,6 +351,11 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
     const std::string name = params.GetStream().GetDeviceName();
     if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")))
         return false;
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
+
     // clang-format off
     bool ok = params.pad_w == 1           // -q  pad_w
         && params.pad_h == 1              // -p  pad_h

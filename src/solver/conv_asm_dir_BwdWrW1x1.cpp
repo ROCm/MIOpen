@@ -482,6 +482,11 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
     {
         return false;
     }
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
+
     // clang-format off
     bool ok = (params.pad_w == 0         // -q  pad_w
         && params.pad_h == 0             // -p  pad_h

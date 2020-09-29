@@ -176,7 +176,7 @@ struct TensorDescriptor : miopenTensorDescriptor
     std::string ToString() const;
 
     template <class Vector, class Op>
-    inline std::vector<int64_t> sort_permutation(const Vector& data, Op op) const
+    static inline std::vector<int64_t> sort_permutation(const Vector& data, Op op)
     {
         std::vector<std::int64_t> result(data.size());
         std::iota(result.begin(), result.end(), 0);

@@ -132,7 +132,15 @@ struct ProblemDescription
                        const ConvolutionDescriptor& conv_,
                        Direction direction_,
                        int bias_ = 0)
-        : in(in_), weights(weights_), out(out_), conv(conv_), direction(direction_), bias(bias_)
+        : in(in_),
+          weights(weights_),
+          out(out_),
+          conv(conv_),
+          in_layout(ComputeInLayout()),
+          weights_layout(ComputeWeightsLayout()),
+          out_layout(ComputeOutLayout()),
+          direction(direction_),
+          bias(bias_)
     {
     }
 
@@ -161,7 +169,8 @@ struct ProblemDescription
     std::size_t GetInStrideD() const { return GetD5(GetSpatialDims(), in.GetStrides()); }
     std::size_t GetInStrideH() const { return GetH5(GetSpatialDims(), in.GetStrides()); }
     std::size_t GetInStrideW() const { return GetW5(GetSpatialDims(), in.GetStrides()); }
-    std::string GetInLayout() const
+    std::string GetInLayout() const { return in_layout; }
+    std::string ComputeInLayout() const
     {
         if(GetSpatialDims() == 2)
         {
@@ -195,7 +204,8 @@ struct ProblemDescription
     std::size_t GetOutStrideD() const { return GetD5(GetSpatialDims(), out.GetStrides()); }
     std::size_t GetOutStrideH() const { return GetH5(GetSpatialDims(), out.GetStrides()); }
     std::size_t GetOutStrideW() const { return GetW5(GetSpatialDims(), out.GetStrides()); }
-    std::string GetOutLayout() const
+    std::string GetOutLayout() const { return out_layout; }
+    std::string ComputeOutLayout() const
     {
         if(GetSpatialDims() == 2)
         {
@@ -228,7 +238,8 @@ struct ProblemDescription
     // }
     // std::size_t GetWeightsStrideW() const { return GetW5(GetSpatialDims(), weights.GetStrides());
     // }
-    std::string GetWeightsLayout() const
+    std::string GetWeightsLayout() const { return weights_layout; }
+    std::string ComputeWeightsLayout() const
     {
         if(GetSpatialDims() == 2)
         {
@@ -349,6 +360,9 @@ struct ProblemDescription
     TensorDescriptor weights;
     TensorDescriptor out;
     ConvolutionDescriptor conv;
+    std::string in_layout;
+    std::string weights_layout;
+    std::string out_layout;
     Direction direction = Direction::Forward;
     int bias            = 0;
 };

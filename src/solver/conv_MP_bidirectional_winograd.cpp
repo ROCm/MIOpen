@@ -201,6 +201,11 @@ bool ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsA
         return false;
     }
 
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
+
     {
         unsigned int const waves_in_group = 512 / wave_size;
         unsigned int const tiles_per_wave = 8;

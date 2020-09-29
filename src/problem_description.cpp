@@ -30,6 +30,18 @@ int ProblemDescription::mloBuildConf_Key(std::string& conf_key) const
     return (0);
 }
 
+bool ProblemDescription::IsLayoutDefault() const
+{
+    if(spatial_dims == 2)
+    {
+        return (in_layout == "NCHW") && (out_layout == "NCHW") && (weights_layout == "NCHW");
+    }
+    else
+    {
+        return (in_layout == "NCDHW") && (out_layout == "NCDHW") && (weights_layout == "NCDHW");
+    }
+}
+
 void ProblemDescription::Serialize(std::ostream& stream) const
 {
     if(!direction.IsKnown())

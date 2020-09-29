@@ -58,6 +58,10 @@ bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ConvolutionContext& p
     {
         return false;
     }
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
 
     // clang-format off
     return params.pad_w == 3            // -q

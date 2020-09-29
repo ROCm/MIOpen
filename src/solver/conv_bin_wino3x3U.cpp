@@ -57,6 +57,11 @@ bool ConvBinWinograd3x3U::IsApplicable(const ConvolutionContext& params) const
     // and able to correctly run with given parameters.
     const auto device_is_gfx8         = StartsWith(name, "gfx8");
     const auto grid_workgroup_count_x = params.GetStream().GetMaxComputeUnits();
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
+
     // clang-format off
     return params.pad_w == 1
         && params.pad_h == 1

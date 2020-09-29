@@ -469,6 +469,10 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
     {
         return false;
     }
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
 
     // clang-format off
     {
