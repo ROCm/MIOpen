@@ -546,11 +546,11 @@ ConvSolution ConvHipImplicitGemmV4R4GenXdlopsWrWFp32::GetSolution(
     result.construction_params.push_back(construction_parameters);
 
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& handle, const boost::any& primitive_params) {
-            const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
-            const auto& tensors      = invoke_params.tensors;
-            float zero               = 0.f;
-            auto elapsed             = 0.f;
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
+            const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+            const auto& tensors       = invoke_params.tensors;
+            float zero                = 0.f;
+            auto elapsed              = 0.f;
 
             if(tensors.dwDesc.GetType() != miopenHalf && tensors.dwDesc.GetType() != miopenBFloat16)
             {
@@ -570,22 +570,6 @@ ConvSolution ConvHipImplicitGemmV4R4GenXdlopsWrWFp32::GetSolution(
     };
 
     return result;
-}
-
-int ConvHipImplicitGemmV4R4GenXdlopsWrWFp32::RunAndMeasureSolution(const miopen::Handle& profile_h,
-                                                                   ConstData_t bot_buf,
-                                                                   ConstData_t top_buf,
-                                                                   Data_t wei_buf,
-                                                                   ConstData_t bias_buf,
-                                                                   const ConvolutionContext& ctx,
-                                                                   const ConvSolution& solution,
-                                                                   float& elapsed_time) const
-{
-    assert(bias_buf == nullptr);
-    (void)bias_buf;
-
-    return RunAndMeasureSolutionBase(
-        profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
 }
 
 bool ConvHipImplicitGemmV4R4GenXdlopsWrWFp32::IsApplicable(const ConvolutionContext& ctx) const
@@ -635,9 +619,10 @@ bool ConvHipImplicitGemmV4R4GenXdlopsWrWFp32::IsValidPerformanceConfig(
 }
 
 PerformanceImplicitGemmV4R4GenXdlopsWrWFp32
-ConvHipImplicitGemmV4R4GenXdlopsWrWFp32::Search(const ConvolutionContext& ctx) const
+ConvHipImplicitGemmV4R4GenXdlopsWrWFp32::Search(const ConvolutionContext& ctx,
+                                                const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearchWrW(*this, ctx);
+    return GenericSearch(*this, ctx, invoke_ctx);
 }
 
 } // namespace solver
