@@ -1097,8 +1097,8 @@ struct ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm : SolverBase<Convolution
                              const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm& config,
                              bool disableConfigOverrideFromEnv = false) const;
 
-    PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm Search(const ConvolutionContext&,
-                                                                const AnyInvokeParams& invoke_ctx) const;
+    PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm
+    Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const;
 };
 
 struct PerformanceImplicitGemmV4R4GenXdlopsWrWFp32
