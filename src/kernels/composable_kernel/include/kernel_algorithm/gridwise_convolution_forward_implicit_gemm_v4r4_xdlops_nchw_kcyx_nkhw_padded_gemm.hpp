@@ -131,14 +131,14 @@ struct GridwiseConvolutionForwardImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw_padded_
 
         constexpr auto in_gemmg_gemmktotal_gemmn_global_desc = transform_tensor_descriptor(
             in_g_n_cpergroup_y_ho_x_wo_global_desc,
-            make_tuple(PassThrough<G>{}, Merge<Sequence<C, Y, X>>{}, Merge<Sequence<N, Ho, Wo>>{}),
+            make_tuple(PassThrough<G>{}, Merge<Sequence<CPerGroup, Y, X>>{}, Merge<Sequence<N, Ho, Wo>>{}),
             make_tuple(Sequence<0>{}, Sequence<2, 3, 5>{}, Sequence<1, 4, 6>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
 
         constexpr auto in_gemmg_gemmktotalextra_gemmn_global_desc = transform_tensor_descriptor(
             in_gemmg_gemmktotal_gemmn_global_desc,
             make_tuple(PassThrough<G>{},
-                       Pad<Sequence<C * Y * X>, Sequence<0>, Sequence<GemmKPad>>{},
+                       Pad<Sequence<CPerGroup * Y * X>, Sequence<0>, Sequence<GemmKPad>>{},
                        PassThrough<N * Ho * Wo>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
@@ -160,7 +160,7 @@ struct GridwiseConvolutionForwardImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw_padded_
                 wei_gemmg_gemmm_gemmktotal_global_desc,
                 make_tuple(PassThrough<GemmG>{},
                            Pad<Sequence<GemmM - GemmMPad>, Sequence<0>, Sequence<GemmMPad>>{},
-                           Pad<Sequence<C * Y * X>, Sequence<0>, Sequence<GemmKPad>>{}),
+                           Pad<Sequence<CPerGroup * Y * X>, Sequence<0>, Sequence<GemmKPad>>{}),
                 make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
                 make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
 

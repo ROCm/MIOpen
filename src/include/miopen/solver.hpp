@@ -1097,15 +1097,8 @@ struct ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm : SolverBase<Convolution
                              const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm& config,
                              bool disableConfigOverrideFromEnv = false) const;
 
-    PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm Search(const ConvolutionContext&) const;
-    int RunAndMeasureSolution(const miopen::Handle& profile_h,
-                              ConstData_t bot_buf,
-                              Data_t top_buf,
-                              ConstData_t wei_buf,
-                              ConstData_t bias_buf,
-                              const ConvolutionContext& ctx,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
+    PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm Search(const ConvolutionContext&,
+                                                                const AnyInvokeParams& invoke_ctx) const;
 };
 
 struct PerformanceImplicitGemmV4R4GenXdlopsWrWFp32
