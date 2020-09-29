@@ -313,6 +313,8 @@ std::tuple<std::size_t, bool> PerformanceImplicitGemmBwdDataV4R1Xdlops::Calculat
     return std::make_tuple(lds_size, true);
 }
 
+// Used by EuristicInit() and GenericSearch
+// Only return false if a performance config will violate requirements given by kernel algorithm
 bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsReallyValid(const ConvolutionContext& ctx) const
 {
     if(!IsValidValue())
@@ -326,11 +328,11 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsReallyValid(const ConvolutionCo
 
     if(ctx.IsBfp16() && GemmKPACKSize % 2 != 0)
         return false;
+
     // check blockwise GEMM size
     for(int gemm_id = 0; gemm_id < ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateNumberOfGemm(ctx);
         ++gemm_id)
     {
-
         std::tie(std::ignore, GemmM, GemmN, gemm_k_total) =
             ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateGemmSize(ctx, gemm_id);
 
@@ -343,9 +345,8 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsReallyValid(const ConvolutionCo
              GemmK % GemmKPerBlock == 0))
             return false; // wrong! cannot divice N evenly among thread
     }
-    // heuristic to reduce search space
+
     {
-        // use largest XdlopsGemm
         if(GemmMPerBlock % GemmMPerWave != 0)
             return false;
         if(GemmNPerBlock % GemmNPerWave != 0)
@@ -478,6 +479,10 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsFastToBeUsedForTuning(
     return true;
 }
 
+// Used by GenericSearch, not used by EuristicInit
+// Return false, if you don't want to this to be included in tuning range used by generic search
+// A performance config may still be valid w.r.t algorithm correctness, even when IsValid() return
+// false
 bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsValid(const ConvolutionContext& ctx) const
 {
 
@@ -542,7 +547,8 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsValidValue() const
         && IsTwoPower<1,8>(GemmKPerBlock)
         && IsTwoPower<1,8>(GemmKPACKSize)
         && IsTwoPower<4,128>(GemmMPerWave)
-        && IsTwoPower<16,128>(GemmNPerWave); // clang-format on
+        && IsTwoPower<16,128>(GemmNPerWave);
+    // clang-format on
 }
 
 bool PerformanceImplicitGemmBwdDataV4R1Xdlops::SetNextValue()
@@ -796,11 +802,11 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext
     if(!IsIndexRangeLargeEnough(ctx))
         return false;
 
-    bool is_applicable = true;
-    int gemm_g         = 0;
-    int gemm_m         = 0;
-    int gemm_n         = 0;
-    int gemm_k_total   = 0;
+    // check gemm size
+    int gemm_g       = 0;
+    int gemm_m       = 0;
+    int gemm_n       = 0;
+    int gemm_k_total = 0;
 
     for(int gemm_id = 0; gemm_id < CalculateNumberOfGemm(ctx); ++gemm_id)
     {
@@ -808,7 +814,13 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext
         if(!IsValidGridGemmXdlops(gemm_m, gemm_n, gemm_k_total))
             return false;
     }
-    return is_applicable;
+
+    // this particular EuristicInit is so comprehensive, that if it cannot predict a valid
+    // performance config, the problem is probably not applicable
+    PerformanceImplicitGemmBwdDataV4R1Xdlops config;
+    config.EuristicInit(ctx);
+
+    return config.IsReallyValid(ctx);
 }
 
 PerformanceImplicitGemmBwdDataV4R1Xdlops
