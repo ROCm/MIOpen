@@ -26,25 +26,43 @@
 
 #include <miopen/config.h>
 
-#ifndef HIP_PACKAGE_VERSION_MAJOR
-#define HIP_PACKAGE_VERSION_MAJOR 0
-#endif
-#ifndef HIP_PACKAGE_VERSION_MINOR
-#define HIP_PACKAGE_VERSION_MINOR 0
-#endif
-#ifndef HIP_PACKAGE_VERSION_PATCH
-#define HIP_PACKAGE_VERSION_PATCH 0
-#endif
+#include <miopen/comgr.hpp>
+#include <miopen/algorithm.hpp>
+#include <miopen/env.hpp>
+#include <miopen/errors.hpp>
+#include <miopen/kernel.hpp>
+#include <miopen/logger.hpp>
+#include <miopen/stringutils.hpp>
 
-// 3 decimal digits for major and minor, 6 digits for patch number.
-// Max number is 999,999,999999 == 0xE8,D4A5,0FFF that fits into 64-bit math.
-#if HIP_PACKAGE_VERSION_MAJOR > 999 || HIP_PACKAGE_VERSION_MAJOR > 999 || \
-    HIP_PACKAGE_VERSION_PATCH > 999999
-#error "Too big HIP version number(s)"
-#endif
-#define HIP_PACKAGE_VERSION                                                     \
-    ((HIP_PACKAGE_VERSION_MAJOR * 1000 + HIP_PACKAGE_VERSION_MINOR) * 1000000 + \
-     HIP_PACKAGE_VERSION_PATCH)
+#include <amd_comgr.h>
+#include <hip/hip_runtime_api.h>
+
+#include <algorithm>
+#include <exception>
+#include <cstddef>
+#include <cstring>
+#include <tuple> // std::ignore
+#include <vector>
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_CALLS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)
+
+/// 0: Off.
+/// 1: Logs each option on a separate line.
+/// 2: Logs all options altogether, on single line.
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_OPTIONS)
+
+/// Integer, set to max number of first characters
+/// you would like to log onto console.
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT)
+
+/// \todo Temporary for debugging:
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_COMPILER_OPTIONS_INSERT)
+/// \todo Temporary for debugging:
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_HIP_BUILD_FATBIN)
+
+/// \todo see issue #1222, PR #1316
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
 
 #ifndef MIOPEN_AMD_COMGR_VERSION_MAJOR
 #define MIOPEN_AMD_COMGR_VERSION_MAJOR 0
@@ -65,49 +83,13 @@
     ((MIOPEN_AMD_COMGR_VERSION_MAJOR * 1000 + MIOPEN_AMD_COMGR_VERSION_MINOR) * 1000 + \
      MIOPEN_AMD_COMGR_VERSION_PATCH)
 
-#if HIP_PACKAGE_VERSION >= 3009999999 && COMGR_VERSION >= 1008000
+// If HIP runtime provides PCH functionality, and COMGR is able to use it,
+// then enable PCH usage automatically.
+#if defined(__HIP_HAS_GET_PCH) && __HIP_HAS_GET_PCH && COMGR_VERSION >= 1008000
 #define USE_HIP_PCH 1
 #else
 #define USE_HIP_PCH 0
 #endif
-
-#if USE_HIP_PCH
-// Enables __hipGetPCH() in hip_runtime_api.h.
-// This must be defined *prior* inclusion of any of the headers,
-// because hip_runtime_api.h may be included in any of those.
-#define ENABLE_HIP_PCH 1
-#endif
-
-#include <miopen/comgr.hpp>
-#include <miopen/algorithm.hpp>
-#include <miopen/env.hpp>
-#include <miopen/errors.hpp>
-#include <miopen/kernel.hpp>
-#include <miopen/logger.hpp>
-#include <miopen/stringutils.hpp>
-#include <amd_comgr.h>
-#include <hip/hip_runtime_api.h>
-#include <algorithm>
-#include <exception>
-#include <cstddef>
-#include <cstring>
-#include <tuple> // std::ignore
-#include <vector>
-
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_CALLS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_OPTIONS)
-
-/// Integer, set to max number of first characters
-/// you would like to log onto console.
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT)
-
-/// \todo Temporary for debugging:
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_COMPILER_OPTIONS_INSERT)
-/// \todo Temporary for debugging:
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_HIP_BUILD_FATBIN)
-
-/// \todo see issue #1222, PR #1316
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
 
 #define COMPILER_LC 1
 
@@ -381,7 +363,9 @@ static bool PrintVersionImpl()
     std::size_t major = 0;
     std::size_t minor = 0;
     (void)amd_comgr_get_version(&major, &minor);
-    MIOPEN_LOG_NQI("comgr v." << major << '.' << minor);
+    MIOPEN_LOG_NQI("COMgr v." << major << '.' << minor << '.' << MIOPEN_AMD_COMGR_VERSION_PATCH
+                              << ", USE_HIP_PCH: "
+                              << USE_HIP_PCH);
     return true;
 }
 
@@ -532,7 +516,8 @@ class Dataset : ComgrOwner
                  const amd_comgr_data_kind_t type) const
     {
         const Data d(type);
-        MIOPEN_LOG_I2(name << ' ' << content.size() << " bytes");
+        if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES{}))
+            MIOPEN_LOG_I(name << ' ' << content.size() << " bytes");
         d.SetName(name);
         d.SetBytes(content);
         AddData(d);
@@ -550,7 +535,9 @@ class Dataset : ComgrOwner
     {
         const char name[] = "hip.pch";
         const Data d(AMD_COMGR_DATA_KIND_PRECOMPILED_HEADER);
-        MIOPEN_LOG_I2(name << ' ' << size << " bytes");
+        if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES{}))
+            MIOPEN_LOG_I(
+                name << ' ' << size << " bytes,  ptr = " << static_cast<const void*>(content));
         d.SetName(name);
         d.SetFromBuffer(content, size);
         AddData(d);
@@ -699,7 +686,6 @@ void BuildHip(const std::string& name,
             const char* pch       = nullptr;
             unsigned int pch_size = 0;
             __hipGetPCH(&pch, &pch_size);
-            MIOPEN_LOG_I2("PCH: ptr = " << static_cast<const void*>(pch) << " size = " << pch_size);
             inputs.AddDataHipPch(pch, pch_size);
         }
 #endif
