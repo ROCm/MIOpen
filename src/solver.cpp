@@ -340,6 +340,11 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
         registry, ++id, ConvMPBidirectWinograd<5, 3>{}, miopenConvolutionAlgoWinograd);
     RegisterWithSolver(
         registry, ++id, ConvMPBidirectWinograd<6, 3>{}, miopenConvolutionAlgoWinograd);
+
+    RegisterWithSolver(registry,
+                       ++id,
+                       ConvAsmImplicitGemmGTCDynamicFwdXdlops{},
+                       miopenConvolutionAlgoImplicitGEMM);
 }
 
 } // namespace solver

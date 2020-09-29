@@ -1335,6 +1335,77 @@ struct ConvAsmImplicitGemmV4R1DynamicBwd : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext&) const;
 };
 
+struct TunableImplicitGemmGTCDynamic_t
+{
+    std::string direction;
+    std::string precision;
+    int nxb;
+    int nxe;
+
+    int gemm_m_per_block;
+    int gemm_n_per_block;
+    int gemm_k_per_block;
+
+    int wave_tile_m;
+    int wave_tile_n;
+    int wave_step_m;
+    int wave_step_n;
+    int wave_repeat_m;
+    int wave_repeat_n;
+
+    int tensor_a_thread_lengths[4];
+    int tensor_a_cluster_lengths[4];
+    int tensor_b_thread_lengths[4];
+    int tensor_b_cluster_lengths[4];
+    int gemm_k_global_split;
+
+    int GetBlockSize()
+    {
+        const auto WaveSize = 64;
+        auto block_size     = (gemm_m_per_block / (wave_tile_m * wave_step_m * wave_repeat_m)) *
+                          (gemm_n_per_block / (wave_tile_n * wave_step_n * wave_repeat_n)) *
+                          WaveSize;
+        return block_size;
+    }
+
+    std::string GetKernelName()
+    {
+        std::string kernel_name = std::string("igemm_");
+        kernel_name += direction + std::string("_gtcx_nchw_") + precision;
+        kernel_name += "_bx" + std::to_string(nxb) + "_ex" + std::to_string(nxe) + "_bt" +
+                       std::to_string(gemm_m_per_block) + "x" + std::to_string(gemm_n_per_block) +
+                       "x" + std::to_string(gemm_k_per_block) + "_wt" +
+                       std::to_string(wave_tile_m) + "x" + std::to_string(wave_tile_n) + "_ws" +
+                       std::to_string(wave_step_m) + "x" + std::to_string(wave_step_n) + "_wr" +
+                       std::to_string(wave_repeat_m) + "x" + std::to_string(wave_repeat_n) + "_ta" +
+                       std::to_string(tensor_a_thread_lengths[0]) + "x" +
+                       std::to_string(tensor_a_thread_lengths[1]) + "x" +
+                       std::to_string(tensor_a_thread_lengths[2]) + "x" +
+                       std::to_string(tensor_a_thread_lengths[3]) + "_" +
+                       std::to_string(tensor_a_cluster_lengths[0]) + "x" +
+                       std::to_string(tensor_a_cluster_lengths[1]) + "x" +
+                       std::to_string(tensor_a_cluster_lengths[2]) + "x" +
+                       std::to_string(tensor_a_cluster_lengths[3]) + "_tb" +
+                       std::to_string(tensor_b_thread_lengths[0]) + "x" +
+                       std::to_string(tensor_b_thread_lengths[1]) + "x" +
+                       std::to_string(tensor_b_thread_lengths[2]) + "x" +
+                       std::to_string(tensor_b_thread_lengths[3]) + "_" +
+                       std::to_string(tensor_b_cluster_lengths[0]) + "x" +
+                       std::to_string(tensor_b_cluster_lengths[1]) + "x" +
+                       std::to_string(tensor_b_cluster_lengths[2]) + "x" +
+                       std::to_string(tensor_b_cluster_lengths[3]);
+
+        return kernel_name;
+    }
+};
+
+struct ConvAsmImplicitGemmGTCDynamicFwdXdlops : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    bool IsDynamic() const { return true; }
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+};
+
 /// Holds common member functions for the Solvers which share the same
 /// "legacy exhaustive search" machinery.
 struct ConvOclDirectFwdLegacyExhaustiveSearch : SolverBase<ConvolutionContext>
