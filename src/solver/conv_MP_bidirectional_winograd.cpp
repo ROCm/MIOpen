@@ -99,10 +99,15 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
     GenerateClangDefsym((options), "fdilation_w", params.kernel_stride_w);                         \
     GenerateClangDefsym((options), "fdilation_h", params.kernel_stride_h);
 
-#define DEFINE_WORKSPACE_OFFSETS(in_size, wei_size, out_size) \
-    const size_t wino_in_offset  = 0;                         \
-    const size_t wino_out_offset = (in_size);                 \
-    const size_t wino_wei_offset = wino_out_offset + (out_size);
+struct WinoOffsets
+{
+    const size_t in, out, wei;
+    WinoOffsets(size_t in_size, size_t wei_size, size_t out_size)
+        : in(0), out(in_size), wei(in_size + out_size)
+    {
+        (void)wei_size;
+    }
+};
 
 static inline size_t Ceil(const size_t v, const size_t m)
 {
@@ -349,9 +354,9 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
     void* reserved_ptr = nullptr;
     int unused         = 0;
 
-    DEFINE_WORKSPACE_OFFSETS(wino_in.buff_info.total_byte_size,
-                             wino_wei.buff_info.total_byte_size,
-                             wino_out.buff_info.total_byte_size)
+    const WinoOffsets transform_offset(wino_in.buff_info.total_byte_size,
+                                       wino_wei.buff_info.total_byte_size,
+                                       wino_out.buff_info.total_byte_size);
 
     InvokerFactory gemm_conv_factory;
     std::string gemm_conv_kernel_name;
@@ -390,18 +395,18 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
                     handle,
                     wino_gemm_desc,
                     workSpace,
-                    static_cast<int>(wino_wei_offset / GetTypeSize(params.in_data_type)),
+                    static_cast<int>(transform_offset.wei / GetTypeSize(params.in_data_type)),
                     workSpace,
-                    static_cast<int>(wino_in_offset / GetTypeSize(params.in_data_type)),
+                    static_cast<int>(transform_offset.in / GetTypeSize(params.in_data_type)),
                     workSpace,
-                    static_cast<int>(wino_out_offset / GetTypeSize(params.in_data_type)),
+                    static_cast<int>(transform_offset.out / GetTypeSize(params.in_data_type)),
                     nullptr,
                     false,
                     GemmBackend_t::rocblas);
 #else
                 (void)handle;
                 (void)ctx;
-                MIOPEN_THROW(miopenStatusBadParm, "ConvMPBidirectWinograd Unsupported ");
+                MIOPEN_THROW(miopenStatusBadParm, "ConvMPBidirectWinograd is not supported ");
 #endif
             };
 
@@ -425,11 +430,11 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
             auto workSpaceSize   = data_ctx.workSpaceSize;
             float total_time     = 0;
             auto wino_in_ptr =
-                static_cast<void*>(reinterpret_cast<char*>(workSpace) + wino_in_offset);
+                static_cast<void*>(reinterpret_cast<char*>(workSpace) + transform_offset.in);
             auto wino_w_ptr =
-                static_cast<void*>(reinterpret_cast<char*>(workSpace) + wino_wei_offset);
+                static_cast<void*>(reinterpret_cast<char*>(workSpace) + transform_offset.wei);
             auto wino_out_ptr =
-                static_cast<void*>(reinterpret_cast<char*>(workSpace) + wino_out_offset);
+                static_cast<void*>(reinterpret_cast<char*>(workSpace) + transform_offset.out);
 
             for(int i = 0, cur = 0; i < 4; i++)
             {
@@ -550,7 +555,7 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
     (void)params;
     (void)xdlops_factory;
     (void)isXdlops;
-    MIOPEN_THROW(miopenStatusBadParm, "ConvMPBidirectWinograd Unsupported ");
+    MIOPEN_THROW(miopenStatusBadParm, "ConvMPBidirectWinograd is not supported ");
     return nullptr;
 #endif
 }
@@ -621,7 +626,7 @@ ConvSolution ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilte
     return result;
 #else
     (void)params;
-    MIOPEN_THROW(miopenStatusBadParm, "ConvMPBidirectWinograd Unsupported ");
+    MIOPEN_THROW(miopenStatusBadParm, "ConvMPBidirectWinograd is not supported ");
 #endif
 }
 template struct ConvMPBidirectWinograd<2, 3>;
@@ -700,20 +705,20 @@ conv::DataInvokeParams GetTransformedInvokeContext(const ConvolutionContext& ctx
         wino_wei = GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(
             ctx, ConvWinoBuffType::Weight);
 
-    DEFINE_WORKSPACE_OFFSETS(wino_in.buff_info.total_byte_size,
-                             wino_wei.buff_info.total_byte_size,
-                             wino_out.buff_info.total_byte_size)
+    const WinoOffsets transform_offset(wino_in.buff_info.total_byte_size,
+                                       wino_wei.buff_info.total_byte_size,
+                                       wino_out.buff_info.total_byte_size);
 
     const auto& data_ctx = invoke_ctx.CastTo<conv::DataInvokeParams>();
 
     auto workSpace = data_ctx.workSpace;
 
     const auto wino_in_ptr =
-        static_cast<void*>(reinterpret_cast<char*>(workSpace) + wino_in_offset);
+        static_cast<void*>(reinterpret_cast<char*>(workSpace) + transform_offset.in);
     const auto wino_w_ptr =
-        static_cast<void*>(reinterpret_cast<char*>(workSpace) + wino_wei_offset);
+        static_cast<void*>(reinterpret_cast<char*>(workSpace) + transform_offset.wei);
     const auto wino_out_ptr =
-        static_cast<void*>(reinterpret_cast<char*>(workSpace) + wino_out_offset);
+        static_cast<void*>(reinterpret_cast<char*>(workSpace) + transform_offset.out);
 
     const auto transform_workSpaceSize = wino_in.buff_info.total_byte_size +
                                          wino_wei.buff_info.total_byte_size +
@@ -729,7 +734,7 @@ conv::DataInvokeParams GetTransformedInvokeContext(const ConvolutionContext& ctx
 #else
     (void)invoke_ctx;
     (void)ctx;
-    MIOPEN_THROW(miopenStatusBadParm, "ConvMPBidirectWinograd Unsupported ");
+    MIOPEN_THROW(miopenStatusBadParm, "ConvMPBidirectWinograd is not supported ");
 #endif
 }
 
@@ -784,7 +789,7 @@ ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::G
     // change transform layout
     // GCNHW -> GNCHW
     std::ostringstream additional_options_wei;
-    GenerateClangDefsym(additional_options_wei, "XDLOPS_CONV_GEMM", 1);
+    GenerateClangDefsym(additional_options_wei, "swap_filter_layout_KC", 1);
     wino_transform.construction_params[1].comp_options += additional_options_wei.str();
 
     result.construction_params.push_back(wino_transform.construction_params[0]);

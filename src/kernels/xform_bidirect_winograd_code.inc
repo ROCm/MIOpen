@@ -91,7 +91,7 @@
 
 default pipe_config, 0
 default use_exec_for_vmem, 1 // todo test and remove
-default XDLOPS_CONV_GEMM, 0
+default swap_filter_layout_KC, 0
 
 .if pipe_config == 0
     r_pipe_depth  = 8
@@ -150,7 +150,7 @@ static_assert(fdilation_h == 1)
     out_tile_height = xformy_d_size
     tile_step_x = xformx_f_size
     tile_step_y = xformy_f_size
-    .if XDLOPS_CONV_GEMM
+    .if swap_filter_layout_KC
         NK = C
         CK = K
         x_N_stride = o_N_stride
