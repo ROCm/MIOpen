@@ -943,10 +943,10 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
             const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
-            const auto& tensors      = invoke_params.tensors;
-            auto kernel              = handle.Run(kernels[0]);
-            float elapsed            = 0;
-            float zero               = 0.f;
+            const auto& tensors       = invoke_params.tensors;
+            auto kernel               = handle.Run(kernels[0]);
+            float elapsed             = 0;
+            float zero                = 0.f;
             if(ctx.IsFp16() || ctx.IsBfp16())
             {
                 const auto& workSpace = invoke_params.workSpace;
