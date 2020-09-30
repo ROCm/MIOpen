@@ -45,7 +45,7 @@ PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::
     PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm()
     : PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::
           PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm(
-              4, 4, 1, 4, 4, 1, 16, 16, 16, false, false, 1)
+              4, 4, 1, 4, 4, 1, 16, 64, 16, false, false, 1)
 {
 }
 
@@ -139,7 +139,7 @@ void PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::EuristicInit(
     auto get_euristic_config = [&](auto is_valid_func) {
         if(ctx.IsFp32())
         {
-            tmp = {256, 256, 8, 128, 128, 4, 16, 16, 16, false, true, 1};
+            tmp = {256, 256, 8, 128, 128, 4, 16, 64, 16, false, true, 1};
 
             bool all_visited = false;
             do
@@ -172,7 +172,7 @@ void PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::EuristicInit(
         }
         else if(ctx.IsFp16())
         {
-            tmp              = {256, 256, 8, 128, 128, 8, 16, 16, 16, false, true, 1};
+            tmp              = {256, 256, 8, 128, 128, 8, 16, 64, 16, false, true, 1};
             bool all_visited = false;
             do
             {
@@ -204,7 +204,7 @@ void PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::EuristicInit(
         }
         else if(ctx.IsBfp16())
         {
-            tmp = {256, 256, 8, 128, 128, 8, 16, 16, 16, false, true, 1};
+            tmp = {256, 256, 8, 128, 128, 8, 16, 64, 16, false, true, 1};
 
             bool all_visited = false;
             do
@@ -345,17 +345,22 @@ PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmABlockCopyPer
         if(!valid)
             MIOPEN_THROW("invalid performance parameter");
 
-        // GemmKPack is src vector read dimension, bounded by GemmKPack
-        SrcDataPerRead_GemmKPack = gcd(SrcDataPerRead_GemmKPack, GemmKPack);
-
         int gemm_k_extra = 0;
+        int gemm_k_after_padding = 0;
 
-        std::tie(std::ignore, std::ignore, std::ignore, std::ignore, std::ignore, std::ignore, gemm_k_extra) =
+        std::tie(std::ignore,
+                 std::ignore,
+                 std::ignore,
+                 gemm_k_after_padding,
+                 std::ignore,
+                 std::ignore,
+                 gemm_k_extra) =
             ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmSize(
                 ctx, GemmMFactor, GemmNFactor, GemmKFactor);
-
-        if (gemm_k_extra != 0)
-            SrcDataPerRead_GemmKPack = gcd(SrcDataPerRead_GemmKPack, gemm_k_extra);
+        // GemmKPack is src vector read dimension, bounded by GemmKPack
+        SrcDataPerRead_GemmKPack = gcd(SrcDataPerRead_GemmKPack, GemmKPack);
+        if(gemm_k_extra != 0)
+            SrcDataPerRead_GemmKPack = gcd(SrcDataPerRead_GemmKPack, gemm_k_after_padding - gemm_k_extra);
 
         // calculate threadwise copy size
         auto data_per_thread_copy =
@@ -478,14 +483,6 @@ PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmBBlockCopyPer
             SrcDataPerRead_GemmN = 1;
         }
 
-        int gemm_n_extra = 0;
-
-        std::tie(std::ignore, std::ignore, std::ignore, std::ignore, std::ignore, gemm_n_extra, std::ignore) =
-            ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmSize(
-                ctx, GemmMFactor, GemmNFactor, GemmKFactor);
-
-        if (gemm_n_extra != 0)
-            SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, gemm_n_extra);
         // SrcDataPerRead_GemmN also bounded by GemmNPerBlock
         SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, GemmNPerBlock);
 
@@ -1062,7 +1059,7 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
         int gemm_extra_k = -1;
 
         std::tie(gemm_g, gemm_m, gemm_n, gemm_k_total, gemm_extra_m, gemm_extra_n, gemm_extra_k) =
-            CalculateGemmSize(ctx, 16, 16, 4);
+            CalculateGemmSize(ctx, 16, 64, 4);
         // if you do not need padding ,skip this solver
         if(gemm_extra_m == 0 && gemm_extra_n == 0 && gemm_extra_k == 0)
             return false;
