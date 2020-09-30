@@ -21,6 +21,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SY
 // LLVM xdlops instrinsic will do unnecessey VGRP <--> AGPR movement, and result in
 // register spill, for bfloat16 datatype, when doing wave-wise GEMM larger than 64x64
 #define WORKAROUND_SWDEV_240356 1
+// due to compiler bug, iGEMM xdlops kernels fail verification in some cases, if using "-O3" flag,
+// (but will pass verification with "-O1" flag)
+#define WORKAROUND_SWDEV_251757 1
 // workaround failure of ConvHipImplicitGemmV4R4GenWrWXdlops with vector load
 #define WORKAROUND_ISSUE_2532 1
 
@@ -514,6 +517,11 @@ static inline bool IsValidBlockwiseGemmXdlops(const ConvolutionContext& ctx,
                                               const int GemmNPerWave,
                                               const int GemmKPack)
 {
+#if WORKAROUND_SWDEV_251757
+    if(ctx.IsFp32() && GemmKPerBlock == 1 && GemmKPack == 8)
+        return false;
+#endif
+
     // check k
     if(ctx.IsFp16() && GemmKPack % 4 != 0)
         return false;
@@ -664,57 +672,6 @@ static inline size_t ComputeLDSRequiredSize(const ConvolutionContext& ctx,
         2 * worst_case_alignment_adjustment;
 
     return lds_size;
-}
-
-template <typename BotBufType, typename TopBufType, typename WeiBufType>
-static inline int RunAndMeasureSolutionBase(const miopen::Handle& profile_h,
-                                            BotBufType bot_buf,
-                                            TopBufType top_buf,
-                                            WeiBufType wei_buf,
-                                            const ConvolutionContext& ctx,
-                                            const ConvSolution& solution,
-                                            float& elapsed_time)
-{
-#ifdef NDEBUG
-    try
-#endif
-    {
-        elapsed_time = float(0);
-
-        for(auto& k_info : solution.construction_params)
-        {
-            auto kernel = profile_h.AddKernel("",
-                                              "",
-                                              k_info.kernel_file,
-                                              k_info.kernel_name,
-                                              k_info.l_wk,
-                                              k_info.g_wk,
-                                              k_info.comp_options);
-
-            if(ctx.direction.IsBackwardWrW())
-            {
-                kernel(top_buf, bot_buf, wei_buf);
-            }
-            if(ctx.direction.IsBackwardData())
-            {
-                kernel(top_buf, wei_buf, bot_buf);
-            }
-            if(ctx.direction.IsForward())
-            {
-                kernel(bot_buf, wei_buf, top_buf);
-            }
-
-            elapsed_time += profile_h.GetKernelTime();
-        }
-    }
-#ifdef NDEBUG
-    catch(miopen::Exception& ex)
-    {
-        MIOPEN_LOG_WE(ex.what());
-        return -1;
-    }
-#endif
-    return 0;
 }
 
 static inline bool use_amd_inline_asm(const ConvolutionContext& ctx)
