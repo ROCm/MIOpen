@@ -782,18 +782,18 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsFastToBeUsedForTuning(
         {
             if(ctx.IsFp16())
             {
-                int SrcDataPerRead_GemmN      = 0;
+                int SrcDataPerRead_B          = 0;
                 int DstDataPerWrite_GemmKPack = 0;
                 bool valid                    = false;
                 std::tie(std::ignore,
                          std::ignore,
                          std::ignore,
-                         SrcDataPerRead_GemmN,
+                         SrcDataPerRead_B,
                          DstDataPerWrite_GemmKPack,
                          valid) = CalculateGemmBBlockCopyPerformanceParameters(ctx);
                 if(valid)
                 {
-                    if((SrcDataPerRead_GemmN > 1) &&
+                    if((SrcDataPerRead_B > 1) &&
                        ((DstDataPerWrite_GemmKPack == 1) || (DstDataPerWrite_GemmKPack == 2)))
                     {
                         return false;
