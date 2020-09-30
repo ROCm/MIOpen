@@ -161,10 +161,10 @@ ConvSolution GemmFwd::GetSolution(const ExecutionContext& ctx,
                 : CreateGemmDescriptorConvCNHWFwd(wDesc, xDesc, yDesc);
 
         solution.invoker_factory = [=](const std::vector<Kernel>&) {
-            return [=](const Handle& handle, const boost::any& primitive_params) {
-                float time_gemm        = 0;
-                const auto conv_params = boost::any_cast<conv::DataInvokeParams>(primitive_params);
-                const auto& workSpace  = conv_params.workSpace;
+            return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
+                float time_gemm          = 0;
+                const auto conv_params   = primitive_params.CastTo<conv::DataInvokeParams>();
+                const auto& workSpace    = conv_params.workSpace;
                 const auto workSpaceSize = conv_params.workSpaceSize;
                 const auto x             = conv_params.tensors.in;
                 const auto w             = conv_params.tensors.w;
@@ -290,10 +290,9 @@ ConvSolution GemmFwd::GetSolution(const ExecutionContext& ctx,
             const GemmDescriptor gemm_desc = CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
 
             solution.invoker_factory = [=](const std::vector<Kernel>&) {
-                return [=](const Handle& handle, const boost::any& primitive_params) {
-                    float time_gemm = 0;
-                    const auto conv_params =
-                        boost::any_cast<conv::DataInvokeParams>(primitive_params);
+                return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
+                    float time_gemm          = 0;
+                    const auto conv_params   = primitive_params.CastTo<conv::DataInvokeParams>();
                     const auto& workSpace    = conv_params.workSpace;
                     const auto workSpaceSize = conv_params.workSpaceSize;
                     const auto x             = conv_params.tensors.in;
@@ -361,13 +360,12 @@ ConvSolution GemmFwd::GetSolution(const ExecutionContext& ctx,
                     : CreateGemmStridedBatchedDescriptorConv1x1Fwd(wDesc, xDesc, yDesc);
 
             solution.invoker_factory = [=](const std::vector<Kernel>&) {
-                return [=](const Handle& handle, const boost::any& primitive_params) {
-                    float time_gemm = 0;
-                    const auto conv_params =
-                        boost::any_cast<conv::DataInvokeParams>(primitive_params);
-                    const auto x = conv_params.tensors.in;
-                    const auto w = conv_params.tensors.w;
-                    const auto y = conv_params.tensors.out;
+                return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
+                    float time_gemm        = 0;
+                    const auto conv_params = primitive_params.CastTo<conv::DataInvokeParams>();
+                    const auto x           = conv_params.tensors.in;
+                    const auto w           = conv_params.tensors.w;
+                    const auto y           = conv_params.tensors.out;
 
                     const std::string name = conv.group_count > 1 ? "groupconv" : "convolution";
                     MIOPEN_LOG_FUNCTION(name + ", 1x1");
@@ -435,10 +433,10 @@ ConvSolution GemmFwd::GetSolution(const ExecutionContext& ctx,
                 : CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
 
         solution.invoker_factory = [=](const std::vector<Kernel>&) {
-            return [=](const Handle& handle, const boost::any& primitive_params) {
-                float time_gemm        = 0;
-                const auto conv_params = boost::any_cast<conv::DataInvokeParams>(primitive_params);
-                const auto& workSpace  = conv_params.workSpace;
+            return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
+                float time_gemm          = 0;
+                const auto conv_params   = primitive_params.CastTo<conv::DataInvokeParams>();
+                const auto& workSpace    = conv_params.workSpace;
                 const auto workSpaceSize = conv_params.workSpaceSize;
                 const auto x             = conv_params.tensors.in;
                 const auto w             = conv_params.tensors.w;
