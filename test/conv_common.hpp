@@ -36,6 +36,7 @@
 #include <miopen/tensor_ops.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/solver.hpp>
+#include <miopen/invoke_params.hpp>
 #include <utility>
 
 #include "driver.hpp"
@@ -74,7 +75,7 @@ static inline bool is_direct_fwd_bwd_data_supported(miopen::Handle& handle,
         ctx.SetStream(&handle);
         ctx.SetupFloats();
         ctx.DetectRocm();
-        if(FindAllDirectSolutions(ctx).empty())
+        if(FindAllDirectSolutions(ctx, {}).empty())
             return false;
     }
     return true;
@@ -100,7 +101,7 @@ static inline bool is_direct_bwd_wrw_supported(miopen::Handle& handle,
     ctx.SetupFloats();
     ctx.DetectRocm();
 
-    return !FindAllBwdWrW2DSolutions(ctx).empty();
+    return !FindAllBwdWrW2DSolutions(ctx, {}).empty();
 }
 #endif
 
@@ -1792,7 +1793,7 @@ struct conv_driver : test_driver
                 }
 #endif
 
-                // bwd53 kernel (large images supported) doesnt support stride !=1 and dialation and
+                // bwd53 kernel (large images supported) doesnt support stride !=1 and dilation and
                 // pad.
                 if(filter.GetSpatialDimension() == 2 && in_spatial_len[1] >= 2048 &&
                    ((filter.GetConvStrides()[0] != 1) || (filter.GetConvStrides()[1] != 1) ||

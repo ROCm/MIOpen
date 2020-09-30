@@ -15,9 +15,9 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
     if(ctx.direction.IsForward())
     {
         return [](const std::vector<Kernel>& kernels) {
-            return [=](const Handle& handle, const boost::any& primitive_parameters) {
-                const auto data_ctx = boost::any_cast<conv::DataInvokeParams>(primitive_parameters);
-                const auto& tensors = data_ctx.tensors;
+            return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+                const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
+                const auto& tensors  = data_ctx.tensors;
                 handle.Run(kernels[0])(tensors.in, tensors.w, tensors.out);
             };
         };
@@ -31,9 +31,9 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
         const auto& lowp_quant = conv.lowp_quant;
 
         return [conv, lowp_quant](const std::vector<Kernel>& kernels) {
-            return [=](const Handle& handle, const boost::any& primitive_parameters) {
-                const auto data_ctx = boost::any_cast<conv::DataInvokeParams>(primitive_parameters);
-                const auto& tensors = data_ctx.tensors;
+            return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+                const auto& data_ctx  = primitive_parameters.CastTo<conv::DataInvokeParams>();
+                const auto& tensors   = data_ctx.tensors;
                 const auto& workSpace = data_ctx.workSpace;
 
                 // Miminum checks. Only check what is required to select
@@ -50,27 +50,62 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
                     kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_ncdhw_kczyx_nkdhw"))
                 // clang-format on
                 {
-                    float zero = 0.f;
-                    TensorDescriptor workspaceDesc(
-                        miopenFloat, tensors.outDesc.GetLengths(), tensors.outDesc.GetStrides());
-                    SetTensor(handle, workspaceDesc, workSpace, &zero);
-                    if(handle.IsProfilingEnabled())
-                        elapsed += handle.GetKernelTime();
+                    const auto y          = tensors.wDesc.GetLengths()[2];
+                    const auto x          = tensors.wDesc.GetLengths()[3];
+                    const auto stride_h   = conv.GetConvStrides()[0];
+                    const auto stride_w   = conv.GetConvStrides()[1];
+                    const auto dilation_h = conv.GetConvDilations()[0];
+                    const auto dilation_w = conv.GetConvDilations()[1];
 
-                    kernel(tensors.in, tensors.w, workSpace);
-                    if(handle.IsProfilingEnabled())
-                        elapsed += handle.GetKernelTime();
+                    bool need_atomic_add = (stride_h < dilation_h * (y - 1) + 1) ||
+                                           (stride_w < dilation_w * (x - 1) + 1);
+                    bool every_pixel_is_written =
+                        (dilation_h == 1 && stride_h <= y) && (dilation_w == 1 && stride_w <= x);
+                    bool need_set_zero = need_atomic_add || !(every_pixel_is_written);
+                    bool need_cast     = need_atomic_add;
 
-                    CastTensor(handle,
-                               &lowp_quant,
-                               workspaceDesc,
-                               workSpace,
-                               tensors.outDesc,
-                               tensors.out,
-                               0,
-                               0);
-                    if(handle.IsProfilingEnabled())
-                        elapsed += handle.GetKernelTime();
+                    if(need_set_zero && !need_cast)
+                    {
+                        float zero = 0.f;
+                        SetTensor(handle, tensors.outDesc, tensors.out, &zero);
+                        if(handle.IsProfilingEnabled())
+                            elapsed += handle.GetKernelTime();
+
+                        kernel(tensors.in, tensors.w, tensors.out);
+                        if(handle.IsProfilingEnabled())
+                            elapsed += handle.GetKernelTime();
+                    }
+                    else if(!need_set_zero && !need_cast)
+                    {
+                        kernel(tensors.in, tensors.w, tensors.out);
+                        if(handle.IsProfilingEnabled())
+                            elapsed += handle.GetKernelTime();
+                    }
+                    else
+                    {
+                        float zero = 0.f;
+                        TensorDescriptor workspaceDesc(miopenFloat,
+                                                       tensors.outDesc.GetLengths(),
+                                                       tensors.outDesc.GetStrides());
+                        SetTensor(handle, workspaceDesc, workSpace, &zero);
+                        if(handle.IsProfilingEnabled())
+                            elapsed += handle.GetKernelTime();
+
+                        kernel(tensors.in, tensors.w, workSpace);
+                        if(handle.IsProfilingEnabled())
+                            elapsed += handle.GetKernelTime();
+
+                        CastTensor(handle,
+                                   &lowp_quant,
+                                   workspaceDesc,
+                                   workSpace,
+                                   tensors.outDesc,
+                                   tensors.out,
+                                   0,
+                                   0);
+                        if(handle.IsProfilingEnabled())
+                            elapsed += handle.GetKernelTime();
+                    }
                 }
                 // clang-format off
                 else if(kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_nchw_kcyx_nkhw" ||

@@ -32,12 +32,17 @@
 #include <miopen/object.hpp>
 #include <miopen/solver_id.hpp>
 #include <miopen/names.hpp>
+#include <miopen/invoke_params.hpp>
+
+#include <boost/any.hpp>
 
 #include <string>
 #include <tuple>
 #include <vector>
 
 namespace miopen {
+
+struct AnyInvokeParams;
 
 namespace solver {
 struct ConvSolution;
@@ -117,6 +122,10 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
 
     std::size_t
     ForwardBackwardGetWorkSpaceSizeImplicitGemm(const miopen::ConvolutionContext& ctx) const;
+
+    std::size_t ForwardBackwardDataGetWorkSpaceSizeWinograd(
+        const miopen::ConvolutionContext& ctx,
+        const miopen::AnyInvokeParams& invoke_ctx = {}) const;
 
     std::size_t ForwardGetWorkSpaceSizeFFT(const TensorDescriptor& wDesc,
                                            const TensorDescriptor& xDesc,
@@ -203,10 +212,11 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                             const TensorDescriptor& yDesc,
                             bool exhaustiveSearch,
                             bool isForward,
-                            const ConvolutionUserBuffers& bufs) const;
+                            const ConvolutionUserBuffers& bufs,
+                            const AnyInvokeParams& invoke_ctx) const;
 
     std::vector<miopen::solver::ConvSolution>
-    FindWinogradSolutions(const ConvolutionContext& ctx) const;
+    FindWinogradSolutions(const ConvolutionContext& ctx, const AnyInvokeParams& invoke_ctx) const;
 
     std::vector<miopen::solver::ConvSolution>
     FindDataImplicitGemmSolutions(Handle& handle,
@@ -215,7 +225,8 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                   const TensorDescriptor& yDesc,
                                   bool exhaustiveSearch,
                                   bool isForward,
-                                  const ConvolutionUserBuffers& bufs) const;
+                                  const ConvolutionUserBuffers& bufs,
+                                  const AnyInvokeParams& invoke_ctx) const;
 
     void ConvolutionForward(Handle& handle,
                             const void* alpha,
@@ -468,12 +479,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                const ConvWrwTensors& tensors,
                                Data_t workSpace,
                                const TKernels& kernels) const;
-    template <class TKernels>
-    void BackwardWeightsWinograd(Handle& handle,
-                                 const ConvolutionContext& ctx,
-                                 const ConvWrwTensors& tensors,
-                                 Data_t workSpace,
-                                 const TKernels& kernels) const;
 
     std::size_t GetFwdSolutionWorkspaceSizeFallback(Handle& handle,
                                                     const TensorDescriptor& wDesc,
