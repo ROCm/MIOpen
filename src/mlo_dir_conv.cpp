@@ -208,6 +208,7 @@ FindAllGemmSolutions(const miopen::ConvolutionContext& ctx,
     return GetGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
 }
 
+std::vector<miopen::solver::ConvSolution>
 FindAllDirectSolutions(const miopen::ConvolutionContext& ctx,
                        const miopen::AnyInvokeParams& invoke_ctx)
 {

@@ -350,7 +350,7 @@ static void DirConvFindCore(Handle& handle,
 
     if(!use_winograd_only && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
     {
-        const auto all = FindAllGemmSolutions(ctx);
+        const auto all = FindAllGemmSolutions(ctx, invoke_ctx);
         PrecompileSolutions(handle, all);
         const auto algorithm_name = AlgorithmName{"miopenConvolutionFwdAlgoGEMM"};
         EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
