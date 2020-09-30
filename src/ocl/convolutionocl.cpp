@@ -698,7 +698,7 @@ static void DirConvFindCore(Handle& handle,
     // FFT algo
     if(!use_winograd_only)
     {
-        const auto all            = FindAllFFTSolutions(ctx);
+        const auto all            = FindAllFFTSolutions(ctx, invoke_ctx);
         const auto algorithm_name = AlgorithmName{"miopenConvolutionFwdAlgoFFT"};
         PrecompileSolutions(handle, all);
         EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
@@ -2083,7 +2083,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             if(!use_winograd_only)
             {
                 // FFT algo
-                const auto all            = FindAllFFTSolutions(ctx);
+                const auto all            = FindAllFFTSolutions(ctx, invoke_ctx);
                 const auto algorithm_name = AlgorithmName{"miopenConvolutionBwdDataAlgoFFT"};
                 PrecompileSolutions(handle, all);
                 EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
