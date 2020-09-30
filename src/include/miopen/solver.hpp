@@ -1754,7 +1754,8 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops : SolverBase<ConvolutionContext>
                              const PerformanceImplicitGemmWrwV4R4Xdlops& config,
                              bool disableConfigOverrideFromEnv = false) const;
 
-    PerformanceImplicitGemmWrwV4R4Xdlops Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const;
+    PerformanceImplicitGemmWrwV4R4Xdlops Search(const ConvolutionContext&,
+                                                const AnyInvokeParams& invoke_ctx) const;
 };
 struct AnySolver;
 

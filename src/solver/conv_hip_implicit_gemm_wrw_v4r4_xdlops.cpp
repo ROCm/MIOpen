@@ -1034,10 +1034,11 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ConvolutionContext& ct
 }
 
 PerformanceImplicitGemmWrwV4R4Xdlops
-ConvHipImplicitGemmWrwV4R4Xdlops::Search(const ConvolutionContext& ctx, const AnyInvokeParams& invoke_ctx) const
+ConvHipImplicitGemmWrwV4R4Xdlops::Search(const ConvolutionContext& ctx,
+                                         const AnyInvokeParams& invoke_ctx) const
 {
     // fp16/bfp16 uses fp32 workspace to leverage fp32 atomic add
-    return GenericSearch(*this, ctx,invoke_ctx);
+    return GenericSearch(*this, ctx, invoke_ctx);
 }
 
 std::size_t ConvHipImplicitGemmWrwV4R4Xdlops::GetWorkspaceSize(const ConvolutionContext& ctx) const
