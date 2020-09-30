@@ -32,7 +32,6 @@
 #include <miopen/env.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/handle.hpp>
-#include <miopen/generic_search.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/solver.hpp>
 
@@ -599,10 +598,10 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
     const auto pad_W        = params.pad_w;
 
     return [=](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& handle, const boost::any& primitive_params) {
-            const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
-            const auto& tensors      = invoke_params.tensors;
-            float total_time         = 0;
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
+            decltype(auto) invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+            const auto& tensors          = invoke_params.tensors;
+            float total_time             = 0;
 
             if(invoke_params.workSpaceSize < ws_sz)
                 MIOPEN_THROW("Not enough workspace for ConvWinograd3x3MultipassWrW");
