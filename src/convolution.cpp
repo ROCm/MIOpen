@@ -757,6 +757,30 @@ std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeDirect(
     }
 }
 
+std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeFFT(
+    const miopen::ConvolutionContext& ctx) const
+{
+    try
+    {
+        const auto ss  = FindAllFFTSolutions(ctx, {});
+        std::size_t sz = 0;
+        for(const auto& solution : ss)
+        {
+            if(sz < solution.workspce_sz)
+            {
+                MIOPEN_LOG_I2(sz << " < " << solution.workspce_sz);
+                sz = solution.workspce_sz;
+            }
+        }
+        return sz;
+    }
+    catch(const miopen::Exception& ex)
+    {
+        MIOPEN_LOG_WE(ex.what());
+        return 0;
+    }
+}
+
 std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeWinograd(
     const miopen::ConvolutionContext& ctx, const miopen::AnyInvokeParams& invoke_ctx) const
 {
