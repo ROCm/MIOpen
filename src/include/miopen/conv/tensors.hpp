@@ -128,4 +128,15 @@ struct ConvWrwTensors
     operator ConvTensors() const { return {xDesc, x, dwDesc, dw, dyDesc, dy}; }
 };
 
+struct FusedConvDataTensors
+{
+    TensorDescriptor inDesc;
+    ConstData_t in = nullptr;
+    TensorDescriptor wDesc;
+    ConstData_t w = nullptr;
+    TensorDescriptor outDesc;
+    Data_t out       = nullptr;
+    ConstData_t bias = nullptr;
+};
+
 } // namespace miopen
