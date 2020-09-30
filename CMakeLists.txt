@@ -346,7 +346,7 @@ rocm_create_package(
     DESCRIPTION "AMD's DNN Library"
     MAINTAINER "Paul Fultz II <paul.fultz@amd.com>"
     LDCONFIG
-    # DEPENDS rocm-opencl hip-hrocclr tinygemm
+    # DEPENDS rocm-opencl hip-rocclr tinygemm
 )
 
 include(EnableCompilerWarnings)
