@@ -90,11 +90,20 @@ __kernel void MIOpenBatchNormFwdTrainPerActivation(
                 index           = in_nstride * n + adjIndex;
                 _FLOAT_PREC xin = (_FLOAT_PREC)(*(in + index));
                 mean += xin;
-                variance = mad(xin, xin, variance);
             } // end for(n)
             mean *= (_FLOAT_PREC)invN;
+            variance = 0.;
+
+#pragma unroll
+            for(unsigned int n = 0; n < MIO_BN_N; n++)
+            {
+                index           = in_nstride * n + adjIndex;
+                _FLOAT_PREC xin = (_FLOAT_PREC)(*(in + index));
+                variance += (xin - mean) * (xin - mean);
+            } // end for(n)
+
+            variance = sqrt(variance);
             variance *= (_FLOAT_PREC)invN;
-            variance    = mad(-mean, mean, variance);
             invVariance = rsqrt(variance + epsilon);
             pvt_scale   = *(scale + adjIndex);
             pvt_bias    = *(bias + adjIndex);
