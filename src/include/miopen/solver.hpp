@@ -1754,15 +1754,7 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops : SolverBase<ConvolutionContext>
                              const PerformanceImplicitGemmWrwV4R4Xdlops& config,
                              bool disableConfigOverrideFromEnv = false) const;
 
-    PerformanceImplicitGemmWrwV4R4Xdlops Search(const ConvolutionContext&) const;
-    int RunAndMeasureSolution(const miopen::Handle& profile_h,
-                              ConstData_t bot_buf,
-                              ConstData_t top_buf,
-                              Data_t wei_buf,
-                              ConstData_t bias_buf,
-                              const ConvolutionContext& ctx,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
+    PerformanceImplicitGemmWrwV4R4Xdlops Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const;
 };
 struct AnySolver;
 

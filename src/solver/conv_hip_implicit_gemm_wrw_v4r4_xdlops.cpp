@@ -941,8 +941,8 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
     const auto& conv       = ctx.conv_problem.GetConv();
     const auto& lowp_quant = conv.lowp_quant;
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& handle, const boost::any& primitive_params) {
-            const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
+            const auto invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
             const auto& tensors      = invoke_params.tensors;
             auto kernel              = handle.Run(kernels[0]);
             float elapsed            = 0;
@@ -993,22 +993,6 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
     return result;
 }
 
-int ConvHipImplicitGemmWrwV4R4Xdlops::RunAndMeasureSolution(const miopen::Handle& profile_h,
-                                                            ConstData_t bot_buf,
-                                                            ConstData_t top_buf,
-                                                            Data_t wei_buf,
-                                                            ConstData_t bias_buf,
-                                                            const ConvolutionContext& ctx,
-                                                            const ConvSolution& solution,
-                                                            float& elapsed_time) const
-{
-    assert(bias_buf == nullptr);
-    (void)bias_buf;
-
-    return RunAndMeasureSolutionBase(
-        profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
-}
-
 bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
     if(!IsXdlopsSupport(ctx))
@@ -1050,13 +1034,10 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ConvolutionContext& ct
 }
 
 PerformanceImplicitGemmWrwV4R4Xdlops
-ConvHipImplicitGemmWrwV4R4Xdlops::Search(const ConvolutionContext& ctx) const
+ConvHipImplicitGemmWrwV4R4Xdlops::Search(const ConvolutionContext& ctx, const AnyInvokeParams& invoke_ctx) const
 {
     // fp16/bfp16 uses fp32 workspace to leverage fp32 atomic add
-    if(ctx.IsFp16() || ctx.IsBfp16())
-        return GenericSearchWrW(*this, ctx, SearchTweak::WorkspaceInsteadOfWeightsBuffer);
-    else
-        return GenericSearchWrW(*this, ctx);
+    return GenericSearch(*this, ctx,invoke_ctx);
 }
 
 std::size_t ConvHipImplicitGemmWrwV4R4Xdlops::GetWorkspaceSize(const ConvolutionContext& ctx) const
