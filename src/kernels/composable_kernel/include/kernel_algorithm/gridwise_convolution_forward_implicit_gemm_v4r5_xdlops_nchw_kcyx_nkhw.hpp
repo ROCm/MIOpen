@@ -77,10 +77,10 @@ struct GridwiseConvolutionForwardImplicitGemm_v4r5_xdlops_nchw_kcyx_nkhw
         constexpr index_t ConvDilationH = ConvDilations{}[0];
         constexpr index_t ConvDilationW = ConvDilations{}[1];
 
-        constexpr index_t N0         = N / NWaves;
+        constexpr index_t N1         = N / NWaves;
         constexpr index_t GemmG      = G;
         constexpr index_t GemmM      = KPerGroup;
-        constexpr index_t B          = N0 * Ho * Wo;
+        constexpr index_t B          = N1 * Ho * Wo;
         constexpr index_t GemmKTotal = CPerGroup * Y * X;
 
         static_assert(GemmKTotal % GemmKPack == 0,
@@ -117,10 +117,10 @@ struct GridwiseConvolutionForwardImplicitGemm_v4r5_xdlops_nchw_kcyx_nkhw
         constexpr index_t Hip = in_g_n_cpergroup_hip_wip_global_desc.GetLengths()[3];
         constexpr index_t Wip = in_g_n_cpergroup_hip_wip_global_desc.GetLengths()[4];
 
-        constexpr auto in_g_n1_n0_cpergroup_y_ho_x_wo_global_desc = transform_tensor_descriptor(
+        constexpr auto in_g_n0_n1_cpergroup_y_ho_x_wo_global_desc = transform_tensor_descriptor(
             in_g_n_cpergroup_hip_wip_global_desc,
             make_tuple(PassThrough<G>{},
-                       UnMerge<Sequence<NWaves, N0>>{},
+                       UnMerge<Sequence<NWaves, N1>>{},
                        PassThrough<CPerGroup>{},
                        Embed<Hip, Sequence<Y, Ho>, Sequence<ConvDilationH, ConvStrideH, 0>>{},
                        Embed<Wip, Sequence<X, Wo>, Sequence<ConvDilationW, ConvStrideW, 0>>{}),
@@ -131,17 +131,17 @@ struct GridwiseConvolutionForwardImplicitGemm_v4r5_xdlops_nchw_kcyx_nkhw
                        Sequence<4, 5>{},
                        Sequence<6, 7>{}));
 
-        constexpr auto in_gemmg_gemmktotal_n1_b_global_desc = transform_tensor_descriptor(
-            in_g_n1_n0_cpergroup_y_ho_x_wo_global_desc,
+        constexpr auto in_gemmg_gemmktotal_n0_b_global_desc = transform_tensor_descriptor(
+            in_g_n0_n1_cpergroup_y_ho_x_wo_global_desc,
             make_tuple(PassThrough<G>{},
                        Merge<Sequence<CPerGroup, Y, X>>{},
                        PassThrough<NWaves>{},
-                       Merge<Sequence<N0, Ho, Wo>>{}),
+                       Merge<Sequence<N1, Ho, Wo>>{}),
             make_tuple(Sequence<0>{}, Sequence<3, 4, 6>{}, Sequence<1>{}, Sequence<2, 5, 7>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}));
 
-        constexpr auto in_gemmg_gemmk_n1_b_gemmkpack_global_desc = transform_tensor_descriptor(
-            in_gemmg_gemmktotal_n1_b_global_desc,
+        constexpr auto in_gemmg_gemmk_n0_b_gemmkpack_global_desc = transform_tensor_descriptor(
+            in_gemmg_gemmktotal_n0_b_global_desc,
             make_tuple(PassThrough<GemmG>{},
                        UnMerge<Sequence<GemmK, GemmKPack>>{},
                        PassThrough<NWaves>{},
@@ -175,7 +175,7 @@ struct GridwiseConvolutionForwardImplicitGemm_v4r5_xdlops_nchw_kcyx_nkhw
             AccFloat,
             CFloat,
             decltype(wei_gemmg_gemmk_gemmm_gemmkpack_global_desc),
-            decltype(in_gemmg_gemmk_n1_b_gemmkpack_global_desc),
+            decltype(in_gemmg_gemmk_n0_b_gemmkpack_global_desc),
             decltype(out_gemmg_gemmm_gemmn_global_desc),
             GemmMPerBlock,
             BPerBlock,
