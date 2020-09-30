@@ -353,7 +353,7 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
     int reserved       = 0;
     void* reserved_ptr = nullptr;
     int unused         = 0;
-
+    // cppcheck-suppress unreadVariable
     const WinoOffsets transform_offset(wino_in.buff_info.total_byte_size,
                                        wino_wei.buff_info.total_byte_size,
                                        wino_out.buff_info.total_byte_size);
@@ -705,6 +705,7 @@ conv::DataInvokeParams GetTransformedInvokeContext(const ConvolutionContext& ctx
         wino_wei = GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(
             ctx, ConvWinoBuffType::Weight);
 
+    // cppcheck-suppress unreadVariable
     const WinoOffsets transform_offset(wino_in.buff_info.total_byte_size,
                                        wino_wei.buff_info.total_byte_size,
                                        wino_out.buff_info.total_byte_size);
