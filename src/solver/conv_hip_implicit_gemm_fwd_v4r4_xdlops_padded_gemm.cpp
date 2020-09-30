@@ -348,6 +348,15 @@ PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmABlockCopyPer
         // GemmKPack is src vector read dimension, bounded by GemmKPack
         SrcDataPerRead_GemmKPack = gcd(SrcDataPerRead_GemmKPack, GemmKPack);
 
+        int gemm_k_extra = 0;
+
+        std::tie(std::ignore, std::ignore, std::ignore, std::ignore, std::ignore, std::ignore, gemm_k_extra) =
+            ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmSize(
+                ctx, GemmMFactor, GemmNFactor, GemmKFactor);
+
+        if (gemm_k_extra != 0)
+            SrcDataPerRead_GemmKPack = gcd(SrcDataPerRead_GemmKPack, gemm_k_extra);
+
         // calculate threadwise copy size
         auto data_per_thread_copy =
             std::max(1, (GemmKPerBlock * GemmMPerBlock * GemmKPack) / block_size);
@@ -469,6 +478,14 @@ PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmBBlockCopyPer
             SrcDataPerRead_GemmN = 1;
         }
 
+        int gemm_n_extra = 0;
+
+        std::tie(std::ignore, std::ignore, std::ignore, std::ignore, std::ignore, gemm_n_extra, std::ignore) =
+            ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmSize(
+                ctx, GemmMFactor, GemmNFactor, GemmKFactor);
+
+        if (gemm_n_extra != 0)
+            SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, gemm_n_extra);
         // SrcDataPerRead_GemmN also bounded by GemmNPerBlock
         SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, GemmNPerBlock);
 
