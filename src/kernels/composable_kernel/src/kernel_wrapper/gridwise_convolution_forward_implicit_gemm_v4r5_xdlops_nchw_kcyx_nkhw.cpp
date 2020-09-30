@@ -129,7 +129,7 @@ extern "C" __global__
                  GemmBBlockCopyThreadSliceLengths_GemmKPack>;
 
     using GemmBBlockCopyThreadClusterArrangeOrder =
-        Sequence<0, 1, 4, 2, 3>; // [GemmG, GemmK, GemmKPack, NWaves, B]
+        Sequence<0, 1, 4, 3, 2>; // [GemmG, GemmK, GemmKPack, B, NWaves]
     using GemmBBlockCopySrcAccessOrder =
         Sequence<0, 1, 4, 3, 2>; // [GemmG, GemmK, GemmKPack, NWaves, B]
     using GemmBBlockCopyDstAccessOrder =
