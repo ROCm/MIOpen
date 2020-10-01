@@ -37,6 +37,7 @@
 #include <miopen/convolution.hpp>
 #include <miopen/mlo_internal.hpp>
 
+#define WORKAROUND_SWDEV_253606 1
 #include <chrono>
 
 namespace miopen {
@@ -164,6 +165,7 @@ void BatchNormForwardTraining(Handle& handle,
         unsigned int ldsnogcn = xlocalsize;
         std::string algo_name = "miopenBatchNormForwardTrainingSpatial";
 
+#if(WORKAROUND_SWDEV_253606 == 0)
         if(n < 3)
         {
             variant    = 4;
@@ -174,9 +176,11 @@ void BatchNormForwardTraining(Handle& handle,
             ldsgcn     = xlocalsize / 64;
             ldsnogcn   = xlocalsize;
         }
-        else if((in_nhw < 33554432 && in_cstride > 1024) ||
-                ((n >= 256) && (in_cstride > 60) && bfpmixparm) ||
-                ((in_cstride > 512) && bfpmixparm))
+        else
+#endif
+            if((in_nhw < 33554432 && in_cstride > 1024) ||
+               ((n >= 256) && (in_cstride > 60) && bfpmixparm) ||
+               ((in_cstride > 512) && bfpmixparm))
         {
             //
         }
@@ -211,6 +215,7 @@ void BatchNormForwardTraining(Handle& handle,
 
         std::string network_config{};
 
+#if(WORKAROUND_SWDEV_253606 == 0)
         if(variant == 4)
         {
             network_config = "variant" + std::to_string(variant) + "rs" +
@@ -220,6 +225,7 @@ void BatchNormForwardTraining(Handle& handle,
                              std::to_string(static_cast<int>(bfp32parm)) + "c" + std::to_string(c);
         }
         else
+#endif
         {
             network_config = "variant" + std::to_string(variant) + "gx" +
                              std::to_string(xgridsize) + "gy" + std::to_string(ygridsize) + "xl" +
@@ -258,7 +264,6 @@ void BatchNormForwardTraining(Handle& handle,
                                            resultSaveMean,
                                            resultSaveInvVariance,
                                            inhw,
-                                           n,
                                            in_cstride,
                                            in_nstride);
             }
@@ -328,7 +333,6 @@ void BatchNormForwardTraining(Handle& handle,
                                             resultSaveMean,
                                             resultSaveInvVariance,
                                             inhw,
-                                            n,
                                             in_cstride,
                                             in_nstride);
             }

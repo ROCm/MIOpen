@@ -283,7 +283,6 @@ void bnFwdTrainSelectSingleEmpty(const Handle& handle,
                                  Data_t resultSaveMean,
                                  Data_t resultSaveInvVariance,
                                  float inhw,
-                                 unsigned int n,
                                  unsigned int in_cstride,
                                  unsigned int in_nstride)
 {
@@ -428,12 +427,11 @@ void bnFwdTrainSelectSingleFull(const Handle& handle,
                                 Data_t resultSaveMean,
                                 Data_t resultSaveInvVariance,
                                 float inhw,
-                                unsigned int n,
                                 unsigned int in_cstride,
                                 unsigned int in_nstride)
 {
 
-    bool vn4 = (variant != 4);
+    bool vn4       = (variant != 4);
     auto&& kernels = handle.GetKernels(algo_name, network_config);
     if(!kernels.empty())
     {
