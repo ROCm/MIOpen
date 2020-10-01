@@ -160,7 +160,7 @@ void BatchNormForwardTraining(Handle& handle,
     if(bn_mode == miopenBNSpatial)
     {
         bool single           = true;
-        unsigned int variant  = 1;
+        int variant           = 1;
         unsigned int ldsgcn   = xlocalsize / 64;
         unsigned int ldsnogcn = xlocalsize;
         std::string algo_name = "miopenBatchNormForwardTrainingSpatial";
@@ -178,11 +178,13 @@ void BatchNormForwardTraining(Handle& handle,
         }
         else
 #endif
-            if((in_nhw < 33554432 && in_cstride > 1024) ||
+
+            // clang-format off
+        if((in_nhw < 33554432 && in_cstride > 1024) ||
                ((n >= 256) && (in_cstride > 60) && bfpmixparm) ||
                ((in_cstride > 512) && bfpmixparm))
         {
-            //
+            variant = 1;
         }
         else if(in_cstride <= 512)
         {
@@ -200,6 +202,8 @@ void BatchNormForwardTraining(Handle& handle,
             ldsgcn       = ylocalsize / 64;
             ldsnogcn     = ylocalsize;
         }
+        // clang-format on
+
         if((n > 768) && (in_cstride > 150) && bfp32parm)
         {
             variant      = 2;
