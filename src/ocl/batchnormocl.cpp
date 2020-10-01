@@ -167,12 +167,12 @@ void BatchNormForwardTraining(Handle& handle,
         if(n < 3)
         {
             variant    = 4;
-            xlocalsize = 512;
+            xlocalsize = 256;
             xgridsize  = c * xlocalsize;
             ylocalsize = 1;
             ygridsize  = 1;
-            ldsgcn     = 8;
-            ldsnogcn   = 512;
+            ldsgcn     = xlocalsize / 64;
+            ldsnogcn   = xlocalsize;
         }
         else if((in_nhw < 33554432 && in_cstride > 1024) ||
                 ((n >= 256) && (in_cstride > 60) && bfpmixparm) ||
@@ -241,6 +241,7 @@ void BatchNormForwardTraining(Handle& handle,
             if(!kernels.empty())
             {
                 bnFwdTrainSelectSingleFull(handle,
+                                           variant,
                                            bnScaleBiasMeanVarDesc.GetType(),
                                            algo_name,
                                            network_config,
@@ -305,6 +306,7 @@ void BatchNormForwardTraining(Handle& handle,
                 vgd.push_back(zgridsize);
 
                 bnFwdTrainSelectSingleEmpty(handle,
+                                            variant,
                                             bnScaleBiasMeanVarDesc.GetType(),
                                             program_name,
                                             algo_name,
