@@ -213,5 +213,6 @@ int main(int argc, const char* argv[])
 {
     setenv("MIOPEN_LOG_LEVEL", "6", 1);
     setenv("MIOPEN_COMPILE_PARALLEL_LEVEL", "1", 1);
+    setenv("MIOPEN_FIND_MODE", "normal", 1);
     test_drive<miopen::FindDbTest>(argc, argv);
 }
