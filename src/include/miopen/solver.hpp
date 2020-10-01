@@ -1267,62 +1267,6 @@ struct ConvAsmImplicitGemmV4R1DynamicBwd : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext&) const;
 };
 
-struct TunableImplicitGemmGTCDynamic_t
-{
-    std::string direction;
-    std::string precision;
-    int nxb;
-    int nxe;
-
-    int gemm_m_per_block;
-    int gemm_n_per_block;
-    int gemm_k_per_block;
-
-    int wave_tile_m;
-    int wave_tile_n;
-    int wave_step_m;
-    int wave_step_n;
-    int wave_repeat_m;
-    int wave_repeat_n;
-
-    int tensor_a_thread_lengths[4];
-    int tensor_a_cluster_lengths[4];
-    int tensor_b_thread_lengths[4];
-    int tensor_b_cluster_lengths[4];
-    int gemm_k_global_split;
-
-    int GetBlockSize()
-    {
-        const auto WaveSize = 64;
-        auto block_size     = (gemm_m_per_block / (wave_tile_m * wave_step_m * wave_repeat_m)) *
-                          (gemm_n_per_block / (wave_tile_n * wave_step_n * wave_repeat_n)) *
-                          WaveSize;
-        return block_size;
-    }
-
-    std::string GetKernelName()
-    {
-        std::ostringstream kernel_name;
-        kernel_name << "igemm_" << direction << "_gtcx_nchw_" << precision << "_bx" << nxb << "_ex"
-                    << nxe << "_bt" << gemm_m_per_block << "x" << gemm_n_per_block << "x"
-                    << gemm_k_per_block << "_wt" << wave_tile_m << "x" << wave_tile_n << "_ws"
-                    << wave_step_m << "x" << wave_step_n << "_wr" << wave_repeat_m << "x"
-                    << wave_repeat_n << "_ta" << tensor_a_thread_lengths[0] << "x"
-                    << tensor_a_thread_lengths[1] << "x" << tensor_a_thread_lengths[2] << "x"
-                    << tensor_a_thread_lengths[3] << "_" << tensor_a_cluster_lengths[0] << "x"
-                    << tensor_a_cluster_lengths[1] << "x" << tensor_a_cluster_lengths[2] << "x"
-                    << tensor_a_cluster_lengths[3] << "_tb" << tensor_b_thread_lengths[0] << "x"
-                    << tensor_b_thread_lengths[1] << "x" << tensor_b_thread_lengths[2] << "x"
-                    << tensor_b_thread_lengths[3] << "_" << tensor_b_cluster_lengths[0] << "x"
-                    << tensor_b_cluster_lengths[1] << "x" << tensor_b_cluster_lengths[2] << "x"
-                    << tensor_b_cluster_lengths[3];
-        if(gemm_k_global_split != 0)
-            kernel_name << "_gkgs";
-
-        return kernel_name.str();
-    }
-};
-
 struct ConvAsmImplicitGemmGTCDynamicBwdXdlops : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& ctx) const;
