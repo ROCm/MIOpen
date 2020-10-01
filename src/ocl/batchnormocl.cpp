@@ -461,7 +461,7 @@ void BatchNormForwardTraining(Handle& handle,
     {
         xlocalsize            = 1;
         ylocalsize            = 256;
-        size_t segment        = std::ceil(double(in_cstride) / double(ylocalsize));
+        std::size_t segment   = (in_cstride + ylocalsize - 1) / ylocalsize;
         xgridsize             = c;
         ygridsize             = segment * ylocalsize;
         std::string algo_name = "miopenBatchNormForwardTrainingPerActivation";
