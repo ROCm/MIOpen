@@ -184,35 +184,22 @@ FindMode::Values GetFindModeValueImpl2()
     return FindMode::Values::Default_;
 }
 
-FindMode::Values GetFindModeValueImpl(const ConvolutionContext& ctx)
+FindMode::Values GetFindModeValueImpl()
 {
     auto rv = GetFindModeValueImpl2();
-    if(rv != FindMode::Values::Normal)
-    {
-        const FindEnforce find_enforce;
-        if(find_enforce.IsDbClean(ctx) || find_enforce.IsSearch(ctx) ||
-           find_enforce.IsDbUpdate(ctx))
-        {
-            rv = FindMode::Values::Normal;
-            MIOPEN_LOG_NQI("MIOPEN_FIND_MODE enforced to " << rv << " due to MIOPEN_FIND_ENFORCE");
-        }
-    }
-    if(rv == FindMode::Values::Default_) // To reduce spam.
-        MIOPEN_LOG_NQI2("MIOPEN_FIND_MODE = " << rv);
-    else
-        MIOPEN_LOG_NQI("MIOPEN_FIND_MODE = " << rv);
+    MIOPEN_LOG_NQI("MIOPEN_FIND_MODE = " << rv);
     return rv;
 }
 
-FindMode::Values GetFindModeValue(const ConvolutionContext& ctx)
+FindMode::Values GetFindModeValue()
 {
-    static const FindMode::Values val = GetFindModeValueImpl(ctx);
+    static const FindMode::Values val = GetFindModeValueImpl();
     return val;
 }
 
 } // namespace
 
-FindMode::FindMode(const ConvolutionContext& ctx) { value = GetFindModeValue(ctx); }
+FindMode::FindMode() { value = GetFindModeValue(); }
 std::ostream& operator<<(std::ostream& os, const FindMode& obj) { return os << obj.value; }
 
 } // namespace miopen

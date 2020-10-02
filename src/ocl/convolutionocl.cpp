@@ -194,8 +194,8 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
     const auto dir = isForward ? conv::Direction::Forward : conv::Direction::BackwardData;
     auto ctx       = ConvolutionContext{xDesc, wDesc, yDesc, *this, dir};
     ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-        miopen::FindMode(ctx).IsFastHybrid();
-    ctx.use_dynamic_solutions_only = miopen::FindMode(ctx).IsDynamicHybrid();
+        miopen::FindMode().IsFastHybrid(ctx);
+    ctx.use_dynamic_solutions_only = miopen::FindMode().IsDynamicHybrid(ctx);
     ctx.do_search                  = exhaustiveSearch;
     ctx.save_srch_req              = true;
     ctx.general_compile_options    = "";
@@ -233,8 +233,8 @@ ConvolutionDescriptor::FindDataImplicitGemmSolutions(Handle& handle,
     auto ctx       = ConvolutionContext{xDesc, wDesc, yDesc, *this, dir};
 
     ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-        miopen::FindMode(ctx).IsFastHybrid();
-    ctx.use_dynamic_solutions_only = miopen::FindMode(ctx).IsDynamicHybrid();
+        miopen::FindMode().IsFastHybrid(ctx);
+    ctx.use_dynamic_solutions_only = miopen::FindMode().IsDynamicHybrid(ctx);
     ctx.do_search                  = exhaustiveSearch;
     ctx.save_srch_req              = true;
     ctx.general_compile_options    = "";
@@ -768,7 +768,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
     std::vector<PerfField> perf_db;
 
-    const miopen::FindMode fm(ctx);
+    const miopen::FindMode fm;
     /// \section ffind_special_cases
     /// Fast Find mode: Let's allow known fast-to-build special cases
     /// (this is only Winograd 3x3 so far) to override switching to Immediate mode.
@@ -780,11 +780,11 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     /// will be better elaborated.
     bool use_immediate_solution = false;
     miopenConvSolution_t sol;
-    if((fm.IsFast() || fm.IsHybrid()) && !use_winograd_only)
+    if((fm.IsFast(ctx) || fm.IsHybrid(ctx)) && !use_winograd_only)
     {
         size_t count;
         GetForwardSolutions(handle, wDesc, xDesc, yDesc, 1, &count, &sol);
-        use_immediate_solution = (count > 0) && !(fm.IsHybrid() && sol.time < 0);
+        use_immediate_solution = (count > 0) && !(fm.IsHybrid(ctx) && sol.time < 0);
         // In Hybrid Find mode, we use Normal Find instead of Immediate fallback kernels.
     }
 
@@ -800,8 +800,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     else
     {
         ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-            miopen::FindMode(ctx).IsFastHybrid();
-        ctx.use_dynamic_solutions_only = miopen::FindMode(ctx).IsDynamicHybrid();
+            miopen::FindMode().IsFastHybrid(ctx);
+        ctx.use_dynamic_solutions_only = miopen::FindMode().IsDynamicHybrid(ctx);
         perf_db = UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
             DirConvFindCore(handle,
                             xDesc,
@@ -2125,15 +2125,16 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
     std::vector<PerfField> perf_db;
 
-    const miopen::FindMode fm(problem);
+    const miopen::FindMode fm;
     /// \ref ffind_special_cases
     bool use_immediate_solution = false;
     miopenConvSolution_t imm_sol;
-    if((fm.IsFast() || fm.IsHybrid()) && !use_winograd_only)
+    auto ctx = ConvolutionContext{problem};
+    if((fm.IsFast(ctx) || fm.IsHybrid(ctx)) && !use_winograd_only)
     {
         size_t count;
         GetBackwardSolutions(handle, dyDesc, wDesc, dxDesc, 1, &count, &imm_sol);
-        use_immediate_solution = (count > 0) && !(fm.IsHybrid() && imm_sol.time < 0);
+        use_immediate_solution = (count > 0) && !(fm.IsHybrid(ctx) && imm_sol.time < 0);
     }
 
     if(use_immediate_solution)
@@ -2156,10 +2157,9 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             {
                 ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
                 bufs.SetBwd(dx, w, dy);
-                auto ctx = ConvolutionContext{problem};
                 ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-                    miopen::FindMode(ctx).IsFastHybrid();
-                ctx.use_dynamic_solutions_only = miopen::FindMode(ctx).IsDynamicHybrid();
+                    miopen::FindMode().IsFastHybrid(ctx);
+                ctx.use_dynamic_solutions_only = miopen::FindMode().IsDynamicHybrid(ctx);
                 ctx.SetBufs(bufs);
                 ctx.SetStream(&handle);
                 ctx.DetectRocm();
@@ -3095,16 +3095,17 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
     auto problem =
         ProblemDescription{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
+    auto ctx = ConvolutionContext{problem};
 
     std::vector<PerfField> perf_db;
-    const miopen::FindMode fm(problem);
+    const miopen::FindMode fm;
     bool use_immediate_solution = false;
     miopenConvSolution_t imm_sol;
-    if(fm.IsFast() || fm.IsHybrid())
+    if(fm.IsFast(ctx) || fm.IsHybrid(ctx))
     {
         size_t count;
         GetWrwSolutions(handle, dyDesc, xDesc, dwDesc, 1, &count, &imm_sol);
-        use_immediate_solution = (count > 0) && !(fm.IsHybrid() && imm_sol.time < 0);
+        use_immediate_solution = (count > 0) && !(fm.IsHybrid(ctx) && imm_sol.time < 0);
     }
 
     if(use_immediate_solution)
@@ -3252,11 +3253,9 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 #endif
             ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
             bufs.SetWrW(x, dw, dy);
-            auto ctx =
-                ConvolutionContext{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
             ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-                miopen::FindMode(ctx).IsFastHybrid();
-            ctx.use_dynamic_solutions_only = miopen::FindMode(ctx).IsDynamicHybrid();
+                miopen::FindMode().IsFastHybrid(ctx);
+            ctx.use_dynamic_solutions_only = miopen::FindMode().IsDynamicHybrid(ctx);
             ctx.do_search                  = exhaustiveSearch;
             ctx.SetStream(&handle);
             ctx.SetBufs(bufs);
