@@ -59,21 +59,9 @@ enum class FindEnforceAction
     Default_ = None,
 };
 
-enum class FindEnforceScope
-{
-    First_ = 1, // 0 is returned for non-numeric env.vars.
-    All    = First_,
-    ConvFwd,
-    ConvBwd,
-    ConvWrW,
-    Last_    = ConvWrW,
-    Default_ = All,
-};
-
 class FindEnforce
 {
     FindEnforceAction action;
-    FindEnforceScope scope;
 
     private:
     template <class Context>
@@ -81,14 +69,7 @@ class FindEnforce
     {
         if(context.disable_search_enforce || debug::FindEnforceDisable)
             return false;
-        switch(scope)
-        {
-        case FindEnforceScope::All: return true;
-        case FindEnforceScope::ConvFwd: return context.direction.IsForward();
-        case FindEnforceScope::ConvBwd: return context.direction.IsBackwardData();
-        case FindEnforceScope::ConvWrW: return context.direction.IsBackwardWrW();
-        }
-        return false;
+        return true;
     }
 
     public:

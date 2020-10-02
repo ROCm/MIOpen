@@ -34,7 +34,6 @@
 #include <cstring>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_FIND_ENFORCE)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_FIND_ENFORCE_SCOPE)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_FIND_MODE)
 
@@ -96,50 +95,6 @@ FindEnforceAction GetFindEnforceAction()
     return val;
 }
 
-const char* ToCString(const FindEnforceScope mode)
-{
-    switch(mode)
-    {
-    case FindEnforceScope::All: return "ALL";
-    case FindEnforceScope::ConvFwd: return "CONV_FWD";
-    case FindEnforceScope::ConvBwd: return "CONV_BWD";
-    case FindEnforceScope::ConvWrW: return "CONV_WRW";
-    }
-    return "<Unknown>";
-}
-
-FindEnforceScope GetFindEnforceScopeImpl()
-{
-    const char* const p_asciz = miopen::GetStringEnv(MIOPEN_FIND_ENFORCE_SCOPE{});
-    if(p_asciz == nullptr)
-        return FindEnforceScope::Default_;
-    std::string str = p_asciz;
-    for(auto& c : str)
-        c = toupper(static_cast<unsigned char>(c));
-    if(str == "ALL")
-        return FindEnforceScope::All;
-    else if(str == "CONV_FWD")
-        return FindEnforceScope::ConvFwd;
-    else if(str == "CONV_BWD")
-        return FindEnforceScope::ConvBwd;
-    else if(str == "CONV_WRW")
-        return FindEnforceScope::ConvWrW;
-    else
-    { // Nop. Fall down & try numerics.
-    }
-    const auto val = static_cast<FindEnforceScope>(miopen::Value(MIOPEN_FIND_ENFORCE_SCOPE{}));
-    if(FindEnforceScope::First_ <= val && val <= FindEnforceScope::Last_)
-        return val;
-    MIOPEN_LOG_NQE("Wrong MIOPEN_FIND_ENFORCE_SCOPE, using default.");
-    return FindEnforceScope::Default_;
-}
-
-FindEnforceScope GetFindEnforceScope()
-{
-    static const FindEnforceScope val = GetFindEnforceScopeImpl();
-    return val;
-}
-
 solver::Id GetEnvFindOnlySolverImpl()
 {
     static_assert(miopen::solver::Id::invalid_value == 0, "miopen::solver::Id::invalid_value == 0");
@@ -167,16 +122,11 @@ solver::Id GetEnvFindOnlySolverImpl()
 
 } // namespace
 
-FindEnforce::FindEnforce()
-{
-    action = GetFindEnforceAction();
-    scope  = GetFindEnforceScope();
-}
+FindEnforce::FindEnforce() { action = GetFindEnforceAction(); }
 
 std::ostream& operator<<(std::ostream& os, const FindEnforce& val)
 {
-    return os << ToCString(val.action) << "(" << static_cast<int>(val.action) << "), "
-              << ToCString(val.scope) << "(" << static_cast<int>(val.scope) << ')';
+    return os << ToCString(val.action) << '(' << static_cast<int>(val.action) << ')';
 }
 
 solver::Id GetEnvFindOnlySolver()
