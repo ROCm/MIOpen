@@ -29,7 +29,6 @@
 
 #include <miopen/logger.hpp>
 #include <miopen/solver_id.hpp>
-#include <miopen/conv/context.hpp>
 #include <ostream>
 
 namespace miopen {

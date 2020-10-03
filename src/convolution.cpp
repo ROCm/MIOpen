@@ -440,8 +440,7 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
     }
 
     /// \ref ffind_special_cases
-    const miopen::FindMode fm;
-    while(fm.IsFast(ctx) || fm.IsHybrid(ctx))
+    while(findMode.IsFast(ctx) || findMode.IsHybrid(ctx))
     {
         /// \section ffind_gwss_why_not_0
         /// Basically we can return 0 here because
@@ -457,11 +456,11 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         size_t count;
         miopenConvSolution_t sol;
         GetForwardSolutions(handle, wDesc, xDesc, yDesc, 1, &count, &sol);
-        if(count < 1 || (fm.IsHybrid(ctx) && sol.time < 0))
+        if(count < 1 || (findMode.IsHybrid(ctx) && sol.time < 0))
         {
             ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-                fm.IsFastHybrid(ctx);
-            ctx.use_dynamic_solutions_only = fm.IsDynamicHybrid(ctx);
+                findMode.IsFastHybrid(ctx);
+            ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
             break; // Fall down to Normal Find.
         }
         MIOPEN_LOG_I2(sol.workspace_size);
@@ -551,18 +550,17 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
     }
 
     /// \ref ffind_special_cases
-    const miopen::FindMode fm;
-    while(fm.IsFast(ctx) || fm.IsHybrid(ctx))
+    while(findMode.IsFast(ctx) || findMode.IsHybrid(ctx))
     {
         /// \ref ffind_gwss_why_not_0
         size_t count;
         miopenConvSolution_t sol;
         GetBackwardSolutions(handle, dyDesc, wDesc, dxDesc, 1, &count, &sol);
-        if(count < 1 || (fm.IsHybrid(ctx) && sol.time < 0))
+        if(count < 1 || (findMode.IsHybrid(ctx) && sol.time < 0))
         {
             ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-                fm.IsFastHybrid(ctx);
-            ctx.use_dynamic_solutions_only = fm.IsDynamicHybrid(ctx);
+                findMode.IsFastHybrid(ctx);
+            ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
             break; // Fall down to Normal Find.
         }
         MIOPEN_LOG_I2(sol.workspace_size);
@@ -888,18 +886,17 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
 {
     MIOPEN_LOG_I("");
     auto ctx = ConvolutionContext(xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights);
-    const miopen::FindMode fm;
-    while(fm.IsFast(ctx) || fm.IsHybrid(ctx))
+    while(findMode.IsFast(ctx) || findMode.IsHybrid(ctx))
     {
         /// \ref ffind_gwss_why_not_0
         size_t count;
         miopenConvSolution_t sol;
         GetWrwSolutions(handle, dyDesc, xDesc, dwDesc, 1, &count, &sol);
-        if(count < 1 || (fm.IsHybrid(ctx) && sol.time < 0))
+        if(count < 1 || (findMode.IsHybrid(ctx) && sol.time < 0))
         {
             ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-                fm.IsFastHybrid(ctx);
-            ctx.use_dynamic_solutions_only = fm.IsDynamicHybrid(ctx);
+                findMode.IsFastHybrid(ctx);
+            ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
             break; // Fall down to Normal Find.
         }
         MIOPEN_LOG_I2(sol.workspace_size);
