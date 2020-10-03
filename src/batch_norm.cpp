@@ -261,6 +261,7 @@ void bnFwdTrainSelectMulti(const Handle& handle,
 }
 
 void bnFwdTrainSelectSingleEmpty(const Handle& handle,
+                                 int variant,
                                  miopenDataType_t dtype,
                                  const std::string& program_name,
                                  const std::string& algo_name,
@@ -282,16 +283,16 @@ void bnFwdTrainSelectSingleEmpty(const Handle& handle,
                                  Data_t resultSaveMean,
                                  Data_t resultSaveInvVariance,
                                  float inhw,
-                                 unsigned int n,
                                  unsigned int in_cstride,
                                  unsigned int in_nstride)
 {
 
+    bool vn4 = (variant != 4);
     visit_float(dtype, [&](auto as_float) {
 
         if(resultsave && resultrunning)
         {
-            if(n > 2)
+            if(vn4)
             {
                 handle.AddKernel(
                     algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
@@ -328,7 +329,7 @@ void bnFwdTrainSelectSingleEmpty(const Handle& handle,
         }
         else if(resultsave)
         {
-            if(n > 2)
+            if(vn4)
             {
                 handle.AddKernel(
                     algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
@@ -359,7 +360,7 @@ void bnFwdTrainSelectSingleEmpty(const Handle& handle,
         }
         else if(resultrunning)
         {
-            if(n > 2)
+            if(vn4)
             {
                 handle.AddKernel(
                     algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
@@ -392,7 +393,7 @@ void bnFwdTrainSelectSingleEmpty(const Handle& handle,
         }
         else
         {
-            if(n > 2)
+            if(vn4)
             {
                 handle.AddKernel(
                     algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
@@ -409,6 +410,7 @@ void bnFwdTrainSelectSingleEmpty(const Handle& handle,
 }
 
 void bnFwdTrainSelectSingleFull(const Handle& handle,
+                                int variant,
                                 miopenDataType_t dtype,
                                 const std::string& algo_name,
                                 const std::string& network_config,
@@ -425,11 +427,11 @@ void bnFwdTrainSelectSingleFull(const Handle& handle,
                                 Data_t resultSaveMean,
                                 Data_t resultSaveInvVariance,
                                 float inhw,
-                                unsigned int n,
                                 unsigned int in_cstride,
                                 unsigned int in_nstride)
 {
 
+    bool vn4       = (variant != 4);
     auto&& kernels = handle.GetKernels(algo_name, network_config);
     if(!kernels.empty())
     {
@@ -437,7 +439,7 @@ void bnFwdTrainSelectSingleFull(const Handle& handle,
         visit_float(dtype, [&](auto as_float) {
             if(resultsave && resultrunning)
             {
-                if(n > 2)
+                if(vn4)
                 {
                     kernel(x,
                            y,
@@ -470,7 +472,7 @@ void bnFwdTrainSelectSingleFull(const Handle& handle,
             }
             else if(resultsave)
             {
-                if(n > 2)
+                if(vn4)
                 {
                     kernel(x,
                            y,
@@ -497,7 +499,7 @@ void bnFwdTrainSelectSingleFull(const Handle& handle,
             }
             else if(resultrunning)
             {
-                if(n > 2)
+                if(vn4)
                 {
                     kernel(x,
                            y,
@@ -526,7 +528,7 @@ void bnFwdTrainSelectSingleFull(const Handle& handle,
             }
             else
             {
-                if(n > 2)
+                if(vn4)
                 {
                     kernel(x, y, bnScale, bnBias, as_float(inhw), epsilon);
                 }
