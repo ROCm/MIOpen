@@ -37,6 +37,7 @@
 #include <miopen/convolution.hpp>
 #include <miopen/mlo_internal.hpp>
 
+#define WORKAROUND_SWDEV_253606 1
 #include <chrono>
 
 namespace miopen {
@@ -159,26 +160,31 @@ void BatchNormForwardTraining(Handle& handle,
     if(bn_mode == miopenBNSpatial)
     {
         bool single           = true;
-        unsigned int variant  = 1;
+        int variant           = 1;
         unsigned int ldsgcn   = xlocalsize / 64;
         unsigned int ldsnogcn = xlocalsize;
         std::string algo_name = "miopenBatchNormForwardTrainingSpatial";
 
+#if(WORKAROUND_SWDEV_253606 == 0)
         if(n < 3)
         {
             variant    = 4;
-            xlocalsize = 512;
+            xlocalsize = 256;
             xgridsize  = c * xlocalsize;
             ylocalsize = 1;
             ygridsize  = 1;
-            ldsgcn     = 8;
-            ldsnogcn   = 512;
+            ldsgcn     = xlocalsize / 64;
+            ldsnogcn   = xlocalsize;
         }
-        else if((in_nhw < 33554432 && in_cstride > 1024) ||
-                ((n >= 256) && (in_cstride > 60) && bfpmixparm) ||
-                ((in_cstride > 512) && bfpmixparm))
+        else
+#endif
+
+            // clang-format off
+        if((in_nhw < 33554432 && in_cstride > 1024) ||
+               ((n >= 256) && (in_cstride > 60) && bfpmixparm) ||
+               ((in_cstride > 512) && bfpmixparm))
         {
-            //
+            variant = 1;
         }
         else if(in_cstride <= 512)
         {
@@ -196,6 +202,8 @@ void BatchNormForwardTraining(Handle& handle,
             ldsgcn       = ylocalsize / 64;
             ldsnogcn     = ylocalsize;
         }
+        // clang-format on
+
         if((n > 768) && (in_cstride > 150) && bfp32parm)
         {
             variant      = 2;
@@ -211,6 +219,7 @@ void BatchNormForwardTraining(Handle& handle,
 
         std::string network_config{};
 
+#if(WORKAROUND_SWDEV_253606 == 0)
         if(variant == 4)
         {
             network_config = "variant" + std::to_string(variant) + "rs" +
@@ -220,6 +229,7 @@ void BatchNormForwardTraining(Handle& handle,
                              std::to_string(static_cast<int>(bfp32parm)) + "c" + std::to_string(c);
         }
         else
+#endif
         {
             network_config = "variant" + std::to_string(variant) + "gx" +
                              std::to_string(xgridsize) + "gy" + std::to_string(ygridsize) + "xl" +
@@ -241,6 +251,7 @@ void BatchNormForwardTraining(Handle& handle,
             if(!kernels.empty())
             {
                 bnFwdTrainSelectSingleFull(handle,
+                                           variant,
                                            bnScaleBiasMeanVarDesc.GetType(),
                                            algo_name,
                                            network_config,
@@ -257,7 +268,6 @@ void BatchNormForwardTraining(Handle& handle,
                                            resultSaveMean,
                                            resultSaveInvVariance,
                                            inhw,
-                                           n,
                                            in_cstride,
                                            in_nstride);
             }
@@ -305,6 +315,7 @@ void BatchNormForwardTraining(Handle& handle,
                 vgd.push_back(zgridsize);
 
                 bnFwdTrainSelectSingleEmpty(handle,
+                                            variant,
                                             bnScaleBiasMeanVarDesc.GetType(),
                                             program_name,
                                             algo_name,
@@ -326,7 +337,6 @@ void BatchNormForwardTraining(Handle& handle,
                                             resultSaveMean,
                                             resultSaveInvVariance,
                                             inhw,
-                                            n,
                                             in_cstride,
                                             in_nstride);
             }
