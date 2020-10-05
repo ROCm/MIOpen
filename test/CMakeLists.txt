@@ -795,7 +795,7 @@ endif()
     COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	1	32	28	28	--weights	1	32	5	5	--pads_strides_dilations	0	0	4	4	1	1						
     COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	1	48	7	7	--weights	1	48	5	5	--pads_strides_dilations	0	0	4	4	1	1						
 )
-endif() // test_conv2d
+endif() 
 
-endif() // test_conv_any
+endif() 
 
