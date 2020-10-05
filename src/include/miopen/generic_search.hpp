@@ -348,7 +348,8 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
 
     const char* const c_and_r = miopen::GetStringEnv(MIOPEN_COMPILE_AND_RUN{});
     std::string compile_and_run;
-    if(c_and_r != nullptr && strlen(c_and_r) > 0){
+    if(c_and_r != nullptr && strlen(c_and_r) > 0)
+    {
         compile_and_run = c_and_r;
     }
 
@@ -366,13 +367,14 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
         {
             current_solution = s.GetSolution(context, current_config, true);
 
-            if(compile_and_run=="0"){
+            if(compile_and_run == "0")
+            {
                 std::vector<KernelInfo> kernels;
                 for(auto&& kernel : current_solution.construction_params)
                 {
                     if(profile_h.HasProgram(kernel.kernel_file, kernel.comp_options))
                         continue;
-                     kernels.push_back(kernel);
+                    kernels.push_back(kernel);
                 }
 
                 std::vector<Program> programs = PrecompileKernels(profile_h, kernels);

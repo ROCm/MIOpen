@@ -226,7 +226,8 @@ Kernel KernelCache::AddKernel(const Handle& h,
     {
         kernel = Kernel{program, kernel_name};
     }
-    else{
+    else
+    {
         kernel = Kernel{program, kernel_name, vld, vgd};
     }
 

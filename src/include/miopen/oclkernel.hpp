@@ -155,11 +155,10 @@ class OCLKernel
         }
     }
 
-    OCLKernel(SharedProgramPtr p,
-              const std::string& kernel_name)
-        : program(p),
-          kernel(CreateKernel(p.get(), kernel_name))
-    {}
+    OCLKernel(SharedProgramPtr p, const std::string& kernel_name)
+        : program(p), kernel(CreateKernel(p.get(), kernel_name))
+    {
+    }
 
     OCLKernelInvoke Invoke(cl_command_queue q,
                            std::function<void(cl_event&)> callback = nullptr) const;
