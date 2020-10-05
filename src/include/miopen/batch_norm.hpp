@@ -69,6 +69,7 @@ void bnBwdTrainSelectSingle(const Handle& handle,
                             float inhw);
 
 void bnFwdTrainSelectSingleFull(const Handle& handle,
+                                int variant,
                                 miopenDataType_t dtype,
                                 const std::string& algo_name,
                                 const std::string& network_config,
@@ -85,7 +86,6 @@ void bnFwdTrainSelectSingleFull(const Handle& handle,
                                 Data_t resultSaveMean,
                                 Data_t resultSaveInvVariance,
                                 float inhw,
-                                unsigned int n,
                                 unsigned int in_cstride,
                                 unsigned int in_nstride);
 
@@ -111,6 +111,7 @@ void bnBwdTrainSelectMulti(const Handle& handle,
                            float inhw);
 
 void bnFwdTrainSelectSingleEmpty(const Handle& handle,
+                                 int variant,
                                  miopenDataType_t dtype,
                                  const std::string& program_name,
                                  const std::string& algo_name,
@@ -132,7 +133,6 @@ void bnFwdTrainSelectSingleEmpty(const Handle& handle,
                                  Data_t resultSaveMean,
                                  Data_t resultSaveInvVariance,
                                  float inhw,
-                                 unsigned int n,
                                  unsigned int in_cstride,
                                  unsigned int in_nstride);
 
