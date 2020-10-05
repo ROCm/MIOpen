@@ -99,6 +99,7 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::SetNextValue()
         }
         if(!NextFlag<false, true>(GemmBThreadCopyMoreGemmKPack))
             break;
+        // force to be false to reduce search space
         if(!NextFlag<false, false>(GemmAThreadCopyMoreGemmK))
             break;
         if(!NextTwoPower<1, 8>(GemmKPack))
