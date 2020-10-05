@@ -2035,20 +2035,14 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 {dyDesc, dy, wDesc, w, dxDesc, dx}, workSpace, workSpaceSize};
 
             auto ctx = ConvolutionContext{problem};
+            ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
+                miopen::FindMode(ctx).IsFastHybrid();
+            ctx.use_dynamic_solutions_only = miopen::FindMode(ctx).IsDynamicHybrid();
             ctx.SetStream(&handle);
             ctx.DetectRocm();
 
             // Winograd algo
             {
-                ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
-                bufs.SetBwd(dx, w, dy);
-                auto ctx = ConvolutionContext{problem};
-                ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-                    miopen::FindMode(ctx).IsFastHybrid();
-                ctx.use_dynamic_solutions_only = miopen::FindMode(ctx).IsDynamicHybrid();
-                ctx.SetBufs(bufs);
-                ctx.SetStream(&handle);
-                ctx.DetectRocm();
                 const auto all            = FindWinogradSolutions(ctx, invoke_ctx);
                 const auto algorithm_name = AlgorithmName{"miopenConvolutionBwdDataAlgoWinograd"};
                 PrecompileSolutions(handle, all);
