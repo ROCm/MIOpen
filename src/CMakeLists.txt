@@ -234,6 +234,7 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_bwd_v1r1_xdlops_nchw_kcyx_nkhw.cpp
     solver/conv_asm_implicit_gemm_bwd_v4r1_dynamic.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops.cpp
+    solver/conv_asm_implicit_gemm_gtc_fwd.cpp
     )
 
 list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
