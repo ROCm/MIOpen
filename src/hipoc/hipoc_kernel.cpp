@@ -33,7 +33,6 @@
 #include <hip/hip_ext.h>
 #include <hip/hip_runtime.h>
 
-
 namespace miopen {
 
 void HIPOCKernelInvoke::run(void* args, std::size_t size) const
