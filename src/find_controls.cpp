@@ -25,6 +25,8 @@
  *******************************************************************************/
 
 #include <miopen/find_controls.hpp>
+
+#include <miopen/miopen.h>
 #include <miopen/logger.hpp>
 #include <miopen/env.hpp>
 #include <miopen/solver_id.hpp>
@@ -201,5 +203,24 @@ FindMode::Values GetFindModeValue()
 
 FindMode::FindMode() { value = GetFindModeValue(); }
 std::ostream& operator<<(std::ostream& os, const FindMode& obj) { return os << obj.value; }
+
+static_assert(miopenConvolutionFindModeNormal ==
+                  static_cast<miopenConvolutionFindMode_t>(FindMode::Values::Normal),
+              "API is not in sync with the implementation.");
+static_assert(miopenConvolutionFindModeFast ==
+                  static_cast<miopenConvolutionFindMode_t>(FindMode::Values::Fast),
+              "API is not in sync with the implementation.");
+static_assert(miopenConvolutionFindModeHybrid ==
+                  static_cast<miopenConvolutionFindMode_t>(FindMode::Values::Hybrid),
+              "API is not in sync with the implementation.");
+static_assert(miopenConvolutionFindModeFastHybrid ==
+                  static_cast<miopenConvolutionFindMode_t>(FindMode::Values::FastHybrid),
+              "API is not in sync with the implementation.");
+static_assert(miopenConvolutionFindModeDynamicHybrid ==
+                  static_cast<miopenConvolutionFindMode_t>(FindMode::Values::DynamicHybrid),
+              "API is not in sync with the implementation.");
+static_assert(miopenConvolutionFindModeDefault ==
+                  static_cast<miopenConvolutionFindMode_t>(FindMode::Values::Default_),
+              "API is not in sync with the implementation.");
 
 } // namespace miopen

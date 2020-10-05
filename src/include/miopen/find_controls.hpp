@@ -138,6 +138,8 @@ class FindMode
 
     public:
     FindMode();
+    Values Get() const { return value; }
+    void Set(Values const v) { value = v; }
 
     template <class Context>
     bool IsFast(const Context& context) const
