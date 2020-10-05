@@ -543,10 +543,6 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
     const ConvolutionContext& params, std::size_t ws_sz) const
 {
 #if(MIOPEN_BACKEND_HIP && (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE))
-#if(!MIOPEN_USE_ROCBLAS)
-    if(!params.IsFp32())
-        return false;
-#endif
     int flags         = 0;
     int reserved      = 0;
     int* reserved_ptr = nullptr;
