@@ -40,11 +40,6 @@ namespace debug {
 /// WARNING: This switch is not intended for use in multi-threaded applications.
 extern bool FindEnforceDisable;
 
-/// Disable MIOPEN_FIND_MODE. Intended for debugging/testing purposes.
-/// Currently used during warm-up phase in MIOpenDriver.
-/// WARNING: This switch is not intended for use in multi-threaded applications.
-extern bool FindModeDisable;
-
 } // namespace debug
 
 enum class FindEnforceAction
@@ -133,7 +128,7 @@ class FindMode
             MIOPEN_LOG_NQI("MIOPEN_FIND_MODE is set to NORMAL due to MIOPEN_FIND_ENFORCE");
             return false;
         }
-        return !debug::FindModeDisable;
+        return true;
     }
 
     public:

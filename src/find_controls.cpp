@@ -44,7 +44,6 @@ namespace miopen {
 namespace debug {
 
 bool FindEnforceDisable = false;
-bool FindModeDisable    = false;
 
 } // namespace debug
 
