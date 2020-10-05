@@ -148,7 +148,8 @@ struct HIPOCProgramImpl
         {
             module = CreateModuleInMem(binary);
         }
-        else{
+        else
+        {
             const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
             if(arch == nullptr)
             {
