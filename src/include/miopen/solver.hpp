@@ -1424,6 +1424,68 @@ extern template struct ConvMPBidirectWinograd<5, 3>;
 extern template struct ConvMPBidirectWinograd<6, 3>;
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW = WinoDataH, int WinoFilterW = WinoFilterH>
+struct ConvMPBidirectWinograd_xdlops : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+
+    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                  const PerformanceImplicitGemmForwardV4R4Xdlops& c) const
+    {
+        return ConvHipImplicitGemmForwardV4R4Xdlops{}.IsValidPerformanceConfig(
+            GetTransformedConvContext(ctx), c);
+    }
+
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const
+    {
+        return ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>()
+                   .GetWorkspaceSize(ctx) +
+               ConvHipImplicitGemmForwardV4R4Xdlops{}.GetWorkspaceSize(
+                   GetTransformedConvContext(ctx));
+    }
+
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const PerformanceImplicitGemmForwardV4R4Xdlops& config,
+                             bool disableConfigOverrideFromEnv = false) const;
+
+    ConvolutionContext GetTransformedConvContext(const ConvolutionContext&) const;
+
+    // kernel_file_name for solver identification
+    static std::string GetSolverFileNames(int id)
+    {
+        return ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::
+            GetSolverFileNames(id);
+    }
+
+    static std::string GetSolverKernelNames(int id)
+    {
+        return ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::
+            GetSolverKernelNames(id);
+    }
+
+    static int GetSolverWinoXformHWSize()
+    {
+        return ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::
+            GetSolverWinoXformHWSize();
+    }
+
+    PerformanceImplicitGemmForwardV4R4Xdlops
+    GetPerformanceConfig(const ConvolutionContext& ctx) const
+    {
+        return ConvHipImplicitGemmForwardV4R4Xdlops{}.GetPerformanceConfig(
+            GetTransformedConvContext(ctx));
+    }
+
+    PerformanceImplicitGemmForwardV4R4Xdlops Search(const ConvolutionContext&,
+                                                    const AnyInvokeParams&) const;
+};
+
+extern template struct ConvMPBidirectWinograd_xdlops<2, 3>;
+extern template struct ConvMPBidirectWinograd_xdlops<3, 3>;
+extern template struct ConvMPBidirectWinograd_xdlops<4, 3>;
+extern template struct ConvMPBidirectWinograd_xdlops<5, 3>;
+extern template struct ConvMPBidirectWinograd_xdlops<6, 3>;
+
+template <int WinoDataH, int WinoFilterH, int WinoDataW = WinoDataH, int WinoFilterW = WinoFilterH>
 struct ConvWinograd3x3MultipassWrW : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;
