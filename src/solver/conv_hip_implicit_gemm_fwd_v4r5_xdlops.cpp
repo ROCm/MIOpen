@@ -41,6 +41,28 @@ MIOPEN_DECLARE_ENV_VAR(
 namespace miopen {
 namespace solver {
 
+static std::tuple<int, int, int, int> CalculateGemmSize(const ConvolutionContext& ctx)
+{
+    const std::size_t g  = ConvolutionContextInterpreter::GetGroupCountG(ctx);
+    const std::size_t n  = ConvolutionContextInterpreter::GetBatchN(ctx);
+    const std::size_t k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
+    const std::size_t c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
+    const std::size_t ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
+    const std::size_t wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
+    const std::size_t y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+    const std::size_t x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+
+    const std::size_t k_per_group = k / g;
+    const std::size_t c_per_group = c / g;
+
+    const std::size_t gemm_g       = g;
+    const std::size_t gemm_m       = k_per_group;
+    const std::size_t gemm_n       = n * ho * wo;
+    const std::size_t gemm_k_total = c_per_group * y * x;
+
+    return std::make_tuple(gemm_g, gemm_m, gemm_n, gemm_k_total);
+}
+
 PerformanceImplicitGemmForwardV4R5Xdlops::PerformanceImplicitGemmForwardV4R5Xdlops()
     : PerformanceImplicitGemmForwardV4R5Xdlops::PerformanceImplicitGemmForwardV4R5Xdlops(
           4, 4, 1, 4, 4, 1, false, false, 1)
@@ -291,8 +313,7 @@ PerformanceImplicitGemmForwardV4R5Xdlops::CalculateGridSize(const ConvolutionCon
         int gemm_m = -1;
         int gemm_n = -1;
 
-        std::tie(gemm_g, gemm_m, gemm_n, std::ignore) =
-            ConvHipImplicitGemmForwardV4R5Xdlops::CalculateGemmSize(ctx);
+        std::tie(gemm_g, gemm_m, gemm_n, std::ignore) = CalculateGemmSize(ctx);
 
         if(!(gemm_m % GemmMPerBlock == 0 && gemm_n % GemmNPerBlock == 0))
             MIOPEN_THROW("invalid performance parameter");
@@ -593,8 +614,7 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsReallyValid(const ConvolutionCo
         int gemm_n       = -1;
         int gemm_k_total = -1;
 
-        std::tie(std::ignore, gemm_m, gemm_n, gemm_k_total) =
-            ConvHipImplicitGemmForwardV4R5Xdlops::CalculateGemmSize(ctx);
+        std::tie(std::ignore, gemm_m, gemm_n, gemm_k_total) = CalculateGemmSize(ctx);
 
         if(gemm_k_total % GemmKPack != 0)
             return false;
@@ -649,8 +669,7 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsFastToBeUsedForTuning(
         int gemm_m = 0;
         int gemm_n = 0;
 
-        std::tie(std::ignore, gemm_m, gemm_n, std::ignore) =
-            ConvHipImplicitGemmForwardV4R5Xdlops::CalculateGemmSize(ctx);
+        std::tie(std::ignore, gemm_m, gemm_n, std::ignore) = CalculateGemmSize(ctx);
 
         // this is grid size using current blockwise-GEMM
         const int grid_size = (gemm_m * gemm_n) / (GemmMPerBlock * GemmNPerBlock);
@@ -707,8 +726,7 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsFastToBeUsedForTuning(
         int gemm_m = 0;
         int gemm_n = 0;
 
-        std::tie(std::ignore, gemm_m, gemm_n, std::ignore) =
-            ConvHipImplicitGemmForwardV4R5Xdlops::CalculateGemmSize(ctx);
+        std::tie(std::ignore, gemm_m, gemm_n, std::ignore) = CalculateGemmSize(ctx);
 
         if(GemmMPerBlock > 2 * GemmNPerBlock)
         {
@@ -820,29 +838,6 @@ bool ConvHipImplicitGemmForwardV4R5Xdlops::IsValidPerformanceConfig(
     const ConvolutionContext& ctx, const PerformanceImplicitGemmForwardV4R5Xdlops& c) const
 {
     return c.IsReallyValid(ctx);
-}
-
-std::tuple<int, int, int, int>
-ConvHipImplicitGemmForwardV4R5Xdlops::CalculateGemmSize(const ConvolutionContext& ctx)
-{
-    const std::size_t g  = ConvolutionContextInterpreter::GetGroupCountG(ctx);
-    const std::size_t n  = ConvolutionContextInterpreter::GetBatchN(ctx);
-    const std::size_t k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
-    const std::size_t c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
-    const std::size_t ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
-    const std::size_t wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
-    const std::size_t y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-    const std::size_t x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
-
-    const std::size_t k_per_group = k / g;
-    const std::size_t c_per_group = c / g;
-
-    const std::size_t gemm_g       = g;
-    const std::size_t gemm_m       = k_per_group;
-    const std::size_t gemm_n       = n * ho * wo;
-    const std::size_t gemm_k_total = c_per_group * y * x;
-
-    return std::make_tuple(gemm_g, gemm_m, gemm_n, gemm_k_total);
 }
 
 PerformanceImplicitGemmForwardV4R5Xdlops

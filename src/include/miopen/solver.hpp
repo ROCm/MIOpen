@@ -1076,7 +1076,6 @@ struct ConvHipImplicitGemmForwardV4R4Xdlops : SolverBase<ConvolutionContext>
 
 struct ConvHipImplicitGemmForwardV4R5Xdlops : SolverBase<ConvolutionContext>
 {
-    static std::tuple<int, int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
     PerformanceImplicitGemmForwardV4R5Xdlops
     GetPerformanceConfig(const ConvolutionContext& ctx) const;
     bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
