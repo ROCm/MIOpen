@@ -337,7 +337,6 @@ ConvSolution ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilte
                      W,
                      group_cnt,
                      GetTypeSize(params.in_data_type)),
-        // cppcheck-suppress unreadVariable
         out_buff(GetGroupConvLayout(GetMemLayout_t(params.out_layout), true),
                  N,
                  K,
@@ -345,7 +344,6 @@ ConvSolution ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilte
                  out_W,
                  group_cnt,
                  GetTypeSize(params.out_data_type)),
-        // cppcheck-suppress unreadVariable
         weights_buff(GetGroupConvLayout(params.direction.IsForward()
                                             ? (MemLayout_t::NCHW)
                                             : GetSwappedNCLayout(MemLayout_t::NCHW),

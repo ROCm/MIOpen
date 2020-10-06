@@ -1544,6 +1544,7 @@ std::size_t ConvolutionDescriptor::GetWrwSolutionCountFallback(const TensorDescr
                  "Requested convolution is not supported or immedate mode fallback has failed.");
 }
 
+// cppcheck-suppress constParameter
 std::size_t GetSolutionCount(Handle& handle, const ProblemDescription& problem)
 {
     const FindDbRecord fdb_record{handle, problem};
@@ -3386,7 +3387,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
     });
 }
 
-void ConvolutionDescriptor::BackwardWeightsGemm(Handle& handle,
+void ConvolutionDescriptor::BackwardWeightsGemm(const Handle& handle,
                                                 const ConvWrwTensors& tensors,
                                                 Data_t workSpace,
                                                 std::size_t workSpaceSize) const

@@ -105,7 +105,6 @@ auto serialize(std::istream& is, T& x)
 template <class... Ts>
 std::enable_if_t<not is_trivial_serializable<std::tuple<Ts...>>{}>
 serialize(std::istream& is,
-          // cppcheck-suppress constParameter
           std::tuple<Ts...>& t)
 {
     miopen::unpack(

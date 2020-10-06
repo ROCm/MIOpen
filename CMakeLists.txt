@@ -464,6 +464,7 @@ enable_cppcheck(
         knownConditionTrueFalse:*src/kernels/composable_kernel/*/*
         redundantAssignment:*src/kernels/composable_kernel/*/*
         unreadVariable:*src/kernels/composable_kernel/*/*
+        unreadVariable:*src/kernels/bfloat16_dev.hpp
         unusedScopedObject:*src/kernels/composable_kernel/*/*
         wrongPrintfScanfArgNum:*src/kernels/composable_kernel/*/*
         unmatchedSuppression
@@ -480,7 +481,7 @@ enable_cppcheck(
         ${CMAKE_CURRENT_SOURCE_DIR}/src/include
     DEFINE
         CPPCHECK=1
-        MIOPEN_USE_MIOPENGEMM=1
+        MIOPEN_USE_GEMM=1
         __linux__=1
 )
 

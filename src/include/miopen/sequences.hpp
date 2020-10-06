@@ -563,6 +563,7 @@ struct MemberPtr<TType TContainer::*>
     MemberPtr(TType TContainer::*field_) : field(field_) {}
 
     const TType& RV(const TContainer& cont) const { return cont.*field; }
+    // cppcheck-suppress constParameter
     TType& LV(TContainer& cont) const { return cont.*field; }
 
     private:

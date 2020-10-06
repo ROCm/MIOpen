@@ -276,23 +276,6 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(const ConvolutionCo
         return false;
     }
 
-    // For group config, reducing search space
-    bool met = (n_output_channels_per_group % 4 == 0 && n_out_channels_per_tile % 4 == 0);
-    if(!met)
-    {
-        met = (n_output_channels_per_group % 3 == 0 && n_out_channels_per_tile % 3 == 0);
-        if(!met)
-        {
-            met = (n_output_channels_per_group % 2 == 0 && n_out_channels_per_tile % 2 == 0);
-            if(!met)
-            {
-                met = (n_output_channels_per_group % 1 == 0 && n_out_channels_per_tile % 1 == 0);
-                if(!met)
-                    return false;
-            }
-        }
-    }
-
     // group config requires n_out_channels_tiles to be 1 or else
     // kernel doesn't work.
     if(params.group_counts > 1 && n_out_channels_tiles != 1)

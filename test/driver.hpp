@@ -644,7 +644,6 @@ struct test_driver
             bool continue_ = true;
             miopen::each_args(
                 [&](auto i) {
-                    // cppcheck-suppress knownConditionTrueFalse
                     if(continue_)
                         continue_ = this->compare_and_report(
                             std::get<i>(out_cpu), std::get<i>(out_gpu), compare, report, [&](int) {
@@ -774,7 +773,6 @@ struct test_driver
                     };
                     compare_and_report(
                         cpu, gpu, f, report_retry, [&](int mode) { v.fail(mode, xs...); });
-                    // cppcheck-suppress knownConditionTrueFalse
                     if(retry)
                     {
                         std::cout << "Warning: verify cache failed, rerunning cpu." << std::endl;

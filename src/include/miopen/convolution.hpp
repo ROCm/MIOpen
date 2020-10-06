@@ -463,7 +463,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                       const TensorDescriptor& xDesc,
                                       const TensorDescriptor& dwDesc) const;
 
-    void BackwardWeightsGemm(Handle& handle,
+    void BackwardWeightsGemm(const Handle& handle,
                              const ConvWrwTensors& tensors,
                              Data_t workSpace,
                              std::size_t workSpaceSize) const;

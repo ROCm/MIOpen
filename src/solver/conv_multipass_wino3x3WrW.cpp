@@ -567,21 +567,18 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
     int wino_xform_h = GetSolverWinoXformHWSize(params,0),
         wino_xform_w = GetSolverWinoXformHWSize(params,1);
     WinogradBufferInfo <WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
-        // cppcheck-suppress unreadVariable
         wino_in(N,K,C,out_H,out_W,R,S,
             MemLayout_t::HWNC,
             GetTypeSize(params.in_data_type),
             ConvWinoBuffType::Input,
             wino_xform_h,
             wino_xform_w),
-        // cppcheck-suppress unreadVariable
         wino_out(N,K,C,out_H,out_W,R,S,
             MemLayout_t::HWNC,
             GetTypeSize(params.out_data_type),
             ConvWinoBuffType::Output,
             wino_xform_h,
             wino_xform_w),
-        // cppcheck-suppress unreadVariable
         wino_wei(N,K,C,out_H,out_W,R,S,
             MemLayout_t::HWNC,
             GetTypeSize(params.weights_data_type),
