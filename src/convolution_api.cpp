@@ -23,6 +23,9 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/miopen.h>
+#include <miopen/miopen_internal.h>
+
 #include <miopen/convolution.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/find_controls.hpp>

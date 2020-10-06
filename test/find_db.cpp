@@ -29,7 +29,6 @@
 #include "get_handle.hpp"
 
 #include <miopen/convolution.hpp>
-#include <miopen/find_controls.hpp>
 #include <miopen/find_db.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/temp_file.hpp>

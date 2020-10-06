@@ -1824,69 +1824,6 @@ MIOPEN_EXPORT miopenStatus_t miopenConvolutionBackwardBias(miopenHandle_t handle
                                                            const miopenTensorDescriptor_t dbDesc,
                                                            void* db);
 
-/* Begin of Find Mode API */
-/*! @brief Version of the Find Mode API for convolutions.
-*
-* The Find Mode API is experimental and therefore subject to change.
-* This macro allows applications to adapt to the future.
-*/
-#define MIOPEN_API_VERSION_CONVOLUTION_FIND_MODE 1
-
-/*! @enum miopenConvolutionFindMode_t
-*
-* * Normal: This is the full Find mode call, which will benchmark all the solvers and return a list.
-*
-* * Fast: Checks the Find-db for an entry. If there is a hit, use that entry. If there is a miss,
-* utilize the Immediate mode fallback. If Start-up times are expected to be faster, but worse GPU
-* performance.
-*
-* * Hybrid: Checks the Find-db for an entry. If there is a hit, use that entry. If there is a miss,
-* use the existing Find machinery. Slower start-up times than Fast Find, but no GPU performance
-* drop.
-*
-* * Fast Hybrid: Checks the Find-db for an entry. If there is a hit, use that entry. If there is a
-* miss, uses the existing Find machinery with skipping slow-compiling kernels. Faster start-up times
-* than Hybrid Find, but GPU performance is a bit worse.
-*
-* * Dynamic Hybrid: This mode is similar to Fast Hybrid, but in case of Find-db miss skips all
-* non-dynamic kernels, thus saving compilation time. Versus Fast Hybrid, we expect similar start-up
-* times but better GPU performance.
-*/
-typedef enum {
-    miopenConvolutionFindModeNormal        = 1,                         /*!< Normal mode */
-    miopenConvolutionFindModeFast          = 2,                         /*!< Fast mode */
-    miopenConvolutionFindModeHybrid        = 3,                         /*!< Hybrid mode */
-    miopenConvolutionFindModeFastHybrid    = 4,                         /*!< Fast Hybrid mode */
-    miopenConvolutionFindModeDynamicHybrid = 5,                         /*!< Dynamic Hybrid mode */
-    miopenConvolutionFindModeDefault = miopenConvolutionFindModeHybrid, /*!< Default setting */
-} miopenConvolutionFindMode_t;
-
-/*! @brief Sets the Find Mode attribute in the convolution descriptor.
-*
-* The subsequent calls of miopenFindConvolutionForwardAlgorithm(),
-* miopenFindConvolutionBakwardDataAlgorithm(), miopenFindConvolutionBakwardDataAlgorithm(),
-* invoked with convDesc, will follow the findMode set by this call.
-*
-* Note that the default Find Mode is set by the MIOPEN_FINE_MODE environment variable,
-* if it is set. If unset, the default is as specified by miopenConvolutionFindModeDefault.
-*
-* @param convDesc   Convolution layer descriptor (input)
-* @param findMode   Find Mode of convDesc (input)
-* @return           miopenStatus_t
-*/
-MIOPEN_EXPORT miopenStatus_t miopenSetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc,
-                                                          miopenConvolutionFindMode_t findMode);
-
-/*! @brief Reads the Find Mode attribute from the convolution descriptor.
-*
-* @param convDesc   Convolution layer descriptor (input)
-* @param findMode   Find Mode of convDesc (output)
-* @return           miopenStatus_t
-*/
-MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionFindMode(
-    const miopenConvolutionDescriptor_t convDesc, miopenConvolutionFindMode_t* findMode);
-/* End of Find Mode API */
-
 /** @} */
 // CLOSEOUT CONVOLUTIONS DOXYGEN GROUP
 
@@ -3588,7 +3525,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerParam(miopenHandle_t handle,
  *
  * * biasID 0 and 3 are for the update gate.
  *
- * *  biasID 1 and 4 are for the reset gate.
+ * * biasID 1 and 4 are for the reset gate.
  *
  * * biasID 2 and 5 are for the new memory gate.
  *
