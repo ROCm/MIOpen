@@ -89,16 +89,16 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
     const auto& out_W    = (params).out_width;
 
 #if MIOPEN_BACKEND_HIP
-#define GENERATE_MAIN_OPTIONS(options)                                                             \
-    GenerateClangDefsym((options), "acc_type", 1);                                                 \
-    GenerateClangDefsym((options), "ROCM_METADATA_VERSION", 5);                                    \
-    GenerateClangDefsym((options), "xformx_o_size", WinoDataW);                                    \
-    GenerateClangDefsym((options), "xformy_o_size", WinoDataH);                                    \
-    GenerateClangDefsym((options), "xformx_d_size", wino_xform_w);                                 \
-    GenerateClangDefsym((options), "xformy_d_size", wino_xform_h);                                 \
-    GenerateClangDefsym((options), "xformx_f_size", WinoFilterW);                                  \
-    GenerateClangDefsym((options), "xformy_f_size", WinoFilterH);                                  \
-    GenerateClangDefsym((options), "fdilation_w", params.kernel_stride_w);                         \
+#define GENERATE_MAIN_OPTIONS(options)                                     \
+    GenerateClangDefsym((options), "acc_type", 1);                         \
+    GenerateClangDefsym((options), "ROCM_METADATA_VERSION", 5);            \
+    GenerateClangDefsym((options), "xformx_o_size", WinoDataW);            \
+    GenerateClangDefsym((options), "xformy_o_size", WinoDataH);            \
+    GenerateClangDefsym((options), "xformx_d_size", wino_xform_w);         \
+    GenerateClangDefsym((options), "xformy_d_size", wino_xform_h);         \
+    GenerateClangDefsym((options), "xformx_f_size", WinoFilterW);          \
+    GenerateClangDefsym((options), "xformy_f_size", WinoFilterH);          \
+    GenerateClangDefsym((options), "fdilation_w", params.kernel_stride_w); \
     GenerateClangDefsym((options), "fdilation_h", params.kernel_stride_h);
 
 struct WinoOffsets
@@ -120,7 +120,9 @@ static inline size_t Ceil(const size_t v, const size_t m)
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 WinogradBufferInfo<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
-GetWinoBuffer(const ConvolutionContext& params, const ConvWinoBuffType buff_type, const miopenDataType_t transform_data_type)
+GetWinoBuffer(const ConvolutionContext& params,
+              const ConvWinoBuffType buff_type,
+              const miopenDataType_t transform_data_type)
 {
     DEFINE_GETXFORMHWSIZE(params)
     DEFINE_SHADER_ALIASES(params)
@@ -151,17 +153,20 @@ inline bool IsApplicableGEMM(const ConvolutionContext& params)
 {
 #if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
 
-    const miopenDataType_t transform_data_type = miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_ENABLE_FP16_TRANSFORM{}) ? params.in_data_type : miopenFloat;
+    const miopenDataType_t transform_data_type =
+        miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_ENABLE_FP16_TRANSFORM{})
+            ? params.in_data_type
+            : miopenFloat;
 
     // int offset for Workspace buffers.
     return !(((GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(
                    params, ConvWinoBuffType::Input, transform_data_type))
-        .buff_info.total_byte_size /
-        GetTypeSize(transform_data_type) +
+                      .buff_info.total_byte_size /
+                  GetTypeSize(transform_data_type) +
               (GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(
                    params, ConvWinoBuffType::Output, transform_data_type))
-        .buff_info.total_byte_size /
-        GetTypeSize(transform_data_type)) >= (1LL << 31));
+                      .buff_info.total_byte_size /
+                  GetTypeSize(transform_data_type)) >= (1LL << 31));
 #else
     (void)params;
     return false;
@@ -299,16 +304,19 @@ template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 size_t ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetWorkspaceSize(
     const ConvolutionContext& params) const
 {
-    const miopenDataType_t transform_data_type = miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_ENABLE_FP16_TRANSFORM{}) ? params.in_data_type : miopenFloat;
+    const miopenDataType_t transform_data_type =
+        miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_ENABLE_FP16_TRANSFORM{})
+            ? params.in_data_type
+            : miopenFloat;
 
-    return (GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(params,
-                                                                          ConvWinoBuffType::Input, transform_data_type))
+    return (GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(
+                params, ConvWinoBuffType::Input, transform_data_type))
                .buff_info.total_byte_size +
-           (GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(params,
-                                                                          ConvWinoBuffType::Output, transform_data_type))
+           (GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(
+                params, ConvWinoBuffType::Output, transform_data_type))
                .buff_info.total_byte_size +
-           (GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(params,
-                                                                          ConvWinoBuffType::Weight, transform_data_type))
+           (GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(
+                params, ConvWinoBuffType::Weight, transform_data_type))
                .buff_info.total_byte_size;
 }
 
@@ -350,7 +358,10 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
                      group_cnt,
                      GetTypeSize(params.weights_data_type));
 
-    const miopenDataType_t transform_data_type = miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_ENABLE_FP16_TRANSFORM{}) ? params.in_data_type : miopenFloat;
+    const miopenDataType_t transform_data_type =
+        miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_ENABLE_FP16_TRANSFORM{})
+            ? params.in_data_type
+            : miopenFloat;
     auto wino_in = GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(
         params, ConvWinoBuffType::Input, transform_data_type);
     auto wino_out = GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(
@@ -581,13 +592,15 @@ ConvSolution ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilte
     const std::vector<size_t> l_wk{512, 1, 1};
     const size_t g_wk_0 = n_groups * l_wk[0];
     const std::vector<size_t> g_wk{g_wk_0, 1, 1};
-    const miopenDataType_t transform_data_type = miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_ENABLE_FP16_TRANSFORM{}) ? params.in_data_type : miopenFloat;
+    const miopenDataType_t transform_data_type =
+        miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_ENABLE_FP16_TRANSFORM{})
+            ? params.in_data_type
+            : miopenFloat;
     std::ostringstream options_in;
     GENERATE_MAIN_OPTIONS(options_in)
     GenerateClangDefsym(options_in, "xform_mirror", 0);
     GenerateClangDefsym(options_in, "in_type", (params.IsFp32() ? 1 : 2));
     GenerateClangDefsym(options_in, "out_type", (transform_data_type == miopenFloat ? 1 : 2));
-    
 
     std::ostringstream options_filter;
     GENERATE_MAIN_OPTIONS(options_filter)
@@ -658,7 +671,10 @@ ConvolutionContext ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDat
 {
     DEFINE_GETXFORMHWSIZE(ctx)
     int batch_count = wino_xform_h * wino_xform_w * ctx.group_counts;
-    const miopenDataType_t transform_data_type = miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_ENABLE_FP16_TRANSFORM{}) ? ctx.in_data_type : miopenFloat;
+    const miopenDataType_t transform_data_type =
+        miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_ENABLE_FP16_TRANSFORM{})
+            ? ctx.in_data_type
+            : miopenFloat;
 
     WinogradBufferInfo<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
         wino_in = GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(
@@ -671,7 +687,7 @@ ConvolutionContext ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDat
     // GNCHW -> GCNHW
     TensorDescriptor in, wei, out;
     miopenSet4dTensorDescriptor(&in,
-        transform_data_type,
+                                transform_data_type,
                                 1,
                                 wino_in.buff_info.size.c * batch_count,
                                 1,
@@ -679,14 +695,14 @@ ConvolutionContext ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDat
                                     wino_in.buff_info.size.nk);
 
     miopenSet4dTensorDescriptor(&wei,
-        transform_data_type,
+                                transform_data_type,
                                 wino_wei.buff_info.size.nk * batch_count,
                                 wino_wei.buff_info.size.c,
                                 wino_wei.buff_info.size.h,
                                 wino_wei.buff_info.size.w);
 
     miopenSet4dTensorDescriptor(&out,
-        transform_data_type,
+                                transform_data_type,
                                 1,
                                 wino_out.buff_info.size.c * batch_count,
                                 1,
@@ -713,7 +729,10 @@ conv::DataInvokeParams GetTransformedInvokeContext(const ConvolutionContext& ctx
                                                    const AnyInvokeParams& invoke_ctx)
 {
 #if MIOPEN_BACKEND_HIP
-    const miopenDataType_t transform_data_type = miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_ENABLE_FP16_TRANSFORM{}) ? ctx.in_data_type : miopenFloat;
+    const miopenDataType_t transform_data_type =
+        miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_ENABLE_FP16_TRANSFORM{})
+            ? ctx.in_data_type
+            : miopenFloat;
     WinogradBufferInfo<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
         wino_in = GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(
             ctx, ConvWinoBuffType::Input, transform_data_type),
