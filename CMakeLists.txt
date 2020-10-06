@@ -448,7 +448,6 @@ enable_cppcheck(
     SUPPRESS
         ConfigurationNotChecked
         constStatement
-        duplicateCondition
         noExplicitConstructor
         passedByValue
         # preprocessorErrorDirective
