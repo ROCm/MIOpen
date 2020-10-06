@@ -2181,7 +2181,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                         handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, bufs, invoke_ctx);
                     const auto algorithm_name = AlgorithmName{"miopenConvolutionBwdDataAlgoDirect"};
                     PrecompileSolutions(handle, all);
-                    EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
+                    EvaluateInvokers(
+                        handle, all, algorithm_name, network_config, invoke_ctx, record);
                 }
                 // Implicit GEMM algo
                 {
@@ -2192,7 +2193,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                     PrecompileSolutions(handle, all);
                     const auto algorithm_name =
                         AlgorithmName{"miopenConvolutionBwdDataAlgoImplicitGEMM"};
-                    EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
+                    EvaluateInvokers(
+                        handle, all, algorithm_name, network_config, invoke_ctx, record);
                 }
             }
 
