@@ -26,6 +26,9 @@
 
 #include <miopen/conv/problem_description.hpp>
 
+#include <miopen/conv/data_invoke_params.hpp>
+#include <miopen/conv/wrw_invoke_params.hpp>
+
 #include <sstream>
 
 namespace miopen {
