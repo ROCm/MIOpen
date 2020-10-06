@@ -113,15 +113,25 @@ static_assert( w_pipe_depth % lds_buffers == 0 )
 static_assert( rw_pipe_shift < 30 )
 
 default acc_type, TYPE_FP32
-default buf_type, TYPE_FP32
+default in_type, TYPE_FP32
+default out_type, TYPE_FP32
 
 static_assert(acc_type == TYPE_FP32)
-static_assert(buf_type == TYPE_FP32 || buf_type == TYPE_FP16 || buf_type == TYPE_BFP16) 
-.if(buf_type == TYPE_FP32)
-    elem_size = 4
-.elseif (buf_type == TYPE_FP16 || buf_type == TYPE_BFP16)
-    elem_size = 2
-.endif
+static_assert(in_type == TYPE_FP32 || in_type == TYPE_FP16)
+static_assert(out_type == TYPE_FP32 || out_type == TYPE_FP16)
+
+.macro get_type_size d_type, ret_size
+    .if(\d_type == TYPE_FP32)
+        \ret_size = 4
+    .elseif (\d_type == TYPE_FP16 || \d_type == TYPE_BFP16)
+        \ret_size = 2
+    .endif
+.endm
+
+get_type_size in_type, in_elem_size
+get_type_size out_type, out_elem_size
+
+
 x_elem_size = 4
 lds_elem_size = 4
 
@@ -138,7 +148,8 @@ static_assert(xformx_d_size <= 8)
 static_assert(xformy_d_size <= 8)
 static_assert(xformx_f_size == 3)
 static_assert(xformy_f_size == 3)
-static_assert(elem_size == 4 || elem_size == 2)
+static_assert(in_elem_size == 4 || in_elem_size == 2)
+static_assert(out_elem_size == 4 || out_elem_size == 2)
 
 static_assert(fdilation_w == 1)
 static_assert(fdilation_h == 1)
@@ -844,9 +855,9 @@ skip_lds_init:
     s_cmov_b32 s[err], 1
     s_cmp_ge_u32 s[tiles_step], s[u16limit]
     s_cmov_b32 s[err], 1
-    s_cmp_lg_u32 s[d_W_stride], elem_size
+    s_cmp_lg_u32 s[d_W_stride], in_elem_size
     s_cmov_b32 s[err], 1
-    s_cmp_lg_u32 s[o_W_stride], elem_size
+    s_cmp_lg_u32 s[o_W_stride], out_elem_size
     s_cmov_b32 s[err], 1
     s_cmp_eq_u32 s[err], 1
     s_cbranch_scc1 endpgm
@@ -867,11 +878,11 @@ skip_lds_init:
     s_mul_i32 s[stmp], s[stmp], s[G]
     s_mul_i32 s[stmp+1], xformx_d_size * xformy_d_size, s[total_tiles]
     .if xform_output
-        s_mul_i32 s[d_desc+2], elem_size, s[stmp+1]
-        s_mul_i32 s[o_desc+2], elem_size, s[stmp]
+        s_mul_i32 s[d_desc+2], in_elem_size, s[stmp+1]
+        s_mul_i32 s[o_desc+2], out_elem_size, s[stmp]
     .else
-        s_mul_i32 s[d_desc+2], elem_size, s[stmp]
-        s_mul_i32 s[o_desc+2], elem_size, s[stmp+1]
+        s_mul_i32 s[d_desc+2], in_elem_size, s[stmp]
+        s_mul_i32 s[o_desc+2], out_elem_size, s[stmp+1]
     .endif
 
     .GPR_REUSE f_K_stride, neg_pw
@@ -1082,6 +1093,7 @@ skip_lds_init:
         i = 0
         .rept \num
             .if \elem_size == 2
+                v_cvt_f16_f32 v[\vsrc + i], v[\vsrc + i]
                 buffer_store_short v[\vsrc+i], v[\addr + i], s[o_desc:o_desc+3], 0, offen
             .else
                 buffer_store_dword v[\vsrc+i], v[\addr + i], s[o_desc:o_desc+3], 0, offen
@@ -1168,7 +1180,7 @@ r_loop:
             v_add_u32 v[n8base_addr + i + 1], s[x_TW_stride], v[n8base_addr + i]
             i = i + 1
         .endr
-        vmem_loads load_base, n8base_addr, loads_per_phase, elem_size
+        vmem_loads load_base, n8base_addr, loads_per_phase, in_elem_size
         s_add_u32 s[base_tile], s[tiles_step], s[base_tile]
         v_add_u32 v[n8base_addr], s[addr_step], v[n8base_addr]
 
@@ -1198,9 +1210,9 @@ r_loop:
         i = 0
         .rept loads_per_phase
             v_cndmask_b32 v[xform_base + i], 0, v[xform_base + i], vcc
-            .if elem_size == 2
+            .if in_elem_size == 2
                 // convert data to fp32
-                static_assert(0)
+                v_cvt_f32_f16 v[xform_base + i], v[xform_base + i]
             .endif
             i = i + 1
         .endr
@@ -1248,7 +1260,7 @@ r_loop:
         .if use_exec_for_vmem
             s_mov_b64 exec, s[tile_w_mask:tile_w_mask+1]
         .endif
-        vmem_loads load_base, vtmp, loads_per_phase, elem_size
+        vmem_loads load_base, vtmp, loads_per_phase, in_elem_size
         .if use_exec_for_vmem
             s_mov_b64 exec, -1
         .endif
@@ -1383,7 +1395,7 @@ w_loop:
         .if use_exec_for_vmem
             s_mov_b64 exec, s[tile_w_mask:tile_w_mask+1]
         .endif
-        vmem_stores store_base, vtmp, stores_per_phase, elem_size
+        vmem_stores store_base, vtmp, stores_per_phase, out_elem_size
         .if use_exec_for_vmem
             s_mov_b64 exec, -1
         .endif
@@ -1446,7 +1458,7 @@ w_loop:
         .endr
         v_add_u32 v[x_cur_tile], s[tiles_step], v[x_cur_tile]
         v_add_u32 v[n8base_addr], s[addr_step], v[n8base_addr]
-        vmem_stores store_base, vtmp, stores_per_phase, elem_size
+        vmem_stores store_base, vtmp, stores_per_phase, out_elem_size
 
         // 6w. check exit.
         s_add_u32 s[base_tile], s[tiles_step], s[base_tile]

@@ -88,7 +88,6 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 #if MIOPEN_BACKEND_HIP
 #define GENERATE_MAIN_OPTIONS(options)                                                             \
     GenerateClangDefsym((options), "acc_type", 1);                                                 \
-    GenerateClangDefsym((options), "buf_type", (params.IsFp32() ? 1 : (params.IsFp16() ? 2 : 3))); \
     GenerateClangDefsym((options), "ROCM_METADATA_VERSION", 5);                                    \
     GenerateClangDefsym((options), "xformx_o_size", WinoDataW);                                    \
     GenerateClangDefsym((options), "xformy_o_size", WinoDataH);                                    \
@@ -134,7 +133,7 @@ GetWinoBuffer(const ConvolutionContext& params, const ConvWinoBuffType buff_type
         S,
         (MemLayout_t::GCNHW),
         (ConvWinoXformType::N_GXhXw_C_Th_Tw),
-        GetTypeSize(params.in_data_type),
+        GetTypeSize(miopenFloat),
         buff_type,
         wino_xform_h,
         wino_xform_w);
@@ -152,11 +151,11 @@ inline bool IsApplicableGEMM(const ConvolutionContext& params)
     return !(((GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(
                    params, ConvWinoBuffType::Input))
                       .buff_info.total_byte_size /
-                  GetTypeSize(params.in_data_type) +
+                  GetTypeSize(miopenFloat) +
               (GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(
                    params, ConvWinoBuffType::Output))
                       .buff_info.total_byte_size /
-                  GetTypeSize(params.in_data_type)) >= (1LL << 31));
+                  GetTypeSize(miopenFloat)) >= (1LL << 31));
 #else
     (void)params;
     return false;
@@ -175,7 +174,7 @@ inline bool IsApplicableTransform(const ConvolutionContext& params)
         return false;
     if(params.direction.IsBackwardWrW())
         return false;
-    if(!params.IsFp32())
+    if(!(params.IsFp32() || params.IsFp16()))
         return false;
 
     const std::string name = params.GetStream().GetDeviceName();
@@ -382,7 +381,7 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
         // clang-format off
         GemmDescriptor wino_gemm_desc{isColMajor,transA,transB,m,n,k,
             lda,ldb,ldc,batch_count,strideA,strideB,
-            strideC,alpha,beta,params.in_data_type};
+            strideC,alpha,beta,miopenDataType_t::miopenFloat};
         // clang-format on
 
         gemm_conv_factory = [=](const std::vector<Kernel>&) {
@@ -395,11 +394,11 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
                     handle,
                     wino_gemm_desc,
                     workSpace,
-                    static_cast<int>(transform_offset.wei / GetTypeSize(params.in_data_type)),
+                    static_cast<int>(transform_offset.wei / GetTypeSize(miopenFloat)),
                     workSpace,
-                    static_cast<int>(transform_offset.in / GetTypeSize(params.in_data_type)),
+                    static_cast<int>(transform_offset.in / GetTypeSize(miopenFloat)),
                     workSpace,
-                    static_cast<int>(transform_offset.out / GetTypeSize(params.in_data_type)),
+                    static_cast<int>(transform_offset.out / GetTypeSize(miopenFloat)),
                     nullptr,
                     false,
                     GemmBackend_t::rocblas);
@@ -577,14 +576,21 @@ ConvSolution ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilte
     std::ostringstream options_in;
     GENERATE_MAIN_OPTIONS(options_in)
     GenerateClangDefsym(options_in, "xform_mirror", 0);
+    GenerateClangDefsym(options_in, "in_type", (params.IsFp32() ? 1 : 2));
+    GenerateClangDefsym(options_in, "out_type", 1);
+    
 
     std::ostringstream options_filter;
     GENERATE_MAIN_OPTIONS(options_filter)
     GenerateClangDefsym(options_filter, "xform_mirror", params.direction.IsBackwardData());
+    GenerateClangDefsym(options_filter, "in_type", (params.IsFp32() ? 1 : 2));
+    GenerateClangDefsym(options_filter, "out_type", 1);
 
     std::ostringstream options_out;
     GENERATE_MAIN_OPTIONS(options_out)
     GenerateClangDefsym(options_out, "xform_mirror", 0);
+    GenerateClangDefsym(options_out, "in_type", 1);
+    GenerateClangDefsym(options_out, "out_type", (params.IsFp32() ? 1 : 2));
 
     KernelInfo InTransform{
         options_in.str(),
@@ -655,7 +661,7 @@ ConvolutionContext ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDat
     // GNCHW -> GCNHW
     TensorDescriptor in, wei, out;
     miopenSet4dTensorDescriptor(&in,
-                                ctx.in_data_type,
+        miopenFloat,
                                 1,
                                 wino_in.buff_info.size.c * batch_count,
                                 1,
@@ -663,14 +669,14 @@ ConvolutionContext ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDat
                                     wino_in.buff_info.size.nk);
 
     miopenSet4dTensorDescriptor(&wei,
-                                ctx.weights_data_type,
+        miopenFloat,
                                 wino_wei.buff_info.size.nk * batch_count,
                                 wino_wei.buff_info.size.c,
                                 wino_wei.buff_info.size.h,
                                 wino_wei.buff_info.size.w);
 
     miopenSet4dTensorDescriptor(&out,
-                                ctx.out_data_type,
+        miopenFloat,
                                 1,
                                 wino_out.buff_info.size.c * batch_count,
                                 1,
