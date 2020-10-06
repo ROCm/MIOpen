@@ -135,6 +135,7 @@ Winograd  Solutions:
   * `MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F4X3` - `ConvMPBidirectWinograd_xdlops<4-3>`, FWD/BWD F(4,3)
   * `MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F5X3` - `ConvMPBidirectWinograd_xdlops<5-3>`, FWD/BWD F(5,3)
   * `MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F6X3` - `ConvMPBidirectWinograd_xdlops<6-3>`, FWD/BWD F(6,3)
+  * `MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_ENABLE_FP16_TRANSFORM` - `ConvMPBidirectWinograd*`, FWD/BWD FP16 experemental mode.
 * `MIOPEN_DEBUG_AMD_FUSED_WINOGRAD` - Fused FP32 F(3,3) Winograd, variable filter size.
 
 ## rocBlas Logging and Behavior
