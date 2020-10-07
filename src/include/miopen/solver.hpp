@@ -1417,6 +1417,13 @@ struct ConvAsmImplicitGemmGTCDynamicFwdXdlops : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
+struct ConvAsmImplicitGemmGTCDynamicBwdXdlops : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    bool IsDynamic() const { return true; }
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+};
+
 /// Holds common member functions for the Solvers which share the same
 /// "legacy exhaustive search" machinery.
 struct ConvOclDirectFwdLegacyExhaustiveSearch : SolverBase<ConvolutionContext>

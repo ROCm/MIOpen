@@ -371,6 +371,11 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
                        ++id,
                        ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm{},
                        miopenConvolutionAlgoImplicitGEMM);
+
+    RegisterWithSolver(registry,
+                       ++id,
+                       ConvAsmImplicitGemmGTCDynamicBwdXdlops{},
+                       miopenConvolutionAlgoImplicitGEMM);
 }
 
 } // namespace solver
