@@ -45,7 +45,6 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
                 if((tensors.outDesc.GetType() == miopenHalf ||
                     tensors.outDesc.GetType() == miopenBFloat16) &&
                    (kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_nchw_kcyx_nkhw" ||
-                    kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_gnchw_gkcyx_gnkhw" ||
                     kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw" ||
                     kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_ncdhw_kczyx_nkdhw"))
                 // clang-format on
@@ -108,8 +107,7 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
                     }
                 }
                 // clang-format off
-                else if(kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_nchw_kcyx_nkhw" ||
-                        kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_gnchw_gkcyx_gnkhw")
+                else if(kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_nchw_kcyx_nkhw")
                 // clang-format on
                 {
                     float zero = 0.f;
@@ -158,7 +156,6 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
                 else if(
                     kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v4r1_nchw_kcyx_nkhw" ||
                     kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v4r1_xdlops_nchw_kcyx_nkhw" ||
-                    kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v4r1_xdlops_gnchw_gkcyx_gnkhw" ||
                     kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v4r1_ncdhw_kczyx_nkdhw")
                 // clang-format on
                 {
