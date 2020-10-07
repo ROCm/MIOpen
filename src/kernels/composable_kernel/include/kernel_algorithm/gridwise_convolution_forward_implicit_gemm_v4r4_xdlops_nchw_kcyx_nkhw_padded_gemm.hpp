@@ -1,5 +1,5 @@
-#ifndef CK_GRIDWISE_GROUP_CONVOLUTION_FORWARD_IMPLICIT_GEMM_V4R4_XDLOPS_NCHW_KCYX_NKHW_HPP
-#define CK_GRIDWISE_GROUP_CONVOLUTION_FORWARD_IMPLICIT_GEMM_V4R4_XDLOPS_NCHW_KCYX_NKHW_HPP
+#ifndef CK_GRIDWISE_GROUP_CONVOLUTION_FORWARD_IMPLICIT_GEMM_V4R4_XDLOPS_GNCHW_GKCYX_GNKHW_PADDED_GEMM_HPP
+#define CK_GRIDWISE_GROUP_CONVOLUTION_FORWARD_IMPLICIT_GEMM_V4R4_XDLOPS_GNCHW_GKCYX_GNKHW_PADDED_GEMM_HPP
 
 #include "common_header.hpp"
 #include "tensor_descriptor.hpp"
@@ -42,8 +42,11 @@ template <index_t GridSize,
           class GemmBBlockCopyDstAccessOrder,
           index_t GemmBBlockCopySrcDataPerRead_GemmN,
           index_t GemmBBlockCopyDstDataPerWrite_GemmKPack,
+          index_t GemmMPad,
+          index_t GemmNPad,
+          index_t GemmKPad,
           WorkgroupScheduleOrder WorkgroupSchdOrder>
-struct GridwiseConvolutionForwardImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw
+struct GridwiseConvolutionForwardImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw_padded_gemm
 {
     __device__ void Run(const ABFloat* const __restrict__ p_in_global,
                         const ABFloat* const __restrict__ p_wei_global,
@@ -77,9 +80,9 @@ struct GridwiseConvolutionForwardImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw
         constexpr index_t ConvDilationW = ConvDilations{}[1];
 
         constexpr index_t GemmG      = G;
-        constexpr index_t GemmM      = KPerGroup;
-        constexpr index_t GemmN      = N * Ho * Wo;
-        constexpr index_t GemmKTotal = CPerGroup * Y * X;
+        constexpr index_t GemmM      = KPerGroup + GemmMPad;
+        constexpr index_t GemmN      = N * Ho * Wo + GemmNPad;
+        constexpr index_t GemmKTotal = CPerGroup * Y * X + GemmKPad;
 
         static_assert(GemmKTotal % GemmKPack == 0,
                       "wrong! GemmKTotal should be multiple of GemmKPack");
@@ -128,14 +131,24 @@ struct GridwiseConvolutionForwardImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw
 
         constexpr auto in_gemmg_gemmktotal_gemmn_global_desc = transform_tensor_descriptor(
             in_g_n_cpergroup_y_ho_x_wo_global_desc,
-            make_tuple(PassThrough<G>{}, Merge<Sequence<C, Y, X>>{}, Merge<Sequence<N, Ho, Wo>>{}),
+            make_tuple(
+                PassThrough<G>{}, Merge<Sequence<CPerGroup, Y, X>>{}, Merge<Sequence<N, Ho, Wo>>{}),
             make_tuple(Sequence<0>{}, Sequence<2, 3, 5>{}, Sequence<1, 4, 6>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
 
-        constexpr auto in_gemmg_gemmk_gemmn_gemmkpack_global_desc = transform_tensor_descriptor(
+        constexpr auto in_gemmg_gemmktotalextra_gemmn_global_desc = transform_tensor_descriptor(
             in_gemmg_gemmktotal_gemmn_global_desc,
-            make_tuple(
-                PassThrough<GemmG>{}, UnMerge<Sequence<GemmK, GemmKPack>>{}, PassThrough<GemmN>{}),
+            make_tuple(PassThrough<G>{},
+                       Pad<Sequence<CPerGroup * Y * X>, Sequence<0>, Sequence<GemmKPad>>{},
+                       PassThrough<N * Ho * Wo>{}),
+            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
+            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
+
+        constexpr auto in_gemmg_gemmk_gemmn_gemmkpack_global_desc = transform_tensor_descriptor(
+            in_gemmg_gemmktotalextra_gemmn_global_desc,
+            make_tuple(PassThrough<GemmG>{},
+                       UnMerge<Sequence<GemmK, GemmKPack>>{},
+                       Pad<Sequence<GemmN - GemmNPad>, Sequence<0>, Sequence<GemmNPad>>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
             make_tuple(Sequence<0>{}, Sequence<1, 3>{}, Sequence<2>{}));
 
@@ -143,18 +156,37 @@ struct GridwiseConvolutionForwardImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw
         constexpr auto wei_gemmg_gemmm_gemmktotal_global_desc = unfold_tensor_descriptor(
             wei_g_kpergroup_cpergroup_y_x_global_desc, Number<2>{}, Number<4>{});
 
+        constexpr auto wei_gemmg_gemmmextra_gemmktotalextra_global_desc =
+            transform_tensor_descriptor(
+                wei_gemmg_gemmm_gemmktotal_global_desc,
+                make_tuple(PassThrough<GemmG>{},
+                           Pad<Sequence<GemmM - GemmMPad>, Sequence<0>, Sequence<GemmMPad>>{},
+                           Pad<Sequence<CPerGroup * Y * X>, Sequence<0>, Sequence<GemmKPad>>{}),
+                make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
+                make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
+
         constexpr auto wei_gemmg_gemmk_gemmm_gemmkpack_global_desc = transform_tensor_descriptor(
-            wei_gemmg_gemmm_gemmktotal_global_desc,
+            wei_gemmg_gemmmextra_gemmktotalextra_global_desc,
             make_tuple(
                 PassThrough<GemmG>{}, PassThrough<GemmM>{}, UnMerge<Sequence<GemmK, GemmKPack>>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
             make_tuple(Sequence<0>{}, Sequence<2>{}, Sequence<1, 3>{}));
 
         // output tensor
-        constexpr auto out_gemmg_gemmm_gemmn_global_desc = transform_tensor_descriptor(
+        constexpr auto out_gemmg_gemmmextra_gemmn_global_desc = transform_tensor_descriptor(
             out_g_n_kpergroup_ho_wo_global_desc,
-            make_tuple(PassThrough<G>{}, PassThrough<KPerGroup>{}, Merge<Sequence<N, Ho, Wo>>{}),
+            make_tuple(PassThrough<G>{},
+                       Pad<Sequence<GemmM - GemmMPad>, Sequence<0>, Sequence<GemmMPad>>{},
+                       Merge<Sequence<N, Ho, Wo>>{}),
             make_tuple(Sequence<0>{}, Sequence<2>{}, Sequence<1, 3, 4>{}),
+            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
+
+        constexpr auto out_gemmg_gemmm_gemmn_global_desc = transform_tensor_descriptor(
+            out_gemmg_gemmmextra_gemmn_global_desc,
+            make_tuple(PassThrough<G>{},
+                       PassThrough<GemmM>{},
+                       Pad<Sequence<GemmN - GemmNPad>, Sequence<0>, Sequence<GemmNPad>>{}),
+            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
 
         // gridwise batch-GEMM
