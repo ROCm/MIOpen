@@ -45,6 +45,7 @@
 #include <unistd.h>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_ENFORCE_COV3)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 
 #define MIOPEN_WORKAROUND_SWDEV_225285 1
 
@@ -122,8 +123,17 @@ struct HIPOCProgramImpl
     }
 
     HIPOCProgramImpl(const std::string& program_name, const std::string& blob)
-        : program(program_name), module(CreateModuleInMem(blob))
+        : program(program_name)
     {
+        TmpDir tmp_dir("miopen");
+        auto file_path =
+            tmp_dir.path / boost::filesystem::unique_path("miopen-%%%%-%%%%-%%%%-%%%%");
+        WriteFile(blob, file_path);
+        const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
+        if(arch == nullptr)
+        {
+            this->module = CreateModule(file_path);
+        }
     }
 
     HIPOCProgramImpl(const std::string& program_name,
@@ -135,9 +145,17 @@ struct HIPOCProgramImpl
     {
         BuildCodeObject(params, is_kernel_str, kernel_src);
         if(!binary.empty())
+        {
             module = CreateModuleInMem(binary);
+        }
         else
-            module = CreateModule(hsaco_file);
+        {
+            const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
+            if(arch == nullptr)
+            {
+                module = CreateModule(hsaco_file);
+            }
+        }
     }
 
     std::string program;

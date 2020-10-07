@@ -31,6 +31,7 @@
 #include <miopen/logger.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/invoke_params.hpp>
+#include <miopen/env.hpp>
 
 #include <vector>
 #include <cstdlib>
@@ -47,6 +48,8 @@
 
 namespace miopen {
 namespace solver {
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_COMPILE_AND_RUN)
 
 /// This STL-like container together with corresponding iterator provide access
 /// to a set of all available performance configs for the given problem config.
@@ -343,6 +346,13 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
     HeartBeat<PerformanceConfig> heartbeat;
     heartbeat.Start();
 
+    const char* const c_and_r = miopen::GetStringEnv(MIOPEN_COMPILE_AND_RUN{});
+    std::string compile_and_run;
+    if(c_and_r != nullptr && strlen(c_and_r) > 0)
+    {
+        compile_and_run = c_and_r;
+    }
+
     for(const auto& current_config : all_configs)
     {
         float elapsed_time = 0.0f;
@@ -356,6 +366,20 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
         try
         {
             current_solution = s.GetSolution(context, current_config, true);
+
+            if(compile_and_run == "0")
+            {
+                std::vector<KernelInfo> kernels;
+                for(auto&& kernel : current_solution.construction_params)
+                {
+                    if(profile_h.HasProgram(kernel.kernel_file, kernel.comp_options))
+                        continue;
+                    kernels.push_back(kernel);
+                }
+
+                std::vector<Program> programs = PrecompileKernels(profile_h, kernels);
+                continue;
+            }
 
             if(default_solution.workspce_sz != current_solution.workspce_sz)
             {
