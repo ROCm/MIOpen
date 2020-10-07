@@ -32,9 +32,9 @@
 #pragma clang diagnostic ignored "-Wsometimes-uninitialized"
 #endif
 
-#ifdef __AMDGCN__
+/* #ifdef __AMDGCN__
 #undef __AMDGCN__
-#endif
+#endif */
 
 #include "batchnorm_functions.h"
 #include "reduction_functions.h"
