@@ -878,11 +878,12 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
             construction_parameters.g_wk.push_back(1);
             construction_parameters.g_wk.push_back(1);
 
-            construction_parameters.kernel_file = "gridwise_convolution_backward_data_implicit_"
-                                                  "gemm_v4r1_xdlops_gnchw_gkcyx_gnkhw.cpp";
+            construction_parameters.kernel_file =
+                "gridwise_convolution_backward_data_implicit_gemm_v4r1_xdlops_nchw_kcyx_nkhw.cpp";
 
-            construction_parameters.kernel_name = "gridwise_convolution_backward_data_implicit_"
-                                                  "gemm_v4r1_xdlops_gnchw_gkcyx_gnkhw";
+            construction_parameters.kernel_name =
+                "gridwise_convolution_backward_data_implicit_gemm_v4r1_xdlops_nchw_kcyx_nkhw";
+
             // TODO: add fp16 calculation by GetWorkspaceSize(ctx);
             result.workspce_sz = 0;
 
