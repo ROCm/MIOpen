@@ -770,6 +770,7 @@ struct ConvHipImplicitGemmV4R4Fwd : SolverBase<ConvolutionContext>
                              const PerformanceImplicitGemmV4R4Fwd& config,
                              bool disableConfigOverrideFromEnv = false) const;
 };
+
 struct PerformanceImplicitGemmV4R4GenXdlopsFwdFp32
     : Serializable<PerformanceImplicitGemmV4R4GenXdlopsFwdFp32>
 {
@@ -946,6 +947,56 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops
     std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
 };
 
+struct PerformanceImplicitGemmForwardV4R5Xdlops
+    : Serializable<PerformanceImplicitGemmForwardV4R5Xdlops>
+{
+    int GemmMPerBlock;
+    int GemmNPerBlock;
+    int GemmKPerBlock;
+    int GemmMPerWave;
+    int GemmNPerWave;
+    int GemmKPack;
+    bool GemmAThreadCopyMoreGemmK;
+    bool GemmBThreadCopyMoreGemmKPack;
+    int GemmBThreadDataPerRead_GemmN;
+
+    PerformanceImplicitGemmForwardV4R5Xdlops(int, int, int, int, int, int, bool, bool, int);
+    PerformanceImplicitGemmForwardV4R5Xdlops();
+    PerformanceImplicitGemmForwardV4R5Xdlops(bool) : PerformanceImplicitGemmForwardV4R5Xdlops() {}
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.GemmMPerBlock, "GemmMPerBlock");
+        f(self.GemmNPerBlock, "GemmNPerBlock");
+        f(self.GemmKPerBlock, "GemmKPerBlock");
+        f(self.GemmMPerWave, "GemmMPerWave");
+        f(self.GemmNPerWave, "GemmNPerWave");
+        f(self.GemmKPack, "GemmKPack");
+        f(self.GemmAThreadCopyMoreGemmK, "GemmAThreadCopyMoreGemmK");
+        f(self.GemmBThreadCopyMoreGemmKPack, "GemmBThreadCopyMoreGemmKPack");
+        f(self.GemmBThreadDataPerRead_GemmN, "GemmBThreadDataPerRead_GemmN");
+    }
+
+    bool operator==(const PerformanceImplicitGemmForwardV4R5Xdlops& other) const;
+    std::string ToString() const;
+
+    void EuristicInit(const ConvolutionContext& ctx);
+    bool SetNextValue();
+    bool IsValidValue() const;
+    bool IsValid(const ConvolutionContext& ctx) const;
+    bool IsReallyValid(const ConvolutionContext& ctx) const;
+    bool IsFastToBeUsedForTuning(const ConvolutionContext& ctx) const;
+
+    std::tuple<int, bool> CalculateBlockSize() const;
+    std::tuple<int, bool> CalculateGridSize(const ConvolutionContext& ctx) const;
+    std::tuple<int, int, int, int, int, bool>
+    CalculateGemmABlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
+    std::tuple<int, int, int, int, int, bool>
+    CalculateGemmBBlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
+    std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
+};
+
 struct PerformanceImplicitGemmBwdV1R1Xdlops : Serializable<PerformanceImplicitGemmBwdV1R1Xdlops>
 {
     int GemmMPerBlock;
@@ -1020,6 +1071,20 @@ struct ConvHipImplicitGemmForwardV4R4Xdlops : SolverBase<ConvolutionContext>
                              bool disableConfigOverrideFromEnv = false) const;
 
     PerformanceImplicitGemmForwardV4R4Xdlops Search(const ConvolutionContext&,
+                                                    const AnyInvokeParams& invoke_ctx) const;
+};
+
+struct ConvHipImplicitGemmForwardV4R5Xdlops : SolverBase<ConvolutionContext>
+{
+    PerformanceImplicitGemmForwardV4R5Xdlops
+    GetPerformanceConfig(const ConvolutionContext& ctx) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                  const PerformanceImplicitGemmForwardV4R5Xdlops& c) const;
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const PerformanceImplicitGemmForwardV4R5Xdlops& config,
+                             bool disableConfigOverrideFromEnv = false) const;
+    PerformanceImplicitGemmForwardV4R5Xdlops Search(const ConvolutionContext&,
                                                     const AnyInvokeParams& invoke_ctx) const;
 };
 
