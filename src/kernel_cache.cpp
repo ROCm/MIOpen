@@ -39,6 +39,7 @@
  * limitations under the License.
  * ************************************************************************ */
 
+#include <miopen/device_name.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/logger.hpp>
@@ -218,7 +219,18 @@ Kernel KernelCache::AddKernel(const Handle& h,
         program = h.LoadProgram(program_name, params, is_kernel_miopengemm_str, kernel_src);
         program_map[std::make_pair(program_name, params)] = program;
     }
-    Kernel kernel{program, kernel_name, vld, vgd};
+
+    Kernel kernel{};
+    const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
+    if(arch != nullptr && strlen(arch) > 0)
+    {
+        kernel = Kernel{program, kernel_name};
+    }
+    else
+    {
+        kernel = Kernel{program, kernel_name, vld, vgd};
+    }
+
     if(!network_config.empty() && !algorithm.empty())
     {
         this->AddKernel(key, kernel, cache_index);

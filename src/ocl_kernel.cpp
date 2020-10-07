@@ -23,11 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/oclkernel.hpp>
+#include <miopen/env.hpp>
 #include <miopen/handle_lock.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/oclkernel.hpp>
 
 namespace miopen {
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 
 #ifndef NDEBUG
 static std::string DimToFormattedString(const size_t* dims, size_t count)
@@ -60,6 +63,12 @@ void OCLKernelInvoke::run() const
 #endif // !NDEBUG
 
     MIOPEN_HANDLE_LOCK
+
+    const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
+    if(arch != nullptr && strlen(arch) > 0)
+    {
+        MIOPEN_THROW("MIOPEN_DEVICE_ARCH used, escaping launching kernel");
+    }
 
     cl_event ev;
     /* way to run OCL group larger than 256
