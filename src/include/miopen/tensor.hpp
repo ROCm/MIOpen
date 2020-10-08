@@ -193,6 +193,8 @@ struct TensorDescriptor : miopenTensorDescriptor
                 "Invalid labels size. Layout labels size must be equavalent to stride size");
         }
 
+        // Copy construct the result string from labels. This allocates the space at one go
+        // and is faster than calling push_back in transform.
         auto result = labels;
         auto p      = sort_permutation(strides, std::greater<>{});
         std::transform(p.begin(), p.end(), result.begin(), [&](auto i) { return labels[i]; });
