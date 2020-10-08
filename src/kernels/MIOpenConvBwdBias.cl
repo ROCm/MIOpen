@@ -39,35 +39,26 @@ ReduceKernel(__local _FLOAT_ACCUM* lcl_mem, int sum_stride, int unit_id, int uni
 }
 
 __attribute__((reqd_work_group_size(MLO_CONVBWD_GROUP_SZ0, MLO_CONVBWD_GROUP_SZ1, 1))) __kernel void
-MIOpenConvBwdB(const __global _FLOAT* top_df, __global _FLOAT* bias_df)
+MIOpenConvBwdB(const __global _FLOAT* top_df, __global _FLOAT* bias_df, uint bias_c, uint top_str_c, uint top_str_b, uint num_spatial_work, uint off_pix, uint total_work)
 {
     int lid        = (int)get_local_id(0);
-    int output_map = get_group_id(1);
-
     __local _FLOAT_ACCUM lcl_sum[MLO_CONVBWDB_LCL_MEMSZ];
+
+for(int gid = get_group_id(1); gid < bias_c; gid += get_group_size(1))
+{
     _FLOAT_ACCUM sum = 0.0f;
 
-    for(int j = lid; j < MLO_WK_SIZE * MLO_OUT_BATCH_SZ; j += MLO_CONVBWD_GROUP_SZ0)
+    for(int j = lid; j < total_work; j += MLO_CONVBWD_GROUP_SZ0)
     {
-        int map_id            = iDiv(j, MLO_WK_SIZE);
-        int read_id           = iMod(j, map_id, MLO_WK_SIZE);
-        int glb_top_df_offset = output_map * MLO_OUT_CHANNEL_STRIDE +
-                                (map_id * MLO_OUT_BATCH_STRIDE) + (read_id * MLO_CONVBWDB_UNITSIZE);
-#if MLO_N_PIX_OFF
-        if(read_id == MLO_WK_SIZE - 1)
-        {
-            for(int k = 0; k < MLO_N_PIX_OFF; k++)
-                sum += CVT_FLOAT2ACCUM(top_df[glb_top_df_offset + k]);
-        }
-        else
-        {
-            for(int k = 0; k < MLO_CONVBWDB_UNITSIZE; k++)
-                sum += CVT_FLOAT2ACCUM(top_df[glb_top_df_offset + k]);
-        }
-#else
-        for(int k = 0; k < MLO_CONVBWDB_UNITSIZE; k++)
+        int map_id            = iDiv(j, num_spatial_work);
+        int read_id           = iMod(j, map_id, num_spatial_work);
+        int glb_top_df_offset = gid * top_str_c +
+                                (map_id * top_str_b) + (read_id * MLO_CONVBWDB_UNITSIZE);
+
+int upper_bound = off_pix > 0 && read_id == num_spatial_work - 1 ? off_pix : MLO_CONVBWDB_UNITSIZE;
+        for(int k = 0; k < upper_bound; k++)
             sum += CVT_FLOAT2ACCUM(top_df[glb_top_df_offset + k]);
-#endif
+
     }
     lcl_sum[lid] = sum;
 
@@ -92,5 +83,6 @@ MIOpenConvBwdB(const __global _FLOAT* top_df, __global _FLOAT* bias_df)
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 
-    bias_df[output_map] = CVT_ACCUM2FLOAT(lcl_sum[0]);
+    bias_df[gid] = CVT_ACCUM2FLOAT(lcl_sum[0]);
+}
 }

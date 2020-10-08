@@ -3781,24 +3781,20 @@ void ConvolutionBackwardBias(const Handle& handle,
     std::size_t read_unit        = 4;
     std::size_t map_size_aligned = (map_size + (read_unit - 1)) / read_unit;
     std::size_t off_pix          = map_size - (map_size / read_unit) * read_unit;
+    std::size_t total_work = map_size_aligned * out_n;
 
     params = " -DMLO_CONVBWD_GROUP_SZ0=" + std::to_string(lcl_grp_size0);
     params += " -DMLO_CONVBWD_GROUP_SZ1=" + std::to_string(lcl_grp_size1);
     params += " -DMLO_CONVBWDB_LCL_MEMSZ=" + std::to_string(local_mem_sz);
     params += " -DMLO_CONVBWDB_UNITSIZE=" + std::to_string(read_unit);
-    params += " -DMLO_OUT_BATCH_SZ=" + std::to_string(out_n);
-    params += " -DMLO_OUT_CHANNEL_STRIDE=" + std::to_string(stride_k);
-    params += " -DMLO_OUT_BATCH_STRIDE=" + std::to_string(stride_n);
-    params += " -DMLO_WK_SIZE=" + std::to_string(map_size_aligned);
-    params += " -DMLO_N_PIX_OFF=" + std::to_string(off_pix);
 
     params += GetDataTypeKernelParams(dyDesc.GetType());
 
     const std::vector<size_t> vld = {lcl_grp_size0, size_t{1}, size_t{1}};
-    const std::vector<size_t> vgd = {lcl_grp_size0, static_cast<size_t>(out_k), size_t{1}};
+    const std::vector<size_t> vgd = {lcl_grp_size0, size_t{1024}, size_t{1}};
 
     handle.AddKernel("miopenConvolutionBwdBias", "", program_name, kernel_name, vld, vgd, params)(
-        dy, db);
+        dy, db, out_k, stride_k, stride_n, map_size_aligned, off_pix, total_work);
 
     if(miopen::CheckNumericsEnabled())
     {
