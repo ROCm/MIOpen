@@ -76,16 +76,16 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
             solver::ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
                 GetSolverWinoXformHWSize();
 
-#define DEFINE_SHADER_ALIASES(params)                      \
-    const auto group_cnt = (params).group_counts;          \
-    const auto& N        = (params).batch_sz;              \
-    const auto& K        = (params).n_outputs / group_cnt; \
-    const auto& C        = (params).n_inputs / group_cnt;  \
-    const auto& R        = (params).kernel_size_h;         \
-    const auto& S        = (params).kernel_size_w;         \
-    const auto& H        = (params).in_height;             \
-    const auto& W        = (params).in_width;              \
-    const auto& out_H    = (params).out_height;            \
+#define DEFINE_SHADER_ALIASES(params)                           \
+    const auto group_cnt = (params).group_counts;               \
+    const auto& N        = (params).batch_sz;                   \
+    const auto& K        = int((params).n_outputs / group_cnt); \
+    const auto& C        = int((params).n_inputs / group_cnt);  \
+    const auto& R        = (params).kernel_size_h;              \
+    const auto& S        = (params).kernel_size_w;              \
+    const auto& H        = (params).in_height;                  \
+    const auto& W        = (params).in_width;                   \
+    const auto& out_H    = (params).out_height;                 \
     const auto& out_W    = (params).out_width;
 
 #if MIOPEN_BACKEND_HIP
@@ -219,13 +219,13 @@ inline bool IsApplicableTransform(const ConvolutionContext& params)
         if(tiles_step >= std::pow(2, 16))
             return false;
     }
+    DEFINE_SHADER_ALIASES(params)
     {
         const miopenDataType_t transform_data_type =
             miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_ENABLE_FP16_TRANSFORM{})
                 ? params.in_data_type
                 : miopenFloat;
 
-        DEFINE_SHADER_ALIASES(params)
         BuffInfo in_buff(GetGroupConvLayout(GetMemLayout_t(params.in_layout), true),
                          N,
                          C,
@@ -277,12 +277,12 @@ inline bool IsApplicableTransform(const ConvolutionContext& params)
         && params.kernel_stride_h == params.kernel_stride_w
         && params.kernel_dilation_w == 1
         && params.kernel_dilation_h == 1
-        && params.batch_sz < std::pow(2, 16)
-        && (params.n_inputs / params.group_counts) < std::pow(2, 16)
-        && (params.n_outputs / params.group_counts) < std::pow(2, 16)
-        && params.out_height < std::pow(2, 16)
-        && params.out_width < std::pow(2, 16)
-        && params.group_counts < std::pow(2, 16)
+        && N < std::pow(2, 16)
+        && C < std::pow(2, 16)
+        && K < std::pow(2, 16)
+        && out_H < std::pow(2, 16)
+        && out_W < std::pow(2, 16)
+        && group_cnt < std::pow(2, 16)
         && params.bias == 0
         && params.in_layout == "NCHW");
     // clang-format on
@@ -763,7 +763,8 @@ conv::DataInvokeParams GetTransformedInvokeContext(const ConvolutionContext& ctx
             ctx, ConvWinoBuffType::Output, transform_data_type),
         wino_wei = GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(
             ctx, ConvWinoBuffType::Weight, transform_data_type);
-
+    // tidy error
+    // cppcheck-suppress unreadVariable
     const WinoOffsets transform_offset(wino_in.buff_info.total_byte_size,
                                        wino_out.buff_info.total_byte_size);
 
