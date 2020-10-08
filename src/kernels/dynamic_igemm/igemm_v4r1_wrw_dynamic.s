@@ -1474,7 +1474,7 @@ L_debug_code_seg:
     v_sub_u32 v[v_sst_a_os], v[v_sst_a_os], v[v_tmp+1]
     v_lshrrev_b32 v[v_sst_a_os], 2, v[v_sst_a_os]
 
-    global_store_dword v[v_end:v_end+1], v[v_a], s[s_tmp+12:s_tmp+13]
+    ;global_store_dword v[v_end:v_end+1], v[v_a], s[s_tmp+12:s_tmp+13]
 
     s_waitcnt vmcnt(0)
     s_barrier
@@ -2002,7 +2002,7 @@ L_debug_code_seg_1:
     v_sub_u32 v[v_sst_a_os], v[v_sst_a_os], v[v_tmp+1]
     v_lshrrev_b32 v[v_sst_a_os], 2, v[v_sst_a_os]
 
-    global_store_dword v[v_end:v_end+1], v[v_wei_os], s[s_tmp+12:s_tmp+13]
+    ;global_store_dword v[v_end:v_end+1], v[v_wei_os], s[s_tmp+12:s_tmp+13]
 
     s_waitcnt vmcnt(0)
     s_barrier

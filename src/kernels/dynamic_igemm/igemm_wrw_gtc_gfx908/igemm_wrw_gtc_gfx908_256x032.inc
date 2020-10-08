@@ -1320,7 +1320,7 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x16_wt64x4_ws1x2_wr2x2_ta1x1x16x1_1x1
     ;v_add_co_u32 v34, vcc, 0, v[v_a0+2]
     v_mov_b32 v[v_tmp], s[s_in_offset]
 
-    global_store_dword v[v_tmp+6:v_tmp+7], v[v_in_os], s[s_dbg+0:s_dbg+1]
+    buffer_store_dword v[v_in_os], v[v_tmp+6], s[s_p_wei+0:s_p_wei+3], s[s_tmp] offen
     s_waitcnt vmcnt(0)
     s_barrier
 
@@ -2640,7 +2640,7 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x16_wt64x4_ws1x2_wr2x2_ta1x1x16x1_1x1
     ;v_add_co_u32 v34, vcc, 0, v[v_a0+2]
     v_mov_b32 v[v_tmp], s[s_in_offset]
 
-    global_store_dword v[v_tmp+6:v_tmp+7], v[v_in_os], s[s_dbg+0:s_dbg+1]
+    buffer_store_dword v[v_in_os], v[v_tmp+6], s[s_p_wei+0:s_p_wei+3], s[s_tmp] offen
     s_waitcnt vmcnt(0)
     s_barrier
 
@@ -3645,7 +3645,7 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x8_wt64x4_ws1x2_wr2x2_ta1x1x8x1_1x8x1
     ;v_add_co_u32 v34, vcc, 0, v[v_a0+2]
     v_mov_b32 v[v_tmp], s[s_in_offset]
 
-    global_store_dword v[v_tmp+6:v_tmp+7], v[v_in_os], s[s_dbg+0:s_dbg+1]
+    buffer_store_dword v[v_in_os], v[v_tmp+6], s[s_p_wei+0:s_p_wei+3], s[s_tmp] offen
     s_waitcnt vmcnt(0)
     s_barrier
 
@@ -4650,7 +4650,7 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x8_wt64x4_ws1x2_wr2x2_ta1x1x8x1_1x8x1
     ;v_add_co_u32 v34, vcc, 0, v[v_a0+2]
     v_mov_b32 v[v_tmp], s[s_in_offset]
 
-    global_store_dword v[v_tmp+6:v_tmp+7], v[v_in_os], s[s_dbg+0:s_dbg+1]
+    buffer_store_dword v[v_in_os], v[v_tmp+6], s[s_p_wei+0:s_p_wei+3], s[s_tmp] offen
     s_waitcnt vmcnt(0)
     s_barrier
 
