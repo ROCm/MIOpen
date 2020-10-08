@@ -209,7 +209,8 @@ Different ROCm versions use Code Object files of different versions (or, in othe
 
 ### Winograd Multi-pass Maximum Workspace throttling
 
-`MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX`
+`MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX` - `ConvWinograd3x3MultipassWrW`, WrW
+`MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_WORKSPACE_MAX` - `ConvMPBidirectWinograd*`, FWD BWD
 
 Syntax of value:
 * decimal or hex (with `0x` prefix) value that should fit into `unsigned long` (64 bits).

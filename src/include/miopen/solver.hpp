@@ -1475,6 +1475,14 @@ struct ConvMPBidirectWinograd_xdlops : SolverBase<ConvolutionContext>
             GetTransformedConvContext(ctx));
     }
 
+    bool IsDynamic() const
+    {
+        return ConvHipImplicitGemmForwardV4R4Xdlops{}.IsDynamic() &&
+               ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>{}
+                   .IsDynamic() &&
+               true;
+    }
+
     PerformanceImplicitGemmForwardV4R4Xdlops Search(const ConvolutionContext&,
                                                     const AnyInvokeParams&) const;
 };

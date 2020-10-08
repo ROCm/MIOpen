@@ -104,11 +104,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 struct WinoOffsets
 {
     const size_t in, out, wei;
-    WinoOffsets(size_t in_size, size_t wei_size, size_t out_size)
-        : in(0), out(in_size), wei(in_size + out_size)
-    {
-        (void)wei_size;
-    }
+    WinoOffsets(size_t in_size, size_t out_size) : in(0), out(in_size), wei(in_size + out_size) {}
 };
 #endif
 
@@ -401,9 +397,7 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
     int reserved       = 0;
     void* reserved_ptr = nullptr;
     int unused         = 0;
-    // cppcheck-suppress unreadVariable
     const WinoOffsets transform_offset(wino_in.buff_info.total_byte_size,
-                                       wino_wei.buff_info.total_byte_size,
                                        wino_out.buff_info.total_byte_size);
 
     InvokerFactory gemm_conv_factory;
@@ -770,9 +764,7 @@ conv::DataInvokeParams GetTransformedInvokeContext(const ConvolutionContext& ctx
         wino_wei = GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(
             ctx, ConvWinoBuffType::Weight, transform_data_type);
 
-    // cppcheck-suppress unreadVariable
     const WinoOffsets transform_offset(wino_in.buff_info.total_byte_size,
-                                       wino_wei.buff_info.total_byte_size,
                                        wino_out.buff_info.total_byte_size);
 
     const auto& data_ctx = invoke_ctx.CastTo<conv::DataInvokeParams>();
