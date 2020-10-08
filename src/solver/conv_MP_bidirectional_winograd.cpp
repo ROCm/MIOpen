@@ -110,12 +110,6 @@ struct WinoOffsets
         (void)wei_size;
     }
 };
-
-static inline size_t Ceil(const size_t v, const size_t m)
-{
-    assert(m > 0);
-    return (v + m - 1) / m;
-}
 #endif
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
@@ -230,18 +224,52 @@ inline bool IsApplicableTransform(const ConvolutionContext& params)
             return false;
     }
     {
-        unsigned long long const f_tiles_hw =
-            Ceil(params.kernel_size_w, WinoFilterW) * Ceil(params.kernel_size_h, WinoFilterH);
-        unsigned long long const d_tiles_hw =
-            Ceil(params.out_width, WinoDataW) * Ceil(params.out_height, WinoDataH);
-        unsigned long long const G_N_C_xTile =
-            params.n_inputs * params.group_counts * params.batch_sz * d_tiles_hw;
-        unsigned long long const G_K_C_xTile =
-            params.n_inputs * params.group_counts * params.n_outputs * f_tiles_hw;
-        unsigned long long const G_K_N_xTile =
-            params.batch_sz * params.group_counts * params.n_outputs * d_tiles_hw;
-        if(G_N_C_xTile >= std::pow(2, 24) || G_K_C_xTile >= std::pow(2, 24) ||
-           G_K_N_xTile >= std::pow(2, 24))
+        const miopenDataType_t transform_data_type =
+            miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_ENABLE_FP16_TRANSFORM{})
+                ? params.in_data_type
+                : miopenFloat;
+
+        DEFINE_SHADER_ALIASES(params)
+        BuffInfo in_buff(GetGroupConvLayout(GetMemLayout_t(params.in_layout), true),
+                         N,
+                         C,
+                         H,
+                         W,
+                         group_cnt,
+                         GetTypeSize(params.in_data_type)),
+            // cppcheck-suppress unreadVariable
+            out_buff(GetGroupConvLayout(GetMemLayout_t(params.out_layout), true),
+                     N,
+                     K,
+                     out_H,
+                     out_W,
+                     group_cnt,
+                     GetTypeSize(params.out_data_type)),
+            // cppcheck-suppress unreadVariable
+            wei_buff(GetGroupConvLayout(params.direction.IsForward()
+                                            ? (MemLayout_t::NCHW)
+                                            : GetSwappedNCLayout(MemLayout_t::NCHW),
+                                        false),
+                     K,
+                     C,
+                     R,
+                     S,
+                     group_cnt,
+                     GetTypeSize(params.weights_data_type));
+
+        auto wino_in = GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(
+            params, ConvWinoBuffType::Input, transform_data_type);
+        auto wino_out = GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(
+            params, ConvWinoBuffType::Output, transform_data_type);
+        auto wino_wei = GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(
+            params, ConvWinoBuffType::Weight, transform_data_type);
+
+        if(in_buff.total_byte_size > std::pow(2, 31) ||
+           wei_buff.total_byte_size > std::pow(2, 31) ||
+           out_buff.total_byte_size > std::pow(2, 31) ||
+           wino_in.buff_info.total_byte_size > std::pow(2, 31) ||
+           wino_out.buff_info.total_byte_size > std::pow(2, 31) ||
+           wino_wei.buff_info.total_byte_size > std::pow(2, 31))
             return false;
     }
 
@@ -254,10 +282,11 @@ inline bool IsApplicableTransform(const ConvolutionContext& params)
         && params.kernel_dilation_w == 1
         && params.kernel_dilation_h == 1
         && params.batch_sz < std::pow(2, 16)
-        && params.n_inputs < std::pow(2, 16)
-        && params.n_outputs < std::pow(2, 16)
+        && (params.n_inputs / params.group_counts) < std::pow(2, 16)
+        && (params.n_outputs / params.group_counts) < std::pow(2, 16)
         && params.out_height < std::pow(2, 16)
         && params.out_width < std::pow(2, 16)
+        && params.group_counts < std::pow(2, 16)
         && params.bias == 0
         && params.in_layout == "NCHW");
     // clang-format on
