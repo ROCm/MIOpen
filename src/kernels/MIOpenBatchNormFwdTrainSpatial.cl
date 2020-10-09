@@ -32,16 +32,18 @@
 #pragma clang diagnostic ignored "-Wsometimes-uninitialized"
 #endif
 
-#ifdef __AMDGCN__
+/* #ifdef __AMDGCN__
 #undef __AMDGCN__
-#endif
+#endif */
 
 #include "batchnorm_functions.h"
 #include "reduction_functions.h"
 
 #if(MIO_BN_VARIANT == 0)
 
-#define MIO_BN_SEGTMP (MIO_BN_HW * (MIO_BN_GRP0 / MIO_BN_HW))
+#define MIO_BN_SEGTMP_1 (MIO_BN_GRP0 / MIO_BN_HW)
+#define MIO_BN_SEGTMP_2 ((MIO_BN_SEGTMP_1 == 0) ? 1 : MIO_BN_SEGTMP_1)
+#define MIO_BN_SEGTMP (MIO_BN_HW * MIO_BN_SEGTMP_2)
 #define MIO_BN_SEGMENT ((MIO_BN_SEGTMP > MIO_BN_NHW) ? (MIO_BN_NHW) : (MIO_BN_SEGTMP))
 #define MIO_BN_NLOOP ((MIO_BN_NHW + MIO_BN_SEGMENT - 1) / MIO_BN_SEGMENT)
 #define MIO_BN_SEGIHW (MIO_BN_SEGMENT / MIO_BN_HW)

@@ -291,6 +291,9 @@ std::tuple<std::size_t, bool> PerformanceImplicitGemmBwdDataV4R1Xdlops::Calculat
         if(!valid)
             MIOPEN_THROW("invalid performance parameter");
 
+        if(GemmABlockCopyClusterLengths_GemmM == 0 || GemmBBlockCopyClusterLengths_GemmN == 0)
+            MIOPEN_THROW("invalid performance parameter");
+
         const auto ThreadGemmDataPerRead_GemmM = GemmMPerBlock / GemmABlockCopyClusterLengths_GemmM;
         const auto ThreadGemmDataPerRead_GemmN = GemmNPerBlock / GemmBBlockCopyClusterLengths_GemmN;
 
@@ -559,9 +562,9 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::SetNextValue()
             break;
         if(!NextTwoPower<1, 8>(GemmKPACKSize))
             break;
-        if(!NextTwoPower<4, 128>(GemmMPerWave))
+        if(!NextTwoPower<16, 128>(GemmNPerWave))
             break;
-        if(!NextTwoPower<4, 128>(GemmNPerWave))
+        if(!NextTwoPower<4, 128>(GemmMPerWave))
             break;
 
         return false;
@@ -589,13 +592,13 @@ void PerformanceImplicitGemmBwdDataV4R1Xdlops::EuristicInit(const ConvolutionCon
                         break;
                     if(!PreviousTwoPower<1, 4>(tmp.GemmKPACKSize))
                         break;
-                    if(!PreviousTwoPower<64, 128>(tmp.GemmNPerWave))
+                    if(!PreviousTwoPower<16, 128>(tmp.GemmNPerWave))
                         break;
-                    if(!PreviousTwoPower<64, 128>(tmp.GemmMPerWave))
+                    if(!PreviousTwoPower<4, 128>(tmp.GemmMPerWave))
                         break;
-                    if(!PreviousTwoPower<64, 256>(tmp.GemmNPerBlock))
+                    if(!PreviousTwoPower<16, 256>(tmp.GemmNPerBlock))
                         break;
-                    if(!PreviousTwoPower<64, 256>(tmp.GemmMPerBlock))
+                    if(!PreviousTwoPower<4, 256>(tmp.GemmMPerBlock))
                         break;
 
                     all_visited = true;
@@ -619,13 +622,13 @@ void PerformanceImplicitGemmBwdDataV4R1Xdlops::EuristicInit(const ConvolutionCon
                         break;
                     if(!PreviousTwoPower<4, 8>(tmp.GemmKPACKSize))
                         break;
-                    if(!PreviousTwoPower<64, 128>(tmp.GemmNPerWave))
+                    if(!PreviousTwoPower<16, 128>(tmp.GemmNPerWave))
                         break;
-                    if(!PreviousTwoPower<64, 128>(tmp.GemmMPerWave))
+                    if(!PreviousTwoPower<4, 128>(tmp.GemmMPerWave))
                         break;
-                    if(!PreviousTwoPower<64, 256>(tmp.GemmNPerBlock))
+                    if(!PreviousTwoPower<16, 256>(tmp.GemmNPerBlock))
                         break;
-                    if(!PreviousTwoPower<64, 256>(tmp.GemmMPerBlock))
+                    if(!PreviousTwoPower<4, 256>(tmp.GemmMPerBlock))
                         break;
 
                     all_visited = true;
@@ -649,13 +652,13 @@ void PerformanceImplicitGemmBwdDataV4R1Xdlops::EuristicInit(const ConvolutionCon
                         break;
                     if(!PreviousTwoPower<2, 8>(tmp.GemmKPACKSize))
                         break;
-                    if(!PreviousTwoPower<64, 128>(tmp.GemmNPerWave))
+                    if(!PreviousTwoPower<16, 128>(tmp.GemmNPerWave))
                         break;
-                    if(!PreviousTwoPower<64, 128>(tmp.GemmMPerWave))
+                    if(!PreviousTwoPower<4, 128>(tmp.GemmMPerWave))
                         break;
-                    if(!PreviousTwoPower<64, 256>(tmp.GemmNPerBlock))
+                    if(!PreviousTwoPower<16, 256>(tmp.GemmNPerBlock))
                         break;
-                    if(!PreviousTwoPower<64, 256>(tmp.GemmMPerBlock))
+                    if(!PreviousTwoPower<4, 256>(tmp.GemmMPerBlock))
                         break;
 
                     all_visited = true;
@@ -875,11 +878,12 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
             construction_parameters.g_wk.push_back(1);
             construction_parameters.g_wk.push_back(1);
 
-            construction_parameters.kernel_file = "gridwise_convolution_backward_data_implicit_"
-                                                  "gemm_v4r1_xdlops_gnchw_gkcyx_gnkhw.cpp";
+            construction_parameters.kernel_file =
+                "gridwise_convolution_backward_data_implicit_gemm_v4r1_xdlops_nchw_kcyx_nkhw.cpp";
 
-            construction_parameters.kernel_name = "gridwise_convolution_backward_data_implicit_"
-                                                  "gemm_v4r1_xdlops_gnchw_gkcyx_gnkhw";
+            construction_parameters.kernel_name =
+                "gridwise_convolution_backward_data_implicit_gemm_v4r1_xdlops_nchw_kcyx_nkhw";
+
             // TODO: add fp16 calculation by GetWorkspaceSize(ctx);
             result.workspce_sz = 0;
 

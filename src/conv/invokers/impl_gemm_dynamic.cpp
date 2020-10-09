@@ -239,11 +239,13 @@ float CallImplGemmDynamicBackwardData(const miopen::Handle& handle,
         opArgs[26]             = OpKernelArg(_y_dot_slice);
         opArgs[27]             = OpKernelArg(_x_dot_slice);
         if(is_gemm_not_empty)
+        {
             kernel(opArgs);
+            if(handle.IsProfilingEnabled())
+                elapsed += handle.GetKernelTime();
+        }
     }
 
-    if(handle.IsProfilingEnabled())
-        elapsed += handle.GetKernelTime();
     return elapsed;
 }
 
