@@ -143,6 +143,10 @@
 #define MIO_RUNNING_RESULT 0
 #endif
 
+#ifndef MIO_BN_GFX1030
+#define MIO_BN_GFX1030 0
+#endif
+
 #define UNUSED __attribute__((__unused__))
 
 #if(MIO_BN_VARIANT != 4)
@@ -159,8 +163,9 @@ static inline void running_stash(global _FLOAT_PREC* resultRunningMean,
     resultRunningMean[channel] =
         (_FLOAT_PREC)mad(mean, (_FLOAT_ACCUM)expAvgFactor, pvt_newRunMean); // newMean*factor + tmp
     const _FLOAT_ACCUM adjust = (_FLOAT_ACCUM)(
-        (MIO_BN_NHW == 1) ? variance : variance * ((_FLOAT_ACCUM)MIO_BN_NHW /
-                                                   ((_FLOAT_ACCUM)MIO_BN_NHW - (_FLOAT_ACCUM)1.0)));
+        (MIO_BN_NHW == 1) ? variance
+                          : variance * ((_FLOAT_ACCUM)MIO_BN_NHW /
+                                        ((_FLOAT_ACCUM)MIO_BN_NHW - (_FLOAT_ACCUM)1.0)));
     resultRunningVariance[channel] = (_FLOAT_PREC)(
         (1 - (_FLOAT_ACCUM)expAvgFactor) * (_FLOAT_ACCUM)(*(resultRunningVariance + channel)) +
         (_FLOAT_ACCUM)expAvgFactor * adjust);

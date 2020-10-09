@@ -31,7 +31,7 @@
 #pragma clang diagnostic ignored "-Wsometimes-uninitialized"
 #endif
 
-#if(MIO_BN_GPU_ARCH == gfx1030)
+#if(MIO_BN_GFX1030 == 1 && __AMDGCN__)
 #undef __AMDGCN__
 #endif
 
