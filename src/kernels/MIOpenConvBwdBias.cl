@@ -44,7 +44,9 @@ MIOpenConvBwdB(const __global _FLOAT* top_df, __global _FLOAT* bias_df, uint bia
     int lid        = (int)get_local_id(0);
     __local _FLOAT_ACCUM lcl_sum[MLO_CONVBWDB_LCL_MEMSZ];
 
-for(int gid = get_group_id(1); gid < bias_c; gid += get_group_size(1))
+    int gid = get_group_id(1);
+
+for(; gid < bias_c; gid += get_global_size(1))
 {
     _FLOAT_ACCUM sum = 0.0f;
 
@@ -60,6 +62,7 @@ int upper_bound = off_pix > 0 && read_id == num_spatial_work - 1 ? off_pix : MLO
             sum += CVT_FLOAT2ACCUM(top_df[glb_top_df_offset + k]);
 
     }
+    barrier(CLK_LOCAL_MEM_FENCE);
     lcl_sum[lid] = sum;
 
     barrier(CLK_LOCAL_MEM_FENCE);

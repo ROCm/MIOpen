@@ -3794,7 +3794,7 @@ void ConvolutionBackwardBias(const Handle& handle,
     const std::vector<size_t> vgd = {lcl_grp_size0, size_t{1024}, size_t{1}};
 
     handle.AddKernel("miopenConvolutionBwdBias", "", program_name, kernel_name, vld, vgd, params)(
-        dy, db, out_k, stride_k, stride_n, map_size_aligned, off_pix, total_work);
+        dy, db, uint(out_k), uint(stride_k), uint(stride_n), uint(map_size_aligned), uint(off_pix), uint(total_work));
 
     if(miopen::CheckNumericsEnabled())
     {
