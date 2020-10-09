@@ -54,10 +54,10 @@ find_package(Threads REQUIRED)
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C ${CMAKE_CFG_INTDIR})
 add_custom_target(tests)
 
-set(SKIP_TESTS test_conv3d test_conv3d_bias)
+set(SKIP_TESTS test_conv3d test_conv3d_bias test_conv2d)
 set(MIOPEN_TEST_FLOAT_ARG)
 set(SKIP_CONV3D Off CACHE BOOL "")
-set(SKIP_CONV2D Off CACHE BOOL "")
+set(SKIP_CONV2D_AUX Off CACHE BOOL "")
 
 if(MIOPEN_TEST_HALF)   
     if(MIOPEN_BACKEND_OPENCL)
@@ -416,7 +416,7 @@ endif()
 
 
 
-if(SKIP_CONV2D)
+if(SKIP_CONV2D_AUX)
 
 set(IMPLICITGEMM_ARGS ${MIOPEN_TEST_FLOAT_ARG})
 # ./bin/MIOpenDriver conv -n 128 -c 1024 -H 14 -W 14 -k 2048 -y 1 -x 1 -p 0 -q 0 -u 2 -v 2 -l 1 -j 1 -m conv -g 1 -F 1 -t 1

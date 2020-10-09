@@ -247,13 +247,6 @@ pipeline {
         // Run quick fp32 tests
         stage("Fast full precision"){
             parallel{
-               stage('Clang Debug') {
-                    agent{ label rocmnode("vega") }
-                    steps{
-                        buildJob('clang++-3.8', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
-                    }
-                }
-
                 stage('Clang Release') {
                     agent{ label rocmnode("vega") }
                     steps{
@@ -268,10 +261,10 @@ pipeline {
                     }
                 }
 
-                stage('Fiji GCC Debug') {
+                stage('Fiji GCC Release') {
                     agent{ label rocmnode("fiji") }
                     steps{
-                        buildJob('g++-5', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
+                        buildJob('g++-5', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release')
                     }
                 }
 
@@ -285,6 +278,25 @@ pipeline {
                             cd build
                             CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_FLAGS=--disable-verification-cache .. 
                             CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
+                        """
+
+                    }
+                    steps{
+                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd)
+                    }
+                }
+
+                stage('Hip conv2d debug quick') {
+                    agent{ label rocmnode("vega") }
+                    environment{
+                        cmd = """
+                            ulimit -c unlimited
+                            rm -rf build
+                            mkdir build
+                            cd build
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_FLAGS=--disable-verification-cache .. 
+                            make -j\$(nproc) test_conv2d
+                            bin/test_conv2d --disable-verification-cache
                         """
 
                     }
@@ -311,10 +323,20 @@ pipeline {
                     }
                 }
 
-                stage('gfx908 Hip debug') {
+                stage('Hip gfx908 debug') {
                     agent{ label rocmnode("gfx908") }
+                    environment{
+                        cmd = """
+                            ulimit -c unlimited
+                            rm -rf build
+                            mkdir build
+                            cd build
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_FLAGS=--disable-verification-cache .. 
+                            CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
+                        """
+                    }
                     steps{
-                        buildJob('hcc', flags: '-DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', image: image+"rocm", prefixpath: '/opt/rocm')
+                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd)
                     }
                 }
             }
