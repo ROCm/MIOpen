@@ -92,12 +92,16 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::SetNextValue()
             break;
         if(!NextTwoPower<1, 8>(GemmKPack))
             break;
+        // current xdlops code only support GemmNPerWave >=16
+        //   smaller GemmNPerWave will be skipped
         if(!NextTwoPower<4, 128>(GemmNPerWave))
             break;
         if(!NextTwoPower<4, 128>(GemmMPerWave))
             break;
         if(!NextTwoPower<1, 8>(GemmKPerBlock))
             break;
+        // current xdlops code only support GemmNPerBlock >=16
+        //   smaller GemmNPerWave will be skipped
         if(!NextTwoPower<4, 256>(GemmNPerBlock))
             break;
         if(!NextTwoPower<4, 256>(GemmMPerBlock))
