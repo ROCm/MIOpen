@@ -7,8 +7,8 @@
 #endif
 #include "bfloat16_dev.hpp"
 
-#ifndef CK_HIP_COMPILER_VERSION
-#define CK_HIP_COMPILER_VERSION 0
+#ifndef CK_HIP_VERSION
+#define CK_HIP_VERSION 0
 #endif
 
 // index type: unsigned or signed
@@ -32,8 +32,8 @@
 #endif
 
 // only gfx908 support native floating point atomic add
-#ifndef CK_USE_AMD_BUFFER_ATOMIC_ADD
-#define CK_USE_AMD_BUFFER_ATOMIC_ADD 0
+#ifndef CK_USE_AMD_BUFFER_ATOMIC_FADD
+#define CK_USE_AMD_BUFFER_ATOMIC_FADD 0
 #endif
 
 // AMD XDLOPS

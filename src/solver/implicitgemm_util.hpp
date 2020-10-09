@@ -688,7 +688,7 @@ static inline bool use_amd_inline_asm(const ConvolutionContext& ctx)
     return !miopen::IsDisabled(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM{});
 }
 
-static inline bool support_amd_buffer_atomic_add(const ConvolutionContext& ctx)
+static inline bool support_amd_buffer_atomic_fadd(const ConvolutionContext& ctx)
 {
     const auto device_name = ctx.GetStream().GetDeviceName();
     return StartsWith(device_name, "gfx908") && ctx.IsFp32();
@@ -772,22 +772,24 @@ static inline auto get_ck_common_compiler_flag(const ConvolutionContext& ctx)
 {
     auto compiler_flag = std::string(" --std=c++14");
 
-    // HIP compiler version
-    const auto hip_compiler_version = HipCompilerVersion();
+    // HIP version
+    {
+        const auto hip_version = HipCompilerVersion();
 
-    auto version_major = std::to_string(hip_compiler_version.major);
-    auto version_minor = std::to_string(hip_compiler_version.minor);
-    auto version_patch = std::to_string(hip_compiler_version.patch);
+        auto hip_version_major = std::to_string(hip_version.major);
+        auto hip_version_minor = std::to_string(hip_version.minor);
+        auto hip_version_patch = std::to_string(hip_version.patch);
 
-    version_minor = std::string(2 - version_minor.length(), '0') + version_minor;
-    version_patch = std::string(6 - version_patch.length(), '0') + version_patch;
+        hip_version_minor = std::string(2 - hip_version_minor.length(), '0') + hip_version_minor;
+        hip_version_patch = std::string(5 - hip_version_patch.length(), '0') + hip_version_patch;
 
-    compiler_flag +=
-        std::string(" -DCK_HIP_COMPILER_VERSION=") + version_major + version_minor + version_patch;
+        compiler_flag += std::string(" -DCK_HIP_VERSION=") + hip_version_major + hip_version_minor +
+                         hip_version_patch;
+    }
 
-    // atomic-add
-    compiler_flag += std::string(" -DCK_USE_AMD_BUFFER_ATOMIC_ADD=") +
-                     (support_amd_buffer_atomic_add(ctx) ? '1' : '0');
+    // atomic-fadd
+    compiler_flag += std::string(" -DCK_USE_AMD_BUFFER_ATOMIC_FADD=") +
+                     (support_amd_buffer_atomic_fadd(ctx) ? '1' : '0');
 
     // workaround
     compiler_flag +=
