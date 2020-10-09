@@ -768,6 +768,35 @@ int amd_lds_write_max_length()
 
 constexpr std::size_t get_lds_max_number_of_byte() { return 65536; }
 
+static inline auto get_ck_common_compiler_flag(const ConvolutionContext& ctx)
+{
+    auto compiler_flag = std::string(" --std=c++14");
+
+    // HIP compiler version
+    const auto hip_compiler_version = HipCompilerVersion();
+
+    auto version_major = std::to_string(hip_compiler_version.major);
+    auto version_minor = std::to_string(hip_compiler_version.minor);
+    auto version_patch = std::to_string(hip_compiler_version.patch);
+
+    version_minor = std::string(2 - version_minor.length(), '0') + version_minor;
+    version_patch = std::string(6 - version_patch.length(), '0') + version_patch;
+
+    compiler_flag +=
+        std::string(" -DCK_HIP_COMPILER_VERSION=") + version_major + version_minor + version_patch;
+
+    // atomic-add
+    compiler_flag += std::string(" -DCK_USE_AMD_BUFFER_ATOMIC_ADD=") +
+                     (support_amd_buffer_atomic_add(ctx) ? '1' : '0');
+
+    // workaround
+    compiler_flag +=
+        std::string(" -DCK_WORKAROUND_SWDEV_229564=") + std::to_string(WORKAROUND_SWDEV_229564) +
+        std::string(" -DCK_WORKAROUND_SWDEV_231101=") + std::to_string(WORKAROUND_SWDEV_231101);
+
+    return compiler_flag;
+}
+
 } // namespace solver
 } // namespace miopen
 

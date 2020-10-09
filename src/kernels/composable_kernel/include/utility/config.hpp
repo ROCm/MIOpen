@@ -7,6 +7,10 @@
 #endif
 #include "bfloat16_dev.hpp"
 
+#ifndef CK_HIP_COMPILER_VERSION
+#define CK_HIP_COMPILER_VERSION 0
+#endif
+
 // index type: unsigned or signed
 #define CK_UNSIGNED_INDEX_TYPE 0
 
