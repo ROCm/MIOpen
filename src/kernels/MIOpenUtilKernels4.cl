@@ -155,7 +155,7 @@ __kernel void transpose_CNHW2NCHW_opt(const global data_t* in, global data_t* ou
 #endif
 
 #if NC_TRANS_NCHW
-__kernel void transpose_NCHW2CNHW(const global data_t* in, global data_t* out)
+__kernel void transpose_NCHW2CNHW_1D_WG(const global data_t* in, global data_t* out, const int IN_OFF, const int OUT_OFF, const int W_IN, const int W_OUT, const int N, const int C, const int H_STRIDE, const int W_STRIDE, const int HW_IN, const int HW_OUT)
 {
     uint i = get_global_id(0);
 
@@ -169,14 +169,26 @@ __kernel void transpose_NCHW2CNHW(const global data_t* in, global data_t* out)
     const global data_t* cin = (const global data_t*)(in + in_off);
     global data_t* cout      = (global data_t*)(out + out_off);
 
-    uint n_i;
-#if IS_2D_WG
-    n_i                = get_global_id(1);
-    cout[HW_OUT * n_i] = cin[C * HW_IN * n_i];
-#else
-    for(n_i                = 0; n_i < N; n_i++)
+    for(uint n_i = 0; n_i < N; n_i++)
         cout[HW_OUT * n_i] = cin[C * HW_IN * n_i];
-#endif
+}
+
+__kernel void transpose_NCHW2CNHW_2D_WG(const global data_t* in, global data_t* out, const int IN_OFF, const int OUT_OFF, const int W_IN, const int W_OUT, const int N, const int C, const int H_STRIDE, const int W_STRIDE, const int HW_IN, const int HW_OUT)
+{
+    uint i = get_global_id(0);
+
+    uint c_i  = iDiv(i, HW_OUT);
+    uint hw_i = iMod(i, c_i, HW_OUT);
+    uint h_i  = iDiv(hw_i, W_OUT);
+    uint w_i  = iMod(hw_i, h_i, W_OUT);
+
+    uint in_off              = c_i * HW_IN + h_i * H_STRIDE * W_IN + w_i * W_STRIDE + IN_OFF;
+    uint out_off             = c_i * N * HW_OUT + hw_i + OUT_OFF;
+    const global data_t* cin = (const global data_t*)(in + in_off);
+    global data_t* cout      = (global data_t*)(out + out_off);
+
+    uint n_i = get_global_id(1);
+    cout[HW_OUT * n_i] = cin[C * HW_IN * n_i];
 }
 #endif
 
