@@ -7,8 +7,8 @@
 #endif
 #include "bfloat16_dev.hpp"
 
-#ifndef CK_HIP_VERSION
-#define CK_HIP_VERSION 0
+#ifndef CK_HIP_VERSION_FLAT
+#define CK_HIP_VERSION_FLAT 0
 #endif
 
 // index type: unsigned or signed
