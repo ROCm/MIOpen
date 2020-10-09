@@ -239,11 +239,13 @@ float CallImplGemmDynamicBackwardData(const miopen::Handle& handle,
         opArgs[26]             = OpKernelArg(_y_dot_slice);
         opArgs[27]             = OpKernelArg(_x_dot_slice);
         if(is_gemm_not_empty)
+        {
             kernel(opArgs);
+            if(handle.IsProfilingEnabled())
+                elapsed += handle.GetKernelTime();
+        }
     }
 
-    if(handle.IsProfilingEnabled())
-        elapsed += handle.GetKernelTime();
     return elapsed;
 }
 
@@ -251,10 +253,10 @@ InvokerFactory MakeImplGemmDynamicForwardInvokerFactory(const ConvolutionContext
 {
     const auto& conv_problem = ctx.conv_problem;
     return [conv_problem](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& handle, const boost::any& primitive_parameters) {
-            const auto data_ctx = boost::any_cast<conv::DataInvokeParams>(primitive_parameters);
-            const auto& tensors = data_ctx.tensors;
-            auto kernel         = handle.Run(kernels[0]);
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+            decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
+            const auto& tensors     = data_ctx.tensors;
+            auto kernel             = handle.Run(kernels[0]);
 
             std::vector<KernelInvoke> ks;
             std::transform(kernels.begin(),
@@ -277,10 +279,10 @@ InvokerFactory MakeImplGemmDynamicForward1x1InvokerFactory(const ConvolutionCont
 {
     const auto& conv_problem = ctx.conv_problem;
     return [conv_problem](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& handle, const boost::any& primitive_parameters) {
-            const auto data_ctx = boost::any_cast<conv::DataInvokeParams>(primitive_parameters);
-            const auto& tensors = data_ctx.tensors;
-            auto kernel         = handle.Run(kernels[0]);
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+            decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
+            const auto& tensors     = data_ctx.tensors;
+            auto kernel             = handle.Run(kernels[0]);
 
             std::vector<KernelInvoke> ks;
             std::transform(kernels.begin(),
@@ -303,10 +305,10 @@ InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory(const ConvolutionCo
 {
     const auto& conv_problem = ctx.conv_problem;
     return [conv_problem](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& handle, const boost::any& primitive_parameters) {
-            const auto data_ctx = boost::any_cast<conv::DataInvokeParams>(primitive_parameters);
-            const auto& tensors = data_ctx.tensors;
-            auto kernel         = handle.Run(kernels[0]);
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+            decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
+            const auto& tensors     = data_ctx.tensors;
+            auto kernel             = handle.Run(kernels[0]);
 
             std::vector<KernelInvoke> ks;
             std::transform(kernels.begin(),
