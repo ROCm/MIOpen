@@ -718,10 +718,7 @@ float transpose_NCHW2CNHW(const Handle& handle,
 
     if(h_stride == 1 && w_stride == 1 && type == miopenFloat)
     {
-        kernel_name += "_OPT";
-
-        params +=
-            " -DNC_TRANS_NCHW_OPT=1 -DNC_TRANS_CNHW_OPT=0 -DNC_TRANS_NCHW=0 -DNC_TRANS_CNHW=0";
+        kernel_name += "_V1";
 
         int RD_BLCK      = ((h_in * w_in) % 4 == 0) ? 4 : ((h_in * w_in) % 2 == 0) ? 2 : 1;
         int HW_RD        = (h_in * w_in) / RD_BLCK;
@@ -730,16 +727,15 @@ float transpose_NCHW2CNHW(const Handle& handle,
 
         std::string READ_TYPE = (RD_BLCK == 1) ? "float" : "float" + std::to_string(RD_BLCK);
 
-        params += " -DIN_OFF=" + std::to_string(in_offset);
-        params += " -DOUT_OFF=" + std::to_string(out_offset);
-        params += " -DH=" + std::to_string(h_in);
-        params += " -DW=" + std::to_string(w_in);
-        params += " -DN=" + std::to_string(n);
-        params += " -DC=" + std::to_string(c);
-        params += " -DRD_BLCK=" + std::to_string(RD_BLCK);
-        params += " -DHW_RD=" + std::to_string(HW_RD);
-        params += " -DMAP_RD=" + std::to_string(MAP_RD);
-        params += " -DREAD_TYPE=" + READ_TYPE;
+        //params += " -DIN_OFF=" + std::to_string(in_offset);
+        //params += " -DOUT_OFF=" + std::to_string(out_offset);
+        //params += " -DH=" + std::to_string(h_in);
+        //params += " -DW=" + std::to_string(w_in);
+        //params += " -DN=" + std::to_string(n);
+        //params += " -DC=" + std::to_string(c);
+        //params += " -DRD_BLCK=" + std::to_string(RD_BLCK);
+        //params += " -DHW_RD=" + std::to_string(HW_RD);
+        //params += " -DREAD_TYPE=" + READ_TYPE;
 
         const std::vector<size_t> vld{lcl_size0, 1, 1};
         std::vector<size_t> vgd{MAP_RD, 1, 1};
@@ -754,6 +750,8 @@ float transpose_NCHW2CNHW(const Handle& handle,
             kernel_name += "_1D_WG";
         }
 
+        kernel_name += "_" + READ_TYPE;
+
         auto&& kernels = handle.GetKernels(kernel_name, network_config);
         if(!kernels.empty())
         {
@@ -763,13 +761,12 @@ float transpose_NCHW2CNHW(const Handle& handle,
         else
         {
             handle.AddKernel(
-                    kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(in, out);
+                    kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(in, out, in_offset, out_offset, RD_BLCK, HW_RD, n, c, h_in, w_in);
         }
     }
     else
     {
-        params +=
-            " -DNC_TRANS_NCHW_OPT=0 -DNC_TRANS_CNHW_OPT=0 -DNC_TRANS_NCHW=1 -DNC_TRANS_CNHW=0";
+        kernel_name += "_V2";
 
         //params += " -DN=" + std::to_string(n);
         //params += " -DC=" + std::to_string(c);
