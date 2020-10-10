@@ -968,6 +968,8 @@ L_igemm_v4r1_dynamic_wrw_32x32x4_4x4_2x2x4x2x4x2_4x2x8x1_4x16_end:
     .amdhsa_next_free_sgpr 58
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
+    //xnack disabled by default for asm kernels
+    .amdhsa_reserve_xnack_mask 0
 .end_amdhsa_kernel
 
 ;----------------------------------------------------------
@@ -1493,6 +1495,8 @@ L_program_end:
     .amdhsa_next_free_sgpr 58
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
+    //xnack disabled by default for asm kernels
+    .amdhsa_reserve_xnack_mask 0
 .end_amdhsa_kernel
 
 ;----------------------------------------------------------
@@ -2021,6 +2025,8 @@ L_program_end_1:
     .amdhsa_next_free_sgpr 58
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
+    //xnack disabled by default for asm kernels
+    .amdhsa_reserve_xnack_mask 0
 .end_amdhsa_kernel
 
 .amdgpu_metadata
