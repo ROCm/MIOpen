@@ -245,9 +245,9 @@ static void AmdgcnAssembleQuiet(const std::string& source, const std::string& pa
     std::stringstream clang_stdout_unused;
     const auto clang_path = GetGcnAssemblerPath();
     const auto args       = " -x assembler -target amdgcn--amdhsa " +
-        // \todo detect is xnack enabled or disabled
-        // by default disabled
-        GenerateClangBuildOptSetXnack(false) + params + " " + source +
+                      // \todo detect is xnack enabled or disabled
+                      // by default disabled
+                      GenerateClangBuildOptSetXnack(false) + params + " " + source +
                       " -o /dev/null" + // We do not need output file
                       " 2>&1";          // Keep console clean from error messages.
     MIOPEN_LOG_NQI2(clang_path << " " << args);
