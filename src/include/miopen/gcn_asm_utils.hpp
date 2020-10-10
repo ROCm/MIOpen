@@ -46,7 +46,7 @@ void GenerateClangDefsym<const std::string&>(std::ostream& stream,
                                              const std::string& name,
                                              const std::string& value);
 
-std::string GenerateClangBuildOptSetXnack(const bool isEnabled);
+std::string GenerateClangBuildOptSetXnack(bool isEnabled);
 
 /// @param dir 1: fwd, 0: bwd wrt data. Use 0 for WrW.
 /// Encodes key with default strides (u1v1)
