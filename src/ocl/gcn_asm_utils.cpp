@@ -175,6 +175,11 @@ std::string AmdgcnAssemble(const std::string& source, const std::string& params)
 
     std::ostringstream options;
     options << " -x assembler -target amdgcn--amdhsa";
+
+    // \todo detect is xnack enabled or disabled
+    // by default disabled
+    options << GenerateClangBuildOptSetXnack(false);
+
     /// \todo Hacky way to find out which CO version we need to assemble for.
     if(params.find("ROCM_METADATA_VERSION=5", 0) == std::string::npos) // Assume that !COv3 == COv2.
         if(GcnAssemblerSupportsNoCOv3()) // If assembling for COv2, then disable COv3.
@@ -239,7 +244,10 @@ static void AmdgcnAssembleQuiet(const std::string& source, const std::string& pa
 #ifdef __linux__
     std::stringstream clang_stdout_unused;
     const auto clang_path = GetGcnAssemblerPath();
-    const auto args       = " -x assembler -target amdgcn--amdhsa " + params + " " + source +
+    const auto args       = " -x assembler -target amdgcn--amdhsa " +
+        // \todo detect is xnack enabled or disabled
+        // by default disabled
+        GenerateClangBuildOptSetXnack(false) + params + " " + source +
                       " -o /dev/null" + // We do not need output file
                       " 2>&1";          // Keep console clean from error messages.
     MIOPEN_LOG_NQI2(clang_path << " " << args);
@@ -306,6 +314,13 @@ void GenerateClangDefsym<const std::string&>(std::ostream& stream,
                                              const std::string& value)
 {
     stream << " -Wa,-defsym," << name << "=" << value;
+}
+std::string GenerateClangBuildOptSetXnack(const bool isEnabled)
+{
+    if(isEnabled)
+        return " -mxnack ";
+    else
+        return " -mno-xnack ";
 }
 
 std::string MakeLutKey(
