@@ -686,7 +686,7 @@ static inline bool use_amd_inline_asm(const ConvolutionContext& ctx)
 static inline bool support_amd_buffer_atomic_fadd(const ConvolutionContext& ctx)
 {
     const auto device_name = ctx.GetStream().GetDeviceName();
-    return StartsWith(device_name, "gfx908") && ctx.IsFp32();
+    return StartsWith(device_name, "gfx908");
 }
 
 template <typename T>
