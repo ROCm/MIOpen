@@ -699,11 +699,13 @@ float transpose_NCHW2CNHW(const Handle& handle,
 
     std::string program_name = "MIOpenUtilKernels4.cl";
 
+#if 0
     std::string network_config = "n" + std::to_string(n) + "c" + std::to_string(c) + "h" +
-        std::to_string(h_in) + "w" + std::to_string(w_in) + "inoff" +
-        std::to_string(in_offset) + "otoff" + std::to_string(out_offset) +
-        "u" + std::to_string(h_stride) + "v" + std::to_string(w_stride) +
-        "t" + std::to_string(type);
+                                 std::to_string(h_in) + "w" + std::to_string(w_in) + "inoff" +
+                                 std::to_string(in_offset) + "otoff" + std::to_string(out_offset) +
+                                 "u" + std::to_string(h_stride) + "v" + std::to_string(w_stride) +
+                                 "t" + std::to_string(type);
+#endif
 
     std::string kernel_name = "transpose_NCHW2CNHW";
 
@@ -727,16 +729,6 @@ float transpose_NCHW2CNHW(const Handle& handle,
 
         std::string READ_TYPE = (RD_BLCK == 1) ? "float" : "float" + std::to_string(RD_BLCK);
 
-        //params += " -DIN_OFF=" + std::to_string(in_offset);
-        //params += " -DOUT_OFF=" + std::to_string(out_offset);
-        //params += " -DH=" + std::to_string(h_in);
-        //params += " -DW=" + std::to_string(w_in);
-        //params += " -DN=" + std::to_string(n);
-        //params += " -DC=" + std::to_string(c);
-        //params += " -DRD_BLCK=" + std::to_string(RD_BLCK);
-        //params += " -DHW_RD=" + std::to_string(HW_RD);
-        //params += " -DREAD_TYPE=" + READ_TYPE;
-
         const std::vector<size_t> vld{lcl_size0, 1, 1};
         std::vector<size_t> vgd{MAP_RD, 1, 1};
 
@@ -752,34 +744,23 @@ float transpose_NCHW2CNHW(const Handle& handle,
 
         kernel_name += "_" + READ_TYPE;
 
-        auto&& kernels = handle.GetKernels(kernel_name, network_config);
+        auto&& kernels = handle.GetKernels(kernel_name, "");
         if(!kernels.empty())
         {
             auto kernel = kernels.front();
-            kernel(in, out);
+            kernel(in, out, in_offset, out_offset, RD_BLCK, HW_RD, n, c, h_in, w_in);
         }
         else
         {
-            handle.AddKernel(
-                    kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(in, out, in_offset, out_offset, RD_BLCK, HW_RD, n, c, h_in, w_in);
+            handle.AddKernel(kernel_name, "", program_name, kernel_name, vld, vgd, params)(
+                in, out, in_offset, out_offset, RD_BLCK, HW_RD, n, c, h_in, w_in);
         }
     }
     else
     {
         kernel_name += "_V2";
 
-        //params += " -DN=" + std::to_string(n);
-        //params += " -DC=" + std::to_string(c);
-        //params += " -DHW_IN=" + std::to_string(h_in * w_in);
-        //params += " -DHW_OUT=" + std::to_string(h_out * w_out);
-        //params += " -DW_IN=" + std::to_string(w_in);
-        //params += " -DW_OUT=" + std::to_string(w_out);
-        //params += " -DH_STRIDE=" + std::to_string(h_stride);
-        //params += " -DW_STRIDE=" + std::to_string(w_stride);
-        //params += " -DIN_OFF=" + std::to_string(in_offset);
-        //params += " -DOUT_OFF=" + std::to_string(out_offset);
-
-        const int hw_in = h_in * w_in;
+        const int hw_in  = h_in * w_in;
         const int hw_out = h_out * w_out;
 
         size_t ld0 = WG_SIZE;
@@ -797,18 +778,39 @@ float transpose_NCHW2CNHW(const Handle& handle,
             kernel_name += "_1D_WG";
         }
 
-        auto&& kernels = handle.GetKernels(kernel_name, network_config);
+        auto&& kernels = handle.GetKernels(kernel_name, "");
         if(!kernels.empty())
         {
             auto kernel = kernels.front();
-            kernel(in, out, in_offset, out_offset, w_in, w_out, n, c, h_stride, w_stride, hw_in, hw_out);
+            kernel(in,
+                   out,
+                   in_offset,
+                   out_offset,
+                   w_in,
+                   w_out,
+                   n,
+                   c,
+                   h_stride,
+                   w_stride,
+                   hw_in,
+                   hw_out);
         }
         else
         {
-            handle.AddKernel(
-                    kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(in, out, in_offset, out_offset, w_in, w_out, n, c, h_stride, w_stride, hw_in, hw_out);
+            handle.AddKernel(kernel_name, "", program_name, kernel_name, vld, vgd, params)(
+                in,
+                out,
+                in_offset,
+                out_offset,
+                w_in,
+                w_out,
+                n,
+                c,
+                h_stride,
+                w_stride,
+                hw_in,
+                hw_out);
         }
-
     }
 
     return handle.GetKernelTime();
@@ -832,107 +834,117 @@ float transpose_CNHW2NCHW(const Handle& handle,
 
     std::string program_name = "MIOpenUtilKernels4.cl";
 
+#if 0
     std::string network_config = "n" + std::to_string(n) + "c" + std::to_string(c) + "h" +
                                  std::to_string(h_in) + "w" + std::to_string(w_in) + "inoff" +
                                  std::to_string(in_offset) + "otoff" + std::to_string(out_offset) +
                                  "h_stride" + std::to_string(h_stride) + "w_stride" +
                                  std::to_string(w_stride) + "t" + std::to_string(type);
+#endif
 
     std::string kernel_name = "transpose_CNHW2NCHW";
 
-    if(h_stride == 1 && w_stride == 1 && type == miopenFloat)
-        kernel_name += "_opt";
+    std::string params = GetDataTypeKernelParams(type);
 
-    auto&& kernels = handle.GetKernels(kernel_name, network_config);
-
-    if(!kernels.empty())
+    if(type == miopenInt8x4)
     {
-        auto kernel = kernels.front();
-        kernel(in, out);
+        c /= 4;
+        in_offset /= 4;
+        out_offset /= 4;
     }
-    else
+
+    if(h_stride == 1 && w_stride == 1 && type == miopenFloat)
     {
-        std::string params = GetDataTypeKernelParams(type);
+        kernel_name += "_V1";
 
-        if(type == miopenInt8x4)
+        int RD_BLCK      = ((h_out * w_out) % 4 == 0) ? 4 : ((h_out * w_out) % 2 == 0) ? 2 : 1;
+        int HW_RD        = (h_out * w_out) / RD_BLCK;
+        size_t MAP_RD    = HW_RD * c;
+        size_t lcl_size0 = WG_SIZE; //((MAP_RD + 63)/64 < 4) ? ((MAP_RD + 63)/64)*64 : 256;
+
+        std::string READ_TYPE = (RD_BLCK == 1) ? "float" : "float" + std::to_string(RD_BLCK);
+
+        const std::vector<size_t> vld{lcl_size0, 1, 1};
+        std::vector<size_t> vgd{MAP_RD, 1, 1};
+
+        if(MAP_RD < MAX_ACTIVE_THREADS)
         {
-            c /= 4;
-            in_offset /= 4;
-            out_offset /= 4;
-        }
-
-        if(h_stride == 1 && w_stride == 1 && type == miopenFloat)
-        {
-            params +=
-                " -DNC_TRANS_NCHW_OPT=0 -DNC_TRANS_CNHW_OPT=1 -DNC_TRANS_NCHW=0 -DNC_TRANS_CNHW=0";
-
-            int RD_BLCK      = ((h_out * w_out) % 4 == 0) ? 4 : ((h_out * w_out) % 2 == 0) ? 2 : 1;
-            int HW_RD        = (h_out * w_out) / RD_BLCK;
-            size_t MAP_RD    = HW_RD * c;
-            size_t lcl_size0 = WG_SIZE; //((MAP_RD + 63)/64 < 4) ? ((MAP_RD + 63)/64)*64 : 256;
-
-            std::string READ_TYPE = (RD_BLCK == 1) ? "float" : "float" + std::to_string(RD_BLCK);
-
-            params += " -DIN_OFF=" + std::to_string(in_offset);
-            params += " -DOUT_OFF=" + std::to_string(out_offset);
-            params += " -DH=" + std::to_string(h_out);
-            params += " -DW=" + std::to_string(w_out);
-            params += " -DN=" + std::to_string(n);
-            params += " -DC=" + std::to_string(c);
-            params += " -DRD_BLCK=" + std::to_string(RD_BLCK);
-            params += " -DHW_RD=" + std::to_string(HW_RD);
-            params += " -DMAP_RD=" + std::to_string(MAP_RD);
-            params += " -DREAD_TYPE=" + READ_TYPE;
-
-            const std::vector<size_t> vld{lcl_size0, 1, 1};
-            std::vector<size_t> vgd{MAP_RD, 1, 1};
-
-            if(MAP_RD < MAX_ACTIVE_THREADS)
-            {
-                vgd = {MAP_RD, static_cast<size_t>(n), 1};
-                params += " -DIS_2D_WG=1";
-            }
-            else
-            {
-                params += " -DIS_2D_WG=0";
-            }
-
-            handle.AddKernel(
-                kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(in, out);
+            vgd = {MAP_RD, static_cast<size_t>(n), 1};
+            kernel_name += "_2D_WG";
         }
         else
         {
-            params +=
-                " -DNC_TRANS_NCHW_OPT=0 -DNC_TRANS_CNHW_OPT=0 -DNC_TRANS_NCHW=0 -DNC_TRANS_CNHW=1";
+            kernel_name += "_1D_WG";
+        }
 
-            params += " -DN=" + std::to_string(n);
-            params += " -DC=" + std::to_string(c);
-            params += " -DHW_IN=" + std::to_string(h_in * w_in);
-            params += " -DHW_OUT=" + std::to_string(h_out * w_out);
-            params += " -DW_IN=" + std::to_string(w_in);
-            params += " -DW_OUT=" + std::to_string(w_out);
-            params += " -DH_STRIDE=" + std::to_string(h_stride);
-            params += " -DW_STRIDE=" + std::to_string(w_stride);
-            params += " -DIN_OFF=" + std::to_string(in_offset);
-            params += " -DOUT_OFF=" + std::to_string(out_offset);
+        kernel_name += "_" + READ_TYPE;
 
-            size_t ld0 = WG_SIZE;
-            size_t gd0 = c * h_out * w_out;
-            const std::vector<size_t> vld{ld0, 1, 1};
-            std::vector<size_t> vgd{gd0, 1, 1};
+        auto&& kernels = handle.GetKernels(kernel_name, "");
+        if(!kernels.empty())
+        {
+            auto kernel = kernels.front();
+            kernel(in, out, in_offset, out_offset, RD_BLCK, HW_RD, n, c, h_out, w_out);
+        }
+        else
+        {
+            handle.AddKernel(kernel_name, "", program_name, kernel_name, vld, vgd, params)(
+                in, out, in_offset, out_offset, RD_BLCK, HW_RD, n, c, h_out, w_out);
+        }
+    }
+    else
+    {
+        kernel_name += "_V2";
 
-            if(gd0 < MAX_ACTIVE_THREADS)
-            {
-                vgd = {gd0, static_cast<size_t>(n), 1};
-                params += " -DIS_2D_WG=1";
-            }
-            else
-            {
-                params += " -DIS_2D_WG=0";
-            }
+        size_t ld0 = WG_SIZE;
+        size_t gd0 = c * h_out * w_out;
+        const std::vector<size_t> vld{ld0, 1, 1};
+        std::vector<size_t> vgd{gd0, 1, 1};
 
-            handle.AddKernel(
-                kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(in, out);
+        if(gd0 < MAX_ACTIVE_THREADS)
+        {
+            vgd = {gd0, static_cast<size_t>(n), 1};
+            kernel_name += "_2D_WG";
+        }
+        else
+        {
+            kernel_name += "_1D_WG";
+        }
+
+        const int hw_in  = h_in * w_in;
+        const int hw_out = h_out * w_out;
+
+        auto&& kernels = handle.GetKernels(kernel_name, "");
+        if(!kernels.empty())
+        {
+            auto kernel = kernels.front();
+            kernel(in,
+                   out,
+                   in_offset,
+                   out_offset,
+                   w_in,
+                   w_out,
+                   n,
+                   c,
+                   h_stride,
+                   w_stride,
+                   hw_in,
+                   hw_out);
+        }
+        else
+        {
+            handle.AddKernel(kernel_name, "", program_name, kernel_name, vld, vgd, params)(
+                in,
+                out,
+                in_offset,
+                out_offset,
+                w_in,
+                w_out,
+                n,
+                c,
+                h_stride,
+                w_stride,
+                hw_in,
+                hw_out);
         }
     }
 
