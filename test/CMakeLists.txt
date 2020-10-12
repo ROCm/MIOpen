@@ -733,6 +733,7 @@ COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 8  96  35 
 COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 8 128  35  35 --weights 256 128 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights
 COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 8 192  35  35 --weights 256 192 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights
 COMMAND ${FLEXGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 8 256  35  35 --weights 256 256 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights
+)
 
 add_custom_test(test_conv_igemm_dynamic_xdlops SKIP_UNLESS_ALL
 COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> --verbose --input  64  64 28 28 --weights 16  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
