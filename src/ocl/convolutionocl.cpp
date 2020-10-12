@@ -264,12 +264,12 @@ ConvolutionDescriptor::FindCellfftSolutions(Handle& handle,
                                             bool exhaustiveSearch,
                                             bool isForward,
                                             const ConvolutionUserBuffers& bufs,
-											const AnyInvokeParams& invoke_ctx) const
+                                            const AnyInvokeParams& invoke_ctx) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CELLFFT{}))
         return {};
-    const auto dir    = isForward ? conv::Direction::Forward : conv::Direction::BackwardData;
-    auto ctx          = ConvolutionContext{xDesc, wDesc, yDesc, *this, dir};
+    const auto dir = isForward ? conv::Direction::Forward : conv::Direction::BackwardData;
+    auto ctx       = ConvolutionContext{xDesc, wDesc, yDesc, *this, dir};
     ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
         miopen::FindMode(ctx).IsFastHybrid();
     ctx.use_dynamic_solutions_only = miopen::FindMode(ctx).IsDynamicHybrid();
@@ -282,7 +282,7 @@ ConvolutionDescriptor::FindCellfftSolutions(Handle& handle,
     ctx.SetupFloats();
     try
     {
-        return FindCellfftSolution(ctx,invoke_ctx);
+        return FindCellfftSolution(ctx, invoke_ctx);
     }
     catch(miopen::Exception& ex)
     {
@@ -743,8 +743,8 @@ static void DirConvFindCore(Handle& handle,
     {
         ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
         bufs.SetFwd(x, w, y);
-        const auto all =
-            conv.FindCellfftSolutions(handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx);
+        const auto all = conv.FindCellfftSolutions(
+            handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx);
         PrecompileSolutions(handle, all);
         const auto algorithm_name = AlgorithmName{"miopenConvolutionFwdAlgoCellfft"};
         EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
