@@ -263,22 +263,26 @@ ConvolutionDescriptor::FindCellfftSolutions(Handle& handle,
                                             const TensorDescriptor& yDesc,
                                             bool exhaustiveSearch,
                                             bool isForward,
-                                            const ConvolutionUserBuffers& bufs) const
+                                            const ConvolutionUserBuffers& bufs,
+											const AnyInvokeParams& invoke_ctx) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CELLFFT{}))
         return {};
     const auto dir    = isForward ? conv::Direction::Forward : conv::Direction::BackwardData;
     auto ctx          = ConvolutionContext{xDesc, wDesc, yDesc, *this, dir};
-    ctx.do_search     = exhaustiveSearch;
-    ctx.save_srch_req = true;
-    ctx.general_compile_options = "";
+    ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
+        miopen::FindMode(ctx).IsFastHybrid();
+    ctx.use_dynamic_solutions_only = miopen::FindMode(ctx).IsDynamicHybrid();
+    ctx.do_search                  = exhaustiveSearch;
+    ctx.save_srch_req              = true;
+    ctx.general_compile_options    = "";
     ctx.SetStream(&handle);
     ctx.SetBufs(bufs);
     ctx.DetectRocm();
     ctx.SetupFloats();
     try
     {
-        return FindCellfftSolution(ctx);
+        return FindCellfftSolution(ctx,invoke_ctx);
     }
     catch(miopen::Exception& ex)
     {
@@ -740,7 +744,7 @@ static void DirConvFindCore(Handle& handle,
         ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
         bufs.SetFwd(x, w, y);
         const auto all =
-            conv.FindCellfftSolutions(handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs);
+            conv.FindCellfftSolutions(handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx);
         PrecompileSolutions(handle, all);
         const auto algorithm_name = AlgorithmName{"miopenConvolutionFwdAlgoCellfft"};
         EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
@@ -2253,7 +2257,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
                 bufs.SetBwd(dx, w, dy);
                 const auto all = this->FindCellfftSolutions(
-                    handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, bufs);
+                    handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, bufs, invoke_ctx);
                 PrecompileSolutions(handle, all);
                 const auto algorithm_name = AlgorithmName{"miopenConvolutionBwdDataAlgoCellfft"};
                 EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
