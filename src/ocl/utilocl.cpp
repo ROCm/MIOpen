@@ -744,7 +744,7 @@ float transpose_NCHW2CNHW(const Handle& handle,
 
         kernel_name += "_" + READ_TYPE;
 
-        auto&& kernels = handle.GetKernels(kernel_name, "");
+        auto&& kernels = handle.GetKernels(kernel_name, "trans");
         if(!kernels.empty())
         {
             auto kernel = kernels.front();
@@ -752,7 +752,7 @@ float transpose_NCHW2CNHW(const Handle& handle,
         }
         else
         {
-            handle.AddKernel(kernel_name, "", program_name, kernel_name, vld, vgd, params)(
+            handle.AddKernel(kernel_name, "trans", program_name, kernel_name, vld, vgd, params)(
                 in, out, in_offset, out_offset, RD_BLCK, HW_RD, n, c, h_in, w_in);
         }
     }
@@ -764,21 +764,22 @@ float transpose_NCHW2CNHW(const Handle& handle,
         const int hw_out = h_out * w_out;
 
         size_t ld0 = WG_SIZE;
-        size_t gd0 = c * h_out * w_out;
+        size_t gd0 = h_out * w_out;
         const std::vector<size_t> vld{ld0, 1, 1};
         std::vector<size_t> vgd{gd0, 1, 1};
 
-        if(gd0 < MAX_ACTIVE_THREADS)
+        if((gd0 * c) < MAX_ACTIVE_THREADS)
         {
-            vgd = {gd0, static_cast<size_t>(n), 1};
+            vgd = {gd0, static_cast<size_t>(n), static_cast<size_t>(c)};
             kernel_name += "_2D_WG";
         }
         else
         {
+            vgd = {gd0, 1, static_cast<size_t>(c)};
             kernel_name += "_1D_WG";
         }
 
-        auto&& kernels = handle.GetKernels(kernel_name, "");
+        auto&& kernels = handle.GetKernels(kernel_name, "trans");
         if(!kernels.empty())
         {
             auto kernel = kernels.front();
@@ -797,7 +798,7 @@ float transpose_NCHW2CNHW(const Handle& handle,
         }
         else
         {
-            handle.AddKernel(kernel_name, "", program_name, kernel_name, vld, vgd, params)(
+            handle.AddKernel(kernel_name, "trans", program_name, kernel_name, vld, vgd, params)(
                 in,
                 out,
                 in_offset,
@@ -833,14 +834,6 @@ float transpose_CNHW2NCHW(const Handle& handle,
 {
 
     std::string program_name = "MIOpenUtilKernels4.cl";
-
-#if 0
-    std::string network_config = "n" + std::to_string(n) + "c" + std::to_string(c) + "h" +
-                                 std::to_string(h_in) + "w" + std::to_string(w_in) + "inoff" +
-                                 std::to_string(in_offset) + "otoff" + std::to_string(out_offset) +
-                                 "h_stride" + std::to_string(h_stride) + "w_stride" +
-                                 std::to_string(w_stride) + "t" + std::to_string(type);
-#endif
 
     std::string kernel_name = "transpose_CNHW2NCHW";
 
@@ -879,7 +872,7 @@ float transpose_CNHW2NCHW(const Handle& handle,
 
         kernel_name += "_" + READ_TYPE;
 
-        auto&& kernels = handle.GetKernels(kernel_name, "");
+        auto&& kernels = handle.GetKernels(kernel_name, "trans");
         if(!kernels.empty())
         {
             auto kernel = kernels.front();
@@ -887,7 +880,7 @@ float transpose_CNHW2NCHW(const Handle& handle,
         }
         else
         {
-            handle.AddKernel(kernel_name, "", program_name, kernel_name, vld, vgd, params)(
+            handle.AddKernel(kernel_name, "trans", program_name, kernel_name, vld, vgd, params)(
                 in, out, in_offset, out_offset, RD_BLCK, HW_RD, n, c, h_out, w_out);
         }
     }
@@ -896,13 +889,13 @@ float transpose_CNHW2NCHW(const Handle& handle,
         kernel_name += "_V2";
 
         size_t ld0 = WG_SIZE;
-        size_t gd0 = c * h_out * w_out;
+        size_t gd0 = h_out * w_out;
         const std::vector<size_t> vld{ld0, 1, 1};
-        std::vector<size_t> vgd{gd0, 1, 1};
+        std::vector<size_t> vgd{gd0, 1, static_cast<size_t>(c)};
 
         if(gd0 < MAX_ACTIVE_THREADS)
         {
-            vgd = {gd0, static_cast<size_t>(n), 1};
+            vgd = {gd0, static_cast<size_t>(n), static_cast<size_t>(c)};
             kernel_name += "_2D_WG";
         }
         else
@@ -913,7 +906,7 @@ float transpose_CNHW2NCHW(const Handle& handle,
         const int hw_in  = h_in * w_in;
         const int hw_out = h_out * w_out;
 
-        auto&& kernels = handle.GetKernels(kernel_name, "");
+        auto&& kernels = handle.GetKernels(kernel_name, "trans");
         if(!kernels.empty())
         {
             auto kernel = kernels.front();
@@ -932,7 +925,7 @@ float transpose_CNHW2NCHW(const Handle& handle,
         }
         else
         {
-            handle.AddKernel(kernel_name, "", program_name, kernel_name, vld, vgd, params)(
+            handle.AddKernel(kernel_name, "trans", program_name, kernel_name, vld, vgd, params)(
                 in,
                 out,
                 in_offset,
