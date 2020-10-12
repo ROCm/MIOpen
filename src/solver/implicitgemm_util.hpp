@@ -767,13 +767,20 @@ static inline auto get_ck_common_compiler_flag(const ConvolutionContext& ctx)
 {
     auto compiler_flag = std::string(" --std=c++14");
 
-    // HIP version
-    compiler_flag +=
-        std::string(" -DCK_HIP_VERSION_FLAT=") + std::to_string(HIP_PACKAGE_VERSION_FLAT);
-
     // atomic-fadd
     compiler_flag += std::string(" -DCK_USE_AMD_BUFFER_ATOMIC_FADD=") +
                      (support_amd_buffer_atomic_fadd(ctx) ? '1' : '0');
+
+    compiler_flag +=
+        std::string(" -DCK_BUFFER_FADD_RETURN_VOID=") +
+        std::to_string(miopen::HipCompilerVersion() < external_tool_version_t{3, 10, 20405});
+
+    // LDS sync
+    compiler_flag +=
+        std::string(" -DCK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM=") +
+        (miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM{})
+             ? '0'
+             : '1');
 
     // workaround
     compiler_flag +=

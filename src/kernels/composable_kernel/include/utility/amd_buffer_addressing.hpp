@@ -139,11 +139,11 @@ __llvm_amdgcn_buffer_store_bf16x4(ushort4_t vdata,
                                   bool slc) __asm("llvm.amdgcn.buffer.store.v4bf16");
 
 #if CK_USE_AMD_BUFFER_ATOMIC_FADD
-#if CK_HIP_VERSION_FLAT >= 3010020405
+#if CK_BUFFER_FADD_RETURN_VOID
+__device__ void
+#else
 // starting ROCm-3.10, the return type becomes float
 __device__ float
-#else
-__device__ void
 #endif
 __llvm_amdgcn_buffer_atomic_add_f32(float vdata,
                                     int32x4_t rsrc,

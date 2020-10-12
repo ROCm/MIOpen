@@ -335,4 +335,9 @@ bool external_tool_version_t::operator>=(const external_tool_version_t& rhs) con
         return false;
 }
 
+bool external_tool_version_t::operator<(const external_tool_version_t& rhs) const
+{
+    return rhs >= *this;
+}
+
 } // namespace miopen
