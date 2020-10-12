@@ -56,6 +56,7 @@ std::string inline GetDeviceNameFromMap(const std::string& name)
         {"gfx901", "gfx900"},
         {"gfx906", "gfx906"},
         {"gfx908", "gfx908"},
+        {"10.3.0 Sienna_Cichlid 18", "gfx1030"},
     };
 
     std::string n(name);
