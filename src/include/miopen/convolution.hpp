@@ -233,7 +233,8 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                           const TensorDescriptor& yDesc,
                           bool exhaustiveSearch,
                           bool isForward,
-                          const ConvolutionUserBuffers& bufs) const;
+                          const ConvolutionUserBuffers& bufs,
+                          const AnyInvokeParams& invoke_ctx) const;
 
     void ConvolutionForward(Handle& handle,
                             const void* alpha,

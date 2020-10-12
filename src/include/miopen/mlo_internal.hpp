@@ -256,7 +256,8 @@ FindAllBwdWrW2DSolutions(const miopen::ConvolutionContext& ctx,
                          const miopen::AnyInvokeParams& invoke_ctx);
 
 std::vector<miopen::solver::ConvSolution>
-FindAllFlexgemmSolutions(const miopen::ConvolutionContext& ctx);
+FindAllFlexgemmSolutions(const miopen::ConvolutionContext& ctx,
+                         const miopen::AnyInvokeParams& invoke_ctx);
 
 struct mlo_construct_base
 {

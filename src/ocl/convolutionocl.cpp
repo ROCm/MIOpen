@@ -263,7 +263,8 @@ ConvolutionDescriptor::FindFlexgemmSolutions(Handle& handle,
                                              const TensorDescriptor& yDesc,
                                              bool exhaustiveSearch,
                                              bool isForward,
-                                             const ConvolutionUserBuffers& bufs) const
+                                             const ConvolutionUserBuffers& bufs,
+                                             const miopen::AnyInvokeParams& invoke_ctx) const
 {
 
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_FLEXGEMM{}))
@@ -283,7 +284,7 @@ ConvolutionDescriptor::FindFlexgemmSolutions(Handle& handle,
 
     try
     {
-        return FindAllFlexgemmSolutions(ctx);
+        return FindAllFlexgemmSolutions(ctx, invoke_ctx);
     }
     catch(miopen::Exception& ex)
     {

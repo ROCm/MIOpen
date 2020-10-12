@@ -729,7 +729,7 @@ std::size_t ConvolutionDescriptor::ForwardBackwardGetWorkSpaceSizeFlexgemm(
 
     try
     {
-        const auto ss  = FindAllFlexgemmSolutions(ctx);
+        const auto ss  = FindAllFlexgemmSolutions(ctx, {});
         std::size_t sz = 0;
         for(const auto& solution : ss)
         {
