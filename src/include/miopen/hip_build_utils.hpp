@@ -26,11 +26,32 @@
 #ifndef MIOPEN_GUARD_MLOPEN_HIP_BUILD_UTILS_HPP
 #define MIOPEN_GUARD_MLOPEN_HIP_BUILD_UTILS_HPP
 
+#include <miopen/config.h>
 #include <miopen/kernel.hpp>
 #include <miopen/tmp_dir.hpp>
 #include <miopen/write_file.hpp>
 #include <boost/optional.hpp>
 #include <string>
+
+#ifndef HIP_PACKAGE_VERSION_MAJOR
+#define HIP_PACKAGE_VERSION_MAJOR 0
+#endif
+#ifndef HIP_PACKAGE_VERSION_MINOR
+#define HIP_PACKAGE_VERSION_MINOR 0
+#endif
+#ifndef HIP_PACKAGE_VERSION_PATCH
+#define HIP_PACKAGE_VERSION_PATCH 0
+#endif
+
+// 3 decimal digits for major and minor, 6 digits for patch number.
+// Max number is 999,999,999999 == 0xE8,D4A5,0FFF that fits into 64-bit math.
+#if HIP_PACKAGE_VERSION_MAJOR > 999 || HIP_PACKAGE_VERSION_MAJOR > 999 || \
+    HIP_PACKAGE_VERSION_PATCH > 999999
+#error "Too big HIP version number(s)"
+#endif
+#define HIP_PACKAGE_VERSION_FLAT                                                   \
+    ((HIP_PACKAGE_VERSION_MAJOR * 1000ULL + HIP_PACKAGE_VERSION_MINOR) * 1000000 + \
+     HIP_PACKAGE_VERSION_PATCH)
 
 namespace miopen {
 
