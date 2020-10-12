@@ -789,7 +789,7 @@ ConvolutionDescriptor::GetWorkspaceSizeCellfft(const miopen::ConvolutionContext&
 
     try
     {
-        const auto ss  = FindCellfftSolution(ctx);
+        const auto ss  = FindCellfftSolution(ctx, {});
         std::size_t sz = 0;
         for(const auto& sol : ss)
         {
@@ -928,7 +928,7 @@ std::size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeCellfft(
 
     try
     {
-        const auto ss  = FindCellfftSolution(ctx);
+        const auto ss  = FindCellfftSolution(ctx, {});
         std::size_t sz = 0;
         for(const auto& sol : ss)
         {
