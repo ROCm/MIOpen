@@ -111,7 +111,7 @@ struct AtomicAddData
                         *reinterpret_cast<const vector_t*>(&p_src[src_offset]));
     }
 
-#if CK_USE_AMD_BUFFER_ADDRESSING && CK_USE_AMD_BUFFER_ATOMIC_ADD
+#if CK_USE_AMD_BUFFER_ADDRESSING && CK_USE_AMD_BUFFER_ATOMIC_FADD
     // buffer_atomic_add requires:
     //   1) p_src must be in vgpr space, d_dst must be global memory
     //   2) p_dst to be a block-invariant pointer.
