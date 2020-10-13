@@ -33,6 +33,7 @@
 #include <miopen/solver_id.hpp>
 #include <miopen/names.hpp>
 #include <miopen/invoke_params.hpp>
+#include <miopen/db_record.hpp>
 
 #include <boost/any.hpp>
 
@@ -539,6 +540,22 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                                     const TensorDescriptor& xDesc,
                                                     const TensorDescriptor& dwDesc,
                                                     solver::Id solver_id) const;
+
+    void DirConvFindCore(Handle& handle,
+                            const TensorDescriptor& xDesc,
+                            ConstData_t x,
+                            const TensorDescriptor& wDesc,
+                            ConstData_t w,
+                            const TensorDescriptor& yDesc,
+                            Data_t y,
+                            Data_t workSpace,
+                            size_t workSpaceSize,
+                            bool exhaustiveSearch,
+                            DbRecord& record,
+                            const ConvolutionContext& ctx,
+                            bool use_winograd_only) const;
+
+
 };
 
 void ConvolutionBackwardBias(const Handle& handle,
