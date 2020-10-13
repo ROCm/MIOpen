@@ -82,8 +82,13 @@ __llvm_amdgcn_raw_buffer_store_bf16(ushort vdata,
                                     index_t soffset,
                                     index_t glc_slc) __asm("llvm.amdgcn.raw.buffer.store.bf16");
 
-#if CK_USE_AMD_BUFFER_ATOMIC_ADD
+#if CK_USE_AMD_BUFFER_ATOMIC_FADD
+#if CK_HIP_VERSION_FLAT >= 3010020405
+// starting ROCm-3.10, the return type becomes float
+__device__ float
+#else
 __device__ void
+#endif
 __llvm_amdgcn_buffer_atomic_add_f32(float vdata,
                                     int32x4_t rsrc,
                                     index_t vindex,
@@ -109,7 +114,7 @@ __device__ void amd_buffer_store(const T* p_src,
                                  index_t dst_thread_data_offset,
                                  index_t dst_const_data_offset);
 
-#if CK_USE_AMD_BUFFER_ATOMIC_ADD
+#if CK_USE_AMD_BUFFER_ATOMIC_FADD
 template <typename T, index_t VectorSize>
 __device__ void amd_buffer_atomic_add(const T* p_src,
                                       T* p_dst_block,
@@ -602,7 +607,7 @@ __device__ void amd_buffer_store<ushort, 4>(const ushort* p_src,
                                      false);
 }
 
-#if CK_USE_AMD_BUFFER_ATOMIC_ADD
+#if CK_USE_AMD_BUFFER_ATOMIC_FADD
 template <>
 __device__ void amd_buffer_atomic_add<float, 1>(const float* p_src,
                                                 float* p_dst_block,
@@ -650,7 +655,7 @@ __device__ void amd_buffer_atomic_add<float, 4>(const float* p_src,
             &p_src[i], p_dst_block, dst_thread_data_offset, dst_const_data_offset + i);
     }
 }
-#endif // CK_USE_AMD_BUFFER_ATOMIC_ADD
+#endif // CK_USE_AMD_BUFFER_ATOMIC_FADD
 
 } // namespace ck
 #endif
