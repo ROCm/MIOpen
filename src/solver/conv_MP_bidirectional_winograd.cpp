@@ -208,7 +208,10 @@ inline bool IsApplicableTransform(const ConvolutionContext& params)
         }
     }
 
-    assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
 
     {
         unsigned int const waves_in_group = 512 / wave_size;
