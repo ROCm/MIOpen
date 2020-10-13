@@ -3799,7 +3799,7 @@ void ConvolutionBackwardBias(const Handle& handle,
     params += GetDataTypeKernelParams(dyDesc.GetType());
 
     const std::vector<size_t> vld = {lcl_grp_size0, size_t{1}, size_t{1}};
-    const std::vector<size_t> vgd = {lcl_grp_size0, size_t{1024}, size_t{1}};
+    const std::vector<size_t> vgd = {lcl_grp_size0, size_t{256}, size_t{1}};
 
     auto&& kernels = handle.GetKernels(algo_name, network_config);
     if(!kernels.empty())
