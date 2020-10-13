@@ -25,8 +25,8 @@
  *******************************************************************************/
 
 #include <cstddef>
-#include "miopen/solver.hpp"
-#include "miopen/handle.hpp"
+#include <miopen/solver.hpp>
+#include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include "implicitgemm_util.hpp"
@@ -114,14 +114,14 @@ GetImplicitGemmWrwGTCDynamicXdlopsKernelList()
 static inline int GetImplicitGemmWrwGTCDynamicXdlopsGemmkSplits(
     const conv::ProblemDescription& conv_problem, const int GemmKPerBlock, const int grid_size)
 {
-    int n                   = conv_problem.GetInBatchSize();
-    int ho                  = conv_problem.GetInHeight();
-    int wo                  = conv_problem.GetInWidth();
+    const auto n             = conv_problem.GetInBatchSize();
+    const auto ho            = conv_problem.GetInHeight();
+    const auto wo            = conv_problem.GetInWidth();
+    const auto max_grid_size = 1200;
+
     int gemm_k_global_split = 0;
-
-    int max_grid_size = 1200;
-
     int n_per_group;
+
     for(int i = 0; i < 8; i++)
     {
         if((grid_size << i) > max_grid_size)
@@ -147,19 +147,19 @@ static inline int GetImplicitGemmWrwGTCDynamicXdlopsGemmkSplits(
 static inline std::tuple<int, int> get_grid_size(const ConvolutionContext& ctx,
                                                  const TunableImplicitGemmGTCDynamic_t* tunable)
 {
-    int k = ctx.n_inputs;
-    int c = ctx.n_outputs;
-    int y = ctx.kernel_size_h;
-    int x = ctx.kernel_size_w;
+    const auto k = ctx.n_inputs;
+    const auto c = ctx.n_outputs;
+    const auto y = ctx.kernel_size_h;
+    const auto x = ctx.kernel_size_w;
 
-    int gemm_m_per_block         = tunable->gemm_m_per_block;
-    int gemm_n_per_block         = tunable->gemm_n_per_block;
-    int gemm_k_per_block         = tunable->gemm_k_per_block;
-    int gemm_k_global_split      = tunable->gemm_k_global_split;
-    int log2_gemm_k_global_split = 0;
+    const auto gemm_m_per_block    = tunable->gemm_m_per_block;
+    const auto gemm_n_per_block    = tunable->gemm_n_per_block;
+    const auto gemm_k_per_block    = tunable->gemm_k_per_block;
+    const auto gemm_k_global_split = tunable->gemm_k_global_split;
+    int log2_gemm_k_global_split   = 0;
 
-    int gemm_m = k;
-    int gemm_n = c * y * x;
+    const auto gemm_m = k;
+    const auto gemm_n = c * y * x;
 
     // assume that gemm m/n can be divided with no remainder by gemm m/n per block
     int grid_size = (gemm_m / gemm_m_per_block) * (gemm_n / gemm_n_per_block);
@@ -204,16 +204,16 @@ static inline int if_gemm_k_global_split(const ConvolutionContext& ctx,
                                          const int gemm_k_per_block)
 {
     int gemm_k_global_split = 0;
-    int n                   = ctx.batch_sz;
-    int k                   = ctx.n_inputs;
-    int c                   = ctx.n_outputs;
-    int ho                  = ctx.in_height;
-    int wo                  = ctx.in_width;
-    int y                   = ctx.kernel_size_h;
-    int x                   = ctx.kernel_size_w;
+    const auto n            = ctx.batch_sz;
+    const auto k            = ctx.n_inputs;
+    const auto c            = ctx.n_outputs;
+    const auto ho           = ctx.in_height;
+    const auto wo           = ctx.in_width;
+    const auto y            = ctx.kernel_size_h;
+    const auto x            = ctx.kernel_size_w;
 
-    int gemm_m = k;
-    int gemm_n = c * y * x;
+    const auto gemm_m = k;
+    const auto gemm_n = c * y * x;
 
     int max_grid_size = 1200;
 
@@ -242,30 +242,30 @@ static inline float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
     float elapsed = 0.0f;
 
     auto kernel = kernels[0];
-    // clang-format off
-    int hi           = conv_problem.GetOutHeight();
-    int wi           = conv_problem.GetOutWidth();
-    int n            = conv_problem.GetInBatchSize();
-    int k            = conv_problem.GetInChannels();
-    int c            = conv_problem.GetOutChannels();
-    int ho           = conv_problem.GetInHeight();
-    int wo           = conv_problem.GetInWidth();
-    int stride_h     = conv_problem.GetInHeight() > 1 ? conv_problem.GetKernelStrideH() : 1;
-    int stride_w     = conv_problem.GetInWidth() > 1 ? conv_problem.GetKernelStrideW() : 1;
-    int dilation_h   = conv_problem.GetWeightsHeight() > 1? conv_problem.GetDilationH() : 1;
-    int dilation_w   = conv_problem.GetWeightsWidth() > 1? conv_problem.GetDilationW() : 1;
-    int pad_h        = conv_problem.GetPadH();
-    int pad_w        = conv_problem.GetPadW();
-    int y            = conv_problem.GetWeightsHeight();
-    int x            = conv_problem.GetWeightsWidth();
-    
-    //std::cout << "nchiwi: " << n << " " << c  << " " << hi << " " << wi << std::endl;
-    //std::cout << "nkhowo: " << n << " " << k  << " " << ho << " " << wo << std::endl;
-    //std::cout << "kcyx: " << k << " " << c  << " " << y << " " << x << std::endl;
-    
-    MIOPEN_LOG_I2(kernel.GetName() << " with groups for reduction: " << (1 << log2_gemm_k_global_splits));
 
-    // clang-format on
+    int hi         = conv_problem.GetOutHeight();
+    int wi         = conv_problem.GetOutWidth();
+    int n          = conv_problem.GetInBatchSize();
+    int k          = conv_problem.GetInChannels();
+    int c          = conv_problem.GetOutChannels();
+    int ho         = conv_problem.GetInHeight();
+    int wo         = conv_problem.GetInWidth();
+    int stride_h   = conv_problem.GetInHeight() > 1 ? conv_problem.GetKernelStrideH() : 1;
+    int stride_w   = conv_problem.GetInWidth() > 1 ? conv_problem.GetKernelStrideW() : 1;
+    int dilation_h = conv_problem.GetWeightsHeight() > 1 ? conv_problem.GetDilationH() : 1;
+    int dilation_w = conv_problem.GetWeightsWidth() > 1 ? conv_problem.GetDilationW() : 1;
+    int pad_h      = conv_problem.GetPadH();
+    int pad_w      = conv_problem.GetPadW();
+    int y          = conv_problem.GetWeightsHeight();
+    int x          = conv_problem.GetWeightsWidth();
+
+    // std::cout << "nchiwi: " << n << " " << c  << " " << hi << " " << wi << std::endl;
+    // std::cout << "nkhowo: " << n << " " << k  << " " << ho << " " << wo << std::endl;
+    // std::cout << "kcyx: " << k << " " << c  << " " << y << " " << x << std::endl;
+
+    MIOPEN_LOG_I2(kernel.GetName() << " with groups for reduction: "
+                                   << (1 << log2_gemm_k_global_splits));
+
     std::vector<OpKernelArg> opArgs;
     opArgs.emplace_back(src);
     opArgs.emplace_back(wei);
@@ -299,19 +299,19 @@ static inline float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
 static inline std::tuple<bool, int>
 FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
 {
-    int n               = ctx.batch_sz;
-    int k               = ctx.n_inputs;
-    int c               = ctx.n_outputs;
-    int ho              = ctx.in_height;
-    int wo              = ctx.in_width;
-    int y               = ctx.kernel_size_h;
-    int x               = ctx.kernel_size_w;
+    const auto n        = ctx.batch_sz;
+    const auto k        = ctx.n_inputs;
+    const auto c        = ctx.n_outputs;
+    const auto ho       = ctx.in_height;
+    const auto wo       = ctx.in_width;
+    const auto y        = ctx.kernel_size_h;
+    const auto x        = ctx.kernel_size_w;
     const auto stride_h = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
     const auto stride_w = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
 
-    int gemm_n = c * y * x;
-    int gemm_m = k;
-    int gemm_k = n * ho * wo;
+    const auto gemm_n = c * y * x;
+    const auto gemm_m = k;
+    const auto gemm_k = n * ho * wo;
 
     int gemm_m_per_block;
     int gemm_n_per_block;
