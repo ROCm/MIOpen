@@ -215,7 +215,8 @@ static_assert (output_n_stride * (batch_size + n_per_wave) < maxU31)
     .SGPR_ALLOC loop_cnt
     .SGPR_ALLOC stmp_offset
     .SGPR_ALLOC stmp
-    .SGPR_RESERVE_XNACK
+    //xnack disabled by default
+    //.SGPR_RESERVE_XNACK
     .SGPR_RESERVE_VCC
 
     .VGPR_ALLOC_FROM 0
