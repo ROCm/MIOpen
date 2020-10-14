@@ -30,6 +30,7 @@
 #include <miopen/algorithm.hpp>
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
+#include <miopen/hip_build_utils.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/stringutils.hpp>
