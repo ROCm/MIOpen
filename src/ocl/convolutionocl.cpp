@@ -695,7 +695,6 @@ static void DirConvFindCore(Handle& handle,
         }
     }
 
-
     // FFT algo
     if(!use_winograd_only && conv.GetSpatialDimension() == 2 &&
        miopen::all_of(conv.GetConvDilations(), [](auto v) { return v == 1; }) &&
