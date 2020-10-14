@@ -132,7 +132,6 @@ get_type_size in_type, in_elem_size
 get_type_size out_type, out_elem_size
 
 
-x_elem_size = 4
 lds_elem_size = 4
 
 waves_in_group = 8
@@ -155,6 +154,7 @@ static_assert(fdilation_w == 1)
 static_assert(fdilation_h == 1)
 
 .if xform_filter
+    x_elem_size     = out_elem_size
     in_tile_width   = xformx_f_size
     in_tile_height  = xformy_f_size
     out_tile_width  = xformx_d_size
@@ -185,6 +185,7 @@ static_assert(fdilation_h == 1)
     s_H_stride = d_H_stride
     s_W_stride = d_W_stride
 .elseif xform_data
+    x_elem_size     = out_elem_size
     in_tile_width   = xformx_d_size
     in_tile_height  = xformy_d_size
     out_tile_width  = xformx_d_size
@@ -206,6 +207,7 @@ static_assert(fdilation_h == 1)
     s_H_stride = d_H_stride
     s_W_stride = d_W_stride
 .elseif xform_output
+    x_elem_size     = in_elem_size
     in_tile_width   = xformx_d_size
     in_tile_height  = xformy_d_size
     out_tile_width  = xformx_o_size
@@ -1094,7 +1096,6 @@ skip_lds_init:
         i = 0
         .rept \num
             .if \elem_size == 2
-                v_cvt_f16_f32 v[\vsrc + i], v[\vsrc + i]
                 buffer_store_short v[\vsrc+i], v[\addr + i], s[o_desc:o_desc+3], 0, offen
             .else
                 buffer_store_dword v[\vsrc+i], v[\addr + i], s[o_desc:o_desc+3], 0, offen
@@ -1103,6 +1104,29 @@ skip_lds_init:
         .endr
     .endm
 
+.macro v_cvt dst, src, dst_type, src_type
+    .if \dst_type == \src_type
+        // no op
+    .elseif \dst_type == TYPE_FP32 && \src_type == TYPE_FP16
+        v_cvt_f32_f16 \dst, \src
+    .elseif \dst_type == TYPE_FP32 && \src_type == TYPE_BFP16
+        v_lshlrev_b32 \dst, 16, \src
+    .elseif \dst_type == TYPE_FP16 && \src_type == TYPE_FP32
+        v_cvt_f16_f32 \dst, \src
+    .elseif \dst_type == TYPE_BFP16 && \src_type == TYPE_FP32
+        v_lshrrev_b32 \dst, 16, \src // TODO: add rounding, etc
+    .else
+        assert(0) // unknown type or convertion is not implemented
+    .endif
+.endm
+
+.macro v_cvt_array base_v, n, dst_type, src_type
+    cvt_i = 0 // TODO: switch i to local scope
+    .rept \n
+        v_cvt v[\base_v + cvt_i], v[\base_v + cvt_i], \dst_type, \src_type
+        cvt_i = cvt_i + 1
+    .endr
+.endm
 
 lab_read_wave:
 
@@ -1141,13 +1165,8 @@ r_loop:
         // 1rx. xform
         s_wait (r_pipe_depth-1) * loads_per_phase, 0
 
-        .rept loads_per_phase
-            .if in_elem_size == 2
-                // convert data to fp32
-                v_cvt_f32_f16 v[xform_base + i], v[xform_base + i]
-            .endif
-            i = i + 1
-        .endr
+        v_cvt_array xform_base, loads_per_phase, TYPE_FP32, in_type
+
         winograd_xform xformx_o_size, xformx_f_size, xformx_d_size, fdilation_w, xform_base, vtmp, xform_mirror
 
 
@@ -1216,15 +1235,14 @@ r_loop:
         unpack_valn8 v[vtmp], v[w_const], \phase, v[n8_w_prev], v[n4hi_w_prev]
         v_cmp_lt_u32 vcc, v[vtmp], s[WS]
         s_wait (r_pipe_depth-1) * loads_per_phase, 0
+
         i = 0
         .rept loads_per_phase
             v_cndmask_b32 v[xform_base + i], 0, v[xform_base + i], vcc
-            .if in_elem_size == 2
-                // convert data to fp32
-                v_cvt_f32_f16 v[xform_base + i], v[xform_base + i]
-            .endif
             i = i + 1
         .endr
+        v_cvt_array xform_base, loads_per_phase, TYPE_FP32, in_type
+
         winograd_xform xformy_o_size, xformy_f_size, xformy_d_size, fdilation_h, xform_base, vtmp, xform_mirror
 
 
@@ -1404,6 +1422,9 @@ w_loop:
         .if use_exec_for_vmem
             s_mov_b64 exec, s[tile_w_mask:tile_w_mask+1]
         .endif
+
+        v_cvt_array store_base, stores_per_phase, out_type, TYPE_FP32
+
         vmem_stores store_base, vtmp, stores_per_phase, out_elem_size
         .if use_exec_for_vmem
             s_mov_b64 exec, -1
@@ -1467,6 +1488,9 @@ w_loop:
         .endr
         v_add_u32 v[x_cur_tile], s[tiles_step], v[x_cur_tile]
         v_add_u32 v[n8base_addr], s[addr_step], v[n8base_addr]
+
+        v_cvt_array store_base, stores_per_phase, out_type, TYPE_FP32
+
         vmem_stores store_base, vtmp, stores_per_phase, out_elem_size
 
         // 6w. check exit.
