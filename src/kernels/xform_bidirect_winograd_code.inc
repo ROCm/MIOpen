@@ -1139,6 +1139,14 @@ r_loop:
 
         // 1rx. xform
         s_wait (r_pipe_depth-1) * loads_per_phase, 0
+
+        .rept loads_per_phase
+            .if in_elem_size == 2
+                // convert data to fp32
+                v_cvt_f32_f16 v[xform_base + i], v[xform_base + i]
+            .endif
+            i = i + 1
+        .endr
         winograd_xform xformx_o_size, xformx_f_size, xformx_d_size, fdilation_w, xform_base, vtmp, xform_mirror
 
 
