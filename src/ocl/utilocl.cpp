@@ -699,13 +699,7 @@ float transpose_NCHW2CNHW(const Handle& handle,
 
     std::string program_name = "MIOpenUtilKernels4.cl";
 
-#if 0
-    std::string network_config = "n" + std::to_string(n) + "c" + std::to_string(c) + "h" +
-                                 std::to_string(h_in) + "w" + std::to_string(w_in) + "inoff" +
-                                 std::to_string(in_offset) + "otoff" + std::to_string(out_offset) +
-                                 "u" + std::to_string(h_stride) + "v" + std::to_string(w_stride) +
-                                 "t" + std::to_string(type);
-#endif
+    std::string network_config = "";
 
     std::string kernel_name = "transpose_NCHW2CNHW";
 
@@ -739,12 +733,13 @@ float transpose_NCHW2CNHW(const Handle& handle,
         }
         else
         {
+            vgd = {MAP_RD, 1, 1};
             kernel_name += "_1D_WG";
         }
 
         kernel_name += "_" + READ_TYPE;
 
-        auto&& kernels = handle.GetKernels(kernel_name, "trans");
+        auto&& kernels = handle.GetKernels(kernel_name, network_config);
         if(!kernels.empty())
         {
             auto kernel = kernels.front();
@@ -752,7 +747,8 @@ float transpose_NCHW2CNHW(const Handle& handle,
         }
         else
         {
-            handle.AddKernel(kernel_name, "trans", program_name, kernel_name, vld, vgd, params)(
+            handle.AddKernel(
+                kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
                 in, out, in_offset, out_offset, RD_BLCK, HW_RD, n, c, h_in, w_in);
         }
     }
@@ -779,7 +775,7 @@ float transpose_NCHW2CNHW(const Handle& handle,
             kernel_name += "_1D_WG";
         }
 
-        auto&& kernels = handle.GetKernels(kernel_name, "trans");
+        auto&& kernels = handle.GetKernels(kernel_name, network_config);
         if(!kernels.empty())
         {
             auto kernel = kernels.front();
@@ -798,7 +794,8 @@ float transpose_NCHW2CNHW(const Handle& handle,
         }
         else
         {
-            handle.AddKernel(kernel_name, "trans", program_name, kernel_name, vld, vgd, params)(
+            handle.AddKernel(
+                kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
                 in,
                 out,
                 in_offset,
@@ -834,6 +831,8 @@ float transpose_CNHW2NCHW(const Handle& handle,
 {
 
     std::string program_name = "MIOpenUtilKernels4.cl";
+
+    std::string network_config = "";
 
     std::string kernel_name = "transpose_CNHW2NCHW";
 
@@ -872,7 +871,7 @@ float transpose_CNHW2NCHW(const Handle& handle,
 
         kernel_name += "_" + READ_TYPE;
 
-        auto&& kernels = handle.GetKernels(kernel_name, "trans");
+        auto&& kernels = handle.GetKernels(kernel_name, network_config);
         if(!kernels.empty())
         {
             auto kernel = kernels.front();
@@ -880,7 +879,8 @@ float transpose_CNHW2NCHW(const Handle& handle,
         }
         else
         {
-            handle.AddKernel(kernel_name, "trans", program_name, kernel_name, vld, vgd, params)(
+            handle.AddKernel(
+                kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
                 in, out, in_offset, out_offset, RD_BLCK, HW_RD, n, c, h_out, w_out);
         }
     }
@@ -906,7 +906,7 @@ float transpose_CNHW2NCHW(const Handle& handle,
         const int hw_in  = h_in * w_in;
         const int hw_out = h_out * w_out;
 
-        auto&& kernels = handle.GetKernels(kernel_name, "trans");
+        auto&& kernels = handle.GetKernels(kernel_name, network_config);
         if(!kernels.empty())
         {
             auto kernel = kernels.front();
@@ -925,7 +925,8 @@ float transpose_CNHW2NCHW(const Handle& handle,
         }
         else
         {
-            handle.AddKernel(kernel_name, "trans", program_name, kernel_name, vld, vgd, params)(
+            handle.AddKernel(
+                kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
                 in,
                 out,
                 in_offset,
