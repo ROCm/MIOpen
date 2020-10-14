@@ -364,10 +364,6 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
 // ROCBLAS for GEMM step
 
 #if(MIOPEN_BACKEND_HIP && (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE))
-#if(!MIOPEN_USE_ROCBLAS)
-    if(!params.IsFp32())
-        return false;
-#endif
     static const int wino_data_tile   = std::max(WinoDataH, WinoDataW);
     static const int wino_filter_tile = std::max(WinoFilterH, WinoFilterW);
 
