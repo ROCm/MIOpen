@@ -60,7 +60,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F6X3)
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_WORKSPACE_MAX)
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_ENABLE_FP16_TRANSFORM)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM)
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 
@@ -76,17 +76,17 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
             solver::ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
                 GetSolverWinoXformHWSize();
 
-#define DEFINE_SHADER_ALIASES(params)                           \
-    const auto group_cnt = (params).group_counts;               \
-    const auto& N        = (params).batch_sz;                   \
-    const auto& K        = int((params).n_outputs / group_cnt); \
-    const auto& C        = int((params).n_inputs / group_cnt);  \
-    const auto& R        = (params).kernel_size_h;              \
-    const auto& S        = (params).kernel_size_w;              \
-    const auto& H        = (params).in_height;                  \
-    const auto& W        = (params).in_width;                   \
-    const auto& out_H    = (params).out_height;                 \
-    const auto& out_W    = (params).out_width;
+#define DEFINE_SHADER_ALIASES(params)                       \
+    const auto& group_cnt = (params).group_counts;          \
+    const auto& N         = (params).batch_sz;              \
+    const int K           = (params).n_outputs / group_cnt; \
+    const int C           = (params).n_inputs / group_cnt;  \
+    const auto& R         = (params).kernel_size_h;         \
+    const auto& S         = (params).kernel_size_w;         \
+    const auto& H         = (params).in_height;             \
+    const auto& W         = (params).in_width;              \
+    const auto& out_H     = (params).out_height;            \
+    const auto& out_W     = (params).out_width;
 
 #if MIOPEN_BACKEND_HIP
 #define GENERATE_MAIN_OPTIONS(options)                                     \
@@ -144,7 +144,7 @@ inline bool IsApplicableGEMM(const ConvolutionContext& params)
 #if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
 
     const miopenDataType_t transform_data_type =
-        miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_ENABLE_FP16_TRANSFORM{})
+        miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM{})
             ? params.in_data_type
             : miopenFloat;
 
@@ -222,7 +222,7 @@ inline bool IsApplicableTransform(const ConvolutionContext& params)
     DEFINE_SHADER_ALIASES(params)
     {
         const miopenDataType_t transform_data_type =
-            miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_ENABLE_FP16_TRANSFORM{})
+            miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM{})
                 ? params.in_data_type
                 : miopenFloat;
 
@@ -330,7 +330,7 @@ size_t ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::G
     const ConvolutionContext& params) const
 {
     const miopenDataType_t transform_data_type =
-        miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_ENABLE_FP16_TRANSFORM{})
+        miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM{})
             ? params.in_data_type
             : miopenFloat;
 
@@ -384,7 +384,7 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
                      GetTypeSize(params.weights_data_type));
 
     const miopenDataType_t transform_data_type =
-        miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_ENABLE_FP16_TRANSFORM{})
+        miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM{})
             ? params.in_data_type
             : miopenFloat;
     auto wino_in = GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(
@@ -616,7 +616,7 @@ ConvSolution ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilte
     const size_t g_wk_0 = n_groups * l_wk[0];
     const std::vector<size_t> g_wk{g_wk_0, 1, 1};
     const miopenDataType_t transform_data_type =
-        miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_ENABLE_FP16_TRANSFORM{})
+        miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM{})
             ? params.in_data_type
             : miopenFloat;
     std::ostringstream options_in;
@@ -695,7 +695,7 @@ ConvolutionContext ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDat
     DEFINE_GETXFORMHWSIZE(ctx)
     int batch_count = wino_xform_h * wino_xform_w * ctx.group_counts;
     const miopenDataType_t transform_data_type =
-        miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_ENABLE_FP16_TRANSFORM{})
+        miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM{})
             ? ctx.in_data_type
             : miopenFloat;
 
@@ -753,7 +753,7 @@ conv::DataInvokeParams GetTransformedInvokeContext(const ConvolutionContext& ctx
 {
 #if MIOPEN_BACKEND_HIP
     const miopenDataType_t transform_data_type =
-        miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_ENABLE_FP16_TRANSFORM{})
+        miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM{})
             ? ctx.in_data_type
             : miopenFloat;
     WinogradBufferInfo<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
@@ -763,7 +763,8 @@ conv::DataInvokeParams GetTransformedInvokeContext(const ConvolutionContext& ctx
             ctx, ConvWinoBuffType::Output, transform_data_type),
         wino_wei = GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(
             ctx, ConvWinoBuffType::Weight, transform_data_type);
-    // tidy error
+
+    // There are no unread variables, but the compiler still shows a warning.
     // cppcheck-suppress unreadVariable
     const WinoOffsets transform_offset(wino_in.buff_info.total_byte_size,
                                        wino_out.buff_info.total_byte_size);
