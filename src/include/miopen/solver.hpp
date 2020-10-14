@@ -120,7 +120,7 @@ struct SolverBase
     /// WTI or -2.0 when this value can't be computed. Tips:
     /// * Value 1.0 corresponds to the 100% utilization of HW capabilities as
     ///   if Direct computational algorithm is used.
-    /// * [Notice] WTI may exceed 1.0 hor highly optimized algorithms like Winograd.
+    /// * [Notice] WTI may exceed 1.0 for highly optimized algorithms like Winograd.
     /// * @see https://github.com/ROCmSoftwarePlatform/MIOpen/issues/410
     float GetWti(const Context&) const { return -2.0; }
 

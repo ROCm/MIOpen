@@ -1577,8 +1577,6 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
     // On regular path (find-db hit) this was checked during Find().
     ValidateGroupCount(inDesc, weightsDesc, *this);
 
-    auto i = std::size_t{0};
-
     std::vector<SolutionSortWrapper> interim;
     interim.reserve(maxSolutionCount); // For speed. In most cases we have less entries than asked.
 
@@ -1617,6 +1615,11 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
         interim.emplace_back(time, s.GetWorkspaceSize(ctx), solver_id.Value(), algo);
     }
 
+    // Dual purpose variable:
+    // * Used as index for writing into output array (solutions).
+    // * Counts the number of entries written, yielding value for solutionsCount.
+    auto i = std::size_t{0};
+
     if(!interim.empty())
     {
         std::sort(begin(interim), end(interim));
@@ -1631,13 +1634,18 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
         *solutionCount = i;
         /// Right now we do not have GetWti() for GEMM.
         /// And only those solutions that are faster than GEMM return WTI.
-        /// Therefore it is Ok for now to not use GEMM is some other solution is found.
+        /// Therefore it is Ok for now to not use GEMM if some other solution is found.
         /// \todo Rework this when we have GetWti() for GEMM.
         return;
     }
 
-    // GEMM. Remove/rework when GEMM Solver is ready.
-    if(problem.direction.IsForward())
+    /// Separate path for GEMM algo, intermediate implementation.
+    /// \todo Remove when GEMM Solver(s) ready.
+    if(i >= maxSolutionCount)
+    {
+        // Do nothing.
+    }
+    else if(problem.direction.IsForward())
     {
         if(IsGemmApplicableFwd(weightsDesc, inDesc, outDesc) && (i < maxSolutionCount))
         {
@@ -1687,8 +1695,6 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
         MIOPEN_THROW("Unknown direction");
     }
 
-    if(i < 1)
-        MIOPEN_LOG_I("No solution found");
     *solutionCount = i;
 }
 
