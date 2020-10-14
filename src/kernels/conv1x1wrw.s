@@ -306,7 +306,8 @@ part2_offset = part1_chunks * input_w_stride * active_lanes_in_part1_chunks
 .SGPR_ALLOC loop_begin_ptr, 2
 .SGPR_ALLOC wave_id // wave_id in group
 
-.SGPR_RESERVE_XNACK
+//xnack disabled by default
+//.SGPR_RESERVE_XNACK
 .SGPR_RESERVE_VCC
 
 .VGPR_ALLOC_FROM 0
