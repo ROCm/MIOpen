@@ -714,7 +714,7 @@ void ConvolutionDescriptor::DirConvFindCore(Handle& handle,
             (void)kernels_fft; // not used now, but needed as fft coverage widens
             if(workSpace != nullptr && workSpaceSize >= workspace_fft)
             {
-                float time_fft = this->ExecuteFwdFFTKernel(handle,
+                float time_fft = ExecuteFwdFFTKernel(handle,
                                                           xDesc,
                                                           x,
                                                           wDesc,
@@ -809,7 +809,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
             miopen::FindMode(ctx).IsFastHybrid();
         ctx.use_dynamic_solutions_only = miopen::FindMode(ctx).IsDynamicHybrid();
         perf_db = UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
-            this->DirConvFindCore(handle,
+            DirConvFindCore(handle,
                             xDesc,
                             x,
                             wDesc,
