@@ -352,7 +352,7 @@ void ConvolutionDescriptor::DirConvFindCore(Handle& handle,
 
         std::size_t wei_k = wDesc.GetLengths()[0];
 
-        std::size_t spatial_dim = this->GetSpatialDimension();
+        std::size_t spatial_dim = GetSpatialDimension();
 
         auto in_spatial  = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
         auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
@@ -361,15 +361,15 @@ void ConvolutionDescriptor::DirConvFindCore(Handle& handle,
         float time_gemm           = 0;
         const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
         // Use transpose path 1x1, stride=2
-        if(this->GetSpatialDimension() == 2 &&
+        if(GetSpatialDimension() == 2 &&
            miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-           miopen::all_of(this->GetConvPads(), [](auto v) { return v == 0; }) &&
-           miopen::all_of(this->GetConvStrides(), [](auto v) { return v == 2; }))
+           miopen::all_of(GetConvPads(), [](auto v) { return v == 0; }) &&
+           miopen::all_of(GetConvStrides(), [](auto v) { return v == 2; }))
         {
-            size_t workspace_req = this->ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc);
+            size_t workspace_req = ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc);
             if(workSpace != nullptr && workSpaceSize >= workspace_req)
             {
-                if(this->group_count > 1)
+                if(group_count > 1)
                 {
                     MIOPEN_LOG_FUNCTION("groupconv, 1x1 u2xv2");
                 }
@@ -390,8 +390,8 @@ void ConvolutionDescriptor::DirConvFindCore(Handle& handle,
                                     workSpace,
                                     0,
                                     0,
-                                    this->GetConvStrides()[0],
-                                    this->GetConvStrides()[1],
+                                    GetConvStrides()[0],
+                                    GetConvStrides()[1],
                                     xDesc.GetType());
                 time_gemm = handle.GetKernelTime();
 
@@ -426,8 +426,8 @@ void ConvolutionDescriptor::DirConvFindCore(Handle& handle,
                 FindDbKCacheKey kcache_key;
 
                 GemmDescriptor gemm_desc =
-                    this->group_count > 1 ? CreateGemmDescriptorGroupConvCNHWFwd(
-                                               wDesc, xDesc, yDesc, this->group_count)
+                    group_count > 1 ? CreateGemmDescriptorGroupConvCNHWFwd(
+                                               wDesc, xDesc, yDesc, group_count)
                                          : CreateGemmDescriptorConvCNHWFwd(wDesc, xDesc, yDesc);
 
                 miopenStatus_t gemm_status =
@@ -441,7 +441,7 @@ void ConvolutionDescriptor::DirConvFindCore(Handle& handle,
                                         x_t_size,
                                         &kcache_key,
                                         time_precision,
-                                        this->group_count > 1 ? callGemmStridedBatched : callGemm);
+                                        group_count > 1 ? callGemmStridedBatched : callGemm);
 
                 time_gemm += handle.GetKernelTime();
 
@@ -466,7 +466,7 @@ void ConvolutionDescriptor::DirConvFindCore(Handle& handle,
                 {
                     TensorDescriptor ygemmDesc(miopenInt32, yDesc.GetLengths(), yDesc.GetStrides());
 
-                    CastTensor(handle, &this->lowp_quant, ygemmDesc, y, yDesc, y, 0, 0);
+                    CastTensor(handle, &lowp_quant, ygemmDesc, y, yDesc, y, 0, 0);
                     time_gemm += handle.GetKernelTime();
                 }
 
@@ -479,10 +479,10 @@ void ConvolutionDescriptor::DirConvFindCore(Handle& handle,
         }
         // 1x1_stride=1 with GEMM and zero workspace
         else if(miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-                miopen::all_of(this->GetConvPads(), [](auto v) { return v == 0; }) &&
-                miopen::all_of(this->GetConvStrides(), [](auto v) { return v == 1; }))
+                miopen::all_of(GetConvPads(), [](auto v) { return v == 0; }) &&
+                miopen::all_of(GetConvStrides(), [](auto v) { return v == 1; }))
         {
-            if(this->group_count > 1)
+            if(group_count > 1)
             {
                 MIOPEN_LOG_FUNCTION("groupconv, 1x1");
             }
@@ -497,7 +497,7 @@ void ConvolutionDescriptor::DirConvFindCore(Handle& handle,
             size_t workspace_req       = 0;
             if(wDesc.GetType() == miopenInt8)
             {
-                workspace_req            = this->ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc);
+                workspace_req            = ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc);
                 GemmDescriptor gemm_desc = CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
 
                 std::size_t out_offset      = 0;
@@ -528,8 +528,8 @@ void ConvolutionDescriptor::DirConvFindCore(Handle& handle,
             else
             {
                 GemmDescriptor gemm_desc =
-                    this->group_count > 1
-                        ? CreateGemmDescriptorGroupConvFwd(wDesc, xDesc, yDesc, this->group_count)
+                    group_count > 1
+                        ? CreateGemmDescriptorGroupConvFwd(wDesc, xDesc, yDesc, group_count)
                         : CreateGemmStridedBatchedDescriptorConv1x1Fwd(wDesc, xDesc, yDesc);
 
                 gemm_status = CallGemmTimeMeasure(handle,
@@ -545,7 +545,7 @@ void ConvolutionDescriptor::DirConvFindCore(Handle& handle,
                                                   callGemmStridedBatched);
 
                 time_gemm = handle.GetKernelTime();
-                if(this->group_count > 1)
+                if(group_count > 1)
                     time_gemm *= in_n;
             }
 
@@ -554,7 +554,7 @@ void ConvolutionDescriptor::DirConvFindCore(Handle& handle,
             {
                 TensorDescriptor ygemmDesc(miopenInt32, yDesc.GetLengths(), yDesc.GetStrides());
 
-                CastTensor(handle, &this->lowp_quant, ygemmDesc, y, yDesc, y, 0, 0);
+                CastTensor(handle, &lowp_quant, ygemmDesc, y, yDesc, y, 0, 0);
                 time_gemm += handle.GetKernelTime();
             }
 
@@ -566,9 +566,9 @@ void ConvolutionDescriptor::DirConvFindCore(Handle& handle,
         }
         // if not 1x1
         else if(workSpace != nullptr &&
-                workSpaceSize >= (this->ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc)))
+                workSpaceSize >= (ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc)))
         {
-            if(this->group_count > 1)
+            if(group_count > 1)
             {
                 MIOPEN_LOG_FUNCTION("groupconv, non 1x1");
             }
@@ -581,16 +581,16 @@ void ConvolutionDescriptor::DirConvFindCore(Handle& handle,
             float time_im2col = 0;
             int in_offset     = 0;
             time_im2col       = Im2ColGPU(handle,
-                                    this->GetSpatialDimension(),
+                                    GetSpatialDimension(),
                                     x,
                                     in_offset,
                                     in_c,
                                     in_spatial,
                                     wei_spatial,
                                     out_spatial,
-                                    this->GetConvPads(),
-                                    this->GetConvStrides(),
-                                    this->GetConvDilations(),
+                                    GetConvPads(),
+                                    GetConvStrides(),
+                                    GetConvDilations(),
                                     workSpace,
                                     xDesc.GetType());
 
@@ -623,8 +623,8 @@ void ConvolutionDescriptor::DirConvFindCore(Handle& handle,
             FindDbKCacheKey kcache_key;
 
             GemmDescriptor gemm_desc =
-                this->group_count > 1
-                    ? CreateGemmDescriptorGroupConvFwd(wDesc, xDesc, yDesc, this->group_count)
+                group_count > 1
+                    ? CreateGemmDescriptorGroupConvFwd(wDesc, xDesc, yDesc, group_count)
                     : CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
 
             miopenStatus_t gemm_status = CallGemmTimeMeasure(
@@ -638,8 +638,8 @@ void ConvolutionDescriptor::DirConvFindCore(Handle& handle,
                 0,
                 &kcache_key,
                 time_precision,
-                this->group_count > 1 ? callGemmStridedBatched : callGemm,
-                (this->group_count > 1 || wDesc.GetType() == miopenInt8 ||
+                group_count > 1 ? callGemmStridedBatched : callGemm,
+                (group_count > 1 || wDesc.GetType() == miopenInt8 ||
                  wDesc.GetType() == miopenInt8x4 || wDesc.GetType() == miopenBFloat16)
                     ? GemmBackend_t::rocblas
                     : GemmBackend_t::miopengemm);
@@ -651,7 +651,7 @@ void ConvolutionDescriptor::DirConvFindCore(Handle& handle,
             {
                 TensorDescriptor ygemmDesc(miopenInt32, yDesc.GetLengths(), yDesc.GetStrides());
 
-                CastTensor(handle, &this->lowp_quant, ygemmDesc, y, yDesc, y, 0, 0);
+                CastTensor(handle, &lowp_quant, ygemmDesc, y, yDesc, y, 0, 0);
                 time_gemm += handle.GetKernelTime();
             }
 
@@ -659,7 +659,7 @@ void ConvolutionDescriptor::DirConvFindCore(Handle& handle,
                 record.SetValues("miopenConvolutionFwdAlgoGEMM",
                                  FindDbData{"gemm",
                                             time_gemm,
-                                            (this->ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc)),
+                                            (ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc)),
                                             kcache_key}); // Todo: gemm solver id?
         }
     }
@@ -671,7 +671,7 @@ void ConvolutionDescriptor::DirConvFindCore(Handle& handle,
 
     // Winograd algo
     {
-        const auto all = this->FindWinogradSolutions(ctx, invoke_ctx);
+        const auto all = FindWinogradSolutions(ctx, invoke_ctx);
         PrecompileSolutions(handle, all);
         const auto algorithm_name = AlgorithmName{"miopenConvolutionFwdAlgoWinograd"};
         EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
@@ -682,7 +682,7 @@ void ConvolutionDescriptor::DirConvFindCore(Handle& handle,
     {
         ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
         bufs.SetFwd(x, w, y);
-        const auto all = this->FindDataDirectSolutions(
+        const auto all = FindDataDirectSolutions(
             handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx);
         PrecompileSolutions(handle, all);
         const auto algorithm_name = AlgorithmName{"miopenConvolutionFwdAlgoDirect"};
@@ -694,7 +694,7 @@ void ConvolutionDescriptor::DirConvFindCore(Handle& handle,
     {
         ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
         bufs.SetFwd(x, w, y);
-        const auto all = this->FindDataImplicitGemmSolutions(
+        const auto all = FindDataImplicitGemmSolutions(
             handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx);
         PrecompileSolutions(handle, all);
         const auto algorithm_name = AlgorithmName{"miopenConvolutionFwdAlgoImplicitGEMM"};
@@ -702,13 +702,13 @@ void ConvolutionDescriptor::DirConvFindCore(Handle& handle,
     }
 
     // FFT algo
-    if(!use_winograd_only && this->GetSpatialDimension() == 2 &&
-       miopen::all_of(this->GetConvDilations(), [](auto v) { return v == 1; }) &&
-       this->group_count == 1 && wDesc.GetType() != miopenInt8 && wDesc.GetType() != miopenInt8x4)
+    if(!use_winograd_only && GetSpatialDimension() == 2 &&
+       miopen::all_of(GetConvDilations(), [](auto v) { return v == 1; }) &&
+       group_count == 1 && wDesc.GetType() != miopenInt8 && wDesc.GetType() != miopenInt8x4)
     {
         std::vector<KernelInvoke> kernels_fft;
-        size_t workspace_fft = this->ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
-        if(this->FindFwdFFTKernel(
+        size_t workspace_fft = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
+        if(FindFwdFFTKernel(
                handle, xDesc, wDesc, yDesc, workspace_fft, kernels_fft, network_config) == 0)
         {
             (void)kernels_fft; // not used now, but needed as fft coverage widens
