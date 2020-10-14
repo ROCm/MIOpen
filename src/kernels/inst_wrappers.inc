@@ -62,7 +62,7 @@
 
 // ADD_CO (gfx8 add)
 .macro _v_add_co_u32 dst, co, src0, src1, dpp=
-    .if ((.option.machine_version_major == 8) || ((.option.machine_version_major == 9) && (WORKAROUND_BUG_34765 == 1)))
+    .if (.option.machine_version_major == 8)
         v_add_u32 \dst, \co, \src0, \src1 \dpp
     .else
         v_add_co_u32 \dst, \co, \src0, \src1 \dpp
@@ -71,7 +71,7 @@
 
 // ADD_CO_CI (gfx8 addc)
 .macro _v_add_co_ci_u32 dst, co, src0, src1, ci, dpp=
-    .if ((.option.machine_version_major == 8) || ((.option.machine_version_major == 9) && (WORKAROUND_BUG_34765 == 1)))
+    .if (.option.machine_version_major == 8)
 		v_addc_u32 \dst, \co, \src0, \src1, \ci \dpp
     .else
 		v_addc_co_u32 \dst, \co, \src0, \src1, \ci \dpp
@@ -80,7 +80,7 @@
 
 // SUB_CO (gfx8 sub)
 .macro _v_sub_co_u32 dst, co, src0, src1, dpp=
-    .if ((.option.machine_version_major == 8) || ((.option.machine_version_major == 9) && (WORKAROUND_BUG_34765 == 1)))
+    .if (.option.machine_version_major == 8)
         v_sub_u32 \dst, \co, \src0, \src1 \dpp
     .else
         v_sub_co_u32 \dst, \co, \src0, \src1 \dpp
@@ -89,7 +89,7 @@
 
 // SUBREV_CO (gfx8 subrev)
 .macro _v_subrev_co_u32 dst, co, src0, src1, dpp=
-    .if ((.option.machine_version_major == 8) || ((.option.machine_version_major == 9) && (WORKAROUND_BUG_34765 == 1)))
+    .if (.option.machine_version_major == 8)
         v_subrev_u32 \dst, \co, \src0, \src1 \dpp
     .else
         v_subrev_co_u32 \dst, \co, \src0, \src1 \dpp
