@@ -29,11 +29,11 @@ cmake_policy(SET CMP0057 NEW)
 include(CTest)
 include(CheckCXXCompilerFlag)
 
-option( MIOPEN_TEST_ALL "Run the full test suite" OFF )
-option( MIOPEN_TEST_HALF "Test in half mode" OFF )
-option( MIOPEN_TEST_INT8 "Test in int8 mode" OFF )
-option( MIOPEN_TEST_BFLOAT16 "Test in bfloat16 mode" OFF )
-option( MIOPEN_TEST_GFX908 "Test arch gfx908 mode" OFF )
+option(MIOPEN_TEST_ALL "Run the full test suite" OFF )
+option(MIOPEN_TEST_HALF "Test in half mode" OFF )
+option(MIOPEN_TEST_INT8 "Test in int8 mode" OFF )
+option(MIOPEN_TEST_BFLOAT16 "Test in bfloat16 mode" OFF )
+option(MIOPEN_TEST_GFX908 "Test arch gfx908 mode" OFF )
 option(MIOPEN_TEST_CONV Off)
 option(MIOPEN_TEST_DEEPBENCH Off)
 option(MIOPEN_TEST_DRIVER_ITER_MODE Off)
@@ -54,10 +54,10 @@ find_package(Threads REQUIRED)
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C ${CMAKE_CFG_INTDIR})
 add_custom_target(tests)
 
-set(SKIP_TESTS test_conv3d test_conv3d_bias test_conv2d)
+set(SKIP_TESTS test_conv3d test_conv3d_bias)
 set(MIOPEN_TEST_FLOAT_ARG)
-set(SKIP_CONV3D Off CACHE BOOL "")
-set(SKIP_CONV2D_AUX Off CACHE BOOL "")
+set(MIOPEN_SKIP_CONV3D Off CACHE BOOL "")
+set(MIOPEN_SKIP_CONV2D_AUX Off CACHE BOOL "")
 
 if(MIOPEN_TEST_HALF)   
     if(MIOPEN_BACKEND_OPENCL)
@@ -392,7 +392,7 @@ COMMAND $<TARGET_FILE:test_lstm> --verbose --batch-size 32 --seq-len 3 --batch-s
 
 if(MIOPEN_TEST_CONV)
 
-if(SKIP_CONV3D)
+if(MIOPEN_SKIP_CONV3D)
 add_custom_test(test_conv_3d SKIP_UNLESS_ALL
 COMMAND $<TARGET_FILE:test_conv3d> --verbose --conv_dim_type conv3d --input 16    32   4    9     9  --weights    64    32   3  3    3  --pads_strides_dilations  0  0  0    2  2   2    1   1   1  --group-count   1   --cmode conv   --pmode   default
 COMMAND $<TARGET_FILE:test_conv3d> --verbose --conv_dim_type conv3d --input  4     3   4  227   227  --weights     4     3   3 11   11  --pads_strides_dilations  0  0  0    1  1   1    1   1   1  --group-count   1   --cmode conv   --pmode   default
@@ -416,7 +416,7 @@ endif()
 
 
 
-if(SKIP_CONV2D_AUX)
+if(MIOPEN_SKIP_CONV2D_AUX)
 
 set(IMPLICITGEMM_ARGS ${MIOPEN_TEST_FLOAT_ARG})
 # ./bin/MIOpenDriver conv -n 128 -c 1024 -H 14 -W 14 -k 2048 -y 1 -x 1 -p 0 -q 0 -u 2 -v 2 -l 1 -j 1 -m conv -g 1 -F 1 -t 1
