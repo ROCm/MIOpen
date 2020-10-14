@@ -541,7 +541,8 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                                     const TensorDescriptor& dwDesc,
                                                     solver::Id solver_id) const;
 
-    void DirConvFindCore(Handle& handle,
+    public:
+        void DirConvFindCore(Handle& handle,
                             const TensorDescriptor& xDesc,
                             ConstData_t x,
                             const TensorDescriptor& wDesc,
