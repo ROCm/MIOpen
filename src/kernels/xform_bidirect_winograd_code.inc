@@ -297,6 +297,7 @@ gid_x = 2
 .SGPR_ALLOC x_TW_stride
 .SGPR_ALLOC x_TH_stride
 .SGPR_ALLOC addr_step
+.SGPR_RESERVE_VCC
 
 .VGPR_ALLOC_FROM 0
 .VGPR_ALLOC tid
