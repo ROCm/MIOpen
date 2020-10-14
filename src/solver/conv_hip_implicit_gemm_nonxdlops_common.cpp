@@ -25,7 +25,6 @@
  *******************************************************************************/
 #include "miopen/solver.hpp"
 #include "miopen/handle.hpp"
-#include <miopen/generic_search.hpp>
 #include "miopen/stringutils.hpp"
 #include "implicitgemm_util.hpp"
 #include "miopen/implicitgemm_params.hpp"

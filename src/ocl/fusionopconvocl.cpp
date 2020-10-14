@@ -1,6 +1,8 @@
 #include <miopen/fusion.hpp>
-#include <miopen/solver.hpp>
+
 #include <miopen/gcn_asm_utils.hpp>
+#include <miopen/invoke_params.hpp>
+#include <miopen/solver.hpp>
 
 namespace miopen {
 
@@ -32,7 +34,7 @@ ConvForwardOpDescriptor::GetCompileParms(std::string& compile_config,
                                          const std::vector<solver::AnySolver>& solvers)
 {
     mlo_construct_direct2D_fusion construct_params = ConstructParams(handle);
-    const auto solution                            = FindFirstSolution(construct_params, solvers);
+    const auto solution = FindFirstSolution(construct_params, solvers, {});
     if(!solution.Succeeded())
     {
         return solution.status;

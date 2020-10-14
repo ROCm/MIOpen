@@ -73,7 +73,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 2.7.0)
+rocm_setup_version(VERSION 2.8.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -131,9 +131,11 @@ option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD
 if(MIOPEN_EMBED_BUILD)
     option(BUILD_SHARED_LIBS "Build as a shared library" Off)
     option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." Off)
+    option(MIOPEN_BUILD_DRIVER "Build MIOpenDriver" Off)
 else()
     option(BUILD_SHARED_LIBS "Build as a shared library" ON)
     option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." On)
+    option(MIOPEN_BUILD_DRIVER "Build MIOpenDriver" On)
 endif()
 
 
@@ -346,7 +348,7 @@ endif()
 set(MIOPEN_SYSTEM_FIND_DB_SUFFIX "${MIOPEN_BACKEND}" CACHE PATH "Filename suffix for the system find-db files")
 
 
-set(MIOPEN_PACKAGE_REQS "rocm-utils, hip-hcc")
+set(MIOPEN_PACKAGE_REQS "rocm-clang-ocl, hip-rocclr")
 if(MIOPEN_USE_MIOPENGEMM)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, miopengemm")
 endif()
@@ -358,7 +360,7 @@ rocm_create_package(
     DESCRIPTION "AMD's DNN Library"
     MAINTAINER "Paul Fultz II <paul.fultz@amd.com>"
     LDCONFIG
-    # DEPENDS rocm-opencl rocm-utils hip-hcc tinygemm
+    # DEPENDS rocm-opencl hip-rocclr tinygemm
 )
 
 include(EnableCompilerWarnings)
@@ -504,7 +506,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 add_subdirectory(addkernels)
 add_subdirectory(doc)
 add_subdirectory(src)
-add_subdirectory(driver)
+if(MIOPEN_BUILD_DRIVER)
+    add_subdirectory(driver)
+endif()
 add_subdirectory(test)
 add_subdirectory(speedtests)
 add_subdirectory(utils)

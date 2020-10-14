@@ -36,11 +36,15 @@
 #include <vector>
 
 namespace miopen {
+
+struct AnyInvokeParams;
+
 namespace solver {
 
 template <class Solver, class Context, class Db>
-auto FindSolutionImpl(rank<1>, Solver s, const Context& context, Db& db)
-    -> decltype(s.GetSolution(context, s.Search(context)))
+auto FindSolutionImpl(
+    rank<1>, Solver s, const Context& context, Db& db, const AnyInvokeParams& invoke_ctx)
+    -> decltype(s.GetSolution(context, s.Search(context, invoke_ctx)))
 {
     const FindEnforce enforce;
     if(context.disable_perfdb_access)
@@ -86,7 +90,7 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, Db& db)
             MIOPEN_LOG_I("Starting search: " << SolverDbId(s) << ", enforce: " << enforce);
             try
             {
-                auto c = s.Search(context);
+                auto c = s.Search(context, invoke_ctx);
                 db.Update(context, SolverDbId(s), c);
                 return s.GetSolution(context, c);
             }
@@ -101,7 +105,7 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, Db& db)
 }
 
 template <class Solver, class Context, class Db>
-auto FindSolutionImpl(rank<0>, Solver s, const Context& context, Db&)
+auto FindSolutionImpl(rank<0>, Solver s, const Context& context, Db&, const AnyInvokeParams&)
     -> decltype(s.GetSolution(context))
 {
     MIOPEN_LOG_I(SolverDbId(s) << " (not searchable)");
@@ -115,12 +119,13 @@ auto FindSolutionImpl(rank<0>, Solver s, const Context& context, Db&)
 /// Could take long if an exhaustive search is requested/performed.
 /// May read/write perfDb.
 template <class Solver, class Context, class Db>
-ConvSolution FindSolution(Solver s, const Context& context, Db& db)
+ConvSolution
+FindSolution(Solver s, const Context& context, Db& db, const AnyInvokeParams& invoke_ctx)
 {
     static_assert(std::is_empty<Solver>{} && std::is_trivially_constructible<Solver>{},
                   "Solver must be stateless");
     // TODO: This assumes all solutions are ConvSolution
-    auto solution      = FindSolutionImpl(rank<1>{}, s, context, db);
+    auto solution      = FindSolutionImpl(rank<1>{}, s, context, db, invoke_ctx);
     solution.solver_id = SolverDbId(s);
     return solution;
 }
@@ -133,6 +138,7 @@ struct SolverContainer
     std::vector<Solution>
     SearchForAllSolutions(const Context& search_params,
                           Db&& db,
+                          const AnyInvokeParams& invoke_ctx,
                           std::size_t limit = std::numeric_limits<std::size_t>::max()) const
     {
         std::vector<Solution> ss;
@@ -145,9 +151,13 @@ struct SolverContainer
                 if(find_only.IsValid() && find_only != Id{SolverDbId(solver)})
                 { // Do nothing (and keep silence for the sake of Tuna), just skip.
                 }
-                else if(solver.IsApplicable(search_params))
+                else if(!solver.IsApplicable(search_params))
+                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Not applicable");
+                else if(search_params.use_dynamic_solutions_only && !solver.IsDynamic())
+                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Skipped (non-dynamic)");
+                else
                 {
-                    const Solution s = FindSolution(solver, search_params, db);
+                    const Solution s = FindSolution(solver, search_params, db, invoke_ctx);
                     if(s.Succeeded())
                     {
                         ++count;
@@ -165,10 +175,6 @@ struct SolverContainer
                                      << ": [Warning] Applicable Solver not succeeded.");
                     }
                 }
-                else
-                {
-                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Not applicable");
-                }
             },
             Solvers{}...);
         return ss;
@@ -183,14 +189,14 @@ struct SolverContainer
                 if(find_only.IsValid() && find_only != Id{SolverDbId(solver)})
                 { // Do nothing (and keep silence for the sake of Tuna), just skip.
                 }
-                else if(solver.IsApplicable(search_params))
+                else if(!solver.IsApplicable(search_params))
+                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Not applicable");
+                else if(search_params.use_dynamic_solutions_only && !solver.IsDynamic())
+                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Skipped (non-dynamic)");
+                else
                 {
                     auto sz = solver.GetWorkspaceSize(search_params);
                     res.push_back(std::make_pair(SolverDbId(solver), sz));
-                }
-                else
-                {
-                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Not applicable");
                 }
             },
             Solvers{}...);
