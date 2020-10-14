@@ -212,7 +212,8 @@ max_hw_lcnt = 15
 .SGPR_ALLOC loop_n_cnt
 .SGPR_ALLOC loop_h_cnt
 .SGPR_ALLOC wave_id // wave_id in group
-.SGPR_RESERVE_XNACK
+//xnack disabled by default
+//.SGPR_RESERVE_XNACK
 .SGPR_RESERVE_VCC
 
 

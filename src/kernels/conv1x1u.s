@@ -280,7 +280,8 @@ raw_filter_dword_k_cnt = 1
     .SGPR_ALLOC_ONCE loop_cnt
     .SGPR_ALLOC_ONCE stmp_offset
     .SGPR_ALLOC_ONCE stmp
-    .SGPR_RESERVE_XNACK
+    //xnack disabled by default
+    //.SGPR_RESERVE_XNACK
     .SGPR_RESERVE_VCC
 
     .VGPR_ALLOC_FROM 0

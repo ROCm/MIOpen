@@ -846,10 +846,10 @@ skip_write:
 .rodata
 .p2align 6
 
-__sgpr_reserve_vcc = 1
-__sgpr_reserve_xnack = 0
-__sgpr_reserve_flatscr = 0
-__amdhsa_next_free_sgpr = SGPR_COUNT - (2 * (__sgpr_reserve_flatscr + __sgpr_reserve_xnack + __sgpr_reserve_vcc))
+__sgpr_reserve_vcc_default = 1
+__sgpr_reserve_xnack_default = 0
+__sgpr_reserve_flatscr_default = 0
+__amdhsa_next_free_sgpr = SGPR_COUNT - (2 * (__sgpr_reserve_flatscr_default + __sgpr_reserve_xnack_default + __sgpr_reserve_vcc_default))
 
 .amdhsa_kernel miopenConv5x10u2v2b1
         .amdhsa_dx10_clamp 0
@@ -858,9 +858,9 @@ __amdhsa_next_free_sgpr = SGPR_COUNT - (2 * (__sgpr_reserve_flatscr + __sgpr_res
         .amdhsa_float_round_mode_16_64 0
         .amdhsa_float_denorm_mode_32 0
         .amdhsa_float_denorm_mode_16_64 0
-        .amdhsa_reserve_flat_scratch __sgpr_reserve_flatscr
-        .amdhsa_reserve_xnack_mask __sgpr_reserve_xnack
-        .amdhsa_reserve_vcc __sgpr_reserve_vcc
+        .amdhsa_reserve_flat_scratch __sgpr_reserve_flatscr_default
+        .amdhsa_reserve_xnack_mask __sgpr_reserve_xnack_default
+        .amdhsa_reserve_vcc __sgpr_reserve_vcc_default
         .amdhsa_system_sgpr_workgroup_id_x 1
         .amdhsa_system_sgpr_workgroup_id_y 1
         .amdhsa_system_sgpr_workgroup_id_z 1
