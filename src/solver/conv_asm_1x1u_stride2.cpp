@@ -491,8 +491,10 @@ bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& params) const
     {
         return false;
     }
-
-    assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
 
     const auto elements_in_dword = 4 / GetTypeSize(params.in_data_type);
     // clang-format off
