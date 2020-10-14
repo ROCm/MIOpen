@@ -18,14 +18,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SY
 #define WORKAROUND_SWDEV_229564 1
 // workaround for buffer load/store fp16/bfp16 intrinsic bug
 #define WORKAROUND_SWDEV_231101 1
-// LLVM xdlops instrinsic will do unnecessey VGRP <--> AGPR movement, and result in
-// register spill, for bfloat16 datatype, when doing wave-wise GEMM larger than 64x64
-#define WORKAROUND_SWDEV_240356 1
 // due to compiler bug, iGEMM xdlops kernels fail verification in some cases, if using "-O3" flag,
 // (but will pass verification with "-O1" flag)
 #define WORKAROUND_SWDEV_251757 1
-// workaround failure of ConvHipImplicitGemmV4R4GenWrWXdlops with vector load
-#define WORKAROUND_ISSUE_2532 1
 
 namespace miopen {
 
@@ -107,12 +102,28 @@ struct ConvolutionContextInterpreter
 
     static auto GetBatchN(const ConvolutionContext& c) { return c.batch_sz; }
 
+    static auto GetOutputLayout(const ConvolutionContext& c)
+    {
+        if(c.direction.IsForward())
+            return c.out_layout;
+        else
+            return c.in_layout;
+    }
+
     static auto GetOutputChannelK(const ConvolutionContext& c)
     {
         if(c.direction.IsForward())
             return c.n_outputs;
         else
             return c.n_inputs;
+    }
+
+    static auto GetInputLayout(const ConvolutionContext& c)
+    {
+        if(c.direction.IsForward())
+            return c.in_layout;
+        else
+            return c.out_layout;
     }
 
     static auto GetInputChannelC(const ConvolutionContext& c)
@@ -172,6 +183,8 @@ struct ConvolutionContextInterpreter
     }
 
     static auto GetFilterDepthZ(const ConvolutionContext& c) { return c.kernel_size_d; }
+
+    static auto GetFilterLayout(const ConvolutionContext& c) { return c.weights_layout; }
 
     static auto GetFilterHeightY(const ConvolutionContext& c) { return c.kernel_size_h; }
 
@@ -688,10 +701,10 @@ static inline bool use_amd_inline_asm(const ConvolutionContext& ctx)
     return !miopen::IsDisabled(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM{});
 }
 
-static inline bool support_amd_buffer_atomic_add(const ConvolutionContext& ctx)
+static inline bool support_amd_buffer_atomic_fadd(const ConvolutionContext& ctx)
 {
     const auto device_name = ctx.GetStream().GetDeviceName();
-    return StartsWith(device_name, "gfx908") && ctx.IsFp32();
+    return StartsWith(device_name, "gfx908");
 }
 
 template <typename T>
@@ -767,6 +780,26 @@ int amd_lds_write_max_length()
 }
 
 constexpr std::size_t get_lds_max_number_of_byte() { return 65536; }
+
+static inline auto get_ck_common_compiler_flag(const ConvolutionContext& ctx)
+{
+    auto compiler_flag = std::string(" --std=c++14");
+
+    // HIP version
+    compiler_flag +=
+        std::string(" -DCK_HIP_VERSION_FLAT=") + std::to_string(HIP_PACKAGE_VERSION_FLAT);
+
+    // atomic-fadd
+    compiler_flag += std::string(" -DCK_USE_AMD_BUFFER_ATOMIC_FADD=") +
+                     (support_amd_buffer_atomic_fadd(ctx) ? '1' : '0');
+
+    // workaround
+    compiler_flag +=
+        std::string(" -DCK_WORKAROUND_SWDEV_229564=") + std::to_string(WORKAROUND_SWDEV_229564) +
+        std::string(" -DCK_WORKAROUND_SWDEV_231101=") + std::to_string(WORKAROUND_SWDEV_231101);
+
+    return compiler_flag;
+}
 
 } // namespace solver
 } // namespace miopen

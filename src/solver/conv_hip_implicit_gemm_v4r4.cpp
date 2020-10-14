@@ -700,7 +700,6 @@ ConvSolution ConvHipImplicitGemmV4R4Fwd::GetSolution(const ConvolutionContext& c
 
     // clang-format off
     construction_parameters.comp_options =
-        std::string(" -std=c++14 ") +
         std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(ConvolutionContextInterpreter::GetBatchN(ctx)) +
         std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(ConvolutionContextInterpreter::GetOutputChannelK(ctx)) +
         std::string(" -DCK_PARAM_PROBLEM_C=") + std::to_string(ConvolutionContextInterpreter::GetInputChannelC(ctx)) +
@@ -743,6 +742,7 @@ ConvSolution ConvHipImplicitGemmV4R4Fwd::GetSolution(const ConvolutionContext& c
         std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size) +
         std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
+        get_ck_common_compiler_flag(ctx) +
         ctx.general_compile_options;
 
         if (ctx.Is3d()){
