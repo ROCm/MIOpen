@@ -218,6 +218,12 @@ FindAllGemmSolutions(const miopen::ConvolutionContext& ctx,
     return GetGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
 }
 
+std::vector<std::pair<std::string, size_t>>
+AllGemmWorkspaceSize(const miopen::ConvolutionContext& ctx)
+{
+    return GetGemmSolvers().GetWorkspaceSize(ctx);
+}
+
 std::vector<miopen::solver::ConvSolution>
 FindAllDirectSolutions(const miopen::ConvolutionContext& ctx,
                        const miopen::AnyInvokeParams& invoke_ctx)

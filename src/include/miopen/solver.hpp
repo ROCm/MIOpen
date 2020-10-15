@@ -1889,26 +1889,97 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops : SolverBase<ConvolutionContext>
     PerformanceImplicitGemmWrwV4R4Xdlops Search(const ConvolutionContext&,
                                                 const AnyInvokeParams& invoke_ctx) const;
 };
-struct GemmFwd : SolverBase<ConvolutionContext>
+
+struct GemmFwdBase : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
+};
+
+struct GemmFwd1x1_0_2 : GemmFwdBase
 {
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const
     {
         return GetWorkspaceSize(ctx, ctx.conv_problem);
     }
 
+    bool IsApplicable(const ConvolutionContext& ctx) const
+    {
+        return IsApplicable(ctx, ctx.conv_problem);
+    }
+
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const
+    {
+        return GetSolution(ctx, ctx.conv_problem);
+    }
+
     size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
+    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
+    ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
+};
+
+struct GemmFwd1x1_0_1_int8 : GemmFwdBase
+{
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const
+    {
+        return GetWorkspaceSize(ctx, ctx.conv_problem);
+    }
 
     bool IsApplicable(const ConvolutionContext& ctx) const
     {
         return IsApplicable(ctx, ctx.conv_problem);
     }
 
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const
+    {
+        return GetSolution(ctx, ctx.conv_problem);
+    }
+
+    size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
     bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
+    ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
+};
+
+struct GemmFwd1x1_0_1 : GemmFwdBase
+{
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const
+    {
+        return GetWorkspaceSize(ctx, ctx.conv_problem);
+    }
+
+    bool IsApplicable(const ConvolutionContext& ctx) const
+    {
+        return IsApplicable(ctx, ctx.conv_problem);
+    }
 
     ConvSolution GetSolution(const ConvolutionContext& ctx) const
     {
         return GetSolution(ctx, ctx.conv_problem);
     }
+
+    size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
+    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
+    ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
+};
+
+struct GemmFwd3 : GemmFwdBase
+{
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const
+    {
+        return GetWorkspaceSize(ctx, ctx.conv_problem);
+    }
+
+    bool IsApplicable(const ConvolutionContext& ctx) const
+    {
+        return IsApplicable(ctx, ctx.conv_problem);
+    }
+
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const
+    {
+        return GetSolution(ctx, ctx.conv_problem);
+    }
+
+    size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
+    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
     ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
 };
 
