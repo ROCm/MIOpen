@@ -34,7 +34,6 @@ option(MIOPEN_TEST_HALF "Test in half mode" OFF )
 option(MIOPEN_TEST_INT8 "Test in int8 mode" OFF )
 option(MIOPEN_TEST_BFLOAT16 "Test in bfloat16 mode" OFF )
 option(MIOPEN_TEST_GFX908 "Test arch gfx908 mode" OFF )
-option(MIOPEN_TEST_CONV Off)
 option(MIOPEN_TEST_DEEPBENCH Off)
 option(MIOPEN_TEST_DRIVER_ITER_MODE Off)
 
@@ -57,7 +56,9 @@ add_custom_target(tests)
 set(SKIP_TESTS test_conv3d test_conv3d_bias)
 set(MIOPEN_TEST_FLOAT_ARG)
 set(MIOPEN_SKIP_CONV3D Off CACHE BOOL "")
+set(MIOPEN_SKIP_CONV2D Off CACHE BOOL "")
 set(MIOPEN_SKIP_CONV2D_AUX Off CACHE BOOL "")
+set(MIOPEN_SKIP_ALL_BUT_CONV2D Off CACHE BOOL "")
 
 if(MIOPEN_TEST_HALF)   
     if(MIOPEN_BACKEND_OPENCL)
@@ -77,6 +78,14 @@ elseif(MIOPEN_TEST_GFX908)
     set(SKIP_TESTS test_main test_tensor_scale test_tensor_set test_tensor_transform test_tensor_vec test_w_supertensor test_dropout test_immed_conv3d test_conv3d test_soft_max test_fusion_aux test_activation test_lrn_test test_ctc test_conv2d_bias test_conv3d_bias test_cba_inference test_cbna_inference test_pooling2d test_na_train test_na_inference test_bn_aux test_conv_igemm_dynamic $SKIP_TESTS)
 endif()
 
+
+if(MIOPEN_SKIP_ALL_BUT_CONV2D)
+    set(SKIP_ALL_EXCEPT_TESTS test_conv2d test_conv_igemm_dynamic test_conv_group test_conv_igemm_dynamic test_conv_igemm_dynamic_small test_conv_trans)
+endif()
+
+if(MIOPEN_SKIP_CONV2D)
+    set(SKIP_TESTS test_conv2d test_conv_igemm_dynamic test_conv_group test_conv_igemm_dynamic test_conv_igemm_dynamic_small test_conv_trans)
+endif()
 
 function(add_test_command NAME EXE)
     if((NOT (NAME IN_LIST SKIP_ALL_EXCEPT_TESTS)) AND (MIOPEN_TEST_INT8 OR MIOPEN_TEST_BFLOAT16))
@@ -390,9 +399,9 @@ COMMAND $<TARGET_FILE:test_lstm> --verbose --batch-size 32 --seq-len 3 --batch-s
 
 
 
-if(MIOPEN_TEST_CONV)
 
-if(MIOPEN_SKIP_CONV3D)
+
+if(NOT MIOPEN_SKIP_CONV3D)
 add_custom_test(test_conv_3d SKIP_UNLESS_ALL
 COMMAND $<TARGET_FILE:test_conv3d> --verbose --conv_dim_type conv3d --input 16    32   4    9     9  --weights    64    32   3  3    3  --pads_strides_dilations  0  0  0    2  2   2    1   1   1  --group-count   1   --cmode conv   --pmode   default
 COMMAND $<TARGET_FILE:test_conv3d> --verbose --conv_dim_type conv3d --input  4     3   4  227   227  --weights     4     3   3 11   11  --pads_strides_dilations  0  0  0    1  1   1    1   1   1  --group-count   1   --cmode conv   --pmode   default
@@ -812,5 +821,4 @@ endif()
 )
 endif() 
 
-endif() 
 
