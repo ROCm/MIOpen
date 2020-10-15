@@ -33,9 +33,9 @@
 #pragma clang diagnostic ignored "-Wsometimes-uninitialized"
 #endif
 
-/*#ifdef __AMDGCN__
+#if(MIO_BN_GFX1030 == 1 && __AMDGCN__)
 #undef __AMDGCN__
-#endif*/
+#endif
 
 #include "batchnorm_functions.h"
 #include "activation_functions.h"
