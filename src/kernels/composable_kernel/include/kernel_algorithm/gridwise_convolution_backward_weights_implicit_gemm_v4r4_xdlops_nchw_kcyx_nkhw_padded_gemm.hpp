@@ -131,12 +131,14 @@ struct GridwiseConvolutionBackwardWeightsImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw
             make_tuple(Sequence<0, 1>{}, Sequence<3>{}, Sequence<2, 4>{}),
             make_tuple(Sequence<0>{}, Sequence<2>{}, Sequence<1>{}));
 
-        constexpr auto out_gemmg_gemmkpadd_gemmm_gemmkpack_global_desc = transform_tensor_descriptor(
-            out_gemmg_gemmktotal_gemmm_global_desc,
-            make_tuple(
-                PassThrough<GemmG>{}, Pad<Sequence<GemmKTotal - GemmKPad>, Sequence<0>, Sequence<GemmKPad>>{}, Pad<Sequence<GemmM - GemmMPad>, Sequence<0>, Sequence<GemmMPad>>{}),
-            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
-            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
+        constexpr auto out_gemmg_gemmkpadd_gemmm_gemmkpack_global_desc =
+            transform_tensor_descriptor(
+                out_gemmg_gemmktotal_gemmm_global_desc,
+                make_tuple(PassThrough<GemmG>{},
+                           Pad<Sequence<GemmKTotal - GemmKPad>, Sequence<0>, Sequence<GemmKPad>>{},
+                           Pad<Sequence<GemmM - GemmMPad>, Sequence<0>, Sequence<GemmMPad>>{}),
+                make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
+                make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
 
         constexpr auto out_gemmg_gemmk_gemmm_gemmkpack_global_desc = transform_tensor_descriptor(
             out_gemmg_gemmkpadd_gemmm_gemmkpack_global_desc,
@@ -197,15 +199,17 @@ struct GridwiseConvolutionBackwardWeightsImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw
 
         constexpr auto in_gemmg_gemmkpadd_gemmn_gemmkpack_global_desc = transform_tensor_descriptor(
             in_gemmg_gemmktotal_gemmn_global_desc,
-            make_tuple(
-                PassThrough<GemmG>{}, Pad<Sequence<GemmKTotal - GemmKPad>, Sequence<0>, Sequence<GemmKPad>>{}, PassThrough<GemmN - GemmNPad>{}),
+            make_tuple(PassThrough<GemmG>{},
+                       Pad<Sequence<GemmKTotal - GemmKPad>, Sequence<0>, Sequence<GemmKPad>>{},
+                       PassThrough<GemmN - GemmNPad>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
 
         constexpr auto in_gemmg_gemmk_gemmn_gemmkpack_global_desc = transform_tensor_descriptor(
             in_gemmg_gemmkpadd_gemmn_gemmkpack_global_desc,
-            make_tuple(
-                PassThrough<GemmG>{}, UnMerge<Sequence<GemmK, GemmKPack>>{}, Pad<Sequence<GemmN - GemmNPad>, Sequence<0>, Sequence<GemmNPad>>{}),
+            make_tuple(PassThrough<GemmG>{},
+                       UnMerge<Sequence<GemmK, GemmKPack>>{},
+                       Pad<Sequence<GemmN - GemmNPad>, Sequence<0>, Sequence<GemmNPad>>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
             make_tuple(Sequence<0>{}, Sequence<1, 3>{}, Sequence<2>{}));
 
@@ -218,18 +222,19 @@ struct GridwiseConvolutionBackwardWeightsImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw
         constexpr auto wei_gemmg_gemmm_gemmn_padding_global_desc = transform_tensor_descriptor(
             unfold_tensor_descriptor(
                 wei_gemmkblocks_g_kpergroup_cpergroup_y_x_global_desc, Number<3>{}, Number<5>{}),
-            make_tuple(
-                Merge<Sequence<G, GemmKBlocks>>{}, PassThrough<GemmM - GemmMPad>{}, Pad<Sequence<GemmN - GemmNPad>, Sequence<0>, Sequence<GemmNPad>>{}),
+            make_tuple(Merge<Sequence<G, GemmKBlocks>>{},
+                       PassThrough<GemmM - GemmMPad>{},
+                       Pad<Sequence<GemmN - GemmNPad>, Sequence<0>, Sequence<GemmNPad>>{}),
             make_tuple(Sequence<1, 0>{}, Sequence<2>{}, Sequence<3>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
 
         constexpr auto wei_gemmg_gemmm_gemmn_global_desc = transform_tensor_descriptor(
-                wei_gemmg_gemmm_gemmn_padding_global_desc,
-            make_tuple(
-                PassThrough<GemmG*GemmKBlocks>{}, Pad<Sequence<GemmM - GemmMPad>, Sequence<0>, Sequence<GemmMPad>>{}, PassThrough<GemmN>{}),
+            wei_gemmg_gemmm_gemmn_padding_global_desc,
+            make_tuple(PassThrough<GemmG * GemmKBlocks>{},
+                       Pad<Sequence<GemmM - GemmMPad>, Sequence<0>, Sequence<GemmMPad>>{},
+                       PassThrough<GemmN>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
-
 
         constexpr auto c_gemmm = wei_gemmg_gemmm_gemmn_global_desc.GetLengths()[1];
         constexpr auto c_gemmn = wei_gemmg_gemmm_gemmn_global_desc.GetLengths()[2];

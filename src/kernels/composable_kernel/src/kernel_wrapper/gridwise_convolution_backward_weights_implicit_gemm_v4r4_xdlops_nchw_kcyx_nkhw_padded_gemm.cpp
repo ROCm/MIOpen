@@ -138,9 +138,9 @@ extern "C" __global__
 
     // gridwise GEMM
     constexpr auto wkgrp_schd_order = NBlock1MBlock0;
-    constexpr auto GemmMPad = CK_GEMM_M_PAD;
-    constexpr auto GemmNPad = CK_GEMM_N_PAD;
-    constexpr auto GemmKPad = CK_GEMM_K_PAD;
+    constexpr auto GemmMPad         = CK_GEMM_M_PAD;
+    constexpr auto GemmNPad         = CK_GEMM_N_PAD;
+    constexpr auto GemmKPad         = CK_GEMM_K_PAD;
 
     constexpr auto gridwise_conv =
         GridwiseConvolutionBackwardWeightsImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw_padded_gemm<

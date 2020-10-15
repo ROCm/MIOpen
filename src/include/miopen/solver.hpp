@@ -1982,7 +1982,8 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops : SolverBase<ConvolutionContext>
                                                 const AnyInvokeParams& invoke_ctx) const;
 };
 
-struct PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm : Serializable<PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm>
+struct PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
+    : Serializable<PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm>
 {
     int GemmMPerBlock;
     int GemmNPerBlock;
@@ -1996,9 +1997,13 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm : Serializable<Performan
     bool GemmAThreadCopyMoreGemmK;
     bool GemmBThreadCopyMoreGemmKPack;
 
-    PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm(int, int, int, int, int, int, int, int, int, bool, bool);
+    PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm(
+        int, int, int, int, int, int, int, int, int, bool, bool);
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm();
-    PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm(bool) : PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm() {}
+    PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm(bool)
+        : PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm()
+    {
+    }
 
     template <class Self, class F>
     static void Visit(Self&& self, F f)
@@ -2037,8 +2042,10 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm : Serializable<Performan
 };
 struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm : SolverBase<ConvolutionContext>
 {
-    static std::tuple<int, int, int, int, int, int, int> CalculateGemmSize(const ConvolutionContext& ctx, int GemmMFactor, int GemmNFactor, int GemmKFactor);
-    PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm GetPerformanceConfig(const ConvolutionContext& ctx) const;
+    static std::tuple<int, int, int, int, int, int, int> CalculateGemmSize(
+        const ConvolutionContext& ctx, int GemmMFactor, int GemmNFactor, int GemmKFactor);
+    PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
+    GetPerformanceConfig(const ConvolutionContext& ctx) const;
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const;
     bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
                                   const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm& c) const;
@@ -2047,8 +2054,8 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm : SolverBase<ConvolutionCont
                              const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm& config,
                              bool disableConfigOverrideFromEnv = false) const;
 
-    PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm Search(const ConvolutionContext&,
-                                                const AnyInvokeParams& invoke_ctx) const;
+    PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
+    Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const;
 };
 
 struct AnySolver;
