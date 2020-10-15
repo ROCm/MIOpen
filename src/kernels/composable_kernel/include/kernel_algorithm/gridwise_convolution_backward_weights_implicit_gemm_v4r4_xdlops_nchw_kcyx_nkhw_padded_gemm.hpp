@@ -42,6 +42,9 @@ template <index_t GridSize,
           class GemmBBlockCopyDstAccessOrder,
           index_t GemmBBlockCopySrcDataPerRead_GemmKPack,
           index_t GemmBBlockCopyDstDataPerWrite_GemmKPack,
+          index_t GemmMPad,
+          index_t GemmNPad,
+          index_t GemmKPad,
           WorkgroupScheduleOrder WorkgroupSchdOrder,
           index_t GemmKBlocks>
 struct GridwiseConvolutionBackwardWeightsImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw_padded_gemm
@@ -50,7 +53,7 @@ struct GridwiseConvolutionBackwardWeightsImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw
                         const ABFloat* const __restrict__ p_out_global,
                         CFloat* const __restrict__ p_wei_global) const
     {
-        constexpr auto in_n_c_hi_wi_global_desc        = InGlobalDesc{};	
+        constexpr auto in_n_c_hi_wi_global_desc        = InGlobalDesc{};
         constexpr auto wei_k_cpergroup_y_x_global_desc = WeiGlobalDesc{};
         constexpr auto out_n_k_ho_wo_global_desc       = OutGlobalDesc{};
 
@@ -80,9 +83,9 @@ struct GridwiseConvolutionBackwardWeightsImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw
         constexpr index_t NSub = N / GemmKBlocks;
 
         constexpr index_t GemmG      = G * GemmKBlocks;
-        constexpr index_t GemmM      = KPerGroup;
-        constexpr index_t GemmN      = CPerGroup * Y * X + 45;
-        constexpr index_t GemmKTotal = NSub * Ho * Wo;
+        constexpr index_t GemmM      = KPerGroup + GemmMPad;
+        constexpr index_t GemmN      = CPerGroup * Y * X + GemmNPad;
+        constexpr index_t GemmKTotal = NSub * Ho * Wo + GemmKPad;
 
         static_assert(GemmKTotal % GemmKPack == 0,
                       "wrong! GemmKTotal should be multiple of GemmKPack");
@@ -128,8 +131,15 @@ struct GridwiseConvolutionBackwardWeightsImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw
             make_tuple(Sequence<0, 1>{}, Sequence<3>{}, Sequence<2, 4>{}),
             make_tuple(Sequence<0>{}, Sequence<2>{}, Sequence<1>{}));
 
-        constexpr auto out_gemmg_gemmk_gemmm_gemmkpack_global_desc = transform_tensor_descriptor(
+        constexpr auto out_gemmg_gemmkpadd_gemmm_gemmkpack_global_desc = transform_tensor_descriptor(
             out_gemmg_gemmktotal_gemmm_global_desc,
+            make_tuple(
+                PassThrough<GemmG>{}, Pad<Sequence<GemmKTotal - GemmKPad>, Sequence<0>, Sequence<GemmKPad>>{}, Pad<Sequence<GemmM - GemmMPad>, Sequence<0>, Sequence<GemmMPad>>{}),
+            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
+            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
+
+        constexpr auto out_gemmg_gemmk_gemmm_gemmkpack_global_desc = transform_tensor_descriptor(
+            out_gemmg_gemmkpadd_gemmm_gemmkpack_global_desc,
             make_tuple(
                 PassThrough<GemmG>{}, UnMerge<Sequence<GemmK, GemmKPack>>{}, PassThrough<GemmM>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
@@ -185,10 +195,17 @@ struct GridwiseConvolutionBackwardWeightsImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw
             make_tuple(Sequence<0>{}, Sequence<2, 3, 5>{}, Sequence<1, 4, 6>{}),
             make_tuple(Sequence<0>{}, Sequence<2>{}, Sequence<1>{}));
 
-        constexpr auto in_gemmg_gemmk_gemmn_gemmkpack_global_desc = transform_tensor_descriptor(
+        constexpr auto in_gemmg_gemmkpadd_gemmn_gemmkpack_global_desc = transform_tensor_descriptor(
             in_gemmg_gemmktotal_gemmn_global_desc,
             make_tuple(
-                PassThrough<GemmG>{}, UnMerge<Sequence<GemmK, GemmKPack>>{}, Pad<Sequence<CPerGroup* Y* X>, Sequence<0>, Sequence<45>>{}),
+                PassThrough<GemmG>{}, Pad<Sequence<GemmKTotal - GemmKPad>, Sequence<0>, Sequence<GemmKPad>>{}, PassThrough<GemmN - GemmNPad>{}),
+            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
+            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
+
+        constexpr auto in_gemmg_gemmk_gemmn_gemmkpack_global_desc = transform_tensor_descriptor(
+            in_gemmg_gemmkpadd_gemmn_gemmkpack_global_desc,
+            make_tuple(
+                PassThrough<GemmG>{}, UnMerge<Sequence<GemmK, GemmKPack>>{}, Pad<Sequence<GemmN - GemmNPad>, Sequence<0>, Sequence<GemmNPad>>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
             make_tuple(Sequence<0>{}, Sequence<1, 3>{}, Sequence<2>{}));
 
@@ -198,18 +215,18 @@ struct GridwiseConvolutionBackwardWeightsImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw
         static_assert(b_gemmk == GemmK && b_gemmn == GemmN && b_gemmkpack == GemmKPack,
                       "error B matrix");
         // weight tensor  C matrix
-        constexpr auto wei_gemmg_gemmm_gemmn_global_desc = transform_tensor_descriptor(
+        constexpr auto wei_gemmg_gemmm_gemmn_padding_global_desc = transform_tensor_descriptor(
             unfold_tensor_descriptor(
                 wei_gemmkblocks_g_kpergroup_cpergroup_y_x_global_desc, Number<3>{}, Number<5>{}),
             make_tuple(
-                Merge<Sequence<G, GemmKBlocks>>{}, PassThrough<GemmM>{}, PassThrough<GemmN>{}),
+                Merge<Sequence<G, GemmKBlocks>>{}, PassThrough<GemmM - GemmMPad>{}, Pad<Sequence<GemmN - GemmNPad>, Sequence<0>, Sequence<GemmNPad>>{}),
             make_tuple(Sequence<1, 0>{}, Sequence<2>{}, Sequence<3>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
 
-        constexpr auto wei_gemmg_gemmm_gemmn_padding_global_desc = transform_tensor_descriptor(
-                     wei_gemmg_gemmm_gemmn_global_desc,
+        constexpr auto wei_gemmg_gemmm_gemmn_global_desc = transform_tensor_descriptor(
+                wei_gemmg_gemmm_gemmn_padding_global_desc,
             make_tuple(
-                PassThrough<GemmG*GemmKBlocks>{}, PassThrough<GemmM>{}, Pad<Sequence<CPerGroup* Y* X>, Sequence<0>, Sequence<45>>{}),
+                PassThrough<GemmG*GemmKBlocks>{}, Pad<Sequence<GemmM - GemmMPad>, Sequence<0>, Sequence<GemmMPad>>{}, PassThrough<GemmN>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
 
@@ -229,7 +246,7 @@ struct GridwiseConvolutionBackwardWeightsImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw
             CFloat,
             decltype(out_gemmg_gemmk_gemmm_gemmkpack_global_desc),
             decltype(in_gemmg_gemmk_gemmn_gemmkpack_global_desc),
-            decltype(wei_gemmg_gemmm_gemmn_padding_global_desc),
+            decltype(wei_gemmg_gemmm_gemmn_global_desc),
             GemmMPerBlock,
             GemmNPerBlock,
             GemmKPerBlock,

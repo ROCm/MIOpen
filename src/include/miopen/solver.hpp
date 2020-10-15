@@ -1990,10 +1990,13 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm : Serializable<Performan
     int GemmMPerWave;
     int GemmNPerWave;
     int GemmKPack;
+    int GemmMFactor;
+    int GemmNFactor;
+    int GemmKFactor;
     bool GemmAThreadCopyMoreGemmK;
     bool GemmBThreadCopyMoreGemmKPack;
 
-    PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm(int, int, int, int, int, int, bool, bool);
+    PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm(int, int, int, int, int, int, int, int, int, bool, bool);
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm();
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm(bool) : PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm() {}
 
@@ -2006,6 +2009,9 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm : Serializable<Performan
         f(self.GemmMPerWave, "GemmMPerWave");
         f(self.GemmNPerWave, "GemmNPerWave");
         f(self.GemmKPack, "GemmKPack");
+        f(self.GemmMFactor, "GemmMFactor");
+        f(self.GemmNFactor, "GemmNFactor");
+        f(self.GemmKFactor, "GemmKFactor");
         f(self.GemmAThreadCopyMoreGemmK, "GemmAThreadCopyMoreGemmK");
         f(self.GemmBThreadCopyMoreGemmKPack, "GemmBThreadCopyMoreGemmKPack");
     }
@@ -2031,7 +2037,7 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm : Serializable<Performan
 };
 struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm : SolverBase<ConvolutionContext>
 {
-    static std::tuple<int, int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
+    static std::tuple<int, int, int, int, int, int, int> CalculateGemmSize(const ConvolutionContext& ctx, int GemmMFactor, int GemmNFactor, int GemmKFactor);
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm GetPerformanceConfig(const ConvolutionContext& ctx) const;
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const;
     bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
