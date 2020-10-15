@@ -10,8 +10,8 @@ namespace ck {
 __device__ void amd_assembly_outer_product_1x2(float a, float b0, float b1, float& c0, float& c1)
 {
     asm volatile("\n \
-            v_mac_f32 %0, %2, %3 \n \
-            v_mac_f32 %1, %2, %4 \n \
+            v_fmac_f32 %0, %2, %3 \n \
+            v_fmac_f32 %1, %2, %4 \n \
             "
                  : "=v"(c0), "=v"(c1)
                  : "v"(a), "v"(b0), "v"(b1), "0"(c0), "1"(c1));
@@ -22,10 +22,10 @@ __device__ void amd_assembly_outer_product_1x4(
     float a, float b0, float b1, float b2, float b3, float& c0, float& c1, float& c2, float& c3)
 {
     asm volatile("\n \
-            v_mac_f32 %0, %4, %5 \n \
-            v_mac_f32 %1, %4, %6 \n \
-            v_mac_f32 %2, %4, %7 \n \
-            v_mac_f32 %3, %4, %8 \n \
+            v_fmac_f32 %0, %4, %5 \n \
+            v_fmac_f32 %1, %4, %6 \n \
+            v_fmac_f32 %2, %4, %7 \n \
+            v_fmac_f32 %3, %4, %8 \n \
             "
                  : "=v"(c0), "=v"(c1), "=v"(c2), "=v"(c3)
                  : "v"(a), "v"(b0), "v"(b1), "v"(b2), "v"(b3), "0"(c0), "1"(c1), "2"(c2), "3"(c3));
