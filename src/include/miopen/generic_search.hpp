@@ -353,6 +353,7 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
         compile_and_run = c_and_r;
     }
 
+    std::vector<KernelInfo> kernels;
     for(const auto& current_config : all_configs)
     {
         float elapsed_time = 0.0f;
@@ -369,7 +370,6 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
 
             if(compile_and_run == "0")
             {
-                std::vector<KernelInfo> kernels;
                 for(auto&& kernel : current_solution.construction_params)
                 {
                     if(profile_h.HasProgram(kernel.kernel_file, kernel.comp_options))
@@ -377,7 +377,6 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
                     kernels.push_back(kernel);
                 }
 
-                std::vector<Program> programs = PrecompileKernels(profile_h, kernels);
                 continue;
             }
 
@@ -475,6 +474,11 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
         heartbeat.Monitor(
             ret != 0, elapsed_time, n_current, best_time, n_failed, n_runs_total, current_config);
         ++n_current;
+    }
+
+    if(compile_and_run == "0")
+    {
+        std::vector<Program> programs = PrecompileKernels(profile_h, kernels);
     }
 
     MIOPEN_LOG_W("Done: " << n_runs_total << '/' << n_failed << '/' << n_runs_total << ", best #"
