@@ -72,8 +72,8 @@ PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::PerformanceImplicitGemmWrwV4R4
 {
 }
 
-bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::operator==(
-    const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm& other) const
+bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::
+operator==(const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm& other) const
 {
     // clang-format off
     return GemmMPerBlock == other.GemmMPerBlock
@@ -641,7 +641,7 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsReallyValid(
     }
 
     // check LDS allocation
-    std::size_t lds_size      = 0;
+    std::size_t lds_size = 0;
     std::tie(lds_size, valid) = CalculateLdsNumberOfByte(ctx);
 
     return (valid and lds_size <= get_lds_max_number_of_byte());
@@ -872,12 +872,12 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetSolution(
     construction_parameters.kernel_name = "gridwise_convolution_backward_weights_implicit_gemm_"
                                           "v4r4_xdlops_nchw_kcyx_nkhw_padded_gemm";
 
-    int grid_size                     = 0;
-    int block_size                    = 0;
-    int GemmKBlocks                   = 1;
-    GemmKBlocks                       = config.CalculateGemmKBlocks(ctx);
-    std::tie(grid_size, std::ignore)  = config.CalculateGridSize(ctx);
-    grid_size                         = grid_size * GemmKBlocks;
+    int grid_size   = 0;
+    int block_size  = 0;
+    int GemmKBlocks = 1;
+    GemmKBlocks     = config.CalculateGemmKBlocks(ctx);
+    std::tie(grid_size, std::ignore) = config.CalculateGridSize(ctx);
+    grid_size = grid_size * GemmKBlocks;
     std::tie(block_size, std::ignore) = config.CalculateBlockSize();
 
     construction_parameters.l_wk.push_back(block_size);
