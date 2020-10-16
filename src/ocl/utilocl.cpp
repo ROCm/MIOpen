@@ -699,7 +699,7 @@ float transpose_NCHW2CNHW(const Handle& handle,
 
     std::string program_name = "MIOpenUtilKernels4.cl";
 
-    std::string network_config = "";
+    std::string network_config = "t" + std::to_string(type);
 
     std::string kernel_name = "transpose_NCHW2CNHW";
 
@@ -832,7 +832,7 @@ float transpose_CNHW2NCHW(const Handle& handle,
 
     std::string program_name = "MIOpenUtilKernels4.cl";
 
-    std::string network_config = "";
+    std::string network_config = "t" + std::to_string(type);
 
     std::string kernel_name = "transpose_CNHW2NCHW";
 
