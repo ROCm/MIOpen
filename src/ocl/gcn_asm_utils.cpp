@@ -23,10 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-/// Since 3.8.20403, ".amdhsa_reserve_xnack_mask 0" is not working without
-/// explicit "-mno-xnack" option.
-#define WORKAROUND_SWDEV_255735 1
+#include <miopen/gcn_asm_utils.hpp>
 
 #include <cctype>
 #include <cstdio>
@@ -35,7 +32,6 @@
 #include <miopen/config.h>
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
-#include <miopen/gcn_asm_utils.hpp>
 #include <miopen/manage_ptr.hpp>
 #include <miopen/write_file.hpp>
 #include <miopen/kernel.hpp>
@@ -171,19 +167,6 @@ static std::string CleanupPath(const char* p)
     return path;
 }
 
-static const std::string& GetXnackOption()
-{
-    static const std::string ret =
-#if WORKAROUND_SWDEV_255735
-        (miopen::HipCompilerVersion() >= miopen::external_tool_version_t{3, 8, 20403})
-            ? " -mno-xnack"
-            : "";
-#else
-        "";
-#endif
-    return ret;
-}
-
 /*
  * Temporary function which emulates online assembly feature of OpenCL-on-ROCm being developed.
  * Not intended to be used in production code, so error handling is very straghtforward,
@@ -196,7 +179,10 @@ std::string AmdgcnAssemble(const std::string& source, const std::string& params)
 
     std::ostringstream options;
     options << " -x assembler -target amdgcn--amdhsa";
-    options << GetXnackOption();
+#if WORKAROUND_SWDEV_255735
+    if(miopen::HipCompilerVersion() >= miopen::external_tool_version_t{3, 8, 20403})
+        options << " -mno-xnack";
+#endif
     /// \todo Hacky way to find out which CO version we need to assemble for.
     if(params.find("ROCM_METADATA_VERSION=5", 0) == std::string::npos) // Assume that !COv3 == COv2.
         if(GcnAssemblerSupportsNoCOv3()) // If assembling for COv2, then disable COv3.
@@ -261,9 +247,11 @@ static void AmdgcnAssembleQuiet(const std::string& source, const std::string& pa
 #ifdef __linux__
     std::stringstream clang_stdout_unused;
     const auto clang_path = GetGcnAssemblerPath();
-    const auto args = " -x assembler -target amdgcn--amdhsa " + GetXnackOption() + params + " " +
-                      source + " -o /dev/null" + // We do not need output file
-                      " 2>&1";                   // Keep console clean from error messages.
+    const auto args       = std::string(" -x assembler -target amdgcn--amdhsa") //
+                      + " " + params                                            //
+                      + " " + source                                            //
+                      + " -o /dev/null" + // We do not need output file
+                      " 2>&1";            // Keep console clean from error messages.
     MIOPEN_LOG_NQI2(clang_path << " " << args);
     const int clang_rc = miopen::exec::Run(clang_path + " " + args, nullptr, &clang_stdout_unused);
     if(clang_rc != 0)
