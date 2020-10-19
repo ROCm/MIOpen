@@ -112,35 +112,52 @@ bool FFT::IsApplicable(const ConvolutionContext& ctx) const
     // disable running any FFT based convolutions by checking this env variable
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT{}))
         return false;
-    if(!ctx.IsFp32() || ctx.spatial_dims != 2 || ctx.group_counts != 1)
-        return false;
-    if(ctx.kernel_dilation_h != 1 || ctx.kernel_dilation_w != 1)
+
+    const auto is_fwd   = ctx.direction.IsForward();
+    decltype(auto) conv = ctx.conv_problem.GetConv();
+    decltype(auto) xDesc = is_fwd ? ctx.conv_problem.GetIn() : ctx.conv_problem.GetOut();
+    decltype(auto) yDesc = is_fwd ? ctx.conv_problem.GetOut() : ctx.conv_problem.GetIn();
+    decltype(auto) wDesc = ctx.conv_problem.GetWeights();
+
+    if(xDesc.GetType() != miopenFloat || wDesc.GetType() != miopenFloat ||
+       yDesc.GetType() != miopenFloat)
         return false;
 
-    const auto cparam =
-        std::make_tuple(ctx.pad_h, ctx.pad_w, ctx.kernel_stride_h, ctx.kernel_stride_w);
+    int in_n, in_c, in_h, in_w;
+    std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(xDesc.GetLengths());
 
-    int in_n = ctx.batch_sz, in_c = ctx.n_inputs, in_h = ctx.in_height, in_w = ctx.in_width;
-    int out_n = ctx.batch_sz, out_c = ctx.n_outputs;
-    int wei_k = out_c, wei_c = in_c, wei_h = ctx.kernel_size_h, wei_w = ctx.kernel_size_w;
+    int out_n, out_c, out_h, out_w;
+    std::tie(out_n, out_c, out_h, out_w) = miopen::tien<4>(yDesc.GetLengths());
+
+    int wei_k, wei_c, wei_h, wei_w;
+    std::tie(wei_k, wei_c, wei_h, wei_w) = miopen::tien<4>(wDesc.GetLengths());
+
+    bool supported = true;
 
     // FFT convolutions only works for specific config(s)
     // coverage to expand gradually
 
-    auto supported = true;
-    supported      = supported && ((in_n < 1) || (in_n > 512));
-    supported      = supported && ((wei_k < 1) || (wei_k > 512));
-    supported      = supported && ((in_c * in_n) % 16 != 0);
-    supported      = supported && ((wei_c * wei_k) % 16 != 0);
-    supported      = supported && ((out_c * out_n) % 16 != 0);
+    supported = ((in_n < 1) || (in_n > 512)) ? false : supported;
+    supported = ((wei_k < 1) || (wei_k > 512)) ? false : supported;
+    supported = ((in_c * in_n) % 16 != 0) ? false : supported;
+    supported = ((wei_c * wei_k) % 16 != 0) ? false : supported;
+    supported = ((out_c * out_n) % 16 != 0) ? false : supported;
 
-    supported = supported && ((std::tie(in_h, in_w) != std::make_tuple(28, 28)) &&
-                              (std::tie(in_h, in_w) != std::make_tuple(27, 27)) &&
-                              (std::tie(in_h, in_w) != std::make_tuple(14, 14)) &&
-                              (std::tie(in_h, in_w) != std::make_tuple(7, 7)));
+    supported = ((std::tie(in_h, in_w) != std::make_tuple(28, 28)) &&
+                 (std::tie(in_h, in_w) != std::make_tuple(27, 27)) &&
+                 (std::tie(in_h, in_w) != std::make_tuple(14, 14)) &&
+                 (std::tie(in_h, in_w) != std::make_tuple(7, 7)))
+                    ? false
+                    : supported;
 
-    supported = supported && (std::tie(wei_h, wei_w) != std::make_tuple(5, 5));
-    supported = supported && (cparam != std::make_tuple(2, 2, 1, 1));
+    const auto cparam = std::make_tuple(conv.GetConvPads()[0],
+                                        conv.GetConvPads()[1],
+                                        conv.GetConvStrides()[0],
+                                        conv.GetConvStrides()[1]);
+
+    supported = (std::tie(wei_h, wei_w) != std::make_tuple(5, 5)) ? false : supported;
+    supported = (cparam != std::make_tuple(2, 2, 1, 1)) ? false : supported;
+    supported = (yDesc.GetType() != miopenFloat) ? false : supported;
 
     return supported;
 }
