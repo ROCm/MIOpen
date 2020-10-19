@@ -378,7 +378,7 @@ bool GemmFwd1x1_0_1_int8::IsApplicable(const ExecutionContext& context,
     if(miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
        miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
        miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 1; }) &&
-       wDesc.GetType() == miopenInt8)
+       wDesc.GetType() == miopenInt8 && conv.group_count == 1)
         return true;
 
     return false;
@@ -425,22 +425,8 @@ ConvSolution GemmFwd1x1_0_1_int8::GetSolution(const ExecutionContext& context,
 
     auto solution = ConvSolution{miopenStatusSuccess};
 
-    const GemmDescriptor gemm_desc =
-        conv.group_count > 1
-            ? CreateGemmDescriptorGroupConvFwd(wDesc, xDesc, yDesc, conv.group_count)
-            : CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
-
-    const auto group_count = conv.group_count;
-
-    if(group_count > 1)
-    {
-        solution.invoker_factory = [=](const std::vector<Kernel>&) {
-            return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {};
-        };
-    }
-    else
-    {
-    }
+    const GemmDescriptor gemm_desc = CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
+    const auto x_type              = xDesc.GetType();
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
@@ -452,8 +438,7 @@ ConvSolution GemmFwd1x1_0_1_int8::GetSolution(const ExecutionContext& context,
             const auto w             = conv_params.tensors.w;
             const auto y             = conv_params.tensors.out;
 
-            const std::string name = group_count > 1 ? "groupconv" : "convolution";
-            MIOPEN_LOG_FUNCTION(name + ", 1x1");
+            MIOPEN_LOG_FUNCTION("convolution, 1x1");
 
             if(workSpace == nullptr || workSpaceSize < workspace_req)
                 MIOPEN_THROW("Not enough workspace for GEMM");
@@ -470,21 +455,37 @@ ConvSolution GemmFwd1x1_0_1_int8::GetSolution(const ExecutionContext& context,
                 std::size_t in_offset = i * in_c * in_spatial_size;
 
                 transpose_packed_MN2NM(
-                    handle, in_c, in_spatial_size, in_offset, 0, x, workSpace, xDesc.GetType());
+                    handle, in_c, in_spatial_size, in_offset, 0, x, workSpace, x_type);
                 if(handle.IsProfilingEnabled())
                     time += handle.GetKernelTime();
 
-                gemm_status = CallGemmTimeMeasure(handle,
-                                                    gemm_desc,
-                                                    w,
-                                                    0,
-                                                    workSpace,
-                                                    0,
-                                                    y,
-                                                    out_offset,
-                                                    nullptr,
-                                                    time_precision,
-                                                    callGemm);
+                if(conv_params.type == InvokeType::Run)
+                {
+                    gemm_status = CallGemm(handle,
+                                           gemm_desc,
+                                           w,
+                                           0,
+                                           workSpace,
+                                           0,
+                                           y,
+                                           out_offset,
+                                           nullptr,
+                                           false);
+                }
+                else
+                {
+                    gemm_status = CallGemmTimeMeasure(handle,
+                                                      gemm_desc,
+                                                      w,
+                                                      0,
+                                                      workSpace,
+                                                      0,
+                                                      y,
+                                                      out_offset,
+                                                      nullptr,
+                                                      time_precision,
+                                                      callGemm);
+                }
 
                 if(gemm_status != miopenStatusSuccess)
                     MIOPEN_THROW("GEMM execution failure");
