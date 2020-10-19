@@ -425,12 +425,13 @@ ConvSolution GemmFwd1x1_0_1_int8::GetSolution(const ExecutionContext& context,
 
     auto solution = ConvSolution{miopenStatusSuccess};
 
+    TensorDescriptor ygemmDesc(miopenInt32, yDesc.GetLengths(), yDesc.GetStrides());
     const GemmDescriptor gemm_desc = CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
     const auto x_type              = xDesc.GetType();
+    const auto lowp_quant          = conv.lowp_quant;
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            float time_gemm          = 0;
             const auto& conv_params  = primitive_params.CastTo<conv::DataInvokeParams>();
             const auto& workSpace    = conv_params.workSpace;
             const auto workSpaceSize = conv_params.workSpaceSize;
@@ -496,7 +497,15 @@ ConvSolution GemmFwd1x1_0_1_int8::GetSolution(const ExecutionContext& context,
 
             if(conv_params.type != InvokeType::Run)
                 time *= in_n;
-            time_gemm += time;
+
+            CastTensor(handle, &lowp_quant, ygemmDesc, y, conv_params.tensors.outDesc, y, 0, 0);
+
+            if(handle.IsProfilingEnabled())
+            {
+                time += handle.GetKernelTime();
+                handle.ResetKernelTime();
+                handle.AccumKernelTime(time);
+            }
         };
     };
 #else
@@ -540,7 +549,7 @@ bool GemmFwd1x1_0_1::IsApplicable(const ExecutionContext& context,
 }
 
 ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
-                                            const conv::ProblemDescription& problem) const
+                                         const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     decltype(auto) handle = context.GetStream();
@@ -573,74 +582,148 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
 
     auto solution = ConvSolution{miopenStatusSuccess};
 
-    const GemmDescriptor gemm_desc =
-        conv.group_count > 1
-            ? CreateGemmDescriptorGroupConvFwd(wDesc, xDesc, yDesc, conv.group_count)
-            : CreateGemmStridedBatchedDescriptorConv1x1Fwd(wDesc, xDesc, yDesc);
+    const auto group_count = conv.group_count;
+    const auto lowp_quant  = conv.lowp_quant;
 
-    solution.invoker_factory = [=](const std::vector<Kernel>&) {
-        return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            float time_gemm         = 0;
-            const auto& conv_params = primitive_params.CastTo<conv::DataInvokeParams>();
-            const auto x            = conv_params.tensors.in;
-            const auto w            = conv_params.tensors.w;
-            const auto y            = conv_params.tensors.out;
+    if(group_count > 1)
+    {
+        solution.invoker_factory = [=](const std::vector<Kernel>&) {
+            MIOPEN_LOG_FUNCTION("groupconv, 1x1");
 
-            const std::string name = conv.group_count > 1 ? "groupconv" : "convolution";
-            MIOPEN_LOG_FUNCTION(name + ", 1x1");
+            GemmDescriptor gemm_desc =
+                CreateGemmDescriptorGroupConvFwd(wDesc, xDesc, yDesc, group_count);
 
-            // y = w * x
-            miopenStatus_t gemm_status = miopenStatusNotInitialized;
+            return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
+                float time_gemm         = 0;
+                const auto& conv_params = primitive_params.CastTo<conv::DataInvokeParams>();
+                const auto x            = conv_params.tensors.in;
+                const auto w            = conv_params.tensors.w;
+                const auto y            = conv_params.tensors.out;
 
-            const auto runs =
-                conv.group_count <= 1 ? 1 : conv_params.type == InvokeType::Run ? in_n : 1;
+                const std::string name = group_count > 1 ? "groupconv" : "convolution";
+                MIOPEN_LOG_FUNCTION(name + ", 1x1");
 
-            for(std::size_t i = 0; i < runs; i++)
-            {
-                std::size_t out_offset = i * wei_k * out_spatial_size;
-                std::size_t in_offset  = i * in_c * in_spatial_size;
+                // y = w * x
+                miopenStatus_t gemm_status = miopenStatusNotInitialized;
 
-                gemm_status = CallGemmTimeMeasure(handle,
-                                                  gemm_desc,
-                                                  w,
-                                                  0,
-                                                  x,
-                                                  in_offset,
-                                                  y,
-                                                  out_offset,
-                                                  nullptr,
-                                                  time_precision,
-                                                  callGemmStridedBatched);
+                const auto runs =
+                    group_count <= 1 ? 1 : conv_params.type == InvokeType::Run ? in_n : 1;
+
+                for(std::size_t i = 0; i < runs; i++)
+                {
+                    std::size_t out_offset = i * wei_k * out_spatial_size;
+                    std::size_t in_offset  = i * in_c * in_spatial_size;
+
+                    if(conv_params.type == InvokeType::Run)
+                    {
+                        gemm_status = CallGemmStridedBatched(
+                            handle, gemm_desc, w, 0, x, in_offset, y, out_offset, nullptr, false);
+                    }
+                    else
+                    {
+                        gemm_status = CallGemmTimeMeasure(handle,
+                                                          gemm_desc,
+                                                          w,
+                                                          0,
+                                                          x,
+                                                          in_offset,
+                                                          y,
+                                                          out_offset,
+                                                          nullptr,
+                                                          time_precision,
+                                                          callGemmStridedBatched);
+                    }
+
+                    if(gemm_status != miopenStatusSuccess)
+                        MIOPEN_THROW("GEMM execution failure");
+
+                    if(handle.IsProfilingEnabled())
+                    {
+                        const auto time = handle.GetKernelTime();
+                        if(group_count > 1 && conv_params.type != InvokeType::Run)
+                            time_gemm += time * in_n;
+                    }
+                }
+
+                if(wDesc.GetType() == miopenInt8x4 && yDesc.GetType() != miopenInt32)
+                {
+                    TensorDescriptor ygemmDesc(miopenInt32, yDesc.GetLengths(), yDesc.GetStrides());
+                    CastTensor(handle, &lowp_quant, ygemmDesc, y, yDesc, y, 0, 0);
+                    if(handle.IsProfilingEnabled())
+                        time_gemm += handle.GetKernelTime();
+                }
+
+                if(handle.IsProfilingEnabled())
+                {
+                    handle.ResetKernelTime();
+                    handle.AccumKernelTime(time_gemm);
+                }
+            };
+        };
+    }
+    else
+    {
+        solution.invoker_factory = [=](const std::vector<Kernel>&) {
+            MIOPEN_LOG_FUNCTION("convolution, 1x1");
+
+            // tensors.y = tensors.w * tensors.x
+            GemmDescriptor gemm_desc =
+                CreateGemmStridedBatchedDescriptorConv1x1Fwd(wDesc, xDesc, yDesc);
+
+            return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
+                float time                 = 0;
+                decltype(auto) conv_params = primitive_params.CastTo<conv::DataInvokeParams>();
+                const auto& tensors        = conv_params.tensors;
+                const auto& x              = tensors.in;
+                const auto& w              = tensors.w;
+                const auto& y              = tensors.out;
+
+                MIOPEN_LOG_FUNCTION("convolution, 1x1");
+
+                // tensors.y = tensors.w * tensors.x
+                miopenStatus_t gemm_status;
+                if(conv_params.type == InvokeType::Run)
+                {
+                    gemm_status = CallGemmStridedBatched(
+                        handle, gemm_desc, w, 0, x, 0, y, 0, nullptr, false);
+                }
+                else
+                {
+                    gemm_status = CallGemmTimeMeasure(handle,
+                                                      gemm_desc,
+                                                      w,
+                                                      0,
+                                                      x,
+                                                      0,
+                                                      y,
+                                                      0,
+                                                      nullptr,
+                                                      time_precision,
+                                                      callGemmStridedBatched);
+                }
 
                 if(gemm_status != miopenStatusSuccess)
                     MIOPEN_THROW("GEMM execution failure");
 
                 if(handle.IsProfilingEnabled())
+                    time += handle.GetKernelTime();
+
+                if(wDesc.GetType() == miopenInt8x4 && yDesc.GetType() != miopenInt32)
                 {
-                    const auto time = handle.GetKernelTime();
-                    if(conv.group_count > 1 && conv_params.type != InvokeType::Run)
-                        time_gemm += time * in_n;
+                    TensorDescriptor ygemmDesc(miopenInt32, yDesc.GetLengths(), yDesc.GetStrides());
+                    CastTensor(handle, &lowp_quant, ygemmDesc, y, yDesc, y, 0, 0);
+                    if(handle.IsProfilingEnabled())
+                        time += handle.GetKernelTime();
                 }
-            }
-
-            if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
-               yDesc.GetType() != miopenInt32)
-            {
-                TensorDescriptor ygemmDesc(miopenInt32, yDesc.GetLengths(), yDesc.GetStrides());
-
-                CastTensor(handle, &conv.lowp_quant, ygemmDesc, y, yDesc, y, 0, 0);
 
                 if(handle.IsProfilingEnabled())
-                    time_gemm += handle.GetKernelTime();
-            }
-
-            if(handle.IsProfilingEnabled())
-            {
-                handle.ResetKernelTime();
-                handle.AccumKernelTime(time_gemm);
-            }
+                {
+                    handle.ResetKernelTime();
+                    handle.AccumKernelTime(time);
+                }
+            };
         };
-    };
+    }
 #else
     std::ignore = context;
     std::ignore = problem;
