@@ -29,6 +29,7 @@
 #include <miopen/generic_search.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include "implicitgemm_util.hpp"
+#include "asm_implicit_gemm.hpp"
 
 namespace miopen {
 namespace solver {

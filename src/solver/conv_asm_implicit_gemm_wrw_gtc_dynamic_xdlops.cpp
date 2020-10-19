@@ -32,6 +32,7 @@
 #include "implicitgemm_util.hpp"
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/tensor_ops.hpp>
+#include "asm_implicit_gemm.hpp"
 
 namespace miopen {
 namespace solver {

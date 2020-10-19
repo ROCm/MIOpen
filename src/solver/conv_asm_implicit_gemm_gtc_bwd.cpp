@@ -29,6 +29,7 @@
 #include <miopen/generic_search.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include "implicitgemm_util.hpp"
+#include "asm_implicit_gemm.hpp"
 
 namespace miopen {
 namespace solver {
@@ -189,6 +190,12 @@ FindImplicitGemmGtcDynamicBwdKernel(const ConvolutionContext& ctx)
 
     for(; pConfig != tunables.end(); pConfig++)
     {
+        if((pConfig->gemm_n_per_block == 0) || (pConfig->gemm_m_per_block == 0) ||
+           (pConfig->nxb == 0) || (pConfig->gemm_k_per_block == 0))
+        {
+            MIOPEN_LOG_E("Invalid kernel config entry!");
+            assert(false);
+        }
         if(pConfig->nxe == 0)
         {
             if((x != 1) || (y != 1) || (stride_h != 1) || (stride_w != 1) || (dilation_h != 1) ||
@@ -197,12 +204,11 @@ FindImplicitGemmGtcDynamicBwdKernel(const ConvolutionContext& ctx)
                 continue;
             }
         }
-        if((pConfig->gemm_n_per_block == 0) || (pConfig->gemm_m_per_block == 0) ||
-           (gemm_n % pConfig->gemm_n_per_block != 0) || (gemm_m % pConfig->gemm_m_per_block != 0))
+        if((gemm_n % pConfig->gemm_n_per_block != 0) || (gemm_m % pConfig->gemm_m_per_block != 0))
         {
             continue;
         }
-        if((pConfig->nxb == 0) || (pConfig->gemm_n_per_block % pConfig->nxb != 0))
+        if(pConfig->gemm_n_per_block % pConfig->nxb != 0)
         {
             continue;
         }
@@ -226,7 +232,7 @@ FindImplicitGemmGtcDynamicBwdKernel(const ConvolutionContext& ctx)
             bool is_gemm_not_empty = gemm_k > 0;
             if(is_gemm_not_empty)
             {
-                if((pConfig->gemm_k_per_block == 0) || (gemm_k % pConfig->gemm_k_per_block != 0))
+                if(gemm_k % pConfig->gemm_k_per_block != 0)
                     gemm_k_valid = false;
             }
         }
