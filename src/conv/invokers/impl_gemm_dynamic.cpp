@@ -231,7 +231,7 @@ InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory(const ConvolutionCo
     std::vector<int> dtile_ix_gid;
     std::vector<int> y_dot_slice_gid;
     std::vector<int> x_dot_slice_gid;
-    std::vector<int> is_gemm_not_empty;
+    std::vector<bool> is_gemm_not_empty;
     for(int gemm_id = 0; gemm_id < num_of_gemms; gemm_id++)
     {
         dtile_iy_gid.emplace_back(gemm_id / x_tilda);
