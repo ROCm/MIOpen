@@ -83,7 +83,7 @@ bool GemmFwdBase::IsApplicable(const ExecutionContext&,
 #define MAX_MEM_ALLOC_SZ (std::min(handle.GetMaxMemoryAllocSize(), size_t(7287183769)))
 
 size_t GemmFwd1x1_0_2::GetWorkspaceSize(const ExecutionContext& context,
-                                          const conv::ProblemDescription& problem) const
+                                        const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     decltype(auto) handle = context.GetStream();
@@ -105,7 +105,7 @@ size_t GemmFwd1x1_0_2::GetWorkspaceSize(const ExecutionContext& context,
 }
 
 bool GemmFwd1x1_0_2::IsApplicable(const ExecutionContext& context,
-                                    const conv::ProblemDescription& problem) const
+                                  const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     if(!GemmFwdBase::IsApplicable(context, problem))
@@ -132,7 +132,7 @@ bool GemmFwd1x1_0_2::IsApplicable(const ExecutionContext& context,
 }
 
 ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
-                                           const conv::ProblemDescription& problem) const
+                                         const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     decltype(auto) handle = context.GetStream();
@@ -161,15 +161,15 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
     std::size_t in_n, in_c;
     std::tie(in_n, in_c) = tie_pick<0, 1>()(xDesc.GetLengths());
 
-    const std::size_t wei_k  = wDesc.GetLengths()[0];
+    const std::size_t wei_k = wDesc.GetLengths()[0];
 
     const bool time_precision = context.GetStream().IsProfilingEnabled() &&
                                 (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
 
-    auto solution               = ConvSolution{miopenStatusSuccess};
-    const auto group_count      = conv.group_count;
-    const auto lowp_quant       = conv.lowp_quant;
-    const auto conv_strides     = conv.GetConvStrides();
+    auto solution           = ConvSolution{miopenStatusSuccess};
+    const auto group_count  = conv.group_count;
+    const auto lowp_quant   = conv.lowp_quant;
+    const auto conv_strides = conv.GetConvStrides();
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
@@ -246,16 +246,8 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
                     GemmDescriptor gemm_desc =
                         CreateGemmDescriptorGroupConvCNHWFwd(wDesc, xDesc, yDesc, group_count);
 
-                    CallGemmStridedBatched(handle,
-                                           gemm_desc,
-                                           w,
-                                           0,
-                                           workSpace,
-                                           0,
-                                           workSpace,
-                                           x_t_size,
-                                           nullptr,
-                                           false);
+                    CallGemmStridedBatched(
+                        handle, gemm_desc, w, 0, workSpace, 0, workSpace, x_t_size, nullptr, false);
                 }
                 else
                 {
@@ -341,7 +333,7 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
 }
 
 size_t GemmFwd1x1_0_1_int8::GetWorkspaceSize(const ExecutionContext& context,
-                                           const conv::ProblemDescription& problem) const
+                                             const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM || 1
     decltype(auto) handle = context.GetStream();
@@ -363,7 +355,7 @@ size_t GemmFwd1x1_0_1_int8::GetWorkspaceSize(const ExecutionContext& context,
 }
 
 bool GemmFwd1x1_0_1_int8::IsApplicable(const ExecutionContext& context,
-                                     const conv::ProblemDescription& problem) const
+                                       const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     if(!GemmFwd::GemmFwdBase(context, problem))
@@ -390,7 +382,7 @@ bool GemmFwd1x1_0_1_int8::IsApplicable(const ExecutionContext& context,
 }
 
 ConvSolution GemmFwd1x1_0_1_int8::GetSolution(const ExecutionContext& context,
-                                            const conv::ProblemDescription& problem) const
+                                              const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     decltype(auto) handle = context.GetStream();
@@ -462,16 +454,8 @@ ConvSolution GemmFwd1x1_0_1_int8::GetSolution(const ExecutionContext& context,
 
                 if(conv_params.type == InvokeType::Run)
                 {
-                    gemm_status = CallGemm(handle,
-                                           gemm_desc,
-                                           w,
-                                           0,
-                                           workSpace,
-                                           0,
-                                           y,
-                                           out_offset,
-                                           nullptr,
-                                           false);
+                    gemm_status = CallGemm(
+                        handle, gemm_desc, w, 0, workSpace, 0, y, out_offset, nullptr, false);
                 }
                 else
                 {
@@ -516,13 +500,13 @@ ConvSolution GemmFwd1x1_0_1_int8::GetSolution(const ExecutionContext& context,
 }
 
 size_t GemmFwd1x1_0_1::GetWorkspaceSize(const ExecutionContext&,
-                                      const conv::ProblemDescription&) const
+                                        const conv::ProblemDescription&) const
 {
     return 0;
 }
 
 bool GemmFwd1x1_0_1::IsApplicable(const ExecutionContext& context,
-                                const conv::ProblemDescription& problem) const
+                                  const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     if(!GemmFwdBase::IsApplicable(context, problem))
@@ -684,8 +668,8 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
                 miopenStatus_t gemm_status;
                 if(conv_params.type == InvokeType::Run)
                 {
-                    gemm_status = CallGemmStridedBatched(
-                        handle, gemm_desc, w, 0, x, 0, y, 0, nullptr, false);
+                    gemm_status =
+                        CallGemmStridedBatched(handle, gemm_desc, w, 0, x, 0, y, 0, nullptr, false);
                 }
                 else
                 {
@@ -731,7 +715,8 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
 #endif
 }
 
-size_t GemmFwd3::GetWorkspaceSize(const ExecutionContext& context, const conv::ProblemDescription& problem) const
+size_t GemmFwd3::GetWorkspaceSize(const ExecutionContext& context,
+                                  const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM || 1
     decltype(auto) handle = context.GetStream();
@@ -760,7 +745,8 @@ size_t GemmFwd3::GetWorkspaceSize(const ExecutionContext& context, const conv::P
 #endif
 }
 
-bool GemmFwd3::IsApplicable(const ExecutionContext& context, const conv::ProblemDescription& problem) const
+bool GemmFwd3::IsApplicable(const ExecutionContext& context,
+                            const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     if(!GemmFwdBase::IsApplicable(context, problem))
@@ -793,7 +779,8 @@ bool GemmFwd3::IsApplicable(const ExecutionContext& context, const conv::Problem
 #endif
 }
 
-ConvSolution GemmFwd3::GetSolution(const ExecutionContext& context, const conv::ProblemDescription& problem) const
+ConvSolution GemmFwd3::GetSolution(const ExecutionContext& context,
+                                   const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     decltype(auto) handle = context.GetStream();
@@ -808,9 +795,9 @@ ConvSolution GemmFwd3::GetSolution(const ExecutionContext& context, const conv::
     const std::size_t wei_k       = wDesc.GetLengths()[0];
     const std::size_t spatial_dim = conv.GetSpatialDimension();
 
-    const auto& in_spatial_       = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
-    const auto& out_spatial_      = boost::adaptors::slice(yDesc.GetLengths(), 2, 2 + spatial_dim);
-    const auto& wei_spatial_      = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
+    const auto& in_spatial_  = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
+    const auto& out_spatial_ = boost::adaptors::slice(yDesc.GetLengths(), 2, 2 + spatial_dim);
+    const auto& wei_spatial_ = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
 
     const auto in_spatial  = std::vector<std::size_t>(in_spatial_.begin(), in_spatial_.end());
     const auto out_spatial = std::vector<std::size_t>(out_spatial_.begin(), out_spatial_.end());
