@@ -86,6 +86,6 @@ struct TunableImplicitGemmGTCDynamic_t
         return kernel_name.str();
     }
 };
-}
-}
+} // namespace solver
+} // namespace miopen
 #endif
