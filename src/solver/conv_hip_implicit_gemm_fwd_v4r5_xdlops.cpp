@@ -715,7 +715,7 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsFastToBeUsedForTuning(
     {
         const int wave_per_block = (GemmMPerBlock / GemmMPerWave) * (GemmNPerBlock / GemmNPerWave);
 
-        if(!(wave_per_block > 1 && wave_per_block <= 4))
+        if(!(wave_per_block >= 1 && wave_per_block <= 4))
         {
             return false;
         }
