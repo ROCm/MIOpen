@@ -110,7 +110,8 @@ static void cgemm_grid(size_t* global_work_size,
 bool FFT::IsApplicable(const ConvolutionContext& ctx) const
 {
     // disable running any FFT based convolutions by checking this env variable
-    if(ctx.direction.IsBackwardWrW() || miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT{}))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT{}) || ctx.direction.IsBackwardWrW() ||
+       !ctx.conv_problem.IsFp32())
         return false;
 
     const auto is_fwd    = ctx.direction.IsForward();
@@ -119,47 +120,38 @@ bool FFT::IsApplicable(const ConvolutionContext& ctx) const
     decltype(auto) yDesc = is_fwd ? ctx.conv_problem.GetOut() : ctx.conv_problem.GetIn();
     decltype(auto) wDesc = ctx.conv_problem.GetWeights();
 
-    if(xDesc.GetType() != miopenFloat || wDesc.GetType() != miopenFloat ||
-       yDesc.GetType() != miopenFloat)
+    if(!ctx.conv_problem.IsFp32())
         return false;
 
     int in_n, in_c, in_h, in_w;
-    std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(xDesc.GetLengths());
-
     int out_n, out_c, out_h, out_w;
-    std::tie(out_n, out_c, out_h, out_w) = miopen::tien<4>(yDesc.GetLengths());
-
     int wei_k, wei_c, wei_h, wei_w;
+    std::tie(in_n, in_c, in_h, in_w)     = miopen::tien<4>(xDesc.GetLengths());
+    std::tie(out_n, out_c, out_h, out_w) = miopen::tien<4>(yDesc.GetLengths());
     std::tie(wei_k, wei_c, wei_h, wei_w) = miopen::tien<4>(wDesc.GetLengths());
-
-    bool supported = true;
 
     // FFT convolutions only works for specific config(s)
     // coverage to expand gradually
 
-    supported = ((in_n < 1) || (in_n > 512)) ? false : supported;
-    supported = ((wei_k < 1) || (wei_k > 512)) ? false : supported;
-    supported = ((in_c * in_n) % 16 != 0) ? false : supported;
-    supported = ((wei_c * wei_k) % 16 != 0) ? false : supported;
-    supported = ((out_c * out_n) % 16 != 0) ? false : supported;
+    if((in_n < 1) || (in_n > 512) || (wei_k < 1) || (wei_k > 512) || ((in_c * in_n) % 16 != 0) ||
+       (wei_c * wei_k) % 16 != 0 || (out_c * out_n) % 16 != 0)
+        return false;
 
-    supported = ((std::tie(in_h, in_w) != std::make_tuple(28, 28)) &&
-                 (std::tie(in_h, in_w) != std::make_tuple(27, 27)) &&
-                 (std::tie(in_h, in_w) != std::make_tuple(14, 14)) &&
-                 (std::tie(in_h, in_w) != std::make_tuple(7, 7)))
-                    ? false
-                    : supported;
+    if((std::tie(in_h, in_w) != std::make_tuple(28, 28)) &&
+       (std::tie(in_h, in_w) != std::make_tuple(27, 27)) &&
+       (std::tie(in_h, in_w) != std::make_tuple(14, 14)) &&
+       (std::tie(in_h, in_w) != std::make_tuple(7, 7)))
+        return false;
 
     const auto cparam = std::make_tuple(conv.GetConvPads()[0],
                                         conv.GetConvPads()[1],
                                         conv.GetConvStrides()[0],
                                         conv.GetConvStrides()[1]);
 
-    supported = (std::tie(wei_h, wei_w) != std::make_tuple(5, 5)) ? false : supported;
-    supported = (cparam != std::make_tuple(2, 2, 1, 1)) ? false : supported;
-    supported = (yDesc.GetType() != miopenFloat) ? false : supported;
+    if(std::tie(wei_h, wei_w) != std::make_tuple(5, 5) || cparam != std::make_tuple(2, 2, 1, 1))
+        return false;
 
-    return supported;
+    return true;
 }
 
 size_t FFT::GetWorkspaceSize(const ConvolutionContext& ctx) const
