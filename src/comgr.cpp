@@ -31,6 +31,7 @@
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/hip_build_utils.hpp>
+#include <miopen/gcn_asm_utils.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/stringutils.hpp>
@@ -861,6 +862,10 @@ void BuildAsm(const std::string& name,
         SetIsaName(action, device);
         action.SetLogging(true);
         auto optAsm = miopen::SplitSpaceSeparated(options);
+#if WORKAROUND_SWDEV_255735
+        if(miopen::HipCompilerVersion() >= miopen::external_tool_version_t{3, 8, 20403})
+            optAsm.push_back("-mno-xnack");
+#endif
         compiler::lc::gcnasm::RemoveOptionsUnwanted(optAsm);
         action.SetOptionList(optAsm);
 

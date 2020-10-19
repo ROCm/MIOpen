@@ -182,7 +182,11 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
     const std::string name = params.GetStream().GetDeviceName();
     if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")))
         return false;
-    assert(params.weights_layout.length() == 0); // FIXME _weights_layout is not supported yet.
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
+
     // clang-format off
     return params.pad_w == 1
         && params.pad_h == 1
