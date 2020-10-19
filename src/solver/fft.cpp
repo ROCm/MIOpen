@@ -113,8 +113,8 @@ bool FFT::IsApplicable(const ConvolutionContext& ctx) const
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT{}))
         return false;
 
-    const auto is_fwd   = ctx.direction.IsForward();
-    decltype(auto) conv = ctx.conv_problem.GetConv();
+    const auto is_fwd    = ctx.direction.IsForward();
+    decltype(auto) conv  = ctx.conv_problem.GetConv();
     decltype(auto) xDesc = is_fwd ? ctx.conv_problem.GetIn() : ctx.conv_problem.GetOut();
     decltype(auto) yDesc = is_fwd ? ctx.conv_problem.GetOut() : ctx.conv_problem.GetIn();
     decltype(auto) wDesc = ctx.conv_problem.GetWeights();
