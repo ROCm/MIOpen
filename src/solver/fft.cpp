@@ -148,10 +148,7 @@ bool FFT::IsApplicable(const ConvolutionContext& ctx) const
                                         conv.GetConvStrides()[0],
                                         conv.GetConvStrides()[1]);
 
-    if(std::tie(wei_h, wei_w) != std::make_tuple(5, 5) || cparam != std::make_tuple(2, 2, 1, 1))
-        return false;
-
-    return true;
+    return std::tie(wei_h, wei_w) == std::make_tuple(5, 5) && cparam == std::make_tuple(2, 2, 1, 1);
 }
 
 size_t FFT::GetWorkspaceSize(const ConvolutionContext& ctx) const
