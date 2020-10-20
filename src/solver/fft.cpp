@@ -120,7 +120,8 @@ bool FFT::IsApplicable(const ConvolutionContext& ctx) const
     decltype(auto) yDesc = is_fwd ? ctx.conv_problem.GetOut() : ctx.conv_problem.GetIn();
     decltype(auto) wDesc = ctx.conv_problem.GetWeights();
 
-    if(!ctx.conv_problem.IsFp32())
+    if(conv.GetSpatialDimension() != 2 || conv.group_count != 1 ||
+       !miopen::all_of(conv.GetConvDilations(), [](auto v) { return v == 1; }))
         return false;
 
     int in_n, in_c, in_h, in_w;
