@@ -53,7 +53,7 @@ PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops(
     int GemmNPerWave_,
     int GemmKPack_,
     bool GemmAThreadCopyMoreGemmK_,
-    bool GemmBThreadCopyMoreGemmKPack_)
+    bool GemmBThreadCopyMoreGemmK_)
     : GemmMPerBlock(GemmMPerBlock_),
       GemmNPerBlock(GemmNPerBlock_),
       GemmKPerBlock(GemmKPerBlock_),
@@ -61,7 +61,7 @@ PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops(
       GemmNPerWave(GemmNPerWave_),
       GemmKPack(GemmKPack_),
       GemmAThreadCopyMoreGemmK(GemmAThreadCopyMoreGemmK_),
-      GemmBThreadCopyMoreGemmKPack(GemmBThreadCopyMoreGemmKPack_)
+      GemmBThreadCopyMoreGemmK(GemmBThreadCopyMoreGemmK_)
 {
 }
 
@@ -76,7 +76,7 @@ operator==(const PerformanceImplicitGemmWrwV4R4Xdlops& other) const
         && GemmNPerWave == other.GemmNPerWave
         && GemmKPack == other.GemmKPack 
         && GemmAThreadCopyMoreGemmK  == other.GemmAThreadCopyMoreGemmK
-        && GemmBThreadCopyMoreGemmKPack  == other.GemmBThreadCopyMoreGemmKPack;
+        && GemmBThreadCopyMoreGemmK  == other.GemmBThreadCopyMoreGemmK;
     // clang-format on
 }
 
@@ -86,7 +86,7 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::SetNextValue()
     {
         // list performance parameters in reverse order, in order for tuning to iterate over the
         // range in normal order
-        if(!NextFlag<false, true>(GemmBThreadCopyMoreGemmKPack))
+        if(!NextFlag<false, true>(GemmBThreadCopyMoreGemmK))
             break;
         if(!NextFlag<false, false>(GemmAThreadCopyMoreGemmK))
             break;
@@ -507,14 +507,14 @@ PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGemmBBlockCopyPerformanceParamete
         int data_per_thread_copy_gemmn = -1;
         int data_per_thread_copy_gemmk = -1;
 
-        if(GemmBThreadCopyMoreGemmKPack)
+        if(GemmBThreadCopyMoreGemmK)
         {
             data_per_thread_copy_gemmk = gcd(GemmKPerBlock, tmp);
             data_per_thread_copy_gemmn = tmp / data_per_thread_copy_gemmk;
         }
         else
         {
-            data_per_thread_copy_gemmn = gcd(GemmKPerBlock, tmp);
+            data_per_thread_copy_gemmn = gcd(GemmNPerBlock, tmp);
             data_per_thread_copy_gemmk = tmp / data_per_thread_copy_gemmn;
         }
 
