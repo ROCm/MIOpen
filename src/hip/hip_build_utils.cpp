@@ -154,6 +154,10 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     }
 #endif
 
+    // hip version
+    params +=
+        std::string(" -DHIP_PACKAGE_VERSION_FLAT=") + std::to_string(HIP_PACKAGE_VERSION_FLAT);
+
     params += " ";
     auto bin_file = tmp_dir->path / (filename + ".o");
 
@@ -333,6 +337,11 @@ bool external_tool_version_t::operator>=(const external_tool_version_t& rhs) con
     }
     else
         return false;
+}
+
+bool external_tool_version_t::operator<(const external_tool_version_t& rhs) const
+{
+    return rhs >= *this;
 }
 
 } // namespace miopen
