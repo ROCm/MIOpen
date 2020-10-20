@@ -117,11 +117,10 @@ bool GemmFwd1x1_0_2::IsApplicable(const ExecutionContext& context,
     const auto spatial_dim = conv.GetSpatialDimension();
     const auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
 
-    if(conv.GetSpatialDimension() == 2 &&
-       (miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-        miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; })) &&
-       (miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; })))
-        return true;
+    return conv.GetSpatialDimension() == 2 &&
+           miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
+           miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
+           miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; });
 
     return false;
 #else
@@ -358,7 +357,7 @@ bool GemmFwd1x1_0_1_int8::IsApplicable(const ExecutionContext& context,
                                        const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
-    if(!GemmFwd::GemmFwdBase(context, problem))
+    if(!GemmFwdBase::IsApplicable(context, problem))
         return false;
 
     decltype(auto) conv  = problem.GetConv();
@@ -367,13 +366,10 @@ bool GemmFwd1x1_0_1_int8::IsApplicable(const ExecutionContext& context,
     const auto spatial_dim = conv.GetSpatialDimension();
     const auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
 
-    if(miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-       miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
-       miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 1; }) &&
-       wDesc.GetType() == miopenInt8 && conv.group_count == 1)
-        return true;
-
-    return false;
+    return miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
+           miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
+           miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 1; }) &&
+           wDesc.GetType() == miopenInt8 && conv.group_count == 1;
 #else
     std::ignore = context;
     std::ignore = problem;
@@ -518,11 +514,10 @@ bool GemmFwd1x1_0_1::IsApplicable(const ExecutionContext& context,
     const auto spatial_dim = conv.GetSpatialDimension();
     const auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
 
-    if(miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-       miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
-       miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 1; }) &&
-       wDesc.GetType() != miopenInt8)
-        return true;
+    return miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
+           miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
+           miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 1; }) &&
+           wDesc.GetType() != miopenInt8;
 
     return false;
 #else
@@ -761,17 +756,14 @@ bool GemmFwd3::IsApplicable(const ExecutionContext& context,
     // Todo: This is a rest-of kind of logic. Should be revised later.
 
     if(conv.GetSpatialDimension() == 2 &&
-       (miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-        miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; })) &&
-       (miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; })))
-        return false;
-
-    if(miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
+       miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
        miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
-       miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 1; }))
+       miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; }))
         return false;
 
-    return true;
+    return miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
+           miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
+           miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 1; });
 #else
     std::ignore = context;
     std::ignore = problem;
