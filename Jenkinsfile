@@ -70,45 +70,48 @@ def buildJob(Map conf, compiler){
         def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
         def dockerArgs = "--build-arg PREFIX=${prefixpath} "
         def extradebugflags = ""
+        def variant = env.STAGE_NAME
         if (codecov) {
             extradebugflags = "-fprofile-arcs -ftest-coverage"
         }
         def retimage
-        try {
-            retimage = docker.build("${image}", dockerArgs + '.')
-            withDockerContainer(image: image, args: dockerOpts) {
-                timeout(time: 5, unit: 'MINUTES')
-                {
-                    sh 'PATH="/opt/rocm/opencl/bin/x86_64/:$PATH" clinfo'
+        gitStatusWrapper(credentialsId: '7126e5fe-eb51-4576-b52b-9aaf1de8f0fd', gitHubContext: "Jenkins - ${variant}", account: 'ROCmSoftwarePlatform', repo: 'MIOpen') {
+            try {
+                retimage = docker.build("${image}", dockerArgs + '.')
+                withDockerContainer(image: image, args: dockerOpts) {
+                    timeout(time: 5, unit: 'MINUTES')
+                    {
+                        sh 'PATH="/opt/rocm/opencl/bin/x86_64/:$PATH" clinfo'
+                    }
+                }
+            } catch(Exception ex) {
+                retimage = docker.build("${image}", dockerArgs + "--no-cache .")
+                withDockerContainer(image: image, args: dockerOpts) {
+                    timeout(time: 5, unit: 'MINUTES')
+                    {
+                        sh 'PATH="/opt/rocm/opencl/bin/x86_64/:$PATH" clinfo'
+                    }
                 }
             }
-        } catch(Exception ex) {
-            retimage = docker.build("${image}", dockerArgs + "--no-cache .")
-            withDockerContainer(image: image, args: dockerOpts) {
-                timeout(time: 5, unit: 'MINUTES')
-                {
-                    sh 'PATH="/opt/rocm/opencl/bin/x86_64/:$PATH" clinfo'
-                }
-            }
-        }
 
-        withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
-            timeout(time: 5, unit: 'HOURS')
-            {
-                if(cmd == ""){
-                    cmake_build(compiler, flags, env4make, extradebugflags, prefixpath)
-                }else{
-                    sh cmd
-                }
-                if (codecov) {
-                    sh '''
-                        cd build
-                        lcov --directory . --capture --output-file $(pwd)/coverage.info
-                        lcov --remove $(pwd)/coverage.info '/usr/*' --output-file $(pwd)/coverage.info
-                        lcov --list $(pwd)/coverage.info
-                        curl -s https://codecov.io/bash | bash
-                        echo "Uploaded"
-                    '''
+            withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
+                timeout(time: 5, unit: 'HOURS')
+                {
+                    if(cmd == ""){
+                        cmake_build(compiler, flags, env4make, extradebugflags, prefixpath)
+                    }else{
+                        sh cmd
+                    }
+                    if (codecov) {
+                        sh '''
+                            cd build
+                            lcov --directory . --capture --output-file $(pwd)/coverage.info
+                            lcov --remove $(pwd)/coverage.info '/usr/*' --output-file $(pwd)/coverage.info
+                            lcov --list $(pwd)/coverage.info
+                            curl -s https://codecov.io/bash | bash
+                            echo "Uploaded"
+                        '''
+                    }
                 }
             }
         }
@@ -121,32 +124,35 @@ def buildHipClangJob(compiler, flags, env4make, image, prefixpath="/opt/rocm", c
         checkout scm
         def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
         def dockerArgs = "--build-arg PREFIX=${prefixpath} -f hip-clang.docker "
+        def variant = env.STAGE_NAME
         def retimage
-        try {
-            retimage = docker.build("${image}", dockerArgs + '.')
-            withDockerContainer(image: image, args: dockerOpts) {
-                timeout(time: 5, unit: 'MINUTES')
-                {
-                    sh 'PATH="/opt/rocm/opencl/bin:/opt/rocm/opencl/bin/x86_64:$PATH" clinfo'
+        gitStatusWrapper(credentialsId: '7126e5fe-eb51-4576-b52b-9aaf1de8f0fd', gitHubContext: "Jenkins - ${variant}", account: 'ROCmSoftwarePlatform', repo: 'MIOpen') {
+            try {
+                retimage = docker.build("${image}", dockerArgs + '.')
+                withDockerContainer(image: image, args: dockerOpts) {
+                    timeout(time: 5, unit: 'MINUTES')
+                    {
+                        sh 'PATH="/opt/rocm/opencl/bin:/opt/rocm/opencl/bin/x86_64:$PATH" clinfo'
+                    }
+                }
+            } catch(Exception ex) {
+                retimage = docker.build("${image}", dockerArgs + "--no-cache .")
+                withDockerContainer(image: image, args: dockerOpts) {
+                    timeout(time: 5, unit: 'MINUTES')
+                    {
+                        sh 'PATH="/opt/rocm/opencl/bin:/opt/rocm/opencl/bin/x86_64:$PATH" clinfo'
+                    }
                 }
             }
-        } catch(Exception ex) {
-            retimage = docker.build("${image}", dockerArgs + "--no-cache .")
-            withDockerContainer(image: image, args: dockerOpts) {
-                timeout(time: 5, unit: 'MINUTES')
-                {
-                    sh 'PATH="/opt/rocm/opencl/bin:/opt/rocm/opencl/bin/x86_64:$PATH" clinfo'
-                }
-            }
-        }
 
-        withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
-            timeout(time: 5, unit: 'HOURS')
-            {
-                if(cmd == ""){
-                    cmake_build(compiler, flags, env4make, prefixpath)
-                }else{
-                    sh cmd
+            withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
+                timeout(time: 5, unit: 'HOURS')
+                {
+                    if(cmd == ""){
+                        cmake_build(compiler, flags, env4make, prefixpath)
+                    }else{
+                        sh cmd
+                    }
                 }
             }
         }
