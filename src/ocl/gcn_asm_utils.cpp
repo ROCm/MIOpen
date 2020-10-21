@@ -62,6 +62,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_EXPERIMENTAL_GCN_ASM_PATH)
 
 static const char option_no_co_v3[] = "-mno-code-object-v3";
 
+static bool GcnAssemblerHasBug34765();
 static bool GcnAssemblerSupportsNoCOv3();
 static std::string CleanupPath(const char* p);
 
@@ -280,7 +281,7 @@ static bool GcnAssemblerHasBug34765Impl()
     }
 }
 
-bool GcnAssemblerHasBug34765()
+static bool GcnAssemblerHasBug34765()
 {
     const static bool b = GcnAssemblerHasBug34765Impl();
     return b;
@@ -316,18 +317,4 @@ void GenerateClangDefsym<const std::string&>(std::ostream& stream,
                                              const std::string& value)
 {
     stream << " -Wa,-defsym," << name << "=" << value;
-}
-
-std::string MakeLutKey(
-    int w, int h, int c, int n, int k, int conv_stride_h, int conv_stride_w, int dir, int CUs)
-{
-    std::ostringstream ss;
-    ss << w << ";" << h << ";" << c << ";" << n << ";" << k << ";" << conv_stride_h << ";"
-       << conv_stride_w << ";" << dir << ";" << CUs;
-    return ss.str();
-}
-
-std::string MakeLutKey(int w, int h, int c, int n, int k, int dir, int CUs)
-{
-    return MakeLutKey(w, h, c, n, k, 1, 1, dir, CUs);
 }
