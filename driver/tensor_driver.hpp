@@ -27,6 +27,7 @@
 #define GUARD_MIOPEN_TENSOR_DRIVER_HPP
 
 #include <algorithm>
+#include <iterator>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_extra.hpp>
@@ -105,6 +106,76 @@ int SetTensorNd(miopenTensorDescriptor_t t,
                 miopenDataType_t data_type = miopenFloat)
 {
     return miopenSetTensorDescriptor(t, data_type, len.size(), len.data(), nullptr);
+}
+
+void LayoutToStrides(const std::vector<int>& len,
+                     const std::string& len_layout,
+                     const std::string& layout,
+                     std::vector<int>& strides)
+{
+    // Bind the layout and the dimension lengths together into a map.
+    std::map<char, int> dim_to_len;
+    std::transform(len.begin(),
+                   len.end(),
+                   len_layout.begin(),
+                   std::inserter(dim_to_len, dim_to_len.end()),
+                   [](int l, char dim) { return std::make_pair(dim, l); });
+
+    // Now construct the strides according to layout by multiply the
+    // dimension lengths together.
+    std::transform(len_layout.begin(),
+                   len_layout.end(),
+                   std::back_inserter(strides),
+                   [&layout, &dim_to_len](char cur_layout_char) {
+                       auto pos = layout.find(cur_layout_char);
+                       if(pos == std::string::npos)
+                       {
+                           MIOPEN_THROW(std::string("mismatched layout string, unexpect char: ")
+                                            .append(1, cur_layout_char));
+                       }
+                       return std::accumulate(layout.begin() + pos + 1,
+                                              layout.end(),
+                                              1,
+                                              [&dim_to_len](int accumulator, char l) {
+                                                  return accumulator * dim_to_len[l];
+                                              });
+                   });
+}
+
+std::string GetDefaultTensorLayout(int size)
+{
+    if(size != 4)
+        return "";
+
+    return "NCHW";
+}
+
+int SetTensorNd(miopenTensorDescriptor_t t,
+                std::vector<int>& len,
+                const std::string& layout,
+                miopenDataType_t data_type = miopenFloat)
+{
+    if(layout.empty())
+    {
+        return SetTensorNd(t, len, data_type);
+    }
+
+    if(layout.size() != len.size())
+    {
+        MIOPEN_THROW("unmatched layout and dimension size");
+    }
+
+    // Dimension lengths vector 'len' comes with a default layout.
+    std::string len_layout = GetDefaultTensorLayout(layout.size());
+    if(len_layout.empty())
+    {
+        return SetTensorNd(t, len, data_type);
+    }
+
+    std::vector<int> strides;
+    LayoutToStrides(len, len_layout, layout, strides);
+
+    return miopenSetTensorDescriptor(t, data_type, len.size(), len.data(), strides.data());
 }
 
 size_t GetTensorSize(miopenTensorDescriptor_t& tensor)

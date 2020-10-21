@@ -44,6 +44,7 @@
 namespace miopen {
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DISABLE_CACHE)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_CUSTOM_CACHE_DIR)
 
 static boost::filesystem::path ComputeSysCachePath()
 {
@@ -59,12 +60,17 @@ static boost::filesystem::path ComputeUserCachePath()
 {
 #ifdef MIOPEN_CACHE_DIR
     std::string cache_dir = MIOPEN_CACHE_DIR;
+    std::string version;
 
-    std::string version =
-        std::to_string(MIOPEN_VERSION_MAJOR) + "." + std::to_string(MIOPEN_VERSION_MINOR) + "." +
-        std::to_string(MIOPEN_VERSION_PATCH) + "." + MIOPEN_STRINGIZE(MIOPEN_VERSION_TWEAK);
-
+    version = std::to_string(MIOPEN_VERSION_MAJOR) + "." + std::to_string(MIOPEN_VERSION_MINOR) +
+              "." + std::to_string(MIOPEN_VERSION_PATCH) + "." +
+              MIOPEN_STRINGIZE(MIOPEN_VERSION_TWEAK);
     auto p = boost::filesystem::path{miopen::ExpandUser(cache_dir)} / version;
+
+    const char* const custom = miopen::GetStringEnv(MIOPEN_CUSTOM_CACHE_DIR{});
+    if(custom != nullptr && strlen(custom) > 0)
+        p = boost::filesystem::path{miopen::ExpandUser(custom)};
+
     if(!boost::filesystem::exists(p) && !MIOPEN_DISABLE_USERDB)
         boost::filesystem::create_directories(p);
     return p;
