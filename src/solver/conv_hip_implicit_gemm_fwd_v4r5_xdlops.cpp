@@ -666,7 +666,7 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsReallyValid(const ConvolutionCo
 bool PerformanceImplicitGemmForwardV4R5Xdlops::IsFastToBeUsedForTuning(
     const ConvolutionContext& ctx) const
 {
-    if(!use_spare_set)
+    if(use_spare_set)
         return true;
 
     // somehow, 128x128 wave-wise GEMM tend to spill register
