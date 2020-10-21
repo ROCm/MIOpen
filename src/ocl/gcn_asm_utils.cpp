@@ -24,12 +24,18 @@
  *
  *******************************************************************************/
 #include <miopen/gcn_asm_utils.hpp>
+#include <miopen/config.h>
+
+#if MIOPEN_USE_COMGR
+
+bool ValidateGcnAssembler() { return true; }
+
+#else // !MIOPEN_USE_COMGR
 
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
-#include <miopen/config.h>
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/manage_ptr.hpp>
@@ -310,6 +316,8 @@ static bool GcnAssemblerSupportsNoCOv3()
     const static bool b = GcnAssemblerSupportsOption(option_no_co_v3);
     return b;
 }
+
+#endif // !MIOPEN_USE_COMGR
 
 template <>
 void GenerateClangDefsym<const std::string&>(std::ostream& stream,
