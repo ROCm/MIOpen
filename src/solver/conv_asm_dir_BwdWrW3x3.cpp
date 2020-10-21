@@ -357,7 +357,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
         return false;
     }
 #if WORKAROUND_ISSUE_532
-    if(StartsWith(name, "gfx9") && params.kernel_stride_w > 1)
+    if(StartsWith(name, "gfx9") && (params.kernel_stride_w > 1 || params.kernel_stride_h > 1))
         return false;
 #endif
 
