@@ -298,6 +298,9 @@ bool ConvAsmImplicitGemmV4R1DynamicWrw::IsApplicable(const ConvolutionContext& c
     if(!(StartsWith(device_name, "gfx900") || StartsWith(device_name, "gfx906")))
         return false;
 
+    if(!ctx.use_asm_kernels)
+        return false;
+
     if(GetGemmkGroups(ctx) > 0) // GetSolution() adds HIP kernels in this case.
         if(!ctx.use_hip_kernels)
             return false;
