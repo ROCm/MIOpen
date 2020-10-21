@@ -245,7 +245,7 @@ void PerformanceImplicitGemmForwardV4R4Xdlops::EuristicInit(const ConvolutionCon
     });
 
     // second round: really valid
-    if(!tmp.IsReallyValid(ctx) && tmp.IsFastToBeUsedForTuning(ctx))
+    if(!(tmp.IsReallyValid(ctx) && tmp.IsFastToBeUsedForTuning(ctx)))
     {
         get_euristic_config(
             [](auto config, auto conv_context) { return config.IsReallyValid(conv_context); });
