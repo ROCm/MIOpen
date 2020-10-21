@@ -30,6 +30,8 @@
 #include <miopen/algorithm.hpp>
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
+#include <miopen/hip_build_utils.hpp>
+#include <miopen/gcn_asm_utils.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/stringutils.hpp>
@@ -700,7 +702,8 @@ void BuildHip(const std::string& name,
         {
             auto raw = options                                 //
                        + " " + GetDebugCompilerOptionsInsert() //
-                       + " " + MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS);
+                       + " " + MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS) +
+                       (" -DHIP_PACKAGE_VERSION_FLAT=") + std::to_string(HIP_PACKAGE_VERSION_FLAT);
             auto optCompile = miopen::SplitSpaceSeparated(raw, compiler::lc::GetOptionsNoSplit());
             compiler::lc::hip::RemoveCompilerOptionsUnwanted(optCompile);
             action.SetOptionList(optCompile);
@@ -711,7 +714,8 @@ void BuildHip(const std::string& name,
             auto raw = std::string(" -O3 ")                    // Without this, fails in lld.
                        + options                               //
                        + " " + GetDebugCompilerOptionsInsert() //
-                       + " " + MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS);
+                       + " " + MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS) +
+                       (" -DHIP_PACKAGE_VERSION_FLAT=") + std::to_string(HIP_PACKAGE_VERSION_FLAT);
 #if USE_HIP_PCH
             raw += " -nogpuinc -DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS=1";
 #endif
@@ -858,6 +862,10 @@ void BuildAsm(const std::string& name,
         SetIsaName(action, device);
         action.SetLogging(true);
         auto optAsm = miopen::SplitSpaceSeparated(options);
+#if WORKAROUND_SWDEV_255735
+        if(miopen::HipCompilerVersion() >= miopen::external_tool_version_t{3, 8, 20403})
+            optAsm.push_back("-mno-xnack");
+#endif
         compiler::lc::gcnasm::RemoveOptionsUnwanted(optAsm);
         action.SetOptionList(optAsm);
 

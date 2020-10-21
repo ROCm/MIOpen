@@ -124,9 +124,8 @@
 .set s_sub_n, 62
 .set s_group_stride, 63
 .set s_group_left, 1
-.set s_dbg, 64
-.set s_tmp, 66
-.set s_end, 72
+.set s_tmp, 64
+.set s_end, 70
 
 .set v_c, 0  ; coalescing:16, needed:2, resuable:26
 .set v_a, 2
@@ -190,11 +189,6 @@ igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x16_wt32x8_ws1x1_wr2x2_ta1x1x8x1_1x16x1
     ; clear vector r
     .v_clear_nc v_c+1, v_end-1
 
-    ; debug vgpr
-    v_mov_b32 v1, 0
-    v_add_lshl_u32 v[v_tmp+6], v0, v1, 2
-    ;v_lshlrev_b32 v[114], 2, v0 ; every thread write one float
-    s_load_dwordx2 s[s_dbg+0:s_dbg+1], s[s_ka:s_ka+1], k_p_wei
     ; input, thread(n0,n1b,c0,c1e): 1x1x2x1, cluster(n0,n1b,c0,c1e): 1x16x1x16
     v_mov_b32 v[v_tmp], v0
     v_and_b32 v[v_gtc_ic1e], 15, v[v_tmp]
@@ -1089,29 +1083,6 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x16_wt32x8_ws1x1_wr2x2_ta1x1x8x1_1x16
     s_mul_i32 s[s_tmp], 99, s[s_wei_stride_k]   ; i_m:99(i_m0:6,i_m1:3)
     buffer_store_dword v[v_c+15], v[v_wei_os], s[s_p_wei:s_p_wei+3], s[s_tmp] offen offset:0
 
-    s_branch L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x16_wt32x8_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x2x1_1x16x1x16_out
-    ; debug code to cpy vgpr to host
-    L_debug_L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x16_wt32x8_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x2x1_1x16x1x16_out_1:
-    s_waitcnt lgkmcnt(0)
-    s_waitcnt vmcnt(0)
-    s_barrier
-    s_cmp_lg_u32 s[s_bx], 0
-    s_cbranch_scc1 L_program_end_L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x16_wt32x8_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x2x1_1x16x1x16_out_1
-    ;s_cmp_lg_u32 s[s_wave_id], 0
-    ;s_cbranch_scc1  L_program_end
-    ;v_add_co_u32 v34, vcc, 0, v[v_a0+2]
-    v_mov_b32 v[v_tmp], s[s_in_offset]
-
-    global_store_dword v[v_tmp+6:v_tmp+7], v[v_in_os], s[s_dbg+0:s_dbg+1]
-    s_waitcnt vmcnt(0)
-    s_barrier
-
-    L_program_end_L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x16_wt32x8_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x2x1_1x16x1x16_out_1:
-    s_nop 2
-    s_waitcnt lgkmcnt(0)
-    s_waitcnt vmcnt(0)
-    s_barrier
-
 L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x16_wt32x8_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x2x1_1x16x1x16_out:
     s_endpgm
 .rodata
@@ -1122,9 +1093,11 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x16_wt32x8_ws1x1_wr2x2_ta1x1x8x1_1x16
     .amdhsa_system_sgpr_workgroup_id_x 1
     .amdhsa_system_vgpr_workitem_id 0
     .amdhsa_next_free_vgpr 64
-    .amdhsa_next_free_sgpr 78
+    .amdhsa_next_free_sgpr 76
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
+    //xnack disabled by default for asm kernels
+    .amdhsa_reserve_xnack_mask 0
 .end_amdhsa_kernel
 
 ;----------------------------------------------------------
@@ -1226,9 +1199,8 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x16_wt32x8_ws1x1_wr2x2_ta1x1x8x1_1x16
 .set s_sub_n, 62
 .set s_group_stride, 63
 .set s_group_left, 1
-.set s_dbg, 64
-.set s_tmp, 66
-.set s_end, 72
+.set s_tmp, 64
+.set s_end, 70
 
 .set v_c, 0  ; coalescing:16, needed:2, resuable:26
 .set v_a, 2
@@ -1292,11 +1264,6 @@ igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x16_wt32x8_ws1x1_wr2x2_ta1x1x8x1_1x16x1
     ; clear vector r
     .v_clear_nc v_c+1, v_end-1
 
-    ; debug vgpr
-    v_mov_b32 v1, 0
-    v_add_lshl_u32 v[v_tmp+6], v0, v1, 2
-    ;v_lshlrev_b32 v[114], 2, v0 ; every thread write one float
-    s_load_dwordx2 s[s_dbg+0:s_dbg+1], s[s_ka:s_ka+1], k_p_wei
     ; input, thread(n0,n1b,c0,c1e): 1x1x2x1, cluster(n0,n1b,c0,c1e): 1x16x1x16
     v_mov_b32 v[v_tmp], v0
     v_and_b32 v[v_gtc_ic1e], 15, v[v_tmp]
@@ -2191,29 +2158,6 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x16_wt32x8_ws1x1_wr2x2_ta1x1x8x1_1x16
     s_mul_i32 s[s_tmp], 99, s[s_wei_stride_k]   ; i_m:99(i_m0:6,i_m1:3)
     buffer_atomic_add_f32 v[v_c+15], v[v_wei_os], s[s_p_wei:s_p_wei+3], s[s_tmp] offen offset:0
 
-    s_branch L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x16_wt32x8_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs_out
-    ; debug code to cpy vgpr to host
-    L_debug_L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x16_wt32x8_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs_out_1:
-    s_waitcnt lgkmcnt(0)
-    s_waitcnt vmcnt(0)
-    s_barrier
-    s_cmp_lg_u32 s[s_bx], 0
-    s_cbranch_scc1 L_program_end_L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x16_wt32x8_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs_out_1
-    ;s_cmp_lg_u32 s[s_wave_id], 0
-    ;s_cbranch_scc1  L_program_end
-    ;v_add_co_u32 v34, vcc, 0, v[v_a0+2]
-    v_mov_b32 v[v_tmp], s[s_in_offset]
-
-    global_store_dword v[v_tmp+6:v_tmp+7], v[v_in_os], s[s_dbg+0:s_dbg+1]
-    s_waitcnt vmcnt(0)
-    s_barrier
-
-    L_program_end_L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x16_wt32x8_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs_out_1:
-    s_nop 2
-    s_waitcnt lgkmcnt(0)
-    s_waitcnt vmcnt(0)
-    s_barrier
-
 L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x16_wt32x8_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs_out:
     s_endpgm
 .rodata
@@ -2224,9 +2168,11 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x16_wt32x8_ws1x1_wr2x2_ta1x1x8x1_1x16
     .amdhsa_system_sgpr_workgroup_id_x 1
     .amdhsa_system_vgpr_workitem_id 0
     .amdhsa_next_free_vgpr 64
-    .amdhsa_next_free_sgpr 78
+    .amdhsa_next_free_sgpr 76
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
+    //xnack disabled by default for asm kernels
+    .amdhsa_reserve_xnack_mask 0
 .end_amdhsa_kernel
 
 ;----------------------------------------------------------
@@ -2328,9 +2274,8 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x16_wt32x8_ws1x1_wr2x2_ta1x1x8x1_1x16
 .set s_sub_n, 58
 .set s_group_stride, 59
 .set s_group_left, 1
-.set s_dbg, 60
-.set s_tmp, 62
-.set s_end, 68
+.set s_tmp, 60
+.set s_end, 66
 
 .set v_c, 0  ; coalescing:8, needed:2, resuable:21
 .set v_a, 2
@@ -2394,11 +2339,6 @@ igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x8_wt32x8_ws1x1_wr2x2_ta1x1x4x1_1x8x1x3
     ; clear vector r
     .v_clear_nc v_c+1, v_end-1
 
-    ; debug vgpr
-    v_mov_b32 v1, 0
-    v_add_lshl_u32 v[v_tmp+6], v0, v1, 2
-    ;v_lshlrev_b32 v[114], 2, v0 ; every thread write one float
-    s_load_dwordx2 s[s_dbg+0:s_dbg+1], s[s_ka:s_ka+1], k_p_wei
     ; input, thread(n0,n1b,c0,c1e): 1x1x1x1, cluster(n0,n1b,c0,c1e): 1x8x1x32
     v_mov_b32 v[v_tmp], v0
     v_and_b32 v[v_gtc_ic1e], 31, v[v_tmp]
@@ -3060,29 +3000,6 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x8_wt32x8_ws1x1_wr2x2_ta1x1x4x1_1x8x1
     s_mul_i32 s[s_tmp], 99, s[s_wei_stride_k]   ; i_m:99(i_m0:3,i_m1:3)
     buffer_store_dword v[v_c+7], v[v_wei_os], s[s_p_wei:s_p_wei+3], s[s_tmp] offen offset:0
 
-    s_branch L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x8_wt32x8_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x1x1_1x8x1x32_out
-    ; debug code to cpy vgpr to host
-    L_debug_L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x8_wt32x8_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x1x1_1x8x1x32_out_1:
-    s_waitcnt lgkmcnt(0)
-    s_waitcnt vmcnt(0)
-    s_barrier
-    s_cmp_lg_u32 s[s_bx], 0
-    s_cbranch_scc1 L_program_end_L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x8_wt32x8_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x1x1_1x8x1x32_out_1
-    ;s_cmp_lg_u32 s[s_wave_id], 0
-    ;s_cbranch_scc1  L_program_end
-    ;v_add_co_u32 v34, vcc, 0, v[v_a0+2]
-    v_mov_b32 v[v_tmp], s[s_in_offset]
-
-    global_store_dword v[v_tmp+6:v_tmp+7], v[v_in_os], s[s_dbg+0:s_dbg+1]
-    s_waitcnt vmcnt(0)
-    s_barrier
-
-    L_program_end_L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x8_wt32x8_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x1x1_1x8x1x32_out_1:
-    s_nop 2
-    s_waitcnt lgkmcnt(0)
-    s_waitcnt vmcnt(0)
-    s_barrier
-
 L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x8_wt32x8_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x1x1_1x8x1x32_out:
     s_endpgm
 .rodata
@@ -3093,9 +3010,11 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x8_wt32x8_ws1x1_wr2x2_ta1x1x4x1_1x8x1
     .amdhsa_system_sgpr_workgroup_id_x 1
     .amdhsa_system_vgpr_workitem_id 0
     .amdhsa_next_free_vgpr 60
-    .amdhsa_next_free_sgpr 74
+    .amdhsa_next_free_sgpr 72
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
+    //xnack disabled by default for asm kernels
+    .amdhsa_reserve_xnack_mask 0
 .end_amdhsa_kernel
 
 ;----------------------------------------------------------
@@ -3197,9 +3116,8 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x8_wt32x8_ws1x1_wr2x2_ta1x1x4x1_1x8x1
 .set s_sub_n, 58
 .set s_group_stride, 59
 .set s_group_left, 1
-.set s_dbg, 60
-.set s_tmp, 62
-.set s_end, 68
+.set s_tmp, 60
+.set s_end, 66
 
 .set v_c, 0  ; coalescing:8, needed:2, resuable:21
 .set v_a, 2
@@ -3263,11 +3181,6 @@ igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x8_wt32x8_ws1x1_wr2x2_ta1x1x4x1_1x8x1x3
     ; clear vector r
     .v_clear_nc v_c+1, v_end-1
 
-    ; debug vgpr
-    v_mov_b32 v1, 0
-    v_add_lshl_u32 v[v_tmp+6], v0, v1, 2
-    ;v_lshlrev_b32 v[114], 2, v0 ; every thread write one float
-    s_load_dwordx2 s[s_dbg+0:s_dbg+1], s[s_ka:s_ka+1], k_p_wei
     ; input, thread(n0,n1b,c0,c1e): 1x1x1x1, cluster(n0,n1b,c0,c1e): 1x8x1x32
     v_mov_b32 v[v_tmp], v0
     v_and_b32 v[v_gtc_ic1e], 31, v[v_tmp]
@@ -3929,29 +3842,6 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x8_wt32x8_ws1x1_wr2x2_ta1x1x4x1_1x8x1
     s_mul_i32 s[s_tmp], 99, s[s_wei_stride_k]   ; i_m:99(i_m0:3,i_m1:3)
     buffer_atomic_add_f32 v[v_c+7], v[v_wei_os], s[s_p_wei:s_p_wei+3], s[s_tmp] offen offset:0
 
-    s_branch L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x8_wt32x8_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs_out
-    ; debug code to cpy vgpr to host
-    L_debug_L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x8_wt32x8_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs_out_1:
-    s_waitcnt lgkmcnt(0)
-    s_waitcnt vmcnt(0)
-    s_barrier
-    s_cmp_lg_u32 s[s_bx], 0
-    s_cbranch_scc1 L_program_end_L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x8_wt32x8_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs_out_1
-    ;s_cmp_lg_u32 s[s_wave_id], 0
-    ;s_cbranch_scc1  L_program_end
-    ;v_add_co_u32 v34, vcc, 0, v[v_a0+2]
-    v_mov_b32 v[v_tmp], s[s_in_offset]
-
-    global_store_dword v[v_tmp+6:v_tmp+7], v[v_in_os], s[s_dbg+0:s_dbg+1]
-    s_waitcnt vmcnt(0)
-    s_barrier
-
-    L_program_end_L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x8_wt32x8_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs_out_1:
-    s_nop 2
-    s_waitcnt lgkmcnt(0)
-    s_waitcnt vmcnt(0)
-    s_barrier
-
 L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x8_wt32x8_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs_out:
     s_endpgm
 .rodata
@@ -3962,8 +3852,10 @@ L_igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x8_wt32x8_ws1x1_wr2x2_ta1x1x4x1_1x8x1
     .amdhsa_system_sgpr_workgroup_id_x 1
     .amdhsa_system_vgpr_workitem_id 0
     .amdhsa_next_free_vgpr 60
-    .amdhsa_next_free_sgpr 74
+    .amdhsa_next_free_sgpr 72
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
+    //xnack disabled by default for asm kernels
+    .amdhsa_reserve_xnack_mask 0
 .end_amdhsa_kernel
 
