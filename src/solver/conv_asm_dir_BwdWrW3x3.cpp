@@ -37,6 +37,7 @@
 #include <miopen/solver.hpp>
 #include <miopen/generic_search.hpp>
 
+#define WORKAROUND_ISSUE_532 1 // ConvAsmBwdWrW3x3 has precision issues with some PerformanceConfigs
 #define MIOPEN_GCN_ASM_DIRECT_3X3WRW_SEARCH_LWC_FIXED 0
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS)
@@ -351,7 +352,15 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
     const std::string name = params.GetStream().GetDeviceName();
     if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")))
         return false;
-    assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
+#if WORKAROUND_ISSUE_532
+    if(StartsWith(name, "gfx9") && params.kernel_stride_w > 1)
+        return false;
+#endif
+
     // clang-format off
     bool ok = params.pad_w == 1           // -q  pad_w
         && params.pad_h == 1              // -p  pad_h
