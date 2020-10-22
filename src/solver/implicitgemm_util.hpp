@@ -706,11 +706,23 @@ static inline bool support_amd_buffer_atomic_fadd(const ConvolutionContext& ctx)
     const auto device_name = ctx.GetStream().GetDeviceName();
     return StartsWith(device_name, "gfx908");
 }
-static inline bool support_amd_buffer_load_store(const ConvolutionContext& ctx)
+
+static inline bool device_name_is_gfx10XX(const ConvolutionContext& ctx)
 {
     const auto device_name = ctx.GetStream().GetDeviceName();
-    return !StartsWith(device_name, "gfx10");
+    return StartsWith(device_name, "gfx1030");
 }
+
+static inline bool support_amd_buffer_load_store(const ConvolutionContext& ctx)
+{
+    return !device_name_is_gfx10XX(ctx);
+}
+
+static inline bool is_using_v_fmac_f32(const ConvolutionContext& ctx)
+{
+    return device_name_is_gfx10XX(ctx);
+}
+
 template <typename T>
 int amd_buffer_load_max_length()
 {
@@ -808,6 +820,11 @@ static inline auto get_ck_common_compiler_flag(const ConvolutionContext& ctx)
     // fgx10XX
     compiler_flag += std::string(" -DCK_USE_AMD_BUFFER_ADDRESSING=") +
                      (support_amd_buffer_load_store(ctx) ? '1' : '0');
+
+    // using v_fmac_f32
+    compiler_flag +=
+        std::string(" -DCK_USE_AMD_V_FMAC_F32=") + (is_using_v_fmac_f32(ctx) ? '1' : '0');
+
     return compiler_flag;
 }
 
