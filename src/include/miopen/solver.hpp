@@ -1935,7 +1935,7 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops : Serializable<PerformanceImplicitGe
     int GemmNPerWave;
     int GemmKPack;
     bool GemmAThreadCopyMoreGemmK;
-    bool GemmBThreadCopyMoreGemmKPack;
+    bool GemmBThreadCopyMoreGemmK;
 
     PerformanceImplicitGemmWrwV4R4Xdlops(int, int, int, int, int, int, bool, bool);
     PerformanceImplicitGemmWrwV4R4Xdlops();
@@ -1951,7 +1951,7 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops : Serializable<PerformanceImplicitGe
         f(self.GemmNPerWave, "GemmNPerWave");
         f(self.GemmKPack, "GemmKPack");
         f(self.GemmAThreadCopyMoreGemmK, "GemmAThreadCopyMoreGemmK");
-        f(self.GemmBThreadCopyMoreGemmKPack, "GemmBThreadCopyMoreGemmKPack");
+        f(self.GemmBThreadCopyMoreGemmK, "GemmBThreadCopyMoreGemmK");
     }
 
     bool operator==(const PerformanceImplicitGemmWrwV4R4Xdlops& other) const;
