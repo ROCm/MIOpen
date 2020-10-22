@@ -352,10 +352,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
     const std::string name = params.GetStream().GetDeviceName();
     if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")))
         return false;
-    if(!params.IsLayoutDefault())
-    {
-        return false;
-    }
+    assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet
 #if WORKAROUND_ISSUE_532
     if(StartsWith(name, "gfx9") && (params.kernel_stride_w > 1 || params.kernel_stride_h > 1))
         return false;
@@ -406,7 +403,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
          && k_r_s < std::pow(2, 22)
          && n_c_h_w < std::pow(2, 29)
          && n_k_h_w < std::pow(2, 29)
-         && c_k_r_s < std::pow(2, 29);              // clang-format on
+         && c_k_r_s < std::pow(2, 29); // clang-format on
     return ok;
 }
 
