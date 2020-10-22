@@ -390,7 +390,7 @@ ConvSolution FFT::GetSolution(const ConvolutionContext& ctx) const
         const int padding = FFTConvParams::TransposePadding;
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            const auto params   = primitive_params.CastTo<conv::DataInvokeParams>();
+            const auto& params  = primitive_params.CastTo<conv::DataInvokeParams>();
             const auto& tensors = params.tensors;
 
             if(params.workSpaceSize < workSpaceSize)
