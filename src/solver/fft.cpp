@@ -389,8 +389,8 @@ ConvSolution FFT::GetSolution(const ConvolutionContext& ctx) const
         int halfw = static_cast<int>(workSpaceSize) / (2 * 2 * static_cast<int>(sizeof(float)));
         const int padding = FFTConvParams::TransposePadding;
 
-        return [=](const Handle& handle, const boost::any& primitive_params) {
-            const auto params   = boost::any_cast<conv::DataInvokeParams>(primitive_params);
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
+            const auto params   = primitive_params.CastTo<conv::DataInvokeParams>();
             const auto& tensors = params.tensors;
 
             if(params.workSpaceSize < workSpaceSize)
