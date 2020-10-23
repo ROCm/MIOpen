@@ -1995,7 +1995,7 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
     int GemmNFactor;
     int GemmKFactor;
     bool GemmAThreadCopyMoreGemmK;
-    bool GemmBThreadCopyMoreGemmKPack;
+    bool GemmBThreadCopyMoreGemmK;
 
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm(
         int, int, int, int, int, int, int, int, int, bool, bool);
@@ -2018,7 +2018,7 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
         f(self.GemmNFactor, "GemmNFactor");
         f(self.GemmKFactor, "GemmKFactor");
         f(self.GemmAThreadCopyMoreGemmK, "GemmAThreadCopyMoreGemmK");
-        f(self.GemmBThreadCopyMoreGemmKPack, "GemmBThreadCopyMoreGemmKPack");
+        f(self.GemmBThreadCopyMoreGemmK, "GemmBThreadCopyMoreGemmK");
     }
 
     bool operator==(const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm& other) const;

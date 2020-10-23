@@ -43,7 +43,7 @@ PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::PerformanceImplicitGemmWrwV4R4
     : PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::
           PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm(
               64, 64, 2, 32, 32, 4, 16, 64, 16, false, false)
-{
+{//GemmMFactor GemmNFactor, GemmKFactor are fixed value at this moment
 }
 
 PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm(
@@ -57,7 +57,7 @@ PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::PerformanceImplicitGemmWrwV4R4
     int GemmNFactor_,
     int GemmKFactor_,
     bool GemmAThreadCopyMoreGemmK_,
-    bool GemmBThreadCopyMoreGemmKPack_)
+    bool GemmBThreadCopyMoreGemmK_)
     : GemmMPerBlock(GemmMPerBlock_),
       GemmNPerBlock(GemmNPerBlock_),
       GemmKPerBlock(GemmKPerBlock_),
@@ -68,7 +68,7 @@ PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::PerformanceImplicitGemmWrwV4R4
       GemmNFactor(GemmNFactor_),
       GemmKFactor(GemmKFactor_),
       GemmAThreadCopyMoreGemmK(GemmAThreadCopyMoreGemmK_),
-      GemmBThreadCopyMoreGemmKPack(GemmBThreadCopyMoreGemmKPack_)
+      GemmBThreadCopyMoreGemmK(GemmBThreadCopyMoreGemmK_)
 {
 }
 
@@ -86,7 +86,7 @@ operator==(const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm& other) const
         && GemmNFactor == other.GemmNFactor
         && GemmKFactor == other.GemmKFactor
         && GemmAThreadCopyMoreGemmK  == other.GemmAThreadCopyMoreGemmK
-        && GemmBThreadCopyMoreGemmKPack  == other.GemmBThreadCopyMoreGemmKPack;
+        && GemmBThreadCopyMoreGemmK  == other.GemmBThreadCopyMoreGemmK;
     // clang-format on
 }
 
@@ -96,21 +96,21 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::SetNextValue()
     {
         // list performance parameters in reverse order, in order for tuning to iterate over the
         // range in normal order
-        if(!NextFlag<false, true>(GemmBThreadCopyMoreGemmKPack))
+        if(!NextFlag<false, true>(GemmBThreadCopyMoreGemmK))
             break;
         if(!NextFlag<false, false>(GemmAThreadCopyMoreGemmK))
             break;
         if(!NextTwoPower<1, 8>(GemmKPack))
             break;
-        if(!NextTwoPower<32, 128>(GemmNPerWave))
+        if(!NextTwoPower<16, 128>(GemmNPerWave))
             break;
-        if(!NextTwoPower<32, 128>(GemmMPerWave))
+        if(!NextTwoPower<4, 128>(GemmMPerWave))
             break;
-        if(!NextTwoPower<2, 8>(GemmKPerBlock))
+        if(!NextTwoPower<1, 8>(GemmKPerBlock))
             break;
-        if(!NextTwoPower<64, 256>(GemmNPerBlock))
+        if(!NextTwoPower<16, 256>(GemmNPerBlock))
             break;
-        if(!NextTwoPower<64, 256>(GemmMPerBlock))
+        if(!NextTwoPower<4, 256>(GemmMPerBlock))
             break;
         return false;
     } while(false);
@@ -121,7 +121,7 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::SetNextValue()
 void PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::EuristicInit(const ConvolutionContext& ctx)
 {
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm tmp;
-
+    // GemmMFactor GemmNFactor, GemmKFactor are fixed value at this moment.
     // loop over certain ranges of tuning parameter
     auto get_euristic_config = [&](auto is_valid_func) {
         if(ctx.IsFp32())
@@ -515,9 +515,9 @@ PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::CalculateGemmBBlockCopyPerform
         int data_per_thread_copy_gemmn = -1;
         int data_per_thread_copy_gemmk = -1;
 
-        if(GemmBThreadCopyMoreGemmKPack)
+        if(GemmBThreadCopyMoreGemmK)
         {
-            data_per_thread_copy_gemmk = gcd(GemmKPerBlock, tmp);
+            data_per_thread_copy_gemmk = gcd(GemmNPerBlock, tmp);
             data_per_thread_copy_gemmn = tmp / data_per_thread_copy_gemmk;
         }
         else
@@ -972,7 +972,6 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetSolution(
         std::string(" -DCK_USE_AMD_XDLOPS=") + std::to_string(IsXdlopsSupport(ctx) ? 1 : 0) +
         std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + std::to_string(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}) ? 1 : 0) +
         std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}) ? '1' : '0') +
-        std::string(" -DCK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM=") + (miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM{}) ? '0' : '1') +
         get_ck_common_compiler_flag(ctx) +
         ctx.general_compile_options;
     // clang-format on
@@ -1037,6 +1036,9 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetSolution(
 bool ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsApplicable(const ConvolutionContext& ctx) const
 {
     if(!IsXdlopsSupport(ctx))
+        return false;
+
+    if(!ctx.use_hip_kernels)
         return false;
 
     if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
