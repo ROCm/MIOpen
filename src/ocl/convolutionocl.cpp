@@ -87,15 +87,9 @@ static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
 }
 #endif
 
-size_t GetKernelGlobalWorkDim(const KernelInvoke& kernel, int dim)
-{
-    return kernel.gdims[dim];
-}
+size_t GetKernelGlobalWorkDim(const KernelInvoke& kernel, int dim) { return kernel.gdims[dim]; }
 
-size_t GetKernelLocalWorkDim(const KernelInvoke& kernel, int dim)
-{
-    return kernel.ldims[dim];
-}
+size_t GetKernelLocalWorkDim(const KernelInvoke& kernel, int dim) { return kernel.ldims[dim]; }
 
 static inline void AddKernels(const Handle& handle,
                               const std::string& algorithm_name,

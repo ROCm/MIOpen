@@ -74,16 +74,15 @@ void OCLKernelInvoke::run() const
     /* way to run OCL group larger than 256
      * hack to ensure local_size == 0, just checking that the 1st dim is 0
      * may want to use a better solution*/
-    cl_int status =
-        clEnqueueNDRangeKernel(queue,
-                               kernel.get(),
-                               work_dim,
-                               ((work_dim == 0) ? nullptr : global_work_offset.data()),
-                               gdims.data(),
-                               ((ldims[0] == 0) ? nullptr : ldims.data()),
-                               0,
-                               nullptr,
-                               callback ? &ev : nullptr);
+    cl_int status = clEnqueueNDRangeKernel(queue,
+                                           kernel.get(),
+                                           work_dim,
+                                           ((work_dim == 0) ? nullptr : global_work_offset.data()),
+                                           gdims.data(),
+                                           ((ldims[0] == 0) ? nullptr : ldims.data()),
+                                           0,
+                                           nullptr,
+                                           callback ? &ev : nullptr);
 
     if(status != CL_SUCCESS)
     {
