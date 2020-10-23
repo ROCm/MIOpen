@@ -89,21 +89,12 @@ static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
 
 size_t GetKernelGlobalWorkDim(const KernelInvoke& kernel, int dim)
 {
-#if(MIOPEN_BACKEND_HIP)
     return kernel.gdims[dim];
-#else
-    return kernel.global_work_dim[dim];
-#endif
 }
 
 size_t GetKernelLocalWorkDim(const KernelInvoke& kernel, int dim)
 {
-#if(MIOPEN_BACKEND_HIP)
     return kernel.ldims[dim];
-#else
-    // sometimes local_work_dim = {0,0,0} look in issue #1724
-    return kernel.local_work_dim[dim];
-#endif
 }
 
 static inline void AddKernels(const Handle& handle,
