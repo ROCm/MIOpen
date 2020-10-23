@@ -225,7 +225,7 @@ class DbRecord
 
         const bool ok = values.Deserialize(s);
 
-#if(MIOPEN_SUPPRESS_DB_WARNING==1)
+#if(MIOPEN_SUPPRESS_DB_WARNING == 1)
         if(!ok)
             MIOPEN_LOG_WE(
                 "Perf db record is obsolete or corrupt: " << s << ". Performance may degrade.");
