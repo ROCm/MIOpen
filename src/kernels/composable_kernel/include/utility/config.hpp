@@ -38,6 +38,11 @@
 #define CK_USE_AMD_BUFFER_ATOMIC_FADD 0
 #endif
 
+// gfx1030 not suport v_mac_f32
+#ifndef CK_USE_AMD_V_FMAC_F32
+#define CK_USE_AMD_V_FMAC_F32 0
+#endif
+
 // AMD XDLOPS
 #ifndef CK_USE_AMD_XDLOPS
 #define CK_USE_AMD_XDLOPS 0
