@@ -320,8 +320,10 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
 
     int grid_size;
     int block_size;
-    int nxb = 1;
-    int nxe = 1;
+    int nxb         = 1;
+    int nxe         = 1;
+    int nxb_for_1x1 = 4;
+    int nxe_for_1x1 = 0;
 
     int sel_index = -1;
 
@@ -367,7 +369,8 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
                     gemm_n_per_block = 1 << r;
                 }
 
-                if(gemm_m % gemm_m_per_block != 0 || gemm_n % gemm_n_per_block != 0)
+                if(gemm_m % gemm_m_per_block != 0 || c % (gemm_n_per_block / nxe) != 0 ||
+                   (x * y) % nxe != 0)
                     continue;
                 for(j = 4; j > 1; j--)
                 {
@@ -377,29 +380,21 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
                     gemm_k_global_split = if_gemm_k_global_split(
                         ctx, gemm_m_per_block, gemm_n_per_block, gemm_k_per_block);
 
-                    nxb               = 1;
-                    nxe               = 1;
                     int tunable_index = -1;
 
                     if((x * y * stride_h * stride_w == 1) && (ho * wo % 4 == 0))
                     {
-                        nxb           = 4;
-                        nxe           = 0;
+                        nxb_for_1x1   = 4;
+                        nxe_for_1x1   = 0;
                         tunable_index = find_tunable(tunables,
                                                      gemm_m_per_block,
                                                      gemm_n_per_block,
                                                      gemm_k_per_block,
                                                      gemm_k_global_split,
-                                                     nxb,
-                                                     nxe);
+                                                     nxb_for_1x1,
+                                                     nxe_for_1x1);
                         if(tunable_index < 0 || tunable_index >= tunables.size())
                         {
-                            nxb = 1;
-                            nxe = 1;
-
-                            // std::cout << gemm_m_per_block << ", " << gemm_n_per_block << ", " <<
-                            // gemm_k_per_block << std::endl;
-
                             tunable_index = find_tunable(tunables,
                                                          gemm_m_per_block,
                                                          gemm_n_per_block,
