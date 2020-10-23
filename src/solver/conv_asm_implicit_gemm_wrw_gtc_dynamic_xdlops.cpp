@@ -369,8 +369,7 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
                     gemm_n_per_block = 1 << r;
                 }
 
-                if(gemm_m % gemm_m_per_block != 0 || c % (gemm_n_per_block / nxe) != 0 ||
-                   (x * y) % nxe != 0)
+                if(gemm_m % gemm_m_per_block != 0 || c % gemm_n_per_block != 0)
                     continue;
                 for(j = 4; j > 1; j--)
                 {
