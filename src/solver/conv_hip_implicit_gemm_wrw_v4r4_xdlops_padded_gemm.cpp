@@ -43,7 +43,7 @@ PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::PerformanceImplicitGemmWrwV4R4
     : PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::
           PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm(
               64, 64, 2, 32, 32, 4, 16, 64, 16, false, false)
-{ //GemmMFactor GemmNFactor, GemmKFactor are fixed value at this moment
+{ // GemmMFactor GemmNFactor, GemmKFactor are fixed value at this moment
 }
 
 PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm(
@@ -72,8 +72,8 @@ PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::PerformanceImplicitGemmWrwV4R4
 {
 }
 
-bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::operator==(
-    const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm& other) const
+bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::
+operator==(const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm& other) const
 {
     // clang-format off
     return GemmMPerBlock == other.GemmMPerBlock
