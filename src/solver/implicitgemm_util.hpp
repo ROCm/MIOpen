@@ -715,7 +715,7 @@ static inline bool device_name_is_gfx1030(const ConvolutionContext& ctx)
 
 static inline bool support_amd_buffer_load_store(const ConvolutionContext& ctx)
 {
-    return !device_name_is_gfx1030ctx);
+    return !device_name_is_gfx1030(ctx);
 }
 
 static inline bool is_use_v_fmac_f32(const ConvolutionContext& ctx)
