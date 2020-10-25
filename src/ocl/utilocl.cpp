@@ -743,8 +743,8 @@ float transpose_NCHW2CNHW(const Handle& handle,
         if(!kernels.empty())
         {
             auto kernel  = kernels.front();
-            kernel.ldims = {vld[0], vld[1], vld[2]};
-            kernel.gdims = {vgd[0], vgd[1], vgd[2]};
+            kernel.ldims = {{vld[0], vld[1], vld[2]}};
+            kernel.gdims = {{vgd[0], vgd[1], vgd[2]}};
             kernel(in, out, in_offset, out_offset, RD_BLCK, HW_RD, n, c, h_in, w_in);
         }
         else
