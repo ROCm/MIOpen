@@ -617,6 +617,14 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsReallyValid(const ConvolutionCo
 
     bool valid = false;
 
+    // check tensor contraction
+    {
+        const std::size_t n = ConvolutionContextInterpreter::GetBatchN(ctx);
+        const auto NWaves   = GemmNPerBlock / GemmNPerWave;
+        if(n % NWaves != 0)
+            return false;
+    }
+
     // check blockwise GEMM size
     {
         int gemm_m       = -1;
