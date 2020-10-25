@@ -132,6 +132,9 @@ bool ConvAsmImplicitGemmV4R1DynamicBwd::IsApplicable(const ConvolutionContext& c
     if(!(StartsWith(device_name, "gfx900") || StartsWith(device_name, "gfx906")))
         return false;
 
+    if(!ctx.use_asm_kernels)
+        return false;
+
     if(!ctx.direction.IsBackwardData())
         return false;
 
