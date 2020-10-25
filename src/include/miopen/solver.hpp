@@ -945,9 +945,17 @@ struct PerformanceImplicitGemmForwardV4R5Xdlops
     bool GemmBThreadCopyMoreGemmKPack;
     int GemmBThreadDataPerRead_GemmN;
 
-    PerformanceImplicitGemmForwardV4R5Xdlops(int, int, int, int, int, int, bool, bool, int);
+    bool use_spare_set;
+
+    PerformanceImplicitGemmForwardV4R5Xdlops(int, int, int, int, int, int, bool, bool, int, bool);
     PerformanceImplicitGemmForwardV4R5Xdlops();
-    PerformanceImplicitGemmForwardV4R5Xdlops(bool) : PerformanceImplicitGemmForwardV4R5Xdlops() {}
+    PerformanceImplicitGemmForwardV4R5Xdlops(bool spare);
+
+    PerformanceImplicitGemmForwardV4R5Xdlops(
+        int a, int b, int c, int d, int e, int f, bool g, bool h, int i)
+        : PerformanceImplicitGemmForwardV4R5Xdlops(a, b, c, d, e, f, g, h, i, false)
+    {
+    }
 
     template <class Self, class F>
     static void Visit(Self&& self, F f)
@@ -1928,7 +1936,7 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops : Serializable<PerformanceImplicitGe
     int GemmNPerWave;
     int GemmKPack;
     bool GemmAThreadCopyMoreGemmK;
-    bool GemmBThreadCopyMoreGemmKPack;
+    bool GemmBThreadCopyMoreGemmK;
 
     PerformanceImplicitGemmWrwV4R4Xdlops(int, int, int, int, int, int, bool, bool);
     PerformanceImplicitGemmWrwV4R4Xdlops();
@@ -1944,7 +1952,7 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops : Serializable<PerformanceImplicitGe
         f(self.GemmNPerWave, "GemmNPerWave");
         f(self.GemmKPack, "GemmKPack");
         f(self.GemmAThreadCopyMoreGemmK, "GemmAThreadCopyMoreGemmK");
-        f(self.GemmBThreadCopyMoreGemmKPack, "GemmBThreadCopyMoreGemmKPack");
+        f(self.GemmBThreadCopyMoreGemmK, "GemmBThreadCopyMoreGemmK");
     }
 
     bool operator==(const PerformanceImplicitGemmWrwV4R4Xdlops& other) const;
