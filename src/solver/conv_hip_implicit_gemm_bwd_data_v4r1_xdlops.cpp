@@ -422,27 +422,27 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsFastToBeUsedForTuning(
 
         if(grid_size_max_blockwise_gemm > 600)
         {
-            if(ratio > 1.41)
+            if(ratio > 2.81)
                 return false;
         }
         if(grid_size_max_blockwise_gemm > 480)
         {
-            if(ratio > 1.81)
+            if(ratio > 3.61)
                 return false;
         }
         if(grid_size_max_blockwise_gemm > 360)
         {
-            if(ratio > 2.21)
+            if(ratio > 4.41)
                 return false;
         }
         if(grid_size_max_blockwise_gemm > 240)
         {
-            if(ratio > 3.21)
+            if(ratio > 6.41)
                 return false;
         }
         else if(grid_size_max_blockwise_gemm > 120)
         {
-            if(ratio > 6.21)
+            if(ratio > 12.41)
                 return false;
         }
     }

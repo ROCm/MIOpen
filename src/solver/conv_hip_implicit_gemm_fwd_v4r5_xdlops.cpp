@@ -65,7 +65,13 @@ static std::tuple<int, int, int, int> CalculateGemmSize(const ConvolutionContext
 
 PerformanceImplicitGemmForwardV4R5Xdlops::PerformanceImplicitGemmForwardV4R5Xdlops()
     : PerformanceImplicitGemmForwardV4R5Xdlops::PerformanceImplicitGemmForwardV4R5Xdlops(
-          4, 4, 1, 4, 4, 1, false, false, 1)
+          4, 4, 1, 4, 4, 1, false, false, 1, false)
+{
+}
+
+PerformanceImplicitGemmForwardV4R5Xdlops::PerformanceImplicitGemmForwardV4R5Xdlops(bool spare)
+    : PerformanceImplicitGemmForwardV4R5Xdlops::PerformanceImplicitGemmForwardV4R5Xdlops(
+          4, 4, 1, 4, 4, 1, false, false, 1, spare)
 {
 }
 
@@ -78,7 +84,8 @@ PerformanceImplicitGemmForwardV4R5Xdlops::PerformanceImplicitGemmForwardV4R5Xdlo
     int GemmKPack_,
     bool GemmAThreadCopyMoreGemmK_,
     bool GemmBThreadCopyMoreGemmKPack_,
-    int GemmBThreadDataPerRead_GemmN_)
+    int GemmBThreadDataPerRead_GemmN_,
+    bool use_spare_set_)
     : GemmMPerBlock(GemmMPerBlock_),
       GemmNPerBlock(GemmNPerBlock_),
       GemmKPerBlock(GemmKPerBlock_),
@@ -87,7 +94,8 @@ PerformanceImplicitGemmForwardV4R5Xdlops::PerformanceImplicitGemmForwardV4R5Xdlo
       GemmKPack(GemmKPack_),
       GemmAThreadCopyMoreGemmK(GemmAThreadCopyMoreGemmK_),
       GemmBThreadCopyMoreGemmKPack(GemmBThreadCopyMoreGemmKPack_),
-      GemmBThreadDataPerRead_GemmN(GemmBThreadDataPerRead_GemmN_)
+      GemmBThreadDataPerRead_GemmN(GemmBThreadDataPerRead_GemmN_),
+      use_spare_set(use_spare_set_)
 {
 }
 
@@ -103,7 +111,8 @@ operator==(const PerformanceImplicitGemmForwardV4R5Xdlops& other) const
         && GemmKPack == other.GemmKPack 
         && GemmAThreadCopyMoreGemmK  == other.GemmAThreadCopyMoreGemmK
         && GemmBThreadCopyMoreGemmKPack  == other.GemmBThreadCopyMoreGemmKPack
-        && GemmBThreadDataPerRead_GemmN  == other.GemmBThreadDataPerRead_GemmN;
+        && GemmBThreadDataPerRead_GemmN  == other.GemmBThreadDataPerRead_GemmN
+        && use_spare_set == other.use_spare_set;
     // clang-format on
 }
 
@@ -657,6 +666,9 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsReallyValid(const ConvolutionCo
 bool PerformanceImplicitGemmForwardV4R5Xdlops::IsFastToBeUsedForTuning(
     const ConvolutionContext& ctx) const
 {
+    if(use_spare_set)
+        return true;
+
     // somehow, 128x128 wave-wise GEMM tend to spill register
     // TODO revisit this when 128x128 wave-wise GEMM become efficient
     {
@@ -686,27 +698,27 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsFastToBeUsedForTuning(
 
         if(grid_size_max_blockwise_gemm > 600)
         {
-            if(ratio > 1.41)
+            if(ratio > 2.81)
                 return false;
         }
         if(grid_size_max_blockwise_gemm > 480)
         {
-            if(ratio > 1.81)
+            if(ratio > 3.61)
                 return false;
         }
         if(grid_size_max_blockwise_gemm > 360)
         {
-            if(ratio > 2.21)
+            if(ratio > 4.41)
                 return false;
         }
         if(grid_size_max_blockwise_gemm > 240)
         {
-            if(ratio > 3.21)
+            if(ratio > 6.41)
                 return false;
         }
         else if(grid_size_max_blockwise_gemm > 120)
         {
-            if(ratio > 6.21)
+            if(ratio > 12.41)
                 return false;
         }
     }
