@@ -764,17 +764,19 @@ float transpose_NCHW2CNHW(const Handle& handle,
         size_t ld0 = WG_SIZE;
         size_t gd0 = h_out * w_out;
         const std::vector<size_t> vld{ld0, 1, 1};
-        std::vector<size_t> vgd{gd0, 1, 1};
+        std::vector<size_t> vgd{gd0, 1, static_cast<size_t>(c)};
 
+// disable 3D_WG kernel due to idx calc overhead
+#if 0
         if((gd0 * c) < MAX_ACTIVE_THREADS)
         {
             vgd = {gd0, static_cast<size_t>(n), static_cast<size_t>(c)};
-            kernel_name += "_2D_WG";
+            kernel_name += "_3D_WG";
         }
         else
+#endif
         {
-            vgd = {gd0, 1, static_cast<size_t>(c)};
-            kernel_name += "_1D_WG";
+            kernel_name += "_2D_WG";
         }
 
         auto&& kernels = handle.GetKernels(kernel_name, network_config);
@@ -899,14 +901,17 @@ float transpose_CNHW2NCHW(const Handle& handle,
         const std::vector<size_t> vld{ld0, 1, 1};
         std::vector<size_t> vgd{gd0, 1, static_cast<size_t>(c)};
 
+// disable 3D_WG kernel due to idx calc overhead
+#if 0
         if(gd0 < MAX_ACTIVE_THREADS)
         {
             vgd = {gd0, static_cast<size_t>(n), static_cast<size_t>(c)};
-            kernel_name += "_2D_WG";
+            kernel_name += "_3D_WG";
         }
         else
+#endif
         {
-            kernel_name += "_1D_WG";
+            kernel_name += "_2D_WG";
         }
 
         const int hw_in  = h_in * w_in;

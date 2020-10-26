@@ -234,7 +234,7 @@ __kernel void transpose_NCHW2CNHW_V1_2D_WG_float4(const global data_t* in,
     cout[b * hw_rd] = cin[b * C * hw_rd];
 }
 
-__kernel void transpose_NCHW2CNHW_V2_1D_WG(const global data_t* in,
+__kernel void transpose_NCHW2CNHW_V2_2D_WG(const global data_t* in,
                                            global data_t* out,
                                            const int in_off,
                                            const int out_off,
@@ -262,7 +262,7 @@ __kernel void transpose_NCHW2CNHW_V2_1D_WG(const global data_t* in,
         cout[hw_out * n_i] = cin[C * hw_in * n_i];
 }
 
-__kernel void transpose_NCHW2CNHW_V2_2D_WG(const global data_t* in,
+__kernel void transpose_NCHW2CNHW_V2_3D_WG(const global data_t* in,
                                            global data_t* out,
                                            const int in_off,
                                            const int out_off,
@@ -448,7 +448,7 @@ __kernel void transpose_CNHW2NCHW_V1_2D_WG_float4(const global data_t* in,
     cout[b * C * hw_rd] = cin[b * hw_rd];
 }
 
-__kernel void transpose_CNHW2NCHW_V2_1D_WG(const global data_t* in,
+__kernel void transpose_CNHW2NCHW_V2_2D_WG(const global data_t* in,
                                            global data_t* out,
                                            const int in_off,
                                            const int out_off,
@@ -478,7 +478,7 @@ __kernel void transpose_CNHW2NCHW_V2_1D_WG(const global data_t* in,
     }
 }
 
-__kernel void transpose_CNHW2NCHW_V2_2D_WG(const global data_t* in,
+__kernel void transpose_CNHW2NCHW_V2_3D_WG(const global data_t* in,
                                            global data_t* out,
                                            const int in_off,
                                            const int out_off,
