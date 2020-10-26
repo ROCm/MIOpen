@@ -320,10 +320,10 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
 
     int grid_size;
     int block_size;
-    int nxb         = 1;
-    int nxe         = 1;
-    int nxb_for_1x1 = 4;
-    int nxe_for_1x1 = 0;
+    int nxb = 1;
+    int nxe = 1;
+    int nxb_for_1x1;
+    int nxe_for_1x1;
 
     int sel_index = -1;
 
@@ -348,14 +348,17 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
     int max_block_size = 0;
 
     // i=log2(gemm_m_per_block*gemm_n_per_block)  to find largest kernel
-    // switch l and r to get differnet kernel size like 256*64 or 64*256
     for(i = 15; i > 7; i--)
     {
+        // l=log2(gemm_n_per_block), r=log2(gemm_m_per_block)
         int r, l;
         r = (i + 1) >> 1;
         l = i - r;
+        // As gemm_n_per_block is greater than or equal to 4, l is greater than 1.
+        // As gemm_m_per_block is less than or equal to 256, r is less than 9.
         while(l > 1 && r < 9)
         {
+            // switch l and r to get differnet kernel size like 256*64 or 64*256
             for(int swap = 0; swap < 2; swap++)
             {
                 if(swap == 0)
@@ -369,8 +372,13 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
                     gemm_n_per_block = 1 << r;
                 }
 
-                if(gemm_m % gemm_m_per_block != 0 || c % gemm_n_per_block != 0)
+                if(gemm_m % gemm_m_per_block != 0)
                     continue;
+                if(c % (gemm_n_per_block / (nxe == 0 ? 1 : nxe)) != 0)
+                    continue;
+                if((x * y) % (nxe == 0 ? 1 : nxe) != 0)
+                    continue;
+                // j=log2(gemm_k_per_block)
                 for(j = 4; j > 1; j--)
                 {
                     gemm_k_per_block = 1 << j;
