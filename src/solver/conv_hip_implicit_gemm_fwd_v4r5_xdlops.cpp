@@ -621,6 +621,8 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsReallyValid(const ConvolutionCo
     {
         const std::size_t n = ConvolutionContextInterpreter::GetBatchN(ctx);
         const auto NWaves   = GemmNPerBlock / GemmNPerWave;
+        // check if N can be divided by NWaves, as N will be unmerged into N1
+        // and NWaves for tensor contraction
         if(n % NWaves != 0)
             return false;
     }
