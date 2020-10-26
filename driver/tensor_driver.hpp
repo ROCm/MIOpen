@@ -180,8 +180,8 @@ int SetTensorNd(miopenTensorDescriptor_t t,
 
 size_t GetTensorSize(miopenTensorDescriptor_t& tensor)
 {
-    std::vector<int> len = GetTensorLengths(tensor);
-    size_t sz            = std::accumulate(len.begin(), len.end(), 1, std::multiplies<int>());
+    const auto len = GetTensorLengths(tensor);
+    size_t sz      = std::accumulate(len.begin(), len.end(), size_t{1}, std::multiplies<size_t>());
 
     return sz;
 }
