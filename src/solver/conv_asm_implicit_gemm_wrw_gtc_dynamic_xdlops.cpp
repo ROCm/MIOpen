@@ -322,8 +322,6 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
     int block_size;
     int nxb = 1;
     int nxe = 1;
-    int nxb_for_1x1;
-    int nxe_for_1x1;
 
     int sel_index = -1;
 
@@ -374,11 +372,11 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
 
                 if(gemm_m % gemm_m_per_block != 0)
                     continue;
-                if(c % (gemm_n_per_block / (nxe == 0 ? 1 : nxe)) != 0)
+                if(c % (gemm_n_per_block / nxe) != 0)
                     continue;
-                if((x * y) % (nxe == 0 ? 1 : nxe) != 0)
+                if((x * y) % nxe != 0)
                     continue;
-                // j=log2(gemm_k_per_block)
+                // j=log2(gemm_k_per_block) gemm_k_per_block ranges from 2^2 to 2^4
                 for(j = 4; j > 1; j--)
                 {
                     gemm_k_per_block = 1 << j;
@@ -391,15 +389,15 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
 
                     if((x * y * stride_h * stride_w == 1) && (ho * wo % 4 == 0))
                     {
-                        nxb_for_1x1   = 4;
-                        nxe_for_1x1   = 0;
+                        // for 1x1 cases, nxb==4 is prefered. If nxb==4's kernel does not exist,
+                        // than search for other nxb value
                         tunable_index = find_tunable(tunables,
                                                      gemm_m_per_block,
                                                      gemm_n_per_block,
                                                      gemm_k_per_block,
                                                      gemm_k_global_split,
-                                                     nxb_for_1x1,
-                                                     nxe_for_1x1);
+                                                     4,
+                                                     0);
                         if(tunable_index < 0 || tunable_index >= tunables.size())
                         {
                             tunable_index = find_tunable(tunables,
