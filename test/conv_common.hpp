@@ -111,20 +111,16 @@ static inline bool is_gemm_workspace_valid(miopen::Handle& handle,
                                            const miopen::TensorDescriptor& wDesc,
                                            const miopen::TensorDescriptor& yDesc)
 {
-
-    return !(((std::all_of(wDesc.GetLengths().begin() + 2,
-                           wDesc.GetLengths().end(),
-                           [](auto v) { return v == 1; }) &&
-               miopen::all_of(convDesc.GetConvPads(), [](auto v) { return v == 0; })) &&
-              ((std::all_of(xDesc.GetLengths().begin() + 2,
-                            xDesc.GetLengths().end(),
-                            [](auto v) { return v <= 14; }) &&
-                miopen::all_of(convDesc.GetConvStrides(), [](auto v) { return v == 1; })) ||
-               (miopen::all_of(convDesc.GetConvStrides(), [](auto v) { return v == 2; }))) &&
-              (convDesc.ForwardGetWorkSpaceSize(handle, wDesc, xDesc, yDesc) <
-               convDesc.ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc))) ||
-             (convDesc.ForwardGetWorkSpaceSize(handle, wDesc, xDesc, yDesc) <
-              convDesc.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc)));
+    bool is_gemmtrans = convDesc.GetSpatialDimension() == 2 &&
+                        std::all_of(wDesc.GetLengths().begin() + 2,
+                                    wDesc.GetLengths().end(),
+                                    [](auto v) { return v == 1; }) &&
+                        miopen::all_of(convDesc.GetConvPads(), [](auto v) { return v == 0; }) &&
+                        miopen::all_of(convDesc.GetConvStrides(), [](auto v) { return v == 2; });
+    auto fwd_get_wksp = convDesc.ForwardGetWorkSpaceSize(handle, wDesc, xDesc, yDesc);
+    return !((is_gemmtrans &&
+              fwd_get_wksp < convDesc.ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc)) ||
+             (!is_gemmtrans && fwd_get_wksp < convDesc.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc)));
 }
 
 struct scalar_gen_random_float
