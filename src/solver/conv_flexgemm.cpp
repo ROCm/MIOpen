@@ -164,8 +164,8 @@ namespace conv {
 InvokerFactory MakeFlexgemmInvokerFactory(const param_ufconv_t& p, float alpha)
 {
     return [=](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& handle, const boost::any& prim_params) {
-            const auto& tensors = boost::any_cast<DataInvokeParams>(prim_params).tensors;
+        return [=](const Handle& handle, const AnyInvokeParams& prim_params) {
+            const auto& tensors = prim_params.CastTo<conv::DataInvokeParams>().tensors;
             lk_ufconv(handle, kernels[0], p, tensors.out, tensors.in, tensors.w, alpha);
             if(handle.IsProfilingEnabled())
             {
@@ -179,8 +179,8 @@ InvokerFactory MakeFlexgemmInvokerFactory(const param_ufconv_t& p, float alpha)
 InvokerFactory MakeFlexgemmInvokerFactory(const param_conv_t& p, float alpha)
 {
     return [=](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& handle, const boost::any& prim_params) {
-            const auto& params   = boost::any_cast<DataInvokeParams>(prim_params);
+        return [=](const Handle& handle, const AnyInvokeParams& prim_params) {
+            const auto& params   = prim_params.CastTo<conv::DataInvokeParams>();
             const size_t auxsize = get_auxbuf_size(p);
             if(params.workSpace == nullptr || params.workSpaceSize < auxsize)
                 MIOPEN_THROW("Workspace is not enough for flexgemm");
