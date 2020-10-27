@@ -302,44 +302,6 @@ ConvBinWinogradRxSf2x3::Search(const ConvolutionContext& context,
     return GenericSearch(*this, context, invoke_ctx);
 }
 
-inline void FillVarsFromConfig(int& H,
-                               int& W,
-                               int& R,
-                               int& S,
-                               int& R_stride,
-                               int& S_stride,
-                               int& C,
-                               int& K,
-                               int& out_H,
-                               int& out_W,
-                               int& pad_H,
-                               int& pad_W,
-                               int& N,
-                               int& idilation_w,
-                               int& idilation_h,
-                               int& n_groups,
-                               int& group_cnt,
-                               const ConvolutionContext& config)
-{
-    group_cnt   = config.group_counts;
-    n_groups    = config.GetStream().GetMaxComputeUnits();
-    pad_H       = config.direction.IsForward() ? config.pad_h : config.GetBackwardPadH();
-    pad_W       = config.direction.IsForward() ? config.pad_w : config.GetBackwardPadW();
-    H           = config.in_height;
-    W           = config.in_width;
-    R           = config.kernel_size_h;
-    S           = config.kernel_size_w;
-    R_stride    = config.kernel_stride_h;
-    S_stride    = config.kernel_stride_w;
-    C           = config.n_inputs;
-    K           = config.n_outputs;
-    out_H       = config.out_height;
-    out_W       = config.out_width;
-    N           = config.batch_sz;
-    idilation_w = config.kernel_dilation_h;
-    idilation_h = config.kernel_dilation_w;
-}
-
 static bool IsApplicableBase(const ConvolutionContext& params)
 {
     if(!params.Is2d())
