@@ -834,13 +834,13 @@ static void otr(const Handle& h, const Kernel& kern, const cellfft_param_t& p, v
 InvokerFactory MakeCellfftInvokerFactory(const cellfft_param_t& conv_params, float alpha)
 {
     return [=](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& h, const boost::any& prim_params) {
+        return [=](const Handle& h, const AnyInvokeParams& prim_params) {
             const size_t abks    = static_cast<size_t>(conv_params.abks);
             const size_t bbks    = static_cast<size_t>(conv_params.bbks);
             const size_t cbks    = static_cast<size_t>(conv_params.cbks);
             const size_t nbks    = static_cast<size_t>(conv_params.nbanks) << 3;
             const size_t auxsize = nbks * (abks + bbks + cbks);
-            const auto& params   = boost::any_cast<conv::DataInvokeParams>(prim_params);
+            const auto& params   = prim_params.CastTo<conv::DataInvokeParams>();
             if(params.workSpace == nullptr || params.workSpaceSize < auxsize)
                 MIOPEN_THROW("Workspace is not enough for cellfft");
             const auto& tensors = params.tensors;
@@ -880,13 +880,13 @@ InvokerFactory MakeCellfftInvokerFactory(const cellfft_param_t& conv_params, flo
 InvokerFactory MakeCellfftInvokerFactoryGrad(const cellfft_param_t& conv_params, float alpha)
 {
     return [=](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& h, const boost::any& prim_params) {
+        return [=](const Handle& h, const AnyInvokeParams& prim_params) {
             const size_t abks    = static_cast<size_t>(conv_params.abks);
             const size_t bbks    = static_cast<size_t>(conv_params.bbks);
             const size_t cbks    = static_cast<size_t>(conv_params.cbks);
             const size_t nbks    = static_cast<size_t>(conv_params.nbanks) << 3;
             const size_t auxsize = nbks * (abks + bbks + cbks);
-            const auto& params   = boost::any_cast<conv::WrWInvokeParams>(prim_params);
+            const auto& params   = prim_params.CastTo<conv::WrWInvokeParams>();;
             if(params.workSpace == nullptr || params.workSpaceSize < auxsize)
                 MIOPEN_THROW("Workspace is not enough for cellfft");
             const auto& tensors = params.tensors;
