@@ -766,6 +766,8 @@ std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeFFT(
         const auto it        = std::max_element(all_ws_sz.begin(),
                                          all_ws_sz.end(),
                                          [](auto&& l, auto&& r) { return l.second > r.second; });
+        if(it == all_ws_sz.end())
+            return 0;
         return it->second;
     }
     catch(const miopen::Exception& ex)
