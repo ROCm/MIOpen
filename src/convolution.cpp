@@ -762,17 +762,11 @@ std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeFFT(
 {
     try
     {
-        const auto ss  = FindAllFFTSolutions(ctx, {});
-        std::size_t sz = 0;
-        for(const auto& solution : ss)
-        {
-            if(sz < solution.workspce_sz)
-            {
-                MIOPEN_LOG_I2(sz << " < " << solution.workspce_sz);
-                sz = solution.workspce_sz;
-            }
-        }
-        return sz;
+        const auto all_ws_sz = AllFFTForwardBackwardDataWorkspaceSize(ctx);
+        const auto it        = std::max_element(all_ws_sz.begin(),
+                                         all_ws_sz.end(),
+                                         [](auto&& l, auto&& r) { return l.second > r.second; });
+        return it->second;
     }
     catch(const miopen::Exception& ex)
     {

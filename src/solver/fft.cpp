@@ -154,25 +154,39 @@ bool FFT::IsApplicable(const ConvolutionContext& ctx) const
 
 size_t FFT::GetWorkspaceSize(const ConvolutionContext& ctx) const
 {
-    int in_n = ctx.batch_sz, in_c = ctx.n_inputs, in_h = ctx.in_height, in_w = ctx.in_width;
-    int out_n = ctx.batch_sz, out_c = ctx.n_outputs;
-    int wei_k = out_c, wei_c = in_c;
+    const auto fwd       = ctx.direction.IsForward();
+    decltype(auto) xDesc = fwd ? ctx.conv_problem.GetIn() : ctx.conv_problem.GetOut();
+    decltype(auto) yDesc = fwd ? ctx.conv_problem.GetOut() : ctx.conv_problem.GetIn();
+    decltype(auto) wDesc = ctx.conv_problem.GetWeights();
+
+    int in_n, in_c, in_h, in_w;
+    std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(xDesc.GetLengths());
+
+    int out_n, out_c, out_h, out_w;
+    std::tie(out_n, out_c, out_h, out_w) = miopen::tien<4>(yDesc.GetLengths());
+
+    int wei_k, wei_c, wei_h, wei_w;
+    std::tie(wei_k, wei_c, wei_h, wei_w) = miopen::tien<4>(wDesc.GetLengths());
+
+    // FFT convolutions only works for specific config(s)
+    // coverage to expand gradually
 
     const int N       = FFTConvParams::TileSize(in_h, in_w);
     const int Padding = FFTConvParams::TransposePadding;
-    int temp_size     = 0;
 
-    if(ctx.direction.IsForward())
+    int temp_size = 0;
+
+    if(fwd)
     {
         int temp_size1 = (in_c * in_n + Padding) + (wei_k * wei_c + Padding);
         int temp_size2 = (out_n * out_c + Padding);
-        temp_size      = std::max(temp_size1, temp_size2);
+        temp_size      = temp_size1 > temp_size2 ? temp_size1 : temp_size2;
     }
     else
     {
         int temp_size1 = (out_n * out_c + Padding) + (wei_k * wei_c + Padding);
         int temp_size2 = (in_c * in_n + Padding);
-        temp_size      = std::max(temp_size1, temp_size2);
+        temp_size      = temp_size1 > temp_size2 ? temp_size1 : temp_size2;
     }
 
     return 2 * 2 * N * temp_size * sizeof(float);
@@ -341,7 +355,8 @@ ConvSolution FFT::GetSolution(const ConvolutionContext& ctx) const
     const std::string algorithm    = "miopenConvolutionFwdAlgoFFT";
     const std::string program_name = "MIOpenConvFFT.cl";
 
-    auto sol = ConvSolution{miopenStatusSuccess};
+    auto sol        = ConvSolution{miopenStatusSuccess};
+    sol.workspce_sz = workSpaceSize;
 
     // skip front transposes for 7x7
     const auto skip_front_transposes = (in_h == 7) && (in_w == 7);
