@@ -1,7 +1,37 @@
 
 ## MIOpen Release notes
 
-### 07/31/2020 [ 2.6.0 ]
+
+
+### 10/28/2020 [ 2.8.0 ]
+
+This release provides additional bug fixes and support for embedded build using MIOpen as a static library. 
+
+- Fixed workspace size calculation for GEMM group convolutions
+- Fixed performance regression for M/N
+- Fixed issue with faulty compiler option
+- Fixed typo in components dependency variable in CMakeLists.txt
+- Fixed issues with COMgr backed online compilation for HIP kernels
+- Added cmake flag for embedding system databases when building a static library
+- Added a way to disable building MIOpenDriver when building a static library
+- Added CC compiler detection in ROCm environment
+- Known issue: This release may show warnings for "obsolete configs" in the performance database. This can be fixed by rerunning tuning on a specfic network; [see tuning documentation](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perfdatabase.html#miopen-find-enforce)
+
+
+
+### 09/18/2020 [ 2.7.0 ]
+
+- This release contains a new reduction API; see [API documentation](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/apireference.html) for more information. Additional features for embedded builds have been added, and further support for 3D convolutional networks. 
+
+- Added additional tunings into performance database
+- Added general reduction API
+- Added cmake flag for embedding binary database into a static MIOpen build
+- Added cmake flag for embedding system find-db text files into static MIOpen build
+- Fixed issue with GEMM workspace size calculation for backwards data convolutions [#381](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/381)
+- Fixed issue with 3D pooling indexing [#365](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/365)
+
+
+### 08/20/2020 [ 2.6.0 ]
 
 - This release contains convolution performance improvements, improved multi-threading behavior, and improved stability for half precision convolutions. Initial iteration time has been reduced with the introduction of hybrid find mode. Builds for a static library have been refined for this release.
 
