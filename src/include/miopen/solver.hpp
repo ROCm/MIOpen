@@ -1423,6 +1423,7 @@ struct ConvBinWinogradRxSf2x3 : SolverBase<ConvolutionContext>
 
     bool IsApplicable(const ConvolutionContext& params) const;
     bool IsDynamic() const { return true; }
+    float GetWti(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvBinWinogradRxSf2x3& config,
                              bool disableConfigOverrideFromEnv = false) const;
