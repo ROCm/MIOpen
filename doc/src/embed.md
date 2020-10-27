@@ -41,7 +41,7 @@ To install the precompiled kernels package use the command:
 ```
 apt-get install miopenkernels-<arch>-<num cu>
 ```
-Where <arch> is the GPU architecture (for example, gfx900, gfx906) and <num cu> is the number of CUs available in the GPU (for example 56 or 64 etc).
+Where `<arch>` is the GPU architecture (for example, gfx900, gfx906) and `<num cu>` is the number of CUs available in the GPU (for example 56 or 64 etc).
 
 Not installing the precompiled kernel package would not impact the functioning of MIOpen, since MIOpen will compile these kernels on the target machine once the kernel is run, however, the compilation step may significantly increase the startup time for different operations.
 
