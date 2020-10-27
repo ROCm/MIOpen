@@ -356,129 +356,131 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
     std::vector<KernelInfo> kernels;
     for(const auto& current_config : all_configs)
     {
-        float elapsed_time = 0.0f;
-        int ret            = 0;
-        MIOPEN_LOG_I2('#' << n_current << '/' << n_failed << '/' << n_runs_total << ' '
-                          << current_config);
-
-        ConvSolution current_solution;
-        Invoker invoker;
-
-        try
+        ConvSolution current_solution = s.GetSolution(context, current_config, true);
+        for(auto&& kernel : current_solution.construction_params)
         {
-            current_solution = s.GetSolution(context, current_config, true);
-
-            if(compile_and_run == "0")
-            {
-                for(auto&& kernel : current_solution.construction_params)
-                {
-                    if(profile_h.HasProgram(kernel.kernel_file, kernel.comp_options))
-                        continue;
-                    kernels.push_back(kernel);
-                }
-
+            if(profile_h.HasProgram(kernel.kernel_file, kernel.comp_options))
                 continue;
-            }
+            kernels.push_back(kernel);
+        }
+    }
+    std::vector<Program> programs = PrecompileKernels(profile_h, kernels);
 
-            if(default_solution.workspce_sz != current_solution.workspce_sz)
+
+    if(compile_and_run != "0")
+    {
+        for(const auto& current_config : all_configs)
+        {
+            float elapsed_time = 0.0f;
+            int ret            = 0;
+            MIOPEN_LOG_I2('#' << n_current << '/' << n_failed << '/' << n_runs_total << ' '
+                              << current_config);
+
+            ConvSolution current_solution;
+            Invoker invoker;
+
+            try
             {
-                ret = -2;
-                MIOPEN_LOG_E('#' << n_current << " (" << n_runs_total << ") "
+                current_solution = s.GetSolution(context, current_config, true);
+                if(default_solution.workspce_sz != current_solution.workspce_sz)
+                {
+                    ret = -2;
+                    MIOPEN_LOG_E('#' << n_current << " (" << n_runs_total << ") "
                                  << "Workspace size should not depend on PerformanceConfig: "
                                  << default_solution.workspce_sz
                                  << " != "
                                  << current_solution.workspce_sz);
+                }
+
+                invoker = profile_h.PrepareInvoker(*current_solution.invoker_factory,
+                                             current_solution.construction_params);
+                invoker(profile_h, invoke_ctx);
+                elapsed_time = profile_h.GetKernelTime();
+            }
+            catch(...)
+            {
+                ret = 1;
             }
 
-            invoker = profile_h.PrepareInvoker(*current_solution.invoker_factory,
-                                               current_solution.construction_params);
-            invoker(profile_h, invoke_ctx);
-            elapsed_time = profile_h.GetKernelTime();
-        }
-        catch(...)
-        {
-            ret = 1;
-        }
+            MIOPEN_LOG_T("##"
+                         << "(n_current, n_failed, n_runs_total):  "
+                         << n_current
+                         << '/'
+                         << n_failed
+                         << '/'
+                         << n_runs_total
+                         << " elapsed_time: "
+                         << elapsed_time
+                         << ", best_time: "
+                         << best_time
+                         << ", "
+                         << current_config);
 
-        MIOPEN_LOG_T("##"
-                     << "(n_current, n_failed, n_runs_total):  "
-                     << n_current
-                     << '/'
-                     << n_failed
-                     << '/'
-                     << n_runs_total
-                     << " elapsed_time: "
-                     << elapsed_time
-                     << ", best_time: "
-                     << best_time
-                     << ", "
-                     << current_config);
-
-        if(ret == 0)
-        {
-            // Smooth the jitter of measurements:
-            // If the 1st probe is NOT too bad (measured time <= 1.05 * best known time),
-            // then re-run it 4 times more and compute average time,
-            // and decide using average of all 5 attempts vs. the best.
-            if(elapsed_time / best_time < 1.05f)
+            if(ret == 0)
             {
-                MIOPEN_LOG_I2("Finding average for: " << elapsed_time << " / " << best_time << " = "
+                // Smooth the jitter of measurements:
+                // If the 1st probe is NOT too bad (measured time <= 1.05 * best known time),
+                // then re-run it 4 times more and compute average time,
+                // and decide using average of all 5 attempts vs. the best.
+                if(elapsed_time / best_time < 1.05f)
+                {
+                    MIOPEN_LOG_I2("Finding average for: " << elapsed_time << " / " << best_time << " = "
                                                       << (elapsed_time / best_time));
 
-                try
-                {
-                    for(int i = 0; i < 4; ++i)
+                    try
                     {
-                        invoker(profile_h, invoke_ctx);
-                        elapsed_time += profile_h.GetKernelTime();
+                        for(int i = 0; i < 4; ++i)
+                        {
+                            invoker(profile_h, invoke_ctx);
+                            elapsed_time += profile_h.GetKernelTime();
+                        }
                     }
-                }
-                catch(...)
-                {
-                    ret = 1;
-                }
+                    catch(...)
+                    {
+                        ret = 1;
+                    }
 
-                if(ret == 0)
-                {
-                    is_passed = true;
-                    elapsed_time /= 5;
-                    if(elapsed_time < best_time)
+                    if(ret == 0)
                     {
-                        MIOPEN_LOG_I('#' << n_current << '/' << n_failed << '/' << n_runs_total
-                                         << ' '
-                                         << elapsed_time
-                                         << " < "
-                                         << best_time
-                                         << ' '
-                                         << current_config);
-                        best_config = current_config;
-                        best_time   = elapsed_time;
-                        n_best      = n_current;
-                    }
-                    else
-                    {
-                        MIOPEN_LOG_I2(
-                            "Average is not better: " << elapsed_time << " >= " << best_time);
+                        is_passed = true;
+                        elapsed_time /= 5;
+                        if(elapsed_time < best_time)
+                        {
+                            MIOPEN_LOG_I('#' << n_current << '/' << n_failed << '/' << n_runs_total
+                                            << ' '
+                                            << elapsed_time
+                                            << " < "
+                                            << best_time
+                                            << ' '
+                                            << current_config);
+                            best_config = current_config;
+                            best_time   = elapsed_time;
+                            n_best      = n_current;
+                        }
+                        else
+                        {
+                            MIOPEN_LOG_I2(
+                                "Average is not better: " << elapsed_time << " >= " << best_time);
+                        }
                     }
                 }
             }
-        }
 
-        if(ret != 0)
-        {
-            MIOPEN_LOG_E('#' << n_current << " (" << n_runs_total << ") "
-                             << " Failed rc="
-                             << ret);
-            ++n_failed;
+            if(ret != 0)
+            {
+                MIOPEN_LOG_E('#' << n_current << " (" << n_runs_total << ") "
+                                 << " Failed rc="
+                                 << ret);
+                ++n_failed;
+            }
+            heartbeat.Monitor(
+                ret != 0, elapsed_time, n_current, best_time, n_failed, n_runs_total, current_config);
+            ++n_current;
         }
-        heartbeat.Monitor(
-            ret != 0, elapsed_time, n_current, best_time, n_failed, n_runs_total, current_config);
-        ++n_current;
     }
-
-    if(compile_and_run == "0")
+    else
     {
-        std::vector<Program> programs = PrecompileKernels(profile_h, kernels);
+        MIOPEN_THROW("Search skipped");
     }
 
     MIOPEN_LOG_W("Done: " << n_runs_total << '/' << n_failed << '/' << n_runs_total << ", best #"
