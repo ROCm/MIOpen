@@ -2,7 +2,7 @@
 ## MIOpen Release notes
 
 
-### 10/23/2020 [ 2.8.0 ]
+### 10/28/2020 [ 2.8.0 ]
 
 This release provides additional bug fixes and support for embedded build using MIOpen as a static library. 
 
