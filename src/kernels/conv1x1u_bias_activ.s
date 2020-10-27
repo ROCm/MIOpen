@@ -353,7 +353,8 @@ bias_buffer_size = (output_channels + elements_in_dword - 1) / elements_in_dword
         .SGPR_ALLOC_ONCE beta
         .SGPR_ALLOC_ONCE gamma
     .endif
-    .SGPR_RESERVE_XNACK
+    //xnack disabled by default
+    //.SGPR_RESERVE_XNACK
     .SGPR_RESERVE_VCC
 
     .VGPR_ALLOC_FROM 0
