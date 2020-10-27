@@ -772,7 +772,7 @@ std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeFFT(
                 sz = pair.second;
             }
         }
-        const auto it        = std::max_element(all_ws_sz.begin(),
+        const auto it = std::max_element(all_ws_sz.begin(),
                                          all_ws_sz.end(),
                                          [](auto&& l, auto&& r) { return l.second > r.second; });
         if(it == all_ws_sz.end())
