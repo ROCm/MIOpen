@@ -32,7 +32,7 @@
 #include "implicitgemm_util.hpp"
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/tensor_ops.hpp>
-#include "asm_implicit_gemm.hpp"
+#include <miopen/conv/asm_implicit_gemm.hpp>
 
 namespace miopen {
 namespace solver {
@@ -148,10 +148,10 @@ static inline int GetImplicitGemmWrwGTCDynamicXdlopsGemmkSplits(
 static inline std::tuple<int, int> get_grid_size(const ConvolutionContext& ctx,
                                                  const TunableImplicitGemmGTCDynamic_t* tunable)
 {
-    const auto k = ctx.n_inputs;
-    const auto c = ctx.n_outputs;
-    const auto y = ctx.kernel_size_h;
-    const auto x = ctx.kernel_size_w;
+    const auto& k = ctx.n_inputs;
+    const auto& c = ctx.n_outputs;
+    const auto& y = ctx.kernel_size_h;
+    const auto& x = ctx.kernel_size_w;
 
     const auto gemm_m_per_block    = tunable->gemm_m_per_block;
     const auto gemm_n_per_block    = tunable->gemm_n_per_block;
@@ -205,13 +205,13 @@ static inline int if_gemm_k_global_split(const ConvolutionContext& ctx,
                                          const int gemm_k_per_block)
 {
     int gemm_k_global_split = 0;
-    const auto n            = ctx.batch_sz;
-    const auto k            = ctx.n_inputs;
-    const auto c            = ctx.n_outputs;
-    const auto ho           = ctx.in_height;
-    const auto wo           = ctx.in_width;
-    const auto y            = ctx.kernel_size_h;
-    const auto x            = ctx.kernel_size_w;
+    const auto& n           = ctx.batch_sz;
+    const auto& k           = ctx.n_inputs;
+    const auto& c           = ctx.n_outputs;
+    const auto& ho          = ctx.in_height;
+    const auto& wo          = ctx.in_width;
+    const auto& y           = ctx.kernel_size_h;
+    const auto& x           = ctx.kernel_size_w;
 
     const auto gemm_m = k;
     const auto gemm_n = c * y * x;
@@ -300,13 +300,13 @@ static inline float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
 static inline std::tuple<bool, int>
 FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
 {
-    const auto n        = ctx.batch_sz;
-    const auto k        = ctx.n_inputs;
-    const auto c        = ctx.n_outputs;
-    const auto ho       = ctx.in_height;
-    const auto wo       = ctx.in_width;
-    const auto y        = ctx.kernel_size_h;
-    const auto x        = ctx.kernel_size_w;
+    const auto& n       = ctx.batch_sz;
+    const auto& k       = ctx.n_inputs;
+    const auto& c       = ctx.n_outputs;
+    const auto& ho      = ctx.in_height;
+    const auto& wo      = ctx.in_width;
+    const auto& y       = ctx.kernel_size_h;
+    const auto& x       = ctx.kernel_size_w;
     const auto stride_h = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
     const auto stride_w = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
 
