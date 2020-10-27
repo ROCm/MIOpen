@@ -144,8 +144,11 @@ GetImplicitGemmGtcDynamicBwdTunablesList()
 
 // Return with true if kernel is found, and its kernel_name, block_size, grid_size as well.
 // Return with false if no kernel can be executed with input ConvolutionContext
-static std::tuple<bool, std::string, int, int>
-FindImplicitGemmGtcDynamicBwdKernel(const ConvolutionContext& ctx)
+static std::tuple<bool,        // is suitable kernel found
+                  std::string, // kernel_name
+                  int,         // block_size
+                  int>         // grid_size
+    FindImplicitGemmGtcDynamicBwdKernel(const ConvolutionContext& ctx)
 {
     auto tunables         = GetImplicitGemmGtcDynamicBwdTunablesList();
     auto pConfig          = tunables.begin();

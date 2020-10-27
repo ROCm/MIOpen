@@ -159,8 +159,8 @@ static inline std::tuple<int, int> get_grid_size(const ConvolutionContext& ctx,
     const auto gemm_k_global_split = tunable->gemm_k_global_split;
     int log2_gemm_k_global_split   = 0;
 
-    const auto gemm_m = k;
-    const auto gemm_n = c * y * x;
+    const auto& gemm_m = k;
+    const auto gemm_n  = c * y * x;
 
     // assume that gemm m/n can be divided with no remainder by gemm m/n per block
     int grid_size = (gemm_m / gemm_m_per_block) * (gemm_n / gemm_n_per_block);
@@ -213,8 +213,8 @@ static inline int if_gemm_k_global_split(const ConvolutionContext& ctx,
     const auto& y           = ctx.kernel_size_h;
     const auto& x           = ctx.kernel_size_w;
 
-    const auto gemm_m = k;
-    const auto gemm_n = c * y * x;
+    const auto& gemm_m = k;
+    const auto gemm_n  = c * y * x;
 
     int max_grid_size = 1200;
 
@@ -310,9 +310,9 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
     const auto stride_h = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
     const auto stride_w = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
 
-    const auto gemm_n = c * y * x;
-    const auto gemm_m = k;
-    const auto gemm_k = n * ho * wo;
+    const auto gemm_n  = c * y * x;
+    const auto& gemm_m = k;
+    const auto gemm_k  = n * ho * wo;
 
     int gemm_m_per_block;
     int gemm_n_per_block;
@@ -483,7 +483,7 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
 bool ConvAsmImplicitGemmGTCDynamicWrwXdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
     const auto device_name = ctx.GetStream().GetDeviceName();
-    if(!(StartsWith(device_name, "gfx908")))
+    if(device_name != "gfx908")
         return false;
 
     if(!IsApplicableXdlops(ctx))
