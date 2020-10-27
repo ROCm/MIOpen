@@ -135,6 +135,7 @@ Winograd  Solutions:
   * `MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F4X3` - `ConvMPBidirectWinograd_xdlops<4-3>`, FWD/BWD F(4,3)
   * `MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F5X3` - `ConvMPBidirectWinograd_xdlops<5-3>`, FWD/BWD F(5,3)
   * `MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F6X3` - `ConvMPBidirectWinograd_xdlops<6-3>`, FWD/BWD F(6,3)
+  * `MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM - `ConvMPBidirectWinograd*`, FWD/BWD FP16 experemental mode. Disabled by default. This mode is experimental. Use it at your own risk.
 * `MIOPEN_DEBUG_AMD_FUSED_WINOGRAD` - Fused FP32 F(3,3) Winograd, variable filter size.
 
 ## rocBlas Logging and Behavior
@@ -208,7 +209,8 @@ Different ROCm versions use Code Object files of different versions (or, in othe
 
 ### Winograd Multi-pass Maximum Workspace throttling
 
-`MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX`
+`MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX` - `ConvWinograd3x3MultipassWrW`, WrW
+`MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_WORKSPACE_MAX` - `ConvMPBidirectWinograd*`, FWD BWD
 
 Syntax of value:
 * decimal or hex (with `0x` prefix) value that should fit into `unsigned long` (64 bits).
