@@ -763,6 +763,15 @@ std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeFFT(
     try
     {
         const auto all_ws_sz = AllFFTForwardBackwardDataWorkspaceSize(ctx);
+        std::size_t sz       = 0;
+        for(const auto& pair : all_ws_sz)
+        {
+            if(sz < pair.second)
+            {
+                MIOPEN_LOG_I2(sz << " < " << pair.second);
+                sz = pair.second;
+            }
+        }
         const auto it        = std::max_element(all_ws_sz.begin(),
                                          all_ws_sz.end(),
                                          [](auto&& l, auto&& r) { return l.second > r.second; });

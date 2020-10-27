@@ -180,13 +180,13 @@ size_t FFT::GetWorkspaceSize(const ConvolutionContext& ctx) const
     {
         int temp_size1 = (in_c * in_n + Padding) + (wei_k * wei_c + Padding);
         int temp_size2 = (out_n * out_c + Padding);
-        temp_size      = temp_size1 > temp_size2 ? temp_size1 : temp_size2;
+        temp_size      = std::max(temp_size1, temp_size2);
     }
     else
     {
         int temp_size1 = (out_n * out_c + Padding) + (wei_k * wei_c + Padding);
         int temp_size2 = (in_c * in_n + Padding);
-        temp_size      = temp_size1 > temp_size2 ? temp_size1 : temp_size2;
+        temp_size      = std::max(temp_size1, temp_size2);
     }
 
     return 2 * 2 * N * temp_size * sizeof(float);
