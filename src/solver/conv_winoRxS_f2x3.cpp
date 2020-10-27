@@ -302,6 +302,8 @@ ConvBinWinogradRxSf2x3::Search(const ConvolutionContext& context,
     return GenericSearch(*this, context, invoke_ctx);
 }
 
+float ConvBinWinogradRxSf2x3::GetWti(const ConvolutionContext& params) const { return -2.0; }
+
 static bool IsApplicableBase(const ConvolutionContext& params)
 {
     if(!params.Is2d())
