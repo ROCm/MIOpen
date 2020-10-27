@@ -33,7 +33,9 @@
 #include <miopen/returns.hpp>
 #include <miopen/errors.hpp>
 
+#include <algorithm>
 #include <cassert>
+#include <numeric>
 #include <vector>
 
 namespace miopen {
@@ -172,6 +174,32 @@ struct TensorDescriptor : miopenTensorDescriptor
     bool operator>(const TensorDescriptor& rhs) const;
 
     std::string ToString() const;
+
+    template <class Vector, class Op>
+    static inline std::vector<int64_t> sort_permutation(const Vector& data, Op op)
+    {
+        std::vector<std::int64_t> result(data.size());
+        std::iota(result.begin(), result.end(), 0);
+        std::sort(
+            result.begin(), result.end(), [&](auto x, auto y) { return op(data[x], data[y]); });
+        return result;
+    }
+
+    std::string GetLayout(std::string labels) const
+    {
+        if(labels.size() != strides.size())
+        {
+            MIOPEN_THROW(
+                "Invalid labels size. Layout labels size must be equavalent to stride size");
+        }
+
+        // Copy construct the result string from labels. This allocates the space at one go
+        // and is faster than calling push_back in transform.
+        auto result = labels;
+        auto p      = sort_permutation(strides, std::greater<>{});
+        std::transform(p.begin(), p.end(), result.begin(), [&](auto i) { return labels[i]; });
+        return result;
+    }
 
     friend std::ostream& operator<<(std::ostream& stream, const TensorDescriptor& t);
 

@@ -18,14 +18,14 @@ arches=$($ROCMINFO | grep -e ' gfx' -e 'Compute Unit:' | awk '/Name/{ arch= $2} 
 while IFS= read -r line ; 
 do 
     if [ -f /etc/redhat-release ]; then
-          echo sudo yum -y install "miopenkernels-$line"
-          $SUDO yum -y install --nogpgcheck "miopenkernels-$line"
+          echo sudo yum -y install "miopenkernels-${line}pkg"
+          $SUDO yum -y install --nogpgcheck "miopenkernels-${line}pkg"
     elif [ -f /etc/lsb-release ]; then
-          echo sudo apt install -y "miopenkernels-$line"
+          echo sudo apt install -y "miopenkernels-${line}pkg"
           $SUDO apt update
-          $SUDO apt install -y "miopenkernels-$line"
+          $SUDO apt install -y "miopenkernels-${line}pkg"
     else
         echo "Unknown distribution"
-        echo "Please install the miopenkernels-$line package using an appropriate package manager"
+        echo "Please install the miopenkernels-${line}pkg package using an appropriate package manager"
     fi
 done <<< "$arches"
