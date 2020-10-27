@@ -465,6 +465,8 @@ int ConvHipImplicitGemmV4R4GenWrWXdlops::RunAndMeasureSolution(const miopen::Han
 
 bool ConvHipImplicitGemmV4R4GenFwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
+    if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
+        return false;
     if(!(ctx.IsFp16() || ctx.IsBfp16()))
         return false;
     if(!ctx.use_hip_kernels)
@@ -478,6 +480,8 @@ bool ConvHipImplicitGemmV4R4GenFwdXdlops::IsApplicable(const ConvolutionContext&
 
 bool ConvHipImplicitGemmV4R4GenWrWXdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
+    if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
+        return false;
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
     if(!ctx.use_hip_kernels)

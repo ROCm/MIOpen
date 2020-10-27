@@ -18,8 +18,6 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SY
 #define WORKAROUND_SWDEV_229564 1
 // workaround for buffer load/store fp16/bfp16 intrinsic bug
 #define WORKAROUND_SWDEV_231101 1
-// workaround compiler bug: GPU memory access fault when there is padding in fp16/bfp16 case
-#define WORKAROUND_SWDEV_239555 1
 // LLVM xdlops instrinsic will do unnecessey VGRP <--> AGPR movement, and result in
 // register spill, for bfloat16 datatype, when doing wave-wise GEMM larger than 64x64
 #define WORKAROUND_SWDEV_240356 1
@@ -520,44 +518,33 @@ static inline bool IsValidBlockwiseGemmXdlops(const ConvolutionContext& ctx,
     if(ctx.IsBfp16() && GemmKPack % 2 != 0)
         return false;
 
-    if(GemmMPerWave == 32 && GemmNPerWave == 32 && GemmKPerBlock % 2 != 0)
-        return false;
-    if(GemmMPerWave == 16 && GemmNPerWave == 16 && GemmKPerBlock % 4 != 0)
-        return false;
+    // check M, N and K
+    std::vector<std::tuple<int, int, int>> validWaveGemmSize = {std::make_tuple(128, 64, 1),
+                                                                std::make_tuple(128, 32, 1),
+                                                                std::make_tuple(128, 16, 1),
+                                                                std::make_tuple(64, 128, 1),
+                                                                std::make_tuple(64, 64, 1),
+                                                                std::make_tuple(64, 32, 1),
+                                                                std::make_tuple(64, 16, 1),
+                                                                std::make_tuple(32, 128, 1),
+                                                                std::make_tuple(32, 64, 1),
+                                                                std::make_tuple(32, 32, 2),
+                                                                std::make_tuple(16, 128, 1),
+                                                                std::make_tuple(16, 64, 1),
+                                                                std::make_tuple(16, 16, 4),
+                                                                std::make_tuple(8, 128, 1),
+                                                                std::make_tuple(8, 64, 1),
+                                                                std::make_tuple(4, 128, 1),
+                                                                std::make_tuple(4, 64, 1)};
 
-    // check M and N
-    std::vector<std::tuple<int, int>> validWaveGemmSize = {std::make_tuple(64, 64),
-                                                           std::make_tuple(64, 32),
-                                                           std::make_tuple(64, 16),
-                                                           std::make_tuple(32, 64),
-                                                           std::make_tuple(32, 32),
-                                                           std::make_tuple(16, 64),
-                                                           std::make_tuple(16, 16),
-                                                           std::make_tuple(8, 64),
-                                                           std::make_tuple(4, 64)};
-
-    // xdlops repeat only supported by llvm intrinsic
-    if(!miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}))
-    {
-        validWaveGemmSize.emplace_back(std::make_tuple(128, 128));
-        validWaveGemmSize.emplace_back(std::make_tuple(128, 64));
-        validWaveGemmSize.emplace_back(std::make_tuple(64, 128));
-    }
-
-    bool IsValidWaveGemm = false;
-
-    for(auto& it : validWaveGemmSize)
-    {
-        int validGemmMPerWave, validGemmNPerWave;
-        std::tie(validGemmMPerWave, validGemmNPerWave) = it;
-        if(validGemmMPerWave == GemmMPerWave && validGemmNPerWave == GemmNPerWave)
-        {
-            IsValidWaveGemm = true;
-            break;
-        }
-    }
-
-    if(!IsValidWaveGemm)
+    if(!std::any_of(validWaveGemmSize.cbegin(),
+                    validWaveGemmSize.cend(),
+                    [ GemmMPerWave, GemmNPerWave, GemmKPerBlock ](const auto it) noexcept->bool {
+                        int validMPerWave, validNPerWave, validKPerWave;
+                        std::tie(validMPerWave, validNPerWave, validKPerWave) = it;
+                        return (GemmMPerWave == validMPerWave) && (GemmNPerWave == validNPerWave) &&
+                               (GemmKPerBlock % validKPerWave == 0);
+                    }))
         return false;
 
     const auto WaveSize = 64;

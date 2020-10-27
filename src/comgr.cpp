@@ -24,13 +24,19 @@
  *
  *******************************************************************************/
 
+#include <miopen/config.h>
+
+#include <miopen/comgr.hpp>
 #include <miopen/algorithm.hpp>
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/stringutils.hpp>
+
 #include <amd_comgr.h>
+#include <hip/hip_runtime_api.h>
+
 #include <algorithm>
 #include <exception>
 #include <cstddef>
@@ -39,6 +45,11 @@
 #include <vector>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_CALLS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)
+
+/// 0: Off.
+/// 1: Logs each option on a separate line.
+/// 2: Logs all options altogether, on single line.
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_OPTIONS)
 
 /// Integer, set to max number of first characters
@@ -63,9 +74,22 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
 #define MIOPEN_AMD_COMGR_VERSION_PATCH 0
 #endif
 
+// 3 decimal digits per each number.
+#if MIOPEN_AMD_COMGR_VERSION_MAJOR > 999 || MIOPEN_AMD_COMGR_VERSION_MINOR > 999 || \
+    MIOPEN_AMD_COMGR_VERSION_PATCH > 999
+#error "Too big COMGR version number(s)"
+#endif
 #define COMGR_VERSION                                                                  \
     ((MIOPEN_AMD_COMGR_VERSION_MAJOR * 1000 + MIOPEN_AMD_COMGR_VERSION_MINOR) * 1000 + \
      MIOPEN_AMD_COMGR_VERSION_PATCH)
+
+// If HIP runtime provides PCH functionality, and COMGR is able to use it,
+// then enable PCH usage automatically.
+#if defined(__HIP_HAS_GET_PCH) && __HIP_HAS_GET_PCH && COMGR_VERSION >= 1008000
+#define USE_HIP_PCH 1
+#else
+#define USE_HIP_PCH 0
+#endif
 
 #define COMPILER_LC 1
 
@@ -114,6 +138,14 @@ static auto GetOptionsNoSplit()
     return rv;
 }
 
+static bool IsEnabledFeatureSramEcc(const std::string& device)
+{
+    /// \todo Read actual feature status from runtime.
+    static const auto rv = (device == "gfx906" || device == "gfx908") &&
+                           !miopen::IsEnabled(MIOPEN_DEBUG_SRAM_EDC_DISABLED{});
+    return rv;
+}
+
 namespace gcnasm {
 
 static void RemoveOptionsUnwanted(OptionList& list)
@@ -138,7 +170,7 @@ namespace ocl {
 #error "Wrong OCL_STANDARD"
 #endif
 
-static void AddCompilerOptions(OptionList& list)
+static void AddCompilerOptions(OptionList& list, const std::string& device)
 {
     list.push_back("-cl-kernel-arg-info");
 #if 0 // For experimients.
@@ -159,7 +191,7 @@ static void AddCompilerOptions(OptionList& list)
 
     // It seems like these options are used only in codegen.
     // However it seems ok to pass these to compiler.
-    if(!miopen::IsEnabled(MIOPEN_DEBUG_SRAM_EDC_DISABLED{}))
+    if(IsEnabledFeatureSramEcc(device))
         list.push_back("-msram-ecc");
     else
         list.push_back("-mno-sram-ecc");
@@ -196,8 +228,9 @@ static void RemoveCommonOptionsUnwanted(OptionList& list)
                          [&](const auto& option) { // clang-format off
                              return miopen::StartsWith(option, "-mcpu=")
                                 || (option == "-hc")
-                                || (option == "-x hip")
+                                || (option == "-x hip") || (option == "-xhip")
                                 || (option == "--hip-link")
+                                || (option == "-lclang_rt.builtins-x86_64")
                                 || miopen::StartsWith(option, "-mllvm -amdgpu-early-inline-all")
                                 || miopen::StartsWith(option, "-mllvm -amdgpu-function-calls")
                                 || miopen::StartsWith(option, "--hip-device-lib-path="); // clang-format on
@@ -234,10 +267,7 @@ static void RemoveLinkOptionsUnwanted(OptionList& list)
 /// \todo Get list of supported isa names from comgr and select.
 static std::string GetIsaName(const std::string& device)
 {
-    const char* const ecc_suffix = (!miopen::IsEnabled(MIOPEN_DEBUG_SRAM_EDC_DISABLED{}) &&
-                                    (device == "gfx906" || device == "gfx908"))
-                                       ? "+sram-ecc"
-                                       : "";
+    const char* const ecc_suffix = IsEnabledFeatureSramEcc(device) ? "+sram-ecc" : "";
     return {"amdgcn-amd-amdhsa--" + device + ecc_suffix};
 }
 
@@ -338,7 +368,9 @@ static bool PrintVersionImpl()
     std::size_t major = 0;
     std::size_t minor = 0;
     (void)amd_comgr_get_version(&major, &minor);
-    MIOPEN_LOG_NQI("comgr v." << major << '.' << minor);
+    MIOPEN_LOG_NQI("COMgr v." << major << '.' << minor << '.' << MIOPEN_AMD_COMGR_VERSION_PATCH
+                              << ", USE_HIP_PCH: "
+                              << USE_HIP_PCH);
     return true;
 }
 
@@ -444,6 +476,12 @@ class Data : ComgrOwner
     {
         ECI_THROW(amd_comgr_set_data(handle, bytes.size(), bytes.data()), bytes.size());
     }
+#if USE_HIP_PCH
+    void SetFromBuffer(const char* const buffer, const size_t size) const
+    {
+        ECI_THROW(amd_comgr_set_data(handle, size, buffer), size);
+    }
+#endif
 
     private:
     std::size_t GetSize() const
@@ -483,7 +521,8 @@ class Dataset : ComgrOwner
                  const amd_comgr_data_kind_t type) const
     {
         const Data d(type);
-        MIOPEN_LOG_I2(name << ' ' << content.size() << " bytes");
+        if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES{}))
+            MIOPEN_LOG_I(name << ' ' << content.size() << " bytes");
         d.SetName(name);
         d.SetBytes(content);
         AddData(d);
@@ -496,6 +535,19 @@ class Dataset : ComgrOwner
             MIOPEN_LOG_I(text);
         }
     }
+#if USE_HIP_PCH
+    void AddDataHipPch(const char* const content, const size_t size) const
+    {
+        const char name[] = "hip.pch";
+        const Data d(AMD_COMGR_DATA_KIND_PRECOMPILED_HEADER);
+        if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES{}))
+            MIOPEN_LOG_I(
+                name << ' ' << size << " bytes,  ptr = " << static_cast<const void*>(content));
+        d.SetName(name);
+        d.SetFromBuffer(content, size);
+        AddData(d);
+    }
+#endif
     size_t GetDataCount(const amd_comgr_data_kind_t kind) const
     {
         std::size_t count = 0;
@@ -634,6 +686,15 @@ void BuildHip(const std::string& name,
         for(const auto& inc : incNames)
             inputs.AddData(inc, miopen::GetKernelInc(inc), AMD_COMGR_DATA_KIND_INCLUDE);
 
+#if USE_HIP_PCH
+        {
+            const char* pch       = nullptr;
+            unsigned int pch_size = 0;
+            __hipGetPCH(&pch, &pch_size);
+            inputs.AddDataHipPch(pch, pch_size);
+        }
+#endif
+
         const ActionInfo action;
         action.SetLanguage(AMD_COMGR_LANGUAGE_HIP);
         SetIsaName(action, device);
@@ -656,6 +717,9 @@ void BuildHip(const std::string& name,
                        + options                               //
                        + " " + GetDebugCompilerOptionsInsert() //
                        + " " + MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS);
+#if USE_HIP_PCH
+            raw += " -nogpuinc -DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS=1";
+#endif
             auto optCompile = miopen::SplitSpaceSeparated(raw, compiler::lc::GetOptionsNoSplit());
             auto optLink    = optCompile;
             compiler::lc::hip::RemoveCompilerOptionsUnwanted(optCompile);
@@ -677,6 +741,10 @@ void BuildHip(const std::string& name,
             action.SetOptionList(optLink);
             const Dataset linkedBc;
             action.Do(AMD_COMGR_ACTION_LINK_BC_TO_BC, withDevLibs, linkedBc);
+
+            OptionList codegenBcToRel;
+            codegenBcToRel.push_back("-O3"); // Nothing more is required at this step.
+            action.SetOptionList(codegenBcToRel);
             const Dataset relocatable;
             action.Do(AMD_COMGR_ACTION_CODEGEN_BC_TO_RELOCATABLE, linkedBc, relocatable);
 
@@ -721,7 +789,7 @@ void BuildOcl(const std::string& name,
 
         auto optCompile = miopen::SplitSpaceSeparated(options);
         compiler::lc::ocl::RemoveOptionsUnwanted(optCompile);
-        compiler::lc::ocl::AddCompilerOptions(optCompile);
+        compiler::lc::ocl::AddCompilerOptions(optCompile, device);
         action.SetOptionList(optCompile);
 
         const Dataset addedPch;

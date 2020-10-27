@@ -576,7 +576,7 @@ endif()
 target_internal_library(MIOpen
     Boost::filesystem
 )
-list(APPEND PACKAGE_STATIC_DEPENDS PACKAGE Boost COMPONTENTS filesystem)
+list(APPEND PACKAGE_STATIC_DEPENDS PACKAGE Boost COMPONENTS filesystem)
 if(NOT WIN32 AND NOT APPLE)
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/lib.def "
 MIOPEN_${MIOPEN_BACKEND}_1
@@ -663,7 +663,7 @@ if(NOT MIOPEN_EMBED_DB STREQUAL "")
         endforeach()
     endif()
     add_embed_library(miopen_data ${CODE_OBJECTS})
-    target_link_libraries(MIOpen PRIVATE miopen_data)
+    target_link_libraries(MIOpen PRIVATE $<BUILD_INTERFACE:miopen_data> )
 else()
     file(GLOB FIND_DB_FILES kernels/*.fdb.txt)
     list(APPEND FIND_DB_FILES kernels/miopen.db)

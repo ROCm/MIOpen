@@ -1,8 +1,10 @@
 #ifndef CK_CONFIG_AMD_HPP
 #define CK_CONFIG_AMD_HPP
 
+#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include "hip/hip_runtime.h"
 #include "hip/hip_fp16.h"
+#endif
 #include "bfloat16_dev.hpp"
 
 // index type: unsigned or signed
@@ -72,6 +74,10 @@
 // workaround for buffer load/store fp16/bfp16 intrinsic bug
 #ifndef CK_WORKAROUND_SWDEV_231101
 #define CK_WORKAROUND_SWDEV_231101 1
+#endif
+// workaround for accvgpr over-allocation
+#ifndef CK_WORKAROUND_SWDEV_241664
+#define CK_WORKAROUND_SWDEV_241664 1
 #endif
 
 namespace ck {

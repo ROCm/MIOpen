@@ -590,6 +590,8 @@ int ConvHipImplicitGemmV4R4GenXdlopsWrWFp32::RunAndMeasureSolution(const miopen:
 
 bool ConvHipImplicitGemmV4R4GenXdlopsWrWFp32::IsApplicable(const ConvolutionContext& ctx) const
 {
+    if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
+        return false;
 /// \todo Fix and remove this workaround.
 /// There are random failures with certain configs,
 /// see https://github.com/ROCmSoftwarePlatform/MIOpen/pull/228
