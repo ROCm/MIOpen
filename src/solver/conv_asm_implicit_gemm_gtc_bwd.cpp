@@ -263,16 +263,63 @@ static std::tuple<bool,        // is suitable kernel found
         }
         if(!gemm_k_valid)
             continue;
-        // if all valid, break out;
-        break;
-    }
-    if(pConfig != tunables.end())
-    {
         return std::make_tuple(true,
                                pConfig->GetKernelName(),
                                pConfig->GetBlockSize(),
                                integer_divide_ceil(gemm_m, pConfig->gemm_m_per_block) *
                                    integer_divide_ceil(gemm_n, pConfig->gemm_n_per_block));
+    }
+
+    // second try, try find if packed image size match
+    const auto b = h_tilda_slice * w_tilda_slice;
+    for(; pConfig != tunables.end(); pConfig++)
+    {
+        const auto gemm_n_packed = n * b;
+        if(pConfig->nxe == 0)
+        {
+            if((x != 1) || (y != 1) || (stride_h != 1) || (stride_w != 1) || (dilation_h != 1) ||
+               (dilation_w != 1) || (pad_h != 0) || (pad_w != 0))
+            {
+                continue;
+            }
+        }
+        if((gemm_n_packed % pConfig->gemm_n_per_block != 0) ||
+           (gemm_m % pConfig->gemm_m_per_block != 0))
+        {
+            continue;
+        }
+        if(pConfig->gemm_n_per_block % pConfig->nxb != 0)
+        {
+            continue;
+        }
+        // ho * wo is 4x, gemm_n is 256, hence need batch size 256/4=64x
+        if(n % (pConfig->gemm_n_per_block / pConfig->nxb) != 0)
+        {
+            continue;
+        }
+
+        bool gemm_k_valid = true;
+        for(int gemm_id = 0; gemm_id < num_of_gemm; gemm_id++)
+        {
+            int i_y_tilda          = gemm_id / x_tilda;
+            int i_x_tilda          = gemm_id % x_tilda;
+            int y_dot_slice        = (i_y_tilda + 1) * y_dot <= y ? y_dot : y % y_dot;
+            int x_dot_slice        = (i_x_tilda + 1) * x_dot <= x ? x_dot : x % x_dot;
+            int gemm_k             = k * y_dot_slice * x_dot_slice;
+            bool is_gemm_not_empty = gemm_k > 0;
+            if(is_gemm_not_empty)
+            {
+                if(gemm_k % pConfig->gemm_k_per_block != 0)
+                    gemm_k_valid = false;
+            }
+        }
+        if(!gemm_k_valid)
+            continue;
+        return std::make_tuple(true,
+                               pConfig->GetKernelName(),
+                               pConfig->GetBlockSize(),
+                               integer_divide_ceil(gemm_m, pConfig->gemm_m_per_block) *
+                                   integer_divide_ceil(gemm_n_packed, pConfig->gemm_n_per_block));
     }
     return std::make_tuple(false, "", -1, -1);
 }
