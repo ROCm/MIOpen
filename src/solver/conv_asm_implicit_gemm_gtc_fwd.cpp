@@ -436,7 +436,7 @@ static std::tuple<bool,        // is suitable kernel found
     const auto gemm_n  = n * ho * wo;
     const auto gemm_k  = c * y * x;
 
-    for(auto& cfg : tunables)
+    for(const auto& cfg : tunables)
     {
         if(cfg.nxe == 0)
         {

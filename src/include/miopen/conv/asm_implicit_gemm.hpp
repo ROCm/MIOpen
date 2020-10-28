@@ -55,7 +55,7 @@ struct TunableImplicitGemmGTCDynamic_t
     int tensor_b_cluster_lengths[4];
     int gemm_k_global_split;
 
-    int GetBlockSize()
+    int GetBlockSize() const
     {
         const auto WaveSize = 64;
         auto block_size     = (gemm_m_per_block / (wave_tile_m * wave_step_m * wave_repeat_m)) *
@@ -64,7 +64,7 @@ struct TunableImplicitGemmGTCDynamic_t
         return block_size;
     }
 
-    std::string GetKernelName()
+    std::string GetKernelName() const
     {
         std::ostringstream kernel_name;
         kernel_name << "igemm_" << direction << "_gtcx_nchw_" << precision << "_bx" << nxb << "_ex"
