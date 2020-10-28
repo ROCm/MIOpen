@@ -38,7 +38,7 @@
 #define CK_USE_AMD_BUFFER_ATOMIC_FADD 0
 #endif
 
-// gfx1030 only use v_fmac_f32
+// gfx1030 does not support V_MAD/V_MAC,but can use v_fmac_f32
 #ifndef CK_USE_AMD_V_FMAC_F32
 #define CK_USE_AMD_V_FMAC_F32 0
 #endif

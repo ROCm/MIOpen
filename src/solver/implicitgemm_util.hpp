@@ -817,7 +817,7 @@ static inline auto get_ck_common_compiler_flag(const ConvolutionContext& ctx)
         std::string(" -DCK_WORKAROUND_SWDEV_229564=") + std::to_string(WORKAROUND_SWDEV_229564) +
         std::string(" -DCK_WORKAROUND_SWDEV_231101=") + std::to_string(WORKAROUND_SWDEV_231101);
 
-    // fgx1030 disable buffer load/store
+    // enable or disable buffer load/store
     compiler_flag += std::string(" -DCK_USE_AMD_BUFFER_ADDRESSING=") +
                      (support_amd_buffer_load_store(ctx) ? '1' : '0');
 
