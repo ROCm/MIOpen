@@ -57,11 +57,11 @@ struct TunableImplicitGemmGTCDynamic_t
 
     int GetBlockSize() const
     {
-        const auto WaveSize = 64;
-        auto block_size     = (gemm_m_per_block / (wave_tile_m * wave_step_m * wave_repeat_m)) *
-                          (gemm_n_per_block / (wave_tile_n * wave_step_n * wave_repeat_n)) *
-                          WaveSize;
-        return block_size;
+        const auto WaveSize  = 64;
+        const auto divisor_m = wave_tile_m * wave_step_m * wave_repeat_m;
+        const auto divisor_n = wave_tile_n * wave_step_n * wave_repeat_n;
+        assert(divisor_m != 0 && divisor_n != 0);
+        return (gemm_m_per_block / divisor_m) * (gemm_n_per_block / divisor_n) * WaveSize;
     }
 
     std::string GetKernelName() const
