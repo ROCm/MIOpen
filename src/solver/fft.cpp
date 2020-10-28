@@ -107,7 +107,7 @@ static void cgemm_grid(size_t* global_work_size,
     global_work_size[1] = totalWorkGroups1 * local_work_size[1];
 }
 
-bool FFT::IsApplicable(const ConvolutionContext& ctx) const
+bool fft::IsApplicable(const ConvolutionContext& ctx) const
 {
     // disable running any FFT based convolutions by checking this env variable
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT{}) || ctx.direction.IsBackwardWrW() ||
@@ -152,7 +152,7 @@ bool FFT::IsApplicable(const ConvolutionContext& ctx) const
     return std::tie(wei_h, wei_w) == std::make_tuple(5, 5) && cparam == std::make_tuple(2, 2, 1, 1);
 }
 
-size_t FFT::GetWorkspaceSize(const ConvolutionContext& ctx) const
+size_t fft::GetWorkspaceSize(const ConvolutionContext& ctx) const
 {
     const auto fwd       = ctx.direction.IsForward();
     decltype(auto) xDesc = fwd ? ctx.conv_problem.GetIn() : ctx.conv_problem.GetOut();
@@ -192,7 +192,7 @@ size_t FFT::GetWorkspaceSize(const ConvolutionContext& ctx) const
     return 2 * 2 * N * temp_size * sizeof(float);
 }
 
-ConvSolution FFT::GetSolution(const ConvolutionContext& ctx) const
+ConvSolution fft::GetSolution(const ConvolutionContext& ctx) const
 {
     int in_n = ctx.batch_sz, in_c = ctx.n_inputs, in_h = ctx.in_height, in_w = ctx.in_width;
     int out_n = ctx.batch_sz, out_c = ctx.n_outputs;

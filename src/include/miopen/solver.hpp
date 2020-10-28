@@ -1909,7 +1909,7 @@ struct ConvOclBwdWrW1x1 : SolverBase<ConvolutionContext>
     size_t GetWorkspaceSize(const ConvolutionContext& params) const;
 };
 
-struct FFT : SolverBase<ConvolutionContext>
+struct fft : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& ctx) const;
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const;
