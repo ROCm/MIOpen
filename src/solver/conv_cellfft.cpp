@@ -886,7 +886,7 @@ InvokerFactory MakeCellfftInvokerFactoryGrad(const cellfft_param_t& conv_params,
             const size_t cbks    = static_cast<size_t>(conv_params.cbks);
             const size_t nbks    = static_cast<size_t>(conv_params.nbanks) << 3;
             const size_t auxsize = nbks * (abks + bbks + cbks);
-            const auto& params   = prim_params.CastTo<conv::WrWInvokeParams>();;
+            const auto& params   = prim_params.CastTo<conv::WrWInvokeParams>();
             if(params.workSpace == nullptr || params.workSpaceSize < auxsize)
                 MIOPEN_THROW("Workspace is not enough for cellfft");
             const auto& tensors = params.tensors;
