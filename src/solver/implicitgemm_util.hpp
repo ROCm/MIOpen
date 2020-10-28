@@ -713,7 +713,7 @@ static inline bool device_name_is_gfx1030(const ConvolutionContext& ctx)
     return StartsWith(device_name, "gfx1030");
 }
 
-static inline bool support_amd_buffer_load_store(const ConvolutionContext& ctx)
+static inline bool is_use_amd_buffer_load_store(const ConvolutionContext& ctx)
 {
     return !device_name_is_gfx1030(ctx);
 }
@@ -819,9 +819,9 @@ static inline auto get_ck_common_compiler_flag(const ConvolutionContext& ctx)
 
     // enable or disable buffer load/store
     compiler_flag += std::string(" -DCK_USE_AMD_BUFFER_ADDRESSING=") +
-                     (support_amd_buffer_load_store(ctx) ? '1' : '0');
+                     (is_use_amd_buffer_load_store(ctx) ? '1' : '0');
 
-    // using v_fmac_f32
+    // use v_fmac_f32 or not
     compiler_flag +=
         std::string(" -DCK_USE_AMD_V_FMAC_F32=") + (is_use_v_fmac_f32(ctx) ? '1' : '0');
 
