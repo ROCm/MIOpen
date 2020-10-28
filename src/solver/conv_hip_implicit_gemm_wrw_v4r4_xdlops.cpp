@@ -53,7 +53,7 @@ PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops(
     int GemmNPerWave_,
     int GemmKPack_,
     bool GemmAThreadCopyMoreGemmK_,
-    bool GemmBThreadCopyMoreGemmKPack_)
+    bool GemmBThreadCopyMoreGemmK_)
     : GemmMPerBlock(GemmMPerBlock_),
       GemmNPerBlock(GemmNPerBlock_),
       GemmKPerBlock(GemmKPerBlock_),
@@ -61,7 +61,7 @@ PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops(
       GemmNPerWave(GemmNPerWave_),
       GemmKPack(GemmKPack_),
       GemmAThreadCopyMoreGemmK(GemmAThreadCopyMoreGemmK_),
-      GemmBThreadCopyMoreGemmKPack(GemmBThreadCopyMoreGemmKPack_)
+      GemmBThreadCopyMoreGemmK(GemmBThreadCopyMoreGemmK_)
 {
 }
 
@@ -76,7 +76,7 @@ operator==(const PerformanceImplicitGemmWrwV4R4Xdlops& other) const
         && GemmNPerWave == other.GemmNPerWave
         && GemmKPack == other.GemmKPack 
         && GemmAThreadCopyMoreGemmK  == other.GemmAThreadCopyMoreGemmK
-        && GemmBThreadCopyMoreGemmKPack  == other.GemmBThreadCopyMoreGemmKPack;
+        && GemmBThreadCopyMoreGemmK  == other.GemmBThreadCopyMoreGemmK;
     // clang-format on
 }
 
@@ -86,21 +86,25 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::SetNextValue()
     {
         // list performance parameters in reverse order, in order for tuning to iterate over the
         // range in normal order
-        if(!NextFlag<false, true>(GemmBThreadCopyMoreGemmKPack))
+        if(!NextFlag<false, true>(GemmBThreadCopyMoreGemmK))
             break;
         if(!NextFlag<false, false>(GemmAThreadCopyMoreGemmK))
             break;
         if(!NextTwoPower<1, 8>(GemmKPack))
             break;
-        if(!NextTwoPower<32, 128>(GemmNPerWave))
+        // current xdlops code only support GemmNPerWave >=16
+        //   smaller GemmNPerWave will be skipped
+        if(!NextTwoPower<4, 128>(GemmNPerWave))
             break;
-        if(!NextTwoPower<32, 128>(GemmMPerWave))
+        if(!NextTwoPower<4, 128>(GemmMPerWave))
             break;
-        if(!NextTwoPower<2, 8>(GemmKPerBlock))
+        if(!NextTwoPower<1, 8>(GemmKPerBlock))
             break;
-        if(!NextTwoPower<64, 256>(GemmNPerBlock))
+        // current xdlops code only support GemmNPerBlock >=16
+        //   smaller GemmNPerWave will be skipped
+        if(!NextTwoPower<4, 256>(GemmNPerBlock))
             break;
-        if(!NextTwoPower<64, 256>(GemmMPerBlock))
+        if(!NextTwoPower<4, 256>(GemmMPerBlock))
             break;
         return false;
     } while(false);
@@ -503,14 +507,14 @@ PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGemmBBlockCopyPerformanceParamete
         int data_per_thread_copy_gemmn = -1;
         int data_per_thread_copy_gemmk = -1;
 
-        if(GemmBThreadCopyMoreGemmKPack)
+        if(GemmBThreadCopyMoreGemmK)
         {
             data_per_thread_copy_gemmk = gcd(GemmKPerBlock, tmp);
             data_per_thread_copy_gemmn = tmp / data_per_thread_copy_gemmk;
         }
         else
         {
-            data_per_thread_copy_gemmn = gcd(GemmKPerBlock, tmp);
+            data_per_thread_copy_gemmn = gcd(GemmNPerBlock, tmp);
             data_per_thread_copy_gemmk = tmp / data_per_thread_copy_gemmn;
         }
 
@@ -668,27 +672,27 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::IsFastToBeUsedForTuning(
 
         if(grid_size_max_blockwise_gemm > 600)
         {
-            if(ratio > 1.41)
+            if(ratio > 2.81)
                 return false;
         }
         if(grid_size_max_blockwise_gemm > 480)
         {
-            if(ratio > 1.81)
+            if(ratio > 3.61)
                 return false;
         }
         if(grid_size_max_blockwise_gemm > 360)
         {
-            if(ratio > 2.21)
+            if(ratio > 4.41)
                 return false;
         }
         if(grid_size_max_blockwise_gemm > 240)
         {
-            if(ratio > 3.21)
+            if(ratio > 6.41)
                 return false;
         }
         else if(grid_size_max_blockwise_gemm > 120)
         {
-            if(ratio > 6.21)
+            if(ratio > 12.41)
                 return false;
         }
     }
@@ -826,11 +830,7 @@ ConvHipImplicitGemmWrwV4R4Xdlops::GetPerformanceConfig(const ConvolutionContext&
     MIOPEN_LOG_I(config.ToString());
     return config;
 }
-static inline bool is_support_amd_buffer_atomic_add(const ConvolutionContext& ctx)
-{
-    const auto device_name = ctx.GetStream().GetDeviceName();
-    return StartsWith(device_name, "gfx908");
-}
+
 ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
     const ConvolutionContext& ctx, const PerformanceImplicitGemmWrwV4R4Xdlops& config, bool) const
 {
@@ -889,7 +889,6 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
 
     // clang-format off
     construction_parameters.comp_options =
-        std::string(" -std=c++14 ") +
         std::string(" -DCK_PARAM_PROBLEM_G=") + std::to_string(ConvolutionContextInterpreter::GetGroupCountG(ctx)) +
         std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(ConvolutionContextInterpreter::GetBatchN(ctx)) +
         std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(ConvolutionContextInterpreter::GetOutputChannelK(ctx)) +
@@ -930,9 +929,7 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
         std::string(" -DCK_USE_AMD_XDLOPS=") + std::to_string(IsXdlopsSupport(ctx) ? 1 : 0) +
         std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + std::to_string(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}) ? 1 : 0) +
         std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}) ? '1' : '0') +
-        std::string(" -DCK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM=") + (miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM{}) ? '0' : '1') +
-        std::string(" -DCK_WORKAROUND_SWDEV_231101=") + std::to_string(WORKAROUND_SWDEV_231101) +
-        std::string(" -DCK_USE_AMD_BUFFER_ATOMIC_ADD=") + (is_support_amd_buffer_atomic_add(ctx) ? '1' : '0') +
+        get_ck_common_compiler_flag(ctx) +
         ctx.general_compile_options;
     // clang-format on
 

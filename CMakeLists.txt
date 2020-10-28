@@ -73,7 +73,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 2.9.0)
+rocm_setup_version(VERSION 2.10.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -338,8 +338,22 @@ set(MIOPEN_PACKAGE_REQS "rocm-clang-ocl, hip-rocclr")
 if(MIOPEN_USE_MIOPENGEMM)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, miopengemm")
 endif()
+
+if(MIOPEN_USE_ROCBLAS)
+    set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocblas")
+endif()
+
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "${MIOPEN_PACKAGE_REQS}, rocm-opencl-dev")
 set(CPACK_RPM_PACKAGE_REQUIRES "${MIOPEN_PACKAGE_REQS}, rocm-opencl-devel")
+
+# Make backends explicitly conflict
+if(MIOPEN_BACKEND STREQUAL "HIP")
+    set(CPACK_DEBIAN_PACKAGE_CONFLICTS miopen-opencl)
+    set(CPACK_RPM_PACKAGE_CONFLICTS miopen-opencl)
+elseif(MIOPEN_BACKEND STREQUAL "OpenCL")
+    set(CPACK_DEBIAN_PACKAGE_CONFLICTS miopen-hip)
+    set(CPACK_RPM_PACKAGE_CONFLICTS miopen-hip)
+endif()
 
 rocm_create_package(
     NAME MIOpen-${MIOPEN_BACKEND}

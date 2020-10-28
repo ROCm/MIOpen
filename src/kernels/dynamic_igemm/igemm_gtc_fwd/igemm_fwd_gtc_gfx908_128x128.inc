@@ -1141,6 +1141,8 @@ L_igemm_fwd_gtcx_nchw_fp32_bx4_ex0_bt128x128x16_wt32x32x1_ws1x1_wr2x2_ta1x4x2x1_
     .amdhsa_next_free_sgpr 52
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
+    //xnack disabled by default for asm kernels
+    .amdhsa_reserve_xnack_mask 0
 .end_amdhsa_kernel
 
 ;----------------------------------------------------------
@@ -2382,6 +2384,8 @@ L_igemm_fwd_gtcx_nchw_fp32_bx4_ex1_bt128x128x16_wt32x32x1_ws1x1_wr2x2_ta1x4x2x1_
     .amdhsa_next_free_sgpr 66
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
+    //xnack disabled by default for asm kernels
+    .amdhsa_reserve_xnack_mask 0
 .end_amdhsa_kernel
 
 ;----------------------------------------------------------
@@ -3500,6 +3504,8 @@ L_igemm_fwd_gtcx_nchw_fp32_bx1_ex0_bt128x128x16_wt32x32x1_ws1x1_wr2x2_ta1x4x2x1_
     .amdhsa_next_free_sgpr 52
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
+    //xnack disabled by default for asm kernels
+    .amdhsa_reserve_xnack_mask 0
 .end_amdhsa_kernel
 
 ;----------------------------------------------------------
@@ -4741,6 +4747,8 @@ L_igemm_fwd_gtcx_nchw_fp32_bx1_ex1_bt128x128x16_wt32x32x1_ws1x1_wr2x2_ta1x4x2x1_
     .amdhsa_next_free_sgpr 66
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
+    //xnack disabled by default for asm kernels
+    .amdhsa_reserve_xnack_mask 0
 .end_amdhsa_kernel
 
 ;----------------------------------------------------------
@@ -5856,6 +5864,8 @@ L_igemm_fwd_gtcx_nchw_fp32_bx4_ex0_bt128x128x16_wt32x32x1_ws1x1_wr2x2_ta1x4x2x1_
     .amdhsa_next_free_sgpr 54
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
+    //xnack disabled by default for asm kernels
+    .amdhsa_reserve_xnack_mask 0
 .end_amdhsa_kernel
 
 ;----------------------------------------------------------
@@ -7093,6 +7103,8 @@ L_igemm_fwd_gtcx_nchw_fp32_bx4_ex1_bt128x128x16_wt32x32x1_ws1x1_wr2x2_ta1x4x2x1_
     .amdhsa_next_free_sgpr 68
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
+    //xnack disabled by default for asm kernels
+    .amdhsa_reserve_xnack_mask 0
 .end_amdhsa_kernel
 
 ;----------------------------------------------------------
@@ -8208,6 +8220,8 @@ L_igemm_fwd_gtcx_nchw_fp32_bx1_ex0_bt128x128x16_wt32x32x1_ws1x1_wr2x2_ta1x4x2x1_
     .amdhsa_next_free_sgpr 54
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
+    //xnack disabled by default for asm kernels
+    .amdhsa_reserve_xnack_mask 0
 .end_amdhsa_kernel
 
 ;----------------------------------------------------------
@@ -9445,6 +9459,8 @@ L_igemm_fwd_gtcx_nchw_fp32_bx1_ex1_bt128x128x16_wt32x32x1_ws1x1_wr2x2_ta1x4x2x1_
     .amdhsa_next_free_sgpr 68
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
+    //xnack disabled by default for asm kernels
+    .amdhsa_reserve_xnack_mask 0
 .end_amdhsa_kernel
 
 ;----------------------------------------------------------
@@ -10315,6 +10331,8 @@ L_igemm_fwd_gtcx_nchw_fp32_bx4_ex0_bt128x128x8_wt32x32x1_ws1x1_wr2x2_ta1x4x1x1_1
     .amdhsa_next_free_sgpr 48
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
+    //xnack disabled by default for asm kernels
+    .amdhsa_reserve_xnack_mask 0
 .end_amdhsa_kernel
 
 ;----------------------------------------------------------
@@ -11308,6 +11326,8 @@ L_igemm_fwd_gtcx_nchw_fp32_bx4_ex1_bt128x128x8_wt32x32x1_ws1x1_wr2x2_ta1x4x1x1_1
     .amdhsa_next_free_sgpr 62
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
+    //xnack disabled by default for asm kernels
+    .amdhsa_reserve_xnack_mask 0
 .end_amdhsa_kernel
 
 ;----------------------------------------------------------
@@ -12178,6 +12198,8 @@ L_igemm_fwd_gtcx_nchw_fp32_bx1_ex0_bt128x128x8_wt32x32x1_ws1x1_wr2x2_ta1x4x1x1_1
     .amdhsa_next_free_sgpr 48
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
+    //xnack disabled by default for asm kernels
+    .amdhsa_reserve_xnack_mask 0
 .end_amdhsa_kernel
 
 ;----------------------------------------------------------
@@ -13171,6 +13193,8 @@ L_igemm_fwd_gtcx_nchw_fp32_bx1_ex1_bt128x128x8_wt32x32x1_ws1x1_wr2x2_ta1x4x1x1_1
     .amdhsa_next_free_sgpr 62
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
+    //xnack disabled by default for asm kernels
+    .amdhsa_reserve_xnack_mask 0
 .end_amdhsa_kernel
 
 ;----------------------------------------------------------
@@ -14045,6 +14069,8 @@ L_igemm_fwd_gtcx_nchw_fp32_bx4_ex0_bt128x128x8_wt32x32x1_ws1x1_wr2x2_ta1x4x1x1_1
     .amdhsa_next_free_sgpr 48
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
+    //xnack disabled by default for asm kernels
+    .amdhsa_reserve_xnack_mask 0
 .end_amdhsa_kernel
 
 ;----------------------------------------------------------
@@ -15041,6 +15067,8 @@ L_igemm_fwd_gtcx_nchw_fp32_bx4_ex1_bt128x128x8_wt32x32x1_ws1x1_wr2x2_ta1x4x1x1_1
     .amdhsa_next_free_sgpr 62
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
+    //xnack disabled by default for asm kernels
+    .amdhsa_reserve_xnack_mask 0
 .end_amdhsa_kernel
 
 ;----------------------------------------------------------
@@ -15915,6 +15943,8 @@ L_igemm_fwd_gtcx_nchw_fp32_bx1_ex0_bt128x128x8_wt32x32x1_ws1x1_wr2x2_ta1x4x1x1_1
     .amdhsa_next_free_sgpr 48
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
+    //xnack disabled by default for asm kernels
+    .amdhsa_reserve_xnack_mask 0
 .end_amdhsa_kernel
 
 ;----------------------------------------------------------
@@ -16911,5 +16941,7 @@ L_igemm_fwd_gtcx_nchw_fp32_bx1_ex1_bt128x128x8_wt32x32x1_ws1x1_wr2x2_ta1x4x1x1_1
     .amdhsa_next_free_sgpr 62
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
+    //xnack disabled by default for asm kernels
+    .amdhsa_reserve_xnack_mask 0
 .end_amdhsa_kernel
 
