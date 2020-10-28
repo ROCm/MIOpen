@@ -506,8 +506,12 @@ __kernel void transpose_CNHW2NCHW_V2_3D_WG(const global data_t* in,
     cout[C * hw_in * n_i] = cin[hw_out * n_i];
 }
 
-#if 0
-__kernel void transpose_packed_MN2NM(const global data_t* in, global data_t* out)
+__kernel void transpose_packed_MN2NM(const global data_t* in,
+                                     global data_t* out,
+                                     const int N,
+                                     const int M,
+                                     const int in_off,
+                                     const int out_off)
 {
     uint i = get_global_id(0);
 
@@ -516,13 +520,12 @@ __kernel void transpose_packed_MN2NM(const global data_t* in, global data_t* out
         uint m_i = iDiv(i, N);
         uint n_i = iMod(i, m_i, N);
 
-        uint in_off  = m_i * N + n_i + IN_OFF;
-        uint out_off = n_i * M + m_i + OUT_OFF;
+        uint in_offset  = m_i * N + n_i + in_off;
+        uint out_offset = n_i * M + m_i + out_off;
 
-        const global data_t* cin = (const global data_t*)(in + in_off);
-        global data_t* cout      = (global data_t*)(out + out_off);
+        const global data_t* cin = (const global data_t*)(in + in_offset);
+        global data_t* cout      = (global data_t*)(out + out_offset);
 
         *cout = *cin;
     }
 }
-#endif

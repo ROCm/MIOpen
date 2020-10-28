@@ -1098,48 +1098,42 @@ float transpose_packed_MN2NM(const Handle& handle,
 
     std::string program_name = "MIOpenUtilKernels4.cl";
 
-    std::string network_config = "n" + std::to_string(n) + "m" + std::to_string(m) + "inoff" +
-                                 std::to_string(in_offset) + "otoff" + std::to_string(out_offset) +
-                                 "t" + std::to_string(type);
+    std::string network_config = "t" + std::to_string(type);
 
     std::string kernel_name = "transpose_packed_MN2NM";
 
     auto&& kernels = handle.GetKernels(kernel_name, network_config);
 
+    std::string params = GetDataTypeKernelParams(type);
+    if(type == miopenInt8x4)
+    {
+        m /= 4;
+        in_offset /= 4;
+        out_offset /= 4;
+    }
+
+    if(!(type == miopenInt8x4 || type == miopenInt8))
+    {
+        MIOPEN_THROW("transpose_packed_MN2NM only meant for int8 variants.");
+    }
+
+    size_t ld0 = WG_SIZE;
+    size_t gd0 = m * n;
+    const std::vector<size_t> vld{ld0, 1, 1};
+    std::vector<size_t> vgd{gd0, 1, 1};
+
     if(!kernels.empty())
     {
-        auto kernel = kernels.front();
-        kernel(in, out);
+        auto kernel  = kernels.front();
+        kernel.ldims = {{vld[0], vld[1], vld[1]}};
+        kernel.gdims = {{vgd[0], vgd[1], vgd[2]}};
+        kernel(in, out, n, m, in_offset, out_offset);
     }
     else
     {
-        std::string params = GetDataTypeKernelParams(type);
-        if(type == miopenInt8x4)
-        {
-            m /= 4;
-            in_offset /= 4;
-            out_offset /= 4;
-        }
-
-        if(!(type == miopenInt8x4 || type == miopenInt8))
-        {
-            MIOPEN_THROW("transpose_packed_MN2NM only meant for int8 variants.");
-        }
-
-        params += " -DNC_TRANS_MN2NM=1";
-
-        params += " -DN=" + std::to_string(n);
-        params += " -DM=" + std::to_string(m);
-        params += " -DIN_OFF=" + std::to_string(in_offset);
-        params += " -DOUT_OFF=" + std::to_string(out_offset);
-
-        size_t ld0 = WG_SIZE;
-        size_t gd0 = m * n;
-        const std::vector<size_t> vld{ld0, 1, 1};
-        std::vector<size_t> vgd{gd0, 1, 1};
 
         handle.AddKernel(kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
-            in, out);
+            in, out, n, m, in_offset, out_offset);
     }
 
     return handle.GetKernelTime();
