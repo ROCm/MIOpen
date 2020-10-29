@@ -746,12 +746,17 @@ bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ConvolutionContext
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1_XDLOPS{}))
         return false;
+
+    if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
+        return false;
+
+    if(!IsComposableKernelSupportedHardware(ctx))
+        return false;
+
 #if WORKAROUND_SWDEV_251757
     if(miopen::HipCompilerVersion() >= external_tool_version_t{3, 5, 0})
         return false;
 #endif
-    if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
-        return false;
 
     if(!IsXdlopsSupport(ctx))
         return false;

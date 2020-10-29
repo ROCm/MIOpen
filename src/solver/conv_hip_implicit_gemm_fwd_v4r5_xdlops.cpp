@@ -993,6 +993,9 @@ bool ConvHipImplicitGemmForwardV4R5Xdlops::IsApplicable(const ConvolutionContext
     if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
         return false;
 
+    if(!IsComposableKernelSupportedHardware(ctx))
+        return false;
+
     if(!IsXdlopsSupport(ctx))
         return false;
 
