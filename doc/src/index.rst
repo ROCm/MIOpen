@@ -16,6 +16,7 @@ Sources and binaries can be found at `MIOpen's GitHub site <https://github.com/R
     releasenotes
     citation
     install
+    embed
     driver
     DebugAndLogging
     cache
