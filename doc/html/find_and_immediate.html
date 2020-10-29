@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                2.7.0
+                2.8.0
               </div>
             
           
@@ -85,6 +85,7 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">10/28/2020 [ 2.8.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/18/2020 [ 2.7.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/20/2020 [ 2.6.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/10/2020 [ 2.5.0 ]</a></li>
@@ -149,6 +150,19 @@
 <li class="toctree-l3"><a class="reference internal" href="install.html#citation-bibtex">Citation BibTeX</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="embed.html">Building MIOpen for Embedded Systems</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="embed.html#install-dependencies">Install dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="embed.html#configuring-for-an-embedded-build">Configuring for an embedded build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="embed.html#embedding-find-db-and-performance-database">Embedding Find-Db and Performance database:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="embed.html#embedding-the-precompiled-kernels-package">Embedding the precompiled kernels package:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="embed.html#embedding-precompiled-package">Embedding precompiled package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="embed.html#using-a-package-install">Using a package install</a></li>
+<li class="toctree-l3"><a class="reference internal" href="embed.html#using-the-url-to-a-kernels-binary">Using the URL to a kernels binary</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="embed.html#full-configuration-line">Full configuration line:</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="driver.html">MIOpenDriver</a><ul>
@@ -653,8 +667,9 @@
 <li><code class="docutils literal"><span class="pre">NORMAL</span></code>, or <code class="docutils literal"><span class="pre">1</span></code>: Normal Find: This is the full Find mode call, which will benchmark all the solvers and return a list.</li>
 <li><code class="docutils literal"><span class="pre">FAST</span></code>, or <code class="docutils literal"><span class="pre">2</span></code>: Fast Find: Checks the <a class="reference external" href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/finddb.html">Find-Db</a> for an entry. If there is a Find-Db hit, use that entry. If there is a miss, utilize the Immediate mode fallback. If Start-up times are expected to be faster, but worse GPU performance.</li>
 <li><code class="docutils literal"><span class="pre">HYBRID</span></code>, or <code class="docutils literal"><span class="pre">3</span></code>, or unset <code class="docutils literal"><span class="pre">MIOPEN_FIND_MODE</span></code>: Hybrid Find: Checks the <a class="reference external" href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/finddb.html">Find-Db</a> for an entry. If there is a Find-Db hit, use that entry. If there is a miss, use the existing Find machinery. Slower start-up times than Fast Find, but no GPU performance drop.</li>
+<li><code class="docutils literal"><span class="pre">FAST_HYBRID</span></code>, or <code class="docutils literal"><span class="pre">4</span></code>: Fast Hybrid Find: Checks the <a class="reference external" href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/finddb.html">Find-Db</a> for an entry. If there is a Find-Db hit, use that entry. If there is a miss, use the existing Find machinery with skipping slow-compiling kernels. Faster start-up times than Hybrid Find, but no GPU performance drop.</li>
 </ul>
-<p>As of MIOpen 2.6, the default mode is set to <code class="docutils literal"><span class="pre">HYBRID</span></code> mode as default. To run the full <code class="docutils literal"><span class="pre">NORMAL</span></code> Find mode, set the environment as:</p>
+<p>As of MIOpen 2.7, the default mode is set to <code class="docutils literal"><span class="pre">HYBRID</span></code> mode as default. To run the full <code class="docutils literal"><span class="pre">NORMAL</span></code> Find mode, set the environment as:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">export</span> <span class="n">MIOPEN_FIND_MODE</span><span class="o">=</span><span class="n">NORMAL</span>
 </pre></div>
 </div>
@@ -708,7 +723,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.7.0',
+            VERSION:'2.8.0',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
