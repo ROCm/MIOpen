@@ -1509,13 +1509,29 @@ struct ConvMPBidirectWinograd : SolverBase<ConvolutionContext>
             '_' + std::to_string(WinoDataH) + '_' + std::to_string(WinoDataW) + '_' +
             std::to_string(WinoFilterH) + '_' + std::to_string(WinoFilterW);
         static const std::string names[3] = {
-            "miopenGcnAsmMPBidirectWinogradXformData" + name_suffix,
-            "miopenGcnAsmMPBidirectWinogradXformFilter" + name_suffix,
-            "miopenGcnAsmMPBidirectWinogradXformOut" + name_suffix};
+            "miopenGcnAsmMPAnydirectWinogradXformData" + name_suffix,
+            "miopenGcnAsmMPAnydirectWinogradXformFilter" + name_suffix,
+            "miopenGcnAsmMPAnydirectWinogradXformOut" + name_suffix};
         return names[id];
     }
 
-    static int GetSolverWinoXformHWSize() { return WinoDataH + WinoFilterH - 1; }
+    static int GetSolverWinoXformHWSize(const ConvolutionContext& params) 
+    {
+        if(params.direction.IsForward())
+            return WinoFilterH + (WinoDataH - 1) * params.kernel_stride_h;
+        else if(params.direction.IsBackwardData())
+            return WinoFilterH + WinoDataH - params.kernel_stride_h;
+        else
+            return WinoDataH + (WinoFilterH - 1) * params.kernel_stride_h;
+    }
+
+    static int GetSolverWinoDtileHWSize(const ConvolutionContext& params) 
+    {
+        if(params.direction.IsBackwardData() && params.kernel_stride_h == 2)
+            return (WinoFilterH + WinoDataH) / params.kernel_stride_h;
+        else
+            return GetSolverWinoXformHWSize(params);
+    }
 };
 extern template struct ConvMPBidirectWinograd<2, 3>;
 extern template struct ConvMPBidirectWinograd<3, 3>;
@@ -1562,10 +1578,10 @@ struct ConvMPBidirectWinograd_xdlops : SolverBase<ConvolutionContext>
             GetSolverKernelNames(id);
     }
 
-    static int GetSolverWinoXformHWSize()
+    static int GetSolverWinoXformHWSize(const ConvolutionContext& params)
     {
         return ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::
-            GetSolverWinoXformHWSize();
+            GetSolverWinoXformHWSize(params);
     }
 
     PerformanceImplicitGemmForwardV4R4Xdlops
