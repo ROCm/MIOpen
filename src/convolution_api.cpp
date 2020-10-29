@@ -114,20 +114,20 @@ extern "C" miopenStatus_t miopenGetConvolutionFindMode(const miopenConvolutionDe
 }
 
 // Hidden C++ functions for MIGraphX.
-namespace miopen {
-miopenStatus_t SetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc, int findMode)
+extern "C" miopenStatus_t miopenHiddenSetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc,
+                                                             int findMode)
 {
     return miopen::try_([&] {
         miopen::deref(convDesc).findMode.Set(static_cast<miopen::FindMode::Values>(findMode));
     });
 }
-miopenStatus_t GetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc, int* findMode)
+extern "C" miopenStatus_t miopenHiddenGetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc,
+                                                             int* findMode)
 {
     return miopen::try_([&] {
         miopen::deref(findMode) = static_cast<int>(miopen::deref(convDesc).findMode.Get());
     });
 }
-} // namespace miopen
 
 extern "C" miopenStatus_t
 miopenSetTransposeConvOutputPadding(miopenConvolutionDescriptor_t convDesc, int adj_h, int adj_w)

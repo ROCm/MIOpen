@@ -72,9 +72,8 @@
 #include <boost/optional.hpp>
 
 // Declare hidden function for MIGraphX to smoke test it.
-namespace miopen {
-miopenStatus_t SetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc, int findMode);
-}
+extern "C" miopenStatus_t miopenHiddenSetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc,
+                                                             int findMode);
 
 #define WORKAROUND_ISSUE_2176 1 // https://github.com/AMDComputeLibraries/MLOpen/issues/2176
 
@@ -517,7 +516,7 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
                                           conv_dilations.data(),
                                           mode);
         miopenSetConvolutionFindMode(warmupConvDesc, miopenConvolutionFindModeNormal);
-        miopen::SetConvolutionFindMode(
+        miopenHiddenSetConvolutionFindMode(
             warmupConvDesc,
             static_cast<int>(miopenConvolutionFindModeNormal)); // Repeat via hidden API.
         miopenSetConvolutionGroupCount(warmupConvDesc, group_count);
