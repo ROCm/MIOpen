@@ -143,6 +143,10 @@
 #define MIO_RUNNING_RESULT 0
 #endif
 
+#ifndef MIO_BN_GFX1030
+#define MIO_BN_GFX1030 0
+#endif
+
 #define UNUSED __attribute__((__unused__))
 
 #if(MIO_BN_VARIANT != 4)

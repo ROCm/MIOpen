@@ -220,7 +220,8 @@ output_buffer_window = 4 * img_height * img_width
 .if limit_wave_cnt
   .SET_MAX_WAVES_LIMIT limit_wave_cnt
 .endif
-.SGPR_RESERVE_XNACK
+//xnack disabled by default
+//.SGPR_RESERVE_XNACK
 
 // allocate filters
 filter_part_size = weights_per_filter & 0x3
