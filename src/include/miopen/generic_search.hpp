@@ -366,7 +366,6 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
     }
     std::vector<Program> programs = PrecompileKernels(profile_h, kernels);
 
-
     if(compile_and_run != "0")
     {
         for(const auto& current_config : all_configs)
@@ -386,14 +385,14 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
                 {
                     ret = -2;
                     MIOPEN_LOG_E('#' << n_current << " (" << n_runs_total << ") "
-                                 << "Workspace size should not depend on PerformanceConfig: "
-                                 << default_solution.workspce_sz
-                                 << " != "
-                                 << current_solution.workspce_sz);
+                                     << "Workspace size should not depend on PerformanceConfig: "
+                                     << default_solution.workspce_sz
+                                     << " != "
+                                     << current_solution.workspce_sz);
                 }
 
                 invoker = profile_h.PrepareInvoker(*current_solution.invoker_factory,
-                                             current_solution.construction_params);
+                                                   current_solution.construction_params);
                 invoker(profile_h, invoke_ctx);
                 elapsed_time = profile_h.GetKernelTime();
             }
@@ -424,8 +423,9 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
                 // and decide using average of all 5 attempts vs. the best.
                 if(elapsed_time / best_time < 1.05f)
                 {
-                    MIOPEN_LOG_I2("Finding average for: " << elapsed_time << " / " << best_time << " = "
-                                                      << (elapsed_time / best_time));
+                    MIOPEN_LOG_I2("Finding average for: " << elapsed_time << " / " << best_time
+                                                          << " = "
+                                                          << (elapsed_time / best_time));
 
                     try
                     {
@@ -447,12 +447,12 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
                         if(elapsed_time < best_time)
                         {
                             MIOPEN_LOG_I('#' << n_current << '/' << n_failed << '/' << n_runs_total
-                                            << ' '
-                                            << elapsed_time
-                                            << " < "
-                                            << best_time
-                                            << ' '
-                                            << current_config);
+                                             << ' '
+                                             << elapsed_time
+                                             << " < "
+                                             << best_time
+                                             << ' '
+                                             << current_config);
                             best_config = current_config;
                             best_time   = elapsed_time;
                             n_best      = n_current;
@@ -473,8 +473,13 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
                                  << ret);
                 ++n_failed;
             }
-            heartbeat.Monitor(
-                ret != 0, elapsed_time, n_current, best_time, n_failed, n_runs_total, current_config);
+            heartbeat.Monitor(ret != 0,
+                              elapsed_time,
+                              n_current,
+                              best_time,
+                              n_failed,
+                              n_runs_total,
+                              current_config);
             ++n_current;
         }
     }
