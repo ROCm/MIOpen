@@ -485,6 +485,9 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlops::IsApplicable(const ConvolutionConte
     if(!(StartsWith(device_name, "gfx908")))
         return false;
 
+    if(!ctx.use_asm_kernels)
+        return false;
+
     if(!IsApplicableXdlops(ctx))
         return false;
 
