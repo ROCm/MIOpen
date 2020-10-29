@@ -99,8 +99,6 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::SetNextValue()
         }
         if(!NextFlag<false, true>(GemmBThreadCopyMoreGemmKPack))
             break;
-        if(!NextFlag<false, false>(GemmAThreadCopyMoreGemmK))
-            break;
         if(!NextTwoPower<1, 8>(GemmKPack))
             break;
         if(!NextTwoPower<4, 128>(GemmNPerWave))
