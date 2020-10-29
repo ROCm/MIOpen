@@ -709,27 +709,29 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsFastToBeUsedForTuning(
 
         const float ratio = float(grid_size) / grid_size_max_blockwise_gemm;
 
-        if(grid_size_max_blockwise_gemm > 600)
+        const auto num_cu = ctx.GetStream().GetMaxComputeUnits();
+
+        if(grid_size_max_blockwise_gemm > 5 * num_cu)
         {
             if(ratio > 2.81)
                 return false;
         }
-        if(grid_size_max_blockwise_gemm > 480)
+        else if(grid_size_max_blockwise_gemm > 4 * num_cu)
         {
             if(ratio > 3.61)
                 return false;
         }
-        if(grid_size_max_blockwise_gemm > 360)
+        else if(grid_size_max_blockwise_gemm > 3 * num_cu)
         {
             if(ratio > 4.41)
                 return false;
         }
-        if(grid_size_max_blockwise_gemm > 240)
+        else if(grid_size_max_blockwise_gemm > 2 * num_cu)
         {
             if(ratio > 6.41)
                 return false;
         }
-        else if(grid_size_max_blockwise_gemm > 120)
+        else if(grid_size_max_blockwise_gemm > num_cu)
         {
             if(ratio > 12.41)
                 return false;
