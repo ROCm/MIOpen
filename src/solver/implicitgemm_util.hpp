@@ -806,7 +806,8 @@ static inline auto get_ck_common_compiler_flag(const ConvolutionContext& ctx)
 
 static inline bool IsComposableKernelSupportedHardware(const ConvolutionContext& c)
 {
-    return StartsWith(c.GetStream().GetDeviceName(), "gfx900") ||
+    return (StartsWith(c.GetStream().GetDeviceName(), "gfx803") &&
+            c.GetStream().GetMaxComputeUnits() == 64) ||
            StartsWith(c.GetStream().GetDeviceName(), "gfx906") ||
            StartsWith(c.GetStream().GetDeviceName(), "gfx908") ||
            StartsWith(c.GetStream().GetDeviceName(), "gfx1030");
