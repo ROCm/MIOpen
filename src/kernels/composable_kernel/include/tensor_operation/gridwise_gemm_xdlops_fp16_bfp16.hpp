@@ -1088,6 +1088,8 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gkn1bkpack_gmn_v2
         constexpr index_t MWavePerBlock = MPerBlock / MPerWave;
         constexpr index_t BWavePerBlock = in_N1;
 
+        static_assert((G * MBlockWork * BBlockWork) == GridSize, "Invalid GridSize");
+
         constexpr auto block_work_sequence =
             make_batch_block_work_sequence<G, MBlockWork, BBlockWork, WorkgroupSchdOrder>{}.get();
         constexpr auto block_work_desc = make_cluster_descriptor(block_work_sequence);
