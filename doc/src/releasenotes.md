@@ -5,7 +5,7 @@
 
 ### 10/28/2020 [ 2.8.0 ]
 
-This release provides additional bug fixes and support for embedded build using MIOpen as a static library. 
+This release provides additional bug fixes and support for embedded builds using MIOpen as a static library. 
 
 - Fixed workspace size calculation for GEMM group convolutions
 - Fixed performance regression for M/N
@@ -15,7 +15,7 @@ This release provides additional bug fixes and support for embedded build using 
 - Added cmake flag for embedding system databases when building a static library
 - Added a way to disable building MIOpenDriver when building a static library
 - Added CC compiler detection in ROCm environment
-- Known issue: This release may show warnings for "obsolete configs" in the performance database. This can be fixed by rerunning tuning on a specfic network; [see tuning documentation](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perfdatabase.html#miopen-find-enforce)
+- Known issue: This release may show warnings for "obsolete configs" in the performance database. This can be fixed by rerunning tuning on a specific network; [see tuning documentation](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perfdatabase.html#miopen-find-enforce)
 
 
 
