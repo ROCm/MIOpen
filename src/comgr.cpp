@@ -140,6 +140,14 @@ static auto GetOptionsNoSplit()
     return rv;
 }
 
+static bool IsEnabledFeatureSramEcc(const std::string& device)
+{
+    /// \todo Read actual feature status from runtime.
+    static const auto rv = (device == "gfx906" || device == "gfx908") &&
+                           !miopen::IsEnabled(MIOPEN_DEBUG_SRAM_EDC_DISABLED{});
+    return rv;
+}
+
 namespace gcnasm {
 
 static void RemoveOptionsUnwanted(OptionList& list)
@@ -164,7 +172,7 @@ namespace ocl {
 #error "Wrong OCL_STANDARD"
 #endif
 
-static void AddCompilerOptions(OptionList& list)
+static void AddCompilerOptions(OptionList& list, const std::string& device)
 {
     list.push_back("-cl-kernel-arg-info");
 #if 0 // For experimients.
@@ -185,7 +193,7 @@ static void AddCompilerOptions(OptionList& list)
 
     // It seems like these options are used only in codegen.
     // However it seems ok to pass these to compiler.
-    if(!miopen::IsEnabled(MIOPEN_DEBUG_SRAM_EDC_DISABLED{}))
+    if(IsEnabledFeatureSramEcc(device))
         list.push_back("-msram-ecc");
     else
         list.push_back("-mno-sram-ecc");
@@ -261,10 +269,7 @@ static void RemoveLinkOptionsUnwanted(OptionList& list)
 /// \todo Get list of supported isa names from comgr and select.
 static std::string GetIsaName(const std::string& device)
 {
-    const char* const ecc_suffix = (!miopen::IsEnabled(MIOPEN_DEBUG_SRAM_EDC_DISABLED{}) &&
-                                    (device == "gfx906" || device == "gfx908"))
-                                       ? "+sram-ecc"
-                                       : "";
+    const char* const ecc_suffix = IsEnabledFeatureSramEcc(device) ? "+sram-ecc" : "";
     return {"amdgcn-amd-amdhsa--" + device + ecc_suffix};
 }
 
@@ -702,7 +707,8 @@ void BuildHip(const std::string& name,
         {
             auto raw = options                                 //
                        + " " + GetDebugCompilerOptionsInsert() //
-                       + " " + MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS);
+                       + " " + MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS) +
+                       (" -DHIP_PACKAGE_VERSION_FLAT=") + std::to_string(HIP_PACKAGE_VERSION_FLAT);
             auto optCompile = miopen::SplitSpaceSeparated(raw, compiler::lc::GetOptionsNoSplit());
             compiler::lc::hip::RemoveCompilerOptionsUnwanted(optCompile);
             action.SetOptionList(optCompile);
@@ -713,7 +719,8 @@ void BuildHip(const std::string& name,
             auto raw = std::string(" -O3 ")                    // Without this, fails in lld.
                        + options                               //
                        + " " + GetDebugCompilerOptionsInsert() //
-                       + " " + MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS);
+                       + " " + MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS) +
+                       (" -DHIP_PACKAGE_VERSION_FLAT=") + std::to_string(HIP_PACKAGE_VERSION_FLAT);
 #if USE_HIP_PCH
             raw += " -nogpuinc -DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS=1";
 #endif
@@ -786,7 +793,7 @@ void BuildOcl(const std::string& name,
 
         auto optCompile = miopen::SplitSpaceSeparated(options);
         compiler::lc::ocl::RemoveOptionsUnwanted(optCompile);
-        compiler::lc::ocl::AddCompilerOptions(optCompile);
+        compiler::lc::ocl::AddCompilerOptions(optCompile, device);
         action.SetOptionList(optCompile);
 
         const Dataset addedPch;

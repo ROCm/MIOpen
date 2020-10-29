@@ -346,6 +346,15 @@ endif()
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "${MIOPEN_PACKAGE_REQS}, rocm-opencl-dev")
 set(CPACK_RPM_PACKAGE_REQUIRES "${MIOPEN_PACKAGE_REQS}, rocm-opencl-devel")
 
+# Make backends explicitly conflict
+if(MIOPEN_BACKEND STREQUAL "HIP")
+    set(CPACK_DEBIAN_PACKAGE_CONFLICTS miopen-opencl)
+    set(CPACK_RPM_PACKAGE_CONFLICTS miopen-opencl)
+elseif(MIOPEN_BACKEND STREQUAL "OpenCL")
+    set(CPACK_DEBIAN_PACKAGE_CONFLICTS miopen-hip)
+    set(CPACK_RPM_PACKAGE_CONFLICTS miopen-hip)
+endif()
+
 rocm_create_package(
     NAME MIOpen-${MIOPEN_BACKEND}
     DESCRIPTION "AMD's DNN Library"
