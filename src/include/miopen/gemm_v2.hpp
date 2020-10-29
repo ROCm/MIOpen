@@ -99,7 +99,6 @@ miopenStatus_t CallGemm(const Handle& handle,
                         Data_t C,
                         int c_offset,
                         FindDbKCacheKey* kcache_key, // for find-db
-                        bool enqueue_dummy_kernel,
                         GemmBackend_t gemm_backend = GemmBackend_t::rocblas);
 
 miopenStatus_t CallGemmStridedBatched(const Handle& handle,
@@ -111,7 +110,6 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                                       Data_t C,
                                       int c_offset,
                                       FindDbKCacheKey* kcache_key, // for find-db
-                                      bool enqueue_dummy_kernel,
                                       GemmBackend_t gemm_backend = GemmBackend_t::rocblas);
 
 miopenStatus_t
@@ -124,7 +122,6 @@ CallGemmStridedBatchedSequential(const Handle& handle,
                                  Data_t C,
                                  int c_offset,
                                  FindDbKCacheKey* kcache_key, // for find-db
-                                 bool enqueue_dummy_kernel,
                                  GemmBackend_t gemm_backend = GemmBackend_t::rocblas);
 
 // GEMM parameters for Convolution (using Im2Col) Fwd
