@@ -74,7 +74,7 @@ operator==(const PerformanceImplicitGemmWrwV4R4Xdlops& other) const
         && GemmKPerBlock == other.GemmKPerBlock
         && GemmMPerWave == other.GemmMPerWave
         && GemmNPerWave == other.GemmNPerWave
-        && GemmKPack == other.GemmKPack 
+        && GemmKPack == other.GemmKPack
         && GemmAThreadCopyMoreGemmK  == other.GemmAThreadCopyMoreGemmK
         && GemmBThreadCopyMoreGemmK  == other.GemmBThreadCopyMoreGemmK;
     // clang-format on
@@ -992,10 +992,13 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
 
 bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
-    if(!IsXdlopsSupport(ctx))
+    if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
         return false;
 
-    if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
+    if(!ctx.use_hip_kernels)
+        return false;
+
+    if(!IsXdlopsSupport(ctx))
         return false;
 
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
