@@ -959,6 +959,9 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops::IsApplicable(const ConvolutionContext
     if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
         return false;
 
+    if(!ctx.use_hip_kernels)
+        return false;
+
     if(!IsXdlopsSupport(ctx))
         return false;
 

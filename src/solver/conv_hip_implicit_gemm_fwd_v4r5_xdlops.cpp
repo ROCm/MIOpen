@@ -108,7 +108,7 @@ operator==(const PerformanceImplicitGemmForwardV4R5Xdlops& other) const
         && GemmKPerBlock == other.GemmKPerBlock
         && GemmMPerWave == other.GemmMPerWave
         && GemmNPerWave == other.GemmNPerWave
-        && GemmKPack == other.GemmKPack 
+        && GemmKPack == other.GemmKPack
         && GemmAThreadCopyMoreGemmK  == other.GemmAThreadCopyMoreGemmK
         && GemmBThreadCopyMoreGemmKPack  == other.GemmBThreadCopyMoreGemmKPack
         && GemmBThreadDataPerRead_GemmN  == other.GemmBThreadDataPerRead_GemmN
@@ -985,6 +985,9 @@ ConvSolution ConvHipImplicitGemmForwardV4R5Xdlops::GetSolution(
 bool ConvHipImplicitGemmForwardV4R5Xdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
     if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
+        return false;
+
+    if(!ctx.use_hip_kernels)
         return false;
 
     if(!IsXdlopsSupport(ctx))
