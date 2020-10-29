@@ -30,6 +30,8 @@
 #include <miopen/gcn_asm_utils.hpp>
 #include "implicitgemm_util.hpp"
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS)
+
 namespace miopen {
 namespace solver {
 
@@ -498,6 +500,9 @@ static inline bool FindImplicitGemmGtcDynamicFwdKernel(const ConvolutionContext&
 
 bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS{}))
+        return false;
+
     const auto device_name = ctx.GetStream().GetDeviceName();
     if(!(StartsWith(device_name, "gfx908")))
         return false;

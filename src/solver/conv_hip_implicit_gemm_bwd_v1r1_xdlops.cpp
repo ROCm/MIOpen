@@ -32,6 +32,8 @@
 
 #include <cstddef>
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1_XDLOPS)
+
 namespace miopen {
 namespace solver {
 
@@ -742,6 +744,8 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const ConvolutionContext&
 
 bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1_XDLOPS{}))
+        return false;
 #if WORKAROUND_SWDEV_251757
     if(miopen::HipCompilerVersion() >= external_tool_version_t{3, 5, 0})
         return false;
