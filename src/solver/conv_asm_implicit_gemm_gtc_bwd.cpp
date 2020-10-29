@@ -30,7 +30,7 @@
 #include <miopen/gcn_asm_utils.hpp>
 #include "implicitgemm_util.hpp"
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS)
 
 namespace miopen {
 namespace solver {
@@ -256,7 +256,7 @@ static bool FindImplicitGemmGtcDynamicBwdKernel(const ConvolutionContext& ctx,
 
 bool ConvAsmImplicitGemmGTCDynamicBwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC{}))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS{}))
         return false;
 
     const auto device_name = ctx.GetStream().GetDeviceName();
