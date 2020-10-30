@@ -49,7 +49,7 @@
 namespace miopen {
 namespace solver {
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_COMPILE_AND_RUN)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMPILE_ONLY)
 
 /// This STL-like container together with corresponding iterator provide access
 /// to a set of all available performance configs for the given problem config.
@@ -341,18 +341,11 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
     bool is_passed   = false; // left false only if all iterations failed.
     float best_time  = std::numeric_limits<float>::max();
     size_t n_failed  = 0;
-    size_t n_current = 0;
     size_t n_best    = 0;
     HeartBeat<PerformanceConfig> heartbeat;
     heartbeat.Start();
 
-    const char* const c_and_r = miopen::GetStringEnv(MIOPEN_COMPILE_AND_RUN{});
-    std::string compile_and_run;
-    if(c_and_r != nullptr && strlen(c_and_r) > 0)
-    {
-        compile_and_run = c_and_r;
-    }
-
+#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
     std::vector<KernelInfo> kernels;
     for(const auto& current_config : all_configs)
     {
@@ -364,10 +357,12 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
             kernels.push_back(kernel);
         }
     }
-    std::vector<Program> programs = PrecompileKernels(profile_h, kernels);
+    std::ignore = PrecompileKernels(profile_h, kernels);
+#endif
 
-    if(compile_and_run != "0")
+    if(IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
     {
+        size_t n_current = 0;
         for(const auto& current_config : all_configs)
         {
             float elapsed_time = 0.0f;
@@ -485,7 +480,7 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
     }
     else
     {
-        MIOPEN_THROW("Search skipped");
+        MIOPEN_THROW("Running kernels on GPU is disabled. Search skipped");
     }
 
     MIOPEN_LOG_W("Done: " << n_runs_total << '/' << n_failed << '/' << n_runs_total << ", best #"
