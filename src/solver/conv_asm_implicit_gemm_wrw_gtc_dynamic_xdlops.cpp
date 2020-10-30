@@ -317,8 +317,6 @@ static inline std::tuple<bool, // is valid
     std::vector<TunableImplicitGemmGTCDynamic_t> tunables =
         GetImplicitGemmWrwGTCDynamicXdlopsKernelList();
 
-    std::string selected_kernel = std::string("NONE");
-
     /* applicable table (except 128x128 case):
     gemm_m/gemmn        256 64  32  16  4
                 --------------------------
@@ -443,7 +441,6 @@ static inline std::tuple<bool, // is valid
                 break;
         }
     }
-    // std::cout << "sel_index:" << sel_index << std::endl;
     bool is_valid = !(sel_index < 0 || sel_index >= tunables.size());
 
     return std::make_tuple(
@@ -454,9 +451,6 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlops::IsApplicable(const ConvolutionConte
 {
     const auto device_name = ctx.GetStream().GetDeviceName();
     if(device_name != "gfx908")
-        return false;
-
-    if(!IsApplicableXdlops(ctx))
         return false;
 
     if(!ctx.direction.IsBackwardWrW())

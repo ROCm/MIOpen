@@ -173,7 +173,6 @@ static std::tuple<bool,        // is suitable kernel found
     FindImplicitGemmGtcDynamicBwdKernel(const ConvolutionContext& ctx)
 {
     auto tunables         = GetImplicitGemmGtcDynamicBwdTunablesList();
-    auto pConfig          = tunables.begin();
     const auto hi         = ctx.out_height;
     const auto wi         = ctx.out_width;
     const auto n          = ctx.batch_sz;
@@ -213,7 +212,7 @@ static std::tuple<bool,        // is suitable kernel found
     const auto gemm_m        = c;
     const auto gemm_n        = n * h_tilda_slice * w_tilda_slice;
 
-    for(; pConfig != tunables.end(); pConfig++)
+    for(auto pConfig = tunables.begin(); pConfig != tunables.end(); pConfig++)
     {
         if((pConfig->gemm_n_per_block == 0) || (pConfig->gemm_m_per_block == 0) ||
            (pConfig->nxb == 0) || (pConfig->gemm_k_per_block == 0))
@@ -271,9 +270,12 @@ static std::tuple<bool,        // is suitable kernel found
     }
 
     // second try, try find if packed image size match
-    const auto b = h_tilda_slice * w_tilda_slice;
-    for(; pConfig != tunables.end(); pConfig++)
+    for(auto pConfig = tunables.begin(); pConfig != tunables.end(); pConfig++)
     {
+        const auto b = pConfig->nxe == 0
+                           ? h_tilda_slice * w_tilda_slice
+                           : ((h_tilda_slice * w_tilda_slice + pConfig->nxb - 1) / pConfig->nxb) *
+                                 pConfig->nxb;
         const auto gemm_n_packed = n * b;
         if(pConfig->nxe == 0)
         {
