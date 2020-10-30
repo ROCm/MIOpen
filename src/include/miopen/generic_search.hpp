@@ -338,13 +338,14 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
                                << (useSpare ? " (spare)" : "")
                                << "...");
 
-    bool is_passed   = false; // left false only if all iterations failed.
-    float best_time  = std::numeric_limits<float>::max();
-    size_t n_failed  = 0;
-    size_t n_best    = 0;
+    bool is_passed  = false; // left false only if all iterations failed.
+    float best_time = std::numeric_limits<float>::max();
+    size_t n_failed = 0;
+    size_t n_best   = 0;
     HeartBeat<PerformanceConfig> heartbeat;
     heartbeat.Start();
 
+//PrecompileKernels call saves to binary_cache, this needs to be escaped if KERN_CACHE is not on.
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
     std::vector<KernelInfo> kernels;
     for(const auto& current_config : all_configs)
