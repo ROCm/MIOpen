@@ -642,7 +642,7 @@ static void DirConvFindCore(Handle& handle,
                 conv.group_count > 1 ? callGemmStridedBatched : callGemm,
                 (conv.group_count > 1 || wDesc.GetType() == miopenInt8 ||
                  wDesc.GetType() == miopenInt8x4 || wDesc.GetType() == miopenBFloat16)
-                    ? GemmBackend_t::rocblas
+                    ? GemmBackend_t::miopentensile
                     : GemmBackend_t::miopengemm);
 
             time_gemm += (in_n * (time_im2col + handle.GetKernelTime()));
@@ -1347,7 +1347,7 @@ void ConvolutionDescriptor::ConvFwdGemm(Handle& handle,
                          false,
                          (tensors.wDesc.GetType() == miopenInt8 ||
                           tensors.wDesc.GetType() == miopenInt8x4)
-                             ? GemmBackend_t::rocblas
+                             ? GemmBackend_t::miopentensile
                              : GemmBackend_t::miopengemm);
 
             // Update times for both the kernels
@@ -2421,7 +2421,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                         &kcache_key,
                         time_precision,
                         group_count > 1 ? callGemmStridedBatched : callGemm,
-                        group_count > 1 ? GemmBackend_t::rocblas : GemmBackend_t::miopengemm);
+                        group_count > 1 ? GemmBackend_t::miopentensile : GemmBackend_t::miopengemm);
 
                     float time_gemm = in_n * handle.GetKernelTime();
                     time_col2im     = Col2ImGPU(handle,
@@ -3067,6 +3067,7 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
         MIOPEN_THROW(miopenStatusNotImplemented);
     });
 }
+
 // ConvolutionBackwardWeightsGetWorkSpaceSize
 // FindBackwardWeightsAlgorithm()
 //
@@ -3198,7 +3199,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                         &kcache_key,
                         time_precision,
                         group_count > 1 ? callGemmStridedBatched : callGemm,
-                        group_count > 1 ? GemmBackend_t::rocblas : GemmBackend_t::miopengemm);
+                        group_count > 1 ? GemmBackend_t::miopentensile : GemmBackend_t::miopengemm);
 
                     time_gemm = in_n * (time_im2col + handle.GetKernelTime());
 
@@ -3243,7 +3244,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                         &kcache_key,
                         time_precision,
                         group_count > 1 ? callGemmStridedBatched : callGemmStridedBatchedSequential,
-                        group_count > 1 ? GemmBackend_t::rocblas : GemmBackend_t::miopengemm);
+                        group_count > 1 ? GemmBackend_t::miopentensile : GemmBackend_t::miopengemm);
 
                     time_gemm = handle.GetKernelTime();
                     if(group_count > 1)

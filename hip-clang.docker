@@ -1,6 +1,8 @@
 FROM ubuntu:18.04
 
 ARG PREFIX=/usr/local
+ARG GPU_ARCH=";"
+ARG MIOTENSILE_VER="default"
 
 # Support multiarch
 RUN dpkg --add-architecture i386
@@ -33,6 +35,8 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     python3-dev \
     python-pip \
     python3-pip \
+    python3-distutils \
+    python3-venv \
     software-properties-common \
     wget \
     rocm-dev \
@@ -52,7 +56,7 @@ ENV LANG=C.UTF-8
 RUN pip3 install cget
 
 # Build using hip-clang
-RUN cget -p $PREFIX init --cxx /opt/rocm/llvm/bin/clang++ --std=c++14
+RUN cget -p $PREFIX init --cxx /opt/rocm/llvm/bin/clang++ --std=c++14 -DAMDGPU_TARGETS=${GPU_ARCH}
 
 # Install rocm-cmake
 RUN cget -p $PREFIX install RadeonOpenCompute/rocm-cmake@master
@@ -61,5 +65,8 @@ RUN cget -p $PREFIX install RadeonOpenCompute/rocm-cmake@master
 RUN cget -p $PREFIX install pfultz2/rocm-recipes
 ADD min-requirements.txt /min-requirements.txt
 RUN CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -f /min-requirements.txt
-
+RUN export HIPCC_LINK_FLAGS_APPEND='-O3 -parallel-jobs=4'
+RUN export HIPCC_COMPILE_FLAGS_APPEND='-O3 -Wno-format-nonliteral -parallel-jobs=4'
+# install last released miopentensile in default, install latest commits when MIOTENSILE_VER="latest"
+RUN if [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@7568654c938d42e9a91c6b18fb382f5b978d12fd; else cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@5fe0bf4a8dc59f3ab62df929297280915372ce16; fi
 
