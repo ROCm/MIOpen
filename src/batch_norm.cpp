@@ -437,7 +437,7 @@ void bnFwdTrainSelectSingleFull(const Handle& handle,
     auto&& kernels = handle.GetKernels(algo_name, network_config);
     if(!kernels.empty())
     {
-        auto kernel = kernels.front();
+        auto kernel  = kernels.front();
         kernel.ldims = {{vld[0], vld[1], vld[2]}};
         kernel.gdims = {{vgd[0], vgd[1], vgd[2]}};
         visit_float(dtype, [&](auto as_float) {
