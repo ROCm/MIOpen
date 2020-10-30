@@ -150,11 +150,8 @@ void PerformanceImplicitGemmForwardV4R4Xdlops::EuristicInit(const ConvolutionCon
                         break;
 
                     all_visited = true;
-                    break;
                 } while(false);
 
-                if(all_visited)
-                    break;
                 if(is_valid_func(tmp, ctx))
                     break;
             } while(!all_visited);
@@ -185,11 +182,8 @@ void PerformanceImplicitGemmForwardV4R4Xdlops::EuristicInit(const ConvolutionCon
                         break;
 
                     all_visited = true;
-                    break;
                 } while(false);
 
-                if(all_visited)
-                    break;
                 if(is_valid_func(tmp, ctx))
                     break;
             } while(!all_visited);
@@ -221,11 +215,8 @@ void PerformanceImplicitGemmForwardV4R4Xdlops::EuristicInit(const ConvolutionCon
                         break;
 
                     all_visited = true;
-                    break;
                 } while(false);
 
-                if(all_visited)
-                    break;
                 if(is_valid_func(tmp, ctx))
                     break;
             } while(!all_visited);
@@ -243,7 +234,7 @@ void PerformanceImplicitGemmForwardV4R4Xdlops::EuristicInit(const ConvolutionCon
     });
 
     // second round: really valid
-    if(!(tmp.IsReallyValid(ctx) && tmp.IsFastToBeUsedForTuning(ctx)))
+    if(!tmp.IsReallyValid(ctx))
     {
         get_euristic_config(
             [](auto config, auto conv_context) { return config.IsReallyValid(conv_context); });
