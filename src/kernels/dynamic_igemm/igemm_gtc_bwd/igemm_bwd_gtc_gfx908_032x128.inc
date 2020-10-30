@@ -982,8 +982,6 @@ L_igemm_bwd_gtcx_nchw_fp32_bx1_ex0_bt32x128x16_wt8x32x1_ws1x1_wr2x2_ta2x1x1x1_1x
     .amdhsa_next_free_sgpr 58
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
-    //xnack disabled by default for asm kernels
-    .amdhsa_reserve_xnack_mask 0
 .end_amdhsa_kernel
 
 ;----------------------------------------------------------
@@ -3232,7 +3230,5 @@ L_igemm_bwd_gtcx_nchw_fp32_bx4_ex1_bt32x128x16_wt8x32x1_ws1x1_wr2x2_ta2x1x1x1_1x
     .amdhsa_next_free_sgpr 80
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
-    //xnack disabled by default for asm kernels
-    .amdhsa_reserve_xnack_mask 0
 .end_amdhsa_kernel
 
