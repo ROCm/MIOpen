@@ -29,6 +29,7 @@
 #cmakedefine01 MIOPEN_BACKEND_OPENCL
 #cmakedefine01 MIOPEN_BACKEND_HCC
 #cmakedefine01 MIOPEN_BACKEND_HIP
+#cmakedefine01 MIOPEN_USE_MIOPENTENSILE
 #cmakedefine01 MIOPEN_USE_MIOPENGEMM
 #cmakedefine01 MIOPEN_USE_ROCBLAS
 #cmakedefine01 MIOPEN_BUILD_DEV
@@ -75,7 +76,7 @@
 #cmakedefine MIOPEN_OFFLOADBUNDLER_BIN "@MIOPEN_OFFLOADBUNDLER_BIN@"
 #cmakedefine MIOPEN_CACHE_DIR "@MIOPEN_CACHE_DIR@"
 
-#define MIOPEN_USE_GEMM (MIOPEN_USE_MIOPENGEMM || MIOPEN_USE_ROCBLAS)
+#define MIOPEN_USE_GEMM (MIOPEN_USE_MIOPENTENSILE || MIOPEN_USE_MIOPENGEMM || MIOPEN_USE_ROCBLAS)
 
 // Usage of "defined" operator within macro expansion is undefined behavior,
 // so "defined(NDEBUG)" cannot be used there... unlike the following macro:
