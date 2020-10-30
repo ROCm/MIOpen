@@ -393,7 +393,11 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
     {
         return false;
     }
-    assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
+
     const auto elements_in_dword = 4 / GetTypeSize(params.in_data_type);
     // clang-format off
     const int img_hw = params.out_height * params.out_width;
