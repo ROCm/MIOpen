@@ -74,7 +74,7 @@ operator==(const PerformanceImplicitGemmWrwV4R4Xdlops& other) const
         && GemmKPerBlock == other.GemmKPerBlock
         && GemmMPerWave == other.GemmMPerWave
         && GemmNPerWave == other.GemmNPerWave
-        && GemmKPack == other.GemmKPack 
+        && GemmKPack == other.GemmKPack
         && GemmAThreadCopyMoreGemmK  == other.GemmAThreadCopyMoreGemmK
         && GemmBThreadCopyMoreGemmK  == other.GemmBThreadCopyMoreGemmK;
     // clang-format on
@@ -672,27 +672,27 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::IsFastToBeUsedForTuning(
 
         if(grid_size_max_blockwise_gemm > 600)
         {
-            if(ratio > 1.41)
+            if(ratio > 2.81)
                 return false;
         }
         if(grid_size_max_blockwise_gemm > 480)
         {
-            if(ratio > 1.81)
+            if(ratio > 3.61)
                 return false;
         }
         if(grid_size_max_blockwise_gemm > 360)
         {
-            if(ratio > 2.21)
+            if(ratio > 4.41)
                 return false;
         }
         if(grid_size_max_blockwise_gemm > 240)
         {
-            if(ratio > 3.21)
+            if(ratio > 6.41)
                 return false;
         }
         else if(grid_size_max_blockwise_gemm > 120)
         {
-            if(ratio > 6.21)
+            if(ratio > 12.41)
                 return false;
         }
     }
@@ -992,10 +992,13 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
 
 bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
-    if(!IsXdlopsSupport(ctx))
+    if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
         return false;
 
-    if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
+    if(!ctx.use_hip_kernels)
+        return false;
+
+    if(!IsXdlopsSupport(ctx))
         return false;
 
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
