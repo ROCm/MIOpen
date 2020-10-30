@@ -34,8 +34,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/solver.hpp>
-
-#if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
+#if(MIOPEN_BACKEND_HIP && (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE))
 #define WORKAROUND_SWDEV_203031 1 // See also issues #2075, #2067
 #define WORKAROUND_SWDEV_234193 1
 #endif
@@ -364,7 +363,11 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
 // HIP backend required for sending ptr (buffer + offset)
 // ROCBLAS for GEMM step
 
-#if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
+#if(MIOPEN_BACKEND_HIP && (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE))
+#if(!MIOPEN_USE_ROCBLAS)
+    if(!params.IsFp32())
+        return false;
+#endif
     static const int wino_data_tile   = std::max(WinoDataH, WinoDataW);
     static const int wino_filter_tile = std::max(WinoFilterH, WinoFilterW);
 
@@ -541,7 +544,7 @@ InvokerFactory
 ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::PrepareInvokerFactory(
     const ConvolutionContext& params, std::size_t ws_sz) const
 {
-#if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
+#if(MIOPEN_BACKEND_HIP && (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE))
     int flags         = 0;
     int reserved      = 0;
     int* reserved_ptr = nullptr;
@@ -666,7 +669,7 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
                                         static_cast<int>(wino_out_offset / GetTypeSize(in_data_type)),
                                         nullptr,
                                 false,
-                                GemmBackend_t::rocblas);
+                                GemmBackend_t::miopentensile);
                     // clang-format on
 
                     if(handle.IsProfilingEnabled())

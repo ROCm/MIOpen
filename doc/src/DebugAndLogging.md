@@ -151,6 +151,7 @@ both MIOpenGEMM and rocBlas depending on the input configuration:
 * `MIOPEN_GEMM_ENFORCE_BACKEND=1`, use rocBLAS if enabled
 * `MIOPEN_GEMM_ENFORCE_BACKEND=2`, use MIOpenGEMM for FP32, use rocBLAS for FP16 if enabled
 * `MIOPEN_GEMM_ENFORCE_BACKEND=3`, no gemm will be called
+* `MIOPEN_GEMM_ENFORCE_BACKEND=4`, use MIOpenTensile for FP32, use rocBLAS for FP16 if enabled
 * `MIOPEN_GEMM_ENFORCE_BACKEND=<any other value>`, use default behavior
 
 To disable using rocBlas entirely, set the configuration flag `-DMIOPEN_USE_ROCBLAS=Off` during MIOpen configuration.
