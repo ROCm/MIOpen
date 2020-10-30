@@ -411,6 +411,8 @@ void bnFwdTrainSelectSingleEmpty(const Handle& handle,
 
 void bnFwdTrainSelectSingleFull(const Handle& handle,
                                 int variant,
+                                const std::vector<size_t>& vld,
+                                const std::vector<size_t>& vgd,
                                 miopenDataType_t dtype,
                                 const std::string& algo_name,
                                 const std::string& network_config,
@@ -436,6 +438,8 @@ void bnFwdTrainSelectSingleFull(const Handle& handle,
     if(!kernels.empty())
     {
         auto kernel = kernels.front();
+        kernel.ldims = {{vld[0], vld[1], vld[2]}};
+        kernel.gdims = {{vgd[0], vgd[1], vgd[2]}};
         visit_float(dtype, [&](auto as_float) {
             if(resultsave && resultrunning)
             {

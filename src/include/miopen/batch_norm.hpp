@@ -70,6 +70,8 @@ void bnBwdTrainSelectSingle(const Handle& handle,
 
 void bnFwdTrainSelectSingleFull(const Handle& handle,
                                 int variant,
+                                const std::vector<size_t>& vld,
+                                const std::vector<size_t>& vgd,
                                 miopenDataType_t dtype,
                                 const std::string& algo_name,
                                 const std::string& network_config,

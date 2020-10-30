@@ -36,8 +36,6 @@
 /// \todo Get rid of this during implementation of #1938 (60)
 #include <miopen/convolution.hpp>
 #include <miopen/mlo_internal.hpp>
-
-#define WORKAROUND_SWDEV_253606 1
 #include <chrono>
 
 namespace miopen {
@@ -165,7 +163,6 @@ void BatchNormForwardTraining(Handle& handle,
         unsigned int ldsnogcn = xlocalsize;
         std::string algo_name = "miopenBatchNormForwardTrainingSpatial";
 
-#if(WORKAROUND_SWDEV_253606 == 0)
         if(n < 3)
         {
             variant    = 4;
@@ -176,11 +173,7 @@ void BatchNormForwardTraining(Handle& handle,
             ldsgcn     = xlocalsize / 64;
             ldsnogcn   = xlocalsize;
         }
-        else
-#endif
-
-            // clang-format off
-        if((in_nhw < 33554432 && in_cstride > 1024) ||
+        else if((in_nhw < 33554432 && in_cstride > 1024) ||
                ((n >= 256) && (in_cstride > 60) && bfpmixparm) ||
                ((in_cstride > 512) && bfpmixparm))
         {
@@ -202,7 +195,6 @@ void BatchNormForwardTraining(Handle& handle,
             ldsgcn       = ylocalsize / 64;
             ldsnogcn     = ylocalsize;
         }
-        // clang-format on
 
         if((n > 768) && (in_cstride > 150) && bfp32parm)
         {
@@ -219,17 +211,14 @@ void BatchNormForwardTraining(Handle& handle,
 
         std::string network_config{};
 
-#if(WORKAROUND_SWDEV_253606 == 0)
         if(variant == 4)
         {
             network_config = "variant" + std::to_string(variant) + "rs" +
                              std::to_string(static_cast<int>(resultsave)) + "rr" +
                              std::to_string(static_cast<int>(resultrunning)) + "fp16" +
-                             std::to_string(static_cast<int>(bfp16parm)) + "fp32" +
-                             std::to_string(static_cast<int>(bfp32parm)) + "c" + std::to_string(c);
+                             std::to_string(static_cast<int>(bfp16parm)) + "fp32";
         }
         else
-#endif
         {
             network_config = "variant" + std::to_string(variant) + "gx" +
                              std::to_string(xgridsize) + "gy" + std::to_string(ygridsize) + "xl" +
@@ -252,6 +241,8 @@ void BatchNormForwardTraining(Handle& handle,
             {
                 bnFwdTrainSelectSingleFull(handle,
                                            variant,
+                                           vld,
+                                           vgd,
                                            bnScaleBiasMeanVarDesc.GetType(),
                                            algo_name,
                                            network_config,
@@ -288,9 +279,7 @@ void BatchNormForwardTraining(Handle& handle,
                         std::to_string(static_cast<int>(resultrunning)) + " -DMIO_BN_VARIANT=" +
                         std::to_string(variant) + " -DMIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) +
                         " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) + " -DMIO_BN_N=" +
-                        std::to_string(n) + " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) +
-                        " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" +
-                        std::to_string(zlocalsize) + " -DMIO_BN_GFX1030=" +
+                        std::to_string(n) + " -DMIO_BN_GFX1030=" +
                         ((handle.GetDeviceName() == "gfx1030") ? "1" : "0");
 
                 if(variant != 4)

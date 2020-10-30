@@ -713,7 +713,6 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #pragma clang diagnostic ignored "-Wunused-variable"
 #endif
 // Batch size 1 and 2
-/* __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2)))  */
 __kernel void MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                                              __global _FLOAT* __restrict out,
                                              __constant _FLOAT_PREC* __restrict scale,
@@ -746,11 +745,7 @@ __kernel void MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict i
     _FLOAT_PREC pvbias      = (_FLOAT_PREC)0.;
     _FLOAT_PREC xin         = (_FLOAT_PREC)0.;
 
-    unsigned int index0 = 0;
-#if(MIO_BN_N == 2)
-    unsigned int index1 = 0;
-#endif
-
+    unsigned int index = 0;
     local _FLOAT_PREC lcl_bias;
     local _FLOAT_PREC lcl_scale;
 
@@ -763,18 +758,24 @@ __kernel void MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict i
     unsigned int cidx = grpid * imageDims;
     for(int idx = lid; idx < imageDims; idx += lsz)
     {
-        index0 = cidx + idx;
-        xin    = (_FLOAT_PREC)(*(in + index0));
+        index = cidx + idx;
+        xin    = (_FLOAT_PREC)(*(in + index));
         mean += xin;
         variance = mad(xin, xin, variance);
-#if(MIO_BN_N == 2)
-        index0 += batchStride;
-        xin = (_FLOAT_PREC)(*(in + index0));
-        mean += xin;
-        variance = mad(xin, xin, variance);
-#endif
     }
     barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
+
+#if(MIO_BN_N == 2)
+    for(int idx = lid; idx < imageDims; idx += lsz)
+    {
+        index = batchStride + cidx + idx;
+        xin = (_FLOAT_PREC)(*(in + index));
+        mean += xin;
+        variance = mad(xin, xin, variance);
+    }
+    barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
+
+#endif
 
 #ifndef __AMDGCN__
     local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDS_SIZE];
@@ -794,19 +795,19 @@ __kernel void MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict i
 
     for(int idx = lid; idx < imageDims; idx += lsz)
     {
-        index0             = cidx + idx;
-#if(MIO_BN_N == 2)
-        index1             = batchStride + index0;
-#endif
-        _FLOAT_PREC inhat0 = ((_FLOAT_PREC)(*(in + index0)) - mean) * invVariance;
-#if(MIO_BN_N == 2)
-        _FLOAT_PREC inhat1 = ((_FLOAT_PREC)(*(in + index1)) - mean) * invVariance;
-#endif
-        out[index0]        = (_FLOAT)mad(pvscale, inhat0, pvbias);
-#if(MIO_BN_N == 2)
-        out[index1]        = (_FLOAT)mad(pvscale, inhat1, pvbias);
-#endif
+        index             = cidx + idx;
+        _FLOAT_PREC inhat0 = ((_FLOAT_PREC)(*(in + index)) - mean) * invVariance;
+        out[index]        = (_FLOAT)mad(pvscale, inhat0, pvbias);
     }
+
+#if(MIO_BN_N == 2)
+    for(int idx = lid; idx < imageDims; idx += lsz)
+    {
+        index             = batchStride + cidx + idx;
+        _FLOAT_PREC inhat0 = ((_FLOAT_PREC)(*(in + index)) - mean) * invVariance;
+        out[index]        = (_FLOAT)mad(pvscale, inhat1, pvbias);
+    }
+#endif
 
     if(lid == 0)
     {
