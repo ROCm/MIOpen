@@ -214,12 +214,8 @@ static std::tuple<bool,        // is suitable kernel found
 
     for(const auto& cfg : tunables)
     {
-        if((cfg.gemm_n_per_block == 0) || (cfg.gemm_m_per_block == 0) ||
-           (cfg.nxb == 0) || (cfg.gemm_k_per_block == 0))
-        {
-            MIOPEN_LOG_E("Invalid kernel config entry!");
-            assert(false);
-        }
+        assert((cfg.gemm_n_per_block != 0) && (cfg.gemm_m_per_block != 0) && (cfg.nxb != 0) &&
+               (cfg.gemm_k_per_block != 0));
         if(cfg.nxe == 0)
         {
             if((x != 1) || (y != 1) || (stride_h != 1) || (stride_w != 1) || (dilation_h != 1) ||
@@ -274,8 +270,7 @@ static std::tuple<bool,        // is suitable kernel found
     {
         const auto b = cfg.nxe == 0
                            ? h_tilda_slice * w_tilda_slice
-                           : ((h_tilda_slice * w_tilda_slice + cfg.nxb - 1) / cfg.nxb) *
-                                 cfg.nxb;
+                           : ((h_tilda_slice * w_tilda_slice + cfg.nxb - 1) / cfg.nxb) * cfg.nxb;
         const auto gemm_n_packed = n * b;
         if(cfg.nxe == 0)
         {
@@ -285,8 +280,7 @@ static std::tuple<bool,        // is suitable kernel found
                 continue;
             }
         }
-        if((gemm_n_packed % cfg.gemm_n_per_block != 0) ||
-           (gemm_m % cfg.gemm_m_per_block != 0))
+        if((gemm_n_packed % cfg.gemm_n_per_block != 0) || (gemm_m % cfg.gemm_m_per_block != 0))
         {
             continue;
         }
