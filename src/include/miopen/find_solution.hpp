@@ -151,6 +151,8 @@ struct SolverContainer
                 if(find_only.IsValid() && find_only != Id{SolverDbId(solver)})
                 { // Do nothing (and keep silence for the sake of Tuna), just skip.
                 }
+                // For better performance, check IsDynamic() first, because
+                // it is much faster than IsApplicable().
                 else if(search_params.use_dynamic_solutions_only && !solver.IsDynamic())
                     MIOPEN_LOG_I2(SolverDbId(solver) << ": Skipped (non-dynamic)");
                 else if(!solver.IsApplicable(search_params))
