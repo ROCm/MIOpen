@@ -40,6 +40,7 @@ enum GemmBackend_t
     nogemmbackend = 0,
     rocblas       = 1,
     miopengemm    = 2,
+    miopentensile = 3,
 };
 
 enum CallGemmType_t
@@ -88,7 +89,7 @@ miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
                                    FindDbKCacheKey* kcache_key, // for find-db
                                    bool time_precision,
                                    CallGemmType_t call_gemm_type,
-                                   GemmBackend_t gemm_backend = GemmBackend_t::rocblas);
+                                   GemmBackend_t gemm_backend = GemmBackend_t::miopentensile);
 
 miopenStatus_t CallGemm(const Handle& handle,
                         GemmDescriptor gemm_desc,
@@ -100,7 +101,7 @@ miopenStatus_t CallGemm(const Handle& handle,
                         int c_offset,
                         FindDbKCacheKey* kcache_key, // for find-db
                         bool enqueue_dummy_kernel,
-                        GemmBackend_t gemm_backend = GemmBackend_t::rocblas);
+                        GemmBackend_t gemm_backend = GemmBackend_t::miopentensile);
 
 miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                                       GemmDescriptor gemm_desc,
@@ -112,7 +113,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                                       int c_offset,
                                       FindDbKCacheKey* kcache_key, // for find-db
                                       bool enqueue_dummy_kernel,
-                                      GemmBackend_t gemm_backend = GemmBackend_t::rocblas);
+                                      GemmBackend_t gemm_backend = GemmBackend_t::miopentensile);
 
 miopenStatus_t
 CallGemmStridedBatchedSequential(const Handle& handle,
@@ -125,7 +126,7 @@ CallGemmStridedBatchedSequential(const Handle& handle,
                                  int c_offset,
                                  FindDbKCacheKey* kcache_key, // for find-db
                                  bool enqueue_dummy_kernel,
-                                 GemmBackend_t gemm_backend = GemmBackend_t::rocblas);
+                                 GemmBackend_t gemm_backend = GemmBackend_t::miopentensile);
 
 // GEMM parameters for Convolution (using Im2Col) Fwd
 // y = w * Im2Col(x)

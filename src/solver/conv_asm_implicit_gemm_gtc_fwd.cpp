@@ -533,6 +533,9 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ConvolutionConte
     if(device_name != "gfx908")
         return false;
 
+    if(!ctx.use_asm_kernels)
+        return false;
+
     if(!ctx.direction.IsForward())
         return false;
 
@@ -551,6 +554,7 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ConvolutionConte
     bool isValid;
     std::tie(isValid, std::ignore, std::ignore, std::ignore) =
         FindImplicitGemmGtcDynamicFwdKernel(ctx);
+
     return isValid;
 }
 

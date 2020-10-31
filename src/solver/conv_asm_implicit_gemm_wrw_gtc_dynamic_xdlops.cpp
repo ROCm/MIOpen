@@ -453,6 +453,9 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlops::IsApplicable(const ConvolutionConte
     if(device_name != "gfx908")
         return false;
 
+    if(!ctx.use_asm_kernels)
+        return false;
+
     if(!ctx.direction.IsBackwardWrW())
         return false;
 
