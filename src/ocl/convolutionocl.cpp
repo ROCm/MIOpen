@@ -179,6 +179,23 @@ ConvolutionDescriptor::FindWinogradSolutions(const ConvolutionContext& ctx,
 }
 
 std::vector<miopen::solver::ConvSolution>
+ConvolutionDescriptor::FindWinograd3x3Solution(const ConvolutionContext& ctx,
+                                               const AnyInvokeParams& invoke_ctx) const
+{
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{}))
+        return {};
+    try
+    {
+        return FindOneWinograd3x3Solution(ctx, invoke_ctx);
+    }
+    catch(miopen::Exception& ex)
+    {
+        MIOPEN_LOG_WE(ex.what());
+        return {};
+    }
+}
+
+std::vector<miopen::solver::ConvSolution>
 ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
                                                const TensorDescriptor& xDesc,
                                                const TensorDescriptor& wDesc,
@@ -672,7 +689,8 @@ static void DirConvFindCore(Handle& handle,
 
     // Winograd algo
     {
-        const auto all = conv.FindWinogradSolutions(ctx, invoke_ctx);
+        const auto all = !use_winograd_only ? conv.FindWinogradSolutions(ctx, invoke_ctx)
+                                            : conv.FindWinograd3x3Solution(ctx, invoke_ctx);
         PrecompileSolutions(handle, all);
         const auto algorithm_name = AlgorithmName{"miopenConvolutionFwdAlgoWinograd"};
         EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
@@ -2170,7 +2188,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 ctx.SetBufs(bufs);
                 ctx.SetStream(&handle);
                 ctx.DetectRocm();
-                const auto all            = FindWinogradSolutions(ctx, invoke_ctx);
+                const auto all = !use_winograd_only ? FindWinogradSolutions(ctx, invoke_ctx)
+                                                    : FindWinograd3x3Solution(ctx, invoke_ctx);
                 const auto algorithm_name = AlgorithmName{"miopenConvolutionBwdDataAlgoWinograd"};
                 PrecompileSolutions(handle, all);
                 EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
