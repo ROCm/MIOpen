@@ -599,6 +599,7 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
     const auto pad_H        = params.pad_h;
     const auto pad_W        = params.pad_w;
 
+    // cppcheck-suppress returnDanglingLifetime
     return [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
             decltype(auto) invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
