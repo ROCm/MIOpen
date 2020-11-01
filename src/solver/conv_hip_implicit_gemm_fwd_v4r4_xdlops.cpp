@@ -749,17 +749,22 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsFastToBeUsedForTuning(
     // GemmKPerBlock*GemmKPack should not be too small, otherwise read performance of A matrix would
     // be bad
     {
+        int gemm_ktotal = 0;
+
+        std::tie(std::ignore, std::ignore, std::ignore, gemm_ktotal) =
+            ConvHipImplicitGemmForwardV4R4Xdlops::CalculateGemmSize(ctx);
+
         if(ctx.IsFp32())
         {
             if(GemmKPack > 4)
                 return false;
 
-            if(GemmKPerBlock * GemmKPack < 8)
+            if(GemmKPerBlock * GemmKPack < 8 && gemm_ktotal % 8 == 0)
                 return false;
         }
         else if(ctx.IsFp16() || ctx.IsBfp16())
         {
-            if(GemmKPerBlock * GemmKPack < 16)
+            if(GemmKPerBlock * GemmKPack < 16 && gemm_ktotal % 16 == 0)
                 return false;
         }
     }
@@ -952,6 +957,9 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
 bool ConvHipImplicitGemmForwardV4R4Xdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
     if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
+        return false;
+
+    if(!ctx.use_hip_kernels)
         return false;
 
     if(!IsXdlopsSupport(ctx))
