@@ -42,7 +42,7 @@ namespace solver {
 PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm()
     : PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::
           PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm(
-              64, 64, 2, 32, 32, 4, 16, 64, 16, false, false)
+              64, 64, 2, 32, 32, 4, 16, 64, 32, false, false)
 { // GemmMFactor GemmNFactor, GemmKFactor are fixed value at this moment
 }
 
@@ -126,7 +126,7 @@ void PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::EuristicInit(const Convol
     auto get_euristic_config = [&](auto is_valid_func) {
         if(ctx.IsFp32())
         {
-            tmp = {256, 256, 8, 128, 128, 4, 16, 64, 16, false, true};
+            tmp = {256, 256, 8, 128, 128, 4, 16, 64, 32, false, true};
 
             bool all_visited = false;
             do
@@ -157,7 +157,7 @@ void PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::EuristicInit(const Convol
         }
         else if(ctx.IsFp16())
         {
-            tmp              = {256, 256, 8, 128, 128, 8, 16, 64, 16, false, true};
+            tmp              = {256, 256, 8, 128, 128, 8, 16, 64, 32, false, true};
             bool all_visited = false;
             do
             {
@@ -187,7 +187,7 @@ void PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::EuristicInit(const Convol
         }
         else if(ctx.IsBfp16())
         {
-            tmp = {256, 256, 8, 128, 128, 8, 16, 64, 16, false, true};
+            tmp = {256, 256, 8, 128, 128, 8, 16, 64, 32, false, true};
 
             bool all_visited = false;
             do
