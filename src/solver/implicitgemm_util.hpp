@@ -21,6 +21,10 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SY
 // due to compiler bug, iGEMM xdlops kernels fail verification in some cases, if using "-O3" flag,
 // (but will pass verification with "-O1" flag)
 #define WORKAROUND_SWDEV_251757 1
+// although gfx1030 supports buffer instructions,but it not work properly when we use the
+// corresponding llvm intrinsic functions
+// so we disable using those llvm intrinsic functions on gfx1030
+#define WORKAROUND_MIOPEN_ISSUE_557 1
 
 namespace miopen {
 
@@ -715,7 +719,11 @@ static inline bool device_name_is_gfx1030(const ConvolutionContext& ctx)
 
 static inline bool is_use_amd_buffer_load_store(const ConvolutionContext& ctx)
 {
+#if WORKAROUND_MIOPEN_ISSUE_557
     return !device_name_is_gfx1030(ctx);
+#else
+    return true;
+#endif
 }
 
 static inline bool is_use_v_fmac_f32(const ConvolutionContext& ctx)
