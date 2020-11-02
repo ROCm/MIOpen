@@ -368,7 +368,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     RegisterWithSolver(registry, ++id, GemmFwd1x1_0_1{}, miopenConvolutionAlgoGEMM);
     RegisterWithSolver(registry, ++id, GemmFwd1x1_0_1_int8{}, miopenConvolutionAlgoGEMM);
     RegisterWithSolver(registry, ++id, GemmFwd1x1_0_2{}, miopenConvolutionAlgoGEMM);
-    RegisterWithSolver(registry, ++id, GemmFwd3{}, miopenConvolutionAlgoGEMM);
+    RegisterWithSolver(registry, ++id, GemmFwdRest{}, miopenConvolutionAlgoGEMM);
 }
 
 } // namespace solver

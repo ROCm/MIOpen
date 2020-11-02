@@ -1961,7 +1961,7 @@ struct GemmFwd1x1_0_1 : GemmFwdBase
     ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
 };
 
-struct GemmFwd3 : GemmFwdBase
+struct GemmFwdRest : GemmFwdBase
 {
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const
     {

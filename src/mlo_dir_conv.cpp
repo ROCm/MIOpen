@@ -119,7 +119,7 @@ static auto GetGemmSolvers()
     return miopen::solver::SolverContainer<miopen::solver::GemmFwd1x1_0_1,
                                            miopen::solver::GemmFwd1x1_0_1_int8,
                                            miopen::solver::GemmFwd1x1_0_2,
-                                           miopen::solver::GemmFwd3>{};
+                                           miopen::solver::GemmFwdRest>{};
 }
 
 static auto GetDirectSolvers()

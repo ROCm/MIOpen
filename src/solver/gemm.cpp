@@ -724,7 +724,7 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
 #endif
 }
 
-size_t GemmFwd3::GetWorkspaceSize(const ExecutionContext& context,
+size_t GemmFwdRest::GetWorkspaceSize(const ExecutionContext& context,
                                   const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM || 1
@@ -754,7 +754,7 @@ size_t GemmFwd3::GetWorkspaceSize(const ExecutionContext& context,
 #endif
 }
 
-bool GemmFwd3::IsApplicable(const ExecutionContext& context,
+bool GemmFwdRest::IsApplicable(const ExecutionContext& context,
                             const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
@@ -785,7 +785,7 @@ bool GemmFwd3::IsApplicable(const ExecutionContext& context,
 #endif
 }
 
-ConvSolution GemmFwd3::GetSolution(const ExecutionContext& context,
+ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
                                    const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
