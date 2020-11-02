@@ -353,8 +353,7 @@ static inline std::tuple<bool, // is valid
                     const auto gemm_m_per_block = swap == 0 ? 1 << r : 1 << l;
                     const auto gemm_n_per_block = swap == 0 ? 1 << l : 1 << r;
 
-                    if(gemm_m % gemm_m_per_block != 0 ||
-                       c % (gemm_n_per_block / (nxe == 0 ? 1 : nxe)) != 0)
+                    if(gemm_m % gemm_m_per_block != 0)
                         continue;
 
                     for(int j = 4; j > 1; j--)
@@ -369,6 +368,8 @@ static inline std::tuple<bool, // is valid
                                         ? ho * wo
                                         : (nxe == 0 ? ho * wo : ((ho * wo + nxb - 1) / nxb) * nxb);
                                 const auto gemm_k = n * b;
+                                if(c % (gemm_n_per_block / (nxe == 0 ? 1 : nxe)) != 0)
+                                    continue;
                                 if(gemm_k % gemm_k_per_block != 0)
                                     continue;
                                 if(nxe == 0)
