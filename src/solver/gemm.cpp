@@ -133,7 +133,6 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
                                          const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
-    decltype(auto) handle = context.GetStream();
     decltype(auto) conv   = problem.GetConv();
     decltype(auto) xDesc  = problem.GetIn();
     decltype(auto) wDesc  = problem.GetWeights();
@@ -246,7 +245,7 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
                     GemmDescriptor gemm_desc =
                         CreateGemmDescriptorGroupConvCNHWFwd(wDesc, xDesc, yDesc, group_count);
 
-                    CallGemmStridedBatched(
+                    gemm_status = CallGemmStridedBatched(
                         handle, gemm_desc, w, 0, workSpace, 0, workSpace, x_t_size, nullptr, false);
                 }
                 else
@@ -338,7 +337,6 @@ size_t GemmFwd1x1_0_1_int8::GetWorkspaceSize(const ExecutionContext& context,
 #if MIOPEN_USE_GEMM || 1
     decltype(auto) handle = context.GetStream();
     decltype(auto) conv   = problem.GetConv();
-    decltype(auto) xDesc  = problem.GetIn();
     decltype(auto) wDesc  = problem.GetWeights();
     decltype(auto) yDesc  = problem.GetOut();
 
@@ -382,7 +380,6 @@ ConvSolution GemmFwd1x1_0_1_int8::GetSolution(const ExecutionContext& context,
                                               const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
-    decltype(auto) handle = context.GetStream();
     decltype(auto) conv   = problem.GetConv();
     decltype(auto) xDesc  = problem.GetIn();
     decltype(auto) wDesc  = problem.GetWeights();
@@ -490,6 +487,8 @@ ConvSolution GemmFwd1x1_0_1_int8::GetSolution(const ExecutionContext& context,
             }
         };
     };
+
+    return solution;
 #else
     std::ignore = context;
     std::ignore = problem;
@@ -533,7 +532,6 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
                                          const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
-    decltype(auto) handle = context.GetStream();
     decltype(auto) conv   = problem.GetConv();
     decltype(auto) xDesc  = problem.GetIn();
     decltype(auto) wDesc  = problem.GetWeights();
@@ -651,12 +649,6 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
         const auto in_spatial  = std::vector<std::size_t>(in_spatial_.begin(), in_spatial_.end());
         const auto out_spatial = std::vector<std::size_t>(out_spatial_.begin(), out_spatial_.end());
 
-        const std::size_t in_spatial_size = std::accumulate(
-            in_spatial.begin(), in_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
-
-        const std::size_t out_spatial_size = std::accumulate(
-            out_spatial.begin(), out_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
-
         solution.invoker_factory = [=](const std::vector<Kernel>&) {
             MIOPEN_LOG_FUNCTION("convolution, 1x1");
 
@@ -717,6 +709,8 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
             };
         };
     }
+
+    return solution;
 #else
     std::ignore = context;
     std::ignore = problem;
@@ -727,15 +721,11 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
 size_t GemmFwdRest::GetWorkspaceSize(const ExecutionContext& context,
                                   const conv::ProblemDescription& problem) const
 {
-#if MIOPEN_USE_GEMM || 1
+#if MIOPEN_USE_GEMM
     decltype(auto) handle = context.GetStream();
     decltype(auto) conv   = problem.GetConv();
-    decltype(auto) xDesc  = problem.GetIn();
     decltype(auto) wDesc  = problem.GetWeights();
     decltype(auto) yDesc  = problem.GetOut();
-
-    const auto spatial_dim = conv.GetSpatialDimension();
-    const auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
 
     if(miopen::any_of(conv.GetConvDilations(), [](auto v) { return v > 1; }))
     {
@@ -789,7 +779,6 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
                                    const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
-    decltype(auto) handle = context.GetStream();
     decltype(auto) conv   = problem.GetConv();
     decltype(auto) xDesc  = problem.GetIn();
     decltype(auto) wDesc  = problem.GetWeights();
@@ -941,6 +930,8 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
             }
         };
     };
+
+    return solution;
 #else
     std::ignore = context;
     std::ignore = problem;
