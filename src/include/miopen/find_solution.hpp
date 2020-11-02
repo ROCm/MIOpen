@@ -133,6 +133,8 @@ FindSolution(Solver s, const Context& context, Db& db, const AnyInvokeParams& in
 template <class... Solvers>
 struct SolverContainer
 {
+    std::vector<miopen::solver::AnySolver> GetAllSolvers() const { return {{Solvers{}...}}; }
+
     // Search for all applicable solutions among many solvers
     template <class Context, class Db, class Solution = miopen::solver::ConvSolution>
     std::vector<Solution>

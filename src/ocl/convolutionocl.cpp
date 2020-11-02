@@ -924,31 +924,38 @@ void GetSolutions(Handle& handle,
     *solutionCount = i;
 }
 
-void ConvolutionDescriptor::GetForwardSolutionsFallback(ExecutionContext& ctx,
-                                                        const conv::ProblemDescription& problem,
+void ConvolutionDescriptor::GetForwardSolutionsFallback(const ConvolutionContext& ctx,
                                                         const size_t maxSolutionCount,
                                                         size_t* const solutionCount,
                                                         miopenConvSolution_t* const solutions) const
 {
     // This check is needed on fallback path only.
     // Regular (find-db) path have been verified during Find().
-    ValidateGroupCount(problem.GetIn(), problem.GetWeights(), *this);
+    ValidateGroupCount(ctx.conv_problem.GetIn(), ctx.conv_problem.GetWeights(), *this);
     auto i = std::size_t{0};
 
-    const auto gemm = solver::GemmFwd{};
-    if(gemm.IsApplicable(ctx, problem))
+    if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
     {
-        MIOPEN_LOG_I("Fallback path, GEMM");
-        if(i < maxSolutionCount)
+        for(const auto& solver : GetAllGemmSolvers())
         {
-            solutions[i].algorithm      = miopenConvolutionAlgoGEMM;
-            solutions[i].time           = -1.0; /// \todo Evaluate time.
-            solutions[i].workspace_size = gemm.GetWorkspaceSize(ctx, problem);
-            solutions[i].solution_id    = solver::Id{SolverDbId(gemm)}.Value();
-            ++i;
+            if(solver.IsApplicable(ctx))
+            {
+                const auto id = solver.GetSolverDbId();
+                MIOPEN_LOG_I("Fallback path: " << id);
+
+                if(i < maxSolutionCount)
+                {
+                    solutions[i].algorithm      = miopenConvolutionAlgoGEMM;
+                    solutions[i].time           = -1.0; /// \todo Evaluate time.
+                    solutions[i].workspace_size = solver.GetWorkspaceSize(ctx);
+                    solutions[i].solution_id    = solver::Id{id}.Value();
+                    ++i;
+                }
+            }
         }
     }
-    else
+
+    if(i == 0)
         MIOPEN_LOG_I("Fallback path, GEMM disabled");
 
     *solutionCount = i;
@@ -1037,7 +1044,7 @@ void ConvolutionDescriptor::GetForwardSolutions(Handle& handle,
 
     if(*solutionCount == 0)
         GetForwardSolutionsFallback(
-            ctx, problem.conv_problem, maxSolutionCount, solutionCount, solutions);
+            problem, maxSolutionCount, solutionCount, solutions);
 }
 
 std::size_t

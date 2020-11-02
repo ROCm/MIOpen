@@ -491,8 +491,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                                     const TensorDescriptor& dxDesc,
                                                     solver::Id solver_id) const;
 
-    void GetForwardSolutionsFallback(ExecutionContext& ctx,
-                                     const conv::ProblemDescription& problem,
+    void GetForwardSolutionsFallback(const ConvolutionContext& problem,
                                      size_t maxSolutionCount,
                                      size_t* solutionCount,
                                      miopenConvSolution_t* solutions) const;

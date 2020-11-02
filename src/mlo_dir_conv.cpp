@@ -217,6 +217,11 @@ static auto GetBwdWrW2DSolvers()
                                            miopen::solver::ConvOclBwdWrW1x1>{};
 }
 
+std::vector<miopen::solver::AnySolver> GetAllGemmSolvers()
+{
+    return GetGemmSolvers().GetAllSolvers();
+}
+
 std::vector<miopen::solver::ConvSolution>
 FindAllGemmSolutions(const miopen::ConvolutionContext& ctx,
                      const miopen::AnyInvokeParams& invoke_ctx)
