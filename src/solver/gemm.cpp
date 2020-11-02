@@ -151,26 +151,28 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
     const auto& in_spatial_       = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
     const auto& out_spatial_      = boost::adaptors::slice(yDesc.GetLengths(), 2, 2 + spatial_dim);
 
-    const auto in_spatial  = std::vector<std::size_t>(in_spatial_.begin(), in_spatial_.end());
-    const auto out_spatial = std::vector<std::size_t>(out_spatial_.begin(), out_spatial_.end());
-
-    const std::size_t out_spatial_size = std::accumulate(
-        out_spatial.begin(), out_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
-
     std::size_t in_n, in_c;
     std::tie(in_n, in_c) = tie_pick<0, 1>()(xDesc.GetLengths());
 
     const std::size_t wei_k = wDesc.GetLengths()[0];
 
-    const bool time_precision = context.GetStream().IsProfilingEnabled() &&
-                                (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
-
     auto solution           = ConvSolution{miopenStatusSuccess};
+    solution.workspce_sz    = workspace_req;
+
     const auto group_count  = conv.group_count;
     const auto lowp_quant   = conv.lowp_quant;
     const auto conv_strides = conv.GetConvStrides();
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
+        const auto in_spatial  = std::vector<std::size_t>(in_spatial_.begin(), in_spatial_.end());
+        const auto out_spatial = std::vector<std::size_t>(out_spatial_.begin(), out_spatial_.end());
+
+        const std::size_t out_spatial_size = std::accumulate(
+            out_spatial.begin(), out_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
+
+        const bool time_precision = context.GetStream().IsProfilingEnabled() &&
+                                    (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
+
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
             float time_gemm          = 0;
             const auto& conv_params  = primitive_params.CastTo<conv::DataInvokeParams>();
@@ -397,21 +399,10 @@ ConvSolution GemmFwd1x1_0_1_int8::GetSolution(const ExecutionContext& context,
     const auto& in_spatial_  = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
     const auto& out_spatial_ = boost::adaptors::slice(yDesc.GetLengths(), 2, 2 + spatial_dim);
 
-    const auto in_spatial  = std::vector<std::size_t>(in_spatial_.begin(), in_spatial_.end());
-    const auto out_spatial = std::vector<std::size_t>(out_spatial_.begin(), out_spatial_.end());
-
-    const std::size_t in_spatial_size = std::accumulate(
-        in_spatial.begin(), in_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
-
-    const std::size_t out_spatial_size = std::accumulate(
-        out_spatial.begin(), out_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
-
-    const bool time_precision = context.GetStream().IsProfilingEnabled() &&
-                                (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
-
     const auto workspace_req = GetWorkspaceSize(context, problem);
 
-    auto solution = ConvSolution{miopenStatusSuccess};
+    auto solution        = ConvSolution{miopenStatusSuccess};
+    solution.workspce_sz = workspace_req;
 
     TensorDescriptor ygemmDesc(miopenInt32, yDesc.GetLengths(), yDesc.GetStrides());
     const GemmDescriptor gemm_desc = CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
@@ -419,6 +410,18 @@ ConvSolution GemmFwd1x1_0_1_int8::GetSolution(const ExecutionContext& context,
     const auto lowp_quant          = conv.lowp_quant;
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
+        const auto in_spatial  = std::vector<std::size_t>(in_spatial_.begin(), in_spatial_.end());
+        const auto out_spatial = std::vector<std::size_t>(out_spatial_.begin(), out_spatial_.end());
+
+        const std::size_t in_spatial_size = std::accumulate(
+            in_spatial.begin(), in_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
+
+        const std::size_t out_spatial_size = std::accumulate(
+            out_spatial.begin(), out_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
+
+        const bool time_precision = context.GetStream().IsProfilingEnabled() &&
+                                    (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
+
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
             const auto& conv_params  = primitive_params.CastTo<conv::DataInvokeParams>();
             const auto& workSpace    = conv_params.workSpace;
@@ -547,18 +550,6 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
     const auto& in_spatial_  = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
     const auto& out_spatial_ = boost::adaptors::slice(yDesc.GetLengths(), 2, 2 + spatial_dim);
 
-    const auto in_spatial  = std::vector<std::size_t>(in_spatial_.begin(), in_spatial_.end());
-    const auto out_spatial = std::vector<std::size_t>(out_spatial_.begin(), out_spatial_.end());
-
-    const std::size_t in_spatial_size = std::accumulate(
-        in_spatial.begin(), in_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
-
-    const std::size_t out_spatial_size = std::accumulate(
-        out_spatial.begin(), out_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
-
-    const bool time_precision = context.GetStream().IsProfilingEnabled() &&
-                                (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
-
     auto solution = ConvSolution{miopenStatusSuccess};
 
     const auto group_count = conv.group_count;
@@ -566,11 +557,23 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
 
     if(group_count > 1)
     {
-        solution.invoker_factory = [=](const std::vector<Kernel>&) {
-            MIOPEN_LOG_FUNCTION("groupconv, 1x1");
+        GemmDescriptor gemm_desc =
+            CreateGemmDescriptorGroupConvFwd(wDesc, xDesc, yDesc, group_count);
 
-            GemmDescriptor gemm_desc =
-                CreateGemmDescriptorGroupConvFwd(wDesc, xDesc, yDesc, group_count);
+        const auto in_spatial  = std::vector<std::size_t>(in_spatial_.begin(), in_spatial_.end());
+        const auto out_spatial = std::vector<std::size_t>(out_spatial_.begin(), out_spatial_.end());
+
+        const std::size_t in_spatial_size = std::accumulate(
+            in_spatial.begin(), in_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
+
+        const std::size_t out_spatial_size = std::accumulate(
+            out_spatial.begin(), out_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
+
+        solution.invoker_factory = [=](const std::vector<Kernel>&) {
+            const bool time_precision = context.GetStream().IsProfilingEnabled() &&
+                                        (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
+
+            MIOPEN_LOG_FUNCTION("groupconv, 1x1");
 
             return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
                 float time_gemm         = 0;
@@ -642,12 +645,24 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
     }
     else
     {
+        // tensors.y = tensors.w * tensors.x
+        GemmDescriptor gemm_desc =
+            CreateGemmStridedBatchedDescriptorConv1x1Fwd(wDesc, xDesc, yDesc);
+
+        const auto in_spatial  = std::vector<std::size_t>(in_spatial_.begin(), in_spatial_.end());
+        const auto out_spatial = std::vector<std::size_t>(out_spatial_.begin(), out_spatial_.end());
+
+        const std::size_t in_spatial_size = std::accumulate(
+            in_spatial.begin(), in_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
+
+        const std::size_t out_spatial_size = std::accumulate(
+            out_spatial.begin(), out_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
+
         solution.invoker_factory = [=](const std::vector<Kernel>&) {
             MIOPEN_LOG_FUNCTION("convolution, 1x1");
 
-            // tensors.y = tensors.w * tensors.x
-            GemmDescriptor gemm_desc =
-                CreateGemmStridedBatchedDescriptorConv1x1Fwd(wDesc, xDesc, yDesc);
+            const bool time_precision = context.GetStream().IsProfilingEnabled() &&
+                                        (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
 
             return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
                 float time                 = 0;
@@ -791,22 +806,10 @@ ConvSolution GemmFwd3::GetSolution(const ExecutionContext& context,
     const auto& out_spatial_ = boost::adaptors::slice(yDesc.GetLengths(), 2, 2 + spatial_dim);
     const auto& wei_spatial_ = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
 
-    const auto in_spatial  = std::vector<std::size_t>(in_spatial_.begin(), in_spatial_.end());
-    const auto out_spatial = std::vector<std::size_t>(out_spatial_.begin(), out_spatial_.end());
-    const auto wei_spatial = std::vector<std::size_t>(wei_spatial_.begin(), wei_spatial_.end());
-
-    const std::size_t in_spatial_size = std::accumulate(
-        in_spatial.begin(), in_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
-
-    const std::size_t out_spatial_size = std::accumulate(
-        out_spatial.begin(), out_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
-
-    const std::size_t wei_spatial_size = std::accumulate(
-        wei_spatial.begin(), wei_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
-
     const auto workspace_req = GetWorkspaceSize(context, problem);
 
-    auto solution = ConvSolution{miopenStatusSuccess};
+    auto solution        = ConvSolution{miopenStatusSuccess};
+    solution.workspce_sz = workspace_req;
 
     const GemmDescriptor gemm_desc =
         conv.group_count > 1
@@ -814,6 +817,19 @@ ConvSolution GemmFwd3::GetSolution(const ExecutionContext& context,
             : CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
+        const auto in_spatial  = std::vector<std::size_t>(in_spatial_.begin(), in_spatial_.end());
+        const auto out_spatial = std::vector<std::size_t>(out_spatial_.begin(), out_spatial_.end());
+        const auto wei_spatial = std::vector<std::size_t>(wei_spatial_.begin(), wei_spatial_.end());
+
+        const std::size_t in_spatial_size = std::accumulate(
+            in_spatial.begin(), in_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
+
+        const std::size_t out_spatial_size = std::accumulate(
+            out_spatial.begin(), out_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
+
+        const std::size_t wei_spatial_size = std::accumulate(
+            wei_spatial.begin(), wei_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
+
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
             float time_gemm          = 0;
             const auto& conv_params  = primitive_params.CastTo<conv::DataInvokeParams>();
