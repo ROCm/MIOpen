@@ -89,7 +89,6 @@ size_t GemmFwd1x1_0_2::GetWorkspaceSize(const ExecutionContext& context,
     decltype(auto) handle = context.GetStream();
     decltype(auto) conv   = problem.GetConv();
     decltype(auto) xDesc  = problem.GetIn();
-    decltype(auto) wDesc  = problem.GetWeights();
     decltype(auto) yDesc  = problem.GetOut();
 
     const auto gemm_trans = conv.ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc);
