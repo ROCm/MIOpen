@@ -114,7 +114,13 @@ mlo_construct_direct2D_fusion::FindSolution(const std::vector<miopen::solver::An
     return solution;
 }
 
-static auto GetGemmSolvers() { return miopen::solver::SolverContainer<miopen::solver::GemmFwd>{}; }
+static auto GetGemmSolvers()
+{
+    return miopen::solver::SolverContainer<miopen::solver::GemmFwd1x1_0_1,
+                                           miopen::solver::GemmFwd1x1_0_1_int8,
+                                           miopen::solver::GemmFwd1x1_0_2,
+                                           miopen::solver::GemmFwd3>{};
+}
 
 static auto GetDirectSolvers()
 {
