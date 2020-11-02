@@ -337,9 +337,10 @@ static inline std::tuple<bool, // is valid
     std::vector<int> nxe_list = {0, 1};
 
     // i=log2(gemm_m_per_block*gemm_n_per_block)  to find largest kernel
-    // switch l and r to get differnet kernel size like 256*64 or 64*256
+    // when pack=0, means no need to search with pack image size. when pack=1, we need pack
     for(int pack = 0; pack < 2; pack++)
     {
+        // switch l and r to get differnet kernel size like 256*64 or 64*256
         for(int i = 15; i > 7; i--)
         {
             int r, l;
@@ -352,7 +353,8 @@ static inline std::tuple<bool, // is valid
                     const auto gemm_m_per_block = swap == 0 ? 1 << r : 1 << l;
                     const auto gemm_n_per_block = swap == 0 ? 1 << l : 1 << r;
 
-                    if(gemm_m % gemm_m_per_block != 0 || gemm_n % gemm_n_per_block != 0)
+                    if(gemm_m % gemm_m_per_block != 0 ||
+                       c % (gemm_n_per_block / (nxe == 0 ? 1 : nxe)) != 0)
                         continue;
 
                     for(int j = 4; j > 1; j--)
