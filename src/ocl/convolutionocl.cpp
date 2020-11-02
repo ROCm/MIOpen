@@ -49,6 +49,7 @@
 #include <miopen/conv/compiled_in_parameters.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
+#include <miopen/conv/heur/heur.hpp>
 
 #if MIOPEN_USE_GEMM
 #include <miopen/gemm_v2.hpp>
@@ -1583,7 +1584,65 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
     auto ctx = ConvolutionContext{problem};
     ctx.SetStream(&handle);
     ctx.DetectRocm();
+    // Dual purpose variable:
+    // * Used as index for writing into output array (solutions).
+    // * Counts the number of entries written, yielding value for solutionsCount.
+    auto i = std::size_t{0};
+#if 1
+    const auto solvers = ConvHeur{}.Estimate(handle, problem);
+    for(const auto& kinder : solvers)
+    {
+        const auto solver_id = solver::Id{kinder.GetSolverDbId()};
+        if(solver_id == solver::Id::gemm())
+        {
+            size_t ws_sz = 0;
+            if(problem.direction.IsForward() && (IsGemmApplicableFwd(weightsDesc, inDesc, outDesc)))
+            {
+                ws_sz = ForwardGetValidWorkSpaceSizeGemm(handle, weightsDesc, inDesc, outDesc);
+            }
+            else if(problem.direction.IsBackwardData() && IsGemmApplicableBwd(outDesc, weightsDesc, inDesc))
+            {
+                ws_sz = BackwardGetValidWorkSpaceSizeGemm(outDesc, weightsDesc, inDesc);
+            }
+            else if(problem.direction.IsBackwardWrW() && IsGemmApplicableWrw(outDesc, inDesc, weightsDesc))
+            {
+                ws_sz = WrwGetValidWorkSpaceSizeGemm(outDesc, inDesc, weightsDesc);
+            }
+            else
+                continue; // Its not applicable
+            interim.emplace_back(-1, ws_sz, solver::Id::gemm().Value(), miopenConvolutionAlgoGEMM);
+        }
+        else
+        {
+            if(!kinder.IsApplicable(ctx))
+                continue;
+            const auto algo = solver_id.GetAlgo();
+            if(IsAlgorithmDisabled(algo))
+                continue;
+            if(!kinder.IsDynamic())
+                continue; // branch should never be taken
+            interim.emplace_back(-1, kinder.GetWorkspaceSize(ctx), solver_id.Value(), algo);
+        }
+    }
 
+    if(!interim.empty())
+    {
+        for(const auto& entry : interim)
+        {
+            if(i >= maxSolutionCount)
+                break;
+            if(solutions != nullptr)
+                solutions[i] = entry;
+            ++i;
+        }
+        *solutionCount = i;
+        return;
+    }
+    else
+    {
+        // Heuristic failed force GEMM
+    }
+#elif 1
     const auto& map = miopen::solver::GetMapValueToAnySolver();
     for(const auto& item : map)
     {
@@ -1615,10 +1674,6 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
         interim.emplace_back(time, s.GetWorkspaceSize(ctx), solver_id.Value(), algo);
     }
 
-    // Dual purpose variable:
-    // * Used as index for writing into output array (solutions).
-    // * Counts the number of entries written, yielding value for solutionsCount.
-    auto i = std::size_t{0};
 
     if(!interim.empty())
     {
@@ -1638,6 +1693,7 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
         /// \todo Rework this when we have GetWti() for GEMM.
         return;
     }
+#endif
 
     /// Separate path for GEMM algo, intermediate implementation.
     /// \todo Remove when GEMM Solver(s) ready.
