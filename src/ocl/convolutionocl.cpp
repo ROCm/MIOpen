@@ -1711,9 +1711,9 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
     auto i = std::size_t{0};
 #if 1
     const auto solvers = ConvHeur{}.Estimate(handle, problem);
-    for(const auto& kinder : solvers)
+    for(const auto kinder : solvers)
     {
-        const auto solver_id = solver::Id{kinder.GetSolverDbId()};
+        const auto solver_id = solver::Id{kinder};
         if(solver_id == solver::Id::gemm())
         {
             size_t ws_sz = 0;
@@ -1735,14 +1735,15 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
         }
         else
         {
-            if(!kinder.IsApplicable(ctx))
+            const auto sol = solver_id.GetSolver();
+            if(!sol.IsApplicable(ctx))
                 continue;
             const auto algo = solver_id.GetAlgo();
             if(IsAlgorithmDisabled(algo))
                 continue;
-            if(!kinder.IsDynamic())
+            if(!sol.IsDynamic())
                 continue; // branch should never be taken
-            interim.emplace_back(-1, kinder.GetWorkspaceSize(ctx), solver_id.Value(), algo);
+            interim.emplace_back(-1, sol.GetWorkspaceSize(ctx), solver_id.Value(), algo);
         }
     }
 
