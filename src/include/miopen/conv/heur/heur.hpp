@@ -48,7 +48,7 @@ struct ConvHeur
         for(auto idx = 0; idx < features.size(); ++idx)
             features[idx] = (features[idx] - mu[idx]) / sig[idx];
     }
-    std::vector<solver::AnySolver> Estimate(const Handle& handle, const ProblemDescription& problem)
+    std::vector<uint64_t> Estimate(const Handle& handle, const ProblemDescription& problem)
     {
         const auto& p = problem.conv_problem;
         if(!problem.Is2d())
@@ -81,7 +81,8 @@ struct ConvHeur
         const auto solvers = GetSolverMap(handle, problem);
         std::vector<float> res(mem_res.aligned, mem_res.aligned + (mem_res.size0 * mem_res.size1)); // TODO: free mem_res
         std::vector<std::pair<int, float>> sort_res;
-        for(auto idx = 0; idx < res.size(); idx++)
+        // for(auto idx = 0; idx < res.size(); idx++)
+        for(auto idx = 0; idx < 7; idx++) // TODO: Fix the num category bug in the python script
             sort_res.push_back({idx, res[idx]});
         const auto cmp = [](const std::pair<int, float>& a, const std::pair<int, float>& b) -> bool
         {
@@ -90,9 +91,14 @@ struct ConvHeur
 
         std::sort(sort_res.begin(), sort_res.end(), cmp);
         // map idx to solver id and then anysolver
-        std::vector<solver::AnySolver> sol;
+        std::vector<uint64_t> sol;
         for(auto& kinder : sort_res)
-            sol.push_back(solver::Id{solvers.at(kinder.first)}.GetSolver());
+        {
+            const auto id = kinder.first;
+            const auto sol_id = solver::Id{solvers.at(id)};
+            sol.push_back(sol_id.Value());
+            // sol.push_back(solver::Id{solvers.at(kinder.first)}.GetSolver());
+        }
 
         return sol;
     }

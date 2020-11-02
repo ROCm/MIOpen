@@ -40,7 +40,7 @@ extern char BIN_END;
 
 extern "C" void* PPCAT(MIOPEN_PARAM_NAME, _getEmbeddedConstPool)(int64_t /*_*/)
 {
-    auto size    = (unsigned int)(&BIN_END - &BIN_START);
+    auto size    = static_cast<unsigned int>(&BIN_END - &BIN_START);
     void* buffer = malloc(size);
     memcpy(buffer, &BIN_START, size);
     return buffer;
