@@ -48,6 +48,7 @@ void DeriveBNTensorDescriptor(TensorDescriptor& derivedBnDesc,
 TensorDescriptor BuildReshaped4DTensorDescriptor(const miopen::TensorDescriptor& tDesc);
 
 void bnBwdTrainSelectSingle(const Handle& handle,
+                            int variant,
                             miopenDataType_t dtype,
                             const std::string& program_name,
                             const std::string& algo_name,
@@ -66,7 +67,9 @@ void bnBwdTrainSelectSingle(const Handle& handle,
                             double epsilon,
                             ConstData_t savedMean,
                             ConstData_t savedInvVariance,
-                            float inhw);
+                            float nhw,
+                            unsigned int in_cstride,
+                            unsigned int in_nstride);
 
 void bnFwdTrainSelectSingleFull(const Handle& handle,
                                 int variant,

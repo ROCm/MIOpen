@@ -551,6 +551,7 @@ void bnFwdTrainSelectSingleFull(const Handle& handle,
 }
 
 void bnBwdTrainSelectSingle(const Handle& handle,
+                            int variant,
                             miopenDataType_t dtype,
                             const std::string& program_name,
                             const std::string& algo_name,
@@ -569,19 +570,61 @@ void bnBwdTrainSelectSingle(const Handle& handle,
                             double epsilon,
                             ConstData_t savedMean,
                             ConstData_t savedInvVariance,
-                            float inhw)
+                            float nhw,
+                            unsigned int in_cstride,
+                            unsigned int in_nstride)
 {
 
     visit_float(dtype, [&](auto as_float) {
-        if(useSaved)
+        float inhw = 1.0 / nhw;
+        if(variant == 4)
         {
-            handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-                x, dy, dx, bnScale, dScale, dBias, savedMean, savedInvVariance, as_float(inhw));
+            if(useSaved)
+            {
+                handle.AddKernel(
+                    algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+                    x,
+                    dy,
+                    dx,
+                    bnScale,
+                    dScale,
+                    dBias,
+                    savedMean,
+                    savedInvVariance,
+                    as_float(nhw),
+                    in_cstride,
+                    in_nstride);
+            }
+            else
+            {
+                handle.AddKernel(
+                    algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+                    x,
+                    dy,
+                    dx,
+                    bnScale,
+                    dScale,
+                    dBias,
+                    epsilon,
+                    as_float(nhw),
+                    in_cstride,
+                    in_nstride);
+            }
         }
         else
         {
-            handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-                x, dy, dx, bnScale, dScale, dBias, epsilon, as_float(inhw));
+            if(useSaved)
+            {
+                handle.AddKernel(
+                    algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+                    x, dy, dx, bnScale, dScale, dBias, savedMean, savedInvVariance, as_float(inhw));
+            }
+            else
+            {
+                handle.AddKernel(
+                    algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+                    x, dy, dx, bnScale, dScale, dBias, epsilon, as_float(inhw));
+            }
         }
     });
 }

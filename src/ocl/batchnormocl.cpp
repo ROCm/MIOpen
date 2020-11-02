@@ -213,7 +213,7 @@ void BatchNormForwardTraining(Handle& handle,
 
         if(variant == 4)
         {
-            network_config = "variant" + std::to_string(variant) + "rs" +
+            network_config = "variant" + std::to_string(variant) + "n" + std::to_string(n) + "rs" +
                              std::to_string(static_cast<int>(resultsave)) + "rr" +
                              std::to_string(static_cast<int>(resultrunning)) + "fp16" +
                              std::to_string(static_cast<int>(bfp16parm)) + "fp32";
@@ -239,6 +239,13 @@ void BatchNormForwardTraining(Handle& handle,
 
             if(!kernels.empty())
             {
+                vld.push_back(xlocalsize);
+                vld.push_back(ylocalsize);
+                vld.push_back(zlocalsize);
+
+                vgd.push_back(xgridsize);
+                vgd.push_back(ygridsize);
+                vgd.push_back(zgridsize);
                 bnFwdTrainSelectSingleFull(handle,
                                            variant,
                                            vld,
@@ -914,11 +921,21 @@ void BatchNormBackward(Handle& handle,
         bool single           = true;
         unsigned int variant  = 1;
 
+        if(n < 3)
+        {
+            variant    = 4;
+            xlocalsize = 256;
+            xgridsize  = c * xlocalsize;
+            ylocalsize = 1;
+            ygridsize  = 1;
+            ldsgcn     = xlocalsize / 64;
+            ldsnogcn   = xlocalsize;
+        }
         //*************************************************************************************************
         // N*H*W < 32M and H*W > 1024, use batchnorm variant#1 implementation which parallelize
         // work groups over channels and loop through NHW.
         //*************************************************************************************************
-        if((in_nhw < (32 * 1024 * 1024) && in_cstride > 1024) || (n > 768))
+        else if((in_nhw < (32 * 1024 * 1024) && in_cstride > 1024) || (n > 768))
         {
             variant    = 1;
             xlocalsize = 1024;
@@ -996,14 +1013,37 @@ void BatchNormBackward(Handle& handle,
         }
 
         std::string algo_name = "miopenBatchNormBackwardPropSpatial";
-        std::string network_config =
-            "variant" + std::to_string(variant) + "gx" + std::to_string(xgridsize) + "n" +
-            std::to_string(n) + "c" + std::to_string(c) + "hw" + std::to_string(in_cstride) + "gy" +
-            std::to_string(ygridsize) + "lx" + std::to_string(xlocalsize) + "ly" +
-            std::to_string(ylocalsize) + "us" + std::to_string(static_cast<int>(useSaved)) +
-            "fp16" + std::to_string(static_cast<int>(bfp16parm)) + "fp32" +
-            std::to_string(static_cast<int>(bfp32parm)) + "single" +
-            std::to_string(static_cast<int>(single)) + "gcn" + std::to_string(ldsgcn);
+
+        std::string network_config{};
+
+        if(variant == 4)
+        {
+            network_config = "variant" + std::to_string(variant) + "n" + std::to_string(n) + "us" +
+                             std::to_string(static_cast<int>(useSaved)) + "fp16" +
+                             std::to_string(static_cast<int>(bfp16parm)) + "fp32" +
+                             std::to_string(static_cast<int>(bfp32parm)) + "single" +
+                             std::to_string(static_cast<int>(single)) + "gcn" +
+                             std::to_string(ldsgcn);
+        }
+        else
+        {
+            network_config =
+                "variant" + std::to_string(variant) + "gx" + std::to_string(xgridsize) + "n" +
+                std::to_string(n) + "c" + std::to_string(c) + "hw" + std::to_string(in_cstride) +
+                "gy" + std::to_string(ygridsize) + "lx" + std::to_string(xlocalsize) + "ly" +
+                std::to_string(ylocalsize) + "us" + std::to_string(static_cast<int>(useSaved)) +
+                "fp16" + std::to_string(static_cast<int>(bfp16parm)) + "fp32" +
+                std::to_string(static_cast<int>(bfp32parm)) + "single" +
+                std::to_string(static_cast<int>(single)) + "gcn" + std::to_string(ldsgcn);
+        }
+
+        vld.push_back(xlocalsize);
+        vld.push_back(ylocalsize);
+        vld.push_back(zlocalsize);
+
+        vgd.push_back(xgridsize);
+        vgd.push_back(ygridsize);
+        vgd.push_back(zgridsize);
 
         auto&& kernels = handle.GetKernels(algo_name, network_config);
 
@@ -1011,24 +1051,65 @@ void BatchNormBackward(Handle& handle,
         {
             if(!kernels.empty())
             {
-                auto kernel = kernels.front();
+                auto kernel  = kernels.front();
+                kernel.ldims = {{vld[0], vld[1], vld[2]}};
+                kernel.gdims = {{vgd[0], vgd[1], vgd[2]}};
                 visit_float(bnScaleBiasDiffDesc.GetType(), [&](auto as_float) {
-                    if(useSaved)
+                    if(variant != 4)
                     {
-                        kernel(x,
-                               dy,
-                               dx,
-                               bnScale,
-                               resultBnScaleDiff,
-                               resultBnBiasDiff,
-                               savedMean,
-                               savedInvVariance,
-                               as_float(inhw));
+                        if(useSaved)
+                        {
+                            kernel(x,
+                                   dy,
+                                   dx,
+                                   bnScale,
+                                   resultBnScaleDiff,
+                                   resultBnBiasDiff,
+                                   savedMean,
+                                   savedInvVariance,
+                                   as_float(inhw));
+                        }
+                        else
+                        {
+                            kernel(x,
+                                   dy,
+                                   dx,
+                                   bnScale,
+                                   resultBnScaleDiff,
+                                   resultBnBiasDiff,
+                                   epsilon,
+                                   as_float(inhw));
+                        }
                     }
-                    else
+                    else // use variant 4 for bs = 1 | 2
                     {
-                        kernel(
-                            x, dy, dx, bnScale, resultBnScaleDiff, resultBnBiasDiff, epsilon, inhw);
+                        if(useSaved)
+                        {
+                            kernel(x,
+                                   dy,
+                                   dx,
+                                   bnScale,
+                                   resultBnScaleDiff,
+                                   resultBnBiasDiff,
+                                   savedMean,
+                                   savedInvVariance,
+                                   static_cast<float>(in_nhw),
+                                   in_cstride,
+                                   in_nstride);
+                        }
+                        else
+                        {
+                            kernel(x,
+                                   dy,
+                                   dx,
+                                   bnScale,
+                                   resultBnScaleDiff,
+                                   resultBnBiasDiff,
+                                   epsilon,
+                                   static_cast<float>(in_nhw),
+                                   in_cstride,
+                                   in_nstride);
+                        }
                     }
                 });
             }
@@ -1083,37 +1164,36 @@ void BatchNormBackward(Handle& handle,
                     program_name = "MIOpenBatchNormBwdSpatial.cl";
                     kernel_name  = "MIOpenBatchNormBwdSpatial";
 
-                    parms =
-                        " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
-                        " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
-                        " -DMIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
-                        " -DMIO_BN_USESAVED=" + std::to_string(static_cast<int>(useSaved)) +
-                        " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) +
-                        " -DMIO_BN_HW=" + std::to_string(in_cstride) + " -DMIO_BN_NHW=" +
-                        std::to_string(in_nhw) + " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
-                        " -DMIO_BN_NCHW=" + std::to_string(in_nchw) + " -DMIO_BN_LDS_SIZE=" +
-                        std::to_string(ldsnogcn) + " -DMIO_BN_LDSGCN_SIZE=" +
-                        std::to_string(ldsgcn) + " -DMIO_BN_VARIANT=" + std::to_string(variant) +
-                        " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" +
-                        std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" +
-                        std::to_string(zlocalsize) + " -DMIO_BN_GFX1030=" +
-                        ((handle.GetDeviceName() == "gfx1030") ? "1" : "0");
+                    parms = " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
+                            " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
+                            " -DMIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
+                            " -DMIO_BN_USESAVED=" + std::to_string(static_cast<int>(useSaved)) +
+                            " -DMIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) +
+                            " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) +
+                            " -DMIO_BN_VARIANT=" + std::to_string(variant) + " -DMIO_BN_GFX1030=" +
+                            ((handle.GetDeviceName() == "gfx1030") ? "1" : "0") + " -DMIO_BN_N=" +
+                            std::to_string(n);
+
+                    if(variant != 4)
+                    {
+                        parms += " -DMIO_BN_C=" + std::to_string(c) + " -DMIO_BN_HW=" +
+                                 std::to_string(in_cstride) + " -DMIO_BN_NHW=" +
+                                 std::to_string(in_nhw) + " -DMIO_BN_CHW=" +
+                                 std::to_string(in_nstride) + " -DMIO_BN_NCHW=" +
+                                 std::to_string(in_nchw) + " -DMIO_BN_GRP0=" +
+                                 std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" +
+                                 std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" +
+                                 std::to_string(zlocalsize);
+                    }
                 }
 
                 MIOPEN_LOG_I2(kernel_name << ":: " << algo_name);
                 MIOPEN_LOG_I2("..." << parms);
                 MIOPEN_LOG_I2("..." << network_config);
-                vld.push_back(xlocalsize);
-                vld.push_back(ylocalsize);
-                vld.push_back(zlocalsize);
-
-                vgd.push_back(xgridsize);
-                vgd.push_back(ygridsize);
-                vgd.push_back(zgridsize);
-
                 MIOPEN_LOG_I2(kernel_name << ":: " << parms);
 
                 bnBwdTrainSelectSingle(handle,
+                                       variant,
                                        bnScaleBiasDiffDesc.GetType(),
                                        program_name,
                                        algo_name,
@@ -1132,7 +1212,9 @@ void BatchNormBackward(Handle& handle,
                                        epsilon,
                                        savedMean,
                                        savedInvVariance,
-                                       inhw);
+                                       static_cast<float>(in_nhw),
+                                       in_cstride,
+                                       in_nstride);
             }
         }
         else // Use multi-kernel

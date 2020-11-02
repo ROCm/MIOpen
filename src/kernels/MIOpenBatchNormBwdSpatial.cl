@@ -1043,6 +1043,156 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 
 } // end spatial
 
+#elif(MIO_BN_VARIANT == 4)
+
+// Batch size 1 and 2
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
+#endif
+__kernel void MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
+                                        const __global _FLOAT* __restrict dy_in,
+                                        __global _FLOAT* __restrict dx_out,
+                                        const __global _FLOAT_PREC* bnScale,
+                                        __global _FLOAT_PREC* __restrict dscale,
+                                        __global _FLOAT_PREC* __restrict dbias,
+#if(MIO_BN_USESAVED == 0)
+                                        double epsilon,
+#elif(MIO_BN_USESAVED == 1)
+                                        const __global _FLOAT_PREC* savedMean,
+                                        const __global _FLOAT_PREC* savedInvVariance,
+#endif
+                                        _FLOAT_ACCUM NHW,
+                                        unsigned int imageDims,
+                                        unsigned int batchStride)
+{
+    unsigned int grpid = get_group_id(0);
+    unsigned int lid   = get_local_id(0);
+    unsigned int lsz   = get_local_size(0);
+
+    _FLOAT_PREC mean        = (_FLOAT_PREC)0.;
+    _FLOAT_PREC invVariance = (_FLOAT_PREC)0.;
+    _FLOAT_PREC pscale      = (_FLOAT_PREC)0.;
+    _FLOAT_PREC ds          = (_FLOAT_PREC)0.;
+    _FLOAT_PREC db          = (_FLOAT_PREC)0.;
+    _FLOAT_ACCUM INHW       = (_FLOAT_ACCUM)1.0 / (_FLOAT_ACCUM)NHW;
+    _FLOAT_ACCUM tmp1       = (_FLOAT_PREC)0.;
+    _FLOAT_ACCUM tmp2       = (_FLOAT_PREC)0.;
+    _FLOAT_ACCUM tmp3       = (_FLOAT_PREC)0.;
+    __local _FLOAT_PREC lcl_scale;
+    unsigned int index = 0;
+    unsigned int cidx  = grpid * imageDims;
+#if(MIO_BN_USESAVED == 1)
+    __local _FLOAT_PREC lmean, lvar;
+#endif
+
+    if(lid == 0)
+    {
+        lcl_scale = *(bnScale + grpid);
+#if(MIO_BN_USESAVED == 1)
+        lmean     = *(savedMean + grpid);
+        lvar      = *(savedInvVariance + grpid);
+    }
+    barrier(CLK_LOCAL_MEM_FENCE);
+    mean        = lmean;
+    invVariance = lvar;
+#else
+
+    } // end if(!lid)
+
+    _FLOAT_PREC xin      = (_FLOAT_PREC)0.;
+    _FLOAT_PREC variance = (_FLOAT_PREC)0.;
+    for(int idx = lid; idx < imageDims; idx += lsz)
+    {
+        index = cidx + idx;
+        xin   = (_FLOAT_PREC)(*(x_in + index));
+        mean += xin;
+        variance = mad(xin, xin, variance);
+    }
+#if(MIO_BN_N == 2)
+    for(int idx = lid; idx < imageDims; idx += lsz)
+    {
+        index = batchStride + cidx + idx;
+        xin   = (_FLOAT_PREC)(*(x_in + index));
+        mean += xin;
+        variance = mad(xin, xin, variance);
+    }
+    barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
+#endif
+
+#ifndef __AMDGCN__
+    local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDS_SIZE];
+    local _FLOAT_ACCUM lcl_data_y[MIO_BN_LDS_SIZE];
+    lds_reduce2(&mean, &variance, (_FLOAT_ACCUM)INHW, lcl_data_x, lcl_data_y, lid);
+#else
+    local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDSGCN_SIZE];
+    local _FLOAT_ACCUM lcl_data_y[MIO_BN_LDSGCN_SIZE];
+    gcn_reduce2(&mean, &variance, (_FLOAT_ACCUM)INHW, lcl_data_x, lcl_data_y, lid);
+#endif
+
+    variance    = mad(-mean, mean, variance);
+    variance    = variance > 0. ? variance : 0.;
+    invVariance = rsqrt(variance + (_FLOAT_PREC)epsilon);
+#endif // end -- Recalc mean and variance
+
+    for(int idx = lid; idx < imageDims; idx += lsz)
+    {
+        index = cidx + idx;
+        db += (_FLOAT_PREC)(*(dy_in + index));
+        _FLOAT_PREC xhat = (((_FLOAT_PREC)(*(x_in + index)) - mean) * invVariance);
+        ds               = mad(xhat, (_FLOAT_PREC)(*(dy_in + index)), ds);
+    }
+#if(MIO_BN_N == 2)
+    for(int idx = lid; idx < imageDims; idx += lsz)
+    {
+        index = batchStride + cidx + idx;
+        db += (_FLOAT_PREC)(*(dy_in + index));
+        _FLOAT_PREC xhat = (((_FLOAT_PREC)(*(x_in + index)) - mean) * invVariance);
+        ds               = mad(xhat, (_FLOAT_PREC)(*(dy_in + index)), ds);
+    }
+#endif
+
+#ifndef __AMDGCN__
+    local _FLOAT_ACCUM lcl_data_x2[MIO_BN_LDS_SIZE];
+    local _FLOAT_ACCUM lcl_data_y2[MIO_BN_LDS_SIZE];
+    lds_reduce2(&ds, &db, (_FLOAT_ACCUM)1.0, lcl_data_x2, lcl_data_y2, lid);
+#else
+    local _FLOAT_ACCUM lcl_data_x2[MIO_BN_LDSGCN_SIZE];
+    local _FLOAT_ACCUM lcl_data_y2[MIO_BN_LDSGCN_SIZE];
+    gcn_reduce2(&ds, &db, (_FLOAT_ACCUM)1.0, lcl_data_x2, lcl_data_y2, lid);
+#endif
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+    pscale = lcl_scale;
+    for(int idx = lid; idx < imageDims; idx += lsz)
+    {
+        index         = cidx + lid;
+        tmp1          = mad(NHW, (_FLOAT_PREC)(*(dy_in + index)), -db);
+        tmp2          = -((_FLOAT_PREC)(*(x_in + index)) - mean) * invVariance * ds;
+        tmp3          = (pscale * invVariance) * INHW;
+        dx_out[index] = (_FLOAT)(tmp3 * (tmp2 + tmp1));
+    }
+#if(MIO_BN_N == 2)
+    for(int idx = lid; idx < imageDims; idx += lsz)
+    {
+        index         = batchStride + cidx + idx;
+        tmp1          = mad(NHW, (_FLOAT_PREC)(*(dy_in + index)), -db);
+        tmp2          = -((_FLOAT_PREC)(*(x_in + index)) - mean) * invVariance * ds;
+        tmp3          = (pscale * invVariance) * INHW;
+        dx_out[index] = (_FLOAT)(tmp3 * (tmp2 + tmp1));
+    }
+#endif
+
+    if(lid == 0)
+    {
+        dbias[grpid]  = (_FLOAT_PREC)db;
+        dscale[grpid] = (_FLOAT_PREC)ds;
+    }
+} // end spatial norm
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
 #endif // END VARIANTS
 
 // Restore warnings

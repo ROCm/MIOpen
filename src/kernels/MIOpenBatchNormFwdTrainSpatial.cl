@@ -709,8 +709,6 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-variable"
 #endif
 // Batch size 1 and 2
 __kernel void MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
@@ -759,7 +757,7 @@ __kernel void MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict i
     for(int idx = lid; idx < imageDims; idx += lsz)
     {
         index = cidx + idx;
-        xin    = (_FLOAT_PREC)(*(in + index));
+        xin   = (_FLOAT_PREC)(*(in + index));
         mean += xin;
         variance = mad(xin, xin, variance);
     }
@@ -769,7 +767,7 @@ __kernel void MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict i
     for(int idx = lid; idx < imageDims; idx += lsz)
     {
         index = batchStride + cidx + idx;
-        xin = (_FLOAT_PREC)(*(in + index));
+        xin   = (_FLOAT_PREC)(*(in + index));
         mean += xin;
         variance = mad(xin, xin, variance);
     }
@@ -796,16 +794,16 @@ __kernel void MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict i
     for(int idx = lid; idx < imageDims; idx += lsz)
     {
         index             = cidx + idx;
-        _FLOAT_PREC inhat0 = ((_FLOAT_PREC)(*(in + index)) - mean) * invVariance;
-        out[index]        = (_FLOAT)mad(pvscale, inhat0, pvbias);
+        _FLOAT_PREC inhat = ((_FLOAT_PREC)(*(in + index)) - mean) * invVariance;
+        out[index]        = (_FLOAT)mad(pvscale, inhat, pvbias);
     }
 
 #if(MIO_BN_N == 2)
     for(int idx = lid; idx < imageDims; idx += lsz)
     {
         index             = batchStride + cidx + idx;
-        _FLOAT_PREC inhat0 = ((_FLOAT_PREC)(*(in + index)) - mean) * invVariance;
-        out[index]        = (_FLOAT)mad(pvscale, inhat1, pvbias);
+        _FLOAT_PREC inhat = ((_FLOAT_PREC)(*(in + index)) - mean) * invVariance;
+        out[index]        = (_FLOAT)mad(pvscale, inhat, pvbias);
     }
 #endif
 
@@ -821,9 +819,7 @@ __kernel void MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict i
 #endif
     }
 } // end spatial norm
-
 #ifdef __clang__
-#pragma clang diagnostic pop
 #pragma clang diagnostic pop
 #endif
 

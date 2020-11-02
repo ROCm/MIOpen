@@ -438,7 +438,45 @@ get_bn_spatial_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
         { pick_batch_size(32, n),  480,  128, 256 },
         { pick_batch_size(32, n),  528,  64,  128 },
         { pick_batch_size(770, n),  1,  8,  8 },
-        { pick_batch_size(770, n),  1024,  1,  1 }
+        { pick_batch_size(770, n),  1024,  1,  1 },
+        { 1,  128,  28,  28  },
+        { 1,  128,  4,   4   },
+        { 1,  128,  7,   7   },
+        { 1,  160,  14,  14  },
+        { 1,  160,  7,   7   },
+        { 1,  192,  14,  14  },
+        { 1,  192,  56,  56  },
+        { 1,  192,  7,   7   },
+        { 1,  224,  14,  14  },
+        { 1,  256,  7,   7   },
+        { 1,  256,  14,  14  },
+        { 1,  64,   14,  14  },
+        { 1,  64,   28,  28  },
+        { 1,  192,  256, 512 },
+        { 1,  256,  28,  28  },
+        { 1,  3,    224, 224 },
+        { 1,  480,  128, 256 },
+        { 1,  528,  64,  128 },
+        { 1,  1,  8,  8 },
+        { 2,  128,  28,  28  },
+        { 2,  128,  4,   4   },
+        { 2,  128,  7,   7   },
+        { 2,  160,  14,  14  },
+        { 2,  160,  7,   7   },
+        { 2,  192,  14,  14  },
+        { 2,  192,  56,  56  },
+        { 2,  192,  7,   7   },
+        { 2,  224,  14,  14  },
+        { 2,  256,  7,   7   },
+        { 2,  256,  14,  14  },
+        { 2,  64,   14,  14  },
+        { 2,  64,   28,  28  },
+        { 2,  192,  256, 512 },
+        { 2,  256,  28,  28  },
+        { 2,  3,    224, 224 },
+        { 2,  480,  128, 256 },
+        { 2,  528,  64,  128 },
+        { 2,  1,  8,  8 }
     };
     // clang-format on
 }
@@ -517,7 +555,19 @@ get_3d_bn_spatial_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
         { pick_batch_size(1,   n), 3,     8,  128, 171 },      // 3D convet on video
         { pick_batch_size(1,   n), 3,    16,  128, 171 },      // 3D convet on video
         { pick_batch_size(1,   n), 3,     8,  112, 112 },      // 3D convet on video
-        { pick_batch_size(1,   n), 3,    16,  112, 112 }      // 3D convet on video
+        { pick_batch_size(1,   n), 3,    16,  112, 112 },      // 3D convet on video
+        { 1, 32,    6,   4,  12  },                        
+        { 1, 32,    4,   2,   2  },                        
+        { 1, 32,    6,  50,  50  },       // Multi-view 3D convnet
+        { 1, 3,     8,  240, 320 },      // 3D convet on video
+        { 1, 3,    16,  240, 320 },      // 3D convet on video
+        { 1, 3,     8,  128, 171 },      // 3D convet on video
+        { 2, 32,    6,   4,  12  },                        
+        { 2, 32,    4,   2,   2  },                        
+        { 2, 32,    6,  50,  50  },       // Multi-view 3D convnet
+        { 2, 3,     8,  240, 320 },      // 3D convet on video
+        { 2, 3,    16,  240, 320 },      // 3D convet on video
+        { 2, 3,     8,  128, 171 }      // 3D convet on video
     };
     // clang-format on
 }
