@@ -51,7 +51,7 @@
 #include "miopen/find_db.hpp"
 #include "cpu_bias.hpp"
 
-#define TEST_DIRECT_SUPPORTED_CONFIG_ONLY (!MIOPEN_USE_ROCBLAS)
+#define TEST_DIRECT_SUPPORTED_CONFIG_ONLY (!MIOPEN_USE_ROCBLAS && !MIOPEN_USE_MIOPENTENSILE)
 
 #if TEST_DIRECT_SUPPORTED_CONFIG_ONLY
 static inline bool is_direct_fwd_bwd_data_supported(miopen::Handle& handle,
