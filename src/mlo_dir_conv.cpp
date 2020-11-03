@@ -167,6 +167,8 @@ static auto GetWindogradSolvers()
 
 static auto GetWindograd3x3Solver()
 {
+    // Only ConvBinWinograd3x3U is allowed here, otherwise
+    // GWSS for Winograd Fwd / Bwd needs to be updated.
     return miopen::solver::SolverContainer<miopen::solver::ConvBinWinograd3x3U>{};
 }
 
