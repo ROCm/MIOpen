@@ -919,7 +919,7 @@ void BatchNormBackward(Handle& handle,
         unsigned int ldsgcn   = 0;
         unsigned int ldsnogcn = 0;
         bool single           = true;
-        unsigned int variant  = 1;
+        int variant           = 1;
 
         if(n < 3)
         {
