@@ -1,6 +1,7 @@
 FROM ubuntu:18.04
 
 ARG PREFIX=/usr/local
+ARG GPU_ARCH="all"
 
 # Support multiarch
 RUN dpkg --add-architecture i386
@@ -66,6 +67,9 @@ RUN pip3 install cget
 # Install rclone
 RUN pip install https://github.com/pfultz2/rclone/archive/master.tar.gz
 
+# Add symlink to /opt/rocm
+RUN [ -d /opt/rocm ] || ln -sd $(realpath /opt/rocm-*) /opt/rocm
+
 # Install hcc from ROCm 3.0
 RUN rclone -b roc-3.0.x -c 286651a04d9c3a8e3052dd84b1822985498cd27d https://github.com/RadeonOpenCompute/hcc.git /hcc
 RUN LDFLAGS=-fuse-ld=gold cget -p $PREFIX install hcc,/hcc  && rm -rf /hcc
@@ -74,14 +78,16 @@ RUN LDFLAGS=-fuse-ld=gold cget -p $PREFIX install hcc,/hcc  && rm -rf /hcc
 ENV PATH="/opt/rocm:${PATH}"
 
 # Build using hcc
-RUN cget -p $PREFIX init --cxx $PREFIX/bin/hcc --std=c++14
+RUN if [ "$GPU_ARCH" = "all" ] ; then cget -p $PREFIX init --cxx $PREFIX/bin/hcc --std=c++14 -DTensile_ARCHITECTURE="all" -DAMDGPU_TARGETS="gfx900;gfx906;gfx908"; else cget -p $PREFIX init --cxx $PREFIX/bin/hcc --std=c++14 -DTensile_ARCHITECTURE=${GPU_ARCH} -DAMDGPU_TARGETS=${GPU_ARCH}; fi
 
 # Install dependencies
 ADD dev-requirements.txt /dev-requirements.txt
 ADD requirements.txt /requirements.txt
 ADD min-requirements.txt /min-requirements.txt
 RUN locale
-RUN CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -f /dev-requirements.txt
+RUN export HIPCC_LINK_FLAGS_APPEND='-O3 -parallel-jobs=4' && \
+    export HIPCC_COMPILE_FLAGS_APPEND='-O3 -Wno-format-nonliteral -parallel-jobs=4' && \
+    CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -f /dev-requirements.txt
 
 # Install doc requirements
 ADD doc/requirements.txt /doc-requirements.txt

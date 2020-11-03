@@ -91,6 +91,7 @@ struct OCLKernelInvoke
     std::array<size_t, 3> global_work_offset = {};
     std::array<size_t, 3> gdims              = {};
     std::array<size_t, 3> ldims              = {};
+
     std::function<void(cl_event&)> callback;
 
     void operator()(std::vector<OpKernelArg> args) const
