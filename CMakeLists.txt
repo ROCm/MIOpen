@@ -167,6 +167,9 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
         endif()
     endif()
 
+    # MIOpenTensile does not support opencl backend yet.
+    set(MIOPEN_USE_MIOPENTENSILE OFF CACHE BOOL "")
+
     # TODO (priority_low) Use to build HIP and ASM kernels.
     if(MIOPEN_USE_COMGR)
         message(FATAL_ERROR "comgr cannot be used with OpenCL backend")
@@ -191,6 +194,9 @@ add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
 if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     set(MIOPEN_BACKEND_HIP 1)
     set(MIOPEN_USE_MIOPENGEMM OFF CACHE BOOL "")
+    # miopentensile default off
+    set(MIOPEN_USE_MIOPENTENSILE OFF CACHE BOOL "")
+
     find_program(HIP_OC_COMPILER clang-ocl
         PATH_SUFFIXES bin
         PATHS /opt/rocm
@@ -284,6 +290,14 @@ find_program(MIOPEN_AMDGCN_ASSEMBLER
     NO_DEFAULT_PATH
 )
 message(STATUS "AMDGCN assembler: ${MIOPEN_AMDGCN_ASSEMBLER}")
+
+# miopentensile
+if(MIOPEN_USE_MIOPENTENSILE)
+    find_package(miopentensile)
+    message(STATUS "Build with miopentensile")
+else()
+    message(STATUS "Build without miopentensile")
+endif()
 
 # miopengemm
 if(MIOPEN_USE_MIOPENGEMM)

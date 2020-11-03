@@ -282,6 +282,9 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ConvolutionContext& c
     if(!(StartsWith(device_name, "gfx900") || StartsWith(device_name, "gfx906")))
         return false;
 
+    if(!ctx.use_asm_kernels)
+        return false;
+
     if(!ctx.direction.IsForward())
         return false;
 
@@ -309,6 +312,9 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsApplicable(const ConvolutionContex
 
     const auto device_name = ctx.GetStream().GetDeviceName();
     if(!(StartsWith(device_name, "gfx900") || StartsWith(device_name, "gfx906")))
+        return false;
+
+    if(!ctx.use_asm_kernels)
         return false;
 
     if(!ctx.direction.IsForward())

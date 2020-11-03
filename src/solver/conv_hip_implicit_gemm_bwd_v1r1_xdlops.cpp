@@ -760,6 +760,9 @@ bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ConvolutionContext
         return false;
 #endif
 
+    if(!ctx.use_hip_kernels)
+        return false;
+
     if(!IsXdlopsSupport(ctx))
         return false;
 
