@@ -140,7 +140,8 @@ Winograd  Solutions:
 
 Implicit GEMM Solutions:
 * ASM Implicit GEMM
-    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1` - `TunableImplicitGemmV4R1Dynamic`
+    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1` - `ConvAsmImplicitGemmV4R1DynamicFwd`
+    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1_1X1` - `ConvAsmImplicitGemmV4R1DynamicFwd_1x1`
     * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_V4R1` - `ConvAsmImplicitGemmV4R1DynamicBwd`
     * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_V4R1` - `ConvAsmImplicitGemmV4R1DynamicWrw`
     * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS` - `ConvAsmImplicitGemmGTCDynamicFwdXdlops`
@@ -151,6 +152,7 @@ Implicit GEMM Solutions:
     * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4` - `ConvHipImplicitGemmV4R4Fwd`
     * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1` - `ConvHipImplicitGemmBwdDataV1R1`
     * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1` - `ConvHipImplicitGemmBwdDataV4R1`
+    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1` - `ConvHipImplicitGemmV4R1WrW`
     * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4` - `ConvHipImplicitGemmV4R4WrW`
     * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_XDLOPS` - `ConvHipImplicitGemmForwardV4R4Xdlops`
     * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R5_XDLOPS` - `ConvHipImplicitGemmForwardV4R5Xdlops`

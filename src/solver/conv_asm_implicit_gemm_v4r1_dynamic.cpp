@@ -31,6 +31,7 @@
 #include "implicitgemm_util.hpp"
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1_1X1)
 
 namespace miopen {
 namespace solver {
@@ -303,6 +304,9 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ConvolutionContext& c
 
 bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsApplicable(const ConvolutionContext& ctx) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1_1X1{}))
+        return false;
+
     const auto device_name = ctx.GetStream().GetDeviceName();
     if(!(StartsWith(device_name, "gfx900") || StartsWith(device_name, "gfx906")))
         return false;
