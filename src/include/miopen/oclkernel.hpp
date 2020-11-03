@@ -89,8 +89,10 @@ struct OCLKernelInvoke
     SharedKernelPtr kernel = nullptr;
     size_t work_dim        = 0;
     std::array<size_t, 3> global_work_offset = {};
-    std::array<size_t, 3> global_work_dim    = {};
-    std::array<size_t, 3> local_work_dim     = {};
+    // std::array<size_t, 3> global_work_dim    = {};
+    // std::array<size_t, 3> local_work_dim     = {};
+    std::array<size_t, 3> gdims = {};
+    std::array<size_t, 3> ldims = {};
     std::function<void(cl_event&)> callback;
 
     void operator()(std::vector<OpKernelArg> args) const
