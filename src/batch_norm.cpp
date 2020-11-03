@@ -576,7 +576,7 @@ void bnBwdTrainSelectSingle(const Handle& handle,
 {
 
     visit_float(dtype, [&](auto as_float) {
-        float inhw = 1.0 / nhw;
+        float inhw = float(1.0) / nhw;
         if(variant == 4)
         {
             if(useSaved)
@@ -591,7 +591,7 @@ void bnBwdTrainSelectSingle(const Handle& handle,
                     dBias,
                     savedMean,
                     savedInvVariance,
-                    as_float(nhw),
+                    nhw,
                     in_cstride,
                     in_nstride);
             }
@@ -599,16 +599,7 @@ void bnBwdTrainSelectSingle(const Handle& handle,
             {
                 handle.AddKernel(
                     algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-                    x,
-                    dy,
-                    dx,
-                    bnScale,
-                    dScale,
-                    dBias,
-                    epsilon,
-                    as_float(nhw),
-                    in_cstride,
-                    in_nstride);
+                    x, dy, dx, bnScale, dScale, dBias, epsilon, nhw, in_cstride, in_nstride);
             }
         }
         else
