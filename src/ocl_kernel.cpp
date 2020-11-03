@@ -57,9 +57,9 @@ void OCLKernelInvoke::run() const
                                    << ", global_work_offset = "
                                    << DimToFormattedString(global_work_offset.data(), work_dim)
                                    << ", global_work_dim = "
-                                   << DimToFormattedString(global_work_dim.data(), work_dim)
+                                   << DimToFormattedString(gdims.data(), work_dim)
                                    << ", local_work_dim = "
-                                   << DimToFormattedString(local_work_dim.data(), work_dim));
+                                   << DimToFormattedString(ldims.data(), work_dim));
 #endif // !NDEBUG
 
     MIOPEN_HANDLE_LOCK
@@ -74,16 +74,15 @@ void OCLKernelInvoke::run() const
     /* way to run OCL group larger than 256
      * hack to ensure local_size == 0, just checking that the 1st dim is 0
      * may want to use a better solution*/
-    cl_int status =
-        clEnqueueNDRangeKernel(queue,
-                               kernel.get(),
-                               work_dim,
-                               ((work_dim == 0) ? nullptr : global_work_offset.data()),
-                               global_work_dim.data(),
-                               ((local_work_dim[0] == 0) ? nullptr : local_work_dim.data()),
-                               0,
-                               nullptr,
-                               callback ? &ev : nullptr);
+    cl_int status = clEnqueueNDRangeKernel(queue,
+                                           kernel.get(),
+                                           work_dim,
+                                           ((work_dim == 0) ? nullptr : global_work_offset.data()),
+                                           gdims.data(),
+                                           ((ldims[0] == 0) ? nullptr : ldims.data()),
+                                           0,
+                                           nullptr,
+                                           callback ? &ev : nullptr);
 
     if(status != CL_SUCCESS)
     {
@@ -116,8 +115,8 @@ OCLKernelInvoke OCLKernel::Invoke(cl_command_queue q, std::function<void(cl_even
     MIOPEN_LOG_I(GetName());
 #endif
     OCLKernelInvoke result{q, kernel, gdims.size(), {}, {}, {}, callback};
-    std::copy(gdims.begin(), gdims.end(), result.global_work_dim.begin());
-    std::copy(ldims.begin(), ldims.end(), result.local_work_dim.begin());
+    std::copy(gdims.begin(), gdims.end(), result.gdims.begin());
+    std::copy(ldims.begin(), ldims.end(), result.ldims.begin());
     return result;
 }
 
