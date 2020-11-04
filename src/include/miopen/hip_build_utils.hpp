@@ -70,6 +70,7 @@ struct external_tool_version_t
     int patch = -1;
     bool operator>(const external_tool_version_t& rhs) const;
     bool operator>=(const external_tool_version_t& rhs) const;
+    bool operator<(const external_tool_version_t& rhs) const;
 };
 
 external_tool_version_t HipCompilerVersion();
