@@ -181,7 +181,7 @@ def buildHipClangJob(compiler, flags, env4make, image, prefixpath="/opt/rocm", c
 
 
 
-def buildCommandJob(cmd, prefixpath=""){
+def buildCommandJob(cmd, image, prefixpath=""){
 
         checkout scm
         def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
@@ -190,10 +190,24 @@ def buildCommandJob(cmd, prefixpath=""){
         {
             dockerArgs = ""
         }
-        withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
-            timeout(time: 5, unit: 'HOURS')
-            {
-                sh cmd
+        
+        gitStatusWrapper(credentialsId: '7126e5fe-eb51-4576-b52b-9aaf1de8f0fd', gitHubContext: "Jenkins - ${variant}", account: 'ROCmSoftwarePlatform', repo: 'MIOpen') {
+            try {
+                retimage = docker.build("${image}", dockerArgs + '.')
+                withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
+                    timeout(time: 5, unit: 'HOURS')
+                    {
+                        sh cmd
+                    }
+                }
+            } catch(Exception ex) {
+                retimage = docker.build("${image}", dockerArgs + "--no-cache .")
+                withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
+                    timeout(time: 5, unit: 'HOURS')
+                    {
+                        sh cmd
+                    }
+                }
             }
         }
 }
@@ -218,7 +232,7 @@ pipeline {
                         cmd = "rm -rf build; mkdir build; cd build; CXX='clang++-3.8' cmake -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
                     }
                     steps{
-                        buildCommandJob(cmd)
+                        buildCommandJob(cmd, image)
                     }
                 }
 
@@ -236,7 +250,7 @@ pipeline {
                                 | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-3.8 -style=file {} | diff - {}\'"
                     }
                     steps{
-                        buildCommandJob(cmd)
+                        buildCommandJob(cmd, image)
                     }
                 }
 
@@ -246,7 +260,7 @@ pipeline {
                         cmd = "rm -rf build; mkdir build; cd build; CXX=/usr/local/bin/hcc cmake -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
                     }
                     steps{
-                        buildCommandJob(cmd)
+                        buildCommandJob(cmd, image)
                     }
                 }
             }
