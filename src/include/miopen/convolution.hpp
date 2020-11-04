@@ -116,16 +116,14 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     std::size_t
     ForwardBackwardDataGetWorkSpaceSizeDirect(const miopen::ConvolutionContext& ctx) const;
 
+    std::size_t ForwardBackwardDataGetWorkSpaceSizeFFT(const miopen::ConvolutionContext& ctx) const;
+
     std::size_t
     ForwardBackwardGetWorkSpaceSizeImplicitGemm(const miopen::ConvolutionContext& ctx) const;
 
     std::size_t ForwardBackwardDataGetWorkSpaceSizeWinograd(
         const miopen::ConvolutionContext& ctx,
         const miopen::AnyInvokeParams& invoke_ctx = {}) const;
-
-    std::size_t ForwardGetWorkSpaceSizeFFT(const TensorDescriptor& wDesc,
-                                           const TensorDescriptor& xDesc,
-                                           const TensorDescriptor& yDesc) const;
 
     bool IsWinograd3x3SupportedAndFast(miopen::ConvolutionContext& ctx) const;
 
@@ -160,46 +158,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                               Data_t workSpace,
                               std::size_t workSpaceSize,
                               bool exhaustiveSearch) const;
-
-    int FindFwdFFTKernel(const Handle& handle,
-                         const TensorDescriptor& xDesc,
-                         const TensorDescriptor& wDesc,
-                         const TensorDescriptor& yDesc,
-                         std::size_t workSpaceSize,
-                         std::vector<KernelInvoke>& kernels,
-                         const NetworkConfig& kcache_key) const;
-
-    float ExecuteFwdFFTKernel(const Handle& handle,
-                              const TensorDescriptor& xDesc,
-                              ConstData_t x,
-                              const TensorDescriptor& wDesc,
-                              ConstData_t w,
-                              const TensorDescriptor& yDesc,
-                              Data_t y,
-                              Data_t workSpace,
-                              std::size_t workSpaceSize,
-                              const NetworkConfig& kcache_key,
-                              bool timed = false) const;
-
-    int FindBwdFFTKernel(const Handle& handle,
-                         const TensorDescriptor& dyDesc,
-                         const TensorDescriptor& wDesc,
-                         const TensorDescriptor& dxDesc,
-                         std::size_t workSpaceSize,
-                         std::vector<KernelInvoke>& kernels,
-                         const NetworkConfig& kcache_key) const;
-
-    float ExecuteBwdFFTKernel(const Handle& handle,
-                              const TensorDescriptor& dyDesc,
-                              ConstData_t dy,
-                              const TensorDescriptor& wDesc,
-                              ConstData_t w,
-                              const TensorDescriptor& dxDesc,
-                              Data_t dx,
-                              Data_t workSpace,
-                              std::size_t workSpaceSize,
-                              const NetworkConfig& kcache_key,
-                              bool timed = false) const;
 
     std::vector<miopen::solver::ConvSolution>
     FindDataDirectSolutions(Handle& handle,
@@ -278,10 +236,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
 
     std::size_t BackwardDataGetWorkSpaceSizeGEMMTranspose(const TensorDescriptor& dyDesc,
                                                           const TensorDescriptor& dxDesc) const;
-
-    std::size_t BackwardGetWorkSpaceSizeFFT(const TensorDescriptor& wDesc,
-                                            const TensorDescriptor& dyDesc,
-                                            const TensorDescriptor& dxDesc) const;
 
     std::size_t BackwardDataGetWorkSpaceSize(Handle& handle,
                                              const TensorDescriptor& wDesc,
@@ -444,22 +398,11 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                      const ConvFwdTensors& tensors,
                      Data_t workSpace,
                      std::size_t workSpaceSize) const;
-    void ConvFwdFFT(const Handle& handle,
-                    const ConvFwdTensors& tensors,
-                    Data_t workSpace,
-                    std::size_t workSpaceSize,
-                    const NetworkConfig& kcache_key) const;
 
     void ConvBwdGemm(Handle& handle,
                      const struct ConvBwdTensors& tensors,
                      Data_t workSpace,
                      std::size_t workSpaceSize) const;
-
-    void ConvBwdFFT(const Handle& handle,
-                    const ConvBwdTensors& tensors,
-                    Data_t workSpace,
-                    size_t workSpaceSize,
-                    const NetworkConfig& kcache_key) const;
 
     ProblemDescription MakeWrwProblem(const TensorDescriptor& dyDesc,
                                       const TensorDescriptor& xDesc,

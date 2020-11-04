@@ -23,12 +23,13 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "miopen/solver.hpp"
-#include "miopen/handle.hpp"
+#include <miopen/solver.hpp>
+#include <miopen/handle.hpp>
 #include <miopen/conv/invokers/impl_gemm_dynamic.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include "implicitgemm_util.hpp"
+#include <miopen/conv/asm_implicit_gemm.hpp>
 
 namespace miopen {
 namespace solver {
@@ -141,59 +142,61 @@ GetImplicitGemmGtcDynamicBwdTunablesList()
     return tunables;
 }
 
-/*
-* Return with true if kernel is found, and its kernel_name, block_size, grid_size as well.
-* Return with false if no kernel can be executed with input ConvolutionContext
-*/
-static bool FindImplicitGemmGtcDynamicBwdKernel(const ConvolutionContext& ctx,
-                                                std::string& kernel_name,
-                                                int& block_size,
-                                                int& grid_size)
+static std::tuple<bool,        // is suitable kernel found
+                  std::string, // kernel_name
+                  int,         // block_size
+                  int>         // grid_size
+    FindImplicitGemmGtcDynamicBwdKernel(const ConvolutionContext& ctx)
 {
-    auto tunables  = GetImplicitGemmGtcDynamicBwdTunablesList();
-    auto pConfig   = tunables.begin();
-    int hi         = ctx.out_height;
-    int wi         = ctx.out_width;
-    int n          = ctx.batch_sz;
-    int k          = ctx.n_inputs;
-    int c          = ctx.n_outputs;
-    int ho         = ctx.in_height;
-    int wo         = ctx.in_width;
-    int stride_h   = ctx.in_height > 1 ? ctx.kernel_stride_h : 1;
-    int stride_w   = ctx.in_width > 1 ? ctx.kernel_stride_w : 1;
-    int dilation_h = ctx.kernel_size_h > 1 ? ctx.kernel_dilation_h : 1;
-    int dilation_w = ctx.kernel_size_w > 1 ? ctx.kernel_dilation_w : 1;
-    int pad_h      = ctx.pad_h;
-    int pad_w      = ctx.pad_w;
-    int y          = ctx.kernel_size_h;
-    int x          = ctx.kernel_size_w;
+    auto tunables         = GetImplicitGemmGtcDynamicBwdTunablesList();
+    auto pConfig          = tunables.begin();
+    const auto hi         = ctx.out_height;
+    const auto wi         = ctx.out_width;
+    const auto n          = ctx.batch_sz;
+    const auto k          = ctx.n_inputs;
+    const auto c          = ctx.n_outputs;
+    const auto ho         = ctx.in_height;
+    const auto wo         = ctx.in_width;
+    const auto stride_h   = ctx.in_height > 1 ? ctx.kernel_stride_h : 1;
+    const auto stride_w   = ctx.in_width > 1 ? ctx.kernel_stride_w : 1;
+    const auto dilation_h = ctx.kernel_size_h > 1 ? ctx.kernel_dilation_h : 1;
+    const auto dilation_w = ctx.kernel_size_w > 1 ? ctx.kernel_dilation_w : 1;
+    const auto pad_h      = ctx.pad_h;
+    const auto pad_w      = ctx.pad_w;
+    const auto y          = ctx.kernel_size_h;
+    const auto x          = ctx.kernel_size_w;
 
-    int gcd_stride_dilation_h = gcd(stride_h, dilation_h);
-    int gcd_stride_dilation_w = gcd(stride_w, dilation_w);
-    int y_tilda               = stride_h / gcd_stride_dilation_h;
-    int x_tilda               = stride_w / gcd_stride_dilation_w;
+    const auto gcd_stride_dilation_h = gcd(stride_h, dilation_h);
+    const auto gcd_stride_dilation_w = gcd(stride_w, dilation_w);
+    const auto y_tilda               = stride_h / gcd_stride_dilation_h;
+    const auto x_tilda               = stride_w / gcd_stride_dilation_w;
 
-    int h_tilda = ho + (dilation_h * (y - 1) + stride_h - 1) / stride_h;
-    int w_tilda = wo + (dilation_w * (x - 1) + stride_w - 1) / stride_w;
+    const auto h_tilda = ho + (dilation_h * (y - 1) + stride_h - 1) / stride_h;
+    const auto w_tilda = wo + (dilation_w * (x - 1) + stride_w - 1) / stride_w;
 
-    int y_dot = integer_divide_ceil(y, y_tilda);
-    int x_dot = integer_divide_ceil(x, x_tilda);
+    const auto y_dot = integer_divide_ceil(y, y_tilda);
+    const auto x_dot = integer_divide_ceil(x, x_tilda);
 
-    int h_tilda_left = std::max(0, pad_h - dilation_h * (y_tilda - 1)) / stride_h;
-    int w_tilda_left = std::max(0, pad_w - dilation_w * (x_tilda - 1)) / stride_w;
+    const auto h_tilda_left = std::max(0, pad_h - dilation_h * (y_tilda - 1)) / stride_h;
+    const auto w_tilda_left = std::max(0, pad_w - dilation_w * (x_tilda - 1)) / stride_w;
 
-    int h_tilda_right = std::min(h_tilda, (pad_h + hi - 1 + stride_h - 1) / stride_h + 1);
-    int w_tilda_right = std::min(w_tilda, (pad_w + wi - 1 + stride_w - 1) / stride_w + 1);
+    const auto h_tilda_right = std::min(h_tilda, (pad_h + hi - 1 + stride_h - 1) / stride_h + 1);
+    const auto w_tilda_right = std::min(w_tilda, (pad_w + wi - 1 + stride_w - 1) / stride_w + 1);
 
-    int h_tilda_slice = h_tilda_right - h_tilda_left;
-    int w_tilda_slice = w_tilda_right - w_tilda_left;
-    int num_of_gemm   = y_tilda * x_tilda;
-    // clang-format on
-    int gemm_m = c;
-    int gemm_n = n * h_tilda_slice * w_tilda_slice;
+    const auto h_tilda_slice = h_tilda_right - h_tilda_left;
+    const auto w_tilda_slice = w_tilda_right - w_tilda_left;
+    const auto num_of_gemm   = y_tilda * x_tilda;
+    const auto gemm_m        = c;
+    const auto gemm_n        = n * h_tilda_slice * w_tilda_slice;
 
     for(; pConfig != tunables.end(); pConfig++)
     {
+        if((pConfig->gemm_n_per_block == 0) || (pConfig->gemm_m_per_block == 0) ||
+           (pConfig->nxb == 0) || (pConfig->gemm_k_per_block == 0))
+        {
+            MIOPEN_LOG_E("Invalid kernel config entry!");
+            assert(false);
+        }
         if(pConfig->nxe == 0)
         {
             if((x != 1) || (y != 1) || (stride_h != 1) || (stride_w != 1) || (dilation_h != 1) ||
@@ -210,7 +213,7 @@ static bool FindImplicitGemmGtcDynamicBwdKernel(const ConvolutionContext& ctx,
         {
             continue;
         }
-        //# ho * wo is 4x, gemm_n is 256, hence need batch size 256/4=64x
+        // ho * wo is 4x, gemm_n is 256, hence need batch size 256/4=64x
         if(n % (pConfig->gemm_n_per_block / pConfig->nxb) != 0)
         {
             continue;
@@ -241,21 +244,19 @@ static bool FindImplicitGemmGtcDynamicBwdKernel(const ConvolutionContext& ctx,
     }
     if(pConfig != tunables.end())
     {
-        kernel_name = pConfig->GetKernelName();
-
-        block_size = pConfig->GetBlockSize();
-
-        grid_size = integer_divide_ceil(gemm_m, pConfig->gemm_m_per_block) *
-                    integer_divide_ceil(gemm_n, pConfig->gemm_n_per_block);
-        return true;
+        return std::make_tuple(true,
+                               pConfig->GetKernelName(),
+                               pConfig->GetBlockSize(),
+                               integer_divide_ceil(gemm_m, pConfig->gemm_m_per_block) *
+                                   integer_divide_ceil(gemm_n, pConfig->gemm_n_per_block));
     }
-    return false;
+    return std::make_tuple(false, "", -1, -1);
 }
 
 bool ConvAsmImplicitGemmGTCDynamicBwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
     const auto device_name = ctx.GetStream().GetDeviceName();
-    if(!(StartsWith(device_name, "gfx908")))
+    if(device_name != "gfx908")
         return false;
 
     if(!ctx.use_asm_kernels)
@@ -275,10 +276,10 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlops::IsApplicable(const ConvolutionConte
 
     if(ctx.group_counts != 1)
         return false;
-    std::string kernel_name;
-    int block_size;
-    int grid_size;
-    return FindImplicitGemmGtcDynamicBwdKernel(ctx, kernel_name, block_size, grid_size);
+    bool isValid;
+    std::tie(isValid, std::ignore, std::ignore, std::ignore) =
+        FindImplicitGemmGtcDynamicBwdKernel(ctx);
+    return isValid;
 }
 
 ConvSolution
@@ -291,9 +292,8 @@ ConvAsmImplicitGemmGTCDynamicBwdXdlops::GetSolution(const ConvolutionContext& ct
     std::string kernel_name;
     int block_size;
     int grid_size;
-    bool ret = FindImplicitGemmGtcDynamicBwdKernel(ctx, kernel_name, block_size, grid_size);
-    if(!ret)
-        MIOPEN_THROW("this kernel should not run with igemm dynamic!");
+    std::tie(std::ignore, kernel_name, block_size, grid_size) =
+        FindImplicitGemmGtcDynamicBwdKernel(ctx);
 
     kernel.kernel_file = "igemm_bwd_gtc_gfx908.s";
     kernel.kernel_name = kernel_name;
