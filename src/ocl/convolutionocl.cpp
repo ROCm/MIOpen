@@ -1517,13 +1517,13 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
         if(IsAlgorithmDisabled(algo)) // Algos can be disabled globally.
             continue;
         const auto& s = item.second;
-        if(!s.IsApplicable(ctx))
-            continue;
         if(!s.IsDynamic()) // Let's allow non-dynamic later, if necessary.
         {
             MIOPEN_LOG_I2(solver_id.ToString() << " Not dynamic, skipped");
             continue;
         }
+        if(!s.IsApplicable(ctx))
+            continue;
 
         // gemm can appear here only after actual (non-dummy) GEMM Solver is implemented.
         if(solver_id == solver::Id::gemm())
