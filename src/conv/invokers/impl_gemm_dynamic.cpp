@@ -241,13 +241,24 @@ InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory(const ConvolutionCo
         const int gemm_k_gid = k * y_dot_slice_gid[gemm_id] * x_dot_slice_gid[gemm_id];
         is_gemm_not_empty.emplace_back(gemm_k_gid > 0);
     }
+    bool need_set_zero = false;
+    if(y < stride_h || x < stride_w)
+        need_set_zero = true;
 
     return [=](const std::vector<Kernel>& kernels) {
         const auto kernel = kernels[0];
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
             decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors     = data_ctx.tensors;
-            float elapsed           = 0;
+            float elapsed      = 0;
+            if(need_set_zero)
+            {
+                float zero = 0.f;
+                SetTensor(handle, tensors.outDesc, tensors.out, &zero);
+
+                if(handle.IsProfilingEnabled())
+                    elapsed += handle.GetKernelTime();
+            }
             for(int gemm_id = 0; gemm_id < num_of_gemms; gemm_id++)
             {
                 if(is_gemm_not_empty[gemm_id])
