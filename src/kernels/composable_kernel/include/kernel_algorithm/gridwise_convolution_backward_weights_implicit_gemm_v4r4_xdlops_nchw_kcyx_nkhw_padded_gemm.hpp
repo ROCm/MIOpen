@@ -92,9 +92,15 @@ struct GridwiseConvolutionBackwardWeightsImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw
 
         constexpr index_t GemmK = GemmKTotal / GemmKPack;
 
+#if 0
         static_assert(GemmM % GemmMPerBlock == 0 && GemmN % GemmNPerBlock == 0 &&
                           GemmK % GemmKPerBlock == 0,
                       "wrong! cannot divide work evenly among block");
+#else
+        static_assert(GemmM % GemmMPerBlock == 0, "wrong! cannot divide work evenly among block");
+        static_assert(GemmN % GemmNPerBlock == 0, "wrong! cannot divide work evenly among block");
+        static_assert(GemmK % GemmKPerBlock == 0, "wrong! cannot divide work evenly among block");
+#endif
 
         // construct tensor descriptor for group convolution
         constexpr auto in_g_n_cpergroup_hi_wi_global_desc = make_native_tensor_descriptor(
