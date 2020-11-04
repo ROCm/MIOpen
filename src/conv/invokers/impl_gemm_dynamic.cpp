@@ -250,7 +250,7 @@ InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory(const ConvolutionCo
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
             decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors     = data_ctx.tensors;
-            float elapsed      = 0;
+            float elapsed           = 0;
             if(need_set_zero)
             {
                 float zero = 0.f;
