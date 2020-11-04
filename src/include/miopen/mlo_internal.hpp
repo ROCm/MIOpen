@@ -242,10 +242,6 @@ FindAllWinogradSolutions(const miopen::ConvolutionContext& ctx,
                          const miopen::AnyInvokeParams& invoke_ctx);
 
 std::vector<miopen::solver::ConvSolution>
-FindOneWinograd3x3Solution(const miopen::ConvolutionContext& ctx,
-                           const miopen::AnyInvokeParams& invoke_ctx);
-
-std::vector<miopen::solver::ConvSolution>
 FindWinogradWrWAllSolutions(const miopen::ConvolutionContext& ctx,
                             const miopen::AnyInvokeParams& invoke_ctx);
 

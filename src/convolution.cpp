@@ -25,7 +25,6 @@
  *******************************************************************************/
 #include <miopen/convolution.hpp>
 
-#include <miopen/algorithm.hpp>
 #include <miopen/config.h>
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
@@ -430,7 +429,8 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
 
     if(IsWinograd3x3SupportedAndFast(ctx))
     {
-        const auto ws = solver::ConvBinWinograd3x3U{}.GetWorkspaceSize(ctx);
+        AutoUseFastDynamicSolutions tmp{ctx};
+        const auto ws = ForwardBackwardDataGetWorkSpaceSizeWinograd(ctx);
         MIOPEN_LOG_I2(ws);
         return ws;
     }
@@ -534,7 +534,8 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
 
     if(IsWinograd3x3SupportedAndFast(ctx))
     {
-        const auto ws = solver::ConvBinWinograd3x3U{}.GetWorkspaceSize(ctx);
+        AutoUseFastDynamicSolutions tmp{ctx};
+        const auto ws = ForwardBackwardDataGetWorkSpaceSizeWinograd(ctx);
         MIOPEN_LOG_I2(ws);
         return ws;
     }

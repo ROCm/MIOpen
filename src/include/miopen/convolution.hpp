@@ -172,9 +172,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     FindWinogradSolutions(const ConvolutionContext& ctx, const AnyInvokeParams& invoke_ctx) const;
 
     std::vector<miopen::solver::ConvSolution>
-    FindWinograd3x3Solution(const ConvolutionContext& ctx, const AnyInvokeParams& invoke_ctx) const;
-
-    std::vector<miopen::solver::ConvSolution>
     FindDataImplicitGemmSolutions(Handle& handle,
                                   const TensorDescriptor& xDesc,
                                   const TensorDescriptor& wDesc,

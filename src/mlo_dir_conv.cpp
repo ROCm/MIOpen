@@ -165,13 +165,6 @@ static auto GetWindogradSolvers()
                                            miopen::solver::ConvMPBidirectWinograd_xdlops<6, 3>>{};
 }
 
-static auto GetWindograd3x3Solver()
-{
-    // Only ConvBinWinograd3x3U is allowed here, otherwise
-    // GWSS for Winograd Fwd / Bwd needs to be updated.
-    return miopen::solver::SolverContainer<miopen::solver::ConvBinWinograd3x3U>{};
-}
-
 static auto GetImplicitGemmWrWSolvers()
 {
     return miopen::solver::SolverContainer<
@@ -250,13 +243,6 @@ FindAllWinogradSolutions(const miopen::ConvolutionContext& ctx,
                          const miopen::AnyInvokeParams& invoke_ctx)
 {
     return GetWindogradSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
-}
-
-std::vector<miopen::solver::ConvSolution>
-FindOneWinograd3x3Solution(const miopen::ConvolutionContext& ctx,
-                           const miopen::AnyInvokeParams& invoke_ctx)
-{
-    return GetWindograd3x3Solver().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
 }
 
 std::vector<miopen::solver::ConvSolution>
