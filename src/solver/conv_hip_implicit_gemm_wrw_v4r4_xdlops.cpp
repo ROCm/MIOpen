@@ -334,7 +334,7 @@ PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGemmSizeAndGemmKBlock(
 
         int grid_size_without_split_gemmk = g * (gemm_m / GemmMPerBlock) * (gemm_n / GemmNPerBlock);
 
-        const int max_grid_size = 20 * ctx.GetStream().GetMaxComputeUnits();
+        const int max_grid_size = 20 * static_cast<int>(ctx.GetStream().GetMaxComputeUnits());
 
         gemm_k_block = std::max(max_grid_size / grid_size_without_split_gemmk, 1);
         gemm_k_block = std::min(gemm_k_block, n);
