@@ -692,6 +692,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsFastToBeUsedForTuni
 
         const auto num_cu = ctx.GetStream().GetMaxComputeUnits();
 
+        // heuristic to exclude performance paramater that result in very large number of blocks
         if(grid_size_max_blockwise_gemm > 5 * num_cu)
         {
             if(ratio > 2.81)

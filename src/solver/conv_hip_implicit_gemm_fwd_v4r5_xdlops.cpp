@@ -711,6 +711,7 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsFastToBeUsedForTuning(
 
         const auto num_cu = ctx.GetStream().GetMaxComputeUnits();
 
+        // heuristic to exclude performance paramater that result in very large number of blocks
         if(grid_size_max_blockwise_gemm > 5 * num_cu)
         {
             if(ratio > 2.81)
