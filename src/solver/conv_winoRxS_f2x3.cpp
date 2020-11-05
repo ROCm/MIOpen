@@ -53,7 +53,10 @@ static inline size_t Ceil(const size_t v, const size_t m)
     return (v + m - 1) / m;
 }
 
-static inline size_t quantize_up(size_t val, size_t factor) { return Ceil(val, factor) * factor; }
+static inline size_t RoundUpToMultiple(size_t val, size_t factor)
+{
+    return Ceil(val, factor) * factor;
+}
 
 static inline int GetBestNGroupParam(const int R,
                                      const int S,
@@ -88,10 +91,10 @@ static inline int GetBestNGroupParam(const int R,
     if(S_stride == 2 || R_stride == 2 || idilation_w == 2 || idilation_h == 2)
         c_factor = 1;
 
-    size_t g_s = quantize_up(S, s_factor);
-    size_t g_r = quantize_up(R, r_factor);
-    size_t g_c = quantize_up(C, c_factor);
-    size_t g_k = quantize_up(K, k_factor);
+    size_t g_s = RoundUpToMultiple(S, s_factor);
+    size_t g_r = RoundUpToMultiple(R, r_factor);
+    size_t g_c = RoundUpToMultiple(C, c_factor);
+    size_t g_k = RoundUpToMultiple(K, k_factor);
     size_t g_w = OW;
     size_t g_h = OH;
 
@@ -100,16 +103,16 @@ static inline int GetBestNGroupParam(const int R,
     if((pad_H % 2 == 1) && (idilation_h > 1 || R_stride > 1))
         g_h += 1;
 
-    g_w            = quantize_up(g_w, w_factor);
-    g_h            = quantize_up(g_h, h_factor);
-    size_t g_n_w_h = quantize_up(g_w * g_h * N, nwh_factor * w_factor * h_factor);
+    g_w            = RoundUpToMultiple(g_w, w_factor);
+    g_h            = RoundUpToMultiple(g_h, h_factor);
+    size_t g_n_w_h = RoundUpToMultiple(g_w * g_h * N, nwh_factor * w_factor * h_factor);
 
     int best_n_groups_cnt = 1;
     double min_param      = 0;
     for(auto i = 1; i < n_groups; ++i)
     {
         size_t g_n_w_h_k =
-            quantize_up(g_n_w_h * g_k, nwh_factor * w_factor * h_factor * k_factor * i);
+            RoundUpToMultiple(g_n_w_h * g_k, nwh_factor * w_factor * h_factor * k_factor * i);
         size_t granulated_mac_count = g_n_w_h_k * g_c * g_s * g_r;
         size_t n_groups_per_cu      = Ceil(i * G, n_groups);
         double perf_metric = static_cast<double>(n_groups_per_cu) * granulated_mac_count / i;
@@ -157,7 +160,7 @@ inline bool IsShaderContraintsMet(const int R,
 {
     // Padding for bwd data shall not be negative.
     /// \todo Either remove WrW related code or re-use function from RxS
-    if(params.direction.IsBackwardData() || params.direction.IsBackwardWrW())
+    if(params.direction.IsBackwardData() || params.direction.IsBackwardWrW()) // FIXME remove WrW
     {
         if(!(0 <= params.GetBackwardPadW() && params.GetBackwardPadW() < std::pow(2, 16)))
             return false;
@@ -301,24 +304,24 @@ ConvBinWinogradRxSf2x3::Search(const ConvolutionContext& context,
     return GenericSearch(*this, context, invoke_ctx);
 }
 
-struct UnifiedConv2d
+struct UnifiedConfigConv2d
 {
-    int64_t K;               // X
-    int64_t S;               // Y
-    int64_t C;               // V
-    int64_t N;               // W
-    int64_t R;               // Z
-    int64_t pad_w;           // AA
-    int64_t pad_h;           // AB
-    int64_t U;               // AC
-    int64_t V;               // AD
-    int64_t out_w;           // AE
-    int64_t out_h;           // AF
-    int64_t input_stride_w;  // AG -p -q
-    int64_t input_stride_h;  // AH
-    int64_t filter_stride_w; // AI -l -j
-    int64_t filter_stride_h; // AJ
-    UnifiedConv2d() = delete;
+    size_t K;               // X
+    size_t S;               // Y
+    size_t C;               // V
+    size_t N;               // W
+    size_t R;               // Z
+    size_t pad_w;           // AA
+    size_t pad_h;           // AB
+    size_t U;               // AC
+    size_t V;               // AD
+    size_t out_w;           // AE
+    size_t out_h;           // AF
+    size_t input_stride_w;  // AG -p -q
+    size_t input_stride_h;  // AH
+    size_t filter_stride_w; // AI -l -j
+    size_t filter_stride_h; // AJ
+    UnifiedConfigConv2d() = delete;
 
     // Fwd                  WrW
     // ----------------------------------------
@@ -340,7 +343,7 @@ struct UnifiedConv2d
     // strd := U/V             -u/v convolution stride (output stride) kernel_stride
     // idil := input dilation  (n/a except transposed convolutions)    ?
 
-    UnifiedConv2d(const ConvolutionContext& params)
+    UnifiedConfigConv2d(const ConvolutionContext& params)
     {
         const auto n_inputs_per_group  = params.n_inputs / params.group_counts;
         const auto n_outputs_per_group = params.n_outputs / params.group_counts;
@@ -350,15 +353,17 @@ struct UnifiedConv2d
             S     = params.kernel_size_w;
             U     = params.direction.IsForward() ? params.kernel_stride_h : 1;
             V     = params.direction.IsForward() ? params.kernel_stride_w : 1;
-            C     = n_inputs_per_group; // Bwd: C and K is reversed in ProblemDescription
-            K     = n_outputs_per_group;
-            out_h = params.out_height; // Bwd: height/width is reversed in ProblemDescription
-            out_w = params.out_width;
+            C     = n_inputs_per_group;  // Bwd: C and K is reversed in ProblemDescription.
+            K     = n_outputs_per_group; // Ditto.
+            out_h = params.out_height;   // Bwd: height/width is reversed in ProblemDescription.
+            out_w = params.out_width;    // Ditto.
             N     = params.batch_sz;
-            pad_h = params.direction.IsForward() ? params.pad_h : params.GetBackwardPadH();
-            pad_w = params.direction.IsForward() ? params.pad_w : params.GetBackwardPadW();
-            input_stride_h  = params.direction.IsForward() ? 1 : params.kernel_stride_h;
-            input_stride_w  = params.direction.IsForward() ? 1 : params.kernel_stride_w;
+            assert(params.direction.IsForward() ||
+                   (params.GetBackwardPadH() >= 0 && params.GetBackwardPadW() >= 0));
+            pad_h          = params.direction.IsForward() ? params.pad_h : params.GetBackwardPadH();
+            pad_w          = params.direction.IsForward() ? params.pad_w : params.GetBackwardPadW();
+            input_stride_h = params.direction.IsForward() ? 1 : params.kernel_stride_h;
+            input_stride_w = params.direction.IsForward() ? 1 : params.kernel_stride_w;
             filter_stride_h = params.kernel_dilation_h;
             filter_stride_w = params.kernel_dilation_w;
         }
@@ -383,30 +388,120 @@ struct UnifiedConv2d
     }
 };
 
+class ShaderModel : public UnifiedConfigConv2d
+{
+    const size_t DATATYPE_BITS;    // S
+    const size_t n_groups;         // BQ ~compute units
+    const bool out_of_model_scope; // Shader model produces unreliable results.
+
+    public:
+    ShaderModel(const ConvolutionContext& ctx)
+        : UnifiedConfigConv2d(ctx),
+          DATATYPE_BITS(ctx.IsFp16() ? 16 : 32),
+          n_groups(ctx.GetStream().GetMaxComputeUnits()), /// \todo Take n_groups from PerfConfig.
+          out_of_model_scope(!(ctx.group_counts == 1) ||  //
+                             !(pad_h == 1) ||             //
+                             !(pad_h == 1) ||             //
+                             !(U == 1) ||                 //
+                             !(V == 1) ||                 //
+                             !(input_stride_h == 1) ||    //
+                             !(input_stride_w == 1) ||    //
+                             !(filter_stride_h == 1) ||   //
+                             !(filter_stride_w == 1) ||   //
+                             !(R <= 5) ||                 //
+                             !(S <= 5) ||                 //
+                             !(C >= 16) ||                //
+                             !(K >= 16))
+    {
+    }
+
+    double ComputeWti() const
+    {
+        if(out_of_model_scope)
+            return -1.0; // Shader model produces unreliable results.
+
+        const auto direct_convolution_macs = C * N * K / 10e+6 *
+                                             RoundUpToMultiple(S * out_w / input_stride_w, 1) *
+                                             RoundUpToMultiple(R * out_h / input_stride_h, 1); // AK
+
+        constexpr size_t TILE_S = WINOFILTER; // AL
+        constexpr size_t TILE_R = WINOFILTER; // AO
+        assert(!(U > 2 || V > 2));
+        const auto granulated_S =
+            (U == 1 && input_stride_w == 1 && filter_stride_w == 1 && S <= TILE_S)
+                ? TILE_S
+                : RoundUpToMultiple(S, 2 * TILE_S); // AM
+        const auto granulated_R = RoundUpToMultiple(
+            R,
+            (((V == 1 && input_stride_h == 1 && filter_stride_h == 1) || (R % (2 * TILE_R) == 1))
+                 ? TILE_R
+                 : 2 * TILE_R)); // AP
+
+        constexpr size_t TILE_OUT_W = WINODATA; // AR
+        constexpr size_t TILE_OUT_H = WINODATA; // AU
+        const auto granulated_out_w =
+            RoundUpToMultiple(out_w + ((input_stride_w == 2 && (pad_w % 2 != 0)) ? 1 : 0),
+                              TILE_OUT_W * input_stride_w); // AS
+        const auto granulated_out_h =
+            RoundUpToMultiple(out_h + ((input_stride_h == 2 && (pad_h % 2 != 0)) ? 1 : 0),
+                              TILE_OUT_H * input_stride_h); // AV
+
+        constexpr size_t GRANULARITY_NHW_TILES = 32; // AY$2
+        constexpr size_t GRANULARITY_K         = 32; // BC$2
+
+        const auto NWH_tiles =
+            granulated_out_w * granulated_out_h * N / TILE_OUT_H / TILE_OUT_W; // AX
+
+        const auto granulated_NWH_tiles = RoundUpToMultiple(
+            NWH_tiles,
+            GRANULARITY_NHW_TILES * ((input_stride_w == 2 && input_stride_h == 2) ? 2 : 1)); // AY
+
+        const auto granulated_C =
+            RoundUpToMultiple(C,
+                              ((U == 1 && S <= 3) ? 2 : 1) * 32 / DATATYPE_BITS); // BA
+
+        const auto granulated_K = RoundUpToMultiple(
+            K,
+            GRANULARITY_K / ((input_stride_w == 2 && input_stride_h == 2) ? 2 : 1)); // BC
+
+        const auto NKWH_tiles = granulated_NWH_tiles * granulated_K; // BE
+
+        const auto granulated_NKWH_tiles =
+            RoundUpToMultiple(NKWH_tiles,
+                              n_groups * granulated_NWH_tiles * granulated_K); // BR
+
+        const auto works_per_CU = granulated_NKWH_tiles / 32 / n_groups; // BY
+
+        constexpr size_t MIN_FE_PER_WORK = 20; // BZ$2
+
+        const auto fe_per_work =
+            std::max(MIN_FE_PER_WORK,
+                     granulated_S * granulated_R * granulated_C * DATATYPE_BITS / 32); // BZ
+
+        const auto phases   = fe_per_work * works_per_CU; // CA
+        const auto fe_calls = phases;                     // CC
+        const auto be_calls = works_per_CU;               // CD
+
+        constexpr double C0      = 43283;                                        // CB$2
+        constexpr double C1      = 1.012;                                        // CC$2
+        constexpr double C2      = 134.14;                                       // CD$2
+        const auto GUI_predicted = (C0 + C1 * fe_calls + C2 * be_calls) / 10e+6; // CE
+
+        if(GUI_predicted <= 10e+5)
+            return -1.0; // Unreliable, too small work to do for the shader.
+
+        const auto N_MACS_PER_CU_PER_CLOCK = 64 * 32 / DATATYPE_BITS;
+        const auto WTI_predicted = direct_convolution_macs / N_MACS_PER_CU_PER_CLOCK / n_groups /
+                                   GUI_predicted; // similar to BW
+        return WTI_predicted;
+    }
+};
+
 float ConvBinWinogradRxSf2x3::GetWti(const ConvolutionContext& params) const
 {
     constexpr auto WTI_UNKNOWN = -2.0;
-    UnifiedConv2d u(params);
-    if(!(params.group_counts == 1) || //
-       !(u.pad_h == 1) ||             //
-       !(u.pad_h == 1) ||             //
-       !(u.U == 1) ||                 //
-       !(u.V == 1) ||                 //
-       !(u.input_stride_h == 1) ||    //
-       !(u.input_stride_w == 1) ||    //
-       !(u.filter_stride_h == 1) ||   //
-       !(u.filter_stride_w == 1) ||   //
-       !(u.R <= 5) ||                 //
-       !(u.S <= 5) ||                 //
-       !(u.C >= 16) ||                //
-       !(u.K >= 16))                  //
-        return WTI_UNKNOWN;
-
-    const auto DATATYPE_BITS = 32; // S // 16 for FP16 // FIXME
-    const auto n_groups      = 60; // BQ = 60 // FIXME
-
-    // FIXME // if GUI_ACTIVE clocks > 10^5
-    return WTI_UNKNOWN;
+    const auto rv              = ShaderModel(params).ComputeWti();
+    return rv < 0 ? WTI_UNKNOWN : rv;
 }
 
 bool ConvBinWinogradRxSf2x3::IsApplicable(const ConvolutionContext& params) const
