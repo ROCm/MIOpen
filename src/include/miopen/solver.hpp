@@ -1515,7 +1515,7 @@ struct ConvMPBidirectWinograd : SolverBase<ConvolutionContext>
         return names[id];
     }
 
-    static int GetSolverWinoXformHWSize(const ConvolutionContext& params) 
+    static int GetSolverWinoXformHWSize(const ConvolutionContext& params)
     {
         if(params.direction.IsForward())
             return WinoFilterH + (WinoDataH - 1) * params.kernel_stride_h;
@@ -1525,7 +1525,7 @@ struct ConvMPBidirectWinograd : SolverBase<ConvolutionContext>
             return WinoDataH + (WinoFilterH - 1) * params.kernel_stride_h;
     }
 
-    static int GetSolverWinoDtileHWSize(const ConvolutionContext& params) 
+    static int GetSolverWinoDtileHWSize(const ConvolutionContext& params)
     {
         if(params.direction.IsBackwardData() && params.kernel_stride_h == 2)
             return (WinoFilterH + WinoDataH) / params.kernel_stride_h;

@@ -200,25 +200,25 @@ struct WinogradBufferInfo
 
         for(int i = 0; i < 2; i++)
         {
-            wino_data_out.wino_tiles_HW[i]   = (out_HW[i] + WinoDataHW[i] - 1) / WinoDataHW[i];
-            wino_filter.wino_tiles_HW[i] = (wei_HW[i] + WinoFilterHW[i] - 1) / WinoFilterHW[i];
+            wino_data_out.wino_tiles_HW[i] = (out_HW[i] + WinoDataHW[i] - 1) / WinoDataHW[i];
+            wino_filter.wino_tiles_HW[i]   = (wei_HW[i] + WinoFilterHW[i] - 1) / WinoFilterHW[i];
 
-            wino_filter.wino_HW[i] = wino_xtile[i];
-            wino_data_out.wino_HW[i]   = wino_xtile[i] * wino_data_out.wino_tiles_HW[i];
+            wino_filter.wino_HW[i]   = wino_xtile[i];
+            wino_data_out.wino_HW[i] = wino_xtile[i] * wino_data_out.wino_tiles_HW[i];
         }
 
         switch(xform_t)
         {
         case ConvWinoXformType::N_GXhXw_C_Th_Tw:
         {
-            const int wino_g = g * wino_xtile[0] * wino_xtile[1];
-            const size_t wino_data_in_tiles[2] = {wino_data_out.wino_tiles_HW[0] + wino_filter.wino_tiles_HW[0] - 1,
-                                               wino_data_out.wino_tiles_HW[1] + wino_filter.wino_tiles_HW[1] - 1};
+            const int wino_g                   = g * wino_xtile[0] * wino_xtile[1];
+            const size_t wino_data_in_tiles[2] = {
+                wino_data_out.wino_tiles_HW[0] + wino_filter.wino_tiles_HW[0] - 1,
+                wino_data_out.wino_tiles_HW[1] + wino_filter.wino_tiles_HW[1] - 1};
 
-            const WinoInfo wino_data { 
+            const WinoInfo wino_data{
                 {wino_data_in_tiles[0], wino_data_in_tiles[1]},
-                {wino_data_in_tiles[0] * wino_xtile[0], wino_data_in_tiles[1] * wino_xtile[1]}
-            };
+                {wino_data_in_tiles[0] * wino_xtile[0], wino_data_in_tiles[1] * wino_xtile[1]}};
             switch(buff_type)
             {
             case ConvWinoBuffType::Input:
@@ -261,8 +261,12 @@ struct WinogradBufferInfo
             switch(buff_type)
             {
             case ConvWinoBuffType::Input:
-                buff_info = BuffInfo(
-                    layout, n, wino_c, wino_data_out.wino_HW[0], wino_data_out.wino_HW[1], element_size);
+                buff_info = BuffInfo(layout,
+                                     n,
+                                     wino_c,
+                                     wino_data_out.wino_HW[0],
+                                     wino_data_out.wino_HW[1],
+                                     element_size);
                 wino_info = wino_data_out;
                 break;
             case ConvWinoBuffType::Weight:
