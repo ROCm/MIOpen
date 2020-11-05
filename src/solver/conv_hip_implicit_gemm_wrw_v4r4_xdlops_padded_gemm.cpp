@@ -847,7 +847,7 @@ PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::CalculateGemmSizeAndGemmKBlock
 
         int grid_size_without_split_gemmk = g * (gemm_m / GemmMPerBlock) * (gemm_n / GemmNPerBlock);
 
-        const int max_grid_size = 20 * ctx.GetStream().GetMaxComputeUnits();
+        const int max_grid_size = 20 * static_cast<int>(ctx.GetStream().GetMaxComputeUnits());
 
         // calculate gemm_k_block
         gemm_k_block = std::max(max_grid_size / grid_size_without_split_gemmk, 1);
@@ -864,7 +864,6 @@ PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::CalculateGemmSizeAndGemmKBlock
 
             // pad gemm_k_total
             gemm_k_total = ((gemm_k_total_no_pad - 1) / GemmKTotalFactor + 1) * GemmKTotalFactor;
-            gemm_k_total_pad = gemm_k_total - gemm_k_total_no_pad;
 
             if(!(gemm_k_total % (GemmKPerBlock * GemmKPack) == 0))
                 continue;
@@ -879,7 +878,9 @@ PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::CalculateGemmSizeAndGemmKBlock
 
         const auto gemm_k_total_no_pad = n_sub * ho * wo;
 
-        gemm_k_total     = ((gemm_k_total_no_pad - 1) / GemmKTotalFactor + 1) * GemmKTotalFactor;
+        gemm_k_total = ((gemm_k_total_no_pad - 1) / GemmKTotalFactor + 1) * GemmKTotalFactor;
+
+        // gemm_k_total_pad
         gemm_k_total_pad = gemm_k_total - gemm_k_total_no_pad;
 
         // gemm_g
