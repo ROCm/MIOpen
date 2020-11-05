@@ -980,7 +980,7 @@ ConvolutionDescriptor::GetFwdSolutionWorkspaceSizeFallback(Handle& handle,
         const auto ws_szs = AllGemmWorkspaceSize(ctx);
         return std::max_element(ws_szs.begin(),
                                 ws_szs.end(),
-                                [](auto& l, auto& r) { return l.second < r.second; })
+                                [](const auto& l, const auto& r) { return l.second < r.second; })
             ->second;
     }
     MIOPEN_THROW(miopenStatusNotImplemented);
