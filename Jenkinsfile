@@ -190,7 +190,8 @@ def buildCommandJob(cmd, image, prefixpath=""){
         {
             dockerArgs = ""
         }
-        
+       
+	def image = "miopen"
         gitStatusWrapper(credentialsId: '7126e5fe-eb51-4576-b52b-9aaf1de8f0fd', gitHubContext: "Jenkins - ${variant}", account: 'ROCmSoftwarePlatform', repo: 'MIOpen') {
             try {
                 retimage = docker.build("${image}", dockerArgs + '.')
