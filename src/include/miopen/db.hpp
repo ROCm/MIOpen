@@ -223,6 +223,16 @@ class MultiFileDb
     }
 
     template <typename... U>
+    auto MarkRecord(const U&... args)
+    {
+#if MIOPEN_DISABLE_USERDB
+        sink{args...};
+#else
+        _user.MarkRecord(args...);
+#endif
+        return true;
+    }
+    template <typename... U>
     auto StoreRecord(const U&... args)
     {
 #if MIOPEN_DISABLE_USERDB
@@ -338,6 +348,11 @@ class DbTimer
         return Measure("FindRecord", [&]() { return inner.FindRecord(args...); });
     }
 
+    template <typename... U>
+    auto MarkRecord(const U&... args)
+    {
+        return Measure("MarkRecord", [&]() { return inner.MarkRecord(args...); });
+    }
     template <typename... U>
     auto StoreRecord(U&... record)
     {

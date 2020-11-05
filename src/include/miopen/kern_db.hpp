@@ -73,8 +73,7 @@ struct KernelConfig
            << ");"
            << "CREATE UNIQUE INDEX IF NOT EXISTS "
            << "`idx_" << KernelConfig::table_name() << "` "
-           << "ON " << KernelConfig::table_name()
-           << "(kernel_name, kernel_args);";
+           << "ON " << KernelConfig::table_name() << "(kernel_name, kernel_args);";
         return ss.str();
     }
     std::string Where() const
@@ -126,15 +125,15 @@ class KernDb : public SQLiteBase<KernDb>
     {
         if(filename.empty())
             return true;
-        auto upd_query = "UPDATE " + T::table_name() + " SET uncompressed_size = -1 WHERE "
-                        problem_config.Where() + ";";
+        auto upd_query = "UPDATE " + T::table_name() + " SET uncompressed_size = -1 WHERE " +
+                         problem_config.Where() + ";";
         auto stmt = SQLite::Statement{sql, upd_query};
-        auto rc = stmt.Step(sql);
+        auto rc   = stmt.Step(sql);
         if(rc == SQLITE_DONE)
             return true;
         else
             MIOPEN_THROW(miopenStatusInternalError, "Unable to update binary cache");
-    
+
         return false;
     }
 
@@ -156,21 +155,20 @@ class KernDb : public SQLiteBase<KernDb>
             auto rc = stmt.Step(sql);
             if(rc == SQLITE_ROW)
             {
-                auto uncompressed_size         = stmt.ColumnInt64(2);
+                auto uncompressed_size = stmt.ColumnInt64(2);
                 if(uncompressed_size == -1)
                 {
                     auto slot = *exp_bo;
                     // sleep for sometime and then try again
                     if(slot != 0)
                         std::this_thread::sleep_for(std::chrono::microseconds(100 * slot));
-                    
+
                     continue;
                 }
 
+                auto compressed_blob = stmt.ColumnBlob(0);
+                auto md5_hash        = stmt.ColumnText(1);
 
-                auto compressed_blob           = stmt.ColumnBlob(0);
-                auto md5_hash                  = stmt.ColumnText(1);
-                
                 std::string& decompressed_blob = compressed_blob;
                 if(uncompressed_size != 0)
                 {

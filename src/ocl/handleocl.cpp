@@ -564,10 +564,14 @@ Program Handle::LoadProgram(const std::string& program_name,
                             bool is_kernel_str,
                             const std::string& kernel_src) const
 {
-    auto hsaco = miopen::LoadBinary(
-        this->GetDeviceName(), this->GetMaxComputeUnits(), program_name, params, is_kernel_str);
+    const auto device = this->GetDeviceName();
+    const auto num_cu = this->GetMaxComputeUnits();
+    auto hsaco        = miopen::LoadBinary(device, num_cu, program_name, params, is_kernel_str);
     if(hsaco.empty())
     {
+#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
+        miopen::MarkBinary(device, num_cu, program_name, params, is_kernel_str);
+#endif
         CompileTimer ct;
         auto p = miopen::LoadProgram(miopen::GetContext(this->GetStream()),
                                      miopen::GetDevice(this->GetStream()),
@@ -581,17 +585,11 @@ Program Handle::LoadProgram(const std::string& program_name,
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
         std::string binary;
         miopen::GetProgramBinary(p, binary);
-        miopen::SaveBinary(binary,
-                           this->GetDeviceName(),
-                           this->GetMaxComputeUnits(),
-                           program_name,
-                           params,
-                           is_kernel_str);
+        miopen::SaveBinary(binary, device, num_cu, program_name, params, is_kernel_str);
 #else
         auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path();
         miopen::SaveProgramBinary(p, path.string());
-        miopen::SaveBinary(
-            path.string(), this->GetDeviceName(), program_name, params, is_kernel_str);
+        miopen::SaveBinary(path.string(), num_cu, program_name, params, is_kernel_str);
 #endif
         return std::move(p);
     }

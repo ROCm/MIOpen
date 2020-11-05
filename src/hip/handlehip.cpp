@@ -367,14 +367,17 @@ Program Handle::LoadProgram(const std::string& program_name,
                             const std::string& kernel_src) const
 {
     this->impl->set_ctx();
-    params += " -mcpu=" + this->GetDeviceName();
-    auto hsaco = miopen::LoadBinary(
-        this->GetDeviceName(), this->GetMaxComputeUnits(), program_name, params, is_kernel_str);
+    const auto device = this->GetDeviceName();
+    const auto num_cu = this->GetMaxComputeUnits();
+    params += " -mcpu=" + device;
+    auto hsaco = miopen::LoadBinary(device, num_cu, program_name, params, is_kernel_str);
     if(hsaco.empty())
     {
+#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
+        miopen::MarkBinary(device, num_cu, program_name, params, is_kernel_str);
+#endif
         CompileTimer ct;
-        auto p =
-            HIPOCProgram{program_name, params, is_kernel_str, this->GetDeviceName(), kernel_src};
+        auto p = HIPOCProgram{program_name, params, is_kernel_str, device, kernel_src};
         ct.Log("Kernel", program_name);
 
 // Save to cache
@@ -382,8 +385,8 @@ Program Handle::LoadProgram(const std::string& program_name,
         miopen::SaveBinary(p.IsCodeObjectInMemory()
                                ? p.GetCodeObjectBlob()
                                : miopen::LoadFile(p.GetCodeObjectPathname().string()),
-                           this->GetDeviceName(),
-                           this->GetMaxComputeUnits(),
+                           device,
+                           num_cu,
                            program_name,
                            params,
                            is_kernel_str);
@@ -393,7 +396,7 @@ Program Handle::LoadProgram(const std::string& program_name,
             miopen::WriteFile(p.GetCodeObjectBlob(), path);
         else
             boost::filesystem::copy_file(p.GetCodeObjectPathname(), path);
-        miopen::SaveBinary(path, this->GetDeviceName(), program_name, params, is_kernel_str);
+        miopen::SaveBinary(path, device, program_name, params, is_kernel_str);
 #endif
 
         return p;
