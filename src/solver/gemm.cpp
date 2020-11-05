@@ -120,8 +120,6 @@ bool GemmFwd1x1_0_2::IsApplicable(const ExecutionContext& context,
            miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
            miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
            miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; });
-
-    return false;
 #else
     std::ignore = context;
     std::ignore = problem;
@@ -242,17 +240,11 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
             {
                 if(group_count > 1)
                 {
-                    GemmDescriptor gemm_desc =
-                        CreateGemmDescriptorGroupConvCNHWFwd(wDesc, xDesc, yDesc, group_count);
-
                     gemm_status = CallGemmStridedBatched(
                         handle, gemm_desc, w, 0, workSpace, 0, workSpace, x_t_size, nullptr, false);
                 }
                 else
                 {
-                    // tensors.y = CNHW2NCHW(tensors.w * NCHW2CNHW(tensors.x))
-                    GemmDescriptor gemm_desc = CreateGemmDescriptorConvCNHWFwd(wDesc, xDesc, yDesc);
-
                     // tensors.y = CNHW2NCHW(tensors.w * NCHW2CNHW(tensors.x))
                     gemm_status = CallGemm(handle,
                                            gemm_desc,
@@ -519,8 +511,6 @@ bool GemmFwd1x1_0_1::IsApplicable(const ExecutionContext& context,
            miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
            miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 1; }) &&
            wDesc.GetType() != miopenInt8;
-
-    return false;
 #else
     std::ignore = context;
     std::ignore = problem;
