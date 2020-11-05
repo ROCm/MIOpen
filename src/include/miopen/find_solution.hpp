@@ -133,7 +133,7 @@ FindSolution(Solver s, const Context& context, Db& db, const AnyInvokeParams& in
 template <class... Solvers>
 struct SolverContainer
 {
-    std::vector<miopen::solver::AnySolver> GetAllSolvers() const { return {{Solvers{}...}}; }
+    std::vector<miopen::solver::AnySolver> GetAll() const { return {{Solvers{}...}}; }
 
     // Search for all applicable solutions among many solvers
     template <class Context, class Db, class Solution = miopen::solver::ConvSolution>
@@ -181,6 +181,7 @@ struct SolverContainer
             Solvers{}...);
         return ss;
     }
+
     template <class Context>
     std::vector<std::pair<std::string, size_t>> GetWorkspaceSize(const Context& search_params) const
     {
@@ -203,6 +204,24 @@ struct SolverContainer
             },
             Solvers{}...);
         return res;
+    }
+
+    template <class Context>
+    std::size_t CountApplicable(const Context& ctx) const
+    {
+        const auto solvers = std::array<AnySolver, sizeof...(Solvers)>{};
+        return std::count_if(solvers.begin(), solvers.end(), [&](const auto& solver) {
+            return solver.IsApplicable(ctx);
+        });
+    }
+
+    template <class Context>
+    std::size_t IsAnyApplicable(const Context& ctx) const
+    {
+        const auto solvers = std::array<AnySolver, sizeof...(Solvers)>{};
+        return std::any_of(solvers.begin(), solvers.end(), [&](const auto& solver) {
+            return solver.IsApplicable(ctx);
+        });
     }
 };
 

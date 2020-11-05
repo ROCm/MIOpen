@@ -219,9 +219,32 @@ static auto GetBwdWrW2DSolvers()
 
 static auto GetFFTSolvers() { return miopen::solver::SolverContainer<miopen::solver::fft>{}; }
 
-std::vector<miopen::solver::AnySolver> GetAllGemmSolvers()
+std::vector<miopen::solver::AnySolver> GetAllGemmSolvers() { return GetGemmSolvers().GetAll(); }
+
+bool IsGemmApplicable(const miopen::ConvolutionContext& ctx)
 {
-    return GetGemmSolvers().GetAllSolvers();
+#if MIOPEN_USE_GEMM
+    decltype(auto) solvers = GetGemmSolvers().GetAll();
+    return std::any_of(solvers.begin(), solvers.end(), [&](const auto& solver) {
+        return solver.IsApplicable(ctx);
+    });
+#else
+    std::ignore = ctx;
+    return false;
+#endif
+}
+
+std::size_t CountApplicableGemmSolvers(const miopen::ConvolutionContext& ctx)
+{
+#if MIOPEN_USE_GEMM
+    decltype(auto) solvers = GetGemmSolvers().GetAll();
+    return std::count_if(solvers.begin(), solvers.end(), [&](const auto& solver) {
+        return solver.IsApplicable(ctx);
+    });
+#else
+    std::ignore = ctx;
+    return 0;
+#endif
 }
 
 std::vector<miopen::solver::ConvSolution>

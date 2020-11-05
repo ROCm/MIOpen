@@ -226,6 +226,10 @@ auto FindAllSolutions(T& x) -> decltype(x.FindAllSolutions())
 
 std::vector<miopen::solver::AnySolver> GetAllGemmSolvers();
 
+bool IsGemmApplicable(const miopen::ConvolutionContext& ctx);
+
+std::size_t CountApplicableGemmSolvers(const miopen::ConvolutionContext& ctx);
+
 std::vector<miopen::solver::ConvSolution>
 FindAllGemmSolutions(const miopen::ConvolutionContext& ctx,
                      const miopen::AnyInvokeParams& invoke_ctx);

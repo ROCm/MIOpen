@@ -131,11 +131,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
 
     bool IsWinograd3x3SupportedAndFast(miopen::ConvolutionContext& ctx) const;
 
-    std::size_t ForwardGetValidWorkSpaceSizeGemm(Handle& handle,
-                                                 const TensorDescriptor& wDesc,
-                                                 const TensorDescriptor& xDesc,
-                                                 const TensorDescriptor& yDesc) const;
-
     std::size_t BackwardGetValidWorkSpaceSizeGemm(const TensorDescriptor& dyDesc,
                                                   const TensorDescriptor& wDesc,
                                                   const TensorDescriptor& dxDesc) const;
@@ -397,11 +392,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     float lowp_quant; // quantization factor for low precision
 
     private:
-    void ConvFwdGemm(Handle& handle,
-                     const ConvFwdTensors& tensors,
-                     Data_t workSpace,
-                     std::size_t workSpaceSize) const;
-
     void ConvBwdGemm(Handle& handle,
                      const struct ConvBwdTensors& tensors,
                      Data_t workSpace,
@@ -446,10 +436,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                  size_t maxSolutionCount,
                                  size_t* solutionCount,
                                  miopenConvSolution_t* solutions) const;
-
-    bool IsGemmApplicableFwd(const TensorDescriptor& wDesc,
-                             const TensorDescriptor& xDesc,
-                             const TensorDescriptor& yDesc) const;
 
     bool IsGemmApplicableBwd(const TensorDescriptor& dyDesc,
                              const TensorDescriptor& wDesc,

@@ -337,51 +337,6 @@ bool ConvolutionDescriptor::IsWinograd3x3SupportedAndFast(miopen::ConvolutionCon
     return solver::ConvBinWinograd3x3U{}.IsApplicable(ctx);
 }
 
-/// \todo Merge with ForwardGetWorkSpaceSizeGEMM
-/// Use it instead of ForwardGetWorkSpaceSizeGEMM in ForwardGetWorkSpaceSize
-std::size_t
-ConvolutionDescriptor::ForwardGetValidWorkSpaceSizeGemm(Handle& handle,
-                                                        const TensorDescriptor& wDesc,
-                                                        const TensorDescriptor& xDesc,
-                                                        const TensorDescriptor& yDesc) const
-{
-
-#if MIOPEN_USE_GEMM
-    if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
-    {
-        const std::size_t spatial_dim = GetSpatialDimension();
-        auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
-
-        // Use transpose path for 1x1 stride=2
-        if(GetSpatialDimension() == 2 &&
-           (miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-            miopen::all_of(GetConvPads(), [](auto v) { return v == 0; })) &&
-           (miopen::all_of(GetConvStrides(), [](auto v) { return v == 2; })))
-        {
-            size_t gemm_trans = ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc);
-            /// \todo WORKAROUND for issue 1430
-            if(gemm_trans > MAX_MEM_ALLOC_SZ /* handle.GetMaxMemoryAllocSize() */)
-                gemm_trans = 0;
-            return gemm_trans;
-        }
-
-        size_t workspace_size_gemm = ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc);
-        /// \todo WORKAROUND for issue 1430
-        if(workspace_size_gemm > MAX_MEM_ALLOC_SZ /* handle.GetMaxMemoryAllocSize() */)
-            workspace_size_gemm = 0;
-
-        return workspace_size_gemm;
-    }
-    return 0;
-#else
-    (void)handle;
-    (void)wDesc;
-    (void)xDesc;
-    (void)yDesc;
-    return 0;
-#endif
-}
-
 std::size_t
 ConvolutionDescriptor::WrwGetValidWorkSpaceSizeGemm(const TensorDescriptor& dyDesc,
                                                     const TensorDescriptor& /*xDesc*/,
