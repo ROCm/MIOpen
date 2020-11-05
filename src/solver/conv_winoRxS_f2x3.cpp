@@ -301,7 +301,113 @@ ConvBinWinogradRxSf2x3::Search(const ConvolutionContext& context,
     return GenericSearch(*this, context, invoke_ctx);
 }
 
-float ConvBinWinogradRxSf2x3::GetWti(const ConvolutionContext& params) const { return -2.0; }
+struct UnifiedConv2d
+{
+    int64_t K;               // X
+    int64_t S;               // Y
+    int64_t C;               // V
+    int64_t N;               // W
+    int64_t R;               // Z
+    int64_t pad_w;           // AA
+    int64_t pad_h;           // AB
+    int64_t U;               // AC
+    int64_t V;               // AD
+    int64_t out_w;           // AE
+    int64_t out_h;           // AF
+    int64_t input_stride_w;  // AG -p -q
+    int64_t input_stride_h;  // AH
+    int64_t filter_stride_w; // AI -l -j
+    int64_t filter_stride_h; // AJ
+    UnifiedConv2d() = delete;
+
+    // Fwd                  WrW
+    // ----------------------------------------
+    // kernel_size_h        in_height
+    // kernel_size_w        in_width
+    // kernel_stride_h      kernel_dilation_h
+    // kernel_stride_w      kernel_dilation_w
+    // n_inputs_per_group   batch_sz
+    // n_outputs_per_group  n_inputs_per_group
+    // in_height            out_height
+    // in_width             out_width
+    // out_height           kernel_size_h
+    // out_width            kernel_size_w
+    // batch_sz             n_outputs_per_group
+    //
+    // KT      XLS             DRIVER                                  PROBLEM DESCRIPTION
+    // -----------------------------------------------------------------------------------
+    // fdil := filter_stride   -l/j filter dilation                    kernel_dilation
+    // strd := U/V             -u/v convolution stride (output stride) kernel_stride
+    // idil := input dilation  (n/a except transposed convolutions)    ?
+
+    UnifiedConv2d(const ConvolutionContext& params)
+    {
+        const auto n_inputs_per_group  = params.n_inputs / params.group_counts;
+        const auto n_outputs_per_group = params.n_outputs / params.group_counts;
+        if(!params.direction.IsBackwardWrW())
+        {
+            R     = params.kernel_size_h;
+            S     = params.kernel_size_w;
+            U     = params.direction.IsForward() ? params.kernel_stride_h : 1;
+            V     = params.direction.IsForward() ? params.kernel_stride_w : 1;
+            C     = n_inputs_per_group; // Bwd: C and K is reversed in ProblemDescription
+            K     = n_outputs_per_group;
+            out_h = params.out_height; // Bwd: height/width is reversed in ProblemDescription
+            out_w = params.out_width;
+            N     = params.batch_sz;
+            pad_h = params.direction.IsForward() ? params.pad_h : params.GetBackwardPadH();
+            pad_w = params.direction.IsForward() ? params.pad_w : params.GetBackwardPadW();
+            input_stride_h  = params.direction.IsForward() ? 1 : params.kernel_stride_h;
+            input_stride_w  = params.direction.IsForward() ? 1 : params.kernel_stride_w;
+            filter_stride_h = params.kernel_dilation_h;
+            filter_stride_w = params.kernel_dilation_w;
+        }
+        else
+        { // WrW
+            R               = params.in_height;
+            S               = params.in_width;
+            U               = params.kernel_dilation_h;
+            V               = params.kernel_dilation_w;
+            C               = params.batch_sz;
+            K               = n_inputs_per_group;
+            out_h           = params.kernel_size_h;
+            out_w           = params.kernel_size_w;
+            N               = n_outputs_per_group;
+            pad_h           = params.pad_h;
+            pad_w           = params.pad_w;
+            input_stride_h  = 1;
+            input_stride_w  = 1;
+            filter_stride_h = params.kernel_stride_h;
+            filter_stride_w = params.kernel_stride_w;
+        }
+    }
+};
+
+float ConvBinWinogradRxSf2x3::GetWti(const ConvolutionContext& params) const
+{
+    constexpr auto WTI_UNKNOWN = -2.0;
+    UnifiedConv2d u(params);
+    if(!(params.group_counts == 1) || //
+       !(u.pad_h == 1) ||             //
+       !(u.pad_h == 1) ||             //
+       !(u.U == 1) ||                 //
+       !(u.V == 1) ||                 //
+       !(u.input_stride_h == 1) ||    //
+       !(u.input_stride_w == 1) ||    //
+       !(u.filter_stride_h == 1) ||   //
+       !(u.filter_stride_w == 1) ||   //
+       !(u.R <= 5) ||                 //
+       !(u.S <= 5) ||                 //
+       !(u.C >= 16) ||                //
+       !(u.K >= 16))                  //
+        return WTI_UNKNOWN;
+
+    const auto DATATYPE_BITS = 32; // S // 16 for FP16 // FIXME
+    const auto n_groups      = 60; // BQ = 60 // FIXME
+
+    // FIXME // if GUI_ACTIVE clocks > 10^5
+    return WTI_UNKNOWN;
+}
 
 bool ConvBinWinogradRxSf2x3::IsApplicable(const ConvolutionContext& params) const
 {
