@@ -1534,10 +1534,14 @@ struct ConvMPBidirectWinograd : SolverBase<ConvolutionContext>
     }
 };
 extern template struct ConvMPBidirectWinograd<2, 3>;
+extern template struct ConvMPBidirectWinograd<3, 2>;
 extern template struct ConvMPBidirectWinograd<3, 3>;
 extern template struct ConvMPBidirectWinograd<4, 3>;
+extern template struct ConvMPBidirectWinograd<3, 4>;
 extern template struct ConvMPBidirectWinograd<5, 3>;
+extern template struct ConvMPBidirectWinograd<3, 5>;
 extern template struct ConvMPBidirectWinograd<6, 3>;
+extern template struct ConvMPBidirectWinograd<3, 6>;
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW = WinoDataH, int WinoFilterW = WinoFilterH>
 struct ConvMPBidirectWinograd_xdlops : SolverBase<ConvolutionContext>
@@ -1605,10 +1609,14 @@ struct ConvMPBidirectWinograd_xdlops : SolverBase<ConvolutionContext>
 };
 
 extern template struct ConvMPBidirectWinograd_xdlops<2, 3>;
+extern template struct ConvMPBidirectWinograd_xdlops<3, 2>;
 extern template struct ConvMPBidirectWinograd_xdlops<3, 3>;
 extern template struct ConvMPBidirectWinograd_xdlops<4, 3>;
+extern template struct ConvMPBidirectWinograd_xdlops<3, 4>;
 extern template struct ConvMPBidirectWinograd_xdlops<5, 3>;
+extern template struct ConvMPBidirectWinograd_xdlops<3, 5>;
 extern template struct ConvMPBidirectWinograd_xdlops<6, 3>;
+extern template struct ConvMPBidirectWinograd_xdlops<3, 6>;
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW = WinoDataH, int WinoFilterW = WinoFilterH>
 struct ConvWinograd3x3MultipassWrW : SolverBase<ConvolutionContext>

@@ -835,7 +835,7 @@ lds_buf_size = tiles_per_group * 8 * 8 * lds_elem_size
 .macro _enumerate_d x_size, base_gpr, step, off
     .irp i,0,1,2,3,4,5,6,7
         _off = \step * \i + \off
-        .if _off < (\x_size)
+        .if \i < (\x_size)
             d\i = \base_gpr + _off
         .else
             d\i = -1
