@@ -308,6 +308,12 @@ class SQLiteBase
     }
 
     template <typename... U>
+    inline auto MarkRecord(U&... args)
+    {
+        return reinterpret_cast<Derived*>(this)->MarkRecordUnsafe(args...);
+    }
+
+    template <typename... U>
     inline auto Remove(const U&... args)
     {
         return reinterpret_cast<Derived*>(this)->RemoveUnsafe(args...);

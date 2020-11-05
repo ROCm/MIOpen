@@ -51,6 +51,7 @@ void SaveBinary(const boost::filesystem::path& binary_path,
                 const std::string& name,
                 const std::string& args,
                 bool is_kernel_str = false);
+void MarkBinary(const std::string& name, const std::string& args);
 #else
 std::string LoadBinary(const std::string& device,
                        std::size_t num_cu,

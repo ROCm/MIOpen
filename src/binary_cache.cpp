@@ -138,6 +138,16 @@ boost::filesystem::path GetCacheFile(const std::string& device,
 }
 
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
+void MarkBinary(const std::string& name, const std::string& args, bool is_kernel_str)
+{
+    if(miopen::IsCacheDisabled())
+        return {};
+
+    auto db              = GetDb(device, num_cu);
+    std::string filename = (is_kernel_str ? miopen::md5(name) : name) + ".o";
+    KernelConfig cfg{filename, args, ""};
+    db.MarkRecord(cfg);
+}
 std::string LoadBinary(const std::string& device,
                        const size_t num_cu,
                        const std::string& name,

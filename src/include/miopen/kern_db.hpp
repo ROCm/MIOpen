@@ -33,6 +33,7 @@
 #include <miopen/sqlite_db.hpp>
 #include <miopen/bz2.hpp>
 #include <miopen/md5.hpp>
+#include <miopen/exp_backoff.hpp>
 
 #include <boost/core/explicit_operator_bool.hpp>
 #include <boost/none.hpp>
@@ -73,7 +74,7 @@ struct KernelConfig
            << "CREATE UNIQUE INDEX IF NOT EXISTS "
            << "`idx_" << KernelConfig::table_name() << "` "
            << "ON " << KernelConfig::table_name()
-           << "(kernel_name, kernel_args, kernel_hash, uncompressed_size);";
+           << "(kernel_name, kernel_args);";
         return ss.str();
     }
     std::string Where() const
@@ -121,6 +122,23 @@ class KernDb : public SQLiteBase<KernDb>
     }
 
     template <typename T>
+    bool MarkRecordUnsafe(const T& problem_config)
+    {
+        if(filename.empty())
+            return true;
+        auto upd_query = "UPDATE " + T::table_name() + " SET uncompressed_size = -1 WHERE "
+                        problem_config.Where() + ";";
+        auto stmt = SQLite::Statement{sql, upd_query};
+        auto rc = stmt.Step(sql);
+        if(rc == SQLITE_DONE)
+            return true;
+        else
+            MIOPEN_THROW(miopenStatusInternalError, "Unable to update binary cache");
+    
+        return false;
+    }
+
+    template <typename T>
     boost::optional<std::string> FindRecordUnsafe(const T& problem_config)
     {
         if(filename.empty())
@@ -128,29 +146,47 @@ class KernDb : public SQLiteBase<KernDb>
         // Where clause with inserted values defeats the purpose of a prepraed statement
         auto select_query = "SELECT kernel_blob, kernel_hash, uncompressed_size FROM " +
                             T::table_name() + " WHERE " + problem_config.Where() + ";";
-        auto stmt = SQLite::Statement{sql, select_query};
-        // only one result field
-        // assert one row
-        auto rc = stmt.Step(sql);
-        if(rc == SQLITE_ROW)
+
+        LazyExponentialBackoff exp_bo{10, 2, std::chrono::seconds(60)};
+        while(exp_bo)
         {
-            auto compressed_blob           = stmt.ColumnBlob(0);
-            auto md5_hash                  = stmt.ColumnText(1);
-            auto uncompressed_size         = stmt.ColumnInt64(2);
-            std::string& decompressed_blob = compressed_blob;
-            if(uncompressed_size != 0)
+            auto stmt = SQLite::Statement{sql, select_query};
+            // only one result field
+            // assert one row
+            auto rc = stmt.Step(sql);
+            if(rc == SQLITE_ROW)
             {
-                decompressed_blob = decompress_fn(compressed_blob, uncompressed_size);
+                auto uncompressed_size         = stmt.ColumnInt64(2);
+                if(uncompressed_size == -1)
+                {
+                    auto slot = *exp_bo;
+                    // sleep for sometime and then try again
+                    if(slot != 0)
+                        std::this_thread::sleep_for(std::chrono::microseconds(100 * slot));
+                    
+                    continue;
+                }
+
+
+                auto compressed_blob           = stmt.ColumnBlob(0);
+                auto md5_hash                  = stmt.ColumnText(1);
+                
+                std::string& decompressed_blob = compressed_blob;
+                if(uncompressed_size != 0)
+                {
+                    decompressed_blob = decompress_fn(compressed_blob, uncompressed_size);
+                }
+                auto new_md5 = md5(decompressed_blob);
+                if(new_md5 != md5_hash)
+                    MIOPEN_THROW(miopenStatusInternalError, "Possible database corruption");
+                return decompressed_blob;
             }
-            auto new_md5 = md5(decompressed_blob);
-            if(new_md5 != md5_hash)
-                MIOPEN_THROW(miopenStatusInternalError, "Possible database corruption");
-            return decompressed_blob;
+            else if(rc == SQLITE_DONE)
+                return boost::none;
+            else
+                MIOPEN_THROW(miopenStatusInternalError, sql.ErrorMessage());
         }
-        else if(rc == SQLITE_DONE)
-            return boost::none;
-        else
-            MIOPEN_THROW(miopenStatusInternalError, sql.ErrorMessage());
+        MIOPEN_THROW(miopenStatusInternalError, "Timeout waiting for code object to compile");
         return boost::none;
     }
 
