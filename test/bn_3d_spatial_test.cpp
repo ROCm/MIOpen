@@ -1340,7 +1340,7 @@ struct batch_norm_3d_spatial_driver : test_driver
 #if(MIO_BN_SP_TEST_DEBUG == 1)
         std::cout << "Running back propagation spatial recalc." << std::endl;
 #endif
-        this->tolerance = 80 * input.desc.GetElementSize();
+        this->tolerance = 8000 * input.desc.GetElementSize();
         verify(verify_backward_3d_bn_spatial_recalc<T, PREC_TYPE>{input, dy_input, scale});
 #endif
 
