@@ -323,15 +323,15 @@ PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGemmSizeAndGemmKBlock(
 
         int gemm_k_block_times_gemm_k_total = n * ho * wo;
 
-        const int max_grid_size = 20 * ctx.GetStream().GetMaxComputeUnits();
-
         if(!(gemm_m % GemmMPerBlock == 0 && gemm_n % GemmNPerBlock == 0 &&
-             gemm_k_block_times_gemm_k_total % GemmKPack == 0))
+             gemm_k_block_times_gemm_k_total % (GemmKPerBlock * GemmKPack) == 0))
             MIOPEN_THROW("invalid performance parameter");
 
-        int grid_size_without_split_k = g * (gemm_m / GemmMPerBlock) * (gemm_n / GemmNPerBlock);
+        int grid_size_without_split_gemmk = g * (gemm_m / GemmMPerBlock) * (gemm_n / GemmNPerBlock);
 
-        gemm_k_block = std::max(max_grid_size / grid_size_without_split_k, 1);
+        const int max_grid_size = 20 * ctx.GetStream().GetMaxComputeUnits();
+
+        gemm_k_block = std::max(max_grid_size / grid_size_without_split_gemmk, 1);
         gemm_k_block = std::min(gemm_k_block, n);
 
         for(; gemm_k_block > 1; gemm_k_block--)
@@ -352,7 +352,8 @@ PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGemmSizeAndGemmKBlock(
 
         gemm_k_block = std::max(1, gemm_k_block);
 
-        gemm_g = g * gemm_k_block;
+        gemm_g       = g * gemm_k_block;
+        gemm_k_total = gemm_k_block_times_gemm_k_total / gemm_k_block;
     }
     catch(...)
     {
