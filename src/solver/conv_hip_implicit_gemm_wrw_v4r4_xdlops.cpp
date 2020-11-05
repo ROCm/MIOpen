@@ -41,7 +41,7 @@ namespace solver {
 
 PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops()
     : PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops(
-          64, 64, 2, 32, 32, 4, false, false)
+          4, 4, 1, 4, 4, 1, false, false)
 {
 }
 
@@ -274,12 +274,17 @@ PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGridSize(const ConvolutionContext
 
     try
     {
+        bool valid = false;
+
         int gemm_g = -1;
         int gemm_m = -1;
         int gemm_n = -1;
 
-        std::tie(gemm_g, gemm_m, gemm_n, std::ignore, std::ignore, std::ignore) =
+        std::tie(gemm_g, gemm_m, gemm_n, std::ignore, std::ignore, valid) =
             CalculateGemmSizeAndGemmKBlock(ctx);
+
+        if(!valid)
+            MIOPEN_THROW("invalid performance parameter");
 
         if(!(gemm_m % GemmMPerBlock == 0 && gemm_n % GemmNPerBlock == 0))
             MIOPEN_THROW("invalid performance parameter");
