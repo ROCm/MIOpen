@@ -193,6 +193,7 @@ static_assert(fdilation_h * ddilation_h * stride_h <= 2)
 
 
 .GPR_ALLOC_BEGIN
+.SGPR_RESERVE_VCC
 // initial state
 // s[0:1] - kernarg address
 // s2 - wg x (1 wg per CU)
@@ -258,9 +259,10 @@ gid_x = 2
 .SGPR_ALLOC x_TW_stride // tw - coordinate inside transformed tile
 .SGPR_ALLOC x_TH_stride // th - coordinate inside transformed tile
 .SGPR_ALLOC addr_step
+
 .SGPR_ALLOC base_tile
 .SGPR_ALLOC tiles_step
-.SGPR_RESERVE_VCC
+.SGPR_ALLOC const0_25
 
 .VGPR_ALLOC_FROM 0
 .VGPR_ALLOC tid
@@ -641,6 +643,34 @@ lds_buf_size = tiles_per_group * 8 * 8 * lds_elem_size
     
         v_mul_f32 v[d1], -0.3333333333, v[d1]
         v_mul_f32 v[d2], 0.1111111111, v[d2]
+    .elseif xform_filter && \o_size == 3 && \f_size == 5
+        v_mov_b32 v[d6], v[d4]
+        v_mul_f32 v[d5], 2.0, v[d4]
+        v_fma_f32 v[d5], 4.0, v[d3], v[d5]
+        v_mul_f32 v[t0], 8.0, v[d2]
+        v_add_f32 v[d5], v[d5], v[t0]
+        v_mul_f32 v[t0], 16.0, v[d1]
+        v_add_f32 v[d5], v[d5], v[t0]
+        v_mul_f32 v[t0], 32.0, v[d0]
+        v_add_f32 v[d5], v[d5], v[t0]
+        v_mul_f32 v[d5], 0.02222222222, v[d5]
+        v_add_f32 v[t0], v[d0], v[d2]
+        v_add_f32 v[t0], v[t0], v[d4]
+        v_add_f32 v[t1], v[d1], v[d3]
+        v_mul_f32 v[t2], 16.0, v[d4]
+        v_fma_f32 v[t2], 4.0, v[d2], v[t2]
+        v_add_f32 v[t2], v[t2], v[d0]
+        v_mul_f32 v[t3], 8.0, v[d3]
+        v_fma_f32 v[t3], 2.0, v[d1], v[t3]
+        v_mul_f32 v[d0], 0.5, v[d0]
+        v_add_f32 v[d1], v[t0], v[t1]
+        v_mul_f32 v[d1], -0.33333333333, v[d1]
+        v_sub_f32 v[d2], v[t0], v[t1]
+        v_mul_f32 v[d2], 0.11111111111, v[d2]
+        v_add_f32 v[d3], v[t2], v[t3]
+        v_mul_f32 v[d3], 0.02777777778, v[d3]
+        v_sub_f32 v[d4], v[t3], v[t2]
+        v_mul_f32 v[d4], 0.01666666667, v[d4]
     .elseif xform_output && \o_size == 5 && \f_size == 3
         v_add_f32 v[t0], v[d1], v[d2]
         v_add_f32 v[t1], v[d3], v[d4]
@@ -649,131 +679,112 @@ lds_buf_size = tiles_per_group * 8 * 8 * lds_elem_size
         v_add_f32 v[d0], v[d5], v[d0]
         v_add_f32 v[d0], v[t0], v[d0]
         v_add_f32 v[d0], v[t1], v[d0]
-        
         v_fma_f32 v[d1], 0.5, v[d5], v[t2]
         v_fma_f32 v[d1], 2.0, v[t3], v[d1]
-    
         v_mul_f32 v[d5], 0.25, v[d5]
         v_add_f32 v[d2], v[d5], v[t0]
         v_mul_f32 v[t1], 4.0, v[t1]
         v_add_f32 v[d2], v[t1], v[d2]
-    
         v_mul_f32 v[d5], 0.5, v[d5]
         v_add_f32 v[d3], v[t2], v[d5]
         v_mul_f32 v[t3], 8.0, v[t3]
         v_add_f32 v[d3], v[t3], v[d3]
-    
         v_fma_f32 v[d4], 0.5, v[d5], v[d6]
         v_add_f32 v[d4], v[t0], v[d4]
         v_fma_f32 v[d4], 4.0, v[t1], v[d4]
-        //    0  1  2   3   4    5   6
-        //0 { 1, 1, 1,  1,  1,   1,  0 },   0 { 1,  t0,    t1,     1,   0 }
-        //1 { 0, 1,-1,  2, -2, 1/2,  0 },   1 { 0,  t2,   2*t3,   1/2,  0 }
-        //2 { 0, 1, 1,  4,  4, 1/4,  0 },   2 { 0,  t0,   4*t1,   1/4,  0 }
-        //3 { 0, 1,-1,  8, -8, 1/8,  0 },   3 { 0,  t2,   8*t3,   1/8,  0 }
-        //4 { 0, 1, 1, 16, 16, 1/16, 1 }    4 { 0,  t0,  16*t1,  1/16,  1 }
-    
+    .elseif xform_output && \o_size == 3 && \f_size == 5
+        v_add_f32 v[t0], v[d1], v[d2]
+        v_add_f32 v[d0], v[d0], v[d5]
+        v_fma_f32 v[d1], v[d5], 0.5, v[d1]
+        v_fma_f32 v[d6], v[d5], s[const0_25], v[d6]
+        v_sub_f32 v[d1], v[d1], v[d2]
+        v_add_f32 v[d0], v[t0], v[d0]
+        v_add_f32 v[d6], v[t0], v[d6]
+        v_sub_f32 v[d5], v[d3], v[d4]
+        v_add_f32 v[t0], v[d3], v[d4]
+        v_add_f32 v[d0], v[d0], v[t0]
+        v_fma_f32 v[d1], v[d5], 2.0, v[d1]
+        v_fma_f32 v[d2], v[t0], 4.0, v[d6]
     .elseif (xform_data && \o_size == 6 && \f_size == 3) || (xform_data && \o_size == 3 && \f_size == 6)
         v_mov_b32 v[t7], 5.25
         v_sub_f32 v[t0], v[d4], v[d2]
         v_sub_f32 v[d0], v[d0], v[d6]
-        v_fma_f32 v[d0], v[t7], v[t0], v[d0] //fmac 5.25
+        v_fma_f32 v[d0], v[t7], v[t0], v[d0]
         v_sub_f32 v[t0], v[d3], v[d5]
         v_sub_f32 v[d7], v[d7], v[d1]
-        v_fma_f32 v[d7], v[t7], v[t0], v[d7] //fmac 5.25
-    
+        v_fma_f32 v[d7], v[t7], v[t0], v[d7]
         v_mov_b32 v[t7], -4.25
         v_add_f32 v[t0], v[d1], v[d5]
-        v_fma_f32 v[t0], v[t7], v[d3], v[t0] //fmac -4.25
+        v_fma_f32 v[t0], v[t7], v[d3], v[t0]
         v_add_f32 v[t1], v[d2], v[d6]
-        v_fma_f32 v[t1], v[t7], v[d4], v[t1] //fmac -4.25 // d1 = t1 + t0; d2 = t1 - t0
-    
+        v_fma_f32 v[t1], v[t7], v[d4], v[t1]
         v_mov_b32 v[t6], 0.25
         v_fma_f32 v[t3], v[t6], v[d2], v[d6]
         v_mov_b32 v[t7], -1.25
-        v_fma_f32 v[t3], v[t7], v[d4], v[t3] //fmac -1.25
+        v_fma_f32 v[t3], v[t7], v[d4], v[t3]
         v_fma_f32 v[t2], 4.0, v[d5], v[d1]
         v_mov_b32 v[t7], -5.0
-        v_fma_f32 v[t2], v[t7], v[d3], v[t2] //fmac -5.0 // d3 = 0.5 * t2 + t3; d4 = -0.5 * t2 + t3
-    
+        v_fma_f32 v[t2], v[t7], v[d3], v[t2]
         v_fma_f32 v[t4], 4.0, v[d2], v[d6]
-        v_fma_f32 v[t4], v[t7], v[d4], v[t4] //fmac -5.0
+        v_fma_f32 v[t4], v[t7], v[d4], v[t4]
         v_fma_f32 v[t5], 4.0, v[d1], v[d5]
-        v_fma_f32 v[t5], v[t7], v[d3], v[t5] //fmac -5.0
-    
+        v_fma_f32 v[t5], v[t7], v[d3], v[t5]
         v_fma_f32 v[d5],  0.5, v[t5], v[t4]
         v_fma_f32 v[d6], -0.5, v[t5], v[t4]
         v_fma_f32 v[d3],  0.5, v[t2], v[t3]
         v_fma_f32 v[d4], -0.5, v[t2], v[t3]
         v_add_f32 v[d1], v[t1], v[t0]
         v_sub_f32 v[d2], v[t1], v[t0]
-        // 24 + 5c
-        //t0 = d4 - d2
-        //d0 = d0 - d6
-        //d0 += 5.25 * t0
-        //t0 = d3 - d5
-        //d7 = d7 - d1
-        //d7 += 5.25 * t0
-        //
-        //t0 = d1 + d5
-        //t0 += -4.25 * d3
-        //t1 = d2 + d6
-        //t1 += -4.25 * d4 // d1 = t1 + t0; d2 = t1 - t0
-        //
-        //t3 = d6 + 0.25 * d2
-        //t3 += -1.25 * d4
-        //t2 = d1 + 4 * d5
-        //t2 += -5 * d3 // d3 = 0.5 * t2 + t3;  d4 = -0.5 * t2 + t3
-        //
-        //t4 = d6 + 4 * d2
-        //t4 += -5 * d4
-        //t5 = d5 + 4 * d1
-        //t5 += -5 * d3
-        //
-        //d5 = t4 + 0.5 * t5
-        //d6 = t4 - 0.5 * t5
-        //d3 = 0.5 * t2 + t3
-        //d4 = -0.5 * t2 + t3
-        //d1 = t1 + t0
-        //d2 = t1 - t0
-        //    0    1      2      3      4      5   6  7
-        //0 { 1,    0, -5.25,     0,  5.25,    0, -1, 0 },
-        //1 { 0,    1,     1, -4.25, -4.25,    1,  1, 0 },
-        //2 { 0,   -1,     1,  4.25, -4.25,   -1,  1, 0 },
-        //3 { 0,  0.5,  0.25,  -2.5, -1.25,    2,  1, 0 },
-        //4 { 0, -0.5,  0.25,   2.5, -1.25,   -2,  1, 0 },
-        //5 { 0,    2,     4,  -2.5,    -5,  0.5,  1, 0 },
-        //6 { 0,   -2,     4,   2.5,    -5, -0.5,  1, 0 },
-        //7 { 0,   -1,     0,  5.25,     0,-5.25,  0, 1 }},
     .elseif xform_filter && \o_size == 6 && \f_size == 3
-        //0 {     1,       0,      0    },
-        //1 {  -2.0/9,  -2.0/9, -2.0/9  }, {1,  1,  1} *-2/9
-        //2 {  -2.0/9,   2.0/9, -2.0/9  }, {1, -1,  1} *-2/9
-        //3 {  1.0/90,   1.0/45, 2.0/45 }, {1,  2,  4} * 1/90
-        //4 {  1.0/90,  -1.0/45, 2.0/45 }, {1  -2,  4} * 1/90
-        //5 { 32.0/45,  16.0/45, 8.0/45 }, {4,  2,  1} * 16/90
-        //6 { 32.0/45, -16.0/45, 8.0/45 }, {4, -2,  1} * 16/90
-        //7 {    0,        0,      1    }},
-    
         v_mov_b32 v[d7], v[d2]
-    
         v_fma_f32 v[t0], 4.0, v[d0], v[d2]
         v_fma_f32 v[d6],-2.0, v[d1], v[t0]
         v_mul_f32 v[d6], 0.17777777777, v[d6]
         v_fma_f32 v[d5], 2.0, v[d1], v[t0]
         v_mul_f32 v[d5], 0.17777777777, v[d5]
-    
         v_fma_f32 v[t0], 4.0, v[d2], v[d0]
         v_fma_f32 v[d4],-2.0, v[d1], v[t0]
         v_mul_f32 v[d4], 0.01111111111, v[d4]
         v_fma_f32 v[d3], 2.0, v[d1], v[t0]
         v_mul_f32 v[d3], 0.01111111111, v[d3]
-    
         v_add_f32 v[t0], v[d0], v[d2]
         v_sub_f32 v[d2], v[t0], v[d1]
         v_mul_f32 v[d2],-0.22222222222, v[d2]
         v_add_f32 v[d1], v[t0], v[d1]
         v_mul_f32 v[d1],-0.22222222222, v[d1]
+    .elseif xform_filter && \o_size == 3 && \f_size == 6
+        v_mov_b32 v[d7], v[d5]
+        v_add_f32 v[t0], v[d0], v[d2]
+        v_add_f32 v[t0], v[t0], v[d4]
+        v_sub_f32 v[t0], 0.0, v[t0]
+        v_add_f32 v[t1], v[d1], v[d3]
+        v_add_f32 v[t1], v[t1], v[d5]
+        v_mul_f32 v[t2], 16.0, v[d4]
+        v_add_f32 v[t2], v[t2], v[d0]
+        v_fma_f32 v[t2], 4.0, v[d2], v[t2]
+        v_mul_f32 v[t3], 32.0, v[d5]
+        v_mul_f32 v[t4], 8.0, v[d3]
+        v_add_f32 v[t3], v[t4], v[t3]
+        v_fma_f32 v[t3], 2.0, v[d1], v[t3]
+        v_mul_f32 v[t4], 32.0, v[d0]
+        v_fma_f32 v[t4], 4.0, v[d2], v[t4]
+        v_fma_f32 v[t4], 4.0, v[d2], v[t4]
+        v_fma_f32 v[t4], 2.0, v[d4], v[t4]
+        v_fma_f32 v[t5], 4.0, v[d3], v[d5]
+        v_mul_f32 v[t6], 16.0, v[d1]
+        v_add_f32 v[t5], v[t5], v[t6]
+        v_sub_f32 v[d1], v[t0], v[t1]
+        v_mul_f32 v[d1], 0.22222222222, v[d1]
+        v_add_f32 v[d2], v[t0], v[t1]
+        v_mul_f32 v[d2], 0.22222222222, v[d2]
+        v_add_f32 v[d3], v[t2], v[t3]
+        v_mul_f32 v[d3], 0.01111111111, v[d3]
+        v_sub_f32 v[d4], v[t2], v[t3]
+        v_mul_f32 v[d4], 0.01111111111, v[d4]
+        v_add_f32 v[d5], v[t4], v[t5]
+        v_mul_f32 v[d5], 0.02222222222, v[d5]
+        v_sub_f32 v[d6], v[t4], v[t5]
+        v_mul_f32 v[d6], 0.02222222222, v[d6]
     .elseif xform_output && \o_size == 6 && \f_size == 3
         v_add_f32 v[t0], v[d1], v[d2]
         v_add_f32 v[t1], v[d3], v[d4]
@@ -784,37 +795,38 @@ lds_buf_size = tiles_per_group * 8 * 8 * lds_elem_size
         v_sub_f32 v[t3], v[d1], v[d2]
         v_sub_f32 v[t4], v[d3], v[d4]
         v_sub_f32 v[t5], v[d5], v[d6]
-    
         v_fma_f32 v[d1], 0.5, v[t5], v[t3]
         v_fma_f32 v[d1], 2.0, v[t4], v[d1]
-    
         v_mul_f32 v[t2], 0.25, v[t2]
         v_add_f32 v[d2], v[t0], v[t2]
         v_mul_f32 v[t1], 4.0, v[t1]
         v_add_f32 v[d2], v[t1], v[d2]
-    
         v_mul_f32 v[t5], 0.125, v[t5]
         v_add_f32 v[d3], v[t3], v[t5]
         v_mul_f32 v[t4], 8.0, v[t4]
         v_add_f32 v[d3], v[t4], v[d3]
-        
         v_mul_f32 v[t2], 0.25, v[t2]
         v_add_f32 v[d4], v[t0], v[t2]
         v_fma_f32 v[d4], 4.0, v[t1], v[d4]
-    
         v_mul_f32 v[t5], 0.25, v[t5]
         v_add_f32 v[d5], v[d7], v[t5]
         v_add_f32 v[d5], v[t3], v[d5]
         v_fma_f32 v[d5], 4.0, v[t4], v[d5]
-    
-        //    0  1  2   3    4    5      6    7
-        //0 { 1, 1, 1,  1,   1,   1,     1,   0 },   0 { 1,  t0,   t1,     t2,   0 }
-        //1 { 0, 1,-1,  2,  -2,  1/2,  -1/2,  0 },   1 { 0,  t3,  2*t4,   t5/2,  0 }
-        //2 { 0, 1, 1,  4,   4,  1/4,   1/4,  0 },   2 { 0,  t0,  4*t1,   t2/4,  0 }  
-        //3 { 0, 1,-1,  8,  -8,  1/8,  -1/8,  0 },   3 { 0,  t3,  8*t4,   t5/8,  0 }
-        //4 { 0, 1, 1, 16,  16,  1/16,  1/16, 0 },   4 { 0,  t0, 16*t1,  t2/16,  0 }
-        //5 { 0, 1,-1, 32, -32,  1/32, -1/32, 1 }    5 { 0,  t3, 32*t4,  t5/32,  1 }
-    
+    .elseif xform_output && \o_size == 3 && \f_size == 6
+        v_add_f32 v[t0], v[d5], v[d6]
+        v_add_f32 v[d0], v[t0], v[d0]
+        v_fma_f32 v[d7], v[t0], s[const0_25], v[d7]
+        v_add_f32 v[t0], v[d1], v[d2]
+        v_add_f32 v[d0], v[t0], v[d0]
+        v_add_f32 v[d7], v[t0], v[d7]
+        v_sub_f32 v[t0], v[d5], v[d6]
+        v_fma_f32 v[d1], v[t0], 0.5, v[d1]
+        v_sub_f32 v[d1], v[d1], v[d2]
+        v_sub_f32 v[d2], v[d3], v[d4]
+        v_add_f32 v[t0], v[d3], v[d4]
+        v_add_f32 v[d0], v[d0], v[t0]
+        v_fma_f32 v[d1], v[d2], 2.0, v[d1]
+        v_fma_f32 v[d2], v[t0], 4.0, v[d7] 
     .elseif \o_size == 1
         .irp i,1,2,3,4,5,6,7
             .if xform_output && (\i < \f_size)
@@ -889,11 +901,11 @@ lds_buf_size = tiles_per_group * 8 * 8 * lds_elem_size
         //v_add_f32 v[\base_gpr + \x_size - 1], 1.0, v[\base_gpr]
     .elseif \ddil == 2
         f2 = \f_size / 2
-		f1 = \f_size - f2
-		o2even = \o_size / 2
-		o1even = \o_size - o2even
-		o1odd = \o_size / 2
-		o2odd = \o_size - o1odd
+        f1 = \f_size - f2
+        o2even = \o_size / 2
+        o1even = \o_size - o2even
+        o1odd = \o_size / 2
+        o2odd = \o_size - o1odd
 
         s_bitcmp1_b32 s[flags], \odd_flag
         s_cbranch_scc1 ddil_odd_start\@
@@ -961,14 +973,15 @@ ddil_end\@:
 
 kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
 
-    
+
 //ASMBEGIN
 
     s_load_dwordx16 s[src_addr:stride_G], s[kernarg:kernarg+1], 0x0
     s_load_dwordx4 s[stride_M1:stride_W], s[kernarg:kernarg+1], 0x4 * 16
 
-    
+
     // init sync counters and determine wave type (read/write)
+    s_mov_b32 s[const0_25], 0.25
     v_mov_b32 v[invalid], 0x80000000
     s_lshl_b32 s[shift_cnt], 1, rw_pipe_shift
     s_mov_b32 s[phase_cnt], 0

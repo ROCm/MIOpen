@@ -795,29 +795,56 @@ ConvolutionContext ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDat
 
     // GNCHW -> GCNHW
     TensorDescriptor in, wei, out;
-    miopenSet4dTensorDescriptor(&in,
-                                transform_data_type,
-                                1,
-                                wino_in.buff_info.size.c * batch_count,
-                                1,
-                                wino_in.buff_info.size.w * wino_in.buff_info.size.h *
-                                    wino_in.buff_info.size.nk);
+    if(!ctx.direction.IsBackwardWrW())
+    {
+        miopenSet4dTensorDescriptor(&in,
+                                    transform_data_type,
+                                    1,
+                                    wino_in.buff_info.size.c * batch_count,
+                                    1,
+                                    wino_in.buff_info.size.w * wino_in.buff_info.size.h *
+                                        wino_in.buff_info.size.nk);
 
-    miopenSet4dTensorDescriptor(&wei,
-                                transform_data_type,
-                                wino_wei.buff_info.size.nk * batch_count,
-                                wino_wei.buff_info.size.c,
-                                wino_wei.buff_info.size.h,
-                                wino_wei.buff_info.size.w);
+        miopenSet4dTensorDescriptor(&wei,
+                                    transform_data_type,
+                                    wino_wei.buff_info.size.nk * batch_count,
+                                    wino_wei.buff_info.size.c,
+                                    wino_wei.buff_info.size.h,
+                                    wino_wei.buff_info.size.w);
 
-    miopenSet4dTensorDescriptor(&out,
-                                transform_data_type,
-                                1,
-                                wino_out.buff_info.size.c * batch_count,
-                                1,
-                                wino_out.buff_info.size.w * wino_out.buff_info.size.h *
-                                    wino_out.buff_info.size.nk);
+        miopenSet4dTensorDescriptor(&out,
+                                    transform_data_type,
+                                    1,
+                                    wino_out.buff_info.size.c * batch_count,
+                                    1,
+                                    wino_out.buff_info.size.w * wino_out.buff_info.size.h *
+                                        wino_out.buff_info.size.nk);
+    }
+    else
+    {
+        miopenSet4dTensorDescriptor(&in,
+                                    transform_data_type,
+                                    1,
+                                    batch_count,
+                                    wino_in.buff_info.size.nk,
+                                    wino_in.buff_info.size.w * wino_in.buff_info.size.h *
+                                        wino_in.buff_info.size.c);
 
+        miopenSet4dTensorDescriptor(&wei,
+                                    transform_data_type,
+                                    wino_wei.buff_info.size.nk * batch_count,
+                                    1,
+                                    1,
+                                    wino_wei.buff_info.size.c * wino_wei.buff_info.size.h *
+                                        wino_wei.buff_info.size.w);
+
+        miopenSet4dTensorDescriptor(&out,
+                                    transform_data_type,
+                                    1,
+                                    wino_out.buff_info.size.c * batch_count,
+                                    wino_out.buff_info.size.nk,
+                                    wino_out.buff_info.size.w * wino_out.buff_info.size.h);
+    }
     // default conv_desc.
     // pads{0,0}, stride{1,1}, dilation {1, 1}
     // trans_output_pads = {0, 0},  group_count = gem_batch_count
