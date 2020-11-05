@@ -1962,7 +1962,7 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
     int GemmKPack;
     int GemmMFactor;
     int GemmNFactor;
-    int GemmKFactor;
+    int GemmKTotalFactor;
     bool GemmAThreadCopyMoreGemmK;
     bool GemmBThreadCopyMoreGemmK;
 
@@ -1985,7 +1985,7 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
         f(self.GemmKPack, "GemmKPack");
         f(self.GemmMFactor, "GemmMFactor");
         f(self.GemmNFactor, "GemmNFactor");
-        f(self.GemmKFactor, "GemmKFactor");
+        f(self.GemmKTotalFactor, "GemmKTotalFactor");
         f(self.GemmAThreadCopyMoreGemmK, "GemmAThreadCopyMoreGemmK");
         f(self.GemmBThreadCopyMoreGemmK, "GemmBThreadCopyMoreGemmK");
     }
@@ -2001,6 +2001,8 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
     bool IsFastToBeUsedForTuning(const ConvolutionContext& ctx) const;
     int CalculateGemmKBlocks(const ConvolutionContext& ctx) const;
 
+    std::tuple<int, int, int, int, int, int, int, int, bool>
+    CalculateGemmSizeAndGemmKBlock(const ConvolutionContext& ctx) const;
     std::tuple<int, bool> CalculateBlockSize() const;
     std::tuple<int, bool> CalculateGridSize(const ConvolutionContext& ctx) const;
     std::tuple<int, int, int, int, int, bool>
@@ -2011,8 +2013,6 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
 };
 struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm : SolverBase<ConvolutionContext>
 {
-    static std::tuple<int, int, int, int, int, int, int> CalculateGemmSize(
-        const ConvolutionContext& ctx, int GemmMFactor, int GemmNFactor, int GemmKFactor);
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
     GetPerformanceConfig(const ConvolutionContext& ctx) const;
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const;
