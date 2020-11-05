@@ -110,8 +110,7 @@ static void cgemm_grid(size_t* global_work_size,
 bool fft::IsApplicable(const ConvolutionContext& ctx) const
 {
     // disable running any FFT based convolutions by checking this env variable
-    if(ctx.direction.IsBackwardWrW() ||
-       !ctx.conv_problem.IsFp32())
+    if(ctx.direction.IsBackwardWrW() || !ctx.conv_problem.IsFp32())
         return false;
 
     const auto is_fwd    = ctx.direction.IsForward();
