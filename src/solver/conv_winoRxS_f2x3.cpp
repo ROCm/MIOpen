@@ -160,7 +160,7 @@ inline bool IsShaderContraintsMet(const int R,
 {
     // Padding for bwd data shall not be negative.
     /// \todo Either remove WrW related code or re-use function from RxS
-    if(params.direction.IsBackwardData() || params.direction.IsBackwardWrW()) // FIXME remove WrW
+    if(params.direction.IsBackwardData())
     {
         if(!(0 <= params.GetBackwardPadW() && params.GetBackwardPadW() < std::pow(2, 16)))
             return false;
