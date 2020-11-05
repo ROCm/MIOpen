@@ -133,10 +133,10 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
                                          const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
-    decltype(auto) conv   = problem.GetConv();
-    decltype(auto) xDesc  = problem.GetIn();
-    decltype(auto) wDesc  = problem.GetWeights();
-    decltype(auto) yDesc  = problem.GetOut();
+    decltype(auto) conv  = problem.GetConv();
+    decltype(auto) xDesc = problem.GetIn();
+    decltype(auto) wDesc = problem.GetWeights();
+    decltype(auto) yDesc = problem.GetOut();
 
     const GemmDescriptor gemm_desc =
         conv.group_count > 1
@@ -154,8 +154,8 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
 
     const std::size_t wei_k = wDesc.GetLengths()[0];
 
-    auto solution           = ConvSolution{miopenStatusSuccess};
-    solution.workspce_sz    = workspace_req;
+    auto solution        = ConvSolution{miopenStatusSuccess};
+    solution.workspce_sz = workspace_req;
 
     const auto group_count  = conv.group_count;
     const auto lowp_quant   = conv.lowp_quant;
@@ -380,10 +380,10 @@ ConvSolution GemmFwd1x1_0_1_int8::GetSolution(const ExecutionContext& context,
                                               const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
-    decltype(auto) conv   = problem.GetConv();
-    decltype(auto) xDesc  = problem.GetIn();
-    decltype(auto) wDesc  = problem.GetWeights();
-    decltype(auto) yDesc  = problem.GetOut();
+    decltype(auto) conv  = problem.GetConv();
+    decltype(auto) xDesc = problem.GetIn();
+    decltype(auto) wDesc = problem.GetWeights();
+    decltype(auto) yDesc = problem.GetOut();
 
     std::size_t in_n, in_c;
     std::tie(in_n, in_c) = tie_pick<0, 1>()(xDesc.GetLengths());
@@ -532,10 +532,10 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
                                          const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
-    decltype(auto) conv   = problem.GetConv();
-    decltype(auto) xDesc  = problem.GetIn();
-    decltype(auto) wDesc  = problem.GetWeights();
-    decltype(auto) yDesc  = problem.GetOut();
+    decltype(auto) conv  = problem.GetConv();
+    decltype(auto) xDesc = problem.GetIn();
+    decltype(auto) wDesc = problem.GetWeights();
+    decltype(auto) yDesc = problem.GetOut();
 
     std::size_t in_n, in_c;
     std::tie(in_n, in_c) = tie_pick<0, 1>()(xDesc.GetLengths());
@@ -719,7 +719,7 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
 }
 
 size_t GemmFwdRest::GetWorkspaceSize(const ExecutionContext& context,
-                                  const conv::ProblemDescription& problem) const
+                                     const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     decltype(auto) handle = context.GetStream();
@@ -745,7 +745,7 @@ size_t GemmFwdRest::GetWorkspaceSize(const ExecutionContext& context,
 }
 
 bool GemmFwdRest::IsApplicable(const ExecutionContext& context,
-                            const conv::ProblemDescription& problem) const
+                               const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     if(!GemmFwdBase::IsApplicable(context, problem))
@@ -776,13 +776,13 @@ bool GemmFwdRest::IsApplicable(const ExecutionContext& context,
 }
 
 ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
-                                   const conv::ProblemDescription& problem) const
+                                      const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
-    decltype(auto) conv   = problem.GetConv();
-    decltype(auto) xDesc  = problem.GetIn();
-    decltype(auto) wDesc  = problem.GetWeights();
-    decltype(auto) yDesc  = problem.GetOut();
+    decltype(auto) conv  = problem.GetConv();
+    decltype(auto) xDesc = problem.GetIn();
+    decltype(auto) wDesc = problem.GetWeights();
+    decltype(auto) yDesc = problem.GetOut();
 
     std::size_t in_n, in_c;
     std::tie(in_n, in_c) = tie_pick<0, 1>()(xDesc.GetLengths());

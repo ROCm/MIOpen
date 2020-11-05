@@ -633,13 +633,6 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsFastToBeUsedForTuning(
             return false;
     }
 
-#if WORKAROUND_SWDEV_240356
-    {
-        if(ctx.IsBfp16() && GemmMPerWave * GemmNPerWave > 64 * 64)
-            return false;
-    }
-#endif
-
     // don't need too many blocks
     {
         int gemm_m = 0;
@@ -653,11 +646,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsFastToBeUsedForTuning(
 
         // this the the biggest blockwise-GEMM you can do
         int max_blockwise_gemm_size =
-#if WORKAROUND_SWDEV_240356
-            gcd(128, gemm_m) * gcd(128, gemm_n);
-#else
             std::max(gcd(256, gemm_m) * gcd(128, gemm_n), gcd(128, gemm_m) * gcd(256, gemm_n));
-#endif
 
         // this is the grid size using the biggest blockwise-GEMM
         auto grid_size_max_blockwise_gemm =
@@ -667,27 +656,27 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsFastToBeUsedForTuning(
 
         if(grid_size_max_blockwise_gemm > 600)
         {
-            if(ratio > 1.41)
+            if(ratio > 2.81)
                 return false;
         }
         if(grid_size_max_blockwise_gemm > 480)
         {
-            if(ratio > 1.81)
+            if(ratio > 3.61)
                 return false;
         }
         if(grid_size_max_blockwise_gemm > 360)
         {
-            if(ratio > 2.21)
+            if(ratio > 4.41)
                 return false;
         }
         if(grid_size_max_blockwise_gemm > 240)
         {
-            if(ratio > 3.21)
+            if(ratio > 6.41)
                 return false;
         }
         else if(grid_size_max_blockwise_gemm > 120)
         {
-            if(ratio > 6.21)
+            if(ratio > 12.41)
                 return false;
         }
     }
@@ -760,17 +749,22 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsFastToBeUsedForTuning(
     // GemmKPerBlock*GemmKPack should not be too small, otherwise read performance of A matrix would
     // be bad
     {
+        int gemm_ktotal = 0;
+
+        std::tie(std::ignore, std::ignore, std::ignore, gemm_ktotal) =
+            ConvHipImplicitGemmForwardV4R4Xdlops::CalculateGemmSize(ctx);
+
         if(ctx.IsFp32())
         {
             if(GemmKPack > 4)
                 return false;
 
-            if(GemmKPerBlock * GemmKPack < 8)
+            if(GemmKPerBlock * GemmKPack < 8 && gemm_ktotal % 8 == 0)
                 return false;
         }
         else if(ctx.IsFp16() || ctx.IsBfp16())
         {
-            if(GemmKPerBlock * GemmKPack < 16)
+            if(GemmKPerBlock * GemmKPack < 16 && gemm_ktotal % 16 == 0)
                 return false;
         }
     }
@@ -912,7 +906,6 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
 
     // clang-format off
     construction_parameters.comp_options =
-        std::string(" -std=c++14 ") +
         std::string(" -DCK_PARAM_PROBLEM_G=") + std::to_string(ConvolutionContextInterpreter::GetGroupCountG(ctx)) +
         std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(ConvolutionContextInterpreter::GetBatchN(ctx)) +
         std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(ConvolutionContextInterpreter::GetOutputChannelK(ctx)) +
@@ -952,9 +945,7 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
         std::string(" -DCK_USE_AMD_XDLOPS=") + std::to_string(IsXdlopsSupport(ctx) ? 1 : 0) +
         std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + std::to_string(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}) ? 1 : 0) +
         std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}) ? '1' : '0') +
-        std::string(" -DCK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM=") + (miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM{}) ? '0' : '1') +
-        std::string(" -DCK_WORKAROUND_SWDEV_229564=") + std::to_string(WORKAROUND_SWDEV_229564) +
-        std::string(" -DCK_WORKAROUND_SWDEV_231101=") + std::to_string(WORKAROUND_SWDEV_231101) +
+        get_ck_common_compiler_flag(ctx) +
         ctx.general_compile_options;
     // clang-format on
 
@@ -966,6 +957,9 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
 bool ConvHipImplicitGemmForwardV4R4Xdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
     if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
+        return false;
+
+    if(!ctx.use_hip_kernels)
         return false;
 
     if(!IsXdlopsSupport(ctx))
