@@ -313,6 +313,7 @@ inline bool IsApplicableTransform(const ConvolutionContext& params)
     DEFINE_GETXFORMHWSIZE(params)
     DEFINE_GETDTILEHWSIZE(params)
     DEFINE_SHADER_CONV_MOD_ALIASES(params)
+    // cppcheck-suppress redundantCondition
     if(wino_xform_h > 8 || wino_xform_w > 8 || wino_dtile_h > 8 || wino_dtile_w > 8 ||
        WinoDataH > 8 || WinoFilterH > 8 || WinoDataW > 8 || WinoFilterW > 8)
     {
