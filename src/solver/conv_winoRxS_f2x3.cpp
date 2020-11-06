@@ -401,8 +401,6 @@ class ShaderModel : public UnifiedConfigConv2d
           DATATYPE_BITS(ctx.IsFp16() ? 16 : 32),
           n_groups(ctx.GetStream().GetMaxComputeUnits()), /// \todo Take n_groups from PerfConfig.
           out_of_model_scope(!(ctx.group_counts == 1) ||  //
-                             !(pad_h == 1) ||             //
-                             !(pad_h == 1) ||             //
                              !(U == 1) ||                 //
                              !(V == 1) ||                 //
                              !(input_stride_h == 1) ||    //
@@ -421,13 +419,13 @@ class ShaderModel : public UnifiedConfigConv2d
         if(out_of_model_scope)
             return -1.0; // Shader model produces unreliable results.
 
-        const auto direct_convolution_macs = C * N * K / 10e+6 *
+        const auto direct_convolution_macs = C * N * K / 1e+6 *
                                              RoundUpToMultiple(S * out_w / input_stride_w, 1) *
                                              RoundUpToMultiple(R * out_h / input_stride_h, 1); // AK
 
         constexpr size_t TILE_S = WINOFILTER; // AL
         constexpr size_t TILE_R = WINOFILTER; // AO
-        assert(!(U > 2 || V > 2));
+        assert(!(U > 2 && V > 2));
         const auto granulated_S =
             (U == 1 && input_stride_w == 1 && filter_stride_w == 1 && S <= TILE_S)
                 ? TILE_S
@@ -469,7 +467,7 @@ class ShaderModel : public UnifiedConfigConv2d
 
         const auto granulated_NKWH_tiles =
             RoundUpToMultiple(NKWH_tiles,
-                              n_groups * granulated_NWH_tiles * granulated_K); // BR
+                              n_groups * GRANULARITY_NHW_TILES * GRANULARITY_K); // BR
 
         const auto works_per_CU = granulated_NKWH_tiles / 32 / n_groups; // BY
 
@@ -479,16 +477,16 @@ class ShaderModel : public UnifiedConfigConv2d
             std::max(MIN_FE_PER_WORK,
                      granulated_S * granulated_R * granulated_C * DATATYPE_BITS / 32); // BZ
 
-        const auto phases   = fe_per_work * works_per_CU; // CA
-        const auto fe_calls = phases;                     // CC
-        const auto be_calls = works_per_CU;               // CD
+        const auto phases = fe_per_work * works_per_CU; // CA
+        const auto fe_calls = phases;       // CC
+        const auto be_calls = works_per_CU; // CD
 
-        constexpr double C0      = 43283;                                        // CB$2
-        constexpr double C1      = 1.012;                                        // CC$2
-        constexpr double C2      = 134.14;                                       // CD$2
-        const auto GUI_predicted = (C0 + C1 * fe_calls + C2 * be_calls) / 10e+6; // CE
+        constexpr double C0      = 43283;                                       // CB$2
+        constexpr double C1      = 1.012;                                       // CC$2
+        constexpr double C2      = 134.14;                                      // CD$2
+        const auto GUI_predicted = (C0 + C1 * fe_calls + C2 * be_calls) / 1e+6; // CE
 
-        if(GUI_predicted <= 10e+5)
+        if(GUI_predicted <= 0.1)
             return -1.0; // Unreliable, too small work to do for the shader.
 
         const auto N_MACS_PER_CU_PER_CLOCK = 64 * 32 / DATATYPE_BITS;
