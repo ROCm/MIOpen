@@ -80,21 +80,21 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 // Introduces a number of shader-specific aliases (names) in the current scope at zero cost.
 // These names represent shader parameters, e.g. shader C is batch_size etc and useful for
 // programming.
-#define DEFINE_GETXFORMHWSIZE(params)                                                        \
-    const auto                                                                               \
-        wino_xform_h =                                                                       \
+#define DEFINE_GETXFORMHWSIZE(params)                                                         \
+    const auto                                                                                \
+        wino_xform_h =                                                                        \
             solver::ConvMPAnydirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
-                GetSolverWinoXformHWSize(params),                                            \
-        wino_xform_w =                                                                       \
+                GetSolverWinoXformHWSize(params),                                             \
+        wino_xform_w =                                                                        \
             solver::ConvMPAnydirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
                 GetSolverWinoXformHWSize(params);
 
-#define DEFINE_GETDTILEHWSIZE(params)                                                        \
-    const auto                                                                               \
-        wino_dtile_h =                                                                       \
+#define DEFINE_GETDTILEHWSIZE(params)                                                         \
+    const auto                                                                                \
+        wino_dtile_h =                                                                        \
             solver::ConvMPAnydirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
-                GetSolverWinoDtileHWSize(params),                                            \
-        wino_dtile_w =                                                                       \
+                GetSolverWinoDtileHWSize(params),                                             \
+        wino_dtile_w =                                                                        \
             solver::ConvMPAnydirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
                 GetSolverWinoDtileHWSize(params);
 
