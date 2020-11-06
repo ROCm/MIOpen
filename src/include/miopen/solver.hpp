@@ -1515,20 +1515,36 @@ struct ConvMPAnydirectWinograd : SolverBase<ConvolutionContext>
         return names[id];
     }
 
-    static int GetSolverWinoXformHWSize(const ConvolutionContext& params)
+    static int GetSolverWinoXformHWSize(const ConvolutionContext& params, int id)
     {
-        if(params.direction.IsForward())
-            return WinoFilterH + (WinoDataH - 1) * params.kernel_stride_h;
-        if(params.direction.IsBackwardData())
-            return WinoFilterH + WinoDataH - params.kernel_stride_h;
-        return WinoDataH + (WinoFilterH - 1) * params.kernel_stride_h;
+        if(id == 0)
+        {
+            if(params.direction.IsForward())
+                return WinoFilterW + (WinoDataW - 1) * params.kernel_stride_w;
+            if(params.direction.IsBackwardData())
+                return WinoFilterW + WinoDataW - params.kernel_stride_w;
+            return WinoDataW + (WinoFilterW - 1) * params.kernel_stride_w;
+        }
+        else
+        {
+            if(params.direction.IsForward())
+                return WinoFilterH + (WinoDataH - 1) * params.kernel_stride_h;
+            if(params.direction.IsBackwardData())
+                return WinoFilterH + WinoDataH - params.kernel_stride_h;
+            return WinoDataH + (WinoFilterH - 1) * params.kernel_stride_h;
+        }
     }
 
-    static int GetSolverWinoDtileHWSize(const ConvolutionContext& params)
+    static int GetSolverWinoDtileHWSize(const ConvolutionContext& params, int id)
     {
-        if(params.direction.IsBackwardData() && params.kernel_stride_h == 2)
-            return (WinoFilterH + WinoDataH) / params.kernel_stride_h;
-        return GetSolverWinoXformHWSize(params);
+        if(params.direction.IsBackwardData())
+        {
+            if(id == 0 && params.kernel_stride_w == 2)
+                return (WinoFilterW + WinoDataW) / params.kernel_stride_w;
+            if(id == 1 && params.kernel_stride_h == 2)
+                return (WinoFilterH + WinoDataH) / params.kernel_stride_h;
+        }
+        return GetSolverWinoXformHWSize(params, id);
     }
 };
 extern template struct ConvMPAnydirectWinograd<2, 3>;
@@ -1580,10 +1596,10 @@ struct ConvMPAnydirectWinograd_xdlops : SolverBase<ConvolutionContext>
             GetSolverKernelNames(id);
     }
 
-    static int GetSolverWinoXformHWSize(const ConvolutionContext& params)
+    static int GetSolverWinoXformHWSize(const ConvolutionContext& params, int id)
     {
         return ConvMPAnydirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::
-            GetSolverWinoXformHWSize(params);
+            GetSolverWinoXformHWSize(params, id);
     }
 
     PerformanceImplicitGemmForwardV4R4Xdlops

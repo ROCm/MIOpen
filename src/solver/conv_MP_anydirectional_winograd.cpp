@@ -84,10 +84,10 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
     const auto                                                                                \
         wino_xform_h =                                                                        \
             solver::ConvMPAnydirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
-                GetSolverWinoXformHWSize(params),                                             \
+                GetSolverWinoXformHWSize(params, 1),                                          \
         wino_xform_w =                                                                        \
             solver::ConvMPAnydirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
-                GetSolverWinoXformHWSize(params);
+                GetSolverWinoXformHWSize(params, 0);
 
 #define DEFINE_SHADER_ALIASES_2(params, is_wrw)                                                    \
     const auto& group_cnt = (params).group_counts;                                                 \
@@ -110,10 +110,10 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
     const auto                                                                                \
         wino_dtile_h =                                                                        \
             solver::ConvMPAnydirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
-                GetSolverWinoDtileHWSize(params),                                             \
+                GetSolverWinoDtileHWSize(params, 1),                                          \
         wino_dtile_w =                                                                        \
             solver::ConvMPAnydirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
-                GetSolverWinoDtileHWSize(params);
+                GetSolverWinoDtileHWSize(params, 0);
 
 #define DEFINE_SHADER_CONV_MOD_ALIASES_4(params, is_fwd, is_bwd, is_wrw) \
     const int stride_h     = (is_fwd) ? (params).kernel_stride_h : 1;    \
