@@ -441,6 +441,10 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                              const TensorDescriptor& xDesc,
                              const TensorDescriptor& dwDesc) const;
 
+    float ComputeGemmWtiFwd(const TensorDescriptor& wDesc,
+                            const TensorDescriptor& xDesc,
+                            const TensorDescriptor& yDesc) const;
+
     std::size_t GetSolutionCountFallback(Handle& handle, const ProblemDescription& problem) const;
 };
 
