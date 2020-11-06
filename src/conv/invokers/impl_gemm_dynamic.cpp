@@ -242,7 +242,7 @@ InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory(const ConvolutionCo
         is_gemm_not_empty.emplace_back(gemm_k_gid > 0);
     }
     bool need_set_zero = false;
-    if(y < stride_h || x < stride_w)
+    if(y < stride_h || x < stride_w || dilation_h != 1 || dilation_w != 1)
         need_set_zero = true;
 
     return [=](const std::vector<Kernel>& kernels) {
