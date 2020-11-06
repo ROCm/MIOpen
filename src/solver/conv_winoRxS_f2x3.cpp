@@ -476,9 +476,9 @@ class ShaderModel : public UnifiedConfigConv2d
             std::max(MIN_FE_PER_WORK,
                      granulated_S * granulated_R * granulated_C * DATATYPE_BITS / 32); // BZ
 
-        const auto phases = fe_per_work * works_per_CU; // CA
-        const auto fe_calls = phases;       // CC
-        const auto be_calls = works_per_CU; // CD
+        const auto phases   = fe_per_work * works_per_CU; // CA
+        const auto fe_calls = phases;                     // CC
+        const auto be_calls = works_per_CU;               // CD
 
         constexpr double C0      = 43283;                                       // CB$2
         constexpr double C1      = 1.012;                                       // CC$2

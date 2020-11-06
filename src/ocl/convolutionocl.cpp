@@ -1412,8 +1412,10 @@ static const char immFallbackFailed[] =
 std::size_t ConvolutionDescriptor::GetSolutionCountFallback(Handle& handle,
                                                             const ProblemDescription& problem) const
 {
-    size_t n = 0;
-    GetSolutionsFallback(handle, problem, 1, &n, nullptr);
+    size_t n                    = 0;
+    const auto maxSolutionCount = miopen::solver::GetMapValueToAnySolver()
+                                      .size(); // Simple and guarantees to provide enough space.
+    GetSolutionsFallback(handle, problem, maxSolutionCount, &n, nullptr);
     if(n > 0)
         return n;
     MIOPEN_LOG_I(immFallbackFailed);
@@ -1473,7 +1475,20 @@ struct SolutionSortWrapper : miopenConvSolution_t
         : miopenConvSolution_t{t, ws, id, algo}
     {
     }
-    bool operator<(const SolutionSortWrapper& other) const { return (time < other.time); }
+    bool operator<(const SolutionSortWrapper& other) const
+    {
+        // Negative values are very coarse estimations.
+        // The more modulus, the "worse" (slower) is solution.
+        if(time < 0 && other.time < 0)
+            return !(time < other.time);
+        // Positive values are always "better" than negative (coarse) estimations.
+        if(time > 0 && other.time < 0)
+            return true;
+        if(time < 0 && other.time > 0)
+            return false;
+        // Both values are positive. The less is the better.
+        return (time < other.time);
+    }
 };
 
 void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
@@ -1518,10 +1533,7 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
             continue;
         const auto& s = item.second;
         if(!s.IsDynamic()) // Let's allow non-dynamic later, if necessary.
-        {
-            MIOPEN_LOG_I2(solver_id.ToString() << " Not dynamic, skipped");
             continue;
-        }
         if(!s.IsApplicable(ctx))
             continue;
 
@@ -1538,79 +1550,37 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
         interim.emplace_back(time, s.GetWorkspaceSize(ctx), solver_id.Value(), algo);
     }
 
-    // Dual purpose variable:
-    // * Used as index for writing into output array (solutions).
-    // * Counts the number of entries written, yielding value for solutionsCount.
-    auto i = std::size_t{0};
-
-    if(!interim.empty())
-    {
-        std::sort(begin(interim), end(interim));
-        for(const auto& entry : interim)
-        {
-            if(i >= maxSolutionCount)
-                break;
-            if(solutions != nullptr)
-                solutions[i] = entry;
-            ++i;
-        }
-        *solutionCount = i;
-        /// Right now we do not have GetWti() for GEMM.
-        /// And only those solutions that are faster than GEMM return WTI.
-        /// Therefore it is Ok for now to not use GEMM if some other solution is found.
-        /// \todo Rework this when we have GetWti() for GEMM.
-        return;
-    }
-
     /// Separate path for GEMM algo, intermediate implementation.
     /// \todo Remove when GEMM Solver(s) ready.
-    if(i >= maxSolutionCount)
+    if(problem.direction.IsForward())
     {
-        // Do nothing.
-    }
-    else if(problem.direction.IsForward())
-    {
-        if(IsGemmApplicableFwd(weightsDesc, inDesc, outDesc) && (i < maxSolutionCount))
+        if(IsGemmApplicableFwd(weightsDesc, inDesc, outDesc))
         {
-            if(solutions != nullptr)
-            {
-                solutions[i].algorithm = miopenConvolutionAlgoGEMM;
-                solutions[i].time      = -1.0;
-                solutions[i].workspace_size =
-                    ForwardGetValidWorkSpaceSizeGemm(handle, weightsDesc, inDesc, outDesc);
-                solutions[i].solution_id = solver::Id::gemm().Value();
-            }
-            ++i;
+            interim.emplace_back(
+                -1.0,
+                ForwardGetValidWorkSpaceSizeGemm(handle, weightsDesc, inDesc, outDesc),
+                solver::Id::gemm().Value(),
+                miopenConvolutionAlgoGEMM);
         }
     }
     else if(problem.direction.IsBackwardData())
     {
-        if(IsGemmApplicableBwd(outDesc, weightsDesc, inDesc) && (i < maxSolutionCount))
+        if(IsGemmApplicableBwd(outDesc, weightsDesc, inDesc))
         {
-            if(solutions != nullptr)
-            {
-                solutions[i].algorithm = miopenConvolutionAlgoGEMM;
-                solutions[i].time      = -1.0;
-                solutions[i].workspace_size =
-                    BackwardGetValidWorkSpaceSizeGemm(outDesc, weightsDesc, inDesc);
-                solutions[i].solution_id = solver::Id::gemm().Value();
-            }
-            ++i;
+            interim.emplace_back(-1.0,
+                                 BackwardGetValidWorkSpaceSizeGemm(outDesc, weightsDesc, inDesc),
+                                 solver::Id::gemm().Value(),
+                                 miopenConvolutionAlgoGEMM);
         }
     }
     else if(problem.direction.IsBackwardWrW())
     {
-        if(IsGemmApplicableWrw(outDesc, inDesc, weightsDesc) && (i < maxSolutionCount))
+        if(IsGemmApplicableWrw(outDesc, inDesc, weightsDesc))
         {
-            if(solutions != nullptr)
-            {
-                solutions[i].algorithm = miopenConvolutionAlgoGEMM;
-                solutions[i].time      = -1.0;
-                solutions[i].workspace_size =
-                    WrwGetValidWorkSpaceSizeGemm(outDesc, inDesc, weightsDesc);
-                solutions[i].solution_id = solver::Id::gemm().Value();
-            }
-            ++i;
+            interim.emplace_back(-1.0,
+                                 WrwGetValidWorkSpaceSizeGemm(outDesc, inDesc, weightsDesc),
+                                 solver::Id::gemm().Value(),
+                                 miopenConvolutionAlgoGEMM);
         }
     }
     else
@@ -1618,6 +1588,26 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
         MIOPEN_THROW("Unknown direction");
     }
 
+    MIOPEN_LOG_I2("maxSolutionCount = " << maxSolutionCount << ", available = " << interim.size());
+    for(const auto& s : interim)
+        MIOPEN_LOG_I2("id: " << s.solution_id << " algo: " << s.algorithm << ", time: " << s.time
+                             << " ms, ws: "
+                             << s.workspace_size
+                             << ", name: "
+                             << miopen::solver::Id(s.solution_id).ToString());
+    // Dual purpose variable:
+    // * Used as index for writing into output array (solutions).
+    // * Counts the number of entries written, yielding value for solutionsCount.
+    auto i = std::size_t{0};
+    std::sort(begin(interim), end(interim));
+    for(const auto& entry : interim)
+    {
+        if(i >= maxSolutionCount)
+            break;
+        if(solutions != nullptr)
+            solutions[i] = entry;
+        ++i;
+    }
     *solutionCount = i;
 }
 
