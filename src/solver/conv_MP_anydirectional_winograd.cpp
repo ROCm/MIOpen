@@ -89,6 +89,23 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
             solver::ConvMPAnydirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
                 GetSolverWinoXformHWSize(params);
 
+#define DEFINE_SHADER_ALIASES_2(params, is_wrw)                                                    \
+    const auto& group_cnt = (params).group_counts;                                                 \
+    const int N           = (is_wrw) ? ((params).n_outputs / group_cnt) : (params).batch_sz;       \
+    const int K   = (is_wrw) ? ((params).n_inputs / group_cnt) : ((params).n_outputs / group_cnt); \
+    const int C   = (is_wrw) ? (params).batch_sz : ((params).n_inputs / group_cnt);                \
+    const auto& R = (is_wrw) ? (params).in_height : (params).kernel_size_h;                        \
+    const auto& S = (is_wrw) ? (params).in_width : (params).kernel_size_w;                         \
+    const auto& H = (is_wrw) ? (params).out_height : (params).in_height;                           \
+    const auto& W = (is_wrw) ? (params).out_width : (params).in_width;                             \
+    const auto& out_H = (is_wrw) ? (params).kernel_size_h : (params).out_height;                   \
+    const auto& out_W = (is_wrw) ? (params).kernel_size_w : (params).out_width;
+
+#define DEFINE_SHADER_ALIASES(params) \
+    DEFINE_SHADER_ALIASES_2((params), (params).direction.IsBackwardWrW())
+
+#if MIOPEN_BACKEND_HIP
+
 #define DEFINE_GETDTILEHWSIZE(params)                                                         \
     const auto                                                                                \
         wino_dtile_h =                                                                        \
@@ -112,22 +129,6 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
                                      (params).direction.IsBackwardData(), \
                                      (params).direction.IsBackwardWrW())
 
-#define DEFINE_SHADER_ALIASES_2(params, is_wrw)                                                    \
-    const auto& group_cnt = (params).group_counts;                                                 \
-    const int N           = (is_wrw) ? ((params).n_outputs / group_cnt) : (params).batch_sz;       \
-    const int K   = (is_wrw) ? ((params).n_inputs / group_cnt) : ((params).n_outputs / group_cnt); \
-    const int C   = (is_wrw) ? (params).batch_sz : ((params).n_inputs / group_cnt);                \
-    const auto& R = (is_wrw) ? (params).in_height : (params).kernel_size_h;                        \
-    const auto& S = (is_wrw) ? (params).in_width : (params).kernel_size_w;                         \
-    const auto& H = (is_wrw) ? (params).out_height : (params).in_height;                           \
-    const auto& W = (is_wrw) ? (params).out_width : (params).in_width;                             \
-    const auto& out_H = (is_wrw) ? (params).kernel_size_h : (params).out_height;                   \
-    const auto& out_W = (is_wrw) ? (params).kernel_size_w : (params).out_width;
-
-#define DEFINE_SHADER_ALIASES(params) \
-    DEFINE_SHADER_ALIASES_2((params), (params).direction.IsBackwardWrW())
-
-#if MIOPEN_BACKEND_HIP
 #define GENERATE_MAIN_OPTIONS(options)                             \
     GenerateClangDefsym((options), "ROCM_METADATA_VERSION", 5);    \
     GenerateClangDefsym((options), "xformx_o_size", WinoDataW);    \
@@ -150,7 +151,6 @@ struct WinoOffsets
     const size_t in, out, wei;
     WinoOffsets(size_t in_size, size_t out_size) : in(0), out(in_size), wei(in_size + out_size) {}
 };
-#endif
 
 BuffInfo GetNormalBuffer(const ConvolutionContext& params, const ConvWinoBuffType buff_type)
 {
@@ -159,7 +159,7 @@ BuffInfo GetNormalBuffer(const ConvolutionContext& params, const ConvWinoBuffTyp
     const bool is_fwd = (params).direction.IsForward();
     // clang-format off
     if(buff_type == ConvWinoBuffType::Input)
-        return BuffInfo(
+        return {
             GetGroupConvLayout(
                 is_wrw 
                 ? GetSwappedNCLayout(GetMemLayout_t(params.in_layout)) 
@@ -170,40 +170,41 @@ BuffInfo GetNormalBuffer(const ConvolutionContext& params, const ConvWinoBuffTyp
             H,
             W,
             group_cnt,
-            GetTypeSize(params.in_data_type));
+            static_cast<int>(GetTypeSize(params.in_data_type))};
 
     if(buff_type == ConvWinoBuffType::Output)
         // cppcheck-suppress unreadVariable
-        return BuffInfo(
-                is_wrw 
-                    ? GetGroupConvLayout(GetSwappedNCLayout(MemLayout_t::NCHW), false)
-                    : GetGroupConvLayout(GetMemLayout_t(params.out_layout), true),
-                N,
-                K,
-                out_H,
-                out_W,
-                group_cnt,
-                GetTypeSize(params.out_data_type));
-    
+        return {
+            is_wrw 
+            ? GetGroupConvLayout(GetSwappedNCLayout(MemLayout_t::NCHW), false)
+            : GetGroupConvLayout(GetMemLayout_t(params.out_layout), true),
+            N,
+            K,
+            out_H,
+            out_W,
+            group_cnt,
+            static_cast<int>(GetTypeSize(params.out_data_type))};
+
     // ConvWinoBuffType::Weight
     // cppcheck-suppress unreadVariable
-    return BuffInfo(
-            (is_wrw 
-                ? GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(params.out_layout)), true)
-                : GetGroupConvLayout(
-                    is_fwd
-                        ? (MemLayout_t::NCHW)
-                        : GetSwappedNCLayout(MemLayout_t::NCHW),
-                    false)
+    return {
+        (is_wrw 
+            ? GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(params.out_layout)), true)
+            : GetGroupConvLayout(
+                is_fwd
+                ? (MemLayout_t::NCHW)
+                : GetSwappedNCLayout(MemLayout_t::NCHW),
+                false)
             ),
-            K,
-            C,
-            R,
-            S,
-            group_cnt,
-            GetTypeSize(params.weights_data_type));
+        K,
+        C,
+        R,
+        S,
+        group_cnt,
+        static_cast<int>(GetTypeSize(params.weights_data_type))};
     // clang-format on
 }
+#endif
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 WinogradBufferInfo<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
@@ -381,7 +382,7 @@ inline bool IsApplicableTransform(const ConvolutionContext& params)
         && wei_buff.size.nk < std::pow(2, 16)
         && out_buff.size.h < std::pow(2, 16)
         && out_buff.size.w < std::pow(2, 16)
-        && in_buff.size.g < std::pow(2, 16)
+        && in_buff.size.g == 1
         && params.bias == 0
         && params.in_layout == "NCHW");
     // clang-format on

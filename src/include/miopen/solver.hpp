@@ -1519,18 +1519,16 @@ struct ConvMPAnydirectWinograd : SolverBase<ConvolutionContext>
     {
         if(params.direction.IsForward())
             return WinoFilterH + (WinoDataH - 1) * params.kernel_stride_h;
-        else if(params.direction.IsBackwardData())
+        if(params.direction.IsBackwardData())
             return WinoFilterH + WinoDataH - params.kernel_stride_h;
-        else
-            return WinoDataH + (WinoFilterH - 1) * params.kernel_stride_h;
+        return WinoDataH + (WinoFilterH - 1) * params.kernel_stride_h;
     }
 
     static int GetSolverWinoDtileHWSize(const ConvolutionContext& params)
     {
         if(params.direction.IsBackwardData() && params.kernel_stride_h == 2)
             return (WinoFilterH + WinoDataH) / params.kernel_stride_h;
-        else
-            return GetSolverWinoXformHWSize(params);
+        return GetSolverWinoXformHWSize(params);
     }
 };
 extern template struct ConvMPAnydirectWinograd<2, 3>;
