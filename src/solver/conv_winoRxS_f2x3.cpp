@@ -305,91 +305,7 @@ ConvBinWinogradRxSf2x3::Search(const ConvolutionContext& context,
     return GenericSearch(*this, context, invoke_ctx);
 }
 
-struct UnifiedConfigConv2d
-{
-    size_t K;               // X
-    size_t S;               // Y
-    size_t C;               // V
-    size_t N;               // W
-    size_t R;               // Z
-    size_t pad_w;           // AA
-    size_t pad_h;           // AB
-    size_t U;               // AC
-    size_t V;               // AD
-    size_t out_w;           // AE
-    size_t out_h;           // AF
-    size_t input_stride_w;  // AG -p -q
-    size_t input_stride_h;  // AH
-    size_t filter_stride_w; // AI -l -j
-    size_t filter_stride_h; // AJ
-    UnifiedConfigConv2d() = delete;
-
-    // Fwd                  WrW
-    // ----------------------------------------
-    // kernel_size_h        in_height
-    // kernel_size_w        in_width
-    // kernel_stride_h      kernel_dilation_h
-    // kernel_stride_w      kernel_dilation_w
-    // n_inputs_per_group   batch_sz
-    // n_outputs_per_group  n_inputs_per_group
-    // in_height            out_height
-    // in_width             out_width
-    // out_height           kernel_size_h
-    // out_width            kernel_size_w
-    // batch_sz             n_outputs_per_group
-    //
-    // KT      XLS             DRIVER                                  PROBLEM DESCRIPTION
-    // -----------------------------------------------------------------------------------
-    // fdil := filter_stride   -l/j filter dilation                    kernel_dilation
-    // strd := U/V             -u/v convolution stride (output stride) kernel_stride
-    // idil := input dilation  (n/a except transposed convolutions)    ?
-
-    UnifiedConfigConv2d(const ConvolutionContext& params)
-    {
-        const auto n_inputs_per_group  = params.n_inputs / params.group_counts;
-        const auto n_outputs_per_group = params.n_outputs / params.group_counts;
-        if(!params.direction.IsBackwardWrW())
-        {
-            R     = params.kernel_size_h;
-            S     = params.kernel_size_w;
-            U     = params.direction.IsForward() ? params.kernel_stride_h : 1;
-            V     = params.direction.IsForward() ? params.kernel_stride_w : 1;
-            C     = n_inputs_per_group;  // Bwd: C and K is reversed in ProblemDescription.
-            K     = n_outputs_per_group; // Ditto.
-            out_h = params.out_height;   // Bwd: height/width is reversed in ProblemDescription.
-            out_w = params.out_width;    // Ditto.
-            N     = params.batch_sz;
-            assert(params.direction.IsForward() ||
-                   (params.GetBackwardPadH() >= 0 && params.GetBackwardPadW() >= 0));
-            pad_h          = params.direction.IsForward() ? params.pad_h : params.GetBackwardPadH();
-            pad_w          = params.direction.IsForward() ? params.pad_w : params.GetBackwardPadW();
-            input_stride_h = params.direction.IsForward() ? 1 : params.kernel_stride_h;
-            input_stride_w = params.direction.IsForward() ? 1 : params.kernel_stride_w;
-            filter_stride_h = params.kernel_dilation_h;
-            filter_stride_w = params.kernel_dilation_w;
-        }
-        else
-        { // WrW
-            R               = params.in_height;
-            S               = params.in_width;
-            U               = params.kernel_dilation_h;
-            V               = params.kernel_dilation_w;
-            C               = params.batch_sz;
-            K               = n_inputs_per_group;
-            out_h           = params.kernel_size_h;
-            out_w           = params.kernel_size_w;
-            N               = n_outputs_per_group;
-            pad_h           = params.pad_h;
-            pad_w           = params.pad_w;
-            input_stride_h  = 1;
-            input_stride_w  = 1;
-            filter_stride_h = params.kernel_stride_h;
-            filter_stride_w = params.kernel_stride_w;
-        }
-    }
-};
-
-class ShaderModel : public UnifiedConfigConv2d
+class ShaderModel : public UnifiedDescriptionConv2d
 {
     const size_t DATATYPE_BITS;    // S
     const size_t n_groups;         // BQ ~compute units
@@ -397,7 +313,7 @@ class ShaderModel : public UnifiedConfigConv2d
 
     public:
     ShaderModel(const ConvolutionContext& ctx)
-        : UnifiedConfigConv2d(ctx),
+        : UnifiedDescriptionConv2d(ctx),
           DATATYPE_BITS(ctx.IsFp16() ? 16 : 32),
           n_groups(ctx.GetStream().GetMaxComputeUnits()), /// \todo Take n_groups from PerfConfig.
           out_of_model_scope(!(ctx.group_counts == 1) ||  //
@@ -412,6 +328,9 @@ class ShaderModel : public UnifiedConfigConv2d
                              !(C >= 16) ||                //
                              !(K >= 16))
     {
+        // Computations do not support negative padding.
+        // Negative padding is not applicable, so let use simple assert here.
+        assert(pad_h >= 0 && pad_w >= 0);
     }
 
     double ComputeWti() const
