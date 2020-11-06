@@ -125,17 +125,30 @@ Winograd  Solutions:
     * `ConvWinograd3x3MultipassWrW<7-3>`, WrW F(7,3)
     * `ConvWinograd3x3MultipassWrW<7-3-1-1>`, WrW F(7x1,3x1)
     * `ConvWinograd3x3MultipassWrW<1-1-7-3>`, WrW F(1x7,1x3)
-  * `MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F2X3` - `ConvMPBidirectWinograd<2-3>`, FWD/BWD F(2,3)
-  * `MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F3X3` - `ConvMPBidirectWinograd<3-3>`, FWD/BWD F(3,3)
-  * `MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F4X3` - `ConvMPBidirectWinograd<4-3>`, FWD/BWD F(4,3)
-  * `MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F5X3` - `ConvMPBidirectWinograd<5-3>`, FWD/BWD F(5,3)
-  * `MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F6X3` - `ConvMPBidirectWinograd<6-3>`, FWD/BWD F(6,3)
-  * `MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F2X3` - `ConvMPBidirectWinograd_xdlops<2-3>`, FWD/BWD F(2,3)
-  * `MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F3X3` - `ConvMPBidirectWinograd_xdlops<3-3>`, FWD/BWD F(3,3)
-  * `MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F4X3` - `ConvMPBidirectWinograd_xdlops<4-3>`, FWD/BWD F(4,3)
-  * `MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F5X3` - `ConvMPBidirectWinograd_xdlops<5-3>`, FWD/BWD F(5,3)
-  * `MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F6X3` - `ConvMPBidirectWinograd_xdlops<6-3>`, FWD/BWD F(6,3)
-  * `MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM - `ConvMPBidirectWinograd*`, FWD/BWD FP16 experemental mode. Disabled by default. This mode is experimental. Use it at your own risk.
+  * `MIOPEN_DEBUG_AMD_MP_ANYD_WINOGRAD_F2X3` - `ConvMPAnydirectWinograd<2-3>`, FWD/BWD F(2,3)
+  * `MIOPEN_DEBUG_AMD_MP_ANYD_WINOGRAD_F3X3` - `ConvMPAnydirectWinograd<3-3>`, FWD/BWD F(3,3)
+  * `MIOPEN_DEBUG_AMD_MP_ANYD_WINOGRAD_F4X3` - `ConvMPAnydirectWinograd<4-3>`, FWD/BWD F(4,3)
+  * `MIOPEN_DEBUG_AMD_MP_ANYD_WINOGRAD_F5X3` - `ConvMPAnydirectWinograd<5-3>`, FWD/BWD F(5,3)
+  * `MIOPEN_DEBUG_AMD_MP_ANYD_WINOGRAD_F6X3` - `ConvMPAnydirectWinograd<6-3>`, FWD/BWD F(6,3)
+  * `MIOPEN_DEBUG_AMD_MP_ANYD_XDLOPS_WINOGRAD_F2X3` - `ConvMPAnydirectWinograd_xdlops<2-3>`, FWD/BWD F(2,3)
+  * `MIOPEN_DEBUG_AMD_MP_ANYD_XDLOPS_WINOGRAD_F3X3` - `ConvMPAnydirectWinograd_xdlops<3-3>`, FWD/BWD F(3,3)
+  * `MIOPEN_DEBUG_AMD_MP_ANYD_XDLOPS_WINOGRAD_F4X3` - `ConvMPAnydirectWinograd_xdlops<4-3>`, FWD/BWD F(4,3)
+  * `MIOPEN_DEBUG_AMD_MP_ANYD_XDLOPS_WINOGRAD_F5X3` - `ConvMPAnydirectWinograd_xdlops<5-3>`, FWD/BWD F(5,3)
+  * `MIOPEN_DEBUG_AMD_MP_ANYD_XDLOPS_WINOGRAD_F6X3` - `ConvMPAnydirectWinograd_xdlops<6-3>`, FWD/BWD F(6,3)
+
+  * `MIOPEN_DEBUG_AMD_MP_ANYD_WRW_WINOGRAD_F3X2` - `ConvMPAnydirectWinograd<3-2>`, WRW F(3,2)
+  * `MIOPEN_DEBUG_AMD_MP_ANYD_WRW_WINOGRAD_F3X3` - `ConvMPAnydirectWinograd<3-3>`, WRW F(3,3)
+  * `MIOPEN_DEBUG_AMD_MP_ANYD_WRW_WINOGRAD_F3X4` - `ConvMPAnydirectWinograd<3-4>`, WRW F(3,4)
+  * `MIOPEN_DEBUG_AMD_MP_ANYD_WRW_WINOGRAD_F3X5` - `ConvMPAnydirectWinograd<3-5>`, WRW F(3,5)
+  * `MIOPEN_DEBUG_AMD_MP_ANYD_WRW_WINOGRAD_F3X6` - `ConvMPAnydirectWinograd<3-6>`, WRW F(3,6)
+  * `MIOPEN_DEBUG_AMD_MP_ANYD_WRW_XDLOPS_WINOGRAD_F3X2` - `ConvMPAnydirectWinograd_xdlops<3-2>`, WRW F(3,2)
+  * `MIOPEN_DEBUG_AMD_MP_ANYD_WRW_XDLOPS_WINOGRAD_F3X3` - `ConvMPAnydirectWinograd_xdlops<3-3>`, WRW F(3,3)
+  * `MIOPEN_DEBUG_AMD_MP_ANYD_WRW_XDLOPS_WINOGRAD_F3X4` - `ConvMPAnydirectWinograd_xdlops<3-4>`, WRW F(3,4)
+  * `MIOPEN_DEBUG_AMD_MP_ANYD_WRW_XDLOPS_WINOGRAD_F3X5` - `ConvMPAnydirectWinograd_xdlops<3-5>`, WRW F(3,5)
+  * `MIOPEN_DEBUG_AMD_MP_ANYD_WRW_XDLOPS_WINOGRAD_F3X6` - `ConvMPAnydirectWinograd_xdlops<3-6>`, WRW F(3,6)
+
+  * `MIOPEN_DEBUG_AMD_MP_ANYD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM - `ConvMPAnydirectWinograd*`, FWD/BWD FP16 experemental mode. Disabled by default. This mode is experimental. Use it at your own risk.
+
 * `MIOPEN_DEBUG_AMD_FUSED_WINOGRAD` - Fused FP32 F(3,3) Winograd, variable filter size.
 
 ## rocBlas Logging and Behavior
@@ -210,7 +223,7 @@ Different ROCm versions use Code Object files of different versions (or, in othe
 ### Winograd Multi-pass Maximum Workspace throttling
 
 `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX` - `ConvWinograd3x3MultipassWrW`, WrW
-`MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_WORKSPACE_MAX` - `ConvMPBidirectWinograd*`, FWD BWD
+`MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_WORKSPACE_MAX` - `ConvMPAnydirectWinograd*`, FWD BWD
 
 Syntax of value:
 * decimal or hex (with `0x` prefix) value that should fit into `unsigned long` (64 bits).

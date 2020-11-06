@@ -23,9 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-xform_data=1
+xform_data=0
 xform_filter=0
-xform_output=0
+xform_output=1
 
-
-.include "xform_bidirect_winograd_code.inc"
+.include "xform_anydirect_winograd_code.inc"

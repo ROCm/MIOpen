@@ -432,7 +432,7 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
 
     if(IsWinograd3x3SupportedAndFast(ctx))
     {
-        // In some cases ConvMPBidirectWinograd solution faster than single pass
+        // In some cases ConvMPAnydirectWinograd solution faster than single pass
         // versions and it requires non zero workspace.
         // So we can't send 0 and cut off the potentially fastest solution.
         MIOPEN_LOG_I2(workspace_size_winograd);

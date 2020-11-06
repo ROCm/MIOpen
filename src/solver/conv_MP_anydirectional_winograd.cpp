@@ -83,19 +83,19 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 #define DEFINE_GETXFORMHWSIZE(params)                                                        \
     const auto                                                                               \
         wino_xform_h =                                                                       \
-            solver::ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
+            solver::ConvMPAnydirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
                 GetSolverWinoXformHWSize(params),                                            \
         wino_xform_w =                                                                       \
-            solver::ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
+            solver::ConvMPAnydirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
                 GetSolverWinoXformHWSize(params);
 
 #define DEFINE_GETDTILEHWSIZE(params)                                                        \
     const auto                                                                               \
         wino_dtile_h =                                                                       \
-            solver::ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
+            solver::ConvMPAnydirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
                 GetSolverWinoDtileHWSize(params),                                            \
         wino_dtile_w =                                                                       \
-            solver::ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
+            solver::ConvMPAnydirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
                 GetSolverWinoDtileHWSize(params);
 
 #define DEFINE_SHADER_CONV_MOD_ALIASES_4(params, is_fwd, is_bwd, is_wrw) \
@@ -296,7 +296,7 @@ inline bool IsApplicableTransform(const ConvolutionContext& params)
         if(limit != std::numeric_limits<std::size_t>::max())
         {
             const auto required =
-                ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>{}
+                ConvMPAnydirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>{}
                     .GetWorkspaceSize(params);
             MIOPEN_LOG_I2("Workspace required: " << required << ", limit: " << limit);
             if(required > limit)
@@ -382,7 +382,6 @@ inline bool IsApplicableTransform(const ConvolutionContext& params)
         && out_buff.size.h < std::pow(2, 16)
         && out_buff.size.w < std::pow(2, 16)
         && in_buff.size.g < std::pow(2, 16)
-        && in_buff.size.g == 1
         && params.bias == 0
         && params.in_layout == "NCHW");
     // clang-format on
@@ -394,7 +393,7 @@ inline bool IsApplicableTransform(const ConvolutionContext& params)
 }
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
-bool ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(
+bool ConvMPAnydirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(
     const ConvolutionContext& params) const
 {
     // HIP backend required for sending ptr (buffer + offset)
@@ -406,27 +405,54 @@ bool ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsA
     static const int wino_data_tile   = std::max(WinoDataH, WinoDataW);
     static const int wino_filter_tile = std::max(WinoFilterH, WinoFilterW);
 
-    if(wino_data_tile == 6 && wino_filter_tile == 3)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WINOGRAD_F6X3{}))
+    if(!params.direction.IsBackwardWrW())
+    {
+        if(wino_filter_tile != 3)
             return false;
-    if(wino_data_tile == 5 && wino_filter_tile == 3)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WINOGRAD_F5X3{}))
+
+        if(wino_data_tile == 6)
+            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WINOGRAD_F6X3{}))
+                return false;
+        if(wino_data_tile == 5)
+            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WINOGRAD_F5X3{}))
+                return false;
+        if(wino_data_tile == 4)
+            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WINOGRAD_F4X3{}))
+                return false;
+        if(wino_data_tile == 3)
+            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WINOGRAD_F3X3{}))
+                return false;
+        if(wino_data_tile == 2)
+            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WINOGRAD_F2X3{}))
+                return false;
+    }
+    else
+    {
+        if(wino_data_tile != 3)
             return false;
-    if(wino_data_tile == 4 && wino_filter_tile == 3)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WINOGRAD_F4X3{}))
-            return false;
-    if(wino_data_tile == 3 && wino_filter_tile == 3)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WINOGRAD_F3X3{}))
-            return false;
-    if(wino_data_tile == 2 && wino_filter_tile == 3)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WINOGRAD_F2X3{}))
-            return false;
+
+        if(wino_filter_tile == 6)
+            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WRW_WINOGRAD_F3X6{}))
+                return false;
+        if(wino_filter_tile == 5)
+            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WRW_WINOGRAD_F3X5{}))
+                return false;
+        if(wino_filter_tile == 4)
+            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WRW_WINOGRAD_F3X4{}))
+                return false;
+        if(wino_filter_tile == 3)
+            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WRW_WINOGRAD_F3X3{}))
+                return false;
+        if(wino_filter_tile == 2)
+            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WRW_WINOGRAD_F3X2{}))
+                return false;
+    }
 
     return IsApplicableTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(params);
 }
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
-size_t ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetWorkspaceSize(
+size_t ConvMPAnydirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetWorkspaceSize(
     const ConvolutionContext& params) const
 {
     const miopenDataType_t transform_data_type =
@@ -558,7 +584,7 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
 #else
                 (void)handle;
                 (void)ctx;
-                MIOPEN_THROW(miopenStatusBadParm, "ConvMPBidirectWinograd is not supported ");
+                MIOPEN_THROW(miopenStatusBadParm, "ConvMPAnydirectWinograd is not supported ");
 #endif
             };
 
@@ -695,13 +721,13 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
     (void)params;
     (void)xdlops_factory;
     (void)isXdlops;
-    MIOPEN_THROW(miopenStatusBadParm, "ConvMPBidirectWinograd is not supported ");
+    MIOPEN_THROW(miopenStatusBadParm, "ConvMPAnydirectWinograd is not supported ");
     return nullptr;
 #endif
 }
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
-ConvSolution ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetSolution(
+ConvSolution ConvMPAnydirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetSolution(
     const ConvolutionContext& params) const
 {
     ConvSolution result;
@@ -759,23 +785,23 @@ ConvSolution ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilte
     return result;
 #else
     (void)params;
-    MIOPEN_THROW(miopenStatusBadParm, "ConvMPBidirectWinograd is not supported ");
+    MIOPEN_THROW(miopenStatusBadParm, "ConvMPAnydirectWinograd is not supported ");
 #endif
 }
-template struct ConvMPBidirectWinograd<2, 3>;
-template struct ConvMPBidirectWinograd<3, 2>;
-template struct ConvMPBidirectWinograd<3, 3>;
-template struct ConvMPBidirectWinograd<4, 3>;
-template struct ConvMPBidirectWinograd<3, 4>;
-template struct ConvMPBidirectWinograd<5, 3>;
-template struct ConvMPBidirectWinograd<3, 5>;
-template struct ConvMPBidirectWinograd<6, 3>;
-template struct ConvMPBidirectWinograd<3, 6>;
+template struct ConvMPAnydirectWinograd<2, 3>;
+template struct ConvMPAnydirectWinograd<3, 2>;
+template struct ConvMPAnydirectWinograd<3, 3>;
+template struct ConvMPAnydirectWinograd<4, 3>;
+template struct ConvMPAnydirectWinograd<3, 4>;
+template struct ConvMPAnydirectWinograd<5, 3>;
+template struct ConvMPAnydirectWinograd<3, 5>;
+template struct ConvMPAnydirectWinograd<6, 3>;
+template struct ConvMPAnydirectWinograd<3, 6>;
 
 // context transformation
 // for winograd buffers calculation using xdlops_convolution
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
-ConvolutionContext ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::
+ConvolutionContext ConvMPAnydirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::
     GetTransformedConvContext(const ConvolutionContext& ctx) const
 {
     DEFINE_GETXFORMHWSIZE(ctx)
@@ -907,33 +933,60 @@ conv::DataInvokeParams GetTransformedInvokeContext(const ConvolutionContext& ctx
 #else
     (void)invoke_ctx;
     (void)ctx;
-    MIOPEN_THROW(miopenStatusBadParm, "ConvMPBidirectWinograd is not supported ");
+    MIOPEN_THROW(miopenStatusBadParm, "ConvMPAnydirectWinograd is not supported ");
 #endif
 }
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
-bool ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(
+bool ConvMPAnydirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(
     const ConvolutionContext& ctx) const
 {
 
     static const int wino_data_tile   = std::max(WinoDataH, WinoDataW);
     static const int wino_filter_tile = std::max(WinoFilterH, WinoFilterW);
 
-    if(wino_data_tile == 6 && wino_filter_tile == 3)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_XDLOPS_WINOGRAD_F6X3{}))
+    if(!ctx.direction.IsBackwardWrW())
+    {
+        if(wino_filter_tile != 3)
             return false;
-    if(wino_data_tile == 5 && wino_filter_tile == 3)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_XDLOPS_WINOGRAD_F5X3{}))
+
+        if(wino_data_tile == 6)
+            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_XDLOPS_WINOGRAD_F6X3{}))
+                return false;
+        if(wino_data_tile == 5)
+            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_XDLOPS_WINOGRAD_F5X3{}))
+                return false;
+        if(wino_data_tile == 4)
+            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_XDLOPS_WINOGRAD_F4X3{}))
+                return false;
+        if(wino_data_tile == 3)
+            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_XDLOPS_WINOGRAD_F3X3{}))
+                return false;
+        if(wino_data_tile == 2)
+            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_XDLOPS_WINOGRAD_F2X3{}))
+                return false;
+    }
+    else
+    {
+        if(wino_data_tile != 3)
             return false;
-    if(wino_data_tile == 4 && wino_filter_tile == 3)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_XDLOPS_WINOGRAD_F4X3{}))
-            return false;
-    if(wino_data_tile == 3 && wino_filter_tile == 3)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_XDLOPS_WINOGRAD_F3X3{}))
-            return false;
-    if(wino_data_tile == 2 && wino_filter_tile == 3)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_XDLOPS_WINOGRAD_F2X3{}))
-            return false;
+
+        if(wino_filter_tile == 6)
+            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WRW_XDLOPS_WINOGRAD_F3X6{}))
+                return false;
+        if(wino_filter_tile == 5)
+            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WRW_XDLOPS_WINOGRAD_F3X5{}))
+                return false;
+        if(wino_filter_tile == 4)
+            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WRW_XDLOPS_WINOGRAD_F3X4{}))
+                return false;
+        if(wino_filter_tile == 3)
+            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WRW_XDLOPS_WINOGRAD_F3X3{}))
+                return false;
+        if(wino_filter_tile == 2)
+            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WRW_XDLOPS_WINOGRAD_F3X2{}))
+                return false;
+    }
 
     return IsApplicableTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(ctx) &&
            ConvHipImplicitGemmForwardV4R4Xdlops().IsApplicable(GetTransformedConvContext(ctx));
@@ -941,13 +994,13 @@ bool ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilter
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 ConvSolution
-ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetSolution(
+ConvMPAnydirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetSolution(
     const ConvolutionContext& ctx,
     const PerformanceImplicitGemmForwardV4R4Xdlops& config,
     bool) const
 {
     ConvSolution wino_transform =
-        ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>{}.GetSolution(ctx);
+        ConvMPAnydirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>{}.GetSolution(ctx);
 
     const ConvolutionContext xdlops_conv_ctx = GetTransformedConvContext(ctx);
 
@@ -979,7 +1032,7 @@ ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::G
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 PerformanceImplicitGemmForwardV4R4Xdlops
-ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Search(
+ConvMPAnydirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Search(
     const ConvolutionContext& ctx, const AnyInvokeParams& invoke_ctx) const
 {
     const auto transformed_invoke_ctx =
@@ -989,15 +1042,15 @@ ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::S
                                                          transformed_invoke_ctx);
 }
 
-template struct ConvMPBidirectWinograd_xdlops<2, 3>;
-template struct ConvMPBidirectWinograd_xdlops<3, 2>;
-template struct ConvMPBidirectWinograd_xdlops<3, 3>;
-template struct ConvMPBidirectWinograd_xdlops<4, 3>;
-template struct ConvMPBidirectWinograd_xdlops<3, 4>;
-template struct ConvMPBidirectWinograd_xdlops<5, 3>;
-template struct ConvMPBidirectWinograd_xdlops<3, 5>;
-template struct ConvMPBidirectWinograd_xdlops<6, 3>;
-template struct ConvMPBidirectWinograd_xdlops<3, 6>;
+template struct ConvMPAnydirectWinograd_xdlops<2, 3>;
+template struct ConvMPAnydirectWinograd_xdlops<3, 2>;
+template struct ConvMPAnydirectWinograd_xdlops<3, 3>;
+template struct ConvMPAnydirectWinograd_xdlops<4, 3>;
+template struct ConvMPAnydirectWinograd_xdlops<3, 4>;
+template struct ConvMPAnydirectWinograd_xdlops<5, 3>;
+template struct ConvMPAnydirectWinograd_xdlops<3, 5>;
+template struct ConvMPAnydirectWinograd_xdlops<6, 3>;
+template struct ConvMPAnydirectWinograd_xdlops<3, 6>;
 
 } // namespace solver
 } // namespace miopen
