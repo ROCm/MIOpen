@@ -1493,6 +1493,20 @@ struct SolutionSortWrapper : miopenConvSolution_t
     }
 };
 
+static double
+SlowdownFactor(int n_oper, const double oper_factor, const double multiple_oper_factor)
+{
+    if(n_oper > 0)
+    {
+        auto rv = oper_factor;
+        if(n_oper > 1)
+            rv *= multiple_oper_factor;
+        return rv;
+    }
+    else
+        return 1.0;
+}
+
 float ConvolutionDescriptor::ComputeGemmWtiFwd(const TensorDescriptor& wDesc,
                                                const TensorDescriptor& xDesc,
                                                const TensorDescriptor& yDesc) const
@@ -1557,27 +1571,55 @@ float ConvolutionDescriptor::ComputeGemmWtiFwd(const TensorDescriptor& wDesc,
             n_CastTensor = 1;
     }
 
-    auto slowdownFactor =
-        [](int n_oper, const double oper_factor, const double multiple_oper_factor) {
-            if(n_oper > 0)
-            {
-                auto rv = oper_factor;
-                if(n_oper > 1)
-                    rv *= multiple_oper_factor;
-                return rv;
-            }
-            else
-                return 1.0;
-        };
-
     auto wti = 1.0;
-    wti *= slowdownFactor(n_transpose_NCHW2CNHW, 0.7, 0.9);
-    wti *= slowdownFactor(n_transpose_CNHW2NCHW, 0.7, 0.9);
-    wti *= slowdownFactor(n_gemm_runs, 0.9, 0.9);
-    wti *= slowdownFactor(n_gemm_strided_batched, 1.0, 0.95);
-    wti *= slowdownFactor(n_transpose_packed_MN2NM, 0.7, 0.9);
-    wti *= slowdownFactor(n_CastTensor, 0.95, 0.9);
-    wti *= slowdownFactor(n_Im2ColGPU, 0.4, 0.8);
+    wti *= SlowdownFactor(n_transpose_NCHW2CNHW, 0.7, 0.9);
+    wti *= SlowdownFactor(n_transpose_CNHW2NCHW, 0.7, 0.9);
+    wti *= SlowdownFactor(n_gemm_runs, 0.9, 0.9);
+    wti *= SlowdownFactor(n_gemm_strided_batched, 1.0, 0.95);
+    wti *= SlowdownFactor(n_transpose_packed_MN2NM, 0.7, 0.9);
+    wti *= SlowdownFactor(n_CastTensor, 0.95, 0.9);
+    wti *= SlowdownFactor(n_Im2ColGPU, 0.4, 0.8);
+    return wti;
+}
+
+float ConvolutionDescriptor::ComputeGemmWtiWrw(const TensorDescriptor& dyDesc,
+                                               const TensorDescriptor& xDesc,
+                                               const TensorDescriptor& dwDesc) const
+{
+    std::ignore = dyDesc;
+
+    int n_gemm_strided_batched           = 1; // not strided-batched by default
+    int n_gemm_strided_batched_sequental = 1; // not strided-batched-sequental by default
+    int n_gemm_runs                      = 1;
+    int n_Im2ColGPU                      = 0;
+
+    std::size_t in_n, in_c;
+    std::tie(in_n, in_c) = tie_pick<0, 1>()(xDesc.GetLengths());
+    auto wei_spatial = boost::adaptors::slice(dwDesc.GetLengths(), 2, 2 + GetSpatialDimension());
+
+    // if not 1x1
+    if((miopen::any_of(wei_spatial, [](auto v) { return v != 1; }) ||
+        miopen::any_of(GetConvPads(), [](auto v) { return v != 0; }) ||
+        miopen::any_of(GetConvStrides(), [](auto v) { return v != 1; })))
+    {
+        n_Im2ColGPU            = in_n;
+        n_gemm_strided_batched = group_count;
+        n_gemm_runs            = in_n;
+    }
+    // 1x1 does not require im2col or workspace
+    else if(miopen::any_of(wei_spatial, [](auto v) { return v == 1; }) &&
+            miopen::any_of(GetConvPads(), [](auto v) { return v == 0; }) &&
+            miopen::any_of(GetConvStrides(), [](auto v) { return v == 1; }))
+    {
+        n_gemm_strided_batched_sequental = group_count;
+        n_gemm_runs                      = in_n;
+    }
+
+    auto wti = 0.7; // Memory overhead for WrW is bigger then for Fwd/Bwd.
+    wti *= SlowdownFactor(n_gemm_runs, 0.9, 0.9);
+    wti *= SlowdownFactor(n_gemm_strided_batched, 1.0, 0.95);
+    wti *= SlowdownFactor(n_gemm_strided_batched_sequental, 1.0, 0.9);
+    wti *= SlowdownFactor(n_Im2ColGPU, 0.4, 0.8);
     return wti;
 }
 
@@ -1673,7 +1715,7 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
     {
         if(IsGemmApplicableWrw(outDesc, inDesc, weightsDesc))
         {
-            interim.emplace_back(-1.0,
+            interim.emplace_back(wti2time(ComputeGemmWtiWrw(outDesc, inDesc, weightsDesc)),
                                  WrwGetValidWorkSpaceSizeGemm(outDesc, inDesc, weightsDesc),
                                  solver::Id::gemm().Value(),
                                  miopenConvolutionAlgoGEMM);
