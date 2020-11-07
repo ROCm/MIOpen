@@ -224,8 +224,7 @@ void PerformanceImplicitGemmBwdV1R1Xdlops::EuristicInit(const ConvolutionContext
     // final check
     if(!tmp.IsReallyValid(ctx))
     {
-        MIOPEN_LOG_E("All attempts failed");
-        assert(false);
+        MIOPEN_LOG_I("All attempts failed");
     }
     *this = tmp;
     MIOPEN_LOG_I(ToString());
@@ -789,6 +788,13 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(
     const ConvolutionContext& ctx, const PerformanceImplicitGemmBwdV1R1Xdlops& config, bool) const
 {
     ConvSolution result;
+
+    if(!config.IsReallyValid(ctx))
+    {
+        MIOPEN_LOG_E("invalid performance parameter");
+        assert(false);
+    }
+
     KernelInfo construction_parameters;
 
     construction_parameters.kernel_file =
