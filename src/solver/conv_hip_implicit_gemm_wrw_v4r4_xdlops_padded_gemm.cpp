@@ -238,8 +238,7 @@ void PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::EuristicInit(const Convol
     // final check
     if(!tmp.IsReallyValid(ctx))
     {
-        MIOPEN_LOG_E("All attempts failed");
-        assert(false);
+        MIOPEN_LOG_I("All attempts failed");
     }
     *this = tmp;
     MIOPEN_LOG_I(ToString());
@@ -918,9 +917,14 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetSolution(
     bool) const
 {
     ConvSolution result;
-    KernelInfo construction_parameters;
 
-    assert(config.IsReallyValid(ctx));
+    if(!config.IsReallyValid(ctx))
+    {
+        MIOPEN_LOG_E("invalid performance parameter");
+        assert(false);
+    }
+
+    KernelInfo construction_parameters;
 
     construction_parameters.kernel_file = "gridwise_convolution_backward_weights_implicit_gemm_"
                                           "v4r4_xdlops_nchw_kcyx_nkhw_padded_gemm.cpp";
