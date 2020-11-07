@@ -49,19 +49,19 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
                     kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_ncdhw_kczyx_nkdhw"))
                 // clang-format on
                 {
-                    bool need_atomic_add = false;
+                    bool need_atomic_add        = false;
                     bool every_pixel_is_written = true;
 
                     for(int i = 0; i < conv.GetSpatialDimension(); ++i)
                     {
-                        const auto conv_stride = conv.GetConvStrides()[i];
+                        const auto conv_stride   = conv.GetConvStrides()[i];
                         const auto conv_dilation = conv.GetConvDilations()[i];
-                        const auto filter_size = tensors.wDesc.GetLengths()[2+i];
+                        const auto filter_size   = tensors.wDesc.GetLengths()[2 + i];
 
                         if(conv_stride < conv_dilation * (filter_size - 1) + 1)
                             need_atomic_add = true;
 
-                        //todo: can be relaxed
+                        // todo: can be relaxed
                         if(!(conv_dilation == 1 && conv_stride <= filter_size))
                             every_pixel_is_written = false;
                     }
@@ -169,11 +169,11 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
 
                     for(int i = 0; i < conv.GetSpatialDimension(); ++i)
                     {
-                        const auto conv_stride = conv.GetConvStrides()[i];
+                        const auto conv_stride   = conv.GetConvStrides()[i];
                         const auto conv_dilation = conv.GetConvDilations()[i];
-                        const auto filter_size = tensors.wDesc.GetLengths()[2+i];
+                        const auto filter_size   = tensors.wDesc.GetLengths()[2 + i];
 
-                        //todo: can be relaxed
+                        // todo: can be relaxed
                         if(!(conv_dilation == 1 && conv_stride <= filter_size))
                             every_pixel_is_written = false;
                     }
