@@ -47,6 +47,14 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS)
 #define WINOFILTER 3
 #define MAX_CU_LIMIT 512
 
+/// \todo The model is well-defined in for filters sized up to 5.
+/// However, it seems producing valid results without this limitation,
+/// when used against simple GEMM WTI model (to select the fastest solver).
+/// This needs to be re-tested/re-considered when we have WTI
+/// models for other solvers, OR when GEMM WTI model is improved.
+/// --atamazov 2020-11-07.
+#define WTI_MODEL_ALLOW_ANY_RS 1
+
 static inline size_t Ceil(const size_t v, const size_t m)
 {
     assert(m > 0);
@@ -322,9 +330,11 @@ class ShaderModel : public UnifiedDescriptionConv2d
                              !(input_stride_w == 1) ||    //
                              !(filter_stride_h == 1) ||   //
                              !(filter_stride_w == 1) ||   //
-                             !(R <= 5) ||                 //
-                             !(S <= 5) ||                 //
-                             !(C >= 16) ||                //
+#if !WTI_MODEL_ALLOW_ANY_RS
+                             !(R <= 5) || //
+                             !(S <= 5) || //
+#endif
+                             !(C >= 16) || //
                              !(K >= 16))
     {
         // Computations do not support negative padding.
