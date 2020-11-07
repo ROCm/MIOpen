@@ -443,6 +443,10 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                             const TensorDescriptor& xDesc,
                             const TensorDescriptor& yDesc) const;
 
+    float ComputeGemmWtiBwd(const TensorDescriptor& dyDesc,
+                            const TensorDescriptor& wDesc,
+                            const TensorDescriptor& dxDesc) const;
+
     float ComputeGemmWtiWrw(const TensorDescriptor& dyDesc,
                             const TensorDescriptor& xDesc,
                             const TensorDescriptor& dwDesc) const;
