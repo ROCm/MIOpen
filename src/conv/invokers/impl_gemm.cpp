@@ -49,17 +49,23 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
                     kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_ncdhw_kczyx_nkdhw"))
                 // clang-format on
                 {
-                    const auto y          = tensors.wDesc.GetLengths()[2];
-                    const auto x          = tensors.wDesc.GetLengths()[3];
-                    const auto stride_h   = conv.GetConvStrides()[0];
-                    const auto stride_w   = conv.GetConvStrides()[1];
-                    const auto dilation_h = conv.GetConvDilations()[0];
-                    const auto dilation_w = conv.GetConvDilations()[1];
+                    bool need_atomic_add = false;
+                    bool every_pixel_is_written = true;
 
-                    bool need_atomic_add = (stride_h < dilation_h * (y - 1) + 1) ||
-                                           (stride_w < dilation_w * (x - 1) + 1);
-                    bool every_pixel_is_written =
-                        (dilation_h == 1 && stride_h <= y) && (dilation_w == 1 && stride_w <= x);
+                    for(int i = 0; i < conv.GetSpatialDimension(); ++i)
+                    {
+                        const auto conv_stride = conv.GetConvStrides()[i];
+                        const auto conv_dilation = conv.GetConvDilations()[i];
+                        const auto filter_size = tensors.wDesc.GetLengths()[2+i];
+
+                        if(conv_stride < conv_dilation * (filter_size - 1) + 1)
+                            need_atomic_add = true;
+
+                        //todo: can be relaxed
+                        if(!(conv_dilation == 1 && conv_stride <= filter_size))
+                            every_pixel_is_written = false;
+                    }
+
                     bool need_set_zero = need_atomic_add || !(every_pixel_is_written);
                     bool need_cast     = need_atomic_add;
 
@@ -159,30 +165,20 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
                     kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v4r1_ncdhw_kczyx_nkdhw")
                 // clang-format on
                 {
-                    // \todo this kernel doesn't always need to set-zero
-                    bool filterGeStride = false;
-                    if(miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }))
+                    bool every_pixel_is_written = true;
+
+                    for(int i = 0; i < conv.GetSpatialDimension(); ++i)
                     {
-                        if(tensors.wDesc.GetSize() == 4)
-                        { // 2d
-                            if(tensors.wDesc.GetLengths()[2] >= conv.GetConvStrides()[0] &&
-                               tensors.wDesc.GetLengths()[3] >= conv.GetConvStrides()[1])
-                            {
-                                filterGeStride = true;
-                            }
-                        }
-                        else
-                        { // 3d
-                            if(tensors.wDesc.GetLengths()[2] >= conv.GetConvStrides()[0] &&
-                               tensors.wDesc.GetLengths()[3] >= conv.GetConvStrides()[1] &&
-                               tensors.wDesc.GetLengths()[4] >= conv.GetConvStrides()[2])
-                            {
-                                filterGeStride = true;
-                            }
-                        }
+                        const auto conv_stride = conv.GetConvStrides()[i];
+                        const auto conv_dilation = conv.GetConvDilations()[i];
+                        const auto filter_size = tensors.wDesc.GetLengths()[2+i];
+
+                        //todo: can be relaxed
+                        if(!(conv_dilation == 1 && conv_stride <= filter_size))
+                            every_pixel_is_written = false;
                     }
 
-                    if(!filterGeStride)
+                    if(!every_pixel_is_written)
                     {
                         float zero = 0.f;
                         SetTensor(handle, tensors.outDesc, tensors.out, &zero);
