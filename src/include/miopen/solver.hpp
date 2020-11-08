@@ -43,6 +43,8 @@
 #include <ostream>
 #include <algorithm>
 
+#define WORKAROUND_WINOGRAD_RXS_F2X3_NONTUNABLE 1
+
 namespace miopen {
 
 struct AnyInvokeParams;
@@ -1423,9 +1425,13 @@ struct ConvBinWinogradRxSf2x3 : SolverBase<ConvolutionContext>
     bool IsApplicable(const ConvolutionContext& params) const;
     bool IsDynamic() const { return true; }
     float GetWti(const ConvolutionContext& params) const;
+#if WORKAROUND_WINOGRAD_RXS_F2X3_NONTUNABLE
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
+#else
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvBinWinogradRxSf2x3& config,
                              bool disableConfigOverrideFromEnv = false) const;
+#endif
     static size_t GetNGroups(const size_t group_conv, const size_t grid_group_size)
     {
         assert(group_conv != 0);

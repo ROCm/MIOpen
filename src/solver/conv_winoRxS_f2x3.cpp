@@ -305,12 +305,14 @@ bool ConvBinWinogradRxSf2x3::IsValidPerformanceConfig(
     return c.IsValidValue() && c.IsValid(problem);
 }
 
+#if !WORKAROUND_WINOGRAD_RXS_F2X3_NONTUNABLE
 PerformanceConfigConvBinWinogradRxSf2x3
 ConvBinWinogradRxSf2x3::Search(const ConvolutionContext& context,
                                const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, context, invoke_ctx);
 }
+#endif
 
 class ShaderModel : public UnifiedDescriptionConv2d
 {
@@ -497,11 +499,18 @@ bool ConvBinWinogradRxSf2x3::IsApplicable(const ConvolutionContext& params) cons
     }
 }
 
+#if !WORKAROUND_WINOGRAD_RXS_F2X3_NONTUNABLE
 ConvSolution
 ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
                                     const PerformanceConfigConvBinWinogradRxSf2x3& config,
                                     const bool disableConfigOverrideFromEnv) const
 {
+#else
+ConvSolution ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params) const
+{
+    const auto config                       = GetPerformanceConfig(params);
+    const bool disableConfigOverrideFromEnv = false; // Disabling is required only during tuning.
+#endif
     const auto n_groups = config.n_groups;
     static bool IsWarned;
     if(!IsWarned)
@@ -650,6 +659,7 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
                 const auto& data_ctx = primitive_params.CastTo<conv::DataInvokeParams>();
                 const auto& tensors  = data_ctx.tensors;
 
+                // FIXME change n_groups to GetNGroups()?
                 // clang-format off
                 MIOPEN_LOG_I2(" N=" << N << " G=" << group_cnt << " C=" << C << " H=" << H << " W=" << W << " K=" << K
                     << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
@@ -748,6 +758,7 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
                 decltype(auto) invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
                 const auto& tensors          = invoke_params.tensors;
 
+                // FIXME change n_groups to GetNGroups()?
                 // clang-format off
                 MIOPEN_LOG_I2(" N=" << N << " G=" << group_cnt << " C=" << C << " H=" << H << " W=" << W << " K=" << K
                     << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
