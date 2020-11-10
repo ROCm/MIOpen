@@ -226,7 +226,6 @@ float CallImplGemmDynamicBackwardData(const miopen::Handle& handle,
     opArgs.emplace_back(dslice_w_left);
     opArgs.emplace_back(__pack0);
 
-
     for(int gemm_id = 0; gemm_id < num_of_gemms; gemm_id++)
     {
         int _dtile_iy          = gemm_id / x_tilda;
@@ -305,12 +304,12 @@ InvokerFactory MakeImplGemmDynamicForward1x1InvokerFactory(const ConvolutionCont
 InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory(const ConvolutionContext& ctx)
 {
     const auto& conv_problem = ctx.conv_problem;
-    int stride_h    = conv_problem.GetInHeight() > 1 ? conv_problem.GetKernelStrideH() : 1;
-    int stride_w    = conv_problem.GetInWidth() > 1 ? conv_problem.GetKernelStrideW() : 1;
-    int dilation_h  = conv_problem.GetWeightsHeight() > 1? conv_problem.GetDilationH() : 1;
-    int dilation_w  = conv_problem.GetWeightsWidth() > 1? conv_problem.GetDilationW() : 1;
-    int y           = conv_problem.GetWeightsHeight();
-    int x           = conv_problem.GetWeightsWidth();
+    int stride_h             = conv_problem.GetInHeight() > 1 ? conv_problem.GetKernelStrideH() : 1;
+    int stride_w             = conv_problem.GetInWidth() > 1 ? conv_problem.GetKernelStrideW() : 1;
+    int dilation_h     = conv_problem.GetWeightsHeight() > 1 ? conv_problem.GetDilationH() : 1;
+    int dilation_w     = conv_problem.GetWeightsWidth() > 1 ? conv_problem.GetDilationW() : 1;
+    int y              = conv_problem.GetWeightsHeight();
+    int x              = conv_problem.GetWeightsWidth();
     bool need_set_zero = false;
     if(y < stride_h || x < stride_w || dilation_h != 1 || dilation_w != 1)
         need_set_zero = true;
