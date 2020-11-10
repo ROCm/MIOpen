@@ -348,9 +348,10 @@ class ShaderModel : public UnifiedDescriptionConv2d
         if(out_of_model_scope)
             return -1.0; // Shader model produces unreliable results.
 
-        const auto direct_convolution_macs = C * N * K / 1e+6 *
-                                             RoundUpToMultiple(S * out_w / input_stride_w, 1) *
-                                             RoundUpToMultiple(R * out_h / input_stride_h, 1); // AK
+        const auto direct_convolution_macs =
+            static_cast<double>(C * N * K) / 1e+6 *
+            static_cast<double>(RoundUpToMultiple(S * out_w / input_stride_w, 1)) *
+            static_cast<double>(RoundUpToMultiple(R * out_h / input_stride_h, 1)); // AK
 
         constexpr size_t TILE_S = WINOFILTER; // AL
         constexpr size_t TILE_R = WINOFILTER; // AO
@@ -419,8 +420,9 @@ class ShaderModel : public UnifiedDescriptionConv2d
             return -1.0; // Unreliable, too small work to do for the shader.
 
         const auto N_MACS_PER_CU_PER_CLOCK = 64 * 32 / DATATYPE_BITS;
-        const auto WTI_predicted = direct_convolution_macs / N_MACS_PER_CU_PER_CLOCK / n_groups /
-                                   GUI_predicted; // similar to BW
+        const auto WTI_predicted           = direct_convolution_macs /
+                                   static_cast<double>(N_MACS_PER_CU_PER_CLOCK) /
+                                   static_cast<double>(n_groups) / GUI_predicted; // similar to BW
         return WTI_predicted;
     }
 };
