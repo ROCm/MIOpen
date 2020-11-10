@@ -202,6 +202,12 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
     // clang-format on
 }
 
+std::vector<ConvSolution> ConvAsm3x3U::GetSolutions(const ConvolutionContext& params,
+                                                    const bool onlyGetDefault) const
+{
+    return GetSolutions(*this, params, onlyGetDefault);
+}
+
 ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
                                       const PerformanceConfigConvAsm3x3U& config,
                                       const bool disableConfigOverrideFromEnv) const

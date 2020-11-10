@@ -305,6 +305,12 @@ bool ConvAsmImplicitGemmV4R1DynamicWrw::IsApplicable(const ConvolutionContext& c
     return FindImplicitGemmWrwV4R1DynamicKernel(ctx, kernel_name, block_size, grid_size);
 }
 
+std::vector<ConvSolution> ConvAsmImplicitGemmV4R1DynamicWrw::GetSolutions(const ConvolutionContext& params,
+                                                                          const bool onlyGetDefault) const
+{
+    return std::vector<ConvSolution>{this->GetSolution(params)};
+}
+
 ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ConvolutionContext& ctx) const
 {
     ConvSolution result;

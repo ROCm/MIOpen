@@ -153,6 +153,12 @@ bool ConvAsmImplicitGemmV4R1DynamicBwd::IsApplicable(const ConvolutionContext& c
     return FindImplicitGemmDynamicKernelBwd(ctx, kernel_name, block_size, grid_size);
 }
 
+std::vector<ConvSolution> ConvAsmImplicitGemmV4R1DynamicBwd::GetSolutions(const ConvolutionContext& params,
+                                                                          const bool onlyGetDefault) const
+{
+    return std::vector<ConvSolution>{this->GetSolution(params)};
+}
+
 ConvSolution ConvAsmImplicitGemmV4R1DynamicBwd::GetSolution(const ConvolutionContext& ctx) const
 {
     ConvSolution result;

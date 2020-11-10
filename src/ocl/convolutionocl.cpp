@@ -167,7 +167,7 @@ ConvolutionDescriptor::FindWinogradSolutions(const ConvolutionContext& ctx) cons
         return {};
     try
     {
-        return FindAllWinogradSolutions(ctx);
+        return FindAllWinogradSolutions1(ctx);
     }
     catch(miopen::Exception& ex)
     {
@@ -213,6 +213,23 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
 }
 
 std::vector<miopen::solver::ConvSolution>
+ConvolutionDescriptor::FindDataDirectSolutions1(const ConvolutionContext& ctx) const
+{
+
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
+        return {};
+    try
+    {
+        return FindAllDirectSolutions1(ctx);
+    }
+    catch(miopen::Exception& ex)
+    {
+        MIOPEN_LOG_WE(ex.what());
+        return {};
+    }
+}
+
+std::vector<miopen::solver::ConvSolution>
 ConvolutionDescriptor::FindDataImplicitGemmSolutions(Handle& handle,
                                                      const TensorDescriptor& xDesc,
                                                      const TensorDescriptor& wDesc,
@@ -241,6 +258,23 @@ ConvolutionDescriptor::FindDataImplicitGemmSolutions(Handle& handle,
     try
     {
         return FindAllImplicitGemmSolutions(ctx);
+    }
+    catch(miopen::Exception& ex)
+    {
+        MIOPEN_LOG_WE(ex.what());
+        return {};
+    }
+}
+
+std::vector<miopen::solver::ConvSolution>
+ConvolutionDescriptor::FindDataImplicitGemmSolutions1(const ConvolutionContext& ctx) const
+{
+
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{}))
+        return {};
+    try
+    {
+        return FindAllImplicitGemmSolutions1(ctx);
     }
     catch(miopen::Exception& ex)
     {
@@ -658,9 +692,48 @@ static void DirConvFindCore(Handle& handle,
     const auto invoke_ctx =
         conv::DataInvokeParams{{xDesc, x, wDesc, w, yDesc, y}, workSpace, workSpaceSize};
 
+    std::vector<miopen::solver::ConvSolution> allSolutions;
+    std::map<std::string, int> algoSeparate;
+    
+    //Get All Sollutions
+    {
+        allSolutions = conv.FindWinogradSolutions(ctx);
+        algoSeparate["miopenConvolutionFwdAlgoWinograd"] = allSolutions.size();
+        if(!use_winograd_only)
+        {
+            ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
+            bufs.SetFwd(x, w, y);
+            auto localCtx = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
+            localCtx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
+            miopen::FindMode(localCtx).IsFastHybrid();
+            localCtx.do_search               = exhaustiveSearch;
+            localCtx.save_srch_req           = true;
+            localCtx.general_compile_options = "";
+            localCtx.SetStream(&handle);
+            localCtx.SetBufs(bufs);
+            localCtx.DetectRocm();
+            localCtx.SetupFloats();
+            auto directSolutions       = conv.FindDataDirectSolutions(localCtx);
+            auto implicitGemmSolutions = conv.FindDataImplicitGemmSolutions(localCtx);
+            allSolutions.insert(allSolutions.end(), directSolutions.begin(), directSolutions.end());
+            algoSeparate["miopenConvolutionFwdAlgoDirect"] = allSolutions.size();
+            allSolutions.insert(allSolutions.end(), implicitGemmSolutions.begin(), implicitGemmSolutions.end());
+            algoSeparate["miopenConvolutionFwdAlgoImplicitGEMM"] = allSolutions.size();
+        }
+    }
+
+    //Precompile Solutions
+    {
+        PrecompileSolutions(handle, allSolutions);
+    }
+    
+    //Find best performance solution in every solver
+    {
+        
+    }
+
     // Winograd algo
     {
-        const auto all = conv.FindWinogradSolutions(ctx);
         PrecompileSolutions(handle, all);
         const auto algorithm_name = AlgorithmName{"miopenConvolutionFwdAlgoWinograd"};
         EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
@@ -759,6 +832,12 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
     bufs.SetFwd(x, w, y);
     ctx.SetBufs(bufs);
+    ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
+        miopen::FindMode(ctx).IsFastHybrid();
+    ctx.do_search               = exhaustiveSearch;
+    ctx.save_srch_req           = true;
+    ctx.general_compile_options = "";
+    ctx.SetupFloats();
     const bool use_winograd_only = IsWinograd3x3SupportedAndFast(ctx);
 
     std::vector<PerfField> perf_db;
@@ -2147,18 +2226,37 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             const auto network_config = problem.BuildConfKey();
             const auto invoke_ctx     = conv::DataInvokeParams{
                 {dyDesc, dy, wDesc, w, dxDesc, dx}, workSpace, workSpaceSize};
-
-            // Winograd algo
+            
+            //Get All Sollutions
             {
                 ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
                 bufs.SetBwd(dx, w, dy);
-                auto ctx = ConvolutionContext{problem};
-                ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-                    miopen::FindMode(ctx).IsFastHybrid();
-                ctx.SetBufs(bufs);
-                ctx.SetStream(&handle);
-                ctx.DetectRocm();
-                const auto all            = FindWinogradSolutions(ctx);
+                auto localCtx = ConvolutionContext{problem};
+                localCtx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
+                    miopen::FindMode(localCtx).IsFastHybrid();
+                localCtx.SetStream(&handle);
+                localCtx.SetBufs(bufs);
+                localCtx.DetectRocm();
+                allSolutions = conv.FindWinogradSolutions(localCtx);
+                algoSeparate["miopenConvolutionFwdAlgoWinograd"] = allSolutions.size();
+                if(!use_winograd_only)
+                {
+                    localCtx.do_search               = exhaustiveSearch;
+                    localCtx.save_srch_req           = true;
+                    localCtx.general_compile_options = "";
+                    localCtx.SetupFloats();
+                    auto directSolutions       = conv.FindDataDirectSolutions(localCtx);
+                    auto implicitGemmSolutions = conv.FindDataImplicitGemmSolutions(localCtx);
+                    allSolutions.insert(allSolutions.end(), directSolutions.begin(), directSolutions.end());
+                    algoSeparate["miopenConvolutionFwdAlgoDirect"] = allSolutions.size();
+                    allSolutions.insert(allSolutions.end(), implicitGemmSolutions.begin(), implicitGemmSolutions.end());
+                    algoSeparate["miopenConvolutionFwdAlgoImplicitGEMM"] = allSolutions.size();
+                }
+            }
+
+            
+            // Winograd algo
+            {
                 const auto algorithm_name = AlgorithmName{"miopenConvolutionBwdDataAlgoWinograd"};
                 PrecompileSolutions(handle, all);
                 EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);

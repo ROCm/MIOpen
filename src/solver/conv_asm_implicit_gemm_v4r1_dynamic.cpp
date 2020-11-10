@@ -369,6 +369,12 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     return result;
 }
 
+std::vector<ConvSolution> ConvAsmImplicitGemmV4R1DynamicFwd::GetSolutions(const ConvolutionContext& params,
+                                                                          const bool onlyGetDefault) const
+{
+    return std::vector<ConvSolution>{this->GetSolution(params)};
+}
+
 ConvSolution ConvAsmImplicitGemmV4R1DynamicFwd::GetSolution(const ConvolutionContext& ctx) const
 {
     auto tunables = GetImplicitGemmV4R1DynamicTunables();
@@ -381,6 +387,12 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicFwd::GetSolution(const ConvolutionCon
             "no solution found in igemm v4r1 dynamic fwd, should call IsApplicable() first.");
 
     return GetSolutionBase(ctx, *it, AsmImplicitGemmV4R1);
+}
+
+std::vector<ConvSolution> ConvAsmImplicitGemmV4R1DynamicFwd_1x1::GetSolutions(const ConvolutionContext& params,
+                                                                              const bool onlyGetDefault) const
+{
+    return std::vector<ConvSolution>{this->GetSolution(params)};
 }
 
 ConvSolution ConvAsmImplicitGemmV4R1DynamicFwd_1x1::GetSolution(const ConvolutionContext& ctx) const

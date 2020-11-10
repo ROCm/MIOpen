@@ -404,6 +404,13 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     return result;
 }
 
+std::vector<ConvSolution> 
+ConvHipImplicitGemmV4R4GenFwdXdlops::GetSolutions(const ConvolutionContext& params,
+                                                  const bool onlyGetDefault) const
+{
+    return GetSolutions(*this, params, onlyGetDefault);
+}
+
 ConvSolution ConvHipImplicitGemmV4R4GenFwdXdlops::GetSolution(
     const ConvolutionContext& ctx, const PerformanceImplicitGemmXdlops& config, bool) const
 {
@@ -414,6 +421,17 @@ ConvSolution ConvHipImplicitGemmV4R4GenFwdXdlops::GetSolution(
                            KernelOutputChannelK(ctx),
                            KernelOutputHeightHo(ctx),
                            KernelOutputWidthWo(ctx));
+}
+
+std::vector<ConvSolution> 
+ConvHipImplicitGemmV4R4GenWrWXdlops::GetSolutions(const ConvolutionContext& params,
+                                                  const bool onlyGetDefault) const
+{
+    // fp16/bfp16 uses fp32 workspace to leverage fp32 atomic add
+    if(params.IsFp16() || params.IsBfp16())
+        return GetSolutions(*this, params, onlyGetDefault, SearchTweak::WorkspaceInsteadOfWeightsBuffer);
+    else
+        return GetSolutions(*this, params, onlyGetDefault);
 }
 
 ConvSolution ConvHipImplicitGemmV4R4GenWrWXdlops::GetSolution(

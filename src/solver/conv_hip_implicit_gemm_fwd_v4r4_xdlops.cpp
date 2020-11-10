@@ -854,6 +854,13 @@ ConvHipImplicitGemmForwardV4R4Xdlops::GetPerformanceConfig(const ConvolutionCont
     return config;
 }
 
+std::vector<ConvSolution> 
+ConvHipImplicitGemmForwardV4R4Xdlops::GetSolutions(const ConvolutionContext& params,
+                                                   const bool onlyGetDefault) const
+{
+    return GetSolutions(*this, params, onlyGetDefault);
+}
+
 ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
     const ConvolutionContext& ctx,
     const PerformanceImplicitGemmForwardV4R4Xdlops& config,

@@ -88,6 +88,12 @@ bool ConvBinWinograd3x3U::IsApplicable(const ConvolutionContext& params) const
     // clang-format on
 }
 
+std::vector<ConvSolution> ConvBinWinograd3x3U::GetSolutions(const ConvolutionContext& params,
+                                                            const bool onlyGetDefault) const
+{
+    return std::vector<ConvSolution>{this->GetSolution(params)};
+}
+
 ConvSolution ConvBinWinograd3x3U::GetSolution(const ConvolutionContext& params) const
 {
     ConvSolution result;

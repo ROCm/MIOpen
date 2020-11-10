@@ -55,6 +55,12 @@ bool ConvOclDirectFwd3x3::IsApplicable(const ConvolutionContext& params) const
             params.out_width == 256);
 }
 
+std::vector<ConvSolution> ConvOclDirectFwd3x3::GetSolutions(const ConvolutionContext& params,
+                                                            const bool onlyGetDefault) const
+{
+    return std::vector<ConvSolution>{this->GetSolution(params)};
+}
+
 ConvSolution ConvOclDirectFwd3x3::GetSolution(const ConvolutionContext& params) const
 {
     ConvSolution result;

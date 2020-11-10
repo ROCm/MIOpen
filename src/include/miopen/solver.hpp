@@ -163,9 +163,14 @@ struct ConvAsm3x3U : SolverBase<ConvolutionContext>
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const PerformanceConfigConvAsm3x3U&) const;
     PerformanceConfigConvAsm3x3U Search(const ConvolutionContext&) const;
+    std::vector<ConvSolution> GetSolutions(const ConvolutionContext& params,
+                                           bool onlyGetDefault = false) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvAsm3x3U& config,
                              bool disableConfigOverrideFromEnv = false) const;
+    std::vector<ConvSolution>
+    GetSolutions(const ConvolutionContext& params,
+                 bool disableConfigOverrideFromEnv = false) const;
     template <typename B, typename T>
     int RunAndMeasureSolution(const miopen::Handle& profile_h,
                               B bot_ocl_buf,
@@ -239,6 +244,8 @@ struct ConvAsm1x1U : SolverBase<ConvolutionContext>
     PerformanceConfigConvAsm1x1U Search(const ConvolutionContext&) const;
     bool IsApplicable(const ConvolutionContext& params) const;
     size_t GetWorkspaceSize(const ConvolutionContext& params) const;
+    std::vector<ConvSolution> GetSolutions(const ConvolutionContext& params,
+                                           bool onlyGetDefault = false) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvAsm1x1U& config,
                              bool disableConfigOverrideFromEnv = false) const;
@@ -347,6 +354,8 @@ struct ConvAsm1x1UV2 : SolverBase<ConvolutionContext>
                                   const PerformanceConfigConvAsm1x1UV2&) const;
     PerformanceConfigConvAsm1x1UV2 Search(const ConvolutionContext&) const;
     bool IsApplicable(const ConvolutionContext& params) const;
+    std::vector<ConvSolution> GetSolutions(const ConvolutionContext& params,
+                                           bool onlyGetDefault = false) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvAsm1x1UV2& config,
                              bool disableConfigOverrideFromEnv = false) const;
@@ -364,30 +373,40 @@ struct ConvAsm1x1UV2 : SolverBase<ConvolutionContext>
 struct ConvAsm5x10u2v2f1 : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;
+    std::vector<ConvSolution> GetSolutions(const ConvolutionContext& params,
+                                           bool onlyGetDefault = false) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
 struct ConvAsm5x10u2v2b1 : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;
+    std::vector<ConvSolution> GetSolutions(const ConvolutionContext& params,
+                                           bool onlyGetDefault = false) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
 struct ConvAsm7x7c3h224w224k64u2v2p3q3f1 : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;
+    std::vector<ConvSolution> GetSolutions(const ConvolutionContext& params,
+                                           bool onlyGetDefault = false) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
 struct ConvOclDirectFwd11x11 : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;
+    std::vector<ConvSolution> GetSolutions(const ConvolutionContext& params,
+                                           bool onlyGetDefault = false) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
 struct ConvOclDirectFwdGen : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;
+    std::vector<ConvSolution> GetSolutions(const ConvolutionContext& params,
+                                           bool onlyGetDefault = false) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
@@ -784,6 +803,8 @@ struct ConvHipImplicitGemmV4R1Fwd : SolverBase<ConvolutionContext>
                                   const PerformanceImplicitGemmV4R1& c) const;
 
     bool IsApplicable(const ConvolutionContext& ctx) const;
+    std::vector<ConvSolution> GetSolutions(const ConvolutionContext& params,
+                                           bool onlyGetDefault = false) const;
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const PerformanceImplicitGemmV4R1& config,
                              bool disableConfigOverrideFromEnv = false) const;
@@ -815,6 +836,8 @@ struct ConvHipImplicitGemmV4R4Fwd : SolverBase<ConvolutionContext>
                               const ConvolutionContext& ctx,
                               const ConvSolution& solution,
                               float& elapsed_time) const;
+    std::vector<ConvSolution> GetSolutions(const ConvolutionContext& params,
+                                           bool onlyGetDefault = false) const;
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const PerformanceImplicitGemmV4R4Fwd& config,
                              bool disableConfigOverrideFromEnv = false) const;
@@ -871,6 +894,8 @@ struct ConvHipImplicitGemmV4R4GenXdlopsFwdFp32 : SolverBase<ConvolutionContext>
     bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
                                   const PerformanceImplicitGemmV4R4GenXdlopsFwdFp32& c) const;
     bool IsApplicable(const ConvolutionContext& ctx) const;
+    std::vector<ConvSolution> GetSolutions(const ConvolutionContext& params,
+                                           bool onlyGetDefault = false) const;
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const PerformanceImplicitGemmV4R4GenXdlopsFwdFp32& config,
                              bool disableConfigOverrideFromEnv = false) const;
@@ -902,6 +927,8 @@ struct ConvHipImplicitGemmV4R4WrW : SolverBase<ConvolutionContext>
                               const ConvolutionContext& ctx,
                               const ConvSolution& solution,
                               float& elapsed_time) const;
+    std::vector<ConvSolution> GetSolutions(const ConvolutionContext& params,
+                                           bool onlyGetDefault = false) const;
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const PerformanceImplicitGemmV4R4WrW& config,
                              bool disableConfigOverrideFromEnv = false) const;
@@ -1062,6 +1089,8 @@ struct ConvHipImplicitGemmV4R4GenFwdXdlops : SolverBase<ConvolutionContext>
     bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
                                   const PerformanceImplicitGemmXdlops& c) const;
     bool IsApplicable(const ConvolutionContext& ctx) const;
+    std::vector<ConvSolution> GetSolutions(const ConvolutionContext& params,
+                                           bool onlyGetDefault = false) const;
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const PerformanceImplicitGemmXdlops& config,
                              bool disableConfigOverrideFromEnv = false) const;
@@ -1340,7 +1369,6 @@ struct ConvOclDirectFwdLegacyExhaustiveSearch : SolverBase<ConvolutionContext>
 struct ConvOclDirectFwd : ConvOclDirectFwdLegacyExhaustiveSearch
 {
     bool IsApplicable(const ConvolutionContext& params) const;
-
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const LegacyPerformanceConfig& searched_params) const;
     bool IsValidPerformanceConfig(const ConvolutionContext&, const LegacyPerformanceConfig&) const;

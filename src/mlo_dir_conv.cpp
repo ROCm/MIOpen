@@ -200,6 +200,12 @@ FindAllDirectSolutions(const miopen::ConvolutionContext& ctx)
     return GetDirectSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
 }
 
+std::vector<miopen::solver::ConvSolution>
+FindAllDirectSolutions1(const miopen::ConvolutionContext& ctx)
+{
+    return GetDirectSolvers().FindSolutions(ctx, GetDb(ctx));
+}
+
 std::vector<std::pair<std::string, size_t>>
 AllDirectForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx)
 {
@@ -220,9 +226,28 @@ FindAllImplicitGemmSolutions(const miopen::ConvolutionContext& ctx)
 }
 
 std::vector<miopen::solver::ConvSolution>
+FindAllImplicitGemmSolutions1(const miopen::ConvolutionContext& ctx)
+{
+#if WORKAROUND_SWDEV_227826
+    if(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS{}))
+        return GetImplicitGemmSolvers().FindSolutions(ctx, GetDb(ctx));
+    else
+        return GetImplicitGemmSolvers().FindSolutions(ctx, GetDb(ctx), 1);
+#else
+    return GetImplicitGemmSolvers().FindSolutions(ctx, GetDb(ctx));
+#endif
+}
+
+std::vector<miopen::solver::ConvSolution>
 FindAllWinogradSolutions(const miopen::ConvolutionContext& ctx)
 {
     return GetWindogradSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+}
+
+std::vector<miopen::solver::ConvSolution>
+FindAllWinogradSolutions1(const miopen::ConvolutionContext& ctx)
+{
+    return GetWindogradSolvers().FindSolutions(ctx, GetDb(ctx));
 }
 
 std::vector<miopen::solver::ConvSolution>

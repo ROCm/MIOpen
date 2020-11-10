@@ -733,6 +733,16 @@ int ConvHipImplicitGemmBwdDataV1R1::RunAndMeasureSolution(const miopen::Handle& 
     return 0;
 }
 
+std::vector<ConvSolution> ConvHipImplicitGemmBwdDataV1R1::GetSolutions(const ConvolutionContext& params,
+                                                                       const bool onlyGetDefault) const
+{
+    // fp16/bfp16 uses fp32 workspace to leverage fp32 atomic add
+    if(params.IsFp16() || params.IsBfp16())
+        return GetSolutions(*this, params, onlyGetDefault, SearchTweak::WorkspaceInsteadOfXBuffer);
+    else
+        return GetSolutions(*this, params, onlyGetDefault);
+}
+
 ConvSolution ConvHipImplicitGemmBwdDataV1R1::GetSolution(
     const ConvolutionContext& ctx, const PerformanceImplicitGemmBwdDataV1R1& config, bool) const
 {

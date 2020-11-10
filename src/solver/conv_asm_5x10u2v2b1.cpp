@@ -90,6 +90,12 @@ bool ConvAsm5x10u2v2b1::IsApplicable(const ConvolutionContext& params) const
     // clang-format on
 }
 
+std::vector<ConvSolution> ConvAsm5x10u2v2b1::GetSolutions(const ConvolutionContext& params,
+                                                          const bool onlyGetDefault) const
+{
+    return std::vector<ConvSolution>{this->GetSolution(params)};
+}
+
 ConvSolution ConvAsm5x10u2v2b1::GetSolution(const ConvolutionContext& params) const
 {
     ConvSolution result;

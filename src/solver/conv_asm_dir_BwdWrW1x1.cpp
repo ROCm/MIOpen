@@ -540,6 +540,15 @@ size_t ConvAsmBwdWrW1x1::GetWorkspaceSize(const ConvolutionContext& params) cons
         return 0;
 }
 
+std::vector<ConvSolution> ConvAsmBwdWrW1x1::GetSolutions(const ConvolutionContext& params,
+                                                         const bool onlyGetDefault) const
+{
+    if(UseSubsample(params))
+        return GetSolutions(*this, params, onlyGetDefault, SearchTweak::WorkspaceInsteadOfXBuffer);
+    else
+        return GetSolutions(*this, params, onlyGetDefault);
+}
+
 ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
                                            const PerformanceConfigConvAsmBwdWrW1x1& config,
                                            const bool disableConfigOverrideFromEnv) const

@@ -55,6 +55,12 @@ bool ConvOclDirectFwd11x11::IsApplicable(const ConvolutionContext& params) const
            params.kernel_stride_h == 4 && params.kernel_stride_w == 4;
 }
 
+std::vector<ConvSolution> ConvOclDirectFwd11x11::GetSolutions(const ConvolutionContext& params,
+                                                              const bool onlyGetDefault) const
+{
+    return std::vector<ConvSolution>{this->GetSolution(params)};
+}
+
 ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& params) const
 {
     ConvSolution result;

@@ -394,6 +394,13 @@ ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::GetPerformanceConfig(const ConvolutionC
     return GetPerformanceConfigBase<PerformanceImplicitGemmV4R4GenXdlopsFwdFp32>(ctx);
 }
 
+std::vector<ConvSolution> 
+ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::GetSolutions(const ConvolutionContext& params,
+                                                      const bool onlyGetDefault) const
+{
+    return GetSolutions(*this, params, onlyGetDefault);
+}
+
 ConvSolution ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::GetSolution(
     const ConvolutionContext& ctx,
     const PerformanceImplicitGemmV4R4GenXdlopsFwdFp32& config,

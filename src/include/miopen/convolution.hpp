@@ -198,7 +198,8 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                             const TensorDescriptor& yDesc,
                             bool exhaustiveSearch,
                             bool isForward,
-                            const ConvolutionUserBuffers& bufs) const;
+                            const ConvolutionUserBuffers& bufs
+                            bool nowSearch) const;
 
     std::vector<miopen::solver::ConvSolution>
     FindWinogradSolutions(const ConvolutionContext& ctx) const;

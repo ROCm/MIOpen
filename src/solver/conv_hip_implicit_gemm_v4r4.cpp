@@ -639,6 +639,13 @@ int ConvHipImplicitGemmV4R4Fwd::RunAndMeasureSolution(const miopen::Handle& prof
         profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
 }
 
+std::vector<ConvSolution> 
+ConvHipImplicitGemmV4R4Fwd::GetSolutions(const ConvolutionContext& params,
+                                         const bool onlyGetDefault) const
+{
+    return GetSolutions(*this, params, onlyGetDefault);
+}
+
 ConvSolution ConvHipImplicitGemmV4R4Fwd::GetSolution(const ConvolutionContext& ctx,
                                                      const PerformanceImplicitGemmV4R4Fwd& config,
                                                      bool) const

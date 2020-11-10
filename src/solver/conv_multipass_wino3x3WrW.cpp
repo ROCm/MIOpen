@@ -520,6 +520,15 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Get
 }
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
+std::vector<ConvSolution> 
+ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetSolutions(
+    const ConvolutionContext& params,
+    const bool onlyGetDefault) const
+{
+    return std::vector<ConvSolution>{this->GetSolution(params)};
+}
+
+template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 ConvSolution
 ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetSolution(
     const ConvolutionContext& params) const

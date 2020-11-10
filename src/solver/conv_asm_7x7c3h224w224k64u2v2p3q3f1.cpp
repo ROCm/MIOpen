@@ -80,6 +80,12 @@ bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ConvolutionContext& p
     // clang-format on
 }
 
+std::vector<ConvSolution> ConvAsm7x7c3h224w224k64u2v2p3q3f1::GetSolutions(const ConvolutionContext& params,
+                                                                          const bool onlyGetDefault) const
+{
+    return std::vector<ConvSolution>{this->GetSolution(params)};
+}
+
 ConvSolution ConvAsm7x7c3h224w224k64u2v2p3q3f1::GetSolution(const ConvolutionContext& params) const
 {
     ConvSolution result;

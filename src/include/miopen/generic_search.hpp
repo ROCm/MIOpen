@@ -336,6 +336,59 @@ auto GenericSearchWrW(const Solver s,
 }
 #endif
 
+template<typename Solver, class Context>
+auto GetSolutions(const Solver s,
+                  const Context& context,
+                  const bool onlyGetDefault,
+                  const SearchTweak tweak = SearchTweak::None)
+    -> decltype(s.GetSolutions(context, onlyGetDefault))
+{
+    using RetType = decltype(s.GetSolutions(context, onlyGetDefault));
+    RetType allSolutons;
+    allSolutions.push_back(s.GetSolution(context, s.GetPerformanceConfig(context)));
+    if(onlyGetDefault)
+    {
+        return allSolutons;
+    }
+    using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
+    const ComputedContainer<PerformanceConfig, Context> main(context);
+    const int main_size = std::distance(main.begin(), main.end());
+    const ComputedContainer<PerformanceConfig, Context> spare(context, true);
+    const int spare_size = std::distance(spare.begin(), spare.end());
+    const bool useSpare  = (main_size == 0);
+    
+    const ComputedContainer<PerformanceConfig, Context> all_configs = useSpare ? spare : main;
+    const int n_total = useSpare ? spare_size : main_size;
+    MIOPEN_LOG_W(SolverDbId(s) << ": Get all " << n_total + 1
+                               << (useSpare ? " (spare)" : "")
+                               << "solutions.");
+    size_t n_current = 1;
+    size_t n_failed  = 0;
+    for(const auto& current_config : all_configs)
+    {
+        MIOPEN_LOG_I2('#' << n_current << '/' << n_failed << '/' << n_total << ' '
+                          << current_config);
+
+        const auto current_solution = s.GetSolution(context, current_config, true);
+        if((tweak == SearchTweak::WorkspaceInsteadOfXBuffer ||
+            tweak == SearchTweak::WorkspaceInsteadOfWeightsBuffer) &&
+           default_solution.workspce_sz != current_solution.workspce_sz)
+        {
+            MIOPEN_LOG_E('#' << n_current << " (" << n_total << ") "
+                             << "Workspace size should not depend on PerformanceConfig: "
+                             << default_solution.workspce_sz
+                             << " != "
+                             << current_solution.workspce_sz);
+            ++n_failed;
+            ++n_current;
+            continue;
+        }
+        allSolutions.push_back(current_solution);
+        ++n_current;
+    }
+    return allSolutons;
+}
+
 #if MIOPEN_ALLOC_BUFFERS
 template <class Solver, class Context>
 auto GenericSearch(const Solver s,

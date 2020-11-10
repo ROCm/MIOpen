@@ -148,6 +148,13 @@ bool ConvOclBwdWrW2NonTunable::IsApplicable(const ConvolutionContext& params) co
     return ConvOclBwdWrW2<1>::IsApplicableBase(params) && !IsTunable(params);
 }
 
+std::vector<ConvSolution> 
+ConvOclBwdWrW2NonTunable::GetSolutions(const ConvolutionContext& params,
+                                       const bool onlyGetDefault) const
+{
+    return std::vector<ConvSolution>{this->GetSolution(params)};
+}
+
 ConvSolution ConvOclBwdWrW2NonTunable::GetSolution(const ConvolutionContext& params) const
 {
     // Invoking base class GetSolution with default values for params obtained
@@ -540,6 +547,17 @@ size_t ConvOclBwdWrW2<N_BATCH_LOOPS>::GetWorkspaceSize(const ConvolutionContext&
     }
     else
         return 0;
+}
+
+template <int N_BATCH_LOOPS>
+std::vector<ConvSolution> 
+ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolutions(const ConvolutionContext& params,
+                                            const bool onlyGetDefault) const
+{
+    if(GetNBatchBlks<N_BATCH_LOOPS>(params) > 1)
+        return GetSolutions(*this, params, onlyGetDefault, SearchTweak::WorkspaceInsteadOfWeightsBuffer);
+    else
+        return GetSolutions(*this, params, onlyGetDefault);
 }
 
 template <int N_BATCH_LOOPS>

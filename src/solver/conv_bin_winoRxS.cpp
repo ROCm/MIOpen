@@ -302,6 +302,12 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
     }
 }
 
+std::vector<ConvSolution> ConvBinWinogradRxS::GetSolutions(const ConvolutionContext& params,
+                                                            const bool onlyGetDefault) const
+{
+    return std::vector<ConvSolution>{this->GetSolution(params)};
+}
+
 ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) const
 {
     ConvSolution result;
@@ -435,6 +441,12 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
 bool ConvBinWinogradRxSFused::IsApplicable(const ConvolutionContext&) const
 {
     return true; // Actual checks moved to FusionMDGraph.
+}
+
+std::vector<ConvSolution> ConvBinWinogradRxSFused::GetSolutions(const ConvolutionContext& params,
+                                                                const bool onlyGetDefault) const
+{
+    return std::vector<ConvSolution>{this->GetSolution(params)};
 }
 
 ConvSolution ConvBinWinogradRxSFused::GetSolution(const ConvolutionContext& params) const

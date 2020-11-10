@@ -89,6 +89,12 @@ size_t ConvOclBwdWrW1x1::GetWorkspaceSize(const ConvolutionContext& params) cons
         return 0;
 }
 
+std::vector<ConvSolution> ConvOclBwdWrW1x1::GetSolutions(const ConvolutionContext& params,
+                                                         const bool onlyGetDefault) const
+{
+    return std::vector<ConvSolution>{this->GetSolution(params)};
+}
+
 ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) const
 {
     ConvSolution result;

@@ -847,6 +847,31 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::Search(const ConvolutionContext& ctx) cons
     }
 }
 
+std::vector<ConvSolution> 
+ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolutions(const ConvolutionContext& params,
+                                                   const bool onlyGetDefault) const
+{
+    // fp16/bfp16 uses fp32 workspace to leverage fp32 atomic add
+    if(params.IsFp16() || params.IsBfp16())
+    {
+        const auto y          = ConvolutionContextInterpreter::GetFilterHeightY(params);
+        const auto x          = ConvolutionContextInterpreter::GetFilterWidthX(params);
+        const auto stride_h   = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(params);
+        const auto stride_w   = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(params);
+        const auto dilation_h = ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(params);
+        const auto dilation_w = ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(params);
+
+        if((stride_h >= dilation_h * (y - 1) + 1) && (stride_w >= dilation_w * (x - 1) + 1))
+            return GetSolutions(*this, params, onlyGetDefault);
+        else
+            return GetSolutions(*this, params, onlyGetDefault, SearchTweak::WorkspaceInsteadOfXBuffer);
+    }
+    else
+    {
+        return GetSolutions(*this, params, onlyGetDefault);
+    }
+}
+
 ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(
     const ConvolutionContext& ctx, const PerformanceImplicitGemmBwdV1R1Xdlops& config, bool) const
 {

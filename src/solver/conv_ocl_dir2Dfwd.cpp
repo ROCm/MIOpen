@@ -385,7 +385,8 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
         std::to_string(static_cast<long long>(params.in_batch_stride)) +
         std::string(" -DMLO_IN_CHANNEL_STRIDE=") +
         std::to_string(static_cast<long long>(params.in_channel_stride)) +
-        std::string(" -DMLO_IN_STRIDE=") + std::to_string(static_cast<long long>(params.in_stride))
+        std::string(" -DMLO_IN_STRIDE=") +
+        std::to_string(static_cast<long long>(params.in_stride))
         // algorithm parameters
         + std::string(" -DMLO_IN_TILE0=") +
         std::to_string(static_cast<long long>(result.in_tile0)) // size of input data per ALU plane
@@ -462,6 +463,173 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
         result.invoker_factory = &conv::MakeGenericXWYPadInvoker;
 
     return result;
+}
+
+std::vector<ConvSolution> ConvOclDirectFwd::GetSolutions(const ConvolutionContext& params,
+                                                         const bool onlyGetDefault) const
+{
+    std::vector<ConvSolution> allSolutions;
+    const auto defaultConfig = GetPerformanceConfig(params);
+    if(this->IsValidPerformanceConfig(params, defaultConfig))
+    {
+        auto defaultSolution = this->GetSolution(params, defaultConfig);
+        if(default_solution.Succeeded())
+        {
+            allSolutions.push_back(defaultSolution);
+        }
+    }
+    if(onlyGetDefault)
+    {
+        return allSolutions;
+    }
+    // search loop here
+    int tile_sz1[4]        = {8, 16, 32, 64};
+    int tile_sz0[4]        = {8, 16, 32, 64};
+    int out_pix_tile_sz[3] = {1, 2, 4};
+    int n_out_tiles_rg[5]  = {1, 2, 4, 8};
+    int n_in_tiles_rg[3]   = {1, 2, 4};
+    int n_in_stacks_sz[2]  = {1, 2};
+
+    size_t cur_counter = 1, failed_counter = 0;
+
+    int out_pix_tl_cnt = 3; // out_pix_tile_sz[1];
+    int n_out_tls      = 4;
+    int n_in_tls       = 3;
+    int stack_cnt      = std::min(params.batch_sz, 2);
+    int n_tile0_sz     = 4;
+    int n_tile1_sz     = 4;
+
+    if(params.out_width >= 16)
+    {
+        tile_sz0[0] = 16;
+        tile_sz0[1] = 32;
+        n_tile0_sz  = 2;
+    }
+
+    if(params.out_height >= 16)
+    {
+        tile_sz1[0] = 16;
+        tile_sz1[1] = 32;
+        n_tile1_sz  = 2;
+    }
+
+    int n_tiles_cnt = n_tile0_sz * n_tile1_sz;
+
+    long long nTotal = 0;
+
+    LegacyPerformanceConfig currentConfig;
+    nTotal = n_tiles_cnt * out_pix_tl_cnt * out_pix_tl_cnt * n_out_tls *
+             n_in_tls * stack_cnt;
+    MIOPEN_LOG_I2("Get Solutions in all " << nTotal + 1 << " configs.");
+    // tile 1
+    for(int j = 0; j < n_tile1_sz; ++j)
+    {
+        int tile_sz[3]  = {8, 16, 32};
+        currentConfig.in_tile1 = tile_sz1[j];
+        if(params.out_height * 2 <= currentConfig.in_tile1 && currentConfig.in_tile1 > tile_sz[0])
+        {
+            continue;
+        }
+
+        // tile 0
+        for(int i = 0; i < n_tile0_sz; ++i)
+        {
+            currentConfig.in_tile0 = tile_sz0[i];
+            if((params.out_width * 2 <= currentConfig.in_tile0 && currentConfig.in_tile0 > tile_sz[0]))
+            {
+                continue;
+            }
+            if(params.out_height > 16 && params.out_width > 16 &&
+               ((currentConfig.in_tile1 == 8 && currentConfig.in_tile0 == 8) ||
+                (currentConfig.grp_tile0 == 8 && currentConfig.grp_tile1 == 8)))
+            {
+                continue;
+            }
+            if(params.out_width > 32 && currentConfig.in_tile1 > currentConfig.in_tile0)
+            {
+                continue;
+            }
+            // out pix 1
+
+            for(int k = 0; k < out_pix_tl_cnt; ++k)
+            {
+                currentConfig.out_pix_tile1 = out_pix_tile_sz[k];
+                currentConfig.grp_tile1     = currentConfig.in_tile1 / currentConfig.out_pix_tile1;
+                if(currentConfig.out_pix_tile1 > currentConfig.in_tile1 || currentConfig.grp_tile1 < 8)
+                {
+                    continue;
+                }
+                // out pix 0
+
+                for(int l = 0; l < out_pix_tl_cnt; ++l)
+                {
+                    currentConfig.out_pix_tile0 = out_pix_tile_sz[l];
+                    currentConfig.grp_tile0     = currentConfig.in_tile0 / currentConfig.out_pix_tile0;
+
+                    if(currentConfig.out_pix_tile0 > currentConfig.in_tile0 || currentConfig.grp_tile0 < 8)
+                    {
+                        continue;
+                    }
+
+                    for(int o_t = 0; o_t < n_out_tls; ++o_t)
+                    {
+                        currentConfig.n_out_pix_tiles = n_out_tiles_rg[o_t];
+                        if(params.n_outputs < currentConfig.n_out_pix_tiles)
+                        {
+                            continue;
+                        }
+
+                        for(int i_t = 0; i_t < n_in_tls; ++i_t)
+                        {
+                            currentConfig.n_in_data_tiles = n_in_tiles_rg[i_t];
+                            if(params.n_inputs < currentConfig.n_in_data_tiles)
+                            {
+                                continue;
+                            }
+
+                            for(int s = 0; s < stack_cnt; ++s)
+                            {
+
+                                currentConfig.n_stacks = n_in_stacks_sz[s];
+                                if(currentConfig.n_stacks > params.batch_sz)
+                                {
+                                    continue;
+                                }
+
+                                if(currentConfig.out_pix_tile1 * currentConfig.out_pix_tile0 *
+                                       currentConfig.n_out_pix_tiles * currentConfig.n_stacks >=
+                                    128)
+                                {
+                                    continue;
+                                }
+                                if(this->IsValidPerformanceConfig(params, currentConfig))
+                                {
+                                    auto currentSolution = this->GetSolution(params, currentConfig);
+                                    if(currentSolution.Succeeded())
+                                    {
+                                        allSolutions.push_back(currentSolution);
+                                    }
+                                    else
+                                    {
+                                        ++failed_counter;
+                                    }
+                                }
+                                else
+                                {
+                                    ++failed_counter;
+                                }
+                                MIOPEN_LOG_I2("##(n_current, n_failed, n_total): "
+                                             << cur_counter << " / " << failed_counter << " / "
+                                             << nTotal << ", "
+                                             << currentConfig);
+                                cur_counter++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,

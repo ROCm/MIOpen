@@ -179,6 +179,12 @@ ConvHipImplicitGemmV4R1WrW::Search(const ConvolutionContext& context) const
     return GenericSearchWrW(*this, context);
 }
 
+std::vector<ConvSolution> ConvHipImplicitGemmV4R1Fwd::GetSolutions(const ConvolutionContext& params,
+                                                                   const bool onlyGetDefault) const
+{
+    return GetSolutions(*this, params, onlyGetDefault);
+}
+
 ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
                                                      const PerformanceImplicitGemmV4R1& config,
                                                      bool) const
@@ -373,6 +379,12 @@ ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& c
     result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
 
     return result;
+}
+
+std::vector<ConvSolution> ConvHipImplicitGemmV4R1WrW::GetSolutions(const ConvolutionContext& params,
+                                                                   const bool onlyGetDefault) const
+{
+    return GetSolutions(*this, params, onlyGetDefault);
 }
 
 ConvSolution ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& ctx,

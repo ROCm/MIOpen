@@ -401,6 +401,12 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
     return ok;
 }
 
+std::vector<ConvSolution> ConvAsmBwdWrW3x3::GetSolutions(const ConvolutionContext& params,
+                                                         const bool onlyGetDefault) const
+{
+    return GetSolutions(*this, params, onlyGetDefault);
+}
+
 ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
                                            const PerformanceConfigAsmDirect3x3WrW& config,
                                            const bool disableConfigOverrideFromEnv) const

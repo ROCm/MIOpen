@@ -471,6 +471,15 @@ static int divide_round_plus_inf(const int x, const int y)
     return x / y;
 }
 
+std::vector<ConvSolution> ConvAsm1x1U::GetSolutions(const ConvolutionContext& params,
+                                                    const bool onlyGetDefault) const
+{
+    if(UseSubsample(params) || UseUpsample(params))
+        return GetSolutions(*this, params, onlyGetDefault, SearchTweak::WorkspaceInsteadOfXBuffer);
+    else
+        return GetSolutions(*this, params, onlyGetDefault);
+}
+
 ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
                                       const PerformanceConfigConvAsm1x1U& config,
                                       const bool disableConfigOverrideFromEnv) const
