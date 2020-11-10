@@ -361,7 +361,7 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
     std::ignore = PrecompileKernels(profile_h, kernels);
 #endif
 
-    if(IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
+    if(!IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
     {
         size_t n_current = 0;
         for(const auto& current_config : all_configs)
