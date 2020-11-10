@@ -226,6 +226,7 @@ float CallImplGemmDynamicBackwardData(const miopen::Handle& handle,
     opArgs.emplace_back(dslice_w_left);
     opArgs.emplace_back(__pack0);
 
+
     for(int gemm_id = 0; gemm_id < num_of_gemms; gemm_id++)
     {
         int _dtile_iy          = gemm_id / x_tilda;
@@ -304,7 +305,16 @@ InvokerFactory MakeImplGemmDynamicForward1x1InvokerFactory(const ConvolutionCont
 InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory(const ConvolutionContext& ctx)
 {
     const auto& conv_problem = ctx.conv_problem;
-    return [conv_problem](const std::vector<Kernel>& kernels) {
+    int stride_h    = conv_problem.GetInHeight() > 1 ? conv_problem.GetKernelStrideH() : 1;
+    int stride_w    = conv_problem.GetInWidth() > 1 ? conv_problem.GetKernelStrideW() : 1;
+    int dilation_h  = conv_problem.GetWeightsHeight() > 1? conv_problem.GetDilationH() : 1;
+    int dilation_w  = conv_problem.GetWeightsWidth() > 1? conv_problem.GetDilationW() : 1;
+    int y           = conv_problem.GetWeightsHeight();
+    int x           = conv_problem.GetWeightsWidth();
+    bool need_set_zero = false;
+    if(y < stride_h || x < stride_w || dilation_h != 1 || dilation_w != 1)
+        need_set_zero = true;
+    return [conv_problem, need_set_zero](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
             decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors     = data_ctx.tensors;
@@ -316,8 +326,16 @@ InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory(const ConvolutionCo
                            std::back_inserter(ks),
                            [&](const Kernel& k) { return handle.Run(k); });
             float elapsed = 0;
+            if(need_set_zero)
+            {
+                float zero = 0.f;
+                SetTensor(handle, tensors.outDesc, tensors.out, &zero);
 
-            elapsed = CallImplGemmDynamicBackwardData(
+                if(handle.IsProfilingEnabled())
+                    elapsed += handle.GetKernelTime();
+            }
+
+            elapsed += CallImplGemmDynamicBackwardData(
                 handle, conv_problem, tensors.in, tensors.out, tensors.w, ks);
 
             if(handle.IsProfilingEnabled())
