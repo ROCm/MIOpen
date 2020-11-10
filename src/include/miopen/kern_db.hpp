@@ -72,8 +72,7 @@ struct KernelConfig
            << ");"
            << "CREATE UNIQUE INDEX IF NOT EXISTS "
            << "`idx_" << KernelConfig::table_name() << "` "
-           << "ON " << KernelConfig::table_name()
-           << "(kernel_name, kernel_args, kernel_hash, uncompressed_size);";
+           << "ON " << KernelConfig::table_name() << "(kernel_name, kernel_args);";
         return ss.str();
     }
     std::string Where() const
@@ -159,7 +158,7 @@ class KernDb : public SQLiteBase<KernDb>
     {
         if(filename.empty())
             return boost::none;
-        auto insert_query = "INSERT OR REPLACE INTO " + T::table_name() +
+        auto insert_query = "INSERT OR IGNORE INTO " + T::table_name() +
                             "(kernel_name, kernel_args, kernel_blob, kernel_hash, "
                             "uncompressed_size) VALUES(?, ?, ?, ?, ?);";
         auto md5_sum           = md5(problem_config.kernel_blob);
