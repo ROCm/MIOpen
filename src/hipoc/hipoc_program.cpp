@@ -60,15 +60,7 @@ namespace {
 
 inline bool ProduceCodeObjectV2()
 {
-    // If env.var is set, then let's simply follow it.
-    if(IsEnabled(MIOPEN_DEBUG_OPENCL_ENFORCE_COV2{}))
-        return true;
-    if(IsDisabled(MIOPEN_DEBUG_OPENCL_ENFORCE_COV2{}))
-        return false;
-    // Otherwise, let's assume that OpenCL kernels shall be compiled to
-    // CO v2 format by default prior to ROCm 3.0. The simplest way to find out
-    // this right now is checking the HIP compiler version string.
-    return !(HipCompilerVersion() >= external_tool_version_t{3, 0, -1});
+    return IsEnabled(MIOPEN_DEBUG_OPENCL_ENFORCE_COV2{});
 }
 
 /// Returns option for enabling/disabling CO v2 generation for the compiler
