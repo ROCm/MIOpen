@@ -277,8 +277,7 @@ void PerformanceImplicitGemmForwardV4R5Xdlops::EuristicInit(const ConvolutionCon
     // final check
     if(!tmp.IsReallyValid(ctx))
     {
-        MIOPEN_LOG_E("All attempts failed");
-        assert(false);
+        MIOPEN_LOG_I("All attempts failed");
     }
     *this = tmp;
     MIOPEN_LOG_I(ToString());
@@ -877,9 +876,14 @@ ConvSolution ConvHipImplicitGemmForwardV4R5Xdlops::GetSolution(
     bool) const
 {
     ConvSolution result;
-    KernelInfo construction_parameters;
 
-    assert(config.IsReallyValid(ctx));
+    if(!config.IsReallyValid(ctx))
+    {
+        MIOPEN_LOG_E("invalid performance parameter");
+        assert(false);
+    }
+
+    KernelInfo construction_parameters;
 
     construction_parameters.kernel_file =
         "gridwise_convolution_forward_implicit_gemm_v4r5_xdlops_nchw_kcyx_nkhw.cpp";
