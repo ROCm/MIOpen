@@ -118,8 +118,10 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
         params += " -O3 ";
     }
 
+    //std::cerr << ">>>>>>>>>>>> HIP_COMPILER_FLAGS: " << MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS) << std::endl;
     params += " -Wno-unused-command-line-argument -I. ";
     params += MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS);
+    params += " --" + std::string(MIOPEN_ARCH_FLAG) + "=" + dev_name;
     if(IsHccCompiler())
     {
         env += std::string("KMOPTLLC=\"-mattr=+enable-ds128 ");
@@ -159,6 +161,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
         std::string(" -DHIP_PACKAGE_VERSION_FLAT=") + std::to_string(HIP_PACKAGE_VERSION_FLAT);
 
     params += " ";
+    std::cerr << ">>>>>>>>>>>> params = " << params << std::endl;
     auto bin_file = tmp_dir->path / (filename + ".o");
 
     // compile

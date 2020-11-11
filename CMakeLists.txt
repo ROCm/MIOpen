@@ -181,8 +181,17 @@ endif()
 find_package(hip REQUIRED PATHS /opt/rocm)
 message(STATUS "Build with HIP ${hip_VERSION}")
 target_flags(HIP_COMPILER_FLAGS hip::device)
+
+if(HIP_COMPILER_FLAGS MATCHES "offload-arch")
+	add_definitions("-DMIOPEN_ARCH_FLAG=\"offload-arch\"")
+else()
+	add_definitions("-DMIOPEN_ARCH_FLAG=\"cuda-gpu-arch\"")
+endif()
+
+
 # Remove cuda arch flags
 string(REGEX REPLACE --cuda-gpu-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
+string(REGEX REPLACE --offload-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
 
 message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
 
