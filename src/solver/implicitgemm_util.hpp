@@ -711,16 +711,11 @@ static inline bool support_amd_buffer_atomic_fadd(const ConvolutionContext& ctx)
     return StartsWith(device_name, "gfx908");
 }
 
-static inline bool device_name_is_gfx1030(const ConvolutionContext& ctx)
-{
-    const auto device_name = ctx.GetStream().GetDeviceName();
-    return StartsWith(device_name, "gfx1030");
-}
-
 static inline bool is_use_amd_buffer_load_store(const ConvolutionContext& ctx)
 {
 #if WORKAROUND_MIOPEN_ISSUE_557
-    return !device_name_is_gfx1030(ctx);
+    const auto device_name = ctx.GetStream().GetDeviceName();
+    return !StartsWith(device_name, "gfx1030");
 #else
     return true;
 #endif
@@ -728,7 +723,8 @@ static inline bool is_use_amd_buffer_load_store(const ConvolutionContext& ctx)
 
 static inline bool is_use_v_fmac_f32(const ConvolutionContext& ctx)
 {
-    return device_name_is_gfx1030(ctx);
+    const auto device_name = ctx.GetStream().GetDeviceName();
+    return StartsWith(device_name, "gfx1030");
 }
 
 template <typename T>
