@@ -126,6 +126,7 @@ set( MIOpen_Source
     execution_context.cpp
     reducetensor.cpp
     reducetensor_api.cpp
+    gpu_reference_layer.cpp
     include/miopen/buffer_info.hpp
     include/miopen/temp_file.hpp
     include/miopen/bfloat16.hpp
@@ -178,6 +179,7 @@ set( MIOpen_Source
     include/miopen/numeric.hpp
     include/miopen/reducetensor.hpp
     include/miopen/reduce_common.hpp
+    include/miopen/gpu_reference_layer.hpp
     md_graph.cpp
     mdg_expr.cpp
     conv/invokers/gcn_asm_1x1u.cpp
@@ -253,6 +255,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     file(GLOB_RECURSE COMPOSABLE_KERNEL_DYNAMIC_ASM_SOURCE "kernels/dynamic_igemm/*.s")
     file(GLOB_RECURSE COMPOSABLE_KERNEL_DYNAMIC_ASM_INCLUDE "kernels/dynamic_igemm/*.inc")
     file(GLOB_RECURSE COMPOSABLE_KERNEL_DYNAMIC_CPP_SOURCE "kernels/dynamic_igemm/*.cpp")
+    file(GLOB_RECURSE GPU_REFERENCE_KERNEL "kernels/gpu_reference_kernel/*.cpp")
 
     set(MIOPEN_KERNEL_INCLUDES
         ${COMPOSABLE_KERNEL_INCLUDE}
@@ -316,6 +319,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ${COMPOSABLE_KERNEL_SOURCE}
         ${COMPOSABLE_KERNEL_DYNAMIC_ASM_SOURCE}
         ${COMPOSABLE_KERNEL_DYNAMIC_CPP_SOURCE}
+        ${GPU_REFERENCE_KERNEL}
         kernels/MIOpenCheckNumerics.cl
         kernels/MIOpenBatchNormActivBwdPerAct.cl
         kernels/MIOpenBatchNormActivBwdSpatial.cl
