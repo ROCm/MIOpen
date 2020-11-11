@@ -99,8 +99,6 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::SetNextValue()
         }
         if(!NextFlag<false, true>(GemmBThreadCopyMoreGemmKPack))
             break;
-        if(!NextFlag<false, false>(GemmAThreadCopyMoreGemmK))
-            break;
         if(!NextTwoPower<1, 8>(GemmKPack))
             break;
         if(!NextTwoPower<4, 128>(GemmNPerWave))
@@ -136,7 +134,7 @@ void PerformanceImplicitGemmForwardV4R4Xdlops::EuristicInit(const ConvolutionCon
                 {
                     // list in reverse order of importance,
                     // and favor large GEMM
-                    if(!PreviousTwoPower<1, 8>(tmp.GemmBThreadDataPerRead_GemmN))
+                    if(!PreviousTwoPower<1, 4>(tmp.GemmBThreadDataPerRead_GemmN))
                         break;
                     if(!PreviousTwoPower<1, 8>(tmp.GemmKPerBlock))
                         break;
