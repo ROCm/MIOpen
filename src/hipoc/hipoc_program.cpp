@@ -60,22 +60,19 @@ namespace {
 
 inline std::string GetCodeObjectVersion()
 {
-    auto code_object_version =
-        miopen::Value(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION);
+    auto code_object_version = miopen::Value(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION);
 
-    if (code_object_version == 0)
+    if(code_object_version == 0)
         return "";
 
     if(HipCompilerVersion() >= external_tool_version_t{4, 0, -1})
         return std::string("-mcode-object-version=") + std::to_string(code_object_version);
 
-    switch(code_object_version) {
-        case 2:
-            return std::string("-mno-code-object-v3");
-        case 3:
-            return std::string("-mcode-object-v3");
-        default:
-            MIOPEN_THROW(miopenStatusBadParm);
+    switch(code_object_version)
+    {
+    case 2: return std::string("-mno-code-object-v3");
+    case 3: return std::string("-mcode-object-v3");
+    default: MIOPEN_THROW(miopenStatusBadParm);
     }
 }
 
