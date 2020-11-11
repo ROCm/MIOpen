@@ -116,7 +116,7 @@ bool GemmFwd1x1_0_2::IsApplicable(const ExecutionContext& context,
     const auto spatial_dim = conv.GetSpatialDimension();
     const auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
 
-    return conv.GetSpatialDimension() == 2 &&
+    return conv.GetSpatialDimension() == 2 && problem.IsFp32() &&
            miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
            miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
            miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; });
@@ -178,7 +178,7 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
             const auto w             = conv_params.tensors.w;
             const auto y             = conv_params.tensors.out;
 
-            if(workSpace == nullptr || workSpaceSize < workspace_req)
+            if((workSpace == nullptr && workspace_req > 0) || workSpaceSize < workspace_req)
                 MIOPEN_THROW("Not enough workspace for GEMM");
 
             const std::string name = group_count > 1 ? "groupconv" : "convolution";
@@ -420,7 +420,7 @@ ConvSolution GemmFwd1x1_0_1_int8::GetSolution(const ExecutionContext& context,
 
             MIOPEN_LOG_FUNCTION("convolution, 1x1");
 
-            if(workSpace == nullptr || workSpaceSize < workspace_req)
+            if((workSpace == nullptr && workspace_req > 0) || workSpaceSize < workspace_req)
                 MIOPEN_THROW("Not enough workspace for GEMM");
 
             // y = w * x
@@ -717,16 +717,29 @@ size_t GemmFwdRest::GetWorkspaceSize(const ExecutionContext& context,
     decltype(auto) wDesc  = problem.GetWeights();
     decltype(auto) yDesc  = problem.GetOut();
 
-    if(miopen::any_of(conv.GetConvDilations(), [](auto v) { return v > 1; }))
-    {
-        const auto workspace_size_gemm = conv.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc);
-        /// \todo WORKAROUND for issue 1430
-        if(workspace_size_gemm > MAX_MEM_ALLOC_SZ /* handle.GetMaxMemoryAllocSize() */)
-            return 0;
-        return workspace_size_gemm;
-    }
+    const std::size_t spatial_dim = conv.GetSpatialDimension();
 
-    return 0;
+    const auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
+    const auto out_spatial = boost::adaptors::slice(yDesc.GetLengths(), 2, 2 + spatial_dim);
+
+    const std::size_t wei_c = wDesc.GetLengths()[1];
+
+    const std::size_t workspace_size = wei_c * std::accumulate(wei_spatial.begin(),
+                                                               wei_spatial.end(),
+                                                               std::size_t(1),
+                                                               std::multiplies<std::size_t>()) *
+                                       std::accumulate(out_spatial.begin(),
+                                                       out_spatial.end(),
+                                                       std::size_t(1),
+                                                       std::multiplies<std::size_t>()) *
+                                       GetTypeSize(wDesc.GetType()) * conv.group_count;
+
+    const auto ws_sz = (wDesc.GetType() == miopenInt8 ? 2 * workspace_size : workspace_size);
+    
+    /// \todo WORKAROUND for issue 1430
+    if(ws_sz > MAX_MEM_ALLOC_SZ /* handle.GetMaxMemoryAllocSize() */)
+        return 0;
+    return ws_sz;
 #else
     std::ignore = context;
     std::ignore = problem;
@@ -755,9 +768,12 @@ bool GemmFwdRest::IsApplicable(const ExecutionContext& context,
        miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; }))
         return false;
 
-    return miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-           miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
-           miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 1; });
+    if (miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
+        miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
+        miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 1; }))
+           return false;
+
+    return true;
 #else
     std::ignore = context;
     std::ignore = problem;
@@ -820,7 +836,7 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
             const std::string name = conv.group_count > 1 ? "groupconv" : "convolution";
             MIOPEN_LOG_FUNCTION(name + ", non 1x1");
 
-            if(workSpace == nullptr || workSpaceSize < workspace_req)
+            if((workSpace == nullptr && workspace_req > 0) || workSpaceSize < workspace_req)
                 MIOPEN_THROW("Not enough workspace for GEMM");
 
             const auto runs = conv_params.type == InvokeType::Run ? in_n : 1;
