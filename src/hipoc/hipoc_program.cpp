@@ -60,7 +60,7 @@ namespace {
 
 inline std::string GetCodeObjectVersion()
 {
-    auto code_object_version = miopen::Value(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION);
+    auto code_object_version = miopen::Value(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION{});
 
     if(code_object_version == 0)
         return "";
