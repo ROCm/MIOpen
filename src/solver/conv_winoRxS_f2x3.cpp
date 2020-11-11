@@ -42,6 +42,7 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1)
 
 #define WINODATA 2
 #define WINOFILTER 3
@@ -346,8 +347,6 @@ static bool IsApplicableBase(const ConvolutionContext& params)
         return false;
     if(!(params.IsFp32() || params.IsFp16()))
         return false;
-    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3{}))
-        return false;
     if(!params.use_asm_kernels)
         return false;
     if(!params.rmv.IsV3())
@@ -408,6 +407,8 @@ static bool IsApplicableBase(const ConvolutionContext& params)
 
 bool ConvBinWinogradRxSf2x3::IsApplicable(const ConvolutionContext& params) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3{}))
+        return false;
     return IsApplicableBase(params) && params.group_counts > 1;
 }
 
@@ -724,6 +725,8 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
 
 bool ConvBinWinogradRxSf2x3g1::IsApplicable(const ConvolutionContext& params) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1{}))
+        return false;
     return IsApplicableBase(params) && params.group_counts == 1;
 }
 
