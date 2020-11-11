@@ -31,6 +31,7 @@
 #include <miopen/hipoc_program.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/kernel_warnings.hpp>
+#include <miopen/logger.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/tmp_dir.hpp>
 #include <miopen/write_file.hpp>
@@ -58,22 +59,44 @@ namespace miopen {
 #if !MIOPEN_USE_COMGR
 namespace {
 
-inline std::string GetCodeObjectVersion()
+inline std::string GetCodeObjectVersionOptionImpl()
 {
     auto code_object_version = miopen::Value(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION{});
-
-    if(code_object_version == 0)
-        return "";
+    // Very basic syntax check:
+    if(code_object_version == 1 || code_object_version > 4)
+    {
+        MIOPEN_LOG_E("Bad MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION, using default");
+        code_object_version = 0;
+    }
 
     if(HipCompilerVersion() >= external_tool_version_t{4, 0, -1})
-        return std::string("-mcode-object-version=") + std::to_string(code_object_version);
-
-    switch(code_object_version)
     {
-    case 2: return std::string("-mno-code-object-v3");
-    case 3: return std::string("-mcode-object-v3");
-    default: MIOPEN_THROW(miopenStatusBadParm);
+        if(code_object_version == 0) // Env.var is unset.
+            return {};               // Rely on compiler's default.
+        else
+            return std::string("-mcode-object-version=") + std::to_string(code_object_version);
     }
+    else
+    {
+        // By default, let's assume that OpenCL kernels shall be compiled to
+        // CO v3 format since ROCm 3.0.
+        if(code_object_version == 0)
+            code_object_version = HipCompilerVersion() >= external_tool_version_t{3, 0, -1} ? 3 : 2;
+
+        switch(code_object_version)
+        {
+        // These options are Ok for ROCm for a long time (since 2.5 or so):
+        case 2: return {"-Xclang -target-feature -Xclang -code-object-v3"};
+        default: // Fall through.
+        case 3: return {"-Xclang -target-feature -Xclang +code-object-v3"};
+        }
+    }
+}
+
+inline std::string GetCodeObjectVersionOption()
+{
+    static const auto option = GetCodeObjectVersionOptionImpl();
+    return option;
 }
 
 } // namespace
@@ -180,7 +203,7 @@ struct HIPOCProgramImpl
         }
         else
         {
-            params += " " + GetCodeObjectVersion();
+            params += " " + GetCodeObjectVersionOption();
             WriteFile(src, dir->path / filename);
             dir->Execute(HIP_OC_COMPILER, params + " " + filename + " -o " + hsaco_file.string());
         }
