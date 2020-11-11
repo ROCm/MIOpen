@@ -44,7 +44,7 @@
 
 #include <unistd.h>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_ENFORCE_COV3)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 
 #define MIOPEN_WORKAROUND_SWDEV_225285 1
@@ -58,30 +58,30 @@ namespace miopen {
 #if !MIOPEN_USE_COMGR
 namespace {
 
-inline bool ProduceCoV3()
+inline const std::string& GetCodeObjectVersion()
 {
-    // If env.var is set, then let's simply follow it.
-    if(IsEnabled(MIOPEN_DEBUG_OPENCL_ENFORCE_COV3{}))
-        return true;
-    if(IsDisabled(MIOPEN_DEBUG_OPENCL_ENFORCE_COV3{}))
-        return false;
-    // Otherwise, let's assume that OpenCL kernels shall be compiled to
-    // CO v3 format by default since ROCm 3.0. The simplest way to find out
-    // this right now is checking the HIP compiler version string.
-    return (HipCompilerVersion() >= external_tool_version_t{3, 0, -1});
-}
+    static const std::string opt_enable_v2{"-mno-code-object-v3"};
+    static const std::string opt_enable_v3{"-mcode-object-v3"};
+    static const std::string opt_enable_v4{"-mllvm --amdhsa-code-object-version=4"};
 
-/// Returns option for enabling/disabling CO v3 generation for the compiler
-/// that builds OpenCL kernels, depending on compiler version etc.
-inline const std::string& GetCoV3Option(const bool enable)
-{
-    // These options are Ok for ROCm for a long time (since 2.5 or so):
-    static const std::string opt_enable{"-Xclang -target-feature -Xclang +code-object-v3"};
-    static const std::string opt_disable{}; // CO v2 is compiler default.
-    if(enable)
-        return opt_enable;
-    else
-        return opt_disable;
+    switch(miopen::Value(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION)) {
+        case 0:
+            break; // determined by compiler version.
+        case 2:
+            return opt_enable_v2;
+        case 3:
+            return opt_enable_v3;
+        case 4:
+            return opt_enable_v4;
+        default:
+            MIOPEN_THROW(miopenStatusBadParm);
+    }
+
+    if(HipCompilerVersion() >= external_tool_version_t{4, 0, -1})
+        return opt_enable_v4;
+    if(HipCompilerVersion() >= external_tool_version_t{3, 0, -1})
+        return opt_enable_v3;
+    return opt_enable_v2;
 }
 } // namespace
 #endif
@@ -187,7 +187,7 @@ struct HIPOCProgramImpl
         }
         else
         {
-            params += " " + GetCoV3Option(ProduceCoV3());
+            params += " " + GetCodeObjectVersion();
             WriteFile(src, dir->path / filename);
             dir->Execute(HIP_OC_COMPILER, params + " " + filename + " -o " + hsaco_file.string());
         }
