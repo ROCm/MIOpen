@@ -735,7 +735,7 @@ size_t GemmFwdRest::GetWorkspaceSize(const ExecutionContext& context,
                                        GetTypeSize(wDesc.GetType()) * conv.group_count;
 
     const auto ws_sz = (wDesc.GetType() == miopenInt8 ? 2 * workspace_size : workspace_size);
-    
+
     /// \todo WORKAROUND for issue 1430
     if(ws_sz > MAX_MEM_ALLOC_SZ /* handle.GetMaxMemoryAllocSize() */)
         return 0;
@@ -768,10 +768,10 @@ bool GemmFwdRest::IsApplicable(const ExecutionContext& context,
        miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; }))
         return false;
 
-    if (miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-        miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
-        miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 1; }))
-           return false;
+    if(miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
+       miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
+       miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 1; }))
+        return false;
 
     return true;
 #else
