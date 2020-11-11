@@ -304,8 +304,10 @@ InvokerFactory MakeImplGemmDynamicForward1x1InvokerFactory(const ConvolutionCont
 InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory(const ConvolutionContext& ctx)
 {
     const auto& conv_problem = ctx.conv_problem;
-    int stride_h             = conv_problem.GetInHeight() > 1 ? conv_problem.GetKernelStrideH() : 1;
-    int stride_w             = conv_problem.GetInWidth() > 1 ? conv_problem.GetKernelStrideW() : 1;
+    // in backward data, input-tensor and output-tensor is iternally swapped in convolution context
+    // we need use output-tensor hight/width to adjust stride
+    int stride_h       = conv_problem.GetInHeight() > 1 ? conv_problem.GetKernelStrideH() : 1;
+    int stride_w       = conv_problem.GetInWidth() > 1 ? conv_problem.GetKernelStrideW() : 1;
     int dilation_h     = conv_problem.GetWeightsHeight() > 1 ? conv_problem.GetDilationH() : 1;
     int dilation_w     = conv_problem.GetWeightsWidth() > 1 ? conv_problem.GetDilationW() : 1;
     int y              = conv_problem.GetWeightsHeight();
