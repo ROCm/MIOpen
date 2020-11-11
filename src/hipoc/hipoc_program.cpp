@@ -58,31 +58,27 @@ namespace miopen {
 #if !MIOPEN_USE_COMGR
 namespace {
 
-inline const std::string& GetCodeObjectVersion()
+inline std::string GetCodeObjectVersion()
 {
-    static const std::string opt_enable_v2{"-mno-code-object-v3"};
-    static const std::string opt_enable_v3{"-mcode-object-v3"};
-    static const std::string opt_enable_v4{"-mllvm --amdhsa-code-object-version=4"};
+    auto code_object_version =
+        miopen::Value(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION);
 
-    switch(miopen::Value(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION)) {
-        case 0:
-            break; // determined by compiler version.
+    if (code_object_version == 0)
+        return "";
+
+    if(HipCompilerVersion() >= external_tool_version_t{4, 0, -1})
+        return std::string("-mcode-object-version=") + std::to_string(code_object_version);
+
+    switch(code_object_version) {
         case 2:
-            return opt_enable_v2;
+            return std::string("-mno-code-object-v3");
         case 3:
-            return opt_enable_v3;
-        case 4:
-            return opt_enable_v4;
+            return std::string("-mcode-object-v3");
         default:
             MIOPEN_THROW(miopenStatusBadParm);
     }
-
-    if(HipCompilerVersion() >= external_tool_version_t{4, 0, -1})
-        return opt_enable_v4;
-    if(HipCompilerVersion() >= external_tool_version_t{3, 0, -1})
-        return opt_enable_v3;
-    return opt_enable_v2;
 }
+
 } // namespace
 #endif
 
