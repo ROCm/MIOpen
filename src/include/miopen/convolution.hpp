@@ -48,10 +48,6 @@ namespace solver {
 struct ConvSolution;
 } // namespace solver
 
-namespace conv {
-struct ProblemDescription;
-} // namespace conv
-
 struct ExecutionContext;
 struct ConvolutionContext;
 struct Handle;
