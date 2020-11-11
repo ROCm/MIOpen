@@ -340,7 +340,7 @@ inline void FillVarsFromConfig(int& H,
     idilation_h = config.kernel_dilation_w;
 }
 
-bool ConvBinWinogradRxSf2x3::IsApplicable(const ConvolutionContext& params) const
+static bool IsApplicableBase(const ConvolutionContext& params)
 {
     if(!params.Is2d())
         return false;
@@ -404,6 +404,11 @@ bool ConvBinWinogradRxSf2x3::IsApplicable(const ConvolutionContext& params) cons
                                      params.batch_sz, // N
                                      params);
     }
+}
+
+bool ConvBinWinogradRxSf2x3::IsApplicable(const ConvolutionContext& params) const
+{
+    return IsApplicableBase(params) && params.group_counts > 1;
 }
 
 ConvSolution
@@ -715,6 +720,17 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
     }
 
     return result;
+}
+
+bool ConvBinWinogradRxSf2x3g1::IsApplicable(const ConvolutionContext& params) const
+{
+    return IsApplicableBase(params) && params.group_counts == 1;
+}
+
+ConvSolution ConvBinWinogradRxSf2x3g1::GetSolution(const ConvolutionContext& params) const
+{
+    const auto tunable = ConvBinWinogradRxSf2x3{};
+    return tunable.GetSolution(params, tunable.GetPerformanceConfig(params), false);
 }
 
 } // namespace solver

@@ -153,6 +153,7 @@ static auto GetWindogradSolvers()
     return miopen::solver::SolverContainer<miopen::solver::ConvBinWinograd3x3U,
                                            miopen::solver::ConvBinWinogradRxSf3x2,
                                            miopen::solver::ConvBinWinogradRxSf2x3,
+                                           miopen::solver::ConvBinWinogradRxSf2x3g1,
                                            miopen::solver::ConvBinWinogradRxS,
                                            miopen::solver::ConvMPBidirectWinograd<3, 3>,
                                            miopen::solver::ConvMPBidirectWinograd<4, 3>,
@@ -180,6 +181,7 @@ static auto GetWindogradWrWSolvers()
 {
     return miopen::solver::SolverContainer<miopen::solver::ConvBinWinogradRxS,
                                            miopen::solver::ConvBinWinogradRxSf2x3,
+                                           miopen::solver::ConvBinWinogradRxSf2x3g1,
                                            miopen::solver::ConvWinograd3x3MultipassWrW<3, 2>,
                                            miopen::solver::ConvWinograd3x3MultipassWrW<3, 3>,
                                            miopen::solver::ConvWinograd3x3MultipassWrW<3, 4>,
