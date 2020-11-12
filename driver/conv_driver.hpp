@@ -57,7 +57,7 @@
 #include <miopen/solver.hpp>
 #include <miopen/find_controls.hpp>
 #include <miopen/problem_description.hpp>
-#include <miopen/gpu_reference_layer.hpp>
+#include <miopen/gpu_reference_kernel.hpp>
 #include "random.hpp"
 #include <numeric>
 #include <sstream>
@@ -1185,8 +1185,8 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             for(int i = 0; i < in_sz; i++)
             {
                 if(is_fwd || is_wrw)
-                    in.data[i] =
-                        Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+                    in.data[i] = static_cast<Tgpu>(RAN_GEN<int>(static_cast<int>(-10), static_cast<Tgpu>(10)));
+                        // Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
                 else /// \ref move_rand
                     rand();
             }
@@ -1196,8 +1196,8 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         {
             for(int i = 0; i < out_sz; i++)
                 if(is_bwd || is_wrw)
-                    dout.data[i] =
-                        Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+                    dout.data[i] = static_cast<Tgpu>(RAN_GEN<int>(static_cast<int>(-10), static_cast<Tgpu>(10)));
+                        // Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
                 else /// \ref move_rand
                     rand();
         }

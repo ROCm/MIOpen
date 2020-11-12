@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include <miopen/gpu_reference_layer.hpp>
+#include <miopen/gpu_reference_kernel.hpp>
 #include <miopen/env.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>

@@ -1,5 +1,5 @@
-#ifndef GUARD_MIOPEN_GPU_REFERENCE_LAYER_HPP
-#define GUARD_MIOPEN_GPU_REFERENCE_LAYER_HPP
+#ifndef GUARD_MIOPEN_GPU_REFERENCE_KERNEL_HPP
+#define GUARD_MIOPEN_GPU_REFERENCE_KERNEL_HPP
 
 #include <miopen/common.hpp>
 
@@ -25,4 +25,4 @@ void GPUReferenceConvolutionBackwardWeights(const Handle& handle,
                                             ConstData_t output_data);
 } // namespace miopen
 
-#endif // GUARD_MIOPEN_GPU_REFERENCE_LAYER_HPP
+#endif // GUARD_MIOPEN_GPU_REFERENCE_KERNEL_HPP
