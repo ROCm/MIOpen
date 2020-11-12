@@ -161,28 +161,28 @@ def buildHipClangJob(compiler, flags, env4make, image, prefixpath="/opt/rocm", c
 }
 
 /// Stage name format:
-///   [DataType] Backend[/Compiler] BuildType [TestSet] [Target]
+/// [DataType] Backend[/Compiler] BuildType [TestSet] [Target]
 ///
 /// The only mandatory elements are Backend and BuildType; others are optional.
 ///
-/// DataType := { Half | Bfloat16 | Int8 | FP32 }
-///   * "FP32" is the default and usually not marked.
+/// DataType := { Half | Bfloat16 | Int8 | FP32* }
+///   * "FP32" is the default and usually not specified.
 /// Backend := { Hip | OpenCL }
-/// Compiler := { Clang | hcc | GCC }
-///   * "Clang" is the default compiler for the Hip backend (and denotes hip-clang compiler in this case).
+/// Compiler := { Clang* | hcc | GCC* }
+///   * "Clang" is the default for the Hip backend, and implies hip-clang compiler.
 ///     For the OpenCL backend, "Clang" implies the system x86 compiler.
-///   * "GCC" is the default compiler for OpenCL backend.
-///   * The default compiler is not marked.
+///   * "GCC" is the default for OpenCL backend.
+///   * The default compiler is usually not specified.
 /// BuildType := { Release | Debug [ BuildTypeModifier ] }
-///   * BuildTypeModifier := { COMGR | EMBEDDED | STATIC | NORMAL Find | FAST Find
-///                                  | MIOpenTensile | MIOpenTensile-Latest | ... }
-/// TestSet := { All | Subset }
-///   * "All" corresponds to cmake -DMIOPEN_TEST_ALL=On.
-///   * "Subset" corresponds to target- or build-type-modifier-specific subsetting of
+///   * BuildTypeModifier := { COMGR | Embedded | Static | Normal-Find | Fast-Find
+///                                  | Tensile | Tensile-Latest | Package | ... }
+/// TestSet := { All | Subset | Smoke* }
+///   * "All" corresponds to "cmake -DMIOPEN_TEST_ALL=On".
+///   * "Subset" corresponds to Target- or BuildTypeModifier-specific subsetting of
 ///     the "All" testset, e.g. -DMIOPEN_TEST_GFX908=On or -DMIOPEN_TEST_MIOTENSILE=On.
-///   * The default is smoke testing (cmake -DMIOPEN_TEST_ALL=Off) and not marked.
-/// Target := { gfx908 | Vega20 | Vega10 | Fiji | Vega }
-///   * "Vega" (gfx906 or gfx900) is the default and not marked.
+///   * "Smoke" (-DMIOPEN_TEST_ALL=Off) is the default and usually not specified.
+/// Target := { gfx908 | Vega20 | Vega10 | Fiji | Vega* }
+///   * "Vega" (gfx906 or gfx900) is the default and usually not specified.
 
 pipeline {
     agent none
@@ -330,7 +330,7 @@ pipeline {
                         buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "MIOPEN_LOG_LEVEL=5 MIOPEN_COMPILE_PARALLEL_LEVEL=1",  image+'-hip-clang', "/usr/local", cmd, "gfx900;gfx906")
                     }
                 }
-                stage('Hip Debug EMBEDDED Vega20') {
+                stage('Hip Debug Embedded Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
@@ -348,7 +348,7 @@ pipeline {
                     }
                 }
 
-                stage('Hip Release STATIC') {
+                stage('Hip Release Static') {
                     agent{ label rocmnode("vega") }
                     environment{
                         cmd = """
@@ -366,7 +366,7 @@ pipeline {
                     }
                 }
 
-                stage('Hip Release NORMAL Find') {
+                stage('Hip Release Normal-Find') {
                     agent{ label rocmnode("vega") }
                     environment{
                         cmd = """
@@ -384,7 +384,7 @@ pipeline {
                     }
                 }
 
-                stage('Hip Release FAST Find') {
+                stage('Hip Release Fast-Find') {
                     agent{ label rocmnode("vega") }
                     environment{
                         cmd = """
@@ -597,9 +597,9 @@ pipeline {
             }
         }
 
-        stage("Full tests IV"){
+        stage("MIOpenTensile"){
             parallel{
-                stage('Hip Release MIOpenTensile Subset Vega20') {
+                stage('Hip Release Tensile Subset Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
@@ -616,7 +616,7 @@ pipeline {
                     }
                 }
 
-                stage('Hip Release MIOpenTensile Subset gfx908') {
+                stage('Hip Release Tensile Subset gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
@@ -633,7 +633,7 @@ pipeline {
                     }
                 }
 
-                stage('Hip Release MIOpenTensile-Latest Subset Vega20') {
+                stage('Hip Release Tensile-Latest Subset Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
@@ -650,7 +650,7 @@ pipeline {
                     }
                 }
 
-                stage('Hip Release MIOpenTensile-Latest Subset gfx908') {
+                stage('Hip Release Tensile-Latest Subset gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
