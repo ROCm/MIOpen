@@ -160,7 +160,29 @@ def buildHipClangJob(compiler, flags, env4make, image, prefixpath="/opt/rocm", c
         return retimage
 }
 
-
+/// Stage name format:
+///   [DataType] Backend[/Compiler] BuildType [TestSet] [Target]
+///
+/// The only mandatory elements are Backend and BuildType; others are optional.
+///
+/// DataType := { Half | Bfloat16 | Int8 | FP32 }
+///   * "FP32" is the default and usually not marked.
+/// Backend := { Hip | OpenCL }
+/// Compiler := { Clang | hcc | GCC }
+///   * "Clang" is the default compiler for the Hip backend (and denotes hip-clang compiler in this case).
+///     For the OpenCL backend, "Clang" implies the system x86 compiler.
+///   * "GCC" is the default compiler for OpenCL backend.
+///   * The default compiler is not marked.
+/// BuildType := { Release | Debug [ BuildTypeModifier ] }
+///   * BuildTypeModifier := { COMGR | EMBEDDED | STATIC | NORMAL Find | FAST Find
+///                                  | MIOpenTensile | MIOpenTensile-Latest | ... }
+/// TestSet := { All | Subset }
+///   * "All" corresponds to cmake -DMIOPEN_TEST_ALL=On.
+///   * "Subset" corresponds to target- or build-type-modifier-specific subsetting of
+///     the "All" testset, e.g. -DMIOPEN_TEST_GFX908=On or -DMIOPEN_TEST_MIOTENSILE=On.
+///   * The default is smoke testing (cmake -DMIOPEN_TEST_ALL=Off) and not marked.
+/// Target := { gfx908 | Vega20 | Vega10 | Fiji | Vega }
+///   * "Vega" (gfx906 or gfx900) is the default and not marked.
 
 pipeline {
     agent none
