@@ -113,6 +113,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
         if(params.find("-std=") == std::string::npos)
             params += " --std=c++11";
         params += " --cuda-gpu-arch=" + dev_name;
+        params += " --" + std::string(MIOPEN_ARCH_FLAG) + "=" + dev_name;
         params += " --cuda-device-only";
         params += " -c";
         params += " -O3 ";
@@ -120,7 +121,6 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
 
     params += " -Wno-unused-command-line-argument -I. ";
     params += MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS);
-    params += " --" + std::string(MIOPEN_ARCH_FLAG) + "=" + dev_name;
     if(IsHccCompiler())
     {
         env += std::string("KMOPTLLC=\"-mattr=+enable-ds128 ");
