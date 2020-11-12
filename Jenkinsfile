@@ -291,8 +291,9 @@ pipeline {
         // Misc tests
         stage("Aux tests"){
             parallel{
-                stage('Hip Debug COMGR') {
-                    agent{ label rocmnode("vega") }
+                stage('Hip Debug COMGR Vega20') {
+                    // WORKAROUND for COMGR Vega10 testing problem. Should be "vega".
+                    agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
                             ulimit -c unlimited
