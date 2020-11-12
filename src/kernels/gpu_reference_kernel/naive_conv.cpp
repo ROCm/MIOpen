@@ -47,6 +47,11 @@ extern "C" __global__ void naive_conv_fwd_nchw_fp32(const float* __restrict__ p_
                                                     int fx,
                                                     int group)
 {
+    /*
+     *  need to compute total output pixel: `group * n * k_per_group * ho * wo`.
+     *  to distribute this workload, let one workgroup compute `ho * wo` pixel,
+     *  hence need `group * n * k_per_group` workgroups (grid_size).
+     */
     int k             = k_per_group * group;
     int c             = c_per_group * group;
     int thread_length = ho * wo;
@@ -115,6 +120,11 @@ extern "C" __global__ void naive_conv_bwd_nchw_fp32(float* __restrict__ p_in,
                                                     int fx,
                                                     int group)
 {
+    /*
+     *  need to compute total input pixel: `group * n * c_per_group * hi * wi`.
+     *  to distribute this workload, let one workgroup compute `hi * wi` pixel,
+     *  hence need `group * n * c_per_group` workgroups (grid_size).
+     */
     int k             = k_per_group * group;
     int c             = c_per_group * group;
     int thread_length = hi * wi;
@@ -189,6 +199,11 @@ extern "C" __global__ void naive_conv_wrw_nchw_fp32(const float* __restrict__ p_
                                                     int fx,
                                                     int group)
 {
+    /*
+     *  need to compute total filter pixel: `group * k_per_group * c_per_group * fy * fx`.
+     *  to distribute this workload, let one workgroup compute `c_per_group * fy * fx` pixel,
+     *  hence need `group * k_per_group` workgroups (grid_size).
+     */
     int k             = k_per_group * group;
     int c             = c_per_group * group;
     int thread_length = c_per_group * fy * fx;
@@ -264,6 +279,11 @@ extern "C" __global__ void naive_conv_fwd_ncdhw_fp32(const float* __restrict__ p
                                                      int fx,
                                                      int group)
 {
+    /*
+     *  need to compute total output pixel: `group * n * k_per_group * do_ * ho * wo`.
+     *  to distribute this workload, let one workgroup compute `do_ * ho * wo` pixel,
+     *  hence need `group * n * k_per_group` workgroups (grid_size).
+     */
     int k             = k_per_group * group;
     int c             = c_per_group * group;
     int thread_length = do_ * ho * wo;
@@ -346,6 +366,11 @@ extern "C" __global__ void naive_conv_bwd_ncdhw_fp32(float* __restrict__ p_in,
                                                      int fx,
                                                      int group)
 {
+    /*
+     *  need to compute total input pixel: `group * n * c_per_group * di * hi * wi`.
+     *  to distribute this workload, let one workgroup compute `di * hi * wi` pixel,
+     *  hence need `group * n * c_per_group` workgroups (grid_size).
+     */
     int k             = k_per_group * group;
     int c             = c_per_group * group;
     int thread_length = di * hi * wi;
@@ -439,6 +464,11 @@ extern "C" __global__ void naive_conv_wrw_ncdhw_fp32(const float* __restrict__ p
                                                      int fx,
                                                      int group)
 {
+    /*
+     *  need to compute total filter pixel: `group * k_per_group * c_per_group * fz * fy * fx`.
+     *  to distribute this workload, let one workgroup compute `c_per_group * fz * fy * fx` pixel,
+     *  hence need `group * k_per_group` workgroups (grid_size).
+     */
     int k             = k_per_group * group;
     int c             = c_per_group * group;
     int thread_length = c_per_group * fz * fy * fx;
@@ -516,6 +546,11 @@ extern "C" __global__ void naive_conv_fwd_nchw_fp16(const half* __restrict__ p_i
                                                     int fx,
                                                     int group)
 {
+    /*
+     *  need to compute total output pixel: `group * n * k_per_group * ho * wo`.
+     *  to distribute this workload, let one workgroup compute `ho * wo` pixel,
+     *  hence need `group * n * k_per_group` workgroups (grid_size).
+     */
     int k             = k_per_group * group;
     int c             = c_per_group * group;
     int thread_length = ho * wo;
@@ -584,6 +619,11 @@ extern "C" __global__ void naive_conv_bwd_nchw_fp16(half* __restrict__ p_in,
                                                     int fx,
                                                     int group)
 {
+    /*
+     *  need to compute total input pixel: `group * n * c_per_group * hi * wi`.
+     *  to distribute this workload, let one workgroup compute `hi * wi` pixel,
+     *  hence need `group * n * c_per_group` workgroups (grid_size).
+     */
     int k             = k_per_group * group;
     int c             = c_per_group * group;
     int thread_length = hi * wi;
@@ -658,6 +698,11 @@ extern "C" __global__ void naive_conv_wrw_nchw_fp16(const half* __restrict__ p_i
                                                     int fx,
                                                     int group)
 {
+    /*
+     *  need to compute total filter pixel: `group * k_per_group * c_per_group * fy * fx`.
+     *  to distribute this workload, let one workgroup compute `c_per_group * fy * fx` pixel,
+     *  hence need `group * k_per_group` workgroups (grid_size).
+     */
     int k             = k_per_group * group;
     int c             = c_per_group * group;
     int thread_length = c_per_group * fy * fx;
@@ -733,6 +778,11 @@ extern "C" __global__ void naive_conv_fwd_ncdhw_fp16(const half* __restrict__ p_
                                                      int fx,
                                                      int group)
 {
+    /*
+     *  need to compute total output pixel: `group * n * k_per_group * do_ * ho * wo`.
+     *  to distribute this workload, let one workgroup compute `do_ * ho * wo` pixel,
+     *  hence need `group * n * k_per_group` workgroups (grid_size).
+     */
     int k             = k_per_group * group;
     int c             = c_per_group * group;
     int thread_length = do_ * ho * wo;
@@ -815,6 +865,11 @@ extern "C" __global__ void naive_conv_bwd_ncdhw_fp16(half* __restrict__ p_in,
                                                      int fx,
                                                      int group)
 {
+    /*
+     *  need to compute total input pixel: `group * n * c_per_group * di * hi * wi`.
+     *  to distribute this workload, let one workgroup compute `di * hi * wi` pixel,
+     *  hence need `group * n * c_per_group` workgroups (grid_size).
+     */
     int k             = k_per_group * group;
     int c             = c_per_group * group;
     int thread_length = di * hi * wi;
@@ -908,6 +963,11 @@ extern "C" __global__ void naive_conv_wrw_ncdhw_fp16(const half* __restrict__ p_
                                                      int fx,
                                                      int group)
 {
+    /*
+     *  need to compute total filter pixel: `group * k_per_group * c_per_group * fz * fy * fx`.
+     *  to distribute this workload, let one workgroup compute `c_per_group * fz * fy * fx` pixel,
+     *  hence need `group * k_per_group` workgroups (grid_size).
+     */
     int k             = k_per_group * group;
     int c             = c_per_group * group;
     int thread_length = c_per_group * fz * fy * fx;

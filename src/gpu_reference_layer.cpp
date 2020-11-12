@@ -193,6 +193,8 @@ void GPUReferenceConvolutionForward(const Handle& handle,
     const std::vector<size_t> vgd = {grid_size, size_t{1}, size_t{1}};
     auto kernel = handle.AddKernel("GPUReferenceConvolutionForward", "", program_name, kernel_name, vld, vgd, "");
 
+    MIOPEN_LOG_I2(" kernel_name:"<<kernel_name<<", block_size:"<<block_size<<", grid_size:"<<grid_size);
+
     if(conv_param.in_layout == "NCHW"){
         // clang-format off
         kernel( input_data,
@@ -246,7 +248,10 @@ void GPUReferenceConvolutionForward(const Handle& handle,
                 group);
         // clang-format on
     }
-    else { MIOPEN_LOG_E("unsupported layout:" << conv_param.in_layout); }
+    else
+    {
+        MIOPEN_LOG_E("unsupported layout:" << conv_param.in_layout);
+    }
 }
 
 void GPUReferenceConvolutionBackwardData(const Handle& handle,
@@ -303,6 +308,8 @@ void GPUReferenceConvolutionBackwardData(const Handle& handle,
     const std::vector<size_t> vgd = {grid_size, size_t{1}, size_t{1}};
     auto kernel = handle.AddKernel("GPUReferenceConvolutionBackwardData", "", program_name, kernel_name, vld, vgd, "");
 
+    MIOPEN_LOG_I2(" kernel_name:"<<kernel_name<<", block_size:"<<block_size<<", grid_size:"<<grid_size);
+
     if(conv_param.in_layout == "NCHW"){
         // clang-format off
         kernel( input_data,
@@ -356,14 +363,17 @@ void GPUReferenceConvolutionBackwardData(const Handle& handle,
                 group);
         // clang-format on
     }
-    else { MIOPEN_LOG_E("unsupported layout:" << conv_param.in_layout); }
+    else
+    {
+        MIOPEN_LOG_E("unsupported layout:" << conv_param.in_layout);
+    }
 }
 
-void GPUReferenceConvolutionBackwardWeight(const Handle& handle,
-                                           const ProblemDescription& conv_param,
-                                           ConstData_t input_data,
-                                           Data_t weight_data,
-                                           ConstData_t output_data)
+void GPUReferenceConvolutionBackwardWeights(const Handle& handle,
+                                            const ProblemDescription& conv_param,
+                                            ConstData_t input_data,
+                                            Data_t weight_data,
+                                            ConstData_t output_data)
 {
 #if MIOPEN_BACKEND_OPENCL
     MIOPEN_LOG_E("currently only support hip backend");
@@ -413,6 +423,8 @@ void GPUReferenceConvolutionBackwardWeight(const Handle& handle,
     const std::vector<size_t> vgd = {grid_size, size_t{1}, size_t{1}};
     auto kernel = handle.AddKernel("GPUReferenceConvolutionBackwardWeight", "", program_name, kernel_name, vld, vgd, "");
 
+    MIOPEN_LOG_I2(" kernel_name:"<<kernel_name<<", block_size:"<<block_size<<", grid_size:"<<grid_size);
+
     if(conv_param.in_layout == "NCHW"){
         // clang-format off
         kernel( input_data,
@@ -466,6 +478,9 @@ void GPUReferenceConvolutionBackwardWeight(const Handle& handle,
                 group);
         // clang-format on
     }
-    else { MIOPEN_LOG_E("unsupported layout:" << conv_param.in_layout); }
+    else
+    {
+        MIOPEN_LOG_E("unsupported layout:" << conv_param.in_layout);
+    }
 }
 } // namespace miopen

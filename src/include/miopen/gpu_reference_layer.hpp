@@ -18,11 +18,11 @@ void GPUReferenceConvolutionBackwardData(const Handle& handle,
                                          Data_t input_data,
                                          ConstData_t weight_data,
                                          ConstData_t output_data);
-void GPUReferenceConvolutionBackwardWeight(const Handle& handle,
-                                           const ProblemDescription& conv_param,
-                                           ConstData_t input_data,
-                                           Data_t weight_data,
-                                           ConstData_t output_data);
+void GPUReferenceConvolutionBackwardWeights(const Handle& handle,
+                                            const ProblemDescription& conv_param,
+                                            ConstData_t input_data,
+                                            Data_t weight_data,
+                                            ConstData_t output_data);
 } // namespace miopen
 
 #endif // GUARD_MIOPEN_GPU_REFERENCE_LAYER_HPP

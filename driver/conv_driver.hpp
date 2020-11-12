@@ -56,6 +56,8 @@
 #include <miopen/convolution.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/find_controls.hpp>
+#include <miopen/problem_description.hpp>
+#include <miopen/gpu_reference_layer.hpp>
 #include "random.hpp"
 #include <numeric>
 #include <sstream>
@@ -73,6 +75,7 @@
 #define WORKAROUND_ISSUE_2176 1 // https://github.com/AMDComputeLibraries/MLOpen/issues/2176
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_PAD_BUFFERS_2M)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_USE_GPU_REFERENCE)
 
 #if MIOPEN_BACKEND_OPENCL
 #define STATUS_SUCCESS CL_SUCCESS
@@ -210,6 +213,7 @@ class ConvDriver : public Driver
                     context_t ctx);
     int RunForwardGPU();
     int RunForwardCPU();
+    int RunForwardGPUReference();
     int RunWarmupFindForwardGPU();
 
     int FindBackwardData(int& ret_algo_count,
@@ -224,6 +228,9 @@ class ConvDriver : public Driver
     int RunBackwardDataCPU();
     int RunBackwardWeightsCPU();
     int RunBackwardBiasCPU();
+    int RunBackwardDataGPUReference();
+    int RunBackwardWeightsGPUReference();
+    // int RunBackwardBiasGPUReference();
 
     int VerifyBackward();
     int VerifyForward();
@@ -274,6 +281,9 @@ class ConvDriver : public Driver
     std::unique_ptr<GPUMem> warmup_in_dev;
     std::unique_ptr<GPUMem> warmup_wei_dev;
     std::unique_ptr<GPUMem> warmup_out_dev;
+    std::unique_ptr<GPUMem> out_ref_dev;
+    std::unique_ptr<GPUMem> din_ref_dev;
+    std::unique_ptr<GPUMem> dwei_ref_dev;
 
     std::unique_ptr<GPUMem> workspace_dev;
     std::size_t ws_sizeof_find_fwd;
@@ -1275,6 +1285,27 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             (is_int8 ? out_dev->ToGPU(q, out_int8.data()) : out_dev->ToGPU(q, out.data.data()));
     }
 
+    if(miopen::IsEnabled(MIOPEN_DRIVER_USE_GPU_REFERENCE{}))
+    {
+        if(is_fwd)
+        {
+            out_ref_dev = std::unique_ptr<GPUMem>(
+                new GPUMem(ctx, out_sz, is_int8 ? sizeof(float) : sizeof(Tref)));
+            status |= (is_int8 ? out_ref_dev->ToGPU(q, out_int8.data())
+                               : out_ref_dev->ToGPU(q, out.data.data()));
+        }
+        if(is_bwd)
+        {
+            din_ref_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tref)));
+            status |= din_ref_dev->ToGPU(q, din.data());
+        }
+        if(is_wrw)
+        {
+            dwei_ref_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(Tref)));
+            status |= dwei_ref_dev->ToGPU(q, dwei.data());
+        }
+    }
+
     if(status != STATUS_SUCCESS)
     {
         std::cout << "Error copying data to GPU, status = " << status << std::endl;
@@ -1943,6 +1974,55 @@ int ConvDriver<Tgpu, Tref>::RunForwardCPU()
     if(inflags.GetValueInt("dump_output"))
     {
         dumpBufferToFile<Tref>("dump_fwd_out_cpu.bin", outhost.data.data(), outhost.data.size());
+    }
+
+    TrySaveVerificationCache(Direction::Fwd, outhost.data);
+    return 0;
+}
+
+template <typename Tgpu, typename Tref>
+int ConvDriver<Tgpu, Tref>::RunForwardGPUReference()
+{
+    if(miopen::deref(convDesc).mode == miopenTranspose)
+    {
+        const auto problem = miopen::ProblemDescription{out.desc,
+                                                        wei.desc,
+                                                        in.desc,
+                                                        miopen::deref(convDesc),
+                                                        miopen::conv::Direction::BackwardData};
+        GPUReferenceConvolutionBackwardData(miopen::deref(GetHandle()),
+                                            problem,
+                                            out_ref_dev->GetMem(),
+                                            wei_dev->GetMem(),
+                                            in_dev->GetMem());
+
+        if(inflags.GetValueInt("bias") != 0)
+        {
+            MIOPEN_LOG_E("gpu reference convolution not support bias now");
+        }
+    }
+    else
+    {
+        const auto problem = miopen::ProblemDescription{
+            in.desc, wei.desc, out.desc, miopen::deref(convDesc), miopen::conv::Direction::Forward};
+        GPUReferenceConvolutionForward(miopen::deref(GetHandle()),
+                                       problem,
+                                       in_dev->GetMem(),
+                                       wei_dev->GetMem(),
+                                       out_ref_dev->GetMem());
+
+        if(inflags.GetValueInt("bias") != 0)
+        {
+            MIOPEN_LOG_E("gpu reference convolution not support bias now");
+        }
+    }
+
+    out_ref_dev->FromGPU(GetStream(), outhost.data.data());
+
+    if(inflags.GetValueInt("dump_output"))
+    {
+        dumpBufferToFile<Tref>(
+            "dump_fwd_out_gpu_ref.bin", outhost.data.data(), outhost.data.size());
     }
 
     TrySaveVerificationCache(Direction::Fwd, outhost.data);
@@ -2810,6 +2890,90 @@ int ConvDriver<Tgpu, Tref>::RunBackwardBiasCPU()
 }
 
 template <typename Tgpu, typename Tref>
+int ConvDriver<Tgpu, Tref>::RunBackwardWeightsGPUReference()
+{
+    if(miopen::deref(convDesc).mode == miopenTranspose)
+    {
+        const auto problem = miopen::ProblemDescription{dout.desc,
+                                                        dwei_host.desc,
+                                                        in.desc,
+                                                        miopen::deref(convDesc),
+                                                        miopen::conv::Direction::BackwardWeights};
+        GPUReferenceConvolutionBackwardWeights(miopen::deref(GetHandle()),
+                                               problem,
+                                               dout_dev->GetMem(),
+                                               dwei_ref_dev->GetMem(),
+                                               in_dev->GetMem());
+    }
+    else
+    {
+        const auto problem = miopen::ProblemDescription{in.desc,
+                                                        dwei_host.desc,
+                                                        dout.desc,
+                                                        miopen::deref(convDesc),
+                                                        miopen::conv::Direction::BackwardWeights};
+        GPUReferenceConvolutionBackwardWeights(miopen::deref(GetHandle()),
+                                               problem,
+                                               in_dev->GetMem(),
+                                               dwei_ref_dev->GetMem(),
+                                               dout_dev->GetMem());
+    }
+
+    dwei_ref_dev->FromGPU(GetStream(), dwei_host.data.data());
+
+    if(inflags.GetValueInt("dump_output"))
+    {
+        dumpBufferToFile<Tref>(
+            "dump_bwd_dwei_gpu_ref.bin", dwei_host.data.data(), dwei_host.data.size());
+    }
+
+    TrySaveVerificationCache(Direction::WrW, dwei_host.data);
+    return 0;
+}
+
+template <typename Tgpu, typename Tref>
+int ConvDriver<Tgpu, Tref>::RunBackwardDataGPUReference()
+{
+    if(miopen::deref(convDesc).mode == miopenTranspose)
+    {
+        const auto problem = miopen::ProblemDescription{dout.desc,
+                                                        wei.desc,
+                                                        din_host.desc,
+                                                        miopen::deref(convDesc),
+                                                        miopen::conv::Direction::Forward};
+        GPUReferenceConvolutionForward(miopen::deref(GetHandle()),
+                                       problem,
+                                       dout_dev->GetMem(),
+                                       wei_dev->GetMem(),
+                                       din_ref_dev->GetMem());
+    }
+    else
+    {
+        const auto problem = miopen::ProblemDescription{din_host.desc,
+                                                        wei.desc,
+                                                        dout.desc,
+                                                        miopen::deref(convDesc),
+                                                        miopen::conv::Direction::BackwardData};
+        GPUReferenceConvolutionBackwardData(miopen::deref(GetHandle()),
+                                            problem,
+                                            din_ref_dev->GetMem(),
+                                            wei_dev->GetMem(),
+                                            dout_dev->GetMem());
+    }
+
+    din_ref_dev->FromGPU(GetStream(), din_host.data.data());
+
+    if(inflags.GetValueInt("dump_output"))
+    {
+        dumpBufferToFile<Tref>(
+            "dump_bwd_din_gpu_ref.bin", din_host.data.data(), din_host.data.size());
+    }
+
+    TrySaveVerificationCache(Direction::Bwd, din_host.data);
+    return 0;
+}
+
+template <typename Tgpu, typename Tref>
 std::string ConvDriver<Tgpu, Tref>::GetVerificationCacheFileName(
     const ConvDriver<Tgpu, Tref>::Direction& direction) const
 {
@@ -2937,7 +3101,12 @@ int ConvDriver<Tgpu, Tref>::VerifyForward()
 
     if(!is_fwd_run_failed)
         if(!TryReadVerificationCache(Direction::Fwd, outputTensor, outhost.data.data()))
-            RunForwardCPU();
+        {
+            if(miopen::IsEnabled(MIOPEN_DRIVER_USE_GPU_REFERENCE{}))
+                RunForwardGPUReference();
+            else
+                RunForwardCPU();
+        }
 
     const auto isInt8 = (data_type == miopenInt8 || data_type == miopenInt8x4);
     auto error        = is_fwd_run_failed ? std::numeric_limits<double>::max()
@@ -2955,7 +3124,11 @@ int ConvDriver<Tgpu, Tref>::VerifyForward()
         std::cout << "Forward Convolution Failed: " << error << " > " << tolerance << std::endl;
         return EC_VerifyFwd;
     }
-    std::cout << "Forward Convolution Verifies on CPU and GPU (" << error << ')' << std::endl;
+    if(miopen::IsEnabled(MIOPEN_DRIVER_USE_GPU_REFERENCE{}))
+        std::cout << "Forward Convolution Verifies on GPU(ref) and GPU (" << error << ')'
+                  << std::endl;
+    else
+        std::cout << "Forward Convolution Verifies on CPU and GPU (" << error << ')' << std::endl;
     return 0;
 }
 
@@ -2976,7 +3149,12 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
     {
         if(!is_bwd_run_failed)
             if(!TryReadVerificationCache(Direction::Bwd, inputTensor, din_host.data.data()))
-                RunBackwardDataCPU();
+            {
+                if(miopen::IsEnabled(MIOPEN_DRIVER_USE_GPU_REFERENCE{}))
+                    RunBackwardDataGPUReference();
+                else
+                    RunBackwardDataCPU();
+            }
 
         auto error_data = is_bwd_run_failed ? std::numeric_limits<double>::max()
                                             : miopen::rms_range(din_host.data, din);
@@ -2995,8 +3173,12 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
         }
         else
         {
-            std::cout << "Backward Convolution Data Verifies on CPU and GPU (" << error_data << ')'
-                      << std::endl;
+            if(miopen::IsEnabled(MIOPEN_DRIVER_USE_GPU_REFERENCE{}))
+                std::cout << "Backward Convolution Data Verifies on GPU(ref) and GPU ("
+                          << error_data << ')' << std::endl;
+            else
+                std::cout << "Backward Convolution Data Verifies on CPU and GPU (" << error_data
+                          << ')' << std::endl;
         }
     }
 
@@ -3004,7 +3186,12 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
     {
         if(!is_wrw_run_failed)
             if(!TryReadVerificationCache(Direction::WrW, weightTensor, dwei_host.data.data()))
-                RunBackwardWeightsCPU();
+            {
+                if(miopen::IsEnabled(MIOPEN_DRIVER_USE_GPU_REFERENCE{}))
+                    RunBackwardWeightsGPUReference();
+                else
+                    RunBackwardWeightsCPU();
+            }
 
         // WrW deviation is ~twice worse than Bwd due to more FP computations involved,
         // which means more roundings, so GPU amd CPU computations diverge more.
@@ -3037,8 +3224,12 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
         }
         else
         {
-            std::cout << "Backward Convolution Weights Verifies on CPU and GPU (" << error_weights
-                      << ')' << std::endl;
+            if(miopen::IsEnabled(MIOPEN_DRIVER_USE_GPU_REFERENCE{}))
+                std::cout << "Backward Convolution Weights Verifies on GPU(ref) and GPU ("
+                          << error_weights << ')' << std::endl;
+            else
+                std::cout << "Backward Convolution Weights Verifies on CPU and GPU ("
+                          << error_weights << ')' << std::endl;
         }
     }
 
@@ -3059,8 +3250,12 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
         }
         else
         {
-            std::cout << "Backward Convolution Bias Verifies on CPU and GPU (" << error_bias << ')'
-                      << std::endl;
+            if(miopen::IsEnabled(MIOPEN_DRIVER_USE_GPU_REFERENCE{}))
+                std::cout << "Backward Convolution Bias Verifies on GPU(ref) and GPU ("
+                          << error_bias << ')' << std::endl;
+            else
+                std::cout << "Backward Convolution Bias Verifies on CPU and GPU (" << error_bias
+                          << ')' << std::endl;
         }
     }
 
