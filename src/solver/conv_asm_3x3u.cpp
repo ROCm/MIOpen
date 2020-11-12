@@ -284,6 +284,7 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
 
     result.construction_params.push_back(construction_params);
     result.invoker_factory = &conv::MakeGenericXWYPadInvoker;
+    result.performance_config = pcfg->ToString();
 
     return result;
 }

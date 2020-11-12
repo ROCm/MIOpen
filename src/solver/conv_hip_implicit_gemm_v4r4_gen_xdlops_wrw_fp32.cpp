@@ -575,6 +575,7 @@ ConvSolution ConvHipImplicitGemmV4R4GenXdlopsWrWFp32::GetSolution(
             }
         };
     };
+    result.performance_config = config.ToString();
 
     return result;
 }

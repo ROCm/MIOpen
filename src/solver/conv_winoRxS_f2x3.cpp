@@ -547,6 +547,13 @@ bool ConvBinWinogradRxSf2x3::IsApplicable(const ConvolutionContext& params) cons
     }
 }
 
+std::vector<ConvSolution> 
+ConvBinWinogradRxSf2x3::GetSolutions(const ConvolutionContext& params,
+                                     const bool onlyGetDefault) const
+{
+    return GetSolutions(*this, params, onlyGetDefault);
+}
+
 ConvSolution
 ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
                                     const PerformanceConfigConvBinWinogradRxSf2x3& config,
@@ -751,6 +758,7 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
               o_buf.byte_stride.g);
         };
     };
+    result.performance_config = config.ToString();
 
     return result;
 }

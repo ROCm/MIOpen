@@ -967,6 +967,7 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
 
     result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
     result.construction_params.push_back(construction_parameters);
+    result.performance_config = config.ToString();
     return result;
 }
 

@@ -726,6 +726,7 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,
     kinfo.kernel_name = "miopenGcnAsmConv1x1U_stride2";
 
     result.construction_params.push_back(kinfo);
+    result.performance_config = pcfg->ToString();
 
     {
         int N, C, H, W, K, n_groups;

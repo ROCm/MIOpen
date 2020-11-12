@@ -823,6 +823,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
             };
         };
     }
+    result.performance_config = pcfg->ToString();
 
     return result;
 }

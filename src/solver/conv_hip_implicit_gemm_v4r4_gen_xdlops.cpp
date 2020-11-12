@@ -400,6 +400,7 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
             };
         };
     }
+    result.performance_config = config.ToString();
 
     return result;
 }

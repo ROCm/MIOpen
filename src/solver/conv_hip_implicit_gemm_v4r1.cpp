@@ -377,7 +377,7 @@ ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& c
 
     result.construction_params.push_back(construction_parameters);
     result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
-
+    result.performance_config = config.ToString();
     return result;
 }
 
@@ -591,7 +591,7 @@ ConvSolution ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& c
             handle.Run(kernels[0])(tensors.x, tensors.dy, tensors.dw);
         };
     };
-
+    result.performance_config = config.ToString();
     return result;
 }
 

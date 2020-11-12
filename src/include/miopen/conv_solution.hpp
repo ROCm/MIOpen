@@ -51,6 +51,7 @@ struct ConvSolution
 {
     /// \todo Use better name than construction_params.
     std::vector<KernelInfo> construction_params; // impl may consist of multiple kernels.
+    std::string performance_config;
     miopenStatus_t status;
     std::string solver_id;
     boost::optional<InvokerFactory> invoker_factory;
@@ -67,7 +68,8 @@ struct ConvSolution
     int n_stacks;        // # of diff stacks (part of batch).
 
     ConvSolution(miopenStatus_t status_ = miopenStatusSuccess)
-        : status(status_),
+        : performance_config(""),
+          status(status_),
           solver_id("<unknown>"),
           invoker_factory(boost::none),
           workspce_sz(0),

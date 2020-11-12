@@ -746,6 +746,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
         GetCompiledInParameters(params, &N, &C, &H, &W, &K, &n_groups);
         result.invoker_factory = conv::MakeGcnAsm1x1UInvokerFactory(N, C, H, W, K, n_groups);
     }
+    result.performance_config = pcfg->ToString();
 
     return result;
 }

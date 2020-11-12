@@ -87,6 +87,12 @@ bool ConvOclDirectFwdGen::IsApplicable(const ConvolutionContext& params) const
                 && (params.kernel_stride_w > 1 || params.kernel_stride_h > 1))); // clang-format on
 }
 
+std::vector<ConvSolution> ConvOclDirectFwdGen::GetSolutions(const ConvolutionContext& params,
+                                                            const bool onlyGetDefault) const
+{
+    return std::vector<ConvSolution>{this->GetSolution(params)};
+}
+
 ConvSolution ConvOclDirectFwdGen::GetSolution(const ConvolutionContext& params) const
 {
     int n_in_stacks = 0;

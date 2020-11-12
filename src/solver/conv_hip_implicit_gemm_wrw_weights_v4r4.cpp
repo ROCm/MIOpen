@@ -792,7 +792,7 @@ ConvSolution ConvHipImplicitGemmV4R4WrW::GetSolution(const ConvolutionContext& c
             handle.Run(kernels[0])(tensors.x, tensors.dy, tensors.dw);
         };
     };
-
+    result.performance_config = config.ToString();
     return result;
 }
 

@@ -46,6 +46,12 @@ class TrivialTestSolver : public solver::SolverBase<ConvolutionContext>
     public:
     static const char* FileName() { return "TrivialTestSolver"; }
     bool IsApplicable(const ConvolutionContext& context) const { return context.in_width == 1; }
+    
+    std::vector<ConvSolution> GetSolutions(const ConvolutionContext& params,
+                                           bool onlyGetDefault = false) const
+    {
+        return std::vector<ConvSolution>{this->GetSolution(params)};
+    }
 
     solver::ConvSolution GetSolution(const ConvolutionContext&) const
     {
@@ -97,6 +103,12 @@ class SearchableTestSolver : public solver::SolverBase<ConvolutionContext>
         config.str = FileName();
         _serches_done++;
         return config;
+    }
+
+    std::vector<ConvSolution> GetSolutions(const ConvolutionContext& params,
+                                           bool onlyGetDefault = false) const
+    {
+        return std::vector<ConvSolution>{this->GetSolution(params, this->Search(params))};
     }
 
     solver::ConvSolution GetSolution(const ConvolutionContext&, const TestConfig& config) const

@@ -842,6 +842,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
         }
     }
     result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
+    result.performance_config = config.ToString();
     return result;
 }
 

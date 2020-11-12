@@ -65,6 +65,173 @@ bool ConvOclDirectFwd1x1::IsApplicable(const ConvolutionContext& params) const
            params.pad_w == 0 && params.pad_h == 0;
 }
 
+std::vector<ConvSolution> ConvOclDirectFwd1x1::GetSolutions(const ConvolutionContext& params,
+                                                            const bool onlyGetDefault) const
+{
+    std::vector<ConvSolution> all_solutions;
+    size_t solutions_counter = 0, failed_counter = 0;
+    const auto default_config = GetPerformanceConfig(params);
+    if(this->IsValidPerformanceConfig(params, default_config))
+    {
+        auto default_solution = this->GetSolution(params, default_config);
+        if(default_solution.Succeeded())
+        {
+            ++solutions_counter;
+            all_solutions.push_back(default_solution);
+        }
+        else
+        {
+            ++failed_counter;
+        }
+    }
+    if(onlyGetDefault)
+    {
+        return all_solutions;
+    }
+
+    // Get loop here
+    int grp_tl_ln[4]       = {8, 16, 32};
+    int out_pix_tile_sz[3] = {1, 2, 4};
+    int n_out_tiles_rg[5]  = {1, 2, 4, 8};
+    int n_in_tiles_rg[3]   = {1, 2, 4};
+    int in_tiles[4]        = {64, 128, 256, 2048};
+
+    int out_pix_tl_cnt = 3; // out_pix_tile_sz[1];
+    int n_out_tls      = 4;
+    int n_in_tls       = 3;
+
+    long long total_configs = 0;
+    LegacyPerformanceConfig current_config;
+    int n_grp_tiles0         = 3;
+    current_config.grp_tile1 = 1;
+    current_config.in_tile1  = 1;
+    current_config.in_tile0  = 1;
+
+    // Add 1x1_stride : no padding support yet
+    if(params.in_data_type == miopenFloat && params.direction.IsForward() &&
+       params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0)
+    {
+
+        // uint N_LCL_IN_MAPS = current_config.n_in_data_tiles;
+        n_in_tiles_rg[0] = 0;
+        n_in_tiles_rg[1] = 3;
+        n_in_tls         = 4;
+
+        //					int N_LCL_OUT_MAPS = current_config.n_out_pix_tiles;
+        n_out_tiles_rg[0] = 4;
+        n_out_tiles_rg[1] = 6;
+        // 0 or 1
+        out_pix_tl_cnt = 3;
+        //					uint CHEAT_SHADER_COMPILER =
+        // current_config.out_pix_tile0;
+        out_pix_tile_sz[0] = 0;
+        out_pix_tile_sz[1] = 1;
+        n_out_tls          = (n_out_tiles_rg[1] - n_out_tiles_rg[0] + 1);
+        n_grp_tiles0       = 1;
+        grp_tl_ln[0]       = 64;
+
+        total_configs = out_pix_tl_cnt * n_out_tls * n_in_tls * (n_grp_tiles0 + 1) + 1;
+
+        current_config.out_pix_tile1 = 1;
+    }
+    else
+    {
+        int i_sz = params.in_width * params.in_height;
+        if(params.kernel_stride_w == 1)
+        {
+            out_pix_tl_cnt = (i_sz & 1) != 0 ? 1 : (i_sz & 0x3) != 0 ? 2 : 3;
+        }
+        else
+        {
+            if(params.direction.IsForward())
+            {
+                out_pix_tl_cnt = (params.out_width & 1) != 0 ? 1 : 2;
+            }
+            else
+            {
+                out_pix_tl_cnt =
+                    (((params.out_width & 1) != 0) || ((params.in_width & 1) != 0)) ? 1 : 2;
+            }
+        }
+        out_pix_tile_sz[0] = 1;
+        out_pix_tile_sz[1] = 2;
+        out_pix_tile_sz[2] = 4;
+
+        n_out_tiles_rg[0] = 2;
+        n_out_tiles_rg[1] = (params.n_outputs % 64 == 0) ? 6 : (params.n_outputs % 32 == 0) ? 5 : 4;
+
+        n_in_tiles_rg[0] = 2;
+        n_in_tiles_rg[1] = (params.n_inputs % 8 == 0) ? 3 : 2;
+
+        grp_tl_ln[0]     = 64;
+        grp_tl_ln[1]     = 128;
+        grp_tl_ln[2]     = 256;
+        n_grp_tiles0     = 3;
+        int n_grp_tiles1 = 1;
+
+        int n_grp_tiles = n_grp_tiles1 * n_grp_tiles0;
+        n_out_tls       = (n_out_tiles_rg[1] - n_out_tiles_rg[0] + 1);
+        n_in_tls        = 2;
+        total_configs   = n_grp_tiles * out_pix_tl_cnt * n_out_tls * n_in_tls + 1;
+
+        current_config.out_pix_tile1 = 0;
+    }
+    MIOPEN_LOG_I2("Get all " << total_configs << " Solutions in the 4 dim space.");
+    int version = current_config.out_pix_tile1;
+    for(int g0 = 0; g0 < n_grp_tiles0; ++g0)
+    {
+        current_config.grp_tile0 = grp_tl_ln[g0];
+
+        // out pix 0
+        for(int o_t = n_out_tiles_rg[0]; o_t <= n_out_tiles_rg[1]; ++o_t)
+        {
+            current_config.n_out_pix_tiles = (1 << o_t);
+            for(int l = 0; l < out_pix_tl_cnt; ++l)
+            {
+                current_config.out_pix_tile0 = out_pix_tile_sz[l];
+                if(version == 0 &&
+                   ((current_config.n_out_pix_tiles == 32 && current_config.out_pix_tile0 >= 4) ||
+                    (current_config.n_out_pix_tiles == 64 && current_config.out_pix_tile0 >= 2)))
+                {
+                    continue;
+                }
+                for(int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1]; ++i_t)
+                {
+                    if(version == 1)
+                    {
+                        current_config.n_in_data_tiles = in_tiles[i_t];
+                    }
+                    else
+                    {
+                        current_config.n_in_data_tiles = (1 << i_t);
+                    }
+                    if(this->IsValidPerformanceConfig(params, current_config))
+                    {
+                        auto current_solution = this->GetSolution(params, current_config);
+                        if(current_solution.Succeeded())
+                        {
+                            ++solutions_counter;
+                            all_solutions.push_back(current_solution);
+                        }
+                        else
+                        {
+                            ++failed_counter;
+                        }
+                    }
+                    else
+                    {
+                        ++failed_counter;
+                    }
+                }
+                MIOPEN_LOG_I2("##(n_get, n_failed, n_total): "
+                              << solutions_counter << " / " << failed_counter << " / "
+                              << total_configs << ", " << current_config);
+            }
+        }
+    }
+    return all_solutions;
+}
+
 ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
                                               const LegacyPerformanceConfig& searched_params) const
 {
@@ -384,6 +551,9 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
     }
 
     result.invoker_factory = &conv::MakeGenericXWYPadInvoker;
+    std::ostringstream os_params;
+    searched_params.Serialize(os_params);
+    result.performance_config = os_params.str();
     return result;
 }
 } // namespace solver

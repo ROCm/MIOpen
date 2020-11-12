@@ -252,6 +252,13 @@ bool ConvBinWinogradRxSf3x2::IsApplicable(const ConvolutionContext& params) cons
                                  2);
 }
 
+std::vector<ConvSolution> 
+ConvBinWinogradRxSf3x2::GetSolutions(const ConvolutionContext& params,
+                                     const bool onlyGetDefault) const
+{
+    return std::vector<ConvSolution>{this->GetSolution(params)};
+}
+
 ConvSolution ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& params) const
 {
     ConvSolution result;

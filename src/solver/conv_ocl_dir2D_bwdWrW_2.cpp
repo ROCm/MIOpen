@@ -759,7 +759,7 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
     const auto ws_sz       = GetWorkspaceSize(params);
     result.workspce_sz     = ws_sz;
     result.invoker_factory = conv::MakeOclWrWRdcInvokerFactory(n_batch_blks > 1, ws_sz);
-
+    result.performance_config = config.ToString();
     return result;
 }
 

@@ -516,6 +516,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
             k(N, C, H, W, K, n_groups, unused, unused, x, dw, dy, return_addr);
         };
     };
+    result.performance_config = pcfg->ToString();
 
     return result;
 }
