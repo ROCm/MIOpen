@@ -692,13 +692,13 @@ static void DirConvFindCore(Handle& handle,
     const auto invoke_ctx =
         conv::DataInvokeParams{{xDesc, x, wDesc, w, yDesc, y}, workSpace, workSpaceSize};
 
-    std::vector<miopen::solver::ConvSolution> allSolutions;
-    std::map<std::string, int> algoSeparate;
+    std::vector<miopen::solver::ConvSolution> all_solutions;
+    std::map<std::string, int> algo_separate;
     
     //Get All Sollutions
     {
-        allSolutions = conv.FindWinogradSolutions(ctx);
-        algoSeparate["miopenConvolutionFwdAlgoWinograd"] = allSolutions.size();
+        all_solutions = conv.FindWinogradSolutions(ctx);
+        algo_separate["miopenConvolutionFwdAlgoWinograd"] = all_solutions.size();
         if(!use_winograd_only)
         {
             ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
@@ -715,16 +715,16 @@ static void DirConvFindCore(Handle& handle,
             localCtx.SetupFloats();
             auto directSolutions       = conv.FindDataDirectSolutions(localCtx);
             auto implicitGemmSolutions = conv.FindDataImplicitGemmSolutions(localCtx);
-            allSolutions.insert(allSolutions.end(), directSolutions.begin(), directSolutions.end());
-            algoSeparate["miopenConvolutionFwdAlgoDirect"] = allSolutions.size();
-            allSolutions.insert(allSolutions.end(), implicitGemmSolutions.begin(), implicitGemmSolutions.end());
-            algoSeparate["miopenConvolutionFwdAlgoImplicitGEMM"] = allSolutions.size();
+            all_solutions.insert(all_solutions.end(), directSolutions.begin(), directSolutions.end());
+            algo_separate["miopenConvolutionFwdAlgoDirect"] = all_solutions.size();
+            all_solutions.insert(all_solutions.end(), implicitGemmSolutions.begin(), implicitGemmSolutions.end());
+            algo_separate["miopenConvolutionFwdAlgoImplicitGEMM"] = all_solutions.size();
         }
     }
 
     //Precompile Solutions
     {
-        PrecompileSolutions(handle, allSolutions);
+        PrecompileSolutions(handle, all_solutions);
     }
     
     //Find best performance solution in every solver
@@ -2227,6 +2227,9 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             const auto invoke_ctx     = conv::DataInvokeParams{
                 {dyDesc, dy, wDesc, w, dxDesc, dx}, workSpace, workSpaceSize};
             
+            std::vector<miopen::solver::ConvSolution> all_solutions;
+            std::map<std::string, int> algo_separate;
+            
             //Get All Sollutions
             {
                 ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
@@ -2237,8 +2240,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 localCtx.SetStream(&handle);
                 localCtx.SetBufs(bufs);
                 localCtx.DetectRocm();
-                allSolutions = conv.FindWinogradSolutions(localCtx);
-                algoSeparate["miopenConvolutionFwdAlgoWinograd"] = allSolutions.size();
+                all_solutions = conv.FindWinogradSolutions(localCtx);
+                algo_separate["miopenConvolutionFwdAlgoWinograd"] = all_solutions.size();
                 if(!use_winograd_only)
                 {
                     localCtx.do_search               = exhaustiveSearch;
@@ -2247,10 +2250,10 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                     localCtx.SetupFloats();
                     auto directSolutions       = conv.FindDataDirectSolutions(localCtx);
                     auto implicitGemmSolutions = conv.FindDataImplicitGemmSolutions(localCtx);
-                    allSolutions.insert(allSolutions.end(), directSolutions.begin(), directSolutions.end());
-                    algoSeparate["miopenConvolutionFwdAlgoDirect"] = allSolutions.size();
-                    allSolutions.insert(allSolutions.end(), implicitGemmSolutions.begin(), implicitGemmSolutions.end());
-                    algoSeparate["miopenConvolutionFwdAlgoImplicitGEMM"] = allSolutions.size();
+                    all_solutions.insert(all_solutions.end(), directSolutions.begin(), directSolutions.end());
+                    algo_separate["miopenConvolutionFwdAlgoDirect"] = all_solutions.size();
+                    all_solutions.insert(all_solutions.end(), implicitGemmSolutions.begin(), implicitGemmSolutions.end());
+                    algo_separate["miopenConvolutionFwdAlgoImplicitGEMM"] = all_solutions.size();
                 }
             }
 
