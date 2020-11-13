@@ -165,7 +165,7 @@ def buildHipClangJob(compiler, flags, env4make, image, prefixpath="/opt/rocm", c
 ///
 /// The only mandatory elements are Backend and BuildType; others are optional.
 ///
-/// DataType := { Half | Bfloat16 | Int8 | FP32* }
+/// DataType := { Half | BF16 | Int8 | FP32* }
 ///   * "FP32" is the default and usually not specified.
 /// Backend := { Hip | OpenCL }
 /// Compiler := { Clang* | hcc | GCC* }
@@ -443,14 +443,14 @@ pipeline {
                     }
                 }
 
-                stage('Bfloat16 Hip/hcc Release Vega20') {
+                stage('BF16 Hip/hcc Release Vega20') {
                     agent{ label rocmnode("vega20") }
                     steps{
                         buildJob('hcc', flags: '-DMIOPEN_TEST_BFLOAT16=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx906")
                     }
                 }
 
-                stage('Bfloat16 Hip/hcc Debug gfx908') {
+                stage('BF16 Hip/hcc Debug gfx908') {
                     agent{ label rocmnode("gfx908") }
                     steps{
                         buildJob('hcc', flags: '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx908")
@@ -475,7 +475,7 @@ pipeline {
                     }
                 }
 
-                stage('Bfloat16 Hip Release All Vega20') {
+                stage('BF16 Hip Release All Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
@@ -493,7 +493,7 @@ pipeline {
                 }
 
 
-                stage('Bfloat16 Hip Release Subset gfx908') {
+                stage('BF16 Hip Release Subset gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
