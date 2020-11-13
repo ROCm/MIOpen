@@ -422,27 +422,27 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsFastToBeUsedForTuning(
 
         if(grid_size_max_blockwise_gemm > 600)
         {
-            if(ratio > 1.41)
+            if(ratio > 2.81)
                 return false;
         }
         if(grid_size_max_blockwise_gemm > 480)
         {
-            if(ratio > 1.81)
+            if(ratio > 3.61)
                 return false;
         }
         if(grid_size_max_blockwise_gemm > 360)
         {
-            if(ratio > 2.21)
+            if(ratio > 4.41)
                 return false;
         }
         if(grid_size_max_blockwise_gemm > 240)
         {
-            if(ratio > 3.21)
+            if(ratio > 6.41)
                 return false;
         }
         else if(grid_size_max_blockwise_gemm > 120)
         {
-            if(ratio > 6.21)
+            if(ratio > 12.41)
                 return false;
         }
     }
@@ -690,8 +690,7 @@ void PerformanceImplicitGemmBwdDataV4R1Xdlops::EuristicInit(const ConvolutionCon
     // final check
     if(!tmp.IsReallyValid(ctx))
     {
-        MIOPEN_LOG_E("All attempts failed");
-        assert(false);
+        MIOPEN_LOG_I("All attempts failed");
     }
     *this = tmp;
     MIOPEN_LOG_I(ToString());
@@ -840,7 +839,11 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
 {
     ConvSolution result;
 
-    assert(config.IsValid(ctx));
+    if(!config.IsReallyValid(ctx))
+    {
+        MIOPEN_LOG_E("invalid performance parameter");
+        assert(false);
+    }
 
     // a series of kernels
     for(std::size_t gemm_id = 0; gemm_id < CalculateNumberOfGemm(ctx); ++gemm_id)

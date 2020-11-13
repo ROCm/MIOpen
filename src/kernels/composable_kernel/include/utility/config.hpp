@@ -7,7 +7,9 @@
 #endif
 #include "bfloat16_dev.hpp"
 
-#ifndef CK_HIP_VERSION_FLAT
+#ifdef HIP_PACKAGE_VERSION_FLAT
+#define CK_HIP_VERSION_FLAT HIP_PACKAGE_VERSION_FLAT
+#else
 #define CK_HIP_VERSION_FLAT 0
 #endif
 

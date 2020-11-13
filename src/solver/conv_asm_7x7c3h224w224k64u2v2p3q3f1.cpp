@@ -58,7 +58,10 @@ bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ConvolutionContext& p
     {
         return false;
     }
-    assert(params.weights_layout.length() == 0); // weights_layout is not supported yet.
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
 
     // clang-format off
     return params.pad_w == 3            // -q

@@ -247,6 +247,7 @@ struct HIPOCProgramImpl
             params += " -Wno-everything";
 #endif
         }
+
 #if MIOPEN_USE_COMGR /// \todo Refactor when functionality stabilize.
         BuildCodeObjectInMemory(params, src, filename);
 #else
