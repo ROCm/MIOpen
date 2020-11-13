@@ -126,14 +126,14 @@ ConvSolution FindSolution(Solver s, const Context& context, Db& db)
 
 template <class Solver, class Context, class Db>
 auto FindSolutionsImpl(rank<1>, Solver s, const Context& context, Db& db)
-    -> decltype(s.GetSolution(context, s.Search(context)), s.GetSolutions(context, true))
+    -> decltype(s.GetSolution(context, s.GetPerformanceConfig(context)), s.GetSolutions(context, true))
 {
     using RetType = decltype(s.GetSolutions(context, true));
     const FindEnforce enforce;
     if(context.disable_perfdb_access)
     {
         MIOPEN_LOG_I(SolverDbId(s) << " (db access disabled)");
-        return RetType{s.GetSolution(context, s.GetPerformanceConfig(context))};
+        return s.GetSolutions(context, true);
     }
     MIOPEN_LOG_I(SolverDbId(s));
     if(enforce.IsDbClean(context))
@@ -170,7 +170,7 @@ auto FindSolutionsImpl(rank<1>, Solver s, const Context& context, Db& db)
         if(context.do_search || enforce.IsSearch(context)) // TODO: Make it a customization point
         {
             MIOPEN_LOG_I("Find all solutions: " << SolverDbId(s) << ", enforce: " << enforce);
-            s.GetSolutions(context, false);
+            return s.GetSolutions(context, false);
             /*
             try
             {
@@ -185,7 +185,7 @@ auto FindSolutionsImpl(rank<1>, Solver s, const Context& context, Db& db)
             */
         }
     }
-    return RetType{s.GetSolution(context, s.GetPerformanceConfig(context))};
+    return s.GetSolutions(context, true);
 }
 
 template <class Solver, class Context, class Db>
@@ -221,6 +221,37 @@ std::vector<ConvSolution> FindSolutionsInSolver(Solver s, const Context& context
         }
     }
     return solutions;
+}
+
+template <class Solver, class Solution, class Context, class Db>
+auto ScreenSolutionsImpl(rank<1>, Solver s, const std::vector<Solution>& solutions,
+                     const Context& context, Db& db)
+    -> decltype(s.GetSolution(context, s.GetPerformanceConfig(context)))
+{
+    auto solution = s.ScreenSolutions(solutions, context);
+    db.Update(context, solution.solver_id, solution.performance_config);
+    return solution;
+}
+
+template <class Solver, class Solution, class Context, class Db>
+auto ScreenSolutionsImpl(rank<0>, Solver s, const std::vector<Solution>& solutions,
+                     const Context& context, Db& db)
+    -> decltype(s.GetSolution(context))
+{
+    return solutions[0];
+}
+
+template<class Solver, class Solution, class Context, class Db>
+Solution ScreenSolutions(Solver s, const std::vector<Solution>& solutions, 
+                         const Context& context, Db& db)
+{
+    assert(!solutions.empty());
+    if(solutions.size() == 1)
+        return solutions[0];  //Nothing to screen.
+    std::string solver_id = solutions[0].solver_id;
+    std::for_each(solutions.begin(), solutions.end(), [&](Solution sol){assert(sol.solver_id == solver_id);});
+    auto solution = ScreenSolutionsImpl(rank<1>{}, s, solutions, context, db);
+    return solution;
 }
 
 template <class... Solvers>

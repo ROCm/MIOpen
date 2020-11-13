@@ -160,6 +160,48 @@ static inline void ValidateGroupCount(const TensorDescriptor& xDesc,
     }
 }
 
+//Every solver is only allowed to provide one solution for a problem description.
+static std::vector<solver::ConvSolution>
+ScreenSoltuions(const std::vector<solver::ConvSolution>& all_soluitons, const ConvolutionContext& context)
+{
+    try
+    {
+        const FindEnforce enforce;
+        if((context.disable_perfdb_access || enforce.IsDbClean(context)) ||
+           (!enforce.IsSearch(context) && !enforce.IsDbUpdate(context)) ||
+           all_solutions.size() <= 1)    //Only one solution finded, no need to find optimized solutions.
+        {
+            return all_solutions;
+        }
+        std::vector<solver::ConvSolution> ret_solutions;
+        auto iter_start = all_soluitons.begin();
+        auto db = GetDb(context);
+        for(auto iter = all_soluitons.begin(); iter != all_solutions.end(); ++iter)
+        {
+            if ((iter + 1)->solver_id != iter->solver_id)
+            {
+                //do find
+                if(iter - iter_start >= 1)
+                {
+                    auto solution = Id(solutions[0].solver_id).GetSolver().ScreenSolutions({iter_start, iter+1}, context, db);
+                    ret_solutions.push_back(solution);
+                    iter_start = iter + 1;
+                }
+                else
+                {
+                    ret_solutions.push_back(*iter);
+                }
+            }
+        }
+        return ret_solutions;
+    }
+    catch(miopen::Exception& ex)
+    {
+        MIOPEN_LOG_WE(ex.what());
+        return {};
+    }
+}
+
 std::vector<miopen::solver::ConvSolution>
 ConvolutionDescriptor::FindWinogradSolutions(const ConvolutionContext& ctx) const
 {
@@ -693,32 +735,28 @@ static void DirConvFindCore(Handle& handle,
         conv::DataInvokeParams{{xDesc, x, wDesc, w, yDesc, y}, workSpace, workSpaceSize};
 
     std::vector<miopen::solver::ConvSolution> all_solutions;
-    std::map<std::string, int> algo_separate;
-    
-    //Get All Sollutions
+    auto local_ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
+    ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
+    bufs.SetFwd(x, w, y);
+    local_ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
+    miopen::FindMode(local_ctx).IsFastHybrid();
+    local_ctx.do_search               = exhaustiveSearch;
+    local_ctx.save_srch_req           = true;
+    local_ctx.general_compile_options = "";
+    local_ctx.SetStream(&handle);
+    local_ctx.SetBufs(bufs);
+    local_ctx.DetectRocm();
+    local_ctx.SetupFloats();
+
+    //Find All Sollutions
     {
         all_solutions = conv.FindWinogradSolutions(ctx);
-        algo_separate["miopenConvolutionFwdAlgoWinograd"] = all_solutions.size();
         if(!use_winograd_only)
         {
-            ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
-            bufs.SetFwd(x, w, y);
-            auto localCtx = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
-            localCtx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-            miopen::FindMode(localCtx).IsFastHybrid();
-            localCtx.do_search               = exhaustiveSearch;
-            localCtx.save_srch_req           = true;
-            localCtx.general_compile_options = "";
-            localCtx.SetStream(&handle);
-            localCtx.SetBufs(bufs);
-            localCtx.DetectRocm();
-            localCtx.SetupFloats();
-            auto directSolutions       = conv.FindDataDirectSolutions(localCtx);
-            auto implicitGemmSolutions = conv.FindDataImplicitGemmSolutions(localCtx);
-            all_solutions.insert(all_solutions.end(), directSolutions.begin(), directSolutions.end());
-            algo_separate["miopenConvolutionFwdAlgoDirect"] = all_solutions.size();
-            all_solutions.insert(all_solutions.end(), implicitGemmSolutions.begin(), implicitGemmSolutions.end());
-            algo_separate["miopenConvolutionFwdAlgoImplicitGEMM"] = all_solutions.size();
+            auto direct_solutions      = conv.FindDataDirectSolutions(local_ctx);
+            auto implictgemm_solutions = conv.FindDataImplicitGemmSolutions(local_ctx);
+            all_solutions.insert(all_solutions.end(), direct_solutions.begin(), direct_solutions.end());
+            all_solutions.insert(all_solutions.end(), implicitgemm_solutions.begin(), implicitgemm_solutions.end());
         }
     }
 
@@ -727,9 +765,16 @@ static void DirConvFindCore(Handle& handle,
         PrecompileSolutions(handle, all_solutions);
     }
     
-    //Find best performance solution in every solver
+    //Find best performance solution and write it to perf_db for every solver.
+    auto solutions = ScreenSolutions(all_solutions, local_ctx);
+    auto iter_start = solutions.begin();
+    for(auto iter = solutions.begin(); iter != solutions.end(); ++iter)
     {
-        
+        if(Id(iter->solver_id).GetAlgo() != Id((iter+1)->solver_id).GetAlgo())
+        {
+            EvaluateInvokers(handle, {iter_start, iter + 1}, Id(iter_start->solver_id).GetAlgo(), network_config, invoke_ctx, record);
+            iter_start = iter + 1;
+        }
     }
 
     // Winograd algo
@@ -2228,35 +2273,47 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 {dyDesc, dy, wDesc, w, dxDesc, dx}, workSpace, workSpaceSize};
             
             std::vector<miopen::solver::ConvSolution> all_solutions;
-            std::map<std::string, int> algo_separate;
-            
-            //Get All Sollutions
+            auto local_ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
+            ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
+            bufs.SetBwd(dx, w, dy);
+            local_ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
+                miopen::FindMode(local_ctx).IsFastHybrid();
+            local_ctx.do_search               = exhaustiveSearch;
+            local_ctx.save_srch_req           = true;
+            local_ctx.general_compile_options = "";
+            local_ctx.SetStream(&handle);
+            local_ctx.SetBufs(bufs);
+            local_ctx.DetectRocm();
+            local_ctx.SetupFloats();
+
+            //Find All Sollutions
             {
-                ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
-                bufs.SetBwd(dx, w, dy);
-                auto localCtx = ConvolutionContext{problem};
-                localCtx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-                    miopen::FindMode(localCtx).IsFastHybrid();
-                localCtx.SetStream(&handle);
-                localCtx.SetBufs(bufs);
-                localCtx.DetectRocm();
-                all_solutions = conv.FindWinogradSolutions(localCtx);
-                algo_separate["miopenConvolutionFwdAlgoWinograd"] = all_solutions.size();
+                all_solutions = conv.FindWinogradSolutions(local_ctx);
                 if(!use_winograd_only)
                 {
-                    localCtx.do_search               = exhaustiveSearch;
-                    localCtx.save_srch_req           = true;
-                    localCtx.general_compile_options = "";
-                    localCtx.SetupFloats();
-                    auto directSolutions       = conv.FindDataDirectSolutions(localCtx);
-                    auto implicitGemmSolutions = conv.FindDataImplicitGemmSolutions(localCtx);
-                    all_solutions.insert(all_solutions.end(), directSolutions.begin(), directSolutions.end());
-                    algo_separate["miopenConvolutionFwdAlgoDirect"] = all_solutions.size();
-                    all_solutions.insert(all_solutions.end(), implicitGemmSolutions.begin(), implicitGemmSolutions.end());
-                    algo_separate["miopenConvolutionFwdAlgoImplicitGEMM"] = all_solutions.size();
+                    auto direct_solutions      = conv.FindDataDirectSolutions(local_ctx);
+                    auto implictgemm_solutions = conv.FindDataImplicitGemmSolutions(local_ctx);
+                    all_solutions.insert(all_solutions.end(), direct_solutions.begin(), direct_solutions.end());
+                    all_solutions.insert(all_solutions.end(), implicitgemm_solutions.begin(), implicitgemm_solutions.end());
                 }
             }
 
+            //Precompile Solutions
+            {
+                PrecompileSolutions(handle, all_solutions);
+            }
+    
+            //Find best performance solution and write it to perf_db for every solver.
+            auto solutions = ScreenSolutions(all_solutions, local_ctx);
+            auto iter_start = solutions.begin();
+            for(auto iter = solutions.begin(); iter != solutions.end(); ++iter)
+            {
+                if(Id(iter->solver_id).GetAlgo() != Id((iter+1)->solver_id).GetAlgo())
+                {
+                    EvaluateInvokers(handle, {iter_start, iter + 1}, Id(iter_start->solver_id).GetAlgo(), network_config, invoke_ctx, record);
+                    iter_start = iter + 1;
+                }
+            }
             
             // Winograd algo
             {
@@ -3630,6 +3687,9 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             const auto network_config = ctx.BuildConfKey();
             const auto invoke_ctx =
                 conv::WrWInvokeParams{{dyDesc, dy, xDesc, x, dwDesc, dw}, workSpace, workSpaceSize};
+            
+            std::vector<ConvSolution> all_solutions;
+            
             // direct convolution
             if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
             {

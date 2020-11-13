@@ -61,6 +61,12 @@ struct AnySolver
         assert(ptr_value != nullptr);
         return ptr_value->FindSolution(ctx, db);
     };
+    ConvSolution ScreenSolutions(const std::vector<ConvSolution>& solutions, 
+                                 const ConvolutionContext& ctx, Db& db) const
+    {
+        assert(ptr_value != nullptr);
+        return ptr_value->ScreenSolutions(solutions, ctx, db);
+    }
     std::string GetSolverDbId() const
     {
         assert(ptr_value != nullptr);
@@ -83,6 +89,8 @@ struct AnySolver
         virtual const std::type_info& Type() const                     = 0;
         virtual std::string GetSolverDbId() const                      = 0;
         virtual ConvSolution FindSolution(const ConvolutionContext& ctx, Db& db) const = 0;
+        virtual ConvSolution ScreenSolutions(const std::vector<ConvSolution>& solutions, 
+                                             const ConvolutionContext& ctx, Db& db) const
         virtual size_t GetWorkspaceSize(const ConvolutionContext& ctx) const = 0;
     };
 
@@ -99,6 +107,11 @@ struct AnySolver
         {
             return miopen::solver::FindSolution(value, ctx, db);
         };
+        ConvSolution ScreenSolutions(const std::vector<ConvSolution>& solutions, 
+                                     const ConvolutionContext& ctx, Db& db) const override
+        {
+            return miopen::solver::ScreenSolutions(value, solutions, ctx, db);
+        }
         size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
         {
             return value.GetWorkspaceSize(ctx);
