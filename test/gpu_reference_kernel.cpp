@@ -51,15 +51,15 @@ struct gpu_reference_kernel_base
         return (in_size + 2 * pad - dilation * (ksize - 1) - 1) / stride + 1;
     }
 
-    static std::vector<int> get_image_size() { return {14, 25}; }
+    static std::vector<int> get_image_size() { return {9, 14}; }
 
     static std::vector<int> get_channel_size() { return {3, 8}; }
 
-    static std::vector<int> get_filter_size() { return {1, 3, 5}; }
+    static std::vector<int> get_filter_size() { return {1, 3}; }
 
     static std::vector<int> get_stride_dilation_size() { return {1, 2}; }
 
-    static std::vector<int> get_pad_size() { return {0, 1, 2}; }
+    static std::vector<int> get_pad_size() { return {0, 1}; }
 
     static std::vector<int> get_group_size() { return {2}; }
 
@@ -102,8 +102,8 @@ struct gpu_reference_kernel_base
                                                                     wi, px, dx, fx, sx);
                                                                 if(fy > hi || fx > wi ||
                                                                    (fy - 1) < py || (fx - 1) < px ||
-                                                                   ho < 0 || wo < 0 || c % g != 0 ||
-                                                                   k % g != 0)
+                                                                   ho <= 0 || wo <= 0 ||
+                                                                   c % g != 0 || k % g != 0)
                                                                     continue;
                                                                 if((fx == 3 && fy == 5) ||
                                                                    (fx == 5 && fy == 3))
@@ -139,9 +139,20 @@ struct gpu_reference_kernel_base
     }
 };
 
-#define RAND_INTEGER_MAX 7
-#define RAND_INTEGER_MIN -5
+#define RAND_INTEGER_MAX 5
+#define RAND_INTEGER_MIN -4
+#define MAX_INTEGER_INTERVAL 4.0
 
+/*
+* for half, if we use integer, half can express -2048 ~ 2048 without data-loss.
+* e.g. 2049 can not expressed by half.
+* from 2048~4096, half can only express 1/2 the number. number 2049, 2051, 2053, 2055.... can not be
+* expressed. (max interval is 2)
+* from 4096~8192, half can only express 1/4 the number. number 4097, 4098, 4099, 4101, 4102, 4103,
+* 4105, 4106, 4107, 4109...
+*               can not expressd. (max interval is 4)
+* from 8192~16384, half can only express 1/8 the number. (max interval is 8)
+*/
 template <typename T>
 void rand_tensor_integer(tensor<T>& t)
 {
@@ -165,7 +176,24 @@ bool verify_tensor(tensor<T>& t_gpu, tensor<T>& t_cpu)
         return false;
     }
     auto idx          = miopen::mismatch_idx(t_gpu.data, t_cpu.data, miopen::float_equal);
-    bool valid_result = idx >= miopen::range_distance(t_cpu);
+    bool valid_result = true;
+    if(idx < miopen::range_distance(t_cpu))
+    {
+        // give a re-try chance for half_float
+        // max gemm_k is wrw, max_n=2, max_ho/wo=14, max integer=4, max value=2*14*14*4*4 = 6272.
+        // hence max integer interval is 4
+        // for gpu we cast value to float, for cpu we cast value to double. hence inside kernel
+        // precision is guaranteed.
+        // the problem is cast the result back.
+        // round-to-nearest(default rounding mode) seems will have little difference when doing
+        // double->half, compare to float->half.
+        // hence we give a chance to calculate if the difference is still following our experience,
+        // while doing integer computation.
+        auto max_diff = miopen::max_diff(t_gpu, t_cpu);
+        if(max_diff > MAX_INTEGER_INTERVAL)
+            valid_result = false;
+    }
+
     if(!valid_result)
     {
         std::cout << "diff at:" << idx << ", gpu:" << t_gpu[idx] << ", cpu:" << t_cpu[idx]
@@ -392,9 +420,10 @@ struct gpu_reference_conv_nchw : gpu_reference_kernel_base
             // auto tolerance = get_default_tolerence<TRef>();
             // bool valid_result = error <= tolerance;
             std::cout << "n:" << n << ", c:" << c << ", hi:" << hi << ", wi:" << wi << ", k:" << k
-                      << ", fy:" << fy << ",fx:" << fx << ", py:" << py << ", px:" << px
-                      << ", sy:" << sy << ", sx:" << sx << ", dy:" << dy << ",dx:" << dx
-                      << ", g:" << g << ", dir:" << direction_to_string(direction)
+                      << ", ho:" << ho << ", wo:" << wo << ", fy:" << fy << ",fx:" << fx
+                      << ", py:" << py << ", px:" << px << ", sy:" << sy << ", sx:" << sx
+                      << ", dy:" << dy << ",dx:" << dx << ", g:" << g
+                      << ", dir:" << direction_to_string(direction)
                       << ", type:" << miopen_type_to_string(miopen_type<TRef>{})
                       << ", valid:" << valid_result << std::endl;
             EXPECT(valid_result == true);
@@ -420,6 +449,5 @@ int main()
     run_test<gpu_reference_conv_nchw<miopen::conv::Direction::BackwardData, float>>();
     run_test<gpu_reference_conv_nchw<miopen::conv::Direction::BackwardData, half_float::half>>();
     run_test<gpu_reference_conv_nchw<miopen::conv::Direction::BackwardWeights, float>>();
-    // run_test<gpu_reference_conv_nchw<miopen::conv::Direction::BackwardWeights,
-    // half_float::half>>();
+    run_test<gpu_reference_conv_nchw<miopen::conv::Direction::BackwardWeights, half_float::half>>();
 }
