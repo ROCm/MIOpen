@@ -161,6 +161,7 @@ void rand_tensor_integer(tensor<T>& t)
     if(!inited)
     {
         std::srand(std::time(nullptr));
+        inited = 1;
     }
     for(int i = 0; i < t.data.size(); i++)
         t[i] =
