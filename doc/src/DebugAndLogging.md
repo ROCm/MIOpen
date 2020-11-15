@@ -199,10 +199,11 @@ Different ROCm versions use Code Object files of different versions (or, in othe
   * `2` - Behave as if both CO v2 and v3 are supported (see `MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER`).
   * `3` - Always assemble v3 Code Objects.
 * `MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER` - This variable affects only assembly kernels, and only when ROCm supports both CO v2 and CO v3 (like ROCm 2.10). By default, the newer format is used (CO v3). When this variable is _enabled_, the behavior is reversed.
-* `MIOPEN_DEBUG_OPENCL_ENFORCE_COV3` - Enforces Code Object format for OpenCL kernels. Works with HIP backend only (`cmake ... -DMIOPEN_BACKEND=HIP...`).
+* `MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION` - Enforces Code Object format for OpenCL kernels. Works with HIP backend only (`cmake ... -DMIOPEN_BACKEND=HIP...`).
   * Unset - Automatically detect the required CO version. This is the default.
-  * `0` - Always build to CO v2.
-  * `1` - Always build to CO v3.
+  * `2` - Always build to CO v2.
+  * `3` - Always build to CO v3.
+  * `4` - Always build to CO v4.
 * `MIOPEN_DEBUG_HIP_ENFORCE_COV3` - Enforces Code Object format for HIP kernels.
   * Unset - Automatically detect the required CO version. This is the default.
   * `0` - Always build to CO v2.
