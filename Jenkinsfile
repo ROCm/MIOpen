@@ -185,12 +185,13 @@ def buildCommandJob(cmd, image, prefixpath=""){
 
         checkout scm
         def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
-        def dockerArgs = "--build-arg PREFIX=${prefixpath} -f static-test.docker "
-	def variant = env.STAGE_NAME
+        def dockerArgs = "--build-arg PREFIX=${prefixpath} "
+	    def variant = env.STAGE_NAME
         if(prefixpath == "")
         {
             dockerArgs = ""
         }
+        dockerArgs = dockerArgs + "-f static-test.docker "
        
         gitStatusWrapper(credentialsId: '7126e5fe-eb51-4576-b52b-9aaf1de8f0fd', gitHubContext: "Jenkins - ${variant}", account: 'ROCmSoftwarePlatform', repo: 'MIOpen') {
             try {
@@ -220,7 +221,7 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     environment{
-        image = "miopen"
+        image = "miopen-static"
     }
     stages{
         // Run all static analysis tests
