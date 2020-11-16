@@ -43,10 +43,10 @@
 
 #if MIOPEN_BACKEND_HIP
 
-#define WORKAROUND_SWDEV_203031 0 // See also issues #2075, #2067
+#define WORKAROUND_SWDEV_203031 1 // See also issues #2075, #2067
 #endif
 
-#define WORKAROUND_SWDEV_257202 1 // For SSD convergence issue.
+#define WORKAROUND_SWDEV_257202 0 // For SSD convergence issue.
 
 #if WORKAROUND_SWDEV_257202
 // Workaround, solver disabled by default.
