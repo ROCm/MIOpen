@@ -281,9 +281,6 @@ class ConvDriver : public Driver
     std::unique_ptr<GPUMem> warmup_in_dev;
     std::unique_ptr<GPUMem> warmup_wei_dev;
     std::unique_ptr<GPUMem> warmup_out_dev;
-    std::unique_ptr<GPUMem> out_ref_dev;
-    std::unique_ptr<GPUMem> din_ref_dev;
-    std::unique_ptr<GPUMem> dwei_ref_dev;
 
     std::unique_ptr<GPUMem> workspace_dev;
     std::size_t ws_sizeof_find_fwd;
@@ -1285,27 +1282,6 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             (is_int8 ? out_dev->ToGPU(q, out_int8.data()) : out_dev->ToGPU(q, out.data.data()));
     }
 
-    if(miopen::IsEnabled(MIOPEN_DRIVER_USE_GPU_REFERENCE{}))
-    {
-        if(is_fwd)
-        {
-            out_ref_dev = std::unique_ptr<GPUMem>(
-                new GPUMem(ctx, out_sz, is_int8 ? sizeof(float) : sizeof(Tref)));
-            status |= (is_int8 ? out_ref_dev->ToGPU(q, out_int8.data())
-                               : out_ref_dev->ToGPU(q, out.data.data()));
-        }
-        if(is_bwd)
-        {
-            din_ref_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tref)));
-            status |= din_ref_dev->ToGPU(q, din.data());
-        }
-        if(is_wrw)
-        {
-            dwei_ref_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(Tref)));
-            status |= dwei_ref_dev->ToGPU(q, dwei.data());
-        }
-    }
-
     if(status != STATUS_SUCCESS)
     {
         std::cout << "Error copying data to GPU, status = " << status << std::endl;
@@ -1992,7 +1968,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPUReference()
                                                         miopen::conv::Direction::BackwardData};
         GPUReferenceConvolutionBackwardData(miopen::deref(GetHandle()),
                                             problem,
-                                            out_ref_dev->GetMem(),
+                                            out_dev->GetMem(),
                                             wei_dev->GetMem(),
                                             in_dev->GetMem());
 
@@ -2009,7 +1985,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPUReference()
                                        problem,
                                        in_dev->GetMem(),
                                        wei_dev->GetMem(),
-                                       out_ref_dev->GetMem());
+                                       out_dev->GetMem());
 
         if(inflags.GetValueInt("bias") != 0)
         {
@@ -2017,7 +1993,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPUReference()
         }
     }
 
-    out_ref_dev->FromGPU(GetStream(), outhost.data.data());
+    out_dev->FromGPU(GetStream(), outhost.data.data());
 
     if(inflags.GetValueInt("dump_output"))
     {
@@ -2902,7 +2878,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWeightsGPUReference()
         GPUReferenceConvolutionBackwardWeights(miopen::deref(GetHandle()),
                                                problem,
                                                dout_dev->GetMem(),
-                                               dwei_ref_dev->GetMem(),
+                                               dwei_dev->GetMem(),
                                                in_dev->GetMem());
     }
     else
@@ -2915,11 +2891,11 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWeightsGPUReference()
         GPUReferenceConvolutionBackwardWeights(miopen::deref(GetHandle()),
                                                problem,
                                                in_dev->GetMem(),
-                                               dwei_ref_dev->GetMem(),
+                                               dwei_dev->GetMem(),
                                                dout_dev->GetMem());
     }
 
-    dwei_ref_dev->FromGPU(GetStream(), dwei_host.data.data());
+    dwei_dev->FromGPU(GetStream(), dwei_host.data.data());
 
     if(inflags.GetValueInt("dump_output"))
     {
@@ -2945,7 +2921,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGPUReference()
                                        problem,
                                        dout_dev->GetMem(),
                                        wei_dev->GetMem(),
-                                       din_ref_dev->GetMem());
+                                       din_dev->GetMem());
     }
     else
     {
@@ -2956,12 +2932,12 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGPUReference()
                                                         miopen::conv::Direction::BackwardData};
         GPUReferenceConvolutionBackwardData(miopen::deref(GetHandle()),
                                             problem,
-                                            din_ref_dev->GetMem(),
+                                            din_dev->GetMem(),
                                             wei_dev->GetMem(),
                                             dout_dev->GetMem());
     }
 
-    din_ref_dev->FromGPU(GetStream(), din_host.data.data());
+    din_dev->FromGPU(GetStream(), din_host.data.data());
 
     if(inflags.GetValueInt("dump_output"))
     {
