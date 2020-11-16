@@ -135,6 +135,7 @@ Winograd  Solutions:
   * `MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F4X3` - `ConvMPBidirectWinograd_xdlops<4-3>`, FWD/BWD F(4,3)
   * `MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F5X3` - `ConvMPBidirectWinograd_xdlops<5-3>`, FWD/BWD F(5,3)
   * `MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F6X3` - `ConvMPBidirectWinograd_xdlops<6-3>`, FWD/BWD F(6,3)
+  * `MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM - `ConvMPBidirectWinograd*`, FWD/BWD FP16 experemental mode. Disabled by default. This mode is experimental. Use it at your own risk.
 * `MIOPEN_DEBUG_AMD_FUSED_WINOGRAD` - Fused FP32 F(3,3) Winograd, variable filter size.
 
 ## rocBlas Logging and Behavior
@@ -150,6 +151,7 @@ both MIOpenGEMM and rocBlas depending on the input configuration:
 * `MIOPEN_GEMM_ENFORCE_BACKEND=1`, use rocBLAS if enabled
 * `MIOPEN_GEMM_ENFORCE_BACKEND=2`, use MIOpenGEMM for FP32, use rocBLAS for FP16 if enabled
 * `MIOPEN_GEMM_ENFORCE_BACKEND=3`, no gemm will be called
+* `MIOPEN_GEMM_ENFORCE_BACKEND=4`, use MIOpenTensile for FP32, use rocBLAS for FP16 if enabled
 * `MIOPEN_GEMM_ENFORCE_BACKEND=<any other value>`, use default behavior
 
 To disable using rocBlas entirely, set the configuration flag `-DMIOPEN_USE_ROCBLAS=Off` during MIOpen configuration.
@@ -197,10 +199,11 @@ Different ROCm versions use Code Object files of different versions (or, in othe
   * `2` - Behave as if both CO v2 and v3 are supported (see `MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER`).
   * `3` - Always assemble v3 Code Objects.
 * `MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER` - This variable affects only assembly kernels, and only when ROCm supports both CO v2 and CO v3 (like ROCm 2.10). By default, the newer format is used (CO v3). When this variable is _enabled_, the behavior is reversed.
-* `MIOPEN_DEBUG_OPENCL_ENFORCE_COV3` - Enforces Code Object format for OpenCL kernels. Works with HIP backend only (`cmake ... -DMIOPEN_BACKEND=HIP...`).
+* `MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION` - Enforces Code Object format for OpenCL kernels. Works with HIP backend only (`cmake ... -DMIOPEN_BACKEND=HIP...`).
   * Unset - Automatically detect the required CO version. This is the default.
-  * `0` - Always build to CO v2.
-  * `1` - Always build to CO v3.
+  * `2` - Always build to CO v2.
+  * `3` - Always build to CO v3.
+  * `4` - Always build to CO v4.
 * `MIOPEN_DEBUG_HIP_ENFORCE_COV3` - Enforces Code Object format for HIP kernels.
   * Unset - Automatically detect the required CO version. This is the default.
   * `0` - Always build to CO v2.
@@ -208,7 +211,8 @@ Different ROCm versions use Code Object files of different versions (or, in othe
 
 ### Winograd Multi-pass Maximum Workspace throttling
 
-`MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX`
+`MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX` - `ConvWinograd3x3MultipassWrW`, WrW
+`MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_WORKSPACE_MAX` - `ConvMPBidirectWinograd*`, FWD BWD
 
 Syntax of value:
 * decimal or hex (with `0x` prefix) value that should fit into `unsigned long` (64 bits).
