@@ -767,6 +767,7 @@ static void DirConvFindCore(Handle& handle,
     
     //Find best performance solution and write it to perf_db for every solver.
     auto solutions = ScreenSolutions(all_solutions, local_ctx);
+
     auto iter_start = solutions.begin();
     for(auto iter = solutions.begin(); iter != solutions.end(); ++iter)
     {
@@ -3689,6 +3690,34 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 conv::WrWInvokeParams{{dyDesc, dy, xDesc, x, dwDesc, dw}, workSpace, workSpaceSize};
             
             std::vector<ConvSolution> all_solutions;
+
+            // direct convolution
+            if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
+            {
+                const auto direct_solutions = FindAllBwdWrW2DSolutions(ctx);
+                all_solutions.insert(all_solutions.end(), direct_solutions.begin(), direct_solutions.end());
+            }
+
+            if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{}))
+            {
+                const auto winograd_solutions = FindWinogradWrWAllSolutions(ctx);
+                all_solutions.insert(all_solutions.end(), winograd_solutions.begin(), winograd_solutions.end());
+            }
+
+            // Implicit GEMM
+            if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{}))
+            {
+                const auto implictgemm_solutions = FindImplicitGemmWrWAllSolutions(ctx);
+                all_solutions.insert(all_solutions.end(), implictgemm_solutions.begin(), implictgemm_solutions.end());
+            }
+
+            //Precompile Solutions
+            {
+                PrecompileSolutions(handle, all_solutions);
+            }
+
+            //Find best performance solution and write it to perf_db for every solver.
+            auto solutions = ScreenSolutions(all_solutions, local_ctx);
             
             // direct convolution
             if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
