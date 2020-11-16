@@ -46,6 +46,16 @@
 #define WORKAROUND_SWDEV_203031 1 // See also issues #2075, #2067
 #endif
 
+#define WORKAROUND_SWDEV_257202 1 // For SSD convergence issue.
+
+#if WORKAROUND_SWDEV_257202
+// Workaround, solver disabled by default.
+#define IS_DISABLED(expr) !miopen::IsEnabled(expr)
+#else
+// Normal behavior (solver enabled by default).
+#define IS_DISABLED(expr) miopen::IsDisabled(expr)
+#endif
+
 namespace miopen {
 namespace solver {
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_MP_ANYD_WINOGRAD_F2X3)
@@ -418,19 +428,19 @@ bool ConvMPAnydirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Is
             return false;
 
         if(wino_data_tile == 6)
-            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WINOGRAD_F6X3{}))
+            if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_ANYD_WINOGRAD_F6X3{}))
                 return false;
         if(wino_data_tile == 5)
-            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WINOGRAD_F5X3{}))
+            if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_ANYD_WINOGRAD_F5X3{}))
                 return false;
         if(wino_data_tile == 4)
-            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WINOGRAD_F4X3{}))
+            if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_ANYD_WINOGRAD_F4X3{}))
                 return false;
         if(wino_data_tile == 3)
-            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WINOGRAD_F3X3{}))
+            if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_ANYD_WINOGRAD_F3X3{}))
                 return false;
         if(wino_data_tile == 2)
-            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WINOGRAD_F2X3{}))
+            if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_ANYD_WINOGRAD_F2X3{}))
                 return false;
     }
     else
@@ -439,19 +449,19 @@ bool ConvMPAnydirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Is
             return false;
 
         if(wino_filter_tile == 6)
-            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WRW_WINOGRAD_F3X6{}))
+            if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_ANYD_WRW_WINOGRAD_F3X6{}))
                 return false;
         if(wino_filter_tile == 5)
-            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WRW_WINOGRAD_F3X5{}))
+            if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_ANYD_WRW_WINOGRAD_F3X5{}))
                 return false;
         if(wino_filter_tile == 4)
-            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WRW_WINOGRAD_F3X4{}))
+            if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_ANYD_WRW_WINOGRAD_F3X4{}))
                 return false;
         if(wino_filter_tile == 3)
-            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WRW_WINOGRAD_F3X3{}))
+            if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_ANYD_WRW_WINOGRAD_F3X3{}))
                 return false;
         if(wino_filter_tile == 2)
-            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WRW_WINOGRAD_F3X2{}))
+            if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_ANYD_WRW_WINOGRAD_F3X2{}))
                 return false;
     }
 
@@ -973,40 +983,43 @@ bool ConvMPAnydirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilte
             return false;
 
         if(wino_data_tile == 6)
-            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_XDLOPS_WINOGRAD_F6X3{}))
+            if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_ANYD_XDLOPS_WINOGRAD_F6X3{}))
                 return false;
         if(wino_data_tile == 5)
-            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_XDLOPS_WINOGRAD_F5X3{}))
+            if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_ANYD_XDLOPS_WINOGRAD_F5X3{}))
                 return false;
         if(wino_data_tile == 4)
-            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_XDLOPS_WINOGRAD_F4X3{}))
+            if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_ANYD_XDLOPS_WINOGRAD_F4X3{}))
                 return false;
         if(wino_data_tile == 3)
-            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_XDLOPS_WINOGRAD_F3X3{}))
+            if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_ANYD_XDLOPS_WINOGRAD_F3X3{}))
                 return false;
         if(wino_data_tile == 2)
-            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_XDLOPS_WINOGRAD_F2X3{}))
+            if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_ANYD_XDLOPS_WINOGRAD_F2X3{}))
                 return false;
     }
     else
     {
         if(wino_data_tile != 3)
             return false;
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F4X3{}))
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F3X3{}))
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F2X3{}))
 
         if(wino_filter_tile == 6)
-            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WRW_XDLOPS_WINOGRAD_F3X6{}))
+            if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_ANYD_WRW_XDLOPS_WINOGRAD_F3X6{}))
                 return false;
         if(wino_filter_tile == 5)
-            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WRW_XDLOPS_WINOGRAD_F3X5{}))
+            if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_ANYD_WRW_XDLOPS_WINOGRAD_F3X5{}))
                 return false;
         if(wino_filter_tile == 4)
-            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WRW_XDLOPS_WINOGRAD_F3X4{}))
+            if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_ANYD_WRW_XDLOPS_WINOGRAD_F3X4{}))
                 return false;
         if(wino_filter_tile == 3)
-            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WRW_XDLOPS_WINOGRAD_F3X3{}))
+            if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_ANYD_WRW_XDLOPS_WINOGRAD_F3X3{}))
                 return false;
         if(wino_filter_tile == 2)
-            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_ANYD_WRW_XDLOPS_WINOGRAD_F3X2{}))
+            if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_ANYD_WRW_XDLOPS_WINOGRAD_F3X2{}))
                 return false;
     }
 
