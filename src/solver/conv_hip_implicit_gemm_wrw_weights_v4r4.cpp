@@ -631,11 +631,15 @@ ConvSolution ConvHipImplicitGemmV4R4WrW::GetSolution(const ConvolutionContext& c
                                                      const PerformanceImplicitGemmV4R4WrW& config,
                                                      bool) const
 {
-
     ConvSolution result;
-    KernelInfo construction_parameters;
 
-    assert(config.IsValid(ctx));
+    if(!config.IsReallyValid(ctx))
+    {
+        MIOPEN_LOG_E("invalid performance parameter");
+        assert(false);
+    }
+
+    KernelInfo construction_parameters;
 
     int grid_size = 0;
 
