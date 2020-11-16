@@ -30,6 +30,7 @@
 #include <miopen/convolution.hpp>
 #include <miopen/problem_description.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/bfloat16.hpp>
 #include <vector>
 #include <cstdlib>
 #include <ctime>
@@ -990,16 +991,22 @@ int main()
 {
     run_test<gpu_reference_conv_nchw<miopen::conv::Direction::Forward, float>>();
     run_test<gpu_reference_conv_nchw<miopen::conv::Direction::Forward, half_float::half>>();
+    run_test<gpu_reference_conv_nchw<miopen::conv::Direction::Forward, bfloat16>>();
     run_test<gpu_reference_conv_nchw<miopen::conv::Direction::BackwardData, float>>();
     run_test<gpu_reference_conv_nchw<miopen::conv::Direction::BackwardData, half_float::half>>();
+    run_test<gpu_reference_conv_nchw<miopen::conv::Direction::BackwardData, bfloat16>>();
     run_test<gpu_reference_conv_nchw<miopen::conv::Direction::BackwardWeights, float>>();
     run_test<gpu_reference_conv_nchw<miopen::conv::Direction::BackwardWeights, half_float::half>>();
+    run_test<gpu_reference_conv_nchw<miopen::conv::Direction::BackwardWeights, bfloat16>>();
 
     run_test<gpu_reference_conv_ncdhw<miopen::conv::Direction::Forward, float>>();
     run_test<gpu_reference_conv_ncdhw<miopen::conv::Direction::Forward, half_float::half>>();
+    run_test<gpu_reference_conv_ncdhw<miopen::conv::Direction::Forward, bfloat16>>();
     run_test<gpu_reference_conv_ncdhw<miopen::conv::Direction::BackwardData, float>>();
     run_test<gpu_reference_conv_ncdhw<miopen::conv::Direction::BackwardData, half_float::half>>();
+    run_test<gpu_reference_conv_ncdhw<miopen::conv::Direction::BackwardData, bfloat16>>();
     run_test<gpu_reference_conv_ncdhw<miopen::conv::Direction::BackwardWeights, float>>();
     run_test<
         gpu_reference_conv_ncdhw<miopen::conv::Direction::BackwardWeights, half_float::half>>();
+    run_test<gpu_reference_conv_ncdhw<miopen::conv::Direction::BackwardWeights, bfloat16>>();
 }

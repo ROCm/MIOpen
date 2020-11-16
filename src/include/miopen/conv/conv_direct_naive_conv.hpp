@@ -59,6 +59,8 @@ std::string inline ConvDirectNaiveConvKernelName(const miopen::ConvolutionContex
         kernel_name << "fp32";
     else if(ctx.IsFp16())
         kernel_name << "fp16";
+    else if(ctx.IsBfp16())
+        kernel_name << "bf16";
     else
         MIOPEN_THROW("unsupported data type:");
 

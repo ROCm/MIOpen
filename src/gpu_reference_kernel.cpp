@@ -49,6 +49,10 @@ static std::string getKernelName(const ProblemDescription& conv_param)
             {
                 kernel_name = "naive_conv_fwd_nchw_fp16";
             }
+            else if(conv_param.in_data_type == miopenBFloat16)
+            {
+                kernel_name = "naive_conv_fwd_nchw_bf16";
+            }
             else
             {
                 MIOPEN_LOG_E("unsupported datatype:" << conv_param.in_data_type);
@@ -63,6 +67,10 @@ static std::string getKernelName(const ProblemDescription& conv_param)
             else if(conv_param.in_data_type == miopenHalf)
             {
                 kernel_name = "naive_conv_fwd_ncdhw_fp16";
+            }
+            else if(conv_param.in_data_type == miopenBFloat16)
+            {
+                kernel_name = "naive_conv_fwd_ncdhw_bf16";
             }
             else
             {
@@ -82,6 +90,10 @@ static std::string getKernelName(const ProblemDescription& conv_param)
             {
                 kernel_name = "naive_conv_bwd_nchw_fp16";
             }
+            else if(conv_param.in_data_type == miopenBFloat16)
+            {
+                kernel_name = "naive_conv_bwd_nchw_bf16";
+            }
             else
             {
                 MIOPEN_LOG_E("unsupported datatype:" << conv_param.in_data_type);
@@ -96,6 +108,10 @@ static std::string getKernelName(const ProblemDescription& conv_param)
             else if(conv_param.in_data_type == miopenHalf)
             {
                 kernel_name = "naive_conv_bwd_ncdhw_fp16";
+            }
+            else if(conv_param.in_data_type == miopenBFloat16)
+            {
+                kernel_name = "naive_conv_bwd_ncdhw_bf16";
             }
             else
             {
@@ -115,6 +131,10 @@ static std::string getKernelName(const ProblemDescription& conv_param)
             {
                 kernel_name = "naive_conv_wrw_nchw_fp16";
             }
+            else if(conv_param.in_data_type == miopenBFloat16)
+            {
+                kernel_name = "naive_conv_wrw_nchw_bf16";
+            }
             else
             {
                 MIOPEN_LOG_E("unsupported datatype:" << conv_param.in_data_type);
@@ -129,6 +149,10 @@ static std::string getKernelName(const ProblemDescription& conv_param)
             else if(conv_param.in_data_type == miopenHalf)
             {
                 kernel_name = "naive_conv_wrw_ncdhw_fp16";
+            }
+            else if(conv_param.in_data_type == miopenBFloat16)
+            {
+                kernel_name = "naive_conv_wrw_ncdhw_bf16";
             }
             else
             {
