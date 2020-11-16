@@ -126,7 +126,10 @@ static auto GetDirectSolvers()
                                            miopen::solver::ConvOclDirectFwdGen,
                                            miopen::solver::ConvOclDirectFwd3x3,
                                            miopen::solver::ConvOclDirectFwd1x1,
-                                           miopen::solver::ConvOclDirectFwd>{};
+                                           miopen::solver::ConvOclDirectFwd,
+                                           miopen::solver::ConvDirectNaiveConvFwd,
+                                           miopen::solver::ConvDirectNaiveConvBwd,
+                                           miopen::solver::ConvDirectNaiveConvWrw>{};
 }
 
 static auto GetImplicitGemmSolvers()
@@ -206,7 +209,10 @@ static auto GetBwdWrW2DSolvers()
                                            miopen::solver::ConvOclBwdWrW2<16>,
                                            miopen::solver::ConvOclBwdWrW2NonTunable,
                                            miopen::solver::ConvOclBwdWrW53,
-                                           miopen::solver::ConvOclBwdWrW1x1>{};
+                                           miopen::solver::ConvOclBwdWrW1x1,
+                                           miopen::solver::ConvDirectNaiveConvFwd,
+                                           miopen::solver::ConvDirectNaiveConvBwd,
+                                           miopen::solver::ConvDirectNaiveConvWrw>{};
 }
 
 static auto GetFFTSolvers() { return miopen::solver::SolverContainer<miopen::solver::fft>{}; }
