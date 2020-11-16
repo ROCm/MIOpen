@@ -43,7 +43,7 @@
 static int gen_rand_integer()
 {
     static int inited = 0;
-    if(!inited)
+    if(inited == 0)
     {
         std::srand(std::time(nullptr));
         inited = 1;
@@ -217,7 +217,7 @@ struct gpu_reference_kernel_base
 };
 
 #define RAND_INTEGER_MAX 5
-#define RAND_INTEGER_MIN -4
+#define RAND_INTEGER_MIN (-4)
 #define MAX_INTEGER_INTERVAL 4.0
 
 /*
