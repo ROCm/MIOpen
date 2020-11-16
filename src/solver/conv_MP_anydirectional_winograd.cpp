@@ -329,8 +329,10 @@ inline bool IsApplicableTransform(const ConvolutionContext& params)
     DEFINE_GETDTILEHWSIZE(params)
     DEFINE_SHADER_CONV_MOD_ALIASES(params)
 
+    const int wino_data_h = WinoDataH, wino_filter_h = WinoFilterH, wino_data_w = WinoDataW,
+              wino_filter_w = WinoFilterW;
     if(wino_xform_h > 8 || wino_xform_w > 8 || wino_dtile_h > 8 || wino_dtile_w > 8 ||
-       WinoDataH > 8 || WinoFilterH > 8) // || WinoDataW > 8 || WinoFilterW > 8)
+       wino_data_h > 8 || wino_filter_h > 8 || wino_data_w > 8 || wino_filter_w > 8)
     {
         return false;
     }
@@ -557,15 +559,15 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
         // GEMM
         gemm_conv_kernel_name = "WINO_GEMM: ";
         // clang-format off
-        int m = weights_buff.size.nk,
-            k = in_buff.size.c *
+        int m = static_cast<int>(weights_buff.size.nk),
+            k = static_cast<int>(in_buff.size.c *
                  (is_wrw
                     ? wino_in.wino_info.wino_tiles_HW[0] * wino_in.wino_info.wino_tiles_HW[1]
-                    : 1),
-            n   = is_wrw
+                    : 1)),
+            n   = static_cast<int>(is_wrw
                     ? in_buff.size.nk
                     : (wino_in.buff_info.size.nk * wino_in.buff_info.size.w
-                        * wino_in.buff_info.size.h);
+                        * wino_in.buff_info.size.h));
         int lda = is_wrw ? k : m,
             ldb = is_wrw ? k : n,
             ldc = n;
@@ -573,8 +575,8 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
         long long int strideA = m * k * 1LL, strideB = k * n * 1LL, strideC = m * n * 1LL;
         float alpha = 1., beta = 0.0;
         const bool isColMajor = false,
-            transA = is_wrw ? false : true,
-            transB = is_wrw ? true: false;
+            transA = !is_wrw,
+            transB = is_wrw;
 
         GemmDescriptor wino_gemm_desc{isColMajor,transA,transB,m,n,k,
             lda,ldb,ldc,batch_count,strideA,strideB,
