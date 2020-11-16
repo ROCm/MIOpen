@@ -30,7 +30,6 @@
 #include <miopen/convolution.hpp>
 #include <miopen/problem_description.hpp>
 #include <miopen/tensor.hpp>
-#include <hip/hip_runtime.h>
 #include <vector>
 #include <cstdlib>
 #include <ctime>
@@ -55,7 +54,17 @@ static int gen_rand_integer()
 struct gpu_reference_kernel_base
 {
     miopenHandle_t handle{};
-    gpu_reference_kernel_base() { miopenCreate(&handle); }
+#if MIOPEN_BACKEND_OPENCL
+    cl_command_queue q{};
+#endif
+
+    gpu_reference_kernel_base()
+    {
+        miopenCreate(&handle);
+#if MIOPEN_BACKEND_OPENCL
+        miopenGetStream(handle, &q);
+#endif
+    }
     ~gpu_reference_kernel_base() { miopenDestroy(handle); }
 
     static int conv_out_size(int in_size, int pad, int dilation, int ksize, int stride)
@@ -328,19 +337,30 @@ struct gpu_reference_conv_nchw : gpu_reference_kernel_base
             int wei_sz = g * k_per_group * c_per_group * fy * fx;
             int out_sz = g * n * k_per_group * ho * wo;
 
-            void* in_dev;
-            void* wei_dev;
-            void* out_dev;
-
             tensor<TRef> in(n, c, hi, wi);
             tensor<TRef> wei(k, c_per_group, fy, fx); // refer to ConvDriver<Tgpu,
             // Tref>::GetWeightTensorLengthsFromCmdLine() to
             // deal with group_count
             tensor<TRef> out(n, k, ho, wo);
-
+#if MIOPEN_BACKEND_OPENCL
+            cl_context ctx;
+            clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
+            cl_int status = CL_SUCCESS;
+            cl_mem in_dev =
+                clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(TRef) * in_sz, nullptr, &status);
+            cl_mem wei_dev =
+                clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(TRef) * wei_sz, nullptr, nullptr);
+            cl_mem out_dev =
+                clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(TRef) * out_sz, nullptr, nullptr);
+            EXPECT(status == CL_SUCCESS);
+#elif MIOPEN_BACKEND_HIP
+            void* in_dev;
+            void* wei_dev;
+            void* out_dev;
             EXPECT(hipMalloc(&in_dev, sizeof(TRef) * in_sz) == hipSuccess);
             EXPECT(hipMalloc(&wei_dev, sizeof(TRef) * wei_sz) == hipSuccess);
             EXPECT(hipMalloc(&out_dev, sizeof(TRef) * out_sz) == hipSuccess);
+#endif
             EXPECT(miopenCreateConvolutionDescriptor(&convDesc) == miopenStatusSuccess);
             EXPECT(miopenInitConvolutionNdDescriptor(convDesc,
                                                      2,
@@ -368,6 +388,27 @@ struct gpu_reference_conv_nchw : gpu_reference_kernel_base
                 // initialize data with integer
                 rand_tensor_integer(in);
                 rand_tensor_integer(wei);
+#if MIOPEN_BACKEND_OPENCL
+                status = clEnqueueWriteBuffer(q,
+                                              in_dev,
+                                              CL_TRUE,
+                                              0,
+                                              sizeof(TRef) * in_sz,
+                                              in.data.data(),
+                                              0,
+                                              nullptr,
+                                              nullptr);
+                status |= clEnqueueWriteBuffer(q,
+                                               wei_dev,
+                                               CL_TRUE,
+                                               0,
+                                               sizeof(TRef) * wei_sz,
+                                               wei.data.data(),
+                                               0,
+                                               nullptr,
+                                               nullptr);
+                EXPECT(status == CL_SUCCESS);
+#elif MIOPEN_BACKEND_HIP
                 EXPECT(hipMemcpy(
                            in_dev, in.data.data(), sizeof(TRef) * in_sz, hipMemcpyHostToDevice) ==
                        hipSuccess);
@@ -375,7 +416,7 @@ struct gpu_reference_conv_nchw : gpu_reference_kernel_base
                                  wei.data.data(),
                                  sizeof(TRef) * wei_sz,
                                  hipMemcpyHostToDevice) == hipSuccess);
-
+#endif
                 cpu_convolution_forward(miopen::deref(convDesc).GetSpatialDimension(),
                                         in,
                                         wei,
@@ -394,11 +435,23 @@ struct gpu_reference_conv_nchw : gpu_reference_kernel_base
                     miopen::deref(handle), problem, in_dev, wei_dev, out_dev);
 
                 tensor<TRef> out_host(n, k, ho, wo);
+#if MIOPEN_BACKEND_OPENCL
+                status = clEnqueueReadBuffer(q,
+                                             out_dev,
+                                             CL_TRUE,
+                                             0,
+                                             sizeof(TRef) * out_sz,
+                                             out_host.data.data(),
+                                             0,
+                                             nullptr,
+                                             nullptr);
+                EXPECT(status == CL_SUCCESS);
+#elif MIOPEN_BACKEND_HIP
                 EXPECT(hipMemcpy(out_host.data.data(),
                                  out_dev,
                                  sizeof(TRef) * out_sz,
                                  hipMemcpyDeviceToHost) == hipSuccess);
-
+#endif
                 // we expect excact match, since use integer
                 valid_result = verify_tensor(out_host, out);
             }
@@ -407,6 +460,27 @@ struct gpu_reference_conv_nchw : gpu_reference_kernel_base
                 // initialize data with integer
                 rand_tensor_integer(out);
                 rand_tensor_integer(wei);
+#if MIOPEN_BACKEND_OPENCL
+                status = clEnqueueWriteBuffer(q,
+                                              out_dev,
+                                              CL_TRUE,
+                                              0,
+                                              sizeof(TRef) * out_sz,
+                                              out.data.data(),
+                                              0,
+                                              nullptr,
+                                              nullptr);
+                status |= clEnqueueWriteBuffer(q,
+                                               wei_dev,
+                                               CL_TRUE,
+                                               0,
+                                               sizeof(TRef) * wei_sz,
+                                               wei.data.data(),
+                                               0,
+                                               nullptr,
+                                               nullptr);
+                EXPECT(status == CL_SUCCESS);
+#elif MIOPEN_BACKEND_HIP
                 EXPECT(hipMemcpy(out_dev,
                                  out.data.data(),
                                  sizeof(TRef) * out_sz,
@@ -415,6 +489,7 @@ struct gpu_reference_conv_nchw : gpu_reference_kernel_base
                                  wei.data.data(),
                                  sizeof(TRef) * wei_sz,
                                  hipMemcpyHostToDevice) == hipSuccess);
+#endif
                 cpu_convolution_backward_data(miopen::deref(convDesc).GetSpatialDimension(),
                                               in,
                                               wei,
@@ -434,10 +509,23 @@ struct gpu_reference_conv_nchw : gpu_reference_kernel_base
                     miopen::deref(handle), problem, in_dev, wei_dev, out_dev);
 
                 tensor<TRef> in_host(n, c, hi, wi);
+#if MIOPEN_BACKEND_OPENCL
+                status = clEnqueueReadBuffer(q,
+                                             in_dev,
+                                             CL_TRUE,
+                                             0,
+                                             sizeof(TRef) * in_sz,
+                                             in_host.data.data(),
+                                             0,
+                                             nullptr,
+                                             nullptr);
+                EXPECT(status == CL_SUCCESS);
+#elif MIOPEN_BACKEND_HIP
                 EXPECT(hipMemcpy(in_host.data.data(),
                                  in_dev,
                                  sizeof(TRef) * in_sz,
                                  hipMemcpyDeviceToHost) == hipSuccess);
+#endif
 
                 // we expect excact match, since use integer
                 valid_result = verify_tensor(in_host, in);
@@ -446,6 +534,27 @@ struct gpu_reference_conv_nchw : gpu_reference_kernel_base
             {
                 rand_tensor_integer(in);
                 rand_tensor_integer(out);
+#if MIOPEN_BACKEND_OPENCL
+                status |= clEnqueueWriteBuffer(q,
+                                               in_dev,
+                                               CL_TRUE,
+                                               0,
+                                               sizeof(TRef) * in_sz,
+                                               in.data.data(),
+                                               0,
+                                               nullptr,
+                                               nullptr);
+                status |= clEnqueueWriteBuffer(q,
+                                               out_dev,
+                                               CL_TRUE,
+                                               0,
+                                               sizeof(TRef) * out_sz,
+                                               out.data.data(),
+                                               0,
+                                               nullptr,
+                                               nullptr);
+                EXPECT(status == CL_SUCCESS);
+#elif MIOPEN_BACKEND_HIP
                 EXPECT(hipMemcpy(
                            in_dev, in.data.data(), sizeof(TRef) * in_sz, hipMemcpyHostToDevice) ==
                        hipSuccess);
@@ -453,6 +562,7 @@ struct gpu_reference_conv_nchw : gpu_reference_kernel_base
                                  out.data.data(),
                                  sizeof(TRef) * out_sz,
                                  hipMemcpyHostToDevice) == hipSuccess);
+#endif
                 cpu_convolution_backward_weight(miopen::deref(convDesc).GetSpatialDimension(),
                                                 in,
                                                 wei,
@@ -472,10 +582,23 @@ struct gpu_reference_conv_nchw : gpu_reference_kernel_base
                     miopen::deref(handle), problem, in_dev, wei_dev, out_dev);
 
                 tensor<TRef> wei_host(k, c / g, fy, fx);
+#if MIOPEN_BACKEND_OPENCL
+                status = clEnqueueReadBuffer(q,
+                                             wei_dev,
+                                             CL_TRUE,
+                                             0,
+                                             sizeof(TRef) * wei_sz,
+                                             wei_host.data.data(),
+                                             0,
+                                             nullptr,
+                                             nullptr);
+                EXPECT(status == CL_SUCCESS);
+#elif MIOPEN_BACKEND_HIP
                 EXPECT(hipMemcpy(wei_host.data.data(),
                                  wei_dev,
                                  sizeof(TRef) * wei_sz,
                                  hipMemcpyDeviceToHost) == hipSuccess);
+#endif
 
                 // we expect excact match, since use integer
                 valid_result = verify_tensor(wei_host, wei);
@@ -497,10 +620,15 @@ struct gpu_reference_conv_nchw : gpu_reference_kernel_base
             miopenDestroyTensorDescriptor(inDesc);
             miopenDestroyTensorDescriptor(weiDesc);
             miopenDestroyTensorDescriptor(outDesc);
-
+#if MIOPEN_BACKEND_OPENCL
+            clReleaseMemObject(in_dev);
+            clReleaseMemObject(wei_dev);
+            clReleaseMemObject(out_dev);
+#elif MIOPEN_BACKEND_HIP
             hipFree(in_dev);
             hipFree(wei_dev);
             hipFree(out_dev);
+#endif
         };
 
         iterate_conv_2d(run_conv_2d);
@@ -551,19 +679,30 @@ struct gpu_reference_conv_ncdhw : gpu_reference_kernel_base
             int wei_sz = g * k_per_group * c_per_group * fz * fy * fx;
             int out_sz = g * n * k_per_group * do_ * ho * wo;
 
-            void* in_dev;
-            void* wei_dev;
-            void* out_dev;
-
             tensor<TRef> in(n, c, di, hi, wi);
             tensor<TRef> wei(k, c / g, fz, fy, fx); // refer to ConvDriver<Tgpu,
                                                     // Tref>::GetWeightTensorLengthsFromCmdLine() to
                                                     // deal with group_count
             tensor<TRef> out(n, k, do_, ho, wo);
-
+#if MIOPEN_BACKEND_OPENCL
+            cl_context ctx;
+            clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
+            cl_int status = CL_SUCCESS;
+            cl_mem in_dev =
+                clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(TRef) * in_sz, nullptr, &status);
+            cl_mem wei_dev =
+                clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(TRef) * wei_sz, nullptr, nullptr);
+            cl_mem out_dev =
+                clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(TRef) * out_sz, nullptr, nullptr);
+            EXPECT(status == CL_SUCCESS);
+#elif MIOPEN_BACKEND_HIP
+            void* in_dev;
+            void* wei_dev;
+            void* out_dev;
             EXPECT(hipMalloc(&in_dev, sizeof(TRef) * in_sz) == hipSuccess);
             EXPECT(hipMalloc(&wei_dev, sizeof(TRef) * wei_sz) == hipSuccess);
             EXPECT(hipMalloc(&out_dev, sizeof(TRef) * out_sz) == hipSuccess);
+#endif
             EXPECT(miopenCreateConvolutionDescriptor(&convDesc) == miopenStatusSuccess);
             EXPECT(miopenInitConvolutionNdDescriptor(convDesc,
                                                      3,
@@ -594,6 +733,27 @@ struct gpu_reference_conv_ncdhw : gpu_reference_kernel_base
                 // initialize data with integer
                 rand_tensor_integer(in);
                 rand_tensor_integer(wei);
+#if MIOPEN_BACKEND_OPENCL
+                status = clEnqueueWriteBuffer(q,
+                                              in_dev,
+                                              CL_TRUE,
+                                              0,
+                                              sizeof(TRef) * in_sz,
+                                              in.data.data(),
+                                              0,
+                                              nullptr,
+                                              nullptr);
+                status |= clEnqueueWriteBuffer(q,
+                                               wei_dev,
+                                               CL_TRUE,
+                                               0,
+                                               sizeof(TRef) * wei_sz,
+                                               wei.data.data(),
+                                               0,
+                                               nullptr,
+                                               nullptr);
+                EXPECT(status == CL_SUCCESS);
+#elif MIOPEN_BACKEND_HIP
                 EXPECT(hipMemcpy(
                            in_dev, in.data.data(), sizeof(TRef) * in_sz, hipMemcpyHostToDevice) ==
                        hipSuccess);
@@ -601,6 +761,7 @@ struct gpu_reference_conv_ncdhw : gpu_reference_kernel_base
                                  wei.data.data(),
                                  sizeof(TRef) * wei_sz,
                                  hipMemcpyHostToDevice) == hipSuccess);
+#endif
 
                 cpu_convolution_forward(miopen::deref(convDesc).GetSpatialDimension(),
                                         in,
@@ -620,10 +781,23 @@ struct gpu_reference_conv_ncdhw : gpu_reference_kernel_base
                     miopen::deref(handle), problem, in_dev, wei_dev, out_dev);
 
                 tensor<TRef> out_host(n, k, do_, ho, wo);
+#if MIOPEN_BACKEND_OPENCL
+                status = clEnqueueReadBuffer(q,
+                                             out_dev,
+                                             CL_TRUE,
+                                             0,
+                                             sizeof(TRef) * out_sz,
+                                             out_host.data.data(),
+                                             0,
+                                             nullptr,
+                                             nullptr);
+                EXPECT(status == CL_SUCCESS);
+#elif MIOPEN_BACKEND_HIP
                 EXPECT(hipMemcpy(out_host.data.data(),
                                  out_dev,
                                  sizeof(TRef) * out_sz,
                                  hipMemcpyDeviceToHost) == hipSuccess);
+#endif
 
                 // we expect excact match, since use integer
                 valid_result = verify_tensor(out_host, out);
@@ -633,6 +807,27 @@ struct gpu_reference_conv_ncdhw : gpu_reference_kernel_base
                 // initialize data with integer
                 rand_tensor_integer(out);
                 rand_tensor_integer(wei);
+#if MIOPEN_BACKEND_OPENCL
+                status = clEnqueueWriteBuffer(q,
+                                              out_dev,
+                                              CL_TRUE,
+                                              0,
+                                              sizeof(TRef) * out_sz,
+                                              out.data.data(),
+                                              0,
+                                              nullptr,
+                                              nullptr);
+                status |= clEnqueueWriteBuffer(q,
+                                               wei_dev,
+                                               CL_TRUE,
+                                               0,
+                                               sizeof(TRef) * wei_sz,
+                                               wei.data.data(),
+                                               0,
+                                               nullptr,
+                                               nullptr);
+                EXPECT(status == CL_SUCCESS);
+#elif MIOPEN_BACKEND_HIP
                 EXPECT(hipMemcpy(out_dev,
                                  out.data.data(),
                                  sizeof(TRef) * out_sz,
@@ -641,6 +836,7 @@ struct gpu_reference_conv_ncdhw : gpu_reference_kernel_base
                                  wei.data.data(),
                                  sizeof(TRef) * wei_sz,
                                  hipMemcpyHostToDevice) == hipSuccess);
+#endif
                 cpu_convolution_backward_data(miopen::deref(convDesc).GetSpatialDimension(),
                                               in,
                                               wei,
@@ -660,10 +856,23 @@ struct gpu_reference_conv_ncdhw : gpu_reference_kernel_base
                     miopen::deref(handle), problem, in_dev, wei_dev, out_dev);
 
                 tensor<TRef> in_host(n, c, di, hi, wi);
+#if MIOPEN_BACKEND_OPENCL
+                status = clEnqueueReadBuffer(q,
+                                             in_dev,
+                                             CL_TRUE,
+                                             0,
+                                             sizeof(TRef) * in_sz,
+                                             in_host.data.data(),
+                                             0,
+                                             nullptr,
+                                             nullptr);
+                EXPECT(status == CL_SUCCESS);
+#elif MIOPEN_BACKEND_HIP
                 EXPECT(hipMemcpy(in_host.data.data(),
                                  in_dev,
                                  sizeof(TRef) * in_sz,
                                  hipMemcpyDeviceToHost) == hipSuccess);
+#endif
 
                 // we expect excact match, since use integer
                 valid_result = verify_tensor(in_host, in);
@@ -672,6 +881,27 @@ struct gpu_reference_conv_ncdhw : gpu_reference_kernel_base
             {
                 rand_tensor_integer(in, 3, -2);
                 rand_tensor_integer(out, 3, -2);
+#if MIOPEN_BACKEND_OPENCL
+                status |= clEnqueueWriteBuffer(q,
+                                               in_dev,
+                                               CL_TRUE,
+                                               0,
+                                               sizeof(TRef) * in_sz,
+                                               in.data.data(),
+                                               0,
+                                               nullptr,
+                                               nullptr);
+                status |= clEnqueueWriteBuffer(q,
+                                               out_dev,
+                                               CL_TRUE,
+                                               0,
+                                               sizeof(TRef) * out_sz,
+                                               out.data.data(),
+                                               0,
+                                               nullptr,
+                                               nullptr);
+                EXPECT(status == CL_SUCCESS);
+#elif MIOPEN_BACKEND_HIP
                 EXPECT(hipMemcpy(
                            in_dev, in.data.data(), sizeof(TRef) * in_sz, hipMemcpyHostToDevice) ==
                        hipSuccess);
@@ -679,6 +909,7 @@ struct gpu_reference_conv_ncdhw : gpu_reference_kernel_base
                                  out.data.data(),
                                  sizeof(TRef) * out_sz,
                                  hipMemcpyHostToDevice) == hipSuccess);
+#endif
                 cpu_convolution_backward_weight(miopen::deref(convDesc).GetSpatialDimension(),
                                                 in,
                                                 wei,
@@ -698,10 +929,23 @@ struct gpu_reference_conv_ncdhw : gpu_reference_kernel_base
                     miopen::deref(handle), problem, in_dev, wei_dev, out_dev);
 
                 tensor<TRef> wei_host(k, c / g, fz, fy, fx);
+#if MIOPEN_BACKEND_OPENCL
+                status = clEnqueueReadBuffer(q,
+                                             wei_dev,
+                                             CL_TRUE,
+                                             0,
+                                             sizeof(TRef) * wei_sz,
+                                             wei_host.data.data(),
+                                             0,
+                                             nullptr,
+                                             nullptr);
+                EXPECT(status == CL_SUCCESS);
+#elif MIOPEN_BACKEND_HIP
                 EXPECT(hipMemcpy(wei_host.data.data(),
                                  wei_dev,
                                  sizeof(TRef) * wei_sz,
                                  hipMemcpyDeviceToHost) == hipSuccess);
+#endif
 
                 // we expect excact match, since use integer
                 valid_result = verify_tensor(wei_host, wei, 8.0); // max possible int
@@ -727,9 +971,15 @@ struct gpu_reference_conv_ncdhw : gpu_reference_kernel_base
             miopenDestroyTensorDescriptor(weiDesc);
             miopenDestroyTensorDescriptor(outDesc);
 
+#if MIOPEN_BACKEND_OPENCL
+            clReleaseMemObject(in_dev);
+            clReleaseMemObject(wei_dev);
+            clReleaseMemObject(out_dev);
+#elif MIOPEN_BACKEND_HIP
             hipFree(in_dev);
             hipFree(wei_dev);
             hipFree(out_dev);
+#endif
         };
 
         iterate_conv_3d(run_conv_3d);
