@@ -1002,9 +1002,6 @@ bool ConvMPAnydirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilte
     {
         if(wino_data_tile != 3)
             return false;
-        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F4X3{}))
-        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F3X3{}))
-        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F2X3{}))
 
         if(wino_filter_tile == 6)
             if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_ANYD_WRW_XDLOPS_WINOGRAD_F3X6{}))
