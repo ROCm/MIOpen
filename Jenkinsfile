@@ -194,7 +194,7 @@ def buildCommandJob(cmd, image, prefixpath=""){
         if(image == "")
         {
             dockerArgs = dockerArgs + "-f static-test.docker "
-            image = miopen-static
+            image = "miopen-static"
         }
 
         gitStatusWrapper(credentialsId: '7126e5fe-eb51-4576-b52b-9aaf1de8f0fd', gitHubContext: "Jenkins - ${variant}", account: 'ROCmSoftwarePlatform', repo: 'MIOpen') {
