@@ -56,10 +56,10 @@ struct AnySolver
         return ptr_value->Type();
     };
     bool IsEmpty() const { return ptr_value == nullptr; };
-    ConvSolution FindSolution(const ConvolutionContext& ctx, Db& db) const
+    std::vector<ConvSolution> FindSolutionsInSolver(const ConvolutionContext& ctx, Db& db) const
     {
         assert(ptr_value != nullptr);
-        return ptr_value->FindSolution(ctx, db);
+        return ptr_value->FindSolutionsInSolver(ctx, db);
     };
     ConvSolution ScreenSolutions(const std::vector<ConvSolution>& solutions, 
                                  const ConvolutionContext& ctx, Db& db) const
@@ -88,7 +88,7 @@ struct AnySolver
         virtual bool IsApplicable(const ConvolutionContext& ctx) const = 0;
         virtual const std::type_info& Type() const                     = 0;
         virtual std::string GetSolverDbId() const                      = 0;
-        virtual ConvSolution FindSolution(const ConvolutionContext& ctx, Db& db) const = 0;
+        virtual std::vector<ConvSolution> FindSolutionsInSolver(const ConvolutionContext& ctx, Db& db) const = 0;
         virtual ConvSolution ScreenSolutions(const std::vector<ConvSolution>& solutions, 
                                              const ConvolutionContext& ctx, Db& db) const
         virtual size_t GetWorkspaceSize(const ConvolutionContext& ctx) const = 0;
@@ -103,9 +103,9 @@ struct AnySolver
         {
             return value.IsApplicable(ctx);
         }
-        ConvSolution FindSolution(const ConvolutionContext& ctx, Db& db) const override
+        ConvSolution FindSolutionsInSolver(const ConvolutionContext& ctx, Db& db) const override
         {
-            return miopen::solver::FindSolution(value, ctx, db);
+            return miopen::solver::FindSolutionsInSolver(value, ctx, db);
         };
         ConvSolution ScreenSolutions(const std::vector<ConvSolution>& solutions, 
                                      const ConvolutionContext& ctx, Db& db) const override

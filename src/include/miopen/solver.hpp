@@ -103,9 +103,12 @@ auto GetSolutions(const Solver s,
         const auto current_solution = s.GetSolution(context, current_config, true);
         if(current_solution.Succeeded())
         {
-            if((tweak == SearchTweak::WorkspaceInsteadOfXBuffer ||
-                tweak == SearchTweak::WorkspaceInsteadOfWeightsBuffer) &&
-               default_solution.workspce_sz != current_solution.workspce_sz)
+            if(tweak == SearchTweak::WorkspaceInsteadOfXBuffer ||
+                tweak == SearchTweak::WorkspaceInsteadOfWeightsBuffer)
+            {
+                assert(default_solution.workspce_sz != 0);
+            }
+            if(default_solution.workspce_sz != current_solution.workspce_sz)
             {
                 MIOPEN_LOG_E('#' << n_current << " (" << n_total << ") "
                                  << "Workspace size should not depend on PerformanceConfig: "

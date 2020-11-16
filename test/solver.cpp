@@ -148,7 +148,7 @@ static solver::ConvSolution FindSolution(const ConvolutionContext& ctx, const st
 
     const auto solvers = solver::SolverContainer<TrivialTestSolver, SearchableTestSolver>{};
 
-    return solvers.SearchForAllSolutions(ctx, db, 1).front();
+    return solvers.FindAllSolutions(ctx, db, 1).front();
 }
 
 class SolverTest
