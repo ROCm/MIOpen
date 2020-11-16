@@ -191,8 +191,12 @@ def buildCommandJob(cmd, image, prefixpath=""){
         {
             dockerArgs = ""
         }
-        dockerArgs = dockerArgs + "-f static-test.docker "
-       
+        if(image == "")
+        {
+            dockerArgs = dockerArgs + "-f static-test.docker "
+            image = miopen-static
+        }
+
         gitStatusWrapper(credentialsId: '7126e5fe-eb51-4576-b52b-9aaf1de8f0fd', gitHubContext: "Jenkins - ${variant}", account: 'ROCmSoftwarePlatform', repo: 'MIOpen') {
             try {
                 retimage = docker.build("${image}", dockerArgs + '.')
@@ -220,9 +224,6 @@ pipeline {
     options {
         parallelsAlwaysFailFast()
     }
-    environment{
-        image = "miopen-static"
-    }
     stages{
         // Run all static analysis tests
 
@@ -234,7 +235,7 @@ pipeline {
                         cmd = "rm -rf build; mkdir build; cd build; CXX='clang++-3.8' cmake -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
                     }
                     steps{
-                        buildCommandJob(cmd, image)
+                        buildCommandJob(cmd)
                     }
                 }
 
@@ -252,7 +253,7 @@ pipeline {
                                 | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-3.8 -style=file {} | diff - {}\'"
                     }
                     steps{
-                        buildCommandJob(cmd, image)
+                        buildCommandJob(cmd)
                     }
                 }
 
@@ -262,7 +263,7 @@ pipeline {
                         cmd = "rm -rf build; mkdir build; cd build; CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
                     }
                     steps{
-                        buildCommandJob(cmd, image)
+                        buildCommandJob(cmd, "miopen-hip-clang")
                     }
                 }
             }
