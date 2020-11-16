@@ -145,10 +145,6 @@ void GPUReferenceConvolutionForward(const Handle& handle,
                                     ConstData_t weight_data,
                                     Data_t output_data)
 {
-#if MIOPEN_BACKEND_OPENCL
-    MIOPEN_LOG_E("currently only support hip backend");
-    return;
-#endif
     if(!conv_param.IsLayoutDefault())
     {
         MIOPEN_LOG_E("not default layout, will not run");
@@ -260,10 +256,6 @@ void GPUReferenceConvolutionBackwardData(const Handle& handle,
                                          ConstData_t weight_data,
                                          ConstData_t output_data)
 {
-#if MIOPEN_BACKEND_OPENCL
-    MIOPEN_LOG_E("currently only support hip backend");
-    return;
-#endif
     if(!conv_param.IsLayoutDefault())
     {
         MIOPEN_LOG_E("not default layout, will not run");
@@ -375,10 +367,6 @@ void GPUReferenceConvolutionBackwardWeights(const Handle& handle,
                                             Data_t weight_data,
                                             ConstData_t output_data)
 {
-#if MIOPEN_BACKEND_OPENCL
-    MIOPEN_LOG_E("currently only support hip backend");
-    return;
-#endif
     if(!conv_param.IsLayoutDefault())
     {
         MIOPEN_LOG_E("not default layout, will not run");
