@@ -8,6 +8,7 @@ ARG MIOTENSILE_VER="default"
 RUN dpkg --add-architecture i386
 
 # Install dependencies
+RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu xenial main universe | tee -a /etc/apt/sources.list"
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     apt-utils \
     build-essential \
