@@ -253,13 +253,6 @@ pipeline {
                     }
                 }
 
-                stage('OpenCL Debug') {
-                    agent{ label rocmnode("vega") }
-                    steps{
-                        buildJob('g++-5', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', codecov: true, gpu_arch: "gfx900;gfx906")
-                    }
-                }
-
                 stage('OpenCL Release') {
                     agent{ label rocmnode("vega") }
                     steps{
@@ -421,21 +414,12 @@ pipeline {
                         buildJob('hcc', flags: '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx906")
                     }
                 }
-
                 stage('Half OpenCL Release Vega20') {
                     agent{ label rocmnode("vega20") }
                     steps{
                         buildJob('g++-5', flags: '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx906")
                     }
                 }
-
-                stage('Int8 Hip/hcc Release Vega20') {
-                    agent{ label rocmnode("vega20") }
-                    steps{
-                        buildJob('hcc', flags: '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx906")
-                    }
-                }
-
                 stage('Int8 OpenCL Release Vega20') {
                     agent{ label rocmnode("vega20") }
                     steps{
@@ -456,7 +440,6 @@ pipeline {
                         buildJob('hcc', flags: '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx908")
                     }
                 }
-
                 stage('Half Hip/hcc Debug gfx908') {
                     agent{ label rocmnode("gfx908") }
                     steps{
@@ -468,30 +451,20 @@ pipeline {
 
         stage("Full tests I"){
             parallel{
+
+                stage('GCC codecov') {
+                    agent{ label rocmnode("vega") }
+                    steps{
+                        buildJob('g++-5', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', codecov: true, gpu_arch: "gfx900;gfx906")
+                    }
+                }
+
                 stage('Int8 Hip/hcc Release All Vega20') {
                     agent{ label rocmnode("vega20") }
                     steps{
                         buildJob('hcc', flags: '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx906")
                     }
                 }
-
-                stage('BF16 Hip Release All Vega20') {
-                    agent{ label rocmnode("vega20") }
-                    environment{
-                        cmd = """
-                            ulimit -c unlimited
-                            rm -rf build
-                            mkdir build
-                            cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_ALL=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On ..
-                            make -j test_conv2d
-                        """
-                    }
-                    steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx906")
-                    }
-                }
-
 
                 stage('BF16 Hip Release Subset gfx908') {
                     agent{ label rocmnode("gfx908") }
