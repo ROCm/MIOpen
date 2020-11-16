@@ -2028,6 +2028,27 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm : SolverBase<ConvolutionCont
     Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const;
 };
 
+struct ConvDirectNaiveConvFwd : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    bool IsDynamic() const { return true; }
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+};
+
+struct ConvDirectNaiveConvBwd : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    bool IsDynamic() const { return true; }
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+};
+
+struct ConvDirectNaiveConvWrw : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    bool IsDynamic() const { return true; }
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+};
+
 struct AnySolver;
 
 } // namespace solver

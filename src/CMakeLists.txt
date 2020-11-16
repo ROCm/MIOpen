@@ -189,6 +189,7 @@ set( MIOpen_Source
     conv/invokers/ocl_wrw_rdc.cpp
     conv/invokers/impl_gemm.cpp
     conv/invokers/impl_gemm_dynamic.cpp
+    conv/invokers/naive_conv.cpp
     invoker_cache.cpp
     tensor.cpp
     tensor_api.cpp
@@ -238,6 +239,9 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops_padded_gemm.cpp
     solver/conv_asm_implicit_gemm_gtc_fwd.cpp
     solver/conv_asm_implicit_gemm_gtc_bwd.cpp
+    solver/conv_direct_naive_conv_fwd.cpp
+    solver/conv_direct_naive_conv_bwd.cpp
+    solver/conv_direct_naive_conv_wrw.cpp
     )
 
 list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
