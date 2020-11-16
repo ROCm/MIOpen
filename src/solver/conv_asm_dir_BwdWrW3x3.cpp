@@ -577,9 +577,10 @@ int ConvAsmBwdWrW3x3::RunAndMeasureSolution(const miopen::Handle& profile_h,
     return 0;
 }
 
-PerformanceConfigAsmDirect3x3WrW ConvAsmBwdWrW3x3::Search(const ConvolutionContext& context) const
+ConvSolution ConvAsmBwdWrW3x3::ScreenSolutions(const std::vector<ConvSolution>& solutions,
+                                               const ConvolutionContext& context) const
 {
-    return GenericSearchWrW(*this, context);
+    return GenericSearchWrW(*this, context, solutions);
 }
 
 } // namespace solver

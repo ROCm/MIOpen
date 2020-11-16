@@ -798,11 +798,12 @@ int ConvAsm1x1UV2::RunAndMeasureSolution(const miopen::Handle& profile_h,
     return 0;
 }
 
-PerformanceConfigConvAsm1x1UV2 ConvAsm1x1UV2::Search(const ConvolutionContext& context) const
+ConvSolution ConvAsm1x1UV2::ScreenSolutions(const std::vector<ConvSolution>& solutions,
+                                            const ConvolutionContext& context) const
 {
     if(context.direction.IsForward())
-        return GenericSearchFwd(*this, context);
-    return GenericSearchBwd(*this, context);
+        return GenericSearchFwd(*this, context, solutions);
+    return GenericSearchBwd(*this, context, solutions);
 }
 
 } // namespace solver

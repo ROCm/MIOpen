@@ -682,14 +682,14 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsValidPerformanceConfig(
     return config.IsValidValue() && config.IsValid(ctx);
 }
 
-PerformanceImplicitGemmBwdDataV1R1
-ConvHipImplicitGemmBwdDataV1R1::Search(const ConvolutionContext& ctx) const
+ConvSolution ConvHipImplicitGemmBwdDataV1R1::ScreenSolutions(const std::vector<ConvSolution>& solutions,
+                                                             const ConvolutionContext& context) const
 {
     // fp16/bfp16 uses fp32 workspace to leverage fp32 atomic add
-    if(ctx.IsFp16() || ctx.IsBfp16())
-        return GenericSearchBwd(*this, ctx, SearchTweak::WorkspaceInsteadOfXBuffer);
+    if(context.IsFp16() || context.IsBfp16())
+        return GenericSearchBwd(*this, context, solutions, SearchTweak::WorkspaceInsteadOfXBuffer);
     else
-        return GenericSearchBwd(*this, ctx);
+        return GenericSearchBwd(*this, context, solutions);
 }
 
 int ConvHipImplicitGemmBwdDataV1R1::RunAndMeasureSolution(const miopen::Handle& profile_h,

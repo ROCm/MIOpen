@@ -620,10 +620,10 @@ bool ConvHipImplicitGemmV4R4WrW::IsValidPerformanceConfig(
     return config.IsValidValue() && config.IsValid(ctx);
 }
 
-PerformanceImplicitGemmV4R4WrW
-ConvHipImplicitGemmV4R4WrW::Search(const ConvolutionContext& context) const
+ConvSolution ConvHipImplicitGemmV4R4WrW::ScreenSolutions(const std::vector<ConvSolution>& solutions,
+                                                         const ConvolutionContext& context) const
 {
-    return GenericSearchWrW(*this, context);
+    return GenericSearchWrW(*this, context, solutions);
 }
 
 int ConvHipImplicitGemmV4R4WrW::RunAndMeasureSolution(const miopen::Handle& profile_h,

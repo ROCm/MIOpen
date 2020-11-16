@@ -96,19 +96,31 @@ class SearchableTestSolver : public solver::SolverBase<ConvolutionContext>
     {
         return true;
     }
-
-    TestConfig Search(const ConvolutionContext&) const
+    ConvSolution ScreenSolutions(const std::vector<ConvSolution>& solutions,
+                                 const ConvolutionContext& context) const
     {
         TestConfig config;
         config.str = FileName();
+        auto result = GetSolution(context, config);
         _serches_done++;
-        return config;
+        return result;
     }
 
     std::vector<ConvSolution> GetSolutions(const ConvolutionContext& params,
                                            bool onlyGetDefault = false) const
     {
-        return std::vector<ConvSolution>{this->GetSolution(params, this->Search(params))};
+        if(onlyGetDefault)
+        {
+            return std::vector<ConvSolution>{this->GetSolution(params, this->GetPerformanceConfig(params))};
+        }
+        else
+        {
+            TestConfig config;
+            config.str = FileName();
+            return std::vector<ConvSolution>{this->GetSolution(params, this->GetPerformanceConfig(params)),
+                                             this->GetSolution(params, config)};
+        }
+        
     }
 
     solver::ConvSolution GetSolution(const ConvolutionContext&, const TestConfig& config) const

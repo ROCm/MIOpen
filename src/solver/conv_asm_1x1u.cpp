@@ -815,21 +815,22 @@ int ConvAsm1x1U::RunAndMeasureSolution(const miopen::Handle& profile_h,
     return 0;
 }
 
-PerformanceConfigConvAsm1x1U ConvAsm1x1U::Search(const ConvolutionContext& context) const
+ConvSolution ConvAsm1x1U::ScreenSolutions(const std::vector<ConvSolution>& solutions,
+                                          const ConvolutionContext& context) const
 {
     if(context.direction.IsForward())
     {
         if(UseSubsample(context) || UseUpsample(context))
-            return GenericSearchFwd(*this, context, SearchTweak::WorkspaceInsteadOfXBuffer);
+            return GenericSearchFwd(*this, context, solutions, SearchTweak::WorkspaceInsteadOfXBuffer);
         else
-            return GenericSearchFwd(*this, context);
+            return GenericSearchFwd(*this, context, solutions);
     }
     else
     {
         if(UseSubsample(context) || UseUpsample(context))
-            return GenericSearchBwd(*this, context, SearchTweak::WorkspaceInsteadOfXBuffer);
+            return GenericSearchBwd(*this, context, solutions, SearchTweak::WorkspaceInsteadOfXBuffer);
         else
-            return GenericSearchBwd(*this, context);
+            return GenericSearchBwd(*this, context, solutions);
     }
 }
 

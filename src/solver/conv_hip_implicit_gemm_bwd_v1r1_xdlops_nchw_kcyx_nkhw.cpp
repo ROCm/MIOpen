@@ -823,27 +823,28 @@ int ConvHipImplicitGemmBwdDataV1R1Xdlops::RunAndMeasureSolution(const miopen::Ha
     return 0;
 }
 
-PerformanceImplicitGemmBwdV1R1Xdlops
-ConvHipImplicitGemmBwdDataV1R1Xdlops::Search(const ConvolutionContext& ctx) const
+ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::ScreenSolutions(
+    const std::vector<ConvSolution>& solutions,
+    const ConvolutionContext& context) const
 {
     // fp16/bfp16 uses fp32 workspace to leverage fp32 atomic add
-    if(ctx.IsFp16() || ctx.IsBfp16())
+    if(context.IsFp16() || context.IsBfp16())
     {
-        const auto y          = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-        const auto x          = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
-        const auto stride_h   = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
-        const auto stride_w   = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
-        const auto dilation_h = ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx);
-        const auto dilation_w = ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx);
+        const auto y          = ConvolutionContextInterpreter::GetFilterHeightY(context);
+        const auto x          = ConvolutionContextInterpreter::GetFilterWidthX(context);
+        const auto stride_h   = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(context);
+        const auto stride_w   = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(context);
+        const auto dilation_h = ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(context);
+        const auto dilation_w = ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(context);
 
         if((stride_h >= dilation_h * (y - 1) + 1) && (stride_w >= dilation_w * (x - 1) + 1))
-            return GenericSearchBwd(*this, ctx);
+            return GenericSearchBwd(*this, context, solutions);
         else
-            return GenericSearchBwd(*this, ctx, SearchTweak::WorkspaceInsteadOfXBuffer);
+            return GenericSearchBwd(*this, context, solutions, SearchTweak::WorkspaceInsteadOfXBuffer);
     }
     else
     {
-        return GenericSearchBwd(*this, ctx);
+        return GenericSearchBwd(*this, context, solutions);
     }
 }
 

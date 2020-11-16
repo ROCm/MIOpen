@@ -629,10 +629,12 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsValidPerformanceConfig(
     MIOPEN_LOG_I("");
     return c.IsValidValue() && c.IsValid(ctx);
 }
-PerformanceImplicitGemmBwdDataV4R1Xdlops
-ConvHipImplicitGemmBwdDataV4R1Xdlops::Search(const ConvolutionContext& ctx) const
+
+ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::ScreenSolutions(
+    const std::vector<ConvSolution>& solutions,
+    const ConvolutionContext& context) const
 {
-    return GenericSearchBwd(*this, ctx);
+    return GenericSearchBwd(*this, context, solutions);
 }
 
 int ConvHipImplicitGemmBwdDataV4R1Xdlops::RunAndMeasureSolution(const miopen::Handle& profile_h,

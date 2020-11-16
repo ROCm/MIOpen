@@ -330,12 +330,13 @@ int ConvAsm3x3U::RunAndMeasureSolution(const miopen::Handle& profile_h,
     return 0;
 }
 
-PerformanceConfigConvAsm3x3U ConvAsm3x3U::Search(const ConvolutionContext& context) const
+ConvSolution ConvAsm3x3U::ScreenSolutions(const std::vector<ConvSolution>& solutions,
+                                          const ConvolutionContext& context) const
 {
     if(context.direction.IsForward())
-        return GenericSearchFwd(*this, context);
+        return GenericSearchFwd(*this, context, solutions);
     else
-        return GenericSearchBwd(*this, context);
+        return GenericSearchBwd(*this, context, solutions);
 }
 
 } // namespace solver

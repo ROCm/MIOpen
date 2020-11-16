@@ -889,12 +889,13 @@ int ConvAsmBwdWrW1x1::RunAndMeasureSolution(const miopen::Handle& profile_h,
     return 0;
 }
 
-PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionContext& context) const
+ConvSolution ConvAsmBwdWrW1x1::ScreenSolutions(const std::vector<ConvSolution>& solutions,
+                                               const ConvolutionContext& context) const
 {
     if(UseSubsample(context))
-        return GenericSearchWrW(*this, context, SearchTweak::WorkspaceInsteadOfXBuffer);
+        return GenericSearchWrW(*this, context, solutions, SearchTweak::WorkspaceInsteadOfXBuffer);
     else
-        return GenericSearchWrW(*this, context);
+        return GenericSearchWrW(*this, context, solutions);
 }
 
 } // namespace solver

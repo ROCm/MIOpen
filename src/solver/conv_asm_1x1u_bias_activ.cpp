@@ -142,8 +142,8 @@ int ConvBiasActivAsm1x1U::RunAndMeasureSolution(const miopen::Handle& profile_h,
     return 0;
 }
 
-PerformanceConfigConvBiasActivAsm1x1U
-ConvBiasActivAsm1x1U::Search(const ConvolutionContext& context) const
+ConvSolution ConvBiasActivAsm1x1U::ScreenSolutions(const std::vector<ConvSolution>& solutions,
+                                                   const ConvolutionContext& context) const
 {
     ConvolutionContext cba_context = context;
     cba_context.bias               = 1;
@@ -171,7 +171,7 @@ ConvBiasActivAsm1x1U::Search(const ConvolutionContext& context) const
     bufs.SetFwd(bot_buf.get(), wei_buf.get(), top_buf.get());
     cba_context.SetBufs(bufs);
 #endif
-    return GenericSearchFwd(*this, cba_context);
+    return GenericSearchFwd(*this, cba_context, solutions);
 }
 
 } // namespace solver

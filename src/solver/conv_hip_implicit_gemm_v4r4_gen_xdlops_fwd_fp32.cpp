@@ -598,10 +598,11 @@ bool ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::IsValidPerformanceConfig(
     return c.IsValidValue() && c.IsValid(ctx);
 }
 
-PerformanceImplicitGemmV4R4GenXdlopsFwdFp32
-ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::Search(const ConvolutionContext& ctx) const
+ConvSolution ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::ScreenSolutions(
+    const std::vector<ConvSolution>& solutions,
+    const ConvolutionContext& context) const
 {
-    return GenericSearchFwd(*this, ctx);
+    return GenericSearchFwd(*this, context, solutions);
 }
 
 } // namespace solver

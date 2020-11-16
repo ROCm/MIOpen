@@ -856,13 +856,14 @@ int ConvOclBwdWrW2<N_BATCH_LOOPS>::RunAndMeasureSolution(const miopen::Handle& p
 }
 
 template <int N_BATCH_LOOPS>
-PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
-ConvOclBwdWrW2<N_BATCH_LOOPS>::Search(const ConvolutionContext& context) const
+ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::ScreenSolutions(
+    const std::vector<ConvSolution>& solutions,
+    const ConvolutionContext& context) const
 {
     if(GetNBatchBlks<N_BATCH_LOOPS>(context) > 1)
-        return GenericSearchWrW(*this, context, SearchTweak::WorkspaceInsteadOfWeightsBuffer);
+        return GenericSearchWrW(*this, context, solutions, SearchTweak::WorkspaceInsteadOfWeightsBuffer);
     else
-        return GenericSearchWrW(*this, context);
+        return GenericSearchWrW(*this, context, solutions);
 }
 
 /// We need to instantiate required classes implicitly.

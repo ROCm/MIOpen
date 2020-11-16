@@ -1028,11 +1028,12 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops::IsApplicable(const ConvolutionContext
     return config.IsReallyValid(ctx);
 }
 
-PerformanceImplicitGemmForwardV4R4Xdlops
-ConvHipImplicitGemmForwardV4R4Xdlops::Search(const ConvolutionContext& ctx) const
+ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::ScreenSolutions(
+    const std::vector<ConvSolution>& solutions,
+    const ConvolutionContext& context) const
 
 {
-    return GenericSearchFwd(*this, ctx);
+    return GenericSearchFwd(*this, context, solutions);
 }
 
 } // namespace solver

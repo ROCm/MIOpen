@@ -288,13 +288,13 @@ bool ConvBinWinogradRxSf2x3::IsValidPerformanceConfig(
     return c.IsValidValue() && c.IsValid(problem);
 }
 
-PerformanceConfigConvBinWinogradRxSf2x3
-ConvBinWinogradRxSf2x3::Search(const ConvolutionContext& context) const
+ConvSolution ConvBinWinogradRxSf2x3::ScreenSolutions(const std::vector<ConvSolution>& solutions,
+                                                     const ConvolutionContext& context) const
 {
     if(context.direction.IsForward())
-        return GenericSearchFwd(*this, context);
+        return GenericSearchFwd(*this, context, solutions);
     else
-        return GenericSearchBwd(*this, context);
+        return GenericSearchBwd(*this, context, solutions);
 }
 
 inline void FillVarsFromConfig(int& H,
