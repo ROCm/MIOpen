@@ -470,13 +470,7 @@ pipeline {
                         buildJob('hcc', flags: '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx906")
                     }
                 }
-                stage('Half GCC Release') {
-                    agent{ label rocmnode("vega20") }
-                    steps{
-                        buildJob('g++-5', flags: '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx906")
-                    }
-                }
-
+                
                 stage('Bfloat16 gfx908 HCC Debug') {
                     agent{ label rocmnode("gfx908") }   
                     steps{
