@@ -181,7 +181,7 @@ def buildHipClangJob(compiler, flags, env4make, image, prefixpath="/opt/rocm", c
 
 
 
-def buildCommandJob(cmd, image, prefixpath=""){
+def buildCommandJob(cmd, image="miopen-static", prefixpath=""){
 
         checkout scm
         def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
@@ -194,7 +194,6 @@ def buildCommandJob(cmd, image, prefixpath=""){
         if(image == "")
         {
             dockerArgs = dockerArgs + "-f static-test.docker "
-            image = "miopen-static"
         }
 
         gitStatusWrapper(credentialsId: '7126e5fe-eb51-4576-b52b-9aaf1de8f0fd', gitHubContext: "Jenkins - ${variant}", account: 'ROCmSoftwarePlatform', repo: 'MIOpen') {
