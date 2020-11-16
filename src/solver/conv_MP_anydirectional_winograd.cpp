@@ -39,6 +39,7 @@
 #include <boost/any.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
+#include <miopen/kernel_build_params.hpp>
 
 #if MIOPEN_BACKEND_HIP
 
@@ -129,22 +130,26 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
                                      (params).direction.IsBackwardData(), \
                                      (params).direction.IsBackwardWrW())
 
-#define GENERATE_MAIN_OPTIONS(options)                             \
-    GenerateClangDefsym((options), "ROCM_METADATA_VERSION", 5);    \
-    GenerateClangDefsym((options), "xformx_o_size", WinoDataW);    \
-    GenerateClangDefsym((options), "xformy_o_size", WinoDataH);    \
-    GenerateClangDefsym((options), "xformx_x_size", wino_xform_w); \
-    GenerateClangDefsym((options), "xformy_x_size", wino_xform_h); \
-    GenerateClangDefsym((options), "xformx_d_size", wino_dtile_w); \
-    GenerateClangDefsym((options), "xformy_d_size", wino_dtile_h); \
-    GenerateClangDefsym((options), "xformx_f_size", WinoFilterW);  \
-    GenerateClangDefsym((options), "xformy_f_size", WinoFilterH);  \
-    GenerateClangDefsym((options), "fdilation_w", f_dilation_w);   \
-    GenerateClangDefsym((options), "fdilation_h", f_dilation_h);   \
-    GenerateClangDefsym((options), "stride_h", stride_h);          \
-    GenerateClangDefsym((options), "stride_w", stride_w);          \
-    GenerateClangDefsym((options), "ddilation_h", d_dilation_h);   \
-    GenerateClangDefsym((options), "ddilation_w", d_dilation_w);
+#define GENERATE_MAIN_OPTIONS(options)                   \
+    KernelBuildParameters options{};                     \
+    do                                                   \
+    {                                                    \
+        (options).Define("ROCM_METADATA_VERSION", 5);    \
+        (options).Define("xformx_o_size", WinoDataW);    \
+        (options).Define("xformy_o_size", WinoDataH);    \
+        (options).Define("xformx_x_size", wino_xform_w); \
+        (options).Define("xformy_x_size", wino_xform_h); \
+        (options).Define("xformx_d_size", wino_dtile_w); \
+        (options).Define("xformy_d_size", wino_dtile_h); \
+        (options).Define("xformx_f_size", WinoFilterW);  \
+        (options).Define("xformy_f_size", WinoFilterH);  \
+        (options).Define("fdilation_w", f_dilation_w);   \
+        (options).Define("fdilation_h", f_dilation_h);   \
+        (options).Define("stride_h", stride_h);          \
+        (options).Define("stride_w", stride_w);          \
+        (options).Define("ddilation_h", d_dilation_h);   \
+        (options).Define("ddilation_w", d_dilation_w);   \
+    } while(false)
 
 struct WinoOffsets
 {
@@ -315,7 +320,7 @@ inline bool IsApplicableTransform(const ConvolutionContext& params)
     DEFINE_SHADER_CONV_MOD_ALIASES(params)
 
     if(wino_xform_h > 8 || wino_xform_w > 8 || wino_dtile_h > 8 || wino_dtile_w > 8 ||
-       WinoDataH > 8 || WinoFilterH > 8)// || WinoDataW > 8 || WinoFilterW > 8)
+       WinoDataH > 8 || WinoFilterH > 8) // || WinoDataW > 8 || WinoFilterW > 8)
     {
         return false;
     }
@@ -538,6 +543,7 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
     }
     else
     {
+#if MIOPEN_USE_ROCBLAS
         // GEMM
         gemm_conv_kernel_name = "WINO_GEMM: ";
         // clang-format off
@@ -563,7 +569,11 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
         GemmDescriptor wino_gemm_desc{isColMajor,transA,transB,m,n,k,
             lda,ldb,ldc,batch_count,strideA,strideB,
             strideC,alpha,beta,transform_data_type};
-        // clang-format on
+// clang-format on
+#else
+        (void)wino_xform_h;
+        (void)wino_xform_w;
+#endif
 
         gemm_conv_factory = [=](const std::vector<Kernel>&) {
 
@@ -745,36 +755,46 @@ ConvSolution ConvMPAnydirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilt
         miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_ANYD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM{})
             ? params.in_data_type
             : miopenFloat;
-    std::ostringstream options_in;
+
     DEFINE_SHADER_CONV_MOD_ALIASES(params)
     DEFINE_GETDTILEHWSIZE(params)
-    GENERATE_MAIN_OPTIONS(options_in)
-    GenerateClangDefsym(options_in, "xform_mirror", 0);
-    GenerateClangDefsym(options_in, "src_type", (params.IsFp32() ? 1 : 2));
-    GenerateClangDefsym(options_in, "dst_type", (transform_data_type == miopenFloat ? 1 : 2));
+    GENERATE_MAIN_OPTIONS(options_in);
+    options_in.Define("xform_mirror", 0);
+    options_in.Define("src_type", (params.IsFp32() ? 1 : 2));
+    options_in.Define("dst_type", (transform_data_type == miopenFloat ? 1 : 2));
 
-    std::ostringstream options_filter;
-    GENERATE_MAIN_OPTIONS(options_filter)
-    GenerateClangDefsym(options_filter, "xform_mirror", params.direction.IsBackwardData());
-    GenerateClangDefsym(options_filter, "src_type", (params.IsFp32() ? 1 : 2));
-    GenerateClangDefsym(options_filter, "dst_type", (transform_data_type == miopenFloat ? 1 : 2));
+    GENERATE_MAIN_OPTIONS(options_filter);
+    options_filter.Define("xform_mirror", params.direction.IsBackwardData());
+    options_filter.Define("src_type", (params.IsFp32() ? 1 : 2));
+    options_filter.Define("dst_type", (transform_data_type == miopenFloat ? 1 : 2));
 
-    std::ostringstream options_out;
-    GENERATE_MAIN_OPTIONS(options_out)
-    GenerateClangDefsym(options_out, "xform_mirror", 0);
-    GenerateClangDefsym(options_out, "src_type", (transform_data_type == miopenFloat ? 1 : 2));
-    GenerateClangDefsym(options_out, "dst_type", (params.IsFp32() ? 1 : 2));
+    GENERATE_MAIN_OPTIONS(options_out);
+    options_out.Define("xform_mirror", 0);
+    options_out.Define("src_type", (transform_data_type == miopenFloat ? 1 : 2));
+    options_out.Define("dst_type", (params.IsFp32() ? 1 : 2));
 
     KernelInfo InTransform{
-        options_in.str(), l_wk, g_wk, GetSolverFileNames(0), GetSolverKernelNames(0),
+        options_in.GenerateFor(kbp::GcnAsm{}),
+        l_wk,
+        g_wk,
+        GetSolverFileNames(0),
+        GetSolverKernelNames(0),
     };
 
     KernelInfo FilterTransform{
-        options_filter.str(), l_wk, g_wk, GetSolverFileNames(1), GetSolverKernelNames(1),
+        options_filter.GenerateFor(kbp::GcnAsm{}),
+        l_wk,
+        g_wk,
+        GetSolverFileNames(1),
+        GetSolverKernelNames(1),
     };
 
     KernelInfo OutTransform{
-        options_out.str(), l_wk, g_wk, GetSolverFileNames(2), GetSolverKernelNames(2),
+        options_out.GenerateFor(kbp::GcnAsm{}),
+        l_wk,
+        g_wk,
+        GetSolverFileNames(2),
+        GetSolverKernelNames(2),
     };
 
     result.construction_params.push_back(InTransform);
