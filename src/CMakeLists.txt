@@ -504,10 +504,7 @@ if(MIOPEN_USE_COMGR)
 endif()
 
 if(MIOPEN_ENABLE_HEUR)
-    set(HEUR_OBJS
-        conv/heur/assets/fwd-gfx906-60.o           
-        conv/heur/assets/packed_const-gfx906-60.o
-        )
+    file(GLOB HEUR_OBJS conv/heur/assets/*.o)
     SET_SOURCE_FILES_PROPERTIES(
       ${HEUR_OBJS}
       PROPERTIES

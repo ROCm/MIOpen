@@ -37,14 +37,12 @@
 
 namespace miopen
 {
-extern "C" MemRef2D
-fwd_gfx906_60_main_graph(float*, float*, int64_t, int64_t, int64_t, int64_t, int64_t);
 struct ConvHeur
 {
     void TransformFeatures(std::vector<float>& features, const Handle& handle, const ProblemDescription& problem)
     {
         const auto& mu  = GetMu(handle, problem);
-        const auto& sig = GetSig(handle, problem);
+        const auto& sig = GetSigma(handle, problem);
         for(auto idx = 0; idx < features.size(); ++idx)
             features[idx] = (features[idx] - mu[idx]) / sig[idx];
     }
@@ -66,23 +64,13 @@ struct ConvHeur
         features.d = {static_cast<float>(log2(p.GetInBatchSize())), static_cast<float>(p.GetKernelStrideH()), static_cast<float>(p.GetKernelStrideW()), static_cast<float>(p.GetWeightsHeight()), static_cast<float>(p.GetWeightsWidth()), static_cast<float>(log2(p.GetInChannels())), static_cast<float>(log2(p.GetInHeight())), static_cast<float>(log2(p.GetInWidth())), static_cast<float>(log2(p.GetOutChannels())), static_cast<float>(p.GetPadH()), static_cast<float>(p.GetPadW())};
         TransformFeatures(features.d, handle, problem);
     
-        MemRef2D mem_res;
-        // TODO: replace with a function that returns this lambda and then call the lambda
-        // TODO: free memory when the object is destroyed
-        if(handle.GetDeviceName() == "gfx906" && handle.GetMaxComputeUnits() == 60 && problem.direction.IsForward())
-        {
-            mem_res = fwd_gfx906_60_main_graph(features.data(), features.data(), features.offset, features.size0, features.size1, features.stride0, features.stride1);
-            // TODO: check the output size matches expectation
-            mem_res.print();
-        }
-        else
-            MIOPEN_THROW(miopenStatusNotImplemented);
-
-        const auto solvers = GetSolverMap(handle, problem);
-        std::vector<float> res(mem_res.aligned, mem_res.aligned + (mem_res.size0 * mem_res.size1)); // TODO: free mem_res
+        MemRef2D mem_res = CallModel(handle, problem, features);
+        const auto solvers = GetSolverMap(handle);
+        std::vector<float> res(mem_res.aligned, mem_res.aligned + (mem_res.size0 * mem_res.size1));
+        // pointer returned by CallModel is allocated inside the model and needs to be freed once we have a local copy
+        delete[]mem_res.aligned;
         std::vector<std::pair<int, float>> sort_res;
-        // for(auto idx = 0; idx < res.size(); idx++)
-        for(auto idx = 0; idx < 7; idx++) // TODO: Fix the num category bug in the python script
+        for(auto idx = 0; idx < res.size(); idx++)
             sort_res.push_back({idx, res[idx]});
         const auto cmp = [](const std::pair<int, float>& a, const std::pair<int, float>& b) -> bool
         {
