@@ -45,6 +45,11 @@
 
 #include <unistd.h>
 
+/// 0 - default
+/// 1 - -Xclang -target-feature -Xclang +/-code-object-v3
+/// 2 - -mcode-object-v3/-mnocode-object-v3
+/// 3 - -mcode-object-version=N
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_OPTION)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 
@@ -59,7 +64,24 @@ namespace miopen {
 #if !MIOPEN_USE_COMGR
 namespace {
 
-inline std::string GetCodeObjectVersionOptionImpl()
+int GetCodeObjectVersionOptionVariant()
+{
+    auto co_option = miopen::Value(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_OPTION{});
+    if(co_option > 3)
+    {
+        MIOPEN_LOG_E("Bad MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_OPTION, using default");
+        co_option = 0;
+    }
+
+    if(co_option == 0)
+    {
+        if(HipCompilerVersion() >= external_tool_version_t{4, 0, 20425})
+            return 3;
+    }
+    return co_option;
+}
+
+std::string GetCodeObjectVersionOptionImpl()
 {
     auto code_object_version = miopen::Value(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION{});
     // Very basic syntax check:
@@ -68,21 +90,36 @@ inline std::string GetCodeObjectVersionOptionImpl()
         MIOPEN_LOG_E("Bad MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION, using default");
         code_object_version = 0;
     }
+    if(code_object_version == 0)
+    {
+        if(HipCompilerVersion() >= external_tool_version_t{4, 0, 20425 + 1}) /// \ todo
+            code_object_version = 4;
+        else if(HipCompilerVersion() >= external_tool_version_t{3, 0, -1})
+            code_object_version = 3;
+        else
+            code_object_version = 2;
+    }
 
-    if(HipCompilerVersion() >= external_tool_version_t{4, 0, -1})
+    const auto co_option = GetCodeObjectVersionOptionVariant();
+
+    if(co_option == 3)
     {
         if(code_object_version == 0) // Env.var is unset.
             return {};               // Rely on compiler's default.
         else
             return std::string("-mcode-object-version=") + std::to_string(code_object_version);
     }
-    else
+    else if(co_option == 2)
     {
-        // By default, let's assume that OpenCL kernels shall be compiled to
-        // CO v3 format since ROCm 3.0.
-        if(code_object_version == 0)
-            code_object_version = HipCompilerVersion() >= external_tool_version_t{3, 0, -1} ? 3 : 2;
-
+        switch(code_object_version)
+        {
+        case 2: return {"-mnocode-object-v3"};
+        default: // Fall through.
+        case 3: return {"-mcode-object-v3"};
+        }
+    }
+    else // co_option == 1
+    {
         switch(code_object_version)
         {
         // These options are Ok for ROCm for a long time (since 2.5 or so):
