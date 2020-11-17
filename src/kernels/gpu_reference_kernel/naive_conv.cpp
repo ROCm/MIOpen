@@ -1022,7 +1022,7 @@ extern "C" __global__ void naive_conv_wrw_ncdhw_fp16(const half* __restrict__ p_
             }
         }
         int f_idx    = ic * fz * fy * fx + iz * fy * fx + iy * fx + ix;
-        p_wei[f_idx] = __half2float(value);
+        p_wei[f_idx] = __float2half(value);
     }
 }
 
