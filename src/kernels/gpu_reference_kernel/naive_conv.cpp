@@ -25,7 +25,44 @@
  *******************************************************************************/
 #include <hip/hip_runtime.h>
 #include <hip/hip_fp16.h>
-#include "bfloat16_dev.hpp"
+// #include "bfloat16_dev.hpp"
+
+// hcc seems need __device__ __host__ together to compile, and no extern "C"
+typedef union _cvt_bf16_fp32
+{
+    uint u32;
+    ushort2 ushortx2;
+    ushort ushortvec[2];
+    float f32;
+} _cvt_bf16_fp32_t;
+
+__device__ __host__ float __bfloat16_to_float(ushort src_val)
+{
+    _cvt_bf16_fp32_t target_val;
+    target_val.ushortx2 = make_ushort2(0, src_val);
+    return target_val.f32;
+}
+
+__device__ __host__ ushort __float_to_bfloat16(float src_val)
+{
+    _cvt_bf16_fp32_t target_val;
+    target_val.f32 = src_val;
+
+    if((~target_val.u32 & 0x7f800000) == 0) // Inf or NaN
+    {
+        if((target_val.u32 & 0xffff) != 0)
+        {
+            target_val.u32 |= 0x10000; // Preserve signaling NaN
+        }
+    }
+    else
+    {
+#ifdef MIOPEN_USE_RNE_BFLOAT16
+        target_val.u32 += (0x7fff + (target_val.ushortvec[1] & 1));
+#endif // MIOPEN_USE_RNE_BFLOAT16
+    }
+    return target_val.ushortvec[1];
+}
 
 // design block_size 256
 extern "C" __global__ void naive_conv_fwd_nchw_fp32(const float* __restrict__ p_in,
@@ -1089,13 +1126,14 @@ extern "C" __global__ void naive_conv_fwd_nchw_bf16(const ushort* __restrict__ p
                     {
                         int i_idx = ic * hi * wi + cur_h * wi + cur_w;
                         int w_idx = ic * fy * fx + iy * fx + ix;
-                        value += bfloat16_to_float(p_in[i_idx]) * bfloat16_to_float(p_wei[w_idx]);
+                        value +=
+                            __bfloat16_to_float(p_in[i_idx]) * __bfloat16_to_float(p_wei[w_idx]);
                     }
                 }
             }
         }
         int o_idx    = iho * wo + iwo;
-        p_out[o_idx] = float_to_bfloat16(value);
+        p_out[o_idx] = __float_to_bfloat16(value);
     }
 }
 
@@ -1168,13 +1206,14 @@ extern "C" __global__ void naive_conv_bwd_nchw_bf16(ushort* __restrict__ p_in,
                     {
                         int o_idx = ik * ho * wo + cur_ho * wo + cur_wo;
                         int f_idx = ik * c_per_group * fy * fx + iy * fx + ix;
-                        value += bfloat16_to_float(p_out[o_idx]) * bfloat16_to_float(p_wei[f_idx]);
+                        value +=
+                            __bfloat16_to_float(p_out[o_idx]) * __bfloat16_to_float(p_wei[f_idx]);
                     }
                 }
             }
         }
         int i_idx   = ihi * wi + iwi;
-        p_in[i_idx] = float_to_bfloat16(value);
+        p_in[i_idx] = __float_to_bfloat16(value);
     }
 }
 
@@ -1241,13 +1280,14 @@ extern "C" __global__ void naive_conv_wrw_nchw_bf16(const ushort* __restrict__ p
                     {
                         int i_idx = in * c * hi * wi + ic * hi * wi + cur_h * wi + cur_w;
                         int o_idx = in * k * ho * wo + iho * wo + iwo;
-                        value += bfloat16_to_float(p_in[i_idx]) * bfloat16_to_float(p_out[o_idx]);
+                        value +=
+                            __bfloat16_to_float(p_in[i_idx]) * __bfloat16_to_float(p_out[o_idx]);
                     }
                 }
             }
         }
         int f_idx    = ic * fy * fx + iy * fx + ix;
-        p_wei[f_idx] = float_to_bfloat16(value);
+        p_wei[f_idx] = __float_to_bfloat16(value);
     }
 }
 
@@ -1328,15 +1368,15 @@ extern "C" __global__ void naive_conv_fwd_ncdhw_bf16(const ushort* __restrict__ 
                         {
                             int i_idx = ic * di * hi * wi + cur_d * hi * wi + cur_h * wi + cur_w;
                             int w_idx = ic * fz * fy * fx + iz * fy * fx + iy * fx + ix;
-                            value +=
-                                bfloat16_to_float(p_in[i_idx]) * bfloat16_to_float(p_wei[w_idx]);
+                            value += __bfloat16_to_float(p_in[i_idx]) *
+                                     __bfloat16_to_float(p_wei[w_idx]);
                         }
                     }
                 }
             }
         }
         int o_idx    = ido * ho * wo + iho * wo + iwo;
-        p_out[o_idx] = float_to_bfloat16(value);
+        p_out[o_idx] = __float_to_bfloat16(value);
     }
 }
 
@@ -1427,15 +1467,15 @@ extern "C" __global__ void naive_conv_bwd_ncdhw_bf16(ushort* __restrict__ p_in,
                                 ik * do_ * ho * wo + cur_do * ho * wo + cur_ho * wo + cur_wo;
                             int f_idx =
                                 ik * c_per_group * fz * fy * fx + iz * fy * fx + iy * fx + ix;
-                            value +=
-                                bfloat16_to_float(p_out[o_idx]) * bfloat16_to_float(p_wei[f_idx]);
+                            value += __bfloat16_to_float(p_out[o_idx]) *
+                                     __bfloat16_to_float(p_wei[f_idx]);
                         }
                     }
                 }
             }
         }
         int i_idx   = idi * hi * wi + ihi * wi + iwi;
-        p_in[i_idx] = float_to_bfloat16(value);
+        p_in[i_idx] = __float_to_bfloat16(value);
     }
 }
 
@@ -1516,14 +1556,14 @@ extern "C" __global__ void naive_conv_wrw_ncdhw_bf16(const ushort* __restrict__ 
                             int i_idx = in * c * di * hi * wi + ic * di * hi * wi +
                                         cur_d * hi * wi + cur_h * wi + cur_w;
                             int o_idx = in * k * do_ * ho * wo + ido * ho * wo + iho * wo + iwo;
-                            value +=
-                                bfloat16_to_float(p_in[i_idx]) * bfloat16_to_float(p_out[o_idx]);
+                            value += __bfloat16_to_float(p_in[i_idx]) *
+                                     __bfloat16_to_float(p_out[o_idx]);
                         }
                     }
                 }
             }
         }
         int f_idx    = ic * fz * fy * fx + iz * fy * fx + iy * fx + ix;
-        p_wei[f_idx] = float_to_bfloat16(value);
+        p_wei[f_idx] = __float_to_bfloat16(value);
     }
 }
