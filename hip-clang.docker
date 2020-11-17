@@ -72,5 +72,5 @@ RUN CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -f /min-requirem
 RUN export HIPCC_LINK_FLAGS_APPEND='-O3 -parallel-jobs=4'
 RUN export HIPCC_COMPILE_FLAGS_APPEND='-O3 -Wno-format-nonliteral -parallel-jobs=4'
 # install last released miopentensile in default (master), install latest commits when MIOTENSILE_VER="latest" (develop)
-RUN if [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@374a93f7f226fe804ee55696b83599d4c487bd4d; else cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@870911ebedb2e62a9b8689f0b3f5da6f1354b4a2; fi
+RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."; elif [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@374a93f7f226fe804ee55696b83599d4c487bd4d; else cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@870911ebedb2e62a9b8689f0b3f5da6f1354b4a2; fi
 
