@@ -45,10 +45,12 @@
 
 #include <unistd.h>
 
-/// 0 - default
-/// 1 - -Xclang -target-feature -Xclang +/-code-object-v3
-/// 2 - -mcode-object-v3/-mnocode-object-v3
-/// 3 - -mcode-object-version=N
+/// 0 or undef or wrong - auto-detect
+/// 1 - <blank> / "-Xclang -target-feature -Xclang +code-object-v3"
+/// 2 - "-Xclang -target-feature -Xclang -code-object-v3" /
+///     "-Xclang -target-feature -Xclang +code-object-v3"
+/// 3 - "-mnocode-object-v3" / "-mcode-object-v3"
+/// 4 - "-mcode-object-version=2/3/4"
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_OPTION)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
@@ -67,7 +69,7 @@ namespace {
 int GetCodeObjectVersionOptionVariant()
 {
     auto co_option = miopen::Value(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_OPTION{});
-    if(co_option > 3)
+    if(co_option > 4)
     {
         MIOPEN_LOG_E("Bad MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_OPTION, using default");
         co_option = 0;
@@ -76,7 +78,9 @@ int GetCodeObjectVersionOptionVariant()
     if(co_option == 0)
     {
         if(HipCompilerVersion() >= external_tool_version_t{4, 0, 20425})
-            return 3;
+            return 4;
+        else
+            return 1;
     }
     return co_option;
 }
@@ -102,14 +106,14 @@ std::string GetCodeObjectVersionOptionImpl()
 
     const auto co_option = GetCodeObjectVersionOptionVariant();
 
-    if(co_option == 3)
+    if(co_option == 4)
     {
         if(code_object_version == 0) // Env.var is unset.
             return {};               // Rely on compiler's default.
         else
             return std::string("-mcode-object-version=") + std::to_string(code_object_version);
     }
-    else if(co_option == 2)
+    else if(co_option == 3)
     {
         switch(code_object_version)
         {
@@ -118,12 +122,12 @@ std::string GetCodeObjectVersionOptionImpl()
         case 3: return {"-mcode-object-v3"};
         }
     }
-    else // co_option == 1
+    else // co_option == 1 or 2
     {
         switch(code_object_version)
         {
         // These options are Ok for ROCm for a long time (since 2.5 or so):
-        case 2: return {"-Xclang -target-feature -Xclang -code-object-v3"};
+        case 2: return {(co_option == 1) ? "" : "-Xclang -target-feature -Xclang -code-object-v3"};
         default: // Fall through.
         case 3: return {"-Xclang -target-feature -Xclang +code-object-v3"};
         }
