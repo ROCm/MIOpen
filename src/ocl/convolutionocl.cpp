@@ -162,7 +162,7 @@ static inline void ValidateGroupCount(const TensorDescriptor& xDesc,
 
 //Every solver is only allowed to provide one solution for a problem description.
 static std::vector<solver::ConvSolution>
-ScreenAllSolutions(const std::vector<solver::ConvSolution>& all_soluitons, const ConvolutionContext& context)
+ScreenAllSolutions(const std::vector<solver::ConvSolution>& all_solutions, const ConvolutionContext& context)
 {
     try
     {
@@ -174,16 +174,16 @@ ScreenAllSolutions(const std::vector<solver::ConvSolution>& all_soluitons, const
             return all_solutions;
         }
         std::vector<solver::ConvSolution> ret_solutions;
-        auto iter_start = all_soluitons.begin();
+        auto iter_start = all_solutions.begin();
         auto db = GetDb(context);
-        for(auto iter = all_soluitons.begin(); iter != all_solutions.end(); ++iter)
+        for(auto iter = all_solutions.begin(); iter != all_solutions.end(); ++iter)
         {
             if ((iter + 1)->solver_id != iter->solver_id)
             {
                 //do find
                 if(iter - iter_start >= 1)
                 {
-                    auto solution = Id(solutions[0].solver_id).GetSolver().ScreenSolutions({iter_start, iter+1}, context, db);
+                    auto solution = solver::Id(iter_start->solver_id).GetSolver().ScreenSolutions({iter_start, iter+1}, context, db);
                     ret_solutions.push_back(solution);
                     iter_start = iter + 1;
                 }
@@ -662,7 +662,7 @@ static void DirConvFindCore(Handle& handle,
         conv::DataInvokeParams{{xDesc, x, wDesc, w, yDesc, y}, workSpace, workSpaceSize};
 
     std::vector<miopen::solver::ConvSolution> all_solutions;
-    auto local_ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
+    auto local_ctx = ConvolutionContext{xDesc, wDesc, yDesc, conv, conv::Direction::Forward};
     ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
     bufs.SetFwd(x, w, y);
     local_ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
@@ -683,7 +683,7 @@ static void DirConvFindCore(Handle& handle,
             auto direct_solutions      = conv.FindDataDirectSolutions(local_ctx);
             auto implictgemm_solutions = conv.FindDataImplicitGemmSolutions(local_ctx);
             all_solutions.insert(all_solutions.end(), direct_solutions.begin(), direct_solutions.end());
-            all_solutions.insert(all_solutions.end(), implicitgemm_solutions.begin(), implicitgemm_solutions.end());
+            all_solutions.insert(all_solutions.end(), implictgemm_solutions.begin(), implictgemm_solutions.end());
         }
     }
 
@@ -699,9 +699,9 @@ static void DirConvFindCore(Handle& handle,
     auto iter_start = solutions.begin();
     for(auto iter = solutions.begin(); iter != solutions.end(); ++iter)
     {
-        if(Id(iter->solver_id).GetAlgo(local_ctx.GetDirection()) != Id((iter+1)->solver_id).GetAlgo(local_ctx.GetDirection()))
+        if(solver::Id(iter->solver_id).GetAlgo(local_ctx.conv_problem.GetDirection()) != solver::Id((iter+1)->solver_id).GetAlgo(local_ctx.conv_problem.GetDirection()))
         {
-            EvaluateInvokers(handle, {iter_start, iter + 1}, Id(iter_start->solver_id).GetAlgo(local_ctx.GetDirection()), network_config, invoke_ctx, record);
+            EvaluateInvokers(handle, {iter_start, iter + 1}, AlgorithmName(solver::Id(iter_start->solver_id).GetAlgo(local_ctx.conv_problem.GetDirection())), network_config, invoke_ctx, record);
             iter_start = iter + 1;
         }
     }
@@ -2174,7 +2174,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 {dyDesc, dy, wDesc, w, dxDesc, dx}, workSpace, workSpaceSize};
             
             std::vector<miopen::solver::ConvSolution> all_solutions;
-            auto local_ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
+            auto local_ctx = ConvolutionContext(problem);
             ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
             bufs.SetBwd(dx, w, dy);
             local_ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
@@ -2189,13 +2189,13 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
             //Find All Sollutions
             {
-                all_solutions = conv.FindWinogradSolutions(local_ctx);
+                all_solutions = FindWinogradSolutions(local_ctx);
                 if(!use_winograd_only)
                 {
-                    auto direct_solutions      = conv.FindDataDirectSolutions(local_ctx);
-                    auto implictgemm_solutions = conv.FindDataImplicitGemmSolutions(local_ctx);
+                    auto direct_solutions      = FindDataDirectSolutions(local_ctx);
+                    auto implictgemm_solutions = FindDataImplicitGemmSolutions(local_ctx);
                     all_solutions.insert(all_solutions.end(), direct_solutions.begin(), direct_solutions.end());
-                    all_solutions.insert(all_solutions.end(), implicitgemm_solutions.begin(), implicitgemm_solutions.end());
+                    all_solutions.insert(all_solutions.end(), implictgemm_solutions.begin(), implictgemm_solutions.end());
                 }
             }
 
@@ -2210,9 +2210,9 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             auto iter_start = solutions.begin();
             for(auto iter = solutions.begin(); iter != solutions.end(); ++iter)
             {
-                if(Id(iter->solver_id).GetAlgo(local_ctx.GetDirection()) != Id((iter+1)->solver_id).GetAlgo(local_ctx.GetDirection()))
+                if(solver::Id(iter->solver_id).GetAlgo(local_ctx.conv_problem.GetDirection()) != solver::Id((iter+1)->solver_id).GetAlgo(local_ctx.conv_problem.GetDirection()))
                 {
-                    EvaluateInvokers(handle, {iter_start, iter + 1}, Id(iter_start->solver_id).GetAlgo(local_ctx.GetDirection()), network_config, invoke_ctx, record);
+                    EvaluateInvokers(handle, {iter_start, iter + 1}, AlgorithmName(solver::Id(iter_start->solver_id).GetAlgo(local_ctx.conv_problem.GetDirection())), network_config, invoke_ctx, record);
                     iter_start = iter + 1;
                 }
             }
@@ -3558,7 +3558,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             const auto invoke_ctx =
                 conv::WrWInvokeParams{{dyDesc, dy, xDesc, x, dwDesc, dw}, workSpace, workSpaceSize};
             
-            std::vector<ConvSolution> all_solutions;
+            std::vector<solver::ConvSolution> all_solutions;
 
             // direct convolution
             if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
@@ -3586,23 +3586,23 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             }
 
             //Find best performance solution and write it to perf_db for every solver.
-            auto solutions = ScreenAllSolutions(all_solutions, local_ctx);
+            auto solutions = ScreenAllSolutions(all_solutions, ctx);
 
             auto iter_start = solutions.begin();
             for(auto iter = solutions.begin(); iter != solutions.end(); ++iter)
             {
-                if(Id(iter->solver_id).GetAlgo(local_ctx.GetDirection()) != Id((iter+1)->solver_id).GetAlgo(local_ctx.GetDirection()))
+                if(solver::Id(iter->solver_id).GetAlgo(ctx.conv_problem.GetDirection()) != solver::Id((iter+1)->solver_id).GetAlgo(ctx.conv_problem.GetDirection()))
                 {
-                    if(Id(iter->solver_id).GetAlgo(local_ctx.GetDirection()) != "miopenConvolutionBwdWeightsAlgoWinograd")
+                    if(solver::Id(iter->solver_id).GetAlgo(ctx.conv_problem.GetDirection()) != "miopenConvolutionBwdWeightsAlgoWinograd")
                     {
-                        EvaluateInvokers(handle, {iter_start, iter + 1}, Id(iter_start->solver_id).GetAlgo(local_ctx.GetDirection()), network_config, invoke_ctx, record);
+                        EvaluateInvokers(handle, {iter_start, iter + 1}, AlgorithmName(solver::Id(iter_start->solver_id).GetAlgo(ctx.conv_problem.GetDirection())), network_config, invoke_ctx, record);
                         iter_start = iter + 1;
                     }
                     else
                     {
                         try
                         {
-                            const std::vector<ConvSolution> all(iter_start, iter + 1);
+                            const std::vector<solver::ConvSolution> all(iter_start, iter + 1);
 
                             float elapsed = 0.0f;
                             if(!all.empty())

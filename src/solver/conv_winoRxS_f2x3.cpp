@@ -551,7 +551,7 @@ std::vector<ConvSolution>
 ConvBinWinogradRxSf2x3::GetSolutions(const ConvolutionContext& params,
                                      const bool onlyGetDefault) const
 {
-    return GetSolutions(*this, params, onlyGetDefault);
+    return GenericGetSolutions(*this, params, onlyGetDefault);
 }
 
 ConvSolution

@@ -62,15 +62,16 @@ struct joinable_thread : std::thread
 struct thread_factory
 {
     template <class F>
-    joinable_thread operator()(std::size_t& col_work, std::size_t threadsize, std::size_t n, std::size_t grainsize, F f) const
+    joinable_thread operator()(std::size_t& col_work, std::size_t threadsize, std::size_t n, F f) const
     {
         auto result = joinable_thread([=] {
-            std::size_t start = col_work++;
+            std::size_t start = col_work;
             for(std::size_t i = start; i < n; i += threadsize)
             {
                 f(i);
             }
         });
+        ++col_work;
         return result;
     }
 };
@@ -86,12 +87,12 @@ void par_for_impl(std::size_t n, std::size_t threadsize, F f)
     else
     {
         std::vector<joinable_thread> threads(threadsize);
-        const std::size_t grainsize = std::ceil(static_cast<double>(n) / threads.size());
+        //const std::size_t grainsize = std::ceil(static_cast<double>(n) / threads.size());
 
-        std::size_t col_work = 0
+        std::size_t col_work = 0;
         std::generate(threads.begin(),
                       threads.end(),
-                      std::bind(thread_factory{}, std::ref(col_work), threadsize, n, grainsize, f));
+                      std::bind(thread_factory{}, std::ref(col_work), threadsize, n, f));
         assert(col_work == threadsize);
     }
 }

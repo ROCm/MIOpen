@@ -205,7 +205,7 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
 std::vector<ConvSolution> ConvAsm3x3U::GetSolutions(const ConvolutionContext& params,
                                                     const bool onlyGetDefault) const
 {
-    return GetSolutions(*this, params, onlyGetDefault);
+    return GenericGetSolutions(*this, params, onlyGetDefault);
 }
 
 ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,

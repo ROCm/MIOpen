@@ -409,7 +409,7 @@ std::vector<ConvSolution>
 ConvHipImplicitGemmV4R4GenFwdXdlops::GetSolutions(const ConvolutionContext& params,
                                                   const bool onlyGetDefault) const
 {
-    return GetSolutions(*this, params, onlyGetDefault);
+    return GenericGetSolutions(*this, params, onlyGetDefault);
 }
 
 ConvSolution ConvHipImplicitGemmV4R4GenFwdXdlops::GetSolution(
@@ -430,9 +430,9 @@ ConvHipImplicitGemmV4R4GenWrWXdlops::GetSolutions(const ConvolutionContext& para
 {
     // fp16/bfp16 uses fp32 workspace to leverage fp32 atomic add
     if(params.IsFp16() || params.IsBfp16())
-        return GetSolutions(*this, params, onlyGetDefault, SearchTweak::WorkspaceInsteadOfWeightsBuffer);
+        return GenericGetSolutions(*this, params, onlyGetDefault, SearchTweak::WorkspaceInsteadOfWeightsBuffer);
     else
-        return GetSolutions(*this, params, onlyGetDefault);
+        return GenericGetSolutions(*this, params, onlyGetDefault);
 }
 
 ConvSolution ConvHipImplicitGemmV4R4GenWrWXdlops::GetSolution(
@@ -548,7 +548,7 @@ ConvSolution ConvHipImplicitGemmV4R4GenWrWXdlops::ScreenSolutions(
     const ConvolutionContext& context) const
 {
     // fp16/bfp16 uses fp32 workspace to leverage fp32 atomic add
-    if(ctx.IsFp16() || ctx.IsBfp16())
+    if(context.IsFp16() || context.IsBfp16())
         return GenericSearchWrW(*this, context, solutions, SearchTweak::WorkspaceInsteadOfWeightsBuffer);
     else
         return GenericSearchWrW(*this, context, solutions);

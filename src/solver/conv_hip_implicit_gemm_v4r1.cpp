@@ -182,7 +182,7 @@ ConvSolution ConvHipImplicitGemmV4R1WrW::ScreenSolutions(const std::vector<ConvS
 std::vector<ConvSolution> ConvHipImplicitGemmV4R1Fwd::GetSolutions(const ConvolutionContext& params,
                                                                    const bool onlyGetDefault) const
 {
-    return GetSolutions(*this, params, onlyGetDefault);
+    return GenericGetSolutions(*this, params, onlyGetDefault);
 }
 
 ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
@@ -384,7 +384,7 @@ ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& c
 std::vector<ConvSolution> ConvHipImplicitGemmV4R1WrW::GetSolutions(const ConvolutionContext& params,
                                                                    const bool onlyGetDefault) const
 {
-    return GetSolutions(*this, params, onlyGetDefault);
+    return GenericGetSolutions(*this, params, onlyGetDefault);
 }
 
 ConvSolution ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& ctx,

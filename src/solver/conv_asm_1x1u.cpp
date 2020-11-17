@@ -475,9 +475,9 @@ std::vector<ConvSolution> ConvAsm1x1U::GetSolutions(const ConvolutionContext& pa
                                                     const bool onlyGetDefault) const
 {
     if(UseSubsample(params) || UseUpsample(params))
-        return GetSolutions(*this, params, onlyGetDefault, SearchTweak::WorkspaceInsteadOfXBuffer);
+        return GenericGetSolutions(*this, params, onlyGetDefault, SearchTweak::WorkspaceInsteadOfXBuffer);
     else
-        return GetSolutions(*this, params, onlyGetDefault);
+        return GenericGetSolutions(*this, params, onlyGetDefault);
 }
 
 ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,

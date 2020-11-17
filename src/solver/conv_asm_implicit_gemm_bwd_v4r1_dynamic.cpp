@@ -154,7 +154,7 @@ bool ConvAsmImplicitGemmV4R1DynamicBwd::IsApplicable(const ConvolutionContext& c
 }
 
 std::vector<ConvSolution> ConvAsmImplicitGemmV4R1DynamicBwd::GetSolutions(const ConvolutionContext& params,
-                                                                          const bool onlyGetDefault) const
+                                                                          const bool) const
 {
     return std::vector<ConvSolution>{this->GetSolution(params)};
 }

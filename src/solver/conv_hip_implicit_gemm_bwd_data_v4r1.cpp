@@ -812,7 +812,7 @@ int ConvHipImplicitGemmBwdDataV4R1::RunAndMeasureSolution(const miopen::Handle& 
 std::vector<ConvSolution> ConvHipImplicitGemmBwdDataV4R1::GetSolutions(const ConvolutionContext& params,
                                                                              const bool onlyGetDefault) const
 {
-    return GetSolutions(*this, params, onlyGetDefault);
+    return GenericGetSolutions(*this, params, onlyGetDefault);
 }
 
 ConvSolution ConvHipImplicitGemmBwdDataV4R1::GetSolution(

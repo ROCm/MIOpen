@@ -131,13 +131,15 @@ auto ScreenSolutionsImpl(rank<1>, Solver s, const std::vector<Solution>& solutio
     -> decltype(s.GetSolution(context, s.GetPerformanceConfig(context)))
 {
     auto solution = s.ScreenSolutions(solutions, context);
-    db.Update(context, solution.solver_id, solution.performance_config);
+    decltype(s.GetPerformanceConfig(context)) config;
+    config.Deserialize(solution.performance_config);
+    db.Update(context, solution.solver_id, config);
     return solution;
 }
 
 template <class Solver, class Solution, class Context, class Db>
 auto ScreenSolutionsImpl(rank<0>, Solver s, const std::vector<Solution>& solutions,
-                     const Context& context, Db& db)
+                     const Context& context, Db&)
     -> decltype(s.GetSolution(context))
 {
     return solutions[0];

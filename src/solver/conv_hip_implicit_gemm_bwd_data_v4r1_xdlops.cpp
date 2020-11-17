@@ -686,7 +686,7 @@ int ConvHipImplicitGemmBwdDataV4R1Xdlops::RunAndMeasureSolution(const miopen::Ha
 std::vector<ConvSolution> ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolutions(const ConvolutionContext& params,
                                                                              const bool onlyGetDefault) const
 {
-    return GetSolutions(*this, params, onlyGetDefault);
+    return GenericGetSolutions(*this, params, onlyGetDefault);
 }
 
 ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(

@@ -91,7 +91,7 @@ bool ConvAsm5x10u2v2b1::IsApplicable(const ConvolutionContext& params) const
 }
 
 std::vector<ConvSolution> ConvAsm5x10u2v2b1::GetSolutions(const ConvolutionContext& params,
-                                                          const bool onlyGetDefault) const
+                                                          const bool) const
 {
     return std::vector<ConvSolution>{this->GetSolution(params)};
 }

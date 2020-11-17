@@ -544,9 +544,9 @@ std::vector<ConvSolution> ConvAsmBwdWrW1x1::GetSolutions(const ConvolutionContex
                                                          const bool onlyGetDefault) const
 {
     if(UseSubsample(params))
-        return GetSolutions(*this, params, onlyGetDefault, SearchTweak::WorkspaceInsteadOfXBuffer);
+        return GenericGetSolutions(*this, params, onlyGetDefault, SearchTweak::WorkspaceInsteadOfXBuffer);
     else
-        return GetSolutions(*this, params, onlyGetDefault);
+        return GenericGetSolutions(*this, params, onlyGetDefault);
 }
 
 ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,

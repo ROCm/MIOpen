@@ -470,11 +470,12 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
 std::vector<ConvSolution> ConvOclDirectFwd::GetSolutions(const ConvolutionContext& params,
                                                          const bool onlyGetDefault) const
 {
-    this->GetSolutions(*this, params, onlyGetDefault);
+    return this->GetSolutions(params, *this, onlyGetDefault);
 }
 
-std::vector<ConvSolution> ConvOclDirectFwd::GetSolutions(Solver solver,
-                                                         const ConvolutionContext& params,
+template<typename Solver>
+std::vector<ConvSolution> ConvOclDirectFwd::GetSolutions(const ConvolutionContext& params,
+                                                         Solver solver,
                                                          const bool onlyGetDefault) const
 {
     std::vector<ConvSolution> all_solutions;
@@ -667,7 +668,7 @@ std::vector<ConvSolution>
 ConvOclDirectFwdFused::GetSolutions(const ConvolutionContext& params,
                                     const bool onlyGetDefault) const
 {
-    ConvOclDirectFwd::GetSolutions(*this, params, onlyGetDefault);
+    return ConvOclDirectFwd::GetSolutions(params, *this, onlyGetDefault);
 }
 
 ConvSolution

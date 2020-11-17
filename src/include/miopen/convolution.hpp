@@ -192,26 +192,13 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                               bool timed = false) const;
 
     std::vector<miopen::solver::ConvSolution>
-    FindDataDirectSolutions(Handle& handle,
-                            const TensorDescriptor& xDesc,
-                            const TensorDescriptor& wDesc,
-                            const TensorDescriptor& yDesc,
-                            bool exhaustiveSearch,
-                            bool isForward,
-                            const ConvolutionUserBuffers& bufs
-                            bool nowSearch) const;
+    FindDataDirectSolutions(const ConvolutionContext& ctx) const;
 
     std::vector<miopen::solver::ConvSolution>
     FindWinogradSolutions(const ConvolutionContext& ctx) const;
 
     std::vector<miopen::solver::ConvSolution>
-    FindDataImplicitGemmSolutions(Handle& handle,
-                                  const TensorDescriptor& xDesc,
-                                  const TensorDescriptor& wDesc,
-                                  const TensorDescriptor& yDesc,
-                                  bool exhaustiveSearch,
-                                  bool isForward,
-                                  const ConvolutionUserBuffers& bufs) const;
+    FindDataImplicitGemmSolutions(const ConvolutionContext& ctx) const;
 
     void ConvolutionForward(Handle& handle,
                             const void* alpha,

@@ -254,7 +254,7 @@ bool ConvBinWinogradRxSf3x2::IsApplicable(const ConvolutionContext& params) cons
 
 std::vector<ConvSolution> 
 ConvBinWinogradRxSf3x2::GetSolutions(const ConvolutionContext& params,
-                                     const bool onlyGetDefault) const
+                                     const bool) const
 {
     return std::vector<ConvSolution>{this->GetSolution(params)};
 }

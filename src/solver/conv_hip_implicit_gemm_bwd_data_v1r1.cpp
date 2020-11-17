@@ -738,9 +738,9 @@ std::vector<ConvSolution> ConvHipImplicitGemmBwdDataV1R1::GetSolutions(const Con
 {
     // fp16/bfp16 uses fp32 workspace to leverage fp32 atomic add
     if(params.IsFp16() || params.IsBfp16())
-        return GetSolutions(*this, params, onlyGetDefault, SearchTweak::WorkspaceInsteadOfXBuffer);
+        return GenericGetSolutions(*this, params, onlyGetDefault, SearchTweak::WorkspaceInsteadOfXBuffer);
     else
-        return GetSolutions(*this, params, onlyGetDefault);
+        return GenericGetSolutions(*this, params, onlyGetDefault);
 }
 
 ConvSolution ConvHipImplicitGemmBwdDataV1R1::GetSolution(

@@ -646,7 +646,7 @@ std::vector<ConvSolution>
 ConvHipImplicitGemmV4R4WrW::GetSolutions(const ConvolutionContext& params,
                                          const bool onlyGetDefault) const
 {
-    return GetSolutions(*this, params, onlyGetDefault);
+    return GenericGetSolutions(*this, params, onlyGetDefault);
 }
 
 ConvSolution ConvHipImplicitGemmV4R4WrW::GetSolution(const ConvolutionContext& ctx,

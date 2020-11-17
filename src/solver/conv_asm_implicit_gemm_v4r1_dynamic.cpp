@@ -370,7 +370,7 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
 }
 
 std::vector<ConvSolution> ConvAsmImplicitGemmV4R1DynamicFwd::GetSolutions(const ConvolutionContext& params,
-                                                                          const bool onlyGetDefault) const
+                                                                          const bool) const
 {
     return std::vector<ConvSolution>{this->GetSolution(params)};
 }
@@ -390,7 +390,7 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicFwd::GetSolution(const ConvolutionCon
 }
 
 std::vector<ConvSolution> ConvAsmImplicitGemmV4R1DynamicFwd_1x1::GetSolutions(const ConvolutionContext& params,
-                                                                              const bool onlyGetDefault) const
+                                                                              const bool) const
 {
     return std::vector<ConvSolution>{this->GetSolution(params)};
 }

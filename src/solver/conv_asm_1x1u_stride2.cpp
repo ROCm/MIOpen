@@ -573,7 +573,7 @@ bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& params) const
 std::vector<ConvSolution> ConvAsm1x1UV2::GetSolutions(const ConvolutionContext& params,
                                                       const bool onlyGetDefault) const
 {
-    return GetSolutions(*this, params, onlyGetDefault);
+    return GenericGetSolutions(*this, params, onlyGetDefault);
 }
 
 ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,

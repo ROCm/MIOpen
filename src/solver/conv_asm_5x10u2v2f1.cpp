@@ -98,7 +98,7 @@ static inline int AlignUp(int val, unsigned step)
 }
 
 std::vector<ConvSolution> ConvAsm5x10u2v2f1::GetSolutions(const ConvolutionContext& params,
-                                                          const bool onlyGetDefault) const
+                                                          const bool) const
 {
     return std::vector<ConvSolution>{this->GetSolution(params)};
 }

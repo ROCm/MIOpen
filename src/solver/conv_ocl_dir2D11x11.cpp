@@ -56,7 +56,7 @@ bool ConvOclDirectFwd11x11::IsApplicable(const ConvolutionContext& params) const
 }
 
 std::vector<ConvSolution> ConvOclDirectFwd11x11::GetSolutions(const ConvolutionContext& params,
-                                                              const bool onlyGetDefault) const
+                                                              const bool) const
 {
     return std::vector<ConvSolution>{this->GetSolution(params)};
 }

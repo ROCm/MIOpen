@@ -81,7 +81,7 @@ bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ConvolutionContext& p
 }
 
 std::vector<ConvSolution> ConvAsm7x7c3h224w224k64u2v2p3q3f1::GetSolutions(const ConvolutionContext& params,
-                                                                          const bool onlyGetDefault) const
+                                                                          const bool) const
 {
     return std::vector<ConvSolution>{this->GetSolution(params)};
 }

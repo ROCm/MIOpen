@@ -136,7 +136,7 @@ static int MeasurePerfConfig(const Handle& handle,
                              ConstData_t bias_ocl_buf,
                              double& processing_time,
                              const ConvolutionContext& params,
-                             const std::vector<ConvSolution>& kernel_search_result)
+                             const ConvSolution& kernel_search_result)
 {
     if(!kernel_search_result.Succeeded())
     {
@@ -267,7 +267,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
     AutoEnableProfiling enableProfiling{profile_h};
 
     long long runs_left = solutions.size(), total_runs = solutions.size(), run_counter = 0,
-              report_inteval = 5;
+              report_inteval = 5, failed_counter = 0;
     double min_proc_time     = std::numeric_limits<double>::max();
 
     if(params.kernel_size_w == 1 && params.kernel_size_h == 1 &&

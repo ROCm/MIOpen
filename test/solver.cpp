@@ -48,7 +48,7 @@ class TrivialTestSolver : public solver::SolverBase<ConvolutionContext>
     bool IsApplicable(const ConvolutionContext& context) const { return context.in_width == 1; }
     
     std::vector<ConvSolution> GetSolutions(const ConvolutionContext& params,
-                                           bool onlyGetDefault = false) const
+                                           const bool) const
     {
         return std::vector<ConvSolution>{this->GetSolution(params)};
     }

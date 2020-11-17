@@ -90,7 +90,7 @@ struct AnySolver
         virtual std::string GetSolverDbId() const                      = 0;
         virtual std::vector<ConvSolution> FindSolutionsInSolver(const ConvolutionContext& ctx, Db& db) const = 0;
         virtual ConvSolution ScreenSolutions(const std::vector<ConvSolution>& solutions, 
-                                             const ConvolutionContext& ctx, Db& db) const
+                                             const ConvolutionContext& ctx, Db& db) const = 0;
         virtual size_t GetWorkspaceSize(const ConvolutionContext& ctx) const = 0;
     };
 
@@ -103,7 +103,7 @@ struct AnySolver
         {
             return value.IsApplicable(ctx);
         }
-        ConvSolution FindSolutionsInSolver(const ConvolutionContext& ctx, Db& db) const override
+        std::vector<ConvSolution> FindSolutionsInSolver(const ConvolutionContext& ctx, Db& db) const override
         {
             return miopen::solver::FindSolutionsInSolver(value, ctx, db);
         };

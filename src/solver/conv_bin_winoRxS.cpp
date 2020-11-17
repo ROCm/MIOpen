@@ -303,7 +303,7 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
 }
 
 std::vector<ConvSolution> ConvBinWinogradRxS::GetSolutions(const ConvolutionContext& params,
-                                                            const bool onlyGetDefault) const
+                                                            const bool) const
 {
     return std::vector<ConvSolution>{this->GetSolution(params)};
 }
@@ -444,7 +444,7 @@ bool ConvBinWinogradRxSFused::IsApplicable(const ConvolutionContext&) const
 }
 
 std::vector<ConvSolution> ConvBinWinogradRxSFused::GetSolutions(const ConvolutionContext& params,
-                                                                const bool onlyGetDefault) const
+                                                                const bool) const
 {
     return std::vector<ConvSolution>{this->GetSolution(params)};
 }

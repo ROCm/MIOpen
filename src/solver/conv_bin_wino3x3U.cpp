@@ -89,7 +89,7 @@ bool ConvBinWinograd3x3U::IsApplicable(const ConvolutionContext& params) const
 }
 
 std::vector<ConvSolution> ConvBinWinograd3x3U::GetSolutions(const ConvolutionContext& params,
-                                                            const bool onlyGetDefault) const
+                                                            const bool) const
 {
     return std::vector<ConvSolution>{this->GetSolution(params)};
 }

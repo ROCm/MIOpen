@@ -863,13 +863,13 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolutions(const ConvolutionContext& par
         const auto dilation_w = ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(params);
 
         if((stride_h >= dilation_h * (y - 1) + 1) && (stride_w >= dilation_w * (x - 1) + 1))
-            return GetSolutions(*this, params, onlyGetDefault);
+            return GenericGetSolutions(*this, params, onlyGetDefault);
         else
-            return GetSolutions(*this, params, onlyGetDefault, SearchTweak::WorkspaceInsteadOfXBuffer);
+            return GenericGetSolutions(*this, params, onlyGetDefault, SearchTweak::WorkspaceInsteadOfXBuffer);
     }
     else
     {
-        return GetSolutions(*this, params, onlyGetDefault);
+        return GenericGetSolutions(*this, params, onlyGetDefault);
     }
 }
 

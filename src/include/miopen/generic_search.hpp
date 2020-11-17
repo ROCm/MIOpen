@@ -146,6 +146,87 @@ class ComputedContainer
     const_iterator end() const { return {}; }
 };
 
+enum class SearchTweak
+{
+    None,
+    /// Enforces the generic search algorithm
+    /// to use workspace buffer instead of input data (x/dx) buffer.
+    /// Example use case: Solution uses (non-tunable) subsampling or upsampling
+    /// kernel which reads x/dx buffer and writes workspace, and then tunable
+    /// convolution kernel which reads workspace instead of x/dx buffer.
+    /// Another example: the first tunable kernel writes workspace (instead of x/dx),
+    /// and the second non-tunable kernel converts workspace to user's buffer.
+    WorkspaceInsteadOfXBuffer,
+    /// This tweak is like previous one and use cases are similar,
+    /// but it enforces the generic search algorithm
+    /// to use workspace buffer instead of weights buffer.
+    WorkspaceInsteadOfWeightsBuffer,
+};
+
+template <typename Solver, class Context>
+auto GenericGetSolutions(const Solver s,
+                  const Context& context,
+                  const bool onlyGetDefault,
+                  const SearchTweak tweak = SearchTweak::None)
+    -> decltype(s.GetSolutions(context, onlyGetDefault))
+{
+    using RetType = decltype(s.GetSolutions(context, onlyGetDefault));
+    RetType all_solutions;
+    size_t n_current     = 0;
+    size_t n_failed       = 0;
+    auto default_solution = s.GetSolution(context, s.GetPerformanceConfig(context));
+    if(default_solution.Succeeded() && onlyGetDefault)
+    {
+        all_solutions.push_back(default_solution);
+        return all_solutions;
+    }
+    using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
+    const ComputedContainer<PerformanceConfig, Context> main(context);
+    const int main_size = std::distance(main.begin(), main.end());
+    const ComputedContainer<PerformanceConfig, Context> spare(context, true);
+    const int spare_size = std::distance(spare.begin(), spare.end());
+    const bool useSpare  = (main_size == 0);
+
+    const ComputedContainer<PerformanceConfig, Context> all_configs = useSpare ? spare : main;
+    const int n_total = useSpare ? spare_size : main_size;
+    MIOPEN_LOG_I2(SolverDbId(s) << ": Get all " << n_total << (useSpare ? " (spare)" : "")
+                                << "solutions.");
+    for(const auto& current_config : all_configs)
+    {
+        const auto current_solution = s.GetSolution(context, current_config, true);
+        if(current_solution.Succeeded())
+        {
+            if(tweak == SearchTweak::WorkspaceInsteadOfXBuffer ||
+                tweak == SearchTweak::WorkspaceInsteadOfWeightsBuffer)
+            {
+                assert(default_solution.workspce_sz != 0);
+            }
+            if(default_solution.workspce_sz != current_solution.workspce_sz)
+            {
+                MIOPEN_LOG_E('#' << n_current << " (" << n_total << ") "
+                                 << "Workspace size should not depend on PerformanceConfig: "
+                                 << default_solution.workspce_sz
+                                 << " != " << current_solution.workspce_sz);
+                ++n_failed;
+                ++n_current;
+                continue;
+            }
+            else
+            {
+                all_solutions.push_back(current_solution);
+            }
+        }
+        else
+        {
+            ++n_failed;
+        }
+        ++n_current;
+        MIOPEN_LOG_I2('#' << n_current << '/' << n_failed << '/' << n_total << ' '
+                          << current_config);
+    }
+    return all_solutions;
+}
+
 class HeartBeat
 {
     size_t n_within_beat;
@@ -233,23 +314,6 @@ inline size_t divide_round_plus_inf(const size_t x, const unsigned y)
     return x / y;
 }
 
-enum class SearchTweak
-{
-    None,
-    /// Enforces the generic search algorithm
-    /// to use workspace buffer instead of input data (x/dx) buffer.
-    /// Example use case: Solution uses (non-tunable) subsampling or upsampling
-    /// kernel which reads x/dx buffer and writes workspace, and then tunable
-    /// convolution kernel which reads workspace instead of x/dx buffer.
-    /// Another example: the first tunable kernel writes workspace (instead of x/dx),
-    /// and the second non-tunable kernel converts workspace to user's buffer.
-    WorkspaceInsteadOfXBuffer,
-    /// This tweak is like previous one and use cases are similar,
-    /// but it enforces the generic search algorithm
-    /// to use workspace buffer instead of weights buffer.
-    WorkspaceInsteadOfWeightsBuffer,
-};
-
 /// Solver member function requirements:
 /// * GetPerformanceConfig shall be implemented.
 ///   - Its return type shall be suitable for instantiation of the ComputedContainer.
@@ -330,7 +394,7 @@ Solution GenericSearchWrW(const Solver s,
                       const SearchTweak tweak = SearchTweak::None)
 {
     const auto& bufs = context.GetBufs().io.wrw;
-    return GenericSearch(s, context, solution, tweak, bufs.dx, bufs.dy, bufs.dw);
+    return GenericSearch(s, context, solutions, tweak, bufs.dx, bufs.dy, bufs.dw);
 }
 #endif
 
