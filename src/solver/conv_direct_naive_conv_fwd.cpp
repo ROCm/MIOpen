@@ -66,7 +66,6 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ConvolutionContext& ctx) 
     int grid_size  = ctx.batch_sz * ctx.n_outputs;
 
     KernelInfo kernel;
-    std::ostringstream options;
 
     kernel.kernel_file = "naive_conv.cpp";
     kernel.kernel_name = kernel_name;
@@ -83,7 +82,7 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ConvolutionContext& ctx) 
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    kernel.comp_options = options.str();
+    kernel.comp_options = ctx.general_compile_options;
 
     MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
 

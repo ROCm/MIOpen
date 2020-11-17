@@ -178,7 +178,7 @@ void GPUReferenceConvolutionForward(const Handle& handle,
     {
         MIOPEN_THROW("should be used in forward direction");
     }
-    // clang-format on
+    // clang-format off
     int di          = conv_param.in_depth;
     int hi          = conv_param.in_height;
     int wi          = conv_param.in_width;
@@ -203,19 +203,27 @@ void GPUReferenceConvolutionForward(const Handle& handle,
     int group       = conv_param.group_counts;
     int c_per_group = c / group;
     int k_per_group = k / group;
-    // clang-format off
+    // clang-format on
 
     std::string program_name      = "naive_conv.cpp";
-    std::string kernel_name       =  getKernelName(conv_param);
-    const size_t block_size = 256;
-    const size_t grid_size = block_size * n * k;
+    std::string kernel_name       = getKernelName(conv_param);
+    const size_t block_size       = 256;
+    const size_t grid_size        = block_size * n * k;
     const std::vector<size_t> vld = {block_size, size_t{1}, size_t{1}};
     const std::vector<size_t> vgd = {grid_size, size_t{1}, size_t{1}};
-    auto kernel = handle.AddKernel("GPUReferenceConvolutionForward", "", program_name, kernel_name, vld, vgd, "");
+    auto kernel                   = handle.AddKernel("GPUReferenceConvolutionForward",
+                                   "",
+                                   program_name,
+                                   kernel_name,
+                                   vld,
+                                   vgd,
+                                   GetDataTypeKernelParams(conv_param.in_data_type));
 
-    MIOPEN_LOG_I2(" kernel_name:"<<kernel_name<<", block_size:"<<block_size<<", grid_size:"<<grid_size);
+    MIOPEN_LOG_I2(" kernel_name:" << kernel_name << ", block_size:" << block_size << ", grid_size:"
+                                  << grid_size);
 
-    if(conv_param.in_layout == "NCHW"){
+    if(conv_param.in_layout == "NCHW")
+    {
         // clang-format off
         kernel( input_data,
                 weight_data,
@@ -289,7 +297,7 @@ void GPUReferenceConvolutionBackwardData(const Handle& handle,
     {
         MIOPEN_THROW("should be used in backward_data direction");
     }
-    // clang-format on
+    // clang-format off
     int di          = conv_param.out_depth;
     int hi          = conv_param.out_height;
     int wi          = conv_param.out_width;
@@ -314,19 +322,27 @@ void GPUReferenceConvolutionBackwardData(const Handle& handle,
     int group       = conv_param.group_counts;
     int c_per_group = c / group;
     int k_per_group = k / group;
-    // clang-format off
+    // clang-format on
 
     std::string program_name      = "naive_conv.cpp";
-    std::string kernel_name       =  getKernelName(conv_param);
-    const size_t block_size = 256;
-    const size_t grid_size = block_size * n * c;
+    std::string kernel_name       = getKernelName(conv_param);
+    const size_t block_size       = 256;
+    const size_t grid_size        = block_size * n * c;
     const std::vector<size_t> vld = {block_size, size_t{1}, size_t{1}};
     const std::vector<size_t> vgd = {grid_size, size_t{1}, size_t{1}};
-    auto kernel = handle.AddKernel("GPUReferenceConvolutionBackwardData", "", program_name, kernel_name, vld, vgd, "");
+    auto kernel                   = handle.AddKernel("GPUReferenceConvolutionBackwardData",
+                                   "",
+                                   program_name,
+                                   kernel_name,
+                                   vld,
+                                   vgd,
+                                   GetDataTypeKernelParams(conv_param.in_data_type));
 
-    MIOPEN_LOG_I2(" kernel_name:"<<kernel_name<<", block_size:"<<block_size<<", grid_size:"<<grid_size);
+    MIOPEN_LOG_I2(" kernel_name:" << kernel_name << ", block_size:" << block_size << ", grid_size:"
+                                  << grid_size);
 
-    if(conv_param.in_layout == "NCHW"){
+    if(conv_param.in_layout == "NCHW")
+    {
         // clang-format off
         kernel( input_data,
                 weight_data,
@@ -400,7 +416,7 @@ void GPUReferenceConvolutionBackwardWeights(const Handle& handle,
     {
         MIOPEN_THROW("should be used in backward_weight direction");
     }
-    // clang-format on
+    // clang-format off
     int di          = conv_param.out_depth;
     int hi          = conv_param.out_height;
     int wi          = conv_param.out_width;
@@ -425,19 +441,27 @@ void GPUReferenceConvolutionBackwardWeights(const Handle& handle,
     int group       = conv_param.group_counts;
     int c_per_group = c / group;
     int k_per_group = k / group;
-    // clang-format off
+    // clang-format on
 
     std::string program_name      = "naive_conv.cpp";
-    std::string kernel_name       =  getKernelName(conv_param);
-    const size_t block_size = 256;
-    const size_t grid_size = block_size * k;
+    std::string kernel_name       = getKernelName(conv_param);
+    const size_t block_size       = 256;
+    const size_t grid_size        = block_size * k;
     const std::vector<size_t> vld = {block_size, size_t{1}, size_t{1}};
     const std::vector<size_t> vgd = {grid_size, size_t{1}, size_t{1}};
-    auto kernel = handle.AddKernel("GPUReferenceConvolutionBackwardWeight", "", program_name, kernel_name, vld, vgd, "");
+    auto kernel                   = handle.AddKernel("GPUReferenceConvolutionBackwardWeight",
+                                   "",
+                                   program_name,
+                                   kernel_name,
+                                   vld,
+                                   vgd,
+                                   GetDataTypeKernelParams(conv_param.in_data_type));
 
-    MIOPEN_LOG_I2(" kernel_name:"<<kernel_name<<", block_size:"<<block_size<<", grid_size:"<<grid_size);
+    MIOPEN_LOG_I2(" kernel_name:" << kernel_name << ", block_size:" << block_size << ", grid_size:"
+                                  << grid_size);
 
-    if(conv_param.in_layout == "NCHW"){
+    if(conv_param.in_layout == "NCHW")
+    {
         // clang-format off
         kernel( input_data,
                 weight_data,
