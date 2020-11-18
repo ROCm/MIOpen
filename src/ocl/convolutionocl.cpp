@@ -1705,12 +1705,10 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
     auto ctx = ConvolutionContext{problem};
     ctx.SetStream(&handle);
     ctx.DetectRocm();
-    // Dual purpose variable:
-    // * Used as index for writing into output array (solutions).
-    // * Counts the number of entries written, yielding value for solutionsCount.
-    auto i = std::size_t{0};
-#if 1
-    const auto solvers = ConvHeur{}.Estimate(handle, problem);
+#if MIOPEN_ENABLE_HEUR
+    auto idx = std::size_t{1}; // Each solution to have a successively more negative values keeping 
+    // sorting logic intact in frameworks
+    auto solvers = ConvHeur{}.Estimate(handle, problem);
     for(const auto kinder : solvers)
     {
         const auto solver_id = solver::Id{kinder};
@@ -1731,40 +1729,23 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
             }
             else
                 continue; // Its not applicable
-            interim.emplace_back(-1, ws_sz, solver::Id::gemm().Value(), miopenConvolutionAlgoGEMM);
+            interim.emplace_back(static_cast<float>(-1 * idx), ws_sz, solver::Id::gemm().Value(), miopenConvolutionAlgoGEMM);
         }
         else
         {
             const auto sol = solver_id.GetSolver();
+            if(!sol.IsDynamic())
+                continue; // branch should never be taken
             if(!sol.IsApplicable(ctx))
                 continue;
             const auto algo = solver_id.GetAlgo();
             if(IsAlgorithmDisabled(algo))
                 continue;
-            if(!sol.IsDynamic())
-                continue; // branch should never be taken
-            interim.emplace_back(-1, sol.GetWorkspaceSize(ctx), solver_id.Value(), algo);
+            interim.emplace_back(static_cast<float>(-1 * idx), sol.GetWorkspaceSize(ctx), solver_id.Value(), algo);
         }
+        ++idx;
     }
-
-    if(!interim.empty())
-    {
-        for(const auto& entry : interim)
-        {
-            if(i >= maxSolutionCount)
-                break;
-            if(solutions != nullptr)
-                solutions[i] = entry;
-            ++i;
-        }
-        *solutionCount = i;
-        return;
-    }
-    else
-    {
-        // Heuristic failed force GEMM
-    }
-#elif 1
+#else
     const auto wti2time = [](const float& wti) {
         assert(wti != 0.0f);
         if(wti <= 0.0f) // Return negative values as is, avoid DIV/0.
@@ -1797,7 +1778,6 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
 
         interim.emplace_back(wti2time(wti), s.GetWorkspaceSize(ctx), solver_id.Value(), algo);
     }
-
 
     /// Separate path for GEMM algo, intermediate implementation.
     /// \todo Remove when GEMM Solver(s) ready.
@@ -1837,6 +1817,12 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
         MIOPEN_THROW("Unknown direction");
     }
 
+    std::sort(begin(interim), end(interim));
+#endif
+    // Dual purpose variable:
+    // * Used as index for writing into output array (solutions).
+    // * Counts the number of entries written, yielding value for solutionsCount.
+    auto i = std::size_t{0};
     MIOPEN_LOG_I2("maxSolutionCount = " << maxSolutionCount << ", available = " << interim.size());
     for(const auto& s : interim)
         MIOPEN_LOG_I2("id: " << s.solution_id << " algo: " << s.algorithm << ", time: " << s.time
@@ -1844,11 +1830,6 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
                              << s.workspace_size
                              << ", name: "
                              << miopen::solver::Id(s.solution_id).ToString());
-    // Dual purpose variable:
-    // * Used as index for writing into output array (solutions).
-    // * Counts the number of entries written, yielding value for solutionsCount.
-    auto i = std::size_t{0};
-    std::sort(begin(interim), end(interim));
     for(const auto& entry : interim)
     {
         if(i >= maxSolutionCount)
@@ -1858,7 +1839,6 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
         ++i;
     }
     *solutionCount = i;
-#endif
 }
 
 void GetSolutions(Handle& handle,

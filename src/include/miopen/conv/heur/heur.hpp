@@ -46,18 +46,24 @@ struct ConvHeur
         for(auto idx = 0; idx < features.size(); ++idx)
             features[idx] = (features[idx] - mu[idx]) / sig[idx];
     }
-    std::vector<uint64_t> Estimate(const Handle& handle, const ProblemDescription& problem)
+    bool IsApplicable(const Handle& /*handle*/, const ProblemDescription& problem)
     {
         const auto& p = problem.conv_problem;
         if(!problem.Is2d())
-            return {};
+            return false;
         if(!problem.IsFp32())
-            return {};
+            return false;
         if(p.GetGroupCount() != 1)
-            return {};
+            return false;
         if(p.GetInLayout() != "NCHW")
-            return {};
-        // assert(spatial_dim == 2);
+            return false;
+        return true;
+    }
+    std::vector<uint64_t> Estimate(const Handle& handle, const ProblemDescription& problem)
+    {
+        if(!IsApplicable(handle, problem))
+            return {solver::Id::gemm().Value()}; // the fallback for the fallback
+        const auto& p = problem.conv_problem;
         // TODO: define the number of features and a static way to ensure the correct ordering of features
         Tensor2D features{1, 11};
         // Note some features are fed after log2, this results in improved accuracy
