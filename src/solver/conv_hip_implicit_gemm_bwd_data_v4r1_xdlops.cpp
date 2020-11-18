@@ -393,7 +393,7 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsFastToBeUsedForTuning(
     const ConvolutionContext& ctx) const
 {
     if(use_spare_set)
-       return true;
+        return true;
     // somehow, 128x128 wave-wise GEMM tend to spill register
     // TODO revisit this when 128x128 wave-wise GEMM become efficient
     {
