@@ -66,68 +66,73 @@ namespace miopen {
 #if !MIOPEN_USE_COMGR
 namespace {
 
-int GetCodeObjectVersionOptionVariant()
+int DetectCodeObjectOptionSyntax()
 {
-    auto co_option = miopen::Value(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_OPTION{});
-    if(co_option > 4)
+    auto syntax = miopen::Value(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_OPTION{});
+    if(syntax > 4)
     {
         MIOPEN_LOG_E("Bad MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_OPTION, using default");
-        co_option = 0;
+        syntax = 0;
     }
 
-    if(co_option == 0)
+    if(syntax == 0)
     {
-        if(HipCompilerVersion() >= external_tool_version_t{4, 0, 20425})
+        if(HipCompilerVersion() >= external_tool_version_t{4, 0, 999999}) /// \ todo
             return 4;
         else
             return 1;
     }
-    return co_option;
+    MIOPEN_LOG_I("MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_OPTION=" << syntax);
+    return syntax;
+}
+
+int DetectCodeObjectVersion()
+{
+    auto co_version = miopen::Value(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION{});
+    // Very basic syntax check:
+    if(co_version == 1 || co_version > 4)
+    {
+        MIOPEN_LOG_E("Bad MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION, using default");
+        co_version = 0;
+    }
+
+    if(co_version == 0)
+    {
+        if(HipCompilerVersion() >= external_tool_version_t{4, 0, 999999}) /// \ todo
+            return 4;
+        else if(HipCompilerVersion() >= external_tool_version_t{3, 0, -1})
+            return 3;
+        else
+            return 2;
+    }
+    MIOPEN_LOG_I("MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION=" << co_version);
+    return co_version;
 }
 
 std::string GetCodeObjectVersionOptionImpl()
 {
-    auto code_object_version = miopen::Value(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION{});
-    // Very basic syntax check:
-    if(code_object_version == 1 || code_object_version > 4)
-    {
-        MIOPEN_LOG_E("Bad MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION, using default");
-        code_object_version = 0;
-    }
-    if(code_object_version == 0)
-    {
-        if(HipCompilerVersion() >= external_tool_version_t{4, 0, 20425 + 1}) /// \ todo
-            code_object_version = 4;
-        else if(HipCompilerVersion() >= external_tool_version_t{3, 0, -1})
-            code_object_version = 3;
-        else
-            code_object_version = 2;
-    }
+    const auto co_version = DetectCodeObjectVersion();
+    const auto syntax     = DetectCodeObjectOptionSyntax();
 
-    const auto co_option = GetCodeObjectVersionOptionVariant();
-
-    if(co_option == 4)
+    if(syntax == 4)
     {
-        if(code_object_version == 0) // Env.var is unset.
-            return {};               // Rely on compiler's default.
-        else
-            return std::string("-mcode-object-version=") + std::to_string(code_object_version);
+        return std::string("-mcode-object-version=") + std::to_string(co_version);
     }
-    else if(co_option == 3)
+    else if(syntax == 3)
     {
-        switch(code_object_version)
+        switch(co_version)
         {
         case 2: return {"-mnocode-object-v3"};
         default: // Fall through.
         case 3: return {"-mcode-object-v3"};
         }
     }
-    else // co_option == 1 or 2
+    else // syntax == 1 or 2
     {
-        switch(code_object_version)
+        switch(co_version)
         {
         // These options are Ok for ROCm for a long time (since 2.5 or so):
-        case 2: return {(co_option == 1) ? "" : "-Xclang -target-feature -Xclang -code-object-v3"};
+        case 2: return {(syntax == 1) ? "" : "-Xclang -target-feature -Xclang -code-object-v3"};
         default: // Fall through.
         case 3: return {"-Xclang -target-feature -Xclang +code-object-v3"};
         }
