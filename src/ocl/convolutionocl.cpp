@@ -1706,7 +1706,7 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
     ctx.SetStream(&handle);
     ctx.DetectRocm();
 #if MIOPEN_ENABLE_HEUR
-    auto idx = std::size_t{1}; // Each solution to have a successively more negative values keeping 
+    int idx = 1; // Each solution to have a successively more negative values keeping 
     // sorting logic intact in frameworks
     auto solvers = ConvHeur{}.Estimate(handle, problem);
     for(const auto kinder : solvers)
