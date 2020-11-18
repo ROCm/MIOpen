@@ -392,6 +392,8 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsReallyValid(const ConvolutionCo
 bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsFastToBeUsedForTuning(
     const ConvolutionContext& ctx) const
 {
+    if(use_spare_set)
+       return true;
     // somehow, 128x128 wave-wise GEMM tend to spill register
     // TODO revisit this when 128x128 wave-wise GEMM become efficient
     {
@@ -488,18 +490,16 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsValid(const ConvolutionContext&
 }
 
 PerformanceImplicitGemmBwdDataV4R1Xdlops::PerformanceImplicitGemmBwdDataV4R1Xdlops()
+    : PerformanceImplicitGemmBwdDataV4R1Xdlops::PerformanceImplicitGemmBwdDataV4R1Xdlops(
+          16, 4, 1, 1, 4, 16, false, false)
 {
-    GemmNPerBlock = 64;
-    GemmMPerBlock = 64;
-    GemmKPerBlock = 8;
 
-    GemmKPACKSize = 1;
+}
 
-    GemmMPerWave = 64;
-    GemmNPerWave = 64;
-
-    GemmAThreadCopyMoreGemmK     = false;
-    GemmBThreadCopyMoreGemmKPack = false;
+PerformanceImplicitGemmBwdDataV4R1Xdlops::PerformanceImplicitGemmBwdDataV4R1Xdlops(bool spare)
+    : PerformanceImplicitGemmBwdDataV4R1Xdlops::PerformanceImplicitGemmBwdDataV4R1Xdlops(
+          16, 4, 1, 1, 4, 16, false, false, spare)
+{
 }
 
 PerformanceImplicitGemmBwdDataV4R1Xdlops::PerformanceImplicitGemmBwdDataV4R1Xdlops(
@@ -510,7 +510,8 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::PerformanceImplicitGemmBwdDataV4R1Xdlo
     int GemmMPerWave_,
     int GemmNPerWave_,
     bool GemmAThreadCopyMoreGemmK_,
-    bool GemmBThreadCopyMoreGemmKPack_)
+    bool GemmBThreadCopyMoreGemmKPack_,
+    bool use_spare_set_)
     : GemmNPerBlock(GemmNPerBlock_),
       GemmMPerBlock(GemmMPerBlock_),
       GemmKPerBlock(GemmKPerBlock_),
@@ -518,7 +519,8 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::PerformanceImplicitGemmBwdDataV4R1Xdlo
       GemmMPerWave(GemmMPerWave_),
       GemmNPerWave(GemmNPerWave_),
       GemmAThreadCopyMoreGemmK(GemmAThreadCopyMoreGemmK_),
-      GemmBThreadCopyMoreGemmKPack(GemmBThreadCopyMoreGemmKPack_)
+      GemmBThreadCopyMoreGemmKPack(GemmBThreadCopyMoreGemmKPack_),
+      use_spare_set(use_spare_set_)
 {
 }
 
@@ -532,8 +534,9 @@ operator==(const PerformanceImplicitGemmBwdDataV4R1Xdlops& other) const
         && GemmKPACKSize == other.GemmKPACKSize
         && GemmMPerWave == other.GemmMPerWave
         && GemmNPerWave == other.GemmNPerWave
-	&& GemmAThreadCopyMoreGemmK  == other.GemmAThreadCopyMoreGemmK
-	&& GemmBThreadCopyMoreGemmKPack  == other.GemmBThreadCopyMoreGemmKPack;
+        && GemmAThreadCopyMoreGemmK  == other.GemmAThreadCopyMoreGemmK
+        && GemmBThreadCopyMoreGemmKPack  == other.GemmBThreadCopyMoreGemmKPack
+        && use_spare_set == other.use_spare_set;
     // clang-format on
 }
 
