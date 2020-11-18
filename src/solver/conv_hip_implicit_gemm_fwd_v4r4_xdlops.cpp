@@ -99,8 +99,6 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::SetNextValue()
         }
         if(!NextFlag<false, true>(GemmBThreadCopyMoreGemmKPack))
             break;
-        if(!NextFlag<false, false>(GemmAThreadCopyMoreGemmK))
-            break;
         if(!NextTwoPower<1, 8>(GemmKPack))
             break;
         if(!NextTwoPower<4, 128>(GemmNPerWave))
@@ -136,7 +134,7 @@ void PerformanceImplicitGemmForwardV4R4Xdlops::EuristicInit(const ConvolutionCon
                 {
                     // list in reverse order of importance,
                     // and favor large GEMM
-                    if(!PreviousTwoPower<1, 8>(tmp.GemmBThreadDataPerRead_GemmN))
+                    if(!PreviousTwoPower<1, 4>(tmp.GemmBThreadDataPerRead_GemmN))
                         break;
                     if(!PreviousTwoPower<1, 8>(tmp.GemmKPerBlock))
                         break;
@@ -245,8 +243,7 @@ void PerformanceImplicitGemmForwardV4R4Xdlops::EuristicInit(const ConvolutionCon
     // final check
     if(!tmp.IsReallyValid(ctx))
     {
-        MIOPEN_LOG_E("All attempts failed");
-        assert(false);
+        MIOPEN_LOG_I("All attempts failed");
     }
     *this = tmp;
     MIOPEN_LOG_I(ToString());
@@ -854,9 +851,14 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
     bool) const
 {
     ConvSolution result;
-    KernelInfo construction_parameters;
 
-    assert(config.IsReallyValid(ctx));
+    if(!config.IsReallyValid(ctx))
+    {
+        MIOPEN_LOG_E("invalid performance parameter");
+        assert(false);
+    }
+
+    KernelInfo construction_parameters;
 
     construction_parameters.kernel_file =
         "gridwise_convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw.cpp";
