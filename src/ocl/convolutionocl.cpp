@@ -952,12 +952,11 @@ void ConvolutionDescriptor::GetForwardSolutions(Handle& handle,
     if(solutions == nullptr)
         MIOPEN_THROW(miopenStatusBadParm, "solutions cannot be nullptr");
 
-    const auto problem = ProblemDescription{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
+    auto problem = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
+    problem.SetStream(&handle);
+
     GetSolutions(
         handle, problem, maxSolutionCount, solutionCount, solutions, StringToConvolutionFwdAlgo);
-
-    auto ctx = ExecutionContext{};
-    ctx.SetStream(&handle);
 
     if(*solutionCount == 0)
         GetForwardSolutionsFallback(problem, maxSolutionCount, solutionCount, solutions);
