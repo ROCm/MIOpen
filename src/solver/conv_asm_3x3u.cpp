@@ -39,6 +39,8 @@
 #include <cassert>
 #include <tuple>
 
+#define WORKAROUND_ISSUE_609 1
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U_PERF_VALS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U)
 
@@ -169,6 +171,10 @@ bool ConvAsm3x3U::IsValidPerformanceConfig(const ConvolutionContext& problem,
 
 bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
 {
+#if WORKAROUND_ISSUE_609
+    (void)params;
+    return false;
+#else
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U{}))
         return false;
     if(!params.use_asm_kernels)
@@ -202,8 +208,8 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         && params.in_width <= 1000
         && params.IsFp32()
         && params.in_layout == "NCHW";
-        // && (params.forward ? params.weights_layout == "KCHW" : params.weights_layout == "CKHW" )
-    // clang-format on
+// clang-format on
+#endif
 }
 
 ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
