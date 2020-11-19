@@ -41,7 +41,7 @@ namespace solver {
 
 PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops()
     : PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops(
-          4, 4, 1, 4, 4, 1, false, false,false)
+          4, 4, 1, 4, 4, 1, false, false, false)
 {
 }
 
@@ -690,7 +690,7 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::IsReallyValid(const ConvolutionContex
 bool PerformanceImplicitGemmWrwV4R4Xdlops::IsFastToBeUsedForTuning(
     const ConvolutionContext& ctx) const
 {
-  
+
     if(use_spare_set)
         return true;
     // somehow, 128x128 wave-wise GEMM tend to spill register

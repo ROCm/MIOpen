@@ -1900,11 +1900,11 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops : Serializable<PerformanceImplicitGe
     bool GemmBThreadCopyMoreGemmK;
     bool use_spare_set;
 
-    PerformanceImplicitGemmWrwV4R4Xdlops(int, int, int, int, int, int, bool, bool,bool);
+    PerformanceImplicitGemmWrwV4R4Xdlops(int, int, int, int, int, int, bool, bool, bool);
     PerformanceImplicitGemmWrwV4R4Xdlops();
     PerformanceImplicitGemmWrwV4R4Xdlops(bool spare);
     PerformanceImplicitGemmWrwV4R4Xdlops(int a, int b, int c, int d, int e, int f, bool g, bool h)
-	    :PerformanceImplicitGemmWrwV4R4Xdlops(a, b, c, d, e, f, g, h, false)
+        : PerformanceImplicitGemmWrwV4R4Xdlops(a, b, c, d, e, f, g, h, false)
     {
     }
 
