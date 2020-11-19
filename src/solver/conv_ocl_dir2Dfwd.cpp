@@ -536,7 +536,7 @@ std::vector<ConvSolution> ConvOclDirectFwd::GetSolutions(const ConvolutionContex
     LegacyPerformanceConfig current_config;
     total_configs = n_tiles_cnt * out_pix_tl_cnt * out_pix_tl_cnt * n_out_tls *
              n_in_tls * stack_cnt + 1;
-    MIOPEN_LOG_I2("Get all " << total_configs << " Solutions in the 9 dim space.");
+    MIOPEN_LOG_W("Get all " << total_configs << " Solutions in the 9 dim space.");
     // tile 1
     for(int j = 0; j < n_tile1_sz; ++j)
     {
@@ -631,11 +631,7 @@ std::vector<ConvSolution> ConvOclDirectFwd::GetSolutions(const ConvolutionContex
                                         ++failed_counter;
                                     }
                                 }
-                                else
-                                {
-                                    ++failed_counter;
-                                }
-                                MIOPEN_LOG_I2("##(n_get, n_failed, n_total): "
+                                MIOPEN_LOG_W("##(n_get, n_failed, n_total): "
                                              << solutions_counter << " / " << failed_counter << " / "
                                              << total_configs << ", "
                                              << current_config);
@@ -657,8 +653,7 @@ ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
     if(result.Succeeded())
     {
         result.construction_params[0].comp_options +=
-            std::string(" -DMLO_CONV_BIAS=") + std::to_string(static_cast<long long>(params.bias)) +
-            params.general_compile_options;
+            std::string(" -DMLO_CONV_BIAS=") + std::to_string(static_cast<long long>(params.bias));
     }
 
     return result;
@@ -676,10 +671,6 @@ ConvOclDirectFwdFused::GetSolution(const ConvolutionContext& params,
                                    const LegacyPerformanceConfig& searched_params) const
 {
     ConvSolution result = BaseGetSolution(params, searched_params);
-    if(result.Succeeded())
-    {
-        result.construction_params[0].comp_options += params.general_compile_options;
-    }
     return result;
 }
 } // namespace solver

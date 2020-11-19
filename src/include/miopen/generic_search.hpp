@@ -189,7 +189,7 @@ auto GenericGetSolutions(const Solver s,
 
     const ComputedContainer<PerformanceConfig, Context> all_configs = useSpare ? spare : main;
     const int n_total = useSpare ? spare_size : main_size;
-    MIOPEN_LOG_I2(SolverDbId(s) << ": Get all " << n_total << (useSpare ? " (spare)" : "")
+    MIOPEN_LOG_W(SolverDbId(s) << ": Get all " << n_total << (useSpare ? " (spare)" : "")
                                 << "solutions.");
     for(const auto& current_config : all_configs)
     {
@@ -221,7 +221,7 @@ auto GenericGetSolutions(const Solver s,
             ++n_failed;
         }
         ++n_current;
-        MIOPEN_LOG_I2('#' << n_current << '/' << n_failed << '/' << n_total << ' '
+        MIOPEN_LOG_W('#' << n_current << '/' << n_failed << '/' << n_total << ' '
                           << current_config);
     }
     return all_solutions;

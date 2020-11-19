@@ -176,7 +176,7 @@ std::vector<ConvSolution> ConvOclDirectFwd1x1::GetSolutions(const ConvolutionCon
 
         current_config.out_pix_tile1 = 0;
     }
-    MIOPEN_LOG_I2("Get all " << total_configs << " Solutions in the 4 dim space.");
+    MIOPEN_LOG_W("Get all " << total_configs << " Solutions in the 4 dim space.");
     int version = current_config.out_pix_tile1;
     for(int g0 = 0; g0 < n_grp_tiles0; ++g0)
     {
@@ -218,14 +218,10 @@ std::vector<ConvSolution> ConvOclDirectFwd1x1::GetSolutions(const ConvolutionCon
                             ++failed_counter;
                         }
                     }
-                    else
-                    {
-                        ++failed_counter;
-                    }
+                    MIOPEN_LOG_W("##(n_get, n_failed, n_total): "
+                                << solutions_counter << " / " << failed_counter << " / "
+                                << total_configs << ", " << current_config);
                 }
-                MIOPEN_LOG_I2("##(n_get, n_failed, n_total): "
-                              << solutions_counter << " / " << failed_counter << " / "
-                              << total_configs << ", " << current_config);
             }
         }
     }
@@ -341,7 +337,6 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
                                   std::to_string(params.kernel_stride_w) +
                                   std::string(" -DMLO_FILTER_STRIDE1=") +
                                   std::to_string(params.kernel_stride_h) + kernel.comp_options;
-
             // std::cout << "compile options:\n"<< _comp_options << std::endl;
 
             // 1x1_Stride: FIX ME!!! NO padding support
