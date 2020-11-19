@@ -481,7 +481,7 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
     }
     else
     {
-        MIOPEN_THROW("Running kernels on GPU is disabled. Search skipped");
+        MIOPEN_THROW(miopenStatusNoGPU, "Running kernels on GPU is disabled. Search skipped");
     }
 
     MIOPEN_LOG_W("Done: " << n_runs_total << '/' << n_failed << '/' << n_runs_total << ", best #"

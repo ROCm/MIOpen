@@ -103,6 +103,7 @@ typedef enum {
     miopenStatusNotImplemented = 6, /*!< Use of unimplemented feature. */
     miopenStatusUnknownError   = 7, /*!< Unknown error occurred. */
     miopenStatusUnsupportedOp  = 8, /*!< Unsupported operator for fusion. */
+    miopenStatusNoGPU          = 9, /*!< GPU operations skipped. */
 } miopenStatus_t;
 
 /*! @brief Get character string for an error code.
