@@ -586,8 +586,8 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
             strideC,alpha,beta,transform_data_type};
 // clang-format on
 #else
-        (void)wino_xform_h;
         (void)wino_xform_w;
+        (void)wino_xform_h;
 #endif
 
         gemm_conv_factory = [=](const std::vector<Kernel>&) {
