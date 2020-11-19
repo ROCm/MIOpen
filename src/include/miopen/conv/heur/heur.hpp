@@ -93,7 +93,7 @@ struct ConvHeur
             sol.push_back(sol_id.Value());
             // sol.push_back(solver::Id{solvers.at(kinder.first)}.GetSolver());
         }
-
+        sol.push_back(solver::Id::gemm().Value()); // incase the predicted solvers are inapplicable
         return sol;
     }
 };

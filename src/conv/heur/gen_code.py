@@ -162,15 +162,18 @@ const std::vector<std::string>& GetFeatureNames(const Handle& handle)
 
 def gen_GetSolverMap(prefixes, metadata):
     fn_t = Template("""
-const std::unordered_map<int, std::string>& GetSolverMap(const Handle& handle)
+const std::unordered_map<int, std::string>& GetSolverMap(const Handle& handle, const ProblemDescription& problem)
 {
     const auto& arch = handle.GetDeviceName();
+    auto fwd = problem.direction.IsForward();
+    auto bwd = problem.direction.IsBackwardData();
+    auto wrw = problem.direction.IsBackwardWrW();
 
     ${body}
 }
     """)
     clause_t = Template("""
-    if(arch == "${arch}")
+    if(arch == "${arch}" && ${direction})
     """)
     solver_map_t= Template("""
     {
@@ -187,13 +190,13 @@ const std::unordered_map<int, std::string>& GetSolverMap(const Handle& handle)
     lst_claus = []
     lst_body = []
     for arch in prefixes:
-        solver_map = metadata[arch]['solver_map']
-        lst  = []
-        for k,v in solver_map.items():
-            lst.append('{{{}, "{}"}}'.format(k, v))
-        solver_map = ','.join(lst)
-        lst_body.append(solver_map_t.substitute(arch=arch, solver_map = solver_map))
-        lst_claus.append(clause_t.substitute(arch=arch))
+        for direction, solver_map in metadata[arch]['solver_map'].items():
+            lst  = []
+            for k,v in solver_map.items():
+                lst.append('{{{}, "{}"}}'.format(k, v))
+            solver_map = ','.join(lst)
+            lst_body.append(solver_map_t.substitute(arch=arch, solver_map = solver_map))
+            lst_claus.append(clause_t.substitute(arch=arch, direction=direction))
 
     body = ''
     if(len(lst_body) > 1):

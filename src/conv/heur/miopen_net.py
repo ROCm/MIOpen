@@ -107,16 +107,18 @@ def gen_meta(args):
         df = uber_df[uber_df.arch == arch]
         # Feature names and solver map are arch specific
         metadata['feature_names'] = full_dataset.feature_names
-        metadata['solver_map'] = full_dataset.cat_map
         if 'mu' not in metadata:
             metadata['mu'] = {}
         if 'sigma' not in metadata:
             metadata['sigma'] = {}
+        if 'solver_map' not in metadata:
+            metadata['solver_map'] = {}
         for direction in df.direction.unique():
-            # Mu and Sigma are direction specific
+            # direction specific metadata
             dir_dataset = FindDataset(args.data_filename, arch, direction=direction)
             metadata['mu'][direction] = dir_dataset.mu.tolist()
             metadata['sigma'][direction] = dir_dataset.sigma.tolist()
+            metadata['solver_map'][direction] = dir_dataset.cat_map
         uber_metadata[arch] = metadata # Overwrite the old one
     with open(args.output_file, 'w') as jf:
         jf.write(json.dumps(uber_metadata, sort_keys=True, indent=2))
@@ -146,6 +148,7 @@ def network(args):
         else:
           dirs = [args.dir]
         for direction in dirs:
+          import ipdb; ipdb.set_trace()
           full_dataset = FindDataset(args.data_filename, arch, direction=direction)
           train_size = int(0.8 * len(full_dataset))
           test_size = len(full_dataset) - train_size
