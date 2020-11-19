@@ -40,7 +40,7 @@
 
 namespace miopen
 {
-const std::unordered_map<int, std::string>& GetSolverMap(const Handle& /*handle*/);
+const std::unordered_map<int, std::string>& GetSolverMap(const Handle& /*handle*/, const ProblemDescription& problem);
 const std::vector<float>& GetMu(const Handle& handle, const ProblemDescription& problem);
 const std::vector<float>& GetSigma(const Handle& handle, const ProblemDescription& problem);
 const std::vector<std::string>& GetFeatureNames(const Handle& /*handle*/);

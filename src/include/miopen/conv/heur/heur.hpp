@@ -71,7 +71,7 @@ struct ConvHeur
         TransformFeatures(features.d, handle, problem);
     
         MemRef2D mem_res = CallModel(handle, problem, features);
-        const auto solvers = GetSolverMap(handle);
+        const auto solvers = GetSolverMap(handle, problem);
         std::vector<float> res(mem_res.aligned, mem_res.aligned + (mem_res.size0 * mem_res.size1));
         // pointer returned by CallModel is allocated inside the model and needs to be freed once we have a local copy
         delete[]mem_res.aligned;
