@@ -379,10 +379,10 @@ inline bool IsApplicableTransform(const ConvolutionContext& params)
 
         if(params.direction.IsBackwardWrW())
         {
-            if(wino_out.buff_info.size.h != 1 || wino_out.buff_info.size.w != 1)
+            if(params.kernel_size_h != wino_data_h || params.kernel_size_w != wino_data_w)
                 return false;
         }
-        else if(wino_wei.buff_info.size.h != 1 || wino_wei.buff_info.size.w != 1)
+        else if(params.kernel_size_h != wino_filter_h || params.kernel_size_w != wino_filter_w)
             return false;
     }
 
