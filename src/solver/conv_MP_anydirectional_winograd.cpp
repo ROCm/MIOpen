@@ -140,26 +140,29 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
                                      (params).direction.IsBackwardData(), \
                                      (params).direction.IsBackwardWrW())
 
-#define GENERATE_MAIN_OPTIONS(options)                   \
-    KernelBuildParameters options{};                     \
-    do                                                   \
-    {                                                    \
-        (options).Define("ROCM_METADATA_VERSION", 5);    \
-        (options).Define("xformx_o_size", WinoDataW);    \
-        (options).Define("xformy_o_size", WinoDataH);    \
-        (options).Define("xformx_x_size", wino_xform_w); \
-        (options).Define("xformy_x_size", wino_xform_h); \
-        (options).Define("xformx_d_size", wino_dtile_w); \
-        (options).Define("xformy_d_size", wino_dtile_h); \
-        (options).Define("xformx_f_size", WinoFilterW);  \
-        (options).Define("xformy_f_size", WinoFilterH);  \
-        (options).Define("fdilation_w", f_dilation_w);   \
-        (options).Define("fdilation_h", f_dilation_h);   \
-        (options).Define("stride_h", stride_h);          \
-        (options).Define("stride_w", stride_w);          \
-        (options).Define("ddilation_h", d_dilation_h);   \
-        (options).Define("ddilation_w", d_dilation_w);   \
-    } while(false)
+template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
+void GenerateMainOptions(const ConvolutionContext& params, KernelBuildParameters& options)
+{
+    DEFINE_GETXFORMHWSIZE(params)
+    DEFINE_GETDTILEHWSIZE(params)
+    DEFINE_SHADER_CONV_MOD_ALIASES(params)
+
+    options.Define("ROCM_METADATA_VERSION", 5);
+    options.Define("xformx_o_size", WinoDataW);
+    options.Define("xformy_o_size", WinoDataH);
+    options.Define("xformx_x_size", wino_xform_w);
+    options.Define("xformy_x_size", wino_xform_h);
+    options.Define("xformx_d_size", wino_dtile_w);
+    options.Define("xformy_d_size", wino_dtile_h);
+    options.Define("xformx_f_size", WinoFilterW);
+    options.Define("xformy_f_size", WinoFilterH);
+    options.Define("fdilation_w", f_dilation_w);
+    options.Define("fdilation_h", f_dilation_h);
+    options.Define("stride_h", stride_h);
+    options.Define("stride_w", stride_w);
+    options.Define("ddilation_h", d_dilation_h);
+    options.Define("ddilation_w", d_dilation_w);
+}
 
 struct WinoOffsets
 {
@@ -759,7 +762,6 @@ ConvSolution ConvMPAnydirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilt
 #if MIOPEN_BACKEND_HIP
 
     const int n_groups = params.GetStream().GetMaxComputeUnits();
-    DEFINE_GETXFORMHWSIZE(params)
     const std::vector<size_t> l_wk{512, 1, 1};
     const size_t g_wk_0 = n_groups * l_wk[0];
     const std::vector<size_t> g_wk{g_wk_0, 1, 1};
@@ -768,19 +770,20 @@ ConvSolution ConvMPAnydirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilt
             ? params.in_data_type
             : miopenFloat;
 
-    DEFINE_SHADER_CONV_MOD_ALIASES(params)
-    DEFINE_GETDTILEHWSIZE(params)
-    GENERATE_MAIN_OPTIONS(options_in);
+    KernelBuildParameters options_in{};
+    GenerateMainOptions<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(params, options_in);
     options_in.Define("xform_mirror", 0);
     options_in.Define("src_type", (params.IsFp32() ? 1 : 2));
     options_in.Define("dst_type", (transform_data_type == miopenFloat ? 1 : 2));
 
-    GENERATE_MAIN_OPTIONS(options_filter);
+    KernelBuildParameters options_filter{};
+    GenerateMainOptions<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(params, options_filter);
     options_filter.Define("xform_mirror", params.direction.IsBackwardData());
     options_filter.Define("src_type", (params.IsFp32() ? 1 : 2));
     options_filter.Define("dst_type", (transform_data_type == miopenFloat ? 1 : 2));
 
-    GENERATE_MAIN_OPTIONS(options_out);
+    KernelBuildParameters options_out{};
+    GenerateMainOptions<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(params, options_out);
     options_out.Define("xform_mirror", 0);
     options_out.Define("src_type", (transform_data_type == miopenFloat ? 1 : 2));
     options_out.Define("dst_type", (params.IsFp32() ? 1 : 2));
