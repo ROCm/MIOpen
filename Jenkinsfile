@@ -260,7 +260,7 @@ pipeline {
                 stage('Hip Tidy') {
                     agent{ label "rocmtest" }
                     environment{
-                        cmd = "rm -rf build; mkdir build; cd build;CXX=/usr/local/bin/hcc cmake -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
+                        cmd = "rm -rf build; mkdir build; cd build;CXX=/opt/rocm/bin/hcc cmake -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
                     }
                     steps{
                         buildCommandJob(cmd)
