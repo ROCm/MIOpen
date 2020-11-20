@@ -85,7 +85,7 @@ operator==(const PerformanceImplicitGemmWrwV4R4Xdlops& other) const
         && GemmKPack == other.GemmKPack
         && GemmAThreadCopyMoreGemmK  == other.GemmAThreadCopyMoreGemmK
         && GemmBThreadCopyMoreGemmK  == other.GemmBThreadCopyMoreGemmK
-	&& use_spare_set == other.use_spare_set;
+        && use_spare_set == other.use_spare_set;
     // clang-format on
 }
 
