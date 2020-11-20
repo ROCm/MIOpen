@@ -73,6 +73,29 @@ class CompileTimer
     }
 };
 
+class FunctionTimer{
+ public:
+  FunctionTimer(std::string name)
+      : m_name(std::move(name)),
+        m_beg(std::chrono::high_resolution_clock::now()) { }
+  ~FunctionTimer() {
+    auto end = std::chrono::high_resolution_clock::now();
+    auto dur = std::chrono::duration_cast<std::chrono::microseconds>(end - m_beg);
+    std::cout << m_name << " : " << dur.count() << " musec\n";
+  }
+ private:
+  std::string m_name;
+  std::chrono::time_point<std::chrono::high_resolution_clock> m_beg;
+};
+
+#if MIOPEN_TIME_FUNCTIONS
+#define MIOPEN_FUNC_TIMER                               \
+        miopen::FunctionTimer miopen_timer(miopen::LoggingParseFunction(__func__, __PRETTY_FUNCTION__))
+#else
+#define MIOPEN_FUNC_TIMER
+#endif
+
+
 } // namespace miopen
 
 #endif // GUARD_MIOPEN_TIMER_HPP_
