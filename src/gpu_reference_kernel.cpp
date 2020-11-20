@@ -79,12 +79,12 @@ void GPUReferenceConvolutionForward(Handle& handle,
 
     auto ctx = ConvolutionContext{conv_param};
     ctx.SetStream(&handle);
+    ctx.SetupFloats();
     ctx.DetectRocm();
 
-    std::string program_name = ConvDirectNaiveConvKernelFile(ctx);
-    std::string kernel_name  = ConvDirectNaiveConvKernelName(ctx);
-    std::string options =
-        GetDataTypeKernelParams(conv_param.in_data_type) + ConvDirectNaiveConvCompileOption(ctx);
+    std::string program_name      = ConvDirectNaiveConvKernelFile(ctx);
+    std::string kernel_name       = ConvDirectNaiveConvKernelName(ctx);
+    std::string options           = ConvDirectNaiveConvCompileOption(ctx);
     const size_t block_size       = 256;
     const size_t grid_size        = block_size * n * k;
     const std::vector<size_t> vld = {block_size, size_t{1}, size_t{1}};
@@ -199,12 +199,12 @@ void GPUReferenceConvolutionBackwardData(Handle& handle,
 
     auto ctx = ConvolutionContext{conv_param};
     ctx.SetStream(&handle);
+    ctx.SetupFloats();
     ctx.DetectRocm();
 
-    std::string program_name = ConvDirectNaiveConvKernelFile(ctx);
-    std::string kernel_name  = ConvDirectNaiveConvKernelName(ctx);
-    std::string options =
-        GetDataTypeKernelParams(conv_param.in_data_type) + ConvDirectNaiveConvCompileOption(ctx);
+    std::string program_name      = ConvDirectNaiveConvKernelFile(ctx);
+    std::string kernel_name       = ConvDirectNaiveConvKernelName(ctx);
+    std::string options           = ConvDirectNaiveConvCompileOption(ctx);
     const size_t block_size       = 256;
     const size_t grid_size        = block_size * n * c;
     const std::vector<size_t> vld = {block_size, size_t{1}, size_t{1}};
@@ -319,12 +319,12 @@ void GPUReferenceConvolutionBackwardWeights(Handle& handle,
 
     auto ctx = ConvolutionContext{conv_param};
     ctx.SetStream(&handle);
+    ctx.SetupFloats();
     ctx.DetectRocm();
 
-    std::string program_name = ConvDirectNaiveConvKernelFile(ctx);
-    std::string kernel_name  = ConvDirectNaiveConvKernelName(ctx);
-    std::string options =
-        GetDataTypeKernelParams(conv_param.in_data_type) + ConvDirectNaiveConvCompileOption(ctx);
+    std::string program_name      = ConvDirectNaiveConvKernelFile(ctx);
+    std::string kernel_name       = ConvDirectNaiveConvKernelName(ctx);
+    std::string options           = ConvDirectNaiveConvCompileOption(ctx);
     const size_t block_size       = 256;
     const size_t grid_size        = block_size * k;
     const std::vector<size_t> vld = {block_size, size_t{1}, size_t{1}};

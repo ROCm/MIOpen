@@ -91,7 +91,7 @@ std::string inline ConvDirectNaiveConvCompileOption(const miopen::ConvolutionCon
             return options.str();
         }
     }
-    return "";
+    return ctx.general_compile_options;
 }
 
 } // namespace miopen

@@ -80,7 +80,7 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ConvolutionContext& ctx) 
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    kernel.comp_options = ctx.general_compile_options + ConvDirectNaiveConvCompileOption(ctx);
+    kernel.comp_options = ConvDirectNaiveConvCompileOption(ctx);
 
     MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
 
