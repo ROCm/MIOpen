@@ -193,7 +193,7 @@ def buildCommandJob(cmd, image="miopen-static", prefixpath=""){
         }
         if(image == "")
         {
-            dockerArgs = dockerArgs + "-f static-test.docker "
+            dockerArgs = dockerArgs + "-f hcc-legacy.docker "
         }
 
         gitStatusWrapper(credentialsId: '7126e5fe-eb51-4576-b52b-9aaf1de8f0fd', gitHubContext: "Jenkins - ${variant}", account: 'ROCmSoftwarePlatform', repo: 'MIOpen') {
@@ -229,7 +229,7 @@ pipeline {
         stage("Static checks"){
             parallel{
                 stage('Clang Tidy') {
-                    agent{  label rocmnode("rocmtest") }
+                    agent{  label "rocmtest" }
                     environment{
                         cmd = "rm -rf build; mkdir build; cd build; CXX='clang++-3.8' cmake -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
                     }
@@ -239,7 +239,7 @@ pipeline {
                 }
 
                 stage('Clang Format') {
-                    agent{ label rocmnode("rocmtest") }
+                    agent{ label "rocmtest" }
                     environment{
                         cmd = "find . -iname \'*.h\' \
                                 -o -iname \'*.hpp\' \
@@ -257,12 +257,12 @@ pipeline {
                 }
 
                 stage('Hip Tidy') {
-                    agent{ label rocmnode("rocmtest") }
+                    agent{ label "rocmtest" }
                     environment{
-                        cmd = "rm -rf build; mkdir build; cd build; CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
+                        cmd = "rm -rf build; mkdir build; cd build;CXX=/usr/local/bin/hcc cmake -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
                     }
                     steps{
-                        buildCommandJob(cmd, "miopen-hip-clang")
+                        buildCommandJob(cmd)
                     }
                 }
             }

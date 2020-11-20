@@ -1,0 +1,97 @@
+FROM ubuntu:18.04
+
+ARG PREFIX=/usr/local
+ARG GPU_ARCH="all"
+
+# Support multiarch
+RUN dpkg --add-architecture i386
+
+# Add rocm repository
+RUN sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/.apt_3.3/ xenial main > /etc/apt/sources.list.d/rocm.list'
+
+# Install dependencies required to build hcc
+RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu xenial main universe | tee -a /etc/apt/sources.list"
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
+    apt-utils \
+    build-essential \
+    clang-3.8 \
+    clang-format-3.8 \
+    clang-tidy-3.8 \
+    cmake \
+    cmake-curses-gui \
+    comgr \
+    curl \
+    doxygen \
+    g++-5-multilib \
+    git \
+    hcc \
+    hsa-rocr-dev \
+    hsakmt-roct-dev \
+    lcov \
+    libelf-dev \
+    libfile-which-perl \
+    libncurses5-dev \
+    libpthread-stubs0-dev \
+    libnuma-dev \
+    libunwind-dev \
+    nsis \
+    python \
+    python-dev \
+    python-pip \
+    software-properties-common \
+    pkg-config \
+    python3 \
+    python3-distutils \
+    python3-venv \
+    python3-pip \
+    rocm-libs \
+    rocm-opencl \
+    rocm-opencl-dev \
+    vim \
+    wget  && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Setup ubsan environment to printstacktrace
+ENV UBSAN_OPTIONS=print_stacktrace=1
+
+ENV LC_ALL=C.UTF-8
+ENV LANG=C.UTF-8
+
+# Install an init system
+RUN wget https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.2.0_amd64.deb
+RUN dpkg -i dumb-init_*.deb && rm dumb-init_*.deb
+
+# Install cget
+RUN pip3 install cget
+
+# Install rclone
+RUN pip install https://github.com/pfultz2/rclone/archive/master.tar.gz
+
+# Add symlink to /opt/rocm
+RUN [ -d /opt/rocm ] || ln -sd $(realpath /opt/rocm-*) /opt/rocm
+
+# Make sure /opt/rocm is in the paths
+ENV PATH="/opt/rocm:${PATH}"
+
+RUN locale
+
+# Install doc requirements
+ADD doc/requirements.txt /doc-requirements.txt
+RUN pip install -r /doc-requirements.txt
+
+ENV LC_ALL=C.UTF-8
+ENV LANG=C.UTF-8
+
+# Install cget
+RUN pip3 install cget
+
+# Build using hip-clang
+RUN cget -p $PREFIX init --cxx g++ --std=c++14
+
+# Install dependencies
+ADD min-requirements.txt /min-requirements.txt
+ADD install_deps.cmake /install_deps.cmake
+RUN CXX=g++ cmake -P install_deps.cmake --minimum
+RUN cget -p $PREFIX install danmar/cppcheck@dd05839a7e63ef04afd34711cb3e1e0ef742882f
+
