@@ -28,9 +28,10 @@
 #include <string>
 #include <ostream>
 #include <miopen/problem_description.hpp>
+#include <miopen/conv/context.hpp>
+#include <miopen/gcn_asm_utils.hpp>
 
 namespace miopen {
-namespace solver {
 
 std::string inline ConvDirectNaiveConvKernelName(const miopen::ConvolutionContext& ctx)
 {
@@ -67,5 +68,30 @@ std::string inline ConvDirectNaiveConvKernelName(const miopen::ConvolutionContex
     return kernel_name.str();
 }
 
-} // namespace solver
+std::string inline ConvDirectNaiveConvKernelFile(const miopen::ConvolutionContext& ctx)
+{
+    const auto device_name = ctx.GetStream().GetDeviceName();
+    if(device_name == "gfx906" || device_name == "gfx908")
+    {
+        if(ctx.rmv.IsV3())
+            return "naive_conv_gcn.s";
+    }
+    return "naive_conv.cpp";
+}
+
+std::string inline ConvDirectNaiveConvCompileOption(const miopen::ConvolutionContext& ctx)
+{
+    const auto device_name = ctx.GetStream().GetDeviceName();
+    if(device_name == "gfx900" || device_name == "gfx906" || device_name == "gfx908")
+    {
+        if(ctx.rmv.IsV3())
+        {
+            std::ostringstream options;
+            GenerateClangDefsym(options, "ROCM_METADATA_VERSION", 5);
+            return options.str();
+        }
+    }
+    return "";
+}
+
 } // namespace miopen

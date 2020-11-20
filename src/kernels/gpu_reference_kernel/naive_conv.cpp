@@ -36,14 +36,14 @@ typedef union _cvt_bf16_fp32
     float f32;
 } _cvt_bf16_fp32_t;
 
-__device__ __host__ float __bfloat16_to_float(ushort src_val)
+inline __device__ __host__ float __bfloat16_to_float(ushort src_val)
 {
     _cvt_bf16_fp32_t target_val;
     target_val.ushortx2 = make_ushort2(0, src_val);
     return target_val.f32;
 }
 
-__device__ __host__ ushort __float_to_bfloat16(float src_val)
+inline __device__ __host__ ushort __float_to_bfloat16(float src_val)
 {
     _cvt_bf16_fp32_t target_val;
     target_val.f32 = src_val;

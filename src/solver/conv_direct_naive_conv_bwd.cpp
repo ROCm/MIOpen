@@ -60,15 +60,13 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ConvolutionContext& ctx) 
 {
     ConvSolution result;
 
-    std::string kernel_name = ConvDirectNaiveConvKernelName(ctx);
-
     int block_size = 256;
     int grid_size  = ctx.batch_sz * ctx.n_outputs; // batch * channel
 
     KernelInfo kernel;
 
-    kernel.kernel_file = "naive_conv.cpp";
-    kernel.kernel_name = kernel_name;
+    kernel.kernel_file = ConvDirectNaiveConvKernelFile(ctx);
+    kernel.kernel_name = ConvDirectNaiveConvKernelName(ctx);
     kernel.g_wk.clear();
     /* Note here, for API like hipHccModuleLaunchKernel(), hipExtModuleLaunchKernel()
     * grid dims is in unit of work item.
@@ -82,7 +80,7 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ConvolutionContext& ctx) 
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    kernel.comp_options = ctx.general_compile_options;
+    kernel.comp_options = ctx.general_compile_options + ConvDirectNaiveConvCompileOption(ctx);
 
     MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
 

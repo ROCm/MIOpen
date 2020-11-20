@@ -31,139 +31,11 @@
 #include <miopen/tensor.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/problem_description.hpp>
+#include <miopen/conv/conv_direct_naive_conv.hpp>
 
 namespace miopen {
 
-static std::string getKernelName(const ProblemDescription& conv_param)
-{
-    std::string kernel_name("n/a");
-    if(conv_param.direction.IsForward())
-    {
-        if(conv_param.in_layout == "NCHW")
-        {
-            if(conv_param.in_data_type == miopenFloat)
-            {
-                kernel_name = "naive_conv_fwd_nchw_fp32";
-            }
-            else if(conv_param.in_data_type == miopenHalf)
-            {
-                kernel_name = "naive_conv_fwd_nchw_fp16";
-            }
-            else if(conv_param.in_data_type == miopenBFloat16)
-            {
-                kernel_name = "naive_conv_fwd_nchw_bf16";
-            }
-            else
-            {
-                MIOPEN_LOG_E("unsupported datatype:" << conv_param.in_data_type);
-            }
-        }
-        else if(conv_param.in_layout == "NCDHW")
-        {
-            if(conv_param.in_data_type == miopenFloat)
-            {
-                kernel_name = "naive_conv_fwd_ncdhw_fp32";
-            }
-            else if(conv_param.in_data_type == miopenHalf)
-            {
-                kernel_name = "naive_conv_fwd_ncdhw_fp16";
-            }
-            else if(conv_param.in_data_type == miopenBFloat16)
-            {
-                kernel_name = "naive_conv_fwd_ncdhw_bf16";
-            }
-            else
-            {
-                MIOPEN_LOG_E("unsupported datatype:" << conv_param.in_data_type);
-            }
-        }
-    }
-    else if(conv_param.direction.IsBackwardData())
-    {
-        if(conv_param.in_layout == "NCHW")
-        {
-            if(conv_param.in_data_type == miopenFloat)
-            {
-                kernel_name = "naive_conv_bwd_nchw_fp32";
-            }
-            else if(conv_param.in_data_type == miopenHalf)
-            {
-                kernel_name = "naive_conv_bwd_nchw_fp16";
-            }
-            else if(conv_param.in_data_type == miopenBFloat16)
-            {
-                kernel_name = "naive_conv_bwd_nchw_bf16";
-            }
-            else
-            {
-                MIOPEN_LOG_E("unsupported datatype:" << conv_param.in_data_type);
-            }
-        }
-        else if(conv_param.in_layout == "NCDHW")
-        {
-            if(conv_param.in_data_type == miopenFloat)
-            {
-                kernel_name = "naive_conv_bwd_ncdhw_fp32";
-            }
-            else if(conv_param.in_data_type == miopenHalf)
-            {
-                kernel_name = "naive_conv_bwd_ncdhw_fp16";
-            }
-            else if(conv_param.in_data_type == miopenBFloat16)
-            {
-                kernel_name = "naive_conv_bwd_ncdhw_bf16";
-            }
-            else
-            {
-                MIOPEN_LOG_E("unsupported datatype:" << conv_param.in_data_type);
-            }
-        }
-    }
-    else if(conv_param.direction.IsBackwardWrW())
-    {
-        if(conv_param.in_layout == "NCHW")
-        {
-            if(conv_param.in_data_type == miopenFloat)
-            {
-                kernel_name = "naive_conv_wrw_nchw_fp32";
-            }
-            else if(conv_param.in_data_type == miopenHalf)
-            {
-                kernel_name = "naive_conv_wrw_nchw_fp16";
-            }
-            else if(conv_param.in_data_type == miopenBFloat16)
-            {
-                kernel_name = "naive_conv_wrw_nchw_bf16";
-            }
-            else
-            {
-                MIOPEN_LOG_E("unsupported datatype:" << conv_param.in_data_type);
-            }
-        }
-        else if(conv_param.in_layout == "NCDHW")
-        {
-            if(conv_param.in_data_type == miopenFloat)
-            {
-                kernel_name = "naive_conv_wrw_ncdhw_fp32";
-            }
-            else if(conv_param.in_data_type == miopenHalf)
-            {
-                kernel_name = "naive_conv_wrw_ncdhw_fp16";
-            }
-            else if(conv_param.in_data_type == miopenBFloat16)
-            {
-                kernel_name = "naive_conv_wrw_ncdhw_bf16";
-            }
-            else
-            {
-                MIOPEN_LOG_E("unsupported datatype:" << conv_param.in_data_type);
-            }
-        }
-    }
-    return kernel_name;
-}
-
-void GPUReferenceConvolutionForward(const Handle& handle,
+void GPUReferenceConvolutionForward(Handle& handle,
                                     const ProblemDescription& conv_param,
                                     ConstData_t input_data,
                                     ConstData_t weight_data,
@@ -205,19 +77,20 @@ void GPUReferenceConvolutionForward(const Handle& handle,
     int k_per_group = k / group;
     // clang-format on
 
-    std::string program_name      = "naive_conv.cpp";
-    std::string kernel_name       = getKernelName(conv_param);
+    auto ctx = ConvolutionContext{conv_param};
+    ctx.SetStream(&handle);
+    ctx.DetectRocm();
+
+    std::string program_name = ConvDirectNaiveConvKernelFile(ctx);
+    std::string kernel_name  = ConvDirectNaiveConvKernelName(ctx);
+    std::string options =
+        GetDataTypeKernelParams(conv_param.in_data_type) + ConvDirectNaiveConvCompileOption(ctx);
     const size_t block_size       = 256;
     const size_t grid_size        = block_size * n * k;
     const std::vector<size_t> vld = {block_size, size_t{1}, size_t{1}};
     const std::vector<size_t> vgd = {grid_size, size_t{1}, size_t{1}};
-    auto kernel                   = handle.AddKernel("GPUReferenceConvolutionForward",
-                                   "",
-                                   program_name,
-                                   kernel_name,
-                                   vld,
-                                   vgd,
-                                   GetDataTypeKernelParams(conv_param.in_data_type));
+    auto kernel                   = handle.AddKernel(
+        "GPUReferenceConvolutionForward", "", program_name, kernel_name, vld, vgd, options);
 
     MIOPEN_LOG_I2(" kernel_name:" << kernel_name << ", block_size:" << block_size << ", grid_size:"
                                   << grid_size);
@@ -282,7 +155,7 @@ void GPUReferenceConvolutionForward(const Handle& handle,
     }
 }
 
-void GPUReferenceConvolutionBackwardData(const Handle& handle,
+void GPUReferenceConvolutionBackwardData(Handle& handle,
                                          const ProblemDescription& conv_param,
                                          Data_t input_data,
                                          ConstData_t weight_data,
@@ -324,19 +197,20 @@ void GPUReferenceConvolutionBackwardData(const Handle& handle,
     int k_per_group = k / group;
     // clang-format on
 
-    std::string program_name      = "naive_conv.cpp";
-    std::string kernel_name       = getKernelName(conv_param);
+    auto ctx = ConvolutionContext{conv_param};
+    ctx.SetStream(&handle);
+    ctx.DetectRocm();
+
+    std::string program_name = ConvDirectNaiveConvKernelFile(ctx);
+    std::string kernel_name  = ConvDirectNaiveConvKernelName(ctx);
+    std::string options =
+        GetDataTypeKernelParams(conv_param.in_data_type) + ConvDirectNaiveConvCompileOption(ctx);
     const size_t block_size       = 256;
     const size_t grid_size        = block_size * n * c;
     const std::vector<size_t> vld = {block_size, size_t{1}, size_t{1}};
     const std::vector<size_t> vgd = {grid_size, size_t{1}, size_t{1}};
-    auto kernel                   = handle.AddKernel("GPUReferenceConvolutionBackwardData",
-                                   "",
-                                   program_name,
-                                   kernel_name,
-                                   vld,
-                                   vgd,
-                                   GetDataTypeKernelParams(conv_param.in_data_type));
+    auto kernel                   = handle.AddKernel(
+        "GPUReferenceConvolutionBackwardData", "", program_name, kernel_name, vld, vgd, options);
 
     MIOPEN_LOG_I2(" kernel_name:" << kernel_name << ", block_size:" << block_size << ", grid_size:"
                                   << grid_size);
@@ -401,7 +275,7 @@ void GPUReferenceConvolutionBackwardData(const Handle& handle,
     }
 }
 
-void GPUReferenceConvolutionBackwardWeights(const Handle& handle,
+void GPUReferenceConvolutionBackwardWeights(Handle& handle,
                                             const ProblemDescription& conv_param,
                                             ConstData_t input_data,
                                             Data_t weight_data,
@@ -443,19 +317,20 @@ void GPUReferenceConvolutionBackwardWeights(const Handle& handle,
     int k_per_group = k / group;
     // clang-format on
 
-    std::string program_name      = "naive_conv.cpp";
-    std::string kernel_name       = getKernelName(conv_param);
+    auto ctx = ConvolutionContext{conv_param};
+    ctx.SetStream(&handle);
+    ctx.DetectRocm();
+
+    std::string program_name = ConvDirectNaiveConvKernelFile(ctx);
+    std::string kernel_name  = ConvDirectNaiveConvKernelName(ctx);
+    std::string options =
+        GetDataTypeKernelParams(conv_param.in_data_type) + ConvDirectNaiveConvCompileOption(ctx);
     const size_t block_size       = 256;
     const size_t grid_size        = block_size * k;
     const std::vector<size_t> vld = {block_size, size_t{1}, size_t{1}};
     const std::vector<size_t> vgd = {grid_size, size_t{1}, size_t{1}};
-    auto kernel                   = handle.AddKernel("GPUReferenceConvolutionBackwardWeight",
-                                   "",
-                                   program_name,
-                                   kernel_name,
-                                   vld,
-                                   vgd,
-                                   GetDataTypeKernelParams(conv_param.in_data_type));
+    auto kernel                   = handle.AddKernel(
+        "GPUReferenceConvolutionBackwardWeight", "", program_name, kernel_name, vld, vgd, options);
 
     MIOPEN_LOG_I2(" kernel_name:" << kernel_name << ", block_size:" << block_size << ", grid_size:"
                                   << grid_size);
