@@ -249,7 +249,7 @@ pipeline {
                                 -o -iname \'*.cpp.in\' \
                                 -o -iname \'*.cl\' \
                                 | grep -v 'build/' \
-                                | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-3.8 -style=file {} | diff - {}\'"
+                                | xargs -n 1 -P 1 -I{} -t sh -c \'/usr/bin/clang-format-3.8 -style=file {} | diff - {}\'"
                     }
                     steps{
                         buildCommandJob(cmd)
