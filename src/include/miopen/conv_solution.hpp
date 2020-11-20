@@ -52,6 +52,7 @@ struct ConvSolution
     /// \todo Use better name than construction_params.
     std::vector<KernelInfo> construction_params; // impl may consist of multiple kernels.
     miopenStatus_t status;
+    std::string performance_config;
     std::string solver_id;
     boost::optional<InvokerFactory> invoker_factory;
 

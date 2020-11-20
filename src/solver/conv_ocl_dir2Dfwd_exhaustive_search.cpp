@@ -128,7 +128,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig(const ConvolutionCo
 /*
 * Measure the current configuration performance.
 */
-template <typename Tgpu, class... Solvers>
+template <typename Tgpu>
 static int MeasurePerfConfig(const Handle& handle,
                              ConstData_t bot_ocl_buf,
                              Data_t top_ocl_buf,
@@ -136,25 +136,8 @@ static int MeasurePerfConfig(const Handle& handle,
                              ConstData_t bias_ocl_buf,
                              double& processing_time,
                              const ConvolutionContext& params,
-                             const LegacyPerformanceConfig& result)
+                             const ConvSolution& kernel_search_result)
 {
-    ConvSolution kernel_search_result{miopenStatusNotInitialized};
-
-    miopen::each_args(
-        [&](auto s) {
-            if(!kernel_search_result.Succeeded()) // once
-            {
-                if(s.IsApplicable(params))
-                {
-                    if(s.IsValidPerformanceConfig(params, result))
-                    {
-                        kernel_search_result = s.GetSolution(params, result);
-                    }
-                }
-            }
-        },
-        Solvers{}...);
-
     if(!kernel_search_result.Succeeded())
     {
         return 1;
@@ -167,7 +150,7 @@ static int MeasurePerfConfig(const Handle& handle,
     }
 #endif
 
-    MIOPEN_LOG_I2("Trying " << result);
+    MIOPEN_LOG_I2("Trying " << kernel_search_result.performance_config);
     const auto kernel_params     = kernel_search_result.construction_params[0];
     std::string compiler_options = params.general_compile_options + kernel_params.comp_options;
 
@@ -229,16 +212,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
 
     double processing_time = std::numeric_limits<double>::max();
 
-    LegacyPerformanceConfig candidate;
-    candidate.grp_tile0       = 16;
-    candidate.grp_tile1       = 16;
-    candidate.in_tile0        = 16;
-    candidate.in_tile1        = 16;
-    candidate.out_pix_tile0   = 1;
-    candidate.out_pix_tile1   = 1;
-    candidate.n_out_pix_tiles = 2;
-    candidate.n_in_data_tiles = 3;
-    candidate.n_stacks        = 1;
+    ConvSolution candidate;
 
 #if MIOPEN_ALLOC_BUFFERS
     miopen::Handle profile_h;
@@ -334,6 +308,9 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
 
     long long runs_left = 0, total_runs = 0;
 
+    std::vector<ConvSolution> all_solutions;
+
+    const auto default_config = GetPerformanceConfig(params);
     if(params.kernel_size_w == 1 && params.kernel_size_h == 1 &&
        params.group_counts == 1) // Group conv: None 1x1 version yet, fallback to universal kernel.
     {
@@ -418,7 +395,12 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
         }
 
         int version = result.out_pix_tile1;
-
+        
+        ConvOclDirectFwd1x1 solver{};
+        if(solver.IsValidPerformanceConfig(params, default_config))
+        {
+            all_solutions.push_back(solver.GetSolution(params, default_config));
+        }
         for(int g0 = 0; g0 < n_grp_tiles0; ++g0)
         {
             result.grp_tile0 = grp_tl_ln[g0];
@@ -447,70 +429,99 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
                         {
                             result.n_in_data_tiles = (1 << i_t);
                         }
-
-                        const auto ret =
-                            MeasurePerfConfig<Tgpu, ConvOclDirectFwd1x1>(profile_h,
-                                                                         bot_ocl_ptr,
-                                                                         top_ocl_ptr,
-                                                                         wei_ocl_ptr,
-                                                                         bias_ocl_ptr,
-                                                                         processing_time,
-                                                                         params,
-                                                                         result);
-                        --runs_left;
-                        if(ret != 0)
+                        if(solver.IsValidPerformanceConfig(params, result))
                         {
-                            ++failed_counter;
-                            continue;
+                            auto solution = solver.GetSolution(params, result);
+                            std::ostringstream os_params;
+                            result.Serialize(os_params);
+                            solution.performance_config = os_params.str();
+                            all_solutions.push_back(solution);
                         }
-
-                        is_passed = true;
-                        MIOPEN_LOG_T("##(n_current, n_failed, n_runs_total): " << run_counter
-                                                                               << " / "
-                                                                               << failed_counter
-                                                                               << " / "
-                                                                               << total_runs
-                                                                               << " elapsed_time: "
-                                                                               << processing_time
-                                                                               << " best_time: "
-                                                                               << processing_time
-                                                                               << ", "
-                                                                               << result);
-
-                        if(processing_time < min_proc_time)
-                        {
-                            MIOPEN_LOG_I('#' << run_counter << ' ' << processing_time << " < "
-                                             << min_proc_time
-                                             << ' '
-                                             << result);
-                            min_proc_time = processing_time;
-                            candidate     = result;
-                        }
-
-                        if(run_counter % report_inteval == 0)
-                        {
-                            MIOPEN_LOG_W("Runs left: " << runs_left << ", "
-                                                       << "min time so far: "
-                                                       << min_proc_time
-                                                       << ", "
-                                                       << "curr time: "
-                                                       << processing_time
-                                                       << ' '
-                                                       << result);
-                        }
-                        run_counter++;
                     }
                 }
             }
+        }
+// PrecompileKernels call saves to binary_cache, this needs to be escaped if KERN_CACHE is not on.
+#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
+        std::vector<KernelInfo> kernels;
+        for(const auto& current_solution : all_solutions)
+        {
+            for(auto&& kernel : current_solution.construction_params)
+            {
+                if(profile_h.HasProgram(kernel.kernel_file, kernel.comp_options))
+                    continue;
+                kernels.push_back(kernel);
+            }
+        }
+        std::ignore = PrecompileKernels(profile_h, kernels);
+#endif
+        for(const auto& current_solution : all_solutions)
+        {
+            const auto ret =
+                MeasurePerfConfig<Tgpu>(profile_h,
+                                        bot_ocl_ptr,
+                                        top_ocl_ptr,
+                                        wei_ocl_ptr,
+                                        bias_ocl_ptr,
+                                        processing_time,
+                                        params,
+                                        current_solution);
+            --runs_left;
+            if(ret != 0)
+            {
+                ++failed_counter;
+                continue;
+            }
+
+            is_passed = true;
+            MIOPEN_LOG_T("##(n_current, n_failed, n_runs_total): " << run_counter
+                                                                    << " / "
+                                                                    << failed_counter
+                                                                    << " / "
+                                                                    << total_runs
+                                                                    << " elapsed_time: "
+                                                                    << processing_time
+                                                                    << " best_time: "
+                                                                    << processing_time
+                                                                    << ", "
+                                                                    << current_solution.performance_config);
+
+            if(processing_time < min_proc_time)
+            {
+                MIOPEN_LOG_I('#' << run_counter << ' ' << processing_time << " < "
+                                    << min_proc_time
+                                    << ' '
+                                    << current_solution.performance_config);
+                min_proc_time = processing_time;
+                candidate     = current_solution;
+            }
+
+            if(run_counter % report_inteval == 0)
+            {
+                MIOPEN_LOG_W("Runs left: " << runs_left << ", "
+                                            << "min time so far: "
+                                            << min_proc_time
+                                            << ", "
+                                            << "curr time: "
+                                            << processing_time
+                                            << ' '
+                                            << current_solution.performance_config);
+            }
+            run_counter++;
         }
     }
     else
     {
         MIOPEN_LOG_W("Searching the best solution in the 9 dim space. Please, be patient...");
+        ConvOclDirectFwd solver{};
+        if(solver.IsValidPerformanceConfig(params, default_config))
+        {
+            all_solutions.push_back(solver.GetSolution(params, default_config));
+        }
         runs_left = /*n_grp_tiles * */ n_tiles_cnt * out_pix_tl_cnt * out_pix_tl_cnt * n_out_tls *
-                    n_in_tls * stack_cnt;
+                    n_in_tls * stack_cnt + 1;/*default solution*/
         total_runs = runs_left;
-
+        
         // tile1
         for(int j = 0; j < n_tile1_sz; ++j)
         {
@@ -602,61 +613,14 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
                                         --runs_left;
                                         continue;
                                     }
-
-                                    const auto ret =
-                                        MeasurePerfConfig<Tgpu, ConvOclDirectFwd>(profile_h,
-                                                                                  bot_ocl_ptr,
-                                                                                  top_ocl_ptr,
-                                                                                  wei_ocl_ptr,
-                                                                                  bias_ocl_ptr,
-                                                                                  processing_time,
-                                                                                  params,
-                                                                                  result);
-
-                                    --runs_left;
-                                    if(ret != 0)
+                                    if(solver.IsValidPerformanceConfig(params, result))
                                     {
-                                        ++failed_counter;
-                                        continue;
+                                        auto solution = solver.GetSolution(params, result);
+                                        std::ostringstream os_params;
+                                        result.Serialize(os_params);
+                                        solution.performance_config = os_params.str();
+                                        all_solutions.push_back(solution);
                                     }
-
-                                    is_passed = true;
-                                    MIOPEN_LOG_T("##(n_current, n_failed, n_runs_total): "
-                                                 << run_counter
-                                                 << " / "
-                                                 << failed_counter
-                                                 << " / "
-                                                 << total_runs
-                                                 << " elapsed_time: "
-                                                 << processing_time
-                                                 << " best_time: "
-                                                 << processing_time
-                                                 << ", "
-                                                 << result);
-
-                                    if(processing_time < min_proc_time)
-                                    {
-                                        MIOPEN_LOG_I('#' << run_counter << ' ' << processing_time
-                                                         << " < "
-                                                         << min_proc_time
-                                                         << ' '
-                                                         << result);
-                                        min_proc_time = processing_time;
-                                        candidate     = result;
-                                    }
-
-                                    if(run_counter % report_inteval == 0)
-                                    {
-                                        MIOPEN_LOG_W("Runs left: " << runs_left << ", "
-                                                                   << "min time so far: "
-                                                                   << min_proc_time
-                                                                   << ", "
-                                                                   << "curr time: "
-                                                                   << processing_time
-                                                                   << ' '
-                                                                   << result);
-                                    }
-                                    run_counter++;
                                 }
                             }
                         }
@@ -664,53 +628,80 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
                 }
             }
         }
-    }
-    // Compare search results vs. default performance config.
-    {
-        int ret                   = -1;
-        double default_time       = std::numeric_limits<double>::max();
-        const auto default_config = GetPerformanceConfig(params);
-        if(params.kernel_size_w == 1 && params.kernel_size_h == 1 &&
-           params.group_counts ==
-               1) // Group conv: None 1x1 version yet, fallback to universal kernel.
+// PrecompileKernels call saves to binary_cache, this needs to be escaped if KERN_CACHE is not on.
+#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
+        std::vector<KernelInfo> kernels;
+        for(const auto& current_solution : all_solutions)
         {
-            ret = MeasurePerfConfig<Tgpu, ConvOclDirectFwd1x1>(profile_h,
-                                                               bot_ocl_ptr,
-                                                               top_ocl_ptr,
-                                                               wei_ocl_ptr,
-                                                               bias_ocl_ptr,
-                                                               default_time,
-                                                               params,
-                                                               default_config);
-        }
-        else
-        {
-            ret = MeasurePerfConfig<Tgpu, ConvOclDirectFwd>(profile_h,
-                                                            bot_ocl_ptr,
-                                                            top_ocl_ptr,
-                                                            wei_ocl_ptr,
-                                                            bias_ocl_ptr,
-                                                            default_time,
-                                                            params,
-                                                            default_config);
-        }
-        if(ret == 0)
-        {
-            is_passed = true;
-            MIOPEN_LOG_W("Default run, min time so far: " << min_proc_time << ", default time: "
-                                                          << default_time
-                                                          << ' '
-                                                          << default_config);
-            if(min_proc_time > default_time)
+            for(auto&& kernel : current_solution.construction_params)
             {
-                MIOPEN_LOG_W("* * * Default time < min time, using default config * * *");
-                min_proc_time = default_time;
-                candidate     = default_config;
+                if(profile_h.HasProgram(kernel.kernel_file, kernel.comp_options))
+                    continue;
+                kernels.push_back(kernel);
             }
         }
-        MIOPEN_LOG_W("...Score: " << (default_time / min_proc_time));
+        std::ignore = PrecompileKernels(profile_h, kernels);
+#endif
+        for(const auto& current_solution : all_solutions)
+        {
+            const auto ret =
+                MeasurePerfConfig<Tgpu>(profile_h,
+                                        bot_ocl_ptr,
+                                        top_ocl_ptr,
+                                        wei_ocl_ptr,
+                                        bias_ocl_ptr,
+                                        processing_time,
+                                        params,
+                                        current_solution);
+
+            --runs_left;
+            if(ret != 0)
+            {
+                ++failed_counter;
+                continue;
+            }
+
+            is_passed = true;
+            MIOPEN_LOG_T("##(n_current, n_failed, n_runs_total): "
+                            << run_counter
+                            << " / "
+                            << failed_counter
+                            << " / "
+                            << total_runs
+                            << " elapsed_time: "
+                            << processing_time
+                            << " best_time: "
+                            << processing_time
+                            << ", "
+                            << current_solution.performance_config);
+
+            if(processing_time < min_proc_time)
+            {
+                MIOPEN_LOG_I('#' << run_counter << ' ' << processing_time
+                                    << " < "
+                                    << min_proc_time
+                                    << ' '
+                                    << current_solution.performance_config);
+                min_proc_time = processing_time;
+                candidate     = current_solution;
+            }
+
+            if(run_counter % report_inteval == 0)
+            {
+                MIOPEN_LOG_W("Runs left: " << runs_left << ", "
+                                            << "min time so far: "
+                                            << min_proc_time
+                                            << ", "
+                                            << "curr time: "
+                                            << processing_time
+                                            << ' '
+                                            << current_solution.performance_config);
+            }
+            run_counter++;
+        }
     }
-    result = candidate;
+
+    result.Deserialize(candidate.performance_config);
 
     if(!is_passed)
         MIOPEN_THROW("Search failed for ConvOclDirectFwdLegacyExhaustiveSearch");
