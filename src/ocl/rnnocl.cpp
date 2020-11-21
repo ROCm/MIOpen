@@ -36,6 +36,11 @@
 #include <numeric>
 #include <algorithm>
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wclang-diagnostic-missing-noreturn"
+#endif
+
 namespace miopen {
 
 // Assuming sequence length is set to > 0 otherwise throw exception.
@@ -4900,3 +4905,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 };
 
 } // namespace miopen
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif

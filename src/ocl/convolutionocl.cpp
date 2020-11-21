@@ -59,6 +59,11 @@
 
 #include <boost/range/adaptors.hpp>
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wclang-diagnostic-missing-noreturn"
+#endif
+
 namespace miopen {
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_GEMM)
@@ -3585,3 +3590,7 @@ void ConvolutionBackwardBias(const Handle& handle,
 }
 
 } // namespace miopen
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
