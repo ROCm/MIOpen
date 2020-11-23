@@ -59,11 +59,6 @@
 
 #include <boost/range/adaptors.hpp>
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wclang-diagnostic-missing-noreturn"
-#endif
-
 namespace miopen {
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_GEMM)
@@ -925,10 +920,10 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
     });
 }
 
-void ConvolutionDescriptor::ConvFwdGemm(Handle& handle,
-                                        const ConvFwdTensors& tensors,
-                                        Data_t workSpace,
-                                        std::size_t workSpaceSize) const
+[[noreturn]] void ConvolutionDescriptor::ConvFwdGemm(Handle& handle,
+                                                     const ConvFwdTensors& tensors,
+                                                     Data_t workSpace,
+                                                     std::size_t workSpaceSize) const
 {
 #if MIOPEN_USE_GEMM
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
@@ -2402,10 +2397,10 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         }
     });
 }
-void ConvolutionDescriptor::ConvBwdGemm(Handle& handle,
-                                        const ConvBwdTensors& tensors,
-                                        Data_t workSpace,
-                                        std::size_t workSpaceSize) const
+[[noreturn]] void ConvolutionDescriptor::ConvBwdGemm(Handle& handle,
+                                                     const ConvBwdTensors& tensors,
+                                                     Data_t workSpace,
+                                                     std::size_t workSpaceSize) const
 {
 #if MIOPEN_USE_GEMM
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
@@ -3152,10 +3147,10 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
     });
 }
 
-void ConvolutionDescriptor::BackwardWeightsGemm(Handle& handle,
-                                                const ConvWrwTensors& tensors,
-                                                Data_t workSpace,
-                                                std::size_t workSpaceSize) const
+[[noreturn]] void ConvolutionDescriptor::BackwardWeightsGemm(Handle& handle,
+                                                             const ConvWrwTensors& tensors,
+                                                             Data_t workSpace,
+                                                             std::size_t workSpaceSize) const
 {
 #if MIOPEN_USE_GEMM
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
@@ -3590,7 +3585,3 @@ void ConvolutionBackwardBias(const Handle& handle,
 }
 
 } // namespace miopen
-
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
