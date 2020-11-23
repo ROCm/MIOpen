@@ -240,6 +240,25 @@ ConvolutionDescriptor::FindDataImplicitGemmSolutions(Handle& handle,
     }
 }
 
+std::vector<miopen::solver::ConvSolution>
+ConvolutionDescriptor::FindFftSolutions(const ConvolutionContext& ctx,
+                                        const AnyInvokeParams& invoke_ctx) const
+{
+
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT{}))
+        return {};
+
+    try
+    {
+        return FindAllFFTSolutions(ctx, invoke_ctx);
+    }
+    catch(miopen::Exception& ex)
+    {
+        MIOPEN_LOG_WE(ex.what());
+        return {};
+    }
+}
+
 template <class InvokeParams>
 static void EvaluateInvokers(Handle& handle,
                              const std::vector<solver::ConvSolution>& solutions,
@@ -669,7 +688,7 @@ static void DirConvFindCore(Handle& handle,
                 handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx);
             const auto implictgemm_solutions = conv.FindDataImplicitGemmSolutions(
                 handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx);
-            const auto fft_solutions = FindAllFFTSolutions(ctx, invoke_ctx);
+            const auto fft_solutions = conv.FindFftSolutions(ctx, invoke_ctx);
             all_solutions.insert(
                 all_solutions.end(), direct_solutions.begin(), direct_solutions.end());
             all_solutions.insert(
@@ -2056,7 +2075,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                         handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, bufs, invoke_ctx);
                     const auto implictgemm_solutions = this->FindDataImplicitGemmSolutions(
                         handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, bufs, invoke_ctx);
-                    const auto fft_solutions = FindAllFFTSolutions(ctx, invoke_ctx);
+                    const auto fft_solutions = FindFftSolutions(ctx, invoke_ctx);
                     all_solutions.insert(
                         all_solutions.end(), direct_solutions.begin(), direct_solutions.end());
                     all_solutions.insert(all_solutions.end(),
