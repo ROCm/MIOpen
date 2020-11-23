@@ -392,24 +392,24 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     float lowp_quant; // quantization factor for low precision
 
     private:
-    void ConvFwdGemm(Handle& handle,
-                     const ConvFwdTensors& tensors,
-                     Data_t workSpace,
-                     std::size_t workSpaceSize) const;
+    [[noreturn]] void ConvFwdGemm(Handle& handle,
+                                  const ConvFwdTensors& tensors,
+                                  Data_t workSpace,
+                                  std::size_t workSpaceSize) const;
 
-    void ConvBwdGemm(Handle& handle,
-                     const struct ConvBwdTensors& tensors,
-                     Data_t workSpace,
-                     std::size_t workSpaceSize) const;
+    [[noreturn]] void ConvBwdGemm(Handle& handle,
+                                  const struct ConvBwdTensors& tensors,
+                                  Data_t workSpace,
+                                  std::size_t workSpaceSize) const;
 
     ProblemDescription MakeWrwProblem(const TensorDescriptor& dyDesc,
                                       const TensorDescriptor& xDesc,
                                       const TensorDescriptor& dwDesc) const;
 
-    void BackwardWeightsGemm(Handle& handle,
-                             const ConvWrwTensors& tensors,
-                             Data_t workSpace,
-                             std::size_t workSpaceSize) const;
+    [[noreturn]] void BackwardWeightsGemm(Handle& handle,
+                                          const ConvWrwTensors& tensors,
+                                          Data_t workSpace,
+                                          std::size_t workSpaceSize) const;
 
     template <class TKernels>
     void BackwardWeightsDirect(Handle& handle,
