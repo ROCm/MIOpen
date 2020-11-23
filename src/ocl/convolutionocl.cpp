@@ -342,7 +342,7 @@ static void DirConvFindCore(Handle& handle,
                             const ConvolutionDescriptor& conv,
                             bool exhaustiveSearch,
                             DbRecord& record,
-                            const ConvolutionContext& ctx,
+                            ConvolutionContext& ctx, // non-const only for use_winograd_only hack.
                             bool use_winograd_only)
 {
     AutoEnableProfiling enableProfiling{handle};
@@ -679,7 +679,10 @@ static void DirConvFindCore(Handle& handle,
     // In order to make full use of hardware performance, we first find all sollutions
     // before parallel compiling these solutions.
     {
-        all_solutions = conv.FindWinogradSolutions(ctx, invoke_ctx);
+        all_solutions = !use_winograd_only ? conv.FindWinogradSolutions(ctx, invoke_ctx) : [&]() {
+            AutoUseFastDynamicSolutions tmp{ctx};
+            return conv.FindWinogradSolutions(ctx, invoke_ctx);
+        }();
         if(!use_winograd_only)
         {
             ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
@@ -2066,7 +2069,11 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             // In order to make full use of hardware performance, we first find all sollutions
             // before parallel compiling these solutions.
             {
-                all_solutions = FindWinogradSolutions(ctx, invoke_ctx);
+                all_solutions =
+                    !use_winograd_only ? FindWinogradSolutions(ctx, invoke_ctx) : [&]() {
+                        AutoUseFastDynamicSolutions tmp{ctx};
+                        return FindWinogradSolutions(ctx, invoke_ctx);
+                    }();
                 if(!use_winograd_only)
                 {
                     ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
