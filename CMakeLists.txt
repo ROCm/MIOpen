@@ -406,6 +406,8 @@ enable_clang_tidy(
         -clang-diagnostic-deprecated-declarations
         -clang-diagnostic-extern-c-compat
         -clang-diagnostic-unused-command-line-argument
+        -clang-diagnostic-unreachable-code-return
+        -clang-diagnostic-unreachable-code-break
         -cppcoreguidelines-avoid-c-arrays
         -cppcoreguidelines-avoid-magic-numbers
         -cppcoreguidelines-explicit-virtual-functions
