@@ -31,6 +31,7 @@
 #include <miopen/hipoc_program.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/kernel_warnings.hpp>
+#include <miopen/logger.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/tmp_dir.hpp>
 #include <miopen/write_file.hpp>
@@ -44,7 +45,14 @@
 
 #include <unistd.h>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_ENFORCE_COV3)
+/// 0 or undef or wrong - auto-detect
+/// 1 - <blank> / "-Xclang -target-feature -Xclang +code-object-v3"
+/// 2 - "-Xclang -target-feature -Xclang -code-object-v3" /
+///     "-Xclang -target-feature -Xclang +code-object-v3"
+/// 3 - "-mnocode-object-v3" / "-mcode-object-v3"
+/// 4 - "-mcode-object-version=2/3/4"
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_OPTION)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 
 #define MIOPEN_WORKAROUND_SWDEV_225285 1
@@ -58,31 +66,85 @@ namespace miopen {
 #if !MIOPEN_USE_COMGR
 namespace {
 
-inline bool ProduceCoV3()
+int DetectCodeObjectOptionSyntax()
 {
-    // If env.var is set, then let's simply follow it.
-    if(IsEnabled(MIOPEN_DEBUG_OPENCL_ENFORCE_COV3{}))
-        return true;
-    if(IsDisabled(MIOPEN_DEBUG_OPENCL_ENFORCE_COV3{}))
-        return false;
-    // Otherwise, let's assume that OpenCL kernels shall be compiled to
-    // CO v3 format by default since ROCm 3.0. The simplest way to find out
-    // this right now is checking the HIP compiler version string.
-    return (HipCompilerVersion() >= external_tool_version_t{3, 0, -1});
+    auto syntax = miopen::Value(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_OPTION{});
+    if(syntax > 4)
+    {
+        MIOPEN_LOG_E("Bad MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_OPTION, using default");
+        syntax = 0;
+    }
+
+    if(syntax == 0)
+    {
+        if(HipCompilerVersion() >= external_tool_version_t{4, 0, 999999}) /// \ todo
+            return 4;
+        else
+            return 1;
+    }
+    MIOPEN_LOG_I("MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_OPTION=" << syntax);
+    return syntax;
 }
 
-/// Returns option for enabling/disabling CO v3 generation for the compiler
-/// that builds OpenCL kernels, depending on compiler version etc.
-inline const std::string& GetCoV3Option(const bool enable)
+int DetectCodeObjectVersion()
 {
-    // These options are Ok for ROCm for a long time (since 2.5 or so):
-    static const std::string opt_enable{"-Xclang -target-feature -Xclang +code-object-v3"};
-    static const std::string opt_disable{}; // CO v2 is compiler default.
-    if(enable)
-        return opt_enable;
-    else
-        return opt_disable;
+    auto co_version = miopen::Value(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION{});
+    // Very basic syntax check:
+    if(co_version == 1 || co_version > 4)
+    {
+        MIOPEN_LOG_E("Bad MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION, using default");
+        co_version = 0;
+    }
+
+    if(co_version == 0)
+    {
+        if(HipCompilerVersion() >= external_tool_version_t{4, 0, 999999}) /// \ todo
+            return 4;
+        else if(HipCompilerVersion() >= external_tool_version_t{3, 0, -1})
+            return 3;
+        else
+            return 2;
+    }
+    MIOPEN_LOG_I("MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION=" << co_version);
+    return co_version;
 }
+
+std::string GetCodeObjectVersionOptionImpl()
+{
+    const auto co_version = DetectCodeObjectVersion();
+    const auto syntax     = DetectCodeObjectOptionSyntax();
+
+    if(syntax == 4)
+    {
+        return std::string("-mcode-object-version=") + std::to_string(co_version);
+    }
+    else if(syntax == 3)
+    {
+        switch(co_version)
+        {
+        case 2: return {"-mnocode-object-v3"};
+        default: // Fall through.
+        case 3: return {"-mcode-object-v3"};
+        }
+    }
+    else // syntax == 1 or 2
+    {
+        switch(co_version)
+        {
+        // These options are Ok for ROCm for a long time (since 2.5 or so):
+        case 2: return {(syntax == 1) ? "" : "-Xclang -target-feature -Xclang -code-object-v3"};
+        default: // Fall through.
+        case 3: return {"-Xclang -target-feature -Xclang +code-object-v3"};
+        }
+    }
+}
+
+inline std::string GetCodeObjectVersionOption()
+{
+    static const auto option = GetCodeObjectVersionOptionImpl();
+    return option;
+}
+
 } // namespace
 #endif
 
@@ -187,7 +249,7 @@ struct HIPOCProgramImpl
         }
         else
         {
-            params += " " + GetCoV3Option(ProduceCoV3());
+            params += " " + GetCodeObjectVersionOption();
             WriteFile(src, dir->path / filename);
             dir->Execute(HIP_OC_COMPILER, params + " " + filename + " -o " + hsaco_file.string());
         }
