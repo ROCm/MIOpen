@@ -657,44 +657,53 @@ static void DirConvFindCore(Handle& handle,
 
     std::vector<miopen::solver::ConvSolution> all_solutions;
 
-    //In order to make full use of hardware performance, we first find all sollutions
-    //before parallel compiling these solutions.
+    // In order to make full use of hardware performance, we first find all sollutions
+    // before parallel compiling these solutions.
     {
         all_solutions = conv.FindWinogradSolutions(ctx, invoke_ctx);
         if(!use_winograd_only)
         {
             ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
             bufs.SetFwd(x, w, y);
-            const auto direct_solutions      = conv.FindDataDirectSolutions(
+            const auto direct_solutions = conv.FindDataDirectSolutions(
                 handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx);
             const auto implictgemm_solutions = conv.FindDataImplicitGemmSolutions(
                 handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx);
-            const auto fft_solutions         = FindAllFFTSolutions(ctx, invoke_ctx);
-            all_solutions.insert(all_solutions.end(), direct_solutions.begin(), direct_solutions.end());
-            all_solutions.insert(all_solutions.end(), implictgemm_solutions.begin(), implictgemm_solutions.end());
+            const auto fft_solutions = FindAllFFTSolutions(ctx, invoke_ctx);
+            all_solutions.insert(
+                all_solutions.end(), direct_solutions.begin(), direct_solutions.end());
+            all_solutions.insert(
+                all_solutions.end(), implictgemm_solutions.begin(), implictgemm_solutions.end());
             all_solutions.insert(all_solutions.end(), fft_solutions.begin(), fft_solutions.end());
         }
     }
 
-    //Precompile Solutions
+    // Precompile Solutions
     {
         PrecompileSolutions(handle, all_solutions);
     }
 
-    //Evaluate Invokers
+    // Evaluate Invokers
     auto iter_start = all_solutions.begin();
-    auto iter = all_solutions.begin();
-    std::string algo_name = solver::Id(iter_start->solver_id).GetAlgo(ctx.conv_problem.GetDirection());
+    auto iter       = all_solutions.begin();
+    std::string algo_name =
+        solver::Id(iter_start->solver_id).GetAlgo(ctx.conv_problem.GetDirection());
     for(; iter != all_solutions.end(); ++iter)
     {
         if(solver::Id(iter->solver_id).GetAlgo(ctx.conv_problem.GetDirection()) != algo_name)
         {
-            EvaluateInvokers(handle, {iter_start, iter}, AlgorithmName(algo_name), network_config, invoke_ctx, record);
+            EvaluateInvokers(handle,
+                             {iter_start, iter},
+                             AlgorithmName(algo_name),
+                             network_config,
+                             invoke_ctx,
+                             record);
             iter_start = iter;
-            algo_name = solver::Id(iter_start->solver_id).GetAlgo(ctx.conv_problem.GetDirection());
+            algo_name  = solver::Id(iter_start->solver_id).GetAlgo(ctx.conv_problem.GetDirection());
         }
     }
-    EvaluateInvokers(handle, {iter_start, iter}, AlgorithmName(algo_name), network_config, invoke_ctx, record);
+    EvaluateInvokers(
+        handle, {iter_start, iter}, AlgorithmName(algo_name), network_config, invoke_ctx, record);
 }
 
 void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
@@ -2035,44 +2044,61 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
             std::vector<miopen::solver::ConvSolution> all_solutions;
 
-            //In order to make full use of hardware performance, we first find all sollutions
-            //before parallel compiling these solutions.
+            // In order to make full use of hardware performance, we first find all sollutions
+            // before parallel compiling these solutions.
             {
                 all_solutions = FindWinogradSolutions(ctx, invoke_ctx);
                 if(!use_winograd_only)
                 {
                     ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
                     bufs.SetBwd(dx, w, dy);
-                    const auto direct_solutions      = FindDataDirectSolutions(
+                    const auto direct_solutions = FindDataDirectSolutions(
                         handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, bufs, invoke_ctx);
                     const auto implictgemm_solutions = this->FindDataImplicitGemmSolutions(
                         handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, bufs, invoke_ctx);
-                    const auto fft_solutions         = FindAllFFTSolutions(ctx, invoke_ctx);
-                    all_solutions.insert(all_solutions.end(), direct_solutions.begin(), direct_solutions.end());
-                    all_solutions.insert(all_solutions.end(), implictgemm_solutions.begin(), implictgemm_solutions.end());
-                    all_solutions.insert(all_solutions.end(), fft_solutions.begin(), fft_solutions.end());
+                    const auto fft_solutions = FindAllFFTSolutions(ctx, invoke_ctx);
+                    all_solutions.insert(
+                        all_solutions.end(), direct_solutions.begin(), direct_solutions.end());
+                    all_solutions.insert(all_solutions.end(),
+                                         implictgemm_solutions.begin(),
+                                         implictgemm_solutions.end());
+                    all_solutions.insert(
+                        all_solutions.end(), fft_solutions.begin(), fft_solutions.end());
                 }
             }
 
-            //Precompile Solutions
+            // Precompile Solutions
             {
                 PrecompileSolutions(handle, all_solutions);
             }
 
-            //Evaluate Invokers
+            // Evaluate Invokers
             auto iter_start = all_solutions.begin();
-            auto iter = all_solutions.begin();
-            std::string algo_name = solver::Id(iter_start->solver_id).GetAlgo(ctx.conv_problem.GetDirection());
+            auto iter       = all_solutions.begin();
+            std::string algo_name =
+                solver::Id(iter_start->solver_id).GetAlgo(ctx.conv_problem.GetDirection());
             for(; iter != all_solutions.end(); ++iter)
             {
-                if(solver::Id(iter->solver_id).GetAlgo(ctx.conv_problem.GetDirection()) != algo_name)
+                if(solver::Id(iter->solver_id).GetAlgo(ctx.conv_problem.GetDirection()) !=
+                   algo_name)
                 {
-                    EvaluateInvokers(handle, {iter_start, iter}, AlgorithmName(algo_name), network_config, invoke_ctx, record);
+                    EvaluateInvokers(handle,
+                                     {iter_start, iter},
+                                     AlgorithmName(algo_name),
+                                     network_config,
+                                     invoke_ctx,
+                                     record);
                     iter_start = iter;
-                    algo_name = solver::Id(iter_start->solver_id).GetAlgo(ctx.conv_problem.GetDirection());
+                    algo_name =
+                        solver::Id(iter_start->solver_id).GetAlgo(ctx.conv_problem.GetDirection());
                 }
             }
-            EvaluateInvokers(handle, {iter_start, iter}, AlgorithmName(algo_name), network_config, invoke_ctx, record);
+            EvaluateInvokers(handle,
+                             {iter_start, iter},
+                             AlgorithmName(algo_name),
+                             network_config,
+                             invoke_ctx,
+                             record);
 
 #if MIOPEN_USE_GEMM
             if(!use_winograd_only && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) &&
@@ -3032,41 +3058,58 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
             {
                 const auto direct_solutions = FindAllBwdWrW2DSolutions(ctx, invoke_ctx);
-                all_solutions.insert(all_solutions.end(), direct_solutions.begin(), direct_solutions.end());
+                all_solutions.insert(
+                    all_solutions.end(), direct_solutions.begin(), direct_solutions.end());
             }
 
             if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{}))
             {
                 const auto winograd_solutions = FindWinogradWrWAllSolutions(ctx, invoke_ctx);
-                all_solutions.insert(all_solutions.end(), winograd_solutions.begin(), winograd_solutions.end());
+                all_solutions.insert(
+                    all_solutions.end(), winograd_solutions.begin(), winograd_solutions.end());
             }
 
             // Implicit GEMM
             if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{}))
             {
                 const auto implictgemm_solutions = FindImplicitGemmWrWAllSolutions(ctx, invoke_ctx);
-                all_solutions.insert(all_solutions.end(), implictgemm_solutions.begin(), implictgemm_solutions.end());
+                all_solutions.insert(all_solutions.end(),
+                                     implictgemm_solutions.begin(),
+                                     implictgemm_solutions.end());
             }
 
-            //Precompile Solutions
+            // Precompile Solutions
             {
                 PrecompileSolutions(handle, all_solutions);
             }
 
-            //Evaluate Invokers
+            // Evaluate Invokers
             auto iter_start = all_solutions.begin();
-            auto iter = all_solutions.begin();
-            std::string algo_name = solver::Id(iter_start->solver_id).GetAlgo(ctx.conv_problem.GetDirection());
+            auto iter       = all_solutions.begin();
+            std::string algo_name =
+                solver::Id(iter_start->solver_id).GetAlgo(ctx.conv_problem.GetDirection());
             for(; iter != all_solutions.end(); ++iter)
             {
-                if(solver::Id(iter->solver_id).GetAlgo(ctx.conv_problem.GetDirection()) != algo_name)
+                if(solver::Id(iter->solver_id).GetAlgo(ctx.conv_problem.GetDirection()) !=
+                   algo_name)
                 {
-                    EvaluateInvokers(handle, {iter_start, iter}, AlgorithmName(algo_name), network_config, invoke_ctx, record);
+                    EvaluateInvokers(handle,
+                                     {iter_start, iter},
+                                     AlgorithmName(algo_name),
+                                     network_config,
+                                     invoke_ctx,
+                                     record);
                     iter_start = iter;
-                    algo_name = solver::Id(iter_start->solver_id).GetAlgo(ctx.conv_problem.GetDirection());
+                    algo_name =
+                        solver::Id(iter_start->solver_id).GetAlgo(ctx.conv_problem.GetDirection());
                 }
             }
-            EvaluateInvokers(handle, {iter_start, iter}, AlgorithmName(algo_name), network_config, invoke_ctx, record);
+            EvaluateInvokers(handle,
+                             {iter_start, iter},
+                             AlgorithmName(algo_name),
+                             network_config,
+                             invoke_ctx,
+                             record);
         });
     }
 
