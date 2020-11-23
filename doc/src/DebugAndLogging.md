@@ -107,7 +107,8 @@ Winograd  Solutions:
   * `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW` - FP32 F(3,2) WrW convolutions only.
   * `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_FWD_BWD` - FP32/FP16 F(3,3) Fwd/Bwd.
 * `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2` - `ConvBinWinogradRxSf3x2`, FP32/FP16 Fwd/Bwd F(3,2) Winograd.
-* `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3` - `ConvBinWinogradRxSf2x3`, FP32/FP16 Fwd/Bwd F(2,3) Winograd.
+* `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3` - `ConvBinWinogradRxSf2x3`, FP32/FP16 Fwd/Bwd F(2,3) Winograd, serves group convolutions only.
+* `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1` - `ConvBinWinogradRxSf2x3g1`, FP32/FP16 Fwd/Bwd F(2,3) Winograd, for non-group convolutions.
 
 * Multi-pass Winograd:
   * `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X2` - `ConvWinograd3x3MultipassWrW<3-2>`, WrW F(3,2), stride 2 only.
