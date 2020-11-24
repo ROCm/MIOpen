@@ -409,6 +409,7 @@ enable_clang_tidy(
         -clang-diagnostic-unreachable-code-return
         -clang-diagnostic-unreachable-code-break
         -clang-diagnostic-invalid-noreturn
+	-clang-diagnostic-missing-noreturn
         -cppcoreguidelines-avoid-c-arrays
         -cppcoreguidelines-avoid-magic-numbers
         -cppcoreguidelines-explicit-virtual-functions
