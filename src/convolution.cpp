@@ -25,7 +25,6 @@
  *******************************************************************************/
 #include <miopen/convolution.hpp>
 
-#include <miopen/algorithm.hpp>
 #include <miopen/config.h>
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
@@ -52,6 +51,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_WINOGRAD)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_GEMM)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_FFT)
 
 // Workaround for issue 1430.
 // Vega20 fails to access GPU memory larger than the return value of GetMaxMemoryAllocSize() of
@@ -428,15 +428,12 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
     ctx.do_search             = false;
     ctx.disable_perfdb_access = true;
 
-    const size_t workspace_size_winograd = ForwardBackwardDataGetWorkSpaceSizeWinograd(ctx);
-
     if(IsWinograd3x3SupportedAndFast(ctx))
     {
-        // In some cases ConvMPBidirectWinograd solution faster than single pass
-        // versions and it requires non zero workspace.
-        // So we can't send 0 and cut off the potentially fastest solution.
-        MIOPEN_LOG_I2(workspace_size_winograd);
-        return workspace_size_winograd;
+        AutoUseFastDynamicSolutions tmp{ctx};
+        const auto ws = ForwardBackwardDataGetWorkSpaceSizeWinograd(ctx);
+        MIOPEN_LOG_I2(ws);
+        return ws;
     }
 
     /// \ref ffind_special_cases
@@ -468,8 +465,8 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         return sol.workspace_size;
     }
 
-    const size_t direct_workspace = ForwardBackwardDataGetWorkSpaceSizeDirect(ctx);
-
+    const size_t workspace_size_winograd = ForwardBackwardDataGetWorkSpaceSizeWinograd(ctx);
+    const size_t direct_workspace        = ForwardBackwardDataGetWorkSpaceSizeDirect(ctx);
     const size_t implicit_gemm_workspace = ForwardBackwardGetWorkSpaceSizeImplicitGemm(ctx);
 
     size_t workspace_size_gemm = 0;
@@ -536,11 +533,12 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
     ctx.do_search             = false;
     ctx.disable_perfdb_access = true;
 
-    const size_t workspace_size_winograd = ForwardBackwardDataGetWorkSpaceSizeWinograd(ctx);
     if(IsWinograd3x3SupportedAndFast(ctx))
     {
-        MIOPEN_LOG_I2(workspace_size_winograd);
-        return workspace_size_winograd;
+        AutoUseFastDynamicSolutions tmp{ctx};
+        const auto ws = ForwardBackwardDataGetWorkSpaceSizeWinograd(ctx);
+        MIOPEN_LOG_I2(ws);
+        return ws;
     }
 
     /// \ref ffind_special_cases
@@ -562,8 +560,8 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         return sol.workspace_size;
     }
 
-    const size_t direct_workspace = ForwardBackwardDataGetWorkSpaceSizeDirect(ctx);
-
+    const size_t workspace_size_winograd = ForwardBackwardDataGetWorkSpaceSizeWinograd(ctx);
+    const size_t direct_workspace        = ForwardBackwardDataGetWorkSpaceSizeDirect(ctx);
     const size_t implicit_gemm_workspace = ForwardBackwardGetWorkSpaceSizeImplicitGemm(ctx);
 
     size_t workspace_size_gemm = 0;
@@ -760,6 +758,9 @@ std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeDirect(
 std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeFFT(
     const miopen::ConvolutionContext& ctx) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT{}))
+        return 0;
+
     try
     {
         const auto all_ws_sz = AllFFTForwardBackwardDataWorkspaceSize(ctx);
@@ -807,6 +808,7 @@ std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeWinograd(
         return 0;
     }
 }
+
 std::size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(
     const miopen::ConvolutionContext& ctx) const
 {

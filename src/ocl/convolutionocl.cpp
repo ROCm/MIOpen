@@ -323,7 +323,7 @@ static void DirConvFindCore(Handle& handle,
                             const ConvolutionDescriptor& conv,
                             bool exhaustiveSearch,
                             DbRecord& record,
-                            const ConvolutionContext& ctx,
+                            ConvolutionContext& ctx, // non-const only for use_winograd_only hack.
                             bool use_winograd_only)
 {
     AutoEnableProfiling enableProfiling{handle};
@@ -657,7 +657,10 @@ static void DirConvFindCore(Handle& handle,
 
     // Winograd algo
     {
-        const auto all = conv.FindWinogradSolutions(ctx, invoke_ctx);
+        const auto all = !use_winograd_only ? conv.FindWinogradSolutions(ctx, invoke_ctx) : [&]() {
+            AutoUseFastDynamicSolutions tmp{ctx};
+            return conv.FindWinogradSolutions(ctx, invoke_ctx);
+        }();
         PrecompileSolutions(handle, all);
         const auto algorithm_name = AlgorithmName{"miopenConvolutionFwdAlgoWinograd"};
         EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
@@ -688,7 +691,7 @@ static void DirConvFindCore(Handle& handle,
     }
 
     // FFT algo
-    if(!use_winograd_only)
+    if(!use_winograd_only && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT{}))
     {
         const auto all            = FindAllFFTSolutions(ctx, invoke_ctx);
         const auto algorithm_name = AlgorithmName{"miopenConvolutionFwdAlgoFFT"};
@@ -2035,7 +2038,11 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
             // Winograd algo
             {
-                const auto all            = FindWinogradSolutions(ctx, invoke_ctx);
+                const auto all =
+                    !use_winograd_only ? FindWinogradSolutions(ctx, invoke_ctx) : [&]() {
+                        AutoUseFastDynamicSolutions tmp{ctx};
+                        return FindWinogradSolutions(ctx, invoke_ctx);
+                    }();
                 const auto algorithm_name = AlgorithmName{"miopenConvolutionBwdDataAlgoWinograd"};
                 PrecompileSolutions(handle, all);
                 EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
@@ -2066,7 +2073,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
             }
 
-            if(!use_winograd_only)
+            if(!use_winograd_only && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT{}))
             {
                 // FFT algo
                 const auto all            = FindAllFFTSolutions(ctx, invoke_ctx);
