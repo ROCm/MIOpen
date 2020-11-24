@@ -920,10 +920,10 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
     });
 }
 
-[[noreturn]] void ConvolutionDescriptor::ConvFwdGemm(Handle& handle,
-                                                     const ConvFwdTensors& tensors,
-                                                     Data_t workSpace,
-                                                     std::size_t workSpaceSize) const
+void ConvolutionDescriptor::ConvFwdGemm(Handle& handle,
+                                        const ConvFwdTensors& tensors,
+                                        Data_t workSpace,
+                                        std::size_t workSpaceSize) const
 {
 #if MIOPEN_USE_GEMM
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
@@ -2397,10 +2397,10 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         }
     });
 }
-[[noreturn]] void ConvolutionDescriptor::ConvBwdGemm(Handle& handle,
-                                                     const ConvBwdTensors& tensors,
-                                                     Data_t workSpace,
-                                                     std::size_t workSpaceSize) const
+void ConvolutionDescriptor::ConvBwdGemm(Handle& handle,
+                                        const ConvBwdTensors& tensors,
+                                        Data_t workSpace,
+                                        std::size_t workSpaceSize) const
 {
 #if MIOPEN_USE_GEMM
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
@@ -3147,10 +3147,10 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
     });
 }
 
-[[noreturn]] void ConvolutionDescriptor::BackwardWeightsGemm(Handle& handle,
-                                                             const ConvWrwTensors& tensors,
-                                                             Data_t workSpace,
-                                                             std::size_t workSpaceSize) const
+void ConvolutionDescriptor::BackwardWeightsGemm(Handle& handle,
+                                                const ConvWrwTensors& tensors,
+                                                Data_t workSpace,
+                                                std::size_t workSpaceSize) const
 {
 #if MIOPEN_USE_GEMM
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))

@@ -36,33 +36,27 @@
 #include <numeric>
 #include <algorithm>
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wclang-diagnostic-missing-noreturn"
-#endif
-
 namespace miopen {
 
 // Assuming sequence length is set to > 0 otherwise throw exception.
-[[noreturn]] void
-RNNDescriptor::RNNForwardInference(Handle& handle,
-                                   const int seqLen,
-                                   c_array_view<const miopenTensorDescriptor_t> xDesc,
-                                   ConstData_t x,
-                                   const TensorDescriptor& hxDesc,
-                                   ConstData_t hx,
-                                   const TensorDescriptor& cxDesc,
-                                   ConstData_t cx,
-                                   const TensorDescriptor& wDesc,
-                                   ConstData_t w,
-                                   c_array_view<const miopenTensorDescriptor_t> yDesc,
-                                   Data_t y,
-                                   const TensorDescriptor& hyDesc,
-                                   Data_t hy,
-                                   const TensorDescriptor& cyDesc,
-                                   Data_t cy,
-                                   Data_t workSpace,
-                                   size_t workSpaceSize) const
+void RNNDescriptor::RNNForwardInference(Handle& handle,
+                                        const int seqLen,
+                                        c_array_view<const miopenTensorDescriptor_t> xDesc,
+                                        ConstData_t x,
+                                        const TensorDescriptor& hxDesc,
+                                        ConstData_t hx,
+                                        const TensorDescriptor& cxDesc,
+                                        ConstData_t cx,
+                                        const TensorDescriptor& wDesc,
+                                        ConstData_t w,
+                                        c_array_view<const miopenTensorDescriptor_t> yDesc,
+                                        Data_t y,
+                                        const TensorDescriptor& hyDesc,
+                                        Data_t hy,
+                                        const TensorDescriptor& cyDesc,
+                                        Data_t cy,
+                                        Data_t workSpace,
+                                        size_t workSpaceSize) const
 {
 
     if(x == nullptr || w == nullptr || y == nullptr)
@@ -1273,27 +1267,26 @@ RNNDescriptor::RNNForwardInference(Handle& handle,
 #endif
 }
 
-[[noreturn]] void
-RNNDescriptor::RNNForwardTraining(Handle& handle,
-                                  const int seqLen,
-                                  c_array_view<const miopenTensorDescriptor_t> xDesc,
-                                  ConstData_t x,
-                                  const TensorDescriptor& hxDesc,
-                                  ConstData_t hx,
-                                  const TensorDescriptor& cxDesc,
-                                  ConstData_t cx,
-                                  const TensorDescriptor& wDesc,
-                                  ConstData_t w,
-                                  c_array_view<const miopenTensorDescriptor_t> yDesc,
-                                  Data_t y,
-                                  const TensorDescriptor& hyDesc,
-                                  Data_t hy,
-                                  const TensorDescriptor& cyDesc,
-                                  Data_t cy,
-                                  Data_t workSpace,
-                                  size_t workSpaceSize,
-                                  Data_t reserveSpace,
-                                  size_t reserveSpaceSize) const
+void RNNDescriptor::RNNForwardTraining(Handle& handle,
+                                       const int seqLen,
+                                       c_array_view<const miopenTensorDescriptor_t> xDesc,
+                                       ConstData_t x,
+                                       const TensorDescriptor& hxDesc,
+                                       ConstData_t hx,
+                                       const TensorDescriptor& cxDesc,
+                                       ConstData_t cx,
+                                       const TensorDescriptor& wDesc,
+                                       ConstData_t w,
+                                       c_array_view<const miopenTensorDescriptor_t> yDesc,
+                                       Data_t y,
+                                       const TensorDescriptor& hyDesc,
+                                       Data_t hy,
+                                       const TensorDescriptor& cyDesc,
+                                       Data_t cy,
+                                       Data_t workSpace,
+                                       size_t workSpaceSize,
+                                       Data_t reserveSpace,
+                                       size_t reserveSpaceSize) const
 {
     (void)workSpace;
 
@@ -2576,33 +2569,32 @@ RNNDescriptor::RNNForwardTraining(Handle& handle,
 #endif
 };
 
-[[noreturn]] void
-RNNDescriptor::RNNBackwardData(Handle& handle,
-                               const int seqLen,
-                               c_array_view<const miopenTensorDescriptor_t> yDesc,
-                               ConstData_t y,
-                               c_array_view<const miopenTensorDescriptor_t> dyDesc,
-                               ConstData_t dy,
-                               const TensorDescriptor& dhyDesc,
-                               ConstData_t dhy,
-                               const TensorDescriptor& dcyDesc,
-                               ConstData_t dcy,
-                               const TensorDescriptor& wDesc,
-                               ConstData_t w,
-                               const TensorDescriptor& hxDesc,
-                               ConstData_t hx,
-                               const TensorDescriptor& cxDesc,
-                               ConstData_t cx,
-                               c_array_view<const miopenTensorDescriptor_t> dxDesc,
-                               Data_t dx,
-                               const TensorDescriptor& dhxDesc,
-                               Data_t dhx,
-                               const TensorDescriptor& dcxDesc,
-                               Data_t dcx,
-                               Data_t workSpace,
-                               size_t workSpaceSize,
-                               Data_t reserveSpace,
-                               size_t reserveSpaceSize) const
+void RNNDescriptor::RNNBackwardData(Handle& handle,
+                                    const int seqLen,
+                                    c_array_view<const miopenTensorDescriptor_t> yDesc,
+                                    ConstData_t y,
+                                    c_array_view<const miopenTensorDescriptor_t> dyDesc,
+                                    ConstData_t dy,
+                                    const TensorDescriptor& dhyDesc,
+                                    ConstData_t dhy,
+                                    const TensorDescriptor& dcyDesc,
+                                    ConstData_t dcy,
+                                    const TensorDescriptor& wDesc,
+                                    ConstData_t w,
+                                    const TensorDescriptor& hxDesc,
+                                    ConstData_t hx,
+                                    const TensorDescriptor& cxDesc,
+                                    ConstData_t cx,
+                                    c_array_view<const miopenTensorDescriptor_t> dxDesc,
+                                    Data_t dx,
+                                    const TensorDescriptor& dhxDesc,
+                                    Data_t dhx,
+                                    const TensorDescriptor& dcxDesc,
+                                    Data_t dcx,
+                                    Data_t workSpace,
+                                    size_t workSpaceSize,
+                                    Data_t reserveSpace,
+                                    size_t reserveSpaceSize) const
 {
 
     // Suppress warning
@@ -4094,21 +4086,20 @@ RNNDescriptor::RNNBackwardData(Handle& handle,
 #endif
 };
 
-[[noreturn]] void
-RNNDescriptor::RNNBackwardWeights(Handle& handle,
-                                  const int seqLen,
-                                  c_array_view<const miopenTensorDescriptor_t> xDesc,
-                                  ConstData_t x,
-                                  const TensorDescriptor& hxDesc,
-                                  ConstData_t hx,
-                                  c_array_view<const miopenTensorDescriptor_t> dyDesc,
-                                  ConstData_t dy,
-                                  const TensorDescriptor& dwDesc,
-                                  Data_t dw,
-                                  Data_t workSpace,
-                                  size_t workSpaceSize,
-                                  ConstData_t reserveSpace,
-                                  size_t reserveSpaceSize) const
+void RNNDescriptor::RNNBackwardWeights(Handle& handle,
+                                       const int seqLen,
+                                       c_array_view<const miopenTensorDescriptor_t> xDesc,
+                                       ConstData_t x,
+                                       const TensorDescriptor& hxDesc,
+                                       ConstData_t hx,
+                                       c_array_view<const miopenTensorDescriptor_t> dyDesc,
+                                       ConstData_t dy,
+                                       const TensorDescriptor& dwDesc,
+                                       Data_t dw,
+                                       Data_t workSpace,
+                                       size_t workSpaceSize,
+                                       ConstData_t reserveSpace,
+                                       size_t reserveSpaceSize) const
 {
 
     if(x == nullptr || dw == nullptr || dy == nullptr)
@@ -4909,7 +4900,3 @@ RNNDescriptor::RNNBackwardWeights(Handle& handle,
 };
 
 } // namespace miopen
-
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
