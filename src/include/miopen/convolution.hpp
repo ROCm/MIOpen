@@ -27,6 +27,7 @@
 #define GUARD_MIOPEN_CONVOLUTION_HPP_
 
 #include <miopen/common.hpp>
+#include <miopen/find_controls.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/miopen.h>
 #include <miopen/object.hpp>
@@ -393,6 +394,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     std::vector<int> trans_output_pads;
     int group_count;
     float lowp_quant; // quantization factor for low precision
+    FindMode findMode;
 
     private:
     void ConvFwdGemm(Handle& handle,

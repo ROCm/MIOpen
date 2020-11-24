@@ -48,6 +48,7 @@
 #include <fstream>
 #include <memory>
 #include <miopen/miopen.h>
+#include <miopen/miopen_internal.h>
 #include <miopen/tensor.hpp>
 #include <miopen/env.hpp>
 #include <miopen/algorithm.hpp>
@@ -69,6 +70,10 @@
 #include <../test/cpu_bias.hpp>
 
 #include <boost/optional.hpp>
+
+// Declare hidden function for MIGraphX to smoke test it.
+extern "C" miopenStatus_t miopenHiddenSetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc,
+                                                             int findMode);
 
 #define WORKAROUND_ISSUE_2176 1 // https://github.com/AMDComputeLibraries/MLOpen/issues/2176
 
@@ -99,10 +104,8 @@ struct AutoMiopenWarmupMode
     {
         debug_logging_quiet_prev          = miopen::debug::LoggingQuiet;
         debug_find_enforce_disable_prev   = miopen::debug::FindEnforceDisable;
-        debug_find_mode_disable_prev      = miopen::debug::FindModeDisable;
         miopen::debug::LoggingQuiet       = true;
         miopen::debug::FindEnforceDisable = true;
-        miopen::debug::FindModeDisable    = true;
     }
     AutoMiopenWarmupMode(const AutoMiopenWarmupMode&) = delete;
     AutoMiopenWarmupMode(AutoMiopenWarmupMode&&)      = delete;
@@ -112,13 +115,11 @@ struct AutoMiopenWarmupMode
     {
         miopen::debug::LoggingQuiet       = debug_logging_quiet_prev;
         miopen::debug::FindEnforceDisable = debug_find_enforce_disable_prev;
-        miopen::debug::FindModeDisable    = debug_find_mode_disable_prev;
     }
 
     private:
     bool debug_logging_quiet_prev;
     bool debug_find_enforce_disable_prev;
-    bool debug_find_mode_disable_prev;
 };
 
 template <typename T>
@@ -514,6 +515,10 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
                                           conv_strides.data(),
                                           conv_dilations.data(),
                                           mode);
+        miopenSetConvolutionFindMode(warmupConvDesc, miopenConvolutionFindModeNormal);
+        miopenHiddenSetConvolutionFindMode(
+            warmupConvDesc,
+            static_cast<int>(miopenConvolutionFindModeNormal)); // Repeat via hidden API.
         miopenSetConvolutionGroupCount(warmupConvDesc, group_count);
 
         int warmup_out_len_size = miopen::deref(warmupInputTensor).GetSize();
