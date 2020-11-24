@@ -25,7 +25,6 @@
  *******************************************************************************/
 #include <miopen/convolution.hpp>
 
-#include <miopen/algorithm.hpp>
 #include <miopen/config.h>
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
@@ -459,6 +458,15 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
     ctx.do_search             = false;
     ctx.disable_perfdb_access = true;
 
+    if(IsWinograd3x3SupportedAndFast(ctx))
+    {
+        AutoUseFastDynamicSolutions tmp{ctx};
+        const auto ws = ForwardBackwardDataGetWorkSpaceSizeWinograd(ctx);
+        MIOPEN_LOG_I2(ws);
+        return ws;
+    }
+
+    /// \ref ffind_special_cases
     const miopen::FindMode fm(ctx);
     while(fm.IsFast() || fm.IsHybrid())
     {
@@ -489,17 +497,7 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
     }
 
     const size_t workspace_size_winograd = ForwardBackwardDataGetWorkSpaceSizeWinograd(ctx);
-    if(IsWinograd3x3SupportedAndFast(ctx))
-    {
-        // In some cases ConvMPBidirectWinograd solution faster than single pass
-        // versions and it requires non zero workspace.
-        // So we can't send 0 and cut off the potentially fastest solution.
-        MIOPEN_LOG_I2(workspace_size_winograd);
-        return workspace_size_winograd;
-    }
-
-    const size_t direct_workspace = ForwardBackwardDataGetWorkSpaceSizeDirect(ctx);
-
+    const size_t direct_workspace        = ForwardBackwardDataGetWorkSpaceSizeDirect(ctx);
     const size_t implicit_gemm_workspace = ForwardBackwardGetWorkSpaceSizeImplicitGemm(ctx);
 
     size_t workspace_size_gemm = 0;
@@ -564,6 +562,15 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
     ctx.do_search             = false;
     ctx.disable_perfdb_access = true;
 
+    if(IsWinograd3x3SupportedAndFast(ctx))
+    {
+        AutoUseFastDynamicSolutions tmp{ctx};
+        const auto ws = ForwardBackwardDataGetWorkSpaceSizeWinograd(ctx);
+        MIOPEN_LOG_I2(ws);
+        return ws;
+    }
+
+    /// \ref ffind_special_cases
     const miopen::FindMode fm(ctx);
     while(fm.IsFast() || fm.IsHybrid())
     {
@@ -584,14 +591,7 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
     }
 
     const size_t workspace_size_winograd = ForwardBackwardDataGetWorkSpaceSizeWinograd(ctx);
-    if(IsWinograd3x3SupportedAndFast(ctx))
-    {
-        MIOPEN_LOG_I2(workspace_size_winograd);
-        return workspace_size_winograd;
-    }
-
-    const size_t direct_workspace = ForwardBackwardDataGetWorkSpaceSizeDirect(ctx);
-
+    const size_t direct_workspace        = ForwardBackwardDataGetWorkSpaceSizeDirect(ctx);
     const size_t implicit_gemm_workspace = ForwardBackwardGetWorkSpaceSizeImplicitGemm(ctx);
 
     size_t workspace_size_gemm = 0;
@@ -836,6 +836,7 @@ std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeWinograd(
         return 0;
     }
 }
+
 std::size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(
     const miopen::ConvolutionContext& ctx) const
 {

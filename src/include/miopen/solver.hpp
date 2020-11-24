@@ -1434,6 +1434,13 @@ struct ConvBinWinogradRxSf2x3 : SolverBase<ConvolutionContext>
     }
 };
 
+struct ConvBinWinogradRxSf2x3g1 : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& params) const;
+    bool IsDynamic() const { return true; }
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
+};
+
 struct ConvBinWinogradRxSFused : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;
