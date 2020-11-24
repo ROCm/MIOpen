@@ -46,8 +46,15 @@ enum kernel_type_t
 std::string Write2s(kernel_type_t kern_type)
 {
     if(kern_type == miopenHIPKernelType)
-        return "#include <hip/hip_runtime.h>\n  extern \"C\" { __global__ void write(int* data) { "
-               "int num = hipThreadIdx_x + hipBlockDim_x * hipBlockIdx_x; data[num] *= 2;}}\n";
+        return "#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS\n"
+               "#include <hip/hip_runtime.h>\n"
+               "#endif\n"
+               "extern \"C\" {\n"
+               "__global__ void write(int* data) {\n"
+               "    int num = hipThreadIdx_x + hipBlockDim_x * hipBlockIdx_x;\n"
+               "    data[num] *= 2;\n"
+               "}\n"
+               "}\n";
     else if(kern_type == miopenOpenCLKernelType)
         return "__kernel void write(__global int* data) { data[get_global_id(0)] *= 2; }\n";
     else
