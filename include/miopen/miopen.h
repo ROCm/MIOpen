@@ -94,16 +94,16 @@ MIOPEN_DECLARE_OBJECT(miopenHandle);
  * Error codes that are returned by all MIOpen API calls.
 */
 typedef enum {
-    miopenStatusSuccess        = 0, /*!< No errors */
-    miopenStatusNotInitialized = 1, /*!< Data not initialized. */
-    miopenStatusInvalidValue   = 2, /*!< Incorrect variable value. */
-    miopenStatusBadParm        = 3, /*!< Incorrect parameter detected. */
-    miopenStatusAllocFailed    = 4, /*!< Memory allocation error. */
-    miopenStatusInternalError  = 5, /*!< MIOpen failure. */
-    miopenStatusNotImplemented = 6, /*!< Use of unimplemented feature. */
-    miopenStatusUnknownError   = 7, /*!< Unknown error occurred. */
-    miopenStatusUnsupportedOp  = 8, /*!< Unsupported operator for fusion. */
-    miopenStatusNoGPU          = 9, /*!< GPU operations skipped. */
+    miopenStatusSuccess              = 0, /*!< No errors */
+    miopenStatusNotInitialized       = 1, /*!< Data not initialized. */
+    miopenStatusInvalidValue         = 2, /*!< Incorrect variable value. */
+    miopenStatusBadParm              = 3, /*!< Incorrect parameter detected. */
+    miopenStatusAllocFailed          = 4, /*!< Memory allocation error. */
+    miopenStatusInternalError        = 5, /*!< MIOpen failure. */
+    miopenStatusNotImplemented       = 6, /*!< Use of unimplemented feature. */
+    miopenStatusUnknownError         = 7, /*!< Unknown error occurred. */
+    miopenStatusUnsupportedOp        = 8, /*!< Unsupported operator for fusion. */
+    miopenStatusGpuOperationsSkipped = 9, /*!< This is not an error. */
 } miopenStatus_t;
 
 /*! @brief Get character string for an error code.

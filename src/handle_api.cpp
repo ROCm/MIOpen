@@ -50,7 +50,7 @@ extern "C" const char* miopenGetErrorString(miopenStatus_t error)
 
     case miopenStatusUnsupportedOp: return "miopenStatusUnsupportedOp";
 
-    case miopenStatusNoGPU: return "miopenStatusNoGPU";
+    case miopenStatusGpuOperationsSkipped: return "miopenStatusGpuOperationsSkipped";
     }
     return "Unknown error status";
 }
