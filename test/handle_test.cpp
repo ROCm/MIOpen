@@ -37,7 +37,7 @@
 /// \todo Create ticket for comgr.
 #define WORKAROUND_COMGR_WARNING_ISSUES MIOPEN_USE_COMGR
 
-#define WORKAROUND_COMGR_HIP_PCH_ISSUES 1
+#define WORKAROUND_COMGR_HIP_PCH_ISSUES 0
 
 enum kernel_type_t
 {
