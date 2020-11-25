@@ -470,7 +470,7 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
 
     std::string kernel_name    = "miopenSp3AsmConv";
     std::string kernel_file    = "Conv_Winograd";
-    std::string kernel_postfix = "_v21_1_0_gfx9";
+    std::string kernel_postfix = "_v21_1_2_gfx9";
 
     if(params.IsFp32())
         kernel_postfix += "_fp32";
@@ -513,7 +513,12 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
         // constexpr int L_F_LEAKY_RELU  = 1 << 8;
         constexpr int L_F_NKC_STRIDES   = 1 << 9;
         constexpr int L_F_GROUP_STRIDES = 1 << 10;
+        // constexpr int L_F_FORCE_FILTER_TRAVERSE_MODE  = 1 << 11;
+        // constexpr int L_F_FILTER_TRAVERSE_DUAL  = 1 << 12;
+        // constexpr int L_F_TENSOR_OFFSETS  = 1 << 13;
+        // constexpr int L_F_USE_EXTENDED_FLAGS_64  = 1 << 15;
         int reserved                    = 0;
+        long int reserved_offset        = 0;
         int* reserved_ptr               = nullptr;
         int ignore;
 
@@ -592,6 +597,10 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
                   out_W,
                   reserved_ptr, // Unused bias_addr.
                   reserved,     // Unused relu_alpha.
+                  reserved_offset,// Unused d_offset.
+                  reserved_offset,// Unused f_offset.
+                  reserved_offset,// Unused o_offset.
+                  reserved_offset,// Unused b_offset.
                   d_buf.byte_stride.nk,
                   d_buf.byte_stride.c,
                   d_buf.byte_stride.h,
