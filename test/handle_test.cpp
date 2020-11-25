@@ -37,6 +37,8 @@
 /// \todo Create ticket for comgr.
 #define WORKAROUND_COMGR_WARNING_ISSUES MIOPEN_USE_COMGR
 
+#define WORKAROUND_COMGR_HIP_PCH_ISSUES 1
+
 enum kernel_type_t
 {
     miopenHIPKernelType,
@@ -48,6 +50,23 @@ std::string Write2s(kernel_type_t kern_type)
     if(kern_type == miopenHIPKernelType)
         return "#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS\n"
                "#include <hip/hip_runtime.h>\n"
+#if WORKAROUND_COMGR_HIP_PCH_ISSUES
+               "#else\n"
+               "#ifdef hipThreadIdx_x\n"
+               "#undef hipThreadIdx_x\n"
+               "#endif\n"
+               "#define hipThreadIdx_x threadIdx.x\n"
+               "\n"
+               "#ifdef hipBlockDim_x\n"
+               "#undef hipBlockDim_x\n"
+               "#endif\n"
+               "#define hipBlockDim_x blockDim.x\n"
+               "\n"
+               "#ifdef hipBlockIdx_x\n"
+               "#undef hipBlockIdx_x\n"
+               "#endif\n"
+               "#define hipBlockIdx_x blockIdx.x\n"
+#endif
                "#endif\n"
                "extern \"C\" {\n"
                "__global__ void write(int* data) {\n"
