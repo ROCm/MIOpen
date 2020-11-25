@@ -26,6 +26,7 @@
 
 #include <miopen/config.h>
 #include <miopen/handle.hpp>
+#include <miopen/execution_context.hpp>
 #include "get_handle.hpp"
 #include <vector>
 #include <thread>
@@ -37,7 +38,7 @@
 /// \todo Create ticket for comgr.
 #define WORKAROUND_COMGR_WARNING_ISSUES MIOPEN_USE_COMGR
 
-#define WORKAROUND_COMGR_HIP_PCH_ISSUES 0
+#define WORKAROUND_SWDEV_257056_PCH_MISSING_MACROS 0
 
 enum kernel_type_t
 {
@@ -50,7 +51,7 @@ std::string Write2s(kernel_type_t kern_type)
     if(kern_type == miopenHIPKernelType)
         return "#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS\n"
                "#include <hip/hip_runtime.h>\n"
-#if WORKAROUND_COMGR_HIP_PCH_ISSUES
+#if WORKAROUND_SWDEV_257056_PCH_MISSING_MACROS
                "#else\n"
                "#ifdef hipThreadIdx_x\n"
                "#undef hipThreadIdx_x\n"
@@ -238,7 +239,7 @@ void test_arch_name()
 int main()
 {
     auto&& h = get_handle();
-    if(h.GetDeviceName() != "gfx803")
+    if(h.GetDeviceName() != "gfx803" && miopen::IsHipKernelsEnabled())
     {
         test_multithreads(miopenHIPKernelType);
         test_errors(miopenHIPKernelType);
