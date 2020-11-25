@@ -62,6 +62,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_COMPILER_OPTIONS_INSERT)
 /// \todo Temporary for debugging:
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_HIP_BUILD_FATBIN)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_HIP_PCH_DISABLE)
 
 /// \todo see issue #1222, PR #1316
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
@@ -216,6 +217,11 @@ static void RemoveOptionsUnwanted(OptionList& list)
 } // namespace ocl
 
 namespace hip {
+
+static bool IsPchDisabled()
+{
+    return miopen::IsEnabled(MIOPEN_DEBUG_COMGR_HIP_PCH_DISABLE{});
+}
 
 static bool IsLinkerOption(const std::string& option)
 {
@@ -372,7 +378,7 @@ static bool PrintVersionImpl()
     (void)amd_comgr_get_version(&major, &minor);
     MIOPEN_LOG_NQI("COMgr v." << major << '.' << minor << '.' << MIOPEN_AMD_COMGR_VERSION_PATCH
                               << ", USE_HIP_PCH: "
-                              << USE_HIP_PCH);
+                              << (USE_HIP_PCH ? (compiler::lc::hip::IsPchDisabled() ? "0 (enforced)" : "1") : "0"));
     return true;
 }
 
@@ -689,6 +695,7 @@ void BuildHip(const std::string& name,
             inputs.AddData(inc, miopen::GetKernelInc(inc), AMD_COMGR_DATA_KIND_INCLUDE);
 
 #if USE_HIP_PCH
+        if(!compiler::lc::hip::IsPchDisabled())
         {
             const char* pch       = nullptr;
             unsigned int pch_size = 0;
@@ -722,7 +729,10 @@ void BuildHip(const std::string& name,
                        + " " + MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS) +
                        (" -DHIP_PACKAGE_VERSION_FLAT=") + std::to_string(HIP_PACKAGE_VERSION_FLAT);
 #if USE_HIP_PCH
-            raw += " -nogpuinc -DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS=1";
+            if(!compiler::lc::hip::IsPchDisabled())
+            {
+                raw += " -nogpuinc -DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS=1";
+            }
 #endif
             auto optCompile = miopen::SplitSpaceSeparated(raw, compiler::lc::GetOptionsNoSplit());
             auto optLink    = optCompile;
