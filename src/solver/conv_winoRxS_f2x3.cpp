@@ -517,9 +517,9 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
         // constexpr int L_F_FILTER_TRAVERSE_DUAL  = 1 << 12;
         // constexpr int L_F_TENSOR_OFFSETS  = 1 << 13;
         // constexpr int L_F_USE_EXTENDED_FLAGS_64  = 1 << 15;
-        int reserved                    = 0;
-        long int reserved_offset        = 0;
-        int* reserved_ptr               = nullptr;
+        int reserved             = 0;
+        long int reserved_offset = 0;
+        int* reserved_ptr        = nullptr;
         int ignore;
 
         int N, C, H, W, K, out_H, out_W, R, S, pad_H, pad_W;
@@ -595,12 +595,12 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
                   pad_W,
                   out_H,
                   out_W,
-                  reserved_ptr, // Unused bias_addr.
-                  reserved,     // Unused relu_alpha.
-                  reserved_offset,// Unused d_offset.
-                  reserved_offset,// Unused f_offset.
-                  reserved_offset,// Unused o_offset.
-                  reserved_offset,// Unused b_offset.
+                  reserved_ptr,    // Unused bias_addr.
+                  reserved,        // Unused relu_alpha.
+                  reserved_offset, // Unused d_offset.
+                  reserved_offset, // Unused f_offset.
+                  reserved_offset, // Unused o_offset.
+                  reserved_offset, // Unused b_offset.
                   d_buf.byte_stride.nk,
                   d_buf.byte_stride.c,
                   d_buf.byte_stride.h,
