@@ -101,8 +101,14 @@ std::string WriteError(kernel_type_t kern_type)
     if(kern_type == miopenOpenCLKernelType)
         return "__kernel void write(__global int* data) { data[i] = 0; }\n";
     else if(kern_type == miopenHIPKernelType)
-        return "#include <hip/hip_runtime.h>\n  extern \"C\" { __global__ void write(int* data) { "
-               "data[num] *= 2;}}\n";
+        return "#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS\n"
+               "#include <hip/hip_runtime.h>\n"
+               "#endif\n"
+               "extern \"C\" {\n"
+               "__global__ void write(int* data) {\n"
+               "    data[num] *= 2;\n"
+               "}\n"
+               "}\n";
     else
         MIOPEN_THROW("Unsupported kernel type");
 }
@@ -163,8 +169,13 @@ std::string WriteNop(kernel_type_t kern_type)
     if(kern_type == miopenOpenCLKernelType)
         return "__kernel void write(__global int* data) {}\n";
     else if(kern_type == miopenHIPKernelType)
-        return "#include <hip/hip_runtime.h>\n  extern \"C\" { __global__ void write(int* data) { "
-               "}}\n";
+        return "#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS\n"
+               "#include <hip/hip_runtime.h>\n"
+               "#endif\n"
+               "extern \"C\" {\n"
+               "__global__ void write(int* data) {\n"
+               "}\n"
+               "}\n";
     else
         MIOPEN_THROW("Unsupported kernel type");
 }
