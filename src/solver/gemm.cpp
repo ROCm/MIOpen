@@ -179,7 +179,8 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
             const auto y             = conv_params.tensors.out;
 
             if((workSpace == nullptr && workspace_req > 0) || workSpaceSize < workspace_req)
-                MIOPEN_THROW("Not enough workspace for GEMM");
+                MIOPEN_THROW("Not enough workspace for GEMM (" + std::to_string(workSpaceSize) +
+                             " provided, " + std::to_string(workspace_req) + " required)");
 
             const std::string name = group_count > 1 ? "groupconv" : "convolution";
             MIOPEN_LOG_FUNCTION(name + ", 1x1 u2xv2");
@@ -421,7 +422,8 @@ ConvSolution GemmFwd1x1_0_1_int8::GetSolution(const ExecutionContext& context,
             MIOPEN_LOG_FUNCTION("convolution, 1x1");
 
             if((workSpace == nullptr && workspace_req > 0) || workSpaceSize < workspace_req)
-                MIOPEN_THROW("Not enough workspace for GEMM");
+                MIOPEN_THROW("Not enough workspace for GEMM (" + std::to_string(workSpaceSize) +
+                             " provided, " + std::to_string(workspace_req) + " required)");
 
             // y = w * x
             miopenStatus_t gemm_status = miopenStatusNotInitialized;
@@ -837,7 +839,8 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
             MIOPEN_LOG_FUNCTION(name + ", non 1x1");
 
             if((workSpace == nullptr && workspace_req > 0) || workSpaceSize < workspace_req)
-                MIOPEN_THROW("Not enough workspace for GEMM");
+                MIOPEN_THROW("Not enough workspace for GEMM (" + std::to_string(workSpaceSize) +
+                             " provided, " + std::to_string(workspace_req) + " required)");
 
             const auto runs = conv_params.type == InvokeType::Run ? in_n : 1;
 
