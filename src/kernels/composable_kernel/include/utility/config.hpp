@@ -1,9 +1,17 @@
 #ifndef CK_CONFIG_AMD_HPP
 #define CK_CONFIG_AMD_HPP
 
+#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include "hip/hip_runtime.h"
 #include "hip/hip_fp16.h"
+#endif
 #include "bfloat16_dev.hpp"
+
+#ifdef HIP_PACKAGE_VERSION_FLAT
+#define CK_HIP_VERSION_FLAT HIP_PACKAGE_VERSION_FLAT
+#else
+#define CK_HIP_VERSION_FLAT 0
+#endif
 
 // index type: unsigned or signed
 #define CK_UNSIGNED_INDEX_TYPE 0
@@ -26,8 +34,13 @@
 #endif
 
 // only gfx908 support native floating point atomic add
-#ifndef CK_USE_AMD_BUFFER_ATOMIC_ADD
-#define CK_USE_AMD_BUFFER_ATOMIC_ADD 0
+#ifndef CK_USE_AMD_BUFFER_ATOMIC_FADD
+#define CK_USE_AMD_BUFFER_ATOMIC_FADD 0
+#endif
+
+// gfx1030 does not support V_MAD/V_MAC,but can use v_fmac_f32
+#ifndef CK_USE_AMD_V_FMAC_F32
+#define CK_USE_AMD_V_FMAC_F32 0
 #endif
 
 // AMD XDLOPS
@@ -73,6 +86,10 @@
 #ifndef CK_WORKAROUND_SWDEV_231101
 #define CK_WORKAROUND_SWDEV_231101 1
 #endif
+// workaround for accvgpr over-allocation
+#ifndef CK_WORKAROUND_SWDEV_241664
+#define CK_WORKAROUND_SWDEV_241664 1
+#endif
 
 namespace ck {
 
@@ -96,7 +113,7 @@ using index_t = uint32_t;
 using index_t = int32_t;
 #endif
 
-// int32x4_t use by buffer_load and buffer_store llvm intrinsic
+// int32x4_t used by buffer addressing LLVM intrinsic
 typedef int32_t int32x4_t __attribute__((ext_vector_type(4)));
 
 } // namespace ck

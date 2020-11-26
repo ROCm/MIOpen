@@ -40,8 +40,6 @@ endif()
 
 project ( MIOpen C CXX )
 
-option( BUILD_SHARED_LIBS "Build as a shared library" ON )
-
 enable_testing()
 
 find_package(ROCM REQUIRED PATHS /opt/rocm)
@@ -62,9 +60,12 @@ if(MIOPEN_ENABLE_SQLITE)
     pkg_check_modules(SQLITE3 REQUIRED sqlite3)
 endif()
 find_package(BZip2)
+if(MIOPEN_ENABLE_SQLITE_KERN_CACHE AND NOT MIOPEN_ENABLE_SQLITE)
+    message(FATAL_ERROR "MIOPEN_ENABLE_SQLITE_KERN_CACHE requires MIOPEN_ENABLE_SQLITE")
+endif()
+
 option( BUILD_DEV "Build for development only" OFF)
 
-set(MIOPEN_DISABLE_USERDB Off CACHE BOOL "Disable user database access")
 
 # Strip symbols for release
 if(NOT WIN32 AND NOT APPLE)
@@ -72,7 +73,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 2.6.0)
+rocm_setup_version(VERSION 2.10.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -83,6 +84,9 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     endif()
 endif()
 
+
+
+
 ############################################################
 # require C++14
 add_compile_options(-std=c++14)
@@ -90,7 +94,7 @@ add_compile_options(-std=c++14)
 ############################################################
 # OPTION - MIOpen Backend
 # - OpenCL
-# - HCC
+# - HIP
 check_cxx_compiler_flag("--cuda-host-only -x hip" HAS_HIP)
 if(CMAKE_CXX_COMPILER MATCHES ".*hcc" OR CMAKE_CXX_COMPILER MATCHES ".*hipcc" OR HAS_HIP)
     set(MIOPEN_DEFAULT_BACKEND "HIP")
@@ -109,14 +113,36 @@ list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/llvm /opt/rocm/hip /opt/rocm/h
 option(ENABLE_HIP_WORKAROUNDS Off)
 set(MIOPEN_INSTALL_CXX_HEADERS Off CACHE BOOL "Install MIOpen's C++ header interface")
 
-option(MIOPEN_USE_COMGR "When possible, use comgr to build kernels instead of offline tools" Off)
-option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." On)
+
+# Embedded Build Configuration
+set(MIOPEN_EMBED_DB "" CACHE STRING "Semi-colon separated list of architecture CU pairs to embed on-disk DBs in the binary. Example gfx906_60;gfx900_56")
+if(NOT MIOPEN_EMBED_DB STREQUAL "")
+    option(MIOPEN_DISABLE_SYSDB  "Disable sys database access" Off)
+else()
+    option(MIOPEN_DISABLE_SYSDB  "Disable sys database access" ${MIOPEN_EMBED_BUILD})
+endif()
+set(MIOPEN_BINCACHE_PATH "" CACHE STRING "URL or path containing binary cache files to embed")
+option(MIOPEN_EMBED_BUILD "Build with the set of embed flags." Off)
+option(MIOPEN_USE_COMGR "Use comgr to build kernels instead of offline tools" ${MIOPEN_EMBED_BUILD})
+option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD})
+
+
+# MIOPEN_USE_HIP_KERNELS is a Workaround for COMgr issues
+if(MIOPEN_EMBED_BUILD)
+    option(BUILD_SHARED_LIBS "Build as a shared library" Off)
+    option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." Off)
+    option(MIOPEN_BUILD_DRIVER "Build MIOpenDriver" Off)
+else()
+    option(BUILD_SHARED_LIBS "Build as a shared library" ON)
+    option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." On)
+    option(MIOPEN_BUILD_DRIVER "Build MIOpenDriver" On)
+endif()
+
 
 set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
     "Which of MIOpens's backends to use?" )
 set_property( CACHE MIOPEN_BACKEND PROPERTY STRINGS
     OpenCL HIP HIPOC )
-
 
 # OpenCL 1.2
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
@@ -141,8 +167,8 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
         endif()
     endif()
 
-    # scgemm not support opencl backend yet.
-    set(MIOPEN_USE_SCGEMM OFF)
+    # MIOpenTensile does not support opencl backend yet.
+    set(MIOPEN_USE_MIOPENTENSILE OFF CACHE BOOL "")
 
     # TODO (priority_low) Use to build HIP and ASM kernels.
     if(MIOPEN_USE_COMGR)
@@ -157,6 +183,7 @@ message(STATUS "Build with HIP ${hip_VERSION}")
 target_flags(HIP_COMPILER_FLAGS hip::device)
 # Remove cuda arch flags
 string(REGEX REPLACE --cuda-gpu-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
+string(REGEX REPLACE --offload-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
 
 message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
 
@@ -168,6 +195,9 @@ add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
 if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     set(MIOPEN_BACKEND_HIP 1)
     set(MIOPEN_USE_MIOPENGEMM OFF CACHE BOOL "")
+    # miopentensile default off
+    set(MIOPEN_USE_MIOPENTENSILE OFF CACHE BOOL "")
+
     find_program(HIP_OC_COMPILER clang-ocl
         PATH_SUFFIXES bin
         PATHS /opt/rocm
@@ -210,14 +240,6 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
         message(STATUS "Build with rocblas")
     else()
         message(STATUS "Build without rocblas")
-    endif()
-
-    # scgemm
-    set(MIOPEN_USE_SCGEMM OFF CACHE BOOL "")
-    if(MIOPEN_USE_SCGEMM)
-        message(STATUS "Build with scgemm")
-    else()
-        message(STATUS "Build without scgemm")
     endif()
 endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
@@ -270,6 +292,14 @@ find_program(MIOPEN_AMDGCN_ASSEMBLER
 )
 message(STATUS "AMDGCN assembler: ${MIOPEN_AMDGCN_ASSEMBLER}")
 
+# miopentensile
+if(MIOPEN_USE_MIOPENTENSILE)
+    find_package(miopentensile)
+    message(STATUS "Build with miopentensile")
+else()
+    message(STATUS "Build without miopentensile")
+endif()
+
 # miopengemm
 if(MIOPEN_USE_MIOPENGEMM)
     find_package(miopengemm PATHS /opt/rocm)
@@ -319,19 +349,33 @@ endif()
 set(MIOPEN_SYSTEM_FIND_DB_SUFFIX "${MIOPEN_BACKEND}" CACHE PATH "Filename suffix for the system find-db files")
 
 
-set(MIOPEN_PACKAGE_REQS "rocm-utils, hip-hcc")
+set(MIOPEN_PACKAGE_REQS "rocm-clang-ocl, hip-rocclr")
 if(MIOPEN_USE_MIOPENGEMM)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, miopengemm")
 endif()
+
+if(MIOPEN_USE_ROCBLAS)
+    set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocblas")
+endif()
+
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "${MIOPEN_PACKAGE_REQS}, rocm-opencl-dev")
 set(CPACK_RPM_PACKAGE_REQUIRES "${MIOPEN_PACKAGE_REQS}, rocm-opencl-devel")
+
+# Make backends explicitly conflict
+if(MIOPEN_BACKEND STREQUAL "HIP")
+    set(CPACK_DEBIAN_PACKAGE_CONFLICTS miopen-opencl)
+    set(CPACK_RPM_PACKAGE_CONFLICTS miopen-opencl)
+elseif(MIOPEN_BACKEND STREQUAL "OpenCL")
+    set(CPACK_DEBIAN_PACKAGE_CONFLICTS miopen-hip)
+    set(CPACK_RPM_PACKAGE_CONFLICTS miopen-hip)
+endif()
 
 rocm_create_package(
     NAME MIOpen-${MIOPEN_BACKEND}
     DESCRIPTION "AMD's DNN Library"
     MAINTAINER "Paul Fultz II <paul.fultz@amd.com>"
     LDCONFIG
-    # DEPENDS rocm-opencl rocm-utils hip-hcc tinygemm
+    # DEPENDS rocm-opencl hip-rocclr tinygemm
 )
 
 include(EnableCompilerWarnings)
@@ -443,6 +487,7 @@ enable_cppcheck(
         unusedStructMember
         # Ignore initializer lists in the tests
         useInitializationList:*test/*.cpp
+        *:*src/sqlite/*.cpp
         *:*.cl
         *:*src/kernels/*.h
         knownConditionTrueFalse:*src/kernels/composable_kernel/*/*
@@ -468,6 +513,7 @@ enable_cppcheck(
         __linux__=1
 )
 
+
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
@@ -475,7 +521,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 add_subdirectory(addkernels)
 add_subdirectory(doc)
 add_subdirectory(src)
-add_subdirectory(driver)
+if(MIOPEN_BUILD_DRIVER)
+    add_subdirectory(driver)
+endif()
 add_subdirectory(test)
 add_subdirectory(speedtests)
 add_subdirectory(utils)

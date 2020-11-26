@@ -32,6 +32,7 @@
 #include <miopen/find_db.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/temp_file.hpp>
+#include <miopen/hip_build_utils.hpp>
 
 #include <chrono>
 #include <cstdlib>
@@ -60,6 +61,7 @@ struct FindDbTest : test_driver
 
     FindDbTest()
     {
+        filter.findMode.Set(FindMode::Values::Normal);
         x = {16, 192, 28, 28};
         w = {32, 192, 5, 5};
         y = tensor<float>{filter.GetForwardOutputTensor(x.desc, w.desc)};
@@ -195,7 +197,14 @@ struct FindDbTest : test_driver
         const auto find_db_speedup = time1ms / time2ms;
         MIOPEN_LOG_I("Speedup: " << find_db_speedup);
 #if !MIOPEN_DISABLE_USERDB
-        EXPECT_OP(find_db_speedup, >=, 3);
+        double limit = 3.0;
+#ifndef NDEBUG
+        // hcc debug builds are so slow at run time that the test may fail.
+        // We need to lower the threshold in this case:
+        if(miopen::IsHccCompiler())
+            limit = 1.5;
+#endif
+        EXPECT_OP(find_db_speedup, >=, limit);
 #endif
     }
 };

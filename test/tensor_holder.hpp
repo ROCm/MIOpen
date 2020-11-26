@@ -329,6 +329,22 @@ tensor<T> make_tensor(std::initializer_list<std::size_t> dims, G g)
     return tensor<T>{miopen::TensorDescriptor{miopen_type<T>{}, dims}}.generate(g);
 }
 
+// This is needed since there is no TensorDescriptor(miopenDataType_t t, const size_t* plens, int
+// size) constructor
+template <class T>
+tensor<T> make_tensor(const std::vector<std::size_t>& dims)
+{
+    std::vector<int> tmpDims;
+
+    tmpDims.resize(dims.size());
+
+    for(int i      = 0; i < tmpDims.size(); i++)
+        tmpDims[i] = static_cast<int>(dims[i]);
+
+    return tensor<T>{miopen::TensorDescriptor{
+        miopen_type<T>{}, tmpDims.data(), static_cast<int>(tmpDims.size())}};
+};
+
 template <class T, class X>
 tensor<T> make_tensor(const std::vector<X>& dims)
 {

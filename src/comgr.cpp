@@ -24,13 +24,21 @@
  *
  *******************************************************************************/
 
+#include <miopen/config.h>
+
+#include <miopen/comgr.hpp>
 #include <miopen/algorithm.hpp>
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
+#include <miopen/hip_build_utils.hpp>
+#include <miopen/gcn_asm_utils.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/stringutils.hpp>
+
 #include <amd_comgr.h>
+#include <hip/hip_runtime_api.h>
+
 #include <algorithm>
 #include <exception>
 #include <cstddef>
@@ -39,6 +47,11 @@
 #include <vector>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_CALLS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)
+
+/// 0: Off.
+/// 1: Logs each option on a separate line.
+/// 2: Logs all options altogether, on single line.
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_OPTIONS)
 
 /// Integer, set to max number of first characters
@@ -52,6 +65,33 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_HIP_BUILD_FATBIN)
 
 /// \todo see issue #1222, PR #1316
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
+
+#ifndef MIOPEN_AMD_COMGR_VERSION_MAJOR
+#define MIOPEN_AMD_COMGR_VERSION_MAJOR 0
+#endif
+#ifndef MIOPEN_AMD_COMGR_VERSION_MINOR
+#define MIOPEN_AMD_COMGR_VERSION_MINOR 0
+#endif
+#ifndef MIOPEN_AMD_COMGR_VERSION_PATCH
+#define MIOPEN_AMD_COMGR_VERSION_PATCH 0
+#endif
+
+// 3 decimal digits per each number.
+#if MIOPEN_AMD_COMGR_VERSION_MAJOR > 999 || MIOPEN_AMD_COMGR_VERSION_MINOR > 999 || \
+    MIOPEN_AMD_COMGR_VERSION_PATCH > 999
+#error "Too big COMGR version number(s)"
+#endif
+#define COMGR_VERSION                                                                  \
+    ((MIOPEN_AMD_COMGR_VERSION_MAJOR * 1000 + MIOPEN_AMD_COMGR_VERSION_MINOR) * 1000 + \
+     MIOPEN_AMD_COMGR_VERSION_PATCH)
+
+// If HIP runtime provides PCH functionality, and COMGR is able to use it,
+// then enable PCH usage automatically.
+#if defined(__HIP_HAS_GET_PCH) && __HIP_HAS_GET_PCH && COMGR_VERSION >= 1008000
+#define USE_HIP_PCH 1
+#else
+#define USE_HIP_PCH 0
+#endif
 
 #define COMPILER_LC 1
 
@@ -92,7 +132,21 @@ namespace compiler {
 
 #if COMPILER_LC
 namespace lc {
-#define OCL_EARLY_INLINE 1
+
+static auto GetOptionsNoSplit()
+{
+    static const std::vector<std::string> rv = {
+        "-isystem", "-L", "-Wl,-rpath", "-Xclang", "-hip-path", "-mllvm", "-x"};
+    return rv;
+}
+
+static bool IsEnabledFeatureSramEcc(const std::string& device)
+{
+    /// \todo Read actual feature status from runtime.
+    static const auto rv = (device == "gfx906" || device == "gfx908") &&
+                           !miopen::IsEnabled(MIOPEN_DEBUG_SRAM_EDC_DISABLED{});
+    return rv;
+}
 
 namespace gcnasm {
 
@@ -106,11 +160,27 @@ static void RemoveOptionsUnwanted(OptionList& list)
 
 } // namespace gcnasm
 
-static void AddOcl20CompilerOptions(OptionList& list)
+namespace ocl {
+
+#define OCL_COMPILE_SOURCE_WITH_DEVICE_LIBS (COMGR_VERSION >= 1007000)
+
+#define OCL_EARLY_INLINE 1
+
+#define OCL_STANDARD 200 // For experiments.
+
+#if !(OCL_STANDARD == 200 || OCL_STANDARD == 120)
+#error "Wrong OCL_STANDARD"
+#endif
+
+static void AddCompilerOptions(OptionList& list, const std::string& device)
 {
     list.push_back("-cl-kernel-arg-info");
+#if 0 // For experimients.
+    list.push_back("-cl-denorms-are-zero");
+    list.push_back("-cl-fast-relaxed-math");
+#endif
     list.push_back("-D__IMAGE_SUPPORT__=1");
-    list.push_back("-D__OPENCL_VERSION__=200");
+    list.push_back("-D__OPENCL_VERSION__=" MIOPEN_STRINGIZE(OCL_STANDARD));
 #if OCL_EARLY_INLINE
     list.push_back("-mllvm");
     list.push_back("-amdgpu-early-inline-all");
@@ -123,7 +193,7 @@ static void AddOcl20CompilerOptions(OptionList& list)
 
     // It seems like these options are used only in codegen.
     // However it seems ok to pass these to compiler.
-    if(!miopen::IsEnabled(MIOPEN_DEBUG_SRAM_EDC_DISABLED{}))
+    if(IsEnabledFeatureSramEcc(device))
         list.push_back("-msram-ecc");
     else
         list.push_back("-mno-sram-ecc");
@@ -135,7 +205,7 @@ static void AddOcl20CompilerOptions(OptionList& list)
 /// (or even can be harmful) for building via comgr layer.
 ///
 /// \todo Produce proper options in, er, proper places, and get rid of this.
-static void RemoveOclOptionsUnwanted(OptionList& list)
+static void RemoveOptionsUnwanted(OptionList& list)
 {
     list.erase(remove_if(list.begin(),
                          list.end(),
@@ -143,12 +213,7 @@ static void RemoveOclOptionsUnwanted(OptionList& list)
                list.end());
 }
 
-static auto GetOptionsNoSplit()
-{
-    static const std::vector<std::string> rv = {
-        "-isystem", "-L", "-Wl,-rpath", "-Xclang", "-hip-path", "-mllvm", "-x"};
-    return rv;
-}
+} // namespace ocl
 
 namespace hip {
 
@@ -165,8 +230,9 @@ static void RemoveCommonOptionsUnwanted(OptionList& list)
                          [&](const auto& option) { // clang-format off
                              return miopen::StartsWith(option, "-mcpu=")
                                 || (option == "-hc")
-                                || (option == "-x hip")
+                                || (option == "-x hip") || (option == "-xhip")
                                 || (option == "--hip-link")
+                                || (option == "-lclang_rt.builtins-x86_64")
                                 || miopen::StartsWith(option, "-mllvm -amdgpu-early-inline-all")
                                 || miopen::StartsWith(option, "-mllvm -amdgpu-function-calls")
                                 || miopen::StartsWith(option, "--hip-device-lib-path="); // clang-format on
@@ -203,10 +269,7 @@ static void RemoveLinkOptionsUnwanted(OptionList& list)
 /// \todo Get list of supported isa names from comgr and select.
 static std::string GetIsaName(const std::string& device)
 {
-    const char* const ecc_suffix = (!miopen::IsEnabled(MIOPEN_DEBUG_SRAM_EDC_DISABLED{}) &&
-                                    (device == "gfx906" || device == "gfx908"))
-                                       ? "+sram-ecc"
-                                       : "";
+    const char* const ecc_suffix = IsEnabledFeatureSramEcc(device) ? "+sram-ecc" : "";
     return {"amdgcn-amd-amdhsa--" + device + ecc_suffix};
 }
 
@@ -261,6 +324,26 @@ static std::string to_string(const amd_comgr_data_kind_t val)
 static std::string to_string(const amd_comgr_action_kind_t val)
 {
     std::ostringstream oss;
+#if COMGR_VERSION >= 1007000
+    MIOPEN_LOG_ENUM(oss,
+                    val,
+                    AMD_COMGR_ACTION_SOURCE_TO_PREPROCESSOR,
+                    AMD_COMGR_ACTION_ADD_PRECOMPILED_HEADERS,
+                    AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC,
+                    AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES,
+                    AMD_COMGR_ACTION_LINK_BC_TO_BC,
+                    AMD_COMGR_ACTION_OPTIMIZE_BC_TO_BC,
+                    AMD_COMGR_ACTION_CODEGEN_BC_TO_RELOCATABLE,
+                    AMD_COMGR_ACTION_CODEGEN_BC_TO_ASSEMBLY,
+                    AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_RELOCATABLE,
+                    AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE,
+                    AMD_COMGR_ACTION_ASSEMBLE_SOURCE_TO_RELOCATABLE,
+                    AMD_COMGR_ACTION_DISASSEMBLE_RELOCATABLE_TO_SOURCE,
+                    AMD_COMGR_ACTION_DISASSEMBLE_EXECUTABLE_TO_SOURCE,
+                    AMD_COMGR_ACTION_DISASSEMBLE_BYTES_TO_SOURCE,
+                    AMD_COMGR_ACTION_COMPILE_SOURCE_TO_FATBIN,
+                    AMD_COMGR_ACTION_COMPILE_SOURCE_WITH_DEVICE_LIBS_TO_BC);
+#else
     MIOPEN_LOG_ENUM(oss,
                     val,
                     AMD_COMGR_ACTION_SOURCE_TO_PREPROCESSOR,
@@ -278,6 +361,7 @@ static std::string to_string(const amd_comgr_action_kind_t val)
                     AMD_COMGR_ACTION_DISASSEMBLE_EXECUTABLE_TO_SOURCE,
                     AMD_COMGR_ACTION_DISASSEMBLE_BYTES_TO_SOURCE,
                     AMD_COMGR_ACTION_COMPILE_SOURCE_TO_FATBIN);
+#endif
     return oss.str();
 }
 
@@ -286,7 +370,9 @@ static bool PrintVersionImpl()
     std::size_t major = 0;
     std::size_t minor = 0;
     (void)amd_comgr_get_version(&major, &minor);
-    MIOPEN_LOG_NQI("comgr v." << major << '.' << minor);
+    MIOPEN_LOG_NQI("COMgr v." << major << '.' << minor << '.' << MIOPEN_AMD_COMGR_VERSION_PATCH
+                              << ", USE_HIP_PCH: "
+                              << USE_HIP_PCH);
     return true;
 }
 
@@ -392,6 +478,12 @@ class Data : ComgrOwner
     {
         ECI_THROW(amd_comgr_set_data(handle, bytes.size(), bytes.data()), bytes.size());
     }
+#if USE_HIP_PCH
+    void SetFromBuffer(const char* const buffer, const size_t size) const
+    {
+        ECI_THROW(amd_comgr_set_data(handle, size, buffer), size);
+    }
+#endif
 
     private:
     std::size_t GetSize() const
@@ -431,7 +523,8 @@ class Dataset : ComgrOwner
                  const amd_comgr_data_kind_t type) const
     {
         const Data d(type);
-        MIOPEN_LOG_I2(name << ' ' << content.size() << " bytes");
+        if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES{}))
+            MIOPEN_LOG_I(name << ' ' << content.size() << " bytes");
         d.SetName(name);
         d.SetBytes(content);
         AddData(d);
@@ -444,6 +537,19 @@ class Dataset : ComgrOwner
             MIOPEN_LOG_I(text);
         }
     }
+#if USE_HIP_PCH
+    void AddDataHipPch(const char* const content, const size_t size) const
+    {
+        const char name[] = "hip.pch";
+        const Data d(AMD_COMGR_DATA_KIND_PRECOMPILED_HEADER);
+        if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES{}))
+            MIOPEN_LOG_I(
+                name << ' ' << size << " bytes,  ptr = " << static_cast<const void*>(content));
+        d.SetName(name);
+        d.SetFromBuffer(content, size);
+        AddData(d);
+    }
+#endif
     size_t GetDataCount(const amd_comgr_data_kind_t kind) const
     {
         std::size_t count = 0;
@@ -582,6 +688,15 @@ void BuildHip(const std::string& name,
         for(const auto& inc : incNames)
             inputs.AddData(inc, miopen::GetKernelInc(inc), AMD_COMGR_DATA_KIND_INCLUDE);
 
+#if USE_HIP_PCH
+        {
+            const char* pch       = nullptr;
+            unsigned int pch_size = 0;
+            __hipGetPCH(&pch, &pch_size);
+            inputs.AddDataHipPch(pch, pch_size);
+        }
+#endif
+
         const ActionInfo action;
         action.SetLanguage(AMD_COMGR_LANGUAGE_HIP);
         SetIsaName(action, device);
@@ -592,7 +707,8 @@ void BuildHip(const std::string& name,
         {
             auto raw = options                                 //
                        + " " + GetDebugCompilerOptionsInsert() //
-                       + " " + MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS);
+                       + " " + MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS) +
+                       (" -DHIP_PACKAGE_VERSION_FLAT=") + std::to_string(HIP_PACKAGE_VERSION_FLAT);
             auto optCompile = miopen::SplitSpaceSeparated(raw, compiler::lc::GetOptionsNoSplit());
             compiler::lc::hip::RemoveCompilerOptionsUnwanted(optCompile);
             action.SetOptionList(optCompile);
@@ -603,7 +719,11 @@ void BuildHip(const std::string& name,
             auto raw = std::string(" -O3 ")                    // Without this, fails in lld.
                        + options                               //
                        + " " + GetDebugCompilerOptionsInsert() //
-                       + " " + MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS);
+                       + " " + MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS) +
+                       (" -DHIP_PACKAGE_VERSION_FLAT=") + std::to_string(HIP_PACKAGE_VERSION_FLAT);
+#if USE_HIP_PCH
+            raw += " -nogpuinc -DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS=1";
+#endif
             auto optCompile = miopen::SplitSpaceSeparated(raw, compiler::lc::GetOptionsNoSplit());
             auto optLink    = optCompile;
             compiler::lc::hip::RemoveCompilerOptionsUnwanted(optCompile);
@@ -625,6 +745,10 @@ void BuildHip(const std::string& name,
             action.SetOptionList(optLink);
             const Dataset linkedBc;
             action.Do(AMD_COMGR_ACTION_LINK_BC_TO_BC, withDevLibs, linkedBc);
+
+            OptionList codegenBcToRel;
+            codegenBcToRel.push_back("-O3"); // Nothing more is required at this step.
+            action.SetOptionList(codegenBcToRel);
             const Dataset relocatable;
             action.Do(AMD_COMGR_ACTION_CODEGEN_BC_TO_RELOCATABLE, linkedBc, relocatable);
 
@@ -659,17 +783,25 @@ void BuildOcl(const std::string& name,
         const Dataset inputs;
         inputs.AddData(name, text, AMD_COMGR_DATA_KIND_SOURCE);
         const ActionInfo action;
+#if OCL_STANDARD == 200
         action.SetLanguage(AMD_COMGR_LANGUAGE_OPENCL_2_0);
+#else
+        action.SetLanguage(AMD_COMGR_LANGUAGE_OPENCL_1_2);
+#endif
         SetIsaName(action, device);
         action.SetLogging(true);
 
         auto optCompile = miopen::SplitSpaceSeparated(options);
-        compiler::lc::RemoveOclOptionsUnwanted(optCompile);
-        compiler::lc::AddOcl20CompilerOptions(optCompile);
+        compiler::lc::ocl::RemoveOptionsUnwanted(optCompile);
+        compiler::lc::ocl::AddCompilerOptions(optCompile, device);
         action.SetOptionList(optCompile);
 
         const Dataset addedPch;
         action.Do(AMD_COMGR_ACTION_ADD_PRECOMPILED_HEADERS, inputs, addedPch);
+#if OCL_COMPILE_SOURCE_WITH_DEVICE_LIBS
+        const Dataset linkedBc;
+        action.Do(AMD_COMGR_ACTION_COMPILE_SOURCE_WITH_DEVICE_LIBS_TO_BC, addedPch, linkedBc);
+#else
         const Dataset compiledBc;
         action.Do(AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC, addedPch, compiledBc);
 
@@ -681,7 +813,7 @@ void BuildOcl(const std::string& name,
                 optLink.push_back("correctly_rounded_sqrt");
             else if(opt == "-cl-denorms-are-zero")
                 optLink.push_back("daz_opt");
-            else if(opt == "-cl-finite-math-only" || opt == "cl-fast-relaxed-math")
+            else if(opt == "-cl-finite-math-only" || opt == "-cl-fast-relaxed-math")
                 optLink.push_back("finite_only");
             else if(opt == "-cl-unsafe-math-optimizations" || opt == "-cl-fast-relaxed-math")
                 optLink.push_back("unsafe_math");
@@ -694,6 +826,7 @@ void BuildOcl(const std::string& name,
         action.Do(AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES, compiledBc, addedDevLibs);
         const Dataset linkedBc;
         action.Do(AMD_COMGR_ACTION_LINK_BC_TO_BC, addedDevLibs, linkedBc);
+#endif
 
         action.SetOptionList(optCompile);
         const Dataset relocatable;
@@ -734,6 +867,10 @@ void BuildAsm(const std::string& name,
         SetIsaName(action, device);
         action.SetLogging(true);
         auto optAsm = miopen::SplitSpaceSeparated(options);
+#if WORKAROUND_SWDEV_255735
+        if(miopen::HipCompilerVersion() >= miopen::external_tool_version_t{3, 8, 20403})
+            optAsm.push_back("-mno-xnack");
+#endif
         compiler::lc::gcnasm::RemoveOptionsUnwanted(optAsm);
         action.SetOptionList(optAsm);
 

@@ -57,7 +57,11 @@ bool ConvBinWinograd3x3U::IsApplicable(const ConvolutionContext& params) const
     // and able to correctly run with given parameters.
     const auto device_is_gfx8         = StartsWith(name, "gfx8");
     const auto grid_workgroup_count_x = params.GetStream().GetMaxComputeUnits();
-    assert(params.weights_layout.length() == 0); // weights_layout is not supported yet.
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
+
     // clang-format off
     return params.pad_w == 1
         && params.pad_h == 1
@@ -162,9 +166,9 @@ ConvSolution ConvBinWinograd3x3U::GetSolution(const ConvolutionContext& params) 
                             << " out_W="
                             << out_W);
 
-        return [=](const Handle& handle, const boost::any& ctx) {
+        return [=](const Handle& handle, const AnyInvokeParams& ctx) {
             const auto k        = handle.Run(kernels[0]);
-            const auto fwd_ctx  = boost::any_cast<conv::DataInvokeParams>(ctx);
+            const auto& fwd_ctx = ctx.CastTo<conv::DataInvokeParams>();
             const auto& tensors = fwd_ctx.tensors;
 
             k(N,

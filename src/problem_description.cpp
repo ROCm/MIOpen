@@ -26,26 +26,20 @@ std::ostream& operator<<(std::ostream& stream, std::function<void(std::ostream&)
 
 int ProblemDescription::mloBuildConf_Key(std::string& conf_key) const
 {
-    std::ostringstream ss;
-
-    ss << n_inputs;
-    ss << 'x' << PrintDHW('x', spatial_dims, in_depth, in_height, in_width);
-    ss << 'x' << PrintDHW('x', spatial_dims, kernel_size_d, kernel_size_h, kernel_size_w);
-    ss << 'x' << n_outputs;
-    ss << 'x' << PrintDHW('x', spatial_dims, out_depth, out_height, out_width);
-    ss << 'x' << batch_sz;
-    ss << 'x' << in_layout;
-    ss << 'x' << EncodeDataTypesForKey(in_data_type, weights_data_type, out_data_type);
-    ss << 'x' << PrintDHW('x', spatial_dims, pad_d, pad_h, pad_w);
-    ss << 'x' << PrintDHW('x', spatial_dims, kernel_stride_d, kernel_stride_h, kernel_stride_w);
-    ss << 'x'
-       << PrintDHW('x', spatial_dims, kernel_dilation_d, kernel_dilation_h, kernel_dilation_w);
-    ss << 'x' << group_counts;
-    ss << 'x' << (direction.IsForward() ? "1" : "0");
-
-    conf_key = ss.str();
-
+    conv_problem.BuildConfKey(conf_key);
     return (0);
+}
+
+bool ProblemDescription::IsLayoutDefault() const
+{
+    if(spatial_dims == 2)
+    {
+        return (in_layout == "NCHW") && (out_layout == "NCHW") && (weights_layout == "NCHW");
+    }
+    else
+    {
+        return (in_layout == "NCDHW") && (out_layout == "NCDHW") && (weights_layout == "NCDHW");
+    }
 }
 
 void ProblemDescription::Serialize(std::ostream& stream) const
@@ -53,7 +47,10 @@ void ProblemDescription::Serialize(std::ostream& stream) const
     if(!direction.IsKnown())
         MIOPEN_THROW("!direction.IsKnown()");
     const auto sep = '-';
+    // Problem description with default NCHW-NCHW-NCHW layout
     // 576-4-4-1x1-192-4-4-8-1x1-2x2-3x3-0-NCHW-FP32-F
+    // Problem description with non-default layout
+    // 576-4-4-1x1-192-4-4-8-1x1-2x2-3x3-0-NHWC-NCHW-NCHW-FP32-F
     // clang-format off
     stream << n_inputs;
     stream << sep << PrintDHW(sep, spatial_dims, in_depth, in_height, in_width);
@@ -65,7 +62,15 @@ void ProblemDescription::Serialize(std::ostream& stream) const
     stream << sep << PrintDHW('x', spatial_dims, kernel_stride_d, kernel_stride_h, kernel_stride_w);
     stream << sep << PrintDHW('x', spatial_dims, kernel_dilation_d, kernel_dilation_h, kernel_dilation_w);
     stream << sep << bias;
-    stream << sep << in_layout;
+    if ((in_layout == "NCHW" && weights_layout == "NCHW" && out_layout == "NCHW") 
+        || (in_layout == "NCDHW" && weights_layout == "NCDHW" && out_layout == "NCDHW"))
+    {
+        stream << sep << in_layout;
+    } else {
+        stream << sep << in_layout;
+        stream << sep << weights_layout;
+        stream << sep << out_layout;
+    }
     stream << sep << EncodeDataTypesForKey(in_data_type, weights_data_type, out_data_type);
     stream << sep << (direction.IsForward() ? "F" : direction.IsBackwardData() ? "B" : "W");
     // clang-format on

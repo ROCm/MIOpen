@@ -25,6 +25,10 @@
 *******************************************************************************/
 #pragma once
 
+#include <miopen/config.h>
+
+#if MIOPEN_ENABLE_SQLITE
+
 #include <miopen/db_record.hpp>
 #include <miopen/db.hpp>
 #include <miopen/manage_ptr.hpp>
@@ -53,6 +57,7 @@ class path;
 
 namespace miopen {
 
+constexpr bool InMemDb                = MIOPEN_EMBED_DB;
 const auto MIOPEN_SQL_BUSY_TIMEOUT_MS = 60000;
 template <class Derived>
 struct SQLiteSerializable
@@ -207,10 +212,9 @@ class SQLiteBase
                std::size_t num_cu_)
         : filename(filename_), arch(arch_), num_cu(num_cu_), is_system(is_system_)
     {
-        if(!is_system && DisableUserDbFileIO)
-            return;
-
-        MIOPEN_LOG_I2("Initializing " << (is_system ? "system" : "user") << " database file "
+        MIOPEN_LOG_I2("Initializing " << (InMemDb ? "In Memory " : "")
+                                      << (is_system ? "system" : "user")
+                                      << " database file "
                                       << filename);
 
         if(filename.empty())
@@ -244,8 +248,13 @@ class SQLiteBase
             if(!is_system)
                 MIOPEN_THROW(miopenStatusInternalError, "Cannot open database file:" + filename_);
             else
-                MIOPEN_LOG_W("Unable to read system database file:" + filename_ +
-                             " Performance may degrade");
+            {
+                const auto log_level =
+                    (!MIOPEN_DISABLE_SYSDB) ? LoggingLevel::Warning : LoggingLevel::Info;
+                MIOPEN_LOG(log_level,
+                           "Unable to read system database file:" + filename_ +
+                               " Performance may degrade");
+            }
         }
         else
         {
@@ -581,3 +590,4 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
     }
 };
 } // namespace miopen
+#endif

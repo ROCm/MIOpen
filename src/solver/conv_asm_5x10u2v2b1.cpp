@@ -42,6 +42,8 @@ bool ConvAsm5x10u2v2b1::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!params.Is2d())
         return false;
+    if(params.IsAsymmetricPadH() || params.IsAsymmetricPadW())
+        return false;
     if(!params.rmv.IsV2orV3())
         return false;
 
@@ -57,7 +59,10 @@ bool ConvAsm5x10u2v2b1::IsApplicable(const ConvolutionContext& params) const
     {
         return false;
     }
-    assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet.
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
 
     // Min image + padding shall be not smaller than filter matrix.
     const int min_out_width  = 138;

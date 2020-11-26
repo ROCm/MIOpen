@@ -112,6 +112,8 @@ struct ProblemDescription
 
     static std::string table_name() { return "config"; }
 
+    bool IsLayoutDefault() const;
+
     template <class Self>
     static void Visit(Self&& self, std::function<void(int, std::string)> f)
     {

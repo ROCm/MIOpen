@@ -44,6 +44,7 @@
 namespace miopen {
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DISABLE_CACHE)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_CUSTOM_CACHE_DIR)
 
 static boost::filesystem::path ComputeSysCachePath()
 {
@@ -59,13 +60,18 @@ static boost::filesystem::path ComputeUserCachePath()
 {
 #ifdef MIOPEN_CACHE_DIR
     std::string cache_dir = MIOPEN_CACHE_DIR;
+    std::string version;
 
-    std::string version =
-        std::to_string(MIOPEN_VERSION_MAJOR) + "." + std::to_string(MIOPEN_VERSION_MINOR) + "." +
-        std::to_string(MIOPEN_VERSION_PATCH) + "." + MIOPEN_STRINGIZE(MIOPEN_VERSION_TWEAK);
-
+    version = std::to_string(MIOPEN_VERSION_MAJOR) + "." + std::to_string(MIOPEN_VERSION_MINOR) +
+              "." + std::to_string(MIOPEN_VERSION_PATCH) + "." +
+              MIOPEN_STRINGIZE(MIOPEN_VERSION_TWEAK);
     auto p = boost::filesystem::path{miopen::ExpandUser(cache_dir)} / version;
-    if(!boost::filesystem::exists(p))
+
+    const char* const custom = miopen::GetStringEnv(MIOPEN_CUSTOM_CACHE_DIR{});
+    if(custom != nullptr && strlen(custom) > 0)
+        p = boost::filesystem::path{miopen::ExpandUser(custom)};
+
+    if(!boost::filesystem::exists(p) && !MIOPEN_DISABLE_USERDB)
         boost::filesystem::create_directories(p);
     return p;
 #else
@@ -78,20 +84,34 @@ boost::filesystem::path GetCachePath(bool is_system)
     static const boost::filesystem::path user_path = ComputeUserCachePath();
     static const boost::filesystem::path sys_path  = ComputeSysCachePath();
     if(is_system)
-        return sys_path;
+    {
+        if(MIOPEN_DISABLE_SYSDB)
+            return {};
+        else
+            return sys_path;
+    }
     else
-        return user_path;
+    {
+        if(MIOPEN_DISABLE_USERDB)
+            return {};
+        else
+            return user_path;
+    }
 }
 
 static bool IsCacheDisabled()
 {
 #ifdef MIOPEN_CACHE_DIR
-    return miopen::IsEnabled(MIOPEN_DISABLE_CACHE{});
+    if(MIOPEN_DISABLE_USERDB && MIOPEN_DISABLE_SYSDB)
+        return true;
+    else
+        return miopen::IsEnabled(MIOPEN_DISABLE_CACHE{});
 #else
     return true;
 #endif
 }
 
+#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
 using KDb = DbTimer<MultiFileDb<KernDb, KernDb, false>>;
 KDb GetDb(const std::string& device, size_t num_cu)
 {
@@ -106,6 +126,7 @@ KDb GetDb(const std::string& device, size_t num_cu)
         sys_path = boost::filesystem::path{};
     return {sys_path.string(), user_path.string(), device, num_cu};
 }
+#endif
 
 boost::filesystem::path GetCacheFile(const std::string& device,
                                      const std::string& name,
@@ -132,9 +153,15 @@ std::string LoadBinary(const std::string& device,
     MIOPEN_LOG_I2("Loading binary for: " << name << " ;args: " << args);
     auto record = db.FindRecord(cfg);
     if(record)
+    {
+        MIOPEN_LOG_I2("Sucessfully loaded binary for: " << name << " ;args: " << args);
         return record.get();
+    }
     else
+    {
+        MIOPEN_LOG_I2("Unable to load binary for: " << name << " ;args: " << args);
         return {};
+    }
 }
 
 void SaveBinary(const std::string& hsaco,

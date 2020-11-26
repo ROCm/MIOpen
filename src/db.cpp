@@ -160,8 +160,9 @@ boost::optional<DbRecord> PlainTextDb::FindRecordUnsafe(const std::string& key,
 
     if(!file)
     {
-        const auto log_level =
-            IsWarningIfUnreadable() ? LoggingLevel::Warning : LoggingLevel::Info2;
+        const auto log_level = IsWarningIfUnreadable() && !MIOPEN_DISABLE_SYSDB
+                                   ? LoggingLevel::Warning
+                                   : LoggingLevel::Info2;
         MIOPEN_LOG(log_level, "File is unreadable: " << filename);
         return boost::none;
     }

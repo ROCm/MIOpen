@@ -18,11 +18,13 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SY
 #define WORKAROUND_SWDEV_229564 1
 // workaround for buffer load/store fp16/bfp16 intrinsic bug
 #define WORKAROUND_SWDEV_231101 1
-// workaround compiler bug: GPU memory access fault when there is padding in fp16/bfp16 case
-#define WORKAROUND_SWDEV_239555 1
-// LLVM xdlops instrinsic will do unnecessey VGRP <--> AGPR movement, and result in
-// register spill, for bfloat16 datatype, when doing wave-wise GEMM larger than 64x64
-#define WORKAROUND_SWDEV_240356 1
+// due to compiler bug, iGEMM xdlops kernels fail verification in some cases, if using "-O3" flag,
+// (but will pass verification with "-O1" flag)
+#define WORKAROUND_SWDEV_251757 1
+// although gfx1030 supports buffer instructions,but it not work properly when we use the
+// corresponding llvm intrinsic functions
+// so we disable using those llvm intrinsic functions on gfx1030
+#define WORKAROUND_MIOPEN_ISSUE_557 1
 
 namespace miopen {
 
@@ -104,12 +106,28 @@ struct ConvolutionContextInterpreter
 
     static auto GetBatchN(const ConvolutionContext& c) { return c.batch_sz; }
 
+    static auto GetOutputLayout(const ConvolutionContext& c)
+    {
+        if(c.direction.IsForward())
+            return c.out_layout;
+        else
+            return c.in_layout;
+    }
+
     static auto GetOutputChannelK(const ConvolutionContext& c)
     {
         if(c.direction.IsForward())
             return c.n_outputs;
         else
             return c.n_inputs;
+    }
+
+    static auto GetInputLayout(const ConvolutionContext& c)
+    {
+        if(c.direction.IsForward())
+            return c.in_layout;
+        else
+            return c.out_layout;
     }
 
     static auto GetInputChannelC(const ConvolutionContext& c)
@@ -169,6 +187,8 @@ struct ConvolutionContextInterpreter
     }
 
     static auto GetFilterDepthZ(const ConvolutionContext& c) { return c.kernel_size_d; }
+
+    static auto GetFilterLayout(const ConvolutionContext& c) { return c.weights_layout; }
 
     static auto GetFilterHeightY(const ConvolutionContext& c) { return c.kernel_size_h; }
 
@@ -514,23 +534,45 @@ static inline bool IsValidBlockwiseGemmXdlops(const ConvolutionContext& ctx,
                                               const int GemmNPerWave,
                                               const int GemmKPack)
 {
-    // unsupported xdlops-gemm
+#if WORKAROUND_SWDEV_251757
+    if(ctx.IsFp32() && GemmKPerBlock == 1 && GemmKPack == 8)
+        return false;
+#endif
+
+    // check k
     if(ctx.IsFp16() && GemmKPack % 4 != 0)
         return false;
     if(ctx.IsBfp16() && GemmKPack % 2 != 0)
         return false;
 
-    if(GemmMPerWave == 16 && GemmNPerWave == 32)
-        return false;
-    if(GemmMPerWave == 32 && GemmNPerWave == 16)
-        return false;
-    if(GemmMPerWave == 8 && GemmNPerWave != 64)
-        return false;
-    if(GemmMPerWave == 4 && GemmNPerWave != 64)
-        return false;
-    if(GemmMPerWave == 32 && GemmNPerWave == 32 && GemmKPerBlock % 2 != 0)
-        return false;
-    if(GemmMPerWave == 16 && GemmNPerWave == 16 && GemmKPerBlock % 4 != 0)
+    // check M, N and K
+    std::vector<std::tuple<int, int, int>> validWaveGemmSize = {// std::make_tuple(128, 128, 1),
+                                                                std::make_tuple(128, 64, 1),
+                                                                // std::make_tuple(128, 32, 1),
+                                                                // std::make_tuple(128, 16, 1),
+                                                                std::make_tuple(64, 128, 1),
+                                                                std::make_tuple(64, 64, 1),
+                                                                std::make_tuple(64, 32, 1),
+                                                                std::make_tuple(64, 16, 1),
+                                                                // std::make_tuple(32, 128, 1),
+                                                                std::make_tuple(32, 64, 1),
+                                                                std::make_tuple(32, 32, 2),
+                                                                // std::make_tuple(16, 128, 1),
+                                                                std::make_tuple(16, 64, 1),
+                                                                std::make_tuple(16, 16, 4),
+                                                                // std::make_tuple(8, 128, 1),
+                                                                std::make_tuple(8, 64, 1),
+                                                                // std::make_tuple(4, 128, 1),
+                                                                std::make_tuple(4, 64, 1)};
+
+    if(!std::any_of(validWaveGemmSize.cbegin(),
+                    validWaveGemmSize.cend(),
+                    [ GemmMPerWave, GemmNPerWave, GemmKPerBlock ](const auto it) noexcept->bool {
+                        int validMPerWave, validNPerWave, validKPerWave;
+                        std::tie(validMPerWave, validNPerWave, validKPerWave) = it;
+                        return (GemmMPerWave == validMPerWave) && (GemmNPerWave == validNPerWave) &&
+                               (GemmKPerBlock % validKPerWave == 0);
+                    }))
         return false;
 
     const auto WaveSize = 64;
@@ -649,57 +691,6 @@ static inline size_t ComputeLDSRequiredSize(const ConvolutionContext& ctx,
     return lds_size;
 }
 
-template <typename BotBufType, typename TopBufType, typename WeiBufType>
-static inline int RunAndMeasureSolutionBase(const miopen::Handle& profile_h,
-                                            BotBufType bot_buf,
-                                            TopBufType top_buf,
-                                            WeiBufType wei_buf,
-                                            const ConvolutionContext& ctx,
-                                            const ConvSolution& solution,
-                                            float& elapsed_time)
-{
-#ifdef NDEBUG
-    try
-#endif
-    {
-        elapsed_time = float(0);
-
-        for(auto& k_info : solution.construction_params)
-        {
-            auto kernel = profile_h.AddKernel("",
-                                              "",
-                                              k_info.kernel_file,
-                                              k_info.kernel_name,
-                                              k_info.l_wk,
-                                              k_info.g_wk,
-                                              k_info.comp_options);
-
-            if(ctx.direction.IsBackwardWrW())
-            {
-                kernel(top_buf, bot_buf, wei_buf);
-            }
-            if(ctx.direction.IsBackwardData())
-            {
-                kernel(top_buf, wei_buf, bot_buf);
-            }
-            if(ctx.direction.IsForward())
-            {
-                kernel(bot_buf, wei_buf, top_buf);
-            }
-
-            elapsed_time += profile_h.GetKernelTime();
-        }
-    }
-#ifdef NDEBUG
-    catch(miopen::Exception& ex)
-    {
-        MIOPEN_LOG_WE(ex.what());
-        return -1;
-    }
-#endif
-    return 0;
-}
-
 static inline bool use_amd_inline_asm(const ConvolutionContext& ctx)
 {
 
@@ -714,10 +705,26 @@ static inline bool use_amd_inline_asm(const ConvolutionContext& ctx)
     return !miopen::IsDisabled(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM{});
 }
 
-static inline bool support_amd_buffer_atomic_add(const ConvolutionContext& ctx)
+static inline bool support_amd_buffer_atomic_fadd(const ConvolutionContext& ctx)
 {
     const auto device_name = ctx.GetStream().GetDeviceName();
-    return StartsWith(device_name, "gfx908") && ctx.IsFp32();
+    return StartsWith(device_name, "gfx908");
+}
+
+static inline bool is_use_amd_buffer_load_store(const ConvolutionContext& ctx)
+{
+#if WORKAROUND_MIOPEN_ISSUE_557
+    const auto device_name = ctx.GetStream().GetDeviceName();
+    return !StartsWith(device_name, "gfx1030");
+#else
+    return true;
+#endif
+}
+
+static inline bool is_use_v_fmac_f32(const ConvolutionContext& ctx)
+{
+    const auto device_name = ctx.GetStream().GetDeviceName();
+    return StartsWith(device_name, "gfx1030");
 }
 
 template <typename T>
@@ -793,6 +800,37 @@ int amd_lds_write_max_length()
 }
 
 constexpr std::size_t get_lds_max_number_of_byte() { return 65536; }
+
+static inline auto get_ck_common_compiler_flag(const ConvolutionContext& ctx)
+{
+    auto compiler_flag = std::string(" --std=c++14");
+
+    // atomic-fadd
+    compiler_flag += std::string(" -DCK_USE_AMD_BUFFER_ATOMIC_FADD=") +
+                     (support_amd_buffer_atomic_fadd(ctx) ? '1' : '0');
+
+    // LDS sync
+    compiler_flag +=
+        std::string(" -DCK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM=") +
+        (miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM{})
+             ? '0'
+             : '1');
+
+    // workaround
+    compiler_flag +=
+        std::string(" -DCK_WORKAROUND_SWDEV_229564=") + std::to_string(WORKAROUND_SWDEV_229564) +
+        std::string(" -DCK_WORKAROUND_SWDEV_231101=") + std::to_string(WORKAROUND_SWDEV_231101);
+
+    // enable or disable buffer load/store
+    compiler_flag += std::string(" -DCK_USE_AMD_BUFFER_ADDRESSING=") +
+                     (is_use_amd_buffer_load_store(ctx) ? '1' : '0');
+
+    // use v_fmac_f32 or not
+    compiler_flag +=
+        std::string(" -DCK_USE_AMD_V_FMAC_F32=") + (is_use_v_fmac_f32(ctx) ? '1' : '0');
+
+    return compiler_flag;
+}
 
 } // namespace solver
 } // namespace miopen

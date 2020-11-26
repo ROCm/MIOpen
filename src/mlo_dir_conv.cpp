@@ -92,14 +92,15 @@ miopen::PerformanceDb miopen::GetDb(const ConvolutionContext& ctx)
 }
 #endif
 miopen::solver::ConvSolution
-mlo_construct_direct2D_fusion::FindSolution(const std::vector<miopen::solver::AnySolver>& solvers)
+mlo_construct_direct2D_fusion::FindSolution(const std::vector<miopen::solver::AnySolver>& solvers,
+                                            const miopen::AnyInvokeParams& invoke_ctx)
 {
     miopen::solver::ConvSolution solution{miopenStatusUnknownError};
     std::string solver_id;
     auto db = this->GetDb();
     for(auto& solver : solvers)
     {
-        solution = solver.FindSolution(_search_params, db);
+        solution = solver.FindSolution(_search_params, db, invoke_ctx);
         if(solution.Succeeded() && solver.IsApplicable(_search_params))
         {
             solver_id = miopen::solver::SolverDbId(solver);
@@ -130,22 +131,21 @@ static auto GetDirectSolvers()
 
 static auto GetImplicitGemmSolvers()
 {
-    return miopen::solver::SolverContainer<miopen::solver::ConvHipImplicitGemmForwardV4R4Xdlops,
-                                           miopen::solver::ConvHipImplicitGemmV4R4GenXdlopsFwdFp32,
-                                           miopen::solver::ConvHipImplicitGemmV4R4Xdlops_1x1,
-                                           miopen::solver::ConvHipImplicitGemmV4R4GenFwdXdlops,
-                                           miopen::solver::ConvHipImplicitGemmV4R4FwdXdlops,
-                                           miopen::solver::ConvHipImplicitGemmBwdDataV1R1Xdlops,
-                                           miopen::solver::ConvHipImplicitGemmBwdDataV4R1Xdlops,
-                                           miopen::solver::ConvHipImplicitGemmV4_1x1,
-                                           miopen::solver::ConvHipImplicitGemmV4Fwd,
-                                           miopen::solver::ConvHipImplicitGemmV4R1Fwd,
-                                           miopen::solver::ConvHipImplicitGemmV4R4Fwd,
-                                           miopen::solver::ConvHipImplicitGemmBwdDataV1R1,
-                                           miopen::solver::ConvHipImplicitGemmBwdDataV4R1,
-                                           miopen::solver::ConvHipImplicitGemmBwdDataV4R1Xdlops,
-                                           miopen::solver::ConvAsmImplicitGemmV4R1DynamicFwd_1x1,
-                                           miopen::solver::ConvAsmImplicitGemmV4R1DynamicFwd>{};
+    return miopen::solver::SolverContainer<
+        miopen::solver::ConvHipImplicitGemmForwardV4R5Xdlops,
+        miopen::solver::ConvHipImplicitGemmForwardV4R4Xdlops,
+        miopen::solver::ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm,
+        miopen::solver::ConvHipImplicitGemmBwdDataV4R1Xdlops,
+        miopen::solver::ConvHipImplicitGemmBwdDataV1R1Xdlops,
+        miopen::solver::ConvHipImplicitGemmV4R1Fwd,
+        miopen::solver::ConvHipImplicitGemmV4R4Fwd,
+        miopen::solver::ConvHipImplicitGemmBwdDataV1R1,
+        miopen::solver::ConvHipImplicitGemmBwdDataV4R1,
+        miopen::solver::ConvAsmImplicitGemmV4R1DynamicFwd_1x1,
+        miopen::solver::ConvAsmImplicitGemmV4R1DynamicFwd,
+        miopen::solver::ConvAsmImplicitGemmV4R1DynamicBwd,
+        miopen::solver::ConvAsmImplicitGemmGTCDynamicFwdXdlops,
+        miopen::solver::ConvAsmImplicitGemmGTCDynamicBwdXdlops>{};
 }
 
 static auto GetWindogradSolvers()
@@ -153,23 +153,35 @@ static auto GetWindogradSolvers()
     return miopen::solver::SolverContainer<miopen::solver::ConvBinWinograd3x3U,
                                            miopen::solver::ConvBinWinogradRxSf3x2,
                                            miopen::solver::ConvBinWinogradRxSf2x3,
-                                           miopen::solver::ConvBinWinogradRxS>{};
+                                           miopen::solver::ConvBinWinogradRxSf2x3g1,
+                                           miopen::solver::ConvBinWinogradRxS,
+                                           miopen::solver::ConvMPBidirectWinograd<3, 3>,
+                                           miopen::solver::ConvMPBidirectWinograd<4, 3>,
+                                           miopen::solver::ConvMPBidirectWinograd<5, 3>,
+                                           miopen::solver::ConvMPBidirectWinograd<6, 3>,
+                                           miopen::solver::ConvMPBidirectWinograd_xdlops<2, 3>,
+                                           miopen::solver::ConvMPBidirectWinograd_xdlops<3, 3>,
+                                           miopen::solver::ConvMPBidirectWinograd_xdlops<4, 3>,
+                                           miopen::solver::ConvMPBidirectWinograd_xdlops<5, 3>,
+                                           miopen::solver::ConvMPBidirectWinograd_xdlops<6, 3>>{};
 }
 
 static auto GetImplicitGemmWrWSolvers()
 {
-    return miopen::solver::SolverContainer<miopen::solver::ConvHipImplicitGemmV4R4GenXdlopsWrWFp32,
-                                           miopen::solver::ConvHipImplicitGemmV4R4GenWrWXdlops,
-                                           miopen::solver::ConvHipImplicitGemmV4R4WrWXdlops,
-                                           miopen::solver::ConvHipImplicitGemmV4WrW,
-                                           miopen::solver::ConvHipImplicitGemmV4R1WrW,
-                                           miopen::solver::ConvHipImplicitGemmV4R4WrW>{};
+    return miopen::solver::SolverContainer<
+        miopen::solver::ConvHipImplicitGemmWrwV4R4Xdlops,
+        miopen::solver::ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm,
+        miopen::solver::ConvHipImplicitGemmV4R1WrW,
+        miopen::solver::ConvHipImplicitGemmV4R4WrW,
+        miopen::solver::ConvAsmImplicitGemmV4R1DynamicWrw,
+        miopen::solver::ConvAsmImplicitGemmGTCDynamicWrwXdlops>{};
 }
 
 static auto GetWindogradWrWSolvers()
 {
     return miopen::solver::SolverContainer<miopen::solver::ConvBinWinogradRxS,
                                            miopen::solver::ConvBinWinogradRxSf2x3,
+                                           miopen::solver::ConvBinWinogradRxSf2x3g1,
                                            miopen::solver::ConvWinograd3x3MultipassWrW<3, 2>,
                                            miopen::solver::ConvWinograd3x3MultipassWrW<3, 3>,
                                            miopen::solver::ConvWinograd3x3MultipassWrW<3, 4>,
@@ -199,17 +211,13 @@ static auto GetBwdWrW2DSolvers()
                                            miopen::solver::ConvOclBwdWrW1x1>{};
 }
 
-#if MIOPEN_USE_SCGEMM
-static auto GetFwdSCGemmSolvers()
-{
-    return miopen::solver::SolverContainer<miopen::solver::ConvSCGemmFGemm>{};
-}
-#endif
+static auto GetFFTSolvers() { return miopen::solver::SolverContainer<miopen::solver::fft>{}; }
 
 std::vector<miopen::solver::ConvSolution>
-FindAllDirectSolutions(const miopen::ConvolutionContext& ctx)
+FindAllDirectSolutions(const miopen::ConvolutionContext& ctx,
+                       const miopen::AnyInvokeParams& invoke_ctx)
 {
-    return GetDirectSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+    return GetDirectSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
 }
 
 std::vector<std::pair<std::string, size_t>>
@@ -219,28 +227,31 @@ AllDirectForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx)
 }
 
 std::vector<miopen::solver::ConvSolution>
-FindAllImplicitGemmSolutions(const miopen::ConvolutionContext& ctx)
+FindAllImplicitGemmSolutions(const miopen::ConvolutionContext& ctx,
+                             const miopen::AnyInvokeParams& invoke_ctx)
 {
 #if WORKAROUND_SWDEV_227826
     if(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS{}))
-        return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+        return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
     else
-        return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx), 1);
+        return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx, 1);
 #else
-    return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+    return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
 #endif
 }
 
 std::vector<miopen::solver::ConvSolution>
-FindAllWinogradSolutions(const miopen::ConvolutionContext& ctx)
+FindAllWinogradSolutions(const miopen::ConvolutionContext& ctx,
+                         const miopen::AnyInvokeParams& invoke_ctx)
 {
-    return GetWindogradSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+    return GetWindogradSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
 }
 
 std::vector<miopen::solver::ConvSolution>
-FindWinogradWrWAllSolutions(const miopen::ConvolutionContext& ctx)
+FindWinogradWrWAllSolutions(const miopen::ConvolutionContext& ctx,
+                            const miopen::AnyInvokeParams& invoke_ctx)
 {
-    return GetWindogradWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+    return GetWindogradWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
 }
 
 std::vector<std::pair<std::string, size_t>>
@@ -250,33 +261,37 @@ AllDirectBwdWrW2DWorkspaceSize(const miopen::ConvolutionContext& ctx)
 }
 
 std::vector<miopen::solver::ConvSolution>
-FindImplicitGemmWrWAllSolutions(const miopen::ConvolutionContext& ctx)
+FindImplicitGemmWrWAllSolutions(const miopen::ConvolutionContext& ctx,
+                                const miopen::AnyInvokeParams& invoke_ctx)
 {
 #if WORKAROUND_SWDEV_227826
     if(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS{}))
-        return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+        return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
     else
-        return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx), 1);
+        return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx, 1);
 #else
-    return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+    return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
 #endif
 }
 
 std::vector<miopen::solver::ConvSolution>
-FindAllBwdWrW2DSolutions(const miopen::ConvolutionContext& ctx)
+FindAllBwdWrW2DSolutions(const miopen::ConvolutionContext& ctx,
+                         const miopen::AnyInvokeParams& invoke_ctx)
 {
-    return GetBwdWrW2DSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+    return GetBwdWrW2DSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
 }
 
 std::vector<miopen::solver::ConvSolution>
-FindAllFwdSCGemmSolutions(const miopen::ConvolutionContext& ctx)
+FindAllFFTSolutions(const miopen::ConvolutionContext& ctx,
+                    const miopen::AnyInvokeParams& invoke_ctx)
 {
-#if MIOPEN_USE_SCGEMM
-    return GetFwdSCGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
-#else
-    (void)ctx;
-    return {};
-#endif
+    return GetFFTSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
+}
+
+std::vector<std::pair<std::string, size_t>>
+AllFFTForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx)
+{
+    return GetFFTSolvers().GetWorkspaceSize(ctx);
 }
 
 void miopen::ConvolutionContext::SetupFloats()

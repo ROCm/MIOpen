@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017-2018 Advanced Micro Devices, Inc.
+ * Copyright (c) 2017-2020 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,6 +35,7 @@
 #include <miopen/invoker.hpp>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/timer.hpp>
 
 #if !MIOPEN_ENABLE_SQLITE_KERN_CACHE
 #include <miopen/write_file.hpp>
@@ -54,7 +55,7 @@
 #include <chrono>
 #include <thread>
 
-#define MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_30 MIOPEN_USE_COMGR
+#define MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_30 (MIOPEN_USE_COMGR && BUILD_SHARED_LIBS)
 
 namespace miopen {
 
@@ -371,8 +372,10 @@ Program Handle::LoadProgram(const std::string& program_name,
         this->GetDeviceName(), this->GetMaxComputeUnits(), program_name, params, is_kernel_str);
     if(hsaco.empty())
     {
+        CompileTimer ct;
         auto p =
             HIPOCProgram{program_name, params, is_kernel_str, this->GetDeviceName(), kernel_src};
+        ct.Log("Kernel", program_name);
 
 // Save to cache
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
@@ -470,6 +473,11 @@ std::size_t Handle::GetGlobalMemorySize() const
 std::size_t Handle::GetMaxComputeUnits() const
 {
     int result;
+    const char* const num_cu = miopen::GetStringEnv(MIOPEN_DEVICE_CU{});
+    if(num_cu != nullptr && strlen(num_cu) > 0)
+    {
+        return boost::lexical_cast<std::size_t>(num_cu);
+    }
     auto status =
         hipDeviceGetAttribute(&result, hipDeviceAttributeMultiprocessorCount, this->impl->device);
     if(status != hipSuccess)
@@ -514,6 +522,11 @@ std::size_t Handle::GetMaxMemoryAllocSize()
 
 std::string Handle::GetDeviceName() const
 {
+    const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
+    if(arch != nullptr && strlen(arch) > 0)
+    {
+        return arch;
+    }
     hipDeviceProp_t props{};
     hipGetDeviceProperties(&props, this->impl->device);
     std::string n("gfx" + std::to_string(props.gcnArch));

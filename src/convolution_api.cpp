@@ -23,8 +23,12 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/miopen.h>
+#include <miopen/miopen_internal.h>
+
 #include <miopen/convolution.hpp>
 #include <miopen/errors.hpp>
+#include <miopen/find_controls.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
@@ -88,6 +92,41 @@ extern "C" miopenStatus_t miopenSetConvolutionGroupCount(miopenConvolutionDescri
 {
     MIOPEN_LOG_FUNCTION(convDesc, groupCount);
     return miopen::try_([&] { miopen::deref(convDesc).group_count = groupCount; });
+}
+
+extern "C" miopenStatus_t miopenSetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc,
+                                                       miopenConvolutionFindMode_t findMode)
+{
+    MIOPEN_LOG_FUNCTION(convDesc, findMode);
+    return miopen::try_([&] {
+        miopen::deref(convDesc).findMode.Set(static_cast<miopen::FindMode::Values>(findMode));
+    });
+}
+
+extern "C" miopenStatus_t miopenGetConvolutionFindMode(const miopenConvolutionDescriptor_t convDesc,
+                                                       miopenConvolutionFindMode_t* findMode)
+{
+    MIOPEN_LOG_FUNCTION(convDesc, findMode);
+    return miopen::try_([&] {
+        miopen::deref(findMode) =
+            static_cast<miopenConvolutionFindMode_t>(miopen::deref(convDesc).findMode.Get());
+    });
+}
+
+// Hidden C++ functions for MIGraphX.
+extern "C" miopenStatus_t miopenHiddenSetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc,
+                                                             int findMode)
+{
+    return miopen::try_([&] {
+        miopen::deref(convDesc).findMode.Set(static_cast<miopen::FindMode::Values>(findMode));
+    });
+}
+extern "C" miopenStatus_t miopenHiddenGetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc,
+                                                             int* findMode)
+{
+    return miopen::try_([&] {
+        miopen::deref(findMode) = static_cast<int>(miopen::deref(convDesc).findMode.Get());
+    });
 }
 
 extern "C" miopenStatus_t
@@ -1228,6 +1267,8 @@ miopenConvolutionBackwardWeights(miopenHandle_t handle,
                         dw,
                         workSpace,
                         workSpaceSize);
+    LogCmdConvolution(xDesc, dwDesc, convDesc, ConvDirection::WrW, false);
+
     return miopen::try_([&] {
         miopen::deref(convDesc).ConvolutionBackwardWeights(
             miopen::deref(handle),

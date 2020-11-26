@@ -138,12 +138,19 @@ __llvm_amdgcn_buffer_store_bf16x4(ushort4_t vdata,
                                   bool glc,
                                   bool slc) __asm("llvm.amdgcn.buffer.store.v4bf16");
 
+#if CK_USE_AMD_BUFFER_ATOMIC_FADD
+#if CK_HIP_VERSION_FLAT >= 3010020405
+// starting ROCm-3.10, the return type becomes float
+__device__ float
+#else
 __device__ void
+#endif
 __llvm_amdgcn_buffer_atomic_add_f32(float vdata,
                                     int32x4_t rsrc,
                                     index_t vindex,
                                     index_t offset,
                                     bool slc) __asm("llvm.amdgcn.buffer.atomic.fadd.f32");
+#endif
 
 // buffer_load requires:
 //   1) p_src must be in global memory space, d_dst must be vgpr
@@ -163,11 +170,13 @@ __device__ void amd_buffer_store(const T* p_src,
                                  index_t dst_thread_data_offset,
                                  index_t dst_const_data_offset);
 
+#if CK_USE_AMD_BUFFER_ATOMIC_FADD
 template <typename T, index_t VectorSize>
 __device__ void amd_buffer_atomic_add(const T* p_src,
                                       T* p_dst_block,
                                       index_t dst_thread_data_offset,
                                       index_t dst_const_data_offset);
+#endif
 
 template <>
 __device__ float amd_buffer_load<float, 1>(const float* p_src_block,
@@ -734,6 +743,7 @@ __device__ void amd_buffer_store<ushort, 4>(const ushort* p_src,
 #endif
 }
 
+#if CK_USE_AMD_BUFFER_ATOMIC_FADD
 template <>
 __device__ void amd_buffer_atomic_add<float, 1>(const float* p_src,
                                                 float* p_dst_block,
@@ -781,6 +791,7 @@ __device__ void amd_buffer_atomic_add<float, 4>(const float* p_src,
             &p_src[i], p_dst_block, dst_thread_data_offset, dst_const_data_offset + i);
     }
 }
+#endif // CK_USE_AMD_BUFFER_ATOMIC_FADD
 
 } // namespace ck
 #endif

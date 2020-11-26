@@ -83,6 +83,21 @@ struct SetData
 #endif
 };
 
+template <index_t DataPerAccess>
+struct SetData<int, DataPerAccess>
+{
+    // This version is only for compatibility, don't use this version if possible
+    template <AddressSpace SrcAddressSpace, AddressSpace DstAddressSpace>
+    __device__ void Run(const int* p_src, index_t src_offset, int* p_dst, index_t dst_offset) const
+    {
+        SetData<float, DataPerAccess>{}.template Run<SrcAddressSpace, DstAddressSpace>(
+            reinterpret_cast<const float*>(reinterpret_cast<const void*>(p_src)),
+            src_offset,
+            reinterpret_cast<float*>(reinterpret_cast<void*>(p_dst)),
+            dst_offset);
+    }
+};
+
 template <typename T, index_t DataPerAccess>
 struct AtomicAddData
 {
@@ -96,7 +111,7 @@ struct AtomicAddData
                         *reinterpret_cast<const vector_t*>(&p_src[src_offset]));
     }
 
-#if CK_USE_AMD_BUFFER_ADDRESSING && CK_USE_AMD_BUFFER_ATOMIC_ADD
+#if CK_USE_AMD_BUFFER_ADDRESSING && CK_USE_AMD_BUFFER_ATOMIC_FADD
     // buffer_atomic_add requires:
     //   1) p_src must be in vgpr space, d_dst must be global memory
     //   2) p_dst to be a block-invariant pointer.

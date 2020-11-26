@@ -37,6 +37,7 @@
 #include <miopen/logger.hpp>
 #include <miopen/manage_ptr.hpp>
 #include <miopen/ocldeviceinfo.hpp>
+#include <miopen/timer.hpp>
 
 #if MIOPEN_USE_MIOPENGEMM
 #include <miopen/gemm_geometry.hpp>
@@ -567,12 +568,14 @@ Program Handle::LoadProgram(const std::string& program_name,
         this->GetDeviceName(), this->GetMaxComputeUnits(), program_name, params, is_kernel_str);
     if(hsaco.empty())
     {
+        CompileTimer ct;
         auto p = miopen::LoadProgram(miopen::GetContext(this->GetStream()),
                                      miopen::GetDevice(this->GetStream()),
                                      program_name,
                                      params,
                                      is_kernel_str,
                                      kernel_src);
+        ct.Log("Kernel", program_name);
 
 // Save to cache
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
@@ -634,6 +637,11 @@ std::size_t Handle::GetGlobalMemorySize() const
 
 std::string Handle::GetDeviceName() const
 {
+    const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
+    if(arch != nullptr && strlen(arch) > 0)
+    {
+        return arch;
+    }
     std::string name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(miopen::GetDevice(this->GetStream()));
     ParseDevName(name);
     return GetDeviceNameFromMap(name);
