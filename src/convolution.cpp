@@ -434,25 +434,10 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         const std::size_t spatial_dim = GetSpatialDimension();
         const auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
 
-        workspace_size_gemm = ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc);
-        /// \todo WORKAROUND for issue 1430
-        if(workspace_size_gemm > MAX_MEM_ALLOC_SZ /* handle.GetMaxMemoryAllocSize() */)
-            workspace_size_gemm = 0;
-
-        // Use transpose path for 1x1 stride=2
-        // 1x1_stride=2
-        if(GetSpatialDimension() == 2 &&
-           (miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-            miopen::all_of(GetConvPads(), [](auto v) { return v == 0; })) &&
-           (miopen::all_of(GetConvStrides(), [](auto v) { return v == 2; })))
-        {
-            size_t gemm_trans = ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc);
-            /// \todo WORKAROUND for issue 1430
-            if(gemm_trans > MAX_MEM_ALLOC_SZ /* handle.GetMaxMemoryAllocSize() */)
-                gemm_trans = 0;
-            return std::max(
-                {gemm_trans, direct_workspace, implicit_gemm_workspace, workspace_size_winograd});
-        }
+        const auto gemm_ws_sz_pairs = AllGemmWorkspaceSize(ctx);
+        const auto gemm_ws_szs =
+            gemm_ws_sz_pairs | boost::adaptors::transformed([](auto& p) { return p.second; });
+        workspace_size_gemm = *std::max_element(gemm_ws_szs.begin(), gemm_ws_szs.end());
 
         if(miopen::any_of(GetConvDilations(), [](auto v) { return v > 1; }))
         {
