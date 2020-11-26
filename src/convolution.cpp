@@ -458,15 +458,6 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
     ctx.do_search             = false;
     ctx.disable_perfdb_access = true;
 
-    if(IsWinograd3x3SupportedAndFast(ctx))
-    {
-        AutoUseFastDynamicSolutions tmp{ctx};
-        const auto ws = ForwardBackwardDataGetWorkSpaceSizeWinograd(ctx);
-        MIOPEN_LOG_I2(ws);
-        return ws;
-    }
-
-    /// \ref ffind_special_cases
     while(findMode.IsFast(ctx) || findMode.IsHybrid(ctx))
     {
         /// \section ffind_gwss_why_not_0
@@ -495,6 +486,13 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         return sol.workspace_size;
     }
 
+    if(IsWinograd3x3SupportedAndFast(ctx))
+    {
+        AutoUseFastDynamicSolutions tmp{ctx};
+        const auto ws = ForwardBackwardDataGetWorkSpaceSizeWinograd(ctx);
+        MIOPEN_LOG_I2(ws);
+        return ws;
+    }
     const size_t workspace_size_winograd = ForwardBackwardDataGetWorkSpaceSizeWinograd(ctx);
     const size_t direct_workspace        = ForwardBackwardDataGetWorkSpaceSizeDirect(ctx);
     const size_t implicit_gemm_workspace = ForwardBackwardGetWorkSpaceSizeImplicitGemm(ctx);
@@ -561,15 +559,6 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
     ctx.do_search             = false;
     ctx.disable_perfdb_access = true;
 
-    if(IsWinograd3x3SupportedAndFast(ctx))
-    {
-        AutoUseFastDynamicSolutions tmp{ctx};
-        const auto ws = ForwardBackwardDataGetWorkSpaceSizeWinograd(ctx);
-        MIOPEN_LOG_I2(ws);
-        return ws;
-    }
-
-    /// \ref ffind_special_cases
     while(findMode.IsFast(ctx) || findMode.IsHybrid(ctx))
     {
         /// \ref ffind_gwss_why_not_0
@@ -586,6 +575,14 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         }
         MIOPEN_LOG_I2(sol.workspace_size);
         return sol.workspace_size;
+    }
+
+    if(IsWinograd3x3SupportedAndFast(ctx))
+    {
+        AutoUseFastDynamicSolutions tmp{ctx};
+        const auto ws = ForwardBackwardDataGetWorkSpaceSizeWinograd(ctx);
+        MIOPEN_LOG_I2(ws);
+        return ws;
     }
 
     const size_t workspace_size_winograd = ForwardBackwardDataGetWorkSpaceSizeWinograd(ctx);
