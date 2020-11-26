@@ -71,6 +71,7 @@ amdhsa.kernels:
     - { .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32, .name: out_w }
     - { .size: 8, .offset:  88, .value_kind: global_buffer, .value_type: f32, .name: bias_addr,    .address_space: global, .is_const: true }
     - { .size: 4, .offset:  96, .value_kind: by_value, .value_type: f32, .name: RELU_alpha }
+    - { .size: 4, .offset: 100, .value_kind: by_value, .value_type: i32, .name: reserved2 }
     - { .size: 8, .offset: 104, .value_kind: by_value, .value_type: i64, .name: d_offset }
     - { .size: 8, .offset: 112, .value_kind: by_value, .value_type: i64, .name: f_offset }
     - { .size: 8, .offset: 120, .value_kind: by_value, .value_type: i64, .name: o_offset }
