@@ -518,7 +518,7 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
         // constexpr int L_F_TENSOR_OFFSETS  = 1 << 13;
         // constexpr int L_F_USE_EXTENDED_FLAGS_64  = 1 << 15;
         int reserved             = 0;
-        long int reserved_offset = 0;
+        uint64_t reserved_offset = 0;
         int* reserved_ptr        = nullptr;
         int ignore;
 
@@ -597,6 +597,7 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
                   out_W,
                   reserved_ptr,    // Unused bias_addr.
                   reserved,        // Unused relu_alpha.
+                  reserved,        // Unused reserved2.
                   reserved_offset, // Unused d_offset.
                   reserved_offset, // Unused f_offset.
                   reserved_offset, // Unused o_offset.
