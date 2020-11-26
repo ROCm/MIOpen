@@ -24,9 +24,16 @@
  *
  *******************************************************************************/
 
+#define WORKAROUND_SWDEV_257056_PCH_MISSING_MACROS 1
+
 #include <miopen/config.h>
 #include <miopen/handle.hpp>
 #include <miopen/execution_context.hpp>
+
+#if WORKAROUND_SWDEV_257056_PCH_MISSING_MACROS
+#include <miopen/hip_build_utils.hpp>
+#endif
+
 #include "get_handle.hpp"
 #include <vector>
 #include <thread>
@@ -37,8 +44,6 @@
 /// Let's skip the test for now.
 /// \todo Create ticket for comgr.
 #define WORKAROUND_COMGR_WARNING_ISSUES MIOPEN_USE_COMGR
-
-#define WORKAROUND_SWDEV_257056_PCH_MISSING_MACROS 0
 
 enum kernel_type_t
 {
@@ -51,7 +56,7 @@ std::string Write2s(kernel_type_t kern_type)
     if(kern_type == miopenHIPKernelType)
         return "#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS\n"
                "#include <hip/hip_runtime.h>\n"
-#if WORKAROUND_SWDEV_257056_PCH_MISSING_MACROS
+#if WORKAROUND_SWDEV_257056_PCH_MISSING_MACROS && (HIP_PACKAGE_VERSION_FLAT <= 3010999999)
                "#else\n"
                "#ifdef hipThreadIdx_x\n"
                "#undef hipThreadIdx_x\n"
