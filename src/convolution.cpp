@@ -431,9 +431,6 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
 #if MIOPEN_USE_GEMM
     if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
     {
-        const std::size_t spatial_dim = GetSpatialDimension();
-        const auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
-
         const auto gemm_ws_sz_pairs = AllGemmWorkspaceSize(ctx);
         const auto gemm_ws_szs =
             gemm_ws_sz_pairs | boost::adaptors::transformed([](auto& p) { return p.second; });
