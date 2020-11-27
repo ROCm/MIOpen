@@ -433,7 +433,7 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
     {
         const auto gemm_ws_sz_pairs = AllGemmWorkspaceSize(ctx);
         const auto gemm_ws_szs =
-            gemm_ws_sz_pairs | boost::adaptors::transformed([](auto& p) { return p.second; });
+            gemm_ws_sz_pairs | boost::adaptors::transformed([](const auto& p) { return p.second; });
         workspace_size_gemm = *std::max_element(gemm_ws_szs.begin(), gemm_ws_szs.end());
 
         if(miopen::any_of(GetConvDilations(), [](auto v) { return v > 1; }))
