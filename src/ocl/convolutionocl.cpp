@@ -240,6 +240,25 @@ ConvolutionDescriptor::FindDataImplicitGemmSolutions(Handle& handle,
     }
 }
 
+std::vector<miopen::solver::ConvSolution>
+ConvolutionDescriptor::FindFftSolutions(const ConvolutionContext& ctx,
+                                        const AnyInvokeParams& invoke_ctx) const
+{
+
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT{}))
+        return {};
+
+    try
+    {
+        return FindAllFFTSolutions(ctx, invoke_ctx);
+    }
+    catch(miopen::Exception& ex)
+    {
+        MIOPEN_LOG_WE(ex.what());
+        return {};
+    }
+}
+
 template <class InvokeParams>
 static void EvaluateInvokers(Handle& handle,
                              const std::vector<solver::ConvSolution>& solutions,
@@ -323,7 +342,7 @@ static void DirConvFindCore(Handle& handle,
                             const ConvolutionDescriptor& conv,
                             bool exhaustiveSearch,
                             DbRecord& record,
-                            const ConvolutionContext& ctx,
+                            ConvolutionContext& ctx, // non-const only for use_winograd_only hack.
                             bool use_winograd_only)
 {
     AutoEnableProfiling enableProfiling{handle};
@@ -659,18 +678,23 @@ static void DirConvFindCore(Handle& handle,
 
     //Find all sollutions before parallel compiling these solutions.
     {
-        all_solutions = conv.FindWinogradSolutions(ctx, invoke_ctx);
+        all_solutions = !use_winograd_only ? conv.FindWinogradSolutions(ctx, invoke_ctx) : [&]() {
+            AutoUseFastDynamicSolutions tmp{ctx};
+            return conv.FindWinogradSolutions(ctx, invoke_ctx);
+        }();
         if(!use_winograd_only)
         {
             ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
             bufs.SetFwd(x, w, y);
-            const auto direct_solutions      = conv.FindDataDirectSolutions(
+            const auto direct_solutions = conv.FindDataDirectSolutions(
                 handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx);
             const auto implictgemm_solutions = conv.FindDataImplicitGemmSolutions(
                 handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx);
-            const auto fft_solutions         = FindAllFFTSolutions(ctx, invoke_ctx);
-            all_solutions.insert(all_solutions.end(), direct_solutions.begin(), direct_solutions.end());
-            all_solutions.insert(all_solutions.end(), implictgemm_solutions.begin(), implictgemm_solutions.end());
+            const auto fft_solutions = conv.FindFftSolutions(ctx, invoke_ctx);
+            all_solutions.insert(
+                all_solutions.end(), direct_solutions.begin(), direct_solutions.end());
+            all_solutions.insert(
+                all_solutions.end(), implictgemm_solutions.begin(), implictgemm_solutions.end());
             all_solutions.insert(all_solutions.end(), fft_solutions.begin(), fft_solutions.end());
         }
     }
@@ -682,18 +706,30 @@ static void DirConvFindCore(Handle& handle,
 
         //Evaluate Invokers
         auto iter_start = all_solutions.begin();
-        auto iter = all_solutions.begin();
-        std::string algo_name = solver::Id(iter_start->solver_id).GetAlgo(ctx.conv_problem.GetDirection());
+        auto iter       = all_solutions.begin();
+        std::string algo_name =
+            solver::Id(iter_start->solver_id).GetAlgo(ctx.conv_problem.GetDirection());
         for(; iter != all_solutions.end(); ++iter)
         {
             if(solver::Id(iter->solver_id).GetAlgo(ctx.conv_problem.GetDirection()) != algo_name)
             {
-                EvaluateInvokers(handle, {iter_start, iter}, AlgorithmName(algo_name), network_config, invoke_ctx, record);
+                EvaluateInvokers(handle,
+                                 {iter_start, iter},
+                                 AlgorithmName(algo_name),
+                                 network_config,
+                                 invoke_ctx,
+                                 record);
                 iter_start = iter;
-                algo_name = solver::Id(iter_start->solver_id).GetAlgo(ctx.conv_problem.GetDirection());
+                algo_name =
+                    solver::Id(iter_start->solver_id).GetAlgo(ctx.conv_problem.GetDirection());
             }
         }
-        EvaluateInvokers(handle, {iter_start, iter}, AlgorithmName(algo_name), network_config, invoke_ctx, record);
+        EvaluateInvokers(handle,
+                         {iter_start, iter},
+                         AlgorithmName(algo_name),
+                         network_config,
+                         invoke_ctx,
+                         record);
     }
 }
 
@@ -2037,19 +2073,27 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
             //Find all sollutions before parallel compiling these solutions.
             {
-                all_solutions = FindWinogradSolutions(ctx, invoke_ctx);
+                all_solutions =
+                    !use_winograd_only ? FindWinogradSolutions(ctx, invoke_ctx) : [&]() {
+                        AutoUseFastDynamicSolutions tmp{ctx};
+                        return FindWinogradSolutions(ctx, invoke_ctx);
+                    }();
                 if(!use_winograd_only)
                 {
                     ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
                     bufs.SetBwd(dx, w, dy);
-                    const auto direct_solutions      = FindDataDirectSolutions(
+                    const auto direct_solutions = FindDataDirectSolutions(
                         handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, bufs, invoke_ctx);
                     const auto implictgemm_solutions = this->FindDataImplicitGemmSolutions(
                         handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, bufs, invoke_ctx);
-                    const auto fft_solutions         = FindAllFFTSolutions(ctx, invoke_ctx);
-                    all_solutions.insert(all_solutions.end(), direct_solutions.begin(), direct_solutions.end());
-                    all_solutions.insert(all_solutions.end(), implictgemm_solutions.begin(), implictgemm_solutions.end());
-                    all_solutions.insert(all_solutions.end(), fft_solutions.begin(), fft_solutions.end());
+                    const auto fft_solutions = FindFftSolutions(ctx, invoke_ctx);
+                    all_solutions.insert(
+                        all_solutions.end(), direct_solutions.begin(), direct_solutions.end());
+                    all_solutions.insert(all_solutions.end(),
+                                         implictgemm_solutions.begin(),
+                                         implictgemm_solutions.end());
+                    all_solutions.insert(
+                        all_solutions.end(), fft_solutions.begin(), fft_solutions.end());
                 }
             }
 
@@ -2060,18 +2104,31 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
                 //Evaluate Invokers
                 auto iter_start = all_solutions.begin();
-                auto iter = all_solutions.begin();
-                std::string algo_name = solver::Id(iter_start->solver_id).GetAlgo(ctx.conv_problem.GetDirection());
+                auto iter       = all_solutions.begin();
+                std::string algo_name =
+                    solver::Id(iter_start->solver_id).GetAlgo(ctx.conv_problem.GetDirection());
                 for(; iter != all_solutions.end(); ++iter)
                 {
-                    if(solver::Id(iter->solver_id).GetAlgo(ctx.conv_problem.GetDirection()) != algo_name)
+                    if(solver::Id(iter->solver_id).GetAlgo(ctx.conv_problem.GetDirection()) !=
+                       algo_name)
                     {
-                        EvaluateInvokers(handle, {iter_start, iter}, AlgorithmName(algo_name), network_config, invoke_ctx, record);
+                        EvaluateInvokers(handle,
+                                         {iter_start, iter},
+                                         AlgorithmName(algo_name),
+                                         network_config,
+                                         invoke_ctx,
+                                         record);
                         iter_start = iter;
-                        algo_name = solver::Id(iter_start->solver_id).GetAlgo(ctx.conv_problem.GetDirection());
+                        algo_name =
+                            solver::Id(iter_start->solver_id).GetAlgo(ctx.conv_problem.GetDirection());
                     }
                 }
-                EvaluateInvokers(handle, {iter_start, iter}, AlgorithmName(algo_name), network_config, invoke_ctx, record);
+                EvaluateInvokers(handle,
+                                 {iter_start, iter},
+                                 AlgorithmName(algo_name),
+                                 network_config,
+                                 invoke_ctx,
+                                 record);
             }
 #if MIOPEN_USE_GEMM
             if(!use_winograd_only && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) &&
@@ -3031,20 +3088,24 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
             {
                 const auto direct_solutions = FindAllBwdWrW2DSolutions(ctx, invoke_ctx);
-                all_solutions.insert(all_solutions.end(), direct_solutions.begin(), direct_solutions.end());
+                all_solutions.insert(
+                    all_solutions.end(), direct_solutions.begin(), direct_solutions.end());
             }
 
             if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{}))
             {
                 const auto winograd_solutions = FindWinogradWrWAllSolutions(ctx, invoke_ctx);
-                all_solutions.insert(all_solutions.end(), winograd_solutions.begin(), winograd_solutions.end());
+                all_solutions.insert(
+                    all_solutions.end(), winograd_solutions.begin(), winograd_solutions.end());
             }
 
             // Implicit GEMM
             if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{}))
             {
                 const auto implictgemm_solutions = FindImplicitGemmWrWAllSolutions(ctx, invoke_ctx);
-                all_solutions.insert(all_solutions.end(), implictgemm_solutions.begin(), implictgemm_solutions.end());
+                all_solutions.insert(all_solutions.end(),
+                                     implictgemm_solutions.begin(),
+                                     implictgemm_solutions.end());
             }
 
             if(!all_solutions.empty())
@@ -3054,15 +3115,23 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
                 //Evaluate Invokers
                 auto iter_start = all_solutions.begin();
-                auto iter = all_solutions.begin();
-                std::string algo_name = solver::Id(iter_start->solver_id).GetAlgo(ctx.conv_problem.GetDirection());
+                auto iter       = all_solutions.begin();
+                std::string algo_name =
+                    solver::Id(iter_start->solver_id).GetAlgo(ctx.conv_problem.GetDirection());
                 for(; iter != all_solutions.end(); ++iter)
                 {
-                    if(solver::Id(iter->solver_id).GetAlgo(ctx.conv_problem.GetDirection()) != algo_name)
+                    if(solver::Id(iter->solver_id).GetAlgo(ctx.conv_problem.GetDirection()) !=
+                       algo_name)
                     {
-                        EvaluateInvokers(handle, {iter_start, iter}, AlgorithmName(algo_name), network_config, invoke_ctx, record);
+                        EvaluateInvokers(handle,
+                                         {iter_start, iter},
+                                         AlgorithmName(algo_name),
+                                         network_config,
+                                         invoke_ctx,
+                                         record);
                         iter_start = iter;
-                        algo_name = solver::Id(iter_start->solver_id).GetAlgo(ctx.conv_problem.GetDirection());
+                        algo_name =
+                            solver::Id(iter_start->solver_id).GetAlgo(ctx.conv_problem.GetDirection());
                     }
                 }
                 EvaluateInvokers(handle, {iter_start, iter}, AlgorithmName(algo_name), network_config, invoke_ctx, record);
