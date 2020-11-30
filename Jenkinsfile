@@ -202,7 +202,7 @@ pipeline {
                         cmd = "rm -rf build; mkdir build; cd build; CXX='clang++-3.8' cmake -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
                     }
                     steps{
-                        buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd, gpu_arch: "all")
+                        buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd, gpu_arch: "gfx803;gfx900;gfx906")
                     }
                 }
 
@@ -220,7 +220,7 @@ pipeline {
                                 | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-3.8 -style=file {} | diff - {}\'"
                     }
                     steps{
-                        buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd, gpu_arch: "all")
+                        buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd, gpu_arch: "gfx803;gfx900;gfx906")
                     }
                 }
 
@@ -230,7 +230,7 @@ pipeline {
                         cmd = "rm -rf build; mkdir build; cd build; CXX=/usr/local/bin/hcc cmake -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
                     }
                     steps{
-                        buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd, gpu_arch: "all")
+                        buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd, gpu_arch: "gfx803;gfx900;gfx906")
                     }
                 }
             }
