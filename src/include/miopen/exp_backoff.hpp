@@ -80,4 +80,3 @@ struct LazyExponentialBackoff
             return std::pow(base, buf[buf_idx++]);
     } // number from the random seq
 };
-
