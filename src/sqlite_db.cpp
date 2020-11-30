@@ -234,12 +234,11 @@ int SQLite::Retry(std::function<int()> f, std::string filename)
         if(rc == SQLITE_BUSY)
         {
             ++tries;
-            auto slot = -1;
             if(tries < 10)
                 std::this_thread::yield();
             else
             {
-                slot = *exp_bo;
+                auto slot = *exp_bo;
                 MIOPEN_LOG_I2("Database busy, sleeping for: " << (100 * slot) << " microseconds");
                 if(slot != 0)
                     std::this_thread::sleep_for(std::chrono::microseconds(100 * slot));

@@ -35,6 +35,7 @@ struct LazyExponentialBackoff
     using value_type = int;
     using reference  = value_type const&;
     using pointer    = value_type const*;
+    std::random_device dev;
     std::mt19937 gen;
     std::uniform_int_distribution<> dis;
     int seq_idx;
@@ -50,11 +51,9 @@ struct LazyExponentialBackoff
     LazyExponentialBackoff(int _max_rand              = 10,
                            int _base                  = 2,
                            std::chrono::seconds _secs = std::chrono::seconds(30))
-        : seq_idx(0), max_rand(_max_rand), base(_base), secs(_secs)
+        : gen(std::mt19937{dev()}), seq_idx(0), max_rand(_max_rand), base(_base), secs(_secs)
 
     {
-        std::random_device rd;
-        gen = std::mt19937(rd());
         dis = std::uniform_int_distribution<>(0, max_rand);
         buf.resize(max_buf_sz);
         for(auto idx = 0; idx < max_buf_sz; idx++)
