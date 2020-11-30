@@ -207,7 +207,7 @@ class DbTest
         return data;
     }
 
-    static void ResetDbFile(TempFile& tmp_file) { tmp_file = std::move(TempFile{tmp_file.Name()}); }
+    static void ResetDbFile(TempFile& tmp_file) { tmp_file = TempFile{tmp_file.Name()}; }
 
     void ResetDb() { ResetDbFile(temp_file); }
 

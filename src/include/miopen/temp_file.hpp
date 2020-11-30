@@ -38,11 +38,11 @@ class TempFile
     public:
     TempFile(const std::string& path_template);
 
-    TempFile(TempFile&& other) : name(other.name), dir(std::move(other.dir)) {}
+    TempFile(TempFile&& other) noexcept : name(std::move(other.name)), dir(std::move(other.dir)) {}
 
-    TempFile& operator=(TempFile&& other)
+    TempFile& operator=(TempFile&& other) noexcept
     {
-        name = other.name;
+        name = std::move(other.name);
         dir  = std::move(other.dir);
         return *this;
     }
