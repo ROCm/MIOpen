@@ -697,14 +697,14 @@ static void DirConvFindCore(Handle& handle,
 
     // Precompile Solutions
     {
-        std::vector<miopen::solver::ConvSolution*> all_solutions;
-        for(auto& s : winograd_solutions)
+        std::vector<const miopen::solver::ConvSolution*> all_solutions;
+        for(auto&& s : winograd_solutions)
             all_solutions.emplace_back(&s);
-        for(auto& s : direct_solutions)
+        for(auto&& s : direct_solutions)
             all_solutions.emplace_back(&s);
-        for(auto& s : implictgemm_solutions)
+        for(auto&& s : implictgemm_solutions)
             all_solutions.emplace_back(&s);
-        for(auto& s : fft_solutions)
+        for(auto&& s : fft_solutions)
             all_solutions.emplace_back(&s);
         PrecompileSolutions(handle, all_solutions);
     }
@@ -2096,14 +2096,14 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
             // Precompile Solutions
             {
-                std::vector<miopen::solver::ConvSolution*> all_solutions;
-                for(auto& s : winograd_solutions)
+                std::vector<const miopen::solver::ConvSolution*> all_solutions;
+                for(auto&& s : winograd_solutions)
                     all_solutions.emplace_back(&s);
-                for(auto& s : direct_solutions)
+                for(auto&& s : direct_solutions)
                     all_solutions.emplace_back(&s);
-                for(auto& s : implictgemm_solutions)
+                for(auto&& s : implictgemm_solutions)
                     all_solutions.emplace_back(&s);
-                for(auto& s : fft_solutions)
+                for(auto&& s : fft_solutions)
                     all_solutions.emplace_back(&s);
                 PrecompileSolutions(handle, all_solutions);
             }
@@ -3099,12 +3099,12 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
             // Precompile Solutions
             {
-                std::vector<miopen::solver::ConvSolution*> all_solutions;
-                for(auto& s : direct_solutions)
+                std::vector<const miopen::solver::ConvSolution*> all_solutions;
+                for(auto&& s : direct_solutions)
                     all_solutions.emplace_back(&s);
-                for(auto& s : winograd_solutions)
+                for(auto&& s : winograd_solutions)
                     all_solutions.emplace_back(&s);
-                for(auto& s : implictgemm_solutions)
+                for(auto&& s : implictgemm_solutions)
                     all_solutions.emplace_back(&s);
                 PrecompileSolutions(handle, all_solutions);
             }

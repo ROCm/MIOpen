@@ -69,7 +69,7 @@ std::vector<Program> PrecompileKernels(const Handle& h, const std::vector<Kernel
     return programs;
 }
 
-void PrecompileSolutions(const Handle& h, const std::vector<ConvSolution*>& sols)
+void PrecompileSolutions(const Handle& h, const std::vector<const ConvSolution*>& sols)
 {
     // Find all kernels that need to be compiled from the solutions
     std::vector<KernelInfo> kernels;
