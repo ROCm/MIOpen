@@ -45,18 +45,31 @@ license_txt = \
 def check_bin(name):
   if shutil.which(name) is None:
     raise(ValueError(name + ' not found, are you in the correct docker?'))
+
+def execute(cmd, env = None):
+  if env:
+    popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, env=env, universal_newlines=True)
+  else:
+    popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True)
+
+  for stdout_line in iter(popen.stdout.readline, ""):
+    yield stdout_line
+  popen.stdout.close()
+  return_code = popen.wait()
+  if return_code:
+    raise subprocess.CalledProcessError(return_code, cmd)
+
 def process_file(input_file, output_file):
   # launch onnx-mlir and get the output
   check_bin('onnx-mlir')
   args = ('onnx-mlir', '--EmitLib', input_file, '-o', output_file)
   my_env = os.environ.copy()
   my_env["ONNX_MLIR_VERBOSE"] = '1'
-  popen = subprocess.Popen(args, stdout=subprocess.PIPE, env=my_env)
-  popen.wait()
+
   const_filename = None
   bc_filename = None
-
-  for line in popen.stdout.read().decode().split('\n'):
+  for line in execute(args, my_env):
+    line = line.strip()
     const_filename_regex = const_file_match.search(line)
     if const_filename_regex:
       const_filename = const_filename_regex.groups()[0].strip()
@@ -72,16 +85,16 @@ def extract_main_graph(bc_filename):
   check_bin('llvm-extract')
   # args = ('llvm-extract', '-keep-const-init', '-func', 'main_graph', '-glob', 'packedConst', '--recursive', bc_filename, '-o', bc_filename)
   args = ('llvm-extract', '-func', 'main_graph', '-glob', 'packedConst', '--recursive', bc_filename, '-o', bc_filename)
-  popen = subprocess.Popen(args, stdout=subprocess.PIPE)
-  popen.wait()
+  for line in execute(args):
+    print(line, end="")
 
 def compile_bc(bc_filename):
   check_bin('llc')
   out_file, _ = os.path.splitext(bc_filename)
   out_file += '.o'
   args = ('llc', '-filetype=obj', '-relocation-model=pic', '-o', out_file, bc_filename)
-  popen = subprocess.Popen(args, stdout=subprocess.PIPE)
-  popen.wait()
+  for line in execute(args):
+    print(line, end="")
   os.remove(bc_filename)
   return out_file
 
@@ -89,8 +102,8 @@ def rename_syms(bin_file, syms, prefix):
   check_bin('objcopy')
   for sym in syms:
     args = ('objcopy','--redefine-sym', '{}={}_{}'.format(sym, prefix, sym if sym[0] != '_' else sym[1:]), bin_file)
-    popen = subprocess.Popen(args, stdout=subprocess.PIPE)
-    popen.wait()
+    for line in execute(args):
+      print(line, end="")
 
 def gen_bin_ptrs_decls(prefixes):
     out_txt = []
@@ -108,7 +121,8 @@ extern "C" void* ${prefix}_getEmbeddedConstPool(int64_t /*_*/)
 {
     auto size    = static_cast<unsigned int>(&${bin_end} - &${bin_start});
     void* buffer = malloc(size);
-    memcpy(buffer, &${bin_start}, size);
+    if(buffer != nullptr)
+       memcpy(buffer, &${bin_start}, size);
     return buffer;
 }
     """)

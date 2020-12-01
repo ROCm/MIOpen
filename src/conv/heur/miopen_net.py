@@ -148,7 +148,6 @@ def network(args):
         else:
           dirs = [args.dir]
         for direction in dirs:
-          import ipdb; ipdb.set_trace()
           full_dataset = FindDataset(args.data_filename, arch, direction=direction)
           train_size = int(0.8 * len(full_dataset))
           test_size = len(full_dataset) - train_size

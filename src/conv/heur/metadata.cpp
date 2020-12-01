@@ -1,28 +1,28 @@
 /*******************************************************************************
- *
- * MIT License
- *
- * Copyright (c) 2020 Advanced Micro Devices, Inc.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- *
- *******************************************************************************/
+*
+* MIT License
+*
+* Copyright (c) 2020 Advanced Micro Devices, Inc.
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+*
+*******************************************************************************/
 
 #include <miopen/conv/heur/metadata.hpp>
 
@@ -54,55 +54,61 @@ extern "C" miopen::MemRef2D
 wrw_gfx906_main_graph(float*, float*, int64_t, int64_t, int64_t, int64_t, int64_t);
 extern "C" void* fwd_gfx908_getEmbeddedConstPool(int64_t /*_*/)
 {
-    auto size    = static_cast<unsigned int>(&fwd_gfx908_binary_param_bin_end -
+    auto size = static_cast<unsigned int>(&fwd_gfx908_binary_param_bin_end -
                                           &fwd_gfx908_binary_param_bin_start);
     void* buffer = malloc(size);
-    memcpy(buffer, &fwd_gfx908_binary_param_bin_start, size);
+    if(buffer != nullptr)
+        memcpy(buffer, &fwd_gfx908_binary_param_bin_start, size);
     return buffer;
 }
 
 extern "C" void* bwd_gfx908_getEmbeddedConstPool(int64_t /*_*/)
 {
-    auto size    = static_cast<unsigned int>(&bwd_gfx908_binary_param_bin_end -
+    auto size = static_cast<unsigned int>(&bwd_gfx908_binary_param_bin_end -
                                           &bwd_gfx908_binary_param_bin_start);
     void* buffer = malloc(size);
-    memcpy(buffer, &bwd_gfx908_binary_param_bin_start, size);
+    if(buffer != nullptr)
+        memcpy(buffer, &bwd_gfx908_binary_param_bin_start, size);
     return buffer;
 }
 
 extern "C" void* wrw_gfx908_getEmbeddedConstPool(int64_t /*_*/)
 {
-    auto size    = static_cast<unsigned int>(&wrw_gfx908_binary_param_bin_end -
+    auto size = static_cast<unsigned int>(&wrw_gfx908_binary_param_bin_end -
                                           &wrw_gfx908_binary_param_bin_start);
     void* buffer = malloc(size);
-    memcpy(buffer, &wrw_gfx908_binary_param_bin_start, size);
+    if(buffer != nullptr)
+        memcpy(buffer, &wrw_gfx908_binary_param_bin_start, size);
     return buffer;
 }
 
 extern "C" void* fwd_gfx906_getEmbeddedConstPool(int64_t /*_*/)
 {
-    auto size    = static_cast<unsigned int>(&fwd_gfx906_binary_param_bin_end -
+    auto size = static_cast<unsigned int>(&fwd_gfx906_binary_param_bin_end -
                                           &fwd_gfx906_binary_param_bin_start);
     void* buffer = malloc(size);
-    memcpy(buffer, &fwd_gfx906_binary_param_bin_start, size);
+    if(buffer != nullptr)
+        memcpy(buffer, &fwd_gfx906_binary_param_bin_start, size);
     return buffer;
 }
 
 extern "C" void* bwd_gfx906_getEmbeddedConstPool(int64_t /*_*/)
 {
-    auto size    = static_cast<unsigned int>(&bwd_gfx906_binary_param_bin_end -
+    auto size = static_cast<unsigned int>(&bwd_gfx906_binary_param_bin_end -
                                           &bwd_gfx906_binary_param_bin_start);
     void* buffer = malloc(size);
-    memcpy(buffer, &bwd_gfx906_binary_param_bin_start, size);
+    if(buffer != nullptr)
+        memcpy(buffer, &bwd_gfx906_binary_param_bin_start, size);
     return buffer;
 }
 
 extern "C" void* wrw_gfx906_getEmbeddedConstPool(int64_t /*_*/)
 {
-    auto size    = static_cast<unsigned int>(&wrw_gfx906_binary_param_bin_end -
+    auto size = static_cast<unsigned int>(&wrw_gfx906_binary_param_bin_end -
                                           &wrw_gfx906_binary_param_bin_start);
     void* buffer = malloc(size);
-    memcpy(buffer, &wrw_gfx906_binary_param_bin_start, size);
+    if(buffer != nullptr)
+        memcpy(buffer, &wrw_gfx906_binary_param_bin_start, size);
     return buffer;
 }
 namespace miopen {
