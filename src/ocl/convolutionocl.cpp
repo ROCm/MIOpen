@@ -686,13 +686,14 @@ static void DirConvFindCore(Handle& handle,
         !use_winograd_only
             ? conv.FindDataDirectSolutions(
                   handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx)
-            : {};
+            : std::vector<miopen::solver::ConvSolution>{};
     const auto implictgemm_solutions =
         !use_winograd_only
             ? conv.FindDataImplicitGemmSolutions(
                   handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx)
-            : {};
-    const auto fft_solutions = !use_winograd_only ? conv.FindFftSolutions(ctx, invoke_ctx) : {};
+            : std::vector<miopen::solver::ConvSolution>{};
+    const auto fft_solutions = !use_winograd_only ? conv.FindFftSolutions(ctx, invoke_ctx)
+                                                  : std::vector<miopen::solver::ConvSolution>{};
 
     // Precompile Solutions
     {
@@ -2083,13 +2084,15 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 !use_winograd_only
                     ? FindDataDirectSolutions(
                           handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, bufs, invoke_ctx)
-                    : {};
+                    : std::vector<miopen::solver::ConvSolution>{};
             const auto implictgemm_solutions =
                 !use_winograd_only
                     ? FindDataImplicitGemmSolutions(
                           handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, bufs, invoke_ctx)
-                    : {};
-            const auto fft_solutions = !use_winograd_only ? FindFftSolutions(ctx, invoke_ctx) : {};
+                    : std::vector<miopen::solver::ConvSolution>{};
+            const auto fft_solutions = !use_winograd_only
+                                           ? FindFftSolutions(ctx, invoke_ctx)
+                                           : std::vector<miopen::solver::ConvSolution>{};
 
             // Precompile Solutions
             {
@@ -3085,14 +3088,14 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             // Find all sollutions before parallel compiling these solutions.
             const auto direct_solutions = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{})
                                               ? FindAllBwdWrW2DSolutions(ctx, invoke_ctx)
-                                              : {};
+                                              : std::vector<miopen::solver::ConvSolution>{};
             const auto winograd_solutions = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{})
                                                 ? FindWinogradWrWAllSolutions(ctx, invoke_ctx)
-                                                : {};
+                                                : std::vector<miopen::solver::ConvSolution>{};
             const auto implictgemm_solutions =
                 !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{})
                     ? FindImplicitGemmWrWAllSolutions(ctx, invoke_ctx)
-                    : {};
+                    : std::vector<miopen::solver::ConvSolution>{};
 
             // Precompile Solutions
             {
