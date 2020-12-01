@@ -48,12 +48,16 @@ class ReadonlyRamDb
 
     boost::optional<DbRecord> FindRecord(const std::string& problem) const
     {
+        MIOPEN_LOG_I2("Looking for key " << problem << " in file " << db_path);
         const auto it = cache.find(problem);
 
         if(it == cache.end())
             return boost::none;
 
         auto record = DbRecord{problem};
+
+        MIOPEN_LOG_I2("Key match: " << problem);
+        MIOPEN_LOG_I2("Contents found: " << it->second.content);
 
         if(!record.ParseContents(it->second.content))
         {
@@ -63,10 +67,6 @@ class ReadonlyRamDb
                                                                  << it->second.line);
             MIOPEN_LOG_E("Contents: " << it->second.content);
             return boost::none;
-        }
-        else
-        {
-            MIOPEN_LOG_I2("Looking for key " << problem << " in file " << db_path);
         }
 
         return record;
