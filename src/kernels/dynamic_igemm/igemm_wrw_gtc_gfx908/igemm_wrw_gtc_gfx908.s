@@ -206,17 +206,19 @@
 .include "igemm_wrw_gtc_gfx908_064x032.inc"
 .include "igemm_wrw_gtc_gfx908_064x016.inc"
 .include "igemm_wrw_gtc_gfx908_004x064.inc"
+.include "igemm_wrw_gtc_gfx908_064x004.inc"
 .include "igemm_wrw_gtc_gfx908_032x032.inc"
 .include "igemm_wrw_gtc_gfx908_016x032.inc"
+.include "igemm_wrw_gtc_gfx908_032x016.inc"
 ;---------------------------------------------------
 
 .amdgpu_metadata
 ---
 amdhsa.version: [ 1, 0 ]
 amdhsa.kernels:
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x128x16_wt64x32_ws1x1_wr2x2_ta1x4x4x1_1x4x1x64_tb1x4x2x1_1x4x1x64
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x128x16_wt64x32_ws1x1_wr2x2_ta1x4x4x1_1x4x1x64_tb1x4x2x1_1x4x1x64.kd
-    .sgpr_count: 74
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x128x16_wt64x32x1_ws1x1_wr2x2_ta1x4x4x1_1x4x1x64_tb1x4x2x1_1x4x1x64
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x128x16_wt64x32x1_ws1x1_wr2x2_ta1x4x4x1_1x4x1x64_tb1x4x2x1_1x4x1x64.kd
+    .sgpr_count: 72
     .vgpr_count: 128
     .kernarg_segment_align: 8
     .kernarg_segment_size: 88
@@ -245,9 +247,9 @@ amdhsa.kernels:
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x128x16_wt64x32_ws1x1_wr2x2_ta1x4x4x1_1x4x1x64_tb1x4x2x1_1x4x1x64_gkgs
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x128x16_wt64x32_ws1x1_wr2x2_ta1x4x4x1_1x4x1x64_tb1x4x2x1_1x4x1x64_gkgs.kd
-    .sgpr_count: 74
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x128x16_wt64x32x1_ws1x1_wr2x2_ta1x4x4x1_1x4x1x64_tb1x4x2x1_1x4x1x64_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x128x16_wt64x32x1_ws1x1_wr2x2_ta1x4x4x1_1x4x1x64_tb1x4x2x1_1x4x1x64_gkgs.kd
+    .sgpr_count: 72
     .vgpr_count: 128
     .kernarg_segment_align: 8
     .kernarg_segment_size: 88
@@ -276,9 +278,9 @@ amdhsa.kernels:
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x128x8_wt64x32_ws1x1_wr2x2_ta1x4x2x1_1x2x1x128_tb1x4x1x1_1x2x1x128
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x128x8_wt64x32_ws1x1_wr2x2_ta1x4x2x1_1x2x1x128_tb1x4x1x1_1x2x1x128.kd
-    .sgpr_count: 72
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x128x8_wt64x32x1_ws1x1_wr2x2_ta1x4x2x1_1x2x1x128_tb1x4x1x1_1x2x1x128
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x128x8_wt64x32x1_ws1x1_wr2x2_ta1x4x2x1_1x2x1x128_tb1x4x1x1_1x2x1x128.kd
+    .sgpr_count: 70
     .vgpr_count: 128
     .kernarg_segment_align: 8
     .kernarg_segment_size: 88
@@ -307,9 +309,9 @@ amdhsa.kernels:
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x128x8_wt64x32_ws1x1_wr2x2_ta1x4x2x1_1x2x1x128_tb1x4x1x1_1x2x1x128_gkgs
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x128x8_wt64x32_ws1x1_wr2x2_ta1x4x2x1_1x2x1x128_tb1x4x1x1_1x2x1x128_gkgs.kd
-    .sgpr_count: 72
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x128x8_wt64x32x1_ws1x1_wr2x2_ta1x4x2x1_1x2x1x128_tb1x4x1x1_1x2x1x128_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x128x8_wt64x32x1_ws1x1_wr2x2_ta1x4x2x1_1x2x1x128_tb1x4x1x1_1x2x1x128_gkgs.kd
+    .sgpr_count: 70
     .vgpr_count: 128
     .kernarg_segment_align: 8
     .kernarg_segment_size: 88
@@ -338,8 +340,8 @@ amdhsa.kernels:
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x128x16_wt64x32_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x8x1_1x16x1x16
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x128x16_wt64x32_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x8x1_1x16x1x16.kd
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x128x16_wt64x32x1_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x8x1_1x16x1x16
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x128x16_wt64x32x1_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x8x1_1x16x1x16.kd
     .sgpr_count: 92
     .vgpr_count: 128
     .kernarg_segment_align: 8
@@ -369,8 +371,8 @@ amdhsa.kernels:
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x128x16_wt64x32_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x128x16_wt64x32_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs.kd
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x128x16_wt64x32x1_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x128x16_wt64x32x1_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs.kd
     .sgpr_count: 92
     .vgpr_count: 128
     .kernarg_segment_align: 8
@@ -400,8 +402,8 @@ amdhsa.kernels:
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x128x8_wt64x32_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x4x1_1x8x1x32
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x128x8_wt64x32_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x4x1_1x8x1x32.kd
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x128x8_wt64x32x1_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x4x1_1x8x1x32
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x128x8_wt64x32x1_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x4x1_1x8x1x32.kd
     .sgpr_count: 80
     .vgpr_count: 128
     .kernarg_segment_align: 8
@@ -431,8 +433,8 @@ amdhsa.kernels:
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x128x8_wt64x32_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x4x1_1x8x1x32_gkgs
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x128x8_wt64x32_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x4x1_1x8x1x32_gkgs.kd
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x128x8_wt64x32x1_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x4x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x128x8_wt64x32x1_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x4x1_1x8x1x32_gkgs.kd
     .sgpr_count: 80
     .vgpr_count: 128
     .kernarg_segment_align: 8
@@ -462,10 +464,10 @@ amdhsa.kernels:
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x64x16_wt64x16_ws1x1_wr2x2_ta1x4x4x1_1x4x1x64_tb1x4x1x1_1x4x1x64
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x64x16_wt64x16_ws1x1_wr2x2_ta1x4x4x1_1x4x1x64_tb1x4x1x1_1x4x1x64.kd
-    .sgpr_count: 74
-    .vgpr_count: 74
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt256x128x16_wt64x32x1_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x8x1_1x16x1x16
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt256x128x16_wt64x32x1_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x8x1_1x16x1x16.kd
+    .sgpr_count: 92
+    .vgpr_count: 128
     .kernarg_segment_align: 8
     .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
@@ -493,10 +495,10 @@ amdhsa.kernels:
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x64x16_wt64x16_ws1x1_wr2x2_ta1x4x4x1_1x4x1x64_tb1x4x1x1_1x4x1x64_gkgs
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x64x16_wt64x16_ws1x1_wr2x2_ta1x4x4x1_1x4x1x64_tb1x4x1x1_1x4x1x64_gkgs.kd
-    .sgpr_count: 74
-    .vgpr_count: 74
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt256x128x16_wt64x32x1_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt256x128x16_wt64x32x1_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs.kd
+    .sgpr_count: 92
+    .vgpr_count: 128
     .kernarg_segment_align: 8
     .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
@@ -524,72 +526,10 @@ amdhsa.kernels:
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x16_wt64x16_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x4x1_1x16x1x16
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x16_wt64x16_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x4x1_1x16x1x16.kd
-    .sgpr_count: 88
-    .vgpr_count: 74
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 32768
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x16_wt64x16_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x16_wt64x16_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs.kd
-    .sgpr_count: 88
-    .vgpr_count: 74
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 32768
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x8_wt64x16_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x2x1_1x8x1x32
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x8_wt64x16_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x2x1_1x8x1x32.kd
-    .sgpr_count: 78
-    .vgpr_count: 64
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt256x128x8_wt64x32x1_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x4x1_1x8x1x32
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt256x128x8_wt64x32x1_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x4x1_1x8x1x32.kd
+    .sgpr_count: 80
+    .vgpr_count: 128
     .kernarg_segment_align: 8
     .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
@@ -617,10 +557,10 @@ amdhsa.kernels:
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x8_wt64x16_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x2x1_1x8x1x32_gkgs
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x8_wt64x16_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x2x1_1x8x1x32_gkgs.kd
-    .sgpr_count: 78
-    .vgpr_count: 64
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt256x128x8_wt64x32x1_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x4x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt256x128x8_wt64x32x1_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x4x1_1x8x1x32_gkgs.kd
+    .sgpr_count: 80
+    .vgpr_count: 128
     .kernarg_segment_align: 8
     .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
@@ -648,8 +588,194 @@ amdhsa.kernels:
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x4_wt64x16_ws1x1_wr2x2_ta1x1x4x1_1x4x1x64_tb1x1x1x1_1x4x1x64
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x4_wt64x16_ws1x1_wr2x2_ta1x1x4x1_1x4x1x64_tb1x1x1x1_1x4x1x64.kd
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x64x16_wt64x16x1_ws1x1_wr2x2_ta1x4x4x1_1x4x1x64_tb1x4x1x1_1x4x1x64
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x64x16_wt64x16x1_ws1x1_wr2x2_ta1x4x4x1_1x4x1x64_tb1x4x1x1_1x4x1x64.kd
+    .sgpr_count: 72
+    .vgpr_count: 74
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 32768
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x64x16_wt64x16x1_ws1x1_wr2x2_ta1x4x4x1_1x4x1x64_tb1x4x1x1_1x4x1x64_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt256x64x16_wt64x16x1_ws1x1_wr2x2_ta1x4x4x1_1x4x1x64_tb1x4x1x1_1x4x1x64_gkgs.kd
+    .sgpr_count: 72
+    .vgpr_count: 74
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 32768
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x16_wt64x16x1_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x4x1_1x16x1x16
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x16_wt64x16x1_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x4x1_1x16x1x16.kd
+    .sgpr_count: 88
+    .vgpr_count: 78
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 32768
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x16_wt64x16x1_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x16_wt64x16x1_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs.kd
+    .sgpr_count: 88
+    .vgpr_count: 78
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 32768
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x8_wt64x16x1_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x2x1_1x8x1x32
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x8_wt64x16x1_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x2x1_1x8x1x32.kd
+    .sgpr_count: 78
+    .vgpr_count: 68
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 16384
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x8_wt64x16x1_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x2x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x8_wt64x16x1_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x2x1_1x8x1x32_gkgs.kd
+    .sgpr_count: 78
+    .vgpr_count: 68
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 16384
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x4_wt64x16x1_ws1x1_wr2x2_ta1x1x4x1_1x4x1x64_tb1x1x1x1_1x4x1x64
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x4_wt64x16x1_ws1x1_wr2x2_ta1x1x4x1_1x4x1x64_tb1x1x1x1_1x4x1x64.kd
     .sgpr_count: 74
     .vgpr_count: 64
     .kernarg_segment_align: 8
@@ -679,8 +805,8 @@ amdhsa.kernels:
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x4_wt64x16_ws1x1_wr2x2_ta1x1x4x1_1x4x1x64_tb1x1x1x1_1x4x1x64_gkgs
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x4_wt64x16_ws1x1_wr2x2_ta1x1x4x1_1x4x1x64_tb1x1x1x1_1x4x1x64_gkgs.kd
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x4_wt64x16x1_ws1x1_wr2x2_ta1x1x4x1_1x4x1x64_tb1x1x1x1_1x4x1x64_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x64x4_wt64x16x1_ws1x1_wr2x2_ta1x1x4x1_1x4x1x64_tb1x1x1x1_1x4x1x64_gkgs.kd
     .sgpr_count: 74
     .vgpr_count: 64
     .kernarg_segment_align: 8
@@ -710,10 +836,196 @@ amdhsa.kernels:
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x16_wt64x4_ws1x2_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x2x1_1x16x1x16
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x16_wt64x4_ws1x2_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x2x1_1x16x1x16.kd
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt256x64x16_wt64x16x1_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x4x1_1x16x1x16
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt256x64x16_wt64x16x1_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x4x1_1x16x1x16.kd
+    .sgpr_count: 88
+    .vgpr_count: 78
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 32768
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt256x64x16_wt64x16x1_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt256x64x16_wt64x16x1_ws1x1_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs.kd
+    .sgpr_count: 88
+    .vgpr_count: 78
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 32768
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt256x64x8_wt64x16x1_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x2x1_1x8x1x32
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt256x64x8_wt64x16x1_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x2x1_1x8x1x32.kd
+    .sgpr_count: 78
+    .vgpr_count: 68
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 16384
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt256x64x8_wt64x16x1_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x2x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt256x64x8_wt64x16x1_ws1x1_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x2x1_1x8x1x32_gkgs.kd
+    .sgpr_count: 78
+    .vgpr_count: 68
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 16384
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt256x64x4_wt64x16x1_ws1x1_wr2x2_ta1x1x4x1_1x4x1x64_tb1x1x1x1_1x4x1x64
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt256x64x4_wt64x16x1_ws1x1_wr2x2_ta1x1x4x1_1x4x1x64_tb1x1x1x1_1x4x1x64.kd
+    .sgpr_count: 74
+    .vgpr_count: 64
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt256x64x4_wt64x16x1_ws1x1_wr2x2_ta1x1x4x1_1x4x1x64_tb1x1x1x1_1x4x1x64_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt256x64x4_wt64x16x1_ws1x1_wr2x2_ta1x1x4x1_1x4x1x64_tb1x1x1x1_1x4x1x64_gkgs.kd
+    .sgpr_count: 74
+    .vgpr_count: 64
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x16_wt64x4x1_ws1x2_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x2x1_1x16x1x16
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x16_wt64x4x1_ws1x2_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x2x1_1x16x1x16.kd
     .sgpr_count: 86
-    .vgpr_count: 76
+    .vgpr_count: 80
     .kernarg_segment_align: 8
     .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
@@ -741,10 +1053,10 @@ amdhsa.kernels:
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x16_wt64x4_ws1x2_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x16_wt64x4_ws1x2_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs.kd
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x16_wt64x4x1_ws1x2_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x16_wt64x4x1_ws1x2_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs.kd
     .sgpr_count: 86
-    .vgpr_count: 76
+    .vgpr_count: 80
     .kernarg_segment_align: 8
     .kernarg_segment_size: 88
     .group_segment_fixed_size: 32768
@@ -772,71 +1084,9 @@ amdhsa.kernels:
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x8_wt64x4_ws1x2_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x1x1_1x8x1x32
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x8_wt64x4_ws1x2_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x1x1_1x8x1x32.kd
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x8_wt64x4x1_ws1x2_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x1x1_1x8x1x32
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x8_wt64x4x1_ws1x2_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x1x1_1x8x1x32.kd
     .sgpr_count: 78
-    .vgpr_count: 68
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 16384
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x8_wt64x4_ws1x2_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x8_wt64x4_ws1x2_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs.kd
-    .sgpr_count: 78
-    .vgpr_count: 68
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 16384
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt128x128x16_wt32x32_ws1x1_wr2x2_ta1x4x2x1_1x4x1x64_tb1x4x2x1_1x4x1x64
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt128x128x16_wt32x32_ws1x1_wr2x2_ta1x4x2x1_1x4x1x64_tb1x4x2x1_1x4x1x64.kd
-    .sgpr_count: 72
     .vgpr_count: 70
     .kernarg_segment_align: 8
     .kernarg_segment_size: 88
@@ -865,9 +1115,9 @@ amdhsa.kernels:
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt128x128x16_wt32x32_ws1x1_wr2x2_ta1x4x2x1_1x4x1x64_tb1x4x2x1_1x4x1x64_gkgs
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt128x128x16_wt32x32_ws1x1_wr2x2_ta1x4x2x1_1x4x1x64_tb1x4x2x1_1x4x1x64_gkgs.kd
-    .sgpr_count: 72
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x8_wt64x4x1_ws1x2_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt256x32x8_wt64x4x1_ws1x2_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs.kd
+    .sgpr_count: 78
     .vgpr_count: 70
     .kernarg_segment_align: 8
     .kernarg_segment_size: 88
@@ -896,447 +1146,199 @@ amdhsa.kernels:
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x16_wt32x32_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x16_wt32x32_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs.kd
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt256x32x16_wt64x4x1_ws1x2_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x2x1_1x16x1x16
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt256x32x16_wt64x4x1_ws1x2_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x2x1_1x16x1x16.kd
+    .sgpr_count: 86
+    .vgpr_count: 80
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 32768
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt256x32x16_wt64x4x1_ws1x2_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt256x32x16_wt64x4x1_ws1x2_wr2x2_ta1x1x16x1_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs.kd
+    .sgpr_count: 86
+    .vgpr_count: 80
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 32768
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt256x32x8_wt64x4x1_ws1x2_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x1x1_1x8x1x32
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt256x32x8_wt64x4x1_ws1x2_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x1x1_1x8x1x32.kd
+    .sgpr_count: 78
+    .vgpr_count: 70
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 16384
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt256x32x8_wt64x4x1_ws1x2_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt256x32x8_wt64x4x1_ws1x2_wr2x2_ta1x1x8x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs.kd
+    .sgpr_count: 78
+    .vgpr_count: 70
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 16384
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt128x128x16_wt32x32x1_ws1x1_wr2x2_ta1x4x2x1_1x4x1x64_tb1x4x2x1_1x4x1x64
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt128x128x16_wt32x32x1_ws1x1_wr2x2_ta1x4x2x1_1x4x1x64_tb1x4x2x1_1x4x1x64.kd
+    .sgpr_count: 70
+    .vgpr_count: 70
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 16384
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt128x128x16_wt32x32x1_ws1x1_wr2x2_ta1x4x2x1_1x4x1x64_tb1x4x2x1_1x4x1x64_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt128x128x16_wt32x32x1_ws1x1_wr2x2_ta1x4x2x1_1x4x1x64_tb1x4x2x1_1x4x1x64_gkgs.kd
+    .sgpr_count: 70
+    .vgpr_count: 70
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 16384
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x16_wt32x32x1_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x16_wt32x32x1_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs.kd
     .sgpr_count: 84
-    .vgpr_count: 70
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 16384
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x16_wt32x32_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x8x1_1x16x1x16
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x16_wt32x32_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x8x1_1x16x1x16.kd
-    .sgpr_count: 84
-    .vgpr_count: 70
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 16384
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x8_wt32x32_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x4x1_1x8x1x32
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x8_wt32x32_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x4x1_1x8x1x32.kd
-    .sgpr_count: 76
-    .vgpr_count: 64
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 16384
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x8_wt32x32_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x4x1_1x8x1x32_gkgs
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x8_wt32x32_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x4x1_1x8x1x32_gkgs.kd
-    .sgpr_count: 76
-    .vgpr_count: 64
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 16384
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt128x64x16_wt32x8_ws1x2_wr2x2_ta1x4x2x1_1x4x1x64_tb1x4x1x1_1x4x1x64
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt128x64x16_wt32x8_ws1x2_wr2x2_ta1x4x2x1_1x4x1x64_tb1x4x1x1_1x4x1x64.kd
-    .sgpr_count: 72
-    .vgpr_count: 70
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 16384
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt128x64x16_wt32x8_ws1x2_wr2x2_ta1x4x2x1_1x4x1x64_tb1x4x1x1_1x4x1x64_gkgs
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt128x64x16_wt32x8_ws1x2_wr2x2_ta1x4x2x1_1x4x1x64_tb1x4x1x1_1x4x1x64_gkgs.kd
-    .sgpr_count: 72
-    .vgpr_count: 70
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 16384
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x64x16_wt32x8_ws1x2_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x4x1_1x16x1x16
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x64x16_wt32x8_ws1x2_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x4x1_1x16x1x16.kd
-    .sgpr_count: 80
-    .vgpr_count: 70
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 16384
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x64x16_wt32x8_ws1x2_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x64x16_wt32x8_ws1x2_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs.kd
-    .sgpr_count: 80
-    .vgpr_count: 70
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 16384
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x64x8_wt32x8_ws1x2_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x2x1_1x8x1x32
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x64x8_wt32x8_ws1x2_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x2x1_1x8x1x32.kd
-    .sgpr_count: 74
-    .vgpr_count: 64
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 16384
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x64x8_wt32x8_ws1x2_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x2x1_1x8x1x32_gkgs
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x64x8_wt32x8_ws1x2_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x2x1_1x8x1x32_gkgs.kd
-    .sgpr_count: 74
-    .vgpr_count: 64
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 16384
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x16_wt32x8_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x2x1_1x16x1x16
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x16_wt32x8_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x2x1_1x16x1x16.kd
-    .sgpr_count: 78
-    .vgpr_count: 64
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 16384
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x16_wt32x8_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x16_wt32x8_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs.kd
-    .sgpr_count: 78
-    .vgpr_count: 64
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 16384
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x8_wt32x8_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x1x1_1x8x1x32
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x8_wt32x8_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x1x1_1x8x1x32.kd
-    .sgpr_count: 74
-    .vgpr_count: 60
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 8192
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x8_wt32x8_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x8_wt32x8_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs.kd
-    .sgpr_count: 74
-    .vgpr_count: 60
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 8192
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x256x16_wt16x64_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x16x1_1x16x1x16
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x256x16_wt16x64_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x16x1_1x16x1x16.kd
-    .sgpr_count: 88
     .vgpr_count: 74
     .kernarg_segment_align: 8
     .kernarg_segment_size: 88
-    .group_segment_fixed_size: 32768
+    .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
     .reqd_workgroup_size : [256, 1, 1]
@@ -1361,105 +1363,12 @@ amdhsa.kernels:
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x256x16_wt16x64_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x16x1_1x16x1x16_gkgs
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x256x16_wt16x64_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x16x1_1x16x1x16_gkgs.kd
-    .sgpr_count: 88
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x16_wt32x32x1_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x8x1_1x16x1x16
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x16_wt32x32x1_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x8x1_1x16x1x16.kd
+    .sgpr_count: 84
     .vgpr_count: 74
     .kernarg_segment_align: 8
     .kernarg_segment_size: 88
-    .group_segment_fixed_size: 32768
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x256x8_wt16x64_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x8x1_1x8x1x32
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x256x8_wt16x64_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x8x1_1x8x1x32.kd
-    .sgpr_count: 78
-    .vgpr_count: 68
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 32768
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x256x8_wt16x64_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x8x1_1x8x1x32_gkgs
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x256x8_wt16x64_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x8x1_1x8x1x32_gkgs.kd
-    .sgpr_count: 78
-    .vgpr_count: 68
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 32768
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x128x16_wt8x32_ws2x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x8x1_1x16x1x16
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x128x16_wt8x32_ws2x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x8x1_1x16x1x16.kd
-    .sgpr_count: 80
-    .vgpr_count: 70
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
@@ -1485,102 +1394,567 @@ amdhsa.kernels:
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x128x16_wt8x32_ws2x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x128x16_wt8x32_ws2x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs.kd
-    .sgpr_count: 80
-    .vgpr_count: 70
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 16384
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x128x8_wt8x32_ws2x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x4x1_1x8x1x32
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x128x8_wt8x32_ws2x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x4x1_1x8x1x32.kd
-    .sgpr_count: 74
-    .vgpr_count: 64
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 8192
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x128x8_wt8x32_ws2x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x4x1_1x8x1x32_gkgs
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x128x8_wt8x32_ws2x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x4x1_1x8x1x32_gkgs.kd
-    .sgpr_count: 74
-    .vgpr_count: 64
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 8192
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x16_wt16x16_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x4x1_1x16x1x16
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x16_wt16x16_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x4x1_1x16x1x16.kd
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x8_wt32x32x1_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x4x1_1x8x1x32
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x8_wt32x32x1_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x4x1_1x8x1x32.kd
     .sgpr_count: 76
+    .vgpr_count: 66
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 16384
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x8_wt32x32x1_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x4x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x128x8_wt32x32x1_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x4x1_1x8x1x32_gkgs.kd
+    .sgpr_count: 76
+    .vgpr_count: 66
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 16384
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt128x128x16_wt32x32x1_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt128x128x16_wt32x32x1_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs.kd
+    .sgpr_count: 84
+    .vgpr_count: 74
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 16384
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt128x128x16_wt32x32x1_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x8x1_1x16x1x16
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt128x128x16_wt32x32x1_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x8x1_1x16x1x16.kd
+    .sgpr_count: 84
+    .vgpr_count: 74
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 16384
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt128x128x8_wt32x32x1_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x4x1_1x8x1x32
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt128x128x8_wt32x32x1_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x4x1_1x8x1x32.kd
+    .sgpr_count: 76
+    .vgpr_count: 66
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 16384
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt128x128x8_wt32x32x1_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x4x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt128x128x8_wt32x32x1_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x4x1_1x8x1x32_gkgs.kd
+    .sgpr_count: 76
+    .vgpr_count: 66
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 16384
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt128x64x16_wt32x8x1_ws1x2_wr2x2_ta1x4x2x1_1x4x1x64_tb1x4x1x1_1x4x1x64
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt128x64x16_wt32x8x1_ws1x2_wr2x2_ta1x4x2x1_1x4x1x64_tb1x4x1x1_1x4x1x64.kd
+    .sgpr_count: 70
+    .vgpr_count: 70
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 16384
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt128x64x16_wt32x8x1_ws1x2_wr2x2_ta1x4x2x1_1x4x1x64_tb1x4x1x1_1x4x1x64_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex0_bt128x64x16_wt32x8x1_ws1x2_wr2x2_ta1x4x2x1_1x4x1x64_tb1x4x1x1_1x4x1x64_gkgs.kd
+    .sgpr_count: 70
+    .vgpr_count: 70
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 16384
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x64x16_wt32x8x1_ws1x2_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x4x1_1x16x1x16
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x64x16_wt32x8x1_ws1x2_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x4x1_1x16x1x16.kd
+    .sgpr_count: 80
+    .vgpr_count: 74
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 16384
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x64x16_wt32x8x1_ws1x2_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x64x16_wt32x8x1_ws1x2_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs.kd
+    .sgpr_count: 80
+    .vgpr_count: 74
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 16384
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x64x8_wt32x8x1_ws1x2_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x2x1_1x8x1x32
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x64x8_wt32x8x1_ws1x2_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x2x1_1x8x1x32.kd
+    .sgpr_count: 74
+    .vgpr_count: 68
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 16384
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x64x8_wt32x8x1_ws1x2_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x2x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x64x8_wt32x8x1_ws1x2_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x2x1_1x8x1x32_gkgs.kd
+    .sgpr_count: 74
+    .vgpr_count: 68
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 16384
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt128x64x16_wt32x8x1_ws1x2_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x4x1_1x16x1x16
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt128x64x16_wt32x8x1_ws1x2_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x4x1_1x16x1x16.kd
+    .sgpr_count: 80
+    .vgpr_count: 74
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 16384
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt128x64x16_wt32x8x1_ws1x2_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt128x64x16_wt32x8x1_ws1x2_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs.kd
+    .sgpr_count: 80
+    .vgpr_count: 74
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 16384
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt128x64x8_wt32x8x1_ws1x2_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x2x1_1x8x1x32
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt128x64x8_wt32x8x1_ws1x2_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x2x1_1x8x1x32.kd
+    .sgpr_count: 74
+    .vgpr_count: 68
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 16384
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt128x64x8_wt32x8x1_ws1x2_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x2x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt128x64x8_wt32x8x1_ws1x2_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x2x1_1x8x1x32_gkgs.kd
+    .sgpr_count: 74
+    .vgpr_count: 68
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 16384
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x16_wt32x8x1_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x2x1_1x16x1x16
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x16_wt32x8x1_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x2x1_1x16x1x16.kd
+    .sgpr_count: 78
+    .vgpr_count: 68
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 16384
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x16_wt32x8x1_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x16_wt32x8x1_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs.kd
+    .sgpr_count: 78
+    .vgpr_count: 68
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 16384
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x8_wt32x8x1_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x1x1_1x8x1x32
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x8_wt32x8x1_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x1x1_1x8x1x32.kd
+    .sgpr_count: 74
     .vgpr_count: 62
     .kernarg_segment_align: 8
     .kernarg_segment_size: 88
@@ -1609,9 +1983,9 @@ amdhsa.kernels:
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x16_wt16x16_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x16_wt16x16_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs.kd
-    .sgpr_count: 76
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x8_wt32x8x1_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt128x32x8_wt32x8x1_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs.kd
+    .sgpr_count: 74
     .vgpr_count: 62
     .kernarg_segment_align: 8
     .kernarg_segment_size: 88
@@ -1640,258 +2014,1188 @@ amdhsa.kernels:
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x8_wt16x16_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x2x1_1x8x1x32
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x8_wt16x16_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x2x1_1x8x1x32.kd
-    .sgpr_count: 72
-    .vgpr_count: 58
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 8192
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x8_wt16x16_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x2x1_1x8x1x32_gkgs
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x8_wt16x16_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x2x1_1x8x1x32_gkgs.kd
-    .sgpr_count: 72
-    .vgpr_count: 58
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 8192
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x32x16_wt32x8_ws1x2_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x2x1_1x16x1x16
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x32x16_wt32x8_ws1x2_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x2x1_1x16x1x16.kd
-    .sgpr_count: 74
-    .vgpr_count: 58
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 8192
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x32x16_wt32x8_ws1x2_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x32x16_wt32x8_ws1x2_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs.kd
-    .sgpr_count: 74
-    .vgpr_count: 58
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 8192
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x32x8_wt32x8_ws1x2_wr1x1_ta1x1x2x1_1x8x1x32_tb1x1x1x1_1x8x1x32
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x32x8_wt32x8_ws1x2_wr1x1_ta1x1x2x1_1x8x1x32_tb1x1x1x1_1x8x1x32.kd
-    .sgpr_count: 72
-    .vgpr_count: 56
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 8192
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x32x8_wt32x8_ws1x2_wr1x1_ta1x1x2x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x32x8_wt32x8_ws1x2_wr1x1_ta1x1x2x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs.kd
-    .sgpr_count: 72
-    .vgpr_count: 56
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 8192
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x16x16_wt64x4_ws1x1_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x1x1_1x16x1x16
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x16x16_wt64x4_ws1x1_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x1x1_1x16x1x16.kd
-    .sgpr_count: 74
-    .vgpr_count: 56
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 8192
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x16x16_wt64x4_ws1x1_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x1x1_1x16x1x16_gkgs
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x16x16_wt64x4_ws1x1_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x1x1_1x16x1x16_gkgs.kd
-    .sgpr_count: 74
-    .vgpr_count: 56
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 8192
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt4x64x16_wt4x64_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4_gkgs
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt4x64x16_wt4x64_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4_gkgs.kd
-    .sgpr_count: 86
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt128x32x16_wt32x8x1_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x2x1_1x16x1x16
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt128x32x16_wt32x8x1_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x2x1_1x16x1x16.kd
+    .sgpr_count: 78
     .vgpr_count: 68
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 16384
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt128x32x16_wt32x8x1_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt128x32x16_wt32x8x1_ws1x1_wr2x2_ta1x1x8x1_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs.kd
+    .sgpr_count: 78
+    .vgpr_count: 68
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 16384
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt128x32x8_wt32x8x1_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x1x1_1x8x1x32
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt128x32x8_wt32x8x1_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x1x1_1x8x1x32.kd
+    .sgpr_count: 74
+    .vgpr_count: 62
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt128x32x8_wt32x8x1_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt128x32x8_wt32x8x1_ws1x1_wr2x2_ta1x1x4x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs.kd
+    .sgpr_count: 74
+    .vgpr_count: 62
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x256x16_wt16x64x1_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x16x1_1x16x1x16
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x256x16_wt16x64x1_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x16x1_1x16x1x16.kd
+    .sgpr_count: 88
+    .vgpr_count: 78
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 32768
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x256x16_wt16x64x1_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x16x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x256x16_wt16x64x1_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x16x1_1x16x1x16_gkgs.kd
+    .sgpr_count: 88
+    .vgpr_count: 78
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 32768
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x256x8_wt16x64x1_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x8x1_1x8x1x32
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x256x8_wt16x64x1_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x8x1_1x8x1x32.kd
+    .sgpr_count: 78
+    .vgpr_count: 72
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 32768
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x256x8_wt16x64x1_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x8x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x256x8_wt16x64x1_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x8x1_1x8x1x32_gkgs.kd
+    .sgpr_count: 78
+    .vgpr_count: 72
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 32768
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x256x16_wt16x64x1_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x16x1_1x16x1x16
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x256x16_wt16x64x1_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x16x1_1x16x1x16.kd
+    .sgpr_count: 88
+    .vgpr_count: 78
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 32768
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x256x16_wt16x64x1_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x16x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x256x16_wt16x64x1_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x16x1_1x16x1x16_gkgs.kd
+    .sgpr_count: 88
+    .vgpr_count: 78
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 32768
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x256x8_wt16x64x1_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x8x1_1x8x1x32
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x256x8_wt16x64x1_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x8x1_1x8x1x32.kd
+    .sgpr_count: 78
+    .vgpr_count: 72
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 32768
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x256x8_wt16x64x1_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x8x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x256x8_wt16x64x1_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x8x1_1x8x1x32_gkgs.kd
+    .sgpr_count: 78
+    .vgpr_count: 72
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 32768
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x128x16_wt8x32x1_ws2x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x8x1_1x16x1x16
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x128x16_wt8x32x1_ws2x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x8x1_1x16x1x16.kd
+    .sgpr_count: 80
+    .vgpr_count: 74
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 16384
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x128x16_wt8x32x1_ws2x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x128x16_wt8x32x1_ws2x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs.kd
+    .sgpr_count: 80
+    .vgpr_count: 74
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 16384
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x128x8_wt8x32x1_ws2x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x4x1_1x8x1x32
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x128x8_wt8x32x1_ws2x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x4x1_1x8x1x32.kd
+    .sgpr_count: 74
+    .vgpr_count: 68
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x128x8_wt8x32x1_ws2x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x4x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x128x8_wt8x32x1_ws2x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x4x1_1x8x1x32_gkgs.kd
+    .sgpr_count: 74
+    .vgpr_count: 68
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x128x16_wt8x32x1_ws2x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x8x1_1x16x1x16
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x128x16_wt8x32x1_ws2x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x8x1_1x16x1x16.kd
+    .sgpr_count: 80
+    .vgpr_count: 74
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 16384
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x128x16_wt8x32x1_ws2x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x128x16_wt8x32x1_ws2x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs.kd
+    .sgpr_count: 80
+    .vgpr_count: 74
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 16384
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x128x8_wt8x32x1_ws2x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x4x1_1x8x1x32
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x128x8_wt8x32x1_ws2x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x4x1_1x8x1x32.kd
+    .sgpr_count: 74
+    .vgpr_count: 68
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x128x8_wt8x32x1_ws2x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x4x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x128x8_wt8x32x1_ws2x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x4x1_1x8x1x32_gkgs.kd
+    .sgpr_count: 74
+    .vgpr_count: 68
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x16_wt16x16x1_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x4x1_1x16x1x16
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x16_wt16x16x1_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x4x1_1x16x1x16.kd
+    .sgpr_count: 76
+    .vgpr_count: 66
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x16_wt16x16x1_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x16_wt16x16x1_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs.kd
+    .sgpr_count: 76
+    .vgpr_count: 66
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x8_wt16x16x1_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x2x1_1x8x1x32
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x8_wt16x16x1_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x2x1_1x8x1x32.kd
+    .sgpr_count: 72
+    .vgpr_count: 62
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x8_wt16x16x1_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x2x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x64x8_wt16x16x1_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x2x1_1x8x1x32_gkgs.kd
+    .sgpr_count: 72
+    .vgpr_count: 62
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x64x16_wt16x16x1_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x4x1_1x16x1x16
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x64x16_wt16x16x1_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x4x1_1x16x1x16.kd
+    .sgpr_count: 76
+    .vgpr_count: 66
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x64x16_wt16x16x1_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x64x16_wt16x16x1_ws1x1_wr2x2_ta1x1x4x1_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs.kd
+    .sgpr_count: 76
+    .vgpr_count: 66
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x64x8_wt16x16x1_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x2x1_1x8x1x32
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x64x8_wt16x16x1_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x2x1_1x8x1x32.kd
+    .sgpr_count: 72
+    .vgpr_count: 62
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x64x8_wt16x16x1_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x2x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x64x8_wt16x16x1_ws1x1_wr2x2_ta1x1x2x1_1x8x1x32_tb1x1x2x1_1x8x1x32_gkgs.kd
+    .sgpr_count: 72
+    .vgpr_count: 62
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x32x16_wt32x8x1_ws1x2_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x2x1_1x16x1x16
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x32x16_wt32x8x1_ws1x2_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x2x1_1x16x1x16.kd
+    .sgpr_count: 74
+    .vgpr_count: 62
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x32x16_wt32x8x1_ws1x2_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x32x16_wt32x8x1_ws1x2_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs.kd
+    .sgpr_count: 74
+    .vgpr_count: 62
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x32x8_wt32x8x1_ws1x2_wr1x1_ta1x1x2x1_1x8x1x32_tb1x1x1x1_1x8x1x32
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x32x8_wt32x8x1_ws1x2_wr1x1_ta1x1x2x1_1x8x1x32_tb1x1x1x1_1x8x1x32.kd
+    .sgpr_count: 72
+    .vgpr_count: 58
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x32x8_wt32x8x1_ws1x2_wr1x1_ta1x1x2x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x32x8_wt32x8x1_ws1x2_wr1x1_ta1x1x2x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs.kd
+    .sgpr_count: 72
+    .vgpr_count: 58
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x32x16_wt32x8x1_ws1x2_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x2x1_1x16x1x16
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x32x16_wt32x8x1_ws1x2_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x2x1_1x16x1x16.kd
+    .sgpr_count: 74
+    .vgpr_count: 62
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x32x16_wt32x8x1_ws1x2_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x32x16_wt32x8x1_ws1x2_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs.kd
+    .sgpr_count: 74
+    .vgpr_count: 62
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x32x8_wt32x8x1_ws1x2_wr1x1_ta1x1x2x1_1x8x1x32_tb1x1x1x1_1x8x1x32
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x32x8_wt32x8x1_ws1x2_wr1x1_ta1x1x2x1_1x8x1x32_tb1x1x1x1_1x8x1x32.kd
+    .sgpr_count: 72
+    .vgpr_count: 58
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x32x8_wt32x8x1_ws1x2_wr1x1_ta1x1x2x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x32x8_wt32x8x1_ws1x2_wr1x1_ta1x1x2x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs.kd
+    .sgpr_count: 72
+    .vgpr_count: 58
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x16x16_wt64x4x1_ws1x1_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x1x1_1x16x1x16
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x16x16_wt64x4x1_ws1x1_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x1x1_1x16x1x16.kd
+    .sgpr_count: 74
+    .vgpr_count: 58
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x16x16_wt64x4x1_ws1x1_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x1x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt64x16x16_wt64x4x1_ws1x1_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x1x1_1x16x1x16_gkgs.kd
+    .sgpr_count: 74
+    .vgpr_count: 58
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt4x64x16_wt4x64x1_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt4x64x16_wt4x64x1_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4_gkgs.kd
+    .sgpr_count: 86
+    .vgpr_count: 70
     .kernarg_segment_align: 8
     .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
@@ -1919,10 +3223,10 @@ amdhsa.kernels:
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt4x64x16_wt4x64_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt4x64x16_wt4x64_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4.kd
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt4x64x16_wt4x64x1_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt4x64x16_wt4x64x1_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4.kd
     .sgpr_count: 86
-    .vgpr_count: 68
+    .vgpr_count: 70
     .kernarg_segment_align: 8
     .kernarg_segment_size: 88
     .group_segment_fixed_size: 8192
@@ -1950,134 +3254,382 @@ amdhsa.kernels:
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt32x32x16_wt16x16_ws1x1_wr1x1_ta1x1x2x1_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt32x32x16_wt16x16_ws1x1_wr1x1_ta1x1x2x1_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs.kd
-    .sgpr_count: 72
-    .vgpr_count: 54
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 4096
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt32x32x16_wt16x16_ws1x1_wr1x1_ta1x1x2x1_1x16x1x16_tb1x1x2x1_1x16x1x16
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt32x32x16_wt16x16_ws1x1_wr1x1_ta1x1x2x1_1x16x1x16_tb1x1x2x1_1x16x1x16.kd
-    .sgpr_count: 72
-    .vgpr_count: 54
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 4096
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt32x32x8_wt16x16_ws1x1_wr1x1_ta1x1x1x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt32x32x8_wt16x16_ws1x1_wr1x1_ta1x1x1x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs.kd
-    .sgpr_count: 72
-    .vgpr_count: 52
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 4096
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt32x32x8_wt16x16_ws1x1_wr1x1_ta1x1x1x1_1x8x1x32_tb1x1x1x1_1x8x1x32
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt32x32x8_wt16x16_ws1x1_wr1x1_ta1x1x1x1_1x8x1x32_tb1x1x1x1_1x8x1x32.kd
-    .sgpr_count: 72
-    .vgpr_count: 52
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 4096
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
-    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8.kd
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x16x16_wt64x4x1_ws1x1_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x1x1_1x16x1x16
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x16x16_wt64x4x1_ws1x1_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x1x1_1x16x1x16.kd
     .sgpr_count: 74
+    .vgpr_count: 58
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x16x16_wt64x4x1_ws1x1_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x1x1_1x16x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt64x16x16_wt64x4x1_ws1x1_wr1x1_ta1x1x4x1_1x16x1x16_tb1x1x1x1_1x16x1x16_gkgs.kd
+    .sgpr_count: 74
+    .vgpr_count: 58
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt4x64x16_wt4x64x1_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt4x64x16_wt4x64x1_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4_gkgs.kd
+    .sgpr_count: 86
+    .vgpr_count: 70
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [64, 1, 1]
+    .max_flat_workgroup_size: 64
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt4x64x16_wt4x64x1_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt4x64x16_wt4x64x1_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4.kd
+    .sgpr_count: 86
+    .vgpr_count: 70
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [64, 1, 1]
+    .max_flat_workgroup_size: 64
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx16_ex1_bt4x64x16_wt4x64x1_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx16_ex1_bt4x64x16_wt4x64x1_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4_gkgs.kd
+    .sgpr_count: 86
+    .vgpr_count: 70
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [64, 1, 1]
+    .max_flat_workgroup_size: 64
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx16_ex1_bt4x64x16_wt4x64x1_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx16_ex1_bt4x64x16_wt4x64x1_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4.kd
+    .sgpr_count: 86
+    .vgpr_count: 70
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [64, 1, 1]
+    .max_flat_workgroup_size: 64
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx16_ex1_bt64x4x16_wt64x4x1_ws1x1_wr1x1_ta1x1x16x1_1x16x1x4_tb1x1x1x1_1x16x1x4_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx16_ex1_bt64x4x16_wt64x4x1_ws1x1_wr1x1_ta1x1x16x1_1x16x1x4_tb1x1x1x1_1x16x1x4_gkgs.kd
+    .sgpr_count: 86
+    .vgpr_count: 70
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [64, 1, 1]
+    .max_flat_workgroup_size: 64
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx16_ex1_bt64x4x16_wt64x4x1_ws1x1_wr1x1_ta1x1x16x1_1x16x1x4_tb1x1x1x1_1x16x1x4
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx16_ex1_bt64x4x16_wt64x4x1_ws1x1_wr1x1_ta1x1x16x1_1x16x1x4_tb1x1x1x1_1x16x1x4.kd
+    .sgpr_count: 86
+    .vgpr_count: 70
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 8192
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [64, 1, 1]
+    .max_flat_workgroup_size: 64
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt32x32x8_wt16x16x1_ws1x1_wr1x1_ta1x1x1x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt32x32x8_wt16x16x1_ws1x1_wr1x1_ta1x1x1x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs.kd
+    .sgpr_count: 72
     .vgpr_count: 56
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 4096
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt32x32x8_wt16x16x1_ws1x1_wr1x1_ta1x1x1x1_1x8x1x32_tb1x1x1x1_1x8x1x32
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt32x32x8_wt16x16x1_ws1x1_wr1x1_ta1x1x1x1_1x8x1x32_tb1x1x1x1_1x8x1x32.kd
+    .sgpr_count: 72
+    .vgpr_count: 56
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 4096
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx8_ex1_bt32x32x8_wt16x16x1_ws1x1_wr1x1_ta1x1x1x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx8_ex1_bt32x32x8_wt16x16x1_ws1x1_wr1x1_ta1x1x1x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs.kd
+    .sgpr_count: 72
+    .vgpr_count: 56
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 4096
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx8_ex1_bt32x32x8_wt16x16x1_ws1x1_wr1x1_ta1x1x1x1_1x8x1x32_tb1x1x1x1_1x8x1x32
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx8_ex1_bt32x32x8_wt16x16x1_ws1x1_wr1x1_ta1x1x1x1_1x8x1x32_tb1x1x1x1_1x8x1x32.kd
+    .sgpr_count: 72
+    .vgpr_count: 56
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 4096
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [256, 1, 1]
+    .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32x1_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32x1_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8.kd
+    .sgpr_count: 74
+    .vgpr_count: 60
     .kernarg_segment_align: 8
     .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
@@ -2105,10 +3657,10 @@ amdhsa.kernels:
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_gkgs
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_gkgs.kd
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32x1_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x16_wt8x32x1_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_gkgs.kd
     .sgpr_count: 74
-    .vgpr_count: 56
+    .vgpr_count: 60
     .kernarg_segment_align: 8
     .kernarg_segment_size: 88
     .group_segment_fixed_size: 4096
@@ -2136,10 +3688,10 @@ amdhsa.kernels:
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16.kd
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32x1_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32x1_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16.kd
     .sgpr_count: 72
-    .vgpr_count: 54
+    .vgpr_count: 56
     .kernarg_segment_align: 8
     .kernarg_segment_size: 88
     .group_segment_fixed_size: 2048
@@ -2167,10 +3719,258 @@ amdhsa.kernels:
     - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_gkgs
-    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_gkgs.kd
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32x1_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx1_ex1_bt16x32x8_wt8x32x1_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_gkgs.kd
     .sgpr_count: 72
-    .vgpr_count: 54
+    .vgpr_count: 56
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 2048
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [128, 1, 1]
+    .max_flat_workgroup_size: 128
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt16x32x16_wt8x32x1_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt16x32x16_wt8x32x1_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8.kd
+    .sgpr_count: 74
+    .vgpr_count: 60
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 4096
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [128, 1, 1]
+    .max_flat_workgroup_size: 128
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt16x32x16_wt8x32x1_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt16x32x16_wt8x32x1_ws1x1_wr1x1_ta1x1x2x1_1x16x1x8_tb1x1x4x1_1x16x1x8_gkgs.kd
+    .sgpr_count: 74
+    .vgpr_count: 60
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 4096
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [128, 1, 1]
+    .max_flat_workgroup_size: 128
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt16x32x8_wt8x32x1_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt16x32x8_wt8x32x1_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16.kd
+    .sgpr_count: 72
+    .vgpr_count: 56
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 2048
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [128, 1, 1]
+    .max_flat_workgroup_size: 128
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt16x32x8_wt8x32x1_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx4_ex1_bt16x32x8_wt8x32x1_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_gkgs.kd
+    .sgpr_count: 72
+    .vgpr_count: 56
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 2048
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [128, 1, 1]
+    .max_flat_workgroup_size: 128
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx8_ex1_bt16x32x8_wt8x32x1_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx8_ex1_bt16x32x8_wt8x32x1_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16.kd
+    .sgpr_count: 72
+    .vgpr_count: 56
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 2048
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [128, 1, 1]
+    .max_flat_workgroup_size: 128
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx8_ex1_bt16x32x8_wt8x32x1_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx8_ex1_bt16x32x8_wt8x32x1_ws1x1_wr1x1_ta1x1x1x1_1x8x1x16_tb1x1x2x1_1x8x1x16_gkgs.kd
+    .sgpr_count: 72
+    .vgpr_count: 56
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 2048
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [128, 1, 1]
+    .max_flat_workgroup_size: 128
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx8_ex1_bt32x16x8_wt32x8x1_ws1x1_wr1x1_ta1x1x2x1_1x8x1x16_tb1x1x1x1_1x8x1x16_gkgs
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx8_ex1_bt32x16x8_wt32x8x1_ws1x1_wr1x1_ta1x1x2x1_1x8x1x16_tb1x1x1x1_1x8x1x16_gkgs.kd
+    .sgpr_count: 72
+    .vgpr_count: 56
+    .kernarg_segment_align: 8
+    .kernarg_segment_size: 88
+    .group_segment_fixed_size: 2048
+    .private_segment_fixed_size: 0
+    .wavefront_size: 64
+    .reqd_workgroup_size : [128, 1, 1]
+    .max_flat_workgroup_size: 128
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: k_gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
+  - .name: igemm_wrw_gtcx_nchw_fp32_bx8_ex1_bt32x16x8_wt32x8x1_ws1x1_wr1x1_ta1x1x2x1_1x8x1x16_tb1x1x1x1_1x8x1x16
+    .symbol: igemm_wrw_gtcx_nchw_fp32_bx8_ex1_bt32x16x8_wt32x8x1_ws1x1_wr1x1_ta1x1x2x1_1x8x1x16_tb1x1x1x1_1x8x1x16.kd
+    .sgpr_count: 72
+    .vgpr_count: 56
     .kernarg_segment_align: 8
     .kernarg_segment_size: 88
     .group_segment_fixed_size: 2048
