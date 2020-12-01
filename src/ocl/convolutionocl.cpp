@@ -285,14 +285,18 @@ static void EvaluateInvokers(Handle& handle,
             {
                 MIOPEN_LOG_I("Warning: skipping solver <" << sol.solver_id
                                                           << "> due to no workspace provided ("
-                                                          << sol.workspce_sz << " required)");
+                                                          << sol.workspce_sz
+                                                          << " required)");
                 continue;
             }
             if(invoke_ctx.workSpaceSize < sol.workspce_sz)
             {
-                MIOPEN_LOG_I("Warning: skipping solver <"
-                             << sol.solver_id << "> due to insufficient workspace ("
-                             << invoke_ctx.workSpaceSize << " < " << sol.workspce_sz << ")");
+                MIOPEN_LOG_I("Warning: skipping solver <" << sol.solver_id
+                                                          << "> due to insufficient workspace ("
+                                                          << invoke_ctx.workSpaceSize
+                                                          << " < "
+                                                          << sol.workspce_sz
+                                                          << ")");
                 continue;
             }
         }
@@ -316,8 +320,8 @@ static void EvaluateInvokers(Handle& handle,
     if(selected.Succeeded())
     {
         handle.RegisterInvoker(best_invoker, network_config, selected.solver_id, algorithm_name);
-        MIOPEN_LOG_I("Selected: " << selected << ": " << best
-                                  << ", workspce_sz = " << selected.workspce_sz);
+        MIOPEN_LOG_I(
+            "Selected: " << selected << ": " << best << ", workspce_sz = " << selected.workspce_sz);
         record.SetValues(algorithm_name,
                          FindDbData{selected.solver_id,
                                     best,
@@ -670,63 +674,65 @@ static void DirConvFindCore(Handle& handle,
     const auto invoke_ctx =
         conv::DataInvokeParams{{xDesc, x, wDesc, w, yDesc, y}, workSpace, workSpaceSize};
 
-    std::vector<miopen::solver::ConvSolution> all_solutions;
-
     // Find all sollutions before parallel compiling these solutions.
-    {
-        all_solutions = !use_winograd_only ? conv.FindWinogradSolutions(ctx, invoke_ctx) : [&]() {
+    const auto winograd_solutions =
+        !use_winograd_only ? conv.FindWinogradSolutions(ctx, invoke_ctx) : [&]() {
             AutoUseFastDynamicSolutions tmp{ctx};
             return conv.FindWinogradSolutions(ctx, invoke_ctx);
         }();
-        if(!use_winograd_only)
-        {
-            ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
-            bufs.SetFwd(x, w, y);
-            const auto direct_solutions = conv.FindDataDirectSolutions(
-                handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx);
-            const auto implictgemm_solutions = conv.FindDataImplicitGemmSolutions(
-                handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx);
-            const auto fft_solutions = conv.FindFftSolutions(ctx, invoke_ctx);
-            all_solutions.insert(
-                all_solutions.end(), direct_solutions.begin(), direct_solutions.end());
-            all_solutions.insert(
-                all_solutions.end(), implictgemm_solutions.begin(), implictgemm_solutions.end());
-            all_solutions.insert(all_solutions.end(), fft_solutions.begin(), fft_solutions.end());
-        }
-    }
+    ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
+    bufs.SetFwd(x, w, y);
+    const auto direct_solutions =
+        !use_winograd_only
+            ? conv.FindDataDirectSolutions(
+                  handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx)
+            : {};
+    const auto implictgemm_solutions =
+        !use_winograd_only
+            ? conv.FindDataImplicitGemmSolutions(
+                  handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx)
+            : {};
+    const auto fft_solutions = !use_winograd_only ? conv.FindFftSolutions(ctx, invoke_ctx) : {};
 
-    if(!all_solutions.empty())
+    // Precompile Solutions
     {
-        // Precompile Solutions
+        std::vector<miopen::solver::ConvSolution*> all_solutions;
+        for(auto& s : winograd_solutions)
+            all_solutions.emplace_back(&s);
+        for(auto& s : direct_solutions)
+            all_solutions.emplace_back(&s);
+        for(auto& s : implictgemm_solutions)
+            all_solutions.emplace_back(&s);
+        for(auto& s : fft_solutions)
+            all_solutions.emplace_back(&s);
         PrecompileSolutions(handle, all_solutions);
-
-        // Evaluate Invokers
-        auto iter_start = all_solutions.begin();
-        auto iter       = all_solutions.begin();
-        std::string algo_name =
-            solver::Id(iter_start->solver_id).GetAlgo(ctx.conv_problem.GetDirection());
-        for(; iter != all_solutions.end(); ++iter)
-        {
-            if(solver::Id(iter->solver_id).GetAlgo(ctx.conv_problem.GetDirection()) != algo_name)
-            {
-                EvaluateInvokers(handle,
-                                 {iter_start, iter},
-                                 AlgorithmName(algo_name),
-                                 network_config,
-                                 invoke_ctx,
-                                 record);
-                iter_start = iter;
-                algo_name =
-                    solver::Id(iter_start->solver_id).GetAlgo(ctx.conv_problem.GetDirection());
-            }
-        }
-        EvaluateInvokers(handle,
-                         {iter_start, iter},
-                         AlgorithmName(algo_name),
-                         network_config,
-                         invoke_ctx,
-                         record);
     }
+
+    // Evaluate Invokers
+    EvaluateInvokers(handle,
+                     winograd_solutions,
+                     AlgorithmName{"miopenConvolutionFwdAlgoWinograd"},
+                     network_config,
+                     invoke_ctx,
+                     record);
+    EvaluateInvokers(handle,
+                     direct_solutions,
+                     AlgorithmName{"miopenConvolutionFwdAlgoDirect"},
+                     network_config,
+                     invoke_ctx,
+                     record);
+    EvaluateInvokers(handle,
+                     implictgemm_solutions,
+                     AlgorithmName{"miopenConvolutionFwdAlgoImplicitGEMM"},
+                     network_config,
+                     invoke_ctx,
+                     record);
+    EvaluateInvokers(handle,
+                     fft_solutions,
+                     AlgorithmName{"miopenConvolutionFwdAlgoFFT"},
+                     network_config,
+                     invoke_ctx,
+                     record);
 }
 
 void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
@@ -837,7 +843,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     }
 
     MIOPEN_LOG_I("FW Chosen Algorithm: " << perf_db[0].solver_id << " , " << perf_db[0].workspace
-                                         << ", " << perf_db[0].time);
+                                         << ", "
+                                         << perf_db[0].time);
 }
 
 void ValidateConvTensors(const ConvTensors& tensors)
@@ -2064,67 +2071,65 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             ctx.SetStream(&handle);
             ctx.DetectRocm();
 
-            std::vector<miopen::solver::ConvSolution> all_solutions;
-
             // Find all sollutions before parallel compiling these solutions.
-            {
-                all_solutions =
-                    !use_winograd_only ? FindWinogradSolutions(ctx, invoke_ctx) : [&]() {
-                        AutoUseFastDynamicSolutions tmp{ctx};
-                        return FindWinogradSolutions(ctx, invoke_ctx);
-                    }();
-                if(!use_winograd_only)
-                {
-                    ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
-                    bufs.SetBwd(dx, w, dy);
-                    const auto direct_solutions = FindDataDirectSolutions(
-                        handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, bufs, invoke_ctx);
-                    const auto implictgemm_solutions = this->FindDataImplicitGemmSolutions(
-                        handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, bufs, invoke_ctx);
-                    const auto fft_solutions = FindFftSolutions(ctx, invoke_ctx);
-                    all_solutions.insert(
-                        all_solutions.end(), direct_solutions.begin(), direct_solutions.end());
-                    all_solutions.insert(all_solutions.end(),
-                                         implictgemm_solutions.begin(),
-                                         implictgemm_solutions.end());
-                    all_solutions.insert(
-                        all_solutions.end(), fft_solutions.begin(), fft_solutions.end());
-                }
-            }
+            const auto winograd_solutions =
+                !use_winograd_only ? FindWinogradSolutions(ctx, invoke_ctx) : [&]() {
+                    AutoUseFastDynamicSolutions tmp{ctx};
+                    return FindWinogradSolutions(ctx, invoke_ctx);
+                }();
+            ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
+            bufs.SetBwd(dx, w, dy);
+            const auto direct_solutions =
+                !use_winograd_only
+                    ? FindDataDirectSolutions(
+                          handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, bufs, invoke_ctx)
+                    : {};
+            const auto implictgemm_solutions =
+                !use_winograd_only
+                    ? FindDataImplicitGemmSolutions(
+                          handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, bufs, invoke_ctx)
+                    : {};
+            const auto fft_solutions = !use_winograd_only ? FindFftSolutions(ctx, invoke_ctx) : {};
 
-            if(!all_solutions.empty())
+            // Precompile Solutions
             {
-                // Precompile Solutions
+                std::vector<miopen::solver::ConvSolution*> all_solutions;
+                for(auto& s : winograd_solutions)
+                    all_solutions.emplace_back(&s);
+                for(auto& s : direct_solutions)
+                    all_solutions.emplace_back(&s);
+                for(auto& s : implictgemm_solutions)
+                    all_solutions.emplace_back(&s);
+                for(auto& s : fft_solutions)
+                    all_solutions.emplace_back(&s);
                 PrecompileSolutions(handle, all_solutions);
-
-                // Evaluate Invokers
-                auto iter_start = all_solutions.begin();
-                auto iter       = all_solutions.begin();
-                std::string algo_name =
-                    solver::Id(iter_start->solver_id).GetAlgo(ctx.conv_problem.GetDirection());
-                for(; iter != all_solutions.end(); ++iter)
-                {
-                    if(solver::Id(iter->solver_id).GetAlgo(ctx.conv_problem.GetDirection()) !=
-                       algo_name)
-                    {
-                        EvaluateInvokers(handle,
-                                         {iter_start, iter},
-                                         AlgorithmName(algo_name),
-                                         network_config,
-                                         invoke_ctx,
-                                         record);
-                        iter_start = iter;
-                        algo_name  = solver::Id(iter_start->solver_id)
-                                        .GetAlgo(ctx.conv_problem.GetDirection());
-                    }
-                }
-                EvaluateInvokers(handle,
-                                 {iter_start, iter},
-                                 AlgorithmName(algo_name),
-                                 network_config,
-                                 invoke_ctx,
-                                 record);
             }
+
+            // Evaluate Invokers
+            EvaluateInvokers(handle,
+                             winograd_solutions,
+                             AlgorithmName{"miopenConvolutionBwdDataAlgoWinograd"},
+                             network_config,
+                             invoke_ctx,
+                             record);
+            EvaluateInvokers(handle,
+                             direct_solutions,
+                             AlgorithmName{"miopenConvolutionBwdDataAlgoDirect"},
+                             network_config,
+                             invoke_ctx,
+                             record);
+            EvaluateInvokers(handle,
+                             implictgemm_solutions,
+                             AlgorithmName{"miopenConvolutionBwdDataAlgoImplicitGEMM"},
+                             network_config,
+                             invoke_ctx,
+                             record);
+            EvaluateInvokers(handle,
+                             fft_solutions,
+                             AlgorithmName{"miopenConvolutionBwdDataAlgoFFT"},
+                             network_config,
+                             invoke_ctx,
+                             record);
 #if MIOPEN_USE_GEMM
             if(!use_winograd_only && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) &&
                !(IsAnyBufferBF16(dxDesc, dyDesc, wDesc) && !IsUseRocBlas))
@@ -2272,10 +2277,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                     if(gemm_status == miopenStatusSuccess)
                         record.SetValues("miopenConvolutionBwdDataAlgoGEMM",
                                          FindDbData{
-                                             "gemm",
-                                             time_gemm,
-                                             0,
-                                             kcache_key,
+                                             "gemm", time_gemm, 0, kcache_key,
                                          });
                 }
                 // if not 1x1
@@ -2365,7 +2367,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     }
 
     MIOPEN_LOG_I("BWD Chosen Algorithm: " << perf_db[0].solver_id << " , " << perf_db[0].workspace
-                                          << ", " << perf_db[0].time);
+                                          << ", "
+                                          << perf_db[0].time);
 }
 static void ConvBwdCheckNumerics(const Handle& handle,
                                  const ConvBwdTensors& tensors,
@@ -2495,8 +2498,9 @@ void ConvolutionDescriptor::ConvBwdGemm(Handle& handle,
         if(handle.IsProfilingEnabled())
             t1 = handle.GetKernelTime();
 
-        assert(workSpace != nullptr && workSpaceSize >= BackwardDataGetWorkSpaceSizeGEMMTranspose(
-                                                            tensors.dyDesc, tensors.dxDesc));
+        assert(workSpace != nullptr &&
+               workSpaceSize >=
+                   BackwardDataGetWorkSpaceSizeGEMMTranspose(tensors.dyDesc, tensors.dxDesc));
 
         transpose_NCHW2CNHW(handle,
                             in_n,
@@ -3010,10 +3014,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                     if(gemm_status == miopenStatusSuccess)
                         record.SetValues("miopenConvolutionBwdWeightsAlgoGEMM",
                                          FindDbData{
-                                             "gemm",
-                                             time_gemm,
-                                             workspace_req,
-                                             kcache_key,
+                                             "gemm", time_gemm, workspace_req, kcache_key,
                                          });
                 }
                 // 1x1 does not require im2col or workspace
@@ -3060,10 +3061,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                     if(gemm_status == miopenStatusSuccess)
                         record.SetValues("miopenConvolutionBwdWeightsAlgoGEMM",
                                          FindDbData{
-                                             "gemm",
-                                             time_gemm,
-                                             0,
-                                             kcache_key,
+                                             "gemm", time_gemm, 0, kcache_key,
                                          });
                 }
             }
@@ -3084,65 +3082,42 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             const auto invoke_ctx =
                 conv::WrWInvokeParams{{dyDesc, dy, xDesc, x, dwDesc, dw}, workSpace, workSpaceSize};
 
-            std::vector<solver::ConvSolution> all_solutions;
+            // Find all sollutions before parallel compiling these solutions.
+            const auto direct_solutions      = FindAllBwdWrW2DSolutions(ctx, invoke_ctx);
+            const auto winograd_solutions    = FindWinogradWrWAllSolutions(ctx, invoke_ctx);
+            const auto implictgemm_solutions = FindImplicitGemmWrWAllSolutions(ctx, invoke_ctx);
 
-            // direct convolution
-            if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
+            // Precompile Solutions
             {
-                const auto direct_solutions = FindAllBwdWrW2DSolutions(ctx, invoke_ctx);
-                all_solutions.insert(
-                    all_solutions.end(), direct_solutions.begin(), direct_solutions.end());
-            }
-
-            if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{}))
-            {
-                const auto winograd_solutions = FindWinogradWrWAllSolutions(ctx, invoke_ctx);
-                all_solutions.insert(
-                    all_solutions.end(), winograd_solutions.begin(), winograd_solutions.end());
-            }
-
-            // Implicit GEMM
-            if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{}))
-            {
-                const auto implictgemm_solutions = FindImplicitGemmWrWAllSolutions(ctx, invoke_ctx);
-                all_solutions.insert(all_solutions.end(),
-                                     implictgemm_solutions.begin(),
-                                     implictgemm_solutions.end());
-            }
-
-            if(!all_solutions.empty())
-            {
-                // Precompile Solutions
+                std::vector<miopen::solver::ConvSolution*> all_solutions;
+                for(auto& s : direct_solutions)
+                    all_solutions.emplace_back(&s);
+                for(auto& s : winograd_solutions)
+                    all_solutions.emplace_back(&s);
+                for(auto& s : implictgemm_solutions)
+                    all_solutions.emplace_back(&s);
                 PrecompileSolutions(handle, all_solutions);
-
-                // Evaluate Invokers
-                auto iter_start = all_solutions.begin();
-                auto iter       = all_solutions.begin();
-                std::string algo_name =
-                    solver::Id(iter_start->solver_id).GetAlgo(ctx.conv_problem.GetDirection());
-                for(; iter != all_solutions.end(); ++iter)
-                {
-                    if(solver::Id(iter->solver_id).GetAlgo(ctx.conv_problem.GetDirection()) !=
-                       algo_name)
-                    {
-                        EvaluateInvokers(handle,
-                                         {iter_start, iter},
-                                         AlgorithmName(algo_name),
-                                         network_config,
-                                         invoke_ctx,
-                                         record);
-                        iter_start = iter;
-                        algo_name  = solver::Id(iter_start->solver_id)
-                                        .GetAlgo(ctx.conv_problem.GetDirection());
-                    }
-                }
-                EvaluateInvokers(handle,
-                                 {iter_start, iter},
-                                 AlgorithmName(algo_name),
-                                 network_config,
-                                 invoke_ctx,
-                                 record);
             }
+
+            // Evaluate Invokers
+            EvaluateInvokers(handle,
+                             direct_solutions,
+                             AlgorithmName{"miopenConvolutionBwdWeightsAlgoDirect"},
+                             network_config,
+                             invoke_ctx,
+                             record);
+            EvaluateInvokers(handle,
+                             winograd_solutions,
+                             AlgorithmName{"miopenConvolutionBwdWeightsAlgoWinograd"},
+                             network_config,
+                             invoke_ctx,
+                             record);
+            EvaluateInvokers(handle,
+                             implictgemm_solutions,
+                             AlgorithmName{"miopenConvolutionBwdWeightsAlgoImplicitGEMM"},
+                             network_config,
+                             invoke_ctx,
+                             record);
         });
     }
 
@@ -3163,7 +3138,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         perfResults[i].memory           = perf_db[i].workspace;
     }
     MIOPEN_LOG_I("BWrW Chosen Algorithm: " << perf_db[0].solver_id << " , " << perf_db[0].workspace
-                                           << ", " << perf_db[0].time);
+                                           << ", "
+                                           << perf_db[0].time);
 }
 
 static void ConvWrwCheckNumerics(const Handle& handle,
@@ -3278,8 +3254,9 @@ void ConvolutionDescriptor::BackwardWeightsGemm(Handle& handle,
         {
             MIOPEN_LOG_FUNCTION("convolution, non 1x1");
         }
-        assert(workSpace != nullptr && workSpaceSize >= (BackwardWeightsGetWorkSpaceSizeGEMM(
-                                                            tensors.dyDesc, tensors.dwDesc)));
+        assert(workSpace != nullptr &&
+               workSpaceSize >=
+                   (BackwardWeightsGetWorkSpaceSizeGEMM(tensors.dyDesc, tensors.dwDesc)));
 
         std::size_t out_spatial_size = std::accumulate(
             out_spatial.begin(), out_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
@@ -3603,9 +3580,9 @@ void ConvolutionBackwardBias(const Handle& handle,
     std::size_t out_n, out_k, stride_n, stride_k;
     std::tie(out_n, out_k)       = tie_pick<0, 1>()(dyDesc.GetLengths());
     std::tie(stride_n, stride_k) = tie_pick<0, 1>()(dyDesc.GetStrides());
-    std::string algo_name        = "miopenConvolutionBwdBias";
-    std::string program_name     = "MIOpenConvBwdBias.cl";
-    std::string kernel_name      = "MIOpenConvBwdB";
+    std::string algo_name    = "miopenConvolutionBwdBias";
+    std::string program_name = "MIOpenConvBwdBias.cl";
+    std::string kernel_name  = "MIOpenConvBwdB";
     std::string network_config =
         "convbwdbias-" +
         std::string(dyDesc.GetType() == miopenFloat
@@ -3619,7 +3596,7 @@ void ConvolutionBackwardBias(const Handle& handle,
     std::size_t lcl_grp_size1 = 1;
     std::size_t local_mem_sz  = 256;
 
-    std::size_t map_size         = std::accumulate(dyDesc.GetLengths().begin() + 2,
+    std::size_t map_size = std::accumulate(dyDesc.GetLengths().begin() + 2,
                                            dyDesc.GetLengths().end(),
                                            std::size_t(1),
                                            std::multiplies<std::size_t>());
