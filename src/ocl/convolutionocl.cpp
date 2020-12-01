@@ -3071,9 +3071,10 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     }
 
     if(IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
-        MIOPEN_THROW(miopenStatusGpuOperationsSkipped, "MIOPEN_DEBUG_COMPILE_ONLY is enabled, "
-                                                       "escaping backwards convolution. Search "
-                                                       "skipped.");
+        MIOPEN_THROW(miopenStatusGpuOperationsSkipped,
+                     "MIOPEN_DEBUG_COMPILE_ONLY is enabled, "
+                     "escaping backwards convolution. Search "
+                     "skipped.");
 
     if(perf_db.empty())
         MIOPEN_THROW("Backward Weights Convolution cannot be executed due to incorrect params");
