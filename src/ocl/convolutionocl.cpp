@@ -3083,9 +3083,16 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 conv::WrWInvokeParams{{dyDesc, dy, xDesc, x, dwDesc, dw}, workSpace, workSpaceSize};
 
             // Find all sollutions before parallel compiling these solutions.
-            const auto direct_solutions      = FindAllBwdWrW2DSolutions(ctx, invoke_ctx);
-            const auto winograd_solutions    = FindWinogradWrWAllSolutions(ctx, invoke_ctx);
-            const auto implictgemm_solutions = FindImplicitGemmWrWAllSolutions(ctx, invoke_ctx);
+            const auto direct_solutions = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{})
+                                              ? FindAllBwdWrW2DSolutions(ctx, invoke_ctx)
+                                              : {};
+            const auto winograd_solutions = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{})
+                                                ? FindWinogradWrWAllSolutions(ctx, invoke_ctx)
+                                                : {};
+            const auto implictgemm_solutions =
+                !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{})
+                    ? FindImplicitGemmWrWAllSolutions(ctx, invoke_ctx)
+                    : {};
 
             // Precompile Solutions
             {

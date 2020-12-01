@@ -251,10 +251,8 @@ std::vector<miopen::solver::ConvSolution>
 FindWinogradWrWAllSolutions(const miopen::ConvolutionContext& ctx,
                             const miopen::AnyInvokeParams& invoke_ctx)
 {
-    if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{}))
-        return GetWindogradWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
-    else
-        return {};
+
+    return GetWindogradWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
 }
 
 std::vector<std::pair<std::string, size_t>>
@@ -267,30 +265,21 @@ std::vector<miopen::solver::ConvSolution>
 FindImplicitGemmWrWAllSolutions(const miopen::ConvolutionContext& ctx,
                                 const miopen::AnyInvokeParams& invoke_ctx)
 {
-    if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{}))
-    {
 #if WORKAROUND_SWDEV_227826
-        if(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS{}))
-            return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
-        else
-            return GetImplicitGemmWrWSolvers().SearchForAllSolutions(
-                ctx, GetDb(ctx), invoke_ctx, 1);
-#else
+    if(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS{}))
         return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
-#endif
-    }
     else
-        return {};
+        return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx, 1);
+#else
+    return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
+#endif
 }
 
 std::vector<miopen::solver::ConvSolution>
 FindAllBwdWrW2DSolutions(const miopen::ConvolutionContext& ctx,
                          const miopen::AnyInvokeParams& invoke_ctx)
 {
-    if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
-        return GetBwdWrW2DSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
-    else
-        return {};
+    return GetBwdWrW2DSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
 }
 
 std::vector<miopen::solver::ConvSolution>
