@@ -44,6 +44,7 @@ struct TunableImplicitGemmGTCDynamic_t
 
     int wave_tile_m;
     int wave_tile_n;
+    int wave_tile_k;
     int wave_step_m;
     int wave_step_n;
     int wave_repeat_m;
@@ -69,10 +70,10 @@ struct TunableImplicitGemmGTCDynamic_t
         std::ostringstream kernel_name;
         kernel_name << "igemm_" << direction << "_gtcx_nchw_" << precision << "_bx" << nxb << "_ex"
                     << nxe << "_bt" << gemm_m_per_block << "x" << gemm_n_per_block << "x"
-                    << gemm_k_per_block << "_wt" << wave_tile_m << "x" << wave_tile_n << "_ws"
-                    << wave_step_m << "x" << wave_step_n << "_wr" << wave_repeat_m << "x"
-                    << wave_repeat_n << "_ta" << tensor_a_thread_lengths[0] << "x"
-                    << tensor_a_thread_lengths[1] << "x" << tensor_a_thread_lengths[2] << "x"
+                    << gemm_k_per_block << "_wt" << wave_tile_m << "x" << wave_tile_n << "x"
+                    << wave_tile_k << "_ws" << wave_step_m << "x" << wave_step_n << "_wr"
+                    << wave_repeat_m << "x" << wave_repeat_n << "_ta" << tensor_a_thread_lengths[0]
+                    << "x" << tensor_a_thread_lengths[1] << "x" << tensor_a_thread_lengths[2] << "x"
                     << tensor_a_thread_lengths[3] << "_" << tensor_a_cluster_lengths[0] << "x"
                     << tensor_a_cluster_lengths[1] << "x" << tensor_a_cluster_lengths[2] << "x"
                     << tensor_a_cluster_lengths[3] << "_tb" << tensor_b_thread_lengths[0] << "x"
