@@ -502,10 +502,28 @@ if(MIOPEN_USE_COMGR)
     list(APPEND MIOpen_Source comgr.cpp)
 endif()
 
+if(MIOPEN_ENABLE_HEUR)
+    file(GLOB HEUR_OBJS conv/heur/assets/*.o)
+    SET_SOURCE_FILES_PROPERTIES(
+      ${HEUR_OBJS}
+      PROPERTIES
+      EXTERNAL_OBJECT true
+      GENERATED true
+	)
+    list(APPEND MIOpen_Source conv/heur/metadata.cpp)
+    list(APPEND MIOPEN_Source include/miopen/memref.hpp)
+    list(APPEND MIOPEN_Source include/miopen/metadata.hpp)
+else()
+    set(HEUR_OBJS )
+endif()
+
+
+
 # build library
 add_library( MIOpen
     ${MIOpen_Source}
     $<TARGET_OBJECTS:sqlite_memvfs>
+    ${HEUR_OBJS}
     )
 
 rocm_set_soversion(MIOpen ${MIOpen_SOVERSION})

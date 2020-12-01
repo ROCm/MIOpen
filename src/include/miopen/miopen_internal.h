@@ -73,7 +73,7 @@ typedef enum {
     miopenConvolutionFindModeHybrid        = 3,                         /*!< Hybrid mode */
     miopenConvolutionFindModeFastHybrid    = 4,                         /*!< Fast Hybrid mode */
     miopenConvolutionFindModeDynamicHybrid = 5,                         /*!< Dynamic Hybrid mode */
-    miopenConvolutionFindModeDefault = miopenConvolutionFindModeHybrid, /*!< Default setting */
+    miopenConvolutionFindModeDefault = miopenConvolutionFindModeFast,   /*!< Default setting */
 } miopenConvolutionFindMode_t;
 
 /*! @brief Sets the Find Mode attribute in the convolution descriptor.
