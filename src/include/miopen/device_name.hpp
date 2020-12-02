@@ -26,6 +26,8 @@
 #ifndef GUARD_MIOPEN_DEVICE_NAME_HPP
 #define GUARD_MIOPEN_DEVICE_NAME_HPP
 
+#define WORKAROUND_SWDEV_262823 1
+
 #include <map>
 #include <string>
 #include <miopen/env.hpp>
@@ -36,7 +38,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_CU)
 
 namespace miopen {
 
-std::string inline GetDeviceNameFromMap(const std::string& name)
+std::string inline GetDeviceNameFromMap(const std::string& in)
 {
 
     static std::map<std::string, std::string> device_name_map = {
@@ -58,6 +60,12 @@ std::string inline GetDeviceNameFromMap(const std::string& name)
     const char* const p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_ENFORCE_DEVICE{});
     if(p_asciz != nullptr && strlen(p_asciz) > 0)
         return {p_asciz};
+
+#if WORKAROUND_SWDEV_262823
+    const auto name = in.substr(0, in.find(':')); // str.substr(0, npos) returns str.
+#else
+    const auto name(in);
+#endif
 
     auto match = device_name_map.find(name);
     if(match != device_name_map.end())
