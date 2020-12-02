@@ -55,22 +55,14 @@ std::string inline GetDeviceNameFromMap(const std::string& name)
         {"10.3.0 Sienna_Cichlid 18", "gfx1030"},
     };
 
-    std::string n(name);
     const char* const p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_ENFORCE_DEVICE{});
     if(p_asciz != nullptr && strlen(p_asciz) > 0)
-    {
-        n = p_asciz;
-    }
+        return {p_asciz};
 
-    auto device_name_iterator = device_name_map.find(n);
+    auto device_name_iterator = device_name_map.find(name);
     if(device_name_iterator != device_name_map.end())
-    {
         return device_name_iterator->second;
-    }
-    else
-    {
-        return n;
-    }
+    return name;
 }
 
 } // namespace miopen
