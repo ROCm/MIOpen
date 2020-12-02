@@ -59,9 +59,9 @@ std::string inline GetDeviceNameFromMap(const std::string& name)
     if(p_asciz != nullptr && strlen(p_asciz) > 0)
         return {p_asciz};
 
-    auto device_name_iterator = device_name_map.find(name);
-    if(device_name_iterator != device_name_map.end())
-        return device_name_iterator->second;
+    auto match = device_name_map.find(name);
+    if(match != device_name_map.end())
+        return match->second;
     return name;
 }
 
