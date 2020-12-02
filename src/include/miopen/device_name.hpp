@@ -49,13 +49,9 @@ std::string inline GetDeviceNameFromMap(const std::string& name)
         {"Fiji", "gfx803"},
         {"gfx800", "gfx803"},
         {"gfx802", "gfx803"},
-        {"gfx803", "gfx803"},
         {"gfx804", "gfx803"},
         {"Vega10", "gfx900"},
-        {"gfx900", "gfx900"},
         {"gfx901", "gfx900"},
-        {"gfx906", "gfx906"},
-        {"gfx908", "gfx908"},
         {"10.3.0 Sienna_Cichlid 18", "gfx1030"},
     };
 
