@@ -635,16 +635,22 @@ std::size_t Handle::GetGlobalMemorySize() const
     return miopen::GetDeviceInfo<CL_DEVICE_GLOBAL_MEM_SIZE>(miopen::GetDevice(this->GetStream()));
 }
 
-std::string Handle::GetDeviceName() const
+static std::string GetDeviceNameImpl(miopenAcceleratorQueue_t& stream) const
 {
     const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
     if(arch != nullptr && strlen(arch) > 0)
     {
         return arch;
     }
-    std::string name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(miopen::GetDevice(this->GetStream()));
+    std::string name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(miopen::GetDevice(stream));
     ParseDevName(name);
     return GetDeviceNameFromMap(name);
+}
+
+std::string Handle::GetDeviceName() const
+{
+    static const auto rv = GetDeviceNameImpl(this->GetStream());
+    return rv;
 }
 
 std::ostream& Handle::Print(std::ostream& os) const
