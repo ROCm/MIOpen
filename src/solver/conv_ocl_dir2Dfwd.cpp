@@ -472,8 +472,7 @@ ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
     if(result.Succeeded())
     {
         result.construction_params[0].comp_options +=
-            std::string(" -DMLO_CONV_BIAS=") + std::to_string(static_cast<long long>(params.bias)) +
-            params.general_compile_options;
+            std::string(" -DMLO_CONV_BIAS=") + std::to_string(static_cast<long long>(params.bias));
     }
 
     return result;
@@ -484,10 +483,6 @@ ConvOclDirectFwdFused::GetSolution(const ConvolutionContext& params,
                                    const LegacyPerformanceConfig& searched_params) const
 {
     ConvSolution result = BaseGetSolution(params, searched_params);
-    if(result.Succeeded())
-    {
-        result.construction_params[0].comp_options += params.general_compile_options;
-    }
     return result;
 }
 } // namespace solver
