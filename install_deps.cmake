@@ -61,20 +61,36 @@ if(NOT DEFINED ENV{CXX} AND NOT DEFINED CMAKE_CXX_COMPILER AND NOT DEFINED CMAKE
     if(HCC)
         set(ENV{CXX} ${HCC})
     else()
-	message(STATUS "Cannot find hcc")
-	find_program(CLANGXX clang++
+	    message(STATUS "Cannot find hcc")
+        find_program(CLANGXX clang++
+            PATHS
+                /opt/rocm/llvm
+                /opt/rocm
+            PATH_SUFFIXES
+                bin
+        )
+        if(CLANGXX)
+            set(ENV{CXX} ${CLANGXX})
+        else()
+            message(FATAL_ERROR "Cannot find clang++")
+        endif()
+    endif()
+endif()
+
+
+if(NOT DEFINED ENV{CC} AND NOT DEFINED CMAKE_C_COMPILER AND NOT DEFINED CMAKE_TOOLCHAIN_FILE) 
+    find_program(CLANGC clang
 	    PATHS
 	        /opt/rocm/llvm
-		/opt/rocm
+		    /opt/rocm
 	    PATH_SUFFIXES
 	        bin
 	)
-	if(CLANGXX)
-	    set(ENV{CXX} ${CLANGXX})
+	if(CLANGC)
+	    set(ENV{CC} ${CLANGC})
 	else()
-            message(FATAL_ERROR "Cannot find clang++")
+        message(STATUS "Cannot find clang to set to CC")
 	endif()
-    endif()
 endif()
 
 cmake_get(pfultz2/rocm-recipes PREFIX ${PREFIX} CMAKE_ARGS ${PARSE_UNPARSED_ARGUMENTS})

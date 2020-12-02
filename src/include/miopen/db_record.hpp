@@ -36,6 +36,8 @@
 #include <string>
 #include <unordered_map>
 
+#define MIOPEN_SUPPRESS_DB_WARNING 1
+
 namespace miopen {
 
 /// db consists of 0 or more records.
@@ -222,9 +224,13 @@ class DbRecord
             return false;
 
         const bool ok = values.Deserialize(s);
+
+#if(MIOPEN_SUPPRESS_DB_WARNING==1)
         if(!ok)
             MIOPEN_LOG_WE(
                 "Perf db record is obsolete or corrupt: " << s << ". Performance may degrade.");
+#endif
+
         return ok;
     }
 

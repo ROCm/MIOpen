@@ -37,6 +37,7 @@
 #include <miopen/solver.hpp>
 #include <miopen/generic_search.hpp>
 
+#define WORKAROUND_ISSUE_532 1 // ConvAsmBwdWrW3x3 has precision issues with some PerformanceConfigs
 #define MIOPEN_GCN_ASM_DIRECT_3X3WRW_SEARCH_LWC_FIXED 0
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS)
@@ -352,6 +353,11 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
     if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")))
         return false;
     assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet
+#if WORKAROUND_ISSUE_532
+    if(StartsWith(name, "gfx9") && (params.kernel_stride_w > 1 || params.kernel_stride_h > 1))
+        return false;
+#endif
+
     // clang-format off
     bool ok = params.pad_w == 1           // -q  pad_w
         && params.pad_h == 1              // -p  pad_h
@@ -397,7 +403,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
          && k_r_s < std::pow(2, 22)
          && n_c_h_w < std::pow(2, 29)
          && n_k_h_w < std::pow(2, 29)
-         && c_k_r_s < std::pow(2, 29);              // clang-format on
+         && c_k_r_s < std::pow(2, 29); // clang-format on
     return ok;
 }
 
@@ -499,14 +505,14 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     GetCompiledInParameters(params, &N, &C, &H, &W, &K, &n_groups);
 
     result.invoker_factory = [N, C, H, W, K, n_groups](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& handle, const boost::any& primitive_params) {
-            const auto k             = handle.Run(kernels[0]);
-            const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
-            int unused               = 0;
-            int* return_addr         = nullptr;
-            const auto& x            = invoke_params.tensors.x;
-            const auto& dy           = invoke_params.tensors.dy;
-            const auto& dw           = invoke_params.tensors.dw;
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
+            const auto k              = handle.Run(kernels[0]);
+            const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+            int unused                = 0;
+            int* return_addr          = nullptr;
+            const auto& x             = invoke_params.tensors.x;
+            const auto& dy            = invoke_params.tensors.dy;
+            const auto& dw            = invoke_params.tensors.dw;
             k(N, C, H, W, K, n_groups, unused, unused, x, dw, dy, return_addr);
         };
     };
@@ -514,65 +520,10 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     return result;
 }
 
-template <typename B, typename T>
-int ConvAsmBwdWrW3x3::RunAndMeasureSolution(const miopen::Handle& profile_h,
-                                            B bot_ocl_buf,
-                                            T top_ocl_buf,
-                                            Data_t wei_ocl_buf,
-                                            ConstData_t bias_ocl_buf,
-                                            const ConvolutionContext& params,
-                                            const ConvSolution& solution,
-                                            float& elapsed_time) const
+PerformanceConfigAsmDirect3x3WrW ConvAsmBwdWrW3x3::Search(const ConvolutionContext& context,
+                                                          const AnyInvokeParams& invoke_ctx) const
 {
-    assert(bias_ocl_buf == nullptr);
-    (void)bias_ocl_buf;
-    const KernelInfo k_info = solution.construction_params.back();
-#ifdef NDEBUG
-    try
-#endif
-    {
-        elapsed_time = std::numeric_limits<float>::max();
-        // ConvolutionContext::general_compile_options is for OpenCL kernels
-        // and thus not applicable for assembly.
-        auto kernel = profile_h.AddKernel("",
-                                          "",
-                                          k_info.kernel_file,
-                                          k_info.kernel_name,
-                                          k_info.l_wk,
-                                          k_info.g_wk,
-                                          k_info.comp_options);
-        int unused       = 0;
-        int* return_addr = nullptr;
-        auto n_groups =
-            static_cast<int>(params.GetStream().GetMaxComputeUnits()); // kernel needs int32
-
-        kernel(params.batch_sz,   // N
-               params.n_outputs,  // C
-               params.out_height, // H
-               params.out_width,  // W
-               params.n_inputs,   // K
-               n_groups,          // n_groups
-               unused,
-               unused,
-               top_ocl_buf,
-               wei_ocl_buf,
-               bot_ocl_buf,
-               return_addr);
-        elapsed_time = profile_h.GetKernelTime();
-    }
-#ifdef NDEBUG
-    catch(miopen::Exception& ex)
-    {
-        MIOPEN_LOG_WE(ex.what());
-        return -1;
-    }
-#endif
-    return 0;
-}
-
-PerformanceConfigAsmDirect3x3WrW ConvAsmBwdWrW3x3::Search(const ConvolutionContext& context) const
-{
-    return GenericSearchWrW(*this, context);
+    return GenericSearch(*this, context, invoke_ctx);
 }
 
 } // namespace solver

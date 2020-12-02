@@ -586,6 +586,8 @@ ConvHipImplicitGemmV4R4WrW::CalculateGemmSize(const ConvolutionContext& ctx)
 
 bool ConvHipImplicitGemmV4R4WrW::IsApplicable(const ConvolutionContext& ctx) const
 {
+    if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
+        return false;
     if(ctx.direction.IsForward() || ctx.direction.IsBackwardData())
         return false;
     if(!ctx.use_hip_kernels)
@@ -619,25 +621,10 @@ bool ConvHipImplicitGemmV4R4WrW::IsValidPerformanceConfig(
 }
 
 PerformanceImplicitGemmV4R4WrW
-ConvHipImplicitGemmV4R4WrW::Search(const ConvolutionContext& context) const
+ConvHipImplicitGemmV4R4WrW::Search(const ConvolutionContext& context,
+                                   const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearchWrW(*this, context);
-}
-
-int ConvHipImplicitGemmV4R4WrW::RunAndMeasureSolution(const miopen::Handle& profile_h,
-                                                      ConstData_t bot_buf,
-                                                      ConstData_t top_buf,
-                                                      Data_t wei_buf,
-                                                      ConstData_t bias_buf,
-                                                      const ConvolutionContext& ctx,
-                                                      const ConvSolution& solution,
-                                                      float& elapsed_time) const
-{
-    assert(bias_buf == nullptr);
-    (void)bias_buf;
-
-    return RunAndMeasureSolutionBase(
-        profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
+    return GenericSearch(*this, context, invoke_ctx);
 }
 
 ConvSolution ConvHipImplicitGemmV4R4WrW::GetSolution(const ConvolutionContext& ctx,
@@ -716,7 +703,6 @@ ConvSolution ConvHipImplicitGemmV4R4WrW::GetSolution(const ConvolutionContext& c
 
     // clang-format off
     construction_parameters.comp_options =
-        std::string(" -std=c++14 ") +
         std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(ConvolutionContextInterpreter::GetBatchN(ctx)) +
         std::string(" -DCK_PARAM_PROBLEM_C=") + std::to_string(ConvolutionContextInterpreter::GetInputChannelC(ctx)) +
         std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(ConvolutionContextInterpreter::GetOutputChannelK(ctx)) +
@@ -759,6 +745,7 @@ ConvSolution ConvHipImplicitGemmV4R4WrW::GetSolution(const ConvolutionContext& c
         std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size) +
         std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
+        get_ck_common_compiler_flag(ctx) +
         ctx.general_compile_options;
 
         if (ctx.Is3d()){
@@ -777,9 +764,9 @@ ConvSolution ConvHipImplicitGemmV4R4WrW::GetSolution(const ConvolutionContext& c
     result.construction_params.push_back(construction_parameters);
 
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& handle, const boost::any& primitive_params) {
-            const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
-            const auto& tensors      = invoke_params.tensors;
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
+            const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+            const auto& tensors       = invoke_params.tensors;
             handle.Run(kernels[0])(tensors.x, tensors.dy, tensors.dw);
         };
     };

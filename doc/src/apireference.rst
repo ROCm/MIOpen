@@ -21,3 +21,4 @@ API Reference
     loss
     dropout
     reduction
+
