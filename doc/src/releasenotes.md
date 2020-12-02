@@ -4,7 +4,7 @@
 
 ### 12/01/2020 [ 2.9.0 ]
 
- - This release contains implicit GEMM algorithm performance updates and bug fixes. Additional performance improvements have been implement for batch normalization.
+ - This release contains implicit GEMM algorithm performance updates and bug fixes. Additional performance improvements have been implemented for batch normalization.
 
  - Added new assembly implicit GEMM kernels
  - Added batch normalization optimizations
