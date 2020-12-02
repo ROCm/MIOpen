@@ -2,6 +2,20 @@
 ## MIOpen Release notes
 
 
+### 12/01/2020 [ 2.9.0 ]
+
+ - This release contains implicit GEMM algorithm performance updates and bug fixes. Additional performance improvements have been implemented for batch normalization.
+
+ - Added new assembly implicit GEMM kernels
+ - Added batch normalization optimizations
+ - Added missing tunings from 2.8.0 release cycle
+ - Fixed issue where miopen-hip backend install would not search for rocBLAS dependency 
+ - Removed deprecated implicit GEMM xDLOPs solvers
+ - Removed incorrect error messages from implicit GEMM solvers
+ - Disabled ConvAsmBwdWrW3x3 solver for stride > 1 cases
+ - Disabled bidirectional multi-pass Winograd kernels due to stability issues
+
+
 ### 10/28/2020 [ 2.8.0 ]
 
 This release provides additional bug fixes and support for embedded build using MIOpen as a static library. 
