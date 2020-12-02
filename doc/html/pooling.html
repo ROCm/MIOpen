@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                2.6.0
+                2.8.0
               </div>
             
           
@@ -85,6 +85,8 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">10/28/2020 [ 2.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/18/2020 [ 2.7.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/20/2020 [ 2.6.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/10/2020 [ 2.5.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">06/02/2020 [ 2.4.0 ]</a></li>
@@ -148,6 +150,19 @@
 <li class="toctree-l3"><a class="reference internal" href="install.html#citation-bibtex">Citation BibTeX</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="embed.html">Building MIOpen for Embedded Systems</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="embed.html#install-dependencies">Install dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="embed.html#configuring-for-an-embedded-build">Configuring for an embedded build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="embed.html#embedding-find-db-and-performance-database">Embedding Find-Db and Performance database:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="embed.html#embedding-the-precompiled-kernels-package">Embedding the precompiled kernels package:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="embed.html#embedding-precompiled-package">Embedding precompiled package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="embed.html#using-a-package-install">Using a package install</a></li>
+<li class="toctree-l3"><a class="reference internal" href="embed.html#using-the-url-to-a-kernels-binary">Using the URL to a kernels binary</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="embed.html#full-configuration-line">Full configuration line:</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="driver.html">MIOpenDriver</a><ul>
@@ -416,6 +431,20 @@
 <li class="toctree-l3"><a class="reference internal" href="dropout.html#miopendropoutbackward">miopenDropoutBackward</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="reduction.html">Reduction Layer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopenreducetensorop-t">miopenReduceTensorOp_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopennanpropagation-t">miopenNanPropagation_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopenreducetensorindices-t">miopenReduceTensorIndices_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopenindicestype-t">miopenIndicesType_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopencreatereducetensordescriptor">miopenCreateReduceTensorDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopendestroyreducetensordescriptor">miopenDestroyReduceTensorDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopensetreducetensordescriptor">miopenSetReduceTensorDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopengetreducetensordescriptor">miopenGetReduceTensorDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopengetreductionindicessize">miopenGetReductionIndicesSize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopengetreductionworkspacesize">miopenGetReductionWorkspaceSize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopenreducetensor">miopenReduceTensor</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -496,19 +525,19 @@
 <p><em>Values:</em></p>
 <dl class="enumerator">
 <dt id="_CPPv216miopenPoolingMax">
-<span class="target" id="miopen_8h_1ga4243bc20d51988902e2e22a5d2b6bb5cad4f167bcecbd60fb7078fb97aaffd3fc"></span><code class="descname">miopenPoolingMax</code> = 0<a class="headerlink" href="#_CPPv216miopenPoolingMax" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="group__pooling_1ga4243bc20d51988902e2e22a5d2b6bb5cad4f167bcecbd60fb7078fb97aaffd3fc"></span><code class="descname">miopenPoolingMax</code> = 0<a class="headerlink" href="#_CPPv216miopenPoolingMax" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Maximum pooling </p>
 </dd></dl>
 
 <dl class="enumerator">
 <dt id="_CPPv220miopenPoolingAverage">
-<span class="target" id="miopen_8h_1ga4243bc20d51988902e2e22a5d2b6bb5ca3964ddda768df3b127079997346bfe89"></span><code class="descname">miopenPoolingAverage</code> = 1<a class="headerlink" href="#_CPPv220miopenPoolingAverage" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="group__pooling_1ga4243bc20d51988902e2e22a5d2b6bb5ca3964ddda768df3b127079997346bfe89"></span><code class="descname">miopenPoolingAverage</code> = 1<a class="headerlink" href="#_CPPv220miopenPoolingAverage" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Average pooling </p>
 </dd></dl>
 
 <dl class="enumerator">
 <dt id="_CPPv229miopenPoolingAverageInclusive">
-<span class="target" id="miopen_8h_1ga4243bc20d51988902e2e22a5d2b6bb5caa060d79a20d907b13a9ecc2a77e88c44"></span><code class="descname">miopenPoolingAverageInclusive</code> = 2<a class="headerlink" href="#_CPPv229miopenPoolingAverageInclusive" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="group__pooling_1ga4243bc20d51988902e2e22a5d2b6bb5caa060d79a20d907b13a9ecc2a77e88c44"></span><code class="descname">miopenPoolingAverageInclusive</code> = 2<a class="headerlink" href="#_CPPv229miopenPoolingAverageInclusive" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Inclusive Average pooling </p>
 </dd></dl>
 
@@ -524,25 +553,25 @@
 <p><em>Values:</em></p>
 <dl class="enumerator">
 <dt id="_CPPv216miopenIndexUint8">
-<span class="target" id="miopen_8h_1ga8428bfacfbe899245b707fa7a6b95547ae75cb44f2c20e2fb87b3222b8b7ebc8b"></span><code class="descname">miopenIndexUint8</code> = 0<a class="headerlink" href="#_CPPv216miopenIndexUint8" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="group__pooling_1ga8428bfacfbe899245b707fa7a6b95547ae75cb44f2c20e2fb87b3222b8b7ebc8b"></span><code class="descname">miopenIndexUint8</code> = 0<a class="headerlink" href="#_CPPv216miopenIndexUint8" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>8-bit unsigned </p>
 </dd></dl>
 
 <dl class="enumerator">
 <dt id="_CPPv217miopenIndexUint16">
-<span class="target" id="miopen_8h_1ga8428bfacfbe899245b707fa7a6b95547a2020981e0bbe101614506772aa324a73"></span><code class="descname">miopenIndexUint16</code> = 1<a class="headerlink" href="#_CPPv217miopenIndexUint16" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="group__pooling_1ga8428bfacfbe899245b707fa7a6b95547a2020981e0bbe101614506772aa324a73"></span><code class="descname">miopenIndexUint16</code> = 1<a class="headerlink" href="#_CPPv217miopenIndexUint16" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>16-bit unsigned </p>
 </dd></dl>
 
 <dl class="enumerator">
 <dt id="_CPPv217miopenIndexUint32">
-<span class="target" id="miopen_8h_1ga8428bfacfbe899245b707fa7a6b95547ab1fa80c8eafef2fe983e52210be8c260"></span><code class="descname">miopenIndexUint32</code> = 2<a class="headerlink" href="#_CPPv217miopenIndexUint32" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="group__pooling_1ga8428bfacfbe899245b707fa7a6b95547ab1fa80c8eafef2fe983e52210be8c260"></span><code class="descname">miopenIndexUint32</code> = 2<a class="headerlink" href="#_CPPv217miopenIndexUint32" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>32-bit unsigned </p>
 </dd></dl>
 
 <dl class="enumerator">
 <dt id="_CPPv217miopenIndexUint64">
-<span class="target" id="miopen_8h_1ga8428bfacfbe899245b707fa7a6b95547a4539c9a6e12c960e90ff1ffe388fdcdd"></span><code class="descname">miopenIndexUint64</code> = 3<a class="headerlink" href="#_CPPv217miopenIndexUint64" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="group__pooling_1ga8428bfacfbe899245b707fa7a6b95547a4539c9a6e12c960e90ff1ffe388fdcdd"></span><code class="descname">miopenIndexUint64</code> = 3<a class="headerlink" href="#_CPPv217miopenIndexUint64" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>64-bit unsigned </p>
 </dd></dl>
 
@@ -929,7 +958,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.6.0',
+            VERSION:'2.8.0',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

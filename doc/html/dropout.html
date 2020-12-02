@@ -28,6 +28,7 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Reduction Layer" href="reduction.html" />
     <link rel="prev" title="Loss Function Layer" href="loss.html" /> 
 
   
@@ -57,7 +58,7 @@
             
             
               <div class="version">
-                2.6.0
+                2.8.0
               </div>
             
           
@@ -84,6 +85,8 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">10/28/2020 [ 2.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/18/2020 [ 2.7.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/20/2020 [ 2.6.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/10/2020 [ 2.5.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">06/02/2020 [ 2.4.0 ]</a></li>
@@ -147,6 +150,19 @@
 <li class="toctree-l3"><a class="reference internal" href="install.html#citation-bibtex">Citation BibTeX</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="embed.html">Building MIOpen for Embedded Systems</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="embed.html#install-dependencies">Install dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="embed.html#configuring-for-an-embedded-build">Configuring for an embedded build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="embed.html#embedding-find-db-and-performance-database">Embedding Find-Db and Performance database:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="embed.html#embedding-the-precompiled-kernels-package">Embedding the precompiled kernels package:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="embed.html#embedding-precompiled-package">Embedding precompiled package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="embed.html#using-a-package-install">Using a package install</a></li>
+<li class="toctree-l3"><a class="reference internal" href="embed.html#using-the-url-to-a-kernels-binary">Using the URL to a kernels binary</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="embed.html#full-configuration-line">Full configuration line:</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="driver.html">MIOpenDriver</a><ul>
@@ -413,6 +429,20 @@
 <li class="toctree-l3"><a class="reference internal" href="#miopendropoutgetstatessize">miopenDropoutGetStatesSize</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#miopendropoutforward">miopenDropoutForward</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#miopendropoutbackward">miopenDropoutBackward</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="reduction.html">Reduction Layer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopenreducetensorop-t">miopenReduceTensorOp_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopennanpropagation-t">miopenNanPropagation_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopenreducetensorindices-t">miopenReduceTensorIndices_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopenindicestype-t">miopenIndicesType_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopencreatereducetensordescriptor">miopenCreateReduceTensorDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopendestroyreducetensordescriptor">miopenDestroyReduceTensorDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopensetreducetensordescriptor">miopenSetReduceTensorDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopengetreducetensordescriptor">miopenGetReduceTensorDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopengetreductionindicessize">miopenGetReductionIndicesSize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopengetreductionworkspacesize">miopenGetReductionWorkspaceSize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopenreducetensor">miopenReduceTensor</a></li>
 </ul>
 </li>
 </ul>
@@ -751,6 +781,8 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
+        <a href="reduction.html" class="btn btn-neutral float-right" title="Reduction Layer" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
       
         <a href="loss.html" class="btn btn-neutral" title="Loss Function Layer" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
@@ -783,7 +815,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.6.0',
+            VERSION:'2.8.0',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

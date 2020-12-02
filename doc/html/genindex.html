@@ -57,7 +57,7 @@
             
             
               <div class="version">
-                2.6.0
+                2.8.0
               </div>
             
           
@@ -84,6 +84,8 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">10/28/2020 [ 2.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/18/2020 [ 2.7.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/20/2020 [ 2.6.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/10/2020 [ 2.5.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">06/02/2020 [ 2.4.0 ]</a></li>
@@ -147,6 +149,19 @@
 <li class="toctree-l3"><a class="reference internal" href="install.html#citation-bibtex">Citation BibTeX</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="embed.html">Building MIOpen for Embedded Systems</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="embed.html#install-dependencies">Install dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="embed.html#configuring-for-an-embedded-build">Configuring for an embedded build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="embed.html#embedding-find-db-and-performance-database">Embedding Find-Db and Performance database:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="embed.html#embedding-the-precompiled-kernels-package">Embedding the precompiled kernels package:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="embed.html#embedding-precompiled-package">Embedding precompiled package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="embed.html#using-a-package-install">Using a package install</a></li>
+<li class="toctree-l3"><a class="reference internal" href="embed.html#using-the-url-to-a-kernels-binary">Using the URL to a kernels binary</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="embed.html#full-configuration-line">Full configuration line:</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="driver.html">MIOpenDriver</a><ul>
@@ -415,6 +430,20 @@
 <li class="toctree-l3"><a class="reference internal" href="dropout.html#miopendropoutbackward">miopenDropoutBackward</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="reduction.html">Reduction Layer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopenreducetensorop-t">miopenReduceTensorOp_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopennanpropagation-t">miopenNanPropagation_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopenreducetensorindices-t">miopenReduceTensorIndices_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopenindicestype-t">miopenIndicesType_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopencreatereducetensordescriptor">miopenCreateReduceTensorDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopendestroyreducetensordescriptor">miopenDestroyReduceTensorDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopensetreducetensordescriptor">miopenSetReduceTensorDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopengetreducetensordescriptor">miopenGetReduceTensorDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopengetreductionindicessize">miopenGetReductionIndicesSize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopengetreductionworkspacesize">miopenGetReductionWorkspaceSize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#miopenreducetensor">miopenReduceTensor</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -489,7 +518,31 @@
 <h2 id="M">M</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="reduction.html#_CPPv220MIOPEN_16BIT_INDICES">MIOPEN_16BIT_INDICES (C++ enumerator)</a>
+</li>
+      <li><a href="reduction.html#_CPPv220MIOPEN_32BIT_INDICES">MIOPEN_32BIT_INDICES (C++ enumerator)</a>
+</li>
+      <li><a href="reduction.html#_CPPv220MIOPEN_64BIT_INDICES">MIOPEN_64BIT_INDICES (C++ enumerator)</a>
+</li>
+      <li><a href="reduction.html#_CPPv219MIOPEN_8BIT_INDICES">MIOPEN_8BIT_INDICES (C++ enumerator)</a>
+</li>
       <li><a href="loss.html#_CPPv234MIOPEN_CTC_LOSS_ALGO_DETERMINISTIC">MIOPEN_CTC_LOSS_ALGO_DETERMINISTIC (C++ enumerator)</a>
+</li>
+      <li><a href="reduction.html#_CPPv224MIOPEN_NOT_PROPAGATE_NAN">MIOPEN_NOT_PROPAGATE_NAN (C++ enumerator)</a>
+</li>
+      <li><a href="reduction.html#_CPPv220MIOPEN_PROPAGATE_NAN">MIOPEN_PROPAGATE_NAN (C++ enumerator)</a>
+</li>
+      <li><a href="reduction.html#_CPPv224MIOPEN_REDUCE_TENSOR_ADD">MIOPEN_REDUCE_TENSOR_ADD (C++ enumerator)</a>
+</li>
+      <li><a href="reduction.html#_CPPv238MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES">MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES (C++ enumerator)</a>
+</li>
+      <li><a href="reduction.html#_CPPv224MIOPEN_REDUCE_TENSOR_MAX">MIOPEN_REDUCE_TENSOR_MAX (C++ enumerator)</a>
+</li>
+      <li><a href="reduction.html#_CPPv224MIOPEN_REDUCE_TENSOR_MIN">MIOPEN_REDUCE_TENSOR_MIN (C++ enumerator)</a>
+</li>
+      <li><a href="reduction.html#_CPPv224MIOPEN_REDUCE_TENSOR_MUL">MIOPEN_REDUCE_TENSOR_MUL (C++ enumerator)</a>
+</li>
+      <li><a href="reduction.html#_CPPv231MIOPEN_REDUCE_TENSOR_NO_INDICES">MIOPEN_REDUCE_TENSOR_NO_INDICES (C++ enumerator)</a>
 </li>
       <li><a href="dropout.html#_CPPv224MIOPEN_RNG_PSEUDO_XORWOW">MIOPEN_RNG_PSEUDO_XORWOW (C++ enumerator)</a>
 </li>
@@ -629,6 +682,8 @@
 </li>
       <li><a href="pooling.html#_CPPv229miopenCreatePoolingDescriptorP25miopenPoolingDescriptor_t">miopenCreatePoolingDescriptor (C++ function)</a>
 </li>
+      <li><a href="reduction.html#_CPPv234miopenCreateReduceTensorDescriptorP30miopenReduceTensorDescriptor_t">miopenCreateReduceTensorDescriptor (C++ function)</a>
+</li>
       <li><a href="rnn.html#_CPPv225miopenCreateRNNDescriptorP21miopenRNNDescriptor_t">miopenCreateRNNDescriptor (C++ function)</a>
 </li>
       <li><a href="tensor.html#_CPPv228miopenCreateTensorDescriptorP24miopenTensorDescriptor_t">miopenCreateTensorDescriptor (C++ function)</a>
@@ -662,6 +717,8 @@
       <li><a href="fusion.html#_CPPv225miopenDestroyOperatorArgs20miopenOperatorArgs_t">miopenDestroyOperatorArgs (C++ function)</a>
 </li>
       <li><a href="pooling.html#_CPPv230miopenDestroyPoolingDescriptor25miopenPoolingDescriptor_t">miopenDestroyPoolingDescriptor (C++ function)</a>
+</li>
+      <li><a href="reduction.html#_CPPv235miopenDestroyReduceTensorDescriptor30miopenReduceTensorDescriptor_t">miopenDestroyReduceTensorDescriptor (C++ function)</a>
 </li>
       <li><a href="rnn.html#_CPPv226miopenDestroyRNNDescriptor21miopenRNNDescriptor_t">miopenDestroyRNNDescriptor (C++ function)</a>
 </li>
@@ -719,15 +776,21 @@
 </li>
       <li><a href="lrn.html#_CPPv222miopenGetLRNDescriptorK21miopenLRNDescriptor_tP15miopenLRNMode_tPjPdPdPd">miopenGetLRNDescriptor (C++ function)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="pooling.html#_CPPv228miopenGetNdPoolingDescriptorK25miopenPoolingDescriptor_tiP19miopenPoolingMode_tPiPiPiPi">miopenGetNdPoolingDescriptor (C++ function)</a>
 </li>
       <li><a href="pooling.html#_CPPv232miopenGetPoolingForwardOutputDimK25miopenPoolingDescriptor_tK24miopenTensorDescriptor_tPiPiPiPi">miopenGetPoolingForwardOutputDim (C++ function)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="pooling.html#_CPPv225miopenGetPoolingIndexType25miopenPoolingDescriptor_tP17miopenIndexType_t">miopenGetPoolingIndexType (C++ function)</a>
 </li>
       <li><a href="pooling.html#_CPPv234miopenGetPoolingNdForwardOutputDimK25miopenPoolingDescriptor_tK24miopenTensorDescriptor_tiPi">miopenGetPoolingNdForwardOutputDim (C++ function)</a>
+</li>
+      <li><a href="reduction.html#_CPPv231miopenGetReduceTensorDescriptorK30miopenReduceTensorDescriptor_tP22miopenReduceTensorOp_tP16miopenDataType_tP22miopenNanPropagation_tP27miopenReduceTensorIndices_tP19miopenIndicesType_t">miopenGetReduceTensorDescriptor (C++ function)</a>
+</li>
+      <li><a href="reduction.html#_CPPv229miopenGetReductionIndicesSize14miopenHandle_tK30miopenReduceTensorDescriptor_tK24miopenTensorDescriptor_tK24miopenTensorDescriptor_tP6size_t">miopenGetReductionIndicesSize (C++ function)</a>
+</li>
+      <li><a href="reduction.html#_CPPv231miopenGetReductionWorkspaceSize14miopenHandle_tK30miopenReduceTensorDescriptor_tK24miopenTensorDescriptor_tK24miopenTensorDescriptor_tP6size_t">miopenGetReductionWorkspaceSize (C++ function)</a>
 </li>
       <li><a href="rnn.html#_CPPv222miopenGetRNNDescriptor21miopenRNNDescriptor_tP15miopenRNNMode_tP15miopenRNNAlgo_tP20miopenRNNInputMode_tP24miopenRNNDirectionMode_tP19miopenRNNBiasMode_tPiPi">miopenGetRNNDescriptor (C++ function)</a>
 </li>
@@ -781,6 +844,8 @@
 </li>
       <li><a href="pooling.html#_CPPv216miopenIndexUint8">miopenIndexUint8 (C++ enumerator)</a>
 </li>
+      <li><a href="reduction.html#_CPPv219miopenIndicesType_t">miopenIndicesType_t (C++ type)</a>
+</li>
       <li><a href="convolution.html#_CPPv231miopenInitConvolutionDescriptor29miopenConvolutionDescriptor_t23miopenConvolutionMode_tiiiiii">miopenInitConvolutionDescriptor (C++ function)</a>
 </li>
       <li><a href="convolution.html#_CPPv233miopenInitConvolutionNdDescriptor29miopenConvolutionDescriptor_tiPiPiPi23miopenConvolutionMode_t">miopenInitConvolutionNdDescriptor (C++ function)</a>
@@ -805,6 +870,8 @@
 </li>
       <li><a href="rnn.html#_CPPv210miopenLSTM">miopenLSTM (C++ enumerator)</a>
 </li>
+      <li><a href="reduction.html#_CPPv222miopenNanPropagation_t">miopenNanPropagation_t (C++ type)</a>
+</li>
       <li><a href="tensor.html#_CPPv214miopenOpTensor14miopenHandle_t16miopenTensorOp_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv">miopenOpTensor (C++ function)</a>
 </li>
       <li><a href="pooling.html#_CPPv220miopenPoolingAverage">miopenPoolingAverage (C++ enumerator)</a>
@@ -822,6 +889,12 @@
       <li><a href="pooling.html#_CPPv216miopenPoolingMax">miopenPoolingMax (C++ enumerator)</a>
 </li>
       <li><a href="pooling.html#_CPPv219miopenPoolingMode_t">miopenPoolingMode_t (C++ type)</a>
+</li>
+      <li><a href="reduction.html#_CPPv218miopenReduceTensor14miopenHandle_tK30miopenReduceTensorDescriptor_tPv6size_tPv6size_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv">miopenReduceTensor (C++ function)</a>
+</li>
+      <li><a href="reduction.html#_CPPv227miopenReduceTensorIndices_t">miopenReduceTensorIndices_t (C++ type)</a>
+</li>
+      <li><a href="reduction.html#_CPPv222miopenReduceTensorOp_t">miopenReduceTensorOp_t (C++ type)</a>
 </li>
       <li><a href="dropout.html#_CPPv230miopenRestoreDropoutDescriptor25miopenDropoutDescriptor_t14miopenHandle_tfPv6size_tybb15miopenRNGType_t">miopenRestoreDropoutDescriptor (C++ function)</a>
 </li>
@@ -894,6 +967,8 @@
       <li><a href="fusion.html#_CPPv226miopenSetOpArgsConvForward20miopenOperatorArgs_tK26miopenFusionOpDescriptor_tPKvPKvPKv">miopenSetOpArgsConvForward (C++ function)</a>
 </li>
       <li><a href="pooling.html#_CPPv225miopenSetPoolingIndexType25miopenPoolingDescriptor_t17miopenIndexType_t">miopenSetPoolingIndexType (C++ function)</a>
+</li>
+      <li><a href="reduction.html#_CPPv231miopenSetReduceTensorDescriptor30miopenReduceTensorDescriptor_t22miopenReduceTensorOp_t16miopenDataType_t22miopenNanPropagation_t27miopenReduceTensorIndices_t19miopenIndicesType_t">miopenSetReduceTensorDescriptor (C++ function)</a>
 </li>
       <li><a href="rnn.html#_CPPv222miopenSetRNNDescriptor21miopenRNNDescriptor_tKiKi20miopenRNNInputMode_t24miopenRNNDirectionMode_t15miopenRNNMode_t19miopenRNNBiasMode_t15miopenRNNAlgo_t16miopenDataType_t">miopenSetRNNDescriptor (C++ function)</a>
 </li>
@@ -998,7 +1073,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.6.0',
+            VERSION:'2.8.0',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
