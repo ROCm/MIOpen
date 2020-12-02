@@ -774,18 +774,23 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     if(UseSubsample(params))
     {
         result.invoker_factory = [N, C, H, W, K, n_groups](const std::vector<Kernel>& kernels) {
-            return [=](const Handle& handle, const boost::any& primitive_params) {
-                const auto ss_kernel     = handle.Run(kernels[0]);
-                const auto main_kernel   = handle.Run(kernels[1]);
-                const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
-                const auto& x            = invoke_params.tensors.x;
-                const auto& dy           = invoke_params.tensors.dy;
-                const auto& dw           = invoke_params.tensors.dw;
-                const auto& workSpace    = invoke_params.workSpace;
-                auto elapsed             = 0.f;
-                ss_kernel(x, workSpace);
-                if(handle.IsProfilingEnabled())
-                    elapsed += handle.GetKernelTime();
+            return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
+                const auto ss_kernel      = handle.Run(kernels[0]);
+                const auto main_kernel    = handle.Run(kernels[1]);
+                const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+                const auto& x             = invoke_params.tensors.x;
+                const auto& dy            = invoke_params.tensors.dy;
+                const auto& dw            = invoke_params.tensors.dw;
+                const auto& workSpace     = invoke_params.workSpace;
+                auto elapsed              = 0.f;
+
+                if(invoke_params.type != InvokeType::AutoTune)
+                {
+                    ss_kernel(x, workSpace);
+                    if(handle.IsProfilingEnabled())
+                        elapsed += handle.GetKernelTime();
+                }
+
                 int unused       = 0;
                 int* return_addr = nullptr;
                 main_kernel(
@@ -802,14 +807,14 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     else
     {
         result.invoker_factory = [N, C, H, W, K, n_groups](const std::vector<Kernel>& kernels) {
-            return [=](const Handle& handle, const boost::any& primitive_params) {
-                const auto main_kernel   = handle.Run(kernels[0]);
-                const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
-                const auto& x            = invoke_params.tensors.x;
-                const auto& dy           = invoke_params.tensors.dy;
-                const auto& dw           = invoke_params.tensors.dw;
-                int unused               = 0;
-                int* return_addr         = nullptr;
+            return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
+                const auto main_kernel    = handle.Run(kernels[0]);
+                const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+                const auto& x             = invoke_params.tensors.x;
+                const auto& dy            = invoke_params.tensors.dy;
+                const auto& dw            = invoke_params.tensors.dw;
+                int unused                = 0;
+                int* return_addr          = nullptr;
                 main_kernel(N, C, H, W, K, n_groups, unused, unused, x, dw, dy, return_addr);
             };
         };
@@ -818,73 +823,10 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     return result;
 }
 
-int ConvAsmBwdWrW1x1::RunAndMeasureSolution(const miopen::Handle& profile_h,
-                                            ConstData_t bot_ocl_buf,
-                                            ConstData_t top_ocl_buf,
-                                            Data_t wei_ocl_buf,
-                                            ConstData_t bias_ocl_buf,
-                                            const ConvolutionContext& params,
-                                            const ConvSolution& solution,
-                                            float& elapsed_time) const
+PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionContext& context,
+                                                           const AnyInvokeParams& invoke_ctx) const
 {
-    assert(bias_ocl_buf == nullptr);
-    (void)bias_ocl_buf;
-    /// \note This is used during auto-tune process.
-    /// Elapsed time of the subsampling kernel
-    /// does not depend on the PerformanceConfig, and thus
-    /// considered constant for all available Solutions.
-    /// So we do not need to time the subsampling kernel
-    /// during auto-tune and just skipping it here.
-    const KernelInfo k_info = solution.construction_params.back();
-#ifdef NDEBUG
-    try
-#endif
-    {
-        elapsed_time = std::numeric_limits<float>::max();
-        // ConvolutionContext::general_compile_options is for OpenCL kernels
-        // and thus not applicable for assembly.
-        auto kernel = profile_h.AddKernel("",
-                                          "",
-                                          k_info.kernel_file,
-                                          k_info.kernel_name,
-                                          k_info.l_wk,
-                                          k_info.g_wk,
-                                          k_info.comp_options);
-        int unused       = 0;
-        int* return_addr = nullptr;
-        auto n_groups =
-            static_cast<int>(params.GetStream().GetMaxComputeUnits()); // kernel needs int32
-
-        kernel(params.batch_sz,      // N
-               params.n_outputs,     // C
-               AsmImgHeight(params), // H
-               AsmImgWidth(params),  // W
-               params.n_inputs,      // K
-               n_groups,             // n_groups
-               unused,
-               unused,
-               top_ocl_buf,
-               wei_ocl_buf,
-               bot_ocl_buf,
-               return_addr);
-        elapsed_time = profile_h.GetKernelTime();
-    }
-#ifdef NDEBUG
-    catch(miopen::Exception& ex)
-    {
-        MIOPEN_LOG_WE(ex.what());
-        return -1;
-    }
-#endif
-    return 0;
-}
-
-PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionContext& context) const
-{
-    if(UseSubsample(context))
-        return GenericSearchWrW(*this, context, SearchTweak::WorkspaceInsteadOfXBuffer);
-    else
-        return GenericSearchWrW(*this, context);
+    return GenericSearch(*this, context, invoke_ctx);
 }
 
 } // namespace solver

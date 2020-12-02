@@ -70,7 +70,7 @@ operator==(const PerformanceImplicitGemmBwdV1R1Xdlops& other) const
         && GemmKPerBlock == other.GemmKPerBlock
         && GemmMPerWave == other.GemmMPerWave
         && GemmNPerWave == other.GemmNPerWave
-        && GemmKPack == other.GemmKPack 
+        && GemmKPack == other.GemmKPack
         && GemmAThreadCopyMoreGemmK  == other.GemmAThreadCopyMoreGemmK
         && GemmBThreadCopyMoreGemmKPack  == other.GemmBThreadCopyMoreGemmKPack;
     // clang-format on
@@ -224,8 +224,7 @@ void PerformanceImplicitGemmBwdV1R1Xdlops::EuristicInit(const ConvolutionContext
     // final check
     if(!tmp.IsReallyValid(ctx))
     {
-        MIOPEN_LOG_E("All attempts failed");
-        assert(false);
+        MIOPEN_LOG_I("All attempts failed");
     }
     *this = tmp;
     MIOPEN_LOG_I(ToString());
@@ -534,13 +533,6 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::IsFastToBeUsedForTuning(
             return false;
     }
 
-#if WORKAROUND_SWDEV_240356
-    {
-        if(ctx.IsBfp16() && GemmMPerWave * GemmNPerWave > 64 * 64)
-            return false;
-    }
-#endif
-
     // don't need too many blocks
     {
         int gemm_m = 0;
@@ -554,11 +546,7 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::IsFastToBeUsedForTuning(
 
         // this the the biggest blockwise-GEMM you can do
         int max_blockwise_gemm_size =
-#if WORKAROUND_SWDEV_240356
-            gcd(128, gemm_m) * gcd(128, gemm_n);
-#else
             std::max(gcd(256, gemm_m) * gcd(128, gemm_n), gcd(128, gemm_m) * gcd(256, gemm_n));
-#endif
 
         // this is the grid size using the biggest blockwise-GEMM
         auto grid_size_max_blockwise_gemm =
@@ -609,7 +597,7 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::IsFastToBeUsedForTuning(
         int gemm_n = 0;
 
         std::tie(std::ignore, gemm_m, gemm_n, std::ignore) =
-            ConvHipImplicitGemmForwardV4R4Xdlops::CalculateGemmSize(ctx);
+            ConvHipImplicitGemmBwdDataV1R1Xdlops::CalculateGemmSize(ctx);
 
         if(GemmMPerBlock > 2 * GemmNPerBlock)
         {
@@ -753,7 +741,14 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const ConvolutionContext&
 
 bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
+#if WORKAROUND_SWDEV_251757
+    if(miopen::HipCompilerVersion() >= external_tool_version_t{3, 5, 0})
+        return false;
+#endif
     if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
+        return false;
+
+    if(!ctx.use_hip_kernels)
         return false;
 
     if(!IsXdlopsSupport(ctx))
@@ -782,75 +777,24 @@ bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ConvolutionContext
     return IsValidGridGemmXdlops(gemm_m, gemm_n, gemm_k_total);
 }
 
-int ConvHipImplicitGemmBwdDataV1R1Xdlops::RunAndMeasureSolution(const miopen::Handle& profile_h,
-                                                                ConstData_t bot_buf,
-                                                                Data_t top_buf,
-                                                                ConstData_t wei_buf,
-                                                                ConstData_t bias_buf,
-                                                                const ConvolutionContext&,
-                                                                const ConvSolution& solution,
-                                                                float& elapsed_time) const
-{
-    assert(bias_buf == nullptr);
-    (void)bias_buf;
-
-    KernelInfo k_info = solution.construction_params[0];
-
-#ifdef NDEBUG
-    try
-#endif
-    {
-        elapsed_time = std::numeric_limits<float>::max();
-        auto kernel  = profile_h.AddKernel("",
-                                          "",
-                                          k_info.kernel_file,
-                                          k_info.kernel_name,
-                                          k_info.l_wk,
-                                          k_info.g_wk,
-                                          k_info.comp_options);
-
-        kernel(bot_buf, wei_buf, top_buf);
-
-        elapsed_time = profile_h.GetKernelTime();
-    }
-#ifdef NDEBUG
-    catch(miopen::Exception& ex)
-    {
-        MIOPEN_LOG_WE(ex.what());
-        return -1;
-    }
-#endif
-    return 0;
-}
-
 PerformanceImplicitGemmBwdV1R1Xdlops
-ConvHipImplicitGemmBwdDataV1R1Xdlops::Search(const ConvolutionContext& ctx) const
+ConvHipImplicitGemmBwdDataV1R1Xdlops::Search(const ConvolutionContext& ctx,
+                                             const AnyInvokeParams& invoke_ctx) const
 {
-    // fp16/bfp16 uses fp32 workspace to leverage fp32 atomic add
-    if(ctx.IsFp16() || ctx.IsBfp16())
-    {
-        const auto y          = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-        const auto x          = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
-        const auto stride_h   = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
-        const auto stride_w   = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
-        const auto dilation_h = ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx);
-        const auto dilation_w = ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx);
-
-        if((stride_h >= dilation_h * (y - 1) + 1) && (stride_w >= dilation_w * (x - 1) + 1))
-            return GenericSearchBwd(*this, ctx);
-        else
-            return GenericSearchBwd(*this, ctx, SearchTweak::WorkspaceInsteadOfXBuffer);
-    }
-    else
-    {
-        return GenericSearchBwd(*this, ctx);
-    }
+    return GenericSearch(*this, ctx, invoke_ctx);
 }
 
 ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(
     const ConvolutionContext& ctx, const PerformanceImplicitGemmBwdV1R1Xdlops& config, bool) const
 {
     ConvSolution result;
+
+    if(!config.IsReallyValid(ctx))
+    {
+        MIOPEN_LOG_E("invalid performance parameter");
+        assert(false);
+    }
+
     KernelInfo construction_parameters;
 
     construction_parameters.kernel_file =
@@ -902,7 +846,6 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(
 
     // clang-format off
     construction_parameters.comp_options =
-        std::string(" -std=c++14 ") +
         std::string(" -DCK_PARAM_PROBLEM_G=") + std::to_string(ConvolutionContextInterpreter::GetGroupCountG(ctx)) +
         std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(ConvolutionContextInterpreter::GetBatchN(ctx)) +
         std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(ConvolutionContextInterpreter::GetOutputChannelK(ctx)) +
@@ -940,12 +883,10 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(
         std::string(" -DCK_PARAM_DEPENDENT_GEMM_B_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_N=") + std::to_string(GemmBBlockCopySrcDataPerRead_GemmN) +
         std::string(" -DCK_PARAM_DEPENDENT_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK=") + std::to_string(GemmBBlockCopyDstDataPerWrite_GemmKPack) +
         std::string(" -DCK_USE_AMD_XDLOPS=") + std::to_string(IsXdlopsSupport(ctx) ? 1 : 0) +
-        std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + std::to_string(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}) ? 1 : 0) + 
-        std::string(" -DCK_USE_AMD_BUFFER_ATOMIC_ADD=") + (support_amd_buffer_atomic_add(ctx) ? '1' : '0') +
+        std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + std::to_string(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}) ? 1 : 0) +
         std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}) ? '1' : '0') +
         std::string(" -DCK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM=") + (miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM{}) ? '0' : '1') +
-        std::string(" -DCK_WORKAROUND_SWDEV_229564=") + std::to_string(WORKAROUND_SWDEV_229564) +
-        std::string(" -DCK_WORKAROUND_SWDEV_231101=") + std::to_string(WORKAROUND_SWDEV_231101) +
+        get_ck_common_compiler_flag(ctx) +
         ctx.general_compile_options;
 
     result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);

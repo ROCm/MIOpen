@@ -683,54 +683,10 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsValidPerformanceConfig(
 }
 
 PerformanceImplicitGemmBwdDataV1R1
-ConvHipImplicitGemmBwdDataV1R1::Search(const ConvolutionContext& ctx) const
+ConvHipImplicitGemmBwdDataV1R1::Search(const ConvolutionContext& ctx,
+                                       const AnyInvokeParams& invoke_ctx) const
 {
-    // fp16/bfp16 uses fp32 workspace to leverage fp32 atomic add
-    if(ctx.IsFp16() || ctx.IsBfp16())
-        return GenericSearchBwd(*this, ctx, SearchTweak::WorkspaceInsteadOfXBuffer);
-    else
-        return GenericSearchBwd(*this, ctx);
-}
-
-int ConvHipImplicitGemmBwdDataV1R1::RunAndMeasureSolution(const miopen::Handle& profile_h,
-                                                          ConstData_t bot_buf,
-                                                          Data_t top_buf,
-                                                          ConstData_t wei_buf,
-                                                          ConstData_t bias_buf,
-                                                          const ConvolutionContext&,
-                                                          const ConvSolution& solution,
-                                                          float& elapsed_time) const
-{
-    assert(bias_buf == nullptr);
-    (void)bias_buf;
-
-    KernelInfo k_info = solution.construction_params[0];
-
-#ifdef NDEBUG
-    try
-#endif
-    {
-        elapsed_time = std::numeric_limits<float>::max();
-        auto kernel  = profile_h.AddKernel("",
-                                          "",
-                                          k_info.kernel_file,
-                                          k_info.kernel_name,
-                                          k_info.l_wk,
-                                          k_info.g_wk,
-                                          k_info.comp_options);
-
-        kernel(bot_buf, wei_buf, top_buf);
-
-        elapsed_time = profile_h.GetKernelTime();
-    }
-#ifdef NDEBUG
-    catch(miopen::Exception& ex)
-    {
-        MIOPEN_LOG_WE(ex.what());
-        return -1;
-    }
-#endif
-    return 0;
+    return GenericSearch(*this, ctx, invoke_ctx);
 }
 
 ConvSolution ConvHipImplicitGemmBwdDataV1R1::GetSolution(
@@ -819,7 +775,6 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1::GetSolution(
 
     // clang-format off
     construction_parameters.comp_options =
-        std::string(" -std=c++14 ") +
         std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(ConvolutionContextInterpreter::GetBatchN(ctx)) +
         std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(ConvolutionContextInterpreter::GetOutputChannelK(ctx)) +
         std::string(" -DCK_PARAM_PROBLEM_C=") + std::to_string(ConvolutionContextInterpreter::GetInputChannelC(ctx)) +
@@ -857,7 +812,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1::GetSolution(
         std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size) +
         std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
-        std::string(" -DCK_USE_AMD_BUFFER_ATOMIC_ADD=") + (support_amd_buffer_atomic_add(ctx) ? '1' : '0') +
+        get_ck_common_compiler_flag(ctx) +
         ctx.general_compile_options;
     // clang-format on
     if(ctx.Is3d())

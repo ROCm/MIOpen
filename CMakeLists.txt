@@ -73,7 +73,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 2.8.0)
+rocm_setup_version(VERSION 2.9.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -334,10 +334,15 @@ endif()
 set(MIOPEN_SYSTEM_FIND_DB_SUFFIX "${MIOPEN_BACKEND}" CACHE PATH "Filename suffix for the system find-db files")
 
 
-set(MIOPEN_PACKAGE_REQS "rocm-utils, hip-hcc")
+set(MIOPEN_PACKAGE_REQS "rocm-clang-ocl, hip-rocclr")
 if(MIOPEN_USE_MIOPENGEMM)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, miopengemm")
 endif()
+
+if(MIOPEN_USE_ROCBLAS)
+    set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocblas")
+endif()
+
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "${MIOPEN_PACKAGE_REQS}, rocm-opencl-dev")
 set(CPACK_RPM_PACKAGE_REQUIRES "${MIOPEN_PACKAGE_REQS}, rocm-opencl-devel")
 
@@ -346,7 +351,7 @@ rocm_create_package(
     DESCRIPTION "AMD's DNN Library"
     MAINTAINER "Paul Fultz II <paul.fultz@amd.com>"
     LDCONFIG
-    # DEPENDS rocm-opencl rocm-utils hip-hcc tinygemm
+    # DEPENDS rocm-opencl hip-rocclr tinygemm
 )
 
 include(EnableCompilerWarnings)
