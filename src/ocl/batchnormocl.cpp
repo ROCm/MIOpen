@@ -1051,7 +1051,8 @@ void BatchNormBackward(Handle& handle,
                 std::string parms;
 
                 if((n > 64) && (n % 2 == 0) && (variant == 3) && (bfpmixparm) && (useSaved) &&
-                   ctx.use_asm_kernels && ctx.rmv.IsV2orV3())
+                   ctx.use_asm_kernels && ctx.rmv.IsV2orV3() &&
+                   (handle.GetDeviceName() != "gfx1030"))
                 {
                     kernel_name  = "miopenGcnAsmBNBwdTrainSpatial";
                     program_name = "gcnAsmBNBwdTrainSpatial.s";
