@@ -28,6 +28,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     libpthread-stubs0-dev \
     llvm-amdgpu \
     miopengemm \
+    ninja-build \
     pkg-config \
     python \
     python3 \
@@ -67,3 +68,14 @@ RUN export HIPCC_COMPILE_FLAGS_APPEND='-O3 -Wno-format-nonliteral -parallel-jobs
 # install last released miopentensile in default, install latest commits when MIOTENSILE_VER="latest"
 RUN if [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@7568654c938d42e9a91c6b18fb382f5b978d12fd; else cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@5fe0bf4a8dc59f3ab62df929297280915372ce16; fi
 
+RUN cd ~ && \
+    git clone -b miopen-dialect https://github.com/ROCmSoftwarePlatform/llvm-project-mlir.git && \
+    cd llvm-project-mlir && mkdir -p build && cd build && \
+    cmake -G Ninja ../llvm \
+      -DLLVM_ENABLE_PROJECTS="mlir" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DBUILD_SHARED_LIBS=OFF \
+      -DLLVM_BUILD_LLVM_DYLIB=OFF \
+      -DLLVM_ENABLE_TERMINFO=OFF && \
+    cmake --build . --target libMLIRMIOpen && \
+    cd ~ && rm -rf llvm-project-mlir

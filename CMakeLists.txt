@@ -273,6 +273,9 @@ else()
     endif()
 endif()
 
+if(NOT WIN32 AND NOT APPLE)
+  find_library(LIBMLIRMIOPEN MLIRMIOpen)
+endif()
 
 # Online assembler
 find_program(MIOPEN_AMDGCN_ASSEMBLER

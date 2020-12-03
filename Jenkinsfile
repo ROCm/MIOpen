@@ -377,6 +377,24 @@ pipeline {
                     }
                 }
 
+                stage('Hip Implicitgemm layouts Release') {
+                    agent{ label rocmnode("vega") }
+                    environment{
+                        cmd = '''
+                            ulimit -c unlimited
+                            rm -rf build
+                            mkdir build
+                            cd build
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On .. 
+                            make -j test_conv_for_implicit_gemm_mlir
+                        '''
+                    }
+                    steps{
+                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx900;gfx906")
+                    }
+                }
+
+
                 stage('Hip Release Fast-Find') {
                     agent{ label rocmnode("vega") }
                     environment{

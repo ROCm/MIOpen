@@ -38,6 +38,7 @@
 #include <miopen/write_file.hpp>
 #include <miopen/env.hpp>
 #include <miopen/comgr.hpp>
+#include <miopen/logger.hpp>
 #include <boost/optional.hpp>
 
 #include <cstring>
@@ -232,6 +233,8 @@ struct HIPOCProgramImpl
     void
     BuildCodeObjectInFile(std::string& params, const std::string& src, const std::string& filename)
     {
+        MIOPEN_LOG_I("BuildCodeObjectInFile for file: " << filename);
+
         dir.emplace(filename);
         hsaco_file = dir->path / (filename + ".o");
 
@@ -263,6 +266,8 @@ struct HIPOCProgramImpl
                                  const std::string& src,
                                  const std::string& filename)
     {
+        MIOPEN_LOG_I("BuildCodeObjectInMemory for file: " << filename);
+
         if(miopen::EndsWith(filename, ".so"))
         {
             std::size_t sz = src.length();
@@ -291,10 +296,22 @@ struct HIPOCProgramImpl
     {
         std::string filename = is_kernel_str ? "tinygemm.cl" // Fixed name for miopengemm.
                                              : program;
-        const std::string src =
-            !kernel_src.empty() ? kernel_src : is_kernel_str ? program : GetKernelSrc(program);
+        std::string src;
+        if((program.find("mlir_gen_igemm_conv2d_cpp") != std::string::npos) ||
+           (!kernel_src.empty()))
+        {
+            // For MLIR path, leave the kernel_src to be empty.
+            src = kernel_src;
+        }
+        else
+        {
+            src = is_kernel_str ? program : GetKernelSrc(program);
+        }
 
-        if(miopen::EndsWith(filename, ".cpp"))
+        if(program.find("mlir_gen_igemm_conv2d_cpp") != std::string::npos)
+        {
+        }
+        else if(miopen::EndsWith(filename, ".cpp"))
         {
 #if MIOPEN_BUILD_DEV
             params += " -Werror" + HipKernelWarningsString();
