@@ -36,6 +36,7 @@
 /// \todo Get rid of this during implementation of #1938 (60)
 #include <miopen/convolution.hpp>
 #include <miopen/mlo_internal.hpp>
+#include <miopen/stringutils.hpp>
 
 #define WORKAROUND_SWDEV_253606 1
 #include <chrono>
@@ -1052,7 +1053,8 @@ void BatchNormBackward(Handle& handle,
 
                 if((n > 64) && (n % 2 == 0) && (variant == 3) && (bfpmixparm) && (useSaved) &&
                    ctx.use_asm_kernels && ctx.rmv.IsV2orV3() &&
-                   (handle.GetDeviceName() != "gfx1030"))
+                   (StartsWith(handle.GetDeviceName(), "gfx8") ||
+                    StartsWith(handle.GetDeviceName(), "gfx9")))
                 {
                     kernel_name  = "miopenGcnAsmBNBwdTrainSpatial";
                     program_name = "gcnAsmBNBwdTrainSpatial.s";
