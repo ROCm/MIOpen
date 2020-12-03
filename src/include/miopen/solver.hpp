@@ -116,6 +116,14 @@ struct SolverBase
     /// run-time parameters.
     bool IsDynamic() const { return false; }
 
+    /// [Informative as of Sep 2020] Returns an approximated value of the expected
+    /// WTI or -2.0 when this value can't be computed. Tips:
+    /// * Value 1.0 corresponds to the 100% utilization of HW capabilities as
+    ///   if Direct computational algorithm is used.
+    /// * [Notice] WTI may exceed 1.0 for highly optimized algorithms like Winograd.
+    /// * @see https://github.com/ROCmSoftwarePlatform/MIOpen/issues/410
+    float GetWti(const Context&) const { return -2.0; }
+
     // Returns the workspace size required by the solver for a given ConvolutionContext
     size_t GetWorkspaceSize(const Context&) const { return 0; };
 
@@ -1365,6 +1373,7 @@ struct ConvBinWinograd3x3U : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;
     bool IsDynamic() const { return true; }
+    float GetWti(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
