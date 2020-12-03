@@ -119,11 +119,11 @@ def buildJob(Map conf, compiler){
         return retimage
 }
 
-def buildHipClangJob(compiler, flags, env4make, image, prefixpath="/opt/rocm", cmd = "", gpu_arch="all", miot_ver="default"){
+def buildHipClangJob(compiler, flags, env4make, image, prefixpath="/opt/rocm", cmd = "", gpu_arch="all", miot_ver="default", user_opt=""){
 
         env.HSA_ENABLE_SDMA=0
         checkout scm
-        def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
+        def dockerOpts="${user_opt} --device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
         def dockerArgs = "--build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miot_ver}' -f hip-clang.docker "
         def variant = env.STAGE_NAME
         def retimage
@@ -376,6 +376,46 @@ pipeline {
                         buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx900;gfx906")
                     }
                 }
+
+                stage('Hip Implicitgemm layouts Release') {
+                    agent{ label rocmnode("vega") }
+                    environment{
+                        cmd = '''
+                            # check out MLIR
+                            dir=$(pwd)
+                            cd
+                            git clone -b miopen-dialect https://github.com/ROCmSoftwarePlatform/llvm-project-mlir.git
+
+                            # make build directory
+                            cd llvm-project-mlir && mkdir -p build && cd build
+
+                            # config MLIR on ROCm, with MIOpen dialect
+                            cmake -G Ninja ../llvm \
+                              -DLLVM_ENABLE_PROJECTS="mlir" \
+                              -DCMAKE_BUILD_TYPE=Release \
+                              -DBUILD_SHARED_LIBS=OFF \
+                              -DLLVM_BUILD_LLVM_DYLIB=OFF \
+                              -DLLVM_ENABLE_TERMINFO=OFF
+
+                            # build libMLIRMIOpen
+                            cmake --build . --target libMLIRMIOpen
+
+                            cd $dir
+
+                            ulimit -c unlimited
+                            rm -rf build
+                            mkdir build
+                            cd build
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On .. 
+                            make -j test_conv_for_implicit_gemm_mlir
+                            rm -rf build
+                        '''
+                    }
+                    steps{
+                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx900;gfx906", "default", "--user=root")
+                    }
+                }
+
 
                 stage('Hip Release Fast-Find') {
                     agent{ label rocmnode("vega") }

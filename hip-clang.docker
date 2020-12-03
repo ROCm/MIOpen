@@ -28,6 +28,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     libpthread-stubs0-dev \
     llvm-amdgpu \
     miopengemm \
+    ninja-build \
     pkg-config \
     python \
     python3 \

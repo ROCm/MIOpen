@@ -367,7 +367,17 @@ Program Handle::LoadProgram(const std::string& program_name,
                             const std::string& kernel_src) const
 {
     this->impl->set_ctx();
-    params += " -mcpu=" + this->GetDeviceName();
+
+    if(program_name.find("mlir_gen_igemm_conv2d_cpp") != std::string::npos)
+    {
+        params += " --num_cu " + std::to_string(this->GetMaxComputeUnits());
+        params += " --arch " + this->GetDeviceName();
+    }
+    else
+    {
+        params += " -mcpu=" + this->GetDeviceName();
+    }
+
     auto hsaco = miopen::LoadBinary(
         this->GetDeviceName(), this->GetMaxComputeUnits(), program_name, params, is_kernel_str);
     if(hsaco.empty())
