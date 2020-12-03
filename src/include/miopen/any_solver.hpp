@@ -50,6 +50,16 @@ struct AnySolver
         assert(ptr_value != nullptr);
         return ptr_value->IsApplicable(ctx);
     };
+    bool IsDynamic() const
+    {
+        assert(ptr_value != nullptr);
+        return ptr_value->IsDynamic();
+    };
+    float GetWti(const ConvolutionContext& ctx) const
+    {
+        assert(ptr_value != nullptr);
+        return ptr_value->GetWti(ctx);
+    };
     const std::type_info& Type() const
     {
         assert(ptr_value != nullptr);
@@ -82,6 +92,8 @@ struct AnySolver
 
         virtual ~AnySolver_base(){};
         virtual bool IsApplicable(const ConvolutionContext& ctx) const = 0;
+        virtual bool IsDynamic() const                                 = 0;
+        virtual float GetWti(const ConvolutionContext& ctx) const      = 0;
         virtual const std::type_info& Type() const                     = 0;
         virtual std::string GetSolverDbId() const                      = 0;
         virtual ConvSolution FindSolution(const ConvolutionContext& ctx,
@@ -99,6 +111,8 @@ struct AnySolver
         {
             return value.IsApplicable(ctx);
         }
+        bool IsDynamic() const override { return value.IsDynamic(); }
+        float GetWti(const ConvolutionContext& ctx) const override { return value.GetWti(ctx); }
         ConvSolution FindSolution(const ConvolutionContext& ctx,
                                   Db& db,
                                   const miopen::AnyInvokeParams& invoke_ctx) const override

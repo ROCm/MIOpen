@@ -50,6 +50,7 @@ struct Id
     std::string ToString() const;
     AnySolver GetSolver() const;
     std::string GetAlgo(conv::Direction dir) const;
+    miopenConvAlgorithm_t GetAlgo() const;
 
     bool IsValid() const { return is_valid; }
     uint64_t Value() const { return value; }
@@ -71,6 +72,8 @@ struct Id
     uint64_t value = invalid_value;
     bool is_valid  = false;
 };
+
+const std::unordered_map<uint64_t, AnySolver>& GetMapValueToAnySolver();
 
 } // namespace solver
 } // namespace miopen

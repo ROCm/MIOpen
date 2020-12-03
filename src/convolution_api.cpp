@@ -592,7 +592,8 @@ miopenConvolutionForwardGetSolution(miopenHandle_t handle,
                                                          miopen::deref(yDesc),
                                                          maxSolutionCount,
                                                          solutionCount,
-                                                         solutions);
+                                                         solutions,
+                                                         nullptr);
         else
             miopen::deref(convDesc).GetForwardSolutions(miopen::deref(handle),
                                                         miopen::deref(wDesc),
@@ -600,7 +601,8 @@ miopenConvolutionForwardGetSolution(miopenHandle_t handle,
                                                         miopen::deref(yDesc),
                                                         maxSolutionCount,
                                                         solutionCount,
-                                                        solutions);
+                                                        solutions,
+                                                        nullptr);
     });
 }
 
@@ -743,7 +745,8 @@ miopenConvolutionBackwardDataGetSolution(miopenHandle_t handle,
                                                         miopen::deref(dxDesc),
                                                         maxSolutionCount,
                                                         solutionCount,
-                                                        solutions);
+                                                        solutions,
+                                                        nullptr);
 
         else
             miopen::deref(convDesc).GetBackwardSolutions(miopen::deref(handle),
@@ -752,7 +755,8 @@ miopenConvolutionBackwardDataGetSolution(miopenHandle_t handle,
                                                          miopen::deref(dxDesc),
                                                          maxSolutionCount,
                                                          solutionCount,
-                                                         solutions);
+                                                         solutions,
+                                                         nullptr);
     });
 }
 
@@ -892,7 +896,8 @@ miopenConvolutionBackwardWeightsGetSolution(miopenHandle_t handle,
                                                     miopen::deref(dwDesc),
                                                     maxSolutionCount,
                                                     solutionCount,
-                                                    solutions);
+                                                    solutions,
+                                                    nullptr);
         else
             miopen::deref(convDesc).GetWrwSolutions(miopen::deref(handle),
                                                     miopen::deref(dyDesc),
@@ -900,7 +905,8 @@ miopenConvolutionBackwardWeightsGetSolution(miopenHandle_t handle,
                                                     miopen::deref(dwDesc),
                                                     maxSolutionCount,
                                                     solutionCount,
-                                                    solutions);
+                                                    solutions,
+                                                    nullptr);
     });
 }
 
