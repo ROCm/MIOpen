@@ -2737,6 +2737,7 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
         ValidateGroupCount(dxDesc, wDesc, *this);
 
         auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
+        ctx.SetStream(&handle);
 
         if(CheckInvokerSupport(solver_id, conv::Direction::BackwardData))
         {
