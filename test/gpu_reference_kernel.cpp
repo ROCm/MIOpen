@@ -25,7 +25,6 @@
  *******************************************************************************/
 
 #include <miopen/handle.hpp>
-#include <miopen/gpu_reference_kernel.hpp>
 #include <miopen/miopen.h>
 #include <miopen/convolution.hpp>
 #include <miopen/problem_description.hpp>
@@ -427,13 +426,19 @@ struct gpu_reference_conv_nchw : gpu_reference_kernel_base
                                         miopen::deref(convDesc).GetConvDilations(),
                                         miopen::deref(convDesc).GetGroupCount());
 
-                const auto problem = miopen::ProblemDescription{in.desc,
-                                                                wei.desc,
-                                                                out.desc,
-                                                                miopen::deref(convDesc),
-                                                                miopen::conv::Direction::Forward};
-                GPUReferenceConvolutionForward(
-                    miopen::deref(handle), problem, in_dev, wei_dev, out_dev);
+                EXPECT(miopenConvolutionForwardImmediate(
+                           handle,
+                           weiDesc,
+                           wei_dev,
+                           inDesc,
+                           in_dev,
+                           convDesc,
+                           outDesc,
+                           out_dev,
+                           nullptr,
+                           0,
+                           miopen::solver::Id("ConvDirectNaiveConvFwd").Value()) ==
+                       miopenStatusSuccess);
 
                 tensor<TRef> out_host(n, k, ho, wo);
 #if MIOPEN_BACKEND_OPENCL
@@ -500,14 +505,19 @@ struct gpu_reference_conv_nchw : gpu_reference_kernel_base
                                               miopen::deref(convDesc).GetConvDilations(),
                                               miopen::deref(convDesc).GetGroupCount());
 
-                const auto problem =
-                    miopen::ProblemDescription{in.desc,
-                                               wei.desc,
-                                               out.desc,
-                                               miopen::deref(convDesc),
-                                               miopen::conv::Direction::BackwardData};
-                GPUReferenceConvolutionBackwardData(
-                    miopen::deref(handle), problem, in_dev, wei_dev, out_dev);
+                EXPECT(miopenConvolutionBackwardDataImmediate(
+                           handle,
+                           outDesc,
+                           out_dev,
+                           weiDesc,
+                           wei_dev,
+                           convDesc,
+                           inDesc,
+                           in_dev,
+                           nullptr,
+                           0,
+                           miopen::solver::Id("ConvDirectNaiveConvBwd").Value()) ==
+                       miopenStatusSuccess);
 
                 tensor<TRef> in_host(n, c, hi, wi);
 #if MIOPEN_BACKEND_OPENCL
@@ -573,14 +583,19 @@ struct gpu_reference_conv_nchw : gpu_reference_kernel_base
                                                 miopen::deref(convDesc).GetConvDilations(),
                                                 miopen::deref(convDesc).GetGroupCount());
 
-                const auto problem =
-                    miopen::ProblemDescription{in.desc,
-                                               wei.desc,
-                                               out.desc,
-                                               miopen::deref(convDesc),
-                                               miopen::conv::Direction::BackwardWeights};
-                GPUReferenceConvolutionBackwardWeights(
-                    miopen::deref(handle), problem, in_dev, wei_dev, out_dev);
+                EXPECT(miopenConvolutionBackwardWeightsImmediate(
+                           handle,
+                           outDesc,
+                           out_dev,
+                           inDesc,
+                           in_dev,
+                           convDesc,
+                           weiDesc,
+                           wei_dev,
+                           nullptr,
+                           0,
+                           miopen::solver::Id("ConvDirectNaiveConvWrw").Value()) ==
+                       miopenStatusSuccess);
 
                 tensor<TRef> wei_host(k, c / g, fy, fx);
 #if MIOPEN_BACKEND_OPENCL
@@ -773,13 +788,19 @@ struct gpu_reference_conv_ncdhw : gpu_reference_kernel_base
                                         miopen::deref(convDesc).GetConvDilations(),
                                         miopen::deref(convDesc).GetGroupCount());
 
-                const auto problem = miopen::ProblemDescription{in.desc,
-                                                                wei.desc,
-                                                                out.desc,
-                                                                miopen::deref(convDesc),
-                                                                miopen::conv::Direction::Forward};
-                GPUReferenceConvolutionForward(
-                    miopen::deref(handle), problem, in_dev, wei_dev, out_dev);
+                EXPECT(miopenConvolutionForwardImmediate(
+                           handle,
+                           weiDesc,
+                           wei_dev,
+                           inDesc,
+                           in_dev,
+                           convDesc,
+                           outDesc,
+                           out_dev,
+                           nullptr,
+                           0,
+                           miopen::solver::Id("ConvDirectNaiveConvFwd").Value()) ==
+                       miopenStatusSuccess);
 
                 tensor<TRef> out_host(n, k, do_, ho, wo);
 #if MIOPEN_BACKEND_OPENCL
@@ -847,14 +868,19 @@ struct gpu_reference_conv_ncdhw : gpu_reference_kernel_base
                                               miopen::deref(convDesc).GetConvDilations(),
                                               miopen::deref(convDesc).GetGroupCount());
 
-                const auto problem =
-                    miopen::ProblemDescription{in.desc,
-                                               wei.desc,
-                                               out.desc,
-                                               miopen::deref(convDesc),
-                                               miopen::conv::Direction::BackwardData};
-                GPUReferenceConvolutionBackwardData(
-                    miopen::deref(handle), problem, in_dev, wei_dev, out_dev);
+                EXPECT(miopenConvolutionBackwardDataImmediate(
+                           handle,
+                           outDesc,
+                           out_dev,
+                           weiDesc,
+                           wei_dev,
+                           convDesc,
+                           inDesc,
+                           in_dev,
+                           nullptr,
+                           0,
+                           miopen::solver::Id("ConvDirectNaiveConvBwd").Value()) ==
+                       miopenStatusSuccess);
 
                 tensor<TRef> in_host(n, c, di, hi, wi);
 #if MIOPEN_BACKEND_OPENCL
@@ -920,14 +946,19 @@ struct gpu_reference_conv_ncdhw : gpu_reference_kernel_base
                                                 miopen::deref(convDesc).GetConvDilations(),
                                                 miopen::deref(convDesc).GetGroupCount());
 
-                const auto problem =
-                    miopen::ProblemDescription{in.desc,
-                                               wei.desc,
-                                               out.desc,
-                                               miopen::deref(convDesc),
-                                               miopen::conv::Direction::BackwardWeights};
-                GPUReferenceConvolutionBackwardWeights(
-                    miopen::deref(handle), problem, in_dev, wei_dev, out_dev);
+                EXPECT(miopenConvolutionBackwardWeightsImmediate(
+                           handle,
+                           outDesc,
+                           out_dev,
+                           inDesc,
+                           in_dev,
+                           convDesc,
+                           weiDesc,
+                           wei_dev,
+                           nullptr,
+                           0,
+                           miopen::solver::Id("ConvDirectNaiveConvWrw").Value()) ==
+                       miopenStatusSuccess);
 
                 tensor<TRef> wei_host(k, c / g, fz, fy, fx);
 #if MIOPEN_BACKEND_OPENCL

@@ -58,7 +58,6 @@
 #include <miopen/solver.hpp>
 #include <miopen/find_controls.hpp>
 #include <miopen/problem_description.hpp>
-#include <miopen/gpu_reference_kernel.hpp>
 #include "random.hpp"
 #include <numeric>
 #include <sstream>
