@@ -189,7 +189,6 @@ set( MIOpen_Source
     conv/invokers/ocl_wrw_rdc.cpp
     conv/invokers/impl_gemm.cpp
     conv/invokers/impl_gemm_dynamic.cpp
-    conv/invokers/naive_conv.cpp
     invoker_cache.cpp
     tensor.cpp
     tensor_api.cpp

@@ -25,9 +25,10 @@
  *******************************************************************************/
 
 #include <miopen/solver.hpp>
+#include <miopen/conv/data_invoke_params.hpp>
+#include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/env.hpp>
 #include <miopen/visit_float.hpp>
-#include <miopen/conv/invokers/naive_conv.hpp>
 #include <miopen/conv/conv_direct_naive_conv.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_WRW)
@@ -68,10 +69,7 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx) 
     kernel.kernel_file = ConvDirectNaiveConvKernelFile(ctx);
     kernel.kernel_name = ConvDirectNaiveConvKernelName(ctx);
     kernel.g_wk.clear();
-    /* Note here, for API like hipHccModuleLaunchKernel(), hipExtModuleLaunchKernel()
-    * grid dims is in unit of work item.
-    * But for api like hipModuleLaunchKernel(), grid dim is in unit of block.
-    */
+
     kernel.g_wk.push_back(grid_size * block_size);
     kernel.g_wk.push_back(1);
     kernel.g_wk.push_back(1);
@@ -84,7 +82,111 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx) 
 
     MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
 
-    result.invoker_factory = conv::MakeNaiveConvWrwInvokerFactory(ctx);
+    int di          = ctx.out_depth;
+    int hi          = ctx.out_height;
+    int wi          = ctx.out_width;
+    int n           = ctx.batch_sz;
+    int k           = ctx.n_inputs;
+    int c           = ctx.n_outputs;
+    int do_         = ctx.in_depth;
+    int ho          = ctx.in_height;
+    int wo          = ctx.in_width;
+    int sz          = ctx.in_depth > 1 ? ctx.kernel_stride_d : 1;
+    int sy          = ctx.in_height > 1 ? ctx.kernel_stride_h : 1;
+    int sx          = ctx.in_width > 1 ? ctx.kernel_stride_w : 1;
+    int dz          = ctx.kernel_size_d > 1 ? ctx.kernel_dilation_d : 1;
+    int dy          = ctx.kernel_size_h > 1 ? ctx.kernel_dilation_h : 1;
+    int dx          = ctx.kernel_size_w > 1 ? ctx.kernel_dilation_w : 1;
+    int pz          = ctx.pad_d;
+    int py          = ctx.pad_h;
+    int px          = ctx.pad_w;
+    int fz          = ctx.kernel_size_d;
+    int fy          = ctx.kernel_size_h;
+    int fx          = ctx.kernel_size_w;
+    int group       = ctx.group_counts;
+    int c_per_group = c / group;
+    int k_per_group = k / group;
+
+    if(ctx.Is2d())
+        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+            const auto kern = kernels[0];
+            return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+                decltype(auto) data_ctx = primitive_parameters.CastTo<conv::WrWInvokeParams>();
+                const auto& tensors     = data_ctx.tensors;
+                float elapsed           = 0;
+
+                handle.Run(kern)(tensors.x,
+                                 tensors.dw,
+                                 tensors.dy,
+                                 hi,
+                                 wi,
+                                 n,
+                                 k_per_group,
+                                 c_per_group,
+                                 ho,
+                                 wo,
+                                 sy,
+                                 sx,
+                                 dy,
+                                 dx,
+                                 py,
+                                 px,
+                                 fy,
+                                 fx,
+                                 group);
+                if(handle.IsProfilingEnabled())
+                    elapsed += handle.GetKernelTime();
+
+                if(handle.IsProfilingEnabled())
+                {
+                    handle.ResetKernelTime();
+                    handle.AccumKernelTime(elapsed);
+                }
+            };
+        };
+    else
+        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+            const auto kern = kernels[0];
+            return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+                decltype(auto) data_ctx = primitive_parameters.CastTo<conv::WrWInvokeParams>();
+                const auto& tensors     = data_ctx.tensors;
+                float elapsed           = 0;
+
+                handle.Run(kern)(tensors.x,
+                                 tensors.dw,
+                                 tensors.dy,
+                                 di,
+                                 hi,
+                                 wi,
+                                 n,
+                                 k_per_group,
+                                 c_per_group,
+                                 do_,
+                                 ho,
+                                 wo,
+                                 sz,
+                                 sy,
+                                 sx,
+                                 dz,
+                                 dy,
+                                 dx,
+                                 pz,
+                                 py,
+                                 px,
+                                 fz,
+                                 fy,
+                                 fx,
+                                 group);
+                if(handle.IsProfilingEnabled())
+                    elapsed += handle.GetKernelTime();
+
+                if(handle.IsProfilingEnabled())
+                {
+                    handle.ResetKernelTime();
+                    handle.AccumKernelTime(elapsed);
+                }
+            };
+        };
     result.construction_params.push_back(kernel);
     return result;
 }
