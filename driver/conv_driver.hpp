@@ -1997,7 +1997,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPUReference()
 
         if(inflags.GetValueInt("bias") != 0)
         {
-            MIOPEN_LOG_E("gpu reference convolution not support bias now");
+            MIOPEN_THROW("gpu reference convolution does not support bias yet");
         }
     }
     else
@@ -2015,7 +2015,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPUReference()
 
         if(inflags.GetValueInt("bias") != 0)
         {
-            MIOPEN_LOG_E("gpu reference convolution not support bias now");
+            MIOPEN_THROW("gpu reference convolution does not support bias yet");
         }
     }
 
@@ -2037,7 +2037,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPUReference()
             "dump_fwd_out_gpu_ref.bin", outhost.data.data(), outhost.data.size());
     }
 
-    TrySaveVerificationCache(Direction::Fwd, outhost.data);
+    // TrySaveVerificationCache(Direction::Fwd, outhost.data);
     return 0;
 }
 
@@ -2949,7 +2949,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWeightsGPUReference()
             "dump_bwd_dwei_gpu_ref.bin", dwei_host.data.data(), dwei_host.data.size());
     }
 
-    TrySaveVerificationCache(Direction::WrW, dwei_host.data);
+    // TrySaveVerificationCache(Direction::WrW, dwei_host.data);
     return 0;
 }
 
@@ -3001,7 +3001,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGPUReference()
             "dump_bwd_din_gpu_ref.bin", din_host.data.data(), din_host.data.size());
     }
 
-    TrySaveVerificationCache(Direction::Bwd, din_host.data);
+    // TrySaveVerificationCache(Direction::Bwd, din_host.data);
     return 0;
 }
 
@@ -3156,11 +3156,9 @@ int ConvDriver<Tgpu, Tref>::VerifyForward()
         std::cout << "Forward Convolution Failed: " << error << " > " << tolerance << std::endl;
         return EC_VerifyFwd;
     }
-    if(UseGPUReference())
-        std::cout << "Forward Convolution Verifies on GPU(ref) and GPU (" << error << ')'
-                  << std::endl;
-    else
-        std::cout << "Forward Convolution Verifies on CPU and GPU (" << error << ')' << std::endl;
+
+    std::cout << "Forward Convolution Verifies OK on " << (UseGPUReference() ? "GPU" : "CPU")
+              << " reference (" << error << ')' << std::endl;
     return 0;
 }
 
@@ -3205,12 +3203,9 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
         }
         else
         {
-            if(UseGPUReference())
-                std::cout << "Backward Convolution Data Verifies on GPU(ref) and GPU ("
-                          << error_data << ')' << std::endl;
-            else
-                std::cout << "Backward Convolution Data Verifies on CPU and GPU (" << error_data
-                          << ')' << std::endl;
+            std::cout << "Backward Convolution Data Verifies OK on "
+                      << (UseGPUReference() ? "GPU" : "CPU") << " reference (" << error_data << ')'
+                      << std::endl;
         }
     }
 
@@ -3256,12 +3251,9 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
         }
         else
         {
-            if(UseGPUReference())
-                std::cout << "Backward Convolution Weights Verifies on GPU(ref) and GPU ("
-                          << error_weights << ')' << std::endl;
-            else
-                std::cout << "Backward Convolution Weights Verifies on CPU and GPU ("
-                          << error_weights << ')' << std::endl;
+            std::cout << "Backward Convolution Weights Verifies OK on "
+                      << (UseGPUReference() ? "GPU" : "CPU") << " reference (" << error_weights
+                      << ')' << std::endl;
         }
     }
 
@@ -3282,12 +3274,9 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
         }
         else
         {
-            if(UseGPUReference())
-                std::cout << "Backward Convolution Bias Verifies on GPU(ref) and GPU ("
-                          << error_bias << ')' << std::endl;
-            else
-                std::cout << "Backward Convolution Bias Verifies on CPU and GPU (" << error_bias
-                          << ')' << std::endl;
+            std::cout << "Backward Convolution Bias Verifies OK on "
+                      << (UseGPUReference() ? "GPU" : "CPU") << " reference (" << error_bias << ')'
+                      << std::endl;
         }
     }
 
