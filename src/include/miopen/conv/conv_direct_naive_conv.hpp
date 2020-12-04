@@ -71,12 +71,12 @@ std::string inline ConvDirectNaiveConvKernelName(const miopen::ConvolutionContex
 
 std::string inline ConvDirectNaiveConvKernelFile(const miopen::ConvolutionContext& ctx)
 {
-    const auto device_name = ctx.GetStream().GetDeviceName();
-    if(device_name == "gfx906" || device_name == "gfx908")
-    {
-        if(ctx.rmv.IsV3())
-            return "naive_conv_gcn.s";
-    }
+    // const auto device_name = ctx.GetStream().GetDeviceName();
+    // if(device_name == "gfx906" || device_name == "gfx908")
+    // {
+    //     if(ctx.rmv.IsV3())
+    //         return "naive_conv_gcn.s";
+    // }
     return "naive_conv.cpp";
 }
 

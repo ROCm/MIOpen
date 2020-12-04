@@ -1984,9 +1984,9 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPUReference()
 {
     if(miopen::deref(convDesc).mode == miopenTranspose)
     {
-        const auto problem = miopen::ProblemDescription{out.desc,
-                                                        wei.desc,
-                                                        in.desc,
+        const auto problem = miopen::ProblemDescription{miopen::deref(outputTensor),
+                                                        miopen::deref(weightTensor),
+                                                        miopen::deref(inputTensor),
                                                         miopen::deref(convDesc),
                                                         miopen::conv::Direction::BackwardData};
         GPUReferenceConvolutionBackwardData(miopen::deref(GetHandle()),
@@ -2002,8 +2002,11 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPUReference()
     }
     else
     {
-        const auto problem = miopen::ProblemDescription{
-            in.desc, wei.desc, out.desc, miopen::deref(convDesc), miopen::conv::Direction::Forward};
+        const auto problem = miopen::ProblemDescription{miopen::deref(inputTensor),
+                                                        miopen::deref(weightTensor),
+                                                        miopen::deref(outputTensor),
+                                                        miopen::deref(convDesc),
+                                                        miopen::conv::Direction::Forward};
         GPUReferenceConvolutionForward(miopen::deref(GetHandle()),
                                        problem,
                                        in_dev->GetMem(),
@@ -2903,9 +2906,9 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWeightsGPUReference()
 {
     if(miopen::deref(convDesc).mode == miopenTranspose)
     {
-        const auto problem = miopen::ProblemDescription{dout.desc,
-                                                        dwei_host.desc,
-                                                        in.desc,
+        const auto problem = miopen::ProblemDescription{miopen::deref(outputTensor),
+                                                        miopen::deref(weightTensor),
+                                                        miopen::deref(inputTensor),
                                                         miopen::deref(convDesc),
                                                         miopen::conv::Direction::BackwardWeights};
         GPUReferenceConvolutionBackwardWeights(miopen::deref(GetHandle()),
@@ -2916,9 +2919,9 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWeightsGPUReference()
     }
     else
     {
-        const auto problem = miopen::ProblemDescription{in.desc,
-                                                        dwei_host.desc,
-                                                        dout.desc,
+        const auto problem = miopen::ProblemDescription{miopen::deref(inputTensor),
+                                                        miopen::deref(weightTensor),
+                                                        miopen::deref(outputTensor),
                                                         miopen::deref(convDesc),
                                                         miopen::conv::Direction::BackwardWeights};
         GPUReferenceConvolutionBackwardWeights(miopen::deref(GetHandle()),
@@ -2955,9 +2958,9 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGPUReference()
 {
     if(miopen::deref(convDesc).mode == miopenTranspose)
     {
-        const auto problem = miopen::ProblemDescription{dout.desc,
-                                                        wei.desc,
-                                                        din_host.desc,
+        const auto problem = miopen::ProblemDescription{miopen::deref(outputTensor),
+                                                        miopen::deref(weightTensor),
+                                                        miopen::deref(inputTensor),
                                                         miopen::deref(convDesc),
                                                         miopen::conv::Direction::Forward};
         GPUReferenceConvolutionForward(miopen::deref(GetHandle()),
@@ -2968,9 +2971,9 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGPUReference()
     }
     else
     {
-        const auto problem = miopen::ProblemDescription{din_host.desc,
-                                                        wei.desc,
-                                                        dout.desc,
+        const auto problem = miopen::ProblemDescription{miopen::deref(inputTensor),
+                                                        miopen::deref(weightTensor),
+                                                        miopen::deref(outputTensor),
                                                         miopen::deref(convDesc),
                                                         miopen::conv::Direction::BackwardData};
         GPUReferenceConvolutionBackwardData(miopen::deref(GetHandle()),
