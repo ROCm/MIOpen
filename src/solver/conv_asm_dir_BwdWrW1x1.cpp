@@ -472,6 +472,8 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!params.Is2d())
         return false;
+    if(!params.direction.IsBackwardWrW())
+        return false;
     if(params.IsAsymmetricPadH() || params.IsAsymmetricPadW())
         return false;
     if(!params.rmv.IsV2orV3())

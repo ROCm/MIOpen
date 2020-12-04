@@ -43,7 +43,13 @@ namespace solver {
 
 PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops()
     : PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops(
-          4, 4, 1, 4, 4, 1, false, false)
+          4, 4, 1, 4, 4, 1, false, false, false)
+{
+}
+
+PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops(bool spare)
+    : PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops(
+          4, 4, 1, 4, 4, 1, false, false, spare)
 {
 }
 
@@ -55,7 +61,8 @@ PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops(
     int GemmNPerWave_,
     int GemmKPack_,
     bool GemmAThreadCopyMoreGemmK_,
-    bool GemmBThreadCopyMoreGemmK_)
+    bool GemmBThreadCopyMoreGemmK_,
+    bool use_spare_set_)
     : GemmMPerBlock(GemmMPerBlock_),
       GemmNPerBlock(GemmNPerBlock_),
       GemmKPerBlock(GemmKPerBlock_),
@@ -63,7 +70,8 @@ PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops(
       GemmNPerWave(GemmNPerWave_),
       GemmKPack(GemmKPack_),
       GemmAThreadCopyMoreGemmK(GemmAThreadCopyMoreGemmK_),
-      GemmBThreadCopyMoreGemmK(GemmBThreadCopyMoreGemmK_)
+      GemmBThreadCopyMoreGemmK(GemmBThreadCopyMoreGemmK_),
+      use_spare_set(use_spare_set_)
 {
 }
 
@@ -78,7 +86,8 @@ operator==(const PerformanceImplicitGemmWrwV4R4Xdlops& other) const
         && GemmNPerWave == other.GemmNPerWave
         && GemmKPack == other.GemmKPack
         && GemmAThreadCopyMoreGemmK  == other.GemmAThreadCopyMoreGemmK
-        && GemmBThreadCopyMoreGemmK  == other.GemmBThreadCopyMoreGemmK;
+        && GemmBThreadCopyMoreGemmK  == other.GemmBThreadCopyMoreGemmK
+        && use_spare_set == other.use_spare_set;
     // clang-format on
 }
 
@@ -683,6 +692,9 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::IsReallyValid(const ConvolutionContex
 bool PerformanceImplicitGemmWrwV4R4Xdlops::IsFastToBeUsedForTuning(
     const ConvolutionContext& ctx) const
 {
+
+    if(use_spare_set)
+        return true;
     // somehow, 128x128 wave-wise GEMM tend to spill register
     // TODO revisit this when 128x128 wave-wise GEMM become efficient
     {
