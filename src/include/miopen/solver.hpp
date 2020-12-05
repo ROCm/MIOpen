@@ -79,8 +79,6 @@ const std::string& SolverDbId(Solver solver)
 /// solver-specific context objects.
 ///
 /// There could be multiple solvers of the same algorithm for a problem config.
-/// For example, ConvAsm3x3U and ConvOclDirectFwd3x3
-/// are able to solve overlapping sets of 3x3 Direct convolution problems.
 template <class Context>
 struct SolverBase
 {
@@ -363,12 +361,6 @@ struct ConvOclDirectFwd11x11 : SolverBase<ConvolutionContext>
 };
 
 struct ConvOclDirectFwdGen : SolverBase<ConvolutionContext>
-{
-    bool IsApplicable(const ConvolutionContext& params) const;
-    ConvSolution GetSolution(const ConvolutionContext& params) const;
-};
-
-struct ConvOclDirectFwd3x3 : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
