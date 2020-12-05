@@ -98,6 +98,7 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmABlockCopyPerformancePara
 
         // GemmABlockCopySrcDataPerRead_GemmM also bounded by size of threadwise copy
         SrcDataPerRead_GemmM = gcd(SrcDataPerRead_GemmM, a_data_per_thread_copy);
+        SrcDataPerRead_GemmM = gcd(SrcDataPerRead_GemmM, max(GemmMPerBlock / BlockSize, 1));
 
         // decide threadwise copy lengths
         const auto a_data_per_thread_copy_gemmm = SrcDataPerRead_GemmM;
@@ -199,7 +200,8 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmBBlockCopyPerformancePara
             MIOPEN_THROW("invalid performance parameter");
 
         // GemmBBlockCopySrcDataPerRead_GemmN also bounded by size of threadwise copy
-        SrcDataPerRead_GemmN                  = gcd(SrcDataPerRead_GemmN, b_data_per_thread_copy);
+        SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, b_data_per_thread_copy);
+        SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, max(GemmNPerBlock / BlockSize, 1));
         const auto data_per_thread_copy_gemmn = SrcDataPerRead_GemmN;
         if(!(data_per_thread_copy_gemmn > 0))
             MIOPEN_THROW("invalid performance parameter");
@@ -843,7 +845,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
 
     if(!config.IsReallyValid(ctx))
     {
-        MIOPEN_LOG_E("invalid performance parameter");
+        MIOPEN_THROW("invalid performance parameter");
         assert(false);
     }
 
