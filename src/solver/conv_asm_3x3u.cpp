@@ -34,6 +34,7 @@
 #include <miopen/sequences.hpp>
 #include <miopen/conv/invokers/gen_x_w_y_pad.hpp>
 
+#include <cstdint>
 #include <sstream>
 #include <limits>
 #include <cassert>
@@ -202,6 +203,8 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         && (params.n_inputs / params.group_counts) % 4 == 0 /// \todo: remove restriction that (n_inputs/group_counts) must be multiple of 4
         && params.in_width > 3
         && params.in_width <= 1000
+        && (static_cast<int64_t>(params.batch_sz) * params.n_inputs * params.in_height * params.in_width) <= std::pow(2, 30)
+        && (static_cast<int64_t>(params.batch_sz) * params.n_outputs * params.out_height * params.out_width) <= std::pow(2, 30)
         && params.IsFp32()
         && params.in_layout == "NCHW";
         // && (params.forward ? params.weights_layout == "KCHW" : params.weights_layout == "CKHW" )
