@@ -183,7 +183,7 @@ inline bool IsApplicableTransform(const ConvolutionContext& params)
         return false;
     if(!params.Is2d())
         return false;
-    if(params.direction.IsBackwardWrW())
+    if(!(params.direction.IsForward() || params.direction.IsBackwardData()))
         return false;
     if(!(params.IsFp32() || params.IsFp16()))
         return false;
@@ -424,6 +424,7 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
     }
     else
     {
+#if MIOPEN_USE_ROCBLAS
         // GEMM
         gemm_conv_kernel_name = "WRW_WINO_GEMM: ";
 
@@ -438,7 +439,11 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
         GemmDescriptor wino_gemm_desc{isColMajor,transA,transB,m,n,k,
             lda,ldb,ldc,batch_count,strideA,strideB,
             strideC,alpha,beta,transform_data_type};
-        // clang-format on
+// clang-format on
+#else
+        (void)wino_xform_w;
+        (void)wino_xform_h;
+#endif
 
         gemm_conv_factory = [=](const std::vector<Kernel>&) {
 
