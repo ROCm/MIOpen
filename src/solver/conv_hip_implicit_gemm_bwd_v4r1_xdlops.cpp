@@ -100,7 +100,7 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmABlockCopyPerformancePara
 
         // GemmABlockCopySrcDataPerRead_GemmM also bounded by size of threadwise copy
         SrcDataPerRead_GemmM = gcd(SrcDataPerRead_GemmM, a_data_per_thread_copy);
-        int mMax = max(GemmMPerBlock / BlockSize, 1);
+        int mMax = std::max(GemmMPerBlock / BlockSize, 1);
         SrcDataPerRead_GemmM = gcd(SrcDataPerRead_GemmM, mMax);
 
         // decide threadwise copy lengths
@@ -204,7 +204,7 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmBBlockCopyPerformancePara
 
         // GemmBBlockCopySrcDataPerRead_GemmN also bounded by size of threadwise copy
         SrcDataPerRead_GemmN                  = gcd(SrcDataPerRead_GemmN, b_data_per_thread_copy);
-        int nMax = max(GemmNPerBlock / BlockSize, 1);
+        int nMax = std::max(GemmNPerBlock / BlockSize, 1);
         SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, nMax);
 
         const auto data_per_thread_copy_gemmn = SrcDataPerRead_GemmN;
