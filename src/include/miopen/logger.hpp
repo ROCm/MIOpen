@@ -32,6 +32,7 @@
 #include <iostream>
 #include <sstream>
 #include <type_traits>
+#include <chrono>
 
 #include <miopen/each_args.hpp>
 #include <miopen/object.hpp>
@@ -341,6 +342,33 @@ std::string LoggingParseFunction(const char* func, const char* pretty_func);
                              << "] ./bin/MIOpenDriver " << __VA_ARGS__ << std::endl;    \
         std::cerr << miopen_driver_cmd_ss.str();                                        \
     } while(false)
+
+class LogScopeTime
+{
+    public:
+    LogScopeTime(std::string name)
+        : m_name(std::move(name)), m_beg(std::chrono::high_resolution_clock::now())
+    {
+    }
+    ~LogScopeTime()
+    {
+        auto end = std::chrono::high_resolution_clock::now();
+        auto dur = std::chrono::duration_cast<std::chrono::microseconds>(end - m_beg);
+        std::ostringstream ss;
+        ss << "MIOpenLogScopeTime: " << m_name << " : " << dur.count() << " us";
+        MIOPEN_LOG_I2(ss.str());
+    }
+
+    private:
+    std::string m_name;
+    std::chrono::time_point<std::chrono::high_resolution_clock> m_beg;
+};
+
+#if MIOPEN_LOG_FUNC_TIME_ENABLE
+#define MIOPEN_LOG_SCOPE_TIME const miopen::LogScopeTime miopen_timer(MIOPEN_GET_FN_NAME)
+#else
+#define MIOPEN_LOG_SCOPE_TIME
+#endif
 
 } // namespace miopen
 
