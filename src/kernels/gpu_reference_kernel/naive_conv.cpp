@@ -97,9 +97,11 @@ extern "C" __global__ void naive_conv_fwd_nchw_fp32(const float* __restrict__ p_
     int in            = (bid / k_per_group) % n;
     int ig            = bid / (n * k_per_group);
 
-    p_in += in * c * hi * wi + ig * c_per_group * hi * wi;
-    p_wei += ig * k_per_group * c_per_group * fy * fx + ik * c_per_group * fy * fx;
-    p_out += in * k * ho * wo + ig * k_per_group * ho * wo + ik * ho * wo;
+    p_in += static_cast<size_t>(in) * c * hi * wi + static_cast<size_t>(ig) * c_per_group * hi * wi;
+    p_wei += static_cast<size_t>(ig) * k_per_group * c_per_group * fy * fx +
+             static_cast<size_t>(ik) * c_per_group * fy * fx;
+    p_out += static_cast<size_t>(in) * k * ho * wo +
+             static_cast<size_t>(ig) * k_per_group * ho * wo + static_cast<size_t>(ik) * ho * wo;
 
     for(int tid = threadIdx.x; tid < thread_length; tid += 256)
     {
@@ -125,15 +127,17 @@ extern "C" __global__ void naive_conv_fwd_nchw_fp32(const float* __restrict__ p_
 
                     if(valid_w & valid_h)
                     {
-                        int i_idx = ic * hi * wi + cur_h * wi + cur_w;
-                        int w_idx = ic * fy * fx + iy * fx + ix;
+                        int i_idx = static_cast<size_t>(ic) * hi * wi +
+                                    static_cast<size_t>(cur_h) * wi + static_cast<size_t>(cur_w);
+                        int w_idx = static_cast<size_t>(ic) * fy * fx +
+                                    static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
                         value +=
                             static_cast<double>(p_in[i_idx]) * static_cast<double>(p_wei[w_idx]);
                     }
                 }
             }
         }
-        int o_idx    = iho * wo + iwo;
+        int o_idx    = static_cast<size_t>(iho) * wo + static_cast<size_t>(iwo);
         p_out[o_idx] = static_cast<float>(value);
     }
 }
@@ -171,9 +175,12 @@ extern "C" __global__ void naive_conv_bwd_nchw_fp32(float* __restrict__ p_in,
     int in            = (bid / c_per_group) % n;
     int ig            = bid / (n * c_per_group);
 
-    p_in += in * c * hi * wi + ig * c_per_group * hi * wi + ic * hi * wi;
-    p_wei += ig * k_per_group * c_per_group * fy * fx + ic * fy * fx;
-    p_out += in * k * ho * wo + ig * k_per_group * ho * wo;
+    p_in += static_cast<size_t>(in) * c * hi * wi +
+            static_cast<size_t>(ig) * c_per_group * hi * wi + static_cast<size_t>(ic) * hi * wi;
+    p_wei += static_cast<size_t>(ig) * k_per_group * c_per_group * fy * fx +
+             static_cast<size_t>(ic) * fy * fx;
+    p_out +=
+        static_cast<size_t>(in) * k * ho * wo + static_cast<size_t>(ig) * k_per_group * ho * wo;
 
     for(int tid = threadIdx.x; tid < thread_length; tid += 256)
     {
@@ -205,15 +212,17 @@ extern "C" __global__ void naive_conv_bwd_nchw_fp32(float* __restrict__ p_in,
 
                     if(valid_h & valid_w)
                     {
-                        int o_idx = ik * ho * wo + cur_ho * wo + cur_wo;
-                        int f_idx = ik * c_per_group * fy * fx + iy * fx + ix;
+                        int o_idx = static_cast<size_t>(ik) * ho * wo +
+                                    static_cast<size_t>(cur_ho) * wo + static_cast<size_t>(cur_wo);
+                        int f_idx = static_cast<size_t>(ik) * c_per_group * fy * fx +
+                                    static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
                         value +=
                             static_cast<double>(p_out[o_idx]) * static_cast<double>(p_wei[f_idx]);
                     }
                 }
             }
         }
-        int i_idx   = ihi * wi + iwi;
+        int i_idx   = static_cast<size_t>(ihi) * wi + static_cast<size_t>(iwi);
         p_in[i_idx] = static_cast<float>(value);
     }
 }
@@ -250,9 +259,10 @@ extern "C" __global__ void naive_conv_wrw_nchw_fp32(const float* __restrict__ p_
     int ik            = bid % k_per_group;
     int ig            = bid / k_per_group;
 
-    p_in += ig * c_per_group * hi * wi;
-    p_wei += ig * k_per_group * c_per_group * fy * fx + ik * c_per_group * fy * fx;
-    p_out += ig * k_per_group * ho * wo + ik * ho * wo;
+    p_in += static_cast<size_t>(ig) * c_per_group * hi * wi;
+    p_wei += static_cast<size_t>(ig) * k_per_group * c_per_group * fy * fx +
+             static_cast<size_t>(ik) * c_per_group * fy * fx;
+    p_out += static_cast<size_t>(ig) * k_per_group * ho * wo + static_cast<size_t>(ik) * ho * wo;
 
     for(int tid = threadIdx.x; tid < thread_length; tid += 256)
     {
@@ -279,15 +289,19 @@ extern "C" __global__ void naive_conv_wrw_nchw_fp32(const float* __restrict__ p_
 
                     if(valid_h & valid_w)
                     {
-                        int i_idx = in * c * hi * wi + ic * hi * wi + cur_h * wi + cur_w;
-                        int o_idx = in * k * ho * wo + iho * wo + iwo;
+                        int i_idx = static_cast<size_t>(in) * c * hi * wi +
+                                    static_cast<size_t>(ic) * hi * wi +
+                                    static_cast<size_t>(cur_h) * wi + static_cast<size_t>(cur_w);
+                        int o_idx = static_cast<size_t>(in) * k * ho * wo +
+                                    static_cast<size_t>(iho) * wo + static_cast<size_t>(iwo);
                         value +=
                             static_cast<double>(p_in[i_idx]) * static_cast<double>(p_out[o_idx]);
                     }
                 }
             }
         }
-        int f_idx    = ic * fy * fx + iy * fx + ix;
+        int f_idx = static_cast<size_t>(ic) * fy * fx + static_cast<size_t>(iy) * fx +
+                    static_cast<size_t>(ix);
         p_wei[f_idx] = static_cast<float>(value);
     }
 }
@@ -332,9 +346,13 @@ extern "C" __global__ void naive_conv_fwd_ncdhw_fp32(const float* __restrict__ p
     int in            = (bid / k_per_group) % n;
     int ig            = bid / (n * k_per_group);
 
-    p_in += in * c * di * hi * wi + ig * c_per_group * di * hi * wi;
-    p_wei += ig * k_per_group * c_per_group * fz * fy * fx + ik * c_per_group * fz * fy * fx;
-    p_out += in * k * do_ * ho * wo + ig * k_per_group * do_ * ho * wo + ik * do_ * ho * wo;
+    p_in += static_cast<size_t>(in) * c * di * hi * wi +
+            static_cast<size_t>(ig) * c_per_group * di * hi * wi;
+    p_wei += static_cast<size_t>(ig) * k_per_group * c_per_group * fz * fy * fx +
+             static_cast<size_t>(ik) * c_per_group * fz * fy * fx;
+    p_out += static_cast<size_t>(in) * k * do_ * ho * wo +
+             static_cast<size_t>(ig) * k_per_group * do_ * ho * wo +
+             static_cast<size_t>(ik) * do_ * ho * wo;
 
     for(int tid = threadIdx.x; tid < thread_length; tid += 256)
     {
@@ -367,8 +385,13 @@ extern "C" __global__ void naive_conv_fwd_ncdhw_fp32(const float* __restrict__ p
 
                         if(valid_d & valid_w & valid_h)
                         {
-                            int i_idx = ic * di * hi * wi + cur_d * hi * wi + cur_h * wi + cur_w;
-                            int w_idx = ic * fz * fy * fx + iz * fy * fx + iy * fx + ix;
+                            int i_idx = static_cast<size_t>(ic) * di * hi * wi +
+                                        static_cast<size_t>(cur_d) * hi * wi +
+                                        static_cast<size_t>(cur_h) * wi +
+                                        static_cast<size_t>(cur_w);
+                            int w_idx = static_cast<size_t>(ic) * fz * fy * fx +
+                                        static_cast<size_t>(iz) * fy * fx +
+                                        static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
                             value += static_cast<double>(p_in[i_idx]) *
                                      static_cast<double>(p_wei[w_idx]);
                         }
@@ -376,7 +399,8 @@ extern "C" __global__ void naive_conv_fwd_ncdhw_fp32(const float* __restrict__ p
                 }
             }
         }
-        int o_idx    = ido * ho * wo + iho * wo + iwo;
+        int o_idx = static_cast<size_t>(ido) * ho * wo + static_cast<size_t>(iho) * wo +
+                    static_cast<size_t>(iwo);
         p_out[o_idx] = static_cast<float>(value);
     }
 }
@@ -420,9 +444,13 @@ extern "C" __global__ void naive_conv_bwd_ncdhw_fp32(float* __restrict__ p_in,
     int in            = (bid / c_per_group) % n;
     int ig            = bid / (n * c_per_group);
 
-    p_in += in * c * di * hi * wi + ig * c_per_group * di * hi * wi + ic * di * hi * wi;
-    p_wei += ig * k_per_group * c_per_group * fz * fy * fx + ic * fz * fy * fx;
-    p_out += in * k * do_ * ho * wo + ig * k_per_group * do_ * ho * wo;
+    p_in += static_cast<size_t>(in) * c * di * hi * wi +
+            static_cast<size_t>(ig) * c_per_group * di * hi * wi +
+            static_cast<size_t>(ic) * di * hi * wi;
+    p_wei += static_cast<size_t>(ig) * k_per_group * c_per_group * fz * fy * fx +
+             static_cast<size_t>(ic) * fz * fy * fx;
+    p_out += static_cast<size_t>(in) * k * do_ * ho * wo +
+             static_cast<size_t>(ig) * k_per_group * do_ * ho * wo;
 
     for(int tid = threadIdx.x; tid < thread_length; tid += 256)
     {
@@ -464,10 +492,13 @@ extern "C" __global__ void naive_conv_bwd_ncdhw_fp32(float* __restrict__ p_in,
 
                         if(valid_d & valid_h & valid_w)
                         {
-                            int o_idx =
-                                ik * do_ * ho * wo + cur_do * ho * wo + cur_ho * wo + cur_wo;
-                            int f_idx =
-                                ik * c_per_group * fz * fy * fx + iz * fy * fx + iy * fx + ix;
+                            int o_idx = static_cast<size_t>(ik) * do_ * ho * wo +
+                                        static_cast<size_t>(cur_do) * ho * wo +
+                                        static_cast<size_t>(cur_ho) * wo +
+                                        static_cast<size_t>(cur_wo);
+                            int f_idx = static_cast<size_t>(ik) * c_per_group * fz * fy * fx +
+                                        static_cast<size_t>(iz) * fy * fx +
+                                        static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
                             value += static_cast<double>(p_out[o_idx]) *
                                      static_cast<double>(p_wei[f_idx]);
                         }
@@ -475,7 +506,8 @@ extern "C" __global__ void naive_conv_bwd_ncdhw_fp32(float* __restrict__ p_in,
                 }
             }
         }
-        int i_idx   = idi * hi * wi + ihi * wi + iwi;
+        int i_idx = static_cast<size_t>(idi) * hi * wi + static_cast<size_t>(ihi) * wi +
+                    static_cast<size_t>(iwi);
         p_in[i_idx] = static_cast<float>(value);
     }
 }
@@ -518,9 +550,11 @@ extern "C" __global__ void naive_conv_wrw_ncdhw_fp32(const float* __restrict__ p
     int ik            = bid % k_per_group;
     int ig            = bid / k_per_group;
 
-    p_in += ig * c_per_group * di * hi * wi;
-    p_wei += ig * k_per_group * c_per_group * fz * fy * fx + ik * c_per_group * fz * fy * fx;
-    p_out += ig * k_per_group * do_ * ho * wo + ik * do_ * ho * wo;
+    p_in += static_cast<size_t>(ig) * c_per_group * di * hi * wi;
+    p_wei += static_cast<size_t>(ig) * k_per_group * c_per_group * fz * fy * fx +
+             static_cast<size_t>(ik) * c_per_group * fz * fy * fx;
+    p_out += static_cast<size_t>(ig) * k_per_group * do_ * ho * wo +
+             static_cast<size_t>(ik) * do_ * ho * wo;
 
     for(int tid = threadIdx.x; tid < thread_length; tid += 256)
     {
@@ -554,9 +588,14 @@ extern "C" __global__ void naive_conv_wrw_ncdhw_fp32(const float* __restrict__ p
 
                         if(valid_d & valid_h & valid_w)
                         {
-                            int i_idx = in * c * di * hi * wi + ic * di * hi * wi +
-                                        cur_d * hi * wi + cur_h * wi + cur_w;
-                            int o_idx = in * k * do_ * ho * wo + ido * ho * wo + iho * wo + iwo;
+                            int i_idx = static_cast<size_t>(in) * c * di * hi * wi +
+                                        static_cast<size_t>(ic) * di * hi * wi +
+                                        static_cast<size_t>(cur_d) * hi * wi +
+                                        static_cast<size_t>(cur_h) * wi +
+                                        static_cast<size_t>(cur_w);
+                            int o_idx = static_cast<size_t>(in) * k * do_ * ho * wo +
+                                        static_cast<size_t>(ido) * ho * wo +
+                                        static_cast<size_t>(iho) * wo + static_cast<size_t>(iwo);
                             value += static_cast<double>(p_in[i_idx]) *
                                      static_cast<double>(p_out[o_idx]);
                         }
@@ -564,7 +603,8 @@ extern "C" __global__ void naive_conv_wrw_ncdhw_fp32(const float* __restrict__ p
                 }
             }
         }
-        int f_idx    = ic * fz * fy * fx + iz * fy * fx + iy * fx + ix;
+        int f_idx = static_cast<size_t>(ic) * fz * fy * fx + static_cast<size_t>(iz) * fy * fx +
+                    static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
         p_wei[f_idx] = static_cast<float>(value);
     }
 }
@@ -602,9 +642,11 @@ extern "C" __global__ void naive_conv_fwd_nchw_fp16(const half* __restrict__ p_i
     int in            = (bid / k_per_group) % n;
     int ig            = bid / (n * k_per_group);
 
-    p_in += in * c * hi * wi + ig * c_per_group * hi * wi;
-    p_wei += ig * k_per_group * c_per_group * fy * fx + ik * c_per_group * fy * fx;
-    p_out += in * k * ho * wo + ig * k_per_group * ho * wo + ik * ho * wo;
+    p_in += static_cast<size_t>(in) * c * hi * wi + static_cast<size_t>(ig) * c_per_group * hi * wi;
+    p_wei += static_cast<size_t>(ig) * k_per_group * c_per_group * fy * fx +
+             static_cast<size_t>(ik) * c_per_group * fy * fx;
+    p_out += static_cast<size_t>(in) * k * ho * wo +
+             static_cast<size_t>(ig) * k_per_group * ho * wo + static_cast<size_t>(ik) * ho * wo;
 
     for(int tid = threadIdx.x; tid < thread_length; tid += 256)
     {
@@ -630,15 +672,17 @@ extern "C" __global__ void naive_conv_fwd_nchw_fp16(const half* __restrict__ p_i
 
                     if(valid_w & valid_h)
                     {
-                        int i_idx = ic * hi * wi + cur_h * wi + cur_w;
-                        int w_idx = ic * fy * fx + iy * fx + ix;
+                        int i_idx = static_cast<size_t>(ic) * hi * wi +
+                                    static_cast<size_t>(cur_h) * wi + static_cast<size_t>(cur_w);
+                        int w_idx = static_cast<size_t>(ic) * fy * fx +
+                                    static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
                         value += static_cast<double>(__half2float(p_in[i_idx])) *
                                  static_cast<double>(__half2float(p_wei[w_idx]));
                     }
                 }
             }
         }
-        int o_idx    = iho * wo + iwo;
+        int o_idx    = static_cast<size_t>(iho) * wo + static_cast<size_t>(iwo);
         p_out[o_idx] = __float2half(static_cast<float>(value));
     }
 }
@@ -676,9 +720,12 @@ extern "C" __global__ void naive_conv_bwd_nchw_fp16(half* __restrict__ p_in,
     int in            = (bid / c_per_group) % n;
     int ig            = bid / (n * c_per_group);
 
-    p_in += in * c * hi * wi + ig * c_per_group * hi * wi + ic * hi * wi;
-    p_wei += ig * k_per_group * c_per_group * fy * fx + ic * fy * fx;
-    p_out += in * k * ho * wo + ig * k_per_group * ho * wo;
+    p_in += static_cast<size_t>(in) * c * hi * wi +
+            static_cast<size_t>(ig) * c_per_group * hi * wi + static_cast<size_t>(ic) * hi * wi;
+    p_wei += static_cast<size_t>(ig) * k_per_group * c_per_group * fy * fx +
+             static_cast<size_t>(ic) * fy * fx;
+    p_out +=
+        static_cast<size_t>(in) * k * ho * wo + static_cast<size_t>(ig) * k_per_group * ho * wo;
 
     for(int tid = threadIdx.x; tid < thread_length; tid += 256)
     {
@@ -710,15 +757,17 @@ extern "C" __global__ void naive_conv_bwd_nchw_fp16(half* __restrict__ p_in,
 
                     if(valid_h & valid_w)
                     {
-                        int o_idx = ik * ho * wo + cur_ho * wo + cur_wo;
-                        int f_idx = ik * c_per_group * fy * fx + iy * fx + ix;
+                        int o_idx = static_cast<size_t>(ik) * ho * wo +
+                                    static_cast<size_t>(cur_ho) * wo + static_cast<size_t>(cur_wo);
+                        int f_idx = static_cast<size_t>(ik) * c_per_group * fy * fx +
+                                    static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
                         value += static_cast<double>(__half2float(p_out[o_idx])) *
                                  static_cast<double>(__half2float(p_wei[f_idx]));
                     }
                 }
             }
         }
-        int i_idx   = ihi * wi + iwi;
+        int i_idx   = static_cast<size_t>(ihi) * wi + static_cast<size_t>(iwi);
         p_in[i_idx] = __float2half(static_cast<float>(value));
     }
 }
@@ -755,9 +804,10 @@ extern "C" __global__ void naive_conv_wrw_nchw_fp16(const half* __restrict__ p_i
     int ik            = bid % k_per_group;
     int ig            = bid / k_per_group;
 
-    p_in += ig * c_per_group * hi * wi;
-    p_wei += ig * k_per_group * c_per_group * fy * fx + ik * c_per_group * fy * fx;
-    p_out += ig * k_per_group * ho * wo + ik * ho * wo;
+    p_in += static_cast<size_t>(ig) * c_per_group * hi * wi;
+    p_wei += static_cast<size_t>(ig) * k_per_group * c_per_group * fy * fx +
+             static_cast<size_t>(ik) * c_per_group * fy * fx;
+    p_out += static_cast<size_t>(ig) * k_per_group * ho * wo + static_cast<size_t>(ik) * ho * wo;
 
     for(int tid = threadIdx.x; tid < thread_length; tid += 256)
     {
@@ -784,15 +834,19 @@ extern "C" __global__ void naive_conv_wrw_nchw_fp16(const half* __restrict__ p_i
 
                     if(valid_h & valid_w)
                     {
-                        int i_idx = in * c * hi * wi + ic * hi * wi + cur_h * wi + cur_w;
-                        int o_idx = in * k * ho * wo + iho * wo + iwo;
+                        int i_idx = static_cast<size_t>(in) * c * hi * wi +
+                                    static_cast<size_t>(ic) * hi * wi +
+                                    static_cast<size_t>(cur_h) * wi + static_cast<size_t>(cur_w);
+                        int o_idx = static_cast<size_t>(in) * k * ho * wo +
+                                    static_cast<size_t>(iho) * wo + static_cast<size_t>(iwo);
                         value += static_cast<double>(__half2float(p_in[i_idx])) *
                                  static_cast<double>(__half2float(p_out[o_idx]));
                     }
                 }
             }
         }
-        int f_idx    = ic * fy * fx + iy * fx + ix;
+        int f_idx = static_cast<size_t>(ic) * fy * fx + static_cast<size_t>(iy) * fx +
+                    static_cast<size_t>(ix);
         p_wei[f_idx] = __float2half(static_cast<float>(value));
     }
 }
@@ -837,9 +891,13 @@ extern "C" __global__ void naive_conv_fwd_ncdhw_fp16(const half* __restrict__ p_
     int in            = (bid / k_per_group) % n;
     int ig            = bid / (n * k_per_group);
 
-    p_in += in * c * di * hi * wi + ig * c_per_group * di * hi * wi;
-    p_wei += ig * k_per_group * c_per_group * fz * fy * fx + ik * c_per_group * fz * fy * fx;
-    p_out += in * k * do_ * ho * wo + ig * k_per_group * do_ * ho * wo + ik * do_ * ho * wo;
+    p_in += static_cast<size_t>(in) * c * di * hi * wi +
+            static_cast<size_t>(ig) * c_per_group * di * hi * wi;
+    p_wei += static_cast<size_t>(ig) * k_per_group * c_per_group * fz * fy * fx +
+             static_cast<size_t>(ik) * c_per_group * fz * fy * fx;
+    p_out += static_cast<size_t>(in) * k * do_ * ho * wo +
+             static_cast<size_t>(ig) * k_per_group * do_ * ho * wo +
+             static_cast<size_t>(ik) * do_ * ho * wo;
 
     for(int tid = threadIdx.x; tid < thread_length; tid += 256)
     {
@@ -872,8 +930,13 @@ extern "C" __global__ void naive_conv_fwd_ncdhw_fp16(const half* __restrict__ p_
 
                         if(valid_d & valid_w & valid_h)
                         {
-                            int i_idx = ic * di * hi * wi + cur_d * hi * wi + cur_h * wi + cur_w;
-                            int w_idx = ic * fz * fy * fx + iz * fy * fx + iy * fx + ix;
+                            int i_idx = static_cast<size_t>(ic) * di * hi * wi +
+                                        static_cast<size_t>(cur_d) * hi * wi +
+                                        static_cast<size_t>(cur_h) * wi +
+                                        static_cast<size_t>(cur_w);
+                            int w_idx = static_cast<size_t>(ic) * fz * fy * fx +
+                                        static_cast<size_t>(iz) * fy * fx +
+                                        static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
                             value += static_cast<double>(__half2float(p_in[i_idx])) *
                                      static_cast<double>(__half2float(p_wei[w_idx]));
                         }
@@ -881,7 +944,8 @@ extern "C" __global__ void naive_conv_fwd_ncdhw_fp16(const half* __restrict__ p_
                 }
             }
         }
-        int o_idx    = ido * ho * wo + iho * wo + iwo;
+        int o_idx = static_cast<size_t>(ido) * ho * wo + static_cast<size_t>(iho) * wo +
+                    static_cast<size_t>(iwo);
         p_out[o_idx] = __float2half(static_cast<float>(value));
     }
 }
@@ -925,9 +989,13 @@ extern "C" __global__ void naive_conv_bwd_ncdhw_fp16(half* __restrict__ p_in,
     int in            = (bid / c_per_group) % n;
     int ig            = bid / (n * c_per_group);
 
-    p_in += in * c * di * hi * wi + ig * c_per_group * di * hi * wi + ic * di * hi * wi;
-    p_wei += ig * k_per_group * c_per_group * fz * fy * fx + ic * fz * fy * fx;
-    p_out += in * k * do_ * ho * wo + ig * k_per_group * do_ * ho * wo;
+    p_in += static_cast<size_t>(in) * c * di * hi * wi +
+            static_cast<size_t>(ig) * c_per_group * di * hi * wi +
+            static_cast<size_t>(ic) * di * hi * wi;
+    p_wei += static_cast<size_t>(ig) * k_per_group * c_per_group * fz * fy * fx +
+             static_cast<size_t>(ic) * fz * fy * fx;
+    p_out += static_cast<size_t>(in) * k * do_ * ho * wo +
+             static_cast<size_t>(ig) * k_per_group * do_ * ho * wo;
 
     for(int tid = threadIdx.x; tid < thread_length; tid += 256)
     {
@@ -969,10 +1037,13 @@ extern "C" __global__ void naive_conv_bwd_ncdhw_fp16(half* __restrict__ p_in,
 
                         if(valid_d & valid_h & valid_w)
                         {
-                            int o_idx =
-                                ik * do_ * ho * wo + cur_do * ho * wo + cur_ho * wo + cur_wo;
-                            int f_idx =
-                                ik * c_per_group * fz * fy * fx + iz * fy * fx + iy * fx + ix;
+                            int o_idx = static_cast<size_t>(ik) * do_ * ho * wo +
+                                        static_cast<size_t>(cur_do) * ho * wo +
+                                        static_cast<size_t>(cur_ho) * wo +
+                                        static_cast<size_t>(cur_wo);
+                            int f_idx = static_cast<size_t>(ik) * c_per_group * fz * fy * fx +
+                                        static_cast<size_t>(iz) * fy * fx +
+                                        static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
                             value += static_cast<double>(__half2float(p_out[o_idx])) *
                                      static_cast<double>(__half2float(p_wei[f_idx]));
                         }
@@ -980,7 +1051,8 @@ extern "C" __global__ void naive_conv_bwd_ncdhw_fp16(half* __restrict__ p_in,
                 }
             }
         }
-        int i_idx   = idi * hi * wi + ihi * wi + iwi;
+        int i_idx = static_cast<size_t>(idi) * hi * wi + static_cast<size_t>(ihi) * wi +
+                    static_cast<size_t>(iwi);
         p_in[i_idx] = __float2half(static_cast<float>(value));
     }
 }
@@ -1023,9 +1095,11 @@ extern "C" __global__ void naive_conv_wrw_ncdhw_fp16(const half* __restrict__ p_
     int ik            = bid % k_per_group;
     int ig            = bid / k_per_group;
 
-    p_in += ig * c_per_group * di * hi * wi;
-    p_wei += ig * k_per_group * c_per_group * fz * fy * fx + ik * c_per_group * fz * fy * fx;
-    p_out += ig * k_per_group * do_ * ho * wo + ik * do_ * ho * wo;
+    p_in += static_cast<size_t>(ig) * c_per_group * di * hi * wi;
+    p_wei += static_cast<size_t>(ig) * k_per_group * c_per_group * fz * fy * fx +
+             static_cast<size_t>(ik) * c_per_group * fz * fy * fx;
+    p_out += static_cast<size_t>(ig) * k_per_group * do_ * ho * wo +
+             static_cast<size_t>(ik) * do_ * ho * wo;
 
     for(int tid = threadIdx.x; tid < thread_length; tid += 256)
     {
@@ -1059,9 +1133,14 @@ extern "C" __global__ void naive_conv_wrw_ncdhw_fp16(const half* __restrict__ p_
 
                         if(valid_d & valid_h & valid_w)
                         {
-                            int i_idx = in * c * di * hi * wi + ic * di * hi * wi +
-                                        cur_d * hi * wi + cur_h * wi + cur_w;
-                            int o_idx = in * k * do_ * ho * wo + ido * ho * wo + iho * wo + iwo;
+                            int i_idx = static_cast<size_t>(in) * c * di * hi * wi +
+                                        static_cast<size_t>(ic) * di * hi * wi +
+                                        static_cast<size_t>(cur_d) * hi * wi +
+                                        static_cast<size_t>(cur_h) * wi +
+                                        static_cast<size_t>(cur_w);
+                            int o_idx = static_cast<size_t>(in) * k * do_ * ho * wo +
+                                        static_cast<size_t>(ido) * ho * wo +
+                                        static_cast<size_t>(iho) * wo + static_cast<size_t>(iwo);
                             value += static_cast<double>(__half2float(p_in[i_idx])) *
                                      static_cast<double>(__half2float(p_out[o_idx]));
                         }
@@ -1069,7 +1148,8 @@ extern "C" __global__ void naive_conv_wrw_ncdhw_fp16(const half* __restrict__ p_
                 }
             }
         }
-        int f_idx    = ic * fz * fy * fx + iz * fy * fx + iy * fx + ix;
+        int f_idx = static_cast<size_t>(ic) * fz * fy * fx + static_cast<size_t>(iz) * fy * fx +
+                    static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
         p_wei[f_idx] = __float2half(static_cast<float>(value));
     }
 }
@@ -1107,9 +1187,11 @@ extern "C" __global__ void naive_conv_fwd_nchw_bf16(const ushort* __restrict__ p
     int in            = (bid / k_per_group) % n;
     int ig            = bid / (n * k_per_group);
 
-    p_in += in * c * hi * wi + ig * c_per_group * hi * wi;
-    p_wei += ig * k_per_group * c_per_group * fy * fx + ik * c_per_group * fy * fx;
-    p_out += in * k * ho * wo + ig * k_per_group * ho * wo + ik * ho * wo;
+    p_in += static_cast<size_t>(in) * c * hi * wi + static_cast<size_t>(ig) * c_per_group * hi * wi;
+    p_wei += static_cast<size_t>(ig) * k_per_group * c_per_group * fy * fx +
+             static_cast<size_t>(ik) * c_per_group * fy * fx;
+    p_out += static_cast<size_t>(in) * k * ho * wo +
+             static_cast<size_t>(ig) * k_per_group * ho * wo + static_cast<size_t>(ik) * ho * wo;
 
     for(int tid = threadIdx.x; tid < thread_length; tid += 256)
     {
@@ -1135,15 +1217,17 @@ extern "C" __global__ void naive_conv_fwd_nchw_bf16(const ushort* __restrict__ p
 
                     if(valid_w & valid_h)
                     {
-                        int i_idx = ic * hi * wi + cur_h * wi + cur_w;
-                        int w_idx = ic * fy * fx + iy * fx + ix;
+                        int i_idx = static_cast<size_t>(ic) * hi * wi +
+                                    static_cast<size_t>(cur_h) * wi + static_cast<size_t>(cur_w);
+                        int w_idx = static_cast<size_t>(ic) * fy * fx +
+                                    static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
                         value += static_cast<double>(__bfloat16_to_float(p_in[i_idx])) *
                                  static_cast<double>(__bfloat16_to_float(p_wei[w_idx]));
                     }
                 }
             }
         }
-        int o_idx    = iho * wo + iwo;
+        int o_idx    = static_cast<size_t>(iho) * wo + static_cast<size_t>(iwo);
         p_out[o_idx] = __float_to_bfloat16(static_cast<float>(value));
     }
 }
@@ -1181,9 +1265,12 @@ extern "C" __global__ void naive_conv_bwd_nchw_bf16(ushort* __restrict__ p_in,
     int in            = (bid / c_per_group) % n;
     int ig            = bid / (n * c_per_group);
 
-    p_in += in * c * hi * wi + ig * c_per_group * hi * wi + ic * hi * wi;
-    p_wei += ig * k_per_group * c_per_group * fy * fx + ic * fy * fx;
-    p_out += in * k * ho * wo + ig * k_per_group * ho * wo;
+    p_in += static_cast<size_t>(in) * c * hi * wi +
+            static_cast<size_t>(ig) * c_per_group * hi * wi + static_cast<size_t>(ic) * hi * wi;
+    p_wei += static_cast<size_t>(ig) * k_per_group * c_per_group * fy * fx +
+             static_cast<size_t>(ic) * fy * fx;
+    p_out +=
+        static_cast<size_t>(in) * k * ho * wo + static_cast<size_t>(ig) * k_per_group * ho * wo;
 
     for(int tid = threadIdx.x; tid < thread_length; tid += 256)
     {
@@ -1215,15 +1302,17 @@ extern "C" __global__ void naive_conv_bwd_nchw_bf16(ushort* __restrict__ p_in,
 
                     if(valid_h & valid_w)
                     {
-                        int o_idx = ik * ho * wo + cur_ho * wo + cur_wo;
-                        int f_idx = ik * c_per_group * fy * fx + iy * fx + ix;
+                        int o_idx = static_cast<size_t>(ik) * ho * wo +
+                                    static_cast<size_t>(cur_ho) * wo + static_cast<size_t>(cur_wo);
+                        int f_idx = static_cast<size_t>(ik) * c_per_group * fy * fx +
+                                    static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
                         value += static_cast<double>(__bfloat16_to_float(p_out[o_idx])) *
                                  static_cast<double>(__bfloat16_to_float(p_wei[f_idx]));
                     }
                 }
             }
         }
-        int i_idx   = ihi * wi + iwi;
+        int i_idx   = static_cast<size_t>(ihi) * wi + static_cast<size_t>(iwi);
         p_in[i_idx] = __float_to_bfloat16(static_cast<float>(value));
     }
 }
@@ -1260,9 +1349,10 @@ extern "C" __global__ void naive_conv_wrw_nchw_bf16(const ushort* __restrict__ p
     int ik            = bid % k_per_group;
     int ig            = bid / k_per_group;
 
-    p_in += ig * c_per_group * hi * wi;
-    p_wei += ig * k_per_group * c_per_group * fy * fx + ik * c_per_group * fy * fx;
-    p_out += ig * k_per_group * ho * wo + ik * ho * wo;
+    p_in += static_cast<size_t>(ig) * c_per_group * hi * wi;
+    p_wei += static_cast<size_t>(ig) * k_per_group * c_per_group * fy * fx +
+             static_cast<size_t>(ik) * c_per_group * fy * fx;
+    p_out += static_cast<size_t>(ig) * k_per_group * ho * wo + static_cast<size_t>(ik) * ho * wo;
 
     for(int tid = threadIdx.x; tid < thread_length; tid += 256)
     {
@@ -1289,15 +1379,19 @@ extern "C" __global__ void naive_conv_wrw_nchw_bf16(const ushort* __restrict__ p
 
                     if(valid_h & valid_w)
                     {
-                        int i_idx = in * c * hi * wi + ic * hi * wi + cur_h * wi + cur_w;
-                        int o_idx = in * k * ho * wo + iho * wo + iwo;
+                        int i_idx = static_cast<size_t>(in) * c * hi * wi +
+                                    static_cast<size_t>(ic) * hi * wi +
+                                    static_cast<size_t>(cur_h) * wi + static_cast<size_t>(cur_w);
+                        int o_idx = static_cast<size_t>(in) * k * ho * wo +
+                                    static_cast<size_t>(iho) * wo + static_cast<size_t>(iwo);
                         value += static_cast<double>(__bfloat16_to_float(p_in[i_idx])) *
                                  static_cast<double>(__bfloat16_to_float(p_out[o_idx]));
                     }
                 }
             }
         }
-        int f_idx    = ic * fy * fx + iy * fx + ix;
+        int f_idx = static_cast<size_t>(ic) * fy * fx + static_cast<size_t>(iy) * fx +
+                    static_cast<size_t>(ix);
         p_wei[f_idx] = __float_to_bfloat16(static_cast<float>(value));
     }
 }
@@ -1342,9 +1436,13 @@ extern "C" __global__ void naive_conv_fwd_ncdhw_bf16(const ushort* __restrict__ 
     int in            = (bid / k_per_group) % n;
     int ig            = bid / (n * k_per_group);
 
-    p_in += in * c * di * hi * wi + ig * c_per_group * di * hi * wi;
-    p_wei += ig * k_per_group * c_per_group * fz * fy * fx + ik * c_per_group * fz * fy * fx;
-    p_out += in * k * do_ * ho * wo + ig * k_per_group * do_ * ho * wo + ik * do_ * ho * wo;
+    p_in += static_cast<size_t>(in) * c * di * hi * wi +
+            static_cast<size_t>(ig) * c_per_group * di * hi * wi;
+    p_wei += static_cast<size_t>(ig) * k_per_group * c_per_group * fz * fy * fx +
+             static_cast<size_t>(ik) * c_per_group * fz * fy * fx;
+    p_out += static_cast<size_t>(in) * k * do_ * ho * wo +
+             static_cast<size_t>(ig) * k_per_group * do_ * ho * wo +
+             static_cast<size_t>(ik) * do_ * ho * wo;
 
     for(int tid = threadIdx.x; tid < thread_length; tid += 256)
     {
@@ -1377,8 +1475,13 @@ extern "C" __global__ void naive_conv_fwd_ncdhw_bf16(const ushort* __restrict__ 
 
                         if(valid_d & valid_w & valid_h)
                         {
-                            int i_idx = ic * di * hi * wi + cur_d * hi * wi + cur_h * wi + cur_w;
-                            int w_idx = ic * fz * fy * fx + iz * fy * fx + iy * fx + ix;
+                            int i_idx = static_cast<size_t>(ic) * di * hi * wi +
+                                        static_cast<size_t>(cur_d) * hi * wi +
+                                        static_cast<size_t>(cur_h) * wi +
+                                        static_cast<size_t>(cur_w);
+                            int w_idx = static_cast<size_t>(ic) * fz * fy * fx +
+                                        static_cast<size_t>(iz) * fy * fx +
+                                        static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
                             value += static_cast<double>(__bfloat16_to_float(p_in[i_idx])) *
                                      static_cast<double>(__bfloat16_to_float(p_wei[w_idx]));
                         }
@@ -1386,7 +1489,8 @@ extern "C" __global__ void naive_conv_fwd_ncdhw_bf16(const ushort* __restrict__ 
                 }
             }
         }
-        int o_idx    = ido * ho * wo + iho * wo + iwo;
+        int o_idx = static_cast<size_t>(ido) * ho * wo + static_cast<size_t>(iho) * wo +
+                    static_cast<size_t>(iwo);
         p_out[o_idx] = __float_to_bfloat16(static_cast<float>(value));
     }
 }
@@ -1430,9 +1534,13 @@ extern "C" __global__ void naive_conv_bwd_ncdhw_bf16(ushort* __restrict__ p_in,
     int in            = (bid / c_per_group) % n;
     int ig            = bid / (n * c_per_group);
 
-    p_in += in * c * di * hi * wi + ig * c_per_group * di * hi * wi + ic * di * hi * wi;
-    p_wei += ig * k_per_group * c_per_group * fz * fy * fx + ic * fz * fy * fx;
-    p_out += in * k * do_ * ho * wo + ig * k_per_group * do_ * ho * wo;
+    p_in += static_cast<size_t>(in) * c * di * hi * wi +
+            static_cast<size_t>(ig) * c_per_group * di * hi * wi +
+            static_cast<size_t>(ic) * di * hi * wi;
+    p_wei += static_cast<size_t>(ig) * k_per_group * c_per_group * fz * fy * fx +
+             static_cast<size_t>(ic) * fz * fy * fx;
+    p_out += static_cast<size_t>(in) * k * do_ * ho * wo +
+             static_cast<size_t>(ig) * k_per_group * do_ * ho * wo;
 
     for(int tid = threadIdx.x; tid < thread_length; tid += 256)
     {
@@ -1474,10 +1582,13 @@ extern "C" __global__ void naive_conv_bwd_ncdhw_bf16(ushort* __restrict__ p_in,
 
                         if(valid_d & valid_h & valid_w)
                         {
-                            int o_idx =
-                                ik * do_ * ho * wo + cur_do * ho * wo + cur_ho * wo + cur_wo;
-                            int f_idx =
-                                ik * c_per_group * fz * fy * fx + iz * fy * fx + iy * fx + ix;
+                            int o_idx = static_cast<size_t>(ik) * do_ * ho * wo +
+                                        static_cast<size_t>(cur_do) * ho * wo +
+                                        static_cast<size_t>(cur_ho) * wo +
+                                        static_cast<size_t>(cur_wo);
+                            int f_idx = static_cast<size_t>(ik) * c_per_group * fz * fy * fx +
+                                        static_cast<size_t>(iz) * fy * fx +
+                                        static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
                             value += static_cast<double>(__bfloat16_to_float(p_out[o_idx])) *
                                      static_cast<double>(__bfloat16_to_float(p_wei[f_idx]));
                         }
@@ -1485,7 +1596,8 @@ extern "C" __global__ void naive_conv_bwd_ncdhw_bf16(ushort* __restrict__ p_in,
                 }
             }
         }
-        int i_idx   = idi * hi * wi + ihi * wi + iwi;
+        int i_idx = static_cast<size_t>(idi) * hi * wi + static_cast<size_t>(ihi) * wi +
+                    static_cast<size_t>(iwi);
         p_in[i_idx] = __float_to_bfloat16(static_cast<float>(value));
     }
 }
@@ -1528,9 +1640,11 @@ extern "C" __global__ void naive_conv_wrw_ncdhw_bf16(const ushort* __restrict__ 
     int ik            = bid % k_per_group;
     int ig            = bid / k_per_group;
 
-    p_in += ig * c_per_group * di * hi * wi;
-    p_wei += ig * k_per_group * c_per_group * fz * fy * fx + ik * c_per_group * fz * fy * fx;
-    p_out += ig * k_per_group * do_ * ho * wo + ik * do_ * ho * wo;
+    p_in += static_cast<size_t>(ig) * c_per_group * di * hi * wi;
+    p_wei += static_cast<size_t>(ig) * k_per_group * c_per_group * fz * fy * fx +
+             static_cast<size_t>(ik) * c_per_group * fz * fy * fx;
+    p_out += static_cast<size_t>(ig) * k_per_group * do_ * ho * wo +
+             static_cast<size_t>(ik) * do_ * ho * wo;
 
     for(int tid = threadIdx.x; tid < thread_length; tid += 256)
     {
@@ -1564,9 +1678,14 @@ extern "C" __global__ void naive_conv_wrw_ncdhw_bf16(const ushort* __restrict__ 
 
                         if(valid_d & valid_h & valid_w)
                         {
-                            int i_idx = in * c * di * hi * wi + ic * di * hi * wi +
-                                        cur_d * hi * wi + cur_h * wi + cur_w;
-                            int o_idx = in * k * do_ * ho * wo + ido * ho * wo + iho * wo + iwo;
+                            int i_idx = static_cast<size_t>(in) * c * di * hi * wi +
+                                        static_cast<size_t>(ic) * di * hi * wi +
+                                        static_cast<size_t>(cur_d) * hi * wi +
+                                        static_cast<size_t>(cur_h) * wi +
+                                        static_cast<size_t>(cur_w);
+                            int o_idx = static_cast<size_t>(in) * k * do_ * ho * wo +
+                                        static_cast<size_t>(ido) * ho * wo +
+                                        static_cast<size_t>(iho) * wo + static_cast<size_t>(iwo);
                             value += static_cast<double>(__bfloat16_to_float(p_in[i_idx])) *
                                      static_cast<double>(__bfloat16_to_float(p_out[o_idx]));
                         }
@@ -1574,7 +1693,8 @@ extern "C" __global__ void naive_conv_wrw_ncdhw_bf16(const ushort* __restrict__ 
                 }
             }
         }
-        int f_idx    = ic * fz * fy * fx + iz * fy * fx + iy * fx + ix;
+        int f_idx = static_cast<size_t>(ic) * fz * fy * fx + static_cast<size_t>(iz) * fy * fx +
+                    static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
         p_wei[f_idx] = __float_to_bfloat16(static_cast<float>(value));
     }
 }
