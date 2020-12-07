@@ -2545,6 +2545,8 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuImmed()
         handle, outputTensor, weightTensor, convDesc, inputTensor, selected->solution_id, &ws_size);
     bwd_auxiliary_gwss.pause(wall_enabled);
     bwd_auxiliary.pause(wall_enabled);
+    if(rc != miopenStatusSuccess)
+        return rc;
 
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
@@ -2676,6 +2678,8 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuImmed()
         handle, outputTensor, inputTensor, convDesc, weightTensor, selected->solution_id, &ws_size);
     wrw_auxiliary_gwss.pause(wall_enabled);
     wrw_auxiliary.pause(wall_enabled);
+    if(rc != miopenStatusSuccess)
+        return rc;
 
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
