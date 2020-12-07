@@ -203,8 +203,8 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmBBlockCopyPerformancePara
             MIOPEN_THROW("invalid performance parameter");
 
         // GemmBBlockCopySrcDataPerRead_GemmN also bounded by size of threadwise copy
-        SrcDataPerRead_GemmN                  = gcd(SrcDataPerRead_GemmN, b_data_per_thread_copy);
-        int nMax                              = std::max(GemmNPerBlock / BlockSize, 1);
+        SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, b_data_per_thread_copy);
+        int nMax             = std::max(GemmNPerBlock / BlockSize, 1);
         SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, nMax);
 
         const auto data_per_thread_copy_gemmn = SrcDataPerRead_GemmN;
