@@ -696,17 +696,16 @@ static void DirConvFindCore(Handle& handle,
 
     // Precompile
     {
-        const auto size = winograd.size() + direct.size() + implictgemm.size() + fft.size();
-        std::vector<const miopen::solver::ConvSolution*> all(size);
-        std::size_t pos = 0;
+        std::vector<const miopen::solver::ConvSolution*> all;
+        all.reserve(winograd.size() + direct.size() + implictgemm.size() + fft.size());
         for(auto&& s : winograd)
-            all[pos++] = &s;
+            all.emplace_back(&s);
         for(auto&& s : direct)
-            all[pos++] = &s;
+            all.emplace_back(&s);
         for(auto&& s : implictgemm)
-            all[pos++] = &s;
+            all.emplace_back(&s);
         for(auto&& s : fft)
-            all[pos++] = &s;
+            all.emplace_back(&s);
         PrecompileSolutions(handle, all);
     }
 
@@ -2096,17 +2095,17 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
             // Precompile
             {
-                const auto size = winograd.size() + direct.size() + implictgemm.size() + fft.size();
-                std::vector<const miopen::solver::ConvSolution*> all(size);
+                std::vector<const miopen::solver::ConvSolution*> all;
+                all.reserve(winograd.size() + direct.size() + implictgemm.size() + fft.size());
                 std::size_t pos = 0;
                 for(auto&& s : winograd)
-                    all[pos++] = &s;
+                    all.emplace_back(&s);
                 for(auto&& s : direct)
-                    all[pos++] = &s;
+                    all.emplace_back(&s);
                 for(auto&& s : implictgemm)
-                    all[pos++] = &s;
+                    all.emplace_back(&s);
                 for(auto&& s : fft)
-                    all[pos++] = &s;
+                    all.emplace_back(&s);
                 PrecompileSolutions(handle, all);
             }
 
@@ -3100,15 +3099,15 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
             // Precompile Solutions
             {
-                const auto size = direct.size() + winograd.size() + implictgemm.size();
-                std::vector<const miopen::solver::ConvSolution*> all(size);
+                std::vector<const miopen::solver::ConvSolution*> all;
+                all.reserve(direct.size() + winograd.size() + implictgemm.size());
                 std::size_t pos = 0;
                 for(auto&& s : direct)
-                    all[pos++] = &s;
+                    all.emplace_back(&s);
                 for(auto&& s : winograd)
-                    all[pos++] = &s;
+                    all.emplace_back(&s);
                 for(auto&& s : implictgemm)
-                    all[pos++] = &s;
+                    all.emplace_back(&s);
                 PrecompileSolutions(handle, all);
             }
 
