@@ -520,7 +520,7 @@ std::size_t Handle::GetMaxMemoryAllocSize()
     return m_MaxMemoryAllocSizeCached;
 }
 
-std::string Handle::GetDeviceName() const
+static std::string GetDeviceNameImpl(const std::unique_ptr<HandleImpl>& handle_impl)
 {
     const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
     if(arch != nullptr && strlen(arch) > 0)
@@ -528,9 +528,15 @@ std::string Handle::GetDeviceName() const
         return arch;
     }
     hipDeviceProp_t props{};
-    hipGetDeviceProperties(&props, this->impl->device);
+    hipGetDeviceProperties(&props, handle_impl->device);
     std::string n("gfx" + std::to_string(props.gcnArch));
     return GetDeviceNameFromMap(n);
+}
+
+std::string Handle::GetDeviceName() const
+{
+    static const auto rv = GetDeviceNameImpl(this->impl);
+    return rv;
 }
 
 std::ostream& Handle::Print(std::ostream& os) const

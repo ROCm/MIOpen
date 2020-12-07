@@ -26,6 +26,8 @@
 #ifndef GUARD_MIOPEN_DEVICE_NAME_HPP
 #define GUARD_MIOPEN_DEVICE_NAME_HPP
 
+#define WORKAROUND_SWDEV_262823 1
+
 #include <map>
 #include <string>
 #include <miopen/env.hpp>
@@ -36,7 +38,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_CU)
 
 namespace miopen {
 
-std::string inline GetDeviceNameFromMap(const std::string& name)
+std::string inline GetDeviceNameFromMap(const std::string& in)
 {
 
     static std::map<std::string, std::string> device_name_map = {
@@ -49,32 +51,26 @@ std::string inline GetDeviceNameFromMap(const std::string& name)
         {"Fiji", "gfx803"},
         {"gfx800", "gfx803"},
         {"gfx802", "gfx803"},
-        {"gfx803", "gfx803"},
         {"gfx804", "gfx803"},
         {"Vega10", "gfx900"},
-        {"gfx900", "gfx900"},
         {"gfx901", "gfx900"},
-        {"gfx906", "gfx906"},
-        {"gfx908", "gfx908"},
         {"10.3.0 Sienna_Cichlid 18", "gfx1030"},
     };
 
-    std::string n(name);
     const char* const p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_ENFORCE_DEVICE{});
     if(p_asciz != nullptr && strlen(p_asciz) > 0)
-    {
-        n = p_asciz;
-    }
+        return {p_asciz};
 
-    auto device_name_iterator = device_name_map.find(n);
-    if(device_name_iterator != device_name_map.end())
-    {
-        return device_name_iterator->second;
-    }
-    else
-    {
-        return n;
-    }
+#if WORKAROUND_SWDEV_262823
+    const auto name = in.substr(0, in.find(':')); // str.substr(0, npos) returns str.
+#else
+    const auto name(in);
+#endif
+
+    auto match = device_name_map.find(name);
+    if(match != device_name_map.end())
+        return match->second;
+    return name;
 }
 
 } // namespace miopen
