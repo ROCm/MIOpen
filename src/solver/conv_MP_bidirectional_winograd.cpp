@@ -183,7 +183,7 @@ inline bool IsApplicableTransform(const ConvolutionContext& params)
         return false;
     if(!params.Is2d())
         return false;
-    if(params.direction.IsBackwardWrW())
+    if(!(params.direction.IsForward() || params.direction.IsBackwardData()))
         return false;
     if(!(params.IsFp32() || params.IsFp16()))
         return false;
