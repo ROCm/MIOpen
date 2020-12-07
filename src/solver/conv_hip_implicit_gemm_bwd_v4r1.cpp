@@ -33,6 +33,8 @@
 #include <cstddef>
 #include <numeric>
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1)
+
 namespace miopen {
 namespace solver {
 
@@ -733,8 +735,15 @@ ConvHipImplicitGemmBwdDataV4R1::CalculateGemmSize(const ConvolutionContext& ctx,
 
 bool ConvHipImplicitGemmBwdDataV4R1::IsApplicable(const ConvolutionContext& ctx) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1{}))
+        return false;
+
     if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
         return false;
+
+    if(!IsComposableKernelSupportedHardware(ctx))
+        return false;
+
 #if WORKAROUND_SWDEV_229277_227616_229195
     if(!IsHccCompiler())
         return false;
