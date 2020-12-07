@@ -71,12 +71,12 @@ std::string inline ConvDirectNaiveConvKernelName(const miopen::ConvolutionContex
 
 std::string inline ConvDirectNaiveConvKernelFile(const miopen::ConvolutionContext& ctx)
 {
-    // const auto device_name = ctx.GetStream().GetDeviceName();
-    // if(device_name == "gfx906" || device_name == "gfx908")
-    // {
-    //     if(ctx.rmv.IsV3())
-    //         return "naive_conv_gcn.s";
-    // }
+    const auto device_name = ctx.GetStream().GetDeviceName();
+    if(device_name == "gfx906" || device_name == "gfx908")
+    {
+        if(ctx.rmv.IsV3())
+            return "naive_conv_gcn.s";
+    }
     return "naive_conv.cpp";
 }
 
@@ -84,8 +84,7 @@ std::string inline ConvDirectNaiveConvCompileOption(const miopen::ConvolutionCon
 {
     const auto device_name = ctx.GetStream().GetDeviceName();
     std::string filename   = ConvDirectNaiveConvKernelFile(ctx);
-    if(miopen::EndsWith(filename, ".s") &&
-       (device_name == "gfx900" || device_name == "gfx906" || device_name == "gfx908"))
+    if(miopen::EndsWith(filename, ".s") && (device_name == "gfx906" || device_name == "gfx908"))
     {
         if(ctx.rmv.IsV3())
         {
