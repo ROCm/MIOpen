@@ -1,4 +1,4 @@
-FROM onnxmlirczar/onnx-mlir-build:x86
+FROM onnxmlirczar/onnx-mlir-build:x86@sha256:c8fdeb4f771d13398516e653ecb7ecc1d439c7ac380fc41927f1a4733c2ae092
 
 WORKDIR /build
 ENV HOME=/build

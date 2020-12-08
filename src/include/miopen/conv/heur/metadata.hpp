@@ -34,10 +34,6 @@
 #include <unordered_map>
 #include <vector>
 
-#define PPCAT_NX(A, B) A##B
-
-#define PPCAT(A, B) PPCAT_NX(A, B)
-
 namespace miopen
 {
 const std::unordered_map<int, std::string>& GetSolverMap(const Handle& /*handle*/, const ProblemDescription& problem);

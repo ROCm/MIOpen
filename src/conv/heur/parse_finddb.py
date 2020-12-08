@@ -169,61 +169,52 @@ def main():
         print('Processing file: {}'.format(filename))
         find_db_name = os.path.basename(filename)
         lst = find_db_name.split('.')
-        assert(len(lst) == 4)
-        assert(lst[2] == 'fdb')
-        assert(lst[3] == 'txt')
+        assert len(lst) == 4
+        assert lst[2] == 'fdb'
+        assert lst[3] == 'txt'
         backend = lst[1]
         if '_' in lst[0]:
           arch, num_cu = lst[0].split('_')
         else:
           arch = 'gfx908'
           num_cu = '78'
+        with open(filename) as fdb_file
+          for line in fdb_file:
+              key, val = line.split('=')
+              fds, fd_vals, precision, direction = parse_pdb_key(key)
+              sol_params = {k:v for k,v in zip(fds, fd_vals)}
+              sol_params['precision'] = precision
+              sol_params['direction'] = direction
+              sol_params['arch'] = arch
+              sol_params['num_cu'] = num_cu
+              sol_params['backend'] = backend
+              # sort the algorithms by kernel_time
+              algo_list = []
+              for sol_idx, kinder in enumerate(val.split(';')):
+                algo_map = {}
+                algo, params = kinder.split(':')
+                algo_map['algo'] = algo
+                sol_name, runtime, ws_sz, _, _ = params.split(',')
+                algo_map['sol_name'] = sol_name
+                algo_map['sol_runtime'] = runtime
+                algo_map['sol_ws_sz'] = ws_sz
+                algo_list.append(algo_map)
+              algo_list = sorted(algo_list, key = lambda x: x['sol_runtime'])
+              for idx, algo in enumerate(algo_list):
+                idx = '_' + str(idx)
+                for key, val in algo.items():
+                  sol_params[key + idx] = val
 
-        for line in open(filename):
-            key, val = line.split('=')
-            fds, fd_vals, precision, direction = parse_pdb_key(key)
-            sol_params = {k:v for k,v in zip(fds, fd_vals)}
-            sol_params['precision'] = precision
-            sol_params['direction'] = direction
-            sol_params['arch'] = arch
-            sol_params['num_cu'] = num_cu
-            sol_params['backend'] = backend
-            # sort the algorithms by kernel_time
-            algo_list = []
-            for sol_idx, kinder in enumerate(val.split(';')):
-              algo_map = {}
-              algo, params = kinder.split(':')
-              algo_map['algo'] = algo
-              sol_name, runtime, ws_sz, _, _ = params.split(',')
-              algo_map['sol_name'] = sol_name
-              algo_map['sol_runtime'] = runtime
-              algo_map['sol_ws_sz'] = ws_sz
-              algo_list.append(algo_map)
-            algo_list = sorted(algo_list, key = lambda x: x['sol_runtime'])
-            for idx, algo in enumerate(algo_list):
-              idx = '_' + str(idx)
-              for key, val in algo.items():
-                sol_params[key + idx] = val
-
-            # for sol_idx, kinder in enumerate(val.split(';')):
-            #     algo, params = kinder.split(':')
-            #     sol_params['algo_' + str(sol_idx)] = algo
-            #     sol_name, runtime, ws_sz, _, _ = params.split(',')
-            #     sol_params['sol_name_' + str(sol_idx)] = sol_name
-            #     sol_params['sol_runtime_' + str(sol_idx)] = runtime
-            #     sol_params['sol_ws_sz_' + str(sol_idx)] = ws_sz
-
-            for k in all_fds:
-                if k in sol_params.keys():
-                    all_params[k].append(sol_params[k])
-                else:
-                    all_params[k].append(None)
+              for k in all_fds:
+                  if k in sol_params.keys():
+                      all_params[k].append(sol_params[k])
+                  else:
+                      all_params[k].append(None)
 
     df = pd.DataFrame(all_params)
     df = df.dropna(how='all', axis=1);
     df['is_gemm'] = (df.algo_0 == 'miopenConvolutionFwdAlgoGEMM')
     df.to_pickle(args.out_filename)
-    # df.to_csv(args.out_filename + '.csv')
 
 if __name__=='__main__':
     main()

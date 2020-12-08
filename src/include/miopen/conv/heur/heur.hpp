@@ -72,9 +72,9 @@ struct ConvHeur
     
         MemRef2D mem_res = CallModel(handle, problem, features);
         const auto solvers = GetSolverMap(handle, problem);
-        std::vector<float> res(mem_res.aligned, mem_res.aligned + (mem_res.size0 * mem_res.size1));
+        std::vector<float> res(mem_res.data, mem_res.data + (mem_res.sizes[0] * mem_res.sizes[1]));
         // pointer returned by CallModel is allocated inside the model and needs to be freed once we have a local copy
-        delete[]mem_res.aligned;
+        delete[]mem_res.data;
         std::vector<std::pair<int, float>> sort_res;
         for(auto idx = 0; idx < res.size(); idx++)
             sort_res.push_back({idx, res[idx]});
