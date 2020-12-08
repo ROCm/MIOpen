@@ -681,8 +681,9 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
                     << " f_buf.byte_stride.g=" << f_buf.byte_stride.g); // clang-format on
                 MIOPEN_LOG_I2(" ctx.batch_sz=" << batch_sz << "ctx.n_inputs=" << n_inputs);
 
-                int reserved      = 0;
-                int* reserved_ptr = nullptr;
+                int reserved             = 0;
+                uint64_t reserved_offset = 0;
+                int* reserved_ptr        = nullptr;
 
                 handle.Run(kernels[0])(N,
                                        C,
@@ -702,8 +703,13 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
                                        pad_W,
                                        out_H,
                                        out_W,
-                                       reserved_ptr, // Unused bias_addr.
-                                       reserved,     // Unused relu_alpha.
+                                       reserved_ptr,    // Unused bias_addr.
+                                       reserved,        // Unused relu_alpha.
+                                       reserved,        // Unused reserved2.
+                                       reserved_offset, // Unused d_offset.
+                                       reserved_offset, // Unused f_offset.
+                                       reserved_offset, // Unused o_offset.
+                                       reserved_offset, // Unused b_offset.
                                        d_buf.byte_stride.nk,
                                        d_buf.byte_stride.c,
                                        d_buf.byte_stride.h,
