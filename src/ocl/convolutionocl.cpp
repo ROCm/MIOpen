@@ -2097,7 +2097,6 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             {
                 std::vector<const miopen::solver::ConvSolution*> all;
                 all.reserve(winograd.size() + direct.size() + implictgemm.size() + fft.size());
-                std::size_t pos = 0;
                 for(auto&& s : winograd)
                     all.emplace_back(&s);
                 for(auto&& s : direct)
@@ -3101,7 +3100,6 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             {
                 std::vector<const miopen::solver::ConvSolution*> all;
                 all.reserve(direct.size() + winograd.size() + implictgemm.size());
-                std::size_t pos = 0;
                 for(auto&& s : direct)
                     all.emplace_back(&s);
                 for(auto&& s : winograd)
