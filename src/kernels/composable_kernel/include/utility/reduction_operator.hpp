@@ -26,7 +26,9 @@
 #ifndef CK_REDUCTION_OPERATOR_HPP
 #define CK_REDUCTION_OPERATOR_HPP
 
+#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include <limits>
+#endif
 #include "reduction_common.hpp"
 
 namespace ck {

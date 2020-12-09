@@ -92,8 +92,7 @@ size_t GemmFwd1x1_0_2::GetWorkspaceSize(const ExecutionContext& context,
     decltype(auto) yDesc  = problem.GetOut();
 
     const auto gemm_trans = conv.ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc);
-    /// \todo WORKAROUND for issue 1430
-    if(gemm_trans > MAX_MEM_ALLOC_SZ /* handle.GetMaxMemoryAllocSize() */)
+    if(gemm_trans > MAX_MEM_ALLOC_SZ)
         return 0;
     return gemm_trans;
 #else
@@ -327,15 +326,14 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
 size_t GemmFwd1x1_0_1_int8::GetWorkspaceSize(const ExecutionContext& context,
                                              const conv::ProblemDescription& problem) const
 {
-#if MIOPEN_USE_GEMM || 1
+#if MIOPEN_USE_GEMM
     decltype(auto) handle = context.GetStream();
     decltype(auto) conv   = problem.GetConv();
     decltype(auto) wDesc  = problem.GetWeights();
     decltype(auto) yDesc  = problem.GetOut();
 
     const auto ws_size = conv.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc);
-    /// \todo WORKAROUND for issue 1430
-    if(ws_size > MAX_MEM_ALLOC_SZ /* handle.GetMaxMemoryAllocSize() */)
+    if(ws_size > MAX_MEM_ALLOC_SZ)
         return 0;
     return ws_size;
 #else
@@ -738,8 +736,7 @@ size_t GemmFwdRest::GetWorkspaceSize(const ExecutionContext& context,
 
     const auto ws_sz = (wDesc.GetType() == miopenInt8 ? 2 * workspace_size : workspace_size);
 
-    /// \todo WORKAROUND for issue 1430
-    if(ws_sz > MAX_MEM_ALLOC_SZ /* handle.GetMaxMemoryAllocSize() */)
+    if(ws_sz > MAX_MEM_ALLOC_SZ)
         return 0;
     return ws_sz;
 #else

@@ -27,6 +27,7 @@
 #define GUARD_MIOPEN_CONVOLUTION_HPP_
 
 #include <miopen/common.hpp>
+#include <miopen/find_controls.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/miopen.h>
 #include <miopen/object.hpp>
@@ -201,7 +202,8 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                              const TensorDescriptor& yDesc,
                              size_t maxSolutionCount,
                              size_t* solutionCount,
-                             miopenConvSolution_t* solutions) const;
+                             miopenConvSolution_t* solutions,
+                             bool* fallbackPathTaken) const;
 
     void CompileForwardSolution(Handle& handle,
                                 const TensorDescriptor& wDesc,
@@ -275,7 +277,8 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                               const TensorDescriptor& dxDesc,
                               size_t maxSolutionCount,
                               size_t* solutionCount,
-                              miopenConvSolution_t* solutions) const;
+                              miopenConvSolution_t* solutions,
+                              bool* fallbackPathTaken) const;
 
     void CompileBackwardSolution(Handle& handle,
                                  const TensorDescriptor& dyDesc,
@@ -311,7 +314,8 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                          const TensorDescriptor& dwDesc,
                          size_t maxSolutionCount,
                          size_t* solutionCount,
-                         miopenConvSolution_t* solutions) const;
+                         miopenConvSolution_t* solutions,
+                         bool* fallbackPathTaken) const;
 
     void CompileWrwSolution(Handle& handle,
                             const TensorDescriptor& dyDesc,
@@ -386,6 +390,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     std::vector<int> trans_output_pads;
     int group_count;
     float lowp_quant; // quantization factor for low precision
+    FindMode findMode;
 
     private:
     void ConvBwdGemm(Handle& handle,
@@ -409,29 +414,15 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                Data_t workSpace,
                                const TKernels& kernels) const;
 
-    std::size_t GetFwdSolutionWorkspaceSizeFallback(Handle& handle,
-                                                    const TensorDescriptor& wDesc,
-                                                    const TensorDescriptor& xDesc,
-                                                    const TensorDescriptor& yDesc,
-                                                    solver::Id solver_id) const;
+    void GetSolutionsFallback(Handle& handle,
+                              const ProblemDescription& problem,
+                              size_t maxSolutionCount,
+                              size_t* solutionCount,
+                              miopenConvSolution_t* solutions) const;
 
-    std::size_t GetBwdSolutionWorkspaceSizeFallback(const TensorDescriptor& dyDesc,
-                                                    const TensorDescriptor& wDesc,
-                                                    const TensorDescriptor& dxDesc,
-                                                    solver::Id solver_id) const;
-
-    void GetForwardSolutionsFallback(const ConvolutionContext& ctx,
-                                     size_t maxSolutionCount,
-                                     size_t* solutionCount,
-                                     miopenConvSolution_t* solutions) const;
-
-    void GetBwdSolutionsFallback(Handle& handle,
-                                 const TensorDescriptor& dyDesc,
-                                 const TensorDescriptor& wDesc,
-                                 const TensorDescriptor& dxDesc,
-                                 size_t maxSolutionCount,
-                                 size_t* solutionCount,
-                                 miopenConvSolution_t* solutions) const;
+    bool IsGemmApplicableFwd(const TensorDescriptor& wDesc,
+                             const TensorDescriptor& xDesc,
+                             const TensorDescriptor& yDesc) const;
 
     bool IsGemmApplicableBwd(const TensorDescriptor& dyDesc,
                              const TensorDescriptor& wDesc,
@@ -441,31 +432,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                              const TensorDescriptor& xDesc,
                              const TensorDescriptor& dwDesc) const;
 
-    std::size_t GetFwdSolutionCountFallback(const TensorDescriptor& wDesc,
-                                            const TensorDescriptor& xDesc,
-                                            const TensorDescriptor& yDesc) const;
-
-    std::size_t GetBwdSolutionCountFallback(const TensorDescriptor& dyDesc,
-                                            const TensorDescriptor& wDesc,
-                                            const TensorDescriptor& dxDesc) const;
-
-    std::size_t GetWrwSolutionCountFallback(const TensorDescriptor& dyDesc,
-                                            const TensorDescriptor& xDesc,
-                                            const TensorDescriptor& dwDesc) const;
-
-    void GetWrwSolutionsFallback(Handle& handle,
-                                 const TensorDescriptor& dyDesc,
-                                 const TensorDescriptor& xDesc,
-                                 const TensorDescriptor& dwDesc,
-                                 size_t maxSolutionCount,
-                                 size_t* solutionCount,
-                                 miopenConvSolution_t* solutions) const;
-
-    std::size_t GetWrwSolutionWorkspaceSizeFallback(Handle& handle,
-                                                    const TensorDescriptor& dyDesc,
-                                                    const TensorDescriptor& xDesc,
-                                                    const TensorDescriptor& dwDesc,
-                                                    solver::Id solver_id) const;
+    std::size_t GetSolutionCountFallback(Handle& handle, const ProblemDescription& problem) const;
 };
 
 void ConvolutionBackwardBias(const Handle& handle,
