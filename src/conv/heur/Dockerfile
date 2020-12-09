@@ -20,7 +20,7 @@ RUN rm -rf /build/onnx-mlir
 RUN git clone --recursive -b keep_tmp https://github.com/JehandadKhan/onnx-mlir /build/onnx-mlir
 ENV LLVM_PROJ_SRC="/build/llvm-project/"
 ENV LLVM_PROJ_BUILD="/build/llvm-project/build"
-RUN mkdir /build/onnx-mlir/build && cd /build/onnx-mlir/build && cmake .. && cmake --build .  -- -j
+RUN mkdir /build/onnx-mlir/build && cd /build/onnx-mlir/build && cmake .. && cmake --build .  -- -j $(nproc)
 
 # save off path w/o virtualenv
 ENV ONNX_MLIR_VERBOSE=1

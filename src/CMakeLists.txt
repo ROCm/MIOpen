@@ -513,6 +513,9 @@ if(MIOPEN_ENABLE_HEUR)
     list(APPEND MIOpen_Source conv/heur/metadata.cpp)
     list(APPEND MIOPEN_Source include/miopen/memref.hpp)
     list(APPEND MIOPEN_Source include/miopen/metadata.hpp)
+    # metadata.cpp links agains externally compiled objects therefore uses extern "C" 
+    # however, the return type is templatized to allow other parts of the library to use the MemRef.
+    set_source_files_properties(conv/heur/metadata.cpp PROPERTIES COMPILE_FLAGS "-Wno-return-type-c-linkage ")
 else()
     set(HEUR_OBJS )
 endif()
