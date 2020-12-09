@@ -64,6 +64,9 @@ struct ConvHeur
         if(!IsApplicable(handle, problem))
             return {solver::Id::gemm().Value()}; // the fallback for the fallback
         const auto& p = problem.conv_problem;
+        std::string est_name = ":memory:" + direction + arch + precision;
+        auto& db = RamDb::GetCached(est_name, false);
+        auto res = db.FindRecord(p);
         // TODO: define the number of features and a static way to ensure the correct ordering of features
         Tensor2D features{1, 11};
         // Note some features are fed after log2, this results in improved accuracy
