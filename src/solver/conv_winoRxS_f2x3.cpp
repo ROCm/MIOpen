@@ -451,9 +451,10 @@ static bool IsApplicableBase(const ConvolutionContext& params)
         return false;
 
     const auto name = params.GetStream().GetDeviceName();
-    if(!(StartsWith(name, "gfx9")))
+    if(!(StartsWith(name, "gfx9") || StartsWith(name, "gfx10")))
         return false;
-    if(params.IsFp16() && !(StartsWith(name, "gfx906") || StartsWith(name, "gfx908")))
+    if(params.IsFp16() &&
+       !(StartsWith(name, "gfx906") || StartsWith(name, "gfx908") || StartsWith(name, "gfx10")))
         return false;
 
     // clang-format off
@@ -557,13 +558,17 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
         }
     }
 
+    const auto name    = params.GetStream().GetDeviceName();
+    const auto is_gfx9 = StartsWith(name, "gfx9");
+    size_t wg_size     = is_gfx9 ? 512 : 256;
+
     KernelInfo kernel;
 
-    kernel.g_wk.push_back(512 * pcfg->GetNGroups() * params.group_counts);
+    kernel.g_wk.push_back(wg_size * pcfg->GetNGroups() * params.group_counts);
     kernel.g_wk.push_back(1);
     kernel.g_wk.push_back(1);
 
-    kernel.l_wk.push_back(512);
+    kernel.l_wk.push_back(wg_size);
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
@@ -574,7 +579,17 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
 
     std::string kernel_name    = "miopenSp3AsmConv";
     std::string kernel_file    = "Conv_Winograd";
-    std::string kernel_postfix = "_v21_1_2_gfx9";
+    std::string kernel_postfix = "_v21_1_2";
+
+    if(is_gfx9)
+    {
+        kernel_postfix += "_gfx9";
+    }
+    else // if(StartsWith(name, "gfx10"))
+    {
+        kernel_postfix += "_gfx10";
+        kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
+    }
 
     if(params.IsFp32())
         kernel_postfix += "_fp32";
