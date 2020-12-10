@@ -212,25 +212,24 @@ set( MIOpen_Source
     solver/conv_ocl_dir2D_bwdWrW_1x1.cpp
     solver/conv_ocl_dir2Dfwdgen.cpp
     solver/conv_ocl_dir2D11x11.cpp
-    solver/conv_ocl_dir2D3x3.cpp
     solver/conv_ocl_dir2Dfwd_exhaustive_search.cpp
     solver/conv_ocl_dir2Dfwd.cpp
     solver/conv_ocl_dir2Dfwd1x1.cpp
-    solver/conv_hip_implicit_gemm_v4r1.cpp
-    solver/conv_hip_implicit_gemm_v4r4.cpp
+    solver/conv_hip_implicit_gemm_fwd_v4r1.cpp
+    solver/conv_hip_implicit_gemm_fwd_v4r4.cpp
     solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops_padded_gemm.cpp
     solver/conv_hip_implicit_gemm_fwd_v4r5_xdlops.cpp
-    solver/conv_hip_implicit_gemm_wrw_weights_v4r4.cpp
+    solver/conv_hip_implicit_gemm_wrw_v4r4.cpp
     solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops.cpp
     solver/conv_hip_implicit_gemm_xdlops_common.cpp
     solver/conv_hip_implicit_gemm_nonxdlops_common.cpp
-    solver/conv_hip_implicit_gemm_bwd_data_v1r1.cpp
-    solver/conv_hip_implicit_gemm_bwd_data_v4r1.cpp
-    solver/conv_hip_implicit_gemm_bwd_data_v4r1_xdlops.cpp
+    solver/conv_hip_implicit_gemm_bwd_v1r1.cpp
+    solver/conv_hip_implicit_gemm_bwd_v4r1.cpp
+    solver/conv_hip_implicit_gemm_bwd_v4r1_xdlops.cpp
     solver/conv_asm_implicit_gemm_v4r1_dynamic.cpp
     solver/conv_asm_implicit_gemm_wrw_v4r1_dynamic.cpp
     solver/conv_asm_implicit_gemm_wrw_gtc_dynamic_xdlops.cpp
-    solver/conv_hip_implicit_gemm_bwd_v1r1_xdlops_nchw_kcyx_nkhw.cpp
+    solver/conv_hip_implicit_gemm_bwd_v1r1_xdlops.cpp
     solver/conv_asm_implicit_gemm_bwd_v4r1_dynamic.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops_padded_gemm.cpp
@@ -341,7 +340,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConv1x1J1.cl
         kernels/MIOpenConv1x1J1_stride.cl
         kernels/MIOpenSoftmax.cl
-        kernels/MIOpenConvD3x3.cl
         kernels/MIOpenUtilKernels3.cl
         kernels/MIOpenUtilKernels4.cl
         kernels/MIOpenUtilKernels5.cl

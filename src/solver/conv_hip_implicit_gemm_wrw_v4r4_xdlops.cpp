@@ -36,12 +36,20 @@
 #include <miopen/tensor_ops.hpp>
 #include <miopen/implicitgemm_params.hpp>
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_XDLOPS)
+
 namespace miopen {
 namespace solver {
 
 PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops()
     : PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops(
-          4, 4, 1, 4, 4, 1, false, false)
+          4, 4, 1, 4, 4, 1, false, false, false)
+{
+}
+
+PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops(bool spare)
+    : PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops(
+          4, 4, 1, 4, 4, 1, false, false, spare)
 {
 }
 
@@ -53,7 +61,8 @@ PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops(
     int GemmNPerWave_,
     int GemmKPack_,
     bool GemmAThreadCopyMoreGemmK_,
-    bool GemmBThreadCopyMoreGemmK_)
+    bool GemmBThreadCopyMoreGemmK_,
+    bool use_spare_set_)
     : GemmMPerBlock(GemmMPerBlock_),
       GemmNPerBlock(GemmNPerBlock_),
       GemmKPerBlock(GemmKPerBlock_),
@@ -61,7 +70,8 @@ PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops(
       GemmNPerWave(GemmNPerWave_),
       GemmKPack(GemmKPack_),
       GemmAThreadCopyMoreGemmK(GemmAThreadCopyMoreGemmK_),
-      GemmBThreadCopyMoreGemmK(GemmBThreadCopyMoreGemmK_)
+      GemmBThreadCopyMoreGemmK(GemmBThreadCopyMoreGemmK_),
+      use_spare_set(use_spare_set_)
 {
 }
 
@@ -76,7 +86,8 @@ operator==(const PerformanceImplicitGemmWrwV4R4Xdlops& other) const
         && GemmNPerWave == other.GemmNPerWave
         && GemmKPack == other.GemmKPack
         && GemmAThreadCopyMoreGemmK  == other.GemmAThreadCopyMoreGemmK
-        && GemmBThreadCopyMoreGemmK  == other.GemmBThreadCopyMoreGemmK;
+        && GemmBThreadCopyMoreGemmK  == other.GemmBThreadCopyMoreGemmK
+        && use_spare_set == other.use_spare_set;
     // clang-format on
 }
 
@@ -681,6 +692,9 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::IsReallyValid(const ConvolutionContex
 bool PerformanceImplicitGemmWrwV4R4Xdlops::IsFastToBeUsedForTuning(
     const ConvolutionContext& ctx) const
 {
+
+    if(use_spare_set)
+        return true;
     // somehow, 128x128 wave-wise GEMM tend to spill register
     // TODO revisit this when 128x128 wave-wise GEMM become efficient
     {
@@ -709,27 +723,30 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::IsFastToBeUsedForTuning(
 
         const float ratio = float(grid_size) / grid_size_max_blockwise_gemm;
 
-        if(grid_size_max_blockwise_gemm > 600)
+        const auto num_cu = ctx.GetStream().GetMaxComputeUnits();
+
+        // heuristic to exclude performance paramater that result in very large number of blocks
+        if(grid_size_max_blockwise_gemm > 5 * num_cu)
         {
             if(ratio > 2.81)
                 return false;
         }
-        if(grid_size_max_blockwise_gemm > 480)
+        else if(grid_size_max_blockwise_gemm > 4 * num_cu)
         {
             if(ratio > 3.61)
                 return false;
         }
-        if(grid_size_max_blockwise_gemm > 360)
+        else if(grid_size_max_blockwise_gemm > 3 * num_cu)
         {
             if(ratio > 4.41)
                 return false;
         }
-        if(grid_size_max_blockwise_gemm > 240)
+        else if(grid_size_max_blockwise_gemm > 2 * num_cu)
         {
             if(ratio > 6.41)
                 return false;
         }
-        else if(grid_size_max_blockwise_gemm > 120)
+        else if(grid_size_max_blockwise_gemm > num_cu)
         {
             if(ratio > 12.41)
                 return false;
@@ -1015,10 +1032,19 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
 
 bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_XDLOPS{}))
+        return false;
+
     if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
         return false;
 
     if(!ctx.use_hip_kernels)
+        return false;
+
+    if(!IsComposableKernelSupportedHardware(ctx))
+        return false;
+
+    if(!IsXdlopsSupport(ctx))
         return false;
 
     if(!IsXdlopsSupport(ctx))
