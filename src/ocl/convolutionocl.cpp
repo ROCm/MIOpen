@@ -240,6 +240,25 @@ ConvolutionDescriptor::FindDataImplicitGemmSolutions(Handle& handle,
     }
 }
 
+std::vector<miopen::solver::ConvSolution>
+ConvolutionDescriptor::FindFftSolutions(const ConvolutionContext& ctx,
+                                        const AnyInvokeParams& invoke_ctx) const
+{
+
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT{}))
+        return {};
+
+    try
+    {
+        return FindAllFFTSolutions(ctx, invoke_ctx);
+    }
+    catch(miopen::Exception& ex)
+    {
+        MIOPEN_LOG_WE(ex.what());
+        return {};
+    }
+}
+
 template <class InvokeParams>
 static void EvaluateInvokers(Handle& handle,
                              const std::vector<solver::ConvSolution>& solutions,
@@ -691,9 +710,9 @@ static void DirConvFindCore(Handle& handle,
     }
 
     // FFT algo
-    if(!use_winograd_only && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT{}))
+    if(!use_winograd_only)
     {
-        const auto all            = FindAllFFTSolutions(ctx, invoke_ctx);
+        const auto all            = conv.FindFftSolutions(ctx, invoke_ctx);
         const auto algorithm_name = AlgorithmName{"miopenConvolutionFwdAlgoFFT"};
         PrecompileSolutions(handle, all);
         EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
@@ -2003,10 +2022,10 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
             }
 
-            if(!use_winograd_only && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT{}))
+            if(!use_winograd_only)
             {
                 // FFT algo
-                const auto all            = FindAllFFTSolutions(ctx, invoke_ctx);
+                const auto all            = FindFftSolutions(ctx, invoke_ctx);
                 const auto algorithm_name = AlgorithmName{"miopenConvolutionBwdDataAlgoFFT"};
                 PrecompileSolutions(handle, all);
                 EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
