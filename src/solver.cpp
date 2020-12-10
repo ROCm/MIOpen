@@ -251,7 +251,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     // Several ids w/o solver for immediate mode
     Register(registry, ++id, "gemm", miopenConvolutionAlgoGEMM);
-    Register(registry, ++id, "fft", miopenConvolutionAlgoFFT);
+    RegisterWithSolver(registry, ++id, fft{}, miopenConvolutionAlgoFFT);
     RegisterWithSolver(
         registry, ++id, ConvWinograd3x3MultipassWrW<3, 4>{}, miopenConvolutionAlgoWinograd);
     ++id; // Id for ConvSCGemmFGemm.
@@ -374,7 +374,10 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
                        ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm{},
                        miopenConvolutionAlgoImplicitGEMM);
 
-    RegisterWithSolver(registry, ++id, ConvCellfft{}, miopenConvolutionAlgoCellfft);
+    RegisterWithSolver(registry, ++id, ConvBinWinogradRxSf2x3g1{}, miopenConvolutionAlgoWinograd);
+
+    RegisterWithSolver(registry, ++id, ConvCellfft{}, miopenConvolutionAlgoFFT);
+
 }
 
 } // namespace solver

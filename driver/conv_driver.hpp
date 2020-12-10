@@ -48,6 +48,7 @@
 #include <fstream>
 #include <memory>
 #include <miopen/miopen.h>
+#include <miopen/miopen_internal.h>
 #include <miopen/tensor.hpp>
 #include <miopen/env.hpp>
 #include <miopen/algorithm.hpp>
@@ -69,6 +70,10 @@
 #include <../test/cpu_bias.hpp>
 
 #include <boost/optional.hpp>
+
+// Declare hidden function for MIGraphX to smoke test it.
+extern "C" miopenStatus_t miopenHiddenSetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc,
+                                                             int findMode);
 
 #define WORKAROUND_ISSUE_2176 1 // https://github.com/AMDComputeLibraries/MLOpen/issues/2176
 
@@ -99,10 +104,8 @@ struct AutoMiopenWarmupMode
     {
         debug_logging_quiet_prev          = miopen::debug::LoggingQuiet;
         debug_find_enforce_disable_prev   = miopen::debug::FindEnforceDisable;
-        debug_find_mode_disable_prev      = miopen::debug::FindModeDisable;
         miopen::debug::LoggingQuiet       = true;
         miopen::debug::FindEnforceDisable = true;
-        miopen::debug::FindModeDisable    = true;
     }
     AutoMiopenWarmupMode(const AutoMiopenWarmupMode&) = delete;
     AutoMiopenWarmupMode(AutoMiopenWarmupMode&&)      = delete;
@@ -112,13 +115,11 @@ struct AutoMiopenWarmupMode
     {
         miopen::debug::LoggingQuiet       = debug_logging_quiet_prev;
         miopen::debug::FindEnforceDisable = debug_find_enforce_disable_prev;
-        miopen::debug::FindModeDisable    = debug_find_mode_disable_prev;
     }
 
     private:
     bool debug_logging_quiet_prev;
     bool debug_find_enforce_disable_prev;
-    bool debug_find_mode_disable_prev;
 };
 
 template <typename T>
@@ -308,7 +309,6 @@ class ConvDriver : public Driver
     bool is_wrw_igemm    = false;
     bool is_fwd_igemm    = false;
     bool is_bwd_igemm    = false;
-    bool is_bww_cellfft  = false;
     bool time_enabled    = false;
     bool wall_enabled    = false;
     bool warmup_enabled  = false;
@@ -515,6 +515,10 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
                                           conv_strides.data(),
                                           conv_dilations.data(),
                                           mode);
+        miopenSetConvolutionFindMode(warmupConvDesc, miopenConvolutionFindModeNormal);
+        miopenHiddenSetConvolutionFindMode(
+            warmupConvDesc,
+            static_cast<int>(miopenConvolutionFindModeNormal)); // Repeat via hidden API.
         miopenSetConvolutionGroupCount(warmupConvDesc, group_count);
 
         int warmup_out_len_size = miopen::deref(warmupInputTensor).GetSize();
@@ -942,7 +946,6 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     ws_sizeof_find_fwd = 0;
     ws_sizeof_find_wrw = 0;
     ws_sizeof_find_bwd = 0;
-
     if(warmup_enabled)
     {
         do
@@ -2303,7 +2306,6 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuFind()
     const auto ws_size = perf_results_weights[0].memory;
     is_wrw_winograd    = (algo == miopenConvolutionBwdWeightsAlgoWinograd);
     is_wrw_igemm       = (algo == miopenConvolutionBwdWeightsAlgoImplicitGEMM);
-    is_bww_cellfft     = (algo == miopenConvolutionBwdWeightsAlgoCellfft);
 
     ResizeWorkspaceDev(ctx, ws_size);
     wall.start(wall_enabled);
@@ -2722,7 +2724,6 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuImmed()
 
     is_wrw_winograd = (selected->algorithm == miopenConvolutionAlgoWinograd);
     is_wrw_igemm    = (selected->algorithm == miopenConvolutionAlgoImplicitGEMM);
-    is_bww_cellfft  = (selected->algorithm == miopenConvolutionAlgoCellfft);
     dwei_dev->FromGPU(GetStream(), dwei.data());
     return rc;
 }
@@ -3027,11 +3028,6 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
 #endif
             else if(std::is_same<Tgpu, float16>::value)
                 tolerance *= 5;
-        }
-        else if(is_bww_cellfft)
-        {
-            if(std::is_same<Tgpu, float>::value)
-                tolerance *= 10;
         }
 
         auto error_weights = is_wrw_run_failed ? std::numeric_limits<double>::max()

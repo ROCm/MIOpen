@@ -153,6 +153,7 @@ static auto GetWindogradSolvers()
     return miopen::solver::SolverContainer<miopen::solver::ConvBinWinograd3x3U,
                                            miopen::solver::ConvBinWinogradRxSf3x2,
                                            miopen::solver::ConvBinWinogradRxSf2x3,
+                                           miopen::solver::ConvBinWinogradRxSf2x3g1,
                                            miopen::solver::ConvBinWinogradRxS,
                                            miopen::solver::ConvMPBidirectWinograd<3, 3>,
                                            miopen::solver::ConvMPBidirectWinograd<4, 3>,
@@ -180,6 +181,7 @@ static auto GetWindogradWrWSolvers()
 {
     return miopen::solver::SolverContainer<miopen::solver::ConvBinWinogradRxS,
                                            miopen::solver::ConvBinWinogradRxSf2x3,
+                                           miopen::solver::ConvBinWinogradRxSf2x3g1,
                                            miopen::solver::ConvWinograd3x3MultipassWrW<3, 2>,
                                            miopen::solver::ConvWinograd3x3MultipassWrW<3, 3>,
                                            miopen::solver::ConvWinograd3x3MultipassWrW<3, 4>,
@@ -209,9 +211,15 @@ static auto GetBwdWrW2DSolvers()
                                            miopen::solver::ConvOclBwdWrW1x1>{};
 }
 
-static auto GetCellfftSolvers()
-{
-    return miopen::solver::SolverContainer<miopen::solver::ConvCellfft>{};
+static auto GetFFTSolvers() { 
+    return miopen::solver::SolverContainer<
+        miopen::solver::fft,
+        miopen::solver::ConvCellfft>{};
+}
+
+static auto GetWrwFFTSolvers() { 
+    return miopen::solver::SolverContainer<
+        miopen::solver::ConvCellfft>{};
 }
 
 std::vector<miopen::solver::ConvSolution>
@@ -283,10 +291,23 @@ FindAllBwdWrW2DSolutions(const miopen::ConvolutionContext& ctx,
 }
 
 std::vector<miopen::solver::ConvSolution>
-FindCellfftSolution(const miopen::ConvolutionContext& ctx,
+FindAllFFTSolutions(const miopen::ConvolutionContext& ctx,
                     const miopen::AnyInvokeParams& invoke_ctx)
 {
-    return GetCellfftSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
+    return GetFFTSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
+}
+
+std::vector<miopen::solver::ConvSolution>
+FindFFTWrWAllSolutions(const miopen::ConvolutionContext& ctx,
+                            const miopen::AnyInvokeParams& invoke_ctx)
+{
+    return GetWrwFFTSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
+}
+
+std::vector<std::pair<std::string, size_t>>
+AllFFTForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx)
+{
+    return GetFFTSolvers().GetWorkspaceSize(ctx);
 }
 
 void miopen::ConvolutionContext::SetupFloats()
