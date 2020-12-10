@@ -59,8 +59,8 @@ amdhsa.kernels:
     - { .size: 4, .offset:  20, .value_kind: by_value, .value_type: i32, .name: n_groups }
     - { .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32, .name: flags }
     - { .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32, .name: reserved  }
-    - { .size: 8, .offset:  32, .value_kind: global_buffer, .value_type: f32, .name: in,   .address_space: global, .is_const: false }
-    - { .size: 8, .offset:  40, .value_kind: global_buffer, .value_type: f32, .name: weights,    .address_space: global, .is_const: false }
+    - { .size: 8, .offset:  32, .value_kind: global_buffer, .value_type: f32, .name: in,   .address_space: global, .is_const: true }
+    - { .size: 8, .offset:  40, .value_kind: global_buffer, .value_type: f32, .name: weights,    .address_space: global, .is_const: true }
     - { .size: 8, .offset:  48, .value_kind: global_buffer, .value_type: f32, .name: out, .address_space: global, .is_const: false }
     - { .size: 8, .offset:  56, .value_kind: global_buffer, .value_type: f32, .name: rsv_ptr,     .address_space: global, .is_const: false }
     - { .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32, .name: R }
