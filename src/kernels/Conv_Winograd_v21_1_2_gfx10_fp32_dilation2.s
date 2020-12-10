@@ -29,4 +29,4 @@ KERNEL_PROLOG gfx10_fp32_dilation2
 
 .include "Conv_Winograd_v21_1_2_gfx10_fp32_dilation2.inc"
 
-GFX10_KERNEL_EPILOG gfx10_fp32_dilation2
+KERNEL_EPILOG gfx10_fp32_dilation2

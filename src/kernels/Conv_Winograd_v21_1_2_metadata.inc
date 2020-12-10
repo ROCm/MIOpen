@@ -113,12 +113,23 @@ s_endpgm
    .size \kernel_name, .Lfunc_end0 - \kernel_name
 .endm
 
-.macro EPILOG_KERNEL_DESCRIPTOR kernel_name, workgroup_size_x:req, vgpr_size:req
+.macro EPILOG_KERNEL_DESCRIPTOR kernel_name
 
 kernel_end \kernel_name
 
+.if (.amdgcn.gfx_generation_number == 9)
+    vgpr_size = 128
+    workgroup_size_x = 512
+.elseif (.amdgcn.gfx_generation_number == 10)
+    vgpr_size = 256
+    workgroup_size_x = 256
+.else
+    .error "Unsupported gfx generation"
+    .end
+.endif
+
 .amdgcn.next_free_sgpr = 101
-.amdgcn.next_free_vgpr = \vgpr_size
+.amdgcn.next_free_vgpr = vgpr_size
 
 //xnack disabled by default for asm kernels
 __sgpr_reserve_vcc_default = 1
@@ -147,7 +158,7 @@ __sgpr_reserve_flatscr_default = 0
 
 total_sgpr_count = .amdgcn.next_free_sgpr + 4 // vcc, xnack
 
-METADATA_WRAPPER total_sgpr_count,.amdgcn.next_free_vgpr,\workgroup_size_x, <\kernel_name>
+METADATA_WRAPPER total_sgpr_count,.amdgcn.next_free_vgpr,workgroup_size_x, <\kernel_name>
 
 .endm
 
@@ -155,11 +166,6 @@ METADATA_WRAPPER total_sgpr_count,.amdgcn.next_free_vgpr,\workgroup_size_x, <\ke
 	PROLOG_KERNEL_DESCRIPTOR miopenSp3AsmConv_v21_1_2_\kernel_name_postfix
 .endm
 
-.macro GFX9_KERNEL_EPILOG kernel_name_postfix
-	EPILOG_KERNEL_DESCRIPTOR miopenSp3AsmConv_v21_1_2_\kernel_name_postfix, 512, 128
+.macro KERNEL_EPILOG kernel_name_postfix
+	EPILOG_KERNEL_DESCRIPTOR miopenSp3AsmConv_v21_1_2_\kernel_name_postfix
 .endm
-
-.macro GFX10_KERNEL_EPILOG kernel_name_postfix
-	EPILOG_KERNEL_DESCRIPTOR miopenSp3AsmConv_v21_1_2_\kernel_name_postfix, 256, 256
-.endm
-
