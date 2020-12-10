@@ -29,4 +29,4 @@ KERNEL_PROLOG gfx9_fp32_stride2_group
 
 .include "Conv_Winograd_v21_1_2_gfx9_fp32_stride2_group.inc"
 
-KERNEL_EPILOG gfx9_fp32_stride2_group
+GFX9_KERNEL_EPILOG gfx9_fp32_stride2_group

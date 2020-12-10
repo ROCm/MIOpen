@@ -29,4 +29,4 @@ KERNEL_PROLOG gfx9_fp16_dot2_edc_stride1
 
 .include "Conv_Winograd_v21_1_2_gfx9_fp16_dot2_edc_stride1.inc"
 
-KERNEL_EPILOG gfx9_fp16_dot2_edc_stride1
+GFX9_KERNEL_EPILOG gfx9_fp16_dot2_edc_stride1

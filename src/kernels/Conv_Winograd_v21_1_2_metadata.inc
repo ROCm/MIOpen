@@ -113,13 +113,12 @@ s_endpgm
    .size \kernel_name, .Lfunc_end0 - \kernel_name
 .endm
 
-.macro EPILOG_KERNEL_DESCRIPTOR kernel_name
+.macro EPILOG_KERNEL_DESCRIPTOR kernel_name, workgroup_size_x:req, vgpr_size:req
 
 kernel_end \kernel_name
 
-workgroup_size_x = 512
 .amdgcn.next_free_sgpr = 101
-.amdgcn.next_free_vgpr = 128
+.amdgcn.next_free_vgpr = \vgpr_size
 
 //xnack disabled by default for asm kernels
 __sgpr_reserve_vcc_default = 1
@@ -146,14 +145,9 @@ __sgpr_reserve_flatscr_default = 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
 
-.ifnotdef workgroup_size_x
-    .error "workgroup_size_x must be defined"
-    .end
-.endif
-
 total_sgpr_count = .amdgcn.next_free_sgpr + 4 // vcc, xnack
 
-METADATA_WRAPPER total_sgpr_count,.amdgcn.next_free_vgpr,workgroup_size_x, <\kernel_name>
+METADATA_WRAPPER total_sgpr_count,.amdgcn.next_free_vgpr,\workgroup_size_x, <\kernel_name>
 
 .endm
 
@@ -161,7 +155,11 @@ METADATA_WRAPPER total_sgpr_count,.amdgcn.next_free_vgpr,workgroup_size_x, <\ker
 	PROLOG_KERNEL_DESCRIPTOR miopenSp3AsmConv_v21_1_2_\kernel_name_postfix
 .endm
 
-.macro KERNEL_EPILOG kernel_name_postfix
-	EPILOG_KERNEL_DESCRIPTOR miopenSp3AsmConv_v21_1_2_\kernel_name_postfix
+.macro GFX9_KERNEL_EPILOG kernel_name_postfix
+	EPILOG_KERNEL_DESCRIPTOR miopenSp3AsmConv_v21_1_2_\kernel_name_postfix, 512, 128
+.endm
+
+.macro GFX10_KERNEL_EPILOG kernel_name_postfix
+	EPILOG_KERNEL_DESCRIPTOR miopenSp3AsmConv_v21_1_2_\kernel_name_postfix, 256, 256
 .endm
 
