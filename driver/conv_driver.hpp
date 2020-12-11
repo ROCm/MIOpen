@@ -946,6 +946,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     ws_sizeof_find_fwd = 0;
     ws_sizeof_find_wrw = 0;
     ws_sizeof_find_bwd = 0;
+
     if(warmup_enabled)
     {
         do

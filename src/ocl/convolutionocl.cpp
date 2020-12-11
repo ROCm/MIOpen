@@ -1524,6 +1524,7 @@ void GetSolutions(Handle& handle,
                   std::function<int(const std::string&)>&& algoResolver)
 {
     const FindDbRecord fdb_record{handle, problem};
+
     if(fdb_record.empty())
     {
         *solutionCount = 0;
@@ -3068,7 +3069,6 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             }
         });
     }
-
 
     if(perf_db.empty())
         MIOPEN_THROW("Backward Weights Convolution cannot be executed due to incorrect params");

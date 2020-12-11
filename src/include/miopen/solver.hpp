@@ -58,6 +58,7 @@ std::string ComputeSolverDbId(Solver)
     auto name              = const_name.substr(idx + 1);
     std::replace(name.begin(), name.end(), ',', '-');
     name.erase(std::remove(name.begin(), name.end(), ' '), name.end());
+
     return name;
 }
 

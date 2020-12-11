@@ -211,15 +211,15 @@ static auto GetBwdWrW2DSolvers()
                                            miopen::solver::ConvOclBwdWrW1x1>{};
 }
 
-static auto GetFFTSolvers() { 
-    return miopen::solver::SolverContainer<
-        miopen::solver::fft,
-        miopen::solver::ConvCellfft>{};
+static auto GetFFTSolvers()
+{
+    return miopen::solver::SolverContainer<miopen::solver::fft,
+                                           miopen::solver::ConvCellfft>{};
 }
 
-static auto GetWrwFFTSolvers() { 
-    return miopen::solver::SolverContainer<
-        miopen::solver::ConvCellfft>{};
+static auto GetWrwFFTSolvers()
+{
+    return miopen::solver::SolverContainer<miopen::solver::ConvCellfft>{};
 }
 
 std::vector<miopen::solver::ConvSolution>
@@ -299,7 +299,7 @@ FindAllFFTSolutions(const miopen::ConvolutionContext& ctx,
 
 std::vector<miopen::solver::ConvSolution>
 FindFFTWrWAllSolutions(const miopen::ConvolutionContext& ctx,
-                            const miopen::AnyInvokeParams& invoke_ctx)
+                       const miopen::AnyInvokeParams& invoke_ctx)
 {
     return GetWrwFFTSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
 }

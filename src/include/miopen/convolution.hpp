@@ -121,8 +121,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     std::size_t
     ForwardBackwardGetWorkSpaceSizeImplicitGemm(const miopen::ConvolutionContext& ctx) const;
 
-    std::size_t GetWorkspaceSizeCellfft(const miopen::ConvolutionContext& ctx) const;
-
     std::size_t ForwardBackwardDataGetWorkSpaceSizeWinograd(
         const miopen::ConvolutionContext& ctx,
         const miopen::AnyInvokeParams& invoke_ctx = {}) const;
@@ -183,16 +181,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                   bool isForward,
                                   const ConvolutionUserBuffers& bufs,
                                   const AnyInvokeParams& invoke_ctx) const;
-
-    std::vector<miopen::solver::ConvSolution>
-    FindCellfftSolutions(Handle& handle,
-                         const TensorDescriptor& xDesc,
-                         const TensorDescriptor& wDesc,
-                         const TensorDescriptor& yDesc,
-                         bool exhaustiveSearch,
-                         bool isForward,
-                         const ConvolutionUserBuffers& bufs,
-                         const AnyInvokeParams& invoke_ctx) const;
 
     void ConvolutionForward(Handle& handle,
                             const void* alpha,
@@ -366,7 +354,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     BackwardWeightsGetWorkSpaceSizeWinograd(const miopen::ConvolutionContext& ctx) const;
     std::size_t
     BackwardWeightsGetWorkSpaceSizeImplicitGemm(const miopen::ConvolutionContext& ctx) const;
-    std::size_t BackwardWeightsGetWorkSpaceSizeCellfft(const miopen::ConvolutionContext& ctx) const;
 
     void FindConvBwdWeightsAlgorithm(Handle& handle,
                                      const TensorDescriptor& dyDesc,
