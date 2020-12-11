@@ -874,7 +874,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
 
     if(!config.IsReallyValid(ctx))
     {
-        MIOPEN_THROW("invalid performance parameter");
+        MIOPEN_LOG_E("invalid performance parameter");
         assert(false);
     }
 
