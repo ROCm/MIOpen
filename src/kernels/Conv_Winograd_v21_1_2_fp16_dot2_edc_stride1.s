@@ -25,8 +25,12 @@
  *******************************************************************************/
 .include "Conv_Winograd_v21_1_2_metadata.inc"
 
-KERNEL_PROLOG gfx10_fp32_stride2
+KERNEL_PROLOG fp16_dot2_edc_stride1
 
-.include "Conv_Winograd_v21_1_2_gfx10_fp32_stride2.inc"
+.if (machine_version == 9)
+    .include "Conv_Winograd_v21_1_2_gfx9_fp16_dot2_edc_stride1.inc"
+.elseif (machine_version == 10)
+    .include "Conv_Winograd_v21_1_2_gfx10_fp16_dot2_edc_stride1.inc"
+.endif
 
-KERNEL_EPILOG gfx10_fp32_stride2
+KERNEL_EPILOG fp16_dot2_edc_stride1

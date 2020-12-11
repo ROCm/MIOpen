@@ -25,8 +25,12 @@
  *******************************************************************************/
 .include "Conv_Winograd_v21_1_2_metadata.inc"
 
-KERNEL_PROLOG gfx10_fp16_dot2_edc_dilation2
+KERNEL_PROLOG fp32_dilation2
 
-.include "Conv_Winograd_v21_1_2_gfx10_fp16_dot2_edc_dilation2.inc"
+.if (machine_version == 9)
+    .include "Conv_Winograd_v21_1_2_gfx9_fp32_dilation2.inc"
+.elseif (machine_version == 10)
+    .include "Conv_Winograd_v21_1_2_gfx10_fp32_dilation2.inc"
+.endif
 
-KERNEL_EPILOG gfx10_fp16_dot2_edc_dilation2
+KERNEL_EPILOG fp32_dilation2

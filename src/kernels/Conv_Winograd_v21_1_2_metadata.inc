@@ -117,15 +117,12 @@ s_endpgm
 
 kernel_end \kernel_name
 
-.if (.amdgcn.gfx_generation_number == 9)
+.if (machine_version == 9)
     vgpr_size = 128
     workgroup_size_x = 512
-.elseif (.amdgcn.gfx_generation_number == 10)
+.elseif (machine_version == 10)
     vgpr_size = 256
     workgroup_size_x = 256
-.else
-    .error "Unsupported gfx generation"
-    .end
 .endif
 
 .amdgcn.next_free_sgpr = 101
@@ -162,10 +159,24 @@ METADATA_WRAPPER total_sgpr_count,.amdgcn.next_free_vgpr,workgroup_size_x, <\ker
 
 .endm
 
+.macro PROLOG_KERNEL_DESCRIPTOR_WRAPPER machine_version, kernel_name_postfix
+	PROLOG_KERNEL_DESCRIPTOR miopenSp3AsmConv_v21_1_2_gfx\machine_version\()_\kernel_name_postfix
+.endm
+
+.macro EPILOG_KERNEL_DESCRIPTOR_WRAPPER machine_version, kernel_name_postfix
+	EPILOG_KERNEL_DESCRIPTOR miopenSp3AsmConv_v21_1_2_gfx\machine_version\()_\kernel_name_postfix
+.endm
+
 .macro KERNEL_PROLOG kernel_name_postfix
-	PROLOG_KERNEL_DESCRIPTOR miopenSp3AsmConv_v21_1_2_\kernel_name_postfix
+	PROLOG_KERNEL_DESCRIPTOR_WRAPPER %machine_version, \kernel_name_postfix
 .endm
 
 .macro KERNEL_EPILOG kernel_name_postfix
-	EPILOG_KERNEL_DESCRIPTOR miopenSp3AsmConv_v21_1_2_\kernel_name_postfix
+	EPILOG_KERNEL_DESCRIPTOR_WRAPPER %machine_version, \kernel_name_postfix
 .endm
+
+.set machine_version, .amdgcn.gfx_generation_number
+.if (machine_version != 9 && machine_version != 10)
+    .error "Unsupported gfx generation"
+    .end
+.endif
