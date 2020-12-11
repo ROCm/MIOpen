@@ -454,7 +454,8 @@ static bool IsApplicableBase(const ConvolutionContext& params)
     if(!(StartsWith(name, "gfx9") || StartsWith(name, "gfx10")))
         return false;
     if(params.IsFp16() &&
-       !(StartsWith(name, "gfx906") || StartsWith(name, "gfx908") || StartsWith(name, "gfx10")))
+       !(StartsWith(name, "gfx906") || StartsWith(name, "gfx908") || StartsWith(name, "gfx1011") ||
+         StartsWith(name, "gfx1012") || StartsWith(name, "gfx103")))
         return false;
 
     // clang-format off
