@@ -102,7 +102,7 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmABlockCopyPerformancePara
         SrcDataPerRead_GemmM = gcd(SrcDataPerRead_GemmM, a_data_per_thread_copy);
         int mMax             = GemmMPerBlock / BlockSize;
         if(mMax < 1)
-            mMax = 1;
+            mMax             = 1;
         SrcDataPerRead_GemmM = gcd(SrcDataPerRead_GemmM, mMax);
 
         // decide threadwise copy lengths
@@ -212,7 +212,7 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmBBlockCopyPerformancePara
         SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, b_data_per_thread_copy);
         int nMax             = GemmNPerBlock / BlockSize;
         if(nMax < 1)
-            nMax = 1;
+            nMax             = 1;
         SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, nMax);
 
         const auto data_per_thread_copy_gemmn = SrcDataPerRead_GemmN;
@@ -404,7 +404,7 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsReallyValid(const ConvolutionCo
     if(!valid)
         return false;
 
-    std::size_t lds_size      = 0;
+    std::size_t lds_size = 0;
     std::tie(lds_size, valid) = CalculateLdsNumberOfByte(ctx);
 
     return (valid and lds_size <= 64 * 1024);
