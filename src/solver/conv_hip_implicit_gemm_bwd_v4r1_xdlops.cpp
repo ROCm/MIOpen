@@ -203,7 +203,7 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmBBlockCopyPerformancePara
         // calculate threadwise copy size
         int b_data_per_thread_copy = (GemmKPerBlock * GemmNPerBlock * GemmKPACKSize) / BlockSize;
 
-        if(GemmKPACKSize > b_data_per_thread_copy) // will fix in future
+        if(GemmKPACKSize > b_data_per_thread_copy && ctx.IsFp32()) // will fix in future
             MIOPEN_THROW("invalid performance parameter");
 
         if(!(b_data_per_thread_copy > 0))
