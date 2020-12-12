@@ -2002,7 +2002,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 findMode.IsFastHybrid(ctx);
             ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
 
-            // Find sollutions
+            // Find solutions
             const auto winograd =
                 !use_winograd_only ? FindWinogradSolutions(ctx, invoke_ctx) : [&]() {
                     AutoUseFastDynamicSolutions tmp{ctx};
@@ -3015,7 +3015,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             const auto invoke_ctx =
                 conv::WrWInvokeParams{{dyDesc, dy, xDesc, x, dwDesc, dw}, workSpace, workSpaceSize};
 
-            // Find sollutions
+            // Find solutions
             const auto direct = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{})
                                     ? FindAllBwdWrW2DSolutions(ctx, invoke_ctx)
                                     : std::vector<miopen::solver::ConvSolution>{};

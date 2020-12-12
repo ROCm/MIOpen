@@ -137,9 +137,9 @@ void par_for(std::size_t n, max_threads mt, F f)
 }
 
 template <class F>
-void par_for_strided(std::size_t n, F f)
+void par_for_strided(std::size_t n, max_threads mt, F f)
 {
-    const auto threadsize = std::min<std::size_t>(std::thread::hardware_concurrency(), n);
+    const auto threadsize = std::min<std::size_t>(std::thread::hardware_concurrency(), mt.n);
     par_for_impl(threadsize, threadsize, [&](auto start) {
         for(std::size_t i = start; i < n; i += threadsize)
         {
