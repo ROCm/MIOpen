@@ -136,10 +136,11 @@ void par_for(std::size_t n, max_threads mt, F f)
     par_for_impl(n, std::min(threadsize, n), f);
 }
 
+// max_threads can't be used due to a bug in gcc 7.5.0
 template <class F>
-void par_for_strided(std::size_t n, max_threads mt, F f)
+void par_for_strided(std::size_t n, std::size_t mt, F f)
 {
-    const auto threadsize = std::min<std::size_t>(std::thread::hardware_concurrency(), mt.n);
+    const auto threadsize = std::min<std::size_t>(std::thread::hardware_concurrency(), mt);
     par_for_impl(threadsize, threadsize, [&](auto start) {
         for(std::size_t i = start; i < n; i += threadsize)
         {
