@@ -99,7 +99,7 @@ endif()
 
 function(add_test_command NAME EXE)
     # Restrict the use of SKIP_ALL_EXCEPT_TESTS list in the low-precision and miopentensile tests
-    if(NOT (NAME IN_LIST SKIP_ALL_EXCEPT_TESTS))
+    if(NOT (NAME IN_LIST SKIP_ALL_EXCEPT_TESTS) AND SKIP_ALL_EXCEPT_TESTS)
         add_test(NAME ${NAME} COMMAND echo skipped)
         set_tests_properties(${NAME} PROPERTIES DISABLED On)
     elseif(NAME IN_LIST SKIP_TESTS)
