@@ -136,11 +136,26 @@ void par_for(std::size_t n, max_threads mt, F f)
     par_for_impl(n, std::min(threadsize, n), f);
 }
 
-// max_threads can't be used due to a bug in gcc 7.5.0
+/// Use of enironment variables lead to internal error in gcc 5.
+#if defined(__GNUC__) && __GNUC__ <= 5
+#define WORKAROUND_GCC5_MAX_THREADS 1
+#else
+#define WORKAROUND_GCC5_MAX_THREADS 0
+#endif
+
+/// \todo "max_threads mt" can't be used due to internal error in gcc 7.5.0
+/// We are not providing workaround for now, simply using size_t.
+
 template <class F>
+#if WORKAROUND_GCC5_MAX_THREADS
+void par_for_strided(std::size_t n, F f)
+{
+    const auto threadsize = std::min<std::size_t>(std::thread::hardware_concurrency(), n);
+#else
 void par_for_strided(std::size_t n, std::size_t mt, F f)
 {
     const auto threadsize = std::min<std::size_t>(std::thread::hardware_concurrency(), mt);
+#endif
     par_for_impl(threadsize, threadsize, [&](auto start) {
         for(std::size_t i = start; i < n; i += threadsize)
         {
