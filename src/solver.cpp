@@ -64,9 +64,9 @@ std::vector<Program> PrecompileKernels(const Handle& h, const std::vector<Kernel
                     Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, 20),
 #endif
                     [&](auto i) {
-        const KernelInfo& k = kernels[i];
-        programs[i]         = h.LoadProgram(k.kernel_file, k.comp_options, false, "");
-    });
+                        const KernelInfo& k = kernels[i];
+                        programs[i]         = h.LoadProgram(k.kernel_file, k.comp_options, false, "");
+                    });
     // clang-format on
     ct.Log("PrecompileKernels");
     return programs;
