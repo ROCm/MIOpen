@@ -330,6 +330,15 @@ static void EvaluateInvokers(Handle& handle,
     }
 }
 
+static inline void AppendPointersToElements(const std::vector<miopen::solver::ConvSolution>& from,
+                                            std::vector<const miopen::solver::ConvSolution*>& to)
+{
+    std::transform(from.begin(),
+                   from.end(),
+                   std::back_inserter(to),
+                   [](const miopen::solver::ConvSolution& s) { return &s; });
+}
+
 static void DirConvFindCore(Handle& handle,
                             const TensorDescriptor& xDesc,
                             ConstData_t x,
@@ -698,14 +707,10 @@ static void DirConvFindCore(Handle& handle,
     {
         std::vector<const miopen::solver::ConvSolution*> all;
         all.reserve(winograd.size() + direct.size() + implictgemm.size() + fft.size());
-        for(auto&& s : winograd)
-            all.emplace_back(&s);
-        for(auto&& s : direct)
-            all.emplace_back(&s);
-        for(auto&& s : implictgemm)
-            all.emplace_back(&s);
-        for(auto&& s : fft)
-            all.emplace_back(&s);
+        AppendPointersToElements(winograd, all);
+        AppendPointersToElements(direct, all);
+        AppendPointersToElements(implictgemm, all);
+        AppendPointersToElements(fft, all);
         PrecompileSolutions(handle, all);
     }
 
@@ -2027,14 +2032,10 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             {
                 std::vector<const miopen::solver::ConvSolution*> all;
                 all.reserve(winograd.size() + direct.size() + implictgemm.size() + fft.size());
-                for(auto&& s : winograd)
-                    all.emplace_back(&s);
-                for(auto&& s : direct)
-                    all.emplace_back(&s);
-                for(auto&& s : implictgemm)
-                    all.emplace_back(&s);
-                for(auto&& s : fft)
-                    all.emplace_back(&s);
+                AppendPointersToElements(winograd, all);
+                AppendPointersToElements(direct, all);
+                AppendPointersToElements(implictgemm, all);
+                AppendPointersToElements(fft, all);
                 PrecompileSolutions(handle, all);
             }
 
@@ -3030,12 +3031,9 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             {
                 std::vector<const miopen::solver::ConvSolution*> all;
                 all.reserve(direct.size() + winograd.size() + implictgemm.size());
-                for(auto&& s : direct)
-                    all.emplace_back(&s);
-                for(auto&& s : winograd)
-                    all.emplace_back(&s);
-                for(auto&& s : implictgemm)
-                    all.emplace_back(&s);
+                AppendPointersToElements(direct, all);
+                AppendPointersToElements(winograd, all);
+                AppendPointersToElements(implictgemm, all);
                 PrecompileSolutions(handle, all);
             }
 
