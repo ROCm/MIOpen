@@ -24,8 +24,16 @@
  *
  *******************************************************************************/
 
+#define WORKAROUND_SWDEV_257056_PCH_MISSING_MACROS 1
+
 #include <miopen/config.h>
 #include <miopen/handle.hpp>
+#include <miopen/execution_context.hpp>
+
+#if WORKAROUND_SWDEV_257056_PCH_MISSING_MACROS
+#include <miopen/hip_build_utils.hpp>
+#endif
+
 #include "get_handle.hpp"
 #include <vector>
 #include <thread>
@@ -46,8 +54,32 @@ enum kernel_type_t
 std::string Write2s(kernel_type_t kern_type)
 {
     if(kern_type == miopenHIPKernelType)
-        return "#include <hip/hip_runtime.h>\n  extern \"C\" { __global__ void write(int* data) { "
-               "int num = hipThreadIdx_x + hipBlockDim_x * hipBlockIdx_x; data[num] *= 2;}}\n";
+        return "#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS\n"
+               "#include <hip/hip_runtime.h>\n"
+#if WORKAROUND_SWDEV_257056_PCH_MISSING_MACROS && (HIP_PACKAGE_VERSION_FLAT <= 3010999999)
+               "#else\n"
+               "#ifdef hipThreadIdx_x\n"
+               "#undef hipThreadIdx_x\n"
+               "#endif\n"
+               "#define hipThreadIdx_x threadIdx.x\n"
+               "\n"
+               "#ifdef hipBlockDim_x\n"
+               "#undef hipBlockDim_x\n"
+               "#endif\n"
+               "#define hipBlockDim_x blockDim.x\n"
+               "\n"
+               "#ifdef hipBlockIdx_x\n"
+               "#undef hipBlockIdx_x\n"
+               "#endif\n"
+               "#define hipBlockIdx_x blockIdx.x\n"
+#endif
+               "#endif\n"
+               "extern \"C\" {\n"
+               "__global__ void write(int* data) {\n"
+               "    int num = hipThreadIdx_x + hipBlockDim_x * hipBlockIdx_x;\n"
+               "    data[num] *= 2;\n"
+               "}\n"
+               "}\n";
     else if(kern_type == miopenOpenCLKernelType)
         return "__kernel void write(__global int* data) { data[get_global_id(0)] *= 2; }\n";
     else
@@ -94,8 +126,14 @@ std::string WriteError(kernel_type_t kern_type)
     if(kern_type == miopenOpenCLKernelType)
         return "__kernel void write(__global int* data) { data[i] = 0; }\n";
     else if(kern_type == miopenHIPKernelType)
-        return "#include <hip/hip_runtime.h>\n  extern \"C\" { __global__ void write(int* data) { "
-               "data[num] *= 2;}}\n";
+        return "#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS\n"
+               "#include <hip/hip_runtime.h>\n"
+               "#endif\n"
+               "extern \"C\" {\n"
+               "__global__ void write(int* data) {\n"
+               "    data[num] *= 2;\n"
+               "}\n"
+               "}\n";
     else
         MIOPEN_THROW("Unsupported kernel type");
 }
@@ -156,8 +194,13 @@ std::string WriteNop(kernel_type_t kern_type)
     if(kern_type == miopenOpenCLKernelType)
         return "__kernel void write(__global int* data) {}\n";
     else if(kern_type == miopenHIPKernelType)
-        return "#include <hip/hip_runtime.h>\n  extern \"C\" { __global__ void write(int* data) { "
-               "}}\n";
+        return "#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS\n"
+               "#include <hip/hip_runtime.h>\n"
+               "#endif\n"
+               "extern \"C\" {\n"
+               "__global__ void write(int* data) {\n"
+               "}\n"
+               "}\n";
     else
         MIOPEN_THROW("Unsupported kernel type");
 }
@@ -201,7 +244,7 @@ void test_arch_name()
 int main()
 {
     auto&& h = get_handle();
-    if(h.GetDeviceName() != "gfx803")
+    if(h.GetDeviceName() != "gfx803" && miopen::IsHipKernelsEnabled())
     {
         test_multithreads(miopenHIPKernelType);
         test_errors(miopenHIPKernelType);
