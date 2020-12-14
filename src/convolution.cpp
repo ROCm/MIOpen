@@ -467,7 +467,6 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
     const size_t workspace_size_winograd = ForwardBackwardDataGetWorkSpaceSizeWinograd(ctx);
     const size_t direct_workspace        = ForwardBackwardDataGetWorkSpaceSizeDirect(ctx);
     const size_t implicit_gemm_workspace = ForwardBackwardGetWorkSpaceSizeImplicitGemm(ctx);
-    const size_t workspace_size_fft      = ForwardBackwardDataGetWorkSpaceSizeFFT(ctx);
 
     size_t workspace_size_gemm = 0;
 #if MIOPEN_USE_GEMM
@@ -505,6 +504,8 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         }
     }
 #endif
+
+    const size_t workspace_size_fft      = ForwardBackwardDataGetWorkSpaceSizeFFT(ctx);
 
     const size_t workspace_size = std::max({workspace_size_fft,
                                             workspace_size_gemm,

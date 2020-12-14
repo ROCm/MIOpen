@@ -1900,6 +1900,7 @@ struct ConvCellfft : SolverBase<ConvolutionContext>
     bool IsApplicable(const ConvolutionContext&) const;
     size_t GetWorkspaceSize(const ConvolutionContext&) const;
     ConvSolution GetSolution(const ConvolutionContext&) const;
+    bool IsDynamic() const { return true; }
 };
 
 struct PerformanceImplicitGemmWrwV4R4Xdlops : Serializable<PerformanceImplicitGemmWrwV4R4Xdlops>

@@ -928,7 +928,7 @@ typedef enum {
 typedef enum {
     miopenConvolutionBwdWeightsAlgoGEMM         = 0, /*!< GEMM variant */
     miopenConvolutionBwdWeightsAlgoDirect       = 1, /*!< Direct convolution algorithm */
-    miopenConvolutionBwdWeightsAlgoFFT             = 2, /*!< Fast Fourier Transform indirect convolutions */
+    miopenConvolutionBwdWeightsAlgoFFT          = 2, /*!< Fast Fourier Transform indirect convolutions */
     miopenConvolutionBwdWeightsAlgoWinograd     = 3, /*!< Winograd convolutions */
     miopenConvolutionBwdWeightsAlgoImplicitGEMM = 5, /*!< Implicit GEMM convolutions */
 } miopenConvBwdWeightsAlgorithm_t;
