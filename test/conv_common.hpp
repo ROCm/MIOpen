@@ -2124,13 +2124,14 @@ struct conv_bias_driver : test_driver
 
         tensor<T> bias(bias_lens);
 
-        if(!(
-        bias.desc.GetLengths()[0] == 1 &&
-         bias.desc.GetLengths()[1] == output.desc.GetLengths()[0] &&
-          std::all_of(bias.desc.GetLengths().begin() + 2, bias.desc.GetLengths().end(), [](auto v) { return v == 1; })))
-          {
+        if(!(bias.desc.GetLengths()[0] == 1 &&
+             bias.desc.GetLengths()[1] == output.desc.GetLengths()[0] &&
+             std::all_of(bias.desc.GetLengths().begin() + 2,
+                         bias.desc.GetLengths().end(),
+                         [](auto v) { return v == 1; })))
+        {
             return;
-          }
+        }
 
         size_t total_mem =
             bias.desc.GetNumBytes() + output.desc.GetNumBytes(); // estimate based on backward pass
