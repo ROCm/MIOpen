@@ -61,6 +61,7 @@ struct FindDbTest : test_driver
 
     FindDbTest()
     {
+        filter.findMode.Set(FindMode::Values::Normal);
         x = {16, 192, 28, 28};
         w = {32, 192, 5, 5};
         y = tensor<float>{filter.GetForwardOutputTensor(x.desc, w.desc)};
@@ -213,6 +214,5 @@ int main(int argc, const char* argv[])
 {
     setenv("MIOPEN_LOG_LEVEL", "6", 1);
     setenv("MIOPEN_COMPILE_PARALLEL_LEVEL", "1", 1);
-    setenv("MIOPEN_FIND_MODE", "normal", 1);
     test_drive<miopen::FindDbTest>(argc, argv);
 }

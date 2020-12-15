@@ -42,6 +42,7 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1)
 
 #define WINODATA 2
 #define WINOFILTER 3
@@ -165,7 +166,11 @@ inline bool IsShaderContraintsMet(const int R,
             return false;
     }
     const auto grid_workgroup_count_x = params.GetStream().GetMaxComputeUnits();
-    assert(params.weights_layout.length() == 0);
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
+
     // clang-format off
         // Check implementation limits.
         return N < std::pow(2, 16)
@@ -336,13 +341,11 @@ inline void FillVarsFromConfig(int& H,
     idilation_h = config.kernel_dilation_w;
 }
 
-bool ConvBinWinogradRxSf2x3::IsApplicable(const ConvolutionContext& params) const
+static bool IsApplicableBase(const ConvolutionContext& params)
 {
     if(!params.Is2d())
         return false;
     if(!(params.IsFp32() || params.IsFp16()))
-        return false;
-    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3{}))
         return false;
     if(!params.use_asm_kernels)
         return false;
@@ -400,6 +403,13 @@ bool ConvBinWinogradRxSf2x3::IsApplicable(const ConvolutionContext& params) cons
                                      params.batch_sz, // N
                                      params);
     }
+}
+
+bool ConvBinWinogradRxSf2x3::IsApplicable(const ConvolutionContext& params) const
+{
+    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3{}))
+        return false;
+    return IsApplicableBase(params) && params.group_counts > 1;
 }
 
 ConvSolution
@@ -711,6 +721,19 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
     }
 
     return result;
+}
+
+bool ConvBinWinogradRxSf2x3g1::IsApplicable(const ConvolutionContext& params) const
+{
+    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1{}))
+        return false;
+    return IsApplicableBase(params) && params.group_counts == 1;
+}
+
+ConvSolution ConvBinWinogradRxSf2x3g1::GetSolution(const ConvolutionContext& params) const
+{
+    const auto tunable = ConvBinWinogradRxSf2x3{};
+    return tunable.GetSolution(params, tunable.GetPerformanceConfig(params), false);
 }
 
 } // namespace solver

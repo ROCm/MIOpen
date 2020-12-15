@@ -7,7 +7,9 @@
 #endif
 #include "bfloat16_dev.hpp"
 
-#ifndef CK_HIP_VERSION_FLAT
+#ifdef HIP_PACKAGE_VERSION_FLAT
+#define CK_HIP_VERSION_FLAT HIP_PACKAGE_VERSION_FLAT
+#else
 #define CK_HIP_VERSION_FLAT 0
 #endif
 
@@ -34,6 +36,11 @@
 // only gfx908 support native floating point atomic add
 #ifndef CK_USE_AMD_BUFFER_ATOMIC_FADD
 #define CK_USE_AMD_BUFFER_ATOMIC_FADD 0
+#endif
+
+// gfx1030 does not support V_MAD/V_MAC,but can use v_fmac_f32
+#ifndef CK_USE_AMD_V_FMAC_F32
+#define CK_USE_AMD_V_FMAC_F32 0
 #endif
 
 // AMD XDLOPS

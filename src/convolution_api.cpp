@@ -23,8 +23,12 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/miopen.h>
+#include <miopen/miopen_internal.h>
+
 #include <miopen/convolution.hpp>
 #include <miopen/errors.hpp>
+#include <miopen/find_controls.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
@@ -88,6 +92,41 @@ extern "C" miopenStatus_t miopenSetConvolutionGroupCount(miopenConvolutionDescri
 {
     MIOPEN_LOG_FUNCTION(convDesc, groupCount);
     return miopen::try_([&] { miopen::deref(convDesc).group_count = groupCount; });
+}
+
+extern "C" miopenStatus_t miopenSetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc,
+                                                       miopenConvolutionFindMode_t findMode)
+{
+    MIOPEN_LOG_FUNCTION(convDesc, findMode);
+    return miopen::try_([&] {
+        miopen::deref(convDesc).findMode.Set(static_cast<miopen::FindMode::Values>(findMode));
+    });
+}
+
+extern "C" miopenStatus_t miopenGetConvolutionFindMode(const miopenConvolutionDescriptor_t convDesc,
+                                                       miopenConvolutionFindMode_t* findMode)
+{
+    MIOPEN_LOG_FUNCTION(convDesc, findMode);
+    return miopen::try_([&] {
+        miopen::deref(findMode) =
+            static_cast<miopenConvolutionFindMode_t>(miopen::deref(convDesc).findMode.Get());
+    });
+}
+
+// Hidden C++ functions for MIGraphX.
+extern "C" miopenStatus_t miopenHiddenSetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc,
+                                                             int findMode)
+{
+    return miopen::try_([&] {
+        miopen::deref(convDesc).findMode.Set(static_cast<miopen::FindMode::Values>(findMode));
+    });
+}
+extern "C" miopenStatus_t miopenHiddenGetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc,
+                                                             int* findMode)
+{
+    return miopen::try_([&] {
+        miopen::deref(findMode) = static_cast<int>(miopen::deref(convDesc).findMode.Get());
+    });
 }
 
 extern "C" miopenStatus_t
@@ -553,7 +592,8 @@ miopenConvolutionForwardGetSolution(miopenHandle_t handle,
                                                          miopen::deref(yDesc),
                                                          maxSolutionCount,
                                                          solutionCount,
-                                                         solutions);
+                                                         solutions,
+                                                         nullptr);
         else
             miopen::deref(convDesc).GetForwardSolutions(miopen::deref(handle),
                                                         miopen::deref(wDesc),
@@ -561,7 +601,8 @@ miopenConvolutionForwardGetSolution(miopenHandle_t handle,
                                                         miopen::deref(yDesc),
                                                         maxSolutionCount,
                                                         solutionCount,
-                                                        solutions);
+                                                        solutions,
+                                                        nullptr);
     });
 }
 
@@ -704,7 +745,8 @@ miopenConvolutionBackwardDataGetSolution(miopenHandle_t handle,
                                                         miopen::deref(dxDesc),
                                                         maxSolutionCount,
                                                         solutionCount,
-                                                        solutions);
+                                                        solutions,
+                                                        nullptr);
 
         else
             miopen::deref(convDesc).GetBackwardSolutions(miopen::deref(handle),
@@ -713,7 +755,8 @@ miopenConvolutionBackwardDataGetSolution(miopenHandle_t handle,
                                                          miopen::deref(dxDesc),
                                                          maxSolutionCount,
                                                          solutionCount,
-                                                         solutions);
+                                                         solutions,
+                                                         nullptr);
     });
 }
 
@@ -853,7 +896,8 @@ miopenConvolutionBackwardWeightsGetSolution(miopenHandle_t handle,
                                                     miopen::deref(dwDesc),
                                                     maxSolutionCount,
                                                     solutionCount,
-                                                    solutions);
+                                                    solutions,
+                                                    nullptr);
         else
             miopen::deref(convDesc).GetWrwSolutions(miopen::deref(handle),
                                                     miopen::deref(dyDesc),
@@ -861,7 +905,8 @@ miopenConvolutionBackwardWeightsGetSolution(miopenHandle_t handle,
                                                     miopen::deref(dwDesc),
                                                     maxSolutionCount,
                                                     solutionCount,
-                                                    solutions);
+                                                    solutions,
+                                                    nullptr);
     });
 }
 

@@ -180,7 +180,11 @@ static inline bool IsShaderContraintsMet(const int R,
             return false;
     }
     const auto grid_workgroup_count_x = params.GetStream().GetMaxComputeUnits();
-    assert(params.weights_layout.length() == 0);
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
+
     // clang-format off
     // Check implementation limits.
     return N < std::pow(2, 16)
@@ -214,7 +218,7 @@ bool ConvBinWinogradRxSf3x2::IsApplicable(const ConvolutionContext& params) cons
         return false;
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2{}))
         return false;
-    if(params.direction.IsBackwardWrW())
+    if(!(params.direction.IsForward() || params.direction.IsBackwardData()))
         return false;
     if(!params.use_asm_kernels)
         return false;
