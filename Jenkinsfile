@@ -586,23 +586,6 @@ pipeline {
 
         stage("Long Tests II"){
             parallel{
-                stage('Half Hip Release All Vega20') {
-                    agent{ label rocmnode("vega20") }
-                    environment{
-                        cmd = """
-                            ulimit -c unlimited
-                            rm -rf build
-                            mkdir build
-                            cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_BACKEND=HIP -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug -DMIOPEN_GPU_SYNC=On -DMIOPEN_USE_COMGR=Off -DMIOPEN_TEST_ALL=On -DMIOPEN_TEST_LIMIT=2 -DMIOPEN_TEST_FLAGS="--disable-verification-cache" .. 
-                            MIOPEN_ENABLE_LOGGING_CMD=1 CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
-                        """
-                    }
-                    steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx906")
-                    }
-                }
-
                 stage('FP32 gfx908 Hip Release All subset') {
                     agent{ label rocmnode("gfx908") }
                     environment{
@@ -619,11 +602,7 @@ pipeline {
                         buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx908")
                     }
                 }       
-            }
-        }
-
-        stage("Long Tests III"){
-            parallel{
+   
                 stage('Half Hip Clang Release All') {
                     agent{ label rocmnode("vega20") }
                     environment{
@@ -641,27 +620,10 @@ pipeline {
                         buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx906")
                     }
                 }
-
-                stage('Half gfx908 Hip Release All Subset') {
-                    agent{ label rocmnode("gfx908") }
-                    environment{
-                        cmd = """
-                            ulimit -c unlimited
-                            rm -rf build
-                            mkdir build
-                            cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_BACKEND=HIP -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_TEST_GFX908=On -DMIOPEN_USE_COMGR=Off -DMIOPEN_TEST_HALF=On -DMIOPEN_TEST_LIMIT=2 -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_ALL=On -DMIOPEN_TEST_FLAGS=--disable-verification-cache .. 
-                            CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
-                        """
-                    }
-                    steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx908")
-                    }
-                }
             }
         }
 
-        stage("Long Tests IV"){
+        stage("Long Tests III"){
             parallel{
                 stage('Hip Clang conv3d') {
                     agent{ label rocmnode("vega20") }
@@ -695,6 +657,23 @@ pipeline {
                     }
                     steps{
                         buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx906")
+                    }
+                }
+
+                stage('Half gfx908 Hip Release All Subset') {
+                    agent{ label rocmnode("gfx908") }
+                    environment{
+                        cmd = """
+                            ulimit -c unlimited
+                            rm -rf build
+                            mkdir build
+                            cd build
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_BACKEND=HIP -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_TEST_GFX908=On -DMIOPEN_USE_COMGR=Off -DMIOPEN_TEST_HALF=On -DMIOPEN_TEST_LIMIT=2 -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_ALL=On -DMIOPEN_TEST_FLAGS=--disable-verification-cache .. 
+                            CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
+                        """
+                    }
+                    steps{
+                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx908")
                     }
                 }   
             }
