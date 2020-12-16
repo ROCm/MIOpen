@@ -836,11 +836,16 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
         {
             if(solutions != nullptr)
             {
-                solutions[i].algorithm = miopenConvolutionAlgoGEMM;
-                solutions[i].time      = -1.0;
-                solutions[i].workspace_size =
-                    ForwardGetValidWorkSpaceSizeGemm(handle, weightsDesc, inDesc, outDesc);
+                solutions[i].algorithm   = miopenConvolutionAlgoGEMM;
+                solutions[i].time        = -1.0;
                 solutions[i].solution_id = solver::Id::gemm().Value();
+
+                const auto gemm_ws_sz_pairs = AllGemmWorkspaceSize(ctx);
+                const auto gemm_ws_szs =
+                    gemm_ws_sz_pairs |
+                    boost::adaptors::transformed([](const auto& p) { return p.second; });
+                solutions[i].workspace_size =
+                    *std::max_element(gemm_ws_szs.begin(), gemm_ws_szs.end());
             }
             ++i;
         }
