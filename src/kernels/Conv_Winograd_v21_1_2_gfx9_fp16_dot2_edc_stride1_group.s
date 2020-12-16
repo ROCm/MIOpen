@@ -23,10 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-.include "Conv_Winograd_v21_1_0_metadata.inc"
+.include "Conv_Winograd_v21_1_2_metadata.inc"
 
-KERNEL_PROLOG gfx9_fp16_dot2_edc_stride1
+KERNEL_PROLOG gfx9_fp16_dot2_edc_stride1_group
 
-.include "Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride1.inc"
+.include "Conv_Winograd_v21_1_2_gfx9_fp16_dot2_edc_stride1_group.inc"
 
-KERNEL_EPILOG gfx9_fp16_dot2_edc_stride1
+KERNEL_EPILOG gfx9_fp16_dot2_edc_stride1_group
