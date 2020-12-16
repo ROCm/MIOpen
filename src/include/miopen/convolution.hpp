@@ -178,6 +178,9 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                   const ConvolutionUserBuffers& bufs,
                                   const AnyInvokeParams& invoke_ctx) const;
 
+    std::vector<miopen::solver::ConvSolution>
+    FindFftSolutions(const ConvolutionContext& ctx, const AnyInvokeParams& invoke_ctx) const;
+
     void ConvolutionForward(Handle& handle,
                             const void* alpha,
                             const TensorDescriptor& xDesc,
