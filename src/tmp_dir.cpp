@@ -55,7 +55,7 @@ TmpDir::TmpDir(std::string prefix)
     boost::filesystem::create_directories(this->path);
 }
 
-TmpDir& TmpDir::operator=(TmpDir&& other)
+TmpDir& TmpDir::operator=(TmpDir&& other) noexcept
 {
     this->path = other.path;
     other.path = "";
