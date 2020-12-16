@@ -48,13 +48,24 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1)
 #define WINOFILTER 3
 #define MAX_CU_LIMIT 512
 
+/// \todo The model is well-defined in for filters sized up to 5.
+/// However, it seems producing valid results without this limitation,
+/// when used against simple GEMM WTI model (to select the fastest solver).
+/// This needs to be re-tested/re-considered when we have WTI
+/// models for other solvers, OR when GEMM WTI model is improved.
+/// --atamazov 2020-11-07.
+#define WTI_MODEL_ALLOW_ANY_RS 1
+
 static inline size_t Ceil(const size_t v, const size_t m)
 {
     assert(m > 0);
     return (v + m - 1) / m;
 }
 
-static inline size_t quantize_up(size_t val, size_t factor) { return Ceil(val, factor) * factor; }
+static inline size_t RoundUpToMultiple(size_t val, size_t factor)
+{
+    return Ceil(val, factor) * factor;
+}
 
 static inline int GetBestNGroupParam(const int R,
                                      const int S,
@@ -89,10 +100,10 @@ static inline int GetBestNGroupParam(const int R,
     if(S_stride == 2 || R_stride == 2 || idilation_w == 2 || idilation_h == 2)
         c_factor = 1;
 
-    size_t g_s = quantize_up(S, s_factor);
-    size_t g_r = quantize_up(R, r_factor);
-    size_t g_c = quantize_up(C, c_factor);
-    size_t g_k = quantize_up(K, k_factor);
+    size_t g_s = RoundUpToMultiple(S, s_factor);
+    size_t g_r = RoundUpToMultiple(R, r_factor);
+    size_t g_c = RoundUpToMultiple(C, c_factor);
+    size_t g_k = RoundUpToMultiple(K, k_factor);
     size_t g_w = OW;
     size_t g_h = OH;
 
@@ -101,16 +112,16 @@ static inline int GetBestNGroupParam(const int R,
     if((pad_H % 2 == 1) && (idilation_h > 1 || R_stride > 1))
         g_h += 1;
 
-    g_w            = quantize_up(g_w, w_factor);
-    g_h            = quantize_up(g_h, h_factor);
-    size_t g_n_w_h = quantize_up(g_w * g_h * N, nwh_factor * w_factor * h_factor);
+    g_w            = RoundUpToMultiple(g_w, w_factor);
+    g_h            = RoundUpToMultiple(g_h, h_factor);
+    size_t g_n_w_h = RoundUpToMultiple(g_w * g_h * N, nwh_factor * w_factor * h_factor);
 
     int best_n_groups_cnt = 1;
     double min_param      = 0;
     for(auto i = 1; i < n_groups; ++i)
     {
         size_t g_n_w_h_k =
-            quantize_up(g_n_w_h * g_k, nwh_factor * w_factor * h_factor * k_factor * i);
+            RoundUpToMultiple(g_n_w_h * g_k, nwh_factor * w_factor * h_factor * k_factor * i);
         size_t granulated_mac_count = g_n_w_h_k * g_c * g_s * g_r;
         size_t n_groups_per_cu      = Ceil(i * G, n_groups);
         double perf_metric = static_cast<double>(n_groups_per_cu) * granulated_mac_count / i;
@@ -158,7 +169,7 @@ inline bool IsShaderContraintsMet(const int R,
 {
     // Padding for bwd data shall not be negative.
     /// \todo Either remove WrW related code or re-use function from RxS
-    if(params.direction.IsBackwardData() || params.direction.IsBackwardWrW())
+    if(params.direction.IsBackwardData())
     {
         if(!(0 <= params.GetBackwardPadW() && params.GetBackwardPadW() < std::pow(2, 16)))
             return false;
@@ -172,25 +183,24 @@ inline bool IsShaderContraintsMet(const int R,
     }
 
     // clang-format off
-        // Check implementation limits.
-        return N < std::pow(2, 16)
-            && C < std::pow(2, 16)
-            && K < std::pow(2, 16)
-            && H < std::pow(2, 16)
-            && W < std::pow(2, 16)
-            && OH < std::pow(2, 16)
-            && OW < std::pow(2, 16)
-            && params.pad_w < std::pow(2, 16)
-            && params.pad_h < std::pow(2, 16)
-            && S < std::pow(2, 16)
-            && R < std::pow(2, 16)
-            && grid_workgroup_count_x < std::pow(2, 16)
-            && (C * H * W) <= std::pow(2, 28)
-            && (OH * OW) <= std::pow(2, 23)
-            && (K * OH * OW) <= std::pow(2, 28)
-            && (K * R * S) <= std::pow(2, 28)
-            && (C * R * S) <= std::pow(2, 28);
-    // clang-format on
+    // Check implementation limits.
+    return N < std::pow(2, 16)
+        && C < std::pow(2, 16)
+        && K < std::pow(2, 16)
+        && H < std::pow(2, 16)
+        && W < std::pow(2, 16)
+        && OH < std::pow(2, 16)
+        && OW < std::pow(2, 16)
+        && params.pad_w < std::pow(2, 16)
+        && params.pad_h < std::pow(2, 16)
+        && S < std::pow(2, 16)
+        && R < std::pow(2, 16)
+        && grid_workgroup_count_x < std::pow(2, 16)
+        && (C * H * W) <= std::pow(2, 28)
+        && (OH * OW) <= std::pow(2, 23)
+        && (K * OH * OW) <= std::pow(2, 28)
+        && (K * R * S) <= std::pow(2, 28)
+        && (C * R * S) <= std::pow(2, 28); // clang-format on
 }
 
 } // namespace
@@ -303,42 +313,130 @@ ConvBinWinogradRxSf2x3::Search(const ConvolutionContext& context,
     return GenericSearch(*this, context, invoke_ctx);
 }
 
-inline void FillVarsFromConfig(int& H,
-                               int& W,
-                               int& R,
-                               int& S,
-                               int& R_stride,
-                               int& S_stride,
-                               int& C,
-                               int& K,
-                               int& out_H,
-                               int& out_W,
-                               int& pad_H,
-                               int& pad_W,
-                               int& N,
-                               int& idilation_w,
-                               int& idilation_h,
-                               int& n_groups,
-                               int& group_cnt,
-                               const ConvolutionContext& config)
+class ShaderModel : public UnifiedDescriptionConv2d
 {
-    group_cnt   = config.group_counts;
-    n_groups    = config.GetStream().GetMaxComputeUnits();
-    pad_H       = config.direction.IsForward() ? config.pad_h : config.GetBackwardPadH();
-    pad_W       = config.direction.IsForward() ? config.pad_w : config.GetBackwardPadW();
-    H           = config.in_height;
-    W           = config.in_width;
-    R           = config.kernel_size_h;
-    S           = config.kernel_size_w;
-    R_stride    = config.kernel_stride_h;
-    S_stride    = config.kernel_stride_w;
-    C           = config.n_inputs;
-    K           = config.n_outputs;
-    out_H       = config.out_height;
-    out_W       = config.out_width;
-    N           = config.batch_sz;
-    idilation_w = config.kernel_dilation_h;
-    idilation_h = config.kernel_dilation_w;
+    const size_t DATATYPE_BITS;    // S
+    const size_t n_groups;         // BQ ~compute units
+    const bool out_of_model_scope; // Shader model produces unreliable results.
+
+    public:
+    ShaderModel(const ConvolutionContext& ctx)
+        : UnifiedDescriptionConv2d(ctx),
+          DATATYPE_BITS(ctx.IsFp16() ? 16 : 32),
+          n_groups(ctx.GetStream().GetMaxComputeUnits()), /// \todo Take n_groups from PerfConfig.
+          out_of_model_scope(!(ctx.group_counts == 1) ||  //
+                             !(U == 1) ||                 //
+                             !(V == 1) ||                 //
+                             !(input_stride_h == 1) ||    //
+                             !(input_stride_w == 1) ||    //
+                             !(filter_stride_h == 1) ||   //
+                             !(filter_stride_w == 1) ||   //
+#if !WTI_MODEL_ALLOW_ANY_RS
+                             !(R <= 5) || //
+                             !(S <= 5) || //
+#endif
+                             !(C >= 16) || //
+                             !(K >= 16))
+    {
+        // Computations do not support negative padding.
+        // Negative padding is not applicable, so let use simple assert here.
+        assert(pad_h >= 0 && pad_w >= 0);
+    }
+
+    double ComputeWti() const
+    {
+        if(out_of_model_scope)
+            return -1.0; // Shader model produces unreliable results.
+
+        const auto direct_convolution_macs =
+            static_cast<double>(C * N * K) / 1e+6 *
+            static_cast<double>(RoundUpToMultiple(S * out_w / input_stride_w, 1)) *
+            static_cast<double>(RoundUpToMultiple(R * out_h / input_stride_h, 1)); // AK
+
+        constexpr size_t TILE_S = WINOFILTER; // AL
+        constexpr size_t TILE_R = WINOFILTER; // AO
+        assert(!(U > 2 && V > 2));
+        const auto granulated_S =
+            (U == 1 && input_stride_w == 1 && filter_stride_w == 1 && S <= TILE_S)
+                ? TILE_S
+                : RoundUpToMultiple(S, 2 * TILE_S); // AM
+        const auto granulated_R = RoundUpToMultiple(
+            R,
+            (((V == 1 && input_stride_h == 1 && filter_stride_h == 1) || (R % (2 * TILE_R) == 1))
+                 ? TILE_R
+                 : 2 * TILE_R)); // AP
+
+        constexpr size_t TILE_OUT_W = WINODATA; // AR
+        constexpr size_t TILE_OUT_H = WINODATA; // AU
+        const auto granulated_out_w =
+            RoundUpToMultiple(out_w + ((input_stride_w == 2 && (pad_w % 2 != 0)) ? 1 : 0),
+                              TILE_OUT_W * input_stride_w); // AS
+        const auto granulated_out_h =
+            RoundUpToMultiple(out_h + ((input_stride_h == 2 && (pad_h % 2 != 0)) ? 1 : 0),
+                              TILE_OUT_H * input_stride_h); // AV
+
+        constexpr size_t GRANULARITY_NHW_TILES = 32; // AY$2
+        constexpr size_t GRANULARITY_K         = 32; // BC$2
+
+        const auto NWH_tiles =
+            granulated_out_w * granulated_out_h * N / TILE_OUT_H / TILE_OUT_W; // AX
+
+        const auto granulated_NWH_tiles = RoundUpToMultiple(
+            NWH_tiles,
+            GRANULARITY_NHW_TILES * ((input_stride_w == 2 && input_stride_h == 2) ? 2 : 1)); // AY
+
+        const auto granulated_C =
+            RoundUpToMultiple(C,
+                              ((U == 1 && S <= 3) ? 2 : 1) * 32 / DATATYPE_BITS); // BA
+
+        const auto granulated_K = RoundUpToMultiple(
+            K,
+            GRANULARITY_K / ((input_stride_w == 2 && input_stride_h == 2) ? 2 : 1)); // BC
+
+        const auto NKWH_tiles = granulated_NWH_tiles * granulated_K; // BE
+
+        const auto granulated_NKWH_tiles =
+            RoundUpToMultiple(NKWH_tiles,
+                              n_groups * GRANULARITY_NHW_TILES * GRANULARITY_K); // BR
+
+        const auto works_per_CU = granulated_NKWH_tiles / 32 / n_groups; // BY
+
+        constexpr size_t MIN_FE_PER_WORK = 20; // BZ$2
+
+        const auto fe_per_work =
+            std::max(MIN_FE_PER_WORK,
+                     granulated_S * granulated_R * granulated_C * DATATYPE_BITS / 32); // BZ
+
+        const auto phases   = fe_per_work * works_per_CU; // CA
+        const auto fe_calls = phases;                     // CC
+        const auto be_calls = works_per_CU;               // CD
+
+        constexpr double C0      = 43283;                                       // CB$2
+        constexpr double C1      = 1.012;                                       // CC$2
+        constexpr double C2      = 134.14;                                      // CD$2
+        const auto GUI_predicted = (C0 + C1 * fe_calls + C2 * be_calls) / 1e+6; // CE
+
+        if(GUI_predicted <= 0.1)
+            return -1.0; // Unreliable, too small work to do for the shader.
+
+        const auto N_MACS_PER_CU_PER_CLOCK = 64 * 32 / DATATYPE_BITS;
+        const auto WTI_predicted           = direct_convolution_macs /
+                                   static_cast<double>(N_MACS_PER_CU_PER_CLOCK) /
+                                   static_cast<double>(n_groups) / GUI_predicted; // similar to BW
+        return WTI_predicted;
+    }
+};
+
+static float GetWtiBase(const ConvolutionContext& params)
+{
+    constexpr auto WTI_UNKNOWN = -2.0;
+    const auto rv              = ShaderModel(params).ComputeWti();
+    return rv < 0 ? WTI_UNKNOWN : rv;
+}
+
+float ConvBinWinogradRxSf2x3::GetWti(const ConvolutionContext& params) const
+{
+    return GetWtiBase(params);
 }
 
 static bool IsApplicableBase(const ConvolutionContext& params)
@@ -476,7 +574,7 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
 
     std::string kernel_name    = "miopenSp3AsmConv";
     std::string kernel_file    = "Conv_Winograd";
-    std::string kernel_postfix = "_v21_1_0_gfx9";
+    std::string kernel_postfix = "_v21_1_2_gfx9";
 
     if(params.IsFp32())
         kernel_postfix += "_fp32";
@@ -519,8 +617,13 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
         // constexpr int L_F_LEAKY_RELU  = 1 << 8;
         constexpr int L_F_NKC_STRIDES   = 1 << 9;
         constexpr int L_F_GROUP_STRIDES = 1 << 10;
-        int reserved                    = 0;
-        int* reserved_ptr               = nullptr;
+        // constexpr int L_F_FORCE_FILTER_TRAVERSE_MODE  = 1 << 11;
+        // constexpr int L_F_FILTER_TRAVERSE_DUAL  = 1 << 12;
+        // constexpr int L_F_TENSOR_OFFSETS  = 1 << 13;
+        // constexpr int L_F_USE_EXTENDED_FLAGS_64  = 1 << 15;
+        int reserved             = 0;
+        uint64_t reserved_offset = 0;
+        int* reserved_ptr        = nullptr;
         int ignore;
 
         int N, C, H, W, K, out_H, out_W, R, S, pad_H, pad_W;
@@ -596,8 +699,13 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
                   pad_W,
                   out_H,
                   out_W,
-                  reserved_ptr, // Unused bias_addr.
-                  reserved,     // Unused relu_alpha.
+                  reserved_ptr,    // Unused bias_addr.
+                  reserved,        // Unused relu_alpha.
+                  reserved,        // Unused reserved2.
+                  reserved_offset, // Unused d_offset.
+                  reserved_offset, // Unused f_offset.
+                  reserved_offset, // Unused o_offset.
+                  reserved_offset, // Unused b_offset.
                   d_buf.byte_stride.nk,
                   d_buf.byte_stride.c,
                   d_buf.byte_stride.h,
@@ -677,8 +785,9 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
                     << " f_buf.byte_stride.g=" << f_buf.byte_stride.g); // clang-format on
                 MIOPEN_LOG_I2(" ctx.batch_sz=" << batch_sz << "ctx.n_inputs=" << n_inputs);
 
-                int reserved      = 0;
-                int* reserved_ptr = nullptr;
+                int reserved             = 0;
+                uint64_t reserved_offset = 0;
+                int* reserved_ptr        = nullptr;
 
                 handle.Run(kernels[0])(N,
                                        C,
@@ -698,8 +807,13 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
                                        pad_W,
                                        out_H,
                                        out_W,
-                                       reserved_ptr, // Unused bias_addr.
-                                       reserved,     // Unused relu_alpha.
+                                       reserved_ptr,    // Unused bias_addr.
+                                       reserved,        // Unused relu_alpha.
+                                       reserved,        // Unused reserved2.
+                                       reserved_offset, // Unused d_offset.
+                                       reserved_offset, // Unused f_offset.
+                                       reserved_offset, // Unused o_offset.
+                                       reserved_offset, // Unused b_offset.
                                        d_buf.byte_stride.nk,
                                        d_buf.byte_stride.c,
                                        d_buf.byte_stride.h,
@@ -728,6 +842,11 @@ bool ConvBinWinogradRxSf2x3g1::IsApplicable(const ConvolutionContext& params) co
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1{}))
         return false;
     return IsApplicableBase(params) && params.group_counts == 1;
+}
+
+float ConvBinWinogradRxSf2x3g1::GetWti(const ConvolutionContext& params) const
+{
+    return GetWtiBase(params);
 }
 
 ConvSolution ConvBinWinogradRxSf2x3g1::GetSolution(const ConvolutionContext& params) const

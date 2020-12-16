@@ -94,7 +94,6 @@ Direct Solutions:
 * `MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1` - `ConvAsmBwdWrW1x1`.
 * `MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD11X11` - `ConvOclDirectFwd11x11`.
 * `MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN` - `ConvOclDirectFwdGen`.
-* `MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD3X3` - `ConvOclDirectFwd3x3`.
 * `MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD` - `ConvOclDirectFwd`.
 * `MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1` - `ConvOclDirectFwd`.
 * `MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2` - `ConvOclBwdWrW2<n>` (where n = `{1,2,4,8,16}`), and `ConvOclBwdWrW2NonTunable`.
