@@ -171,15 +171,6 @@ miopenConvAlgorithm_t Id::GetAlgo() const
     return it->second;
 }
 
-miopenConvAlgorithm_t Id::GetAlgoValue() const
-{
-    const auto it = IdRegistry().value_to_algo.find(value);
-    if(it == IdRegistry().value_to_algo.end())
-        MIOPEN_THROW(miopenStatusInternalError);
-
-    return it->second;
-}
-
 inline bool Register(IdRegistryData& registry,
                      uint64_t value,
                      const std::string& str,
