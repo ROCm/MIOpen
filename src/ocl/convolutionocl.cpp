@@ -1433,8 +1433,10 @@ static const char immFallbackFailed[] =
 std::size_t ConvolutionDescriptor::GetSolutionCountFallback(Handle& handle,
                                                             const ProblemDescription& problem) const
 {
-    size_t n = 0;
-    GetSolutionsFallback(handle, problem, 1, &n, nullptr);
+    size_t n                    = 0;
+    const auto maxSolutionCount = miopen::solver::GetMapValueToAnySolver()
+                                      .size(); // Simple and guarantees to provide enough space.
+    GetSolutionsFallback(handle, problem, maxSolutionCount, &n, nullptr);
     if(n > 0)
         return n;
     MIOPEN_LOG_I(immFallbackFailed);
@@ -1494,8 +1496,204 @@ struct SolutionSortWrapper : miopenConvSolution_t
         : miopenConvSolution_t{t, ws, id, algo}
     {
     }
-    bool operator<(const SolutionSortWrapper& other) const { return (time < other.time); }
+    bool operator<(const SolutionSortWrapper& other) const
+    {
+        // Negative values are very coarse estimations.
+        // The more modulus, the "worse" (slower) is solution.
+        if(time < 0 && other.time < 0)
+            return !(time < other.time);
+        // Positive values are always "better" than negative (coarse) estimations.
+        if(time > 0 && other.time < 0)
+            return true;
+        if(time < 0 && other.time > 0)
+            return false;
+        // Both values are positive. The less is the better.
+        return (time < other.time);
+    }
 };
+
+static double
+SlowdownFactor(int n_oper, const double oper_factor, const double multiple_oper_factor)
+{
+    if(n_oper > 0)
+    {
+        auto rv = oper_factor;
+        if(n_oper > 1)
+            rv *= multiple_oper_factor;
+        return rv;
+    }
+    else
+        return 1.0;
+}
+
+float ConvolutionDescriptor::ComputeGemmWtiFwd(const TensorDescriptor& wDesc,
+                                               const TensorDescriptor& xDesc,
+                                               const TensorDescriptor& yDesc) const
+
+{
+    int n_transpose_NCHW2CNHW    = 0;
+    int n_transpose_CNHW2NCHW    = 0;
+    int n_gemm_strided_batched   = 1; // not strided-batched by default
+    int n_gemm_runs              = 1;
+    int n_transpose_packed_MN2NM = 0;
+    int n_CastTensor             = 0;
+    int n_Im2ColGPU              = 0;
+
+    std::size_t in_n, in_c;
+    std::tie(in_n, in_c) = tie_pick<0, 1>()(xDesc.GetLengths());
+    std::size_t spatial_dim = GetSpatialDimension();
+    auto wei_spatial        = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
+
+    // Use transpose path 1x1, stride=2
+    if(GetSpatialDimension() == 2 && miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
+       miopen::all_of(GetConvPads(), [](auto v) { return v == 0; }) &&
+       miopen::all_of(GetConvStrides(), [](auto v) { return v == 2; }))
+    {
+        n_transpose_NCHW2CNHW = 1;
+        if(wDesc.GetType() == miopenInt8)
+            n_transpose_packed_MN2NM = 1;
+        n_gemm_strided_batched       = group_count;
+        n_transpose_CNHW2NCHW        = 1;
+        if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
+           yDesc.GetType() != miopenInt32)
+            n_CastTensor = 1;
+    }
+    // 1x1_stride=1 with GEMM and zero workspace
+    else if(miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
+            miopen::all_of(GetConvPads(), [](auto v) { return v == 0; }) &&
+            miopen::all_of(GetConvStrides(), [](auto v) { return v == 1; }))
+    {
+
+        if(wDesc.GetType() == miopenInt8)
+        {
+            n_transpose_packed_MN2NM = in_n;
+            n_gemm_runs              = in_n;
+        }
+        else
+        {
+            n_gemm_strided_batched = group_count;
+            n_gemm_runs            = in_n;
+        }
+        if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
+           yDesc.GetType() != miopenInt32)
+            n_CastTensor = 1;
+    }
+    else // not 1x1
+    {
+        n_Im2ColGPU = in_n;
+        if(wDesc.GetType() == miopenInt8)
+            n_transpose_packed_MN2NM = in_n;
+        n_gemm_strided_batched       = group_count;
+        n_gemm_runs                  = in_n;
+        if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
+           yDesc.GetType() != miopenInt32)
+            n_CastTensor = 1;
+    }
+
+    auto wti = 1.0;
+    wti *= SlowdownFactor(n_transpose_NCHW2CNHW, 0.7, 0.9);
+    wti *= SlowdownFactor(n_transpose_CNHW2NCHW, 0.7, 0.9);
+    wti *= SlowdownFactor(n_gemm_runs, 0.9, 0.9);
+    wti *= SlowdownFactor(n_gemm_strided_batched, 1.0, 0.95);
+    wti *= SlowdownFactor(n_transpose_packed_MN2NM, 0.7, 0.9);
+    wti *= SlowdownFactor(n_CastTensor, 0.95, 0.9);
+    wti *= SlowdownFactor(n_Im2ColGPU, 0.4, 0.8);
+    return wti;
+}
+
+float ConvolutionDescriptor::ComputeGemmWtiBwd(const TensorDescriptor& dyDesc,
+                                               const TensorDescriptor& wDesc,
+                                               const TensorDescriptor& dxDesc) const
+{
+    std::ignore = dyDesc;
+
+    int n_SetTensor            = 0;
+    int n_transpose_NCHW2CNHW  = 0;
+    int n_transpose_CNHW2NCHW  = 0;
+    int n_gemm_strided_batched = 1; // not strided-batched by default
+    int n_gemm_runs            = 1;
+    int n_Col2ImGPU            = 0;
+
+    std::size_t in_n, in_c;
+    std::tie(in_n, in_c) = tie_pick<0, 1>()(dxDesc.GetLengths());
+    std::size_t spatial_dim = GetSpatialDimension();
+    auto wei_spatial        = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
+
+    // 1x1 does not require col2im
+    if(GetSpatialDimension() == 2 && miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
+       miopen::all_of(GetConvPads(), [](auto v) { return v == 0; }) &&
+       miopen::all_of(GetConvStrides(), [](auto v) { return v == 2; }))
+    {
+        n_SetTensor            = 1;
+        n_transpose_NCHW2CNHW  = 1;
+        n_gemm_strided_batched = group_count;
+        n_transpose_CNHW2NCHW  = 1;
+    }
+    // 1x1_stride=1 convolutions use GEMM and zero workspace
+    else if(miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
+            miopen::all_of(GetConvPads(), [](auto v) { return v == 0; }) &&
+            miopen::all_of(GetConvStrides(), [](auto v) { return v == 1; }))
+    {
+        n_gemm_strided_batched = in_n;
+    }
+    // if not 1x1
+    else
+    {
+        n_gemm_strided_batched = group_count;
+        n_gemm_runs            = in_n;
+        n_Col2ImGPU            = in_n;
+    }
+
+    auto wti = 1.0;
+    wti *= SlowdownFactor(n_SetTensor, 0.95, 0.99);
+    wti *= SlowdownFactor(n_transpose_NCHW2CNHW, 0.7, 0.9);
+    wti *= SlowdownFactor(n_transpose_CNHW2NCHW, 0.7, 0.9);
+    wti *= SlowdownFactor(n_gemm_runs, 0.9, 0.9);
+    wti *= SlowdownFactor(n_gemm_strided_batched, 1.0, 0.95);
+    wti *= SlowdownFactor(n_Col2ImGPU, 0.4, 0.8);
+    return wti;
+}
+
+float ConvolutionDescriptor::ComputeGemmWtiWrw(const TensorDescriptor& dyDesc,
+                                               const TensorDescriptor& xDesc,
+                                               const TensorDescriptor& dwDesc) const
+{
+    std::ignore = dyDesc;
+
+    int n_gemm_strided_batched           = 1; // not strided-batched by default
+    int n_gemm_strided_batched_sequental = 1; // not strided-batched-sequental by default
+    int n_gemm_runs                      = 1;
+    int n_Im2ColGPU                      = 0;
+
+    std::size_t in_n, in_c;
+    std::tie(in_n, in_c) = tie_pick<0, 1>()(xDesc.GetLengths());
+    auto wei_spatial = boost::adaptors::slice(dwDesc.GetLengths(), 2, 2 + GetSpatialDimension());
+
+    // if not 1x1
+    if((miopen::any_of(wei_spatial, [](auto v) { return v != 1; }) ||
+        miopen::any_of(GetConvPads(), [](auto v) { return v != 0; }) ||
+        miopen::any_of(GetConvStrides(), [](auto v) { return v != 1; })))
+    {
+        n_Im2ColGPU            = in_n;
+        n_gemm_strided_batched = group_count;
+        n_gemm_runs            = in_n;
+    }
+    // 1x1 does not require im2col or workspace
+    else if(miopen::any_of(wei_spatial, [](auto v) { return v == 1; }) &&
+            miopen::any_of(GetConvPads(), [](auto v) { return v == 0; }) &&
+            miopen::any_of(GetConvStrides(), [](auto v) { return v == 1; }))
+    {
+        n_gemm_strided_batched_sequental = group_count;
+        n_gemm_runs                      = in_n;
+    }
+
+    auto wti = 0.7; // Memory overhead for WrW is bigger then for Fwd/Bwd.
+    wti *= SlowdownFactor(n_gemm_runs, 0.9, 0.9);
+    wti *= SlowdownFactor(n_gemm_strided_batched, 1.0, 0.95);
+    wti *= SlowdownFactor(n_gemm_strided_batched_sequental, 1.0, 0.9);
+    wti *= SlowdownFactor(n_Im2ColGPU, 0.4, 0.8);
+    return wti;
+}
 
 void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
                                                  const ProblemDescription& problem,
@@ -1528,6 +1726,13 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
     ctx.SetStream(&handle);
     ctx.DetectRocm();
 
+    const auto wti2time = [](const float& wti) {
+        assert(wti != 0.0f);
+        if(wti <= 0.0f) // Return negative values as is, avoid DIV/0.
+            return wti;
+        return 10.0f / wti; // Assume WTI == 1.0 (100%) is 10 ms.
+    };
+
     const auto& map = miopen::solver::GetMapValueToAnySolver();
     for(const auto& item : map)
     {
@@ -1539,10 +1744,7 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
             continue;
         const auto& s = item.second;
         if(!s.IsDynamic()) // Let's allow non-dynamic later, if necessary.
-        {
-            MIOPEN_LOG_I2(solver_id.ToString() << " Not dynamic, skipped");
             continue;
-        }
         if(!s.IsApplicable(ctx))
             continue;
 
@@ -1552,86 +1754,43 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
 
         const auto wti = s.GetWti(ctx);
         MIOPEN_LOG_I2(solver_id.ToString() << " Estimated WTI = " << wti);
-        if(wti <= 0.0f) // Skip unknown WTIs and avoid DIV/0.
+        if(wti < 0.0f) // Skip unknown WTIs.
             continue;
-        const auto time = 10.0f / wti; // Assume WTI == 1.0 (100%) is 10 ms.
 
-        interim.emplace_back(time, s.GetWorkspaceSize(ctx), solver_id.Value(), algo);
-    }
-
-    // Dual purpose variable:
-    // * Used as index for writing into output array (solutions).
-    // * Counts the number of entries written, yielding value for solutionsCount.
-    auto i = std::size_t{0};
-
-    if(!interim.empty())
-    {
-        std::sort(begin(interim), end(interim));
-        for(const auto& entry : interim)
-        {
-            if(i >= maxSolutionCount)
-                break;
-            if(solutions != nullptr)
-                solutions[i] = entry;
-            ++i;
-        }
-        *solutionCount = i;
-        /// Right now we do not have GetWti() for GEMM.
-        /// And only those solutions that are faster than GEMM return WTI.
-        /// Therefore it is Ok for now to not use GEMM if some other solution is found.
-        /// \todo Rework this when we have GetWti() for GEMM.
-        return;
+        interim.emplace_back(wti2time(wti), s.GetWorkspaceSize(ctx), solver_id.Value(), algo);
     }
 
     /// Separate path for GEMM algo, intermediate implementation.
     /// \todo Remove when GEMM Solver(s) ready.
-    if(i >= maxSolutionCount)
+    if(problem.direction.IsForward())
     {
-        // Do nothing.
-    }
-    else if(problem.direction.IsForward())
-    {
-        if(IsGemmApplicableFwd(weightsDesc, inDesc, outDesc) && (i < maxSolutionCount))
+        if(IsGemmApplicableFwd(weightsDesc, inDesc, outDesc))
         {
-            if(solutions != nullptr)
-            {
-                solutions[i].algorithm = miopenConvolutionAlgoGEMM;
-                solutions[i].time      = -1.0;
-                solutions[i].workspace_size =
-                    ForwardGetValidWorkSpaceSizeGemm(handle, weightsDesc, inDesc, outDesc);
-                solutions[i].solution_id = solver::Id::gemm().Value();
-            }
-            ++i;
+            interim.emplace_back(
+                wti2time(ComputeGemmWtiFwd(weightsDesc, inDesc, outDesc)),
+                ForwardGetValidWorkSpaceSizeGemm(handle, weightsDesc, inDesc, outDesc),
+                solver::Id::gemm().Value(),
+                miopenConvolutionAlgoGEMM);
         }
     }
     else if(problem.direction.IsBackwardData())
     {
-        if(IsGemmApplicableBwd(outDesc, weightsDesc, inDesc) && (i < maxSolutionCount))
+        if(IsGemmApplicableBwd(outDesc, weightsDesc, inDesc))
         {
-            if(solutions != nullptr)
-            {
-                solutions[i].algorithm = miopenConvolutionAlgoGEMM;
-                solutions[i].time      = -1.0;
-                solutions[i].workspace_size =
-                    BackwardGetValidWorkSpaceSizeGemm(outDesc, weightsDesc, inDesc);
-                solutions[i].solution_id = solver::Id::gemm().Value();
-            }
-            ++i;
+            interim.emplace_back(wti2time(ComputeGemmWtiBwd(outDesc, weightsDesc, inDesc)),
+                                 BackwardGetValidWorkSpaceSizeGemm(outDesc, weightsDesc, inDesc),
+                                 solver::Id::gemm().Value(),
+                                 miopenConvolutionAlgoGEMM);
         }
     }
     else if(problem.direction.IsBackwardWrW())
     {
-        if(IsGemmApplicableWrw(outDesc, inDesc, weightsDesc) && (i < maxSolutionCount))
+        if(IsGemmApplicableWrw(outDesc, inDesc, weightsDesc))
         {
-            if(solutions != nullptr)
-            {
-                solutions[i].algorithm = miopenConvolutionAlgoGEMM;
-                solutions[i].time      = -1.0;
-                solutions[i].workspace_size =
-                    WrwGetValidWorkSpaceSizeGemm(outDesc, inDesc, weightsDesc);
-                solutions[i].solution_id = solver::Id::gemm().Value();
-            }
-            ++i;
+            interim.emplace_back(wti2time(ComputeGemmWtiWrw(outDesc, inDesc, weightsDesc)),
+                                 WrwGetValidWorkSpaceSizeGemm(outDesc, inDesc, weightsDesc),
+                                 solver::Id::gemm().Value(),
+                                 miopenConvolutionAlgoGEMM);
         }
     }
     else
@@ -1639,6 +1798,26 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
         MIOPEN_THROW("Unknown direction");
     }
 
+    MIOPEN_LOG_I2("maxSolutionCount = " << maxSolutionCount << ", available = " << interim.size());
+    for(const auto& s : interim)
+        MIOPEN_LOG_I2("id: " << s.solution_id << " algo: " << s.algorithm << ", time: " << s.time
+                             << " ms, ws: "
+                             << s.workspace_size
+                             << ", name: "
+                             << miopen::solver::Id(s.solution_id).ToString());
+    // Dual purpose variable:
+    // * Used as index for writing into output array (solutions).
+    // * Counts the number of entries written, yielding value for solutionsCount.
+    auto i = std::size_t{0};
+    std::sort(begin(interim), end(interim));
+    for(const auto& entry : interim)
+    {
+        if(i >= maxSolutionCount)
+            break;
+        if(solutions != nullptr)
+            solutions[i] = entry;
+        ++i;
+    }
     *solutionCount = i;
 }
 
