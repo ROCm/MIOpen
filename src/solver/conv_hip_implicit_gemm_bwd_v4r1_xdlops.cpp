@@ -92,7 +92,7 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmABlockCopyPerformancePara
             SrcDataPerRead_GemmM = 1;
 
         // calculate threadwise copy size
-        const auto a_data_per_thread_copy =
+        auto a_data_per_thread_copy =
             std::max(1, (GemmKPerBlock * GemmMPerBlock * GemmKPACKSize) / BlockSize);
 
         a_data_per_thread_copy = lcm(a_data_per_thread_copy, SrcDataPerRead_GemmM);
