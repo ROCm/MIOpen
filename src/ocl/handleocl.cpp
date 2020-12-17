@@ -635,6 +635,8 @@ std::size_t Handle::GetGlobalMemorySize() const
     return miopen::GetDeviceInfo<CL_DEVICE_GLOBAL_MEM_SIZE>(miopen::GetDevice(this->GetStream()));
 }
 
+extern std::string GetDeviceNameFromMap(const std::string& in); /// \ todo
+
 static std::string GetDeviceNameImpl(miopenAcceleratorQueue_t stream)
 {
     const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});

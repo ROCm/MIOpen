@@ -39,7 +39,7 @@
  * limitations under the License.
  * ************************************************************************ */
 
-#include <miopen/device_name.hpp>
+#include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/logger.hpp>
@@ -47,6 +47,8 @@
 
 #include <iostream>
 #include <iterator>
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 
 namespace miopen {
 

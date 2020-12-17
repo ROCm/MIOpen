@@ -105,6 +105,7 @@ set( MIOpen_Source
     lock_file.cpp
     lrn_api.cpp
     activ_api.cpp
+    handle.cpp
     handle_api.cpp
     softmax_api.cpp
     batch_norm.cpp

@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,22 +23,17 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_DEVICE_NAME_HPP
-#define GUARD_MIOPEN_DEVICE_NAME_HPP
-
 #define WORKAROUND_SWDEV_262823 1
 
+#include <miopen/env.hpp>
 #include <map>
 #include <string>
-#include <miopen/env.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_ENFORCE_DEVICE)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_CU)
 
 namespace miopen {
 
-std::string inline GetDeviceNameFromMap(const std::string& in)
+std::string GetDeviceNameFromMap(const std::string& in)
 {
 
     static std::map<std::string, std::string> device_name_map = {
@@ -74,5 +69,3 @@ std::string inline GetDeviceNameFromMap(const std::string& in)
 }
 
 } // namespace miopen
-
-#endif // GUARD_MIOPEN_DEVICE_NAME_HPP

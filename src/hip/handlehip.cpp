@@ -28,7 +28,7 @@
 #include <miopen/handle.hpp>
 
 #include <miopen/binary_cache.hpp>
-#include <miopen/device_name.hpp>
+#include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/gemm_geometry.hpp>
 #include <miopen/handle_lock.hpp>
@@ -56,6 +56,9 @@
 #include <thread>
 
 #define MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_30 (MIOPEN_USE_COMGR && BUILD_SHARED_LIBS)
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_CU)
 
 namespace miopen {
 
@@ -519,6 +522,8 @@ std::size_t Handle::GetMaxMemoryAllocSize()
 
     return m_MaxMemoryAllocSizeCached;
 }
+
+extern std::string GetDeviceNameFromMap(const std::string& in); /// \ todo
 
 static std::string GetDeviceNameImpl(const std::unique_ptr<HandleImpl>& handle_impl)
 {
