@@ -93,18 +93,9 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmABlockCopyPerformancePara
 
         // calculate threadwise copy size
         const auto a_data_per_thread_copy =
-            (GemmKPerBlock * GemmMPerBlock * GemmKPACKSize) / BlockSize;
+            std::max(1, (GemmKPerBlock * GemmMPerBlock * GemmKPACKSize) / BlockSize);
 
-        if(!(a_data_per_thread_copy > 0))
-            MIOPEN_THROW("invalid performance parameter");
-
-        // GemmABlockCopySrcDataPerRead_GemmM also bounded by size of threadwise copy
-        SrcDataPerRead_GemmM = gcd(SrcDataPerRead_GemmM, a_data_per_thread_copy);
-        int mMax             = GemmMPerBlock / BlockSize;
-        if(mMax < 1)
-            mMax             = 1;
-        SrcDataPerRead_GemmM = gcd(SrcDataPerRead_GemmM, mMax);
-
+        a_data_per_thread_copy = lcm(a_data_per_thread_copy, SrcDataPerRead_GemmM);
         // decide threadwise copy lengths
         const auto a_data_per_thread_copy_gemmm = SrcDataPerRead_GemmM;
         if(!(a_data_per_thread_copy_gemmm > 0))
@@ -201,19 +192,15 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmBBlockCopyPerformancePara
         }
 
         // calculate threadwise copy size
-        int b_data_per_thread_copy = (GemmKPerBlock * GemmNPerBlock * GemmKPACKSize) / BlockSize;
-
-        if(GemmKPACKSize > b_data_per_thread_copy)
-            MIOPEN_THROW("invalid performance parameter");
+        int b_data_per_thread_copy =
+            std::max(1, (GemmKPerBlock * GemmMPerBlock * GemmKPACKSize) / BlockSize);
 
         if(!(b_data_per_thread_copy > 0))
             MIOPEN_THROW("invalid performance parameter");
-        // GemmBBlockCopySrcDataPerRead_GemmN also bounded by size of threadwise copy
-        SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, b_data_per_thread_copy);
-        int nMax             = GemmNPerBlock / BlockSize;
-        if(nMax < 1)
-            nMax             = 1;
-        SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, nMax);
+
+        b_data_per_thread_copy = lcm(SrcDataPerRead_GemmN, b_data_per_thread_copy);
+        if(BlockSize > GemmNPerBlock && GemmKPACKSize > BlockSize / GemmNPerBlock)
+            MIOPEN_THROW("invalid performance parameter");
 
         const auto data_per_thread_copy_gemmn = SrcDataPerRead_GemmN;
         if(!(data_per_thread_copy_gemmn > 0))
@@ -232,7 +219,7 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmBBlockCopyPerformancePara
                 MIOPEN_THROW("invalid performance parameter");
 
             data_per_thread_copy_gemmk = tmp / data_per_thread_copy_gemmkpack;
-            if(!(data_per_thread_copy_gemmk > 0) || data_per_thread_copy_gemmk > GemmKPerBlock)
+            if(!(data_per_thread_copy_gemmk > 0))
                 MIOPEN_THROW("invalid performance parameter");
         }
         else
@@ -404,7 +391,7 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsReallyValid(const ConvolutionCo
     if(!valid)
         return false;
 
-    std::size_t lds_size = 0;
+    std::size_t lds_size      = 0;
     std::tie(lds_size, valid) = CalculateLdsNumberOfByte(ctx);
 
     return (valid and lds_size <= 64 * 1024);
