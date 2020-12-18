@@ -240,6 +240,25 @@ ConvolutionDescriptor::FindDataImplicitGemmSolutions(Handle& handle,
     }
 }
 
+std::vector<miopen::solver::ConvSolution>
+ConvolutionDescriptor::FindFftSolutions(const ConvolutionContext& ctx,
+                                        const AnyInvokeParams& invoke_ctx) const
+{
+
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT{}))
+        return {};
+
+    try
+    {
+        return FindAllFFTSolutions(ctx, invoke_ctx);
+    }
+    catch(miopen::Exception& ex)
+    {
+        MIOPEN_LOG_WE(ex.what());
+        return {};
+    }
+}
+
 template <class InvokeParams>
 static void EvaluateInvokers(Handle& handle,
                              const std::vector<solver::ConvSolution>& solutions,
@@ -691,9 +710,9 @@ static void DirConvFindCore(Handle& handle,
     }
 
     // FFT algo
-    if(!use_winograd_only && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT{}))
+    if(!use_winograd_only)
     {
-        const auto all            = FindAllFFTSolutions(ctx, invoke_ctx);
+        const auto all            = conv.FindFftSolutions(ctx, invoke_ctx);
         const auto algorithm_name = AlgorithmName{"miopenConvolutionFwdAlgoFFT"};
         PrecompileSolutions(handle, all);
         EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
@@ -727,33 +746,19 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     *returnedAlgoCount = 0;
 
     const ProblemDescription problem(xDesc, wDesc, yDesc, *this, conv::Direction::Forward);
-
     auto ctx = ConvolutionContext{problem};
     ctx.SetStream(&handle);
-    ctx.DetectRocm();
-    ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
-    bufs.SetFwd(x, w, y);
-    ctx.SetBufs(bufs);
-    const bool use_winograd_only = IsWinograd3x3SupportedAndFast(ctx);
 
     std::vector<PerfField> perf_db;
 
-    /// \section ffind_special_cases
-    /// Fast Find mode: Let's allow known fast-to-build special cases
-    /// (this is only Winograd 3x3 so far) to override switching to Immediate mode.
-    /// This minimizes performance drop in Fast Find mode at for free.
-    /// Otherwise we can hit Immediate mode fallback (which is just GEMM
-    /// right now) in many cases. -- atamazov 21 Nov 2019.
-    ///
-    /// \todo Revise this (and similar cases) when Immediate mode
-    /// will be better elaborated.
     bool use_immediate_solution = false;
     miopenConvSolution_t sol;
-    if((findMode.IsFast(ctx) || findMode.IsHybrid(ctx)) && !use_winograd_only)
+    if(findMode.IsFast(ctx) || findMode.IsHybrid(ctx))
     {
         size_t count;
-        GetForwardSolutions(handle, wDesc, xDesc, yDesc, 1, &count, &sol);
-        use_immediate_solution = (count > 0) && !(findMode.IsHybrid(ctx) && sol.time < 0);
+        bool fallback;
+        GetForwardSolutions(handle, wDesc, xDesc, yDesc, 1, &count, &sol, &fallback);
+        use_immediate_solution = (count > 0) && !(findMode.IsHybrid(ctx) && fallback);
         // In Hybrid Find mode, we use Normal Find instead of Immediate fallback kernels.
     }
 
@@ -768,6 +773,10 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     }
     else
     {
+        ctx.DetectRocm();
+        ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
+        bufs.SetFwd(x, w, y);
+        ctx.SetBufs(bufs);
         ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
             findMode.IsFastHybrid(ctx);
         ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
@@ -785,7 +794,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                             exhaustiveSearch,
                             record,
                             ctx,
-                            use_winograd_only);
+                            IsWinograd3x3SupportedAndFast(ctx));
         });
     }
 
@@ -1348,54 +1357,6 @@ void ConvolutionDescriptor::ConvFwdGemm(Handle& handle,
 #endif
 }
 
-std::size_t ConvolutionDescriptor::GetFwdSolutionCountFallback(const TensorDescriptor& wDesc,
-                                                               const TensorDescriptor& xDesc,
-                                                               const TensorDescriptor& yDesc) const
-{
-    // This is needed on fallback path only.
-    // Regular (find-db) path have been verified during Find().
-    ValidateGroupCount(xDesc, wDesc, *this);
-
-    if(IsGemmApplicableFwd(wDesc, xDesc, yDesc) &&
-       !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
-    {
-        MIOPEN_LOG_I("Fallback path, GEMM");
-        return 1;
-    }
-    MIOPEN_LOG_I("Fallback path, GEMM disabled");
-    /// When count=0 the reason could be:
-    /// * (1) Convolution is not implemented in the library at all, so Find() would fail as
-    ///   well. This is case when rc = miopenStatusNotImplemented is correct.
-    /// * (2) Variant of the above: Convolution is implemented, but implementation is disabled,
-    ///   for example, rocBLAS is not installed or some convolutions are disabled by the
-    ///   environment setting.
-    /// * (3) There is none relevant record in the find-db and fallback path was unable to
-    ///   choose suitable solution.
-    ///
-    /// We can't distinguish these three cases.
-    /// Let's do like Find() does:
-    MIOPEN_THROW(miopenStatusNotImplemented,
-                 "Requested convolution is not supported or immedate mode fallback has failed.");
-}
-
-std::size_t ConvolutionDescriptor::GetBwdSolutionCountFallback(const TensorDescriptor& dyDesc,
-                                                               const TensorDescriptor& wDesc,
-                                                               const TensorDescriptor& dxDesc) const
-{
-    ValidateGroupCount(dxDesc, wDesc, *this); // See comment in Forward method.
-
-    if(IsGemmApplicableBwd(dyDesc, wDesc, dxDesc) &&
-       !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
-    {
-        MIOPEN_LOG_I("Fallback path, GEMM");
-        return 1;
-    }
-    MIOPEN_LOG_I("Fallback path, GEMM disabled");
-    // See comment in Forward method.
-    MIOPEN_THROW(miopenStatusNotImplemented,
-                 "Requested convolution is not supported or immedate mode fallback has failed.");
-}
-
 bool ConvolutionDescriptor::IsGemmApplicableWrw(const TensorDescriptor& dyDesc,
                                                 const TensorDescriptor& xDesc,
                                                 const TensorDescriptor& dwDesc) const
@@ -1458,30 +1419,39 @@ bool ConvolutionDescriptor::IsGemmApplicableBwd(const TensorDescriptor& dyDesc,
 #endif
 }
 
-std::size_t ConvolutionDescriptor::GetWrwSolutionCountFallback(const TensorDescriptor& dyDesc,
-                                                               const TensorDescriptor& xDesc,
-                                                               const TensorDescriptor& dwDesc) const
-{
-    ValidateGroupCount(xDesc, dwDesc, *this); // See comment in Forward method.
-
-    if(IsGemmApplicableWrw(xDesc, dyDesc, dwDesc) &&
-       !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
-    {
-        MIOPEN_LOG_I("Fallback path, GEMM");
-        return 1;
-    }
-    MIOPEN_LOG_I("Fallback path, GEMM disabled");
-    // See comment in Forward method.
-    MIOPEN_THROW(miopenStatusNotImplemented,
-                 "Requested convolution is not supported or immedate mode fallback has failed.");
-}
-
-std::size_t GetSolutionCount(Handle& handle, const ProblemDescription& problem)
+static std::size_t GetSolutionCount(Handle& handle, const ProblemDescription& problem)
 {
     const FindDbRecord fdb_record{handle, problem};
     if(fdb_record.empty())
         return 0;
     return std::distance(fdb_record.begin(), fdb_record.end());
+}
+
+static const char immFallbackFailed[] =
+    "Requested convolution is not supported or Immediate mode Fallback has failed.";
+
+std::size_t ConvolutionDescriptor::GetSolutionCountFallback(Handle& handle,
+                                                            const ProblemDescription& problem) const
+{
+    size_t n                    = 0;
+    const auto maxSolutionCount = miopen::solver::GetMapValueToAnySolver()
+                                      .size(); // Simple and guarantees to provide enough space.
+    GetSolutionsFallback(handle, problem, maxSolutionCount, &n, nullptr);
+    if(n > 0)
+        return n;
+    MIOPEN_LOG_I(immFallbackFailed);
+    /// When count=0 the reason could be:
+    /// * (1) Convolution is not implemented in the library at all, so Find() would fail as
+    ///   well. This is case when rc = miopenStatusNotImplemented is correct.
+    /// * (2) Variant of the above: Convolution is implemented, but implementation is disabled,
+    ///   for example, rocBLAS is not installed or some convolutions are disabled by the
+    ///   environment setting.
+    /// * (3) There is none relevant record in the find-db and fallback path was unable to
+    ///   choose suitable solution.
+    ///
+    /// We can't distinguish these three cases.
+    /// Let's do like Find() does:
+    MIOPEN_THROW(miopenStatusNotImplemented, immFallbackFailed);
 }
 
 std::size_t ConvolutionDescriptor::GetForwardSolutionCount(Handle& handle,
@@ -1494,7 +1464,7 @@ std::size_t ConvolutionDescriptor::GetForwardSolutionCount(Handle& handle,
     const auto n       = GetSolutionCount(handle, problem);
     if(n > 0)
         return n;
-    return GetFwdSolutionCountFallback(wDesc, xDesc, yDesc);
+    return GetSolutionCountFallback(handle, problem);
 }
 
 static inline bool IsAlgorithmDisabled(const miopenConvAlgorithm_t algo)
@@ -1516,6 +1486,341 @@ static inline bool IsAlgorithmDisabled(const miopenConvAlgorithm_t algo)
     } // clang-format on
 }
 
+// Helper class used for emplace and sort.
+struct SolutionSortWrapper : miopenConvSolution_t
+{
+    SolutionSortWrapper(const float& t,
+                        const size_t& ws,
+                        const uint64_t& id,
+                        const miopenConvAlgorithm_t& algo)
+        : miopenConvSolution_t{t, ws, id, algo}
+    {
+    }
+    bool operator<(const SolutionSortWrapper& other) const
+    {
+        // Negative values are very coarse estimations.
+        // The more modulus, the "worse" (slower) is solution.
+        if(time < 0 && other.time < 0)
+            return !(time < other.time);
+        // Positive values are always "better" than negative (coarse) estimations.
+        if(time > 0 && other.time < 0)
+            return true;
+        if(time < 0 && other.time > 0)
+            return false;
+        // Both values are positive. The less is the better.
+        return (time < other.time);
+    }
+};
+
+static double
+SlowdownFactor(int n_oper, const double oper_factor, const double multiple_oper_factor)
+{
+    if(n_oper > 0)
+    {
+        auto rv = oper_factor;
+        if(n_oper > 1)
+            rv *= multiple_oper_factor;
+        return rv;
+    }
+    else
+        return 1.0;
+}
+
+float ConvolutionDescriptor::ComputeGemmWtiFwd(const TensorDescriptor& wDesc,
+                                               const TensorDescriptor& xDesc,
+                                               const TensorDescriptor& yDesc) const
+
+{
+    int n_transpose_NCHW2CNHW    = 0;
+    int n_transpose_CNHW2NCHW    = 0;
+    int n_gemm_strided_batched   = 1; // not strided-batched by default
+    int n_gemm_runs              = 1;
+    int n_transpose_packed_MN2NM = 0;
+    int n_CastTensor             = 0;
+    int n_Im2ColGPU              = 0;
+
+    std::size_t in_n, in_c;
+    std::tie(in_n, in_c) = tie_pick<0, 1>()(xDesc.GetLengths());
+    std::size_t spatial_dim = GetSpatialDimension();
+    auto wei_spatial        = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
+
+    // Use transpose path 1x1, stride=2
+    if(GetSpatialDimension() == 2 && miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
+       miopen::all_of(GetConvPads(), [](auto v) { return v == 0; }) &&
+       miopen::all_of(GetConvStrides(), [](auto v) { return v == 2; }))
+    {
+        n_transpose_NCHW2CNHW = 1;
+        if(wDesc.GetType() == miopenInt8)
+            n_transpose_packed_MN2NM = 1;
+        n_gemm_strided_batched       = group_count;
+        n_transpose_CNHW2NCHW        = 1;
+        if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
+           yDesc.GetType() != miopenInt32)
+            n_CastTensor = 1;
+    }
+    // 1x1_stride=1 with GEMM and zero workspace
+    else if(miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
+            miopen::all_of(GetConvPads(), [](auto v) { return v == 0; }) &&
+            miopen::all_of(GetConvStrides(), [](auto v) { return v == 1; }))
+    {
+
+        if(wDesc.GetType() == miopenInt8)
+        {
+            n_transpose_packed_MN2NM = in_n;
+            n_gemm_runs              = in_n;
+        }
+        else
+        {
+            n_gemm_strided_batched = group_count;
+            n_gemm_runs            = in_n;
+        }
+        if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
+           yDesc.GetType() != miopenInt32)
+            n_CastTensor = 1;
+    }
+    else // not 1x1
+    {
+        n_Im2ColGPU = in_n;
+        if(wDesc.GetType() == miopenInt8)
+            n_transpose_packed_MN2NM = in_n;
+        n_gemm_strided_batched       = group_count;
+        n_gemm_runs                  = in_n;
+        if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
+           yDesc.GetType() != miopenInt32)
+            n_CastTensor = 1;
+    }
+
+    auto wti = 1.0;
+    wti *= SlowdownFactor(n_transpose_NCHW2CNHW, 0.7, 0.9);
+    wti *= SlowdownFactor(n_transpose_CNHW2NCHW, 0.7, 0.9);
+    wti *= SlowdownFactor(n_gemm_runs, 0.9, 0.9);
+    wti *= SlowdownFactor(n_gemm_strided_batched, 1.0, 0.95);
+    wti *= SlowdownFactor(n_transpose_packed_MN2NM, 0.7, 0.9);
+    wti *= SlowdownFactor(n_CastTensor, 0.95, 0.9);
+    wti *= SlowdownFactor(n_Im2ColGPU, 0.4, 0.8);
+    return wti;
+}
+
+float ConvolutionDescriptor::ComputeGemmWtiBwd(const TensorDescriptor& dyDesc,
+                                               const TensorDescriptor& wDesc,
+                                               const TensorDescriptor& dxDesc) const
+{
+    std::ignore = dyDesc;
+
+    int n_SetTensor            = 0;
+    int n_transpose_NCHW2CNHW  = 0;
+    int n_transpose_CNHW2NCHW  = 0;
+    int n_gemm_strided_batched = 1; // not strided-batched by default
+    int n_gemm_runs            = 1;
+    int n_Col2ImGPU            = 0;
+
+    std::size_t in_n, in_c;
+    std::tie(in_n, in_c) = tie_pick<0, 1>()(dxDesc.GetLengths());
+    std::size_t spatial_dim = GetSpatialDimension();
+    auto wei_spatial        = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
+
+    // 1x1 does not require col2im
+    if(GetSpatialDimension() == 2 && miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
+       miopen::all_of(GetConvPads(), [](auto v) { return v == 0; }) &&
+       miopen::all_of(GetConvStrides(), [](auto v) { return v == 2; }))
+    {
+        n_SetTensor            = 1;
+        n_transpose_NCHW2CNHW  = 1;
+        n_gemm_strided_batched = group_count;
+        n_transpose_CNHW2NCHW  = 1;
+    }
+    // 1x1_stride=1 convolutions use GEMM and zero workspace
+    else if(miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
+            miopen::all_of(GetConvPads(), [](auto v) { return v == 0; }) &&
+            miopen::all_of(GetConvStrides(), [](auto v) { return v == 1; }))
+    {
+        n_gemm_strided_batched = in_n;
+    }
+    // if not 1x1
+    else
+    {
+        n_gemm_strided_batched = group_count;
+        n_gemm_runs            = in_n;
+        n_Col2ImGPU            = in_n;
+    }
+
+    auto wti = 1.0;
+    wti *= SlowdownFactor(n_SetTensor, 0.95, 0.99);
+    wti *= SlowdownFactor(n_transpose_NCHW2CNHW, 0.7, 0.9);
+    wti *= SlowdownFactor(n_transpose_CNHW2NCHW, 0.7, 0.9);
+    wti *= SlowdownFactor(n_gemm_runs, 0.9, 0.9);
+    wti *= SlowdownFactor(n_gemm_strided_batched, 1.0, 0.95);
+    wti *= SlowdownFactor(n_Col2ImGPU, 0.4, 0.8);
+    return wti;
+}
+
+float ConvolutionDescriptor::ComputeGemmWtiWrw(const TensorDescriptor& dyDesc,
+                                               const TensorDescriptor& xDesc,
+                                               const TensorDescriptor& dwDesc) const
+{
+    std::ignore = dyDesc;
+
+    int n_gemm_strided_batched           = 1; // not strided-batched by default
+    int n_gemm_strided_batched_sequental = 1; // not strided-batched-sequental by default
+    int n_gemm_runs                      = 1;
+    int n_Im2ColGPU                      = 0;
+
+    std::size_t in_n, in_c;
+    std::tie(in_n, in_c) = tie_pick<0, 1>()(xDesc.GetLengths());
+    auto wei_spatial = boost::adaptors::slice(dwDesc.GetLengths(), 2, 2 + GetSpatialDimension());
+
+    // if not 1x1
+    if((miopen::any_of(wei_spatial, [](auto v) { return v != 1; }) ||
+        miopen::any_of(GetConvPads(), [](auto v) { return v != 0; }) ||
+        miopen::any_of(GetConvStrides(), [](auto v) { return v != 1; })))
+    {
+        n_Im2ColGPU            = in_n;
+        n_gemm_strided_batched = group_count;
+        n_gemm_runs            = in_n;
+    }
+    // 1x1 does not require im2col or workspace
+    else if(miopen::any_of(wei_spatial, [](auto v) { return v == 1; }) &&
+            miopen::any_of(GetConvPads(), [](auto v) { return v == 0; }) &&
+            miopen::any_of(GetConvStrides(), [](auto v) { return v == 1; }))
+    {
+        n_gemm_strided_batched_sequental = group_count;
+        n_gemm_runs                      = in_n;
+    }
+
+    auto wti = 0.7; // Memory overhead for WrW is bigger then for Fwd/Bwd.
+    wti *= SlowdownFactor(n_gemm_runs, 0.9, 0.9);
+    wti *= SlowdownFactor(n_gemm_strided_batched, 1.0, 0.95);
+    wti *= SlowdownFactor(n_gemm_strided_batched_sequental, 1.0, 0.9);
+    wti *= SlowdownFactor(n_Im2ColGPU, 0.4, 0.8);
+    return wti;
+}
+
+void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
+                                                 const ProblemDescription& problem,
+                                                 const size_t maxSolutionCount,
+                                                 size_t* const solutionCount,
+                                                 miopenConvSolution_t* const solutions) const
+{
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
+    {
+        MIOPEN_LOG_I("Disabled via environment");
+        *solutionCount = 0;
+        return;
+    }
+
+    /// \todo This is terrible. Should do away when we converge to
+    /// single conv::ProblemDescription type.
+    const auto& inDesc = problem.direction.IsForward() ? problem.conv_problem.GetIn()
+                                                       : problem.conv_problem.GetOut();
+    const auto& outDesc = problem.direction.IsForward() ? problem.conv_problem.GetOut()
+                                                        : problem.conv_problem.GetIn();
+    const auto& weightsDesc = problem.conv_problem.GetWeights();
+    // This check is needed on fallback path only.
+    // On regular path (find-db hit) this was checked during Find().
+    ValidateGroupCount(inDesc, weightsDesc, *this);
+
+    std::vector<SolutionSortWrapper> interim;
+    interim.reserve(maxSolutionCount); // For speed. In most cases we have less entries than asked.
+
+    auto ctx = ConvolutionContext{problem};
+    ctx.SetStream(&handle);
+    ctx.DetectRocm();
+
+    const auto wti2time = [](const float& wti) {
+        assert(wti != 0.0f);
+        if(wti <= 0.0f) // Return negative values as is, avoid DIV/0.
+            return wti;
+        return 10.0f / wti; // Assume WTI == 1.0 (100%) is 10 ms.
+    };
+
+    const auto& map = miopen::solver::GetMapValueToAnySolver();
+    for(const auto& item : map)
+    {
+        const auto solver_id = solver::Id{item.first};
+        // solver_id is always valid here, because taken from registry.
+        // Validity check is not required.
+        const auto algo = solver_id.GetAlgo();
+        if(IsAlgorithmDisabled(algo)) // Algos can be disabled globally.
+            continue;
+        const auto& s = item.second;
+        if(!s.IsDynamic()) // Let's allow non-dynamic later, if necessary.
+            continue;
+        if(!s.IsApplicable(ctx))
+            continue;
+
+        // gemm can appear here only after actual (non-dummy) GEMM Solver is implemented.
+        if(solver_id == solver::Id::gemm())
+            MIOPEN_LOG_W("GEMM solver is ready, rework this function");
+
+        const auto wti = s.GetWti(ctx);
+        MIOPEN_LOG_I2(solver_id.ToString() << " Estimated WTI = " << wti);
+        if(wti < 0.0f) // Skip unknown WTIs.
+            continue;
+
+        interim.emplace_back(wti2time(wti), s.GetWorkspaceSize(ctx), solver_id.Value(), algo);
+    }
+
+    /// Separate path for GEMM algo, intermediate implementation.
+    /// \todo Remove when GEMM Solver(s) ready.
+    if(problem.direction.IsForward())
+    {
+        if(IsGemmApplicableFwd(weightsDesc, inDesc, outDesc))
+        {
+            interim.emplace_back(
+                wti2time(ComputeGemmWtiFwd(weightsDesc, inDesc, outDesc)),
+                ForwardGetValidWorkSpaceSizeGemm(handle, weightsDesc, inDesc, outDesc),
+                solver::Id::gemm().Value(),
+                miopenConvolutionAlgoGEMM);
+        }
+    }
+    else if(problem.direction.IsBackwardData())
+    {
+        if(IsGemmApplicableBwd(outDesc, weightsDesc, inDesc))
+        {
+            interim.emplace_back(wti2time(ComputeGemmWtiBwd(outDesc, weightsDesc, inDesc)),
+                                 BackwardGetValidWorkSpaceSizeGemm(outDesc, weightsDesc, inDesc),
+                                 solver::Id::gemm().Value(),
+                                 miopenConvolutionAlgoGEMM);
+        }
+    }
+    else if(problem.direction.IsBackwardWrW())
+    {
+        if(IsGemmApplicableWrw(outDesc, inDesc, weightsDesc))
+        {
+            interim.emplace_back(wti2time(ComputeGemmWtiWrw(outDesc, inDesc, weightsDesc)),
+                                 WrwGetValidWorkSpaceSizeGemm(outDesc, inDesc, weightsDesc),
+                                 solver::Id::gemm().Value(),
+                                 miopenConvolutionAlgoGEMM);
+        }
+    }
+    else
+    {
+        MIOPEN_THROW("Unknown direction");
+    }
+
+    MIOPEN_LOG_I2("maxSolutionCount = " << maxSolutionCount << ", available = " << interim.size());
+    for(const auto& s : interim)
+        MIOPEN_LOG_I2("id: " << s.solution_id << " algo: " << s.algorithm << ", time: " << s.time
+                             << " ms, ws: "
+                             << s.workspace_size
+                             << ", name: "
+                             << miopen::solver::Id(s.solution_id).ToString());
+    // Dual purpose variable:
+    // * Used as index for writing into output array (solutions).
+    // * Counts the number of entries written, yielding value for solutionsCount.
+    auto i = std::size_t{0};
+    std::sort(begin(interim), end(interim));
+    for(const auto& entry : interim)
+    {
+        if(i >= maxSolutionCount)
+            break;
+        if(solutions != nullptr)
+            solutions[i] = entry;
+        ++i;
+    }
+    *solutionCount = i;
+}
+
 void GetSolutions(Handle& handle,
                   const ProblemDescription& problem,
                   const size_t maxSolutionCount,
@@ -1531,20 +1836,7 @@ void GetSolutions(Handle& handle,
         return;
     }
 
-    // Read all what we have, then sort and write out up to max asked.
-    // Fallback path currently returns only one solution, so no need to sort there.
-    struct SortWrapper : miopenConvSolution_t // For emplace and sort.
-    {
-        SortWrapper(const float& t,
-                    const size_t& ws,
-                    const uint64_t& id,
-                    const miopenConvAlgorithm_t& algo)
-            : miopenConvSolution_t{t, ws, id, algo}
-        {
-        }
-        bool operator<(const SortWrapper& other) const { return (time < other.time); }
-    };
-    std::vector<SortWrapper> interim;
+    std::vector<SolutionSortWrapper> interim;
     interim.reserve(maxSolutionCount); // For speed. In most cases we have less entries than asked.
 
     // Individual Solvers can be enabled/disabled by environment settings.
@@ -1571,8 +1863,8 @@ void GetSolutions(Handle& handle,
             MIOPEN_LOG_I("[Warning] incorrect solver_id: " << pair.second.solver_id);
             continue;
         }
-        // gemm and fft are always applicable.
-        // These can be disabled/enabled at algorithm level.
+        // gemm is always applicable.
+        // It can be disabled/enabled at algorithm level.
         if(solver_id != solver::Id::gemm())
             if(!solver_id.GetSolver().IsApplicable(ctx))
                 continue;
@@ -1592,106 +1884,18 @@ void GetSolutions(Handle& handle,
     *solutionCount = i;
 }
 
-void ConvolutionDescriptor::GetForwardSolutionsFallback(Handle& handle,
-                                                        const TensorDescriptor& wDesc,
-                                                        const TensorDescriptor& xDesc,
-                                                        const TensorDescriptor& yDesc,
-                                                        const size_t maxSolutionCount,
-                                                        size_t* const solutionCount,
-                                                        miopenConvSolution_t* const solutions) const
-{
-    // This check is needed on fallback path only.
-    // Regular (find-db) path have been verified during Find().
-    ValidateGroupCount(xDesc, wDesc, *this);
-    auto i = std::size_t{0};
-
-    if(IsGemmApplicableFwd(wDesc, xDesc, yDesc) &&
-       !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
-    {
-        MIOPEN_LOG_I("Fallback path, GEMM");
-        if(i < maxSolutionCount)
-        {
-            solutions[i].algorithm = miopenConvolutionAlgoGEMM;
-            solutions[i].time      = -1.0; /// \todo Evaluate time.
-            solutions[i].workspace_size =
-                ForwardGetValidWorkSpaceSizeGemm(handle, wDesc, xDesc, yDesc);
-            solutions[i].solution_id = solver::Id::gemm().Value();
-            ++i;
-        }
-    }
-    else
-        MIOPEN_LOG_I("Fallback path, GEMM disabled");
-
-    *solutionCount = i;
-}
-
-void ConvolutionDescriptor::GetBwdSolutionsFallback(Handle& /*handle*/,
-                                                    const TensorDescriptor& dyDesc,
-                                                    const TensorDescriptor& wDesc,
-                                                    const TensorDescriptor& dxDesc,
-                                                    const size_t maxSolutionCount,
-                                                    size_t* const solutionCount,
-                                                    miopenConvSolution_t* const solutions) const
-{
-    ValidateGroupCount(dxDesc, wDesc, *this);
-    auto i = std::size_t{0};
-
-    if(IsGemmApplicableBwd(dyDesc, wDesc, dxDesc) &&
-       !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
-    {
-        MIOPEN_LOG_I("Fallback path, GEMM");
-        if(i < maxSolutionCount)
-        {
-            solutions[i].algorithm      = miopenConvolutionAlgoGEMM;
-            solutions[i].time           = -1.0; /// \todo Evaluate time.
-            solutions[i].workspace_size = BackwardGetValidWorkSpaceSizeGemm(dyDesc, wDesc, dxDesc);
-            solutions[i].solution_id    = solver::Id::gemm().Value();
-            ++i;
-        }
-    }
-    else
-        MIOPEN_LOG_I("Fallback path, GEMM disabled");
-
-    *solutionCount = i;
-}
-
-void ConvolutionDescriptor::GetWrwSolutionsFallback(Handle& /*handle*/,
-                                                    const TensorDescriptor& dyDesc,
-                                                    const TensorDescriptor& xDesc,
-                                                    const TensorDescriptor& dwDesc,
-                                                    const size_t maxSolutionCount,
-                                                    size_t* const solutionCount,
-                                                    miopenConvSolution_t* const solutions) const
-{
-    ValidateGroupCount(xDesc, dwDesc, *this);
-    auto i = std::size_t{0};
-
-    if(IsGemmApplicableWrw(dyDesc, xDesc, dwDesc) &&
-       !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
-    {
-        MIOPEN_LOG_I("Fallback path, GEMM");
-        if(i < maxSolutionCount)
-        {
-            solutions[i].algorithm      = miopenConvolutionAlgoGEMM;
-            solutions[i].time           = -1.0; /// \todo Evaluate time.
-            solutions[i].workspace_size = WrwGetValidWorkSpaceSizeGemm(dyDesc, xDesc, dwDesc);
-            solutions[i].solution_id    = solver::Id::gemm().Value();
-            ++i;
-        }
-    }
-    else
-        MIOPEN_LOG_I("Fallback path, GEMM disabled");
-
-    *solutionCount = i;
-}
-
+/// \todo Extend miopenConvSolution_t with an attribute indicating
+/// how the solution was obtained (benchmarked on the current system,
+/// taken from the System find-db, heuristically estimated, produced by
+/// MLP classifier...) and then remove the fallbackPathTaken out param.
 void ConvolutionDescriptor::GetForwardSolutions(Handle& handle,
                                                 const TensorDescriptor& wDesc,
                                                 const TensorDescriptor& xDesc,
                                                 const TensorDescriptor& yDesc,
                                                 const size_t maxSolutionCount,
                                                 size_t* const solutionCount,
-                                                miopenConvSolution_t* const solutions) const
+                                                miopenConvSolution_t* const solutions,
+                                                bool* const fallbackPathTaken) const
 {
     MIOPEN_LOG_I("");
     if(solutionCount == nullptr)
@@ -1703,77 +1907,10 @@ void ConvolutionDescriptor::GetForwardSolutions(Handle& handle,
     GetSolutions(
         handle, problem, maxSolutionCount, solutionCount, solutions, StringToConvolutionFwdAlgo);
 
+    if(fallbackPathTaken != nullptr)
+        *fallbackPathTaken = (*solutionCount == 0);
     if(*solutionCount == 0)
-        GetForwardSolutionsFallback(
-            handle, wDesc, xDesc, yDesc, maxSolutionCount, solutionCount, solutions);
-}
-
-std::size_t
-ConvolutionDescriptor::GetFwdSolutionWorkspaceSizeFallback(Handle& handle,
-                                                           const TensorDescriptor& wDesc,
-                                                           const TensorDescriptor& xDesc,
-                                                           const TensorDescriptor& yDesc,
-                                                           solver::Id solver_id) const
-{
-    ValidateGroupCount(xDesc, wDesc, *this);
-    if(solver_id == solver::Id::gemm() && IsGemmApplicableFwd(wDesc, xDesc, yDesc))
-    {
-        MIOPEN_LOG_I("Fallback path, GEMM");
-        return ForwardGetValidWorkSpaceSizeGemm(handle, wDesc, xDesc, yDesc);
-    }
-    MIOPEN_THROW(miopenStatusNotImplemented);
-}
-
-std::size_t
-ConvolutionDescriptor::BackwardGetValidWorkSpaceSizeGemm(const TensorDescriptor& dyDesc,
-                                                         const TensorDescriptor& wDesc,
-                                                         const TensorDescriptor& dxDesc) const
-{
-    const auto wei_spatial =
-        boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + GetSpatialDimension());
-
-    if(GetSpatialDimension() == 2 && miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-       miopen::all_of(GetConvPads(), [](auto v) { return v == 0; }) &&
-       miopen::all_of(GetConvStrides(), [](auto v) { return v == 2; }))
-        return BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc);
-
-    if(miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-       miopen::all_of(GetConvPads(), [](auto v) { return v == 0; }) &&
-       miopen::all_of(GetConvStrides(), [](auto v) { return v == 1; }))
-        return 0;
-
-    return BackwardDataGetWorkSpaceSizeGEMM(wDesc, dyDesc);
-}
-
-std::size_t
-ConvolutionDescriptor::GetBwdSolutionWorkspaceSizeFallback(const TensorDescriptor& dyDesc,
-                                                           const TensorDescriptor& wDesc,
-                                                           const TensorDescriptor& dxDesc,
-                                                           solver::Id solver_id) const
-{
-    ValidateGroupCount(dxDesc, wDesc, *this);
-    if(solver_id == solver::Id::gemm() && IsGemmApplicableBwd(dyDesc, wDesc, dxDesc))
-    {
-        MIOPEN_LOG_I("Fallback path, GEMM");
-        return BackwardGetValidWorkSpaceSizeGemm(dyDesc, wDesc, dxDesc);
-    }
-    MIOPEN_THROW(miopenStatusNotImplemented);
-}
-
-std::size_t
-ConvolutionDescriptor::GetWrwSolutionWorkspaceSizeFallback(Handle& /*handle*/,
-                                                           const TensorDescriptor& dyDesc,
-                                                           const TensorDescriptor& xDesc,
-                                                           const TensorDescriptor& dwDesc,
-                                                           solver::Id solver_id) const
-{
-    ValidateGroupCount(xDesc, dwDesc, *this);
-    if(solver_id == solver::Id::gemm() && IsGemmApplicableWrw(dyDesc, xDesc, dwDesc))
-    {
-        MIOPEN_LOG_I("Fallback path, GEMM");
-        return WrwGetValidWorkSpaceSizeGemm(dyDesc, xDesc, dwDesc);
-    }
-    MIOPEN_THROW(miopenStatusNotImplemented);
+        GetSolutionsFallback(handle, problem, maxSolutionCount, solutionCount, solutions);
 }
 
 std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(Handle& handle,
@@ -1785,23 +1922,20 @@ std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(Handle& handl
     MIOPEN_LOG_I("solver_id = " << solver_id.ToString());
     if(!solver_id.IsValid())
         MIOPEN_THROW(miopenStatusBadParm, "invalid solution id = " + solver_id.ToString());
-    if(solver_id != solver::Id::gemm())
-    {
-        auto sol = solver_id.GetSolver();
-        auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
-        ctx.SetStream(&handle);
-        ctx.DetectRocm();
-        if(sol.IsApplicable(ctx))
-            return sol.GetWorkspaceSize(ctx);
-        else
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "The supplied solution id: " + solver_id.ToString() +
-                             " is not applicable to the current problem");
-        }
-    }
-    // handles the GEMM case
-    return GetFwdSolutionWorkspaceSizeFallback(handle, wDesc, xDesc, yDesc, solver_id);
+
+    if(solver_id == solver::Id::gemm())
+        return ForwardGetValidWorkSpaceSizeGemm(handle, wDesc, xDesc, yDesc);
+
+    auto sol = solver_id.GetSolver();
+    auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
+    ctx.SetStream(&handle);
+    ctx.DetectRocm();
+    if(sol.IsApplicable(ctx))
+        return sol.GetWorkspaceSize(ctx);
+    else
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "The supplied solution id: " + solver_id.ToString() +
+                         " is not applicable to the current problem");
 }
 
 // Todo: remove when all immediate mode calls will support invokers
@@ -1991,25 +2125,17 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     AutoEnableProfiling enableProfiling{handle};
 
     const ProblemDescription problem(dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData);
-
-    const auto use_winograd_only = [&]() {
-        auto ctx = ConvolutionContext{problem};
-        ctx.SetStream(&handle);
-        ctx.DetectRocm();
-        return IsWinograd3x3SupportedAndFast(ctx);
-    }();
-
     std::vector<PerfField> perf_db;
 
-    /// \ref ffind_special_cases
     bool use_immediate_solution = false;
     miopenConvSolution_t imm_sol;
     auto ctx = ConvolutionContext{problem};
-    if((findMode.IsFast(ctx) || findMode.IsHybrid(ctx)) && !use_winograd_only)
+    if(findMode.IsFast(ctx) || findMode.IsHybrid(ctx))
     {
         size_t count;
-        GetBackwardSolutions(handle, dyDesc, wDesc, dxDesc, 1, &count, &imm_sol);
-        use_immediate_solution = (count > 0) && !(findMode.IsHybrid(ctx) && imm_sol.time < 0);
+        bool fallback;
+        GetBackwardSolutions(handle, dyDesc, wDesc, dxDesc, 1, &count, &imm_sol, &fallback);
+        use_immediate_solution = (count > 0) && !(findMode.IsHybrid(ctx) && fallback);
     }
 
     if(use_immediate_solution)
@@ -2023,6 +2149,12 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     }
     else
     {
+        const auto use_winograd_only = [&]() {
+            ctx.SetStream(&handle);
+            ctx.DetectRocm();
+            return IsWinograd3x3SupportedAndFast(ctx);
+        }();
+
         perf_db = UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
             const auto network_config = problem.BuildConfKey();
             const auto invoke_ctx     = conv::DataInvokeParams{
@@ -2031,8 +2163,6 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
                 findMode.IsFastHybrid(ctx);
             ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
-            ctx.SetStream(&handle);
-            ctx.DetectRocm();
 
             // Winograd algo
             {
@@ -2071,10 +2201,10 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
             }
 
-            if(!use_winograd_only && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT{}))
+            if(!use_winograd_only)
             {
                 // FFT algo
-                const auto all            = FindAllFFTSolutions(ctx, invoke_ctx);
+                const auto all            = FindFftSolutions(ctx, invoke_ctx);
                 const auto algorithm_name = AlgorithmName{"miopenConvolutionBwdDataAlgoFFT"};
                 PrecompileSolutions(handle, all);
                 EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
@@ -2704,7 +2834,7 @@ std::size_t ConvolutionDescriptor::GetBackwardSolutionCount(Handle& handle,
     const auto count = GetSolutionCount(handle, problem);
     if(count > 0)
         return count;
-    return GetBwdSolutionCountFallback(dyDesc, wDesc, dxDesc);
+    return GetSolutionCountFallback(handle, problem);
 }
 
 void ConvolutionDescriptor::GetBackwardSolutions(Handle& handle,
@@ -2713,7 +2843,8 @@ void ConvolutionDescriptor::GetBackwardSolutions(Handle& handle,
                                                  const TensorDescriptor& dxDesc,
                                                  size_t maxSolutionCount,
                                                  size_t* solutionCount,
-                                                 miopenConvSolution_t* solutions) const
+                                                 miopenConvSolution_t* solutions,
+                                                 bool* const fallbackPathTaken) const
 {
     MIOPEN_LOG_I("");
     if(solutionCount == nullptr)
@@ -2730,9 +2861,10 @@ void ConvolutionDescriptor::GetBackwardSolutions(Handle& handle,
                  solutions,
                  StringToConvolutionBwdDataAlgo);
 
+    if(fallbackPathTaken != nullptr)
+        *fallbackPathTaken = (*solutionCount == 0);
     if(*solutionCount == 0)
-        GetBwdSolutionsFallback(
-            handle, dyDesc, wDesc, dxDesc, maxSolutionCount, solutionCount, solutions);
+        GetSolutionsFallback(handle, problem, maxSolutionCount, solutionCount, solutions);
 }
 
 void ConvolutionDescriptor::CompileBackwardSolution(Handle& handle,
@@ -2759,22 +2891,20 @@ std::size_t ConvolutionDescriptor::GetBackwardSolutionWorkspaceSize(Handle& hand
     MIOPEN_LOG_I2("solver_id = " << solver_id.ToString());
     if(!solver_id.IsValid())
         MIOPEN_THROW(miopenStatusBadParm, "invalid solution id = " + solver_id.ToString());
-    if(solver_id != solver::Id::gemm())
-    {
-        auto sol = solver_id.GetSolver();
-        auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
-        ctx.SetStream(&handle);
-        ctx.DetectRocm();
-        if(sol.IsApplicable(ctx))
-            return sol.GetWorkspaceSize(ctx);
-        else
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "The supplied solution id: " + solver_id.ToString() +
-                             " is not applicable to the current problem");
-        }
-    }
-    return GetBwdSolutionWorkspaceSizeFallback(dyDesc, wDesc, dxDesc, solver_id);
+
+    if(solver_id == solver::Id::gemm())
+        return BackwardGetValidWorkSpaceSizeGemm(dyDesc, wDesc, dxDesc);
+
+    auto sol = solver_id.GetSolver();
+    auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
+    ctx.SetStream(&handle);
+    ctx.DetectRocm();
+    if(sol.IsApplicable(ctx))
+        return sol.GetWorkspaceSize(ctx);
+    else
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "The supplied solution id: " + solver_id.ToString() +
+                         " is not applicable to the current problem");
 }
 
 void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
@@ -2805,6 +2935,7 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
         ValidateGroupCount(dxDesc, wDesc, *this);
 
         auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
+        ctx.SetStream(&handle);
 
         if(CheckInvokerSupport(solver_id, conv::Direction::BackwardData))
         {
@@ -2869,8 +3000,9 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     if(findMode.IsFast(ctx) || findMode.IsHybrid(ctx))
     {
         size_t count;
-        GetWrwSolutions(handle, dyDesc, xDesc, dwDesc, 1, &count, &imm_sol);
-        use_immediate_solution = (count > 0) && !(findMode.IsHybrid(ctx) && imm_sol.time < 0);
+        bool fallback;
+        GetWrwSolutions(handle, dyDesc, xDesc, dwDesc, 1, &count, &imm_sol, &fallback);
+        use_immediate_solution = (count > 0) && !(findMode.IsHybrid(ctx) && fallback);
     }
 
     if(use_immediate_solution)
@@ -3382,7 +3514,7 @@ std::size_t ConvolutionDescriptor::GetWrwSolutionCount(Handle& handle,
     const auto count   = GetSolutionCount(handle, problem);
     if(count > 0)
         return count;
-    return GetWrwSolutionCountFallback(dyDesc, xDesc, dwDesc);
+    return GetSolutionCountFallback(handle, problem);
 }
 
 void ConvolutionDescriptor::GetWrwSolutions(Handle& handle,
@@ -3391,7 +3523,8 @@ void ConvolutionDescriptor::GetWrwSolutions(Handle& handle,
                                             const TensorDescriptor& dwDesc,
                                             size_t maxSolutionCount,
                                             size_t* solutionCount,
-                                            miopenConvSolution_t* solutions) const
+                                            miopenConvSolution_t* solutions,
+                                            bool* const fallbackPathTaken) const
 {
     MIOPEN_LOG_I("");
     if(solutionCount == nullptr)
@@ -3407,9 +3540,10 @@ void ConvolutionDescriptor::GetWrwSolutions(Handle& handle,
                  solutions,
                  StringToConvolutionBwdWeightsAlgo);
 
+    if(fallbackPathTaken != nullptr)
+        *fallbackPathTaken = (*solutionCount == 0);
     if(*solutionCount == 0)
-        GetWrwSolutionsFallback(
-            handle, dyDesc, xDesc, dwDesc, maxSolutionCount, solutionCount, solutions);
+        GetSolutionsFallback(handle, problem, maxSolutionCount, solutionCount, solutions);
 }
 
 void ConvolutionDescriptor::CompileWrwSolution(Handle& handle,
@@ -3435,24 +3569,22 @@ std::size_t ConvolutionDescriptor::GetWrwSolutionWorkspaceSize(Handle& handle,
     MIOPEN_LOG_I2("solver_id = " << solver_id.ToString());
     if(!solver_id.IsValid())
         MIOPEN_THROW(miopenStatusBadParm, "invalid solution id = " + solver_id.ToString());
-    if(solver_id != solver::Id::gemm())
-    {
-        auto sol = solver_id.GetSolver();
-        auto problem =
-            ProblemDescription{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
-        auto ctx = ConvolutionContext{problem};
-        ctx.SetStream(&handle);
-        ctx.DetectRocm();
-        if(sol.IsApplicable(ctx))
-            return sol.GetWorkspaceSize(ctx);
-        else
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "The supplied solution id: " + solver_id.ToString() +
-                             " is not applicable to the current problem");
-        }
-    }
-    return GetWrwSolutionWorkspaceSizeFallback(handle, dyDesc, xDesc, dwDesc, solver_id);
+
+    if(solver_id == solver::Id::gemm())
+        return WrwGetValidWorkSpaceSizeGemm(dyDesc, xDesc, dwDesc);
+
+    auto sol = solver_id.GetSolver();
+    auto problem =
+        ProblemDescription{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
+    auto ctx = ConvolutionContext{problem};
+    ctx.SetStream(&handle);
+    ctx.DetectRocm();
+    if(sol.IsApplicable(ctx))
+        return sol.GetWorkspaceSize(ctx);
+    else
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "The supplied solution id: " + solver_id.ToString() +
+                         " is not applicable to the current problem");
 }
 
 void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
