@@ -355,6 +355,9 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     std::size_t
     BackwardWeightsGetWorkSpaceSizeImplicitGemm(const miopen::ConvolutionContext& ctx) const;
 
+    std::size_t
+    BackwardWeightsGetWorkSpaceSizeFFT(const miopen::ConvolutionContext& ctx) const;
+
     void FindConvBwdWeightsAlgorithm(Handle& handle,
                                      const TensorDescriptor& dyDesc,
                                      ConstData_t dy,
