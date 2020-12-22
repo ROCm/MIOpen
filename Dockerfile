@@ -40,11 +40,6 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     python-pip \
     software-properties-common \
     libboost-all-dev \
-    llvm-7 \
-    pkg-config \
-    python3 \
-    python3-distutils \
-    python3-venv \
     python3-pip \
     rocm-opencl \
     rocm-opencl-dev && \
