@@ -57,7 +57,6 @@
 
 #define MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_30 (MIOPEN_USE_COMGR && BUILD_SHARED_LIBS)
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_CU)
 
 namespace miopen {
@@ -182,6 +181,8 @@ struct HandleImpl
         if(this->device != get_device_id())
             MIOPEN_THROW("Running handle on wrong device");
     }
+
+    std::string GetDeviceName();
 
     bool enable_profiling  = false;
     StreamPtr stream       = nullptr;
@@ -523,26 +524,14 @@ std::size_t Handle::GetMaxMemoryAllocSize()
     return m_MaxMemoryAllocSizeCached;
 }
 
-extern std::string GetDeviceNameFromMap(const std::string& in); /// \ todo
-
-static std::string GetDeviceNameImpl(const std::unique_ptr<HandleImpl>& handle_impl)
+std::string HandleImpl::GetDeviceName()
 {
-    const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
-    if(arch != nullptr && strlen(arch) > 0)
-    {
-        return arch;
-    }
     hipDeviceProp_t props{};
-    hipGetDeviceProperties(&props, handle_impl->device);
-    std::string n("gfx" + std::to_string(props.gcnArch));
-    return GetDeviceNameFromMap(n);
+    hipGetDeviceProperties(&props, device);
+    return { "gfx" + std::to_string(props.gcnArch) };
 }
 
-std::string Handle::GetDeviceName() const
-{
-    static const auto rv = GetDeviceNameImpl(this->impl);
-    return rv;
-}
+std::string Handle::GetDeviceNameImpl() const { return this->impl->GetDeviceName(); }
 
 std::ostream& Handle::Print(std::ostream& os) const
 {

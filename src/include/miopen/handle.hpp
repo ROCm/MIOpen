@@ -145,8 +145,12 @@ struct Handle : miopenHandle
     std::size_t GetMaxMemoryAllocSize();
 
     std::string GetDeviceName() const;
-    std::ostream& Print(std::ostream& os) const;
 
+    private:
+    std::string GetDeviceNameImpl() const;
+
+    public:
+    std::ostream& Print(std::ostream& os) const;
     void Copy(ConstData_t src, Data_t dest, std::size_t size) const;
 
     Allocator::ManageDataPtr Create(std::size_t sz) const;

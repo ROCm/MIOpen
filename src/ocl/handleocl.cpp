@@ -51,8 +51,6 @@
 #include <unistd.h>
 #endif
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
-
 namespace miopen {
 
 void* default_allocator(void* context, size_t sz)
@@ -447,24 +445,11 @@ std::size_t Handle::GetGlobalMemorySize() const
     return miopen::GetDeviceInfo<CL_DEVICE_GLOBAL_MEM_SIZE>(miopen::GetDevice(this->GetStream()));
 }
 
-extern std::string GetDeviceNameFromMap(const std::string& in); /// \ todo
-
-static std::string GetDeviceNameImpl(miopenAcceleratorQueue_t stream)
+std::string Handle::GetDeviceNameImpl() const
 {
-    const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
-    if(arch != nullptr && strlen(arch) > 0)
-    {
-        return arch;
-    }
-    std::string name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(miopen::GetDevice(stream));
+    std::string name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(miopen::GetDevice(this->GetStream()));
     ParseDevName(name);
-    return GetDeviceNameFromMap(name);
-}
-
-std::string Handle::GetDeviceName() const
-{
-    static const auto rv = GetDeviceNameImpl(this->GetStream());
-    return rv;
+    return name;
 }
 
 std::ostream& Handle::Print(std::ostream& os) const

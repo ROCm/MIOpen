@@ -26,14 +26,16 @@
 #define WORKAROUND_SWDEV_262823 1
 
 #include <miopen/env.hpp>
+#include <miopen/handle.hpp>
 #include <map>
 #include <string>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_ENFORCE_DEVICE)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 
 namespace miopen {
 
-std::string GetDeviceNameFromMap(const std::string& in)
+static std::string GetDeviceNameFromMap(const std::string& in)
 {
 
     static std::map<std::string, std::string> device_name_map = {
@@ -66,6 +68,20 @@ std::string GetDeviceNameFromMap(const std::string& in)
     if(match != device_name_map.end())
         return match->second;
     return name;
+}
+
+std::string Handle::GetDeviceName() const
+{
+    static const auto rv = [&]() {
+        const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
+        std::string name;
+        if(arch != nullptr && strlen(arch) > 0)
+            name = arch;
+        else
+            name = this->GetDeviceNameImpl();
+        return GetDeviceNameFromMap(name);
+    }();
+    return rv;
 }
 
 } // namespace miopen
