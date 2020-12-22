@@ -423,10 +423,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                               size_t* solutionCount,
                               miopenConvSolution_t* solutions) const;
 
-    bool IsGemmApplicableFwd(const TensorDescriptor& wDesc,
-                             const TensorDescriptor& xDesc,
-                             const TensorDescriptor& yDesc) const;
-
     bool IsGemmApplicableBwd(const TensorDescriptor& dyDesc,
                              const TensorDescriptor& wDesc,
                              const TensorDescriptor& dxDesc) const;

@@ -1005,7 +1005,7 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
     /// \todo Remove when GEMM Solver(s) ready.
     if(problem.direction.IsForward())
     {
-        if(IsGemmApplicableFwd(weightsDesc, inDesc, outDesc))
+        if(IsGemmApplicable(ctx))
         {
             const auto gemm_ws_sz_pairs = AllGemmWorkspaceSize(ctx);
             const auto gemm_ws_szs      = gemm_ws_sz_pairs | boost::adaptors::transformed(
