@@ -479,6 +479,7 @@ enable_cppcheck(
         performance
         portability
     SUPPRESS
+        missing-noreturn
         ConfigurationNotChecked
         constStatement
         duplicateCondition
