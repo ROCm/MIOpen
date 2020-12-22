@@ -226,7 +226,6 @@ Handle::Handle() : impl(new HandleImpl())
 #if !MIOPEN_INSTALLABLE
     // TODO: Store device name in handle
     std::string deviceName = miopen::GetDeviceInfo<CL_DEVICE_NAME>(impl->device);
-    ParseDevName(deviceName);
     MIOPEN_LOG_NQI("Device name: " << deviceName);
 #endif
 
@@ -448,7 +447,7 @@ std::size_t Handle::GetGlobalMemorySize() const
 std::string Handle::GetDeviceNameImpl() const
 {
     std::string name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(miopen::GetDevice(this->GetStream()));
-    ParseDevName(name);
+    WorkaroundIssue1711(name);
     return name;
 }
 

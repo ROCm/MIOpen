@@ -42,7 +42,7 @@
 
 namespace miopen {
 
-void ParseDevName(std::string& name)
+void WorkaroundIssue1711(std::string& name)
 {
     auto loc_p = name.find('+');
     if(loc_p != std::string::npos)
@@ -66,9 +66,8 @@ static cl_program CreateProgram(cl_context ctx, const char* char_source, size_t 
 static std::string
 ClAssemble(cl_device_id device, const std::string& source, const std::string& params)
 {
-    // Add device nmae
     std::string name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(device);
-    ParseDevName(name);
+    WorkaroundIssue1711(name);
     return AmdgcnAssemble(source, std::string("-mcpu=") + name + " " + params);
 }
 
@@ -165,7 +164,7 @@ ClProgramPtr LoadProgram(cl_context ctx,
     else if(!is_kernel_str && miopen::EndsWith(program_name, ".cpp"))
     {
         std::string device_name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(device);
-        ParseDevName(device_name);
+        WorkaroundIssue1711(device_name);
         boost::optional<miopen::TmpDir> dir(program_name);
 #if MIOPEN_BUILD_DEV
         params += " -Werror";

@@ -528,7 +528,7 @@ std::string HandleImpl::GetDeviceName()
 {
     hipDeviceProp_t props{};
     hipGetDeviceProperties(&props, device);
-    return { "gfx" + std::to_string(props.gcnArch) };
+    return {"gfx" + std::to_string(props.gcnArch)};
 }
 
 std::string Handle::GetDeviceNameImpl() const { return this->impl->GetDeviceName(); }
