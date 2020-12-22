@@ -1007,11 +1007,15 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
     {
         if(IsGemmApplicableFwd(weightsDesc, inDesc, outDesc))
         {
-            interim.emplace_back(
-                wti2time(ComputeGemmWtiFwd(weightsDesc, inDesc, outDesc)),
-                ForwardGetValidWorkSpaceSizeGemm(handle, weightsDesc, inDesc, outDesc),
-                solver::Id::gemm().Value(),
-                miopenConvolutionAlgoGEMM);
+            const auto gemm_ws_sz_pairs = AllGemmWorkspaceSize(ctx);
+            const auto gemm_ws_szs      = gemm_ws_sz_pairs | boost::adaptors::transformed(
+                                                            [](const auto& p) { return p.second; });
+            const auto ws_size_gemm = *std::max_element(gemm_ws_szs.begin(), gemm_ws_szs.end());
+
+            interim.emplace_back(wti2time(ComputeGemmWtiFwd(weightsDesc, inDesc, outDesc)),
+                                 ws_size_gemm,
+                                 solver::Id::gemm().Value(),
+                                 miopenConvolutionAlgoGEMM);
         }
     }
     else if(problem.direction.IsBackwardData())
