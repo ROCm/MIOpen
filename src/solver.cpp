@@ -232,7 +232,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
         registry, ++id, ConvAsm7x7c3h224w224k64u2v2p3q3f1{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvOclDirectFwd11x11{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvOclDirectFwdGen{}, miopenConvolutionAlgoDirect);
-    RegisterWithSolver(registry, ++id, ConvOclDirectFwd3x3{}, miopenConvolutionAlgoDirect);
+    ++id; // removed ConvOclDirectFwd3x3
     RegisterWithSolver(registry, ++id, ConvOclDirectFwd{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvOclDirectFwdFused{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvOclDirectFwd1x1{}, miopenConvolutionAlgoDirect);
