@@ -38,6 +38,11 @@
 #include <ostream>
 #include <iostream>
 
+// although gfx1030 supports buffer instructions,but it does not work properly when we using
+// corresponding llvm intrinsic functions
+// so using those llvm intrinsic functions is disabled on gfx1030
+#define WORKAROUND_MIOPEN_ISSUE_557 1
+
 namespace miopen {
 
 enum ReductionMethod_t
@@ -551,6 +556,12 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
 
     // to remove the warning from clang-tidy checking
     param += " -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_FP16=0 ";
+
+#if WORKAROUND_MIOPEN_ISSUE_557
+    const auto device_name = handle.GetDeviceName();
+    if ( StartsWith(device_name, "gfx1030") )
+	 param += " -DCK_USE_AMD_BUFFER_ADDRESSING=0 ";
+#endif
 
     std::string program_name = "gridwise_generic_reduction.cpp";
     std::string algo_name    = "generic_reduce_tensor";
