@@ -379,7 +379,7 @@ Program Handle::LoadProgram(const std::string& program_name,
         CompileTimer ct;
         auto p =
             HIPOCProgram{program_name, params, is_kernel_str, this->GetDeviceName(), kernel_src};
-        ct.Log("Kernel", program_name);
+        ct.Log("Kernel", is_kernel_str ? std::string() : program_name);
 
 // Save to cache
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
