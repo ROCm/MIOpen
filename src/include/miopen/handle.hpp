@@ -73,7 +73,7 @@ struct TargetProperties
     bool xnack;
     bool sramecc;
 
-    void Init(const Handle* const);
+    void Init(const Handle*);
 };
 
 struct Handle : miopenHandle
