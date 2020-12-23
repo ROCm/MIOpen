@@ -65,8 +65,23 @@ using GemmKey = std::pair<std::string, std::string>;
 using rocblas_handle_ptr = MIOPEN_MANAGE_PTR(rocblas_handle, rocblas_destroy_handle);
 #endif
 
+struct Handle;
+
+struct TargetProperties
+{
+    friend struct Handle;
+
+    std::string name;
+    bool xnack;
+    bool sramecc;
+
+    private:
+    void Init(const Handle* const);
+};
+
 struct Handle : miopenHandle
 {
+    friend struct TargetProperties;
 
     Handle();
     Handle(miopenAcceleratorQueue_t stream);

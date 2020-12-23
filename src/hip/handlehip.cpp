@@ -182,7 +182,7 @@ struct HandleImpl
             MIOPEN_THROW("Running handle on wrong device");
     }
 
-    std::string GetDeviceName();
+    std::string get_device_name();
 
     bool enable_profiling  = false;
     StreamPtr stream       = nullptr;
@@ -191,6 +191,7 @@ struct HandleImpl
     Allocator allocator{};
     KernelCache cache;
     hipCtx_t ctx;
+    TargetProperties target_properties;
 };
 
 Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
@@ -208,6 +209,7 @@ Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
 #if MIOPEN_USE_ROCBLAS
     rhandle_ = CreateRocblasHandle();
 #endif
+    this->impl->target_properties.Init(this);
     MIOPEN_LOG_NQI(*this);
 }
 
@@ -227,6 +229,7 @@ Handle::Handle() : impl(new HandleImpl())
 #if MIOPEN_USE_ROCBLAS
     rhandle_ = CreateRocblasHandle();
 #endif
+    this->impl->target_properties.Init(this);
     MIOPEN_LOG_NQI(*this);
 }
 
@@ -239,6 +242,7 @@ void Handle::SetStream(miopenAcceleratorQueue_t streamID) const
 #if MIOPEN_USE_ROCBLAS
     rocblas_set_stream(this->rhandle_.get(), this->GetStream());
 #endif
+    this->impl->target_properties.Init(this);
 }
 
 miopenAcceleratorQueue_t Handle::GetStream() const { return impl->stream.get(); }
@@ -524,14 +528,16 @@ std::size_t Handle::GetMaxMemoryAllocSize()
     return m_MaxMemoryAllocSizeCached;
 }
 
-std::string HandleImpl::GetDeviceName()
+std::string HandleImpl::get_device_name()
 {
     hipDeviceProp_t props{};
     hipGetDeviceProperties(&props, device);
     return {"gfx" + std::to_string(props.gcnArch)};
 }
 
-std::string Handle::GetDeviceNameImpl() const { return this->impl->GetDeviceName(); }
+std::string Handle::GetDeviceNameImpl() const { return this->impl->get_device_name(); }
+
+std::string Handle::GetDeviceName() const { return this->impl->target_properties.name; }
 
 std::ostream& Handle::Print(std::ostream& os) const
 {

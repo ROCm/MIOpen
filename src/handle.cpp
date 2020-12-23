@@ -70,18 +70,14 @@ static std::string GetDeviceNameFromMap(const std::string& in)
     return name;
 }
 
-std::string Handle::GetDeviceName() const
+void TargetProperties::Init(const Handle* const handle)
 {
-    static const auto rv = [&]() {
-        const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
-        std::string name;
-        if(arch != nullptr && strlen(arch) > 0)
-            name = arch;
-        else
-            name = this->GetDeviceNameImpl();
-        return GetDeviceNameFromMap(name);
-    }();
-    return rv;
+    const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
+    if(arch != nullptr && strlen(arch) > 0)
+        name = arch;
+    else
+        name = handle->GetDeviceNameImpl();
+    GetDeviceNameFromMap(name);
 }
 
 } // namespace miopen
