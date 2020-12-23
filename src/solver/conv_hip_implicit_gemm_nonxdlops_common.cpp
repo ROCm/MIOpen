@@ -93,6 +93,7 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
     }
 
     // divide block work by [K, B]
+    // WORKAROUND_ISSUE_659
     if(!(K % KPerBlock == 0 && B % BPerBlock == 0 && E % (2 * EPerBlock) == 0))
         return false; // wrong! cannot divice N evenly among thread
 
