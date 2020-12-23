@@ -37,7 +37,6 @@ namespace miopen {
 
 static std::string GetDeviceNameFromMap(const std::string& in)
 {
-
     static std::map<std::string, std::string> device_name_map = {
         {"Ellesmere", "gfx803"},
         {"Baffin", "gfx803"},
@@ -77,7 +76,7 @@ void TargetProperties::Init(const Handle* const handle)
         name = arch;
     else
         name = handle->GetDeviceNameImpl();
-    GetDeviceNameFromMap(name);
+    name = GetDeviceNameFromMap(name);
 }
 
 } // namespace miopen
