@@ -29,6 +29,8 @@
 #include "implicitgemm_util.hpp"
 #include "miopen/implicitgemm_params.hpp"
 
+#define WORKAROUND_ISSUE_659 1
+
 namespace miopen {
 namespace solver {
 
@@ -96,9 +98,10 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
     if(!(K % KPerBlock == 0 && B % BPerBlock == 0 && E % EPerBlock == 0))
         return false; // wrong! cannot divice N evenly among thread
 
-    // WORKAROUND_ISSUE_659
+#if WORKAROUND_ISSUE_659
     if(E % (2 * EPerBlock) != 0)
         return false;
+#endif
 
     const auto KBlockWork = K / KPerBlock;
     if(KBlockWork % ctx.group_counts != 0)
