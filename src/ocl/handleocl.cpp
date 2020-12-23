@@ -89,7 +89,7 @@ struct HandleImpl
 
     std::string get_device_name() const
     {
-        std::string name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(miopen::GetDevice(queue.get()));
+        std::string name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(device);
         WorkaroundIssue1711(name);
         return name;
     }

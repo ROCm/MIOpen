@@ -69,13 +69,10 @@ struct Handle;
 
 struct TargetProperties
 {
-    friend struct Handle;
-
     std::string name;
     bool xnack;
     bool sramecc;
 
-    private:
     void Init(const Handle* const);
 };
 

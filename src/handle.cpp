@@ -76,7 +76,7 @@ void TargetProperties::Init(const Handle* const handle)
         name = arch;
     else
         name = handle->GetDeviceNameImpl();
-    name = GetDeviceNameFromMap(name);
+    name     = GetDeviceNameFromMap(name);
 }
 
 } // namespace miopen
