@@ -85,6 +85,14 @@ struct HandleImpl
     KernelCache cache;
     bool enable_profiling  = false;
     float profiling_result = 0.0;
+    TargetProperties target_properties;
+
+    std::string get_device_name() const
+    {
+        std::string name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(miopen::GetDevice(queue.get()));
+        WorkaroundIssue1711(name);
+        return name;
+    }
 
     ContextPtr create_context()
     {
@@ -173,6 +181,8 @@ Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
     impl->context = impl->create_context_from_queue();
 
     this->SetAllocator(nullptr, nullptr, nullptr);
+    this->impl->target_properties.Init(this);
+    MIOPEN_LOG_NQI(*this);
 }
 
 Handle::Handle() : impl(new HandleImpl())
@@ -247,6 +257,7 @@ Handle::Handle() : impl(new HandleImpl())
         MIOPEN_THROW("Creating Command Queue. (clCreateCommandQueue)");
     }
     this->SetAllocator(nullptr, nullptr, nullptr);
+    this->impl->target_properties.Init(this);
     MIOPEN_LOG_NQI(*this);
 }
 
@@ -262,6 +273,8 @@ void Handle::SetStream(miopenAcceleratorQueue_t streamID) const
 
     clRetainCommandQueue(streamID);
     impl->queue = HandleImpl::AqPtr{streamID};
+    this->impl->target_properties.Init(this);
+    MIOPEN_LOG_NQI(*this);
 }
 
 miopenAcceleratorQueue_t Handle::GetStream() const { return impl->queue.get(); }
@@ -444,12 +457,9 @@ std::size_t Handle::GetGlobalMemorySize() const
     return miopen::GetDeviceInfo<CL_DEVICE_GLOBAL_MEM_SIZE>(miopen::GetDevice(this->GetStream()));
 }
 
-std::string Handle::GetDeviceNameImpl() const
-{
-    std::string name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(miopen::GetDevice(this->GetStream()));
-    WorkaroundIssue1711(name);
-    return name;
-}
+std::string Handle::GetDeviceNameImpl() const { return this->impl->get_device_name(); }
+
+std::string Handle::GetDeviceName() const { return this->impl->target_properties.name; }
 
 std::ostream& Handle::Print(std::ostream& os) const
 {

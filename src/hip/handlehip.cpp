@@ -182,7 +182,12 @@ struct HandleImpl
             MIOPEN_THROW("Running handle on wrong device");
     }
 
-    std::string get_device_name();
+    std::string get_device_name() const
+    {
+        hipDeviceProp_t props{};
+        hipGetDeviceProperties(&props, device);
+        return {"gfx" + std::to_string(props.gcnArch)};
+    }
 
     bool enable_profiling  = false;
     StreamPtr stream       = nullptr;
@@ -243,6 +248,7 @@ void Handle::SetStream(miopenAcceleratorQueue_t streamID) const
     rocblas_set_stream(this->rhandle_.get(), this->GetStream());
 #endif
     this->impl->target_properties.Init(this);
+    MIOPEN_LOG_NQI(*this);
 }
 
 miopenAcceleratorQueue_t Handle::GetStream() const { return impl->stream.get(); }
@@ -526,13 +532,6 @@ std::size_t Handle::GetMaxMemoryAllocSize()
     }
 
     return m_MaxMemoryAllocSizeCached;
-}
-
-std::string HandleImpl::get_device_name()
-{
-    hipDeviceProp_t props{};
-    hipGetDeviceProperties(&props, device);
-    return {"gfx" + std::to_string(props.gcnArch)};
 }
 
 std::string Handle::GetDeviceNameImpl() const { return this->impl->get_device_name(); }
