@@ -578,9 +578,9 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
 
-    std::string kernel_name = "miopenSp3AsmConv_v21_1_2";
-    std::string kernel_file = "Conv_Winograd_v21_1_2";
-    std::string kernel_postfix;
+    std::string kernel_name    = "miopenSp3AsmConv_v21_1_2";
+    std::string kernel_file    = "Conv_Winograd_v21_1_2";
+    std::string kernel_postfix = params.IsFp32() ? "_fp32" : "_fp16_dot2_edc";
 
     if(is_gfx9)
     {
@@ -592,12 +592,6 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
         kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
     }
 
-    if(params.IsFp32())
-        kernel_postfix = "_fp32";
-    else
-    {
-        kernel_postfix = "_fp16_dot2_edc";
-    }
     if(params.kernel_stride_w == 1)
     {
         kernel_postfix += "_stride1";
