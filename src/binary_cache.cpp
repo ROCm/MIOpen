@@ -138,7 +138,7 @@ boost::filesystem::path GetCacheFile(const std::string& device,
 }
 
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
-std::string LoadBinary(const std::string& device,
+std::string LoadBinary(const TargetProperties& target,
                        const size_t num_cu,
                        const std::string& name,
                        const std::string& args,
@@ -147,7 +147,7 @@ std::string LoadBinary(const std::string& device,
     if(miopen::IsCacheDisabled())
         return {};
 
-    auto db              = GetDb(device, num_cu);
+    auto db              = GetDb(target.DbId(), num_cu);
     std::string filename = (is_kernel_str ? miopen::md5(name) : name) + ".o";
     KernelConfig cfg{filename, args, ""};
     MIOPEN_LOG_I2("Loading binary for: " << name << " ;args: " << args);
@@ -165,7 +165,7 @@ std::string LoadBinary(const std::string& device,
 }
 
 void SaveBinary(const std::string& hsaco,
-                const std::string& device,
+                const TargetProperties& target,
                 const std::size_t num_cu,
                 const std::string& name,
                 const std::string& args,
@@ -174,7 +174,7 @@ void SaveBinary(const std::string& hsaco,
     if(miopen::IsCacheDisabled())
         return;
 
-    auto db = GetDb(device, num_cu);
+    auto db = GetDb(target.DbId(), num_cu);
 
     std::string filename = (is_kernel_str ? miopen::md5(name) : name) + ".o";
     KernelConfig cfg{filename, args, hsaco};
@@ -182,7 +182,7 @@ void SaveBinary(const std::string& hsaco,
     db.StoreRecord(cfg);
 }
 #else
-boost::filesystem::path LoadBinary(const std::string& device,
+boost::filesystem::path LoadBinary(const TargetProperties& target,
                                    const size_t num_cu,
                                    const std::string& name,
                                    const std::string& args,
@@ -192,7 +192,7 @@ boost::filesystem::path LoadBinary(const std::string& device,
         return {};
 
     (void)num_cu;
-    auto f = GetCacheFile(device, name, args, is_kernel_str);
+    auto f = GetCacheFile(target.DbId(), name, args, is_kernel_str);
     if(boost::filesystem::exists(f))
     {
         return f.string();
@@ -204,7 +204,7 @@ boost::filesystem::path LoadBinary(const std::string& device,
 }
 
 void SaveBinary(const boost::filesystem::path& binary_path,
-                const std::string& device,
+                const TargetProperties& target,
                 const std::string& name,
                 const std::string& args,
                 bool is_kernel_str)
@@ -215,7 +215,7 @@ void SaveBinary(const boost::filesystem::path& binary_path,
     }
     else
     {
-        auto p = GetCacheFile(device, name, args, is_kernel_str);
+        auto p = GetCacheFile(target.DbId(), name, args, is_kernel_str);
         boost::filesystem::create_directories(p.parent_path());
         boost::filesystem::rename(binary_path, p);
     }

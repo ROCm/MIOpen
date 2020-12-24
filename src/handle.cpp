@@ -27,6 +27,7 @@
 
 #include <miopen/env.hpp>
 #include <miopen/handle.hpp>
+#include <miopen/stringutils.hpp>
 #include <map>
 #include <string>
 
@@ -73,10 +74,38 @@ void TargetProperties::Init(const Handle* const handle)
 {
     const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
     if(arch != nullptr && strlen(arch) > 0)
+    {
         name = arch;
+    }
     else
+    {
         name = handle->GetDeviceNameImpl();
-    name     = GetDeviceNameFromMap(name);
+    }
+    name = GetDeviceNameFromMap(name);
+
+    // Set features to defaults.
+    sramecc = StartsWith(name, "gfx906") || StartsWith(name, "gfx908");
+    xnack   = false;
+    InitDbId();
+}
+
+void TargetProperties::InitDbId()
+{
+    // Let's stay compatible with existing databases:
+    // When feature equal to the default, do not append feature suffice.
+    dbId = name;
+    if(StartsWith(name, "gfx906") || StartsWith(name, "gfx908"))
+    {
+        if(!sramecc)
+            dbId += "_nosramecc";
+    }
+    else
+    {
+        if(sramecc)
+            dbId += "_sramecc";
+    }
+    if(xnack)
+        dbId += "_xnack";
 }
 
 } // namespace miopen

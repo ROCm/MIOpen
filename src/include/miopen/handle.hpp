@@ -69,11 +69,18 @@ struct Handle;
 
 struct TargetProperties
 {
+    const std::string& Name() const { return name; }
+    const std::string& DbId() const { return dbId; }
+    bool Xnack() const { return xnack; }
+    bool Sramecc() const { return sramecc; }
+    void Init(const Handle*);
+
+    private:
+    void InitDbId();
     std::string name;
+    std::string dbId;
     bool xnack;
     bool sramecc;
-
-    void Init(const Handle*);
 };
 
 struct Handle : miopenHandle
@@ -157,6 +164,7 @@ struct Handle : miopenHandle
     std::size_t GetMaxMemoryAllocSize();
 
     std::string GetDeviceName() const;
+    const TargetProperties& GetTargetProperties() const;
 
     private:
     std::string GetDeviceNameImpl() const;

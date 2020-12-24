@@ -386,8 +386,11 @@ Program Handle::LoadProgram(const std::string& program_name,
                             bool is_kernel_str,
                             const std::string& kernel_src) const
 {
-    auto hsaco = miopen::LoadBinary(
-        this->GetDeviceName(), this->GetMaxComputeUnits(), program_name, params, is_kernel_str);
+    auto hsaco = miopen::LoadBinary(this->GetTargetProperties(),
+                                    this->GetMaxComputeUnits(),
+                                    program_name,
+                                    params,
+                                    is_kernel_str);
     if(hsaco.empty())
     {
         CompileTimer ct;
@@ -404,7 +407,7 @@ Program Handle::LoadProgram(const std::string& program_name,
         std::string binary;
         miopen::GetProgramBinary(p, binary);
         miopen::SaveBinary(binary,
-                           this->GetDeviceName(),
+                           this->GetTargetProperties(),
                            this->GetMaxComputeUnits(),
                            program_name,
                            params,
@@ -413,7 +416,7 @@ Program Handle::LoadProgram(const std::string& program_name,
         auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path();
         miopen::SaveProgramBinary(p, path.string());
         miopen::SaveBinary(
-            path.string(), this->GetDeviceName(), program_name, params, is_kernel_str);
+            path.string(), this->GetTargetProperties(), program_name, params, is_kernel_str);
 #endif
         return std::move(p);
     }
@@ -459,7 +462,7 @@ std::size_t Handle::GetGlobalMemorySize() const
 
 std::string Handle::GetDeviceNameImpl() const { return this->impl->get_device_name(); }
 
-std::string Handle::GetDeviceName() const { return this->impl->target_properties.name; }
+std::string Handle::GetDeviceName() const { return this->impl->target_properties.Name(); }
 
 std::ostream& Handle::Print(std::ostream& os) const
 {

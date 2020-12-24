@@ -381,9 +381,12 @@ Program Handle::LoadProgram(const std::string& program_name,
                             const std::string& kernel_src) const
 {
     this->impl->set_ctx();
-    params += " -mcpu=" + this->GetDeviceName();
-    auto hsaco = miopen::LoadBinary(
-        this->GetDeviceName(), this->GetMaxComputeUnits(), program_name, params, is_kernel_str);
+    params += " -mcpu=" + this->GetTargetProperties().Name();
+    auto hsaco = miopen::LoadBinary(this->GetTargetProperties(),
+                                    this->GetMaxComputeUnits(),
+                                    program_name,
+                                    params,
+                                    is_kernel_str);
     if(hsaco.empty())
     {
         CompileTimer ct;
@@ -396,7 +399,7 @@ Program Handle::LoadProgram(const std::string& program_name,
         miopen::SaveBinary(p.IsCodeObjectInMemory()
                                ? p.GetCodeObjectBlob()
                                : miopen::LoadFile(p.GetCodeObjectPathname().string()),
-                           this->GetDeviceName(),
+                           this->GetTargetProperties(),
                            this->GetMaxComputeUnits(),
                            program_name,
                            params,
@@ -407,7 +410,7 @@ Program Handle::LoadProgram(const std::string& program_name,
             miopen::WriteFile(p.GetCodeObjectBlob(), path);
         else
             boost::filesystem::copy_file(p.GetCodeObjectPathname(), path);
-        miopen::SaveBinary(path, this->GetDeviceName(), program_name, params, is_kernel_str);
+        miopen::SaveBinary(path, this->GetTargetProperties(), program_name, params, is_kernel_str);
 #endif
 
         return p;
@@ -536,7 +539,12 @@ std::size_t Handle::GetMaxMemoryAllocSize()
 
 std::string Handle::GetDeviceNameImpl() const { return this->impl->get_device_name(); }
 
-std::string Handle::GetDeviceName() const { return this->impl->target_properties.name; }
+std::string Handle::GetDeviceName() const { return this->impl->target_properties.Name(); }
+
+const TargetProperties& Handle::GetTargetProperties() const
+{
+    return this->impl->target_properties;
+}
 
 std::ostream& Handle::Print(std::ostream& os) const
 {
