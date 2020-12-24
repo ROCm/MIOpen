@@ -27,9 +27,9 @@
 
 KERNEL_PROLOG fp32_stride2_group
 
-.if (machine_version == 9)
+.if (.amdgcn.gfx_generation_number == 9)
     .include "Conv_Winograd_v21_1_2_gfx9_fp32_stride2_group.inc"
-.elseif (machine_version == 10)
+.elseif (.amdgcn.gfx_generation_number == 10)
     .include "Conv_Winograd_v21_1_2_gfx10_fp32_stride2_group.inc"
 .endif
 

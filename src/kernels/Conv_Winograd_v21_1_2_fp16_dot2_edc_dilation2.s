@@ -27,9 +27,9 @@
 
 KERNEL_PROLOG fp16_dot2_edc_dilation2
 
-.if (machine_version == 9)
+.if (.amdgcn.gfx_generation_number == 9)
     .include "Conv_Winograd_v21_1_2_gfx9_fp16_dot2_edc_dilation2.inc"
-.elseif (machine_version == 10)
+.elseif (.amdgcn.gfx_generation_number == 10)
     .include "Conv_Winograd_v21_1_2_gfx10_fp16_dot2_edc_dilation2.inc"
 .endif
 
