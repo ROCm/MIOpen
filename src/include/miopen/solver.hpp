@@ -2045,6 +2045,9 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm : SolverBase<ConvolutionCont
 struct GemmFwdBase : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
+    bool IsDynamic() const { return true; }
+    float GetWti(const ConvolutionContext& ctx) const { return GetWti(ctx, ctx.conv_problem); }
+    float GetWti(const ExecutionContext& context, const conv::ProblemDescription& problem) const;
 };
 
 struct GemmFwd1x1_0_2 : GemmFwdBase

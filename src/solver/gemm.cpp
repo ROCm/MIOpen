@@ -76,6 +76,98 @@ bool GemmFwdBase::IsApplicable(const ExecutionContext&,
 #endif
 };
 
+static double
+SlowdownFactor(int n_oper, const double oper_factor, const double multiple_oper_factor)
+{
+    if(n_oper > 0)
+    {
+        auto rv = oper_factor;
+        if(n_oper > 1)
+            rv *= multiple_oper_factor;
+        return rv;
+    }
+    else
+        return 1.0;
+}
+
+float GemmFwdBase::GetWti(const ExecutionContext&, const conv::ProblemDescription& problem) const
+{
+    decltype(auto) conv  = problem.GetConv();
+    decltype(auto) wDesc = problem.GetWeights();
+    decltype(auto) xDesc = problem.GetIn();
+    decltype(auto) yDesc = problem.GetOut();
+
+    int n_transpose_NCHW2CNHW    = 0;
+    int n_transpose_CNHW2NCHW    = 0;
+    int n_gemm_strided_batched   = 1; // not strided-batched by default
+    int n_gemm_runs              = 1;
+    int n_transpose_packed_MN2NM = 0;
+    int n_CastTensor             = 0;
+    int n_Im2ColGPU              = 0;
+
+    std::size_t in_n, in_c;
+    std::tie(in_n, in_c) = tie_pick<0, 1>()(xDesc.GetLengths());
+    std::size_t spatial_dim = conv.GetSpatialDimension();
+    auto wei_spatial        = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
+
+    // Use transpose path 1x1, stride=2
+    if(conv.GetSpatialDimension() == 2 &&
+       miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
+       miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
+       miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; }))
+    {
+        n_transpose_NCHW2CNHW = 1;
+        if(wDesc.GetType() == miopenInt8)
+            n_transpose_packed_MN2NM = 1;
+        n_gemm_strided_batched       = conv.group_count;
+        n_transpose_CNHW2NCHW        = 1;
+        if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
+           yDesc.GetType() != miopenInt32)
+            n_CastTensor = 1;
+    }
+    // 1x1_stride=1 with GEMM and zero workspace
+    else if(miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
+            miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
+            miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 1; }))
+    {
+
+        if(wDesc.GetType() == miopenInt8)
+        {
+            n_transpose_packed_MN2NM = in_n;
+            n_gemm_runs              = in_n;
+        }
+        else
+        {
+            n_gemm_strided_batched = conv.group_count;
+            n_gemm_runs            = in_n;
+        }
+        if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
+           yDesc.GetType() != miopenInt32)
+            n_CastTensor = 1;
+    }
+    else // not 1x1
+    {
+        n_Im2ColGPU = in_n;
+        if(wDesc.GetType() == miopenInt8)
+            n_transpose_packed_MN2NM = in_n;
+        n_gemm_strided_batched       = conv.group_count;
+        n_gemm_runs                  = in_n;
+        if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
+           yDesc.GetType() != miopenInt32)
+            n_CastTensor = 1;
+    }
+
+    auto wti = 1.0;
+    wti *= SlowdownFactor(n_transpose_NCHW2CNHW, 0.7, 0.9);
+    wti *= SlowdownFactor(n_transpose_CNHW2NCHW, 0.7, 0.9);
+    wti *= SlowdownFactor(n_gemm_runs, 0.9, 0.9);
+    wti *= SlowdownFactor(n_gemm_strided_batched, 1.0, 0.95);
+    wti *= SlowdownFactor(n_transpose_packed_MN2NM, 0.7, 0.9);
+    wti *= SlowdownFactor(n_CastTensor, 0.95, 0.9);
+    wti *= SlowdownFactor(n_Im2ColGPU, 0.4, 0.8);
+    return wti;
+}
+
 // copy from convolution.cpp
 // Workaround for issue 1430.
 // Vega20 fails to access GPU memory larger than the return value of GetMaxMemoryAllocSize() of
