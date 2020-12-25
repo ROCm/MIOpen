@@ -114,18 +114,18 @@ static bool IsCacheDisabled()
 
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
 using KDb = DbTimer<MultiFileDb<KernDb, KernDb, false>>;
-KDb GetDb(const std::string& device, size_t num_cu)
+KDb GetDb(const TargetProperties& target, size_t num_cu)
 {
     static const auto user_dir = ComputeUserCachePath();
     static const auto sys_dir  = ComputeSysCachePath();
     boost::filesystem::path user_path =
-        user_dir / (Handle::GetDbBasename(device, num_cu) + ".ukdb");
-    boost::filesystem::path sys_path = sys_dir / (Handle::GetDbBasename(device, num_cu) + ".kdb");
+        user_dir / (Handle::GetDbBasename(target, num_cu) + ".ukdb");
+    boost::filesystem::path sys_path = sys_dir / (Handle::GetDbBasename(target, num_cu) + ".kdb");
     if(user_dir.empty())
         user_path = user_dir;
     if(!boost::filesystem::exists(sys_path))
         sys_path = boost::filesystem::path{};
-    return {sys_path.string(), user_path.string(), device, num_cu};
+    return {sys_path.string(), user_path.string(), target.DbId(), num_cu};
 }
 #endif
 
@@ -148,7 +148,7 @@ std::string LoadBinary(const TargetProperties& target,
     if(miopen::IsCacheDisabled())
         return {};
 
-    auto db              = GetDb(target.DbId(), num_cu);
+    auto db              = GetDb(target, num_cu);
     std::string filename = (is_kernel_str ? miopen::md5(name) : name) + ".o";
     KernelConfig cfg{filename, args, ""};
     MIOPEN_LOG_I2("Loading binary for: " << name << " ;args: " << args);
@@ -175,7 +175,7 @@ void SaveBinary(const std::string& hsaco,
     if(miopen::IsCacheDisabled())
         return;
 
-    auto db = GetDb(target.DbId(), num_cu);
+    auto db = GetDb(target, num_cu);
 
     std::string filename = (is_kernel_str ? miopen::md5(name) : name) + ".o";
     KernelConfig cfg{filename, args, hsaco};

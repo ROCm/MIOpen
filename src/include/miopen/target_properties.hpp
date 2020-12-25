@@ -44,7 +44,7 @@ struct TargetProperties
     void InitDbId();
     std::string name;
     std::string dbId;
-    bool xnack = false;
+    bool xnack   = false;
     bool sramecc = false;
 };
 
