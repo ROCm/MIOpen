@@ -48,6 +48,7 @@
 #include <fstream>
 #include <memory>
 #include <miopen/miopen.h>
+#include <miopen/miopen_internal.h>
 #include <miopen/tensor.hpp>
 #include <miopen/env.hpp>
 #include <miopen/algorithm.hpp>
@@ -62,6 +63,7 @@
 #include <vector>
 #include <type_traits>
 #include <boost/range/adaptors.hpp>
+#include <boost/optional/optional_io.hpp>
 #include <../test/verify.hpp>
 #include <../test/serialize.hpp>
 #include <../test/tensor_holder.hpp>
@@ -69,6 +71,10 @@
 #include <../test/cpu_bias.hpp>
 
 #include <boost/optional.hpp>
+
+// Declare hidden function for MIGraphX to smoke test it.
+extern "C" miopenStatus_t miopenHiddenSetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc,
+                                                             int findMode);
 
 #define WORKAROUND_ISSUE_2176 1 // https://github.com/AMDComputeLibraries/MLOpen/issues/2176
 
@@ -99,10 +105,8 @@ struct AutoMiopenWarmupMode
     {
         debug_logging_quiet_prev          = miopen::debug::LoggingQuiet;
         debug_find_enforce_disable_prev   = miopen::debug::FindEnforceDisable;
-        debug_find_mode_disable_prev      = miopen::debug::FindModeDisable;
         miopen::debug::LoggingQuiet       = true;
         miopen::debug::FindEnforceDisable = true;
-        miopen::debug::FindModeDisable    = true;
     }
     AutoMiopenWarmupMode(const AutoMiopenWarmupMode&) = delete;
     AutoMiopenWarmupMode(AutoMiopenWarmupMode&&)      = delete;
@@ -112,13 +116,11 @@ struct AutoMiopenWarmupMode
     {
         miopen::debug::LoggingQuiet       = debug_logging_quiet_prev;
         miopen::debug::FindEnforceDisable = debug_find_enforce_disable_prev;
-        miopen::debug::FindModeDisable    = debug_find_mode_disable_prev;
     }
 
     private:
     bool debug_logging_quiet_prev;
     bool debug_find_enforce_disable_prev;
-    bool debug_find_mode_disable_prev;
 };
 
 template <typename T>
@@ -449,8 +451,17 @@ int ConvDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     is_bwd = (inflags.GetValueInt("forw") == 0 || inflags.GetValueInt("forw") & 2);
     is_wrw = (inflags.GetValueInt("forw") == 0 || inflags.GetValueInt("forw") & 4);
 
-    const auto solution_value = inflags.GetValueInt("solution");
-
+    const auto solution_str = inflags.GetValueStr("solution");
+    auto solution_value     = static_cast<int>(miopen::solver::Id(solution_str.c_str()).Value());
+    if(solution_value == 0) // Assume number on input
+    {
+        solution_value = std::strtol(solution_str.c_str(), nullptr, 10);
+        if(errno == ERANGE)
+        {
+            errno          = 0;
+            solution_value = 0;
+        }
+    }
     if(solution_value >= 0)
         immediate_solution = solution_value;
 
@@ -514,6 +525,10 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
                                           conv_strides.data(),
                                           conv_dilations.data(),
                                           mode);
+        miopenSetConvolutionFindMode(warmupConvDesc, miopenConvolutionFindModeNormal);
+        miopenHiddenSetConvolutionFindMode(
+            warmupConvDesc,
+            static_cast<int>(miopenConvolutionFindModeNormal)); // Repeat via hidden API.
         miopenSetConvolutionGroupCount(warmupConvDesc, group_count);
 
         int warmup_out_len_size = miopen::deref(warmupInputTensor).GetSize();
@@ -623,8 +638,11 @@ int ConvDriver<Tgpu, Tref>::AddCmdLineArgs()
                          "\nAccepts integer argument N:"
                          "\n=0 Immediate mode, build and run fastest solution"
                          "\n>0 Immediate mode, build and run solution_id = N"
-                         "\n<0 Use Find() API (Default=-1)",
-                         "int");
+                         "\n<0 Use Find() API (Default=-1)"
+                         "\nAlso accepts symbolic name of solution:"
+                         "\n<valid name>   Immediate mode, build and run specified solution"
+                         "\n<invalid name> Use Find() API",
+                         "string");
 
     return 0;
 }
@@ -1799,10 +1817,13 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
                 break;
             }
 
+    miopenConvSolution_t voluntary = {
+        -1.0, 0, *immediate_solution, static_cast<miopenConvAlgorithm_t>(-1)};
     if(selected == nullptr)
     {
-        std::cout << "Invalid solution id: " << *immediate_solution << std::endl;
-        return miopenStatusBadParm;
+        std::cout << "Warning: Solution id (" << *immediate_solution
+                  << ") is not reported by the library. Trying it anyway..." << std::endl;
+        selected = &voluntary;
     }
 
     std::size_t ws_size;
@@ -2507,10 +2528,13 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuImmed()
                 break;
             }
 
+    miopenConvSolution_t voluntary = {
+        -1.0, 0, *immediate_solution, static_cast<miopenConvAlgorithm_t>(-1)};
     if(selected == nullptr)
     {
-        std::cout << "Invalid solution id: " << *immediate_solution << std::endl;
-        return miopenStatusBadParm;
+        std::cout << "Warning: Solution id (" << *immediate_solution
+                  << ") is not reported by the library. Trying it anyway..." << std::endl;
+        selected = &voluntary;
     }
 
     std::size_t ws_size;
@@ -2521,6 +2545,8 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuImmed()
         handle, outputTensor, weightTensor, convDesc, inputTensor, selected->solution_id, &ws_size);
     bwd_auxiliary_gwss.pause(wall_enabled);
     bwd_auxiliary.pause(wall_enabled);
+    if(rc != miopenStatusSuccess)
+        return rc;
 
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
@@ -2635,10 +2661,13 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuImmed()
                 break;
             }
 
+    miopenConvSolution_t voluntary = {
+        -1.0, 0, *immediate_solution, static_cast<miopenConvAlgorithm_t>(-1)};
     if(selected == nullptr)
     {
-        std::cout << "Invalid solution id: " << *immediate_solution << std::endl;
-        return miopenStatusBadParm;
+        std::cout << "Warning: Solution id (" << *immediate_solution
+                  << ") is not reported by the library. Trying it anyway..." << std::endl;
+        selected = &voluntary;
     }
 
     std::size_t ws_size;
@@ -2649,6 +2678,8 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuImmed()
         handle, outputTensor, inputTensor, convDesc, weightTensor, selected->solution_id, &ws_size);
     wrw_auxiliary_gwss.pause(wall_enabled);
     wrw_auxiliary.pause(wall_enabled);
+    if(rc != miopenStatusSuccess)
+        return rc;
 
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;

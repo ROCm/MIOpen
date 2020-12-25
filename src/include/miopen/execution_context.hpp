@@ -151,4 +151,6 @@ class AutoUseFastDynamicSolutions
     }
 };
 
+bool IsHipKernelsEnabled();
+
 } // namespace miopen

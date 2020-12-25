@@ -381,6 +381,8 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!params.Is2d())
         return false;
+    if(!(params.direction.IsForward() || params.direction.IsBackwardData()))
+        return false;
     if(params.IsAsymmetricPadH() || params.IsAsymmetricPadW())
         return false;
     if(!params.rmv.IsV2orV3())
@@ -389,7 +391,7 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
         return false;
 
     const std::string name = params.GetStream().GetDeviceName();
-    if(name.find("gfx8") == std::string::npos && name.find("gfx9") == std::string::npos)
+    if(name.find("gfx9") == std::string::npos)
     {
         return false;
     }
