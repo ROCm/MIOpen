@@ -44,8 +44,8 @@ struct TargetProperties
     void InitDbId();
     std::string name;
     std::string dbId;
-    bool xnack;
-    bool sramecc;
+    bool xnack = false;
+    bool sramecc = false;
 };
 
 } // namespace miopen
