@@ -458,10 +458,17 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
 #if MIOPEN_USE_GEMM
     if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
     {
-        const auto gemm_ws_sz_pairs = AllGemmWorkspaceSize(ctx);
-        const auto gemm_ws_szs =
-            gemm_ws_sz_pairs | boost::adaptors::transformed([](const auto& p) { return p.second; });
-        workspace_size_gemm = *std::max_element(gemm_ws_szs.begin(), gemm_ws_szs.end());
+        decltype(auto) gemm_ws_sz_pairs = AllGemmWorkspaceSize(ctx);
+
+        if(!gemm_ws_sz_pairs.empty())
+        {
+            decltype(auto) gemm_ws_szs =
+                gemm_ws_sz_pairs |
+                boost::adaptors::transformed([](const auto& p) { return p.second; });
+            decltype(auto) ws_sz_gem_it = std::max_element(gemm_ws_szs.begin(), gemm_ws_szs.end());
+
+            workspace_size_gemm = *ws_sz_gemm_it;
+        }
 
         if(miopen::any_of(GetConvDilations(), [](auto v) { return v > 1; }))
         {
