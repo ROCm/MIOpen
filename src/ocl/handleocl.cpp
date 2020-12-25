@@ -464,6 +464,11 @@ std::string Handle::GetDeviceNameImpl() const { return this->impl->get_device_na
 
 std::string Handle::GetDeviceName() const { return this->impl->target_properties.Name(); }
 
+const TargetProperties& Handle::GetTargetProperties() const
+{
+    return this->impl->target_properties;
+}
+
 std::ostream& Handle::Print(std::ostream& os) const
 {
     os << "stream: " << this->impl->queue.get() << ", device_id: " << this->impl->device;
