@@ -424,7 +424,7 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
     }
     else
     {
-#if MIOPEN_USE_ROCBLAS
+#if MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE
         // GEMM
         gemm_conv_kernel_name = "WRW_WINO_GEMM: ";
 
