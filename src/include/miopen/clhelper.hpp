@@ -29,6 +29,7 @@
 #include <iostream>
 #include <miopen/manage_ptr.hpp>
 #include <miopen/miopen.h>
+#include <miopen/target_properties.hpp>
 #include <string>
 
 namespace miopen {
@@ -41,6 +42,7 @@ ClProgramPtr LoadBinaryProgram(cl_context ctx, cl_device_id device, const std::s
 
 ClProgramPtr LoadProgram(cl_context ctx,
                          cl_device_id device,
+                         const TargetProperties& target,
                          const std::string& program_name,
                          std::string params,
                          bool is_kernel_str,

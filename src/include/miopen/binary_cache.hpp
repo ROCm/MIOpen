@@ -28,7 +28,7 @@
 #define GUARD_MLOPEN_BINARY_CACHE_HPP
 
 #include <miopen/config.h>
-#include <miopen/handle.hpp>
+#include <miopen/target_properties.hpp>
 #include <boost/filesystem/path.hpp>
 #include <string>
 

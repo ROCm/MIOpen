@@ -28,6 +28,7 @@
 #include <miopen/env.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/stringutils.hpp>
+#include <miopen/target_properties.hpp>
 #include <map>
 #include <string>
 

@@ -30,6 +30,7 @@
 #include <miopen/exec_utils.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/env.hpp>
+#include <miopen/target_properties.hpp>
 #include <boost/optional.hpp>
 #include <sstream>
 #include <string>
@@ -87,7 +88,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
                                  const std::string& filename,
                                  std::string src,
                                  std::string params,
-                                 const std::string& dev_name)
+                                 const TargetProperties& target)
 {
 #ifdef __linux__
     // write out the include files
@@ -105,14 +106,14 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     auto env = std::string("");
     if(IsHccCompiler())
     {
-        params += " -amdgpu-target=" + dev_name;
+        params += " -amdgpu-target=" + target.Name();
         params += " " + GetCoV3Option(ProduceCoV3());
     }
     else if(IsHipClangCompiler())
     {
         if(params.find("-std=") == std::string::npos)
             params += " --std=c++11";
-        params += " --cuda-gpu-arch=" + dev_name;
+        params += " --cuda-gpu-arch=" + target.Name();
         params += " --cuda-device-only";
         params += " -c";
         params += " -O3 ";
@@ -193,8 +194,8 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
 
         // call clang-offload-bundler
         tmp_dir->Execute(MIOPEN_OFFLOADBUNDLER_BIN,
-                         "--type=o --targets=hip-amdgcn-amd-amdhsa-" + dev_name + " --inputs=" +
-                             bin_file.string() + " --outputs=" + bin_file.string() +
+                         "--type=o --targets=hip-amdgcn-amd-amdhsa-" + target.Name() +
+                             " --inputs=" + bin_file.string() + " --outputs=" + bin_file.string() +
                              ".hsaco --unbundle");
 
         auto hsaco =

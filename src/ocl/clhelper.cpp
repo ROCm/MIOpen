@@ -128,6 +128,7 @@ ClProgramPtr LoadBinaryProgram(cl_context ctx, cl_device_id device, const std::s
 
 ClProgramPtr LoadProgram(cl_context ctx,
                          cl_device_id device,
+                         const TargetProperties& target,
                          const std::string& program_name,
                          std::string params,
                          bool is_kernel_str,
@@ -163,8 +164,6 @@ ClProgramPtr LoadProgram(cl_context ctx,
     }
     else if(!is_kernel_str && miopen::EndsWith(program_name, ".cpp"))
     {
-        std::string device_name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(device);
-        WorkaroundIssue1711(device_name);
         boost::optional<miopen::TmpDir> dir(program_name);
 #if MIOPEN_BUILD_DEV
         params += " -Werror";
@@ -172,7 +171,7 @@ ClProgramPtr LoadProgram(cl_context ctx,
         params += HipKernelWarningsString();
 #endif
 #endif
-        auto hsaco_file = HipBuild(dir, program_name, source, params, device_name);
+        auto hsaco_file = HipBuild(dir, program_name, source, params, target);
         // load the hsaco file as a data stream and then load the binary
         std::string buf;
         bin_file_to_str(hsaco_file, buf);

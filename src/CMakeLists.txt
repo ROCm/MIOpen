@@ -105,7 +105,7 @@ set( MIOpen_Source
     lock_file.cpp
     lrn_api.cpp
     activ_api.cpp
-    handle.cpp
+    target_properties.cpp
     handle_api.cpp
     softmax_api.cpp
     batch_norm.cpp
@@ -142,6 +142,7 @@ set( MIOpen_Source
     include/miopen/errors.hpp
     include/miopen/invoker.hpp
     include/miopen/handle.hpp
+    include/miopen/target_properties.hpp
     include/miopen/kernel_cache.hpp
     include/miopen/solver.hpp
     include/miopen/generic_search.hpp

@@ -37,6 +37,7 @@
 #include <miopen/kern_db.hpp>
 #include <miopen/db.hpp>
 #include <miopen/db_path.hpp>
+#include <miopen/target_properties.hpp>
 #include <boost/filesystem.hpp>
 #include <fstream>
 #include <iostream>

@@ -37,6 +37,7 @@
 #include <miopen/allocator.hpp>
 #include <miopen/simple_hash.hpp>
 #include <miopen/solver_id.hpp>
+#include <miopen/target_properties.hpp>
 
 #include <boost/range/adaptor/transformed.hpp>
 
@@ -64,24 +65,6 @@ using GemmKey = std::pair<std::string, std::string>;
 #if MIOPEN_USE_ROCBLAS
 using rocblas_handle_ptr = MIOPEN_MANAGE_PTR(rocblas_handle, rocblas_destroy_handle);
 #endif
-
-struct Handle;
-
-struct TargetProperties
-{
-    const std::string& Name() const { return name; }
-    const std::string& DbId() const { return dbId; }
-    bool Xnack() const { return xnack; }
-    bool Sramecc() const { return sramecc; }
-    void Init(const Handle*);
-
-    private:
-    void InitDbId();
-    std::string name;
-    std::string dbId;
-    bool xnack;
-    bool sramecc;
-};
 
 struct Handle : miopenHandle
 {

@@ -27,6 +27,7 @@
 #define MIOPEN_GUARD_MLOPEN_HIP_BUILD_UTILS_HPP
 
 #include <miopen/config.h>
+#include <miopen/target_properties.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/tmp_dir.hpp>
 #include <miopen/write_file.hpp>
@@ -39,7 +40,7 @@ boost::filesystem::path HipBuild(boost::optional<miopen::TmpDir>& tmp_dir,
                                  const std::string& filename,
                                  std::string src,
                                  std::string params,
-                                 const std::string& dev_name);
+                                 const TargetProperties& target);
 
 void bin_file_to_str(const boost::filesystem::path& file, std::string& buf);
 

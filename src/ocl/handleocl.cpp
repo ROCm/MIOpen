@@ -396,6 +396,7 @@ Program Handle::LoadProgram(const std::string& program_name,
         CompileTimer ct;
         auto p = miopen::LoadProgram(miopen::GetContext(this->GetStream()),
                                      miopen::GetDevice(this->GetStream()),
+                                     this->GetTargetProperties(),
                                      program_name,
                                      params,
                                      is_kernel_str,

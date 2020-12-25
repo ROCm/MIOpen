@@ -35,6 +35,7 @@
 #include <miopen/invoker.hpp>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/target_properties.hpp>
 #include <miopen/timer.hpp>
 
 #if !MIOPEN_ENABLE_SQLITE_KERN_CACHE
@@ -390,8 +391,8 @@ Program Handle::LoadProgram(const std::string& program_name,
     if(hsaco.empty())
     {
         CompileTimer ct;
-        auto p =
-            HIPOCProgram{program_name, params, is_kernel_str, this->GetDeviceName(), kernel_src};
+        auto p = HIPOCProgram{
+            program_name, params, is_kernel_str, this->GetTargetProperties(), kernel_src};
         ct.Log("Kernel", is_kernel_str ? std::string() : program_name);
 
 // Save to cache
