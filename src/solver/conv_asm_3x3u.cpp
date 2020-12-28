@@ -190,12 +190,12 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         return false;
     }
 
-    constexpr auto GIB     = static_cast<int64_t>(1024) * 1024 * 1024;
     constexpr auto ELEM_SZ = static_cast<int64_t>(sizeof(float));
-    const auto IN_BUF_SZ =
-        ELEM_SZ * params.batch_sz * params.n_inputs * params.in_height * params.in_width;
-    const auto OUT_BUF_SZ =
-        ELEM_SZ * params.batch_sz * params.n_outputs * params.out_height * params.out_width;
+    const auto h_w         = ELEM_SZ * params.in_height * params.in_width;
+    const auto n_c         = static_cast<int64_t>(params.batch_sz) * params.n_inputs;
+    const auto n_k         = static_cast<int64_t>(params.batch_sz) * params.n_outputs;
+    const auto n_c_h_w     = n_c * h_w;
+    const auto n_k_h_w     = n_k * h_w;
     // clang-format off
     return params.pad_w == 1
         && params.pad_h == 1
@@ -209,8 +209,11 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         && (params.n_inputs / params.group_counts) % 4 == 0 /// \todo: remove restriction that (n_inputs/group_counts) must be multiple of 4
         && params.in_width > 3
         && params.in_width <= 1000
-        && IN_BUF_SZ <= 4 * GIB
-        && OUT_BUF_SZ <= 4 * GIB
+        && h_w < std::pow(2, 29)
+        && n_c < std::pow(2, 31)
+        && n_k < std::pow(2, 31)
+        && n_c_h_w < std::pow(2, 48)
+        && n_k_h_w < std::pow(2, 48)
         && params.IsFp32()
         && params.in_layout == "NCHW";
         // && (params.forward ? params.weights_layout == "KCHW" : params.weights_layout == "CKHW" )
@@ -269,7 +272,6 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
         {"filters_per_wave", pcfg->filters_per_wave},
         {"output_lines_per_wave", pcfg->output_lines_per_wave},
         // Debugging:
-        {"enable_debug_output", 0},
         {"group_counts", params.group_counts},
         {"k_group_size_is_power_of_two", k_group_size_is_power_of_two},
         {"workgroup_size_x", active_lanes},
