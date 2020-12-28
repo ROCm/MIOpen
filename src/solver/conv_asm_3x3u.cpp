@@ -192,10 +192,12 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
 
     constexpr auto ELEM_SZ = static_cast<int64_t>(sizeof(float));
     const auto h_w         = ELEM_SZ * params.in_height * params.in_width;
+    const auto r_s         = ELEM_SZ * params.kernel_size_w * params.kernel_size_h;
     const auto n_c         = static_cast<int64_t>(params.batch_sz) * params.n_inputs;
     const auto n_k         = static_cast<int64_t>(params.batch_sz) * params.n_outputs;
     const auto n_c_h_w     = n_c * h_w;
     const auto n_k_h_w     = n_k * h_w;
+    const auto c_k_r_s     = params.n_inputs * params.n_outputs * r_s;
     // clang-format off
     return params.pad_w == 1
         && params.pad_h == 1
@@ -214,6 +216,7 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         && n_k < std::pow(2, 31)
         && n_c_h_w < std::pow(2, 48)
         && n_k_h_w < std::pow(2, 48)
+        && c_k_r_s < std::pow(2, 32)
         && params.IsFp32()
         && params.in_layout == "NCHW";
         // && (params.forward ? params.weights_layout == "KCHW" : params.weights_layout == "CKHW" )
