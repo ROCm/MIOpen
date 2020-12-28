@@ -233,6 +233,12 @@ AllDirectForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx)
 std::vector<std::pair<std::string, size_t>>
 AllDirectBwdWrW2DWorkspaceSize(const miopen::ConvolutionContext& ctx);
 
+std::vector<std::pair<std::string, size_t>>
+FindAllWinogradWorkspaceSizes(const miopen::ConvolutionContext& ctx);
+
+std::vector<std::pair<std::string, size_t>>
+FindWinogradWrWWorkspaceSizes(const miopen::ConvolutionContext& ctx);
+
 std::vector<miopen::solver::ConvSolution>
 FindAllImplicitGemmSolutions(const miopen::ConvolutionContext& ctx,
                              const miopen::AnyInvokeParams& invoke_ctx);
