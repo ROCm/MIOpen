@@ -190,9 +190,11 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         return false;
     }
 
+    constexpr auto GIB     = static_cast<int64_t>(1024) * 1024 * 1024;
+    constexpr auto TIB     = GIB * 1024;
     constexpr auto ELEM_SZ = static_cast<int64_t>(sizeof(float));
-    const auto h_w         = ELEM_SZ * params.in_height * params.in_width;
-    const auto r_s         = ELEM_SZ * params.kernel_size_w * params.kernel_size_h;
+    const auto h_w         = params.in_height * params.in_width;
+    const auto r_s         = params.kernel_size_w * params.kernel_size_h;
     const auto n_c         = static_cast<int64_t>(params.batch_sz) * params.n_inputs;
     const auto n_k         = static_cast<int64_t>(params.batch_sz) * params.n_outputs;
     const auto n_c_h_w     = n_c * h_w;
@@ -211,12 +213,12 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         && (params.n_inputs / params.group_counts) % 4 == 0 /// \todo: remove restriction that (n_inputs/group_counts) must be multiple of 4
         && params.in_width > 3
         && params.in_width <= 1000
-        && h_w < std::pow(2, 29)
-        && n_c < std::pow(2, 31)
-        && n_k < std::pow(2, 31)
-        && n_c_h_w < std::pow(2, 48)
-        && n_k_h_w < std::pow(2, 48)
-        && c_k_r_s < std::pow(2, 32)
+        && ELEM_SZ * h_w < GIB
+        && ELEM_SZ * n_c < 4 * GIB
+        && ELEM_SZ * n_k < 4 * GIB
+        && ELEM_SZ * n_c_h_w < 256 * TIB
+        && ELEM_SZ * n_k_h_w < 256 * TIB
+        && ELEM_SZ * c_k_r_s < 4 * GIB
         && params.IsFp32()
         && params.in_layout == "NCHW";
         // && (params.forward ? params.weights_layout == "KCHW" : params.weights_layout == "CKHW" )
