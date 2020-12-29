@@ -131,7 +131,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
         if(HipCompilerVersion() < external_tool_version_t{4, 0, 20482})
             params += " --cuda-gpu-arch=" + lots.device;
         else
-            params += " --offload-arch=" + lots.device + lots.xnack;
+            params += " --cuda-gpu-arch=" + lots.device + lots.xnack;
 
         params += " --cuda-device-only";
         params += " -c";
