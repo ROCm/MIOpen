@@ -84,6 +84,18 @@ inline const std::string& GetCoV3Option(const bool enable)
 }
 } // namespace
 
+struct LcOptionTargetStrings
+{
+    const std::string& device;
+    std::string xnack;
+    std::string sramecc;
+    LcOptionTargetStrings(const TargetProperties& target) : device(target.Name())
+    {
+        xnack   = std::string{":xnack"} + (target.Xnack() ? "+" : "-");
+        sramecc = std::string{":sramecc"} + (target.Sramecc() ? "+" : "-");
+    }
+};
+
 boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
                                  const std::string& filename,
                                  std::string src,
@@ -103,6 +115,8 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     src += "\nint main() {}\n";
     WriteFile(src, tmp_dir->path / filename);
 
+    const LcOptionTargetStrings lots(target);
+
     auto env = std::string("");
     if(IsHccCompiler())
     {
@@ -113,7 +127,12 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     {
         if(params.find("-std=") == std::string::npos)
             params += " --std=c++11";
-        params += " --cuda-gpu-arch=" + target.Name();
+
+        if(HipCompilerVersion() < external_tool_version_t{4, 0, 20482})
+            params += " --cuda-gpu-arch=" + lots.device;
+        else
+            params += " --offload-arch=" + lots.device + lots.xnack;
+
         params += " --cuda-device-only";
         params += " -c";
         params += " -O3 ";
@@ -124,7 +143,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     if(IsHccCompiler())
     {
         env += std::string("KMOPTLLC=\"-mattr=+enable-ds128 ");
-        if(miopen::HipCompilerVersion() >= external_tool_version_t{2, 8, 0})
+        if(HipCompilerVersion() >= external_tool_version_t{2, 8, 0})
             env += " --amdgpu-spill-vgpr-to-agpr=0";
         env += '\"';
     }
@@ -194,7 +213,10 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
 
         // call clang-offload-bundler
         tmp_dir->Execute(MIOPEN_OFFLOADBUNDLER_BIN,
-                         "--type=o --targets=hip-amdgcn-amd-amdhsa-" + target.Name() +
+                         "--type=o --targets=hip-amdgcn-amd-amdhsa-" +
+                             (HipCompilerVersion() < external_tool_version_t{4, 0, 20482}
+                                  ? lots.device
+                                  : (std::string{'-'} + lots.device + lots.xnack)) +
                              " --inputs=" + bin_file.string() + " --outputs=" + bin_file.string() +
                              ".hsaco --unbundle");
 
