@@ -306,16 +306,16 @@ external_tool_version_t HipCompilerVersion()
     return once;
 }
 
-bool external_tool_version_t::operator>(const external_tool_version_t& rhs) const
+bool operator>(const external_tool_version_t& lhs, const external_tool_version_t& rhs)
 {
-    if(major > rhs.major)
+    if(lhs.major > rhs.major)
         return true;
-    else if(major == rhs.major)
+    else if(lhs.major == rhs.major)
     {
-        if(minor > rhs.minor)
+        if(lhs.minor > rhs.minor)
             return true;
-        else if(minor == rhs.minor)
-            return (patch > rhs.patch);
+        else if(lhs.minor == rhs.minor)
+            return (lhs.patch > rhs.patch);
         else
             return false;
     }
@@ -323,26 +323,18 @@ bool external_tool_version_t::operator>(const external_tool_version_t& rhs) cons
         return false;
 }
 
-bool external_tool_version_t::operator>=(const external_tool_version_t& rhs) const
+bool operator<(const external_tool_version_t& lhs, const external_tool_version_t& rhs)
 {
-    if(major > rhs.major)
-        return true;
-    else if(major == rhs.major)
-    {
-        if(minor > rhs.minor)
-            return true;
-        else if(minor == rhs.minor)
-            return (patch >= rhs.patch);
-        else
-            return false;
-    }
-    else
-        return false;
+    return rhs > lhs;
+}
+bool operator>=(const external_tool_version_t& lhs, const external_tool_version_t& rhs)
+{
+    return !(lhs < rhs);
 }
 
-bool external_tool_version_t::operator<(const external_tool_version_t& rhs) const
+bool operator<=(const external_tool_version_t& lhs, const external_tool_version_t& rhs)
 {
-    return rhs >= *this;
+    return !(lhs > rhs);
 }
 
 } // namespace miopen
