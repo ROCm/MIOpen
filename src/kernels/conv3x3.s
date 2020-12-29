@@ -681,12 +681,12 @@ miopenGcnAsmConv3x3U:
       s_addc_u32 s[weights_ptr+1], s[weights_ptr+1], 0
   .endif
 
-.macro s_mul_u64_u32 dst_lo, dst_hi, src0, src1, vtmp0, vtmp1
-    v_mov_b32 \vtmp0, \src1
-    v_mul_hi_u32 \vtmp1, \src0, \vtmp0
-    v_mul_lo_u32 \vtmp0, \src0, \vtmp0
-    v_readfirstlane_b32 \dst_hi, \vtmp1
-    v_readfirstlane_b32 \dst_lo, \vtmp0
+.macro s_mul_u64_u32 sdst_lo, sdst_hi, ssrc0, ssrc1, vtmp0, vtmp1
+    v_mov_b32 \vtmp0, \ssrc1
+    v_mul_hi_u32 \vtmp1, \ssrc0, \vtmp0
+    v_mul_lo_u32 \vtmp0, \ssrc0, \vtmp0
+    v_readfirstlane_b32 \sdst_hi, \vtmp1
+    v_readfirstlane_b32 \sdst_lo, \vtmp0
 .endm
   // construct input buffer descriptor
 vtmp = linesA
