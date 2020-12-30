@@ -24,29 +24,28 @@
  *
  *******************************************************************************/
 #include <miopen/idiv.hpp>
+#include <cassert>
 
 // Find the position of the least significant bit set to 1 in a 32 bit integer
 static inline uint32_t bfls(uint32_t n)
 {
-    n = n | (n >> 0x01);
-    n = n | (n >> 0x02);
-    n = n | (n >> 0x04);
-    n = n | (n >> 0x08);
-    n = n | (n >> 0x10);
-    return __builtin_popcount(n);
+    uint8_t shift;
+    for (shift = 0; shift < 32; shift++)
+        if ((1U << shift) >= n)
+            break;
+    return shift;
 }
 
 namespace miopen {
 magic_t idiv_magic(uint32_t nmax, uint32_t d)
 {
-    magic_t magic = {1, 0};
+    assert(d != 0);
     if(d == 1)
-        return magic;
+        return {1, 0};
     uint64_t nc    = ((nmax + 1) / d) * d - 1;
-    uint32_t nbits = bfls(nmax);
-    uint32_t r     = (nbits << 1) + 1;
-    magic.m        = -1;
-    magic.s        = -1;
+    const auto nbits = bfls(nmax);
+    const auto r     = (nbits << 1) + 1;
+    magic_t magic = {static_cast<uint32_t>(-1), static_cast<uint32_t>(-1)};
     for(uint32_t s = 0; s < r; s++)
     {
         uint64_t exp = static_cast<uint64_t>(1) << s;

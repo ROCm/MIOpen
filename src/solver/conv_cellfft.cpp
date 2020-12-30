@@ -351,7 +351,8 @@ static uint32_t choose_cgemm_id(uint32_t m, uint32_t n)
     return ((1 ^ (mi & 1)) * 3 + ((ni & 3) == 0 ? 2 : (1 ^ (ni & 1))));
 }
 
-#define PSIZE(n, m) (((n) + (m)) & (~(m)))
+// round up the num to be multiple of the mul
+static uint32_t round_up(uint32_t num, uint mul) { return (((num) + (mul)) & (~(mul))); }
 
 static uint32_t choose_optimal_cell_id(uint32_t anx, uint32_t any, uint32_t bnx, uint32_t bny)
 {
@@ -372,6 +373,12 @@ static uint32_t choose_optimal_cell_id(uint32_t anx, uint32_t any, uint32_t bnx,
     }
     return id;
 }
+typedef enum {
+    cellFFTFwdConv = 0, // convolution forward path
+    cellFFTBwdConv = 1, // convolution backward data path
+    cellFFTWrWConv = 2, // convolution backward weight path
+} cellfft_dir;
+
 namespace miopen {
 namespace solver {
 struct cellfft_param_t
@@ -408,7 +415,7 @@ struct cellfft_param_t
     uint32_t pad_b;
     uint32_t nbanks;
     uint32_t id;
-    uint32_t dir;
+    cellfft_dir dir;
 };
 static size_t get_auxbuf_size(const ConvolutionContext& ctx)
 {
@@ -423,8 +430,8 @@ static size_t get_auxbuf_size(const ConvolutionContext& ctx)
     uint32_t pv  = ctx.pad_h;
     if(!ctx.direction.IsForward())
     {
-        pu = fnx - pu - 1;
-        pv = fny - pv - 1;
+        pu = ctx.GetBackwardPadW();
+        pv = ctx.GetBackwardPadH();
     }
     uint32_t pnx    = anx + (pu << 1);
     uint32_t pny    = any + (pv << 1);
@@ -440,9 +447,9 @@ static size_t get_auxbuf_size(const ConvolutionContext& ctx)
     uint32_t m      = bs * grid_x * grid_y;
     uint32_t n      = onc;
     uint32_t k      = inc;
-    uint32_t ek     = PSIZE(k, 7);
-    uint32_t lda    = PSIZE(m, 31) >> 5;
-    uint32_t ldb    = PSIZE(n, 31) >> 5;
+    uint32_t ek     = round_up(k, 7);
+    uint32_t lda    = round_up(m, 31) >> 5;
+    uint32_t ldb    = round_up(n, 31) >> 5;
     lda             = (lda + (1 ^ (lda & 1))) << 5;
     ldb             = (ldb + (1 ^ (ldb & 1))) << 5;
     uint64_t abks   = lda * ek + 16;
@@ -478,22 +485,15 @@ static size_t get_auxbuf_size_grad(const ConvolutionContext& ctx)
     grid_x          = grid_x == 0 ? 1 : grid_x;
     grid_y          = grid_y == 0 ? 1 : grid_y;
     uint32_t k      = bs * grid_x * grid_y;
-    uint32_t ek     = PSIZE(k, 7);
-    uint32_t lda    = PSIZE(pnc, 31) >> 5;
-    uint32_t ldb    = PSIZE(qnc, 31) >> 5;
+    uint32_t ek     = round_up(k, 7);
+    uint32_t lda    = round_up(pnc, 31) >> 5;
+    uint32_t ldb    = round_up(qnc, 31) >> 5;
     lda             = (lda + (1 ^ (lda & 1))) << 5;
     ldb             = (ldb + (1 ^ (ldb & 1))) << 5;
     uint64_t abks   = lda * ek + 16;
     uint64_t bbks   = ldb * ek + 16;
     uint64_t cbks   = lda * qnc + 16;
     return ((abks + bbks + cbks) * (nbanks << 3));
-}
-static size_t get_auxbuf_size(const cellfft_param_t& p)
-{
-    uint64_t abks = static_cast<uint64_t>(p.abks);
-    uint64_t bbks = static_cast<uint64_t>(p.bbks);
-    uint64_t cbks = static_cast<uint64_t>(p.cbks);
-    return ((abks + bbks + cbks) * (p.nbanks << 3));
 }
 static void build_cellfft_params(cellfft_param_t& p, const ConvolutionContext& ctx)
 {
@@ -508,10 +508,18 @@ static void build_cellfft_params(cellfft_param_t& p, const ConvolutionContext& c
     p.bny        = ctx.kernel_size_h;
     p.cnx        = ctx.out_width;
     p.cny        = ctx.out_height;
-    if((p.dir = ctx.direction.IsForward() ? 0 : 1) != 0)
+    if(ctx.direction.IsForward())
     {
-        pu = p.bnx - pu - 1;
-        pv = p.bny - pv - 1;
+        p.dir = cellFFTFwdConv;
+    }
+    else
+    {
+        p.dir = cellFFTBwdConv;
+    }
+    if(p.dir == cellFFTBwdConv)
+    {
+        pu = ctx.GetBackwardPadW();
+        pv = ctx.GetBackwardPadH();
     }
     p.pad_l       = pu;
     p.pad_r       = pu;
@@ -531,9 +539,9 @@ static void build_cellfft_params(cellfft_param_t& p, const ConvolutionContext& c
     p.m           = bs * p.grid_x * p.grid_y;
     p.n           = onc;
     p.k           = inc;
-    uint32_t ek   = PSIZE(p.k, 7);
-    p.lda         = PSIZE(p.m, 31) >> 5;
-    p.ldb         = PSIZE(p.n, 31) >> 5;
+    uint32_t ek   = round_up(p.k, 7);
+    p.lda         = round_up(p.m, 31) >> 5;
+    p.ldb         = round_up(p.n, 31) >> 5;
     p.lda         = (p.lda + (1 ^ (p.lda & 1))) << 5;
     p.ldb         = (p.ldb + (1 ^ (p.ldb & 1))) << 5;
     p.abks        = p.lda * ek + 16;
@@ -544,11 +552,11 @@ static void build_cellfft_params(cellfft_param_t& p, const ConvolutionContext& c
     p.bldy        = p.bnx * p.bny;
     p.aldx        = inc * p.aldy;
     p.cldx        = onc * p.cldy;
-    p.bldx        = (p.dir == 0 ? inc : 1) * p.bldy;
-    p.bldy        = (p.dir == 0 ? 1 : onc) * p.bldy;
+    p.bldx        = (p.dir == cellFFTFwdConv ? inc : 1) * p.bldy;
+    p.bldy        = (p.dir == cellFFTFwdConv ? 1 : onc) * p.bldy;
     if((p.grid_x | p.grid_y) != 1)
     {
-        uint32_t pm   = PSIZE(p.m, 15);
+        uint32_t pm   = round_up(p.m, 15);
         uint32_t reso = p.grid_x * p.grid_y;
         p.xmag        = idiv_magic(pm, reso);
         p.ymag        = idiv_magic(reso, p.grid_x);
@@ -569,7 +577,7 @@ static void build_cellfft_params_grad(cellfft_param_t& p, const ConvolutionConte
     p.cny         = ctx.kernel_size_h;
     uint32_t pnx  = p.anx + (pu << 1);
     uint32_t pny  = p.any + (pv << 1);
-    p.dir         = 2;
+    p.dir         = cellFFTWrWConv;
     p.pad_l       = pu;
     p.pad_r       = pu;
     p.pad_t       = pv;
@@ -586,9 +594,9 @@ static void build_cellfft_params_grad(cellfft_param_t& p, const ConvolutionConte
     p.m           = pnc;
     p.n           = qnc;
     p.k           = bs * p.grid_x * p.grid_y;
-    uint32_t ek   = PSIZE(p.k, 7);
-    p.lda         = PSIZE(p.m, 31) >> 5;
-    p.ldb         = PSIZE(p.n, 31) >> 5;
+    uint32_t ek   = round_up(p.k, 7);
+    p.lda         = round_up(p.m, 31) >> 5;
+    p.ldb         = round_up(p.n, 31) >> 5;
     p.lda         = (p.lda + (1 ^ (p.lda & 1))) << 5;
     p.ldb         = (p.ldb + (1 ^ (p.ldb & 1))) << 5;
     p.abks        = p.lda * ek + 16;
@@ -602,7 +610,7 @@ static void build_cellfft_params_grad(cellfft_param_t& p, const ConvolutionConte
     p.cldy        = p.m * p.cldx;
     if((p.grid_x | p.grid_y) != 1)
     {
-        uint32_t pk   = PSIZE(p.k, 15);
+        uint32_t pk   = round_up(p.k, 15);
         uint32_t reso = p.grid_x * p.grid_y;
         p.xmag        = idiv_magic(pk, reso);
         p.ymag        = idiv_magic(reso, p.grid_x);
@@ -623,14 +631,26 @@ static void lk_cgemm(const Handle& h,
 static void lk_fft2d_r2c_perm_a(
     const Handle& h, const Kernel& kern, const cellfft_param_t& p, void* dst, const void* src)
 {
-    h.Run(kern)(
-        dst, p.lda, p.abks, src, (p.dir != 2 ? 0 : 0x80000000) | p.m, p.anx, p.aldx, p.aldy);
+    h.Run(kern)(dst,
+                p.lda,
+                p.abks,
+                src,
+                (p.dir != cellFFTWrWConv ? 0 : 0x80000000) | p.m,
+                p.anx,
+                p.aldx,
+                p.aldy);
 }
 static void lk_fft2d_r2c_perm_b(
     const Handle& h, const Kernel& kern, const cellfft_param_t& p, void* dst, const void* src)
 {
-    h.Run(kern)(
-        dst, p.ldb, p.bbks, src, (p.dir == 0 ? 0 : 0x80000000) | p.n, p.bnx, p.bldx, p.bldy);
+    h.Run(kern)(dst,
+                p.ldb,
+                p.bbks,
+                src,
+                (p.dir == cellFFTFwdConv ? 0 : 0x80000000) | p.n,
+                p.bnx,
+                p.bldx,
+                p.bldy);
 }
 static void lk_fft2d_r2c_perm_pad(
     const Handle& h, const Kernel& kern, const cellfft_param_t& p, void* dst, const void* src)
@@ -640,7 +660,7 @@ static void lk_fft2d_r2c_perm_pad(
                 p.abks,
                 src,
                 p.m,
-                (p.dir != 2 ? 0 : 0x80000000) | p.pad_l,
+                (p.dir != cellFFTWrWConv ? 0 : 0x80000000) | p.pad_l,
                 p.aldx,
                 p.aldy,
                 p.anx,
@@ -649,7 +669,7 @@ static void lk_fft2d_r2c_perm_pad(
 static void lk_fft2d_r2c_perm_s(
     const Handle& h, const Kernel& kern, const cellfft_param_t& p, void* dst, const void* src)
 {
-    uint32_t ldr = p.bnx * p.bny * (p.dir == 0 ? p.k : p.n);
+    uint32_t ldr = p.bnx * p.bny * (p.dir == cellFFTFwdConv ? p.k : p.n);
     h.Run(kern)(dst, p.ldb, p.bbks, src, p.n, ldr);
 }
 static void lk_fft2d_r2c_grid_perm(
@@ -804,7 +824,7 @@ dtr(const Handle& h, const Kernel& kern, const cellfft_param_t& p, void* dst, co
 static void
 ftr(const Handle& h, const Kernel& kern, const cellfft_param_t& p, void* dst, const void* src)
 {
-    if((p.dir == 2) && ((p.grid_x | p.grid_y) > 1))
+    if((p.dir == cellFFTWrWConv) && ((p.grid_x | p.grid_y) > 1))
     {
         fft2d_r2c_grid_b(h, kern, p, dst, src);
     }
@@ -815,7 +835,7 @@ ftr(const Handle& h, const Kernel& kern, const cellfft_param_t& p, void* dst, co
 }
 static void otr(const Handle& h, const Kernel& kern, const cellfft_param_t& p, void* dst, void* src)
 {
-    if(p.dir != 2)
+    if(p.dir != cellFFTWrWConv)
     {
         if((p.grid_x | p.grid_y) > 1)
         {
@@ -957,8 +977,8 @@ get_kinfo_r2c_a(const ConvolutionContext& ctx, const cellfft_param_t& p, const s
     }
     const uint32_t r = (p.m + 15) >> 4;
     const size_t bdx = p.id == 0 ? 256 : 512;
-    const size_t gdx = p.dir != 2 ? p.k : r;
-    const size_t gdy = p.dir != 2 ? r : p.k;
+    const size_t gdx = p.dir != cellFFTWrWConv ? p.k : r;
+    const size_t gdy = p.dir != cellFFTWrWConv ? r : p.k;
     const std::vector<size_t> block{bdx, 1, 1};
     const std::vector<size_t> grid{gdx * bdx, gdy, 1};
     std::ostringstream options;
@@ -968,15 +988,15 @@ get_kinfo_r2c_a(const ConvolutionContext& ctx, const cellfft_param_t& p, const s
 static KernelInfo
 get_kinfo_r2c_b(const ConvolutionContext& ctx, const cellfft_param_t& p, const std::string& fname)
 {
-    uint32_t kid = start_r2c + (p.dir != 1 ? 0 : 48) + (p.id << 4) + p.bny - 1;
+    uint32_t kid = start_r2c + (p.dir != cellFFTBwdConv ? 0 : 48) + (p.id << 4) + p.bny - 1;
     if((p.bnx == p.bny) && ((p.bnx == 3) || (p.bnx == 5)))
     {
-        kid = start_r2c_s + ((p.id << 2) | ((p.dir & 1) << 1) | (p.bnx == 3 ? 0 : 1));
+        kid = start_r2c_s + ((p.id << 2) | ((p.dir & cellFFTBwdConv) << 1) | (p.bnx == 3 ? 0 : 1));
     }
     const uint32_t r = (p.n + 15) >> 4;
     const size_t bdx = p.id == 0 ? 256 : 512;
-    const size_t gdx = p.dir == 0 ? p.k : r;
-    const size_t gdy = p.dir == 0 ? r : p.k;
+    const size_t gdx = p.dir == cellFFTFwdConv ? p.k : r;
+    const size_t gdy = p.dir == cellFFTFwdConv ? r : p.k;
     const std::vector<size_t> block{bdx, 1, 1};
     const std::vector<size_t> grid{gdx * bdx, gdy, 1};
     std::ostringstream options;
@@ -1078,7 +1098,7 @@ fill_kernels_info(ConvSolution& sol, const ConvolutionContext& ctx, const cellff
 {
     const std::string fname = "cellfft_" + ctx.GetStream().GetDeviceName() + ".s";
     sol.construction_params.push_back(get_kinfo_cgemm(ctx, p, fname));
-    if(p.dir != 2)
+    if(p.dir != cellFFTWrWConv)
     {
         if((p.grid_x | p.grid_y) > 1)
         {
@@ -1110,22 +1130,19 @@ fill_kernels_info(ConvSolution& sol, const ConvolutionContext& ctx, const cellff
 }
 bool ConvCellfft::IsApplicable(const ConvolutionContext& ctx) const
 {
-    if(MIOPEN_BACKEND_OPENCL)
-        return false;
+#if MIOPEN_BACKEND_OPENCL
+    return false;
+#else
     const auto name = ctx.GetStream().GetDeviceName();
     if(name != "gfx900" && name != "gfx906")
         return false;
-    if((ctx.kernel_stride_w | ctx.kernel_stride_h | ctx.kernel_dilation_w | ctx.kernel_dilation_h |
-        ctx.group_counts) != 1)
+    if((ctx.kernel_stride_w != 1) | (ctx.kernel_stride_h != 1) | (ctx.kernel_dilation_w != 1) |
+       (ctx.kernel_dilation_h != 1) | (ctx.group_counts != 1))
         return false;
-    if(!ctx.direction.IsForward())
-    {
-        int pu = ctx.kernel_size_w - ctx.pad_w - 1;
-        int pv = ctx.kernel_size_h - ctx.pad_h - 1;
-        if((pu < 0) || (pv < 0))
-            return false;
-    }
+    if(!ctx.direction.IsForward() && (ctx.GetBackwardPadW() < 0 || ctx.GetBackwardPadH() < 0))
+        return false;
     return (ctx.Is2d() && ctx.IsFp32() && (ctx.in_layout == "NCHW") && (ctx.bias == 0));
+#endif
 }
 size_t ConvCellfft::GetWorkspaceSize(const ConvolutionContext& ctx) const
 {
@@ -1150,7 +1167,7 @@ ConvSolution ConvCellfft::GetSolution(const ConvolutionContext& ctx) const
     {
         build_cellfft_params_grad(params, ctx);
     }
-    sol.workspce_sz = get_auxbuf_size(params);
+    sol.workspce_sz = GetWorkspaceSize(ctx);
     fill_kernels_info(sol, ctx, params);
     if(!ctx.direction.IsBackwardWrW())
     {
