@@ -710,7 +710,7 @@ static void DirConvFindCore(Handle& handle,
     }
 
     // FFT algo
-    if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT{}))
+    if(!use_winograd_only)
     {
         const auto all            = conv.FindFftSolutions(ctx, invoke_ctx);
         const auto algorithm_name = AlgorithmName{"miopenConvolutionFwdAlgoFFT"};
@@ -3003,8 +3003,6 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         bool fallback;
         GetWrwSolutions(handle, dyDesc, xDesc, dwDesc, 1, &count, &imm_sol, &fallback);
         use_immediate_solution = (count > 0) && !(findMode.IsHybrid(ctx) && fallback);
-        MIOPEN_LOG_I2("use_immediate_solution is: ");
-        MIOPEN_LOG_I2(use_immediate_solution);
     }
 
     if(use_immediate_solution)

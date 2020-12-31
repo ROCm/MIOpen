@@ -344,6 +344,7 @@ static const char* g_knames[] =
 };
 // clang-format on
 
+// return with a cgemm_id to select cgemm tile: scgemm5x4, scgemm5x5, scgemm5x6, scgemm6x4, scgemm6x5, scgemm6x6
 static uint32_t choose_cgemm_id(uint32_t m, uint32_t n)
 {
     uint32_t mi = (m + 31u) >> 5;
