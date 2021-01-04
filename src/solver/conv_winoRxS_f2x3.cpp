@@ -1,28 +1,28 @@
 /*******************************************************************************
-*
-* MIT License
-*
-* Copyright (c) 2020 Advanced Micro Devices, Inc.
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*******************************************************************************/
+ *
+ * MIT License
+ *
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 
 #include <miopen/solver.hpp>
 
@@ -451,9 +451,11 @@ static bool IsApplicableBase(const ConvolutionContext& params)
         return false;
 
     const auto name = params.GetStream().GetDeviceName();
-    if(!(StartsWith(name, "gfx9")))
+    if(!(StartsWith(name, "gfx9") || StartsWith(name, "gfx10")))
         return false;
-    if(params.IsFp16() && !(StartsWith(name, "gfx906") || StartsWith(name, "gfx908")))
+    if(params.IsFp16() &&
+       !(StartsWith(name, "gfx906") || StartsWith(name, "gfx908") || StartsWith(name, "gfx1011") ||
+         StartsWith(name, "gfx1012") || StartsWith(name, "gfx103")))
         return false;
 
     // clang-format off
@@ -557,13 +559,17 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
         }
     }
 
+    const auto name    = params.GetStream().GetDeviceName();
+    const auto is_gfx9 = StartsWith(name, "gfx9");
+    size_t wg_size     = is_gfx9 ? 512 : 256;
+
     KernelInfo kernel;
 
-    kernel.g_wk.push_back(512 * pcfg->GetNGroups() * params.group_counts);
+    kernel.g_wk.push_back(wg_size * pcfg->GetNGroups() * params.group_counts);
     kernel.g_wk.push_back(1);
     kernel.g_wk.push_back(1);
 
-    kernel.l_wk.push_back(512);
+    kernel.l_wk.push_back(wg_size);
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
@@ -572,16 +578,20 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
 
-    std::string kernel_name    = "miopenSp3AsmConv";
-    std::string kernel_file    = "Conv_Winograd";
-    std::string kernel_postfix = "_v21_1_2_gfx9";
+    std::string kernel_name    = "miopenSp3AsmConv_v21_1_2";
+    std::string kernel_file    = "Conv_Winograd_v21_1_2";
+    std::string kernel_postfix = params.IsFp32() ? "_fp32" : "_fp16_dot2_edc";
 
-    if(params.IsFp32())
-        kernel_postfix += "_fp32";
-    else
+    if(is_gfx9)
     {
-        kernel_postfix += "_fp16_dot2_edc";
+        kernel_name += "_gfx9";
     }
+    else // if(StartsWith(name, "gfx10"))
+    {
+        kernel_name += "_gfx10";
+        kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
+    }
+
     if(params.kernel_stride_w == 1)
     {
         kernel_postfix += "_stride1";
