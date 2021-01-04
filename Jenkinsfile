@@ -203,6 +203,7 @@ pipeline {
                     }
                     steps{
                         buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd, gpu_arch: "all")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
 
@@ -221,6 +222,7 @@ pipeline {
                     }
                     steps{
                         buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd, gpu_arch: "all")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
 
@@ -231,6 +233,7 @@ pipeline {
                     }
                     steps{
                         buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd, gpu_arch: "all")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
             }
@@ -243,6 +246,7 @@ pipeline {
                     agent{ label rocmnode("vega") }
                     steps{
                         buildJob('clang++-3.8', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', gpu_arch: "gfx900;gfx906")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
 
@@ -250,6 +254,7 @@ pipeline {
                     agent{ label rocmnode("vega") }
                     steps{
                         buildJob('clang++-3.8', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx900;gfx906")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
 
@@ -257,6 +262,7 @@ pipeline {
                     agent{ label rocmnode("vega") }
                     steps{
                         buildJob('g++-5', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx900;gfx906")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
 
@@ -264,6 +270,7 @@ pipeline {
                     agent{ label rocmnode("fiji") }
                     steps{
                         buildJob('g++-5', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', gpu_arch: "gfx803")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
 
@@ -271,6 +278,7 @@ pipeline {
                     agent{ label rocmnode("vega") }
                     steps{
                         buildJob('hcc', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image + "rocm", gpu_arch: "gfx900;gfx906")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
 
@@ -289,6 +297,7 @@ pipeline {
                     }
                     steps{
                         buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx900;gfx906")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
 
@@ -298,6 +307,7 @@ pipeline {
                     agent{ label rocmnode("gfx908") }
                     steps{
                         buildJob('hcc', flags: '-DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx908")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
             }
@@ -321,6 +331,7 @@ pipeline {
                     }
                     steps{
                         buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "MIOPEN_LOG_LEVEL=5 MIOPEN_COMPILE_PARALLEL_LEVEL=1",  image+'-hip-clang', "/usr/local", cmd, "gfx900;gfx906")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
                 stage('Hip Debug Embedded Vega20') {
@@ -338,6 +349,7 @@ pipeline {
                     }
                     steps{
                         buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "MIOPEN_LOG_LEVEL=5 MIOPEN_COMPILE_PARALLEL_LEVEL=1",  image+'-hip-clang', "/usr/local", cmd, "gfx906")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
 
@@ -356,6 +368,7 @@ pipeline {
                     }
                     steps{
                         buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx900;gfx906")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
 
@@ -374,6 +387,7 @@ pipeline {
                     }
                     steps{
                         buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx900;gfx906")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
 
@@ -392,6 +406,7 @@ pipeline {
                     }
                     steps{
                         buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx900;gfx906")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
 
@@ -399,6 +414,7 @@ pipeline {
                     agent{ label rocmnode("vega") }
                     steps{
                         buildJob('hcc', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx900;gfx906")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
 
@@ -412,18 +428,21 @@ pipeline {
                     agent{ label rocmnode("vega20") }
                     steps{
                         buildJob('hcc', flags: '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx906")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
                 stage('Half OpenCL Release Vega20') {
                     agent{ label rocmnode("vega20") }
                     steps{
                         buildJob('g++-5', flags: '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx906")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
                 stage('Int8 OpenCL Release Vega20') {
                     agent{ label rocmnode("vega20") }
                     steps{
                         buildJob('g++-5', flags: '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx906")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
 
@@ -431,6 +450,7 @@ pipeline {
                     agent{ label rocmnode("vega20") }
                     steps{
                         buildJob('hcc', flags: '-DMIOPEN_TEST_BFLOAT16=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx906")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
 
@@ -438,12 +458,14 @@ pipeline {
                     agent{ label rocmnode("gfx908") }
                     steps{
                         buildJob('hcc', flags: '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx908")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
                 stage('Half Hip/hcc Debug gfx908') {
                     agent{ label rocmnode("gfx908") }
                     steps{
                         buildJob('hcc', flags: '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx908")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
             }
@@ -456,6 +478,7 @@ pipeline {
                     agent{ label rocmnode("vega") }
                     steps{
                         buildJob('g++-5', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', codecov: true, gpu_arch: "gfx900;gfx906")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
 
@@ -463,6 +486,7 @@ pipeline {
                     agent{ label rocmnode("vega20") }
                     steps{
                         buildJob('hcc', flags: '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx906")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
 
@@ -480,6 +504,7 @@ pipeline {
                     }
                     steps{
                         buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx908")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
             }
@@ -491,6 +516,7 @@ pipeline {
                     agent{ label rocmnode("vega") }
                     steps{
                         buildJob('g++-5', flags: '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx900;gfx906")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
 
@@ -508,6 +534,7 @@ pipeline {
                     }
                     steps{
                         buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx908")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
 
@@ -525,6 +552,7 @@ pipeline {
                     }
                     steps{
                         buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx908")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
             }
@@ -547,6 +575,7 @@ pipeline {
                     }
                     steps{
                         buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx906")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
 
@@ -565,6 +594,7 @@ pipeline {
                     }
                     steps{
                         buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx906")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
             }
@@ -586,6 +616,7 @@ pipeline {
                     }
                     steps{
                         buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx906")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
 
@@ -603,6 +634,7 @@ pipeline {
                     }
                     steps{
                         buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx908")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
 
@@ -620,6 +652,7 @@ pipeline {
                     }
                     steps{
                         buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx906", "latest")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
 
@@ -637,6 +670,7 @@ pipeline {
                     }
                     steps{
                         buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx908", "latest")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
             }
@@ -649,12 +683,14 @@ pipeline {
                     agent{ label rocmnode("rocmtest") }
                     steps{
                         buildJob('g++-5', flags: '-DCMAKE_BUILD_TYPE=release', gpu_arch: "all")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
                 stage("HIP/hcc Release Package"){
                     agent{ label rocmnode("rocmtest") }
                     steps{
                         buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "all")
+                        build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                     }
                 }
             }
