@@ -27,118 +27,71 @@
 
 #include <miopen/db.hpp>
 #include <miopen/db_record.hpp>
+#include <miopen/lock_file.hpp>
 
 #include <boost/optional.hpp>
+#include <boost/any.hpp>
 
 #include <chrono>
 #include <map>
 #include <string>
 #include <sstream>
 
-// Value of one enables experimental write-through feature of RamDb.
-// It provides some performance gain in case of multi-threaded cache write operations.
-#define MIOPEN_DB_CACHE_WRITE_THROUGH 1
-
 namespace miopen {
-
-using ramdb_clock = std::chrono::steady_clock;
 
 class LockFile;
 
-class RamDb : protected PlainTextDb
+struct RamDb
 {
-    public:
-    RamDb(std::string path, bool is_system, const std::string& /*arch*/, std::size_t /*num_cu*/)
-        : RamDb(path, is_system)
-    {
-    }
+    using TRecord = std::vector<boost::any>;
 
-    RamDb(std::string path, bool is_system = false);
+    public:
+    RamDb(std::string filename_)
+        : filename(filename_), lock_file(LockFile::Get(LockFilePath(filename_).c_str())){};
 
     RamDb(const RamDb&) = delete;
     RamDb(RamDb&&)      = delete;
     RamDb& operator=(const RamDb&) = delete;
     RamDb& operator=(RamDb&&) = delete;
 
-    static std::string GetTimeFilePath(const std::string& path);
-    static RamDb& GetCached(const std::string& path, bool is_system);
+    static RamDb& GetCached(const std::string& path);
 
-    static RamDb& GetCached(const std::string& path,
-                            bool is_system,
-                            const std::string& /*arch*/,
-                            std::size_t /*num_cu*/)
-    {
-        return GetCached(path, is_system);
-    }
-
-    boost::optional<DbRecord> FindRecord(const std::string& problem);
+    boost::optional<RamDb::TRecord> FindRecord(const std::string& problem);
+    bool RemoveRecord(const std::string& key);
+    bool StoreRecord(const std::string& problem, TRecord& record);
 
     template <class TProblem>
-    boost::optional<DbRecord> FindRecord(const TProblem& problem)
+    boost::optional<TRecord> FindRecord(const TProblem& problem)
     {
-        const auto key = DbRecord::Serialize(problem);
+        std::stringstream ss;
+        problem.Serialize(ss);
+        const auto key = ss.str();
         return FindRecord(key);
     }
-
-    template <class TProblem, class TValue>
-    bool Load(const TProblem& problem, const std::string& id, TValue& value)
-    {
-        const auto record = FindRecord(problem);
-        if(!record)
-            return false;
-        return record->GetValues(id, value);
-    }
-
-    bool StoreRecord(const DbRecord& record);
-    bool UpdateRecord(DbRecord& record);
-    bool RemoveRecord(const std::string& key);
-    bool Remove(const std::string& key, const std::string& id);
-
     template <class T>
-    inline bool Remove(const T& problem_config, const std::string& id)
+    inline bool StoreRecord(const T& problem_config, TRecord& record)
     {
-        const auto key = DbRecord::Serialize(problem_config);
-        return Remove(key, id);
+        std::stringstream ss;
+        problem_config.Serialize(ss);
+        const auto key = ss.str();
+        return StoreRecord(key, record);
     }
 
     template <class T>
     inline bool RemoveRecord(const T& problem_config)
     {
-        const auto key = DbRecord::Serialize(problem_config);
+        std::stringstream ss;
+        problem_config.Serialize(ss);
+        const auto key = ss.str();
         return RemoveRecord(key);
     }
 
-    template <class T, class V>
-    inline boost::optional<DbRecord>
-    Update(const T& problem_config, const std::string& id, const V& values)
-    {
-        DbRecord record(problem_config);
-        record.SetValues(id, values);
-        const auto ok = UpdateRecord(record);
-        if(ok)
-            return record;
-        else
-            return boost::none;
-    }
-
     private:
-    struct CacheItem
-    {
-        int line;
-        std::string content;
-    };
-
-    ramdb_clock::time_point file_read_time;
-    std::map<std::string, CacheItem> cache;
-
-    boost::optional<miopen::DbRecord> FindRecordUnsafe(const std::string& problem);
-
-    bool ValidateUnsafe();
-    void Prefetch();
-
-#if MIOPEN_DB_CACHE_WRITE_THROUGH
-    void UpdateCacheEntryUnsafe(const DbRecord& record);
-#endif
+    std::map<std::string, std::vector<boost::any>> cache;
+    std::string filename;
+    LockFile& lock_file;
+    boost::optional<TRecord> FindRecordUnsafe(const std::string& problem);
+    void UpdateCacheEntryUnsafe(const std::string& key, const TRecord& value);
 };
 
 /// \todo This is modified copy of code from db.hpp. Make a proper fix.
@@ -172,39 +125,16 @@ class DbTimer<RamDb>
     {
         return Measure("FindRecord", [&]() { return inner.FindRecord(problem); });
     }
-
-    bool StoreRecord(const DbRecord& record)
+    template <typename T, typename TRecord>
+    bool StoreRecord(const T& problem_config, TRecord& record)
     {
-        return Measure("StoreRecord", [&]() { return inner.StoreRecord(record); });
-    }
-
-    bool UpdateRecord(DbRecord& record)
-    {
-        return Measure("UpdateRecord", [&]() { return inner.UpdateRecord(record); });
+        return Measure("StoreRecord", [&]() { return inner.StoreRecord(problem_config, record); });
     }
 
     template <class TProblem>
     bool RemoveRecord(const TProblem& problem)
     {
         return Measure("RemoveRecord", [&]() { return inner.RemoveRecord(problem); });
-    }
-
-    template <class TProblem, class TValue>
-    auto Update(const TProblem& problem, const std::string& id, const TValue& value)
-    {
-        return Measure("Update", [&]() { return inner.Update(problem, id, value); });
-    }
-
-    template <class TProblem, class TValue>
-    bool Load(const TProblem& problem, const std::string& id, TValue& value)
-    {
-        return Measure("Load", [&]() { return inner.Load(problem, id, value); });
-    }
-
-    template <class TProblem>
-    bool Remove(const TProblem& problem, const std::string& id)
-    {
-        return Measure("Remove", [&]() { return inner.Remove(problem, id); });
     }
 };
 
