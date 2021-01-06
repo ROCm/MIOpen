@@ -1,26 +1,26 @@
 ################################################################################
 #
-#MIT License
+# MIT License
 #
-#Copyright(c) 2017 Advanced Micro Devices, Inc.
+# Copyright (c) 2017 Advanced Micro Devices, Inc.
 #
-#Permission is hereby granted, free of charge, to any person obtaining a copy
-#of this software and associated documentation files(the "Software"), to deal
-#in the Software without restriction, including without limitation the rights
-#to use, copy, modify, merge, publish, distribute, sublicense, and / or sell
-#copies of the Software, and to permit persons to whom the Software is
-#furnished to do so, subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
 #
-#The above copyright notice and this permission notice shall be included in all
-#copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
 #
-#THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-#IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-#FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
-#AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-#LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-#OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-#SOFTWARE.
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 #
 ################################################################################
 
@@ -29,25 +29,24 @@ cmake_policy(SET CMP0057 NEW)
 include (GenerateExportHeader)
 add_subdirectory(sqlite)
 
-#Truncation rounding or (default) rounding to nearest even(RNE) is enabled.
-#This switch controls two related but different aspects of MIOpen behavior
-# 1. How host code performs conversions of float to bfloat16, important only
-#for testing.
-# 2. How BF16 kernels(which are kind of mixed - precision now and expected to
-#remain in the future) perform final conversion(and rounding) of FP32
-#to BF16 results.This affects the main functionality of the library.
+# Truncation rounding or (default) rounding to nearest even (RNE) is enabled.
+# This switch controls two related but different aspects of MIOpen behavior
+# 1.  How host code performs conversions of float to bfloat16, important only
+#     for testing.
+# 2.  How BF16 kernels (which are kind of mixed-precision now and expected to
+#     remain in the future)  perform final conversion (and rounding) of FP32
+#     to BF16 results. This affects the main functionality of the library.
 option( MIOPEN_USE_RNE_BFLOAT16 "Sets rounding scheme for bfloat16 type" ON )
 
 configure_file("${PROJECT_SOURCE_DIR}/include/miopen/config.h.in" "${PROJECT_BINARY_DIR}/include/miopen/config.h")
 
-#configure a header file to pass the CMake version settings to the source, \
-    and package the header files in the output archive
+# configure a header file to pass the CMake version settings to the source, and package the header files in the output archive
 configure_file( "${PROJECT_SOURCE_DIR}/include/miopen/version.h.in" "${PROJECT_BINARY_DIR}/include/miopen/version.h" )
 
 message( STATUS "MIOpen_VERSION= ${MIOpen_VERSION}" )
 message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
 
-#This is incremented when the ABI to the library changes
+# This is incremented when the ABI to the library changes
 set( MIOpen_SOVERSION 1.0 )
 
 
@@ -55,13 +54,11 @@ function(add_kernels KERNEL_FILES)
     set(INIT_KERNELS_LIST)
     foreach(KERNEL_FILE ${KERNEL_FILES})
         if("${CMAKE_VERSION}" VERSION_LESS 3.0)
-            configure_file(${
-    KERNEL_FILE} ${KERNEL_FILE}.delete)
+            configure_file(${KERNEL_FILE} ${KERNEL_FILE}.delete)
         else()
             set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${KERNEL_FILE})
         endif()
-        get_filename_component(BASE_NAME ${
-    KERNEL_FILE} NAME_WE)
+        get_filename_component(BASE_NAME ${KERNEL_FILE} NAME_WE)
         string(TOUPPER "${BASE_NAME}" KEY_NAME)
         string(MAKE_C_IDENTIFIER "${KEY_NAME}" VAR_NAME)
         list(APPEND INIT_KERNELS_LIST "    { \"${KEY_NAME}\", std::string(reinterpret_cast<const char*>(${VAR_NAME}), ${VAR_NAME}_SIZE) }")
@@ -74,15 +71,12 @@ function(add_kernel_includes KERNEL_FILES)
     set(INIT_KERNELS_LIST)
     foreach(KERNEL_FILE ${KERNEL_FILES})
         if("${CMAKE_VERSION}" VERSION_LESS 3.0)
-            configure_file(${
-    KERNEL_FILE} ${KERNEL_FILE}.delete)
+            configure_file(${KERNEL_FILE} ${KERNEL_FILE}.delete)
         else()
             set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${KERNEL_FILE})
         endif()
-        get_filename_component(BASE_NAME ${
-    KERNEL_FILE} NAME_WE)
-        get_filename_component(FILE_NAME ${
-    KERNEL_FILE} NAME)
+        get_filename_component(BASE_NAME ${KERNEL_FILE} NAME_WE)
+        get_filename_component(FILE_NAME ${KERNEL_FILE} NAME)
         string(TOUPPER "${BASE_NAME}" KEY_NAME)
         string(MAKE_C_IDENTIFIER "${KEY_NAME}" VAR_NAME)
         list(APPEND INIT_KERNELS_LIST "    { \"${FILE_NAME}\", std::string(reinterpret_cast<const char*>(${VAR_NAME}), ${VAR_NAME}_SIZE) }")
@@ -129,7 +123,6 @@ set( MIOpen_Source
     dropout.cpp
     dropout_api.cpp
     readonlyramdb.cpp
-    ramdb.cpp
     execution_context.cpp
     reducetensor.cpp
     reducetensor_api.cpp
@@ -179,7 +172,6 @@ set( MIOpen_Source
     include/miopen/conv_algo_name.hpp
     include/miopen/dropout.hpp
     include/miopen/readonlyramdb.hpp
-    include/miopen/ramdb.hpp
     include/miopen/rnn_util.hpp
     include/miopen/bz2.hpp
     include/miopen/comgr.hpp
@@ -220,25 +212,24 @@ set( MIOpen_Source
     solver/conv_ocl_dir2D_bwdWrW_1x1.cpp
     solver/conv_ocl_dir2Dfwdgen.cpp
     solver/conv_ocl_dir2D11x11.cpp
-    solver/conv_ocl_dir2D3x3.cpp
     solver/conv_ocl_dir2Dfwd_exhaustive_search.cpp
     solver/conv_ocl_dir2Dfwd.cpp
     solver/conv_ocl_dir2Dfwd1x1.cpp
-    solver/conv_hip_implicit_gemm_v4r1.cpp
-    solver/conv_hip_implicit_gemm_v4r4.cpp
+    solver/conv_hip_implicit_gemm_fwd_v4r1.cpp
+    solver/conv_hip_implicit_gemm_fwd_v4r4.cpp
     solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops_padded_gemm.cpp
     solver/conv_hip_implicit_gemm_fwd_v4r5_xdlops.cpp
-    solver/conv_hip_implicit_gemm_wrw_weights_v4r4.cpp
+    solver/conv_hip_implicit_gemm_wrw_v4r4.cpp
     solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops.cpp
     solver/conv_hip_implicit_gemm_xdlops_common.cpp
     solver/conv_hip_implicit_gemm_nonxdlops_common.cpp
-    solver/conv_hip_implicit_gemm_bwd_data_v1r1.cpp
-    solver/conv_hip_implicit_gemm_bwd_data_v4r1.cpp
-    solver/conv_hip_implicit_gemm_bwd_data_v4r1_xdlops.cpp
+    solver/conv_hip_implicit_gemm_bwd_v1r1.cpp
+    solver/conv_hip_implicit_gemm_bwd_v4r1.cpp
+    solver/conv_hip_implicit_gemm_bwd_v4r1_xdlops.cpp
     solver/conv_asm_implicit_gemm_v4r1_dynamic.cpp
     solver/conv_asm_implicit_gemm_wrw_v4r1_dynamic.cpp
     solver/conv_asm_implicit_gemm_wrw_gtc_dynamic_xdlops.cpp
-    solver/conv_hip_implicit_gemm_bwd_v1r1_xdlops_nchw_kcyx_nkhw.cpp
+    solver/conv_hip_implicit_gemm_bwd_v1r1_xdlops.cpp
     solver/conv_asm_implicit_gemm_bwd_v4r1_dynamic.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops_padded_gemm.cpp
@@ -263,10 +254,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     file(GLOB_RECURSE COMPOSABLE_KERNEL_DYNAMIC_CPP_SOURCE "kernels/dynamic_igemm/*.cpp")
 
     set(MIOPEN_KERNEL_INCLUDES
-        ${
-    COMPOSABLE_KERNEL_INCLUDE}
-        ${
-    COMPOSABLE_KERNEL_DYNAMIC_ASM_INCLUDE}
+        ${COMPOSABLE_KERNEL_INCLUDE}
+        ${COMPOSABLE_KERNEL_DYNAMIC_ASM_INCLUDE}
         include/miopen/implicitgemm_params.hpp
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride1.inc
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride2_dec.inc
@@ -294,19 +283,31 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil.inc
         kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec.inc
         kernels/conv_3x3_wheel_alpha_v9_0_15.inc
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_dilation2.inc
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride1.inc
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride2.inc
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_dilation2.inc
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride1.inc
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride2.inc
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_dilation2_group.inc
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride1_group.inc
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride2_group.inc
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_dilation2_group.inc
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride1_group.inc
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride2_group.inc
-        kernels/Conv_Winograd_v21_1_0_metadata.inc
+        kernels/Conv_Winograd_v21_1_2_gfx9_fp16_dot2_edc_dilation2.inc
+        kernels/Conv_Winograd_v21_1_2_gfx9_fp16_dot2_edc_stride1.inc
+        kernels/Conv_Winograd_v21_1_2_gfx9_fp16_dot2_edc_stride2.inc
+        kernels/Conv_Winograd_v21_1_2_gfx9_fp32_dilation2.inc
+        kernels/Conv_Winograd_v21_1_2_gfx9_fp32_stride1.inc
+        kernels/Conv_Winograd_v21_1_2_gfx9_fp32_stride2.inc
+        kernels/Conv_Winograd_v21_1_2_gfx9_fp16_dot2_edc_dilation2_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx9_fp16_dot2_edc_stride1_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx9_fp16_dot2_edc_stride2_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx9_fp32_dilation2_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx9_fp32_stride1_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx9_fp32_stride2_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx10_fp16_dot2_edc_dilation2.inc
+        kernels/Conv_Winograd_v21_1_2_gfx10_fp16_dot2_edc_stride1.inc
+        kernels/Conv_Winograd_v21_1_2_gfx10_fp16_dot2_edc_stride2.inc
+        kernels/Conv_Winograd_v21_1_2_gfx10_fp32_dilation2.inc
+        kernels/Conv_Winograd_v21_1_2_gfx10_fp32_stride1.inc
+        kernels/Conv_Winograd_v21_1_2_gfx10_fp32_stride2.inc
+        kernels/Conv_Winograd_v21_1_2_gfx10_fp16_dot2_edc_dilation2_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx10_fp16_dot2_edc_stride1_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx10_fp16_dot2_edc_stride2_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx10_fp32_dilation2_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx10_fp32_stride1_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx10_fp32_stride2_group.inc
+        kernels/Conv_Winograd_v21_1_2_metadata.inc
         kernels/xform_bidirect_winograd_code.inc
         kernels/rocm_version.inc
         kernels/inst_wrappers.inc
@@ -323,12 +324,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         )
 
     set(MIOPEN_KERNELS
-        ${
-    COMPOSABLE_KERNEL_SOURCE}
-        ${
-    COMPOSABLE_KERNEL_DYNAMIC_ASM_SOURCE}
-        ${
-    COMPOSABLE_KERNEL_DYNAMIC_CPP_SOURCE}
+        ${COMPOSABLE_KERNEL_SOURCE}
+        ${COMPOSABLE_KERNEL_DYNAMIC_ASM_SOURCE}
+        ${COMPOSABLE_KERNEL_DYNAMIC_CPP_SOURCE}
         kernels/MIOpenCheckNumerics.cl
         kernels/MIOpenBatchNormActivBwdPerAct.cl
         kernels/MIOpenBatchNormActivBwdSpatial.cl
@@ -354,7 +352,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConv1x1J1.cl
         kernels/MIOpenConv1x1J1_stride.cl
         kernels/MIOpenSoftmax.cl
-        kernels/MIOpenConvD3x3.cl
         kernels/MIOpenUtilKernels3.cl
         kernels/MIOpenUtilKernels4.cl
         kernels/MIOpenUtilKernels5.cl
@@ -403,18 +400,18 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv_3x3_wheel_alpha_v3_0b.s
         kernels/conv_3x3_wheel_alpha_v9_2_7.s
         kernels/conv_3x3_wheel_alpha_v9_2_7_stride_2_dec.s
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_dilation2.s
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride1.s
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride2.s
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_dilation2.s
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride1.s
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride2.s
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_dilation2_group.s
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride1_group.s
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride2_group.s
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_dilation2_group.s
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride1_group.s
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride2_group.s
+        kernels/Conv_Winograd_v21_1_2_fp16_dot2_edc_dilation2.s
+        kernels/Conv_Winograd_v21_1_2_fp16_dot2_edc_stride1.s
+        kernels/Conv_Winograd_v21_1_2_fp16_dot2_edc_stride2.s
+        kernels/Conv_Winograd_v21_1_2_fp32_dilation2.s
+        kernels/Conv_Winograd_v21_1_2_fp32_stride1.s
+        kernels/Conv_Winograd_v21_1_2_fp32_stride2.s
+        kernels/Conv_Winograd_v21_1_2_fp16_dot2_edc_dilation2_group.s
+        kernels/Conv_Winograd_v21_1_2_fp16_dot2_edc_stride1_group.s
+        kernels/Conv_Winograd_v21_1_2_fp16_dot2_edc_stride2_group.s
+        kernels/Conv_Winograd_v21_1_2_fp32_dilation2_group.s
+        kernels/Conv_Winograd_v21_1_2_fp32_stride1_group.s
+        kernels/Conv_Winograd_v21_1_2_fp32_stride2_group.s
         kernels/MIOpenConvBwdBias.cl
         kernels/MIOpenBatchNormActivInfer.cl
         kernels/MIOpenCTCLoss.cl
@@ -489,27 +486,18 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     list(APPEND MIOpen_Source ${PROJECT_BINARY_DIR}/include/miopen_kernels.h)
     add_custom_command(
         OUTPUT ${PROJECT_BINARY_DIR}/include/miopen_kernels.h
-        WORKING_DIRECTORY ${
-    CMAKE_CURRENT_SOURCE_DIR}
-        DEPENDS addkernels ${
-    MIOPEN_KERNELS} ${
-    MIOPEN_KERNEL_INCLUDES}
-        COMMAND ${
-    WINE_CMD} $<TARGET_FILE:addkernels> -guard GUARD_MIOPEN_KERNELS_HPP_ -target ${PROJECT_BINARY_DIR}/include/miopen_kernels.h -source ${
-    MIOPEN_KERNELS}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        DEPENDS addkernels ${MIOPEN_KERNELS} ${MIOPEN_KERNEL_INCLUDES}
+        COMMAND ${WINE_CMD} $<TARGET_FILE:addkernels> -guard GUARD_MIOPEN_KERNELS_HPP_ -target ${PROJECT_BINARY_DIR}/include/miopen_kernels.h -source ${MIOPEN_KERNELS}
         COMMENT "Inlining MIOpen kernels"
         )
 
     list(APPEND MIOpen_Source ${PROJECT_BINARY_DIR}/include/miopen_kernel_includes.h)
     add_custom_command(
         OUTPUT ${PROJECT_BINARY_DIR}/include/miopen_kernel_includes.h
-        WORKING_DIRECTORY ${
-    CMAKE_CURRENT_SOURCE_DIR}
-        DEPENDS addkernels ${
-    MIOPEN_KERNEL_INCLUDES}
-        COMMAND ${
-    WINE_CMD} $<TARGET_FILE:addkernels> -no-recurse -guard GUARD_MIOPEN_KERNEL_INCLUDES_HPP_ -target ${PROJECT_BINARY_DIR}/include/miopen_kernel_includes.h -source ${
-    MIOPEN_KERNEL_INCLUDES}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        DEPENDS addkernels ${MIOPEN_KERNEL_INCLUDES}
+        COMMAND ${WINE_CMD} $<TARGET_FILE:addkernels> -no-recurse -guard GUARD_MIOPEN_KERNEL_INCLUDES_HPP_ -target ${PROJECT_BINARY_DIR}/include/miopen_kernel_includes.h -source ${MIOPEN_KERNEL_INCLUDES}
         COMMENT "Inlining MIOpen HIP kernel includes"
         )
 
@@ -524,31 +512,10 @@ if(MIOPEN_USE_COMGR)
     list(APPEND MIOpen_Source comgr.cpp)
 endif()
 
-if(MIOPEN_ENABLE_HEUR)
-    file(GLOB HEUR_OBJS conv/heur/assets/*.o)
-    SET_SOURCE_FILES_PROPERTIES(
-      ${HEUR_OBJS}
-      PROPERTIES
-      EXTERNAL_OBJECT true
-      GENERATED true
-	)
-    list(APPEND MIOpen_Source conv/heur/metadata.cpp)
-    list(APPEND MIOPEN_Source include/miopen/memref.hpp)
-    list(APPEND MIOPEN_Source include/miopen/metadata.hpp)
-    # metadata.cpp links agains externally compiled objects therefore uses extern "C" 
-    # however, the return type is templatized to allow other parts of the library to use the MemRef.
-    set_source_files_properties(conv/heur/metadata.cpp PROPERTIES COMPILE_FLAGS "-Wno-return-type-c-linkage ")
-else()
-    set(HEUR_OBJS )
-endif()
-
-
-
 # build library
 add_library( MIOpen
     ${MIOpen_Source}
     $<TARGET_OBJECTS:sqlite_memvfs>
-    ${HEUR_OBJS}
     )
 
 rocm_set_soversion(MIOpen ${MIOpen_SOVERSION})
