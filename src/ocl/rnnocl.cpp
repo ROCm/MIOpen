@@ -148,8 +148,16 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     float alpha0, alpha1, beta_t;
     float alpha = 1, beta = 0;
 
-    std::vector<int> sp_size(3, 1), sp_stride(3, 1), w_size(3, 1), w_stride(3, 1), x_size(3, 1),
-        x_stride(3, 1), y_size(3, 1), y_stride(3, 1), hx_size(3, 1), hx_stride(3, 1);
+    std::vector<int> sp_size(3, 1);
+    std::vector<int> sp_stride(3, 1);
+    std::vector<int> w_size(3, 1);
+    std::vector<int> w_stride(3, 1);
+    std::vector<int> x_size(3, 1);
+    std::vector<int> x_stride(3, 1);
+    std::vector<int> y_size(3, 1);
+    std::vector<int> y_stride(3, 1);
+    std::vector<int> hx_size(3, 1);
+    std::vector<int> hx_stride(3, 1);
     miopen::TensorDescriptor sp_desc, w_desc, x_desc, y_desc, hx_desc;
 
     sp_size[2]   = workSpaceSize / GetTypeSize(wDesc.GetType());
@@ -4184,7 +4192,9 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
     size_t wei_shift_bias = (in_h + hy_h + (bi * hy_h + hy_h) * (nLayers - 1)) * wei_stride;
 
-    float alpha0, alpha1, beta_t = 0;
+    float alpha0 = 0.;
+    float alpha1 = 0.;
+    float beta_t = 0;
 
     std::vector<int> sp_size(3, 1), sp_stride(3, 1), w_size(3, 1), w_stride(3, 1);
     miopen::TensorDescriptor sp_desc, w_desc;

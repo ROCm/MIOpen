@@ -185,11 +185,20 @@ static GemmBackend_t enforce_gemm_backend(miopenDataType_t data_type,
     // enforce backend based on env variable
     switch(Value(MIOPEN_GEMM_ENFORCE_BACKEND{}))
     {
-    case 1: gemm_backend_env  = GemmBackend_t::rocblas; break;
-    case 2: gemm_backend_env  = GemmBackend_t::miopengemm; break;
-    case 3: gemm_backend_env  = GemmBackend_t::nogemmbackend; break;
-    case 4: gemm_backend_env  = GemmBackend_t::miopentensile; break;
-    default: gemm_backend_env = gemm_backend_preferred;
+    case 1:
+        gemm_backend_env = GemmBackend_t::rocblas;
+        break; // NOLINT
+    case 2:
+        gemm_backend_env = GemmBackend_t::miopengemm;
+        break; // NOLINT
+    case 3:
+        gemm_backend_env = GemmBackend_t::nogemmbackend;
+        break; // NOLINT
+    case 4:
+        gemm_backend_env = GemmBackend_t::miopentensile;
+        break; // NOLINT
+    default:
+        gemm_backend_env = gemm_backend_preferred; // NOLINT
     }
 
 // make sure backend chosen based on env variable is suppported
