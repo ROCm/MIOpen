@@ -211,9 +211,6 @@ pipeline {
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
-                            finally{
-                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
-                            }
                         }
                     }
                 }
@@ -241,9 +238,6 @@ pipeline {
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
-                            finally{
-                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
-                            }
                         }
                     }
                 }
@@ -262,9 +256,6 @@ pipeline {
                                 echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
-                            }
-                            finally{
-                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
                             }
                         }
                     }
@@ -1093,3 +1084,4 @@ pipeline {
         }
     }
 }
+
