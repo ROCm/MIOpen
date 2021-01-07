@@ -202,7 +202,19 @@ pipeline {
                         cmd = "rm -rf build; mkdir build; cd build; CXX='clang++-3.8' cmake -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
                     }
                     steps{
-                        buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd, gpu_arch: "all")
+                        script{
+                            try{
+                                buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd, gpu_arch: "all")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
 
@@ -220,7 +232,19 @@ pipeline {
                                 | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-3.8 -style=file {} | diff - {}\'"
                     }
                     steps{
-                        buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd, gpu_arch: "all")
+                        script{
+                            try{
+                                buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd, gpu_arch: "all")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
 
@@ -230,7 +254,19 @@ pipeline {
                         cmd = "rm -rf build; mkdir build; cd build; CXX=/usr/local/bin/hcc cmake -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
                     }
                     steps{
-                        buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd, gpu_arch: "all")
+                        script{
+                            try{
+                                buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd, gpu_arch: "all")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
             }
@@ -242,35 +278,95 @@ pipeline {
                stage('OpenCL/Clang Debug') {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildJob('clang++-3.8', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', gpu_arch: "gfx900;gfx906")
+                        script{
+                            try{
+                                buildJob('clang++-3.8', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', gpu_arch: "gfx900;gfx906")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
 
                 stage('OpenCL/Clang Release') {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildJob('clang++-3.8', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx900;gfx906")
+                        script{
+                            try{
+                                buildJob('clang++-3.8', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx900;gfx906")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
 
                 stage('OpenCL Release') {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildJob('g++-5', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx900;gfx906")
+                        script{
+                            try{
+                                buildJob('g++-5', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx900;gfx906")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
 
                 stage('OpenCL Debug Fiji') {
                     agent{ label rocmnode("fiji") }
                     steps{
-                        buildJob('g++-5', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', gpu_arch: "gfx803")
+                        script{
+                            try{
+                                buildJob('g++-5', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', gpu_arch: "gfx803")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
 
                 stage('Hip/hcc Release') {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildJob('hcc', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image + "rocm", gpu_arch: "gfx900;gfx906")
+                        script{
+                            try{
+                                buildJob('hcc', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image + "rocm", gpu_arch: "gfx900;gfx906")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
 
@@ -288,7 +384,19 @@ pipeline {
 
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx900;gfx906")
+                        script{
+                            try{
+                                 buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx900;gfx906")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
 
@@ -297,7 +405,19 @@ pipeline {
                 stage('Hip/hcc Debug gfx908') {
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildJob('hcc', flags: '-DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx908")
+                        script{
+                            try{
+                                buildJob('hcc', flags: '-DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx908")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
             }
@@ -320,7 +440,19 @@ pipeline {
 
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "MIOPEN_LOG_LEVEL=5 MIOPEN_COMPILE_PARALLEL_LEVEL=1",  image+'-hip-clang', "/usr/local", cmd, "gfx900;gfx906")
+                        script{
+                            try{
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "MIOPEN_LOG_LEVEL=5 MIOPEN_COMPILE_PARALLEL_LEVEL=1",  image+'-hip-clang', "/usr/local", cmd, "gfx900;gfx906")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
                 stage('Hip Debug Embedded Vega20') {
@@ -337,7 +469,19 @@ pipeline {
 
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "MIOPEN_LOG_LEVEL=5 MIOPEN_COMPILE_PARALLEL_LEVEL=1",  image+'-hip-clang', "/usr/local", cmd, "gfx906")
+                        script{
+                            try{
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "MIOPEN_LOG_LEVEL=5 MIOPEN_COMPILE_PARALLEL_LEVEL=1",  image+'-hip-clang', "/usr/local", cmd, "gfx906")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
 
@@ -355,7 +499,19 @@ pipeline {
 
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx900;gfx906")
+                        script{
+                            try{
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx900;gfx906")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
 
@@ -373,7 +529,19 @@ pipeline {
                         """
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx900;gfx906")
+                        script{
+                            try{
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx900;gfx906")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
 
@@ -391,14 +559,38 @@ pipeline {
                         """
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx900;gfx906")
+                        script{
+                            try{
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx900;gfx906")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
 
                 stage('Hip/hcc Release on /usr/local') {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildJob('hcc', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx900;gfx906")
+                        script{
+                            try{
+                                buildJob('hcc', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx900;gfx906")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
 
@@ -411,39 +603,111 @@ pipeline {
                 stage('Half Hip/hcc Release Vega20') {
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildJob('hcc', flags: '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx906")
+                        script{
+                            try{
+                                buildJob('hcc', flags: '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx906")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
                 stage('Half OpenCL Release Vega20') {
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildJob('g++-5', flags: '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx906")
+                        script{
+                            try{
+                                buildJob('g++-5', flags: '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx906")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
                 stage('Int8 OpenCL Release Vega20') {
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildJob('g++-5', flags: '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx906")
+                        script{
+                            try{
+                                buildJob('g++-5', flags: '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx906")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
 
                 stage('BF16 Hip/hcc Release Vega20') {
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildJob('hcc', flags: '-DMIOPEN_TEST_BFLOAT16=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx906")
+                        script{
+                            try{
+                                buildJob('hcc', flags: '-DMIOPEN_TEST_BFLOAT16=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx906")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
 
                 stage('BF16 Hip/hcc Debug gfx908') {
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildJob('hcc', flags: '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx908")
+                        script{
+                            try{
+                                buildJob('hcc', flags: '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx908")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
                 stage('Half Hip/hcc Debug gfx908') {
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildJob('hcc', flags: '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx908")
+                        script{
+                            try{
+                                buildJob('hcc', flags: '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx908")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
             }
@@ -455,14 +719,38 @@ pipeline {
                 stage('GCC codecov') {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildJob('g++-5', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', codecov: true, gpu_arch: "gfx900;gfx906")
+                        script{
+                            try{
+                                buildJob('g++-5', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', codecov: true, gpu_arch: "gfx900;gfx906")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
 
                 stage('Int8 Hip/hcc Release All Vega20') {
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildJob('hcc', flags: '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx906")
+                        script{
+                            try{
+                                buildJob('hcc', flags: '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx906")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
 
@@ -479,7 +767,19 @@ pipeline {
                         """
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx908")
+                        script{
+                            try{
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx908")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
             }
@@ -490,7 +790,19 @@ pipeline {
                 stage('OpenCL Release All') {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildJob('g++-5', flags: '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx900;gfx906")
+                        script{
+                            try{
+                                buildJob('g++-5', flags: '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx900;gfx906")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
 
@@ -507,7 +819,19 @@ pipeline {
                         """
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx908")
+                        script{
+                            try{
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx908")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
 
@@ -524,7 +848,19 @@ pipeline {
                         """
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx908")
+                        script{
+                            try{
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx908")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
             }
@@ -546,7 +882,19 @@ pipeline {
 
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx906")
+                        script{
+                            try{
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx906")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
 
@@ -564,7 +912,19 @@ pipeline {
 
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx906")
+                        script{
+                            try{
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx906")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
             }
@@ -585,7 +945,19 @@ pipeline {
                         """
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx906")
+                        script{
+                            try{
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx906")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
 
@@ -602,7 +974,19 @@ pipeline {
                         """
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx908")
+                        script{
+                            try{
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx908")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
 
@@ -619,7 +1003,19 @@ pipeline {
                         """
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx906", "latest")
+                        script{
+                            try{
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx906", "latest")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
 
@@ -636,7 +1032,19 @@ pipeline {
                         """
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx908", "latest")
+                        script{
+                            try{
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx908", "latest")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
             }
@@ -648,17 +1056,40 @@ pipeline {
                 stage('OpenCL Release Package') {
                     agent{ label rocmnode("rocmtest") }
                     steps{
-                        buildJob('g++-5', flags: '-DCMAKE_BUILD_TYPE=release', gpu_arch: "all")
+                        script{
+                            try{
+                                buildJob('g++-5', flags: '-DCMAKE_BUILD_TYPE=release', gpu_arch: "all")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
                 stage("HIP/hcc Release Package"){
                     agent{ label rocmnode("rocmtest") }
                     steps{
-                        buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "all")
+                        script{
+                            try{
+                                buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "all")
+                            } 
+                            catch(e){
+                                echo "hello throwing error for hip tidy"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                build job: 'reboot-slaves' , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+                            }
+                        }
                     }
                 }
             }
         }
     }
 }
-
