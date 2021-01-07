@@ -207,7 +207,7 @@ pipeline {
                                 buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd, gpu_arch: "all")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -237,7 +237,7 @@ pipeline {
                                 buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd, gpu_arch: "all")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -259,7 +259,7 @@ pipeline {
                                 buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd, gpu_arch: "all")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -283,7 +283,7 @@ pipeline {
                                 buildJob('clang++-3.8', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', gpu_arch: "gfx900;gfx906")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -302,7 +302,7 @@ pipeline {
                                 buildJob('clang++-3.8', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx900;gfx906")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -321,7 +321,7 @@ pipeline {
                                 buildJob('g++-5', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx900;gfx906")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -340,7 +340,7 @@ pipeline {
                                 buildJob('g++-5', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', gpu_arch: "gfx803")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -359,7 +359,7 @@ pipeline {
                                 buildJob('hcc', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image + "rocm", gpu_arch: "gfx900;gfx906")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -389,7 +389,7 @@ pipeline {
                                  buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx900;gfx906")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -410,7 +410,7 @@ pipeline {
                                 buildJob('hcc', flags: '-DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx908")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -445,7 +445,7 @@ pipeline {
                                 buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "MIOPEN_LOG_LEVEL=5 MIOPEN_COMPILE_PARALLEL_LEVEL=1",  image+'-hip-clang', "/usr/local", cmd, "gfx900;gfx906")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -474,7 +474,7 @@ pipeline {
                                 buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "MIOPEN_LOG_LEVEL=5 MIOPEN_COMPILE_PARALLEL_LEVEL=1",  image+'-hip-clang', "/usr/local", cmd, "gfx906")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -504,7 +504,7 @@ pipeline {
                                 buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx900;gfx906")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -534,7 +534,7 @@ pipeline {
                                 buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx900;gfx906")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -564,7 +564,7 @@ pipeline {
                                 buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx900;gfx906")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -583,7 +583,7 @@ pipeline {
                                 buildJob('hcc', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx900;gfx906")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -608,7 +608,7 @@ pipeline {
                                 buildJob('hcc', flags: '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx906")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -626,7 +626,7 @@ pipeline {
                                 buildJob('g++-5', flags: '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx906")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -644,7 +644,7 @@ pipeline {
                                 buildJob('g++-5', flags: '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx906")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -663,7 +663,7 @@ pipeline {
                                 buildJob('hcc', flags: '-DMIOPEN_TEST_BFLOAT16=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx906")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -682,7 +682,7 @@ pipeline {
                                 buildJob('hcc', flags: '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx908")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -700,7 +700,7 @@ pipeline {
                                 buildJob('hcc', flags: '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx908")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -724,7 +724,7 @@ pipeline {
                                 buildJob('g++-5', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', codecov: true, gpu_arch: "gfx900;gfx906")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -743,7 +743,7 @@ pipeline {
                                 buildJob('hcc', flags: '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx906")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -772,7 +772,7 @@ pipeline {
                                 buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx908")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -795,7 +795,7 @@ pipeline {
                                 buildJob('g++-5', flags: '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx900;gfx906")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -824,7 +824,7 @@ pipeline {
                                 buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx908")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -853,7 +853,7 @@ pipeline {
                                 buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx908")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -887,7 +887,7 @@ pipeline {
                                 buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx906")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -917,7 +917,7 @@ pipeline {
                                 buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx906")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -950,7 +950,7 @@ pipeline {
                                 buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx906")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -979,7 +979,7 @@ pipeline {
                                 buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx908")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -1008,7 +1008,7 @@ pipeline {
                                 buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx906", "latest")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -1037,7 +1037,7 @@ pipeline {
                                 buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx908", "latest")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -1061,7 +1061,7 @@ pipeline {
                                 buildJob('g++-5', flags: '-DCMAKE_BUILD_TYPE=release', gpu_arch: "all")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
@@ -1079,7 +1079,7 @@ pipeline {
                                 buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "all")
                             } 
                             catch(e){
-                                echo "hello throwing error for hip tidy"
+                                echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
                                 throw e
                             }
