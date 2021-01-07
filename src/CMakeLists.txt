@@ -123,6 +123,7 @@ set( MIOpen_Source
     dropout.cpp
     dropout_api.cpp
     readonlyramdb.cpp
+    ramdb.cpp
     execution_context.cpp
     reducetensor.cpp
     reducetensor_api.cpp
@@ -172,6 +173,7 @@ set( MIOpen_Source
     include/miopen/conv_algo_name.hpp
     include/miopen/dropout.hpp
     include/miopen/readonlyramdb.hpp
+    include/miopen/ramdb.hpp
     include/miopen/rnn_util.hpp
     include/miopen/bz2.hpp
     include/miopen/comgr.hpp
@@ -512,10 +514,29 @@ if(MIOPEN_USE_COMGR)
     list(APPEND MIOpen_Source comgr.cpp)
 endif()
 
+if(MIOPEN_ENABLE_HEUR)
+    file(GLOB HEUR_OBJS conv/heur/assets/*.o)
+    SET_SOURCE_FILES_PROPERTIES(
+      ${HEUR_OBJS}
+      PROPERTIES
+      EXTERNAL_OBJECT true
+      GENERATED true
+    )
+    list(APPEND MIOpen_Source conv/heur/metadata.cpp)
+    list(APPEND MIOPEN_Source include/miopen/memref.hpp)
+    list(APPEND MIOPEN_Source include/miopen/metadata.hpp)
+    # metadata.cpp links agains externally compiled objects therefore uses extern "C" 
+    # however, the return type is templatized to allow other parts of the library to use the MemRef.
+    set_source_files_properties(conv/heur/metadata.cpp PROPERTIES COMPILE_FLAGS "-Wno-return-type-c-linkage ")
+else()
+    set(HEUR_OBJS )
+endif()
+
 # build library
 add_library( MIOpen
     ${MIOpen_Source}
     $<TARGET_OBJECTS:sqlite_memvfs>
+    ${HEUR_OBJS}
     )
 
 rocm_set_soversion(MIOpen ${MIOpen_SOVERSION})

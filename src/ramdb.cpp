@@ -95,7 +95,8 @@ bool RamDb::StoreRecord(const std::string& problem, RamDb::TRecord& record)
 
 bool RamDb::RemoveRecord(const std::string& key)
 {
-    MIOPEN_LOG_I2("Trying to remove record at key " << key << " from cache for file " << filename);
+    MIOPEN_LOG_I2("Trying to remove record at key " << key << " from cache for file "
+                                                    << filename);
     const auto lock = exclusive_lock(lock_file, GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
     cache.erase(key);
@@ -115,11 +116,11 @@ boost::optional<RamDb::TRecord> RamDb::FindRecordUnsafe(const std::string& probl
 
 void RamDb::UpdateCacheEntryUnsafe(const std::string& key, const TRecord& value)
 {
-    const auto it = cache.find(key);
+    const auto it   = cache.find(key);
     if(it != cache.end())
     {
-        auto& item = it->second;
-        item       = value;
+        auto& item   = it->second;
+        item = value;
     }
     else
     {

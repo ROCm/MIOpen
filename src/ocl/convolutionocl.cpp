@@ -1732,9 +1732,6 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
     for(const auto kinder : solvers)
     {
         const auto solver_id = solver::Id{kinder};
-        const auto algo = solver_id.GetAlgo();
-        if(IsAlgorithmDisabled(algo)) // Algos can be disabled globally.
-            continue;
         if(solver_id == solver::Id::gemm())
         {
             size_t ws_sz = 0;
