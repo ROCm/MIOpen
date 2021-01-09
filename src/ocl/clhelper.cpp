@@ -32,6 +32,7 @@
 #include <miopen/hip_build_utils.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/kernel_warnings.hpp>
+#include <miopen/logger.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/ocldeviceinfo.hpp>
 #include <miopen/tmp_dir.hpp>
@@ -129,40 +130,39 @@ ClProgramPtr LoadBinaryProgram(cl_context ctx, cl_device_id device, const std::s
 ClProgramPtr LoadProgram(cl_context ctx,
                          cl_device_id device,
                          const TargetProperties& target,
-                         const std::string& program_name,
+                         const std::string& program,
                          std::string params,
                          bool is_kernel_str,
                          const std::string& kernel_src)
 {
-    bool is_binary = false;
     std::string source;
+    std::string program_name;
+
     if(is_kernel_str)
     {
-        source = program_name;
+        source       = program;
+        program_name = "(unknown)";
     }
     else
     {
+        program_name = program;
         if(kernel_src.empty())
             source = miopen::GetKernelSrc(program_name);
         else
-            source  = kernel_src;
-        auto is_asm = miopen::EndsWith(program_name, ".s");
-        if(is_asm)
-        {
-            source    = ClAssemble(device, source, params);
-            is_binary = true;
-        }
-        else
-        {
-            is_binary = miopen::EndsWith(program_name, ".so");
-        }
+            source = kernel_src;
     }
 
-    if(is_binary)
+    bool load_binary = false;
+    if(miopen::EndsWith(program_name, ".s"))
     {
-        return LoadBinaryProgram(ctx, device, source);
+        source      = ClAssemble(device, source, params); // Puts output binary into source.
+        load_binary = true;
     }
-    else if(!is_kernel_str && miopen::EndsWith(program_name, ".cpp"))
+
+    if(load_binary || miopen::EndsWith(program_name, ".so"))
+        return LoadBinaryProgram(ctx, device, source);
+
+    if(miopen::EndsWith(program_name, ".cpp"))
     {
         boost::optional<miopen::TmpDir> dir(program_name);
 #if MIOPEN_BUILD_DEV
@@ -177,7 +177,7 @@ ClProgramPtr LoadProgram(cl_context ctx,
         bin_file_to_str(hsaco_file, buf);
         return LoadBinaryProgram(ctx, device, buf);
     }
-    else
+    else // OpenCL programs.
     {
         ClProgramPtr result{CreateProgram(ctx, source.data(), source.size())};
 #if MIOPEN_BUILD_DEV
@@ -187,6 +187,7 @@ ClProgramPtr LoadProgram(cl_context ctx,
 #endif
 #endif
         params += " -cl-std=CL1.2";
+        MIOPEN_LOG_I2("Building OpenCL program: '" << program_name << "', options: '" << params);
         BuildProgram(result.get(), device, params);
         return result;
     }
