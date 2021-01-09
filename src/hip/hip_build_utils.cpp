@@ -87,12 +87,13 @@ inline const std::string& GetCoV3Option(const bool enable)
 struct LcOptionTargetStrings
 {
     const std::string& device;
-    std::string xnack;
-    std::string sramecc;
-    LcOptionTargetStrings(const TargetProperties& target) : device(target.Name())
+    const std::string xnack;
+    const std::string sramecc;
+    LcOptionTargetStrings(const TargetProperties& target)
+        : device(target.Name()),
+          xnack(std::string{":xnack"} + (target.Xnack() ? "+" : "-")),
+          sramecc(std::string{":sramecc"} + (target.Sramecc() ? "+" : "-"))
     {
-        xnack   = std::string{":xnack"} + (target.Xnack() ? "+" : "-");
-        sramecc = std::string{":sramecc"} + (target.Sramecc() ? "+" : "-");
     }
 };
 
