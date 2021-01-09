@@ -106,17 +106,20 @@ static void BuildProgram(cl_program program, cl_device_id device, const std::str
 {
     auto status = clBuildProgram(program, 1, &device, params.c_str(), nullptr, nullptr);
 
-#if MIOPEN_BUILD_DEV || !defined(NDEBUG)
-    auto msg = BuildProgramInfo(program, device);
-    if(!msg.empty())
-        std::cerr << msg << std::endl;
+#if MIOPEN_INSTALLABLE
+    // Do not show messages (warnings etc) to the end users after successful builds.
+    // Show everything to developers.
+    if(status != CL_SUCCESS)
 #endif
+    {
+        auto msg = BuildProgramInfo(program, device);
+        if(!msg.empty())
+            MIOPEN_LOG_WE("Build log: " << msg);
+    }
 
     if(status != CL_SUCCESS)
     {
-        MIOPEN_THROW_CL_STATUS(status,
-                               "Error Building OpenCL Program in BuildProgram()\n" +
-                                   BuildProgramInfo(program, device));
+        MIOPEN_THROW_CL_STATUS(status, "clBuildProgram() failed:");
     }
 }
 
