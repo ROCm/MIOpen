@@ -35,7 +35,7 @@ namespace solver {
 
 bool ConvHipImplicitGemmMlirCppFwd::IsApplicable(const ConvolutionContext& ctx) const
 {
-#ifdef LIBMLIRMIOPEN
+#ifdef MIOPEN_LIBMLIRMIOPEN
     if(ctx.Is3d())
         return false;
     return ConvHipImplicitGemmV4R4Fwd::IsApplicable(ctx);

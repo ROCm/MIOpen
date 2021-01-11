@@ -275,6 +275,12 @@ endif()
 
 if(NOT WIN32 AND NOT APPLE)
   find_library(LIBMLIRMIOPEN MLIRMIOpen)
+  if(LIBMLIRMIOPEN AND NOT MIOPEN_USE_COMGR)
+    MESSAGE(STATUS "LibMLIRMIOpen: " ${LIBMLIRMIOPEN})
+    set(MIOPEN_LIBMLIRMIOPEN "${LIBMLIRMIOPEN}")
+  else()
+    message(STATUS "LibMLIRMIOpen not found, no flexible layout support")
+  endif()
 endif()
 
 # Online assembler

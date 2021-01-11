@@ -649,13 +649,9 @@ if(NOT WIN32 AND NOT APPLE)
 endif()
 
 ############################################################
-# MIOpen depends on libMLIRMIOpen for implicit gemm
-if(LIBMLIRMIOPEN)
-  MESSAGE(STATUS "LibMLIRMIOpen: " ${LIBMLIRMIOPEN})
-  set(LIBMLIRMIOPEN "${LIBMLIRMIOPEN}")
+# MIOpen depends on libMLIRMIOpen for igemm kernels
+if(LIBMLIRMIOPEN AND NOT MIOPEN_USE_COMGR)
   target_link_libraries(MIOpen PRIVATE ${LIBMLIRMIOPEN})
-else()
-  message(STATUS "LibMLIRMIOpen not found, no flexible layout support")
 endif()
 
 ############################################################

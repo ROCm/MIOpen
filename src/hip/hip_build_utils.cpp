@@ -26,7 +26,7 @@
 
 #include <miopen/config.h>
 #include <miopen/hip_build_utils.hpp>
-#ifdef LIBMLIRMIOPEN
+#ifdef MIOPEN_LIBMLIRMIOPEN
 #include <miopen/mlir_miopen_wrapper.hpp>
 #endif
 #include <miopen/stringutils.hpp>
@@ -128,7 +128,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
         // Should not have src content for mlir generated files
         assert(src.empty());
 
-#ifdef LIBMLIRMIOPEN
+#ifdef MIOPEN_LIBMLIRMIOPEN
         MIOPEN_LOG_I("populating mlir igemm kernel");
 
         mlir::MlirHandle handle = mlir::CreateMlirHandle(params.c_str());
