@@ -82,7 +82,6 @@ std::string inline ConvDirectNaiveConvKernelFile(const miopen::ConvolutionContex
 
 std::string inline ConvDirectNaiveConvCompileOption(const miopen::ConvolutionContext& ctx)
 {
-    const auto device_name = ctx.GetStream().GetDeviceName();
     std::string filename   = ConvDirectNaiveConvKernelFile(ctx);
     if(miopen::EndsWith(filename, ".s"))
     {
