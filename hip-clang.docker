@@ -58,9 +58,6 @@ RUN pip3 install cget
 # Build using hip-clang
 RUN cget -p $PREFIX init --cxx /opt/rocm/llvm/bin/clang++ --std=c++14 -DAMDGPU_TARGETS=${GPU_ARCH}
 
-# Install rocm-cmake
-RUN cget -p $PREFIX install RadeonOpenCompute/rocm-cmake@master
-
 # Install dependencies
 RUN cget -p $PREFIX install pfultz2/rocm-recipes
 ADD min-requirements.txt /min-requirements.txt
