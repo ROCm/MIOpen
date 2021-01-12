@@ -84,14 +84,11 @@ std::string inline ConvDirectNaiveConvCompileOption(const miopen::ConvolutionCon
 {
     const auto device_name = ctx.GetStream().GetDeviceName();
     std::string filename   = ConvDirectNaiveConvKernelFile(ctx);
-    if(miopen::EndsWith(filename, ".s") && (device_name == "gfx906" || device_name == "gfx908"))
+    if(miopen::EndsWith(filename, ".s"))
     {
-        if(ctx.rmv.IsV3())
-        {
-            std::ostringstream options;
-            GenerateClangDefsym(options, "ROCM_METADATA_VERSION", 5);
-            return options.str();
-        }
+        std::ostringstream options;
+        GenerateClangDefsym(options, "ROCM_METADATA_VERSION", 5);
+        return options.str();
     }
     return ctx.general_compile_options;
 }
