@@ -127,17 +127,17 @@ extern "C" __global__ void naive_conv_fwd_nchw_fp32(const float* __restrict__ p_
 
                     if(valid_w & valid_h)
                     {
-                        int i_idx = static_cast<size_t>(ic) * hi * wi +
+                        size_t i_idx = static_cast<size_t>(ic) * hi * wi +
                                     static_cast<size_t>(cur_h) * wi + static_cast<size_t>(cur_w);
-                        int w_idx = static_cast<size_t>(ic) * fy * fx +
+                        size_t f_idx = static_cast<size_t>(ic) * fy * fx +
                                     static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
                         value +=
-                            static_cast<double>(p_in[i_idx]) * static_cast<double>(p_wei[w_idx]);
+                            static_cast<double>(p_in[i_idx]) * static_cast<double>(p_wei[f_idx]);
                     }
                 }
             }
         }
-        int o_idx    = static_cast<size_t>(iho) * wo + static_cast<size_t>(iwo);
+        size_t o_idx    = static_cast<size_t>(iho) * wo + static_cast<size_t>(iwo);
         p_out[o_idx] = static_cast<float>(value);
     }
 }
@@ -212,9 +212,9 @@ extern "C" __global__ void naive_conv_bwd_nchw_fp32(float* __restrict__ p_in,
 
                     if(valid_h & valid_w)
                     {
-                        int o_idx = static_cast<size_t>(ik) * ho * wo +
+                        size_t o_idx = static_cast<size_t>(ik) * ho * wo +
                                     static_cast<size_t>(cur_ho) * wo + static_cast<size_t>(cur_wo);
-                        int f_idx = static_cast<size_t>(ik) * c_per_group * fy * fx +
+                        size_t f_idx = static_cast<size_t>(ik) * c_per_group * fy * fx +
                                     static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
                         value +=
                             static_cast<double>(p_out[o_idx]) * static_cast<double>(p_wei[f_idx]);
@@ -222,7 +222,7 @@ extern "C" __global__ void naive_conv_bwd_nchw_fp32(float* __restrict__ p_in,
                 }
             }
         }
-        int i_idx   = static_cast<size_t>(ihi) * wi + static_cast<size_t>(iwi);
+        size_t i_idx   = static_cast<size_t>(ihi) * wi + static_cast<size_t>(iwi);
         p_in[i_idx] = static_cast<float>(value);
     }
 }
@@ -289,10 +289,10 @@ extern "C" __global__ void naive_conv_wrw_nchw_fp32(const float* __restrict__ p_
 
                     if(valid_h & valid_w)
                     {
-                        int i_idx = static_cast<size_t>(in) * c * hi * wi +
+                        size_t i_idx = static_cast<size_t>(in) * c * hi * wi +
                                     static_cast<size_t>(ic) * hi * wi +
                                     static_cast<size_t>(cur_h) * wi + static_cast<size_t>(cur_w);
-                        int o_idx = static_cast<size_t>(in) * k * ho * wo +
+                        size_t o_idx = static_cast<size_t>(in) * k * ho * wo +
                                     static_cast<size_t>(iho) * wo + static_cast<size_t>(iwo);
                         value +=
                             static_cast<double>(p_in[i_idx]) * static_cast<double>(p_out[o_idx]);
@@ -300,7 +300,7 @@ extern "C" __global__ void naive_conv_wrw_nchw_fp32(const float* __restrict__ p_
                 }
             }
         }
-        int f_idx = static_cast<size_t>(ic) * fy * fx + static_cast<size_t>(iy) * fx +
+        size_t f_idx = static_cast<size_t>(ic) * fy * fx + static_cast<size_t>(iy) * fx +
                     static_cast<size_t>(ix);
         p_wei[f_idx] = static_cast<float>(value);
     }
@@ -385,21 +385,21 @@ extern "C" __global__ void naive_conv_fwd_ncdhw_fp32(const float* __restrict__ p
 
                         if(valid_d & valid_w & valid_h)
                         {
-                            int i_idx = static_cast<size_t>(ic) * di * hi * wi +
+                            size_t i_idx = static_cast<size_t>(ic) * di * hi * wi +
                                         static_cast<size_t>(cur_d) * hi * wi +
                                         static_cast<size_t>(cur_h) * wi +
                                         static_cast<size_t>(cur_w);
-                            int w_idx = static_cast<size_t>(ic) * fz * fy * fx +
+                            size_t f_idx = static_cast<size_t>(ic) * fz * fy * fx +
                                         static_cast<size_t>(iz) * fy * fx +
                                         static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
                             value += static_cast<double>(p_in[i_idx]) *
-                                     static_cast<double>(p_wei[w_idx]);
+                                     static_cast<double>(p_wei[f_idx]);
                         }
                     }
                 }
             }
         }
-        int o_idx = static_cast<size_t>(ido) * ho * wo + static_cast<size_t>(iho) * wo +
+        size_t o_idx = static_cast<size_t>(ido) * ho * wo + static_cast<size_t>(iho) * wo +
                     static_cast<size_t>(iwo);
         p_out[o_idx] = static_cast<float>(value);
     }
@@ -492,11 +492,11 @@ extern "C" __global__ void naive_conv_bwd_ncdhw_fp32(float* __restrict__ p_in,
 
                         if(valid_d & valid_h & valid_w)
                         {
-                            int o_idx = static_cast<size_t>(ik) * do_ * ho * wo +
+                            size_t o_idx = static_cast<size_t>(ik) * do_ * ho * wo +
                                         static_cast<size_t>(cur_do) * ho * wo +
                                         static_cast<size_t>(cur_ho) * wo +
                                         static_cast<size_t>(cur_wo);
-                            int f_idx = static_cast<size_t>(ik) * c_per_group * fz * fy * fx +
+                            size_t f_idx = static_cast<size_t>(ik) * c_per_group * fz * fy * fx +
                                         static_cast<size_t>(iz) * fy * fx +
                                         static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
                             value += static_cast<double>(p_out[o_idx]) *
@@ -506,7 +506,7 @@ extern "C" __global__ void naive_conv_bwd_ncdhw_fp32(float* __restrict__ p_in,
                 }
             }
         }
-        int i_idx = static_cast<size_t>(idi) * hi * wi + static_cast<size_t>(ihi) * wi +
+        size_t i_idx = static_cast<size_t>(idi) * hi * wi + static_cast<size_t>(ihi) * wi +
                     static_cast<size_t>(iwi);
         p_in[i_idx] = static_cast<float>(value);
     }
@@ -588,12 +588,12 @@ extern "C" __global__ void naive_conv_wrw_ncdhw_fp32(const float* __restrict__ p
 
                         if(valid_d & valid_h & valid_w)
                         {
-                            int i_idx = static_cast<size_t>(in) * c * di * hi * wi +
+                            size_t i_idx = static_cast<size_t>(in) * c * di * hi * wi +
                                         static_cast<size_t>(ic) * di * hi * wi +
                                         static_cast<size_t>(cur_d) * hi * wi +
                                         static_cast<size_t>(cur_h) * wi +
                                         static_cast<size_t>(cur_w);
-                            int o_idx = static_cast<size_t>(in) * k * do_ * ho * wo +
+                            size_t o_idx = static_cast<size_t>(in) * k * do_ * ho * wo +
                                         static_cast<size_t>(ido) * ho * wo +
                                         static_cast<size_t>(iho) * wo + static_cast<size_t>(iwo);
                             value += static_cast<double>(p_in[i_idx]) *
@@ -603,7 +603,7 @@ extern "C" __global__ void naive_conv_wrw_ncdhw_fp32(const float* __restrict__ p
                 }
             }
         }
-        int f_idx = static_cast<size_t>(ic) * fz * fy * fx + static_cast<size_t>(iz) * fy * fx +
+        size_t f_idx = static_cast<size_t>(ic) * fz * fy * fx + static_cast<size_t>(iz) * fy * fx +
                     static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
         p_wei[f_idx] = static_cast<float>(value);
     }
@@ -672,17 +672,17 @@ extern "C" __global__ void naive_conv_fwd_nchw_fp16(const half* __restrict__ p_i
 
                     if(valid_w & valid_h)
                     {
-                        int i_idx = static_cast<size_t>(ic) * hi * wi +
+                        size_t i_idx = static_cast<size_t>(ic) * hi * wi +
                                     static_cast<size_t>(cur_h) * wi + static_cast<size_t>(cur_w);
-                        int w_idx = static_cast<size_t>(ic) * fy * fx +
+                        size_t f_idx = static_cast<size_t>(ic) * fy * fx +
                                     static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
                         value += static_cast<double>(__half2float(p_in[i_idx])) *
-                                 static_cast<double>(__half2float(p_wei[w_idx]));
+                                 static_cast<double>(__half2float(p_wei[f_idx]));
                     }
                 }
             }
         }
-        int o_idx    = static_cast<size_t>(iho) * wo + static_cast<size_t>(iwo);
+        size_t o_idx    = static_cast<size_t>(iho) * wo + static_cast<size_t>(iwo);
         p_out[o_idx] = __float2half(static_cast<float>(value));
     }
 }
@@ -757,9 +757,9 @@ extern "C" __global__ void naive_conv_bwd_nchw_fp16(half* __restrict__ p_in,
 
                     if(valid_h & valid_w)
                     {
-                        int o_idx = static_cast<size_t>(ik) * ho * wo +
+                        size_t o_idx = static_cast<size_t>(ik) * ho * wo +
                                     static_cast<size_t>(cur_ho) * wo + static_cast<size_t>(cur_wo);
-                        int f_idx = static_cast<size_t>(ik) * c_per_group * fy * fx +
+                        size_t f_idx = static_cast<size_t>(ik) * c_per_group * fy * fx +
                                     static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
                         value += static_cast<double>(__half2float(p_out[o_idx])) *
                                  static_cast<double>(__half2float(p_wei[f_idx]));
@@ -767,7 +767,7 @@ extern "C" __global__ void naive_conv_bwd_nchw_fp16(half* __restrict__ p_in,
                 }
             }
         }
-        int i_idx   = static_cast<size_t>(ihi) * wi + static_cast<size_t>(iwi);
+        size_t i_idx   = static_cast<size_t>(ihi) * wi + static_cast<size_t>(iwi);
         p_in[i_idx] = __float2half(static_cast<float>(value));
     }
 }
@@ -834,10 +834,10 @@ extern "C" __global__ void naive_conv_wrw_nchw_fp16(const half* __restrict__ p_i
 
                     if(valid_h & valid_w)
                     {
-                        int i_idx = static_cast<size_t>(in) * c * hi * wi +
+                        size_t i_idx = static_cast<size_t>(in) * c * hi * wi +
                                     static_cast<size_t>(ic) * hi * wi +
                                     static_cast<size_t>(cur_h) * wi + static_cast<size_t>(cur_w);
-                        int o_idx = static_cast<size_t>(in) * k * ho * wo +
+                        size_t o_idx = static_cast<size_t>(in) * k * ho * wo +
                                     static_cast<size_t>(iho) * wo + static_cast<size_t>(iwo);
                         value += static_cast<double>(__half2float(p_in[i_idx])) *
                                  static_cast<double>(__half2float(p_out[o_idx]));
@@ -845,7 +845,7 @@ extern "C" __global__ void naive_conv_wrw_nchw_fp16(const half* __restrict__ p_i
                 }
             }
         }
-        int f_idx = static_cast<size_t>(ic) * fy * fx + static_cast<size_t>(iy) * fx +
+        size_t f_idx = static_cast<size_t>(ic) * fy * fx + static_cast<size_t>(iy) * fx +
                     static_cast<size_t>(ix);
         p_wei[f_idx] = __float2half(static_cast<float>(value));
     }
@@ -930,21 +930,21 @@ extern "C" __global__ void naive_conv_fwd_ncdhw_fp16(const half* __restrict__ p_
 
                         if(valid_d & valid_w & valid_h)
                         {
-                            int i_idx = static_cast<size_t>(ic) * di * hi * wi +
+                            size_t i_idx = static_cast<size_t>(ic) * di * hi * wi +
                                         static_cast<size_t>(cur_d) * hi * wi +
                                         static_cast<size_t>(cur_h) * wi +
                                         static_cast<size_t>(cur_w);
-                            int w_idx = static_cast<size_t>(ic) * fz * fy * fx +
+                            size_t f_idx = static_cast<size_t>(ic) * fz * fy * fx +
                                         static_cast<size_t>(iz) * fy * fx +
                                         static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
                             value += static_cast<double>(__half2float(p_in[i_idx])) *
-                                     static_cast<double>(__half2float(p_wei[w_idx]));
+                                     static_cast<double>(__half2float(p_wei[f_idx]));
                         }
                     }
                 }
             }
         }
-        int o_idx = static_cast<size_t>(ido) * ho * wo + static_cast<size_t>(iho) * wo +
+        size_t o_idx = static_cast<size_t>(ido) * ho * wo + static_cast<size_t>(iho) * wo +
                     static_cast<size_t>(iwo);
         p_out[o_idx] = __float2half(static_cast<float>(value));
     }
@@ -1037,11 +1037,11 @@ extern "C" __global__ void naive_conv_bwd_ncdhw_fp16(half* __restrict__ p_in,
 
                         if(valid_d & valid_h & valid_w)
                         {
-                            int o_idx = static_cast<size_t>(ik) * do_ * ho * wo +
+                            size_t o_idx = static_cast<size_t>(ik) * do_ * ho * wo +
                                         static_cast<size_t>(cur_do) * ho * wo +
                                         static_cast<size_t>(cur_ho) * wo +
                                         static_cast<size_t>(cur_wo);
-                            int f_idx = static_cast<size_t>(ik) * c_per_group * fz * fy * fx +
+                            size_t f_idx = static_cast<size_t>(ik) * c_per_group * fz * fy * fx +
                                         static_cast<size_t>(iz) * fy * fx +
                                         static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
                             value += static_cast<double>(__half2float(p_out[o_idx])) *
@@ -1051,7 +1051,7 @@ extern "C" __global__ void naive_conv_bwd_ncdhw_fp16(half* __restrict__ p_in,
                 }
             }
         }
-        int i_idx = static_cast<size_t>(idi) * hi * wi + static_cast<size_t>(ihi) * wi +
+        size_t i_idx = static_cast<size_t>(idi) * hi * wi + static_cast<size_t>(ihi) * wi +
                     static_cast<size_t>(iwi);
         p_in[i_idx] = __float2half(static_cast<float>(value));
     }
@@ -1133,12 +1133,12 @@ extern "C" __global__ void naive_conv_wrw_ncdhw_fp16(const half* __restrict__ p_
 
                         if(valid_d & valid_h & valid_w)
                         {
-                            int i_idx = static_cast<size_t>(in) * c * di * hi * wi +
+                            size_t i_idx = static_cast<size_t>(in) * c * di * hi * wi +
                                         static_cast<size_t>(ic) * di * hi * wi +
                                         static_cast<size_t>(cur_d) * hi * wi +
                                         static_cast<size_t>(cur_h) * wi +
                                         static_cast<size_t>(cur_w);
-                            int o_idx = static_cast<size_t>(in) * k * do_ * ho * wo +
+                            size_t o_idx = static_cast<size_t>(in) * k * do_ * ho * wo +
                                         static_cast<size_t>(ido) * ho * wo +
                                         static_cast<size_t>(iho) * wo + static_cast<size_t>(iwo);
                             value += static_cast<double>(__half2float(p_in[i_idx])) *
@@ -1148,7 +1148,7 @@ extern "C" __global__ void naive_conv_wrw_ncdhw_fp16(const half* __restrict__ p_
                 }
             }
         }
-        int f_idx = static_cast<size_t>(ic) * fz * fy * fx + static_cast<size_t>(iz) * fy * fx +
+        size_t f_idx = static_cast<size_t>(ic) * fz * fy * fx + static_cast<size_t>(iz) * fy * fx +
                     static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
         p_wei[f_idx] = __float2half(static_cast<float>(value));
     }
@@ -1217,17 +1217,17 @@ extern "C" __global__ void naive_conv_fwd_nchw_bf16(const ushort* __restrict__ p
 
                     if(valid_w & valid_h)
                     {
-                        int i_idx = static_cast<size_t>(ic) * hi * wi +
+                        size_t i_idx = static_cast<size_t>(ic) * hi * wi +
                                     static_cast<size_t>(cur_h) * wi + static_cast<size_t>(cur_w);
-                        int w_idx = static_cast<size_t>(ic) * fy * fx +
+                        size_t f_idx = static_cast<size_t>(ic) * fy * fx +
                                     static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
                         value += static_cast<double>(__bfloat16_to_float(p_in[i_idx])) *
-                                 static_cast<double>(__bfloat16_to_float(p_wei[w_idx]));
+                                 static_cast<double>(__bfloat16_to_float(p_wei[f_idx]));
                     }
                 }
             }
         }
-        int o_idx    = static_cast<size_t>(iho) * wo + static_cast<size_t>(iwo);
+        size_t o_idx    = static_cast<size_t>(iho) * wo + static_cast<size_t>(iwo);
         p_out[o_idx] = __float_to_bfloat16(static_cast<float>(value));
     }
 }
@@ -1302,9 +1302,9 @@ extern "C" __global__ void naive_conv_bwd_nchw_bf16(ushort* __restrict__ p_in,
 
                     if(valid_h & valid_w)
                     {
-                        int o_idx = static_cast<size_t>(ik) * ho * wo +
+                        size_t o_idx = static_cast<size_t>(ik) * ho * wo +
                                     static_cast<size_t>(cur_ho) * wo + static_cast<size_t>(cur_wo);
-                        int f_idx = static_cast<size_t>(ik) * c_per_group * fy * fx +
+                        size_t f_idx = static_cast<size_t>(ik) * c_per_group * fy * fx +
                                     static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
                         value += static_cast<double>(__bfloat16_to_float(p_out[o_idx])) *
                                  static_cast<double>(__bfloat16_to_float(p_wei[f_idx]));
@@ -1312,7 +1312,7 @@ extern "C" __global__ void naive_conv_bwd_nchw_bf16(ushort* __restrict__ p_in,
                 }
             }
         }
-        int i_idx   = static_cast<size_t>(ihi) * wi + static_cast<size_t>(iwi);
+        size_t i_idx   = static_cast<size_t>(ihi) * wi + static_cast<size_t>(iwi);
         p_in[i_idx] = __float_to_bfloat16(static_cast<float>(value));
     }
 }
@@ -1379,10 +1379,10 @@ extern "C" __global__ void naive_conv_wrw_nchw_bf16(const ushort* __restrict__ p
 
                     if(valid_h & valid_w)
                     {
-                        int i_idx = static_cast<size_t>(in) * c * hi * wi +
+                        size_t i_idx = static_cast<size_t>(in) * c * hi * wi +
                                     static_cast<size_t>(ic) * hi * wi +
                                     static_cast<size_t>(cur_h) * wi + static_cast<size_t>(cur_w);
-                        int o_idx = static_cast<size_t>(in) * k * ho * wo +
+                        size_t o_idx = static_cast<size_t>(in) * k * ho * wo +
                                     static_cast<size_t>(iho) * wo + static_cast<size_t>(iwo);
                         value += static_cast<double>(__bfloat16_to_float(p_in[i_idx])) *
                                  static_cast<double>(__bfloat16_to_float(p_out[o_idx]));
@@ -1390,7 +1390,7 @@ extern "C" __global__ void naive_conv_wrw_nchw_bf16(const ushort* __restrict__ p
                 }
             }
         }
-        int f_idx = static_cast<size_t>(ic) * fy * fx + static_cast<size_t>(iy) * fx +
+        size_t f_idx = static_cast<size_t>(ic) * fy * fx + static_cast<size_t>(iy) * fx +
                     static_cast<size_t>(ix);
         p_wei[f_idx] = __float_to_bfloat16(static_cast<float>(value));
     }
@@ -1475,21 +1475,21 @@ extern "C" __global__ void naive_conv_fwd_ncdhw_bf16(const ushort* __restrict__ 
 
                         if(valid_d & valid_w & valid_h)
                         {
-                            int i_idx = static_cast<size_t>(ic) * di * hi * wi +
+                            size_t i_idx = static_cast<size_t>(ic) * di * hi * wi +
                                         static_cast<size_t>(cur_d) * hi * wi +
                                         static_cast<size_t>(cur_h) * wi +
                                         static_cast<size_t>(cur_w);
-                            int w_idx = static_cast<size_t>(ic) * fz * fy * fx +
+                            size_t f_idx = static_cast<size_t>(ic) * fz * fy * fx +
                                         static_cast<size_t>(iz) * fy * fx +
                                         static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
                             value += static_cast<double>(__bfloat16_to_float(p_in[i_idx])) *
-                                     static_cast<double>(__bfloat16_to_float(p_wei[w_idx]));
+                                     static_cast<double>(__bfloat16_to_float(p_wei[f_idx]));
                         }
                     }
                 }
             }
         }
-        int o_idx = static_cast<size_t>(ido) * ho * wo + static_cast<size_t>(iho) * wo +
+        size_t o_idx = static_cast<size_t>(ido) * ho * wo + static_cast<size_t>(iho) * wo +
                     static_cast<size_t>(iwo);
         p_out[o_idx] = __float_to_bfloat16(static_cast<float>(value));
     }
@@ -1582,11 +1582,11 @@ extern "C" __global__ void naive_conv_bwd_ncdhw_bf16(ushort* __restrict__ p_in,
 
                         if(valid_d & valid_h & valid_w)
                         {
-                            int o_idx = static_cast<size_t>(ik) * do_ * ho * wo +
+                            size_t o_idx = static_cast<size_t>(ik) * do_ * ho * wo +
                                         static_cast<size_t>(cur_do) * ho * wo +
                                         static_cast<size_t>(cur_ho) * wo +
                                         static_cast<size_t>(cur_wo);
-                            int f_idx = static_cast<size_t>(ik) * c_per_group * fz * fy * fx +
+                            size_t f_idx = static_cast<size_t>(ik) * c_per_group * fz * fy * fx +
                                         static_cast<size_t>(iz) * fy * fx +
                                         static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
                             value += static_cast<double>(__bfloat16_to_float(p_out[o_idx])) *
@@ -1596,7 +1596,7 @@ extern "C" __global__ void naive_conv_bwd_ncdhw_bf16(ushort* __restrict__ p_in,
                 }
             }
         }
-        int i_idx = static_cast<size_t>(idi) * hi * wi + static_cast<size_t>(ihi) * wi +
+        size_t i_idx = static_cast<size_t>(idi) * hi * wi + static_cast<size_t>(ihi) * wi +
                     static_cast<size_t>(iwi);
         p_in[i_idx] = __float_to_bfloat16(static_cast<float>(value));
     }
@@ -1678,12 +1678,12 @@ extern "C" __global__ void naive_conv_wrw_ncdhw_bf16(const ushort* __restrict__ 
 
                         if(valid_d & valid_h & valid_w)
                         {
-                            int i_idx = static_cast<size_t>(in) * c * di * hi * wi +
+                            size_t i_idx = static_cast<size_t>(in) * c * di * hi * wi +
                                         static_cast<size_t>(ic) * di * hi * wi +
                                         static_cast<size_t>(cur_d) * hi * wi +
                                         static_cast<size_t>(cur_h) * wi +
                                         static_cast<size_t>(cur_w);
-                            int o_idx = static_cast<size_t>(in) * k * do_ * ho * wo +
+                            size_t o_idx = static_cast<size_t>(in) * k * do_ * ho * wo +
                                         static_cast<size_t>(ido) * ho * wo +
                                         static_cast<size_t>(iho) * wo + static_cast<size_t>(iwo);
                             value += static_cast<double>(__bfloat16_to_float(p_in[i_idx])) *
@@ -1693,7 +1693,7 @@ extern "C" __global__ void naive_conv_wrw_ncdhw_bf16(const ushort* __restrict__ 
                 }
             }
         }
-        int f_idx = static_cast<size_t>(ic) * fz * fy * fx + static_cast<size_t>(iz) * fy * fx +
+        size_t f_idx = static_cast<size_t>(ic) * fz * fy * fx + static_cast<size_t>(iz) * fy * fx +
                     static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
         p_wei[f_idx] = __float_to_bfloat16(static_cast<float>(value));
     }
