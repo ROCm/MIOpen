@@ -201,7 +201,7 @@ static bool IsAmdRocmOpencl(miopen::ExecutionContext& context)
     return ret_bool;
 }
 
-static bool IsHipKernelsEnabled()
+bool IsHipKernelsEnabled()
 {
 #if MIOPEN_USE_HIP_KERNELS
     return !miopen::IsDisabled(MIOPEN_DEBUG_HIP_KERNELS{});
