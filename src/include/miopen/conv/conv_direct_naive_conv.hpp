@@ -82,7 +82,7 @@ std::string inline ConvDirectNaiveConvKernelFile(const miopen::ConvolutionContex
 
 std::string inline ConvDirectNaiveConvCompileOption(const miopen::ConvolutionContext& ctx)
 {
-    std::string filename   = ConvDirectNaiveConvKernelFile(ctx);
+    std::string filename = ConvDirectNaiveConvKernelFile(ctx);
     if(miopen::EndsWith(filename, ".s"))
     {
         std::ostringstream options;
