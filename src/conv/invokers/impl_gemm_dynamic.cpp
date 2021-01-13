@@ -68,6 +68,107 @@ float CallImplGemmDynamicForward(const miopen::Handle& handle,
     return elapsed;
 }
 
+float CallImplGemmDynamicForward(const miopen::Handle& handle,
+                                 const ProblemDescription& conv_problem,
+                                 const solver::TunableImplicitGemmGTCDynamic_t& cfg,
+                                 ConstData_t src,
+                                 Data_t dst,
+                                 ConstData_t wei,
+                                 const std::vector<KernelInvoke>& kernels)
+{
+    float elapsed = 0.0f;
+
+    auto kernel = kernels[0];
+    MIOPEN_LOG_I(kernel.GetName());
+
+    // clang-format off
+    int hi          = conv_problem.GetInHeight();
+    int wi          = conv_problem.GetInWidth();
+    int n           = conv_problem.GetInBatchSize();
+    int k           = conv_problem.GetOutChannels();
+    int c           = conv_problem.GetInChannels();
+    int ho          = conv_problem.GetOutHeight();
+    int wo          = conv_problem.GetOutWidth();
+    int stride_h    = conv_problem.GetKernelStrideH();
+    int stride_w    = conv_problem.GetKernelStrideW();
+    int dilation_h  = conv_problem.GetDilationH();
+    int dilation_w  = conv_problem.GetDilationW();
+    int pad_h       = conv_problem.GetPadH();
+    int pad_w       = conv_problem.GetPadW();
+    int y           = conv_problem.GetWeightsHeight();
+    int x           = conv_problem.GetWeightsWidth();
+    int group       = conv_problem.GetGroupCount();
+    int __pack0     = 0;
+    // clang-format on
+
+    int gemm_m = ((k/group + cfg.gemm_m_per_block -1)/cfg.gemm_m_per_block) * cfg.gemm_m_per_block;
+    int nxe                      = cfg.nxe;
+    int nxb                      = cfg.nxb;
+    int b                        = nxe == 0 ? (ho * wo) : ((ho * wo + nxb - 1) / nxb) * nxb;   // pad to nxb modulo when nxe != 0
+
+    // init magic division parameters
+    uint32_t nb_n0          = cfg.tensor_b_cluster_lengths[2] * cfg.tensor_b_thread_lengths[2];
+    uint32_t nb_n1b         = cfg.tensor_b_cluster_lengths[3] * cfg.tensor_b_thread_lengths[3];
+    uint32_t unmerge_sub_n  = cfg.gemm_n_per_block / nxb;
+    uint32_t unmerge_sub_n1 = unmerge_sub_n / nb_n0;
+
+    magic_div_u32_t mdiv_0 = magic_div_u32_gen(gemm_m / cfg.gemm_m_per_block);
+    magic_div_u32_t mdiv_1 = magic_div_u32_gen(b * unmerge_sub_n1 / nb_n1b);
+    magic_div_u32_t mdiv_2 = magic_div_u32_gen(y * x);
+    magic_div_u32_t mdiv_3 = magic_div_u32_gen(x);
+    magic_div_u32_t mdiv_4 = magic_div_u32_gen(b);
+    magic_div_u32_t mdiv_5 = magic_div_u32_gen(wo);
+    magic_div_u32_t mdiv_6 = magic_div_u32_gen((n * b * (gemm_m)) / (cfg.gemm_m_per_block * cfg.gemm_n_per_block));
+
+    uint32_t magic_0        = mdiv_0.magic;
+    uint32_t magic_1        = mdiv_1.magic;
+    uint32_t magic_2        = mdiv_2.magic;
+    uint32_t magic_3        = mdiv_3.magic;
+    uint32_t magic_4        = mdiv_4.magic;
+    uint32_t magic_5        = mdiv_5.magic;
+    uint32_t magic_6        = mdiv_6.magic;
+    uint32_t shift_pack_0   = magic_div_u32_pack_shift(mdiv_0.shift, mdiv_1.shift, mdiv_2.shift, mdiv_3.shift);
+    uint32_t shift_pack_1   = magic_div_u32_pack_shift(mdiv_4.shift, mdiv_5.shift, mdiv_6.shift, 0);
+
+
+    std::vector<OpKernelArg> opArgs;
+    opArgs.emplace_back(src);
+    opArgs.emplace_back(wei);
+    opArgs.emplace_back(dst);
+    opArgs.emplace_back(hi);
+    opArgs.emplace_back(wi);
+    opArgs.emplace_back(n);
+    opArgs.emplace_back(k);
+    opArgs.emplace_back(c);
+    opArgs.emplace_back(ho);
+    opArgs.emplace_back(wo);
+    opArgs.emplace_back(stride_h);
+    opArgs.emplace_back(stride_w);
+    opArgs.emplace_back(dilation_h);
+    opArgs.emplace_back(dilation_w);
+    opArgs.emplace_back(pad_h);
+    opArgs.emplace_back(pad_w);
+    opArgs.emplace_back(y);
+    opArgs.emplace_back(x);
+    opArgs.emplace_back(group);
+    opArgs.emplace_back(magic_0);
+    opArgs.emplace_back(magic_1);
+    opArgs.emplace_back(magic_2);
+    opArgs.emplace_back(magic_3);
+    opArgs.emplace_back(magic_4);
+    opArgs.emplace_back(magic_5);
+    opArgs.emplace_back(magic_6);
+    opArgs.emplace_back(shift_pack_0);
+    opArgs.emplace_back(shift_pack_1);
+    opArgs.emplace_back(__pack0);
+
+    kernel(opArgs);
+
+    if(handle.IsProfilingEnabled())
+        elapsed += handle.GetKernelTime();
+    return elapsed;
+}
+
 float CallImplGemmDynamicForward1x1(const miopen::Handle& handle,
                                     const ProblemDescription& conv_problem,
                                     ConstData_t src,
@@ -140,6 +241,33 @@ InvokerFactory MakeImplGemmDynamicForwardInvokerFactory(const ConvolutionContext
             float elapsed = 0;
             elapsed       = CallImplGemmDynamicForward(
                 handle, conv_problem, tensors.in, tensors.out, tensors.w, ks);
+            if(handle.IsProfilingEnabled())
+            {
+                handle.ResetKernelTime();
+                handle.AccumKernelTime(elapsed);
+            }
+        };
+    };
+}
+
+InvokerFactory MakeImplGemmDynamicForwardInvokerFactory(const ConvolutionContext& ctx,
+                                                        const solver::TunableImplicitGemmGTCDynamic_t& cfg)
+{
+    const auto& conv_problem = ctx.conv_problem;
+    return [conv_problem, cfg](const std::vector<Kernel>& kernels) {
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+            decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
+            const auto& tensors     = data_ctx.tensors;
+            auto kernel             = handle.Run(kernels[0]);
+
+            std::vector<KernelInvoke> ks;
+            std::transform(kernels.begin(),
+                           kernels.end(),
+                           std::back_inserter(ks),
+                           [&](const Kernel& k) { return handle.Run(k); });
+            float elapsed = 0;
+            elapsed       = CallImplGemmDynamicForward(
+                handle, conv_problem, cfg, tensors.in, tensors.out, tensors.w, ks);
             if(handle.IsProfilingEnabled())
             {
                 handle.ResetKernelTime();
