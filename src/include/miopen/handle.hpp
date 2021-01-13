@@ -37,6 +37,7 @@
 #include <miopen/allocator.hpp>
 #include <miopen/simple_hash.hpp>
 #include <miopen/solver_id.hpp>
+#include <miopen/stringutils.hpp>
 
 #include <boost/range/adaptor/transformed.hpp>
 
@@ -137,9 +138,15 @@ struct Handle : miopenHandle
 
     std::size_t GetLocalMemorySize() const;
     std::size_t GetGlobalMemorySize() const;
-    std::size_t GetMaxComputeUnits() const;
     std::size_t GetImage3dMaxWidth() const;
     std::size_t GetWavefrontWidth() const;
+    std::size_t GetMaxComputeUnits() const;
+    std::size_t GetMaxHardwareComputeUnits() const
+    {
+        std::size_t num_cu = this->GetMaxComputeUnits();
+        std::string name   = this->GetDeviceName();
+        return StartsWith(name, "gfx1") ? num_cu * 2 /* CUs per WGP */ : num_cu;
+    }
 
     std::size_t m_MaxMemoryAllocSizeCached = 0;
     std::size_t GetMaxMemoryAllocSize();
