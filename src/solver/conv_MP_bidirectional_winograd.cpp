@@ -313,6 +313,11 @@ bool ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsA
     // HIP backend required for sending ptr (buffer + offset)
     // ROCBLAS for GEMM step
 
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
+
     if(!IsApplicableGEMM<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(params))
         return false;
 
