@@ -74,9 +74,7 @@ Handle::Handle() : impl(new HandleImpl())
 
 Handle::~Handle() {}
 
-void Handle::SetStream(miopenAcceleratorQueue_t /* streamID */) const
-{
-}
+void Handle::SetStream(miopenAcceleratorQueue_t /* streamID */) const {}
 
 miopenAcceleratorQueue_t Handle::GetStream() const { return {}; }
 
@@ -105,15 +103,15 @@ Handle::WriteTo(const void* /* data */, Allocator::ManageDataPtr& ddata, std::si
     return ddata;
 }
 
-void Handle::ReadTo(void* /* data */, const Allocator::ManageDataPtr& /* ddata */, std::size_t /* sz */) const
+void Handle::ReadTo(void* /* data */,
+                    const Allocator::ManageDataPtr& /* ddata */,
+                    std::size_t /* sz */) const
 {
     MIOPEN_HANDLE_LOCK
     this->Finish();
 }
 
-void Handle::Copy(ConstData_t /* src */, Data_t /* dest */, std::size_t /* size */) const
-{
-}
+void Handle::Copy(ConstData_t /* src */, Data_t /* dest */, std::size_t /* size */) const {}
 
 KernelInvoke Handle::AddKernel(const std::string& /* algorithm */,
                                const std::string& /* network_config */,
@@ -135,7 +133,8 @@ Invoker Handle::PrepareInvoker(const InvokerFactory& /* factory */,
     return {};
 }
 
-void Handle::ClearKernels(const std::string& /* algorithm */, const std::string& /* network_config */) const
+void Handle::ClearKernels(const std::string& /* algorithm */,
+                          const std::string& /* network_config */) const
 {
 }
 
@@ -143,18 +142,16 @@ const std::vector<Kernel>& Handle::GetKernelsImpl(const std::string& /* algorith
                                                   const std::string& /* network_config */) const
 {
     static std::vector<Kernel> tmp;
-    return tmp; 
+    return tmp;
 }
 
-bool Handle::HasKernel(const std::string& /* algorithm */, const std::string& /* network_config */) const
+bool Handle::HasKernel(const std::string& /* algorithm */,
+                       const std::string& /* network_config */) const
 {
     return false;
 }
 
-KernelInvoke Handle::Run(Kernel /* k */) const
-{
-    return {};
-}
+KernelInvoke Handle::Run(Kernel /* k */) const { return {}; }
 
 Program Handle::LoadProgram(const std::string& /* program_name */,
                             std::string /* params */,
@@ -175,9 +172,7 @@ void Handle::AddProgram(Program /*prog*/,
 {
 }
 
-void Handle::Finish() const
-{
-}
+void Handle::Finish() const {}
 void Handle::Flush() const {}
 
 bool Handle::IsProfilingEnabled() const { return this->impl->enable_profiling; }
@@ -185,45 +180,27 @@ bool Handle::IsProfilingEnabled() const { return this->impl->enable_profiling; }
 void Handle::ResetKernelTime() const { this->impl->profiling_result = 0.0; }
 void Handle::AccumKernelTime(float curr_time) const { this->impl->profiling_result += curr_time; }
 
-std::size_t Handle::GetLocalMemorySize() const
-{
-    return this->impl->local_mem_size;
-}
+std::size_t Handle::GetLocalMemorySize() const { return this->impl->local_mem_size; }
 
-std::size_t Handle::GetGlobalMemorySize() const
-{
-    return this->impl->global_mem_size;
-}
+std::size_t Handle::GetGlobalMemorySize() const { return this->impl->global_mem_size; }
 
-std::size_t Handle::GetMaxComputeUnits() const
-{
-    return this->impl->num_cu;
-}
+std::size_t Handle::GetMaxComputeUnits() const { return this->impl->num_cu; }
 
-std::size_t Handle::GetImage3dMaxWidth() const
-{
-    return this->impl->img3d_max_width;
-}
+std::size_t Handle::GetImage3dMaxWidth() const { return this->impl->img3d_max_width; }
 
-std::size_t Handle::GetWavefrontWidth() const
-{
-    return this->impl->warp_size;
-}
+std::size_t Handle::GetWavefrontWidth() const { return this->impl->warp_size; }
 
 // No HIP API that could return maximum memory allocation size
 // for a single object.
 std::size_t Handle::GetMaxMemoryAllocSize()
 {
-    if (this->impl->max_mem_alloc_size == 0)
+    if(this->impl->max_mem_alloc_size == 0)
         return floor(0.85 * this->impl->global_mem_size);
     else
         return this->impl->max_mem_alloc_size;
 }
 
-std::string Handle::GetDeviceName() const
-{
-    return this->impl->device_name;
-}
+std::string Handle::GetDeviceName() const { return this->impl->device_name; }
 
 std::ostream& Handle::Print(std::ostream& os) const
 {

@@ -50,16 +50,15 @@ struct HandleImpl
     float profiling_result = 0.0;
     int device             = -1;
     std::string device_name;
-    std::size_t num_cu;
-    std::size_t local_mem_size = 0;
-    std::size_t global_mem_size = 0;
-    std::size_t img3d_max_width = 0;
-    std::size_t warp_size = 64;
+    std::size_t num_cu             = 0;
+    std::size_t local_mem_size     = 0;
+    std::size_t global_mem_size    = 0;
+    std::size_t img3d_max_width    = 0;
+    std::size_t warp_size          = 64;
     std::size_t max_mem_alloc_size = 0;
     Allocator allocator{};
     KernelCache cache;
     std::int64_t ctx;
 };
-
 }
 #endif // GUARD_MIOPEN_NOGPU_HANDLE_IMPL_HPP_
