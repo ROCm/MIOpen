@@ -142,7 +142,7 @@ endif()
 set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
     "Which of MIOpens's backends to use?" )
 set_property( CACHE MIOPEN_BACKEND PROPERTY STRINGS
-    OpenCL HIP HIPOC )
+    OpenCL HIP HIPOC NOGPU)
 
 # OpenCL 1.2
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
@@ -192,7 +192,10 @@ add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
 
 
 # HIP
-if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
+if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "NOGPU")
+    if( MIOPEN_BACKEND STREQUAL "NOGPU")
+        set(MIOPEN_BACKEND_NOGPU 1)
+    endif()
     set(MIOPEN_BACKEND_HIP 1)
     set(MIOPEN_USE_MIOPENGEMM OFF CACHE BOOL "")
     # miopentensile default off
@@ -383,7 +386,7 @@ set(MIOPEN_TIDY_ERRORS ERRORS * -readability-inconsistent-declaration-parameter-
 if(CMAKE_CXX_COMPILER MATCHES ".*hcc" OR CMAKE_CXX_COMPILER MATCHES ".*clang\\+\\+")
     set(MIOPEN_TIDY_CHECKS -modernize-use-override -readability-non-const-parameter)
 # Enable tidy on hip
-elseif(MIOPEN_BACKEND STREQUAL "HIP")
+elseif(MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "NOGPU")
     set(MIOPEN_TIDY_ERRORS ALL)
 
 endif()
