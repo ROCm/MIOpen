@@ -193,7 +193,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
 
         // call clang-offload-bundler
         tmp_dir->Execute(MIOPEN_OFFLOADBUNDLER_BIN,
-                         "--type=o --targets=hip-amdgcn-amd-amdhsa-" + dev_name + " --inputs=" +
+                         "--type=o --targets=hip-amdgcn-amd-amdhsa--" + dev_name + " --inputs=" +
                              bin_file.string() + " --outputs=" + bin_file.string() +
                              ".hsaco --unbundle");
 
