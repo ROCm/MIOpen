@@ -813,7 +813,7 @@ std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeWinograd(
 
     try
     {
-        const auto sz_v  = FindAllWinogradWorkspaceSizes(ctx);
+        const auto sz_v = FindAllWinogradWorkspaceSizes(ctx);
         std::size_t sz  = 0;
         for(const auto& pr : sz_v)
         {
@@ -869,8 +869,8 @@ std::size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeWinograd(
     {
         if(ctx.do_search)
             MIOPEN_THROW("Auto-tune is not supported in the get workspace size");
-        const auto sz_v  = FindWinogradWrWWorkspaceSizes(ctx);
-        std::size_t sz = 0;
+        const auto sz_v = FindWinogradWrWWorkspaceSizes(ctx);
+        std::size_t sz  = 0;
         for(const auto& pr : sz_v)
         {
             if(sz < pr.second)
