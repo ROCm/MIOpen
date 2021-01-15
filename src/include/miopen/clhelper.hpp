@@ -29,6 +29,7 @@
 #include <iostream>
 #include <miopen/manage_ptr.hpp>
 #include <miopen/miopen.h>
+#include <miopen/target_properties.hpp>
 #include <string>
 
 namespace miopen {
@@ -41,7 +42,8 @@ ClProgramPtr LoadBinaryProgram(cl_context ctx, cl_device_id device, const std::s
 
 ClProgramPtr LoadProgram(cl_context ctx,
                          cl_device_id device,
-                         const std::string& program_name,
+                         const TargetProperties& target,
+                         const std::string& program,
                          std::string params,
                          bool is_kernel_str,
                          const std::string& kernel_src);
@@ -52,9 +54,7 @@ inline ClKernelPtr CreateKernel(const ClProgramPtr& program, const std::string& 
 {
     return CreateKernel(program.get(), kernel_name);
 }
-#if 0 /// \todo Dead code?
-ClAqPtr CreateQueueWithProfiling(cl_context ctx, cl_device_id dev);
-#endif
+
 cl_device_id GetDevice(cl_command_queue q);
 cl_context GetContext(cl_command_queue q);
 } // namespace miopen
