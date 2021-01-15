@@ -32,6 +32,7 @@
 #include <miopen/hip_build_utils.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/kernel_warnings.hpp>
+#include <miopen/logger.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/ocldeviceinfo.hpp>
 #include <miopen/tmp_dir.hpp>
@@ -42,7 +43,7 @@
 
 namespace miopen {
 
-void ParseDevName(std::string& name)
+void WorkaroundIssue1711(std::string& name)
 {
     auto loc_p = name.find('+');
     if(loc_p != std::string::npos)
@@ -66,9 +67,8 @@ static cl_program CreateProgram(cl_context ctx, const char* char_source, size_t 
 static std::string
 ClAssemble(cl_device_id device, const std::string& source, const std::string& params)
 {
-    // Add device nmae
     std::string name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(device);
-    ParseDevName(name);
+    WorkaroundIssue1711(name);
     return AmdgcnAssemble(source, std::string("-mcpu=") + name + " " + params);
 }
 
@@ -106,17 +106,20 @@ static void BuildProgram(cl_program program, cl_device_id device, const std::str
 {
     auto status = clBuildProgram(program, 1, &device, params.c_str(), nullptr, nullptr);
 
-#if MIOPEN_BUILD_DEV || !defined(NDEBUG)
-    auto msg = BuildProgramInfo(program, device);
-    if(!msg.empty())
-        std::cerr << msg << std::endl;
+#if MIOPEN_INSTALLABLE
+    // Do not show messages (warnings etc) to the end users after successful builds.
+    // Show everything to developers.
+    if(status != CL_SUCCESS)
 #endif
+    {
+        auto msg = BuildProgramInfo(program, device);
+        if(!msg.empty())
+            MIOPEN_LOG_WE("Build log: " << msg);
+    }
 
     if(status != CL_SUCCESS)
     {
-        MIOPEN_THROW_CL_STATUS(status,
-                               "Error Building OpenCL Program in BuildProgram()\n" +
-                                   BuildProgramInfo(program, device));
+        MIOPEN_THROW_CL_STATUS(status, "clBuildProgram() failed:");
     }
 }
 
@@ -129,43 +132,41 @@ ClProgramPtr LoadBinaryProgram(cl_context ctx, cl_device_id device, const std::s
 
 ClProgramPtr LoadProgram(cl_context ctx,
                          cl_device_id device,
-                         const std::string& program_name,
+                         const TargetProperties& target,
+                         const std::string& program,
                          std::string params,
                          bool is_kernel_str,
                          const std::string& kernel_src)
 {
-    bool is_binary = false;
     std::string source;
+    std::string program_name;
+
     if(is_kernel_str)
     {
-        source = program_name;
+        source       = program;
+        program_name = "(unknown)";
     }
     else
     {
+        program_name = program;
         if(kernel_src.empty())
             source = miopen::GetKernelSrc(program_name);
         else
-            source  = kernel_src;
-        auto is_asm = miopen::EndsWith(program_name, ".s");
-        if(is_asm)
-        {
-            source    = ClAssemble(device, source, params);
-            is_binary = true;
-        }
-        else
-        {
-            is_binary = miopen::EndsWith(program_name, ".so");
-        }
+            source = kernel_src;
     }
 
-    if(is_binary)
+    bool load_binary = false;
+    if(miopen::EndsWith(program_name, ".s"))
     {
-        return LoadBinaryProgram(ctx, device, source);
+        source      = ClAssemble(device, source, params); // Puts output binary into source.
+        load_binary = true;
     }
-    else if(!is_kernel_str && miopen::EndsWith(program_name, ".cpp"))
+
+    if(load_binary || miopen::EndsWith(program_name, ".so"))
+        return LoadBinaryProgram(ctx, device, source);
+
+    if(miopen::EndsWith(program_name, ".cpp"))
     {
-        std::string device_name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(device);
-        ParseDevName(device_name);
         boost::optional<miopen::TmpDir> dir(program_name);
 #if MIOPEN_BUILD_DEV
         params += " -Werror";
@@ -173,13 +174,13 @@ ClProgramPtr LoadProgram(cl_context ctx,
         params += HipKernelWarningsString();
 #endif
 #endif
-        auto hsaco_file = HipBuild(dir, program_name, source, params, device_name);
+        auto hsaco_file = HipBuild(dir, program_name, source, params, target);
         // load the hsaco file as a data stream and then load the binary
         std::string buf;
         bin_file_to_str(hsaco_file, buf);
         return LoadBinaryProgram(ctx, device, buf);
     }
-    else
+    else // OpenCL programs.
     {
         ClProgramPtr result{CreateProgram(ctx, source.data(), source.size())};
 #if MIOPEN_BUILD_DEV
@@ -189,6 +190,7 @@ ClProgramPtr LoadProgram(cl_context ctx,
 #endif
 #endif
         params += " -cl-std=CL1.2";
+        MIOPEN_LOG_I2("Building OpenCL program: '" << program_name << "', options: '" << params);
         BuildProgram(result.get(), device, params);
         return result;
     }

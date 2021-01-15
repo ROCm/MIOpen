@@ -24,14 +24,18 @@
  *
  *******************************************************************************/
 
-#include <chrono>
+#include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/hipoc_kernel.hpp>
 #include <miopen/handle_lock.hpp>
-#include <miopen/device_name.hpp>
-#include <thread>
+
 #include <hip/hip_ext.h>
 #include <hip/hip_runtime.h>
+
+#include <chrono>
+#include <thread>
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 
 namespace miopen {
 

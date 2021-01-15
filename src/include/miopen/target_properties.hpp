@@ -23,39 +23,31 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_COMGR_HPP
-#define GUARD_COMGR_HPP
+#ifndef GUARD_TARGET_PROPERTIES_HPP
+#define GUARD_TARGET_PROPERTIES_HPP
 
-#include <miopen/config.h>
-#if MIOPEN_USE_COMGR
-
-#include <miopen/target_properties.hpp>
 #include <string>
-#include <vector>
 
 namespace miopen {
-namespace comgr {
 
-void BuildHip(const std::string& name,
-              const std::string& text,
-              const std::string& options,
-              const miopen::TargetProperties& target,
-              std::vector<char>& binary);
+struct Handle;
 
-void BuildOcl(const std::string& name,
-              const std::string& text,
-              const std::string& options,
-              const miopen::TargetProperties& target,
-              std::vector<char>& binary);
+struct TargetProperties
+{
+    const std::string& Name() const { return name; }
+    const std::string& DbId() const { return dbId; }
+    bool Xnack() const { return xnack; }
+    bool Sramecc() const { return sramecc; }
+    void Init(const Handle*);
 
-void BuildAsm(const std::string& name,
-              const std::string& text,
-              const std::string& options,
-              const miopen::TargetProperties& target,
-              std::vector<char>& binary);
+    private:
+    void InitDbId();
+    std::string name;
+    std::string dbId;
+    bool xnack   = false;
+    bool sramecc = false;
+};
 
-} // namespace comgr
 } // namespace miopen
 
-#endif // MIOPEN_USE_COMGR
-#endif // GUARD_COMGR_HPP
+#endif // GUARD_TARGET_PROPERTIES_HPP

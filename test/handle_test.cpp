@@ -24,6 +24,8 @@
  *
  *******************************************************************************/
 
+/// SWDEV-257056?focusedCommentId=6654244&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-6654244
+/// \todo Create dedicated ticket and rename macro.
 #define WORKAROUND_SWDEV_257056_PCH_MISSING_MACROS 1
 
 #include <miopen/config.h>
@@ -56,7 +58,7 @@ std::string Write2s(kernel_type_t kern_type)
     if(kern_type == miopenHIPKernelType)
         return "#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS\n"
                "#include <hip/hip_runtime.h>\n"
-#if WORKAROUND_SWDEV_257056_PCH_MISSING_MACROS && (HIP_PACKAGE_VERSION_FLAT <= 3010999999)
+#if WORKAROUND_SWDEV_257056_PCH_MISSING_MACROS
                "#else\n"
                "#ifdef hipThreadIdx_x\n"
                "#undef hipThreadIdx_x\n"
