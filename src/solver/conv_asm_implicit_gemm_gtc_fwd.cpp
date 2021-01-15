@@ -1408,7 +1408,7 @@ static std::tuple<bool, // is suitable kernel found
     for(const auto& cfg : tunables)
     {
         const auto b = cfg.nxe == 0 ? (ho * wo) : ((ho * wo + cfg.nxb - 1) / cfg.nxb) *
-                                         cfg.nxb; // pad to nxb modulo when nxe != 0
+                                                      cfg.nxb; // pad to nxb modulo when nxe != 0
         const auto gemm_n_packed = n * b;
         if(cfg.nxe == 0)
         {
