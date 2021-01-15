@@ -36,9 +36,7 @@ namespace miopen {
 
 void SystemCmd(std::string cmd)
 {
-#ifndef NDEBUG
-    MIOPEN_LOG_I(cmd);
-#endif
+    MIOPEN_LOG_I2(cmd);
 // We shouldn't call system commands
 #ifdef MIOPEN_USE_CLANG_TIDY
     (void)cmd;

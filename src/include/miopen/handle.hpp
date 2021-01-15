@@ -37,6 +37,7 @@
 #include <miopen/allocator.hpp>
 #include <miopen/simple_hash.hpp>
 #include <miopen/solver_id.hpp>
+#include <miopen/target_properties.hpp>
 
 #include <boost/range/adaptor/transformed.hpp>
 
@@ -67,6 +68,7 @@ using rocblas_handle_ptr = MIOPEN_MANAGE_PTR(rocblas_handle, rocblas_destroy_han
 
 struct Handle : miopenHandle
 {
+    friend struct TargetProperties;
 
     Handle();
     Handle(miopenAcceleratorQueue_t stream);
@@ -145,8 +147,13 @@ struct Handle : miopenHandle
     std::size_t GetMaxMemoryAllocSize();
 
     std::string GetDeviceName() const;
-    std::ostream& Print(std::ostream& os) const;
+    const TargetProperties& GetTargetProperties() const;
 
+    private:
+    std::string GetDeviceNameImpl() const;
+
+    public:
+    std::ostream& Print(std::ostream& os) const;
     void Copy(ConstData_t src, Data_t dest, std::size_t size) const;
 
     Allocator::ManageDataPtr Create(std::size_t sz) const;
@@ -181,9 +188,9 @@ struct Handle : miopenHandle
         return result;
     }
 
-    static std::string GetDbBasename(const std::string& device, size_t num_cu)
+    static std::string GetDbBasename(const TargetProperties& target, size_t num_cu)
     {
-        auto ret = device + [&]() {
+        auto ret = target.DbId() + [&]() {
             std::ostringstream ss;
             if(num_cu <= 64)
                 ss << '_' << num_cu;
@@ -196,7 +203,7 @@ struct Handle : miopenHandle
 
     std::string GetDbBasename() const
     {
-        return GetDbBasename(GetDeviceName(), GetMaxComputeUnits());
+        return GetDbBasename(GetTargetProperties(), GetMaxComputeUnits());
     }
 
     std::unique_ptr<HandleImpl> impl;

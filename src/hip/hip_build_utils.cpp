@@ -30,6 +30,7 @@
 #include <miopen/exec_utils.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/env.hpp>
+#include <miopen/target_properties.hpp>
 #include <boost/optional.hpp>
 #include <sstream>
 #include <string>
@@ -83,11 +84,24 @@ inline const std::string& GetCoV3Option(const bool enable)
 }
 } // namespace
 
+struct LcOptionTargetStrings
+{
+    const std::string& device;
+    const std::string xnack;
+    const std::string sramecc;
+    LcOptionTargetStrings(const TargetProperties& target)
+        : device(target.Name()),
+          xnack(std::string{":xnack"} + (target.Xnack() ? "+" : "-")),
+          sramecc(std::string{":sramecc"} + (target.Sramecc() ? "+" : "-"))
+    {
+    }
+};
+
 boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
                                  const std::string& filename,
                                  std::string src,
                                  std::string params,
-                                 const std::string& dev_name)
+                                 const TargetProperties& target)
 {
 #ifdef __linux__
     // write out the include files
@@ -102,17 +116,25 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     src += "\nint main() {}\n";
     WriteFile(src, tmp_dir->path / filename);
 
+    // cppcheck-suppress unreadVariable
+    const LcOptionTargetStrings lots(target);
+
     auto env = std::string("");
     if(IsHccCompiler())
     {
-        params += " -amdgpu-target=" + dev_name;
+        params += " -amdgpu-target=" + target.Name();
         params += " " + GetCoV3Option(ProduceCoV3());
     }
     else if(IsHipClangCompiler())
     {
         if(params.find("-std=") == std::string::npos)
             params += " --std=c++11";
-        params += " --cuda-gpu-arch=" + dev_name;
+
+        if(HipCompilerVersion() < external_tool_version_t{4, 0, 20482})
+            params += " --cuda-gpu-arch=" + lots.device;
+        else
+            params += " --cuda-gpu-arch=" + lots.device + lots.xnack;
+
         params += " --cuda-device-only";
         params += " -c";
         params += " -O3 ";
@@ -123,7 +145,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     if(IsHccCompiler())
     {
         env += std::string("KMOPTLLC=\"-mattr=+enable-ds128 ");
-        if(miopen::HipCompilerVersion() >= external_tool_version_t{2, 8, 0})
+        if(HipCompilerVersion() >= external_tool_version_t{2, 8, 0})
             env += " --amdgpu-spill-vgpr-to-agpr=0";
         env += '\"';
     }
@@ -193,8 +215,11 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
 
         // call clang-offload-bundler
         tmp_dir->Execute(MIOPEN_OFFLOADBUNDLER_BIN,
-                         "--type=o --targets=hip-amdgcn-amd-amdhsa-" + dev_name + " --inputs=" +
-                             bin_file.string() + " --outputs=" + bin_file.string() +
+                         "--type=o --targets=hip-amdgcn-amd-amdhsa-" +
+                             (HipCompilerVersion() < external_tool_version_t{4, 0, 20482}
+                                  ? lots.device
+                                  : (std::string{'-'} + lots.device + lots.xnack)) +
+                             " --inputs=" + bin_file.string() + " --outputs=" + bin_file.string() +
                              ".hsaco --unbundle");
 
         auto hsaco =
@@ -305,16 +330,16 @@ external_tool_version_t HipCompilerVersion()
     return once;
 }
 
-bool external_tool_version_t::operator>(const external_tool_version_t& rhs) const
+bool operator>(const external_tool_version_t& lhs, const external_tool_version_t& rhs)
 {
-    if(major > rhs.major)
+    if(lhs.major > rhs.major)
         return true;
-    else if(major == rhs.major)
+    else if(lhs.major == rhs.major)
     {
-        if(minor > rhs.minor)
+        if(lhs.minor > rhs.minor)
             return true;
-        else if(minor == rhs.minor)
-            return (patch > rhs.patch);
+        else if(lhs.minor == rhs.minor)
+            return (lhs.patch > rhs.patch);
         else
             return false;
     }
@@ -322,26 +347,18 @@ bool external_tool_version_t::operator>(const external_tool_version_t& rhs) cons
         return false;
 }
 
-bool external_tool_version_t::operator>=(const external_tool_version_t& rhs) const
+bool operator<(const external_tool_version_t& lhs, const external_tool_version_t& rhs)
 {
-    if(major > rhs.major)
-        return true;
-    else if(major == rhs.major)
-    {
-        if(minor > rhs.minor)
-            return true;
-        else if(minor == rhs.minor)
-            return (patch >= rhs.patch);
-        else
-            return false;
-    }
-    else
-        return false;
+    return rhs > lhs;
+}
+bool operator>=(const external_tool_version_t& lhs, const external_tool_version_t& rhs)
+{
+    return !(lhs < rhs);
 }
 
-bool external_tool_version_t::operator<(const external_tool_version_t& rhs) const
+bool operator<=(const external_tool_version_t& lhs, const external_tool_version_t& rhs)
 {
-    return rhs >= *this;
+    return !(lhs > rhs);
 }
 
 } // namespace miopen
