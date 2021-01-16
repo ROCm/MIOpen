@@ -205,15 +205,11 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
 
         return hsaco->path();
     }
-    else
 #endif
-#ifdef MIOPEN_OFFLOADBUNDLER_BIN
-        // clang-format off
+#if defined(MIOPEN_OFFLOADBUNDLER_BIN) && !MIOPEN_BACKEND_HIP
+    // Unbundling is not required for HIP runtime && hip-clang
     if(IsHipClangCompiler())
     {
-        // clang-format on
-
-        // call clang-offload-bundler
         tmp_dir->Execute(MIOPEN_OFFLOADBUNDLER_BIN,
                          "--type=o --targets=hip-amdgcn-amd-amdhsa-" +
                              (HipCompilerVersion() < external_tool_version_t{4, 0, 20482}
