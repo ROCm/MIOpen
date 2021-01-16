@@ -188,9 +188,8 @@ struct ProblemDescription
     std::size_t GetInSize() const
     {
         // clang-format off
-        return (GetInLayout() == "NCHW")
-            ? GetInBatchSize() * GetInChannels() * GetInDepth() * GetInHeight() * GetInWidth() * GetInElementSize()
-            : GetInBatchSize() * GetInBatchStride() * GetInChannelStride() * GetInStrideH() * GetInStrideW() * GetInElementSize(); // Todo: GetInStrideD() ?
+        return GetInBatchSize() * GetInChannels() * GetInDepth() * GetInHeight() * 
+            GetInWidth() * GetInElementSize();
         // clang-format on
     }
 
@@ -223,9 +222,8 @@ struct ProblemDescription
     std::size_t GetOutSize() const
     {
         // clang-format off
-        return (GetOutLayout() == "NCHW")
-            ? GetOutBatchSize() * GetOutChannels() * GetOutDepth() * GetOutHeight() * GetOutWidth() * GetOutElementSize()
-            : GetOutBatchSize() * GetOutBatchStride() * GetOutChannelStride() * GetOutStrideH() * GetOutStrideW() * GetOutElementSize(); // Todo: GetOutStrideD() ?
+        return GetOutBatchSize() * GetOutChannels() * GetOutDepth() * GetOutHeight() *
+               GetOutWidth() * GetOutElementSize();
         // clang-format on
     }
 
@@ -257,10 +255,8 @@ struct ProblemDescription
     std::size_t GetWeightsSize() const
     {
         // clang-format off
-        return GetInChannels() * GetOutChannels() * GetWeightsDepth() * GetWeightsHeight() * GetWeightsWidth() * GetWeightsElementSize();
-        // return (GetWeightsLayout() == "NCHW")
-        //    ? GetWeightsBatchSize() * GetInChannels() * GetOutChannels() * GetWeightsHeight() * GetWeightsWidth() * GetWeightsElementSize()
-        //    : GetWeightsBatchSize() * GetWeightsBatchStride() * GetWeightsChannelStride() * GetWeightsStrideH() * GetWeightsStrideW() * GetWeightsElementSize(); // Todo: GetWeightsStrideD() ?
+        return GetInChannels() * GetOutChannels() * GetWeightsDepth() * GetWeightsHeight() * 
+               GetWeightsWidth() * GetWeightsElementSize();
         // clang-format on
     }
 

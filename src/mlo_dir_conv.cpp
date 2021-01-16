@@ -71,14 +71,18 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS)
 miopen::PerformanceDb mlo_construct_base::GetDb() const
 {
     auto& h = _search_params.GetStream();
-    return {
-        db_path(), _search_params.GetUserPerfDbPath(), h.GetDeviceName(), h.GetMaxComputeUnits()};
+    return {db_path(),
+            _search_params.GetUserPerfDbPath(),
+            h.GetTargetProperties().DbId(),
+            h.GetMaxComputeUnits()};
 }
 miopen::PerformanceDb miopen::GetDb(const miopen::ConvolutionContext& ctx)
 {
     auto& h = ctx.GetStream();
-    return {
-        ctx.GetPerfDbPath(), ctx.GetUserPerfDbPath(), h.GetDeviceName(), h.GetMaxComputeUnits()};
+    return {ctx.GetPerfDbPath(),
+            ctx.GetUserPerfDbPath(),
+            h.GetTargetProperties().DbId(),
+            h.GetMaxComputeUnits()};
 }
 #else
 miopen::PerformanceDb mlo_construct_base::GetDb() const
@@ -124,7 +128,6 @@ static auto GetDirectSolvers()
                                            miopen::solver::ConvAsm5x10u2v2b1,
                                            miopen::solver::ConvOclDirectFwd11x11,
                                            miopen::solver::ConvOclDirectFwdGen,
-                                           miopen::solver::ConvOclDirectFwd3x3,
                                            miopen::solver::ConvOclDirectFwd1x1,
                                            miopen::solver::ConvOclDirectFwd>{};
 }

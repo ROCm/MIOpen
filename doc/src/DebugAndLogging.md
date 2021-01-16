@@ -62,7 +62,6 @@ These variables control the sets (families) of convolution Solutions. For exampl
 * `MIOPEN_DEBUG_CONV_GEMM` - GEMM convolution algorithm.
 * `MIOPEN_DEBUG_CONV_WINOGRAD` - Winograd convolution algorithm.
 * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM` - Implicit GEMM convolution algorithm.
-* `MIOPEN_DEBUG_CONV_SCGEMM` - Statically Compiled GEMM convolution algorithm.
 
 ### Filtering by build method
 
@@ -94,7 +93,6 @@ Direct Solutions:
 * `MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1` - `ConvAsmBwdWrW1x1`.
 * `MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD11X11` - `ConvOclDirectFwd11x11`.
 * `MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN` - `ConvOclDirectFwdGen`.
-* `MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD3X3` - `ConvOclDirectFwd3x3`.
 * `MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD` - `ConvOclDirectFwd`.
 * `MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1` - `ConvOclDirectFwd`.
 * `MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2` - `ConvOclBwdWrW2<n>` (where n = `{1,2,4,8,16}`), and `ConvOclBwdWrW2NonTunable`.

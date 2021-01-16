@@ -79,8 +79,6 @@ const std::string& SolverDbId(Solver solver)
 /// solver-specific context objects.
 ///
 /// There could be multiple solvers of the same algorithm for a problem config.
-/// For example, ConvAsm3x3U and ConvOclDirectFwd3x3
-/// are able to solve overlapping sets of 3x3 Direct convolution problems.
 template <class Context>
 struct SolverBase
 {
@@ -363,12 +361,6 @@ struct ConvOclDirectFwd11x11 : SolverBase<ConvolutionContext>
 };
 
 struct ConvOclDirectFwdGen : SolverBase<ConvolutionContext>
-{
-    bool IsApplicable(const ConvolutionContext& params) const;
-    ConvSolution GetSolution(const ConvolutionContext& params) const;
-};
-
-struct ConvOclDirectFwd3x3 : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
@@ -716,10 +708,16 @@ struct PerformanceImplicitGemmBwdDataV4R1Xdlops
     bool GemmAThreadCopyMoreGemmK;
     bool GemmBThreadCopyMoreGemmKPack;
 
-    PerformanceImplicitGemmBwdDataV4R1Xdlops(int, int, int, int, int, int, bool, bool);
+    bool use_spare_set;
+    PerformanceImplicitGemmBwdDataV4R1Xdlops(int, int, int, int, int, int, bool, bool, bool);
 
     PerformanceImplicitGemmBwdDataV4R1Xdlops();
-    PerformanceImplicitGemmBwdDataV4R1Xdlops(bool) : PerformanceImplicitGemmBwdDataV4R1Xdlops() {}
+    PerformanceImplicitGemmBwdDataV4R1Xdlops(bool spare);
+    PerformanceImplicitGemmBwdDataV4R1Xdlops(
+        int a, int b, int c, int d, int e, int f, bool g, bool h)
+        : PerformanceImplicitGemmBwdDataV4R1Xdlops(a, b, c, d, e, f, g, h, false)
+    {
+    }
 
     bool operator==(const PerformanceImplicitGemmBwdDataV4R1Xdlops& other) const;
 
@@ -1373,7 +1371,6 @@ struct ConvBinWinograd3x3U : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;
     bool IsDynamic() const { return true; }
-    float GetWti(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
@@ -1424,6 +1421,7 @@ struct ConvBinWinogradRxSf2x3 : SolverBase<ConvolutionContext>
 
     bool IsApplicable(const ConvolutionContext& params) const;
     bool IsDynamic() const { return true; }
+    float GetWti(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvBinWinogradRxSf2x3& config,
                              bool disableConfigOverrideFromEnv = false) const;
@@ -1438,6 +1436,7 @@ struct ConvBinWinogradRxSf2x3g1 : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;
     bool IsDynamic() const { return true; }
+    float GetWti(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
