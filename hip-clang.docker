@@ -28,7 +28,6 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     libpthread-stubs0-dev \
     llvm-amdgpu \
     miopengemm \
-    ninja-build \
     pkg-config \
     python \
     python3 \
@@ -71,11 +70,12 @@ RUN if [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftw
 RUN cd ~ && \
     git clone -b miopen-dialect https://github.com/ROCmSoftwarePlatform/llvm-project-mlir.git && \
     cd llvm-project-mlir && mkdir -p build && cd build && \
-    cmake -G Ninja ../llvm \
+    git reset --hard 5b26e1305d6ba82c385f560287f6af97057c7642 && \
+    cmake -G "Unix Makefiles" ../llvm \
       -DLLVM_ENABLE_PROJECTS="mlir" \
       -DCMAKE_BUILD_TYPE=Release \
       -DBUILD_SHARED_LIBS=OFF \
       -DLLVM_BUILD_LLVM_DYLIB=OFF \
       -DLLVM_ENABLE_TERMINFO=OFF && \
-    cmake --build . --target libMLIRMIOpen && \
+    make -j libMLIRMIOpen && \
     cd ~ && rm -rf llvm-project-mlir
