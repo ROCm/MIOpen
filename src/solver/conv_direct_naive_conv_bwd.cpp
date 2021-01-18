@@ -24,12 +24,10 @@
  *
  *******************************************************************************/
 
+#include "conv_direct_naive_conv.hpp"
 #include <miopen/solver.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
-#include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/env.hpp>
-#include <miopen/visit_float.hpp>
-#include <miopen/conv/conv_direct_naive_conv.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_BWD)
 
@@ -38,21 +36,18 @@ namespace solver {
 
 bool ConvDirectNaiveConvBwd::IsApplicable(const ConvolutionContext& ctx) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_BWD{}))
+    if(!miopen::debug::AlwaysEnableConvDirectNaive &&
+       miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_BWD{}))
         return false;
 
     if(!ctx.IsLayoutDefault())
-    {
         return false;
-    }
 
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
 
     if(!ctx.direction.IsBackwardData())
-    {
         return false;
-    }
 
     return true;
 }

@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2020 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,18 +23,25 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#pragma once
 
-#include <string>
+#include "conv_direct_naive_conv.hpp"
+#include <miopen/solver.hpp>
 #include <ostream>
 #include <miopen/problem_description.hpp>
-#include <miopen/conv/context.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/stringutils.hpp>
 
 namespace miopen {
 
-std::string inline ConvDirectNaiveConvKernelName(const miopen::ConvolutionContext& ctx)
+namespace debug {
+
+bool AlwaysEnableConvDirectNaive = false;
+
+} // namespace debug
+
+namespace solver {
+
+std::string ConvDirectNaiveConvKernelName(const ConvolutionContext& ctx)
 {
     std::ostringstream kernel_name;
     kernel_name << "naive_conv_";
@@ -69,7 +76,7 @@ std::string inline ConvDirectNaiveConvKernelName(const miopen::ConvolutionContex
     return kernel_name.str();
 }
 
-std::string inline ConvDirectNaiveConvKernelFile(const miopen::ConvolutionContext& ctx)
+std::string ConvDirectNaiveConvKernelFile(const ConvolutionContext& ctx)
 {
     const auto device_name = ctx.GetStream().GetDeviceName();
     if(device_name == "gfx906" || device_name == "gfx908")
@@ -80,7 +87,7 @@ std::string inline ConvDirectNaiveConvKernelFile(const miopen::ConvolutionContex
     return "naive_conv.cpp";
 }
 
-std::string inline ConvDirectNaiveConvCompileOption(const miopen::ConvolutionContext& ctx)
+std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx)
 {
     std::string filename = ConvDirectNaiveConvKernelFile(ctx);
     if(miopen::EndsWith(filename, ".s"))
@@ -92,4 +99,5 @@ std::string inline ConvDirectNaiveConvCompileOption(const miopen::ConvolutionCon
     return ctx.general_compile_options;
 }
 
+} // namespace solver
 } // namespace miopen

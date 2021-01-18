@@ -125,6 +125,26 @@ struct AutoMiopenWarmupMode
     bool debug_find_enforce_disable_prev;
 };
 
+struct AutoConvDirectNaiveAlwaysEnable
+{
+    AutoConvDirectNaiveAlwaysEnable()
+    {
+        debug_always_enable_conv_direct_naive_prev = miopen::debug::AlwaysEnableConvDirectNaive;
+        miopen::debug::AlwaysEnableConvDirectNaive = true;
+    }
+    AutoConvDirectNaiveAlwaysEnable(const AutoConvDirectNaiveAlwaysEnable&) = delete;
+    AutoConvDirectNaiveAlwaysEnable(AutoConvDirectNaiveAlwaysEnable&&)      = delete;
+    AutoConvDirectNaiveAlwaysEnable& operator=(const AutoConvDirectNaiveAlwaysEnable&) = delete;
+    AutoConvDirectNaiveAlwaysEnable& operator=(AutoConvDirectNaiveAlwaysEnable&&) = delete;
+    ~AutoConvDirectNaiveAlwaysEnable()
+    {
+        miopen::debug::AlwaysEnableConvDirectNaive = debug_always_enable_conv_direct_naive_prev;
+    }
+
+    private:
+    bool debug_always_enable_conv_direct_naive_prev;
+};
+
 template <typename T>
 void dumpBufferToFile(const char* fileName, T* data, size_t dataNumItems)
 {
@@ -1997,6 +2017,8 @@ int ConvDriver<Tgpu, Tref>::RunForwardCPU()
 template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::RunForwardGPUReference()
 {
+    AutoConvDirectNaiveAlwaysEnable auto_naive_direct_naive_always_enable;
+
     if(inflags.GetValueInt("bias") != 0)
     {
         std::cout << "gpu reference convolution does not support bias yet" << std::endl;
@@ -2918,6 +2940,8 @@ int ConvDriver<Tgpu, Tref>::RunBackwardBiasCPU()
 template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::RunBackwardWeightsGPUReference()
 {
+    AutoConvDirectNaiveAlwaysEnable auto_naive_direct_naive_always_enable;
+
     auto ref_solution_id = miopen::solver::Id("ConvDirectNaiveConvWrw").Value();
     auto rc              = miopenConvolutionBackwardWeightsImmediate(handle,
                                                         outputTensor,
@@ -2962,6 +2986,8 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWeightsGPUReference()
 template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::RunBackwardDataGPUReference()
 {
+    AutoConvDirectNaiveAlwaysEnable auto_naive_direct_naive_always_enable;
+
     auto ref_solution_id = miopen::deref(convDesc).mode == miopenTranspose
                                ? miopen::solver::Id("ConvDirectNaiveConvFwd").Value()
                                : miopen::solver::Id("ConvDirectNaiveConvBwd").Value();

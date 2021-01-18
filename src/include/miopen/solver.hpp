@@ -45,6 +45,14 @@
 
 namespace miopen {
 
+namespace debug {
+
+/// If set to true, then always enable ConvDirectNaive* solver, regardless of environment value
+/// Currently used during driver using naive kernel as gpu reference.
+extern bool AlwaysEnableConvDirectNaive;
+
+} // namespace debug
+
 struct AnyInvokeParams;
 
 namespace solver {

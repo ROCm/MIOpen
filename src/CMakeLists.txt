@@ -238,6 +238,7 @@ set( MIOpen_Source
     solver/conv_direct_naive_conv_fwd.cpp
     solver/conv_direct_naive_conv_bwd.cpp
     solver/conv_direct_naive_conv_wrw.cpp
+    solver/conv_direct_naive_conv.cpp
     )
 
 list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
