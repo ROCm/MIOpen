@@ -343,6 +343,7 @@ std::string LoggingParseFunction(const char* func, const char* pretty_func);
         std::cerr << miopen_driver_cmd_ss.str();                                        \
     } while(false)
 
+#if MIOPEN_LOG_FUNC_TIME_ENABLE
 class LogScopeTime
 {
     public:
@@ -354,9 +355,7 @@ class LogScopeTime
     {
         auto end = std::chrono::high_resolution_clock::now();
         auto dur = std::chrono::duration_cast<std::chrono::microseconds>(end - m_beg);
-        std::ostringstream ss;
-        ss << "MIOpenLogScopeTime: " << m_name << " : " << dur.count() << " us";
-        MIOPEN_LOG_I2(ss.str());
+        MIOPEN_LOG_I2(m_name << " : " << dur.count() << " us");
     }
 
     private:
@@ -364,7 +363,6 @@ class LogScopeTime
     std::chrono::time_point<std::chrono::high_resolution_clock> m_beg;
 };
 
-#if MIOPEN_LOG_FUNC_TIME_ENABLE
 #define MIOPEN_LOG_SCOPE_TIME const miopen::LogScopeTime miopen_timer(MIOPEN_GET_FN_NAME)
 #else
 #define MIOPEN_LOG_SCOPE_TIME
