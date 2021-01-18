@@ -71,14 +71,18 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS)
 miopen::PerformanceDb mlo_construct_base::GetDb() const
 {
     auto& h = _search_params.GetStream();
-    return {
-        db_path(), _search_params.GetUserPerfDbPath(), h.GetDeviceName(), h.GetMaxComputeUnits()};
+    return {db_path(),
+            _search_params.GetUserPerfDbPath(),
+            h.GetTargetProperties().DbId(),
+            h.GetMaxComputeUnits()};
 }
 miopen::PerformanceDb miopen::GetDb(const miopen::ExecutionContext& ctx)
 {
     auto& h = ctx.GetStream();
-    return {
-        ctx.GetPerfDbPath(), ctx.GetUserPerfDbPath(), h.GetDeviceName(), h.GetMaxComputeUnits()};
+    return {ctx.GetPerfDbPath(),
+            ctx.GetUserPerfDbPath(),
+            h.GetTargetProperties().DbId(),
+            h.GetMaxComputeUnits()};
 }
 #else
 miopen::PerformanceDb mlo_construct_base::GetDb() const
