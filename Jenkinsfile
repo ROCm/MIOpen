@@ -585,7 +585,7 @@ pipeline {
                         """
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetID', "/usr/local", cmd, "gfx906", "default", "ON")
+                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx906", "default", "ON")
                     }
                 }
 
@@ -602,7 +602,7 @@ pipeline {
                         """
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetID', "/usr/local", cmd, "gfx906", "default", "ON")
+                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx906", "default", "ON")
                     }
                 }
 
@@ -619,7 +619,7 @@ pipeline {
                         """
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetID', "/usr/local", cmd, "gfx906", "default", "ON")
+                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx906", "default", "ON")
                     }
                 }
 
@@ -636,7 +636,7 @@ pipeline {
                         """
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetID', "/usr/local", cmd, "gfx906", "default", "ON")
+                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx906", "default", "ON")
                     }
                 }
             }
@@ -657,7 +657,7 @@ pipeline {
                         """
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetID', "/usr/local", cmd, "gfx908", "default", "ON")
+                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx908", "default", "ON")
                     }
                 }
 
@@ -674,7 +674,7 @@ pipeline {
                         """
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetID', "/usr/local", cmd, "gfx908", "default", "ON")
+                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx908", "default", "ON")
                     }
                 }
 
@@ -691,7 +691,7 @@ pipeline {
                         """
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetID', "/usr/local", cmd, "gfx908", "default", "ON")
+                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx908", "default", "ON")
                     }
                 }
 
@@ -708,7 +708,7 @@ pipeline {
                         """
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetID', "/usr/local", cmd, "gfx906", "default", "ON")
+                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx906", "default", "ON")
                     }
                 }
             }
@@ -729,7 +729,7 @@ pipeline {
                         """
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetID', "/usr/local", cmd, "gfx906", "latest", "ON")
+                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx906", "latest", "ON")
                     }
                 }
 
@@ -746,7 +746,7 @@ pipeline {
                         """
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetID', "/usr/local", cmd, "gfx906", "latest", "ON")
+                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx906", "latest", "ON")
                     }
                 }
 
@@ -763,7 +763,7 @@ pipeline {
                         """
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetID', "/usr/local", cmd, "gfx906", "latest", "ON")
+                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx906", "latest", "ON")
                     }
                 }
 
@@ -780,7 +780,7 @@ pipeline {
                         """
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetID', "/usr/local", cmd, "gfx906", "latest", "ON")
+                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx906", "latest", "ON")
                     }
                 }
             }
@@ -801,7 +801,7 @@ pipeline {
                         """
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetID', "/usr/local", cmd, "gfx908", "latest", "ON")
+                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx908", "latest", "ON")
                     }
                 }
 
@@ -818,7 +818,7 @@ pipeline {
                         """
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetID', "/usr/local", cmd, "gfx908", "latest", "ON")
+                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx908", "latest", "ON")
                     }
                 }
 
@@ -835,7 +835,7 @@ pipeline {
                         """
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetID', "/usr/local", cmd, "gfx908", "latest", "ON")
+                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx908", "latest", "ON")
                     }
                 }
 
@@ -852,7 +852,7 @@ pipeline {
                         """
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetID', "/usr/local", cmd, "gfx906", "latest", "ON")
+                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx906", "latest", "ON")
                     }
                 }
             }
