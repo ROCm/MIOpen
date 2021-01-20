@@ -97,7 +97,8 @@ struct LcOptionTargetStrings
     }
 };
 
-boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
+static
+boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
                                  const std::string& filename,
                                  std::string src,
                                  std::string params,
@@ -243,6 +244,22 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     (void)params;
     MIOPEN_THROW("HIP kernels are only supported in Linux");
 #endif
+}
+
+static bool DetectIfBufferAtomicFaddReturnsFloat()
+{
+    return false;
+}
+
+boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
+                                 const std::string& filename,
+                                 std::string src,
+                                 std::string params,
+                                 const TargetProperties& target)
+{
+    if(DetectIfBufferAtomicFaddReturnsFloat())
+        params += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
+    return HipBuildImpl(tmp_dir, filename, src, params, target);
 }
 
 void bin_file_to_str(const boost::filesystem::path& file, std::string& buf)
