@@ -69,6 +69,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_FFT)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMMED_FALLBACK)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMPILE_ONLY)
 
 #if MIOPEN_USE_GEMM
 #ifdef CPPCHECK
@@ -797,6 +798,11 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                             IsWinograd3x3SupportedAndFast(ctx));
         });
     }
+
+    if(IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
+        MIOPEN_THROW(
+            miopenStatusGpuOperationsSkipped,
+            "MIOPEN_DEBUG_COMPILE_ONLY is enabled, escaping forward convolution. Search skipped.");
 
     if(perf_db.empty())
         MIOPEN_THROW("Forward Convolution cannot be executed due to incorrect params");
@@ -2428,6 +2434,11 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         });
     }
 
+    if(IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
+        MIOPEN_THROW(
+            miopenStatusGpuOperationsSkipped,
+            "MIOPEN_DEBUG_COMPILE_ONLY is enabled, escaping bwd convolution. Search skipped.");
+
     if(perf_db.empty())
         MIOPEN_THROW(miopenStatusUnknownError,
                      "Backward Data Convolution cannot be executed due to incorrect params");
@@ -3193,6 +3204,12 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             }
         });
     }
+
+    if(IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
+        MIOPEN_THROW(miopenStatusGpuOperationsSkipped,
+                     "MIOPEN_DEBUG_COMPILE_ONLY is enabled, "
+                     "escaping backwards convolution. Search "
+                     "skipped.");
 
     if(perf_db.empty())
         MIOPEN_THROW("Backward Weights Convolution cannot be executed due to incorrect params");
