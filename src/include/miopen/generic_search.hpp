@@ -314,7 +314,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
           is_detected<RunAndMeasure_t, Solver, Data_t, ConstData_t>{}),
         "RunAndMeasure is obsolete. Solvers should implement auto-tune evaluation in invoker");
 
-    auto context = context_;
+    auto context               = context_;
     context.isForGenericSearch = true;
 
     using PerformanceConfig = decltype(s.GetPerformanceConfig(context));

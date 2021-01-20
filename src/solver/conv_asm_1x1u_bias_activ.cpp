@@ -78,8 +78,7 @@ ConvBiasActivAsm1x1U::GetPerformanceConfig(const ConvolutionContext& params) con
 }
 
 PerformanceConfigConvBiasActivAsm1x1U
-ConvBiasActivAsm1x1U::Search(const ConvolutionContext& context,
-                             const AnyInvokeParams&) const
+ConvBiasActivAsm1x1U::Search(const ConvolutionContext& context, const AnyInvokeParams&) const
 {
     auto cba_context    = context;
     cba_context.bias    = 1;
@@ -87,8 +86,8 @@ ConvBiasActivAsm1x1U::Search(const ConvolutionContext& context,
     if(!context.direction.IsForward())
         MIOPEN_THROW("Only inference supported.");
 
-/// Workaround: Fused conv API does not pass user-allocated buffers here,
-/// but we need these buffers for search.
+    /// Workaround: Fused conv API does not pass user-allocated buffers here,
+    /// but we need these buffers for search.
     auto& handle        = cba_context.GetStream();
     const auto bias_buf = handle.Create(cba_context.bias_sz);
     const auto in_buf   = handle.Create(cba_context.bot_sz);
@@ -118,7 +117,7 @@ ConvSolution ConvBiasActivAsm1x1U::GetSolution(const ConvolutionContext& params,
     if(sol.construction_params.size() != 1)
         MIOPEN_THROW("ConvBiasActivAsm1x1U expects only one kernel");
 
-    auto& kernel_info = sol.construction_params[0];
+    auto& kernel_info       = sol.construction_params[0];
     kernel_info.kernel_file = "conv1x1u_bias_activ.s";
 
     if(params.isForGenericSearch)
