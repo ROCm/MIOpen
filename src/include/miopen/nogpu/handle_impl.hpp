@@ -59,6 +59,7 @@ struct HandleImpl
     Allocator allocator{};
     KernelCache cache;
     std::int64_t ctx;
+    TargetProperties target_properties;
 };
 }
 #endif // GUARD_MIOPEN_NOGPU_HANDLE_IMPL_HPP_

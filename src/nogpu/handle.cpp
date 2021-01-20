@@ -27,7 +27,7 @@
 #include <miopen/config.h>
 #include <miopen/handle.hpp>
 #include <miopen/binary_cache.hpp>
-#include <miopen/device_name.hpp>
+#include <miopen/target_properties.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/gemm_geometry.hpp>
 #include <miopen/handle_lock.hpp>
@@ -56,19 +56,14 @@
 #include <miopen/nogpu/handle_impl.hpp>
 namespace miopen {
 
-Handle::Handle(miopenAcceleratorQueue_t /* stream */) : impl(new HandleImpl())
-{
-#if MIOPEN_USE_ROCBLAS
-    rhandle_ = CreateRocblasHandle();
-#endif
-    MIOPEN_LOG_NQI(*this);
-}
+Handle::Handle(miopenAcceleratorQueue_t /* stream */) : Handle::Handle() {}
 
 Handle::Handle() : impl(new HandleImpl())
 {
 #if MIOPEN_USE_ROCBLAS
     rhandle_ = CreateRocblasHandle();
 #endif
+    this->impl->target_properties.Init(this);
     MIOPEN_LOG_NQI(*this);
 }
 
@@ -191,7 +186,13 @@ std::size_t Handle::GetMaxMemoryAllocSize()
         return this->impl->max_mem_alloc_size;
 }
 
-std::string Handle::GetDeviceName() const { return this->impl->device_name; }
+const TargetProperties& Handle::GetTargetProperties() const
+{
+    return this->impl->target_properties;
+}
+
+std::string Handle::GetDeviceNameImpl() const { return this->impl->device_name; }
+std::string Handle::GetDeviceName() const { return this->impl->target_properties.Name(); }
 
 std::ostream& Handle::Print(std::ostream& os) const
 {
