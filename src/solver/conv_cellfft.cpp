@@ -344,7 +344,8 @@ static const char* g_knames[] =
 };
 // clang-format on
 
-// return with a cgemm_id to select cgemm tile: scgemm5x4, scgemm5x5, scgemm5x6, scgemm6x4, scgemm6x5, scgemm6x6
+// return with a cgemm_id to select cgemm tile: scgemm5x4, scgemm5x5, scgemm5x6, scgemm6x4,
+// scgemm6x5, scgemm6x6
 static uint32_t choose_cgemm_id(uint32_t m, uint32_t n)
 {
     uint32_t mi = (m + 31u) >> 5;
@@ -1141,6 +1142,10 @@ bool ConvCellfft::IsApplicable(const ConvolutionContext& ctx) const
        (ctx.kernel_dilation_h != 1) | (ctx.group_counts != 1))
         return false;
     if(!ctx.direction.IsForward() && (ctx.GetBackwardPadW() < 0 || ctx.GetBackwardPadH() < 0))
+        return false;
+    // workaround when input is le 5x5, will select an optimized kernel for input
+    // (like sfft4x4_r2c_perm_s5x5), which is not correct.
+    if(ctx.direction.IsBackwardWrW() && (ctx.out_height <= 5 || ctx.out_width <= 5))
         return false;
     return (ctx.Is2d() && ctx.IsFp32() && (ctx.in_layout == "NCHW") && (ctx.bias == 0));
 #endif
