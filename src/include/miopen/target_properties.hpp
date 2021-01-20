@@ -23,10 +23,31 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-.include "Conv_Winograd_v21_1_2_metadata.inc"
+#ifndef GUARD_TARGET_PROPERTIES_HPP
+#define GUARD_TARGET_PROPERTIES_HPP
 
-KERNEL_PROLOG gfx9_fp32_stride2
+#include <string>
 
-.include "Conv_Winograd_v21_1_2_gfx9_fp32_stride2.inc"
+namespace miopen {
 
-KERNEL_EPILOG gfx9_fp32_stride2
+struct Handle;
+
+struct TargetProperties
+{
+    const std::string& Name() const { return name; }
+    const std::string& DbId() const { return dbId; }
+    bool Xnack() const { return xnack; }
+    bool Sramecc() const { return sramecc; }
+    void Init(const Handle*);
+
+    private:
+    void InitDbId();
+    std::string name;
+    std::string dbId;
+    bool xnack   = false;
+    bool sramecc = false;
+};
+
+} // namespace miopen
+
+#endif // GUARD_TARGET_PROPERTIES_HPP

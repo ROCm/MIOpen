@@ -23,39 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_COMGR_HPP
-#define GUARD_COMGR_HPP
+.include "Conv_Winograd_v21_1_2_metadata.inc"
 
-#include <miopen/config.h>
-#if MIOPEN_USE_COMGR
+KERNEL_PROLOG fp32_stride2_group
 
-#include <miopen/target_properties.hpp>
-#include <string>
-#include <vector>
+.if (.amdgcn.gfx_generation_number == 9)
+    .include "Conv_Winograd_v21_1_2_gfx9_fp32_stride2_group.inc"
+.elseif (.amdgcn.gfx_generation_number == 10)
+    .include "Conv_Winograd_v21_1_2_gfx10_fp32_stride2_group.inc"
+.endif
 
-namespace miopen {
-namespace comgr {
-
-void BuildHip(const std::string& name,
-              const std::string& text,
-              const std::string& options,
-              const miopen::TargetProperties& target,
-              std::vector<char>& binary);
-
-void BuildOcl(const std::string& name,
-              const std::string& text,
-              const std::string& options,
-              const miopen::TargetProperties& target,
-              std::vector<char>& binary);
-
-void BuildAsm(const std::string& name,
-              const std::string& text,
-              const std::string& options,
-              const miopen::TargetProperties& target,
-              std::vector<char>& binary);
-
-} // namespace comgr
-} // namespace miopen
-
-#endif // MIOPEN_USE_COMGR
-#endif // GUARD_COMGR_HPP
+KERNEL_EPILOG fp32_stride2_group
