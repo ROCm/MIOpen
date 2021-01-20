@@ -167,7 +167,7 @@ def buildHipClangJob(compiler, flags, env4make, image, prefixpath="/opt/rocm", c
 ///
 /// DataType := { Half | BF16 | Int8 | FP32* }
 ///   * "FP32" is the default and usually not specified.
-/// Backend := { Hip | OpenCL }
+/// Backend := { Hip | OpenCL | HipNoGPU}
 /// Compiler := { Clang* | hcc | GCC* }
 ///   * "Clang" is the default for the Hip backend, and implies hip-clang compiler.
 ///     For the OpenCL backend, "Clang" implies the system x86 compiler.
@@ -306,6 +306,21 @@ pipeline {
         // Misc tests
         stage("Aux tests"){
             parallel{
+                stage('HipNoGPU Debug') {
+                    environment{
+                        cmd = """
+                            ulimit -c unlimited
+                            rm -rf build
+                            mkdir build
+                            cd build
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug -DMIOPEN_BACKEND=HIPNOGPU -DMIOPEN_INSTALL_CXX_HEADERS=On ..
+                            make -j\$(nproc) 
+                        """
+                    }
+                    steps{
+                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "MIOPEN_LOG_LEVEL=5 MIOPEN_COMPILE_PARALLEL_LEVEL=1",  image+'-hipnogpu-clang', "/usr/local", cmd, "gfx900;gfx906")
+                    }
+                }
                 stage('Hip Debug COMGR') {
                     agent{ label rocmnode("vega") }
                     environment{

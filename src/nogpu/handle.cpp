@@ -88,18 +88,11 @@ void Handle::EnableProfiling(bool enable) const { this->impl->enable_profiling =
 
 float Handle::GetKernelTime() const { return this->impl->profiling_result; }
 
-Allocator::ManageDataPtr Handle::Create(std::size_t sz) const
-{
-    MIOPEN_HANDLE_LOCK
-    this->Finish();
-    return this->impl->allocator(sz);
-}
+Allocator::ManageDataPtr Handle::Create(std::size_t sz) const { return this->impl->allocator(sz); }
 
 Allocator::ManageDataPtr&
 Handle::WriteTo(const void* /* data */, Allocator::ManageDataPtr& ddata, std::size_t /* sz */) const
 {
-    MIOPEN_HANDLE_LOCK
-    this->Finish();
     return ddata;
 }
 
@@ -107,8 +100,6 @@ void Handle::ReadTo(void* /* data */,
                     const Allocator::ManageDataPtr& /* ddata */,
                     std::size_t /* sz */) const
 {
-    MIOPEN_HANDLE_LOCK
-    this->Finish();
 }
 
 void Handle::Copy(ConstData_t /* src */, Data_t /* dest */, std::size_t /* size */) const {}
