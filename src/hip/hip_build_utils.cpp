@@ -97,12 +97,11 @@ struct LcOptionTargetStrings
     }
 };
 
-static
-boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
-                                 const std::string& filename,
-                                 std::string src,
-                                 std::string params,
-                                 const TargetProperties& target)
+static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
+                                            const std::string& filename,
+                                            std::string src,
+                                            std::string params,
+                                            const TargetProperties& target)
 {
 #ifdef __linux__
     // write out the include files
@@ -246,9 +245,29 @@ boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 #endif
 }
 
-static bool DetectIfBufferAtomicFaddReturnsFloat()
+static bool DetectIfBufferAtomicFaddReturnsFloatImpl(const TargetProperties& target)
 {
-    return false;
+    const std::string program_name("detect_notfound.cpp");
+    boost::optional<miopen::TmpDir> dir(program_name);
+    try
+    {
+        std::string params;
+        std::string source = miopen::GetKernelSrc(program_name);
+        std::ignore        = HipBuildImpl(dir, program_name, source, params, target);
+    }
+    catch(...)
+    {
+        MIOPEN_LOG_I("No");
+        return false;
+    }
+    MIOPEN_LOG_I("Yes");
+    return true;
+}
+
+static bool DetectIfBufferAtomicFaddReturnsFloat(const TargetProperties& target)
+{
+    static const bool once = DetectIfBufferAtomicFaddReturnsFloatImpl(target);
+    return once;
 }
 
 boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
@@ -257,7 +276,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
                                  std::string params,
                                  const TargetProperties& target)
 {
-    if(DetectIfBufferAtomicFaddReturnsFloat())
+    if(DetectIfBufferAtomicFaddReturnsFloat(target))
         params += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
     return HipBuildImpl(tmp_dir, filename, src, params, target);
 }
