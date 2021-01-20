@@ -195,17 +195,9 @@ struct Handle : miopenHandle
         return result;
     }
 
-    static std::string GetDbBasename(const TargetProperties& target, size_t num_cu)
+    static std::string GetDbBasename(const TargetProperties& target, size_t /* num_cu */)
     {
-        auto ret = target.DbId() + [&]() {
-            std::ostringstream ss;
-            if(num_cu <= 64)
-                ss << '_' << num_cu;
-            else
-                ss << std::hex << num_cu;
-            return std::string(ss.str());
-        }();
-        return ret;
+        return target.DbId();
     }
 
     std::string GetDbBasename() const

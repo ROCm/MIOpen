@@ -43,10 +43,7 @@
 namespace miopen {
 extern boost::optional<std::string>&
 testing_find_db_path_override(); /// \todo Remove when #1723 is resolved.
-ReadonlyRamDb& ReadonlyRamDb::GetCached(const std::string& path,
-                                        bool warn_if_unreadable,
-                                        const std::string& /*arch*/,
-                                        const std::size_t /*num_cu*/)
+ReadonlyRamDb& ReadonlyRamDb::GetCached(const std::string& path, bool warn_if_unreadable)
 {
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::mutex mutex;
