@@ -306,13 +306,16 @@ using RunAndMeasure_t =
                                                           std::declval<float&>()));
 
 template <class Solver, class Context>
-auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams& invoke_ctx_)
-    -> decltype(s.GetPerformanceConfig(context))
+auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParams& invoke_ctx_)
+    -> decltype(s.GetPerformanceConfig(context_))
 {
     static_assert(
         !(is_detected<RunAndMeasure_t, Solver, ConstData_t, Data_t>{} ||
           is_detected<RunAndMeasure_t, Solver, Data_t, ConstData_t>{}),
         "RunAndMeasure is obsolete. Solvers should implement auto-tune evaluation in invoker");
+
+    auto context = context_;
+    context.isForGenericSearch = true;
 
     using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
     PerformanceConfig best_config;
@@ -359,6 +362,7 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
         }
     }
     std::ignore = PrecompileKernels(profile_h, kernels);
+    MIOPEN_LOG_W("PrecompileKernels finished");
 #endif
 
     if(!IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))

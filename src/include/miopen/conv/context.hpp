@@ -114,6 +114,8 @@ struct ConvolutionContext : ProblemDescription, ExecutionContext
     void SetupFloats();
 
     public:
+    bool isForGenericSearch;
+
     inline void SetBufs(const ConvolutionUserBuffers& bufs) { _bufs = bufs; }
     inline const ConvolutionUserBuffers& GetBufs() const { return _bufs; }
 
