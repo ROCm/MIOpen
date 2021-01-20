@@ -155,7 +155,7 @@ static hipModulePtr CreateModule(const boost::filesystem::path& hsaco_file)
     auto status = hipModuleLoad(&raw_m, hsaco_file.string().c_str());
     hipModulePtr m{raw_m};
     if(status != hipSuccess)
-        MIOPEN_THROW_HIP_STATUS(status, "Failed creating module");
+        MIOPEN_THROW_HIP_STATUS(status, "Failed creating module from file " + hsaco_file.string());
     return m;
 }
 
