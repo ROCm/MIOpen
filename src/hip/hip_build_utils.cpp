@@ -293,8 +293,9 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
                                  std::string params,
                                  const TargetProperties& target)
 {
-    if(DetectIfBufferAtomicFaddReturnsFloat(target))
-        params += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
+    if(target.Name() == "gfx908")
+        if(DetectIfBufferAtomicFaddReturnsFloat(target))
+            params += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
     return HipBuildImpl(tmp_dir, filename, src, params, target, false);
 }
 
