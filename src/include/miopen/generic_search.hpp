@@ -314,8 +314,8 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
           is_detected<RunAndMeasure_t, Solver, Data_t, ConstData_t>{}),
         "RunAndMeasure is obsolete. Solvers should implement auto-tune evaluation in invoker");
 
-    auto context               = context_;
-    context.isForGenericSearch = true;
+    auto context                  = context_;
+    context.is_for_generic_search = true;
 
     using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
     PerformanceConfig best_config;
@@ -362,7 +362,6 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
         }
     }
     std::ignore = PrecompileKernels(profile_h, kernels);
-    MIOPEN_LOG_W("PrecompileKernels finished");
 #endif
 
     if(!IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))

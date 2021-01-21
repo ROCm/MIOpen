@@ -120,7 +120,7 @@ ConvSolution ConvBiasActivAsm1x1U::GetSolution(const ConvolutionContext& params,
     auto& kernel_info       = sol.construction_params[0];
     kernel_info.kernel_file = "conv1x1u_bias_activ.s";
 
-    if(params.isForGenericSearch)
+    if(params.is_for_generic_search)
     {
         std::ostringstream cba_options;
         GenerateClangDefsym(cba_options, "activ_mode", 3);
