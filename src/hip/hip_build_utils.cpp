@@ -245,23 +245,34 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 #endif
 }
 
-static bool DetectIfBufferAtomicFaddReturnsFloatImpl(const TargetProperties& target)
+static bool
+HipBuildTest(const std::string& program_name, std::string params, const TargetProperties& target)
 {
-    const std::string program_name("detect_notfound.cpp");
     boost::optional<miopen::TmpDir> dir(program_name);
+    std::string source = miopen::GetKernelSrc(program_name);
     try
     {
-        std::string params;
-        std::string source = miopen::GetKernelSrc(program_name);
-        std::ignore        = HipBuildImpl(dir, program_name, source, params, target);
+        std::ignore = HipBuildImpl(dir, program_name, source, params, target);
     }
     catch(...)
     {
-        MIOPEN_LOG_I("No");
         return false;
     }
-    MIOPEN_LOG_I("Yes");
     return true;
+}
+
+static bool DetectIfBufferAtomicFaddReturnsFloatImpl(const TargetProperties& target)
+{
+    const std::string program_name("detect_llvm_amdgcn_buffer_atomic_fadd_f32_float.cpp");
+    std::string params;
+
+    if(HipBuildTest(program_name, params, target))
+    {
+        MIOPEN_LOG_NQI("Yes");
+        return true;
+    }
+    MIOPEN_LOG_NQI("No");
+    return false;
 }
 
 static bool DetectIfBufferAtomicFaddReturnsFloat(const TargetProperties& target)
