@@ -78,7 +78,7 @@ int DetectCodeObjectOptionSyntax()
 
     if(syntax == 0)
     {
-        if(HipCompilerVersion() >= external_tool_version_t{4, 0, 20482})
+        if(HipCompilerVersion() >= external_tool_version_t{4, 1, 0})
             return 4;
         else
             return 1;
@@ -99,7 +99,7 @@ int DetectCodeObjectVersion()
 
     if(co_version == 0)
     {
-        if(HipCompilerVersion() >= external_tool_version_t{4, 0, 20482})
+        if(HipCompilerVersion() >= external_tool_version_t{4, 1, 0})
             return 4;
         else if(HipCompilerVersion() >= external_tool_version_t{3, 0, -1})
             return 3;
