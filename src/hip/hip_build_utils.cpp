@@ -101,17 +101,22 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
                                             const std::string& filename,
                                             std::string src,
                                             std::string params,
-                                            const TargetProperties& target)
+                                            const TargetProperties& target,
+                                            const bool testing_mode)
 {
 #ifdef __linux__
-    // write out the include files
-    auto inc_list = GetKernelIncList();
-    auto inc_path = tmp_dir->path;
-    boost::filesystem::create_directories(inc_path);
-    for(auto inc_file : inc_list)
+    // Write out the include files
+    // Let's assume includes are overkill for feature tests & optimize'em out.
+    if(!testing_mode)
     {
-        auto inc_src = GetKernelInc(inc_file);
-        WriteFile(inc_src, inc_path / inc_file);
+        auto inc_list = GetKernelIncList();
+        auto inc_path = tmp_dir->path;
+        boost::filesystem::create_directories(inc_path);
+        for(auto inc_file : inc_list)
+        {
+            auto inc_src = GetKernelInc(inc_file);
+            WriteFile(inc_src, inc_path / inc_file);
+        }
     }
     src += "\nint main() {}\n";
     WriteFile(src, tmp_dir->path / filename);
@@ -184,8 +189,9 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     auto bin_file = tmp_dir->path / (filename + ".o");
 
     // compile
+    const std::string redirector = testing_mode ? " 1>/dev/null 2>&1" : "";
     tmp_dir->Execute(env + std::string(" ") + MIOPEN_HIP_COMPILER,
-                     params + filename + " -o " + bin_file.string());
+                     params + filename + " -o " + bin_file.string() + redirector);
     if(!boost::filesystem::exists(bin_file))
         MIOPEN_THROW(filename + " failed to compile");
 #ifdef EXTRACTKERNEL_BIN
@@ -252,7 +258,7 @@ HipBuildTest(const std::string& program_name, std::string params, const TargetPr
     std::string source = miopen::GetKernelSrc(program_name);
     try
     {
-        std::ignore = HipBuildImpl(dir, program_name, source, params, target);
+        std::ignore = HipBuildImpl(dir, program_name, source, params, target, true);
     }
     catch(...)
     {
@@ -289,7 +295,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
 {
     if(DetectIfBufferAtomicFaddReturnsFloat(target))
         params += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
-    return HipBuildImpl(tmp_dir, filename, src, params, target);
+    return HipBuildImpl(tmp_dir, filename, src, params, target, false);
 }
 
 void bin_file_to_str(const boost::filesystem::path& file, std::string& buf)
