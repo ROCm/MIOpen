@@ -767,7 +767,8 @@ if(NOT MIOPEN_EMBED_DB STREQUAL "")
     target_link_libraries(MIOpen PRIVATE $<BUILD_INTERFACE:miopen_data> )
 else()
     file(GLOB FIND_DB_FILES kernels/*.fdb.txt)
-    list(APPEND FIND_DB_FILES kernels/*.db)
+    file(GLOB PERF_DB_FILES kernels/*.db)
+    list(APPEND FIND_DB_FILES ${PERF_DB_FILES})
     if(NOT MIOPEN_DISABLE_SYSDB)
         install(FILES
             ${FIND_DB_FILES}
