@@ -307,6 +307,7 @@ pipeline {
         stage("Aux tests"){
             parallel{
                 stage('HipNoGPU Debug') {
+                    agent{  label rocmnode("rocmtest") }
                     environment{
                         cmd = """
                             ulimit -c unlimited
