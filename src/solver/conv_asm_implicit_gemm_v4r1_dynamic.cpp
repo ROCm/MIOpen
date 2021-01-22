@@ -378,8 +378,10 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
 
     if(kernel_is_1x1)
         result.invoker_factory = conv::MakeImplGemmDynamicForward1x1InvokerFactory(ctx);
-    else
-        result.invoker_factory = conv::MakeImplGemmDynamicForwardInvokerFactory(ctx);
+    else{
+        int packed_value = 0;
+        result.invoker_factory = conv::MakeImplGemmDynamicForwardInvokerFactory<int>(ctx, packed_value);
+    }
     result.construction_params.push_back(kernel);
     return result;
 }

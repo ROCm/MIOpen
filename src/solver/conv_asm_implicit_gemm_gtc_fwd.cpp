@@ -1528,10 +1528,7 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlops::GetSolution(const ConvolutionContext& ct
 
     MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
 
-    if(ctx.IsFp32())
-        result.invoker_factory = conv::MakeImplGemmDynamicForwardInvokerFactory(ctx);
-    else if(ctx.IsFp16())
-        result.invoker_factory = conv::MakeImplGemmDynamicForwardInvokerFactory(ctx, cfg);
+    result.invoker_factory = conv::MakeImplGemmDynamicForwardInvokerFactory<TunableImplicitGemmGTCDynamic_t>(ctx, cfg);
     result.construction_params.push_back(kernel);
     return result;
 }
