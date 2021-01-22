@@ -36,5 +36,5 @@ __llvm_amdgcn_buffer_atomic_add_f32(float vdata,
 extern "C" __global__ void test_llvm_amdgcn_buffer_atomic_fadd_f32_float(float* p_global)
 {
     int32x4_t buffer_resource{0};
-    (void) __llvm_amdgcn_buffer_atomic_add_f32(*p_global, buffer_resource, 0, 0, false);
+    (void)__llvm_amdgcn_buffer_atomic_add_f32(*p_global, buffer_resource, 0, 0, false);
 }
