@@ -35,26 +35,26 @@ struct TunableImplicitGemmGTCDynamic_t
 {
     std::string direction = " ";
     std::string precision = " ";
-    int nxb = 0;
-    int nxe = 0;
+    int nxb               = 0;
+    int nxe               = 0;
 
     int gemm_m_per_block = 0;
     int gemm_n_per_block = 0;
     int gemm_k_per_block = 0;
 
-    int wave_tile_m = 0;
-    int wave_tile_n = 0;
-    int wave_tile_k = 0;
-    int wave_step_m = 0;
-    int wave_step_n = 0;
+    int wave_tile_m   = 0;
+    int wave_tile_n   = 0;
+    int wave_tile_k   = 0;
+    int wave_step_m   = 0;
+    int wave_step_n   = 0;
     int wave_repeat_m = 0;
     int wave_repeat_n = 0;
 
-    int tensor_a_thread_lengths[4] = {0, 0, 0, 0};
+    int tensor_a_thread_lengths[4]  = {0, 0, 0, 0};
     int tensor_a_cluster_lengths[4] = {0, 0, 0, 0};
-    int tensor_b_thread_lengths[4] = {0, 0, 0, 0};
+    int tensor_b_thread_lengths[4]  = {0, 0, 0, 0};
     int tensor_b_cluster_lengths[4] = {0, 0, 0, 0};
-    int gemm_k_global_split = 0;
+    int gemm_k_global_split         = 0;
 
     int GetBlockSize() const
     {

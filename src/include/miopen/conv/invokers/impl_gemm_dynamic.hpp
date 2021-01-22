@@ -101,23 +101,23 @@ static inline uint32_t magic_div_u32_pack_shift(uint8_t s0, uint8_t s1, uint8_t 
     return (shift_3 << 24) | (shift_2 << 16) | (shift_1 << 8) | shift_0;
 }
 
-template<typename T>
+template <typename T>
 inline float CallImplGemmDynamicForward(const miopen::Handle& handle,
-                                 const ProblemDescription& conv_problem,
-                                 const T& cfg,
-                                 ConstData_t src,
-                                 Data_t dst,
-                                 ConstData_t wei,
-                                 const std::vector<KernelInvoke>& kernels);
+                                        const ProblemDescription& conv_problem,
+                                        const T& cfg,
+                                        ConstData_t src,
+                                        Data_t dst,
+                                        ConstData_t wei,
+                                        const std::vector<KernelInvoke>& kernels);
 
-template<>
+template <>
 inline float CallImplGemmDynamicForward<int>(const miopen::Handle& handle,
-                                 const ProblemDescription& conv_problem,
-                                 const int& cfg,
-                                 ConstData_t src,
-                                 Data_t dst,
-                                 ConstData_t wei,
-                                 const std::vector<KernelInvoke>& kernels)
+                                             const ProblemDescription& conv_problem,
+                                             const int& cfg,
+                                             ConstData_t src,
+                                             Data_t dst,
+                                             ConstData_t wei,
+                                             const std::vector<KernelInvoke>& kernels)
 {
     float elapsed = 0.0f;
 
@@ -171,14 +171,15 @@ inline float CallImplGemmDynamicForward<int>(const miopen::Handle& handle,
     return elapsed;
 };
 
-template<>
-inline float CallImplGemmDynamicForward<solver::TunableImplicitGemmGTCDynamic_t>(const miopen::Handle& handle,
-                                 const ProblemDescription& conv_problem,
-                                 const solver::TunableImplicitGemmGTCDynamic_t& cfg,
-                                 ConstData_t src,
-                                 Data_t dst,
-                                 ConstData_t wei,
-                                 const std::vector<KernelInvoke>& kernels)
+template <>
+inline float CallImplGemmDynamicForward<solver::TunableImplicitGemmGTCDynamic_t>(
+    const miopen::Handle& handle,
+    const ProblemDescription& conv_problem,
+    const solver::TunableImplicitGemmGTCDynamic_t& cfg,
+    ConstData_t src,
+    Data_t dst,
+    ConstData_t wei,
+    const std::vector<KernelInvoke>& kernels)
 {
     float elapsed = 0.0f;
 
@@ -257,7 +258,8 @@ inline float CallImplGemmDynamicForward<solver::TunableImplicitGemmGTCDynamic_t>
     opArgs.emplace_back(pad_w);
     opArgs.emplace_back(y);
     opArgs.emplace_back(x);
-    if(conv_problem.IsFp16()){
+    if(conv_problem.IsFp16())
+    {
         opArgs.emplace_back(group);
         opArgs.emplace_back(magic_0);
         opArgs.emplace_back(magic_1);
@@ -278,12 +280,13 @@ inline float CallImplGemmDynamicForward<solver::TunableImplicitGemmGTCDynamic_t>
     return elapsed;
 };
 
-template<typename T> static inline InvokerFactory MakeImplGemmDynamicForwardInvokerFactory(const ConvolutionContext& ctx, const T& cfg);
+template <typename T>
+static inline InvokerFactory MakeImplGemmDynamicForwardInvokerFactory(const ConvolutionContext& ctx,
+                                                                      const T& cfg);
 
-template<typename T>
-static inline InvokerFactory
-MakeImplGemmDynamicForwardInvokerFactory(const ConvolutionContext& ctx,
-                                         const T& cfg)
+template <typename T>
+static inline InvokerFactory MakeImplGemmDynamicForwardInvokerFactory(const ConvolutionContext& ctx,
+                                                                      const T& cfg)
 {
     const auto& conv_problem = ctx.conv_problem;
     return [conv_problem, cfg](const std::vector<Kernel>& kernels) {
