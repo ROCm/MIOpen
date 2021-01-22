@@ -135,7 +135,7 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
         if(params.find("-std=") == std::string::npos)
             params += " --std=c++11";
 
-        if(HipCompilerVersion() < external_tool_version_t{4, 0, 20482})
+        if(HipCompilerVersion() < external_tool_version_t{4, 1, 0})
             params += " --cuda-gpu-arch=" + lots.device;
         else
             params += " --cuda-gpu-arch=" + lots.device + lots.xnack;
@@ -211,18 +211,14 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 
         return hsaco->path();
     }
-    else
 #endif
-#ifdef MIOPEN_OFFLOADBUNDLER_BIN
-        // clang-format off
+#if defined(MIOPEN_OFFLOADBUNDLER_BIN) && !MIOPEN_BACKEND_HIP
+    // Unbundling is not required for HIP runtime && hip-clang
     if(IsHipClangCompiler())
     {
-        // clang-format on
-
-        // call clang-offload-bundler
         tmp_dir->Execute(MIOPEN_OFFLOADBUNDLER_BIN,
                          "--type=o --targets=hip-amdgcn-amd-amdhsa-" +
-                             (HipCompilerVersion() < external_tool_version_t{4, 0, 20482}
+                             (HipCompilerVersion() < external_tool_version_t{4, 1, 0}
                                   ? lots.device
                                   : (std::string{'-'} + lots.device + lots.xnack)) +
                              " --inputs=" + bin_file.string() + " --outputs=" + bin_file.string() +

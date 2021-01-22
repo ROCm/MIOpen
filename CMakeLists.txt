@@ -63,6 +63,7 @@ find_package(BZip2)
 if(MIOPEN_ENABLE_SQLITE_KERN_CACHE AND NOT MIOPEN_ENABLE_SQLITE)
     message(FATAL_ERROR "MIOPEN_ENABLE_SQLITE_KERN_CACHE requires MIOPEN_ENABLE_SQLITE")
 endif()
+set(MIOPEN_ENABLE_SQLITE_BACKOFF On CACHE BOOL "")
 
 option( BUILD_DEV "Build for development only" OFF)
 
@@ -83,8 +84,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         message(FATAL_ERROR "MIOpen requires at least gcc 5.3")
     endif()
 endif()
-
-
 
 
 ############################################################
@@ -185,10 +184,29 @@ target_flags(HIP_COMPILER_FLAGS hip::device)
 string(REGEX REPLACE --cuda-gpu-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
 string(REGEX REPLACE --offload-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
 
+# Override HIP version in config.h, if necessary.
+# The variables set by find_package() can't be overwritten,
+# therefore let's use intermediate variables.
+set(MIOPEN_hip_VERSION_MAJOR "${hip_VERSION_MAJOR}")
+set(MIOPEN_hip_VERSION_MINOR "${hip_VERSION_MINOR}")
+set(MIOPEN_hip_VERSION_PATCH "${hip_VERSION_PATCH}")
+if( DEFINED MIOPEN_OVERRIDE_HIP_VERSION_MAJOR )
+    set(MIOPEN_hip_VERSION_MAJOR "${MIOPEN_OVERRIDE_HIP_VERSION_MAJOR}")
+    message(STATUS "MIOPEN_hip_VERSION_MAJOR overriden with ${MIOPEN_OVERRIDE_HIP_VERSION_MAJOR}")
+endif()
+if( DEFINED MIOPEN_OVERRIDE_HIP_VERSION_MINOR )
+    set(MIOPEN_hip_VERSION_MINOR "${MIOPEN_OVERRIDE_HIP_VERSION_MINOR}")
+    message(STATUS "MIOPEN_hip_VERSION_MINOR overriden with ${MIOPEN_OVERRIDE_HIP_VERSION_MINOR}")
+endif()
+if( DEFINED MIOPEN_OVERRIDE_HIP_VERSION_PATCH )
+    set(MIOPEN_hip_VERSION_PATCH "${MIOPEN_OVERRIDE_HIP_VERSION_PATCH}")
+    message(STATUS "MIOPEN_hip_VERSION_PATCH overriden with ${MIOPEN_OVERRIDE_HIP_VERSION_PATCH}")
+endif()
+
+
 message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
 
 add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
-
 
 
 # HIP

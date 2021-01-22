@@ -237,6 +237,10 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops_padded_gemm.cpp
     solver/conv_asm_implicit_gemm_gtc_fwd.cpp
     solver/conv_asm_implicit_gemm_gtc_bwd.cpp
+    solver/conv_direct_naive_conv_fwd.cpp
+    solver/conv_direct_naive_conv_bwd.cpp
+    solver/conv_direct_naive_conv_wrw.cpp
+    solver/conv_direct_naive_conv.cpp
     )
 
 list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
@@ -254,6 +258,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     file(GLOB_RECURSE COMPOSABLE_KERNEL_DYNAMIC_ASM_SOURCE "kernels/dynamic_igemm/*.s")
     file(GLOB_RECURSE COMPOSABLE_KERNEL_DYNAMIC_ASM_INCLUDE "kernels/dynamic_igemm/*.inc")
     file(GLOB_RECURSE COMPOSABLE_KERNEL_DYNAMIC_CPP_SOURCE "kernels/dynamic_igemm/*.cpp")
+    file(GLOB_RECURSE GPU_REFERENCE_KERNEL_HIP "kernels/gpu_reference_kernel/*.cpp")
+    file(GLOB_RECURSE GPU_REFERENCE_KERNEL_ASM "kernels/gpu_reference_kernel/*.s")
 
     set(MIOPEN_KERNEL_INCLUDES
         ${COMPOSABLE_KERNEL_INCLUDE}
@@ -329,6 +335,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ${COMPOSABLE_KERNEL_SOURCE}
         ${COMPOSABLE_KERNEL_DYNAMIC_ASM_SOURCE}
         ${COMPOSABLE_KERNEL_DYNAMIC_CPP_SOURCE}
+        ${GPU_REFERENCE_KERNEL_HIP}
+        ${GPU_REFERENCE_KERNEL_ASM}
         kernels/detect_llvm_amdgcn_buffer_atomic_fadd_f32_float.cpp
         kernels/MIOpenCheckNumerics.cl
         kernels/MIOpenBatchNormActivBwdPerAct.cl
