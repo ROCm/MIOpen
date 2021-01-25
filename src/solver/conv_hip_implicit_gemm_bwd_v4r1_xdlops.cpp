@@ -817,6 +817,10 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext
         return false;
     if(!IsIndexRangeLargeEnough(ctx))
         return false;
+    if(!ctx.IsLayoutDefault())
+    {
+        return false;
+    }
 
     bool is_applicable = true;
     int gemm_g         = 0;

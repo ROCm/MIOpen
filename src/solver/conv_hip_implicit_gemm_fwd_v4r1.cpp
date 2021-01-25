@@ -57,6 +57,10 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx) con
         return false;
     if(!ctx.IsFp32() && !ctx.IsFp16() && !ctx.IsBfp16())
         return false;
+    if(!ctx.IsLayoutDefault())
+    {
+        return false;
+    }
 
     std::size_t n         = ctx.batch_sz;
     std::size_t k         = ctx.n_outputs / ctx.group_counts;
@@ -91,6 +95,10 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx) con
         return false;
     if(!ctx.IsFp32() && !ctx.IsFp16() && !ctx.IsBfp16())
         return false;
+    if(!ctx.IsLayoutDefault())
+    {
+        return false;
+    }
 
     // retrieve dimension from ConvolutionContext
     // remember: ConvolutionContext has swapped some dimensions for you!

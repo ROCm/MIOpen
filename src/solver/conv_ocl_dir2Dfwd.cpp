@@ -49,6 +49,10 @@ bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))
         return false;
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
 
     // clang-format off
     // Cases when dy has negative padding are not supported (issue 918)

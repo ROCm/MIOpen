@@ -224,6 +224,10 @@ bool ConvBinWinogradRxSf3x2::IsApplicable(const ConvolutionContext& params) cons
         return false;
     if(!params.rmv.IsV2orV3())
         return false;
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
 
     const auto name = params.GetStream().GetDeviceName();
     if(!(StartsWith(name, "gfx9")))

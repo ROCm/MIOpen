@@ -300,6 +300,10 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ConvolutionContext& c
     if(ctx.group_counts != 1)
         return false;
 
+    if(!ctx.IsLayoutDefault())
+    {
+        return false;
+    }
     auto tunables = GetImplicitGemmV4R1DynamicTunables();
     return !std::none_of(
         tunables.begin(), tunables.end(), [&](auto tunable) { return tunable.IsValid(ctx); });
@@ -335,6 +339,10 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsApplicable(const ConvolutionContex
     if((ctx.kernel_size_h != 1) || (ctx.kernel_size_w != 1))
         return false;
 
+    if(!ctx.IsLayoutDefault())
+    {
+        return false;
+    }
     auto tunables = GetImplicitGemmV4R1DynamicTunables();
     return !std::none_of(
         tunables.begin(), tunables.end(), [&](auto tunable) { return tunable.IsValid(ctx); });
