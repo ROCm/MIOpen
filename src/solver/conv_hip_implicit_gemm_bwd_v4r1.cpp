@@ -764,6 +764,10 @@ bool ConvHipImplicitGemmBwdDataV4R1::IsApplicable(const ConvolutionContext& ctx)
     if(ctx.group_counts != 1)
         return false;
 
+    if(!ctx.IsLayoutDefault())
+    {
+        return false;
+    }
     int gemm_m = 0;
     int gemm_n = 0;
 
