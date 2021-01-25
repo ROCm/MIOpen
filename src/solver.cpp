@@ -385,6 +385,9 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     RegisterWithSolver(registry, ++id, ConvBinWinogradRxSf2x3g1{}, miopenConvolutionAlgoWinograd);
 
+    RegisterWithSolver(registry, ++id, ConvDirectNaiveConvFwd{}, miopenConvolutionAlgoDirect);
+    RegisterWithSolver(registry, ++id, ConvDirectNaiveConvBwd{}, miopenConvolutionAlgoDirect);
+    RegisterWithSolver(registry, ++id, ConvDirectNaiveConvWrw{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvCellfft{}, miopenConvolutionAlgoFFT);
 }
 

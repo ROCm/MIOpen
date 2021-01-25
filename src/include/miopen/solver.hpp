@@ -45,6 +45,15 @@
 
 namespace miopen {
 
+namespace debug {
+
+/// If set to true, then always enable ConvDirectNaive* solver, regardless of environment value
+/// MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_* that control enable/disable of these solvers.
+/// Currently used during driver using naive kernel as gpu reference.
+extern bool AlwaysEnableConvDirectNaive;
+
+} // namespace debug
+
 struct AnyInvokeParams;
 
 namespace solver {
@@ -2054,6 +2063,27 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm : SolverBase<ConvolutionCont
 
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
     Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const;
+};
+
+struct ConvDirectNaiveConvFwd : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    bool IsDynamic() const { return true; }
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+};
+
+struct ConvDirectNaiveConvBwd : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    bool IsDynamic() const { return true; }
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+};
+
+struct ConvDirectNaiveConvWrw : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    bool IsDynamic() const { return true; }
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
 struct AnySolver;
