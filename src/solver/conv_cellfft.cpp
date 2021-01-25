@@ -1134,6 +1134,7 @@ fill_kernels_info(ConvSolution& sol, const ConvolutionContext& ctx, const cellff
 bool ConvCellfft::IsApplicable(const ConvolutionContext& ctx) const
 {
 #if MIOPEN_BACKEND_OPENCL
+    (void)ctx;
     return false;
 #else
     const auto name = ctx.GetStream().GetDeviceName();
