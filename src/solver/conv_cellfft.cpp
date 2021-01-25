@@ -375,7 +375,7 @@ static uint32_t choose_optimal_cell_id(uint32_t anx, uint32_t any, uint32_t bnx,
     }
     return id;
 }
-enum class cellfft_dir
+enum cellfft_dir
 {
     cellFFTFwdConv = 0, // convolution forward path
     cellFFTBwdConv = 1, // convolution backward data path
