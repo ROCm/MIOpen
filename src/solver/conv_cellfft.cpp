@@ -375,11 +375,12 @@ static uint32_t choose_optimal_cell_id(uint32_t anx, uint32_t any, uint32_t bnx,
     }
     return id;
 }
-typedef enum {
+enum class cellfft_dir
+{
     cellFFTFwdConv = 0, // convolution forward path
     cellFFTBwdConv = 1, // convolution backward data path
     cellFFTWrWConv = 2, // convolution backward weight path
-} cellfft_dir;
+};
 
 namespace miopen {
 namespace solver {
@@ -1138,8 +1139,8 @@ bool ConvCellfft::IsApplicable(const ConvolutionContext& ctx) const
     const auto name = ctx.GetStream().GetDeviceName();
     if(name != "gfx900" && name != "gfx906")
         return false;
-    if((ctx.kernel_stride_w != 1) | (ctx.kernel_stride_h != 1) | (ctx.kernel_dilation_w != 1) |
-       (ctx.kernel_dilation_h != 1) | (ctx.group_counts != 1))
+    if((ctx.kernel_stride_w != 1) || (ctx.kernel_stride_h != 1) || (ctx.kernel_dilation_w != 1) ||
+       (ctx.kernel_dilation_h != 1) || (ctx.group_counts != 1))
         return false;
     if(!ctx.direction.IsForward() && (ctx.GetBackwardPadW() < 0 || ctx.GetBackwardPadH() < 0))
         return false;

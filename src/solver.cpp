@@ -386,7 +386,6 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     RegisterWithSolver(registry, ++id, ConvBinWinogradRxSf2x3g1{}, miopenConvolutionAlgoWinograd);
 
     RegisterWithSolver(registry, ++id, ConvCellfft{}, miopenConvolutionAlgoFFT);
-
 }
 
 } // namespace solver

@@ -30,8 +30,8 @@
 static inline uint32_t bfls(uint32_t n)
 {
     uint8_t shift;
-    for (shift = 0; shift < 32; shift++)
-        if ((1U << shift) >= n)
+    for(shift = 0; shift < 32; shift++)
+        if((1U << shift) >= n)
             break;
     return shift;
 }
@@ -42,10 +42,10 @@ magic_t idiv_magic(uint32_t nmax, uint32_t d)
     assert(d != 0);
     if(d == 1)
         return {1, 0};
-    uint64_t nc    = ((nmax + 1) / d) * d - 1;
+    uint64_t nc      = ((nmax + 1) / d) * d - 1;
     const auto nbits = bfls(nmax);
     const auto r     = (nbits << 1) + 1;
-    magic_t magic = {static_cast<uint32_t>(-1), static_cast<uint32_t>(-1)};
+    magic_t magic    = {static_cast<uint32_t>(-1), static_cast<uint32_t>(-1)};
     for(uint32_t s = 0; s < r; s++)
     {
         uint64_t exp = static_cast<uint64_t>(1) << s;

@@ -259,7 +259,7 @@ FindAllFFTSolutions(const miopen::ConvolutionContext& ctx,
 
 std::vector<miopen::solver::ConvSolution>
 FindFFTWrWAllSolutions(const miopen::ConvolutionContext& ctx,
-                    const miopen::AnyInvokeParams& invoke_ctx);
+                       const miopen::AnyInvokeParams& invoke_ctx);
 
 std::vector<std::pair<std::string, size_t>>
 AllFFTForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx);

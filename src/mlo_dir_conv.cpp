@@ -216,8 +216,7 @@ static auto GetBwdWrW2DSolvers()
 
 static auto GetFFTSolvers()
 {
-    return miopen::solver::SolverContainer<miopen::solver::fft,
-                                           miopen::solver::ConvCellfft>{};
+    return miopen::solver::SolverContainer<miopen::solver::fft, miopen::solver::ConvCellfft>{};
 }
 
 static auto GetWrwFFTSolvers()
