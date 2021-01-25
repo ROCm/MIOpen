@@ -728,16 +728,14 @@ std::size_t ConvolutionDescriptor::ForwardBackwardGetWorkSpaceSizeImplicitGemm(
 
     try
     {
-        if(ctx.do_search)
-            MIOPEN_THROW("Auto-tune is not supported in the get workspace size");
-        const auto ss  = FindAllImplicitGemmSolutions(ctx, {});
-        std::size_t sz = 0;
-        for(const auto& solution : ss)
+        const auto sz_v = FindAllImplicitGemmWorkspaceSizes(ctx);
+        std::size_t sz  = 0;
+        for(const auto& pr : sz_v)
         {
-            if(sz < solution.workspce_sz)
+            if(sz < pr.second)
             {
-                MIOPEN_LOG_I2(sz << " < " << solution.workspce_sz);
-                sz = solution.workspce_sz;
+                MIOPEN_LOG_I2(sz << " < " << pr.second);
+                sz = pr.second;
             }
         }
         return sz;
@@ -806,21 +804,21 @@ std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeFFT(
 }
 
 std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeWinograd(
-    const miopen::ConvolutionContext& ctx, const miopen::AnyInvokeParams& invoke_ctx) const
+    const miopen::ConvolutionContext& ctx) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{}))
         return 0;
 
     try
     {
-        const auto ss  = FindAllWinogradSolutions(ctx, invoke_ctx);
-        std::size_t sz = 0;
-        for(const auto& solution : ss)
+        const auto sz_v = FindAllWinogradWorkspaceSizes(ctx);
+        std::size_t sz  = 0;
+        for(const auto& pr : sz_v)
         {
-            if(sz < solution.workspce_sz)
+            if(sz < pr.second)
             {
-                MIOPEN_LOG_I2(sz << " < " << solution.workspce_sz);
-                sz = solution.workspce_sz;
+                MIOPEN_LOG_I2(sz << " < " << pr.second);
+                sz = pr.second;
             }
         }
         return sz;
@@ -869,14 +867,14 @@ std::size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeWinograd(
     {
         if(ctx.do_search)
             MIOPEN_THROW("Auto-tune is not supported in the get workspace size");
-        const auto ss  = FindWinogradWrWAllSolutions(ctx, {});
-        std::size_t sz = 0;
-        for(const auto& solution : ss)
+        const auto sz_v = FindWinogradWrWWorkspaceSizes(ctx);
+        std::size_t sz  = 0;
+        for(const auto& pr : sz_v)
         {
-            if(sz < solution.workspce_sz)
+            if(sz < pr.second)
             {
-                MIOPEN_LOG_I2(sz << " < " << solution.workspce_sz);
-                sz = solution.workspce_sz;
+                MIOPEN_LOG_I2(sz << " < " << pr.second);
+                sz = pr.second;
             }
         }
         return sz;
@@ -898,14 +896,14 @@ std::size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeImplicitGemm(
     {
         if(ctx.do_search)
             MIOPEN_THROW("Auto-tune is not supported in the get workspace size");
-        const auto ss  = FindImplicitGemmWrWAllSolutions(ctx, {});
-        std::size_t sz = 0;
-        for(const auto& solution : ss)
+        const auto sz_v = FindImplicitGemmWrWWorkspaceSizes(ctx);
+        std::size_t sz  = 0;
+        for(const auto& pr : sz_v)
         {
-            if(sz < solution.workspce_sz)
+            if(sz < pr.second)
             {
-                MIOPEN_LOG_I2(sz << " < " << solution.workspce_sz);
-                sz = solution.workspce_sz;
+                MIOPEN_LOG_I2(sz << " < " << pr.second);
+                sz = pr.second;
             }
         }
         return sz;
