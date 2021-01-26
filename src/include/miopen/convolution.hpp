@@ -122,9 +122,8 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     std::size_t
     ForwardBackwardGetWorkSpaceSizeImplicitGemm(const miopen::ConvolutionContext& ctx) const;
 
-    std::size_t ForwardBackwardDataGetWorkSpaceSizeWinograd(
-        const miopen::ConvolutionContext& ctx,
-        const miopen::AnyInvokeParams& invoke_ctx = {}) const;
+    std::size_t
+    ForwardBackwardDataGetWorkSpaceSizeWinograd(const miopen::ConvolutionContext& ctx) const;
 
     bool IsWinograd3x3SupportedAndFast(miopen::ConvolutionContext& ctx) const;
 

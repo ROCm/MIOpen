@@ -290,7 +290,7 @@ Prebuilt docker images can be found on [ROCm's public docker hub here](https://h
 ## Citing MIOpen
 
 
-MIOpen's paper can be accessed on arXiv:  
+MIOpen's paper is freely available and can be accessed on arXiv:  
 [MIOpen: An Open Source Library For Deep Learning Primitives](https://arxiv.org/abs/1910.00078)
 
 
