@@ -187,7 +187,7 @@ struct HandleImpl
     {
         hipDeviceProp_t props{};
         hipGetDeviceProperties(&props, device);
-        return {"gfx" + std::to_string(props.gcnArch)};
+        return {props.gcnArch};
     }
 
     bool enable_profiling  = false;
