@@ -107,7 +107,7 @@ else()
     set(WINE_CMD)
 endif()
 
-list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/llvm /opt/rocm/hip /opt/rocm/hcc)
+list(APPEND CMAKE_PREFIX_PATH ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_PREFIX}/llvm ${CMAKE_INSTALL_PREFIX}/hip /opt/rocm /opt/rocm/llvm /opt/rocm/hip /opt/rocm/hcc)
 
 option(ENABLE_HIP_WORKAROUNDS Off)
 set(MIOPEN_INSTALL_CXX_HEADERS Off CACHE BOOL "Install MIOpen's C++ header interface")
@@ -151,7 +151,6 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
             PATH_SUFFIXES bin
             PATHS 
 	        /opt/rocm
-		${CMAKE_INSTALL_PREFIX}
     )
     set(MIOPEN_USE_MIOPENGEMM ON CACHE BOOL "")
     if(MIOPEN_HIP_COMPILER)
@@ -291,7 +290,7 @@ else()
             /opt/rocm/hip
             /opt/rocm/hcc
             /opt/rocm
-	    ${CMAKE_INSTALL_PREFIX}/hip
+	        ${CMAKE_INSTALL_PREFIX}/hip
             ${CMAKE_INSTALL_PREFIX}/hcc
             ${CMAKE_INSTALL_PREFIX}
 
