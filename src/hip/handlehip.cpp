@@ -187,7 +187,9 @@ struct HandleImpl
     {
         hipDeviceProp_t props{};
         hipGetDeviceProperties(&props, device);
-        return {"gfx" + std::to_string(props.gcnArch)};
+        const std::string name("gfx" + std::to_string(props.gcnArch));
+        MIOPEN_LOG_NQI("Raw device name: " << name);
+        return name;
     }
 
     bool enable_profiling  = false;
