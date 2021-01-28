@@ -54,4 +54,9 @@ static inline miopen::Handle get_handle() { return miopen::Handle{}; }
 
 #endif
 
+static inline miopen::Handle get_handle_with_stream(const miopen::Handle& h)
+{
+    return miopen::Handle{h.GetStream()};
+}
+
 #endif
