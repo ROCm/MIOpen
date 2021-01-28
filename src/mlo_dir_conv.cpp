@@ -230,6 +230,11 @@ static auto GetBwdWrW2DSolvers()
 
 static auto GetFFTSolvers() { return miopen::solver::SolverContainer<miopen::solver::fft>{}; }
 
+bool IsGemmAplicable(const miopen::ConvolutionContext& ctx)
+{
+    return GetGemmSolvers().IsAnySolverApplicable(ctx);
+}
+
 std::vector<miopen::solver::ConvSolution>
 FindAllGemmSolutions(const miopen::ConvolutionContext& ctx,
                      const miopen::AnyInvokeParams& invoke_ctx)

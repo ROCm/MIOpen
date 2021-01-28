@@ -103,17 +103,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                             const TensorDescriptor& wDesc,
                                             miopenDataType_t yType = miopenFloat) const;
 
-    std::size_t ForwardGetWorkSpaceSizeGEMM(const TensorDescriptor& wDesc,
-                                            const TensorDescriptor& yDesc) const;
-
-    std::size_t ForwardGetWorkSpaceSizeGEMMTranspose(const TensorDescriptor& xDesc,
-                                                     const TensorDescriptor& yDesc) const;
-
-    std::size_t ForwardGetWorkSpaceSizeGEMMStridedBatched(Handle& handle,
-                                                          const TensorDescriptor& xDesc,
-                                                          const TensorDescriptor& wDesc,
-                                                          const TensorDescriptor& yDesc) const;
-
     std::size_t
     ForwardBackwardDataGetWorkSpaceSizeDirect(const miopen::ConvolutionContext& ctx) const;
 

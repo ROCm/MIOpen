@@ -261,64 +261,6 @@ TensorDescriptor ConvolutionDescriptor::GetForwardOutputTensor(const TensorDescr
                             out_lens);
 }
 
-std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMM(const TensorDescriptor& wDesc,
-                                                               const TensorDescriptor& yDesc) const
-{
-    const std::size_t spatial_dim = GetSpatialDimension();
-
-    auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
-    auto out_spatial = boost::adaptors::slice(yDesc.GetLengths(), 2, 2 + spatial_dim);
-
-    const std::size_t wei_c = wDesc.GetLengths()[1];
-
-    const std::size_t workspace_size = wei_c * std::accumulate(wei_spatial.begin(),
-                                                               wei_spatial.end(),
-                                                               std::size_t(1),
-                                                               std::multiplies<std::size_t>()) *
-                                       std::accumulate(out_spatial.begin(),
-                                                       out_spatial.end(),
-                                                       std::size_t(1),
-                                                       std::multiplies<std::size_t>()) *
-                                       GetTypeSize(wDesc.GetType()) * group_count;
-
-    // No workspace is needed for 1x1 convolutions
-    if(miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-       miopen::all_of(GetConvPads(), [](auto v) { return v == 0; }) &&
-       miopen::all_of(GetConvStrides(), [](auto v) { return v == 1; }))
-    {
-        if(wDesc.GetType() == miopenInt8)
-            return workspace_size;
-        else
-            return 0;
-    }
-
-    return (wDesc.GetType() == miopenInt8 ? 2 * workspace_size : workspace_size);
-}
-
-std::size_t
-ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMMTranspose(const TensorDescriptor& xDesc,
-                                                            const TensorDescriptor& yDesc) const
-{
-    std::size_t in_n, in_c;
-    std::tie(in_n, in_c) = miopen::tie_pick<0, 1>{}(xDesc.GetLengths());
-
-    auto out_spatial = boost::adaptors::slice(yDesc.GetLengths(), 2, 2 + GetSpatialDimension());
-
-    std::size_t x_t_size = in_n * in_c * std::accumulate(out_spatial.begin(),
-                                                         out_spatial.end(),
-                                                         std::size_t(1),
-                                                         std::multiplies<std::size_t>()) *
-                           GetTypeSize(xDesc.GetType());
-
-    // Int8 also does "transpose_packed_MN2NM" which need additional workspace
-    if(xDesc.GetType() == miopenInt8)
-        x_t_size *= 2;
-
-    const std::size_t y_t_size = yDesc.GetElementSize() * GetTypeSize(yDesc.GetType());
-
-    return x_t_size + y_t_size;
-}
-
 /// There is assumption that if Winograd is applicable and granularity loss is low, then there is no
 /// advantage in trying other algorithms as those either slower or use more workspace. This allows
 /// for some related host-side optimizations.
@@ -460,7 +402,7 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
     {
         decltype(auto) gemm_ws_sz_pairs = AllGemmWorkspaceSize(ctx);
 
-        if(!gemm_ws_sz_pairs.empty())
+        if(gemm_ws_sz_pairs.empty())
         {
             decltype(auto) gemm_ws_szs =
                 gemm_ws_sz_pairs |

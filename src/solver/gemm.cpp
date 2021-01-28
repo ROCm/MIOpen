@@ -183,7 +183,22 @@ size_t GemmFwd1x1_0_2::GetWorkspaceSize(const ExecutionContext& context,
     decltype(auto) xDesc  = problem.GetIn();
     decltype(auto) yDesc  = problem.GetOut();
 
-    const auto gemm_trans = conv.ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc);
+    std::size_t in_n, in_c;
+    std::tie(in_n, in_c) = miopen::tie_pick<0, 1>{}(xDesc.GetLengths());
+
+    const auto out_spatial =
+        boost::adaptors::slice(yDesc.GetLengths(), 2, 2 + conv.GetSpatialDimension());
+
+    const auto x_t_size = in_n * in_c * (xDesc.GetType() == miopenInt8 ? 2 : 1) *
+                          std::accumulate(out_spatial.begin(),
+                                          out_spatial.end(),
+                                          std::size_t(1),
+                                          std::multiplies<std::size_t>()) *
+                          GetTypeSize(xDesc.GetType());
+
+    const auto y_t_size   = yDesc.GetElementSize() * GetTypeSize(yDesc.GetType());
+    const auto gemm_trans = x_t_size + y_t_size;
+
     if(gemm_trans > MAX_MEM_ALLOC_SZ)
         return 0;
     return gemm_trans;
@@ -424,7 +439,21 @@ size_t GemmFwd1x1_0_1_int8::GetWorkspaceSize(const ExecutionContext& context,
     decltype(auto) wDesc  = problem.GetWeights();
     decltype(auto) yDesc  = problem.GetOut();
 
-    const auto ws_size = conv.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc);
+    const auto spatial_dim = conv.GetSpatialDimension();
+    const auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
+    const auto out_spatial = boost::adaptors::slice(yDesc.GetLengths(), 2, 2 + spatial_dim);
+    const auto wei_c       = wDesc.GetLengths()[1];
+
+    const auto ws_size = wei_c * std::accumulate(wei_spatial.begin(),
+                                                 wei_spatial.end(),
+                                                 std::size_t(1),
+                                                 std::multiplies<std::size_t>()) *
+                         std::accumulate(out_spatial.begin(),
+                                         out_spatial.end(),
+                                         std::size_t(1),
+                                         std::multiplies<std::size_t>()) *
+                         GetTypeSize(wDesc.GetType()) * conv.group_count;
+
     if(ws_size > MAX_MEM_ALLOC_SZ)
         return 0;
     return ws_size;
@@ -809,22 +838,20 @@ size_t GemmFwdRest::GetWorkspaceSize(const ExecutionContext& context,
     decltype(auto) wDesc  = problem.GetWeights();
     decltype(auto) yDesc  = problem.GetOut();
 
-    const std::size_t spatial_dim = conv.GetSpatialDimension();
-
+    const auto spatial_dim = conv.GetSpatialDimension();
     const auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
     const auto out_spatial = boost::adaptors::slice(yDesc.GetLengths(), 2, 2 + spatial_dim);
+    const auto wei_c       = wDesc.GetLengths()[1];
 
-    const std::size_t wei_c = wDesc.GetLengths()[1];
-
-    const std::size_t workspace_size = wei_c * std::accumulate(wei_spatial.begin(),
-                                                               wei_spatial.end(),
-                                                               std::size_t(1),
-                                                               std::multiplies<std::size_t>()) *
-                                       std::accumulate(out_spatial.begin(),
-                                                       out_spatial.end(),
-                                                       std::size_t(1),
-                                                       std::multiplies<std::size_t>()) *
-                                       GetTypeSize(wDesc.GetType()) * conv.group_count;
+    const auto workspace_size = wei_c * std::accumulate(wei_spatial.begin(),
+                                                        wei_spatial.end(),
+                                                        std::size_t(1),
+                                                        std::multiplies<std::size_t>()) *
+                                std::accumulate(out_spatial.begin(),
+                                                out_spatial.end(),
+                                                std::size_t(1),
+                                                std::multiplies<std::size_t>()) *
+                                GetTypeSize(wDesc.GetType()) * conv.group_count;
 
     const auto ws_sz = (wDesc.GetType() == miopenInt8 ? 2 * workspace_size : workspace_size);
 
