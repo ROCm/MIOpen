@@ -114,13 +114,16 @@ void run2s(miopen::Handle& h, std::size_t n, kernel_type_t kern_type)
     CHECK(data_out == data_in);
 }
 
-void test_multithreads(kernel_type_t kern_type)
+void test_multithreads(kernel_type_t kern_type, const bool with_stream = false)
 {
-    auto&& h = get_handle();
-    std::thread([&] { run2s(h, 16, kern_type); }).join();
-    std::thread([&] { run2s(h, 32, kern_type); }).join();
-    std::thread([&] { std::thread([&] { run2s(h, 64, kern_type); }).join(); }).join();
-    run2s(h, 4, kern_type);
+    auto&& h1 = get_handle();
+    auto&& h2 = get_handle_with_stream(h1);
+    std::thread([&] { run2s(with_stream ? h2 : h1, 16, kern_type); }).join();
+    std::thread([&] { run2s(with_stream ? h2 : h1, 32, kern_type); }).join();
+    std::thread([&] {
+        std::thread([&] { run2s(with_stream ? h2 : h1, 64, kern_type); }).join();
+    }).join();
+    run2s(with_stream ? h2 : h1, 4, kern_type);
 }
 
 std::string WriteError(kernel_type_t kern_type)
@@ -256,6 +259,7 @@ int main()
 #endif
     }
     test_multithreads(miopenOpenCLKernelType);
+    test_multithreads(miopenOpenCLKernelType, true);
     test_errors(miopenOpenCLKernelType);
     test_arch_name();
 // Warnings currently dont work in opencl
