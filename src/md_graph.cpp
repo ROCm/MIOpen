@@ -698,7 +698,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                                            "miopenGcnAsmConv1x1U",
                                                            "miopenConvolutionDirectBiasActivAsm");
             conv_v->solver         = solver::ConvBiasActivAsm1x1U{};
-            conv_v->supported_arch = {"gfx900", "gfx906", "gfx908"};
+            conv_v->supported_arch = {"gfx803", "gfx900", "gfx906", "gfx908"};
 
             auto bias_v = std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward,
                                                            "conv1x1u_bias_activ.s",
