@@ -180,7 +180,7 @@ namespace ocl {
 
 #define OCL_EARLY_INLINE 1
 
-#define OCL_STANDARD 200 // For experiments.
+#define OCL_STANDARD 120 // For experiments.
 
 #if !(OCL_STANDARD == 200 || OCL_STANDARD == 120)
 #error "Wrong OCL_STANDARD"
@@ -194,7 +194,12 @@ static void AddCompilerOptions(OptionList& list, const miopen::TargetProperties&
     list.push_back("-cl-fast-relaxed-math");
 #endif
     list.push_back("-D__IMAGE_SUPPORT__=1");
-    list.push_back("-D__OPENCL_VERSION__=" MIOPEN_STRINGIZE(OCL_STANDARD));
+#if OCL_STANDARD == 120
+    list.push_back("-cl-std=CL1.2")
+#elif OCL_STANDARD == 200
+    list.push_back("-cl-std=CL2.0")
+#endif
+        list.push_back("-D__OPENCL_VERSION__=" MIOPEN_STRINGIZE(OCL_STANDARD));
 #if OCL_EARLY_INLINE
     list.push_back("-mllvm");
     list.push_back("-amdgpu-early-inline-all");
