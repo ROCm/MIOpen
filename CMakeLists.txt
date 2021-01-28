@@ -106,7 +106,7 @@ else()
     set(WINE_CMD)
 endif()
 
-list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/llvm /opt/rocm/hip /opt/rocm/hcc)
+list(APPEND CMAKE_PREFIX_PATH ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_PREFIX}/llvm ${CMAKE_INSTALL_PREFIX}/hip /opt/rocm /opt/rocm/llvm /opt/rocm/hip /opt/rocm/hcc)
 
 option(ENABLE_HIP_WORKAROUNDS Off)
 set(MIOPEN_INSTALL_CXX_HEADERS Off CACHE BOOL "Install MIOpen's C++ header interface")
@@ -148,7 +148,8 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     find_package( OpenCL REQUIRED )
     find_program(MIOPEN_HIP_COMPILER hcc
             PATH_SUFFIXES bin
-            PATHS /opt/rocm
+            PATHS 
+	        /opt/rocm
     )
     set(MIOPEN_USE_MIOPENGEMM ON CACHE BOOL "")
     if(MIOPEN_HIP_COMPILER)
@@ -156,7 +157,9 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     else()
         find_program(MIOPEN_HIP_COMPILER clang++
             PATH_SUFFIXES bin
-	        PATHS /opt/rocm/llvm
+	        PATHS 
+		    /opt/rocm/llvm
+		    ${CMAKE_INSTALL_PREFIX}/llvm
         )
         if(MIOPEN_HIP_COMPILER)
             message("hip compiler: ${MIOPEN_HIP_COMPILER}")
@@ -217,7 +220,10 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
 
     find_program(HIP_OC_COMPILER clang-ocl
         PATH_SUFFIXES bin
-        PATHS /opt/rocm
+        PATHS 
+	    /opt/rocm
+	    ${CMAKE_INSTALL_PREFIX}
+
     )
     if(HIP_OC_COMPILER)
         message(STATUS "hip compiler: ${HIP_OC_COMPILER}")
@@ -265,7 +271,9 @@ message( STATUS "${MIOPEN_BACKEND} backend selected." )
 if(MIOPEN_HIP_COMPILER MATCHES ".*clang\\+\\+$")
     find_program(MIOPEN_OFFLOADBUNDLER_BIN clang-offload-bundler
         PATH_SUFFIXES bin
-        PATHS /opt/rocm/llvm
+        PATHS 
+	    /opt/rocm/llvm
+	    ${CMAKE_INSTALL_PREFIX}/llvm
     )
 endif()
 if(MIOPEN_OFFLOADBUNDLER_BIN)
@@ -281,6 +289,10 @@ else()
             /opt/rocm/hip
             /opt/rocm/hcc
             /opt/rocm
+	        ${CMAKE_INSTALL_PREFIX}/hip
+            ${CMAKE_INSTALL_PREFIX}/hcc
+            ${CMAKE_INSTALL_PREFIX}
+
     )
     if(EXTRACTKERNEL_BIN)
         message(STATUS "extractkernel found: ${EXTRACTKERNEL_BIN}")
