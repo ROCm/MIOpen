@@ -178,6 +178,7 @@ Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
 {
     clRetainCommandQueue(stream);
     impl->queue   = HandleImpl::AqPtr{stream};
+    impl->device  = miopen::GetDevice(impl->queue.get());
     impl->context = impl->create_context_from_queue();
 
     this->SetAllocator(nullptr, nullptr, nullptr);
