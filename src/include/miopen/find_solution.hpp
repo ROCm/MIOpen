@@ -214,24 +214,6 @@ struct SolverContainer
             Solvers{}...);
         return res;
     }
-
-    template <class Context>
-    std::size_t CountApplicable(const Context& ctx) const
-    {
-        const auto solvers = std::array<AnySolver, sizeof...(Solvers)>{};
-        return std::count_if(solvers.begin(), solvers.end(), [&](const auto& solver) {
-            return solver.IsApplicable(ctx);
-        });
-    }
-
-    template <class Context>
-    std::size_t IsAnyApplicable(const Context& ctx) const
-    {
-        const auto solvers = std::array<AnySolver, sizeof...(Solvers)>{};
-        return std::any_of(solvers.begin(), solvers.end(), [&](const auto& solver) {
-            return solver.IsApplicable(ctx);
-        });
-    }
 };
 
 } // namespace solver
