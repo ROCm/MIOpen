@@ -28,6 +28,11 @@
 
 #include <miopen/config.h>
 
+/// Older HIP runtimes return hipDeviceProp_t.gcnArchName with codenames
+/// of GPUs instead of valid names, e.g. "Vega 20" instead of "gfx906".
+/// To be removed as soon as support for ROCm 3.x is discontinued.
+#define ROCM_FEATURE_HIP_GCNARCHNAME_RETURNS_CODENAME (HIP_PACKAGE_VERSION_FLAT < 4000000000ULL)
+
 /// Workaround for https://github.com/AMDComputeLibraries/MLOpen/issues/1711:
 /// Since ROCM 2.4 rc1, OCL returns "gfx906+sram-ecc" on a gfx906 machine.
 /// See also rejected SWDEV-188028. Fixed since ROCm 4.0 or even sooner.
