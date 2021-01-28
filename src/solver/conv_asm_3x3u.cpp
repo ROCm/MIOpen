@@ -190,16 +190,17 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         return false;
     }
 
-    constexpr auto GIB     = static_cast<int64_t>(1024) * 1024 * 1024;
-    constexpr auto TIB     = GIB * 1024;
-    constexpr auto ELEM_SZ = static_cast<int64_t>(sizeof(float));
-    const auto h_w         = params.in_height * params.in_width;
-    const auto r_s         = params.kernel_size_w * params.kernel_size_h;
-    const auto n_c         = static_cast<int64_t>(params.batch_sz) * params.n_inputs;
-    const auto n_k         = static_cast<int64_t>(params.batch_sz) * params.n_outputs;
-    const auto n_c_h_w     = n_c * h_w;
-    const auto n_k_h_w     = n_k * h_w;
-    const auto c_k_r_s     = params.n_inputs * params.n_outputs * r_s;
+    constexpr auto GIB           = static_cast<int64_t>(1024) * 1024 * 1024;
+    constexpr auto TIB           = GIB * 1024;
+    constexpr auto ELEM_SZ       = static_cast<int64_t>(sizeof(float));
+    const auto IN_FEATURE_COUNT  = static_cast<int64_t>(params.batch_sz) * params.n_inputs;
+    const auto OUT_FEATURE_COUNT = static_cast<int64_t>(params.batch_sz) * params.n_outputs;
+    const auto IN_IMG_SZ         = ELEM_SZ * params.in_height * params.in_width;
+    const auto OUT_IMG_SZ        = ELEM_SZ * params.out_height * params.out_width;
+    const auto IN_BUF_SZ         = IN_IMG_SZ * IN_FEATURE_COUNT;
+    const auto OUT_BUF_SZ        = OUT_IMG_SZ * OUT_FEATURE_COUNT;
+    const auto WEI_BUF_SZ =
+        ELEM_SZ * params.n_inputs * params.n_outputs * params.kernel_size_h * params.kernel_size_w;
     // clang-format off
     return params.pad_w == 1
         && params.pad_h == 1
@@ -213,12 +214,13 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         && (params.n_inputs / params.group_counts) % 4 == 0 /// \todo: remove restriction that (n_inputs/group_counts) must be multiple of 4
         && params.in_width > 3
         && params.in_width <= 1000
-        && ELEM_SZ * h_w < GIB
-        && ELEM_SZ * n_c < 4 * GIB
-        && ELEM_SZ * n_k < 4 * GIB
-        && ELEM_SZ * n_c_h_w < 256 * TIB
-        && ELEM_SZ * n_k_h_w < 256 * TIB
-        && ELEM_SZ * c_k_r_s < 4 * GIB
+        && IN_IMG_SZ < GIB
+        && OUT_IMG_SZ < 4 * GIB
+        && IN_FEATURE_COUNT  < 4 * GIB
+        && OUT_FEATURE_COUNT < 4 * GIB
+        && IN_BUF_SZ  < 256 * TIB
+        && OUT_BUF_SZ < 256 * TIB
+        && WEI_BUF_SZ < 4 * GIB
         && params.IsFp32()
         && params.in_layout == "NCHW";
         // && (params.forward ? params.weights_layout == "KCHW" : params.weights_layout == "CKHW" )
