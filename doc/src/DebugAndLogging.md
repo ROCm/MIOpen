@@ -62,7 +62,6 @@ These variables control the sets (families) of convolution Solutions. For exampl
 * `MIOPEN_DEBUG_CONV_GEMM` - GEMM convolution algorithm.
 * `MIOPEN_DEBUG_CONV_WINOGRAD` - Winograd convolution algorithm.
 * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM` - Implicit GEMM convolution algorithm.
-* `MIOPEN_DEBUG_CONV_SCGEMM` - Statically Compiled GEMM convolution algorithm.
 
 ### Filtering by build method
 
@@ -94,7 +93,6 @@ Direct Solutions:
 * `MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1` - `ConvAsmBwdWrW1x1`.
 * `MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD11X11` - `ConvOclDirectFwd11x11`.
 * `MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN` - `ConvOclDirectFwdGen`.
-* `MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD3X3` - `ConvOclDirectFwd3x3`.
 * `MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD` - `ConvOclDirectFwd`.
 * `MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1` - `ConvOclDirectFwd`.
 * `MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2` - `ConvOclBwdWrW2<n>` (where n = `{1,2,4,8,16}`), and `ConvOclBwdWrW2NonTunable`.
@@ -107,7 +105,8 @@ Winograd  Solutions:
   * `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW` - FP32 F(3,2) WrW convolutions only.
   * `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_FWD_BWD` - FP32/FP16 F(3,3) Fwd/Bwd.
 * `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2` - `ConvBinWinogradRxSf3x2`, FP32/FP16 Fwd/Bwd F(3,2) Winograd.
-* `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3` - `ConvBinWinogradRxSf2x3`, FP32/FP16 Fwd/Bwd F(2,3) Winograd.
+* `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3` - `ConvBinWinogradRxSf2x3`, FP32/FP16 Fwd/Bwd F(2,3) Winograd, serves group convolutions only.
+* `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1` - `ConvBinWinogradRxSf2x3g1`, FP32/FP16 Fwd/Bwd F(2,3) Winograd, for non-group convolutions.
 
 * Multi-pass Winograd:
   * `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X2` - `ConvWinograd3x3MultipassWrW<3-2>`, WrW F(3,2), stride 2 only.
@@ -137,6 +136,30 @@ Winograd  Solutions:
   * `MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F6X3` - `ConvMPBidirectWinograd_xdlops<6-3>`, FWD/BWD F(6,3)
   * `MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM - `ConvMPBidirectWinograd*`, FWD/BWD FP16 experemental mode. Disabled by default. This mode is experimental. Use it at your own risk.
 * `MIOPEN_DEBUG_AMD_FUSED_WINOGRAD` - Fused FP32 F(3,3) Winograd, variable filter size.
+
+Implicit GEMM Solutions:
+* ASM Implicit GEMM
+    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1` - `ConvAsmImplicitGemmV4R1DynamicFwd`
+    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1_1X1` - `ConvAsmImplicitGemmV4R1DynamicFwd_1x1`
+    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_V4R1` - `ConvAsmImplicitGemmV4R1DynamicBwd`
+    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_V4R1` - `ConvAsmImplicitGemmV4R1DynamicWrw`
+    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS` - `ConvAsmImplicitGemmGTCDynamicFwdXdlops`
+    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS` - `ConvAsmImplicitGemmGTCDynamicBwdXdlops`
+    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS` - `ConvAsmImplicitGemmGTCDynamicWrwXdlops`
+* HIP Implicit GEMM
+    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1` - `ConvHipImplicitGemmV4R1Fwd`
+    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4` - `ConvHipImplicitGemmV4R4Fwd`
+    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1` - `ConvHipImplicitGemmBwdDataV1R1`
+    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1` - `ConvHipImplicitGemmBwdDataV4R1`
+    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1` - `ConvHipImplicitGemmV4R1WrW`
+    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4` - `ConvHipImplicitGemmV4R4WrW`
+    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_XDLOPS` - `ConvHipImplicitGemmForwardV4R4Xdlops`
+    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R5_XDLOPS` - `ConvHipImplicitGemmForwardV4R5Xdlops`
+    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1_XDLOPS` - `ConvHipImplicitGemmBwdDataV1R1Xdlops`
+    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS` - `ConvHipImplicitGemmBwdDataV4R1Xdlops`
+    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_XDLOPS` - `ConvHipImplicitGemmWrwV4R4Xdlops`
+    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_PADDED_GEMM_XDLOPS` - `ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm`
+    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_PADDED_GEMM_XDLOPS` - `ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm`
 
 ## rocBlas Logging and Behavior
 The `ROCBLAS_LAYER` environmental variable can be set to output GEMM information:

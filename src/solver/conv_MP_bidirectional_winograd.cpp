@@ -183,7 +183,7 @@ inline bool IsApplicableTransform(const ConvolutionContext& params)
         return false;
     if(!params.Is2d())
         return false;
-    if(params.direction.IsBackwardWrW())
+    if(!(params.direction.IsForward() || params.direction.IsBackwardData()))
         return false;
     if(!(params.IsFp32() || params.IsFp16()))
         return false;
@@ -312,6 +312,11 @@ bool ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsA
 {
     // HIP backend required for sending ptr (buffer + offset)
     // ROCBLAS for GEMM step
+
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
 
     if(!IsApplicableGEMM<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(params))
         return false;

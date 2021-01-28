@@ -126,6 +126,11 @@ static auto& IdRegistry()
     return data;
 }
 
+const std::unordered_map<uint64_t, AnySolver>& GetMapValueToAnySolver()
+{
+    return IdRegistry().value_to_solver;
+}
+
 Id::Id(uint64_t value_) : value(value_)
 {
     is_valid = (IdRegistry().value_to_str.find(value) != IdRegistry().value_to_str.end());
@@ -155,11 +160,15 @@ AnySolver Id::GetSolver() const
 
 std::string Id::GetAlgo(conv::Direction dir) const
 {
+    return ConvolutionAlgoToDirectionalString(GetAlgo(), dir);
+}
+
+miopenConvAlgorithm_t Id::GetAlgo() const
+{
     const auto it = IdRegistry().value_to_algo.find(value);
     if(it == IdRegistry().value_to_algo.end())
         MIOPEN_THROW(miopenStatusInternalError);
-
-    return ConvolutionAlgoToDirectionalString(it->second, dir);
+    return it->second;
 }
 
 inline bool Register(IdRegistryData& registry,
@@ -223,7 +232,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
         registry, ++id, ConvAsm7x7c3h224w224k64u2v2p3q3f1{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvOclDirectFwd11x11{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvOclDirectFwdGen{}, miopenConvolutionAlgoDirect);
-    RegisterWithSolver(registry, ++id, ConvOclDirectFwd3x3{}, miopenConvolutionAlgoDirect);
+    ++id; // removed ConvOclDirectFwd3x3
     RegisterWithSolver(registry, ++id, ConvOclDirectFwd{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvOclDirectFwdFused{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvOclDirectFwd1x1{}, miopenConvolutionAlgoDirect);
@@ -372,6 +381,11 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
                        ++id,
                        ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm{},
                        miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(registry, ++id, ConvBinWinogradRxSf2x3g1{}, miopenConvolutionAlgoWinograd);
+
+    RegisterWithSolver(registry, ++id, ConvDirectNaiveConvFwd{}, miopenConvolutionAlgoDirect);
+    RegisterWithSolver(registry, ++id, ConvDirectNaiveConvBwd{}, miopenConvolutionAlgoDirect);
+    RegisterWithSolver(registry, ++id, ConvDirectNaiveConvWrw{}, miopenConvolutionAlgoDirect);
 }
 
 } // namespace solver

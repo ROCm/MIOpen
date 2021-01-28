@@ -23,7 +23,9 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include <hip/hip_runtime.h>
+#endif
 
 extern "C" __global__ __launch_bounds__(256, 2) void wrw_reduction_hip(
     float* output, float* input, int out_length, int in_stride, int n_groups)
