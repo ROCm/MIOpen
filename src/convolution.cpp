@@ -402,7 +402,7 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
     {
         decltype(auto) gemm_ws_sz_pairs = AllGemmWorkspaceSize(ctx);
 
-        if(gemm_ws_sz_pairs.empty())
+        if(!gemm_ws_sz_pairs.empty())
         {
             decltype(auto) gemm_ws_szs =
                 gemm_ws_sz_pairs |
