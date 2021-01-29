@@ -45,6 +45,15 @@
 
 namespace miopen {
 
+namespace debug {
+
+/// If set to true, then always enable ConvDirectNaive* solver, regardless of environment value
+/// MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_* that control enable/disable of these solvers.
+/// Currently used during driver using naive kernel as gpu reference.
+extern bool AlwaysEnableConvDirectNaive;
+
+} // namespace debug
+
 struct AnyInvokeParams;
 
 namespace solver {
@@ -708,10 +717,16 @@ struct PerformanceImplicitGemmBwdDataV4R1Xdlops
     bool GemmAThreadCopyMoreGemmK;
     bool GemmBThreadCopyMoreGemmKPack;
 
-    PerformanceImplicitGemmBwdDataV4R1Xdlops(int, int, int, int, int, int, bool, bool);
+    bool use_spare_set;
+    PerformanceImplicitGemmBwdDataV4R1Xdlops(int, int, int, int, int, int, bool, bool, bool);
 
     PerformanceImplicitGemmBwdDataV4R1Xdlops();
-    PerformanceImplicitGemmBwdDataV4R1Xdlops(bool) : PerformanceImplicitGemmBwdDataV4R1Xdlops() {}
+    PerformanceImplicitGemmBwdDataV4R1Xdlops(bool spare);
+    PerformanceImplicitGemmBwdDataV4R1Xdlops(
+        int a, int b, int c, int d, int e, int f, bool g, bool h)
+        : PerformanceImplicitGemmBwdDataV4R1Xdlops(a, b, c, d, e, f, g, h, false)
+    {
+    }
 
     bool operator==(const PerformanceImplicitGemmBwdDataV4R1Xdlops& other) const;
 
@@ -2040,6 +2055,27 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm : SolverBase<ConvolutionCont
 
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
     Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const;
+};
+
+struct ConvDirectNaiveConvFwd : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    bool IsDynamic() const { return true; }
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+};
+
+struct ConvDirectNaiveConvBwd : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    bool IsDynamic() const { return true; }
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+};
+
+struct ConvDirectNaiveConvWrw : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    bool IsDynamic() const { return true; }
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
 struct AnySolver;
