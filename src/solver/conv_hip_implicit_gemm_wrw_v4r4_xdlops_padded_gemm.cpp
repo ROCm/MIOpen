@@ -1126,6 +1126,11 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsApplicable(const Convolutio
     if(!IsIndexRangeLargeEnough(ctx))
         return false;
 
+    if(!ctx.IsLayoutDefault())
+    {
+        return false;
+    }
+
     // this particular EuristicInit is so comprehensive, that if it cannot predict a valid
     // performance config, the problem is probably not applicable
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm config;
