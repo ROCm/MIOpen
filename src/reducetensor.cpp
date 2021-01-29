@@ -30,6 +30,7 @@
 #include <miopen/reduce_common.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/reducetensor.hpp>
+#include <miopen/stringutils.hpp>
 
 #include <cassert>
 #include <cstddef>
