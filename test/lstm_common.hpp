@@ -2928,6 +2928,9 @@ struct lstm_basic_driver : test_driver
     {
 
 #if(MIOPEN_BACKEND_OPENCL == 1)
+        std::cout << "Skip test for Issue #692: " << std::endl;
+        return;
+
         if(type == miopenHalf)
             exit(EXIT_SUCCESS);
 #endif
