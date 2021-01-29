@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,40 +23,18 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#pragma once
 
-#ifndef GUARD_GET_HANDLE_HPP
-#define GUARD_GET_HANDLE_HPP
+#include <string>
+#include <miopen/conv/context.hpp>
 
-#include <miopen/handle.hpp>
-#include <thread>
+namespace miopen {
 
-#ifndef MIOPEN_TEST_USE_GLOBAL_HANDLE
-#define MIOPEN_TEST_USE_GLOBAL_HANDLE 1
-#endif
+namespace solver {
 
-#if MIOPEN_TEST_USE_GLOBAL_HANDLE
+std::string ConvDirectNaiveConvKernelName(const ConvolutionContext& ctx);
+std::string ConvDirectNaiveConvKernelFile(const ConvolutionContext& ctx);
+std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx);
 
-static inline miopen::Handle& get_handle()
-{
-    static miopen::Handle h{};
-    static std::thread::id id = std::this_thread::get_id();
-    if(std::this_thread::get_id() != id)
-    {
-        std::cout << "Cannot use handle across multiple threads\n";
-        std::abort();
-    }
-    return h;
-}
-
-#else
-
-static inline miopen::Handle get_handle() { return miopen::Handle{}; }
-
-#endif
-
-static inline miopen::Handle get_handle_with_stream(const miopen::Handle& h)
-{
-    return miopen::Handle{h.GetStream()};
-}
-
-#endif
+} // namespace solver
+} // namespace miopen

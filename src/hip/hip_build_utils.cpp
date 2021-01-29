@@ -101,25 +101,30 @@ struct LcOptionTargetStrings
     }
 };
 
-boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
-                                 const std::string& filename,
-                                 std::string src,
-                                 std::string params,
-                                 const TargetProperties& target)
+static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
+                                            const std::string& filename,
+                                            std::string src,
+                                            std::string params,
+                                            const TargetProperties& target,
+                                            const bool testing_mode)
 {
 #ifdef __linux__
     MIOPEN_LOG_I("filename: " << filename);
     MIOPEN_LOG_I("src: " << src);
     MIOPEN_LOG_I("params: " << params);
 
-    // write out the include files
-    auto inc_list = GetKernelIncList();
-    auto inc_path = tmp_dir->path;
-    boost::filesystem::create_directories(inc_path);
-    for(auto inc_file : inc_list)
+    // Write out the include files
+    // Let's assume includes are overkill for feature tests & optimize'em out.
+    if(!testing_mode)
     {
-        auto inc_src = GetKernelInc(inc_file);
-        WriteFile(inc_src, inc_path / inc_file);
+        auto inc_list = GetKernelIncList();
+        auto inc_path = tmp_dir->path;
+        boost::filesystem::create_directories(inc_path);
+        for(auto inc_file : inc_list)
+        {
+            auto inc_src = GetKernelInc(inc_file);
+            WriteFile(inc_src, inc_path / inc_file);
+        }
     }
 
     // Invoke mlir kernel generator if filename has mlir in it
@@ -190,7 +195,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
         if(params.find("-std=") == std::string::npos)
             params += " --std=c++11";
 
-        if(HipCompilerVersion() < external_tool_version_t{4, 0, 20482})
+        if(HipCompilerVersion() < external_tool_version_t{4, 1, 0})
             params += " --cuda-gpu-arch=" + lots.device;
         else
             params += " --cuda-gpu-arch=" + lots.device + lots.xnack;
@@ -244,8 +249,9 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     auto bin_file = tmp_dir->path / (filename + ".o");
 
     // compile
+    const std::string redirector = testing_mode ? " 1>/dev/null 2>&1" : "";
     tmp_dir->Execute(env + std::string(" ") + MIOPEN_HIP_COMPILER,
-                     params + filename + " -o " + bin_file.string());
+                     params + filename + " -o " + bin_file.string() + redirector);
     if(!boost::filesystem::exists(bin_file))
         MIOPEN_THROW(filename + " failed to compile");
 #ifdef EXTRACTKERNEL_BIN
@@ -265,18 +271,14 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
 
         return hsaco->path();
     }
-    else
 #endif
-#ifdef MIOPEN_OFFLOADBUNDLER_BIN
-        // clang-format off
+#if defined(MIOPEN_OFFLOADBUNDLER_BIN) && !MIOPEN_BACKEND_HIP
+    // Unbundling is not required for HIP runtime && hip-clang
     if(IsHipClangCompiler())
     {
-        // clang-format on
-
-        // call clang-offload-bundler
         tmp_dir->Execute(MIOPEN_OFFLOADBUNDLER_BIN,
                          "--type=o --targets=hip-amdgcn-amd-amdhsa-" +
-                             (HipCompilerVersion() < external_tool_version_t{4, 0, 20482}
+                             (HipCompilerVersion() < external_tool_version_t{4, 1, 0}
                                   ? lots.device
                                   : (std::string{'-'} + lots.device + lots.xnack)) +
                              " --inputs=" + bin_file.string() + " --outputs=" + bin_file.string() +
@@ -303,6 +305,54 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     (void)params;
     MIOPEN_THROW("HIP kernels are only supported in Linux");
 #endif
+}
+
+static bool
+HipBuildTest(const std::string& program_name, std::string params, const TargetProperties& target)
+{
+    boost::optional<miopen::TmpDir> dir(program_name);
+    std::string source = miopen::GetKernelSrc(program_name);
+    try
+    {
+        std::ignore = HipBuildImpl(dir, program_name, source, params, target, true);
+    }
+    catch(...)
+    {
+        return false;
+    }
+    return true;
+}
+
+static bool DetectIfBufferAtomicFaddReturnsFloatImpl(const TargetProperties& target)
+{
+    const std::string program_name("detect_llvm_amdgcn_buffer_atomic_fadd_f32_float.cpp");
+    std::string params;
+
+    if(HipBuildTest(program_name, params, target))
+    {
+        MIOPEN_LOG_NQI("Yes");
+        return true;
+    }
+    MIOPEN_LOG_NQI("No");
+    return false;
+}
+
+static bool DetectIfBufferAtomicFaddReturnsFloat(const TargetProperties& target)
+{
+    static const bool once = DetectIfBufferAtomicFaddReturnsFloatImpl(target);
+    return once;
+}
+
+boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
+                                 const std::string& filename,
+                                 std::string src,
+                                 std::string params,
+                                 const TargetProperties& target)
+{
+    if(target.Name() == "gfx908")
+        if(DetectIfBufferAtomicFaddReturnsFloat(target))
+            params += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
+    return HipBuildImpl(tmp_dir, filename, src, params, target, false);
 }
 
 void bin_file_to_str(const boost::filesystem::path& file, std::string& buf)

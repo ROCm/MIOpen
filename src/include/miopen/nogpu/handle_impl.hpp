@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,40 +23,43 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#ifndef GUARD_MIOPEN_NOGPU_HANDLE_IMPL_HPP_
+#define GUARD_MIOPEN_NOGPU_HANDLE_IMPL_HPP_
+namespace miopen {
 
-#ifndef GUARD_GET_HANDLE_HPP
-#define GUARD_GET_HANDLE_HPP
-
-#include <miopen/handle.hpp>
-#include <thread>
-
-#ifndef MIOPEN_TEST_USE_GLOBAL_HANDLE
-#define MIOPEN_TEST_USE_GLOBAL_HANDLE 1
-#endif
-
-#if MIOPEN_TEST_USE_GLOBAL_HANDLE
-
-static inline miopen::Handle& get_handle()
+struct HandleImpl
 {
-    static miopen::Handle h{};
-    static std::thread::id id = std::this_thread::get_id();
-    if(std::this_thread::get_id() != id)
+    using StreamPtr = std::shared_ptr<typename std::remove_pointer<hipStream_t>::type>;
+
+    HandleImpl() : ctx() {}
+
+    void elapsed_time(hipEvent_t start, hipEvent_t stop)
     {
-        std::cout << "Cannot use handle across multiple threads\n";
-        std::abort();
+        if(enable_profiling)
+            hipEventElapsedTime(&this->profiling_result, start, stop);
     }
-    return h;
+
+    std::function<void(hipEvent_t, hipEvent_t)> elapsed_time_handler()
+    {
+        return std::bind(
+            &HandleImpl::elapsed_time, this, std::placeholders::_1, std::placeholders::_2);
+    }
+
+    bool enable_profiling  = false;
+    StreamPtr stream       = nullptr;
+    float profiling_result = 0.0;
+    int device             = -1;
+    std::string device_name;
+    std::size_t num_cu             = 0;
+    std::size_t local_mem_size     = 0;
+    std::size_t global_mem_size    = 0;
+    std::size_t img3d_max_width    = 0;
+    std::size_t warp_size          = 64;
+    std::size_t max_mem_alloc_size = 0;
+    Allocator allocator{};
+    KernelCache cache;
+    std::int64_t ctx;
+    TargetProperties target_properties;
+};
 }
-
-#else
-
-static inline miopen::Handle get_handle() { return miopen::Handle{}; }
-
-#endif
-
-static inline miopen::Handle get_handle_with_stream(const miopen::Handle& h)
-{
-    return miopen::Handle{h.GetStream()};
-}
-
-#endif
+#endif // GUARD_MIOPEN_NOGPU_HANDLE_IMPL_HPP_

@@ -79,7 +79,7 @@ int DetectCodeObjectOptionSyntax()
 
     if(syntax == 0)
     {
-        if(HipCompilerVersion() >= external_tool_version_t{4, 0, 20482})
+        if(HipCompilerVersion() >= external_tool_version_t{4, 1, 0})
             return 4;
         else
             return 1;
@@ -100,7 +100,7 @@ int DetectCodeObjectVersion()
 
     if(co_version == 0)
     {
-        if(HipCompilerVersion() >= external_tool_version_t{4, 0, 20482})
+        if(HipCompilerVersion() >= external_tool_version_t{4, 1, 0})
             return 4;
         else if(HipCompilerVersion() >= external_tool_version_t{3, 0, -1})
             return 3;
@@ -156,7 +156,7 @@ static hipModulePtr CreateModule(const boost::filesystem::path& hsaco_file)
     auto status = hipModuleLoad(&raw_m, hsaco_file.string().c_str());
     hipModulePtr m{raw_m};
     if(status != hipSuccess)
-        MIOPEN_THROW_HIP_STATUS(status, "Failed creating module");
+        MIOPEN_THROW_HIP_STATUS(status, "Failed creating module from file " + hsaco_file.string());
     return m;
 }
 
