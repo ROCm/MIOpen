@@ -29,6 +29,7 @@
 #cmakedefine01 MIOPEN_BACKEND_OPENCL
 #cmakedefine01 MIOPEN_BACKEND_HCC
 #cmakedefine01 MIOPEN_BACKEND_HIP
+#cmakedefine01 MIOPEN_MODE_NOGPU
 #cmakedefine01 MIOPEN_USE_MIOPENTENSILE
 #cmakedefine01 MIOPEN_USE_MIOPENGEMM
 #cmakedefine01 MIOPEN_USE_ROCBLAS
@@ -45,13 +46,14 @@
 #cmakedefine01 MIOPEN_EMBED_DB
 #cmakedefine01 BUILD_SHARED_LIBS
 #cmakedefine01 MIOPEN_DISABLE_SYSDB
+#cmakedefine01 MIOPEN_ENABLE_SQLITE_BACKOFF
 
 // "_PACKAGE_" to avoid name contentions: the macros like
 // HIP_VERSION_MAJOR are defined in hip_version.h.
 // clang-format off
-#define HIP_PACKAGE_VERSION_MAJOR @hip_VERSION_MAJOR@
-#define HIP_PACKAGE_VERSION_MINOR @hip_VERSION_MINOR@
-#define HIP_PACKAGE_VERSION_PATCH @hip_VERSION_PATCH@
+#define HIP_PACKAGE_VERSION_MAJOR @MIOPEN_hip_VERSION_MAJOR@
+#define HIP_PACKAGE_VERSION_MINOR @MIOPEN_hip_VERSION_MINOR@
+#define HIP_PACKAGE_VERSION_PATCH @MIOPEN_hip_VERSION_PATCH@
 // clang-format on
 
 // clang-format off
