@@ -1057,7 +1057,8 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlops::IsApplicable(const ConvolutionConte
     if(!ctx.rmv.IsV3())
         return false;
 
-    if(ctx.group_counts != 1)
+    // So far, "group" is not supported by the bwd fp32 kernels
+    if(ctx.IsFp32() && ctx.group_counts != 1)
         return false;
 
     if(!ctx.IsLayoutDefault())
