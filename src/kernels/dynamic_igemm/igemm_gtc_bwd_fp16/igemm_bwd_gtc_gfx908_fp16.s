@@ -246,7 +246,6 @@
 .include "igemm_bwd_gtc_gfx908_fp16_064x004.inc"
 .include "igemm_bwd_gtc_gfx908_fp16_016x016.inc"
 .include "igemm_bwd_gtc_gfx908_fp16_004x064.inc"
-.include "igemm_upsampling_clear_nchw_fp16.inc"
 ;---------------------------------------------------
 
 .amdgpu_metadata
@@ -36388,38 +36387,5 @@ amdhsa.kernels:
     - { .name: shift_pack_0, .size: 4, .offset: 172, .value_kind: by_value, .value_type: i32}
     - { .name: shift_pack_1, .size: 4, .offset: 176, .value_kind: by_value, .value_type: i32}
     - { .name: _pack_0   , .size: 4, .offset: 180, .value_kind: by_value, .value_type: i32}
-  - .name: igemm_upsampling_clear_nchw_fp16
-    .symbol: igemm_upsampling_clear_nchw_fp16.kd
-    .sgpr_count: 50
-    .vgpr_count: 20
-    .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
-    .group_segment_fixed_size: 0
-    .private_segment_fixed_size: 0
-    .wavefront_size: 64
-    .reqd_workgroup_size : [256, 1, 1]
-    .max_flat_workgroup_size: 256
-    .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: hi        , .size: 4, .offset:   8, .value_kind: by_value, .value_type: i32}
-    - { .name: wi        , .size: 4, .offset:  12, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  16, .value_kind: by_value, .value_type: i32}
-    - { .name: k         , .size: 4, .offset:  20, .value_kind: by_value, .value_type: i32}
-    - { .name: c         , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
-    - { .name: ho        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: wo        , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_h  , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: stride_w  , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_h, .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
-    - { .name: dilation_w, .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_h     , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
-    - { .name: pad_w     , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
-    - { .name: x         , .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
-    - { .name: group     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
-    - { .name: magic_0   , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: magic_1   , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
-    - { .name: magic_2   , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
-    - { .name: shift_pack_0, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
 ...
 .end_amdgpu_metadata
