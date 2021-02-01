@@ -30,6 +30,7 @@
 #include <miopen/reduce_common.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/reducetensor.hpp>
+#include <miopen/stringutils.hpp>
 
 #include <cassert>
 #include <cstddef>
@@ -37,6 +38,8 @@
 #include <cmath>
 #include <ostream>
 #include <iostream>
+
+#define WORKAROUND_MIOPEN_ISSUE_557 1
 
 namespace miopen {
 
@@ -551,6 +554,11 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
 
     // to remove the warning from clang-tidy checking
     param += " -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_FP16=0 ";
+
+#if WORKAROUND_MIOPEN_ISSUE_557
+    if(StartsWith(handle.GetDeviceName(), "gfx10"))
+        param += " -DCK_USE_AMD_BUFFER_ADDRESSING=0 ";
+#endif
 
     std::string program_name = "gridwise_generic_reduction.cpp";
     std::string algo_name    = "generic_reduce_tensor";
