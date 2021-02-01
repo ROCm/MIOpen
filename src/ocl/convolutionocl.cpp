@@ -1434,7 +1434,7 @@ static std::size_t GetSolutionCount(Handle& handle, const ProblemDescription& pr
 }
 
 static const char immFallbackFailed[] =
-    "Requested convolution is not supported or Immediate mode Fallback has failed.";
+    "Requested convolution is not supported or Immediate mode Fallback unsuccessful.";
 
 std::size_t ConvolutionDescriptor::GetSolutionCountFallback(Handle& handle,
                                                             const ProblemDescription& problem) const

@@ -1081,7 +1081,7 @@ bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op,
                     }
                     else
                     {
-                        MIOPEN_LOG_I2("Key Map Match failed");
+                        MIOPEN_LOG_I2("Key Map Match unsuccessful");
                     }
                 }
             }
