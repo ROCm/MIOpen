@@ -918,8 +918,9 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     miopenStatus_t status = miopenStatusUnknownError;
     if(!isValid() || (lu.GetCurVertex(handle) == nullptr))
     {
-        MIOPEN_LOG_I2("A previous attempt to add an operator failed or the GPU architecture is not "
-                      "supported for the fusion plan");
+        MIOPEN_LOG_I2(
+            "A previous attempt to add an operator unsuccessful or the GPU architecture is not "
+            "supported for the fusion plan");
         MIOPEN_THROW(miopenStatusBadParm);
     }
     network_config =
