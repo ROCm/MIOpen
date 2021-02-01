@@ -190,9 +190,10 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         return false;
     }
 
-    constexpr auto GIB           = static_cast<int64_t>(1024) * 1024 * 1024;
-    constexpr auto TIB           = GIB * 1024;
-    constexpr auto ELEM_SZ       = static_cast<int64_t>(sizeof(float));
+    constexpr auto GIB                         = static_cast<int64_t>(1024) * 1024 * 1024;
+    constexpr auto TIB                         = GIB * 1024;
+    constexpr auto ELEM_SZ                     = static_cast<int64_t>(sizeof(float));
+    constexpr int64_t SHADER_FEATURE_INDEX_MAX = static_cast<uint32_t>(-1);
     const auto IN_FEATURE_COUNT  = static_cast<int64_t>(params.batch_sz) * params.n_inputs;
     const auto OUT_FEATURE_COUNT = static_cast<int64_t>(params.batch_sz) * params.n_outputs;
     const auto IN_IMG_SZ         = ELEM_SZ * params.in_height * params.in_width;
@@ -214,13 +215,13 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         && (params.n_inputs / params.group_counts) % 4 == 0 /// \todo: remove restriction that (n_inputs/group_counts) must be multiple of 4
         && params.in_width > 3
         && params.in_width <= 1000
-        && IN_IMG_SZ < GIB
-        && OUT_IMG_SZ < 4 * GIB
-        && IN_FEATURE_COUNT  < 4 * GIB
-        && OUT_FEATURE_COUNT < 4 * GIB
-        && IN_BUF_SZ  < 256 * TIB
-        && OUT_BUF_SZ < 256 * TIB
-        && WEI_BUF_SZ < 4 * GIB
+        && IN_IMG_SZ  <= GIB
+        && OUT_IMG_SZ <= 4 * GIB
+        && IN_FEATURE_COUNT  - 1 <= SHADER_FEATURE_INDEX_MAX
+        && OUT_FEATURE_COUNT - 1 <= SHADER_FEATURE_INDEX_MAX
+        && IN_BUF_SZ  <= 256 * TIB
+        && OUT_BUF_SZ <= 256 * TIB
+        && WEI_BUF_SZ <= 4 * GIB
         && params.IsFp32()
         && params.in_layout == "NCHW";
         // && (params.forward ? params.weights_layout == "KCHW" : params.weights_layout == "CKHW" )
