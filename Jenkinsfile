@@ -260,13 +260,6 @@ pipeline {
                     }
                 }
 
-                stage('OpenCL Debug Fiji') {
-                    agent{ label rocmnode("fiji") }
-                    steps{
-                        buildJob('g++-5', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', gpu_arch: "gfx803")
-                    }
-                }
-
                 stage('Hip/hcc Release') {
                     agent{ label rocmnode("vega") }
                     steps{
