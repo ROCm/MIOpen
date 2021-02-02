@@ -24,6 +24,8 @@
  *
  *******************************************************************************/
 
+/// SWDEV-257056?focusedCommentId=6654244&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-6654244
+/// \todo Create dedicated ticket and rename macro.
 #define WORKAROUND_SWDEV_257056_PCH_MISSING_MACROS 1
 
 #include <miopen/config.h>
@@ -56,7 +58,7 @@ std::string Write2s(kernel_type_t kern_type)
     if(kern_type == miopenHIPKernelType)
         return "#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS\n"
                "#include <hip/hip_runtime.h>\n"
-#if WORKAROUND_SWDEV_257056_PCH_MISSING_MACROS && (HIP_PACKAGE_VERSION_FLAT <= 3010999999)
+#if WORKAROUND_SWDEV_257056_PCH_MISSING_MACROS
                "#else\n"
                "#ifdef hipThreadIdx_x\n"
                "#undef hipThreadIdx_x\n"
@@ -112,13 +114,16 @@ void run2s(miopen::Handle& h, std::size_t n, kernel_type_t kern_type)
     CHECK(data_out == data_in);
 }
 
-void test_multithreads(kernel_type_t kern_type)
+void test_multithreads(kernel_type_t kern_type, const bool with_stream = false)
 {
-    auto&& h = get_handle();
-    std::thread([&] { run2s(h, 16, kern_type); }).join();
-    std::thread([&] { run2s(h, 32, kern_type); }).join();
-    std::thread([&] { std::thread([&] { run2s(h, 64, kern_type); }).join(); }).join();
-    run2s(h, 4, kern_type);
+    auto&& h1 = get_handle();
+    auto&& h2 = get_handle_with_stream(h1);
+    std::thread([&] { run2s(with_stream ? h2 : h1, 16, kern_type); }).join();
+    std::thread([&] { run2s(with_stream ? h2 : h1, 32, kern_type); }).join();
+    std::thread([&] {
+        std::thread([&] { run2s(with_stream ? h2 : h1, 64, kern_type); }).join();
+    }).join();
+    run2s(with_stream ? h2 : h1, 4, kern_type);
 }
 
 std::string WriteError(kernel_type_t kern_type)
@@ -254,6 +259,7 @@ int main()
 #endif
     }
     test_multithreads(miopenOpenCLKernelType);
+    test_multithreads(miopenOpenCLKernelType, true);
     test_errors(miopenOpenCLKernelType);
     test_arch_name();
 // Warnings currently dont work in opencl
