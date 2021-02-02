@@ -434,7 +434,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "MIOPEN_LOG_LEVEL=5 MIOPEN_COMPILE_PARALLEL_LEVEL=1",  image+'-hip-clang', "/usr/local", cmd, "gfx900;gfx906")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx900;gfx906")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
