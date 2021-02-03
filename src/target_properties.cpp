@@ -23,8 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#define WORKAROUND_SWDEV_262823 1
-
 #include <miopen/env.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/stringutils.hpp>
@@ -59,11 +57,7 @@ static std::string GetDeviceNameFromMap(const std::string& in)
     if(p_asciz != nullptr && strlen(p_asciz) > 0)
         return {p_asciz};
 
-#if WORKAROUND_SWDEV_262823
     const auto name = in.substr(0, in.find(':')); // str.substr(0, npos) returns str.
-#else
-    const auto name(in);
-#endif
 
     auto match = device_name_map.find(name);
     if(match != device_name_map.end())
