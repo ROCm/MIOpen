@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,39 +24,17 @@
  *
  *******************************************************************************/
 
-#ifndef GUARD_GET_HANDLE_HPP
-#define GUARD_GET_HANDLE_HPP
+typedef int32_t int32x4_t __attribute__((ext_vector_type(4)));
 
-#include <miopen/handle.hpp>
-#include <thread>
+__device__ float
+__llvm_amdgcn_buffer_atomic_add_f32(float vdata,
+                                    int32x4_t rsrc,
+                                    int32_t vindex,
+                                    int32_t offset,
+                                    bool slc) __asm("llvm.amdgcn.buffer.atomic.fadd.f32");
 
-#ifndef MIOPEN_TEST_USE_GLOBAL_HANDLE
-#define MIOPEN_TEST_USE_GLOBAL_HANDLE 1
-#endif
-
-#if MIOPEN_TEST_USE_GLOBAL_HANDLE
-
-static inline miopen::Handle& get_handle()
+extern "C" __global__ void test_llvm_amdgcn_buffer_atomic_fadd_f32_float(float* p_global)
 {
-    static miopen::Handle h{};
-    static std::thread::id id = std::this_thread::get_id();
-    if(std::this_thread::get_id() != id)
-    {
-        std::cout << "Cannot use handle across multiple threads\n";
-        std::abort();
-    }
-    return h;
+    int32x4_t buffer_resource{0};
+    (void)__llvm_amdgcn_buffer_atomic_add_f32(*p_global, buffer_resource, 0, 0, false);
 }
-
-#else
-
-static inline miopen::Handle get_handle() { return miopen::Handle{}; }
-
-#endif
-
-static inline miopen::Handle get_handle_with_stream(const miopen::Handle& h)
-{
-    return miopen::Handle{h.GetStream()};
-}
-
-#endif

@@ -255,7 +255,7 @@ if(MIOPEN_ENABLE_SQLITE AND MIOPEN_ENABLE_SQLITE_KERN_CACHE)
     list(APPEND MIOpen_Source kern_db.cpp bz2.cpp include/miopen/kern_db.hpp)
 endif()
 
-if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
+if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
     file(GLOB_RECURSE COMPOSABLE_KERNEL_INCLUDE "kernels/composable_kernel/include/*/*.hpp")
     file(GLOB_RECURSE COMPOSABLE_KERNEL_SOURCE "kernels/composable_kernel/src/*/*.cpp")
     file(GLOB_RECURSE COMPOSABLE_KERNEL_DYNAMIC_ASM_SOURCE "kernels/dynamic_igemm/*.s")
@@ -340,6 +340,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ${COMPOSABLE_KERNEL_DYNAMIC_CPP_SOURCE}
         ${GPU_REFERENCE_KERNEL_HIP}
         ${GPU_REFERENCE_KERNEL_ASM}
+        kernels/detect_llvm_amdgcn_buffer_atomic_fadd_f32_float.cpp
         kernels/MIOpenCheckNumerics.cl
         kernels/MIOpenBatchNormActivBwdPerAct.cl
         kernels/MIOpenBatchNormActivBwdSpatial.cl
@@ -497,7 +498,17 @@ if( MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
         )
 endif()
 
-if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
+if( MIOPEN_BACKEND STREQUAL "HIPNOGPU")
+    list(APPEND MIOpen_Source
+        hip/hiperrors.cpp
+        nogpu/handle.cpp
+        hipoc/hipoc_kernel.cpp
+        hipoc/hipoc_program.cpp
+        include/miopen/nogpu/handle_impl.hpp
+        )
+endif()
+
+if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
     list(APPEND MIOpen_Source ${PROJECT_BINARY_DIR}/include/miopen_kernels.h)
     add_custom_command(
         OUTPUT ${PROJECT_BINARY_DIR}/include/miopen_kernels.h
