@@ -73,6 +73,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <miopen/problem_description.hpp>
 
 #if MIOPEN_BACKEND_OPENCL
+#define CL_TARGET_OPENCL_VERSION 120
 #ifdef __APPLE__
 #include <OpenCL/opencl.h>
 #else
