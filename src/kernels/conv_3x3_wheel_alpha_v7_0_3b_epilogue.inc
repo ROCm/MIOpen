@@ -27,7 +27,7 @@ s_endpgm
 .Lfunc_end0:
    .size miopenSp3AsmConv3x3F, .Lfunc_end0 - miopenSp3AsmConv3x3F
 
-.if ROCM_METADATA_VERSION == 5
+.if (ROCM_METADATA_VERSION == 5 || ROCM_METADATA_VERSION == 6)
 workgroup_size_x = 512
 .amdgcn.next_free_sgpr = 87
 .amdgcn.next_free_vgpr = 128
@@ -57,6 +57,7 @@ __sgpr_reserve_flatscr_default = 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
 
+.if ROCM_METADATA_VERSION == 5
 .macro METADATA sc,wc,wg_x
 .amdgpu_metadata
 ---
@@ -97,6 +98,31 @@ amdhsa.kernels:
 ...
 .end_amdgpu_metadata
 .endm // METADATA
+.elseif ROCM_METADATA_VERSION == 6
+.include "target_id.inc"
+.macro METADATA sc,vc,wg_x,lds_sz=65536, kernarg_size=112, kernel_name=miopenSp3AsmConv3x3F
+    METADATA_final \kernel_name, \sc, \vc, \kernarg_size, \lds_sz, \wg_x, 1, 1, \wg_x, 64, "
+    - { .size: 4, .offset: 0,   .value_kind: by_value,      .value_type: i32, .name: N }
+    - { .size: 4, .offset: 4,   .value_kind: by_value,      .value_type: i32, .name: C }
+    - { .size: 4, .offset: 8,   .value_kind: by_value,      .value_type: i32, .name: H }
+    - { .size: 4, .offset: 12,  .value_kind: by_value,      .value_type: i32, .name: W }
+    - { .size: 4, .offset: 16,  .value_kind: by_value,      .value_type: i32, .name: K }
+    - { .size: 4, .offset: 20,  .value_kind: by_value,      .value_type: i32, .name: n_groups }
+    - { .size: 4, .offset: 24,  .value_kind: by_value,      .value_type: i32, .name: flags }
+    - { .size: 4, .offset: 28,  .value_kind: by_value,      .value_type: i32, .name: reserved }
+    - { .size: 8, .offset: 32,  .value_kind: global_buffer, .value_type: f32, .name: in,      .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 40,  .value_kind: global_buffer, .value_type: f32, .name: weights, .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 48,  .value_kind: global_buffer, .value_type: f32, .name: out,     .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 56,  .value_kind: global_buffer, .value_type: i32, .name: rsv_ptr, .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 64,  .value_kind: hidden_global_offset_x, .value_type: i64 }
+    - { .size: 8, .offset: 72,  .value_kind: hidden_global_offset_y, .value_type: i64 }
+    - { .size: 8, .offset: 80,  .value_kind: hidden_global_offset_z, .value_type: i64 }
+    - { .size: 8, .offset: 88,  .value_kind: hidden_none,   .value_type: i8 }
+    - { .size: 8, .offset: 96,  .value_kind: hidden_none,   .value_type: i8 }
+    - { .size: 8, .offset: 104, .value_kind: hidden_none,   .value_type: i8 }
+"
+.endm
+.endif
 
 .altmacro
 .macro METADATA_WRAPPER sc,wc,wg_x

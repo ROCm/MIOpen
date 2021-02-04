@@ -982,7 +982,7 @@ s_endpgm
 waves_in_group = waves_c_in_group * waves_k_in_group
 workgroup_size_x = waves_in_group * 64
 
-.if ROCM_METADATA_VERSION == 5
+.if (ROCM_METADATA_VERSION == 5 || ROCM_METADATA_VERSION == 6)
 .rodata
 .p2align 6
 .amdhsa_kernel miopenGcnAsmConv1x1U
@@ -1008,6 +1008,7 @@ workgroup_size_x = waves_in_group * 64
 .end_amdhsa_kernel
 
 .altmacro
+.if ROCM_METADATA_VERSION == 5
 .macro METADATA sc,vc,wg_x,lds_sz,kernarg_size
 .amdgpu_metadata
 ---
@@ -1042,6 +1043,25 @@ amdhsa.kernels:
 ...
 .end_amdgpu_metadata
 .endm // METADATA
+.elseif ROCM_METADATA_VERSION == 6
+.include "target_id.inc"
+.macro METADATA sc,vc,wg_x,lds_sz, kernarg_size, kernel_name=miopenGcnAsmConv1x1U
+    METADATA_final \kernel_name, \sc, \vc, \kernarg_size, \lds_sz, \wg_x, 1, 1, \wg_x, 64, "
+    - { .size: 4, .offset:  0, .value_kind: by_value, .value_type: i32, .name: N }
+    - { .size: 4, .offset:  4, .value_kind: by_value, .value_type: i32, .name: C }
+    - { .size: 4, .offset:  8, .value_kind: by_value, .value_type: i32, .name: H }
+    - { .size: 4, .offset: 12, .value_kind: by_value, .value_type: i32, .name: W }
+    - { .size: 4, .offset: 16, .value_kind: by_value, .value_type: i32, .name: K }
+    - { .size: 4, .offset: 20, .value_kind: by_value, .value_type: i32, .name: n_groups }
+    - { .size: 4, .offset: 24, .value_kind: by_value, .value_type: i32, .name: unused_0 }
+    - { .size: 4, .offset: 28, .value_kind: by_value, .value_type: i32, .name: unused_1 }
+    - { .size: 8, .offset: 32, .value_kind: global_buffer, .value_type: f32, .name: x,        .address_space: global, .is_const: true }
+    - { .size: 8, .offset: 40, .value_kind: global_buffer, .value_type: f32, .name: w,        .address_space: global, .is_const: true }
+    - { .size: 8, .offset: 48, .value_kind: global_buffer, .value_type: f32, .name: y,        .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 56, .value_kind: global_buffer, .value_type: i32, .name: ret_addr, .address_space: global, .is_const: false }
+"
+.endm
+.endif
 
 METADATA %.AUTO_SGPR_COUNT, %.AUTO_VGPR_COUNT, %workgroup_size_x, %.AUTO_LDS_BYTE_SIZE, %KERNEL_ARGUMENTS_SIZE
 

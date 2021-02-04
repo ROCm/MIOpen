@@ -29,12 +29,12 @@
 .end
 .endif
 
-.if !((ROCM_METADATA_VERSION == 4) || (ROCM_METADATA_VERSION == 5))
+.if !((ROCM_METADATA_VERSION == 4) || (ROCM_METADATA_VERSION == 5) || (ROCM_METADATA_VERSION == 6))
 .error "Unsupported ROCM_METADATA_VERSION"
 .end
 .endif
 
-.if ROCM_METADATA_VERSION == 5
+.if (ROCM_METADATA_VERSION == 5 || ROCM_METADATA_VERSION == 6)
     // The ".option.machine..." symbols pre-defined by the Assember
     // in code-object v2 mode are not exist in CO v3 mode, but we have
     // ".amdgcn.gfx..." symbols instead. Let's define the ".option.machine..."

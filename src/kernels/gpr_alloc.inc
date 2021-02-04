@@ -153,7 +153,7 @@
 	.AUTO_VGPR_GRANULATED_COUNT = (.AUTO_VGPR_COUNT - 1)/4
 	.AUTO_SGPR_GRANULATED_COUNT = (.AUTO_SGPR_COUNT - 1)/8
 .endif	
-.if ROCM_METADATA_VERSION == 5
+.if (ROCM_METADATA_VERSION == 5 || ROCM_METADATA_VERSION == 6)
      __amdhsa_next_free_sgpr = .AUTO_SGPR_COUNT - (2 * (__sgpr_reserve_flatscr + __sgpr_reserve_xnack + __sgpr_reserve_vcc))
 .endif	
 	.AUTO_LDS_BYTE_SIZE = .LDS_NEXT_FREE

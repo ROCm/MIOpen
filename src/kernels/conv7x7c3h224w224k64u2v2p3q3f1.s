@@ -767,7 +767,7 @@ loop_channel:
   buffer_store_dword v15, v21, s[16:19], s8 offen offset:0
   s_endpgm
 
-.if ROCM_METADATA_VERSION == 5
+.if (ROCM_METADATA_VERSION == 5 || ROCM_METADATA_VERSION == 6)
 .rodata
 .p2align 6
 
@@ -797,6 +797,7 @@ __amdhsa_next_free_sgpr = SGPR_COUNT - (2 * (__sgpr_reserve_flatscr_default + __
 .end_amdhsa_kernel
 
 .altmacro
+.if ROCM_METADATA_VERSION == 5
 .macro METADATA sc, vc, lds_size
 .amdgpu_metadata
 ---
@@ -823,6 +824,17 @@ amdhsa.kernels:
 ...
 .end_amdgpu_metadata
 .endm // METADATA
+.elseif ROCM_METADATA_VERSION == 6
+.include "target_id.inc"
+.macro METADATA sc,vc,lds_sz, kernarg_size=32, kernel_name=miopenGcnAsmConv7x7c3h224w224k64u2v2p3q3f1
+    METADATA_final \kernel_name, \sc, \vc, \kernarg_size, \lds_sz, 64, 8, 1, 256, 64, "
+    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: f32, .name: in,      .address_space: global, .is_const: true }
+    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: f32, .name: weights, .address_space: global, .is_const: true }
+    - { .size: 8, .offset: 16, .value_kind: global_buffer, .value_type: f32, .name: out,     .address_space: global, .is_const: false }
+    - { .size: 4, .offset: 24, .value_kind: by_value,      .value_type: f32, .name: padding_val }
+"
+.endm
+.endif
 
 METADATA %SGPR_COUNT, %VGPR_COUNT, %LDS_SIZE
 

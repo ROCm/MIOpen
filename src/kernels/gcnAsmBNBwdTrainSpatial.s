@@ -405,7 +405,7 @@ skip_normalization:
 
 static_assert(MIO_BN_GRP1 == 1 && MIO_BN_GRP2 == 1) // Required workgroup size and max flat workgroup size depend on this
 
-.if ROCM_METADATA_VERSION == 5
+.if (ROCM_METADATA_VERSION == 5 || ROCM_METADATA_VERSION == 6)
 
 .rodata
 .p2align 6
@@ -428,6 +428,7 @@ static_assert(MIO_BN_GRP1 == 1 && MIO_BN_GRP2 == 1) // Required workgroup size a
     .amdhsa_reserve_vcc                 __sgpr_reserve_vcc
 .end_amdhsa_kernel
 
+.if ROCM_METADATA_VERSION == 5
 .macro METADATA sc, vc, wg_x, lds_size, kernarg_size
 .if (MIO_BN_USESAVED == 0)
     .error "CO v3 is not supported when (MIO_BN_USESAVED == 0)"
@@ -464,6 +465,29 @@ amdhsa.kernels:
 .end_amdgpu_metadata
 .endif
 .endm // METADATA
+.elseif ROCM_METADATA_VERSION == 6
+.if (MIO_BN_USESAVED == 0)
+    .error "Kernel not supported when (MIO_BN_USESAVED == 0)"
+    .end
+.endif
+.include "target_id.inc"
+//amdhsa_private_segment_fixed_size 132 ignored
+//The private segment is not used by the kernel.
+.macro METADATA sc,vc,wg_x,lds_sz, kernarg_size, kernel_name=miopenGcnAsmBNBwdTrainSpatial
+    METADATA_final \kernel_name, \sc, \vc, \kernarg_size, \lds_sz, \wg_x, 1, 1, \wg_x, 64, "
+    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: f16, .name: x_in,             .address_space: global, .is_const: true  }
+    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: f16, .name: dy_in,            .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 16, .value_kind: global_buffer, .value_type: f16, .name: dx_out,           .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 24, .value_kind: global_buffer, .value_type: f32, .name: bnScale,          .address_space: global, .is_const: true  }
+    - { .size: 8, .offset: 32, .value_kind: global_buffer, .value_type: f32, .name: dscale,           .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 40, .value_kind: global_buffer, .value_type: f32, .name: dbias,            .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 48, .value_kind: global_buffer, .value_type: f32, .name: savedMean,        .address_space: global, .is_const: true  }
+    - { .size: 8, .offset: 56, .value_kind: global_buffer, .value_type: f32, .name: savedInvVariance, .address_space: global, .is_const: true  }
+    - { .size: 4, .offset: 64, .value_kind: by_value,      .value_type: f32, .name: INHW }
+"
+.endm
+.endif
+
 
 .elseif ROCM_METADATA_VERSION == 4
 

@@ -1547,6 +1547,7 @@ endpgm:
 
 .altmacro
 
+.if ROCM_METADATA_VERSION == 5
 .macro METADATA sc, vc, wg_x, lds_size, kernarg_size, kernel_name
 .amdgpu_metadata
 ---
@@ -1611,7 +1612,55 @@ amdhsa.kernels:
 ...
 .end_amdgpu_metadata
 .endm // METADATA
-
+.elseif ROCM_METADATA_VERSION == 6
+.include "target_id.inc"
+.macro METADATA sc, vc, wg_x, lds_size, kernarg_size, kernel_name
+    METADATA_final \kernel_name, \sc, \vc, \kernarg_size, \lds_size, \wg_x, 1, 1, \wg_x, 64, "
+    - { .size: 4, .offset:   0, .value_kind: by_value, .value_type: i32, .name: N }
+    - { .size: 4, .offset:   4, .value_kind: by_value, .value_type: i32, .name: C }
+    - { .size: 4, .offset:   8, .value_kind: by_value, .value_type: i32, .name: H }
+    - { .size: 4, .offset:  12, .value_kind: by_value, .value_type: i32, .name: W }
+    - { .size: 4, .offset:  16, .value_kind: by_value, .value_type: i32, .name: K }
+    - { .size: 4, .offset:  20, .value_kind: by_value, .value_type: i32, .name: n_groups }
+    - { .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32, .name: unused }
+    - { .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32, .name: unused_1 }
+    - { .size: 8, .offset:  32, .value_kind: global_buffer, .value_type: f32, .name: filter_ptr,   .address_space: global, .is_const: false }
+    - { .size: 8, .offset:  40, .value_kind: global_buffer, .value_type: f32, .name: reserved2,    .address_space: global, .is_const: false }
+    - { .size: 8, .offset:  48, .value_kind: global_buffer, .value_type: f32, .name: x_filter_ptr, .address_space: global, .is_const: false }
+    - { .size: 8, .offset:  56, .value_kind: global_buffer, .value_type: f32, .name: ret_addr,     .address_space: global, .is_const: false }
+    - { .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32, .name: R }
+    - { .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32, .name: S }
+    - { .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32, .name: pad_h }
+    - { .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32, .name: pad_w }
+    - { .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32, .name: out_h }
+    - { .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32, .name: out_w }
+    - { .size: 8, .offset:  88, .value_kind: global_buffer, .value_type: f32, .name: bias_addr,    .address_space: global, .is_const: true }
+    - { .size: 4, .offset:  96, .value_kind: by_value, .value_type: f32, .name: RELU_alpha }
+    - { .size: 4, .offset: 100, .value_kind: by_value, .value_type: i32, .name: d_N_stride }
+    - { .size: 4, .offset: 104, .value_kind: by_value, .value_type: i32, .name: d_C_stride }
+    - { .size: 4, .offset: 108, .value_kind: by_value, .value_type: i32, .name: d_H_stride }
+    - { .size: 4, .offset: 112, .value_kind: by_value, .value_type: i32, .name: d_W_stride }
+    - { .size: 4, .offset: 116, .value_kind: by_value, .value_type: i32, .name: unused }
+    - { .size: 4, .offset: 120, .value_kind: by_value, .value_type: i32, .name: unused }
+    - { .size: 4, .offset: 124, .value_kind: by_value, .value_type: i32, .name: unused }
+    - { .size: 4, .offset: 128, .value_kind: by_value, .value_type: i32, .name: unused }
+    - { .size: 4, .offset: 132, .value_kind: by_value, .value_type: i32, .name: o_N_stride }
+    - { .size: 4, .offset: 136, .value_kind: by_value, .value_type: i32, .name: o_K_stride }
+    - { .size: 4, .offset: 140, .value_kind: by_value, .value_type: i32, .name: o_H_stride }
+    - { .size: 4, .offset: 144, .value_kind: by_value, .value_type: i32, .name: o_W_stride }
+    - { .size: 4, .offset: 148, .value_kind: by_value, .value_type: i32, .name: G }
+    - { .size: 4, .offset: 152, .value_kind: by_value, .value_type: i32, .name: d_G_stride }
+    - { .size: 4, .offset: 156, .value_kind: by_value, .value_type: i32, .name: unused }
+    - { .size: 4, .offset: 160, .value_kind: by_value, .value_type: i32, .name: o_G_stride }
+    - { .size: 8, .offset: 168, .value_kind: hidden_global_offset_x, .value_type: i64 }
+    - { .size: 8, .offset: 176, .value_kind: hidden_global_offset_y, .value_type: i64 }
+    - { .size: 8, .offset: 184, .value_kind: hidden_global_offset_z, .value_type: i64 }
+    - { .size: 8, .offset: 192, .value_kind: hidden_none,   .value_type: i8 }
+    - { .size: 8, .offset: 200, .value_kind: hidden_none,   .value_type: i8 }
+    - { .size: 8, .offset: 208, .value_kind: hidden_none,   .value_type: i8 }
+"
+.endm
+.endif
 
 .altmacro
 .macro METADATA_WRAPPER sc, vc, wg_x, lds_size, kernarg_size, kernel_suf
