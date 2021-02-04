@@ -1,9 +1,7 @@
 
 def rocmnode(name) {
     def node_name = 'rocmtest'
-    if(name == 'fiji') {
-        node_name = 'rocmtest && fiji';
-    } else if(name == 'vega') {
+    if(name == 'vega') {
         node_name = 'rocmtest && vega';
     } else if(name == 'vega10') {
         node_name = 'rocmtest && vega10';
@@ -181,7 +179,7 @@ def buildHipClangJob(compiler, flags, env4make, image, prefixpath="/opt/rocm", c
 ///   * "Subset" corresponds to Target- or BuildTypeModifier-specific subsetting of
 ///     the "All" testset, e.g. -DMIOPEN_TEST_GFX908=On or -DMIOPEN_TEST_MIOTENSILE=On.
 ///   * "Smoke" (-DMIOPEN_TEST_ALL=Off) is the default and usually not specified.
-/// Target := { gfx908 | Vega20 | Vega10 | Fiji | Vega* }
+/// Target := { gfx908 | Vega20 | Vega10 | Vega* }
 ///   * "Vega" (gfx906 or gfx900) is the default and usually not specified.
 
 pipeline {
