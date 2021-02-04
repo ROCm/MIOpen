@@ -502,6 +502,8 @@ struct verify_reduce_no_indices
     tensor<T> cpuImpl() const
     {
         using reduce::ReduceOpFn;
+        using reduce::PreUnaryOpFn;
+        using reduce::PosUnaryOpFn;
         using reduce::ReduceOpZeroVal;
         using reduce::float_equal_one;
         using reduce::float_equal_zero;
@@ -541,6 +543,13 @@ struct verify_reduce_no_indices
 
         auto opReduce = ReduceOpFn<compType>(reduceOp);
 
+        int divider = 1;
+        for(int i = 0; i < toReduceLengths.size(); i++)
+            divider *= toReduceLengths[i];
+
+        auto PreUnaryOp = PreUnaryOpFn<compType>(reduceOp, divider);
+        auto PosUnaryOp = PosUnaryOpFn<compType>(reduceOp, divider);
+
         if(reduceAllDims)
         {
             std::vector<std::vector<std::size_t>> indexes_1;
@@ -556,8 +565,12 @@ struct verify_reduce_no_indices
 
                 auto currVal = convert_type<compType>(input.data[src_offset]);
 
+                PreUnaryOp(currVal);
+
                 binop_with_nan_check(nanOpt, opReduce, accuVal, currVal);
             };
+
+            PosUnaryOp(accuVal);
 
             // scale the accumulated value
             if(!float_equal_one(alpha))
@@ -610,8 +623,12 @@ struct verify_reduce_no_indices
 
                     auto currVal = convert_type<compType>(input.data[src_offset]);
 
+                    PreUnaryOp(currVal);
+
                     binop_with_nan_check(nanOpt, opReduce, accuVal, currVal);
                 };
+
+                PosUnaryOp(accuVal);
 
                 // scale the accumulated value
                 if(!float_equal_one(alpha))
@@ -715,28 +732,24 @@ struct reduce_driver : test_driver
 
     std::vector<std::vector<int>> get_toreduce_dims()
     {
-        return {
-            {0},
-            {1},
-            {2},
-            {3},
-            {0, 1},
-            {1, 2},
-            {0, 3},
-            {1, 3},
-            {0, 2},
-            {2, 3},
-            {0, 1, 3},
-            {1, 2, 3},
-            {0, 1, 2, 3},
-        };
+        std::vector<std::vector<int>> tensor_dims = {
+            {0}, {1}, {2}, {3}, {0, 1}, {0, 3}, {0, 2}, {2, 3}, {0, 1, 3}, {1, 2, 3}};
+
+        if(std::is_same<T, half_float::half>::value)
+        {
+            tensor_dims.push_back({0, 1, 2, 3});
+
+            return tensor_dims;
+        }
+        else
+            return tensor_dims;
     }
 
     reduce_driver()
     {
         add(inLengths, "D", generate_data(get_tensor_lengths()));
         add(toReduceDims, "R", generate_data(get_toreduce_dims()));
-        add(reduceOp, "ReduceOp", generate_data({0, 2}));
+        add(reduceOp, "ReduceOp", generate_data({0, 4, 5, 6, 7}));
         add(compTypeVal, "CompType", generate_data({1}));
         add(nanOpt, "N", generate_data({0}));
         add(indicesOpt, "I", generate_data({0, 1}));
@@ -769,6 +782,16 @@ struct reduce_driver : test_driver
 
         alpha = scales[0];
         beta  = scales[1];
+
+        // The test is ignored if (alpha, beta) is not (1.0f, 0.0f) and reduceOp is not Add/MUL/AVG
+        if(reduceOp != MIOPEN_REDUCE_TENSOR_ADD && reduceOp != MIOPEN_REDUCE_TENSOR_MUL &&
+           reduceOp != MIOPEN_REDUCE_TENSOR_AVG && alpha != 1.0f && beta != 0.0f)
+            return;
+
+        // The test is ignored if indices are requested but the reduceOp is neither MIN nor MAX
+        if(indicesOpt != MIOPEN_REDUCE_TENSOR_NO_INDICES && reduceOp != MIOPEN_REDUCE_TENSOR_MIN &&
+           reduceOp != MIOPEN_REDUCE_TENSOR_MAX && reduceOp != MIOPEN_REDUCE_TENSOR_AMAX)
+            return;
 
         auto outLengths = this->inLengths;
 

@@ -314,6 +314,8 @@ class miopenReductionHost
     void RunImpl_no_indices(Tgpu alpha, const Tgpu* in_data, Tgpu beta, Tref* out_data)
     {
         using reduce::ReduceOpFn;
+        using reduce::PreUnaryOpFn;
+        using reduce::PosUnaryOpFn;
         using reduce::ReduceOpZeroVal;
         using reduce::float_equal_one;
         using reduce::float_equal_zero;
@@ -322,6 +324,13 @@ class miopenReductionHost
         using reduce::binop_with_nan_check2;
 
         auto opReduce = ReduceOpFn<compType>(this->reduceOp);
+
+        int divider = 1;
+        for(int i = 0; i < toReduceLengths.size(); i++)
+            divider *= toReduceLengths[i];
+
+        auto PreUnaryOp = PreUnaryOpFn<compType>(reduceOp, divider);
+        auto PosUnaryOp = PosUnaryOpFn<compType>(reduceOp, divider);
 
         if(reduceAllDims)
         {
@@ -338,8 +347,12 @@ class miopenReductionHost
 
                 auto currVal = convert_type<compType>(in_data[src_offset]);
 
+                PreUnaryOp(currVal);
+
                 binop_with_nan_check(nanOpt, opReduce, accuVal, currVal);
             };
+
+            PosUnaryOp(accuVal);
 
             // scale the accumulated value
             if(!float_equal_one(alpha))
@@ -395,8 +408,12 @@ class miopenReductionHost
 
                     auto currVal = convert_type<compType>(in_data[src_offset]);
 
+                    PreUnaryOp(currVal);
+
                     binop_with_nan_check(nanOpt, opReduce, accuVal, currVal);
                 };
+
+                PosUnaryOp(accuVal);
 
                 // scale the accumulated value
                 if(!float_equal_one(alpha))
