@@ -48,7 +48,7 @@ bool ConvBinWinograd3x3U::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!(params.direction.IsForward() || params.direction.IsBackwardData()))
         return false;
-    if(!(params.rmv.IsV2orV3() && params.use_asm_kernels))
+    if(!((params.rmv.IsV2orV3() || params.rmv.IsV4()) && params.use_asm_kernels))
         return false;
 
     const auto name = params.GetStream().GetDeviceName();
@@ -115,7 +115,7 @@ ConvSolution ConvBinWinograd3x3U::GetSolution(const ConvolutionContext& params) 
     kernel.kernel_name = "miopenSp3AsmConv3x3F";
 
     KernelBuildParameters options{
-        {"ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4},
+        {"ROCM_METADATA_VERSION", params.rmv.IsV4() ? 6 : (params.rmv.UseV3() ? 5 : 4)},
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
 

@@ -448,7 +448,7 @@ static bool IsApplicableBase(const ConvolutionContext& params)
         return false;
     if(!params.use_asm_kernels)
         return false;
-    if(!params.rmv.IsV3())
+    if(!(params.rmv.IsV3() || params.rmv.IsV4()))
         return false;
 
     const auto name = params.GetStream().GetDeviceName();
@@ -575,7 +575,7 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
     kernel.l_wk.push_back(1);
 
     KernelBuildParameters options{
-        {"ROCM_METADATA_VERSION", 5},
+        {"ROCM_METADATA_VERSION", params.rmv.IsV4() ? 6 : 5},
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
 

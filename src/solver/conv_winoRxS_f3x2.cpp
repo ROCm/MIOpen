@@ -222,7 +222,7 @@ bool ConvBinWinogradRxSf3x2::IsApplicable(const ConvolutionContext& params) cons
         return false;
     if(!params.use_asm_kernels)
         return false;
-    if(!params.rmv.IsV2orV3())
+    if(!(params.rmv.IsV2orV3() || params.rmv.IsV4()))
         return false;
     if(!params.IsLayoutDefault())
     {
@@ -275,7 +275,7 @@ ConvSolution ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& param
     kernel.l_wk.push_back(1);
 
     KernelBuildParameters options{
-        {"ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4},
+        {"ROCM_METADATA_VERSION", params.rmv.IsV4() ? 6 : (params.rmv.UseV3() ? 5 : 4)},
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
 

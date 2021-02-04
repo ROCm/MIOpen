@@ -44,7 +44,7 @@ bool ConvAsm5x10u2v2b1::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(params.IsAsymmetricPadH() || params.IsAsymmetricPadW())
         return false;
-    if(!params.rmv.IsV2orV3())
+    if(!(params.rmv.IsV2orV3() || params.rmv.IsV4()))
         return false;
 
     const std::string name = params.GetStream().GetDeviceName();
@@ -101,7 +101,8 @@ ConvSolution ConvAsm5x10u2v2b1::GetSolution(const ConvolutionContext& params) co
     GenerateClangDefsym(options, "inp_w", params.out_width);
     GenerateClangDefsym(options, "wei_c", params.n_outputs);
     GenerateClangDefsym(options, "wei_k", params.n_inputs);
-    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4);
+    GenerateClangDefsym(
+        options, "ROCM_METADATA_VERSION", params.rmv.IsV4() ? 6 : (params.rmv.UseV3() ? 5 : 4));
 
     KernelInfo constr_params;
     constr_params.comp_options = options.str();

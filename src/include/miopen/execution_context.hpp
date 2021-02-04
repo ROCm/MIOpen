@@ -43,6 +43,7 @@ class rocm_meta_version
         AMDHSA_COv2              = 1, // V2 metadata, https://llvm.org/docs/AMDGPUUsage.html
         AMDHSA_COv2_COv3         = 2, // E.g. ROCm 2.10 supports both.
         AMDHSA_COv3              = 3, // V3 metadata, https://llvm.org/docs/AMDGPUUsage.html
+        AMDHSA_COv4              = 4, // V4 metadata, https://llvm.org/docs/AMDGPUUsage.html
         Default                  = AMDHSA_COv2; // Used when auto-detection fails.
 
     private:
@@ -56,6 +57,7 @@ class rocm_meta_version
     bool IsV2() const { return AMDHSA_COv2 <= val && val <= AMDHSA_COv2_COv3; }
     bool IsV2orV3() const { return AMDHSA_COv2 <= val && val <= AMDHSA_COv3; }
     bool IsV3() const { return AMDHSA_COv2_COv3 <= val && val <= AMDHSA_COv3; }
+    bool IsV4() const { return AMDHSA_COv4 == val; }
     bool UseV3() const;
 };
 

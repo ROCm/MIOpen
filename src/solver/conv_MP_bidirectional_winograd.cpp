@@ -99,16 +99,16 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
     const auto& out_W     = (params).out_width;
 
 #if MIOPEN_BACKEND_HIP
-#define GENERATE_MAIN_OPTIONS(options)                                     \
-    GenerateClangDefsym((options), "acc_type", 1);                         \
-    GenerateClangDefsym((options), "ROCM_METADATA_VERSION", 5);            \
-    GenerateClangDefsym((options), "xformx_o_size", WinoDataW);            \
-    GenerateClangDefsym((options), "xformy_o_size", WinoDataH);            \
-    GenerateClangDefsym((options), "xformx_d_size", wino_xform_w);         \
-    GenerateClangDefsym((options), "xformy_d_size", wino_xform_h);         \
-    GenerateClangDefsym((options), "xformx_f_size", WinoFilterW);          \
-    GenerateClangDefsym((options), "xformy_f_size", WinoFilterH);          \
-    GenerateClangDefsym((options), "fdilation_w", params.kernel_stride_w); \
+#define GENERATE_MAIN_OPTIONS(options)                                                  \
+    GenerateClangDefsym((options), "acc_type", 1);                                      \
+    GenerateClangDefsym((options), "ROCM_METADATA_VERSION", params.rmv.IsV4() ? 6 : 5); \
+    GenerateClangDefsym((options), "xformx_o_size", WinoDataW);                         \
+    GenerateClangDefsym((options), "xformy_o_size", WinoDataH);                         \
+    GenerateClangDefsym((options), "xformx_d_size", wino_xform_w);                      \
+    GenerateClangDefsym((options), "xformy_d_size", wino_xform_h);                      \
+    GenerateClangDefsym((options), "xformx_f_size", WinoFilterW);                       \
+    GenerateClangDefsym((options), "xformy_f_size", WinoFilterH);                       \
+    GenerateClangDefsym((options), "fdilation_w", params.kernel_stride_w);              \
     GenerateClangDefsym((options), "fdilation_h", params.kernel_stride_h);
 
 struct WinoOffsets
@@ -179,7 +179,7 @@ inline bool IsApplicableTransform(const ConvolutionContext& params)
 #if MIOPEN_BACKEND_HIP
     if(!params.use_asm_kernels)
         return false;
-    if(!params.rmv.IsV3())
+    if(!(params.rmv.IsV3() || params.rmv.IsV4()))
         return false;
     if(!params.Is2d())
         return false;
