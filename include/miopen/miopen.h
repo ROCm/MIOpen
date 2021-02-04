@@ -470,14 +470,14 @@ typedef enum {
         2, /*!< the operation is getting the minimum value of the reduced elements */
     MIOPEN_REDUCE_TENSOR_MAX =
         3, /*!< the operation is getting the maximum value of the reduced elements */
-    // MIOPEN_REDUCE_TENSOR_AMAX =
-    //    4, /*!< the operation is getting the maximum absolute value of the reduced elements */
-    // MIOPEN_REDUCE_TENSOR_AVG =
-    //    5, /*!< the operation is getting the averaged value of the reduced elements */
-    // MIOPEN_REDUCE_TENSOR_NORM1 =
-    //    6, /*!< the operation is adding the absolute values of the reduced elements */
-    // MIOPEN_REDUCE_TENSOR_NORM2 = 7, /*!< the operation is getting the square root of the sum of
-    //                                   squares of the reduced elements */
+    MIOPEN_REDUCE_TENSOR_AMAX =
+        4, /*!< the operation is getting the maximum absolute value of the reduced elements */
+    MIOPEN_REDUCE_TENSOR_AVG =
+        5, /*!< the operation is getting the averaged value of the reduced elements */
+    MIOPEN_REDUCE_TENSOR_NORM1 =
+        6, /*!< the operation is adding the absolute values of the reduced elements */
+    MIOPEN_REDUCE_TENSOR_NORM2 = 7, /*!< the operation is getting the square root of the sum of
+                                       squares of the reduced elements */
     // MIOPEN_REDUCE_TENSOR_MUL_NO_ZEROS =
     //    8, /*!< the operation is same as MUL, but does not have the zero values considered */
 } miopenReduceTensorOp_t;
