@@ -37,6 +37,7 @@
 #include <miopen/export.h>
 
 #if MIOPEN_BACKEND_OPENCL
+#define CL_TARGET_OPENCL_VERSION 120
 #if defined(__APPLE__) || defined(__MACOSX)
 #include <OpenCL/cl.h>
 #else
