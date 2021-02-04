@@ -2281,9 +2281,9 @@ extern "C" __global__ void naive_conv_wrw_ndhwc_fp32(const float* __restrict__ p
 }
 
 // design block_size 256
-extern "C" __global__ void naive_conv_fwd_nhwc_fp16(const float* __restrict__ p_in,
-                                                    const float* __restrict__ p_wei,
-                                                    float* __restrict__ p_out,
+extern "C" __global__ void naive_conv_fwd_nhwc_fp16(const half* __restrict__ p_in,
+                                                    const half* __restrict__ p_wei,
+                                                    half* __restrict__ p_out,
                                                     int hi,
                                                     int wi,
                                                     int n,
@@ -2361,9 +2361,9 @@ extern "C" __global__ void naive_conv_fwd_nhwc_fp16(const float* __restrict__ p_
     }
 }
 
-extern "C" __global__ void naive_conv_bwd_nhwc_fp16(float* __restrict__ p_in,
-                                                    const float* __restrict__ p_wei,
-                                                    const float* __restrict__ p_out,
+extern "C" __global__ void naive_conv_bwd_nhwc_fp16(half* __restrict__ p_in,
+                                                    const half* __restrict__ p_wei,
+                                                    const half* __restrict__ p_out,
                                                     int hi,
                                                     int wi,
                                                     int n,
@@ -2447,9 +2447,9 @@ extern "C" __global__ void naive_conv_bwd_nhwc_fp16(float* __restrict__ p_in,
     }
 }
 
-extern "C" __global__ void naive_conv_wrw_nhwc_fp16(const float* __restrict__ p_in,
-                                                    float* __restrict__ p_wei,
-                                                    const float* __restrict__ p_out,
+extern "C" __global__ void naive_conv_wrw_nhwc_fp16(const half* __restrict__ p_in,
+                                                    half* __restrict__ p_wei,
+                                                    const half* __restrict__ p_out,
                                                     int hi,
                                                     int wi,
                                                     int n,
@@ -2530,9 +2530,9 @@ extern "C" __global__ void naive_conv_wrw_nhwc_fp16(const float* __restrict__ p_
 }
 
 // design block_size 256
-extern "C" __global__ void naive_conv_fwd_ndhwc_fp16(const float* __restrict__ p_in,
-                                                     const float* __restrict__ p_wei,
-                                                     float* __restrict__ p_out,
+extern "C" __global__ void naive_conv_fwd_ndhwc_fp16(const half* __restrict__ p_in,
+                                                     const half* __restrict__ p_wei,
+                                                     half* __restrict__ p_out,
                                                      int di,
                                                      int hi,
                                                      int wi,
@@ -2627,9 +2627,9 @@ extern "C" __global__ void naive_conv_fwd_ndhwc_fp16(const float* __restrict__ p
     }
 }
 
-extern "C" __global__ void naive_conv_bwd_ndhwc_fp16(float* __restrict__ p_in,
-                                                     const float* __restrict__ p_wei,
-                                                     const float* __restrict__ p_out,
+extern "C" __global__ void naive_conv_bwd_ndhwc_fp16(half* __restrict__ p_in,
+                                                     const half* __restrict__ p_wei,
+                                                     const half* __restrict__ p_out,
                                                      int di,
                                                      int hi,
                                                      int wi,
@@ -2734,9 +2734,9 @@ extern "C" __global__ void naive_conv_bwd_ndhwc_fp16(float* __restrict__ p_in,
     }
 }
 
-extern "C" __global__ void naive_conv_wrw_ndhwc_fp16(const float* __restrict__ p_in,
-                                                     float* __restrict__ p_wei,
-                                                     const float* __restrict__ p_out,
+extern "C" __global__ void naive_conv_wrw_ndhwc_fp16(const half* __restrict__ p_in,
+                                                     half* __restrict__ p_wei,
+                                                     const half* __restrict__ p_out,
                                                      int di,
                                                      int hi,
                                                      int wi,
@@ -2834,9 +2834,9 @@ extern "C" __global__ void naive_conv_wrw_ndhwc_fp16(const float* __restrict__ p
 }
 
 // design block_size 256
-extern "C" __global__ void naive_conv_fwd_nhwc_bf16(const float* __restrict__ p_in,
-                                                    const float* __restrict__ p_wei,
-                                                    float* __restrict__ p_out,
+extern "C" __global__ void naive_conv_fwd_nhwc_bf16(const ushort* __restrict__ p_in,
+                                                    const ushort* __restrict__ p_wei,
+                                                    ushort* __restrict__ p_out,
                                                     int hi,
                                                     int wi,
                                                     int n,
@@ -2914,9 +2914,9 @@ extern "C" __global__ void naive_conv_fwd_nhwc_bf16(const float* __restrict__ p_
     }
 }
 
-extern "C" __global__ void naive_conv_bwd_nhwc_bf16(float* __restrict__ p_in,
-                                                    const float* __restrict__ p_wei,
-                                                    const float* __restrict__ p_out,
+extern "C" __global__ void naive_conv_bwd_nhwc_bf16(ushort* __restrict__ p_in,
+                                                    const ushort* __restrict__ p_wei,
+                                                    const ushort* __restrict__ p_out,
                                                     int hi,
                                                     int wi,
                                                     int n,
@@ -3000,9 +3000,9 @@ extern "C" __global__ void naive_conv_bwd_nhwc_bf16(float* __restrict__ p_in,
     }
 }
 
-extern "C" __global__ void naive_conv_wrw_nhwc_bf16(const float* __restrict__ p_in,
-                                                    float* __restrict__ p_wei,
-                                                    const float* __restrict__ p_out,
+extern "C" __global__ void naive_conv_wrw_nhwc_bf16(const ushort* __restrict__ p_in,
+                                                    ushort* __restrict__ p_wei,
+                                                    const ushort* __restrict__ p_out,
                                                     int hi,
                                                     int wi,
                                                     int n,
@@ -3083,9 +3083,9 @@ extern "C" __global__ void naive_conv_wrw_nhwc_bf16(const float* __restrict__ p_
 }
 
 // design block_size 256
-extern "C" __global__ void naive_conv_fwd_ndhwc_bf16(const float* __restrict__ p_in,
-                                                     const float* __restrict__ p_wei,
-                                                     float* __restrict__ p_out,
+extern "C" __global__ void naive_conv_fwd_ndhwc_bf16(const ushort* __restrict__ p_in,
+                                                     const ushort* __restrict__ p_wei,
+                                                     ushort* __restrict__ p_out,
                                                      int di,
                                                      int hi,
                                                      int wi,
@@ -3180,9 +3180,9 @@ extern "C" __global__ void naive_conv_fwd_ndhwc_bf16(const float* __restrict__ p
     }
 }
 
-extern "C" __global__ void naive_conv_bwd_ndhwc_bf16(float* __restrict__ p_in,
-                                                     const float* __restrict__ p_wei,
-                                                     const float* __restrict__ p_out,
+extern "C" __global__ void naive_conv_bwd_ndhwc_bf16(ushort* __restrict__ p_in,
+                                                     const ushort* __restrict__ p_wei,
+                                                     const ushort* __restrict__ p_out,
                                                      int di,
                                                      int hi,
                                                      int wi,
@@ -3287,9 +3287,9 @@ extern "C" __global__ void naive_conv_bwd_ndhwc_bf16(float* __restrict__ p_in,
     }
 }
 
-extern "C" __global__ void naive_conv_wrw_ndhwc_bf16(const float* __restrict__ p_in,
-                                                     float* __restrict__ p_wei,
-                                                     const float* __restrict__ p_out,
+extern "C" __global__ void naive_conv_wrw_ndhwc_bf16(const ushort* __restrict__ p_in,
+                                                     ushort* __restrict__ p_wei,
+                                                     const ushort* __restrict__ p_out,
                                                      int di,
                                                      int hi,
                                                      int wi,
