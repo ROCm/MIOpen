@@ -153,6 +153,14 @@ struct ThreadReduce
         for(index_t i          = 0; i < ThreadBufferLen; i++)
             p_thread_buffer[i] = value;
     };
+
+    // Execute unary operation on the per-thread buffer elements
+    template <typename unary_op>
+    __device__ static void operate_on_elements(DataType* p_thread_buffer)
+    {
+        for(index_t i = 0; i < ThreadBufferLen; i++)
+            unary_op{}(p_thread_buffer[i]);
+    };
 };
 
 template <typename DataType,
@@ -441,6 +449,16 @@ struct WarpReduce
 
         __all(1);
     };
+
+    // Execute unary operation on the per-thread buffer elements
+    template <typename unary_op>
+    __device__ static void operate_on_elements(DataType* p_thread_buffer)
+    {
+        for(index_t i = 0; i < ThreadBufferLen; i++)
+            unary_op{}(p_thread_buffer[i]);
+
+        __all(1);
+    };
 };
 
 template <typename buffer2dDesc,
@@ -640,6 +658,24 @@ struct BlockwiseReduction_2d_block_buffer
                                  : buffer2dDesc::CalculateOffset({thread_id, otherDimInd});
 
             block_indices_buffer[offset] = offset + indexStart;
+
+            __syncthreads();
+        }
+    };
+
+    // Execute unary operation on the block buffer elements
+    template <typename unary_op>
+    __device__ static void operate_on_elements(DataType* p_block_buffer)
+    {
+        index_t thread_id = get_thread_local_1d_id();
+
+        for(index_t otherDimInd = 0; otherDimInd < NumBlocks; otherDimInd++)
+        {
+            index_t offset = blockIsOneRow
+                                 ? buffer2dDesc::CalculateOffset({otherDimInd, thread_id})
+                                 : buffer2dDesc::CalculateOffset({thread_id, otherDimInd});
+
+            unary_op{}(p_block_buffer[offset]);
 
             __syncthreads();
         }

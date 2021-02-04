@@ -40,14 +40,14 @@ enum class ReductionMethod_t
 
 enum class ReduceTensorOp_t
 {
-    ADD = 0,
-    MUL = 1,
-    MIN = 2,
-    MAX = 3,
-    // AMAX = 4,
-    // AVG =  5,
-    // NORM1 = 6,
-    // NORM2 = 7,
+    ADD   = 0,
+    MUL   = 1,
+    MIN   = 2,
+    MAX   = 3,
+    AMAX  = 4,
+    AVG   = 5,
+    NORM1 = 6,
+    NORM2 = 7,
     // MUL_NO_ZEROS = 8,
 };
 

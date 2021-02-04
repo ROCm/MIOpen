@@ -45,18 +45,27 @@ template <index_t BlockSize,
           ReduceTensorOp_t op,
           NanPropagation_t nanPropaOpt,
           ReduceTensorIndices_t reduceIndicesOpt,
-          index_t callId,
+          bool isFirstCall,
+          bool isLastCall,
+          index_t origReduceLen,
           index_t GredAccessesPerThreadInBlock>
 struct GridwiseReduction_xy_to_x_blockwise
 {
     static constexpr bool indexable = reduce_binary_operator<compType, op>::indexable;
     static constexpr bool need_indices =
         indexable && (reduceIndicesOpt != ReduceTensorIndices_t::NO_INDICES);
-    static constexpr bool firstCall = (callId == 0) ? true : false;
 
     static constexpr index_t BlockBufferSize = BlockSize * GredAccessesPerThreadInBlock;
 
+    static constexpr auto toReduceLength = src2dDesc::GetLength(Number<1>{});
+
+    static constexpr auto divider = static_cast<int>(origReduceLen);
+
     using opReduce = typename reduce_binary_operator<compType, op>::opType;
+    using preUnaryOp =
+        typename reduce_unary_operator<compType, op, divider, isFirstCall, isLastCall>::preUnaryOp;
+    using posUnaryOp =
+        typename reduce_unary_operator<compType, op, divider, isFirstCall, isLastCall>::posUnaryOp;
 
     __device__ void Run(srcDataType alpha,
                         const srcDataType* const __restrict__ p_src_global,
@@ -66,7 +75,7 @@ struct GridwiseReduction_xy_to_x_blockwise
                         int* const __restrict__ indices_global)
     {
         static_if<need_indices>{}([&](auto) {
-            static_if<firstCall>{}([&](auto) {
+            static_if<isFirstCall>{}([&](auto) {
                 RunImpl2(alpha, p_src_global, beta, p_dst_global, indices_global);
             }).Else([&](auto) {
                 RunImpl3(
@@ -125,7 +134,7 @@ struct GridwiseReduction_xy_to_x_blockwise
                                                                     opReduce,
                                                                     nanPropaOpt>;
 
-        constexpr index_t toReduceBlocks = (src2dDesc::GetLengths()[1] + BlockSize - 1) / BlockSize;
+        constexpr index_t toReduceBlocks = (toReduceLength + BlockSize - 1) / BlockSize;
 
         for(index_t reducedBlocks = 0; reducedBlocks < toReduceBlocks;
             reducedBlocks += GredAccessesPerThreadInBlock)
@@ -138,6 +147,9 @@ struct GridwiseReduction_xy_to_x_blockwise
 
             __syncthreads();
 
+            // do element-wise pre-reduction operation
+            blockwise_reduce::template operate_on_elements<preUnaryOp>(p_in_block_buffer);
+
             index_t BlocksInOneOp = (reducedBlocks < toReduceBlocks - GredAccessesPerThreadInBlock)
                                         ? GredAccessesPerThreadInBlock
                                         : toReduceBlocks - reducedBlocks;
@@ -146,6 +158,8 @@ struct GridwiseReduction_xy_to_x_blockwise
             constexpr auto True = integral_constant<bool, true>{};
             blockwise_src_load.MoveSrcSliceWindow(Sequence<0, BlockBufferSize>{}, True);
         }
+
+        posUnaryOp{}(accuValue);
 
         using ReducedDataLengths       = Sequence<1>;
         constexpr auto ReducedDataDesc = make_native_tensor_descriptor_packed(ReducedDataLengths{});
@@ -248,7 +262,7 @@ struct GridwiseReduction_xy_to_x_blockwise
                                                                     opReduce,
                                                                     nanPropaOpt>;
 
-        constexpr index_t toReduceBlocks = (src2dDesc::GetLengths()[1] + BlockSize - 1) / BlockSize;
+        constexpr index_t toReduceBlocks = (toReduceLength + BlockSize - 1) / BlockSize;
 
         int indexOffset = 0;
 
@@ -382,7 +396,7 @@ struct GridwiseReduction_xy_to_x_blockwise
                                                                     opReduce,
                                                                     nanPropaOpt>;
 
-        constexpr index_t toReduceBlocks = (src2dDesc::GetLengths()[1] + BlockSize - 1) / BlockSize;
+        constexpr index_t toReduceBlocks = (toReduceLength + BlockSize - 1) / BlockSize;
 
         for(index_t reducedBlocks = 0; reducedBlocks < toReduceBlocks;
             reducedBlocks += GredAccessesPerThreadInBlock)
