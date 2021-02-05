@@ -18,7 +18,7 @@ MIOpen supports two programming models -
 * [MIOpenGEMM](https://github.com/ROCmSoftwarePlatform/MIOpenGEMM) to enable various functionalities including transposed and dilated convolutions. This is optional on the HIP backend. Users can enable this library using the cmake configuration flag `-DMIOPEN_USE_MIOPENGEMM=On`.
 * ROCm cmake modules can be installed from [here](https://github.com/RadeonOpenCompute/rocm-cmake)
 * [Half](http://half.sourceforge.net/) - IEEE 754-based half-precision floating point library
-* [Boost](http://www.boost.org/) at least version 1.58
+* [Boost](http://www.boost.org/) at version 1.72 (other versions are not supported)
   * MIOpen uses `boost-system` and `boost-filesystem` packages to enable persistent [kernel cache](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/cache.html)
 * [MIOpenTENSILE](https://github.com/ROCmSoftwarePlatform/MIOpenTensile) Users can enable this library using the cmake configuration flag `-DMIOPEN_USE_MIOPENTENSILE=On`.
 * [rocBlas](https://github.com/ROCmSoftwarePlatform/rocBLAS) 
@@ -290,7 +290,7 @@ Prebuilt docker images can be found on [ROCm's public docker hub here](https://h
 ## Citing MIOpen
 
 
-MIOpen's paper can be accessed on arXiv:  
+MIOpen's paper is freely available and can be accessed on arXiv:  
 [MIOpen: An Open Source Library For Deep Learning Primitives](https://arxiv.org/abs/1910.00078)
 
 

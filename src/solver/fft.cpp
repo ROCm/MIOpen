@@ -113,6 +113,11 @@ bool fft::IsApplicable(const ConvolutionContext& ctx) const
     if(ctx.direction.IsBackwardWrW() || !ctx.conv_problem.IsFp32())
         return false;
 
+    if(!ctx.IsLayoutDefault())
+    {
+        return false;
+    }
+
     const auto is_fwd    = ctx.direction.IsForward();
     decltype(auto) conv  = ctx.conv_problem.GetConv();
     decltype(auto) xDesc = is_fwd ? ctx.conv_problem.GetIn() : ctx.conv_problem.GetOut();

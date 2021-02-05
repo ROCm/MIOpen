@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2020 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,10 +23,20 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-.include "Conv_Winograd_v21_1_2_metadata.inc"
+#ifndef GUARD_ROCM_FEATURES_HPP_
+#define GUARD_ROCM_FEATURES_HPP_
 
-KERNEL_PROLOG gfx9_fp16_dot2_edc_dilation2_group
+#include <miopen/config.h>
 
-.include "Conv_Winograd_v21_1_2_gfx9_fp16_dot2_edc_dilation2_group.inc"
+/// Older HIP runtimes return hipDeviceProp_t.gcnArchName with codenames
+/// of GPUs instead of valid names, e.g. "Vega 20" instead of "gfx906".
+/// To be removed as soon as support for ROCm 3.x is discontinued.
+#define ROCM_FEATURE_HIP_GCNARCHNAME_RETURNS_CODENAME (HIP_PACKAGE_VERSION_FLAT < 4000000000ULL)
 
-KERNEL_EPILOG gfx9_fp16_dot2_edc_dilation2_group
+/// Workaround for https://github.com/AMDComputeLibraries/MLOpen/issues/1711:
+/// Since ROCM 2.4 rc1, OCL returns "gfx906+sram-ecc" on a gfx906 machine.
+/// See also rejected SWDEV-188028. Fixed since ROCm 4.0 or even sooner.
+/// To be removed as soon as support for ROCm 3.x is discontinued.
+#define WORKAROUND_MLOPEN_ISSUE_1711 (HIP_PACKAGE_VERSION_FLAT < 4000000000ULL)
+
+#endif // GUARD_ROCM_FEATURES_HPP_
