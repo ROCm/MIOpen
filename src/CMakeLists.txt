@@ -116,7 +116,6 @@ set( MIOpen_Source
     ctc_api.cpp
     temp_file.cpp
     problem_description.cpp
-    include/miopen/sequences.hpp
     kernel_build_params.cpp
     find_db.cpp
     conv_algo_name.cpp
@@ -182,6 +181,8 @@ set( MIOpen_Source
     include/miopen/numeric.hpp
     include/miopen/reducetensor.hpp
     include/miopen/reduce_common.hpp
+    include/miopen/sequences.hpp
+    include/miopen/rocm_features.hpp
     md_graph.cpp
     mdg_expr.cpp
     conv/invokers/gcn_asm_1x1u.cpp
