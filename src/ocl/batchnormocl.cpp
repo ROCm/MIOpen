@@ -1054,7 +1054,8 @@ void BatchNormBackward(Handle& handle,
                 if((n > 64) && (n % 2 == 0) && (variant == 3) && (bfpmixparm) && (useSaved) &&
                    ctx.use_asm_kernels && ctx.rmv.IsV2orV3() &&
                    (StartsWith(handle.GetDeviceName(), "gfx8") ||
-                    StartsWith(handle.GetDeviceName(), "gfx9")))
+                    (StartsWith(handle.GetDeviceName(), "gfx9") &&
+                     (handle.GetDeviceName() != "gfx90a"))))
                 {
                     kernel_name  = "miopenGcnAsmBNBwdTrainSpatial";
                     program_name = "gcnAsmBNBwdTrainSpatial.s";
