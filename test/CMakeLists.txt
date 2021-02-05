@@ -70,7 +70,7 @@ elseif(MIOPEN_TEST_INT8)
 elseif(MIOPEN_TEST_BFLOAT16)
     set(SKIP_ALL_EXCEPT_TESTS test_conv2d test_tensor_copy test_tensor_set test_tensor_vec test_immed_conv2d test_check_numerics_test)
     if(MIOPEN_TEST_GFX908)
-        set(SKIP_ALL_EXCEPT_TESTS test_conv_extra test_conv_for_implicit_gemm test_miopen_conv test_deepbench_conv test_conv_cellfft ${SKIP_ALL_EXCEPT_TESTS})
+        set(SKIP_ALL_EXCEPT_TESTS test_conv_extra test_conv_for_implicit_gemm test_miopen_conv test_deepbench_conv ${SKIP_ALL_EXCEPT_TESTS})
     endif()
     set(MIOPEN_TEST_FLOAT_ARG --bfloat16)
 elseif(MIOPEN_TEST_GFX908)
@@ -730,7 +730,8 @@ COMMAND ${CELLFFT_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 16 64 28 28
 COMMAND ${CELLFFT_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 16 64 28 28 --weights  48 64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-data
 COMMAND ${CELLFFT_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 16 64 28 28 --weights  64 64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-data
 COMMAND ${CELLFFT_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 16 64 28 28 --weights  96 64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-data
-COMMAND ${CELLFFT_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 16 64 28 28 --weights 128 64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-data)
+COMMAND ${CELLFFT_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 16 64 28 28 --weights 128 64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-data
+)
 
 add_custom_test(test_conv_igemm_dynamic_xdlops SKIP_UNLESS_ALL
 COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> --verbose --input  64  64 28 28 --weights 16  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
