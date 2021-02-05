@@ -183,9 +183,23 @@ struct unary_abs
 
     __device__ inline constexpr void operator()(T& a) const
     {
-        a = a < type_convert<T>{}(0.0f) ? type_convert<T>{}(0.0f) - a : a;
+        a = abs(a);
 
         a = need_dividing ? a * type_convert<T>{}(scaler) : a;
+    };
+};
+
+template <int divider>
+struct unary_abs<half_t, divider>
+{
+    static constexpr bool need_dividing = (divider != 1);
+    static constexpr float scaler       = 1.0f / (float)divider;
+
+    __device__ inline constexpr void operator()(half_t& a) const
+    {
+        a = static_cast<half_t>(__habs(a));
+
+        a = need_dividing ? a * type_convert<half_t>{}(scaler) : a;
     };
 };
 

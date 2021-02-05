@@ -247,6 +247,8 @@ struct verify_reduce_with_indices
     std::tuple<tensor<T>, tensor<int>> cpuImpl() const
     {
         using reduce::ReduceOpFn2;
+        using reduce::PreUnaryOpFn;
+        using reduce::PosUnaryOpFn;
         using reduce::ReduceOpZeroVal;
         using reduce::float_equal_one;
         using reduce::float_equal_zero;
@@ -287,6 +289,13 @@ struct verify_reduce_with_indices
 
         auto opReduce = ReduceOpFn2<compType>(reduceOp);
 
+        int divider = 1;
+        for(int i = 0; i < toReduceLengths.size(); i++)
+            divider *= toReduceLengths[i];
+
+        auto PreUnaryOp = PreUnaryOpFn<compType>(reduceOp, divider);
+        auto PosUnaryOp = PosUnaryOpFn<compType>(reduceOp, divider);
+
         if(reduceAllDims)
         {
             std::vector<std::vector<std::size_t>> indexes_1;
@@ -302,6 +311,10 @@ struct verify_reduce_with_indices
                 auto src_offset = get_offset_from_index(inStrides, src_index);
 
                 auto currVal = convert_type<compType>(input.data[src_offset]);
+
+                // unary operation before reducing, only needed by AMAX. For MIN/MAX, nothing is
+                // actually done
+                PreUnaryOp(currVal);
 
                 int currIndex = get_flatten_offset(inLengths, src_index);
                 binop_with_nan_check2(nanOpt, opReduce, accuVal, currVal, accuIndex, currIndex);
@@ -361,6 +374,10 @@ struct verify_reduce_with_indices
                     auto src_offset = get_offset_from_index(inStrides, src_index);
 
                     auto currVal = convert_type<compType>(input.data[src_offset]);
+
+                    // unary operation before reducing, only needed by AMAX. For MIN/MAX, nothing is
+                    // actually done
+                    PreUnaryOp(currVal);
 
                     auto currIndex = get_flatten_offset(toReduceLengths, index_2);
                     binop_with_nan_check2(nanOpt, opReduce, accuVal, currVal, accuIndex, currIndex);

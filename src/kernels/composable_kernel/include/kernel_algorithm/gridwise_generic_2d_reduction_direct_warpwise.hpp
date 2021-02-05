@@ -235,6 +235,10 @@ struct GridwiseReduction_xy_to_x_direct_warpwise
             threadwise_src_load.Run(
                 p_src_global, p_in_thread_buffer, type_convert<srcDataType>{}(zeroVal));
 
+            // unary operation before reducing, needed by AMAX; For MIN/MAX, nothing is actually
+            // done here
+            warpwise_reduce::template operate_on_elements<preUnaryOp>(p_in_thread_buffer);
+
             // do the warp-wise reduction on data of all thread buffers
             warpwise_reduce::Reduce2(p_in_thread_buffer, accuValue, accuIndex, indexOffset);
 

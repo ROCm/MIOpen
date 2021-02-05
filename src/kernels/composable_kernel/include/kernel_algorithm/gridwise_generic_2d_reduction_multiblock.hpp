@@ -270,6 +270,10 @@ struct GridwiseReduction_xy_to_x_multiblock
                 p_src_global, p_in_block_buffer, type_convert<srcDataType>{}(zeroVal));
             __syncthreads();
 
+            // unary operation before reducing, needed by AMAX; For MIN/MAX, nothing is actually
+            // done here
+            blockwise_reduce::template operate_on_elements<preUnaryOp>(p_in_block_buffer);
+
             index_t BlocksInOneOp = (reducedBlocks < toReduceBlocks - GredAccessesPerThreadInBlock)
                                         ? GredAccessesPerThreadInBlock
                                         : toReduceBlocks - reducedBlocks;

@@ -280,6 +280,10 @@ struct GridwiseReduction_xy_to_x_blockwise
             // construct the indices for the current toReduce blocks
             blockwise_reduce::init_buffer_indices(block_indices_buffer, indexOffset);
 
+            // unary operation before reducing, needed by AMAX; For MIN/MAX, nothing is actually
+            // done here
+            blockwise_reduce::template operate_on_elements<preUnaryOp>(p_in_block_buffer);
+
             index_t BlocksInOneOp = (reducedBlocks < toReduceBlocks - GredAccessesPerThreadInBlock)
                                         ? GredAccessesPerThreadInBlock
                                         : toReduceBlocks - reducedBlocks;
