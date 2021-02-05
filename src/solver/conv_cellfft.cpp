@@ -1140,6 +1140,8 @@ bool ConvCellfft::IsApplicable(const ConvolutionContext& ctx) const
     const auto name = ctx.GetStream().GetDeviceName();
     if(name != "gfx900" && name != "gfx906")
         return false;
+    if(!ctx.IsLayoutDefault())
+        return false;
     if((ctx.kernel_stride_w != 1) || (ctx.kernel_stride_h != 1) || (ctx.kernel_dilation_w != 1) ||
        (ctx.kernel_dilation_h != 1) || (ctx.group_counts != 1))
         return false;
