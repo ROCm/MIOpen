@@ -766,8 +766,8 @@ struct reduce_driver : test_driver
 
         if(std::is_same<T, half_float::half>::value)
         {
-            if(reduceOp == static_cast<int>(MIOPEN_REDUCE_TENSOR_MIN) ||
-               reduceOp == static_cast<int>(MIOPEN_REDUCE_TENSOR_MAX))
+            if(reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX ||
+               reduceOp == MIOPEN_REDUCE_TENSOR_AMAX)
                 compTypeVal = static_cast<int>(miopenHalf); // let compType be same as the data type
             else
                 compTypeVal = static_cast<int>(miopenFloat);
@@ -803,8 +803,15 @@ struct reduce_driver : test_driver
         for(int i                       = 0; i < toReduceDims.size(); i++)
             outLengths[toReduceDims[i]] = static_cast<std::size_t>(1);
 
-        unsigned long max_value =
-            miopen_type<T>{} == miopenHalf ? 13 : miopen_type<T>{} == miopenInt8 ? 127 : 17;
+        unsigned long max_value;
+
+        if(reduceOp == MIOPEN_REDUCE_TENSOR_MUL || reduceOp == MIOPEN_REDUCE_TENSOR_NORM1 ||
+           reduceOp == MIOPEN_REDUCE_TENSOR_NORM2)
+            max_value =
+                miopen_type<T>{} == miopenHalf ? 7 : miopen_type<T>{} == miopenInt8 ? 127 : 11;
+        else
+            max_value =
+                miopen_type<T>{} == miopenHalf ? 13 : miopen_type<T>{} == miopenInt8 ? 127 : 17;
 
         auto gen_value = [&](auto... is) {
             return (tensor_elem_gen_integer{max_value}(is...) *

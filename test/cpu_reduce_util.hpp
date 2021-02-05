@@ -290,8 +290,8 @@ static inline compType ReduceOpZeroVal(miopenReduceTensorOp_t op_)
 
     case MIOPEN_REDUCE_TENSOR_MIN: return (std::numeric_limits<compType>::max());
 
-    case MIOPEN_REDUCE_TENSOR_MAX:
-    case MIOPEN_REDUCE_TENSOR_AMAX: return (std::numeric_limits<compType>::min());
+    case MIOPEN_REDUCE_TENSOR_MAX: return (std::numeric_limits<compType>::min());
+    case MIOPEN_REDUCE_TENSOR_AMAX: return (convert_type<compType>(0.0f));
     }
 
     return (convert_type<compType>(0.0f));
@@ -313,8 +313,8 @@ inline half_float::half ReduceOpZeroVal<half_float::half>(miopenReduceTensorOp_t
         return (convert_type<half_float::half>(std::numeric_limits<float>::max()));
 
     case MIOPEN_REDUCE_TENSOR_MAX:
-    case MIOPEN_REDUCE_TENSOR_AMAX:
         return (convert_type<half_float::half>(std::numeric_limits<float>::min()));
+    case MIOPEN_REDUCE_TENSOR_AMAX: return (convert_type<half_float::half>(0.0f));
     }
 
     return (convert_type<half_float::half>(0.0f));
