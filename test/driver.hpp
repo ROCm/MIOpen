@@ -46,7 +46,6 @@
 #include <miopen/bfloat16.hpp>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
-#include <stdio.h>
 
 template <class U, class T>
 constexpr std::is_same<T, U> is_same(const T&)
@@ -734,44 +733,37 @@ struct test_driver
             // Compute cpu
             std::future<decltype(v.cpu(xs...))> cpuf;
             bool cache_miss = true;
-            printf("[%s] %d\n", __func__, __LINE__);
-            fflush(stdout);
+            std::cout << "[" << __func__ << "] " << __LINE__ << std::endl;
             if(not no_validate)
             {
                 cpuf = run_cpu(false, cache_miss, v, xs...);
             }
-            printf("[%s] %d\n", __func__, __LINE__);
-            fflush(stdout);
+            std::cout << "[" << __func__ << "] " << __LINE__ << std::endl;
             // Compute gpu
             if(time)
             {
                 h.EnableProfiling();
                 h.ResetKernelTime();
             }
-            printf("[%s] %d\n", __func__, __LINE__);
-            fflush(stdout);
+            std::cout << "[" << __func__ << "] " << __LINE__ << std::endl;
             gpu = v.gpu(xs...);
-            printf("[%s] %d\n", __func__, __LINE__);
-            fflush(stdout);
+            std::cout << "[" << __func__ << "] " << __LINE__ << std::endl;
             adjust_parameters(v);
-            printf("[%s] %d\n", __func__, __LINE__);
-            fflush(stdout);
+            std::cout << "[" << __func__ << "] " << __LINE__ << std::endl;
 
             if(time)
             {
                 std::cout << "Kernel time: " << h.GetKernelTime() << " ms" << std::endl;
                 h.EnableProfiling(false);
             }
-            printf("[%s] %d\n", __func__, __LINE__);
-            fflush(stdout);
+            std::cout << "[" << __func__ << "] " << __LINE__ << std::endl;
             // Validate
             if(!no_validate)
             {
                 cpu         = cpuf.get();
                 auto report = this->verify_reporter();
                 bool retry  = true;
-                printf("[%s] %d\n", __func__, __LINE__);
-                fflush(stdout);
+                std::cout << "[" << __func__ << "] " << __LINE__ << std::endl;
                 if(not cache_miss)
                 {
                     retry             = false;
@@ -789,21 +781,18 @@ struct test_driver
                     };
                     compare_and_report(
                         cpu, gpu, f, report_retry, [&](int mode) { v.fail(mode, xs...); });
-                    printf("[%s] %d\n", __func__, __LINE__);
-                    fflush(stdout);
                     // cppcheck-suppress knownConditionTrueFalse
+                    std::cout << "[" << __func__ << "] " << __LINE__ << std::endl;
                     if(retry)
                     {
                         std::cout << "Warning: verify cache failed, rerunning cpu." << std::endl;
                         cpu = run_cpu(retry, cache_miss, v, xs...).get();
                     }
-                    printf("[%s] %d\n", __func__, __LINE__);
-                    fflush(stdout);
+                    std::cout << "[" << __func__ << "] " << __LINE__ << std::endl;
                 }
                 if(retry)
                     compare_and_report(cpu, gpu, f, report, [&](int mode) { v.fail(mode, xs...); });
-                printf("[%s] %d\n", __func__, __LINE__);
-                fflush(stdout);
+                std::cout << "[" << __func__ << "] " << __LINE__ << std::endl;
             }
 
             if(verbose or time)
