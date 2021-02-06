@@ -735,13 +735,13 @@ struct test_driver
             std::future<decltype(v.cpu(xs...))> cpuf;
             bool cache_miss = true;
             printf("[%s] %d\n", __func__, __LINE__);
-            fflush(stdio);
+            fflush(stdout);
             if(not no_validate)
             {
                 cpuf = run_cpu(false, cache_miss, v, xs...);
             }
             printf("[%s] %d\n", __func__, __LINE__);
-            fflush(stdio);
+            fflush(stdout);
             // Compute gpu
             if(time)
             {
@@ -749,13 +749,13 @@ struct test_driver
                 h.ResetKernelTime();
             }
             printf("[%s] %d\n", __func__, __LINE__);
-            fflush(stdio);
+            fflush(stdout);
             gpu = v.gpu(xs...);
             printf("[%s] %d\n", __func__, __LINE__);
-            fflush(stdio);
+            fflush(stdout);
             adjust_parameters(v);
             printf("[%s] %d\n", __func__, __LINE__);
-            fflush(stdio);
+            fflush(stdout);
 
             if(time)
             {
@@ -763,7 +763,7 @@ struct test_driver
                 h.EnableProfiling(false);
             }
             printf("[%s] %d\n", __func__, __LINE__);
-            fflush(stdio);
+            fflush(stdout);
             // Validate
             if(!no_validate)
             {
@@ -771,7 +771,7 @@ struct test_driver
                 auto report = this->verify_reporter();
                 bool retry  = true;
                 printf("[%s] %d\n", __func__, __LINE__);
-                fflush(stdio);
+                fflush(stdout);
                 if(not cache_miss)
                 {
                     retry             = false;
@@ -790,7 +790,7 @@ struct test_driver
                     compare_and_report(
                         cpu, gpu, f, report_retry, [&](int mode) { v.fail(mode, xs...); });
                     printf("[%s] %d\n", __func__, __LINE__);
-                    fflush(stdio);
+                    fflush(stdout);
                     // cppcheck-suppress knownConditionTrueFalse
                     if(retry)
                     {
@@ -798,12 +798,12 @@ struct test_driver
                         cpu = run_cpu(retry, cache_miss, v, xs...).get();
                     }
                     printf("[%s] %d\n", __func__, __LINE__);
-                    fflush(stdio);
+                    fflush(stdout);
                 }
                 if(retry)
                     compare_and_report(cpu, gpu, f, report, [&](int mode) { v.fail(mode, xs...); });
                 printf("[%s] %d\n", __func__, __LINE__);
-                fflush(stdio);
+                fflush(stdout);
             }
 
             if(verbose or time)
