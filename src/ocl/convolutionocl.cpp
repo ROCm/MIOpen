@@ -671,6 +671,11 @@ static std::size_t GetSolutionCount(Handle& handle, const ProblemDescription& pr
     const FindDbRecord fdb_record{handle, problem};
     if(fdb_record.empty())
         return 0;
+    // To stop crashes with old ufdb file
+    if(problem.direction.IsForward())
+        return std::count_if(fdb_record.begin(), fdb_record.end(), [](const auto& item) {
+            return item.solver_id != SolverDbId(miopen::solver::gemm);
+        });
     return std::distance(fdb_record.begin(), fdb_record.end());
 }
 
@@ -1028,6 +1033,11 @@ void GetSolutions(Handle& handle,
             MIOPEN_LOG_I("[Warning] incorrect solver_id: " << pair.second.solver_id);
             continue;
         }
+
+        // To stop crashes with old ufdb file
+        if(solver_id == solver::Id::gemm() && problem.direction.IsForward())
+            continue;
+
         // gemm is always applicable.
         // It can be disabled/enabled at algorithm level.
         if(solver_id != solver::Id::gemm())
