@@ -30,6 +30,7 @@
 #include <unordered_map>
 #include <utility>
 
+#include <miopen/config.h>
 #include <miopen/db_record.hpp>
 #include <miopen/logger.hpp>
 
@@ -37,18 +38,21 @@ namespace miopen {
 
 bool DbRecord::SetValues(const std::string& id, const std::string& values)
 {
+    constexpr auto log_level = MIOPEN_ENABLE_SQLITE ? LoggingLevel::Info2 : LoggingLevel::Info;
+
     // No need to update the file if values are the same:
     const auto it = map.find(id);
     if(it == map.end() || it->second != values)
     {
-        MIOPEN_LOG_I(key << ", content " << (it == map.end() ? "inserted" : "overwritten") << ": "
-                         << id
-                         << ':'
-                         << values);
+        MIOPEN_LOG(log_level,
+                   key << ", content " << (it == map.end() ? "inserted" : "overwritten") << ": "
+                       << id
+                       << ':'
+                       << values);
         map[id] = values;
         return true;
     }
-    MIOPEN_LOG_I(key << ", content is the same, not changed:" << id << ':' << values);
+    MIOPEN_LOG(log_level, key << ", content is the same, not changed:" << id << ':' << values);
     return false;
 }
 
