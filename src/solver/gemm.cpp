@@ -1028,7 +1028,7 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
                 if(gemm_status != miopenStatusSuccess)
                     MIOPEN_THROW("GEMM execution failure");
 
-                // Update times for both the kernels
+                // Update times for both kernels
                 if(handle.IsProfilingEnabled())
                 {
                     iteration_time += handle.GetKernelTime();
