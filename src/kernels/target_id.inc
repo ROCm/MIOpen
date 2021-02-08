@@ -25,7 +25,13 @@
  *******************************************************************************/
 
 ////////////////////////////////
-// !!!! Before using, required to define xnack and sramecc suport in amd_target_feature_xnack and amd_target_feature_sramecc variables.
+// THE FOLLOWING SYMBOLS MUST BE DEFINED PRIOR USING THE MACROS DECLARED BELOW:
+// * amd_target_feature_xnack
+// * amd_target_feature_sramecc
+// Allowed values: 
+// * 0 - The feature is OFF on the target device
+// * 1 - The feature is ON
+// * 2 - The target device does not have the feature OR the kernel does not depend on its state.
 ////////////////////////////////
 /// Using:  1) include this file
 ///			2) Call METADATA_final macro
@@ -120,4 +126,3 @@ amdhsa.kernels:
 send_TARGET_ID_str create_METADATA_generator_for_target
 
 ////////////////////////////////
-
