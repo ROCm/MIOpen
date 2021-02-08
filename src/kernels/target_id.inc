@@ -73,7 +73,7 @@
 .endm //create_TARGET_ID_with_proc
 
 .macro create_TARGET_ID_xnack_status
-    .if(amd_target_feature_xnack == 2)
+    .if(amd_target_feature_xnack == 0)
         create_TARGET_ID_with_xnack ":xnack-"
     .elseif (amd_target_feature_xnack == 1)
         create_TARGET_ID_with_xnack ":xnack+"
@@ -83,7 +83,7 @@
 .endm //create_TARGET_ID_xnack_status
 
 .macro create_TARGET_ID_sramecc_status 
-    .if(amd_target_feature_sramecc == 2)
+    .if(amd_target_feature_sramecc == 0)
         create_TARGET_ID_with_sramecc ":sramecc-"
     .elseif (amd_target_feature_sramecc == 1)
         create_TARGET_ID_with_sramecc ":sramecc+"
@@ -135,5 +135,27 @@ amdhsa.kernels:
 //--
 
 send_TARGET_ID_str create_METADATA_generator_for_target
+
+////////////////////////////////
+/// macro for igemm
+////////////////////////////////
+
+.macro igemm_macro_generator_with_version_and_target target
+.macro set_amdhsa_version_and_target_for_igemm next_m
+.ifnotdef ROCM_METADATA_VERSION
+    .error "Undefined ROCM_METADATA_VERSION"
+    .end
+.endif
+.if(ROCM_METADATA_VERSION == 6)
+\next_m "amdhsa.version: [1,1]
+amdhsa.target: \target"
+.elseif (ROCM_METADATA_VERSION == 5)
+\next_m "amdhsa.version: [1,0]"
+.endif
+.endm // set_amdhsa_version_and_target_for_igemm
+.endm // igemm_macro_generator_with_version_and_target 
+
+
+send_TARGET_ID_str igemm_macro_generator_with_version_and_target
 
 ////////////////////////////////

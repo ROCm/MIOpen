@@ -4437,9 +4437,12 @@ L_igemm_bwd_gtc_bt64x128x8_tt4x8_gm2x4x4_gn2x4x4_ta1x1x1x1x2_8x1x1x32x1_tb1x1x1x
     .amdhsa_reserve_xnack_mask 0
 .end_amdhsa_kernel
 
+.include "../target_id.inc"
+
+.macro igemm_amdgpu_metadata meta_info
 .amdgpu_metadata
 ---
-amdhsa.version: [ 1, 0 ]
+\meta_info
 amdhsa.kernels:
   - .name: igemm_bwd_gtc
     .symbol: igemm_bwd_gtc.kd
@@ -4758,3 +4761,6 @@ amdhsa.kernels:
     - { .name: __pack0   , .size: 4, .offset: 140, .value_kind: by_value, .value_type: i32}
 ...
 .end_amdgpu_metadata
+.endm
+
+set_amdhsa_version_and_target_for_igemm igemm_amdgpu_metadata

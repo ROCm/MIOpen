@@ -911,8 +911,8 @@ void BuildAsm(const std::string& name,
         auto optAsm = miopen::SplitSpaceSeparated(options);
 #if WORKAROUND_SWDEV_255735
         if(miopen::HipCompilerVersion() >= miopen::external_tool_version_t{3, 8, 20403})
-            optAsm.push_back("-Wa,-defsym,amd_target_feature_xnack=0 "
-                             "-Wa,-defsym,amd_target_feature_sramecc=0 -mno-xnack");
+            optAsm.push_back("-Wa,-defsym,amd_target_feature_xnack=2 "
+                             "-Wa,-defsym,amd_target_feature_sramecc=2 -mno-xnack");
 #endif
         compiler::lc::gcnasm::RemoveOptionsUnwanted(optAsm);
         action.SetOptionList(optAsm);

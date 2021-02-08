@@ -223,9 +223,12 @@
 .include "igemm_bwd_gtc_gfx908_004x064.inc"
 ;---------------------------------------------------
 
+.include "../../target_id.inc"
+
+.macro igemm_amdgpu_metadata meta_info
 .amdgpu_metadata
 ---
-amdhsa.version: [ 1, 0 ]
+\meta_info
 amdhsa.kernels:
   - .name: igemm_bwd_gtcx_nchw_fp32_bx16_ex0_bt128x128x16_wt32x32x1_ws1x1_wr2x2_ta2x1x1x4_1x8x1x32_tb2x1x1x4_1x8x1x32
     .symbol: igemm_bwd_gtcx_nchw_fp32_bx16_ex0_bt128x128x16_wt32x32x1_ws1x1_wr2x2_ta2x1x1x4_1x8x1x32_tb2x1x1x4_1x8x1x32.kd
@@ -5719,3 +5722,6 @@ amdhsa.kernels:
     - { .name: __pack0   , .size: 4, .offset: 140, .value_kind: by_value, .value_type: i32}
 ...
 .end_amdgpu_metadata
+.endm
+
+set_amdhsa_version_and_target_for_igemm igemm_amdgpu_metadata

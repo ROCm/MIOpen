@@ -10569,8 +10569,13 @@ BB17_22:                                ; %Flow90
 ; COMPUTE_PGM_RSRC2:TIDIG_COMP_CNT: 0
 	.ident	"clang version 11.0.0 (/src/external/llvm-project/clang 6c08b900599eee52e12bce1e76b20dc413ce30e7)"
 	.section	".note.GNU-stack"
-	.amdgpu_metadata
+
+.include "../target_id.inc"
+
+.macro igemm_amdgpu_metadata meta_info
+.amdgpu_metadata
 ---
+\meta_info
 amdhsa.kernels:
   - .args:
       - .access:         read_only
@@ -13134,3 +13139,7 @@ amdhsa.version:
 ...
 
 	.end_amdgpu_metadata
+.endm
+
+set_amdhsa_version_and_target_for_igemm igemm_amdgpu_metadata
+

@@ -1949,9 +1949,12 @@ L_program_end_1:
     .amdhsa_reserve_xnack_mask 0
 .end_amdhsa_kernel
 
+.include "../target_id.inc"
+
+.macro igemm_amdgpu_metadata meta_info
 .amdgpu_metadata
 ---
-amdhsa.version: [ 1, 0 ]
+\meta_info
 amdhsa.kernels:
   - .name: igemm_v4r1_dynamic_wrw_32x32x4_4x4_2x2x4x2x4x2_4x2x8x1_4x16
     .symbol: igemm_v4r1_dynamic_wrw_32x32x4_4x4_2x2x4x2x4x2_4x2x8x1_4x16.kd
@@ -2048,3 +2051,6 @@ amdhsa.kernels:
     - { .name: k_gemmk_groups, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
 ...
 .end_amdgpu_metadata
+.endm
+
+set_amdhsa_version_and_target_for_igemm igemm_amdgpu_metadata
