@@ -48,6 +48,10 @@ bool ConvOclDirectFwd11x11::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))
         return false;
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
 
     return params.direction.IsForward() && params.group_counts == 1 &&
            params.kernel_dilation_h == 1 && params.kernel_dilation_w == 1 &&

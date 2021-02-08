@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,24 +23,20 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_DEVICE_NAME_HPP
-#define GUARD_MIOPEN_DEVICE_NAME_HPP
-
-#define WORKAROUND_SWDEV_262823 1
-
+#include <miopen/env.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/stringutils.hpp>
+#include <miopen/target_properties.hpp>
 #include <map>
 #include <string>
-#include <miopen/env.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_ENFORCE_DEVICE)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_CU)
 
 namespace miopen {
 
-std::string inline GetDeviceNameFromMap(const std::string& in)
+static std::string GetDeviceNameFromMap(const std::string& in)
 {
-
     static std::map<std::string, std::string> device_name_map = {
         {"Ellesmere", "gfx803"},
         {"Baffin", "gfx803"},
@@ -61,11 +57,7 @@ std::string inline GetDeviceNameFromMap(const std::string& in)
     if(p_asciz != nullptr && strlen(p_asciz) > 0)
         return {p_asciz};
 
-#if WORKAROUND_SWDEV_262823
     const auto name = in.substr(0, in.find(':')); // str.substr(0, npos) returns str.
-#else
-    const auto name(in);
-#endif
 
     auto match = device_name_map.find(name);
     if(match != device_name_map.end())
@@ -73,6 +65,42 @@ std::string inline GetDeviceNameFromMap(const std::string& in)
     return name;
 }
 
-} // namespace miopen
+void TargetProperties::Init(const Handle* const handle)
+{
+    const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
+    if(arch != nullptr && strlen(arch) > 0)
+    {
+        name = arch;
+    }
+    else
+    {
+        name = handle->GetDeviceNameImpl();
+    }
+    name = GetDeviceNameFromMap(name);
 
-#endif // GUARD_MIOPEN_DEVICE_NAME_HPP
+    // Set features to defaults.
+    sramecc = StartsWith(name, "gfx906") || StartsWith(name, "gfx908");
+    xnack   = false;
+    InitDbId();
+}
+
+void TargetProperties::InitDbId()
+{
+    // Let's stay compatible with existing databases:
+    // When feature equal to the default, do not append feature suffice.
+    dbId = name;
+    if(StartsWith(name, "gfx906") || StartsWith(name, "gfx908"))
+    {
+        if(!sramecc)
+            dbId += "_nosramecc";
+    }
+    else
+    {
+        if(sramecc)
+            dbId += "_sramecc";
+    }
+    if(xnack)
+        dbId += "_xnack";
+}
+
+} // namespace miopen

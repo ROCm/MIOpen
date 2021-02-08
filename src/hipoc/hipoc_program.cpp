@@ -33,6 +33,7 @@
 #include <miopen/kernel_warnings.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/stringutils.hpp>
+#include <miopen/target_properties.hpp>
 #include <miopen/tmp_dir.hpp>
 #include <miopen/write_file.hpp>
 #include <miopen/env.hpp>
@@ -77,7 +78,7 @@ int DetectCodeObjectOptionSyntax()
 
     if(syntax == 0)
     {
-        if(HipCompilerVersion() >= external_tool_version_t{4, 0, 999999}) /// \ todo
+        if(HipCompilerVersion() >= external_tool_version_t{4, 1, 0})
             return 4;
         else
             return 1;
@@ -98,7 +99,7 @@ int DetectCodeObjectVersion()
 
     if(co_version == 0)
     {
-        if(HipCompilerVersion() >= external_tool_version_t{4, 0, 999999}) /// \ todo
+        if(HipCompilerVersion() >= external_tool_version_t{4, 1, 0})
             return 4;
         else if(HipCompilerVersion() >= external_tool_version_t{3, 0, -1})
             return 3;
@@ -154,7 +155,7 @@ static hipModulePtr CreateModule(const boost::filesystem::path& hsaco_file)
     auto status = hipModuleLoad(&raw_m, hsaco_file.string().c_str());
     hipModulePtr m{raw_m};
     if(status != hipSuccess)
-        MIOPEN_THROW_HIP_STATUS(status, "Failed creating module");
+        MIOPEN_THROW_HIP_STATUS(status, "Failed creating module from file " + hsaco_file.string());
     return m;
 }
 
@@ -201,9 +202,9 @@ struct HIPOCProgramImpl
     HIPOCProgramImpl(const std::string& program_name,
                      std::string params,
                      bool is_kernel_str,
-                     std::string dev_name,
+                     const TargetProperties& target_,
                      const std::string& kernel_src)
-        : program(program_name), device(dev_name)
+        : program(program_name), target(target_)
     {
         BuildCodeObject(params, is_kernel_str, kernel_src);
         if(!binary.empty())
@@ -221,7 +222,7 @@ struct HIPOCProgramImpl
     }
 
     std::string program;
-    std::string device;
+    TargetProperties target;
     boost::filesystem::path hsaco_file;
     hipModulePtr module;
     boost::optional<TmpDir> dir;
@@ -240,12 +241,12 @@ struct HIPOCProgramImpl
         }
         else if(miopen::EndsWith(filename, ".s"))
         {
-            const auto assembled = AmdgcnAssemble(src, params);
+            const auto assembled = AmdgcnAssemble(src, params); // FIXME
             WriteFile(assembled, hsaco_file);
         }
         else if(miopen::EndsWith(filename, ".cpp"))
         {
-            hsaco_file = HipBuild(dir, filename, src, params, device);
+            hsaco_file = HipBuild(dir, filename, src, params, target);
         }
         else
         {
@@ -275,11 +276,11 @@ struct HIPOCProgramImpl
             std::lock_guard<std::mutex> lock(mutex);
 #endif
             if(miopen::EndsWith(filename, ".cpp"))
-                comgr::BuildHip(filename, src, params, device, binary);
+                comgr::BuildHip(filename, src, params, target, binary);
             else if(miopen::EndsWith(filename, ".s"))
-                comgr::BuildAsm(filename, src, params, device, binary);
+                comgr::BuildAsm(filename, src, params, target, binary);
             else
-                comgr::BuildOcl(filename, src, params, device, binary);
+                comgr::BuildOcl(filename, src, params, target, binary);
         }
         if(binary.empty())
             MIOPEN_THROW("Code object build failed. Source: " + filename);
@@ -322,10 +323,10 @@ HIPOCProgram::HIPOCProgram() {}
 HIPOCProgram::HIPOCProgram(const std::string& program_name,
                            std::string params,
                            bool is_kernel_str,
-                           std::string dev_name,
+                           const TargetProperties& target,
                            const std::string& kernel_src)
     : impl(std::make_shared<HIPOCProgramImpl>(
-          program_name, params, is_kernel_str, dev_name, kernel_src))
+          program_name, params, is_kernel_str, target, kernel_src))
 {
 }
 

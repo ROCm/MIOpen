@@ -29,6 +29,7 @@
 #cmakedefine01 MIOPEN_BACKEND_OPENCL
 #cmakedefine01 MIOPEN_BACKEND_HCC
 #cmakedefine01 MIOPEN_BACKEND_HIP
+#cmakedefine01 MIOPEN_MODE_NOGPU
 #cmakedefine01 MIOPEN_USE_MIOPENTENSILE
 #cmakedefine01 MIOPEN_USE_MIOPENGEMM
 #cmakedefine01 MIOPEN_USE_ROCBLAS
@@ -45,13 +46,15 @@
 #cmakedefine01 MIOPEN_EMBED_DB
 #cmakedefine01 BUILD_SHARED_LIBS
 #cmakedefine01 MIOPEN_DISABLE_SYSDB
+#cmakedefine01 MIOPEN_LOG_FUNC_TIME_ENABLE
+#cmakedefine01 MIOPEN_ENABLE_SQLITE_BACKOFF
 
 // "_PACKAGE_" to avoid name contentions: the macros like
 // HIP_VERSION_MAJOR are defined in hip_version.h.
 // clang-format off
-#define HIP_PACKAGE_VERSION_MAJOR @hip_VERSION_MAJOR@
-#define HIP_PACKAGE_VERSION_MINOR @hip_VERSION_MINOR@
-#define HIP_PACKAGE_VERSION_PATCH @hip_VERSION_PATCH@
+#define HIP_PACKAGE_VERSION_MAJOR @MIOPEN_hip_VERSION_MAJOR@
+#define HIP_PACKAGE_VERSION_MINOR @MIOPEN_hip_VERSION_MINOR@
+#define HIP_PACKAGE_VERSION_PATCH @MIOPEN_hip_VERSION_PATCH@
 // clang-format on
 
 // clang-format off
@@ -91,5 +94,24 @@
 #define MIOPEN_INSTALLABLE (MIOPEN_NDEBUG && !MIOPEN_BUILD_DEV)
 
 #define MIOPEN_ALLOC_BUFFERS 0
+
+#ifndef HIP_PACKAGE_VERSION_MAJOR
+#define HIP_PACKAGE_VERSION_MAJOR 0
+#endif
+#ifndef HIP_PACKAGE_VERSION_MINOR
+#define HIP_PACKAGE_VERSION_MINOR 0
+#endif
+#ifndef HIP_PACKAGE_VERSION_PATCH
+#define HIP_PACKAGE_VERSION_PATCH 0
+#endif
+// 3 decimal digits for major and minor, 6 digits for patch number.
+// Max number is 999,999,999999 == 0xE8,D4A5,0FFF that fits into 64-bit math.
+#if HIP_PACKAGE_VERSION_MAJOR > 999 || HIP_PACKAGE_VERSION_MAJOR > 999 || \
+    HIP_PACKAGE_VERSION_PATCH > 999999
+#error "Too big HIP version number(s)"
+#endif
+#define HIP_PACKAGE_VERSION_FLAT                                                   \
+    ((HIP_PACKAGE_VERSION_MAJOR * 1000ULL + HIP_PACKAGE_VERSION_MINOR) * 1000000 + \
+     HIP_PACKAGE_VERSION_PATCH)
 
 #endif
