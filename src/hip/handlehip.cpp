@@ -35,6 +35,7 @@
 #include <miopen/invoker.hpp>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/rocm_features.hpp>
 #include <miopen/target_properties.hpp>
 #include <miopen/timer.hpp>
 
@@ -187,7 +188,13 @@ struct HandleImpl
     {
         hipDeviceProp_t props{};
         hipGetDeviceProperties(&props, device);
-        return {"gfx" + std::to_string(props.gcnArch)};
+#if ROCM_FEATURE_HIP_GCNARCHNAME_RETURNS_CODENAME
+        const std::string name("gfx" + std::to_string(props.gcnArch));
+#else
+        const std::string name(props.gcnArchName);
+#endif
+        MIOPEN_LOG_NQI("Raw device name: " << name);
+        return name;
     }
 
     bool enable_profiling  = false;
