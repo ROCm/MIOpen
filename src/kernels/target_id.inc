@@ -47,6 +47,17 @@
 ///								9)wavefront_size=64
 ///								10)kernel_args
 //macro for send_TARGET_ID_str generation 
+
+.ifnotdef amd_target_feature_xnack
+.error "Undefined amd_target_feature_xnack"
+.end
+.endif
+
+.ifnotdef amd_target_feature_sramecc
+.error "Undefined amd_target_feature_sramecc"
+.end
+.endif
+
 .macro create_TARGET_ID_with_proc proc
 
 .macro create_TARGET_ID_with_xnack xnack_str
