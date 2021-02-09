@@ -188,8 +188,8 @@ std::string AmdgcnAssemble(const std::string& source, const std::string& params)
     options << " -x assembler -target amdgcn--amdhsa";
 #if WORKAROUND_SWDEV_255735
     if(miopen::HipCompilerVersion() >= miopen::external_tool_version_t{3, 8, 20403})
-        options << " -mno-xnack -Wa,-defsym,amd_target_feature_xnack=0 "
-                   "-Wa,-defsym,amd_target_feature_sramecc=0 ";
+        options << " -mno-xnack";
+    options << "-Wa,-defsym,amd_target_feature_xnack=0 -Wa,-defsym,amd_target_feature_sramecc=0 ";
 #endif
     /// \todo Hacky way to find out which CO version we need to assemble for.
     if(params.find("ROCM_METADATA_VERSION=5", 0) == std::string::npos &&
