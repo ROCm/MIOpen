@@ -386,7 +386,7 @@ Program Handle::LoadProgram(const std::string& program_name,
     if(program_name.find("mlir_gen_igemm_conv2d_cpp") != std::string::npos)
     {
         params += " --num_cu " + std::to_string(this->GetMaxComputeUnits());
-        params += " --arch " + this->GetDeviceName();
+        params += " --arch " + this->GetTargetProperties().Name();
     }
     else
     {

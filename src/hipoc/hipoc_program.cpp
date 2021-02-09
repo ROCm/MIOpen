@@ -233,8 +233,6 @@ struct HIPOCProgramImpl
     void
     BuildCodeObjectInFile(std::string& params, const std::string& src, const std::string& filename)
     {
-        MIOPEN_LOG_I("BuildCodeObjectInFile for file: " << filename);
-
         dir.emplace(filename);
         hsaco_file = dir->path / (filename + ".o");
 
@@ -266,8 +264,6 @@ struct HIPOCProgramImpl
                                  const std::string& src,
                                  const std::string& filename)
     {
-        MIOPEN_LOG_I("BuildCodeObjectInMemory for file: " << filename);
-
         if(miopen::EndsWith(filename, ".so"))
         {
             std::size_t sz = src.length();

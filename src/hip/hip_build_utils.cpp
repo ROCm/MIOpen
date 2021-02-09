@@ -26,8 +26,8 @@
 
 #include <miopen/config.h>
 #include <miopen/hip_build_utils.hpp>
-#ifdef MIOPEN_LIBMLIRMIOPEN
-#include <miopen/mlir_miopen_wrapper.hpp>
+#if MIOPEN_USE_MLIR
+#include <mlir-miopen-lib.hpp>
 #endif
 #include <miopen/stringutils.hpp>
 #include <miopen/exec_utils.hpp>
@@ -101,6 +101,53 @@ struct LcOptionTargetStrings
     }
 };
 
+#if MIOPEN_USE_MLIR
+static void
+GenIgemmHost(boost::optional<TmpDir>& tmp_dir, const std::string& filename, std::string& params)
+{
+    MIOPEN_LOG_I2("populating mlir igemm kernel");
+
+    mlir::MlirHandle handle = mlir::CreateMlirHandle(params.c_str());
+    mlir::MlirLowerCpp(handle);
+
+    // invoke mlir kernel generator.
+    auto input_file       = tmp_dir->path / filename;
+    auto input_file_base  = tmp_dir->path / input_file.stem();
+    auto throw_if_invalid = [&filename](const std::string& gen_str) {
+        if(gen_str.empty())
+            MIOPEN_THROW(filename + " failed to build due to missing generated igemm string");
+    };
+
+    std::string source = mlir::MlirGenIgemmSource(handle);
+    throw_if_invalid(source);
+    std::ofstream source_file(input_file_base.string() + ".cpp");
+    source_file << source;
+
+    std::string header = mlir::MlirGenIgemmHeader(handle);
+    throw_if_invalid(header);
+    std::ofstream header_file(input_file_base.string() + ".hpp");
+    header_file << header;
+
+    // get mlir kernel compilation flags.
+    std::string cflags = mlir::MlirGenIgemmCflags(handle);
+    throw_if_invalid(cflags);
+    mlir::DestroyMlirHandle(handle);
+
+    // Skip first line.
+    cflags = cflags.substr(cflags.find("\n") + 1);
+    // Skip end of line.
+    size_t pos = cflags.find("\n");
+    if(pos != std::string::npos)
+    {
+        cflags.replace(pos, sizeof("\n"), " ");
+    }
+
+    params = cflags;
+
+    MIOPEN_LOG_I2("Finished populating mlir igemm kernel");
+}
+#endif
+
 static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
                                             const std::string& filename,
                                             std::string src,
@@ -109,10 +156,6 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
                                             const bool testing_mode)
 {
 #ifdef __linux__
-    MIOPEN_LOG_I("filename: " << filename);
-    MIOPEN_LOG_I("src: " << src);
-    MIOPEN_LOG_I("params: " << params);
-
     // Write out the include files
     // Let's assume includes are overkill for feature tests & optimize'em out.
     if(!testing_mode)
@@ -133,46 +176,8 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
         // Should not have src content for mlir generated files
         assert(src.empty());
 
-#ifdef MIOPEN_LIBMLIRMIOPEN
-        MIOPEN_LOG_I("populating mlir igemm kernel");
-
-        mlir::MlirHandle handle = mlir::CreateMlirHandle(params.c_str());
-
-        // invoke mlir kernel generator.
-        auto input_file       = tmp_dir->path / filename;
-        auto input_file_base  = tmp_dir->path / input_file.stem();
-        auto throw_if_invalid = [&filename](const std::string& gen_str) {
-            if(gen_str.empty())
-                MIOPEN_THROW(filename + " failed to build due to missing generated igemm string");
-        };
-
-        std::string source = mlir::MlirGenIgemmSource(handle);
-        throw_if_invalid(source);
-        std::ofstream source_file(input_file_base.string() + ".cpp");
-        source_file << source;
-
-        std::string header = mlir::MlirGenIgemmHeader(handle);
-        throw_if_invalid(header);
-        std::ofstream header_file(input_file_base.string() + ".hpp");
-        header_file << header;
-
-        // get mlir kernel compilation flags.
-        std::string cflags = mlir::MlirGenIgemmCflags(handle);
-        throw_if_invalid(cflags);
-        mlir::DestroyMlirHandle(handle);
-
-        // Skip first line.
-        cflags = cflags.substr(cflags.find("\n") + 1);
-        // Skip end of line.
-        size_t pos = cflags.find("\n");
-        if(pos != std::string::npos)
-        {
-            cflags.replace(pos, sizeof("\n"), " ");
-        }
-
-        params = cflags;
-
-        MIOPEN_LOG_I("Finished populating mlir igemm kernel");
+#if MIOPEN_USE_MLIR
+        GenIgemmHost(tmp_dir, filename, params);
 #endif
     }
     else

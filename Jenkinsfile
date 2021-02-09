@@ -394,7 +394,7 @@ pipeline {
                 }
 
                 stage('Hip Implicitgemm layouts Release') {
-                    agent{ label rocmnode("vega") }
+                    agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = '''
                             ulimit -c unlimited

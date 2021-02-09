@@ -61,7 +61,7 @@ if(MIOPEN_TEST_HALF)
         set(SKIP_TESTS test_gru test_rnn_vanilla test_lstm test_conv_igemm_dynamic)
     endif()
     if(MIOPEN_TEST_GFX908)
-       set(SKIP_TESTS test_immed_conv3d test_conv3d test_fusion_aux test_activation test_lrn_test test_ctc test_conv2d_bias test_conv3d_bias test_cba_inference test_cbna_inference test_pooling2d test_na_train test_na_inference test_bn_aux test_conv_igemm_dynamic)
+       set(SKIP_TESTS test_immed_conv3d test_conv3d test_fusion_aux test_activation test_lrn_test test_ctc test_conv2d_bias test_conv3d_bias test_cba_inference test_cbna_inference test_pooling2d test_na_train test_na_inference test_bn_aux test_conv_igemm_dynamic test_conv_for_implicit_gemm_mlir)
     endif()
     set(MIOPEN_TEST_FLOAT_ARG --half)
 elseif(MIOPEN_TEST_INT8)
@@ -70,7 +70,7 @@ elseif(MIOPEN_TEST_INT8)
 elseif(MIOPEN_TEST_BFLOAT16)
     set(SKIP_ALL_EXCEPT_TESTS test_conv2d test_tensor_copy test_tensor_set test_tensor_vec test_immed_conv2d test_check_numerics_test)
     if(MIOPEN_TEST_GFX908)
-        set(SKIP_ALL_EXCEPT_TESTS test_conv_extra test_conv_for_implicit_gemm test_miopen_conv test_deepbench_conv ${SKIP_ALL_EXCEPT_TESTS})
+        set(SKIP_ALL_EXCEPT_TESTS test_conv_extra test_conv_for_implicit_gemm test_miopen_conv test_deepbench_conv ${SKIP_ALL_EXCEPT_TESTS} test_conv_for_implicit_gemm_mlir)
     endif()
     set(MIOPEN_TEST_FLOAT_ARG --bfloat16)
 elseif(MIOPEN_TEST_GFX908)
@@ -251,11 +251,6 @@ endfunction()
 set(IMPLICITGEMM_ARGS ${MIOPEN_TEST_FLOAT_ARG})
 
 set(IMPLICITGEMM_MLIR_COMMON
-    MIOPEN_DEBUG_GCN_ASM_KERNELS=0
-    MIOPEN_DEBUG_CONV_FFT=0
-    MIOPEN_DEBUG_CONV_DIRECT=0
-    MIOPEN_DEBUG_CONV_GEMM=0
-    MIOPEN_DEBUG_CONV_SCGEMM=0
     MIOPEN_FIND_MODE=1)
 set(IMPLICITGEMM_MLIR_FWD_ENVS
     ${IMPLICITGEMM_MLIR_COMMON}
@@ -296,7 +291,7 @@ add_perf_test(test_conv_embed_db
 )
 endif()
 
-add_custom_test(test_conv_for_implicit_gemm_mlir SKIP_UNLESS_ALL
+add_custom_test(test_conv_for_implicit_gemm_mlir
 COMMAND ${IMPLICITGEMM_MLIR_FWD_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input	64 1024	14 14	--weights	1024 1024 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
 COMMAND ${IMPLICITGEMM_MLIR_FWD_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input	64 256 56 56 --weights	256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
 COMMAND ${IMPLICITGEMM_MLIR_FWD_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input	64 128 58 58 --weights	128 128 3 3 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
