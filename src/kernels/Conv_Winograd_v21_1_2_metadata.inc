@@ -156,14 +156,14 @@ __dx10_clamp = 0
     .amdhsa_system_sgpr_workgroup_id_y       __sgpr_workgroup_id_y
     .amdhsa_system_sgpr_workgroup_id_z       __sgpr_workgroup_id_y
     .amdhsa_system_vgpr_workitem_id          __vgpr_workitem_id
-    .amdhsa_next_free_vgpr .amdgcn.next_free_vgpr
-    .amdhsa_next_free_sgpr .amdgcn.next_free_sgpr
+    .amdhsa_next_free_vgpr                   .amdgcn.next_free_vgpr
+    .amdhsa_next_free_sgpr                   .amdgcn.next_free_sgpr
     .amdhsa_reserve_vcc                      __sgpr_reserve_vcc_default
     .amdhsa_reserve_xnack_mask               __sgpr_reserve_xnack_default
     .amdhsa_reserve_flat_scratch             __sgpr_reserve_flatscr_default
     .amdhsa_ieee_mode                        __ieee_mode
     .amdhsa_dx10_clamp                       __dx10_clamp
-    .amdhsa_wavefront_size32 0
+    .amdhsa_wavefront_size32                 0
 .end_amdhsa_kernel
 .else
 .amdhsa_kernel \kernel_name
@@ -175,8 +175,8 @@ __dx10_clamp = 0
     .amdhsa_system_sgpr_workgroup_id_y       __sgpr_workgroup_id_y
     .amdhsa_system_sgpr_workgroup_id_z       __sgpr_workgroup_id_y
     .amdhsa_system_vgpr_workitem_id          __vgpr_workitem_id
-    .amdhsa_next_free_vgpr .amdgcn.next_free_vgpr
-    .amdhsa_next_free_sgpr .amdgcn.next_free_sgpr
+    .amdhsa_next_free_vgpr                   .amdgcn.next_free_vgpr
+    .amdhsa_next_free_sgpr                   .amdgcn.next_free_sgpr
     .amdhsa_reserve_vcc                      __sgpr_reserve_vcc_default
     .amdhsa_reserve_xnack_mask               __sgpr_reserve_xnack_default
     .amdhsa_reserve_flat_scratch             __sgpr_reserve_flatscr_default
