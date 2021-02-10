@@ -56,27 +56,27 @@ class TensorOpDriver : public Driver
         is_scale  = false;
     }
 
-    int AddCmdLineArgs();
-    int ParseCmdLineArgs(int argc, char* argv[]);
-    InputFlags& GetInputFlags() { return inflags; }
+    int AddCmdLineArgs() override;
+    int ParseCmdLineArgs(int argc, char* argv[]) override;
+    InputFlags& GetInputFlags() override { return inflags; }
 
-    int GetandSetData();
+    int GetandSetData() override;
     std::vector<int> GetInputTensorLengthsFromCmdLine();
 
     int SetTensorOpFromCmdLineArgs();
 
-    int AllocateBuffersAndCopy();
+    int AllocateBuffersAndCopy() override;
 
-    int RunForwardGPU();
+    int RunForwardGPU() override;
     int RunForwardCPU();
 
-    int RunBackwardGPU() { return 0; }
+    int RunBackwardGPU() override { return 0; }
     int RunBackwardCPU() { return 0; }
 
-    int VerifyForward();
-    int VerifyBackward() { return 0; }
+    int VerifyForward() override;
+    int VerifyBackward() override { return 0; }
 
-    ~TensorOpDriver()
+    ~TensorOpDriver() override
     {
         miopenDestroyTensorDescriptor(aTensor);
         miopenDestroyTensorDescriptor(bTensor);

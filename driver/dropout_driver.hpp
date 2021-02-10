@@ -59,23 +59,23 @@ class DropoutDriver : public Driver
         data_type        = std::is_same<Tgpu, float16>{} ? miopenHalf : miopenFloat;
     }
 
-    int AddCmdLineArgs();
-    int ParseCmdLineArgs(int argc, char* argv[]);
-    InputFlags& GetInputFlags() { return inflags; }
+    int AddCmdLineArgs() override;
+    int ParseCmdLineArgs(int argc, char* argv[]) override;
+    InputFlags& GetInputFlags() override { return inflags; }
 
-    int GetandSetData();
+    int GetandSetData() override;
     std::vector<int> GetInputTensorLengthsFromCmdLine(std::string input_str);
 
-    int AllocateBuffersAndCopy();
+    int AllocateBuffersAndCopy() override;
 
-    int RunForwardGPU();
+    int RunForwardGPU() override;
     int RunForwardCPU();
-    int RunBackwardGPU();
+    int RunBackwardGPU() override;
     int RunBackwardCPU();
-    int VerifyForward();
-    int VerifyBackward();
+    int VerifyForward() override;
+    int VerifyBackward() override;
 
-    ~DropoutDriver()
+    ~DropoutDriver() override
     {
         miopenDestroyTensorDescriptor(inputTensor);
         miopenDestroyTensorDescriptor(outputTensor);
