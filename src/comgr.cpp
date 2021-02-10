@@ -180,7 +180,7 @@ namespace ocl {
 
 #define OCL_EARLY_INLINE 1
 
-#define OCL_STANDARD 200 // For experiments.
+#define OCL_STANDARD 120 // For experiments.
 
 #if !(OCL_STANDARD == 200 || OCL_STANDARD == 120)
 #error "Wrong OCL_STANDARD"

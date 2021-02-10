@@ -90,7 +90,10 @@ struct HandleImpl
     std::string get_device_name() const
     {
         std::string name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(device);
+        MIOPEN_LOG_NQI("Raw device name: " << name);
+#if WORKAROUND_MLOPEN_ISSUE_1711
         WorkaroundIssue1711(name);
+#endif
         return name;
     }
 
@@ -178,6 +181,7 @@ Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
 {
     clRetainCommandQueue(stream);
     impl->queue   = HandleImpl::AqPtr{stream};
+    impl->device  = miopen::GetDevice(impl->queue.get());
     impl->context = impl->create_context_from_queue();
 
     this->SetAllocator(nullptr, nullptr, nullptr);
@@ -231,12 +235,6 @@ Handle::Handle() : impl(new HandleImpl())
     auto pid = ::getpid();
     assert(pid > 0);
     impl->device  = devices.at(pid % devices.size());
-#endif
-
-#if !MIOPEN_INSTALLABLE
-    // TODO: Store device name in handle
-    std::string deviceName = miopen::GetDeviceInfo<CL_DEVICE_NAME>(impl->device);
-    MIOPEN_LOG_NQI("Device name: " << deviceName);
 #endif
 
     /////////////////////////////////////////////////////////////////
