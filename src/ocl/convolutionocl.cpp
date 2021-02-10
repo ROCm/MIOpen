@@ -674,7 +674,7 @@ static std::size_t GetSolutionCount(Handle& handle, const ProblemDescription& pr
     // To stop crashes with old ufdb file
     if(problem.direction.IsForward())
         return std::count_if(fdb_record.begin(), fdb_record.end(), [](const auto& item) {
-            return item.solver_id != solver::Id::gemm();
+            return item.second.solver_id != solver::Id::gemm().ToString();
         });
     return std::distance(fdb_record.begin(), fdb_record.end());
 }
