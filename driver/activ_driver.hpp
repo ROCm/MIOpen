@@ -63,26 +63,26 @@ class ActivationDriver : public Driver
         data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
     }
 
-    int AddCmdLineArgs();
-    int ParseCmdLineArgs(int argc, char* argv[]);
-    InputFlags& GetInputFlags() { return inflags; }
+    int AddCmdLineArgs() override;
+    int ParseCmdLineArgs(int argc, char* argv[]) override;
+    InputFlags& GetInputFlags() override { return inflags; }
 
-    int GetandSetData();
+    int GetandSetData() override;
     std::vector<int> GetInputTensorLengthsFromCmdLine();
 
     int SetActivationDescriptorFromCmdLineArgs();
 
-    int AllocateBuffersAndCopy();
+    int AllocateBuffersAndCopy() override;
 
-    int RunForwardGPU();
+    int RunForwardGPU() override;
     int RunForwardCPU(); // Verify implements it
 
-    int RunBackwardGPU();
+    int RunBackwardGPU() override;
     int RunBackwardCPU(); // Verify implements it
 
-    int VerifyBackward();
-    int VerifyForward();
-    ~ActivationDriver()
+    int VerifyBackward() override;
+    int VerifyForward() override;
+    ~ActivationDriver() override
     {
 
         miopenDestroyTensorDescriptor(outputTensor);
