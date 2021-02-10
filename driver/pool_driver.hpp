@@ -58,28 +58,28 @@ class PoolDriver_impl : public Driver
         data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
     }
 
-    int AddCmdLineArgs();
-    int ParseCmdLineArgs(int argc, char* argv[]);
-    InputFlags& GetInputFlags() { return inflags; }
+    int AddCmdLineArgs() override;
+    int ParseCmdLineArgs(int argc, char* argv[]) override;
+    InputFlags& GetInputFlags() override { return inflags; }
 
-    int GetandSetData();
+    int GetandSetData() override;
     std::vector<int> GetInputTensorLengthsFromCmdLine();
 
     int SetPoolDescriptorFromCmdLineArgs();
 
     std::vector<int> GetOutputTensorLengths();
 
-    int AllocateBuffersAndCopy();
+    int AllocateBuffersAndCopy() override;
 
-    int RunForwardGPU();
+    int RunForwardGPU() override;
     int RunForwardCPU(); // Verify implements it
 
-    int RunBackwardGPU();
+    int RunBackwardGPU() override;
     int RunBackwardCPU(); // Verify implements it
 
-    int VerifyBackward();
-    int VerifyForward();
-    ~PoolDriver_impl()
+    int VerifyBackward() override;
+    int VerifyForward() override;
+    ~PoolDriver_impl() override
     {
 
         miopenDestroyTensorDescriptor(outputTensor);
@@ -786,7 +786,7 @@ class PoolDriver : public Driver
     public:
     PoolDriver() : Driver(), pool_driver_impl(nullptr) {}
 
-    int AddCmdLineArgs()
+    int AddCmdLineArgs() override
     {
         pool_driver_impl_uint8.AddCmdLineArgs();
         pool_driver_impl_uint16.AddCmdLineArgs();
@@ -796,7 +796,7 @@ class PoolDriver : public Driver
         return 0;
     }
 
-    int ParseCmdLineArgs(int argc, char* argv[])
+    int ParseCmdLineArgs(int argc, char* argv[]) override
     {
         pool_driver_impl = &pool_driver_impl_uint8;
 
@@ -820,13 +820,13 @@ class PoolDriver : public Driver
         return 0;
     }
 
-    InputFlags& GetInputFlags() { return pool_driver_impl->GetInputFlags(); }
-    int GetandSetData() { return pool_driver_impl->GetandSetData(); }
-    int AllocateBuffersAndCopy() { return pool_driver_impl->AllocateBuffersAndCopy(); }
-    int RunForwardGPU() { return pool_driver_impl->RunForwardGPU(); }
-    int VerifyForward() { return pool_driver_impl->VerifyForward(); }
-    int RunBackwardGPU() { return pool_driver_impl->RunBackwardGPU(); }
-    int VerifyBackward() { return pool_driver_impl->VerifyBackward(); }
+    InputFlags& GetInputFlags() override { return pool_driver_impl->GetInputFlags(); }
+    int GetandSetData() override { return pool_driver_impl->GetandSetData(); }
+    int AllocateBuffersAndCopy() override { return pool_driver_impl->AllocateBuffersAndCopy(); }
+    int RunForwardGPU() override { return pool_driver_impl->RunForwardGPU(); }
+    int VerifyForward() override { return pool_driver_impl->VerifyForward(); }
+    int RunBackwardGPU() override { return pool_driver_impl->RunBackwardGPU(); }
+    int VerifyBackward() override { return pool_driver_impl->VerifyBackward(); }
 
     private:
     Driver* pool_driver_impl;
