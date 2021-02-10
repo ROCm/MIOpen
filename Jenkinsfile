@@ -936,7 +936,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx906", "default", "ON")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx906:xnack-", "default", "ON")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -965,7 +965,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx906", "default", "ON")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx906:xnack-", "default", "ON")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -994,7 +994,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx906", "default", "ON")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx906:xnack-", "default", "ON")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -1023,7 +1023,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx906", "default", "ON")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx906:xnack-", "default", "ON")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -1056,7 +1056,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx908", "default", "ON")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx908:xnack-", "default", "ON")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -1085,7 +1085,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx908", "default", "ON")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx908:xnack-", "default", "ON")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -1114,7 +1114,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx908", "default", "ON")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx908:xnack-", "default", "ON")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -1143,7 +1143,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx908", "default", "ON")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx908:xnack-", "default", "ON")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -1176,7 +1176,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx906", "latest", "ON")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx906:xnack-", "latest", "ON")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -1205,7 +1205,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx906", "latest", "ON")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx906:xnack-", "latest", "ON")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -1234,7 +1234,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx906", "latest", "ON")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx906:xnack-", "latest", "ON")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -1263,7 +1263,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx906", "latest", "ON")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx906:xnack-", "latest", "ON")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -1296,7 +1296,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx908", "latest", "ON")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx908:xnack-", "latest", "ON")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -1325,7 +1325,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx908", "latest", "ON")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx908:xnack-", "latest", "ON")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -1354,7 +1354,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx908", "latest", "ON")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx908:xnack-", "latest", "ON")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -1383,7 +1383,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx908", "latest", "ON")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang-targetid', "/usr/local", cmd, "gfx908:xnack-", "latest", "ON")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
