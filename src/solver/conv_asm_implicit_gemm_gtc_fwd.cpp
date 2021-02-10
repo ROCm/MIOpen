@@ -1319,6 +1319,28 @@ GetImplicitGemmGtcDynamicFwdXdlopsTunablesList()
     return kernel_param_list;
 }
 
+// This is a helper function for selecting better performing config
+bool mayHaveBiggerN1bClusterSize(int gemm_m,
+                                 int gemm_n,
+                                 const TunableImplicitGemmGTCDynamic_t& tunable)
+{
+    float n_times_m = static_cast<float>(gemm_n) / static_cast<float>(gemm_m);
+
+    if(n_times_m > 100.0f)
+    {
+        if(tunable.gemm_k_per_block <= 2 * tunable.wave_tile_k)
+            return (false);
+
+        // N1bClusterSize can be expanded by using half gemm_k_per_block
+        if((tunable.tensor_a_thread_lengths[1] > 1 ||
+            tunable.tensor_a_cluster_lengths[3] * 2 <= tunable.gemm_m_per_block) &&
+           (tunable.tensor_b_cluster_lengths[3] * 2 <= tunable.gemm_n_per_block))
+            return (true);
+    };
+
+    return (false);
+}
+
 static std::tuple<bool, // is suitable kernel found
                   TunableImplicitGemmGTCDynamic_t,
                   std::string, // kernel_name
@@ -1396,6 +1418,10 @@ static std::tuple<bool, // is suitable kernel found
             continue;
         };
 
+        // try find another config whose n1b cluster is larger
+        if(mayHaveBiggerN1bClusterSize(gemm_m, gemm_n, cfg))
+            continue;
+
         return std::make_tuple(true,
                                cfg,
                                cfg.GetKernelName(),
@@ -1407,8 +1433,9 @@ static std::tuple<bool, // is suitable kernel found
     // second try, try find if packed image size match
     for(const auto& cfg : tunables)
     {
-        const auto b = cfg.nxe == 0 ? (ho * wo) : ((ho * wo + cfg.nxb - 1) / cfg.nxb) *
-                                                      cfg.nxb; // pad to nxb modulo when nxe != 0
+        const auto b = cfg.nxe == 0 ? (ho * wo)
+                                    : ((ho * wo + cfg.nxb - 1) / cfg.nxb) *
+                                          cfg.nxb; // pad to nxb modulo when nxe != 0
         const auto gemm_n_packed = n * b;
         if(cfg.nxe == 0)
         {
