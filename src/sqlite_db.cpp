@@ -30,6 +30,7 @@
 #include <miopen/logger.hpp>
 #include <miopen/md5.hpp>
 #include <miopen/problem_description.hpp>
+#include <miopen/exp_backoff.hpp>
 
 #if MIOPEN_EMBED_DB
 #include <miopen_data.hpp>
@@ -216,6 +217,7 @@ SQLite::result_type SQLite::Exec(const std::string& query) const
 
 int SQLite::Retry(std::function<int()> f, std::string filename)
 {
+#if !MIOPEN_ENABLE_SQLITE_BACKOFF
     int rc = f();
     if(rc == SQLITE_BUSY)
     {
@@ -223,6 +225,30 @@ int SQLite::Retry(std::function<int()> f, std::string filename)
     }
     else
         return rc;
+#else
+    LazyExponentialBackoff exp_bo{10, 2, std::chrono::seconds(30)};
+    int tries = 0;
+    while(exp_bo)
+    {
+        int rc = f();
+        if(rc == SQLITE_BUSY)
+        {
+            ++tries;
+            if(tries < 10)
+                std::this_thread::yield();
+            else
+            {
+                auto slot = *exp_bo;
+                MIOPEN_LOG_I2("Database busy, sleeping for: " << (100 * slot) << " microseconds");
+                if(slot != 0)
+                    std::this_thread::sleep_for(std::chrono::microseconds(100 * slot));
+            }
+        }
+        else
+            return rc;
+    }
+    MIOPEN_THROW("Timeout while waiting for Database: " + filename);
+#endif
 }
 
 int SQLite::Retry(std::function<int()> f) const
