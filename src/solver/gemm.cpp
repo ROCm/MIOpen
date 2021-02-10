@@ -912,35 +912,37 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
     std::size_t in_n, in_c;
     std::tie(in_n, in_c) = tie_pick<0, 1>()(xDesc.GetLengths());
 
-    const std::size_t wei_k       = wDesc.GetLengths()[0];
-    const std::size_t spatial_dim = conv.GetSpatialDimension();
-
-    const auto& in_spatial_  = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
-    const auto& out_spatial_ = boost::adaptors::slice(yDesc.GetLengths(), 2, 2 + spatial_dim);
-    const auto& wei_spatial_ = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
+    const auto wei_k       = wDesc.GetLengths()[0];
+    const auto spatial_dim = conv.GetSpatialDimension();
 
     const auto workspace_req = GetWorkspaceSize(context, problem);
 
-    auto solution        = ConvSolution{miopenStatusSuccess};
-    solution.workspce_sz = workspace_req;
-
-    const GemmDescriptor gemm_desc =
-        conv.group_count > 1
-            ? CreateGemmDescriptorGroupConvFwd(wDesc, xDesc, yDesc, conv.group_count)
-            : CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
+    auto solution          = ConvSolution{miopenStatusSuccess};
+    solution.workspce_sz   = workspace_req;
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
+        const auto gemm_desc =
+            conv.group_count > 1
+                ? CreateGemmDescriptorGroupConvFwd(wDesc, xDesc, yDesc, conv.group_count)
+                : CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
+
+        decltype(auto) in_spatial_ = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
+        decltype(auto) out_spatial_ =
+            boost::adaptors::slice(yDesc.GetLengths(), 2, 2 + spatial_dim);
+        decltype(auto) wei_spatial_ =
+            boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
+
         const auto in_spatial  = std::vector<std::size_t>(in_spatial_.begin(), in_spatial_.end());
         const auto out_spatial = std::vector<std::size_t>(out_spatial_.begin(), out_spatial_.end());
         const auto wei_spatial = std::vector<std::size_t>(wei_spatial_.begin(), wei_spatial_.end());
 
-        const std::size_t in_spatial_size = std::accumulate(
+        const auto in_spatial_size = std::accumulate(
             in_spatial.begin(), in_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
 
-        const std::size_t out_spatial_size = std::accumulate(
+        const auto out_spatial_size = std::accumulate(
             out_spatial.begin(), out_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
 
-        const std::size_t wei_spatial_size = std::accumulate(
+        const auto wei_spatial_size = std::accumulate(
             wei_spatial.begin(), wei_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
@@ -956,7 +958,7 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
             MIOPEN_LOG_FUNCTION(name + ", non 1x1");
 
             if((workSpace == nullptr && workspace_req > 0) || workSpaceSize < workspace_req)
-                MIOPEN_THROW("Not enough workspace for GEMM (" + std::to_string(workSpaceSize) +
+                MIOPEN_THROW("Not enough workspace for GemmFwdRest (" + std::to_string(workSpaceSize) +
                              " provided, " + std::to_string(workspace_req) + " required)");
 
             const auto runs = conv_params.type == InvokeType::Run ? in_n : 1;
@@ -965,25 +967,21 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
             {
                 float iteration_time   = 0;
                 std::size_t out_offset = i * wei_k * out_spatial_size;
-
                 std::size_t in_offset = i * in_c * in_spatial_size;
 
-                Im2ColGPU(handle,
-                          spatial_dim,
-                          x,
-                          in_offset,
-                          in_c,
-                          in_spatial,
-                          wei_spatial,
-                          out_spatial,
-                          conv.GetConvPads(),
-                          conv.GetConvStrides(),
-                          conv.GetConvDilations(),
-                          workSpace,
-                          xDesc.GetType());
-
-                if(handle.IsProfilingEnabled())
-                    iteration_time = handle.GetKernelTime();
+                iteration_time = Im2ColGPU(handle,
+                                           spatial_dim,
+                                           x,
+                                           in_offset,
+                                           in_c,
+                                           in_spatial,
+                                           wei_spatial,
+                                           out_spatial,
+                                           conv.GetConvPads(),
+                                           conv.GetConvStrides(),
+                                           conv.GetConvDilations(),
+                                           workSpace,
+                                           xDesc.GetType());
 
                 std::size_t wksp_offset = 0;
                 if(wDesc.GetType() == miopenInt8)
