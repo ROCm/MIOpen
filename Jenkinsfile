@@ -637,6 +637,7 @@ pipeline {
                             CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DMIOPEN_TEST_HALF=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_FLAGS=--disable-verification-cache .. 
                             CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
                         """
+                    }
                     steps{
                         script{
                             try{
