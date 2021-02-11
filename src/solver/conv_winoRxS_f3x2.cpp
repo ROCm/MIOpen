@@ -276,6 +276,8 @@ ConvSolution ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& param
 
     KernelBuildParameters options{
         {"ROCM_METADATA_VERSION", params.rmv.IsV4() ? 6 : (params.rmv.UseV3() ? 5 : 4)},
+        {"amd_target_feature_xnack", 0}, // stub for COV4 metadata
+        {"amd_target_feature_sramecc", 0},
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
 

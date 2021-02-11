@@ -102,6 +102,8 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 #define GENERATE_MAIN_OPTIONS(options)                                                  \
     GenerateClangDefsym((options), "acc_type", 1);                                      \
     GenerateClangDefsym((options), "ROCM_METADATA_VERSION", params.rmv.IsV4() ? 6 : 5); \
+    GenerateClangDefsym((options), "amd_target_feature_xnack", 0);                      \
+    GenerateClangDefsym((options), "amd_target_feature_sramecc", 0);                    \
     GenerateClangDefsym((options), "xformx_o_size", WinoDataW);                         \
     GenerateClangDefsym((options), "xformy_o_size", WinoDataH);                         \
     GenerateClangDefsym((options), "xformx_d_size", wino_xform_w);                      \

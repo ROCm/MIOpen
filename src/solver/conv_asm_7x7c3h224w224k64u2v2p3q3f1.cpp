@@ -96,6 +96,9 @@ ConvSolution ConvAsm7x7c3h224w224k64u2v2p3q3f1::GetSolution(const ConvolutionCon
     std::ostringstream options;
     GenerateClangDefsym(
         options, "ROCM_METADATA_VERSION", params.rmv.IsV4() ? 6 : (params.rmv.UseV3() ? 5 : 4));
+    // stub for COV4 metadata
+    GenerateClangDefsym(options, "amd_target_feature_xnack", 0);
+    GenerateClangDefsym(options, "amd_target_feature_sramecc", 0);
     KernelInfo constr_params;
     constr_params.comp_options = options.str();
 

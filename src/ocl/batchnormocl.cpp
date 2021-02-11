@@ -1075,6 +1075,8 @@ void BatchNormBackward(Handle& handle,
                     // clang-format off
                     parms = std::string() +
                             " -Wa,-defsym,ROCM_METADATA_VERSION=" + (ctx.rmv.UseV3() ? "5" : "4") +
+                            " -Wa,-defsym,amd_target_feature_xnack=0" + //stub for COV4 metadata
+                            " -Wa,-defsym,amd_target_feature_sramecc=0" +
                             " -Wa,-defsym,MIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
                             " -Wa,-defsym,MIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
                             " -Wa,-defsym,MIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +

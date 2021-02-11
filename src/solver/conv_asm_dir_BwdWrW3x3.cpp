@@ -435,6 +435,9 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "reverse_weights", 0);
     GenerateClangDefsym(
         options, "ROCM_METADATA_VERSION", params.rmv.IsV4() ? 6 : (params.rmv.UseV3() ? 5 : 4));
+    // stub for COV4 metadata
+    GenerateClangDefsym(options, "amd_target_feature_xnack", 0);
+    GenerateClangDefsym(options, "amd_target_feature_sramecc", 0);
     // Perf tune:
     const PerformanceConfigAsmDirect3x3WrW* pcfg = &config;
     PerformanceConfigAsmDirect3x3WrW fromEnv;

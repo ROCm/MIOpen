@@ -138,6 +138,9 @@ struct InTransform
         GenerateClangDefsym(options, "buf_type", (params.IsFp32() ? 1 : (params.IsFp16() ? 2 : 3)));
         GenerateClangDefsym(
             options, "ROCM_METADATA_VERSION", params.rmv.IsV4() ? 6 : (params.rmv.UseV3() ? 5 : 4));
+        // stub for COV4 metadata
+        GenerateClangDefsym(options, "amd_target_feature_xnack", 0);
+        GenerateClangDefsym(options, "amd_target_feature_sramecc", 0);
         GenerateClangDefsym(options, "xformx_o_size", WinoDataW);
         GenerateClangDefsym(options, "xformy_o_size", WinoDataH);
         GenerateClangDefsym(options, "xformx_d_size", wino_xform_w);
@@ -243,6 +246,9 @@ struct FilterTransform
         GenerateClangDefsym(options, "buf_type", (params.IsFp32() ? 1 : (params.IsFp16() ? 2 : 3)));
         GenerateClangDefsym(
             options, "ROCM_METADATA_VERSION", params.rmv.IsV4() ? 6 : (params.rmv.UseV3() ? 5 : 4));
+        // stub for COV4 metadata
+        GenerateClangDefsym(options, "amd_target_feature_xnack", 0);
+        GenerateClangDefsym(options, "amd_target_feature_sramecc", 0);
         GenerateClangDefsym(options, "MIOPEN_USE_RNE_BFLOAT16", MIOPEN_USE_RNE_BFLOAT16);
         GenerateClangDefsym(options, "xformx_o_size", WinoDataW);
         GenerateClangDefsym(options, "xformy_o_size", WinoDataH);
@@ -316,6 +322,9 @@ struct OutTransform
         GenerateClangDefsym(options, "buf_type", (params.IsFp32() ? 1 : (params.IsFp16() ? 2 : 3)));
         GenerateClangDefsym(
             options, "ROCM_METADATA_VERSION", params.rmv.IsV4() ? 6 : (params.rmv.UseV3() ? 5 : 4));
+        // stub for COV4 metadata
+        GenerateClangDefsym(options, "amd_target_feature_xnack", 0);
+        GenerateClangDefsym(options, "amd_target_feature_sramecc", 0);
         GenerateClangDefsym(options, "MIOPEN_USE_RNE_BFLOAT16", MIOPEN_USE_RNE_BFLOAT16);
         GenerateClangDefsym(options, "xformx_o_size", WinoDataW);
         GenerateClangDefsym(options, "xformy_o_size", WinoDataH);

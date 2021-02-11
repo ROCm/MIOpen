@@ -94,6 +94,9 @@ std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx)
     {
         std::ostringstream options;
         GenerateClangDefsym(options, "ROCM_METADATA_VERSION", 5);
+        // stub for COV4 metadata
+        GenerateClangDefsym(options, "amd_target_feature_xnack", 0);
+        GenerateClangDefsym(options, "amd_target_feature_sramecc", 0);
         return options.str();
     }
     return ctx.general_compile_options;
