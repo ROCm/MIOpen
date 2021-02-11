@@ -872,24 +872,12 @@ bool GemmFwdRest::IsApplicable(const ExecutionContext& context,
     if(!GemmFwdBase::IsApplicable(context, problem))
         return false;
 
-    decltype(auto) conv  = problem.GetConv();
-    decltype(auto) wDesc = problem.GetWeights();
-
-    const auto spatial_dim = conv.GetSpatialDimension();
-    const auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
-
     // Todo: This is a rest-of kind of logic. Should be revised later.
-
-    if(conv.GetSpatialDimension() == 2 && problem.IsFp32() &&
-       miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-       miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
-       miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; }))
+    if(GemmFwd1x1_0_1{}.IsApplicable(context, problem))
         return false;
-
-    if(miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-       miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
-       miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 1; }) &&
-       (wDesc.GetType() != miopenInt8 || conv.group_count != 1))
+    if(GemmFwd1x1_0_1_int8{}.IsApplicable(context, problem))
+        return false;
+    if(GemmFwd1x1_0_2{}.IsApplicable(context, problem))
         return false;
 
     return true;
