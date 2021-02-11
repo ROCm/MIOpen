@@ -51,6 +51,8 @@
 #define MIO_LSTM_TEST_DEBUG 0
 #define MIO_RNN_TIME_EVERYTHING 0
 
+#define WORKAROUND_ISSUE_692 1
+
 //****************************************************
 // FORWARD BASE
 //****************************************************
@@ -2928,6 +2930,10 @@ struct lstm_basic_driver : test_driver
     {
 
 #if(MIOPEN_BACKEND_OPENCL == 1)
+#if WORKAROUND_ISSUE_692 == 1
+        std::cout << "Skip test for Issue #692: " << std::endl;
+        exit(EXIT_SUCCESS);
+#endif
         if(type == miopenHalf)
             exit(EXIT_SUCCESS);
 #endif
