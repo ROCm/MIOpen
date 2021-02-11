@@ -905,8 +905,8 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
 
     const auto workspace_req = GetWorkspaceSize(context, problem);
 
-    auto solution          = ConvSolution{miopenStatusSuccess};
-    solution.workspce_sz   = workspace_req;
+    auto solution        = ConvSolution{miopenStatusSuccess};
+    solution.workspce_sz = workspace_req;
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
         const auto gemm_desc =
@@ -948,8 +948,9 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
             MIOPEN_LOG_FUNCTION(name + ", non 1x1");
 
             if((workSpace == nullptr && workspace_req > 0) || workSpaceSize < workspace_req)
-                MIOPEN_THROW("Not enough workspace for GemmFwdRest (" + std::to_string(workSpaceSize) +
-                             " provided, " + std::to_string(workspace_req) + " required)");
+                MIOPEN_THROW("Not enough workspace for GemmFwdRest (" +
+                             std::to_string(workSpaceSize) + " provided, " +
+                             std::to_string(workspace_req) + " required)");
 
             const auto runs = conv_params.type == InvokeType::Run ? in_n : 1;
 
@@ -957,7 +958,7 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
             {
                 float iteration_time   = 0;
                 std::size_t out_offset = i * wei_k * out_spatial_size;
-                std::size_t in_offset = i * in_c * in_spatial_size;
+                std::size_t in_offset  = i * in_c * in_spatial_size;
 
                 iteration_time += Im2ColGPU(handle,
                                             spatial_dim,
@@ -994,7 +995,8 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
                 miopenStatus_t gemm_status = miopenStatusNotInitialized;
 
                 // tensors.y = tensors.w * Im2Col(tensors.x)
-                if (conv_params.type != InvokeType::Run) {
+                if(conv_params.type != InvokeType::Run)
+                {
                     gemm_status = CallGemmTimeMeasure(
                         handle,
                         gemm_desc,
