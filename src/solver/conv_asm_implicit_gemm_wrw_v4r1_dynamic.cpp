@@ -32,6 +32,8 @@
 #include "implicitgemm_util.hpp"
 #include <miopen/gcn_asm_utils.hpp>
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_V4R1)
+
 namespace miopen {
 namespace solver {
 
@@ -277,11 +279,36 @@ size_t ConvAsmImplicitGemmV4R1DynamicWrw::GetWorkspaceSize(const ConvolutionCont
     return k * c * y * x * ele_size * extra_groups;
 }
 
+static int GetGemmkGroups(const ConvolutionContext& ctx)
+{
+    const auto& k    = ctx.n_inputs;
+    const auto& c    = ctx.n_outputs;
+    const auto& y    = ctx.kernel_size_h;
+    const auto& x    = ctx.kernel_size_w;
+    const auto GemmN = c * y * x;
+
+    int GemmKPerBlock = 4;
+    if((k % 128 == 0) && (GemmN % 128 == 0))
+        GemmKPerBlock = 16;
+
+    return GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx.conv_problem, GemmKPerBlock);
+}
+
 bool ConvAsmImplicitGemmV4R1DynamicWrw::IsApplicable(const ConvolutionContext& ctx) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_V4R1{}))
+        return false;
+
     const auto device_name = ctx.GetStream().GetDeviceName();
     if(!(StartsWith(device_name, "gfx900") || StartsWith(device_name, "gfx906")))
         return false;
+
+    if(!ctx.use_asm_kernels)
+        return false;
+
+    if(GetGemmkGroups(ctx) > 0) // GetSolution() adds HIP kernels in this case.
+        if(!ctx.use_hip_kernels)
+            return false;
 
     if(!ctx.direction.IsBackwardWrW())
         return false;
@@ -298,6 +325,10 @@ bool ConvAsmImplicitGemmV4R1DynamicWrw::IsApplicable(const ConvolutionContext& c
     if(ctx.group_counts != 1)
         return false;
 
+    if(!ctx.IsLayoutDefault())
+    {
+        return false;
+    }
     std::string kernel_name;
     int block_size;
     int grid_size;
@@ -319,19 +350,6 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ConvolutionCon
 
     if(!ret)
         MIOPEN_THROW("this kernel should not run with igemm dynamic!");
-
-    int k = ctx.n_inputs;
-    int c = ctx.n_outputs;
-    int y = ctx.kernel_size_h;
-    int x = ctx.kernel_size_w;
-    int GemmKPerBlock;
-    int GemmN = c * y * x;
-
-    if((k % 128 == 0) && (GemmN % 128 == 0))
-        GemmKPerBlock = 16;
-    else
-        GemmKPerBlock = 4;
-    int gemmk_groups  = GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx.conv_problem, GemmKPerBlock);
 
     result.workspce_sz = GetWorkspaceSize(ctx);
 
@@ -358,7 +376,7 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ConvolutionCon
 
     result.construction_params.push_back(kernel);
 
-    if(gemmk_groups > 0)
+    if(GetGemmkGroups(ctx) > 0)
     {
         KernelInfo kernel_reduction;
         int reduction_per_thread     = 4;

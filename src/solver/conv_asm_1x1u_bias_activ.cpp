@@ -78,8 +78,7 @@ ConvBiasActivAsm1x1U::GetPerformanceConfig(const ConvolutionContext& params) con
 }
 
 PerformanceConfigConvBiasActivAsm1x1U
-ConvBiasActivAsm1x1U::Search(const ConvolutionContext& context,
-                             const AnyInvokeParams& invoke_ctx) const
+ConvBiasActivAsm1x1U::Search(const ConvolutionContext& context, const AnyInvokeParams&) const
 {
     auto cba_context    = context;
     cba_context.bias    = 1;
@@ -87,16 +86,8 @@ ConvBiasActivAsm1x1U::Search(const ConvolutionContext& context,
     if(!context.direction.IsForward())
         MIOPEN_THROW("Only inference supported.");
 
-/// Workaround: Fused conv API does not pass user-allocated buffers here,
-/// but we need these buffers for search.
-#if !MIOPEN_INSTALLABLE
-    if(!invoke_ctx)
-        MIOPEN_THROW(
-            "If we have valid buffer(s) then we shall stop allocating additional buffers.");
-#else
-    std::ignore = invoke_ctx;
-#endif
-
+    /// Workaround: Fused conv API does not pass user-allocated buffers here,
+    /// but we need these buffers for search.
     auto& handle        = cba_context.GetStream();
     const auto bias_buf = handle.Create(cba_context.bias_sz);
     const auto in_buf   = handle.Create(cba_context.bot_sz);
@@ -123,18 +114,21 @@ ConvSolution ConvBiasActivAsm1x1U::GetSolution(const ConvolutionContext& params,
 {
     auto sol = ConvAsm1x1U::GetSolution(params, config, disableConfigOverrideFromEnv);
 
-    std::ostringstream cba_options;
-    GenerateClangDefsym(cba_options, "activ_mode", 3);
-    GenerateClangDefsym(cba_options, "bias_mode", 1);
-    GenerateClangDefsym(cba_options, "fusion_mode", 1);
-    GenerateClangDefsym(cba_options, "enable_activ", 1);
-
     if(sol.construction_params.size() != 1)
         MIOPEN_THROW("ConvBiasActivAsm1x1U expects only one kernel");
 
-    auto& kernel_info = sol.construction_params[0];
-    kernel_info.comp_options += cba_options.str();
+    auto& kernel_info       = sol.construction_params[0];
     kernel_info.kernel_file = "conv1x1u_bias_activ.s";
+
+    if(params.is_for_generic_search)
+    {
+        std::ostringstream cba_options;
+        GenerateClangDefsym(cba_options, "activ_mode", 3);
+        GenerateClangDefsym(cba_options, "bias_mode", 1);
+        GenerateClangDefsym(cba_options, "fusion_mode", 1);
+        GenerateClangDefsym(cba_options, "enable_activ", 1);
+        kernel_info.comp_options += cba_options.str();
+    }
 
     const auto out_data_type = params.conv_problem.GetOutDataType();
 

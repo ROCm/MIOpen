@@ -30,10 +30,17 @@
 #include <miopen/handle.hpp>
 #include <miopen/finddb_kernel_cache_key.hpp>
 
+#if MIOPEN_BACKEND_HIP
+#include <miopen/hipoc_kernel.hpp>
+#endif
+
+#if MIOPEN_USE_MIOPENTENSILE
+#include <miopentensile/gemm.h>
+#endif
+
 #if MIOPEN_USE_ROCBLAS
 #include <half.hpp>
 #include <rocblas.h>
-#include <miopen/hipoc_kernel.hpp>
 #include <miopen/perf_field.hpp>
 #endif
 
@@ -101,6 +108,72 @@ std::ostream& operator<<(std::ostream& stream, const GemmDescriptor& gemm_desc)
                   << "dataType " << gemm_desc.dataType << "} ";
 }
 
+#if MIOPEN_USE_ROCBLAS
+// Enqueue gpu memset for rocblas kernel timing purpose
+// Be careful, will set mem to 0
+static void
+dummy_memset(const Handle& handle, Data_t mem, std::size_t mem_len, miopenDataType_t data_type)
+{
+    MIOPEN_LOG_I2("dummy gpu memset");
+
+    std::size_t data_size = 0;
+
+    switch(data_type)
+    {
+    case miopenInt8x4:
+    case miopenInt8:
+    {
+        data_size = sizeof(int8_t);
+        break;
+    }
+    case miopenInt32:
+    {
+        data_size = sizeof(int);
+        break;
+    }
+    case miopenBFloat16:
+    {
+        data_size = sizeof(rocblas_bfloat16);
+        break;
+    }
+    case miopenHalf:
+    {
+        data_size = sizeof(half_float::half);
+        break;
+    }
+    case miopenFloat:
+    {
+        data_size = sizeof(float);
+        break;
+    }
+    }
+
+    std::size_t sz = mem_len * data_size;
+
+    for(std::size_t i = 0; i < ROCBLAS_TIMING_MEMSET_SIZE; i += sz)
+        hipMemsetAsync(mem, 0, sz, handle.GetStream());
+}
+#endif
+
+#if MIOPEN_BACKEND_HIP
+inline void ProfilingRecordStart(const Handle& handle, HipEventPtr& start, HipEventPtr& stop)
+{
+    start = make_hip_event();
+    stop  = make_hip_event();
+    hipEventRecord(start.get(), handle.GetStream());
+}
+
+inline void ProfilingRecordStop(const Handle& handle, HipEventPtr& start, HipEventPtr& stop)
+{
+    hipEventRecord(stop.get(), handle.GetStream());
+    hipEventSynchronize(stop.get());
+    float mS = 0;
+    hipEventElapsedTime(&mS, start.get(), stop.get());
+    handle.ResetKernelTime();
+    handle.AccumKernelTime(mS);
+}
+#endif
+
 // hacks: control GEMM backend by enviroment variable and build option
 // very nasty
 static GemmBackend_t enforce_gemm_backend(miopenDataType_t data_type,
@@ -115,15 +188,33 @@ static GemmBackend_t enforce_gemm_backend(miopenDataType_t data_type,
     case 1: gemm_backend_env  = GemmBackend_t::rocblas; break;
     case 2: gemm_backend_env  = GemmBackend_t::miopengemm; break;
     case 3: gemm_backend_env  = GemmBackend_t::nogemmbackend; break;
+    case 4: gemm_backend_env  = GemmBackend_t::miopentensile; break;
     default: gemm_backend_env = gemm_backend_preferred;
     }
 
 // make sure backend chosen based on env variable is suppported
-#if MIOPEN_USE_ROCBLAS and MIOPEN_USE_MIOPENGEMM
+#if MIOPEN_USE_MIOPENTENSILE
     switch(gemm_backend_env)
     {
     case GemmBackend_t::nogemmbackend: gemm_backend_enforced = GemmBackend_t::nogemmbackend; break;
-    case GemmBackend_t::rocblas: gemm_backend_enforced       = GemmBackend_t::rocblas; break;
+    case GemmBackend_t::rocblas:
+    case GemmBackend_t::miopengemm:
+    case GemmBackend_t::miopentensile:
+        gemm_backend_enforced = (data_type == miopenFloat) ? GemmBackend_t::miopentensile :
+#if MIOPEN_USE_ROCBLAS
+                                                           GemmBackend_t::rocblas
+#else
+                                                           GemmBackend_t::nogemmbackend
+#endif
+            ;
+        break;
+    }
+#elif MIOPEN_USE_ROCBLAS and MIOPEN_USE_MIOPENGEMM
+    switch(gemm_backend_env)
+    {
+    case GemmBackend_t::nogemmbackend: gemm_backend_enforced = GemmBackend_t::nogemmbackend; break;
+    case GemmBackend_t::miopentensile:
+    case GemmBackend_t::rocblas: gemm_backend_enforced = GemmBackend_t::rocblas; break;
     case GemmBackend_t::miopengemm:
         gemm_backend_enforced =
             (data_type == miopenFloat) ? GemmBackend_t::miopengemm : GemmBackend_t::rocblas;
@@ -134,6 +225,7 @@ static GemmBackend_t enforce_gemm_backend(miopenDataType_t data_type,
     switch(gemm_backend_env)
     {
     case GemmBackend_t::nogemmbackend: gemm_backend_enforced = GemmBackend_t::nogemmbackend; break;
+    case GemmBackend_t::miopentensile:
     case GemmBackend_t::rocblas:
     case GemmBackend_t::miopengemm: gemm_backend_enforced = GemmBackend_t::rocblas; break;
     }
@@ -141,6 +233,7 @@ static GemmBackend_t enforce_gemm_backend(miopenDataType_t data_type,
     switch(gemm_backend_env)
     {
     case GemmBackend_t::nogemmbackend: gemm_backend_enforced = GemmBackend_t::nogemmbackend; break;
+    case GemmBackend_t::miopentensile:
     case GemmBackend_t::rocblas:
     case GemmBackend_t::miopengemm:
         gemm_backend_enforced =
@@ -209,6 +302,91 @@ miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
     return miopenStatusNotImplemented;
 }
 
+#if MIOPEN_USE_MIOPENTENSILE
+miopenStatus_t CallGemmMIOpenTensile(const Handle& handle,
+                                     GemmDescriptor gemm_desc,
+                                     ConstData_t A,
+                                     int a_offset,
+                                     ConstData_t B,
+                                     int b_offset,
+                                     Data_t C,
+                                     int c_offset,
+                                     FindDbKCacheKey* kcache_key)
+{
+    MIOPEN_LOG_FUNCTION("MIOpenTensile");
+
+    if(gemm_desc.dataType != miopenFloat)
+        return miopenStatusNotImplemented;
+
+#if MIOPEN_BACKEND_HIP
+    HipEventPtr start = nullptr;
+    HipEventPtr stop  = nullptr;
+    if(handle.IsProfilingEnabled())
+        ProfilingRecordStart(handle, start, stop);
+#endif
+
+    auto mtA_len0  = size_t(gemm_desc.transA ? gemm_desc.k : gemm_desc.m);
+    auto mtA_len1  = size_t(gemm_desc.transA ? gemm_desc.m : gemm_desc.k);
+    auto mtA_str0  = size_t(gemm_desc.transA ? 1 : gemm_desc.lda);
+    auto mtA_str1  = size_t(gemm_desc.transA ? gemm_desc.lda : 1);
+    auto mtA_b_n   = size_t(gemm_desc.batch_count);
+    auto mtA_b_str = size_t(gemm_desc.strideA);
+    auto mtB_len0  = size_t(gemm_desc.transB ? gemm_desc.n : gemm_desc.k);
+    auto mtB_len1  = size_t(gemm_desc.transB ? gemm_desc.k : gemm_desc.n);
+    auto mtB_str0  = size_t(gemm_desc.transB ? 1 : gemm_desc.ldb);
+    auto mtB_str1  = size_t(gemm_desc.transB ? gemm_desc.ldb : 1);
+    auto mtB_b_n   = size_t(gemm_desc.batch_count);
+    auto mtB_b_str = size_t(gemm_desc.strideB);
+    auto mtC_len0  = size_t(gemm_desc.m);
+    auto mtC_len1  = size_t(gemm_desc.n);
+    auto mtC_str0  = size_t(gemm_desc.ldc);
+    auto mtC_str1  = size_t(1);
+    auto mtC_b_n   = size_t(gemm_desc.batch_count);
+    auto mtC_b_str = size_t(gemm_desc.strideC);
+
+    miopen_tensile_matrix mtA{{mtA_len0, mtA_len1},
+                              {mtA_str0, mtA_str1},
+                              {mtA_b_n, mtA_b_str},
+                              miopen_tensile_type_float,
+                              gemm_desc.transA,
+                              Data_t(reinterpret_cast<const float*>(A) + a_offset)};
+    miopen_tensile_matrix mtB{{mtB_len0, mtB_len1},
+                              {mtB_str0, mtB_str1},
+                              {mtB_b_n, mtB_b_str},
+                              miopen_tensile_type_float,
+                              gemm_desc.transB,
+                              Data_t(reinterpret_cast<const float*>(B) + b_offset)};
+    miopen_tensile_matrix mtC{{mtC_len0, mtC_len1},
+                              {mtC_str0, mtC_str1},
+                              {mtC_b_n, mtC_b_str},
+                              miopen_tensile_type_float,
+                              false,
+                              Data_t(reinterpret_cast<float*>(C) + c_offset)};
+
+    miopen_tensile_status mt_status = miopen_tensile_status_no_solution;
+#if MIOPEN_BACKEND_HIP
+    mt_status = miopen_tensile_gemm_hip(
+        handle.GetStream(), &mtA, &mtB, &mtC, double(gemm_desc.alpha), double(gemm_desc.beta));
+
+    if(handle.IsProfilingEnabled())
+        ProfilingRecordStop(handle, start, stop);
+#else
+    (void)handle;
+    (void)mtA;
+    (void)mtB;
+    (void)mtC;
+#endif
+
+    if(kcache_key != nullptr)
+        *kcache_key = FindDbKCacheKey::MakeUnused("MIOpenTensile");
+
+    if(mt_status != miopen_tensile_status_success)
+        MIOPEN_THROW(miopenStatusInternalError, "Failed to run miopen_tensile_gemm_hip");
+
+    return miopenStatusSuccess;
+}
+#endif
+
 miopenStatus_t CallGemm(const Handle& handle,
                         GemmDescriptor gemm_desc,
                         ConstData_t A,
@@ -224,10 +402,19 @@ miopenStatus_t CallGemm(const Handle& handle,
 
     gemm_backend = enforce_gemm_backend(gemm_desc.dataType, gemm_backend);
 
-    // do row-to-column major conversion here
+// do row-to-column major conversion here
+#if MIOPEN_USE_MIOPENTENSILE
+    if((gemm_desc.isColMajor && gemm_desc.dataType == miopenFloat)
+#if MIOPEN_USE_ROCBLAS
+       ||
+       (!gemm_desc.isColMajor && gemm_desc.dataType != miopenFloat)
+#endif
+           )
+#else
     if(!gemm_desc.isColMajor)
+#endif
     {
-        gemm_desc.isColMajor = true;
+        gemm_desc.isColMajor = !gemm_desc.isColMajor;
         std::swap(A, B);
         std::swap(a_offset, b_offset);
         std::swap(gemm_desc.transA, gemm_desc.transB);
@@ -237,6 +424,11 @@ miopenStatus_t CallGemm(const Handle& handle,
 
     switch(gemm_backend)
     {
+    case GemmBackend_t::miopentensile:
+#if MIOPEN_USE_MIOPENTENSILE
+        return CallGemmMIOpenTensile(
+            handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, kcache_key);
+#endif
     case GemmBackend_t::nogemmbackend: return miopenStatusNotImplemented;
     case GemmBackend_t::rocblas: {
 #if MIOPEN_USE_ROCBLAS
@@ -246,9 +438,7 @@ miopenStatus_t CallGemm(const Handle& handle,
         HipEventPtr stop  = nullptr;
         if(handle.IsProfilingEnabled())
         {
-            start = make_hip_event();
-            stop  = make_hip_event();
-            hipEventRecord(start.get(), handle.GetStream());
+            ProfilingRecordStart(handle, start, stop);
         }
 
         rocblas_status rb_status = rocblas_status::rocblas_status_internal_error;
@@ -393,14 +583,7 @@ miopenStatus_t CallGemm(const Handle& handle,
         }
 
         if(handle.IsProfilingEnabled())
-        {
-            hipEventRecord(stop.get(), handle.GetStream());
-            hipEventSynchronize(stop.get());
-            float mS = 0;
-            hipEventElapsedTime(&mS, start.get(), stop.get());
-            handle.ResetKernelTime();
-            handle.AccumKernelTime(mS);
-        }
+            ProfilingRecordStop(handle, start, stop);
 
         if(rb_status != rocblas_status::rocblas_status_success)
             MIOPEN_THROW(miopenStatusInternalError, "rocBlas error encountered");
@@ -514,10 +697,19 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
 
     gemm_backend = enforce_gemm_backend(gemm_desc.dataType, gemm_backend);
 
-    // do row-to-column major conversion here
+// do row-to-column major conversion here
+#if MIOPEN_USE_MIOPENTENSILE
+    if((gemm_desc.isColMajor && gemm_desc.dataType == miopenFloat)
+#if MIOPEN_USE_ROCBLAS
+       ||
+       (!gemm_desc.isColMajor && gemm_desc.dataType != miopenFloat)
+#endif
+           )
+#else
     if(!gemm_desc.isColMajor)
+#endif
     {
-        gemm_desc.isColMajor = true;
+        gemm_desc.isColMajor = !gemm_desc.isColMajor;
         std::swap(A, B);
         std::swap(a_offset, b_offset);
         std::swap(gemm_desc.transA, gemm_desc.transB);
@@ -528,6 +720,11 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
 
     switch(gemm_backend)
     {
+    case GemmBackend_t::miopentensile:
+#if MIOPEN_USE_MIOPENTENSILE
+        return CallGemmMIOpenTensile(
+            handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, kcache_key);
+#endif
     case GemmBackend_t::nogemmbackend: return miopenStatusNotImplemented;
     case GemmBackend_t::rocblas: {
 #if MIOPEN_USE_ROCBLAS
@@ -537,9 +734,8 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
         HipEventPtr stop  = nullptr;
         if(handle.IsProfilingEnabled())
         {
-            start = make_hip_event();
-            stop  = make_hip_event();
-            hipEventRecord(start.get(), handle.GetStream());
+
+            ProfilingRecordStart(handle, start, stop);
         }
 
         rocblas_status rb_status = rocblas_status::rocblas_status_internal_error;
@@ -703,14 +899,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
         }
 
         if(handle.IsProfilingEnabled())
-        {
-            hipEventRecord(stop.get(), handle.GetStream());
-            hipEventSynchronize(stop.get());
-            float mS = 0;
-            hipEventElapsedTime(&mS, start.get(), stop.get());
-            handle.ResetKernelTime();
-            handle.AccumKernelTime(mS);
-        }
+            ProfilingRecordStop(handle, start, stop);
 
         if(rb_status != rocblas_status::rocblas_status_success)
             MIOPEN_THROW(miopenStatusInternalError, "rocBlas error encountered");
@@ -752,10 +941,19 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
 
     gemm_backend = enforce_gemm_backend(gemm_desc.dataType, gemm_backend);
 
-    // do row-to-column major conversion here
+// do row-to-column major conversion here
+#if MIOPEN_USE_MIOPENTENSILE
+    if((gemm_desc.isColMajor && gemm_desc.dataType == miopenFloat)
+#if MIOPEN_USE_ROCBLAS
+       ||
+       (!gemm_desc.isColMajor && gemm_desc.dataType != miopenFloat)
+#endif
+           )
+#else
     if(!gemm_desc.isColMajor)
+#endif
     {
-        gemm_desc.isColMajor = true;
+        gemm_desc.isColMajor = !gemm_desc.isColMajor;
         std::swap(A, B);
         std::swap(a_offset, b_offset);
         std::swap(gemm_desc.transA, gemm_desc.transB);
@@ -766,6 +964,11 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
 
     switch(gemm_backend)
     {
+    case GemmBackend_t::miopentensile:
+#if MIOPEN_USE_MIOPENTENSILE
+        return CallGemmMIOpenTensile(
+            handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, kcache_key);
+#endif
     case GemmBackend_t::nogemmbackend: return miopenStatusNotImplemented;
     case GemmBackend_t::rocblas: {
 #if MIOPEN_USE_ROCBLAS
@@ -775,9 +978,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
         HipEventPtr stop  = nullptr;
         if(handle.IsProfilingEnabled())
         {
-            start = make_hip_event();
-            stop  = make_hip_event();
-            hipEventRecord(start.get(), handle.GetStream());
+            ProfilingRecordStart(handle, start, stop);
         }
 
         rocblas_status rb_status = rocblas_status::rocblas_status_internal_error;
@@ -933,14 +1134,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
         }
 
         if(handle.IsProfilingEnabled())
-        {
-            hipEventRecord(stop.get(), handle.GetStream());
-            hipEventSynchronize(stop.get());
-            float mS = 0;
-            hipEventElapsedTime(&mS, start.get(), stop.get());
-            handle.ResetKernelTime();
-            handle.AccumKernelTime(mS);
-        }
+            ProfilingRecordStop(handle, start, stop);
 
         if(rb_status != rocblas_status::rocblas_status_success)
             MIOPEN_THROW(miopenStatusInternalError, "rocBlas error encountered");

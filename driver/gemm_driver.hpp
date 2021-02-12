@@ -107,24 +107,24 @@ class GemmDriver : public Driver
     public:
     GemmDriver() : Driver() {}
 
-    int AddCmdLineArgs();
-    int ParseCmdLineArgs(int argc, char* argv[]);
-    InputFlags& GetInputFlags() { return inflags; }
+    int AddCmdLineArgs() override;
+    int ParseCmdLineArgs(int argc, char* argv[]) override;
+    InputFlags& GetInputFlags() override { return inflags; }
 
-    int GetandSetData();
+    int GetandSetData() override;
     std::vector<int> GetInputTensorLengthsFromCmdLine();
 
-    int AllocateBuffersAndCopy();
+    int AllocateBuffersAndCopy() override;
 
-    int RunForwardGPU();
+    int RunForwardGPU() override;
 
     int RunForwardCPU();
 
-    int RunBackwardGPU();
+    int RunBackwardGPU() override;
 
-    int VerifyBackward();
-    int VerifyForward();
-    ~GemmDriver() {}
+    int VerifyBackward() override;
+    int VerifyForward() override;
+    ~GemmDriver() override {}
 
     private:
     InputFlags inflags;

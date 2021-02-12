@@ -30,6 +30,9 @@
 #include <miopen/generic_search.hpp>
 #include <miopen/hip_build_utils.hpp>
 #include "implicitgemm_util.hpp"
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_XDLOPS)
+
 /* this fix is for fp16 xdlops vectorizable kernels due to followings, we may revisit this fix after
   compiler fix:
   1. compiler issues(25% impact)
@@ -78,7 +81,7 @@ operator==(const PerformanceImplicitGemmForwardV4R4Xdlops& other) const
         && GemmKPerBlock == other.GemmKPerBlock
         && GemmMPerWave == other.GemmMPerWave
         && GemmNPerWave == other.GemmNPerWave
-        && GemmKPack == other.GemmKPack 
+        && GemmKPack == other.GemmKPack
         && GemmAThreadCopyMoreGemmK  == other.GemmAThreadCopyMoreGemmK
         && GemmBThreadCopyMoreGemmKPack  == other.GemmBThreadCopyMoreGemmKPack
         && GemmBThreadDataPerRead_GemmN  == other.GemmBThreadDataPerRead_GemmN;
@@ -98,8 +101,6 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::SetNextValue()
                 break;
         }
         if(!NextFlag<false, true>(GemmBThreadCopyMoreGemmKPack))
-            break;
-        if(!NextFlag<false, false>(GemmAThreadCopyMoreGemmK))
             break;
         if(!NextTwoPower<1, 8>(GemmKPack))
             break;
@@ -136,7 +137,7 @@ void PerformanceImplicitGemmForwardV4R4Xdlops::EuristicInit(const ConvolutionCon
                 {
                     // list in reverse order of importance,
                     // and favor large GEMM
-                    if(!PreviousTwoPower<1, 8>(tmp.GemmBThreadDataPerRead_GemmN))
+                    if(!PreviousTwoPower<1, 4>(tmp.GemmBThreadDataPerRead_GemmN))
                         break;
                     if(!PreviousTwoPower<1, 8>(tmp.GemmKPerBlock))
                         break;
@@ -245,8 +246,7 @@ void PerformanceImplicitGemmForwardV4R4Xdlops::EuristicInit(const ConvolutionCon
     // final check
     if(!tmp.IsReallyValid(ctx))
     {
-        MIOPEN_LOG_E("All attempts failed");
-        assert(false);
+        MIOPEN_LOG_I("All attempts unsuccessful");
     }
     *this = tmp;
     MIOPEN_LOG_I(ToString());
@@ -654,27 +654,30 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsFastToBeUsedForTuning(
 
         const float ratio = float(grid_size) / grid_size_max_blockwise_gemm;
 
-        if(grid_size_max_blockwise_gemm > 600)
+        const auto num_cu = ctx.GetStream().GetMaxComputeUnits();
+
+        // heuristic to exclude performance paramater that result in very large number of blocks
+        if(grid_size_max_blockwise_gemm > 5 * num_cu)
         {
             if(ratio > 2.81)
                 return false;
         }
-        if(grid_size_max_blockwise_gemm > 480)
+        else if(grid_size_max_blockwise_gemm > 4 * num_cu)
         {
             if(ratio > 3.61)
                 return false;
         }
-        if(grid_size_max_blockwise_gemm > 360)
+        else if(grid_size_max_blockwise_gemm > 3 * num_cu)
         {
             if(ratio > 4.41)
                 return false;
         }
-        if(grid_size_max_blockwise_gemm > 240)
+        else if(grid_size_max_blockwise_gemm > 2 * num_cu)
         {
             if(ratio > 6.41)
                 return false;
         }
-        else if(grid_size_max_blockwise_gemm > 120)
+        else if(grid_size_max_blockwise_gemm > num_cu)
         {
             if(ratio > 12.41)
                 return false;
@@ -749,17 +752,22 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsFastToBeUsedForTuning(
     // GemmKPerBlock*GemmKPack should not be too small, otherwise read performance of A matrix would
     // be bad
     {
+        int gemm_ktotal = 0;
+
+        std::tie(std::ignore, std::ignore, std::ignore, gemm_ktotal) =
+            ConvHipImplicitGemmForwardV4R4Xdlops::CalculateGemmSize(ctx);
+
         if(ctx.IsFp32())
         {
             if(GemmKPack > 4)
                 return false;
 
-            if(GemmKPerBlock * GemmKPack < 8)
+            if(GemmKPerBlock * GemmKPack < 8 && gemm_ktotal % 8 == 0)
                 return false;
         }
         else if(ctx.IsFp16() || ctx.IsBfp16())
         {
-            if(GemmKPerBlock * GemmKPack < 16)
+            if(GemmKPerBlock * GemmKPack < 16 && gemm_ktotal % 16 == 0)
                 return false;
         }
     }
@@ -849,9 +857,14 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
     bool) const
 {
     ConvSolution result;
-    KernelInfo construction_parameters;
 
-    assert(config.IsReallyValid(ctx));
+    if(!config.IsReallyValid(ctx))
+    {
+        MIOPEN_LOG_E("invalid performance parameter");
+        assert(false);
+    }
+
+    KernelInfo construction_parameters;
 
     construction_parameters.kernel_file =
         "gridwise_convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw.cpp";
@@ -951,7 +964,16 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
 
 bool ConvHipImplicitGemmForwardV4R4Xdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_XDLOPS{}))
+        return false;
+
     if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
+        return false;
+
+    if(!ctx.use_hip_kernels)
+        return false;
+
+    if(!IsComposableKernelSupportedHardware(ctx))
         return false;
 
     if(!IsXdlopsSupport(ctx))
@@ -969,6 +991,10 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops::IsApplicable(const ConvolutionContext
     if(!IsIndexRangeLargeEnough(ctx))
         return false;
 
+    if(!ctx.IsLayoutDefault())
+    {
+        return false;
+    }
     // gemm size
     {
         int gemm_g       = -1;

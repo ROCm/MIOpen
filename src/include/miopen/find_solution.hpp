@@ -151,10 +151,12 @@ struct SolverContainer
                 if(find_only.IsValid() && find_only != Id{SolverDbId(solver)})
                 { // Do nothing (and keep silence for the sake of Tuna), just skip.
                 }
-                else if(!solver.IsApplicable(search_params))
-                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Not applicable");
+                // For better performance, check IsDynamic() first, because
+                // it is much faster than IsApplicable().
                 else if(search_params.use_dynamic_solutions_only && !solver.IsDynamic())
                     MIOPEN_LOG_I2(SolverDbId(solver) << ": Skipped (non-dynamic)");
+                else if(!solver.IsApplicable(search_params))
+                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Not applicable");
                 else
                 {
                     const Solution s = FindSolution(solver, search_params, db, invoke_ctx);
@@ -180,12 +182,18 @@ struct SolverContainer
         return ss;
     }
     template <class Context>
-    std::vector<std::pair<std::string, size_t>> GetWorkspaceSize(const Context& search_params) const
+    std::vector<std::pair<std::string, size_t>>
+    GetWorkspaceSize(const Context& search_params,
+                     std::size_t limit = std::numeric_limits<std::size_t>::max()) const
     {
         std::vector<std::pair<std::string, size_t>> res;
         const auto find_only = GetEnvFindOnlySolver();
+        std::size_t count    = 0;
         miopen::each_args(
             [&](auto solver) {
+                if(count >= limit)
+                    return;
+
                 if(find_only.IsValid() && find_only != Id{SolverDbId(solver)})
                 { // Do nothing (and keep silence for the sake of Tuna), just skip.
                 }
@@ -195,6 +203,7 @@ struct SolverContainer
                     MIOPEN_LOG_I2(SolverDbId(solver) << ": Skipped (non-dynamic)");
                 else
                 {
+                    ++count;
                     auto sz = solver.GetWorkspaceSize(search_params);
                     res.push_back(std::make_pair(SolverDbId(solver), sz));
                 }
