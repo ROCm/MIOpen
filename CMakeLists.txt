@@ -177,6 +177,11 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     if(MIOPEN_USE_COMGR)
         message(FATAL_ERROR "comgr cannot be used with OpenCL backend")
     endif()
+
+    # This is to pass all necessary build flags to HIP compiler
+    # for device code compilation. Used within "find_package(hip...".
+    # See https://github.com/ROCm-Developer-Tools/HIP/pull/2035#issuecomment-616861118.
+    set (HIP_CXX_COMPILER ${MIOPEN_HIP_COMPILER})
 endif()
 
 
