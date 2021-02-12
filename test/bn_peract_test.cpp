@@ -1019,7 +1019,8 @@ struct batch_norm_per_activation_driver : test_driver
         // backprop recalc
         unsigned long max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
 
-        auto dy_input = tensor<T>{n, c, h, w}.generate(
+        this->tolerance = 8000 * input.desc.GetElementSize();
+        auto dy_input   = tensor<T>{n, c, h, w}.generate(
             tensor_elem_gen_integer{max_value}); //= std::get<0>(outpair.first);//
         verify(verify_backward_bn_per_activation_recalc<T, PREC_TYPE>{input, dy_input, scale});
 
