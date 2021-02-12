@@ -66,9 +66,8 @@ RUN cget -p $PREFIX init --cxx /opt/rocm/llvm/bin/clang++ --std=c++14 -DAMDGPU_T
 RUN cget -p $PREFIX install pfultz2/rocm-recipes
 ADD min-requirements.txt /min-requirements.txt
 RUN CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -f /min-requirements.txt
-RUN export HIPCC_LINK_FLAGS_APPEND='-O3 -parallel-jobs=4'
-RUN export HIPCC_COMPILE_FLAGS_APPEND='-O3 -Wno-format-nonliteral -parallel-jobs=4'
-RUN rm /usr/bin/hipcc
+
+RUN if [ "$USE_TARGETID" = "ON" ] ; then export HIPCC_LINK_FLAGS_APPEND='-O3 -parallel-jobs=4' && export HIPCC_COMPILE_FLAGS_APPEND='-O3 -Wno-format-nonliteral -parallel-jobs=4' && rm /usr/bin/hipcc; fi
 # RUN export ROCM_PATH=/opt/rocm
 # RUN export PATH=${ROCM_PATH}/bin:$PATH
 # install last released miopentensile in default (master), install latest commits when MIOTENSILE_VER="latest" (develop)
