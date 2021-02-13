@@ -51,7 +51,6 @@
 #include <boost/range/adaptors.hpp>
 
 #if MIOPEN_USE_ROCBLAS
-#define ROCBLAS_TIMING_MEMSET_SIZE (10 * 1024 * 1024)
 
 #define MIOPEN_ROCBLAS_VERSION_DECIMAL (ROCBLAS_VERSION_MAJOR * 100 + ROCBLAS_VERSION_MINOR)
 
@@ -107,53 +106,6 @@ std::ostream& operator<<(std::ostream& stream, const GemmDescriptor& gemm_desc)
                   << "beta " << gemm_desc.beta << ", "
                   << "dataType " << gemm_desc.dataType << "} ";
 }
-
-#if MIOPEN_USE_ROCBLAS
-// Enqueue gpu memset for rocblas kernel timing purpose
-// Be careful, will set mem to 0
-static void
-dummy_memset(const Handle& handle, Data_t mem, std::size_t mem_len, miopenDataType_t data_type)
-{
-    MIOPEN_LOG_I2("dummy gpu memset");
-
-    std::size_t data_size = 0;
-
-    switch(data_type)
-    {
-    case miopenInt8x4:
-    case miopenInt8:
-    {
-        data_size = sizeof(int8_t);
-        break;
-    }
-    case miopenInt32:
-    {
-        data_size = sizeof(int);
-        break;
-    }
-    case miopenBFloat16:
-    {
-        data_size = sizeof(rocblas_bfloat16);
-        break;
-    }
-    case miopenHalf:
-    {
-        data_size = sizeof(half_float::half);
-        break;
-    }
-    case miopenFloat:
-    {
-        data_size = sizeof(float);
-        break;
-    }
-    }
-
-    std::size_t sz = mem_len * data_size;
-
-    for(std::size_t i = 0; i < ROCBLAS_TIMING_MEMSET_SIZE; i += sz)
-        hipMemsetAsync(mem, 0, sz, handle.GetStream());
-}
-#endif
 
 #if MIOPEN_BACKEND_HIP
 inline void ProfilingRecordStart(const Handle& handle, HipEventPtr& start, HipEventPtr& stop)
