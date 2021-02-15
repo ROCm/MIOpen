@@ -139,6 +139,17 @@ boost::filesystem::path GetCacheFile(const std::string& device,
 }
 
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
+static inline std::string GetFilenameForInfo2Logging(const bool is_kernel_str,
+                                                     const std::string& filename,
+                                                     const std::string& name)
+{
+    if(!miopen::IsLogging(miopen::LoggingLevel::Info2))
+        return {}; // Used only in MIOPEN_LOG_I2 -- optimize for speed.
+    if(is_kernel_str)
+        return filename + " size=" + std::to_string(name.size());
+    return filename;
+}
+
 std::string LoadBinary(const TargetProperties& target,
                        const size_t num_cu,
                        const std::string& name,
@@ -148,19 +159,22 @@ std::string LoadBinary(const TargetProperties& target,
     if(miopen::IsCacheDisabled())
         return {};
 
-    auto db              = GetDb(target, num_cu);
-    std::string filename = (is_kernel_str ? miopen::md5(name) : name) + ".o";
+    auto db = GetDb(target, num_cu);
+
+    const std::string filename = (is_kernel_str ? miopen::md5(name) : name) + ".o";
     KernelConfig cfg{filename, args, ""};
-    MIOPEN_LOG_I2("Loading binary for: " << name << " ;args: " << args);
+
+    const auto verbose_name = GetFilenameForInfo2Logging(is_kernel_str, filename, name);
+    MIOPEN_LOG_I2("Loading binary for: " << verbose_name << "; args: " << args);
     auto record = db.FindRecord(cfg);
     if(record)
     {
-        MIOPEN_LOG_I2("Sucessfully loaded binary for: " << name << " ;args: " << args);
+        MIOPEN_LOG_I2("Sucessfully loaded binary for: " << verbose_name << "; args: " << args);
         return record.get();
     }
     else
     {
-        MIOPEN_LOG_I2("Unable to load binary for: " << name << " ;args: " << args);
+        MIOPEN_LOG_I2("Unable to load binary for: " << verbose_name << "; args: " << args);
         return {};
     }
 }
@@ -179,7 +193,9 @@ void SaveBinary(const std::string& hsaco,
 
     std::string filename = (is_kernel_str ? miopen::md5(name) : name) + ".o";
     KernelConfig cfg{filename, args, hsaco};
-    MIOPEN_LOG_I2("Saving binary for: " << name << " ;args: " << args);
+
+    const auto verbose_name = GetFilenameForInfo2Logging(is_kernel_str, filename, name);
+    MIOPEN_LOG_I2("Saving binary for: " << verbose_name << "; args: " << args);
     db.StoreRecord(cfg);
 }
 #else
