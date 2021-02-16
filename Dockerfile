@@ -95,7 +95,7 @@ RUN pip install -r /doc-requirements.txt
 RUN if [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@7568654c938d42e9a91c6b18fb382f5b978d12fd; else cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@5fe0bf4a8dc59f3ab62df929297280915372ce16; fi
 
 RUN cd ~ && \
-    export MLIR_COMMIT=31d92f4c64ae6fa6b7c5d543f68b69300b4513ce && \
+    export MLIR_COMMIT=331e8782b1b4a107cfb1f93bb90ae59bd95a6dad && \
     wget https://github.com/ROCmSoftwarePlatform/llvm-project-mlir/archive/$MLIR_COMMIT.tar.gz && \
     tar -xvzf $MLIR_COMMIT.tar.gz && \
     rm -rf $MLIR_COMMIT.tar.gz && \

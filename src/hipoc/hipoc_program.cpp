@@ -255,6 +255,12 @@ struct HIPOCProgramImpl
         {
             hsaco_file = MiirBuildViaHip(dir, filename, src, params, target);
         }
+        else if(miopen::EndsWith(filename, ".mlir"))
+        {
+            std::vector<char> buffer;
+            MiirGenBin(params, buffer);
+            WriteFile(buffer, hsaco_file);
+        }
 #endif
         else
         {
@@ -303,6 +309,8 @@ struct HIPOCProgramImpl
         std::string filename = is_kernel_str ? "tinygemm.cl" // Fixed name for miopengemm.
                                              : program;
         const auto src = [&]() -> std::string {
+            if(miopen::EndsWith(filename, ".mlir"))
+                return {}; // MLIR solutions do not use source code.
             if(miopen::EndsWith(filename, ".mlir-cpp"))
                 return {}; // MLIR solutions do not use source code.
             if(!kernel_src.empty())
