@@ -69,27 +69,27 @@ class RNNDriver : public Driver
         miopenCreateDropoutDescriptor(&DropoutDesc);
     }
 
-    int AddCmdLineArgs();
-    int ParseCmdLineArgs(int argc, char* argv[]);
-    InputFlags& GetInputFlags() { return inflags; }
+    int AddCmdLineArgs() override;
+    int ParseCmdLineArgs(int argc, char* argv[]) override;
+    InputFlags& GetInputFlags() override { return inflags; }
 
-    int GetandSetData();
+    int GetandSetData() override;
     std::vector<int> GetInputTensorLengthsFromCmdLine();
     std::vector<int> GetHiddenTensorLengthsFromCmdLine();
     std::vector<int> GetWeightTensorLengthsFromCmdLine();
     std::vector<int> GetOutputTensorLengthsFromCmdLine();
 
     int SetRNNDescriptorFromCmdLineArgs();
-    int AllocateBuffersAndCopy();
+    int AllocateBuffersAndCopy() override;
 
-    int RunForwardGPU();
+    int RunForwardGPU() override;
     int RunForwardCPU();
-    int RunBackwardGPU();
+    int RunBackwardGPU() override;
     int RunBackwardDataCPU();
     int RunBackwardWeightsCPU();
-    int VerifyBackward();
-    int VerifyForward();
-    ~RNNDriver()
+    int VerifyBackward() override;
+    int VerifyForward() override;
+    ~RNNDriver() override
     {
         miopenDestroyTensorDescriptor(outputTensor);
         miopenDestroyTensorDescriptor(weightTensor);
