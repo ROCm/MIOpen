@@ -616,6 +616,10 @@ if(miopentensile_FOUND)
     target_link_libraries(MIOpen PRIVATE MIOpenTensile)
 endif()
 
+if(LIBMLIRMIOPEN)
+  target_link_libraries(MIOpen PRIVATE ${LIBMLIRMIOPEN})
+endif()
+
 if(WIN32 AND NOT MSVC)
     if(BUILD_DEV)
         target_link_libraries(MIOpen PUBLIC -Wl,-export-all-symbols -Wl,-exclude-symbols=_Unwind_Resume)
@@ -666,12 +670,6 @@ if(NOT WIN32 AND NOT APPLE)
         MESSAGE(STATUS "Librt: " ${LIBRT})
         target_link_libraries(MIOpen PUBLIC ${LIBRT})
     endif()
-endif()
-
-############################################################
-# MIOpen depends on libMLIRMIOpen for igemm kernels
-if(LIBMLIRMIOPEN AND NOT MIOPEN_USE_COMGR)
-  target_link_libraries(MIOpen PRIVATE ${LIBMLIRMIOPEN})
 endif()
 
 ############################################################
