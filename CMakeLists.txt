@@ -123,6 +123,7 @@ else()
 endif()
 set(MIOPEN_BINCACHE_PATH "" CACHE STRING "URL or path containing binary cache files to embed")
 option(MIOPEN_EMBED_BUILD "Build with the set of embed flags." Off)
+option(MIOPEN_USE_MLIR "Use MLIR -- EXPERIMENTAL" Off)
 option(MIOPEN_USE_COMGR "Use comgr to build kernels instead of offline tools" ${MIOPEN_EMBED_BUILD})
 option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD})
 
@@ -312,15 +313,15 @@ else()
     endif()
 endif()
 
-if(NOT WIN32 AND NOT APPLE)
-  find_library(LIBMLIRMIOPEN MLIRMIOpen REQUIRED)
-  if(LIBMLIRMIOPEN AND NOT MIOPEN_USE_COMGR)
-    MESSAGE(STATUS "LibMLIRMIOpen: " ${LIBMLIRMIOPEN})
-    set(MIOPEN_USE_MLIR 1)
-  else()
-    message(STATUS "LibMLIRMIOpen not found, no flexible layout support")
-  endif()
+
+if(MIOPEN_USE_MLIR)
+    if(MIOPEN_USE_COMGR)
+        message(FATAL_ERROR "MLIR cannot be used with comgr")
+    endif()
+    find_library(LIBMLIRMIOPEN MLIRMIOpen REQUIRED)
+    MESSAGE(STATUS "Build with LibMLIRMIOpen: " ${LIBMLIRMIOPEN})
 endif()
+
 
 # Online assembler
 find_program(MIOPEN_AMDGCN_ASSEMBLER
