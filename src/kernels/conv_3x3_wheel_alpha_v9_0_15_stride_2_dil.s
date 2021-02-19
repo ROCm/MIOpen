@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,5 +24,9 @@
  *
  *******************************************************************************/
 .include "conv_3x3_wheel_alpha_v9_0_15_prologue.inc"
-.include "conv_3x3_wheel_alpha_v9_0_15_stride_2_dil.inc"
+.if (.amdgcn.gfx_generation_number == 8)
+    .include "conv_3x3_wheel_alpha_v9_0_15_gfx8_stride_2_dil.inc"
+.elseif (.amdgcn.gfx_generation_number == 9)
+    .include "conv_3x3_wheel_alpha_v9_0_15_gfx9_stride_2_dil.inc"
+.endif
 .include "conv_3x3_wheel_alpha_v9_0_15_epilogue.inc"

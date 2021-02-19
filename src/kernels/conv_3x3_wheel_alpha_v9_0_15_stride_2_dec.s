@@ -24,5 +24,9 @@
  *
  *******************************************************************************/
 .include "conv_3x3_wheel_alpha_v9_0_15_prologue.inc"
-.include "conv_3x3_wheel_alpha_v9_0_15_stride_2_dec.inc"
+.if (.amdgcn.gfx_generation_number == 8)
+    .include "conv_3x3_wheel_alpha_v9_0_15_gfx8_stride_2_dec.inc"
+.elseif (.amdgcn.gfx_generation_number == 9)
+    .include "conv_3x3_wheel_alpha_v9_0_15_gfx9_stride_2_dec.inc"
+.endif
 .include "conv_3x3_wheel_alpha_v9_0_15_epilogue.inc"
