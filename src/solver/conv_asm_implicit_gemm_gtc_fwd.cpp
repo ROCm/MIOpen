@@ -1381,9 +1381,12 @@ static std::tuple<bool, // is suitable kernel found
                 continue;
             }
         };
+        const auto b = cfg.nxe == 0 ? (ho * wo) : ((ho * wo + cfg.nxb - 1) / cfg.nxb) *
+                                                      cfg.nxb; // pad to nxb modulo when nxe != 0
+        const auto gemm_n_packed = n * b;
         if(precision == "fp32")
         {
-            if((gemm_n % cfg.gemm_n_per_block != 0) || (gemm_m % cfg.gemm_m_per_block != 0) ||
+            if((gemm_n_packed % cfg.gemm_n_per_block != 0) || (gemm_m % cfg.gemm_m_per_block != 0) ||
                (gemm_k % cfg.gemm_k_per_block != 0))
             {
                 continue;
@@ -1391,7 +1394,7 @@ static std::tuple<bool, // is suitable kernel found
         }
         else
         {
-            if((gemm_n % cfg.gemm_n_per_block != 0) || (gemm_m % cfg.gemm_m_per_block != 0))
+            if((gemm_n_packed % cfg.gemm_n_per_block != 0) || (gemm_m % cfg.gemm_m_per_block != 0))
             {
                 continue;
             };
@@ -1407,7 +1410,12 @@ static std::tuple<bool, // is suitable kernel found
             continue;
         };
 
-        if((ho * wo) % cfg.nxb != 0)
+        if(cfg.nxe == 0 && (ho * wo) % cfg.nxb != 0)
+        {
+            continue;
+        };
+
+        if(n % cfg.gemm_n_per_block == 0 && (ho * wo) % cfg.nxb != 0)
         {
             continue;
         };
@@ -1427,7 +1435,7 @@ static std::tuple<bool, // is suitable kernel found
                                cfg.GetKernelName(),
                                cfg.GetBlockSize(),
                                integer_divide_ceil(gemm_m, cfg.gemm_m_per_block) *
-                                   integer_divide_ceil(gemm_n, cfg.gemm_n_per_block));
+                                   integer_divide_ceil(gemm_n_packed, cfg.gemm_n_per_block));
     };
 
     // second try, try find if packed image size match
@@ -1436,6 +1444,8 @@ static std::tuple<bool, // is suitable kernel found
         const auto b = cfg.nxe == 0 ? (ho * wo) : ((ho * wo + cfg.nxb - 1) / cfg.nxb) *
                                                       cfg.nxb; // pad to nxb modulo when nxe != 0
         const auto gemm_n_packed = n * b;
+        if(precision != cfg.precision)
+            continue;
         if(cfg.nxe == 0)
         {
             if((x != 1) || (y != 1) || (stride_h != 1) || (stride_w != 1) || (dilation_h != 1) ||
@@ -1454,7 +1464,7 @@ static std::tuple<bool, // is suitable kernel found
         }
         else
         {
-            if((gemm_n_packed % cfg.gemm_n_per_block != 0) || (gemm_m % cfg.gemm_m_per_block != 0))
+            if((gemm_n_packed % cfg.gemm_n_per_block != 0))// || (gemm_m % cfg.gemm_m_per_block != 0))
             {
                 continue;
             };
