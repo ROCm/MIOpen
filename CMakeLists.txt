@@ -315,9 +315,6 @@ endif()
 
 
 if(MIOPEN_USE_MLIR)
-    if(MIOPEN_USE_COMGR)
-        message(FATAL_ERROR "MLIR cannot be used with comgr")
-    endif()
     find_library(LIBMLIRMIOPEN MLIRMIOpen REQUIRED)
     MESSAGE(STATUS "Build with LibMLIRMIOpen: " ${LIBMLIRMIOPEN})
 endif()
