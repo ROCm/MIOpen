@@ -26,9 +26,6 @@
 
 #include <miopen/config.h>
 #include <miopen/hip_build_utils.hpp>
-#if MIOPEN_USE_MLIR
-#include <mlir-miopen-lib.hpp>
-#endif
 #include <miopen/stringutils.hpp>
 #include <miopen/exec_utils.hpp>
 #include <miopen/logger.hpp>
@@ -37,7 +34,6 @@
 #include <boost/optional.hpp>
 #include <sstream>
 #include <string>
-#include <fstream>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HIP_ENFORCE_COV3)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HIP_VERBOSE)
@@ -101,59 +97,13 @@ struct LcOptionTargetStrings
     }
 };
 
-#if MIOPEN_USE_MLIR
-static void
-GenIgemmHost(boost::optional<TmpDir>& tmp_dir, const std::string& filename, std::string& params)
-{
-    MIOPEN_LOG_I2("populating mlir igemm kernel");
-
-    mlir::MlirHandle handle = mlir::CreateMlirHandle(params.c_str());
-    mlir::MlirLowerCpp(handle);
-
-    // invoke mlir kernel generator.
-    auto input_file       = tmp_dir->path / filename;
-    auto input_file_base  = tmp_dir->path / input_file.stem();
-    auto throw_if_invalid = [&filename](const std::string& gen_str) {
-        if(gen_str.empty())
-            MIOPEN_THROW(filename + " failed to build due to missing generated igemm string");
-    };
-
-    std::string source = mlir::MlirGenIgemmSource(handle);
-    throw_if_invalid(source);
-    std::ofstream source_file(input_file_base.string() + ".cpp");
-    source_file << source;
-
-    std::string header = mlir::MlirGenIgemmHeader(handle);
-    throw_if_invalid(header);
-    std::ofstream header_file(input_file_base.string() + ".hpp");
-    header_file << header;
-
-    // get mlir kernel compilation flags.
-    std::string cflags = mlir::MlirGenIgemmCflags(handle);
-    throw_if_invalid(cflags);
-    mlir::DestroyMlirHandle(handle);
-
-    // Skip first line.
-    cflags = cflags.substr(cflags.find("\n") + 1);
-    // Skip end of line.
-    size_t pos = cflags.find("\n");
-    if(pos != std::string::npos)
-    {
-        cflags.replace(pos, sizeof("\n"), " ");
-    }
-
-    params = cflags;
-
-    MIOPEN_LOG_I2("Finished populating mlir igemm kernel");
-}
-#endif
-
 static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
                                             const std::string& filename,
                                             std::string src,
                                             std::string params,
                                             const TargetProperties& target,
-                                            const bool testing_mode)
+                                            const bool testing_mode,
+                                            const bool sources_already_reside_on_filesystem)
 {
 #ifdef __linux__
     // Write out the include files
@@ -170,17 +120,8 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
         }
     }
 
-    // Invoke mlir kernel generator if filename has mlir in it
-    if(filename.find("mlir_gen_igemm_conv2d_cpp") != std::string::npos)
-    {
-        // Should not have src content for mlir generated files
-        assert(src.empty());
-
-#if MIOPEN_USE_MLIR
-        GenIgemmHost(tmp_dir, filename, params);
-#endif
-    }
-    else
+    // Sources produced by MLIR-cpp already reside in tmp dir.
+    if(!sources_already_reside_on_filesystem)
     {
         src += "\nint main() {}\n";
         WriteFile(src, tmp_dir->path / filename);
@@ -319,7 +260,7 @@ HipBuildTest(const std::string& program_name, std::string params, const TargetPr
     std::string source = miopen::GetKernelSrc(program_name);
     try
     {
-        std::ignore = HipBuildImpl(dir, program_name, source, params, target, true);
+        std::ignore = HipBuildImpl(dir, program_name, source, params, target, true, false);
     }
     catch(...)
     {
@@ -352,12 +293,14 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
                                  const std::string& filename,
                                  std::string src,
                                  std::string params,
-                                 const TargetProperties& target)
+                                 const TargetProperties& target,
+                                 const bool sources_already_reside_on_filesystem)
 {
     if(target.Name() == "gfx908")
         if(DetectIfBufferAtomicFaddReturnsFloat(target))
             params += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
-    return HipBuildImpl(tmp_dir, filename, src, params, target, false);
+    return HipBuildImpl(
+        tmp_dir, filename, src, params, target, false, sources_already_reside_on_filesystem);
 }
 
 void bin_file_to_str(const boost::filesystem::path& file, std::string& buf)

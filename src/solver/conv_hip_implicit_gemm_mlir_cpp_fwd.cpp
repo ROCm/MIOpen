@@ -83,7 +83,7 @@ ConvSolution ConvHipImplicitGemmMlirCppFwd::GetSolution(
     std::string operation = "conv2d";
 
     construction_parameters.kernel_file =
-        "mlir_gen_igemm_conv2d_cpp_" + version + "_" + direction + ".cpp";
+        "mlir_gen_igemm_conv2d_cpp_" + version + "_" + direction + ".mlir-cpp";
 
     construction_parameters.kernel_name = "mlir_gen_igemm_conv2d_cpp_" + version + "_" + direction;
 
@@ -91,20 +91,20 @@ ConvSolution ConvHipImplicitGemmMlirCppFwd::GetSolution(
     // clang-format off
     using CI = ConvolutionContextInterpreter;
     construction_parameters.comp_options =
-        std::string(" --operation ") + operation + 
-        std::string(" --fil_layout ") + CI::GetFilterLayout(ctx) + 
+        std::string(" --operation ") + operation +
+        std::string(" --fil_layout ") + CI::GetFilterLayout(ctx) +
         std::string(" --in_layout ") + CI::GetInputLayout(ctx) +
-        std::string(" --out_layout ") + CI::GetOutputLayout(ctx) + 
-        std::string(" --batchsize ") + std::to_string(CI::GetBatchN(ctx)) + 
-        std::string(" --in_channels ") + std::to_string(CI::GetInputChannelC(ctx)) + 
-        std::string(" --out_channels ") + std::to_string(CI::GetOutputChannelK(ctx)) + 
-        std::string(" --in_h ") + std::to_string(CI::GetInputHeightHi(ctx)) + 
-        std::string(" --in_w ") + std::to_string(CI::GetInputWidthWi(ctx)) + 
-        std::string(" --out_h ") + std::to_string(CI::GetOutputHeightHo(ctx)) + 
-        std::string(" --out_w ") + std::to_string(CI::GetOutputWidthWo(ctx)) + 
-        std::string(" --fil_h ") + std::to_string(CI::GetFilterHeightY(ctx)) + 
-        std::string(" --fil_w ") + std::to_string(CI::GetFilterWidthX(ctx)) + 
-        std::string(" --dilation_h ") + std::to_string(CI::GetAdjustedConvolutionDilationH(ctx)) + 
+        std::string(" --out_layout ") + CI::GetOutputLayout(ctx) +
+        std::string(" --batchsize ") + std::to_string(CI::GetBatchN(ctx)) +
+        std::string(" --in_channels ") + std::to_string(CI::GetInputChannelC(ctx)) +
+        std::string(" --out_channels ") + std::to_string(CI::GetOutputChannelK(ctx)) +
+        std::string(" --in_h ") + std::to_string(CI::GetInputHeightHi(ctx)) +
+        std::string(" --in_w ") + std::to_string(CI::GetInputWidthWi(ctx)) +
+        std::string(" --out_h ") + std::to_string(CI::GetOutputHeightHo(ctx)) +
+        std::string(" --out_w ") + std::to_string(CI::GetOutputWidthWo(ctx)) +
+        std::string(" --fil_h ") + std::to_string(CI::GetFilterHeightY(ctx)) +
+        std::string(" --fil_w ") + std::to_string(CI::GetFilterWidthX(ctx)) +
+        std::string(" --dilation_h ") + std::to_string(CI::GetAdjustedConvolutionDilationH(ctx)) +
         std::string(" --dilation_w ") + std::to_string(CI::GetAdjustedConvolutionDilationW(ctx)) +
         std::string(" --conv_stride_h ") + std::to_string(CI::GetAdjustedConvolutionStrideH(ctx)) +
         std::string(" --conv_stride_w ") + std::to_string(CI::GetAdjustedConvolutionStrideW(ctx)) +

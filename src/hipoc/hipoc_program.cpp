@@ -32,6 +32,7 @@
 #include <miopen/kernel.hpp>
 #include <miopen/kernel_warnings.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/mlir_build.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/target_properties.hpp>
 #include <miopen/tmp_dir.hpp>
@@ -249,6 +250,12 @@ struct HIPOCProgramImpl
         {
             hsaco_file = HipBuild(dir, filename, src, params, target);
         }
+#if MIOPEN_USE_MLIR
+        else if(miopen::EndsWith(filename, ".mlir-cpp"))
+        {
+            hsaco_file = MlirBuildViaHip(dir, filename, src, params, target);
+        }
+#endif
         else
         {
             params += " " + GetCodeObjectVersionOption();
@@ -280,6 +287,9 @@ struct HIPOCProgramImpl
                 comgr::BuildHip(filename, src, params, target, binary);
             else if(miopen::EndsWith(filename, ".s"))
                 comgr::BuildAsm(filename, src, params, target, binary);
+            else if(miopen::EndsWith(filename, ".mlir-cpp"))
+                MIOPEN_THROW(miopenStatusNotImplemented,
+                             "MLIR builds are not supported with COMgr");
             else
                 comgr::BuildOcl(filename, src, params, target, binary);
         }
@@ -292,22 +302,17 @@ struct HIPOCProgramImpl
     {
         std::string filename = is_kernel_str ? "tinygemm.cl" // Fixed name for miopengemm.
                                              : program;
-        std::string src;
-        if((program.find("mlir_gen_igemm_conv2d_cpp") != std::string::npos) ||
-           (!kernel_src.empty()))
-        {
-            // For MLIR path, leave the kernel_src to be empty.
-            src = kernel_src;
-        }
-        else
-        {
-            src = is_kernel_str ? program : GetKernelSrc(program);
-        }
+        const auto src = [&]() -> std::string {
+            if(miopen::EndsWith(filename, ".mlir-cpp"))
+                return {}; // MLIR solutions do not use source code.
+            if(!kernel_src.empty())
+                return kernel_src;
+            if(is_kernel_str)
+                return program;
+            return GetKernelSrc(program);
+        }();
 
-        if(program.find("mlir_gen_igemm_conv2d_cpp") != std::string::npos)
-        {
-        }
-        else if(miopen::EndsWith(filename, ".cpp"))
+        if(miopen::EndsWith(filename, ".cpp"))
         {
 #if MIOPEN_BUILD_DEV
             params += " -Werror" + HipKernelWarningsString();

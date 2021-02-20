@@ -148,6 +148,7 @@ set( MIOpen_Source
     include/miopen/problem_description.hpp
     include/miopen/mlo_internal.hpp
     include/miopen/mlo_utils.hpp
+    include/miopen/mlir_build.hpp
     include/miopen/oclkernel.hpp
     include/miopen/tensor.hpp
     include/miopen/tensor_ops.hpp
@@ -535,6 +536,10 @@ endif()
 
 if(MIOPEN_USE_COMGR)
     list(APPEND MIOpen_Source comgr.cpp)
+endif()
+
+if(MIOPEN_USE_MLIR)
+    list(APPEND MIOpen_Source mlir_build.cpp)
 endif()
 
 # build library
