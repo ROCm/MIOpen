@@ -24,8 +24,8 @@
  *
  *******************************************************************************/
 
-.macro _s_add_u32_lit_gfx9 dst, src, lit
-    .long  0x8000FF00 + ((\dst) << 16) + ((\src) << 0)
+.macro _s_add_u32_lit_gfx9 sdst, ssrc, lit
+    .long  0x8000FF00 + ((\sdst) << 16) + ((\ssrc) << 0)
     .long \lit
 .endm
 
