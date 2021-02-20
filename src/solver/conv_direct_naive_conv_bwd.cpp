@@ -81,18 +81,18 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ConvolutionContext& ctx) 
     int c_per_group = c / group;
     int k_per_group = k / group;
 
-    int block_size = 256;
-    int grid_size  = 1;
+    size_t block_size = 256;
+    size_t grid_size  = 1;
     if(ctx.IsLayoutDefault())
     {
-        grid_size = n * c;
+        grid_size = static_cast<size_t>(n) * c;
     }
     else if(ctx.IsLayoutNHWC())
     {
         if(ctx.Is2d())
-            grid_size = group * n * hi;
+            grid_size = static_cast<size_t>(group) * n * hi;
         else
-            grid_size = group * n * di;
+            grid_size = static_cast<size_t>(group) * n * di;
     }
     else
         MIOPEN_THROW("Unsupported layout");
@@ -112,8 +112,6 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ConvolutionContext& ctx) 
     kernel.l_wk.push_back(1);
 
     kernel.comp_options = ConvDirectNaiveConvCompileOption(ctx);
-
-    MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
 
     if(ctx.Is2d())
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {

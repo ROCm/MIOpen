@@ -81,8 +81,8 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx) 
     int c_per_group = c / group;
     int k_per_group = k / group;
 
-    int block_size = 256;
-    int grid_size  = k;
+    size_t block_size = 256;
+    size_t grid_size  = static_cast<size_t>(k);
 
     KernelInfo kernel;
 
@@ -99,8 +99,6 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx) 
     kernel.l_wk.push_back(1);
 
     kernel.comp_options = ConvDirectNaiveConvCompileOption(ctx);
-
-    MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
 
     if(ctx.Is2d())
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
