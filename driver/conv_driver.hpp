@@ -206,11 +206,11 @@ class ConvDriver : public Driver
         InitDataType<Tgpu>();
     }
 
-    int AddCmdLineArgs();
-    int ParseCmdLineArgs(int argc, char* argv[]);
-    InputFlags& GetInputFlags() { return inflags; }
+    int AddCmdLineArgs() override;
+    int ParseCmdLineArgs(int argc, char* argv[]) override;
+    InputFlags& GetInputFlags() override { return inflags; }
 
-    int GetandSetData();
+    int GetandSetData() override;
     std::vector<int> GetInputTensorLengthsFromCmdLine();
     std::vector<int> GetWeightTensorLengthsFromCmdLine();
     std::vector<int> GetBiasTensorLengthsFromCmdLine();
@@ -219,7 +219,7 @@ class ConvDriver : public Driver
 
     std::vector<int> GetOutputTensorLengths();
 
-    int AllocateBuffersAndCopy();
+    int AllocateBuffersAndCopy() override;
 
     bool UseGPUReference();
 
@@ -227,7 +227,7 @@ class ConvDriver : public Driver
                     int request_algo_count,
                     std::vector<miopenConvAlgoPerf_t>& perf_results,
                     context_t ctx);
-    int RunForwardGPU();
+    int RunForwardGPU() override;
     int RunForwardCPU();
     int RunForwardGPUReference();
     int RunWarmupFindForwardGPU();
@@ -240,7 +240,7 @@ class ConvDriver : public Driver
                             int request_algo_count,
                             std::vector<miopenConvAlgoPerf_t>& perf_results,
                             context_t ctx);
-    int RunBackwardGPU();
+    int RunBackwardGPU() override;
     int RunBackwardDataCPU();
     int RunBackwardWeightsCPU();
     int RunBackwardBiasCPU();
@@ -248,9 +248,9 @@ class ConvDriver : public Driver
     int RunBackwardWeightsGPUReference();
     // int RunBackwardBiasGPUReference();
 
-    int VerifyBackward();
-    int VerifyForward();
-    ~ConvDriver()
+    int VerifyBackward() override;
+    int VerifyForward() override;
+    ~ConvDriver() override
     {
         miopenDestroyTensorDescriptor(biasTensor);
         miopenDestroyTensorDescriptor(outputTensor);
