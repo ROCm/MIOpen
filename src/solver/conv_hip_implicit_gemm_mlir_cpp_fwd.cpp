@@ -45,21 +45,21 @@ bool ConvHipImplicitGemmMlirCppFwd::IsApplicable(const ConvolutionContext& ctx) 
 #endif
 }
 
-PerformanceImplicitGemmMlirCppFwd
+PerformanceImplicitGemmV4R4Fwd
 ConvHipImplicitGemmMlirCppFwd::GetPerformanceConfig(const ConvolutionContext& ctx) const
 {
-    return GetPerformanceConfigBase<PerformanceImplicitGemmMlirCppFwd>(ctx);
+    return GetPerformanceConfigBase<PerformanceImplicitGemmV4R4Fwd>(ctx);
 }
 
-PerformanceImplicitGemmMlirCppFwd
-ConvHipImplicitGemmMlirCppFwd::Search(const ConvolutionContext& context,
+PerformanceImplicitGemmV4R4Fwd
+ConvHipImplicitGemmMlirCppFwd::Search(const ConvolutionContext& ctx,
                                       const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearch(*this, context, invoke_ctx);
+    return GenericSearch(*this, ctx, invoke_ctx);
 }
 
 ConvSolution ConvHipImplicitGemmMlirCppFwd::GetSolution(
-    const ConvolutionContext& ctx, const PerformanceImplicitGemmMlirCppFwd& config, bool) const
+    const ConvolutionContext& ctx, const PerformanceImplicitGemmV4R4Fwd& config, bool) const
 {
     ConvSolution result;
     KernelInfo construction_parameters;

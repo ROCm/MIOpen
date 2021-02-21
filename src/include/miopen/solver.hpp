@@ -531,11 +531,6 @@ struct PerformanceImplicitGemmV4R4Fwd : Serializable<PerformanceImplicitGemmV4R4
     std::string ToString() const;
 };
 
-struct PerformanceImplicitGemmMlirCppFwd : PerformanceImplicitGemmV4R4Fwd
-{
-    using PerformanceImplicitGemmV4R4Fwd::PerformanceImplicitGemmV4R4Fwd;
-};
-
 struct PerformanceImplicitGemmV4R4WrW : Serializable<PerformanceImplicitGemmV4R4WrW>
 {
     int BlockSize;
@@ -590,11 +585,6 @@ struct PerformanceImplicitGemmV4R4WrW : Serializable<PerformanceImplicitGemmV4R4
     void EuristicInit(const ConvolutionContext& ctx);
     bool SetNextValue();
     std::string ToString() const;
-};
-
-struct PerformanceImplicitGemmMlirCppWrW : PerformanceImplicitGemmV4R4WrW
-{
-    using PerformanceImplicitGemmV4R4WrW::PerformanceImplicitGemmV4R4WrW;
 };
 
 struct PerformanceImplicitGemmBwdDataV1R1 : Serializable<PerformanceImplicitGemmBwdDataV1R1>
@@ -652,11 +642,6 @@ struct PerformanceImplicitGemmBwdDataV1R1 : Serializable<PerformanceImplicitGemm
     void EuristicInit(const ConvolutionContext& ctx);
     bool SetNextValue();
     std::string ToString() const;
-};
-
-struct PerformanceImplicitGemmMlirCppBwd : PerformanceImplicitGemmBwdDataV1R1
-{
-    using PerformanceImplicitGemmBwdDataV1R1::PerformanceImplicitGemmBwdDataV1R1;
 };
 
 struct PerformanceImplicitGemmBwdDataV4R1 : Serializable<PerformanceImplicitGemmBwdDataV4R1>
@@ -805,11 +790,11 @@ struct ConvHipImplicitGemmV4R4Fwd : SolverBase<ConvolutionContext>
 struct ConvHipImplicitGemmMlirCppFwd : ConvHipImplicitGemmV4R4Fwd
 {
     bool IsApplicable(const ConvolutionContext& ctx) const;
-    PerformanceImplicitGemmMlirCppFwd GetPerformanceConfig(const ConvolutionContext& ctx) const;
-    PerformanceImplicitGemmMlirCppFwd Search(const ConvolutionContext&,
-                                             const AnyInvokeParams& invoke_ctx) const;
+    PerformanceImplicitGemmV4R4Fwd GetPerformanceConfig(const ConvolutionContext& ctx) const;
+    PerformanceImplicitGemmV4R4Fwd Search(const ConvolutionContext&,
+                                          const AnyInvokeParams& invoke_ctx) const;
     ConvSolution GetSolution(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemmMlirCppFwd& config,
+                             const PerformanceImplicitGemmV4R4Fwd& config,
                              bool disableConfigOverrideFromEnv = false) const;
 };
 
@@ -875,11 +860,11 @@ struct ConvHipImplicitGemmV4R4WrW : SolverBase<ConvolutionContext>
 struct ConvHipImplicitGemmMlirCppWrW : ConvHipImplicitGemmV4R4WrW
 {
     bool IsApplicable(const ConvolutionContext& ctx) const;
-    PerformanceImplicitGemmMlirCppWrW GetPerformanceConfig(const ConvolutionContext& ctx) const;
-    PerformanceImplicitGemmMlirCppWrW Search(const ConvolutionContext&,
-                                             const AnyInvokeParams& invoke_ctx) const;
+    PerformanceImplicitGemmV4R4WrW GetPerformanceConfig(const ConvolutionContext& ctx) const;
+    PerformanceImplicitGemmV4R4WrW Search(const ConvolutionContext&,
+                                          const AnyInvokeParams& invoke_ctx) const;
     ConvSolution GetSolution(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemmMlirCppWrW& config,
+                             const PerformanceImplicitGemmV4R4WrW& config,
                              bool disableConfigOverrideFromEnv = false) const;
 };
 
@@ -1272,17 +1257,25 @@ struct ConvHipImplicitGemmBwdDataV1R1 : SolverBase<ConvolutionContext>
                              const PerformanceImplicitGemmBwdDataV1R1& config,
                              bool disableConfigOverrideFromEnv = false) const;
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const;
+
+    protected:
+    bool IsApplicableMlirCommon(const ConvolutionContext& ctx) const;
 };
 
-struct ConvHipImplicitGemmMlirCppBwd : ConvHipImplicitGemmBwdDataV1R1
+struct ConvHipImplicitGemmMlirCppBwd : private ConvHipImplicitGemmBwdDataV1R1
 {
     bool IsApplicable(const ConvolutionContext& ctx) const;
-    PerformanceImplicitGemmMlirCppBwd GetPerformanceConfig(const ConvolutionContext& ctx) const;
-    PerformanceImplicitGemmMlirCppBwd Search(const ConvolutionContext&,
-                                             const AnyInvokeParams& invoke_ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemmMlirCppBwd& config,
-                             bool disableConfigOverrideFromEnv = false) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+
+    bool IsDynamic() const { return ConvHipImplicitGemmBwdDataV1R1::IsDynamic(); }
+    float GetWti(const ConvolutionContext& ctx) const
+    {
+        return ConvHipImplicitGemmBwdDataV1R1::GetWti(ctx);
+    }
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const
+    {
+        return ConvHipImplicitGemmBwdDataV1R1::GetWorkspaceSize(ctx);
+    };
 };
 
 struct ConvHipImplicitGemmBwdDataV4R1 : SolverBase<ConvolutionContext>
