@@ -35,6 +35,17 @@
 
 namespace miopen {
 
+/// Destroys handle in case of exception.
+class AutoMlirHandle
+{
+    mlir::MlirHandle handle;
+
+    public:
+    AutoMlirHandle(const std::string& options) : handle(mlir::CreateMlirHandle(options.c_str())) {}
+    ~AutoMlirHandle() { mlir::DestroyMlirHandle(handle); }
+    mlir::MlirHandle operator()() { return handle; }
+};
+
 /// Generates HIP source, header and options for HIP compiler.
 /// Writes HIP source and header into output directory.
 ///
@@ -42,41 +53,48 @@ namespace miopen {
 /// @param[in]  filename After stemming extension, used as a basename for the HIP files written.
 /// @param[in]  params   Options for MLIR generator.
 /// @param[out] cflags   Build options for HIP compiler.
-/// @param[out] ofile    Name of output .cpp file (with path).
+/// @param[out] cpp_filename  Name of output .cpp file (with path).
 static void MlirGenerateSourcesForHipBuild(boost::optional<TmpDir>& tmp_dir,
                                            const std::string& filename,
                                            const std::string& params,
                                            std::string& cflags,
-                                           std::string& ofile)
+                                           std::string& cpp_filename)
 {
+    static const auto this_fn_name = MIOPEN_GET_FN_NAME();
+    auto throw_if_error            = [&](const std::string& mlir_fn_name,
+                              const std::string& generated,
+                              const std::ofstream* const ofs  = nullptr,
+                              const std::string& ofs_filename = {}) {
+        if(generated.empty())
+            MIOPEN_THROW("In " + this_fn_name + ": " + mlir_fn_name + "() failed with" + filename);
+        if(ofs != nullptr && !ofs->is_open())
+            MIOPEN_THROW("In " + this_fn_name + ": " + "Failed to open " + ofs_filename);
+    };
+
     const auto input_file      = tmp_dir->path / filename;
     const auto input_file_base = (tmp_dir->path / input_file.stem()).string();
 
     MIOPEN_LOG_I2(input_file.string() << ", options: '" << params << "'");
 
-    mlir::MlirHandle handle = mlir::CreateMlirHandle(params.c_str());
-    mlir::MlirLowerCpp(handle);
+    AutoMlirHandle handle(params);
+    mlir::MlirLowerCpp(handle());
 
-    ofile = input_file_base + ".cpp";
+    cpp_filename = input_file_base + ".cpp";
+    const auto hpp_filename(input_file_base + ".hpp");
 
-    const std::string source = mlir::MlirGenIgemmSource(handle);
-    std::ofstream source_file(ofile);
-    if(source.empty())
-        MIOPEN_THROW("mlir::MlirGenIgemmSource() failed with" + filename);
-    source_file << source;
+    const std::string cpp_text = mlir::MlirGenIgemmSource(handle());
+    std::ofstream cpp_ofs(cpp_filename);
+    throw_if_error("MlirGenIgemmSource", cpp_text, &cpp_ofs, cpp_filename);
+    cpp_ofs << cpp_text;
 
-    const std::string header = mlir::MlirGenIgemmHeader(handle);
-    std::ofstream header_file(input_file_base + ".hpp");
-    if(header.empty())
-        MIOPEN_THROW("mlir::MlirGenIgemmHeader() failed with" + filename);
-    header_file << header;
+    const std::string hpp_text = mlir::MlirGenIgemmHeader(handle());
+    std::ofstream hpp_ofs(hpp_filename);
+    throw_if_error("MlirGenIgemmHeader", hpp_text, &hpp_ofs, hpp_filename);
+    hpp_ofs << hpp_text;
 
     // Get mlir kernel compilation flags.
-    cflags = mlir::MlirGenIgemmCflags(handle);
-    if(cflags.empty())
-        MIOPEN_THROW("mlir::MlirGenIgemmCflags() failed with" + filename);
-
-    mlir::DestroyMlirHandle(handle);
+    cflags = mlir::MlirGenIgemmCflags(handle());
+    throw_if_error("MlirGenIgemmCflags", cflags);
 
     ///\todo This smells:
     cflags     = cflags.substr(cflags.find("\n") + 1); // Skip first line.
