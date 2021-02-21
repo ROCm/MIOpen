@@ -36,6 +36,7 @@
 #include <miopen/kernel_cache.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/rocm_features.hpp>
+#include <miopen/stringutils.hpp>
 #include <miopen/target_properties.hpp>
 #include <miopen/timer.hpp>
 
@@ -390,7 +391,7 @@ Program Handle::LoadProgram(const std::string& program_name,
 {
     this->impl->set_ctx();
 
-    if(program_name.find("mlir_gen_igemm_conv2d_cpp") != std::string::npos)
+    if(miopen::EndsWith(program_name, ".mlir-cpp"))
     {
         params += " --num_cu " + std::to_string(this->GetMaxComputeUnits());
         params += " --arch " + this->GetTargetProperties().Name();

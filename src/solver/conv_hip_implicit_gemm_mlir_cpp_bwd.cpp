@@ -78,14 +78,14 @@ ConvSolution ConvHipImplicitGemmMlirCppBwd::GetSolution(
     construction_parameters.g_wk.push_back(1);
     construction_parameters.g_wk.push_back(1);
 
-    std::string version   = "v1r1";
-    std::string direction = "bwd";
+    std::string version   = "_v1r1";
+    std::string direction = "_bwd";
     std::string operation = "conv2d_bwd_data";
 
     construction_parameters.kernel_file =
-        "mlir_gen_igemm_conv2d_cpp_" + version + "_" + direction + ".mlir-cpp";
+        "mlir_gen_igemm_conv2d_cpp" + version + direction + ".mlir-cpp";
 
-    construction_parameters.kernel_name = "mlir_gen_igemm_conv2d_cpp_" + version + "_" + direction;
+    construction_parameters.kernel_name = "mlir_gen_igemm_conv2d_cpp" + version + direction;
 
     // Arguments for mlir-miopen-driver.
     // clang-format off
