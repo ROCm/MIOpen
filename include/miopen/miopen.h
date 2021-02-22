@@ -459,6 +459,15 @@ typedef enum {
 } miopenSoftmaxMode_t;
 
 /*! @ingroup TensorReduce
+* @brief Version of TensorReduce API. Applications may use it to ensure
+* backward compatibility with older library versions.
+*
+* - 0 or undefined - Initial API. Supported operations: ADD, MIN, MIN, MAX.
+* - 1 - Added AMAX, AVG, NORM1, NORM2 ops.
+*/
+#define MIOPEN_API_VERSION_REDUCE_TENSOR 1
+
+/*! @ingroup TensorReduce
  * @enum miopenReduceTensorOp_t
  * Tensor Reduction operation types
 */
