@@ -71,6 +71,8 @@ static inline bool float_equal_one(T x)
     return false;
 };
 
+// use combination of "<=" and ">=" for float values equality checking to remove DeepCode warning
+// caused by direct using of "=="
 template <>
 inline bool float_equal_one<float>(float x)
 {
