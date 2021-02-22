@@ -26,9 +26,10 @@
 #include <miopen/conv/invokers/impl_gemm.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/handle.hpp>
-#include <miopen/generic_search.hpp>
 
 #include "implicitgemm_util.hpp"
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_HIP_IMPLICIT_GEMM_MLIR_CPP_FWD)
 
 namespace miopen {
 namespace solver {
@@ -36,38 +37,34 @@ namespace solver {
 bool ConvHipImplicitGemmMlirCppFwd::IsApplicable(const ConvolutionContext& ctx) const
 {
 #if MIOPEN_USE_MLIR
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_HIP_IMPLICIT_GEMM_MLIR_CPP_FWD{}))
+        return false;
+    // Future: MLIR-binary solutions do not take long time to build
+    if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
+        return false;
+    // Future: MLIR-binary solutions do not use HIP kernels.
+    if(!ctx.use_hip_kernels)
+        return false;
+    // Future: MLIR will support non-default layouts.
+    if(!ctx.IsLayoutDefault())
+        return false;
     if(ctx.Is3d())
         return false;
-    return ConvHipImplicitGemmV4R4Fwd::IsApplicable(ctx);
+    return IsApplicableMlirCommon(ctx);
 #else
     std::ignore = ctx;
     return false;
 #endif
 }
 
-PerformanceImplicitGemmV4R4Fwd
-ConvHipImplicitGemmMlirCppFwd::GetPerformanceConfig(const ConvolutionContext& ctx) const
-{
-    return GetPerformanceConfigBase<PerformanceImplicitGemmV4R4Fwd>(ctx);
-}
-
-PerformanceImplicitGemmV4R4Fwd
-ConvHipImplicitGemmMlirCppFwd::Search(const ConvolutionContext& ctx,
-                                      const AnyInvokeParams& invoke_ctx) const
-{
-    return GenericSearch(*this, ctx, invoke_ctx);
-}
-
-ConvSolution ConvHipImplicitGemmMlirCppFwd::GetSolution(
-    const ConvolutionContext& ctx, const PerformanceImplicitGemmV4R4Fwd& config, bool) const
+ConvSolution ConvHipImplicitGemmMlirCppFwd::GetSolution(const ConvolutionContext& ctx) const
 {
     ConvSolution result;
     KernelInfo construction_parameters;
 
-    assert(config.IsValid(ctx));
-
     int grid_size = 0;
 
+    const auto config = GetPerformanceConfig(ctx);
     std::tie(grid_size, std::ignore) = config.CalculateGridSize(ctx);
 
     construction_parameters.l_wk.push_back(config.BlockSize);
@@ -112,8 +109,6 @@ ConvSolution ConvHipImplicitGemmMlirCppFwd::GetSolution(
         std::string(" --padding_w ") + std::to_string(CI::GetInputLeftPadW(ctx)) +
         std::string(" --kernel_name ") + construction_parameters.kernel_name;
     // clang-format on
-
-    MIOPEN_LOG_I2("igemm comp options: " << construction_parameters.comp_options);
 
     result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
     result.construction_params.push_back(construction_parameters);

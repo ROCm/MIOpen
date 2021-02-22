@@ -648,8 +648,7 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx)
     return IsApplicableMlirCommon(ctx);
 }
 
-/// \todo This is necessary for MLIR solvers that inherit this solver.
-/// When/if MLIR solvers not needed, merge this back to IsApplicable().
+/// This is necessary only for MLIR solvers that re-use parts of this solver.
 bool ConvHipImplicitGemmBwdDataV1R1::IsApplicableMlirCommon(const ConvolutionContext& ctx) const
 {
     if(!IsComposableKernelSupportedHardware(ctx))
