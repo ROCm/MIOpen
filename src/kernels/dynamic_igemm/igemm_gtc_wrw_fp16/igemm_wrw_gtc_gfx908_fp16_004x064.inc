@@ -96,86 +96,79 @@
 .set s_gemmk_split, 31
 .set s_group, 32
 .set s_out_stride_k, 33
-.set s_out_stride_k0, 34
-.set s_out_stride_n, 35
-.set s_out_stride_n0, 36
-.set s_in_stride_c0, 37
-.set s_in_stride_c, 38
-.set s_in_stride_n0, 39
-.set s_in_stride_n, 40
-.set s_wei_stride_c, 41
-.set s_wei_stride_k, 42
-.set s_out_stride_n_n1, 43
-.set s_out_stride_n_n0_n1_diff, 44
-.set s_in_stride_n_n1, 45
-.set s_in_stride_n_n0_n1_diff, 46
-.set s_move_slice_n_n1, 47
-.set s_move_slice_n_dsho, 48
-.set s_move_slice_n_dswo, 49
-.set s_block_gtc_ie, 50
-.set s_block_gtc_ik, 51
-.set s_block_gtc_ic0, 52
-.set s_block_gtc_ic1e, 53
-.set s_block_gtc_in, 54
-.set s_block_gtc_ig, 55
+.set s_hoxwo, 31
+.set s_out_stride_n, 34
+.set s_in_stride_c0, 35
+.set s_in_stride_c, 36
+.set s_in_stride_n, 37
+.set s_wei_stride_c, 38
+.set s_wei_stride_k, 39
+.set s_out_stride_n_n1, 40
+.set s_in_stride_n_n1, 41
+.set s_move_slice_n_n1, 42
+.set s_move_slice_n_dsho, 43
+.set s_move_slice_n_dswo, 44
+.set s_block_gtc_ik, 45
+.set s_block_gtc_ic0, 46
+.set s_block_gtc_ic1e, 47
+.set s_block_gtc_in, 48
+.set s_block_gtc_ig, 49
 .set s_knum, 1
 .set s_gemm_k_num_n1, 0
-.set s_gemm_k_num_dsho, 56
-.set s_gemm_k_num_dswo, 57
 .set s_kitr, 3
-.set s_in_offset, 58
-.set s_out_offset, 72
-.set s_sub_n, 72
-.set s_tmp, 74
-.set s_end, 80
+.set s_in_offset, 50
+.set s_out_offset, 64
+.set s_sub_n, 64
+.set s_tmp, 66
+.set s_end, 72
 
-.set v_c, 0  ; coalescing:4, needed:2, resuable:37
-.set v_a, 2
-.set v_b, 6
-.set v_gld_a, 10
-.set v_gld_b, 11
-.set v_sst_a_os, 27
-.set v_sst_b_os, 28
-.set v_sld_a_os, 29
-.set v_sld_b_os, 30
-.set v_in_ihi, 31
-.set v_in_iwi, 32
-.set v_in_os, 33
-.set v_in_os_base, 34
-.set v_out_iho, 35
-.set v_out_iwo, 36
-.set v_out_os, 37
-.set v_out_os_base, 38
-.set v_co_sst, 39
-.set v_co_sld, 40
-.set v_wei_flag, 41
-.set v_wei_os, 42
-.set v_gtc_ik1, 43
-.set v_move_slice_n_in1, 44
-.set v_move_slice_n_idsho, 45
-.set v_move_slice_n_idswo, 46
-.set v_wei_iy, 47
-.set v_wei_ix, 48
-.set v_gtc_ic0, 49
-.set v_gtc_ic1e, 50
-.set v_gtc_ik0, 51
-.set v_gtc_ic1, 52
-.set v_gtc_in0, 53
-.set v_out_flag_prev, 53
-.set v_gtc_in1b, 54
-.set v_gtc_in1, 55
-.set v_gemm_in, 56
-.set v_gemm_im, 57
-.set v_wei_ic0, 58
-.set v_wei_ic1e, 59
-.set v_wei_ic1, 60
-.set v_co_sub_m_index, 61
-.set v_co_sub_n_index, 62
-.set v_cur_k, 63
-.set v_cur_c, 64
-.set v_in_flag_with_wi, 65
-.set v_tmp, 66
-.set v_end, 72
+.set v_c, 0  ; coalescing:4, needed:0, resuable:37
+.set v_a, 0
+.set v_b, 4
+.set v_gld_a, 8
+.set v_gld_b, 9
+.set v_sst_a_os, 25
+.set v_sst_b_os, 26
+.set v_sld_a_os, 27
+.set v_sld_b_os, 28
+.set v_in_ihi, 29
+.set v_in_iwi, 30
+.set v_in_os, 31
+.set v_in_os_base, 32
+.set v_out_iho, 33
+.set v_out_iwo, 34
+.set v_out_os, 35
+.set v_out_os_base, 36
+.set v_co_sst, 37
+.set v_co_sld, 38
+.set v_wei_flag, 39
+.set v_wei_os, 40
+.set v_gtc_ik1, 41
+.set v_move_slice_n_in1, 42
+.set v_move_slice_n_idsho, 43
+.set v_move_slice_n_idswo, 44
+.set v_wei_iy, 45
+.set v_wei_ix, 46
+.set v_gtc_ic0, 47
+.set v_gtc_ic1e, 48
+.set v_gtc_ik0, 49
+.set v_gtc_ic1, 50
+.set v_gtc_in0, 51
+.set v_out_flag_prev, 51
+.set v_gtc_in1b, 52
+.set v_gtc_in1, 53
+.set v_gemm_in, 54
+.set v_gemm_im, 55
+.set v_wei_ic0, 56
+.set v_wei_ic1e, 57
+.set v_wei_ic1, 58
+.set v_co_sub_m_index, 59
+.set v_co_sub_n_index, 60
+.set v_cur_k, 61
+.set v_cur_c, 62
+.set v_in_flag_with_wi, 63
+.set v_tmp, 64
+.set v_end, 70
 
 .set a_c, 0
 .set a_end, 4
@@ -452,25 +445,22 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x2x1x1_1x16x1
     v_add_u32 v[v_wei_os], v[v_wei_os], v[v_tmp+4]
     v_lshlrev_b32 v[v_wei_os], 2, v[v_wei_os]
     ; move slice stride
+    s_mul_i32 s[s_hoxwo], s[s_ho], s[s_wo]
     s_mov_b32 s[0], 32
-    .v_u32_div_rem_ss s_tmp+4, s_move_slice_n_n1, 0, s_out_stride_k, v_tmp+4, v_tmp, s_tmp
+    .v_u32_div_rem_ss s_tmp+4, s_move_slice_n_n1, 0, s_hoxwo, v_tmp+4, v_tmp, s_tmp
     .v_u32_div_rem_ss s_move_slice_n_dswo, s_move_slice_n_dsho, s_tmp+4, s_wo, v_tmp+4, v_tmp, s_tmp
 
     s_lshr_b32 s[s_tmp], s[s_out_stride_n], 1
     s_lshr_b32 s[s_tmp+1], s[s_in_stride_n], 1
-    s_mul_i32 s[s_in_stride_n_n0_n1_diff], 24, s[s_tmp+1]
-    s_mul_i32 s[s_out_stride_n_n0_n1_diff], 24, s[s_tmp]
     s_mul_i32 s[s_in_stride_n_n1], s[s_move_slice_n_n1], s[s_tmp+1]  ; might be 0 or larger
     s_mul_i32 s[s_out_stride_n_n1], s[s_move_slice_n_n1], s[s_tmp]  ; might be 0 or larger
     s_lshl_b32 s[s_in_stride_n_n1], s[s_in_stride_n_n1], 1
     s_lshl_b32 s[s_out_stride_n_n1], s[s_out_stride_n_n1], 1
-    s_lshl_b32 s[s_in_stride_n_n0_n1_diff], s[s_in_stride_n_n0_n1_diff], 1
-    s_lshl_b32 s[s_out_stride_n_n0_n1_diff], s[s_out_stride_n_n0_n1_diff], 1
     
     
     s_lshl_b32 s[s_wei_stride_k], s[s_wei_stride_k], 2
     s_mov_b32 s[s_gemm_k_num_n1], 8
-    s_mul_i32 s[s_knum], s[s_out_stride_k], s[s_sub_n]
+    s_mul_i32 s[s_knum], s[s_hoxwo], s[s_sub_n]
 
     ; start MFMA loop, 4x64 wave tile with 1x1 repeat, 1x1 step
     s_waitcnt vmcnt(1)
@@ -584,6 +574,10 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x2x1x1_1x16
     v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+2:v_a+3], v[v_b+2:v_b+3], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
     ds_read_b64 v[v_a+2:v_a+2+1], v[v_sld_a_os] offset:224
     ds_read_b64 v[v_b+2:v_b+2+1], v[v_sld_b_os] offset:3584
+    s_waitcnt lgkmcnt(2)
+    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+0:v_a+1], v[v_b+0:v_b+1], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
+    s_waitcnt lgkmcnt(0)
+    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+2:v_a+3], v[v_b+2:v_b+3], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
     ; k iteration : 24
     s_waitcnt lgkmcnt(0)
     s_waitcnt vmcnt(1)
@@ -596,9 +590,8 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x2x1x1_1x16
     ds_write2_b32 v[v_sst_b_os], v[v_gld_b+12], v[v_gld_b+13], offset0:96, offset1:104
     ds_write2_b32 v[v_sst_b_os], v[v_gld_b+14], v[v_gld_b+15], offset0:112, offset1:120
     s_waitcnt vmcnt(0)
-    ds_write_b32 v[v_sst_a_os], v[v_gld_a+0]
-    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+0:v_a+1], v[v_b+0:v_b+1], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
-    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+2:v_a+3], v[v_b+2:v_b+3], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
+    ds_write_b32 v[v_sst_a_os], v[v_gld_a+0] 
+    
     v_xor_b32 v[v_sld_b_os], 8192, v[v_sld_b_os] ; switch double buffer b load
     v_xor_b32 v[v_sld_a_os], 8192, v[v_sld_a_os] ; switch double buffer a load
     s_sub_i32 s[s_kitr], s[s_kitr], 32
@@ -607,6 +600,7 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x2x1x1_1x16
     v_xor_b32 v[v_sst_b_os], 8192, v[v_sst_b_os] ; switch double buffer b store
     v_xor_b32 v[v_sst_a_os], 8192, v[v_sst_a_os] ; switch double buffer a store
     s_branch L_igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x2x1x1_1x16x1x4_tb1x2x16x1_1x16x1x4_gkgs_mfma_body
+
 L_igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x2x1x1_1x16x1x4_tb1x2x16x1_1x16x1x4_gkgs_mfma_finishing:
 L_igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x2x1x1_1x16x1x4_tb1x2x16x1_1x16x1x4_gkgs_mfma_end:
     s_waitcnt lgkmcnt(0)
@@ -680,8 +674,8 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x2x1x1_1x16
     .amdhsa_user_sgpr_kernarg_segment_ptr 1
     .amdhsa_system_sgpr_workgroup_id_x 1
     .amdhsa_system_vgpr_workitem_id 0
-    .amdhsa_next_free_vgpr 72
-    .amdhsa_next_free_sgpr 80
+    .amdhsa_next_free_vgpr 70
+    .amdhsa_next_free_sgpr 72
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
@@ -757,86 +751,79 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x2x1x1_1x16
 .set s_gemmk_split, 31
 .set s_group, 32
 .set s_out_stride_k, 33
-.set s_out_stride_k0, 34
-.set s_out_stride_n, 35
-.set s_out_stride_n0, 36
-.set s_in_stride_c0, 37
-.set s_in_stride_c, 38
-.set s_in_stride_n0, 39
-.set s_in_stride_n, 40
-.set s_wei_stride_c, 41
-.set s_wei_stride_k, 42
-.set s_out_stride_n_n1, 43
-.set s_out_stride_n_n0_n1_diff, 44
-.set s_in_stride_n_n1, 45
-.set s_in_stride_n_n0_n1_diff, 46
-.set s_move_slice_n_n1, 47
-.set s_move_slice_n_dsho, 48
-.set s_move_slice_n_dswo, 49
-.set s_block_gtc_ie, 50
-.set s_block_gtc_ik, 51
-.set s_block_gtc_ic0, 52
-.set s_block_gtc_ic1e, 53
-.set s_block_gtc_in, 54
-.set s_block_gtc_ig, 55
+.set s_hoxwo, 31
+.set s_out_stride_n, 34
+.set s_in_stride_c0, 35
+.set s_in_stride_c, 36
+.set s_in_stride_n, 37
+.set s_wei_stride_c, 38
+.set s_wei_stride_k, 39
+.set s_out_stride_n_n1, 40
+.set s_in_stride_n_n1, 41
+.set s_move_slice_n_n1, 42
+.set s_move_slice_n_dsho, 43
+.set s_move_slice_n_dswo, 44
+.set s_block_gtc_ik, 45
+.set s_block_gtc_ic0, 46
+.set s_block_gtc_ic1e, 47
+.set s_block_gtc_in, 48
+.set s_block_gtc_ig, 49
 .set s_knum, 1
 .set s_gemm_k_num_n1, 0
-.set s_gemm_k_num_dsho, 56
-.set s_gemm_k_num_dswo, 57
 .set s_kitr, 3
-.set s_in_offset, 58
-.set s_out_offset, 72
-.set s_sub_n, 72
-.set s_tmp, 74
-.set s_end, 80
+.set s_in_offset, 50
+.set s_out_offset, 64
+.set s_sub_n, 64
+.set s_tmp, 66
+.set s_end, 72
 
-.set v_c, 0  ; coalescing:4, needed:2, resuable:37
-.set v_a, 2
-.set v_b, 6
-.set v_gld_a, 10
-.set v_gld_b, 11
-.set v_sst_a_os, 27
-.set v_sst_b_os, 28
-.set v_sld_a_os, 29
-.set v_sld_b_os, 30
-.set v_in_ihi, 31
-.set v_in_iwi, 32
-.set v_in_os, 33
-.set v_in_os_base, 34
-.set v_out_iho, 35
-.set v_out_iwo, 36
-.set v_out_os, 37
-.set v_out_os_base, 38
-.set v_co_sst, 39
-.set v_co_sld, 40
-.set v_wei_flag, 41
-.set v_wei_os, 42
-.set v_gtc_ik1, 43
-.set v_move_slice_n_in1, 44
-.set v_move_slice_n_idsho, 45
-.set v_move_slice_n_idswo, 46
-.set v_wei_iy, 47
-.set v_wei_ix, 48
-.set v_gtc_ic0, 49
-.set v_gtc_ic1e, 50
-.set v_gtc_ik0, 51
-.set v_gtc_ic1, 52
-.set v_gtc_in0, 53
-.set v_out_flag_prev, 53
-.set v_gtc_in1b, 54
-.set v_gtc_in1, 55
-.set v_gemm_in, 56
-.set v_gemm_im, 57
-.set v_wei_ic0, 58
-.set v_wei_ic1e, 59
-.set v_wei_ic1, 60
-.set v_co_sub_m_index, 61
-.set v_co_sub_n_index, 62
-.set v_cur_k, 63
-.set v_cur_c, 64
-.set v_in_flag_with_wi, 65
-.set v_tmp, 66
-.set v_end, 72
+.set v_c, 0  ; coalescing:4, needed:0, resuable:37
+.set v_a, 0
+.set v_b, 4
+.set v_gld_a, 8
+.set v_gld_b, 9
+.set v_sst_a_os, 25
+.set v_sst_b_os, 26
+.set v_sld_a_os, 27
+.set v_sld_b_os, 28
+.set v_in_ihi, 29
+.set v_in_iwi, 30
+.set v_in_os, 31
+.set v_in_os_base, 32
+.set v_out_iho, 33
+.set v_out_iwo, 34
+.set v_out_os, 35
+.set v_out_os_base, 36
+.set v_co_sst, 37
+.set v_co_sld, 38
+.set v_wei_flag, 39
+.set v_wei_os, 40
+.set v_gtc_ik1, 41
+.set v_move_slice_n_in1, 42
+.set v_move_slice_n_idsho, 43
+.set v_move_slice_n_idswo, 44
+.set v_wei_iy, 45
+.set v_wei_ix, 46
+.set v_gtc_ic0, 47
+.set v_gtc_ic1e, 48
+.set v_gtc_ik0, 49
+.set v_gtc_ic1, 50
+.set v_gtc_in0, 51
+.set v_out_flag_prev, 51
+.set v_gtc_in1b, 52
+.set v_gtc_in1, 53
+.set v_gemm_in, 54
+.set v_gemm_im, 55
+.set v_wei_ic0, 56
+.set v_wei_ic1e, 57
+.set v_wei_ic1, 58
+.set v_co_sub_m_index, 59
+.set v_co_sub_n_index, 60
+.set v_cur_k, 61
+.set v_cur_c, 62
+.set v_in_flag_with_wi, 63
+.set v_tmp, 64
+.set v_end, 70
 
 .set a_c, 0
 .set a_end, 4
@@ -1113,25 +1100,22 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x2x1x1_1x16x1
     v_add_u32 v[v_wei_os], v[v_wei_os], v[v_tmp+4]
     v_lshlrev_b32 v[v_wei_os], 1, v[v_wei_os]
     ; move slice stride
+    s_mul_i32 s[s_hoxwo], s[s_ho], s[s_wo]
     s_mov_b32 s[0], 32
-    .v_u32_div_rem_ss s_tmp+4, s_move_slice_n_n1, 0, s_out_stride_k, v_tmp+4, v_tmp, s_tmp
+    .v_u32_div_rem_ss s_tmp+4, s_move_slice_n_n1, 0, s_hoxwo, v_tmp+4, v_tmp, s_tmp
     .v_u32_div_rem_ss s_move_slice_n_dswo, s_move_slice_n_dsho, s_tmp+4, s_wo, v_tmp+4, v_tmp, s_tmp
 
     s_lshr_b32 s[s_tmp], s[s_out_stride_n], 1
     s_lshr_b32 s[s_tmp+1], s[s_in_stride_n], 1
-    s_mul_i32 s[s_in_stride_n_n0_n1_diff], 24, s[s_tmp+1]
-    s_mul_i32 s[s_out_stride_n_n0_n1_diff], 24, s[s_tmp]
     s_mul_i32 s[s_in_stride_n_n1], s[s_move_slice_n_n1], s[s_tmp+1]  ; might be 0 or larger
     s_mul_i32 s[s_out_stride_n_n1], s[s_move_slice_n_n1], s[s_tmp]  ; might be 0 or larger
     s_lshl_b32 s[s_in_stride_n_n1], s[s_in_stride_n_n1], 1
     s_lshl_b32 s[s_out_stride_n_n1], s[s_out_stride_n_n1], 1
-    s_lshl_b32 s[s_in_stride_n_n0_n1_diff], s[s_in_stride_n_n0_n1_diff], 1
-    s_lshl_b32 s[s_out_stride_n_n0_n1_diff], s[s_out_stride_n_n0_n1_diff], 1
     
     
     s_lshl_b32 s[s_wei_stride_k], s[s_wei_stride_k], 1
     s_mov_b32 s[s_gemm_k_num_n1], 8
-    s_mul_i32 s[s_knum], s[s_out_stride_k], s[s_sub_n]
+    s_mul_i32 s[s_knum], s[s_hoxwo], s[s_sub_n]
 
     ; start MFMA loop, 4x64 wave tile with 1x1 repeat, 1x1 step
     s_waitcnt vmcnt(1)
@@ -1245,6 +1229,10 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x2x1x1_1x16
     v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+2:v_a+3], v[v_b+2:v_b+3], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
     ds_read_b64 v[v_a+2:v_a+2+1], v[v_sld_a_os] offset:224
     ds_read_b64 v[v_b+2:v_b+2+1], v[v_sld_b_os] offset:3584
+    s_waitcnt lgkmcnt(2)
+    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+0:v_a+1], v[v_b+0:v_b+1], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
+    s_waitcnt lgkmcnt(0)
+    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+2:v_a+3], v[v_b+2:v_b+3], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
     ; k iteration : 24
     s_waitcnt lgkmcnt(0)
     s_waitcnt vmcnt(1)
@@ -1257,9 +1245,8 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x2x1x1_1x16
     ds_write2_b32 v[v_sst_b_os], v[v_gld_b+12], v[v_gld_b+13], offset0:96, offset1:104
     ds_write2_b32 v[v_sst_b_os], v[v_gld_b+14], v[v_gld_b+15], offset0:112, offset1:120
     s_waitcnt vmcnt(0)
-    ds_write_b32 v[v_sst_a_os], v[v_gld_a+0]
-    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+0:v_a+1], v[v_b+0:v_b+1], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
-    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+2:v_a+3], v[v_b+2:v_b+3], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
+    ds_write_b32 v[v_sst_a_os], v[v_gld_a+0] 
+    
     v_xor_b32 v[v_sld_b_os], 8192, v[v_sld_b_os] ; switch double buffer b load
     v_xor_b32 v[v_sld_a_os], 8192, v[v_sld_a_os] ; switch double buffer a load
     s_sub_i32 s[s_kitr], s[s_kitr], 32
@@ -1268,6 +1255,7 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x2x1x1_1x16
     v_xor_b32 v[v_sst_b_os], 8192, v[v_sst_b_os] ; switch double buffer b store
     v_xor_b32 v[v_sst_a_os], 8192, v[v_sst_a_os] ; switch double buffer a store
     s_branch L_igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x2x1x1_1x16x1x4_tb1x2x16x1_1x16x1x4_mfma_body
+
 L_igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x2x1x1_1x16x1x4_tb1x2x16x1_1x16x1x4_mfma_finishing:
 L_igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x2x1x1_1x16x1x4_tb1x2x16x1_1x16x1x4_mfma_end:
     s_waitcnt lgkmcnt(0)
@@ -1347,14 +1335,14 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x2x1x1_1x16
     .amdhsa_user_sgpr_kernarg_segment_ptr 1
     .amdhsa_system_sgpr_workgroup_id_x 1
     .amdhsa_system_vgpr_workitem_id 0
-    .amdhsa_next_free_vgpr 72
-    .amdhsa_next_free_sgpr 80
+    .amdhsa_next_free_vgpr 70
+    .amdhsa_next_free_sgpr 72
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
 
 ;----------------------------------------------------------
-; starting of kernel igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1x2_tb1x1x32x1_1x32x1x2_gkgs
+; starting of kernel igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x1x2_1x32x1x2_tb1x1x32x1_1x32x1x2_gkgs
 ; tensor_layout              : nchw
 ; gemm_m_per_block           : 4
 ; gemm_n_per_block           : 64
@@ -1366,7 +1354,7 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x2x1x1_1x16
 ; wave_step_n                : 1
 ; wave_repeat_n              : 1
 ; wave_tile_k                : 4
-; tensor_a_thread_lengths    : [1, 1, 2, 1]
+; tensor_a_thread_lengths    : [1, 1, 1, 2]
 ; tensor_a_cluster_lengths   : [1, 32, 1, 2]
 ; tensor_b_thread_lengths    : [1, 1, 32, 1]
 ; tensor_b_cluster_lengths   : [1, 32, 1, 2]
@@ -1424,101 +1412,94 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x2x1x1_1x16
 .set s_gemmk_split, 31
 .set s_group, 32
 .set s_out_stride_k, 33
-.set s_out_stride_k0, 34
-.set s_out_stride_n, 35
-.set s_out_stride_n0, 36
-.set s_in_stride_c0, 37
-.set s_in_stride_c, 38
-.set s_in_stride_n0, 39
-.set s_in_stride_n, 40
-.set s_wei_stride_c, 41
-.set s_wei_stride_k, 42
-.set s_out_stride_n_n1, 43
-.set s_out_stride_n_n0_n1_diff, 44
-.set s_in_stride_n_n1, 45
-.set s_in_stride_n_n0_n1_diff, 46
-.set s_move_slice_n_n1, 47
-.set s_move_slice_n_dsho, 48
-.set s_move_slice_n_dswo, 49
-.set s_dim_b, 50
-.set s_block_gtc_ie, 51
-.set s_block_gtc_ik, 52
-.set s_block_gtc_ic0, 53
-.set s_block_gtc_ic1e, 54
-.set s_block_gtc_in, 55
-.set s_block_gtc_ig, 56
+.set s_hoxwo, 31
+.set s_out_stride_n, 34
+.set s_in_stride_c0, 35
+.set s_in_stride_c, 36
+.set s_in_stride_n, 37
+.set s_wei_stride_c, 38
+.set s_wei_stride_k, 39
+.set s_out_stride_n_n1, 40
+.set s_in_stride_n_n1, 41
+.set s_move_slice_n_n1, 42
+.set s_move_slice_n_dsho, 43
+.set s_move_slice_n_dswo, 44
+.set s_dim_b, 45
+.set s_block_gtc_ik, 46
+.set s_block_gtc_ic0, 47
+.set s_block_gtc_ic1e, 48
+.set s_block_gtc_in, 49
+.set s_block_gtc_ig, 50
 .set s_knum, 1
 .set s_gemm_k_num_n1, 0
-.set s_gemm_k_num_dsho, 57
-.set s_gemm_k_num_dswo, 58
 .set s_kitr, 3
-.set s_in_offset, 59
-.set s_out_offset, 89
-.set s_sub_n, 89
-.set s_tmp, 90
-.set s_end, 96
+.set s_in_offset, 51
+.set s_out_offset, 81
+.set s_sub_n, 81
+.set s_tmp, 82
+.set s_end, 88
 
-.set v_c, 0  ; coalescing:4, needed:2, resuable:54
-.set v_a, 2
-.set v_b, 6
-.set v_gld_a, 10
-.set v_gld_b, 12
-.set v_sst_a_os, 44
-.set v_sst_b_os, 45
-.set v_sld_a_os, 46
-.set v_sld_b_os, 47
-.set v_in_ihi, 48
-.set v_in_iwi, 49
-.set v_in_os, 50
-.set v_in_os_base, 51
-.set v_out_iho, 52
-.set v_out_iwo, 53
-.set v_out_os, 54
-.set v_out_os_base, 55
-.set v_in_flag, 56
-.set v_out_flag, 57
-.set v_co_sst, 58
-.set v_co_sld, 59
-.set v_wei_flag, 60
-.set v_wei_os, 61
-.set v_gtc_ik1, 62
-.set v_move_slice_n_in0, 63
-.set v_in_flag_prev, 63
-.set v_flag_n, 64
-.set v_move_slice_n_in1, 65
-.set v_move_slice_n_idsho, 66
-.set v_move_slice_n_idswo, 67
-.set v_wei_iy, 68
-.set v_wei_ix, 69
-.set v_gtc_ic0, 70
-.set v_gtc_ic1e, 71
-.set v_gtc_ik0, 72
-.set v_gtc_ic1, 73
-.set v_gtc_in0, 74
-.set v_out_flag_prev, 74
-.set v_gtc_in1b, 75
-.set v_gtc_in1, 76
-.set v_gemm_in, 77
-.set v_gemm_im, 78
-.set v_wei_ic0, 79
-.set v_wei_ic1e, 80
-.set v_wei_ic1, 81
-.set v_co_sub_m_index, 82
-.set v_co_sub_n_index, 83
-.set v_cur_k, 84
-.set v_cur_c, 85
-.set v_in_flag_with_wi, 86
-.set v_tmp, 88
-.set v_end, 94
+.set v_c, 0  ; coalescing:4, needed:0, resuable:54
+.set v_a, 0
+.set v_b, 4
+.set v_gld_a, 8
+.set v_gld_b, 10
+.set v_sst_a_os, 42
+.set v_sst_b_os, 43
+.set v_sld_a_os, 44
+.set v_sld_b_os, 45
+.set v_in_ihi, 46
+.set v_in_iwi, 47
+.set v_in_os, 48
+.set v_in_os_base, 49
+.set v_out_iho, 50
+.set v_out_iwo, 51
+.set v_out_os, 52
+.set v_out_os_base, 53
+.set v_in_flag, 54
+.set v_out_flag, 55
+.set v_co_sst, 56
+.set v_co_sld, 57
+.set v_wei_flag, 58
+.set v_wei_os, 59
+.set v_gtc_ik1, 60
+.set v_move_slice_n_in0, 61
+.set v_in_flag_prev, 61
+.set v_flag_n, 62
+.set v_move_slice_n_in1, 63
+.set v_move_slice_n_idsho, 64
+.set v_move_slice_n_idswo, 65
+.set v_wei_iy, 66
+.set v_wei_ix, 67
+.set v_gtc_ic0, 68
+.set v_gtc_ic1e, 69
+.set v_gtc_ik0, 70
+.set v_gtc_ic1, 71
+.set v_gtc_in0, 72
+.set v_out_flag_prev, 72
+.set v_gtc_in1b, 73
+.set v_gtc_in1, 74
+.set v_gemm_in, 75
+.set v_gemm_im, 76
+.set v_wei_ic0, 77
+.set v_wei_ic1e, 78
+.set v_wei_ic1, 79
+.set v_co_sub_m_index, 80
+.set v_co_sub_n_index, 81
+.set v_cur_k, 82
+.set v_cur_c, 83
+.set v_in_flag_with_wi, 84
+.set v_tmp, 86
+.set v_end, 92
 
 .set a_c, 0
 .set a_end, 4
 
 .text
-.globl igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1x2_tb1x1x32x1_1x32x1x2_gkgs
+.globl igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x1x2_1x32x1x2_tb1x1x32x1_1x32x1x2_gkgs
 .p2align 8
-.type igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1x2_tb1x1x32x1_1x32x1x2_gkgs,@function
-igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1x2_tb1x1x32x1_1x32x1x2_gkgs:
+.type igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x1x2_1x32x1x2_tb1x1x32x1_1x32x1x2_gkgs,@function
+igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x1x2_1x32x1x2_tb1x1x32x1_1x32x1x2_gkgs:
     ; unmerge_sub_n:8, unmerge_sub_n1:8, unmerge_sub_c:64, unmerge_sub_c1:2
     ; gemm_m_unmerge_cluster:0, gemm_n_unmerge_cluster:0, gemm_k_unmerge_cluster:0
     s_load_dwordx2  s[s_p_in+0:s_p_in+1],       s[s_ka+0:s_ka+1],    0+k_p_in
@@ -1536,9 +1517,10 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1
     v_lshrrev_b32 v[v_tmp], 1, v[v_tmp]
     v_mov_b32 v[v_gtc_ic0], 0
 
-    ; output, thread(n0,n1b,k0,k1): 1x1x2x1, cluster(n0,n1b,k0,k1) 1x32x1x2
+    ; output, thread(n0,n1b,k0,k1): 1x1x1x2, cluster(n0,n1b,k0,k1) 1x32x1x2
     v_lshrrev_b32 v[v_tmp], 5, v0
     v_and_b32 v[v_gtc_ik1], 1, v[v_tmp]
+    v_lshlrev_b32 v[v_gtc_ik1], 1, v[v_gtc_ik1]
     v_lshrrev_b32 v[v_tmp], 1, v[v_tmp]
     v_mov_b32 v[v_gtc_ik0], 0
 
@@ -1558,7 +1540,6 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1
     s_mul_i32 s[s_tmp],  s[s_out_stride_k],  s[s_k]
     s_mul_i32 s[s_out_stride_n],      s[s_group],        s[s_tmp]
     s_lshl_b32 s[s_in_stride_c0], s[s_in_stride_c], 1
-    s_lshl_b32 s[s_out_stride_k0], s[s_out_stride_k], 1
     s_add_u32 s[s_tmp], 3, s[s_out_stride_k]
     s_lshr_b32 s[s_tmp+1], s[s_tmp], 2
     s_lshl_b32 s[s_dim_b], s[s_tmp+1], 2
@@ -1736,14 +1717,14 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1
     v_cndmask_b32 v[v_out_flag], 0, v[v_out_flag], vcc
     v_and_b32 v[v_out_flag], v[v_out_flag], v[v_flag_n]
 
-    s_lshl_b32 s[s_out_stride_k0], s[s_out_stride_k0], 1
+    s_lshl_b32 s[s_out_stride_k], s[s_out_stride_k], 1
 
     
     ; load output
     .v_clear_nc v_gld_a, 2
     v_cmpx_eq_u32 vcc, 1, v[v_out_flag]
     buffer_load_short_d16 v[v_gld_a+0], v[v_out_os], s[s_p_out:s_p_out+3], 0 offen offset:0
-    buffer_load_short_d16 v[v_gld_a+1], v[v_out_os], s[s_p_out:s_p_out+3], s[s_out_stride_k0] offen offset:0
+    buffer_load_short_d16 v[v_gld_a+1], v[v_out_os], s[s_p_out:s_p_out+3], s[s_out_stride_k] offen offset:0
     s_mov_b64 exec, -1
 
     v_mov_b32 v[v_tmp+5], v0
@@ -1774,7 +1755,7 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1
     v_lshlrev_b32 v[v_sst_b_os], 1, v[v_tmp]
     v_add_u32 v[v_sst_b_os], 256, v[v_sst_b_os]
 
-    ; LDS store, out: n0,n1b,k0,k1: 1x1x2x1, 1x32x1x2, order:0
+    ; LDS store, out: n0,n1b,k0,k1: 1x1x1x2, 1x32x1x2, order:0
     v_lshlrev_b32 v[v_tmp], 2, v[v_gtc_ik1]
     v_lshrrev_b32 v[v_tmp+1], 2, v[v_gtc_in1b]
     v_lshl_add_u32 v[v_tmp], v[v_tmp+1], 4, v[v_tmp]
@@ -1840,18 +1821,15 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1
     v_add_u32 v[v_wei_os], v[v_wei_os], v[v_tmp+4]
     v_lshlrev_b32 v[v_wei_os], 2, v[v_wei_os]
     ; move slice stride
+    s_mul_i32 s[s_hoxwo], s[s_ho], s[s_wo]
     s_mov_b32 s[0], 32
     .v_u32_div_rem_ss s_tmp+4, s_move_slice_n_n1, 0, s_dim_b, v_tmp+4, v_tmp, s_tmp
     .v_u32_div_rem_ss s_move_slice_n_dswo, s_move_slice_n_dsho, s_tmp+4, s_wo, v_tmp+4, v_tmp, s_tmp
 
-    s_mul_i32 s[s_in_stride_n_n0_n1_diff], 24, s[s_in_stride_n]
-    s_mul_i32 s[s_out_stride_n_n0_n1_diff], 24, s[s_out_stride_n]
     s_mul_i32 s[s_in_stride_n_n1], s[s_move_slice_n_n1], s[s_in_stride_n]  ; might be 0 or larger
     s_mul_i32 s[s_out_stride_n_n1], s[s_move_slice_n_n1], s[s_out_stride_n]  ; might be 0 or larger
     s_lshl_b32 s[s_in_stride_n_n1], s[s_in_stride_n_n1], 1
     s_lshl_b32 s[s_out_stride_n_n1], s[s_out_stride_n_n1], 1
-    s_lshl_b32 s[s_in_stride_n_n0_n1_diff], s[s_in_stride_n_n0_n1_diff], 1
-    s_lshl_b32 s[s_out_stride_n_n0_n1_diff], s[s_out_stride_n_n0_n1_diff], 1
     s_lshl_b32 s[s_in_stride_n], s[s_in_stride_n], 1
     s_lshl_b32 s[s_out_stride_n], s[s_out_stride_n], 1
     s_lshl_b32 s[s_wei_stride_k], s[s_wei_stride_k], 2
@@ -1895,13 +1873,13 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1
 
     s_waitcnt vmcnt(0)
     ds_write_b16 v[v_sst_a_os], v[v_gld_a+0] offset:0
-    ds_write_b16 v[v_sst_a_os], v[v_gld_a+0+1] offset:16
+    ds_write_b16 v[v_sst_a_os], v[v_gld_a+0+1] offset:8
 
     .v_clear_acc_c a_c, 4
     ; make sure acc WAR harzard, at least 1 nop for src_c
     s_sub_i32 s[s_kitr], s[s_knum], 32
     s_cmp_gt_i32 s[s_kitr], 0
-    s_cbranch_scc0 L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1x2_tb1x1x32x1_1x32x1x2_gkgs_mfma_end
+    s_cbranch_scc0 L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x1x2_1x32x1x2_tb1x1x32x1_1x32x1x2_gkgs_mfma_end
 
     v_xor_b32 v[v_sst_b_os], 0x2000, v[v_sst_b_os] ; switch double buffer b store
     v_xor_b32 v[v_sst_a_os], 0x2000, v[v_sst_a_os] ; switch double buffer a store
@@ -1947,7 +1925,7 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1
     v_cmp_gt_u32 vcc, s[s_wo], v[v_move_slice_n_idswo]
     v_cndmask_b32 v[v_out_flag], 0, v[v_out_flag], vcc
     v_and_b32 v[v_out_flag], v[v_out_flag], v[v_flag_n]
-L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1x2_tb1x1x32x1_1x32x1x2_gkgs_mfma_body:
+L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x1x2_1x32x1x2_tb1x1x32x1_1x32x1x2_gkgs_mfma_body:
     ; load input
     .v_clear_nc v_gld_b, 32
     v_cmpx_eq_u32 vcc, 1, v[v_in_flag]
@@ -1988,7 +1966,7 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32
     .v_clear_nc v_gld_a, 2
     v_cmpx_eq_u32 vcc, 1, v[v_out_flag]
     buffer_load_short_d16 v[v_gld_a+0], v[v_out_os], s[s_p_out:s_p_out+3], 0 offen offset:0
-    buffer_load_short_d16 v[v_gld_a+1], v[v_out_os], s[s_p_out:s_p_out+3], s[s_out_stride_k0] offen offset:0
+    buffer_load_short_d16 v[v_gld_a+1], v[v_out_os], s[s_p_out:s_p_out+3], s[s_out_stride_k] offen offset:0
     s_mov_b64 exec, -1
     ; do fma accumulate with unroll 32
     s_waitcnt lgkmcnt(0)
@@ -2057,7 +2035,11 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32
     v_cndmask_b32 v[v_out_flag], 0, v[v_out_flag], vcc
     ds_read_b64 v[v_a+2:v_a+2+1], v[v_sld_a_os] offset:224
     ds_read_b64 v[v_b+2:v_b+2+1], v[v_sld_b_os] offset:3584
+    s_waitcnt lgkmcnt(2)
+    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+0:v_a+1], v[v_b+0:v_b+1], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
     v_and_b32 v[v_out_flag], v[v_out_flag], v[v_flag_n]
+    s_waitcnt lgkmcnt(0)
+    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+2:v_a+3], v[v_b+2:v_b+3], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
     ; k iteration : 24
     s_waitcnt lgkmcnt(0)
     s_waitcnt vmcnt(2)
@@ -2095,19 +2077,19 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32
     ds_write_b16 v[v_sst_b_os], v[v_gld_b+30+1] offset:496
     s_waitcnt vmcnt(0)
     ds_write_b16 v[v_sst_a_os], v[v_gld_a+0] offset:0
-    ds_write_b16 v[v_sst_a_os], v[v_gld_a+0+1] offset:16
-    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+0:v_a+1], v[v_b+0:v_b+1], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
-    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+2:v_a+3], v[v_b+2:v_b+3], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
+    ds_write_b16 v[v_sst_a_os], v[v_gld_a+0+1] offset:8
+    
     v_xor_b32 v[v_sld_b_os], 8192, v[v_sld_b_os] ; switch double buffer b load
     v_xor_b32 v[v_sld_a_os], 8192, v[v_sld_a_os] ; switch double buffer a load
     s_sub_i32 s[s_kitr], s[s_kitr], 32
     s_cmp_gt_i32 s[s_kitr], 0
-    s_cbranch_scc0 L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1x2_tb1x1x32x1_1x32x1x2_gkgs_mfma_finishing
+    s_cbranch_scc0 L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x1x2_1x32x1x2_tb1x1x32x1_1x32x1x2_gkgs_mfma_finishing
     v_xor_b32 v[v_sst_b_os], 8192, v[v_sst_b_os] ; switch double buffer b store
     v_xor_b32 v[v_sst_a_os], 8192, v[v_sst_a_os] ; switch double buffer a store
-    s_branch L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1x2_tb1x1x32x1_1x32x1x2_gkgs_mfma_body
-L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1x2_tb1x1x32x1_1x32x1x2_gkgs_mfma_finishing:
-L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1x2_tb1x1x32x1_1x32x1x2_gkgs_mfma_end:
+    s_branch L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x1x2_1x32x1x2_tb1x1x32x1_1x32x1x2_gkgs_mfma_body
+
+L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x1x2_1x32x1x2_tb1x1x32x1_1x32x1x2_gkgs_mfma_finishing:
+L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x1x2_1x32x1x2_tb1x1x32x1_1x32x1x2_gkgs_mfma_end:
     s_waitcnt lgkmcnt(0)
     s_barrier
     ds_read_b64 v[v_a:v_a+1], v[v_sld_a_os] 
@@ -2165,28 +2147,28 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32
     buffer_atomic_add_f32 v[v_c], v[v_wei_os], s[s_p_wei:s_p_wei+3], s[s_tmp] offen offset:0
     s_mov_b32 s[s_tmp], s[s_wei_stride_k]   ; i_m:1(i_m0:0,i_m1:1)
     buffer_atomic_add_f32 v[v_c+1], v[v_wei_os], s[s_p_wei:s_p_wei+3], s[s_tmp] offen offset:0
-    s_mul_i32 s[s_tmp], 2, s[s_wei_stride_k]   ; i_m:2(i_m0:1,i_m1:0)
+    s_mul_i32 s[s_tmp], 2, s[s_wei_stride_k]   ; i_m:2(i_m0:0,i_m1:2)
     buffer_atomic_add_f32 v[v_c+2], v[v_wei_os], s[s_p_wei:s_p_wei+3], s[s_tmp] offen offset:0
-    s_mul_i32 s[s_tmp], 3, s[s_wei_stride_k]   ; i_m:3(i_m0:1,i_m1:1)
+    s_mul_i32 s[s_tmp], 3, s[s_wei_stride_k]   ; i_m:3(i_m0:0,i_m1:3)
     buffer_atomic_add_f32 v[v_c+3], v[v_wei_os], s[s_p_wei:s_p_wei+3], s[s_tmp] offen offset:0
 
-L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1x2_tb1x1x32x1_1x32x1x2_gkgs_out:
+L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x1x2_1x32x1x2_tb1x1x32x1_1x32x1x2_gkgs_out:
     s_endpgm
 .rodata
 .p2align 6
-.amdhsa_kernel igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1x2_tb1x1x32x1_1x32x1x2_gkgs
+.amdhsa_kernel igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x1x2_1x32x1x2_tb1x1x32x1_1x32x1x2_gkgs
     .amdhsa_group_segment_fixed_size 16384
     .amdhsa_user_sgpr_kernarg_segment_ptr 1
     .amdhsa_system_sgpr_workgroup_id_x 1
     .amdhsa_system_vgpr_workitem_id 0
-    .amdhsa_next_free_vgpr 94
-    .amdhsa_next_free_sgpr 96
+    .amdhsa_next_free_vgpr 92
+    .amdhsa_next_free_sgpr 88
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
 
 ;----------------------------------------------------------
-; starting of kernel igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1x2_tb1x1x32x1_1x32x1x2
+; starting of kernel igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x1x2_1x32x1x2_tb1x1x32x1_1x32x1x2
 ; tensor_layout              : nchw
 ; gemm_m_per_block           : 4
 ; gemm_n_per_block           : 64
@@ -2198,7 +2180,7 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32
 ; wave_step_n                : 1
 ; wave_repeat_n              : 1
 ; wave_tile_k                : 4
-; tensor_a_thread_lengths    : [1, 1, 2, 1]
+; tensor_a_thread_lengths    : [1, 1, 1, 2]
 ; tensor_a_cluster_lengths   : [1, 32, 1, 2]
 ; tensor_b_thread_lengths    : [1, 1, 32, 1]
 ; tensor_b_cluster_lengths   : [1, 32, 1, 2]
@@ -2256,101 +2238,94 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32
 .set s_gemmk_split, 31
 .set s_group, 32
 .set s_out_stride_k, 33
-.set s_out_stride_k0, 34
-.set s_out_stride_n, 35
-.set s_out_stride_n0, 36
-.set s_in_stride_c0, 37
-.set s_in_stride_c, 38
-.set s_in_stride_n0, 39
-.set s_in_stride_n, 40
-.set s_wei_stride_c, 41
-.set s_wei_stride_k, 42
-.set s_out_stride_n_n1, 43
-.set s_out_stride_n_n0_n1_diff, 44
-.set s_in_stride_n_n1, 45
-.set s_in_stride_n_n0_n1_diff, 46
-.set s_move_slice_n_n1, 47
-.set s_move_slice_n_dsho, 48
-.set s_move_slice_n_dswo, 49
-.set s_dim_b, 50
-.set s_block_gtc_ie, 51
-.set s_block_gtc_ik, 52
-.set s_block_gtc_ic0, 53
-.set s_block_gtc_ic1e, 54
-.set s_block_gtc_in, 55
-.set s_block_gtc_ig, 56
+.set s_hoxwo, 31
+.set s_out_stride_n, 34
+.set s_in_stride_c0, 35
+.set s_in_stride_c, 36
+.set s_in_stride_n, 37
+.set s_wei_stride_c, 38
+.set s_wei_stride_k, 39
+.set s_out_stride_n_n1, 40
+.set s_in_stride_n_n1, 41
+.set s_move_slice_n_n1, 42
+.set s_move_slice_n_dsho, 43
+.set s_move_slice_n_dswo, 44
+.set s_dim_b, 45
+.set s_block_gtc_ik, 46
+.set s_block_gtc_ic0, 47
+.set s_block_gtc_ic1e, 48
+.set s_block_gtc_in, 49
+.set s_block_gtc_ig, 50
 .set s_knum, 1
 .set s_gemm_k_num_n1, 0
-.set s_gemm_k_num_dsho, 57
-.set s_gemm_k_num_dswo, 58
 .set s_kitr, 3
-.set s_in_offset, 59
-.set s_out_offset, 89
-.set s_sub_n, 89
-.set s_tmp, 90
-.set s_end, 96
+.set s_in_offset, 51
+.set s_out_offset, 81
+.set s_sub_n, 81
+.set s_tmp, 82
+.set s_end, 88
 
-.set v_c, 0  ; coalescing:4, needed:2, resuable:54
-.set v_a, 2
-.set v_b, 6
-.set v_gld_a, 10
-.set v_gld_b, 12
-.set v_sst_a_os, 44
-.set v_sst_b_os, 45
-.set v_sld_a_os, 46
-.set v_sld_b_os, 47
-.set v_in_ihi, 48
-.set v_in_iwi, 49
-.set v_in_os, 50
-.set v_in_os_base, 51
-.set v_out_iho, 52
-.set v_out_iwo, 53
-.set v_out_os, 54
-.set v_out_os_base, 55
-.set v_in_flag, 56
-.set v_out_flag, 57
-.set v_co_sst, 58
-.set v_co_sld, 59
-.set v_wei_flag, 60
-.set v_wei_os, 61
-.set v_gtc_ik1, 62
-.set v_move_slice_n_in0, 63
-.set v_in_flag_prev, 63
-.set v_flag_n, 64
-.set v_move_slice_n_in1, 65
-.set v_move_slice_n_idsho, 66
-.set v_move_slice_n_idswo, 67
-.set v_wei_iy, 68
-.set v_wei_ix, 69
-.set v_gtc_ic0, 70
-.set v_gtc_ic1e, 71
-.set v_gtc_ik0, 72
-.set v_gtc_ic1, 73
-.set v_gtc_in0, 74
-.set v_out_flag_prev, 74
-.set v_gtc_in1b, 75
-.set v_gtc_in1, 76
-.set v_gemm_in, 77
-.set v_gemm_im, 78
-.set v_wei_ic0, 79
-.set v_wei_ic1e, 80
-.set v_wei_ic1, 81
-.set v_co_sub_m_index, 82
-.set v_co_sub_n_index, 83
-.set v_cur_k, 84
-.set v_cur_c, 85
-.set v_in_flag_with_wi, 86
-.set v_tmp, 88
-.set v_end, 94
+.set v_c, 0  ; coalescing:4, needed:0, resuable:54
+.set v_a, 0
+.set v_b, 4
+.set v_gld_a, 8
+.set v_gld_b, 10
+.set v_sst_a_os, 42
+.set v_sst_b_os, 43
+.set v_sld_a_os, 44
+.set v_sld_b_os, 45
+.set v_in_ihi, 46
+.set v_in_iwi, 47
+.set v_in_os, 48
+.set v_in_os_base, 49
+.set v_out_iho, 50
+.set v_out_iwo, 51
+.set v_out_os, 52
+.set v_out_os_base, 53
+.set v_in_flag, 54
+.set v_out_flag, 55
+.set v_co_sst, 56
+.set v_co_sld, 57
+.set v_wei_flag, 58
+.set v_wei_os, 59
+.set v_gtc_ik1, 60
+.set v_move_slice_n_in0, 61
+.set v_in_flag_prev, 61
+.set v_flag_n, 62
+.set v_move_slice_n_in1, 63
+.set v_move_slice_n_idsho, 64
+.set v_move_slice_n_idswo, 65
+.set v_wei_iy, 66
+.set v_wei_ix, 67
+.set v_gtc_ic0, 68
+.set v_gtc_ic1e, 69
+.set v_gtc_ik0, 70
+.set v_gtc_ic1, 71
+.set v_gtc_in0, 72
+.set v_out_flag_prev, 72
+.set v_gtc_in1b, 73
+.set v_gtc_in1, 74
+.set v_gemm_in, 75
+.set v_gemm_im, 76
+.set v_wei_ic0, 77
+.set v_wei_ic1e, 78
+.set v_wei_ic1, 79
+.set v_co_sub_m_index, 80
+.set v_co_sub_n_index, 81
+.set v_cur_k, 82
+.set v_cur_c, 83
+.set v_in_flag_with_wi, 84
+.set v_tmp, 86
+.set v_end, 92
 
 .set a_c, 0
 .set a_end, 4
 
 .text
-.globl igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1x2_tb1x1x32x1_1x32x1x2
+.globl igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x1x2_1x32x1x2_tb1x1x32x1_1x32x1x2
 .p2align 8
-.type igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1x2_tb1x1x32x1_1x32x1x2,@function
-igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1x2_tb1x1x32x1_1x32x1x2:
+.type igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x1x2_1x32x1x2_tb1x1x32x1_1x32x1x2,@function
+igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x1x2_1x32x1x2_tb1x1x32x1_1x32x1x2:
     ; unmerge_sub_n:8, unmerge_sub_n1:8, unmerge_sub_c:64, unmerge_sub_c1:2
     ; gemm_m_unmerge_cluster:0, gemm_n_unmerge_cluster:0, gemm_k_unmerge_cluster:0
     s_load_dwordx2  s[s_p_in+0:s_p_in+1],       s[s_ka+0:s_ka+1],    0+k_p_in
@@ -2368,9 +2343,10 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1
     v_lshrrev_b32 v[v_tmp], 1, v[v_tmp]
     v_mov_b32 v[v_gtc_ic0], 0
 
-    ; output, thread(n0,n1b,k0,k1): 1x1x2x1, cluster(n0,n1b,k0,k1) 1x32x1x2
+    ; output, thread(n0,n1b,k0,k1): 1x1x1x2, cluster(n0,n1b,k0,k1) 1x32x1x2
     v_lshrrev_b32 v[v_tmp], 5, v0
     v_and_b32 v[v_gtc_ik1], 1, v[v_tmp]
+    v_lshlrev_b32 v[v_gtc_ik1], 1, v[v_gtc_ik1]
     v_lshrrev_b32 v[v_tmp], 1, v[v_tmp]
     v_mov_b32 v[v_gtc_ik0], 0
 
@@ -2390,7 +2366,6 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1
     s_mul_i32 s[s_tmp],  s[s_out_stride_k],  s[s_k]
     s_mul_i32 s[s_out_stride_n],      s[s_group],        s[s_tmp]
     s_lshl_b32 s[s_in_stride_c0], s[s_in_stride_c], 1
-    s_lshl_b32 s[s_out_stride_k0], s[s_out_stride_k], 1
     s_add_u32 s[s_tmp], 3, s[s_out_stride_k]
     s_lshr_b32 s[s_tmp+1], s[s_tmp], 2
     s_lshl_b32 s[s_dim_b], s[s_tmp+1], 2
@@ -2568,14 +2543,14 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1
     v_cndmask_b32 v[v_out_flag], 0, v[v_out_flag], vcc
     v_and_b32 v[v_out_flag], v[v_out_flag], v[v_flag_n]
 
-    s_lshl_b32 s[s_out_stride_k0], s[s_out_stride_k0], 1
+    s_lshl_b32 s[s_out_stride_k], s[s_out_stride_k], 1
 
     
     ; load output
     .v_clear_nc v_gld_a, 2
     v_cmpx_eq_u32 vcc, 1, v[v_out_flag]
     buffer_load_short_d16 v[v_gld_a+0], v[v_out_os], s[s_p_out:s_p_out+3], 0 offen offset:0
-    buffer_load_short_d16 v[v_gld_a+1], v[v_out_os], s[s_p_out:s_p_out+3], s[s_out_stride_k0] offen offset:0
+    buffer_load_short_d16 v[v_gld_a+1], v[v_out_os], s[s_p_out:s_p_out+3], s[s_out_stride_k] offen offset:0
     s_mov_b64 exec, -1
 
     v_mov_b32 v[v_tmp+5], v0
@@ -2606,7 +2581,7 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1
     v_lshlrev_b32 v[v_sst_b_os], 1, v[v_tmp]
     v_add_u32 v[v_sst_b_os], 256, v[v_sst_b_os]
 
-    ; LDS store, out: n0,n1b,k0,k1: 1x1x2x1, 1x32x1x2, order:0
+    ; LDS store, out: n0,n1b,k0,k1: 1x1x1x2, 1x32x1x2, order:0
     v_lshlrev_b32 v[v_tmp], 2, v[v_gtc_ik1]
     v_lshrrev_b32 v[v_tmp+1], 2, v[v_gtc_in1b]
     v_lshl_add_u32 v[v_tmp], v[v_tmp+1], 4, v[v_tmp]
@@ -2672,18 +2647,15 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1
     v_add_u32 v[v_wei_os], v[v_wei_os], v[v_tmp+4]
     v_lshlrev_b32 v[v_wei_os], 1, v[v_wei_os]
     ; move slice stride
+    s_mul_i32 s[s_hoxwo], s[s_ho], s[s_wo]
     s_mov_b32 s[0], 32
     .v_u32_div_rem_ss s_tmp+4, s_move_slice_n_n1, 0, s_dim_b, v_tmp+4, v_tmp, s_tmp
     .v_u32_div_rem_ss s_move_slice_n_dswo, s_move_slice_n_dsho, s_tmp+4, s_wo, v_tmp+4, v_tmp, s_tmp
 
-    s_mul_i32 s[s_in_stride_n_n0_n1_diff], 24, s[s_in_stride_n]
-    s_mul_i32 s[s_out_stride_n_n0_n1_diff], 24, s[s_out_stride_n]
     s_mul_i32 s[s_in_stride_n_n1], s[s_move_slice_n_n1], s[s_in_stride_n]  ; might be 0 or larger
     s_mul_i32 s[s_out_stride_n_n1], s[s_move_slice_n_n1], s[s_out_stride_n]  ; might be 0 or larger
     s_lshl_b32 s[s_in_stride_n_n1], s[s_in_stride_n_n1], 1
     s_lshl_b32 s[s_out_stride_n_n1], s[s_out_stride_n_n1], 1
-    s_lshl_b32 s[s_in_stride_n_n0_n1_diff], s[s_in_stride_n_n0_n1_diff], 1
-    s_lshl_b32 s[s_out_stride_n_n0_n1_diff], s[s_out_stride_n_n0_n1_diff], 1
     s_lshl_b32 s[s_in_stride_n], s[s_in_stride_n], 1
     s_lshl_b32 s[s_out_stride_n], s[s_out_stride_n], 1
     s_lshl_b32 s[s_wei_stride_k], s[s_wei_stride_k], 1
@@ -2727,13 +2699,13 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1
 
     s_waitcnt vmcnt(0)
     ds_write_b16 v[v_sst_a_os], v[v_gld_a+0] offset:0
-    ds_write_b16 v[v_sst_a_os], v[v_gld_a+0+1] offset:16
+    ds_write_b16 v[v_sst_a_os], v[v_gld_a+0+1] offset:8
 
     .v_clear_acc_c a_c, 4
     ; make sure acc WAR harzard, at least 1 nop for src_c
     s_sub_i32 s[s_kitr], s[s_knum], 32
     s_cmp_gt_i32 s[s_kitr], 0
-    s_cbranch_scc0 L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1x2_tb1x1x32x1_1x32x1x2_mfma_end
+    s_cbranch_scc0 L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x1x2_1x32x1x2_tb1x1x32x1_1x32x1x2_mfma_end
 
     v_xor_b32 v[v_sst_b_os], 0x2000, v[v_sst_b_os] ; switch double buffer b store
     v_xor_b32 v[v_sst_a_os], 0x2000, v[v_sst_a_os] ; switch double buffer a store
@@ -2779,7 +2751,7 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1
     v_cmp_gt_u32 vcc, s[s_wo], v[v_move_slice_n_idswo]
     v_cndmask_b32 v[v_out_flag], 0, v[v_out_flag], vcc
     v_and_b32 v[v_out_flag], v[v_out_flag], v[v_flag_n]
-L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1x2_tb1x1x32x1_1x32x1x2_mfma_body:
+L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x1x2_1x32x1x2_tb1x1x32x1_1x32x1x2_mfma_body:
     ; load input
     .v_clear_nc v_gld_b, 32
     v_cmpx_eq_u32 vcc, 1, v[v_in_flag]
@@ -2820,7 +2792,7 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32
     .v_clear_nc v_gld_a, 2
     v_cmpx_eq_u32 vcc, 1, v[v_out_flag]
     buffer_load_short_d16 v[v_gld_a+0], v[v_out_os], s[s_p_out:s_p_out+3], 0 offen offset:0
-    buffer_load_short_d16 v[v_gld_a+1], v[v_out_os], s[s_p_out:s_p_out+3], s[s_out_stride_k0] offen offset:0
+    buffer_load_short_d16 v[v_gld_a+1], v[v_out_os], s[s_p_out:s_p_out+3], s[s_out_stride_k] offen offset:0
     s_mov_b64 exec, -1
     ; do fma accumulate with unroll 32
     s_waitcnt lgkmcnt(0)
@@ -2889,7 +2861,11 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32
     v_cndmask_b32 v[v_out_flag], 0, v[v_out_flag], vcc
     ds_read_b64 v[v_a+2:v_a+2+1], v[v_sld_a_os] offset:224
     ds_read_b64 v[v_b+2:v_b+2+1], v[v_sld_b_os] offset:3584
+    s_waitcnt lgkmcnt(2)
+    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+0:v_a+1], v[v_b+0:v_b+1], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
     v_and_b32 v[v_out_flag], v[v_out_flag], v[v_flag_n]
+    s_waitcnt lgkmcnt(0)
+    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+2:v_a+3], v[v_b+2:v_b+3], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
     ; k iteration : 24
     s_waitcnt lgkmcnt(0)
     s_waitcnt vmcnt(2)
@@ -2927,19 +2903,19 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32
     ds_write_b16 v[v_sst_b_os], v[v_gld_b+30+1] offset:496
     s_waitcnt vmcnt(0)
     ds_write_b16 v[v_sst_a_os], v[v_gld_a+0] offset:0
-    ds_write_b16 v[v_sst_a_os], v[v_gld_a+0+1] offset:16
-    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+0:v_a+1], v[v_b+0:v_b+1], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
-    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+2:v_a+3], v[v_b+2:v_b+3], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
+    ds_write_b16 v[v_sst_a_os], v[v_gld_a+0+1] offset:8
+    
     v_xor_b32 v[v_sld_b_os], 8192, v[v_sld_b_os] ; switch double buffer b load
     v_xor_b32 v[v_sld_a_os], 8192, v[v_sld_a_os] ; switch double buffer a load
     s_sub_i32 s[s_kitr], s[s_kitr], 32
     s_cmp_gt_i32 s[s_kitr], 0
-    s_cbranch_scc0 L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1x2_tb1x1x32x1_1x32x1x2_mfma_finishing
+    s_cbranch_scc0 L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x1x2_1x32x1x2_tb1x1x32x1_1x32x1x2_mfma_finishing
     v_xor_b32 v[v_sst_b_os], 8192, v[v_sst_b_os] ; switch double buffer b store
     v_xor_b32 v[v_sst_a_os], 8192, v[v_sst_a_os] ; switch double buffer a store
-    s_branch L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1x2_tb1x1x32x1_1x32x1x2_mfma_body
-L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1x2_tb1x1x32x1_1x32x1x2_mfma_finishing:
-L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1x2_tb1x1x32x1_1x32x1x2_mfma_end:
+    s_branch L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x1x2_1x32x1x2_tb1x1x32x1_1x32x1x2_mfma_body
+
+L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x1x2_1x32x1x2_tb1x1x32x1_1x32x1x2_mfma_finishing:
+L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x1x2_1x32x1x2_tb1x1x32x1_1x32x1x2_mfma_end:
     s_waitcnt lgkmcnt(0)
     s_barrier
     ds_read_b64 v[v_a:v_a+1], v[v_sld_a_os] 
@@ -3003,22 +2979,22 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32
     buffer_store_short v[v_c], v[v_wei_os], s[s_p_wei:s_p_wei+3], s[s_tmp] offen offset:0
     s_mov_b32 s[s_tmp], s[s_wei_stride_k]   ; i_m:1(i_m0:0,i_m1:1)
     buffer_store_short_d16_hi v[v_c], v[v_wei_os], s[s_p_wei:s_p_wei+3], s[s_tmp] offen offset:0
-    s_mul_i32 s[s_tmp], 2, s[s_wei_stride_k]   ; i_m:2(i_m0:1,i_m1:0)
+    s_mul_i32 s[s_tmp], 2, s[s_wei_stride_k]   ; i_m:2(i_m0:0,i_m1:2)
     buffer_store_short v[v_c+1], v[v_wei_os], s[s_p_wei:s_p_wei+3], s[s_tmp] offen offset:0
-    s_mul_i32 s[s_tmp], 3, s[s_wei_stride_k]   ; i_m:3(i_m0:1,i_m1:1)
+    s_mul_i32 s[s_tmp], 3, s[s_wei_stride_k]   ; i_m:3(i_m0:0,i_m1:3)
     buffer_store_short_d16_hi v[v_c+1], v[v_wei_os], s[s_p_wei:s_p_wei+3], s[s_tmp] offen offset:0
 
-L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1x2_tb1x1x32x1_1x32x1x2_out:
+L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x1x2_1x32x1x2_tb1x1x32x1_1x32x1x2_out:
     s_endpgm
 .rodata
 .p2align 6
-.amdhsa_kernel igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32x1x2_tb1x1x32x1_1x32x1x2
+.amdhsa_kernel igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x1x2_1x32x1x2_tb1x1x32x1_1x32x1x2
     .amdhsa_group_segment_fixed_size 16384
     .amdhsa_user_sgpr_kernarg_segment_ptr 1
     .amdhsa_system_sgpr_workgroup_id_x 1
     .amdhsa_system_vgpr_workitem_id 0
-    .amdhsa_next_free_vgpr 94
-    .amdhsa_next_free_sgpr 96
+    .amdhsa_next_free_vgpr 92
+    .amdhsa_next_free_sgpr 88
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
@@ -3094,93 +3070,86 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x2x1_1x32
 .set s_gemmk_split, 31
 .set s_group, 32
 .set s_out_stride_k, 33
-.set s_out_stride_k0, 34
-.set s_out_stride_n, 35
-.set s_out_stride_n0, 36
-.set s_in_stride_c0, 37
-.set s_in_stride_c, 38
-.set s_in_stride_n0, 39
-.set s_in_stride_n, 40
-.set s_wei_stride_c, 41
-.set s_wei_stride_k, 42
-.set s_out_stride_n_n1, 43
-.set s_out_stride_n_n0_n1_diff, 44
-.set s_in_stride_n_n1, 45
-.set s_in_stride_n_n0_n1_diff, 46
-.set s_move_slice_n_n1, 47
-.set s_move_slice_n_dsho, 48
-.set s_move_slice_n_dswo, 49
-.set s_dim_b, 50
-.set s_block_gtc_ie, 51
-.set s_block_gtc_ik, 52
-.set s_block_gtc_ic0, 53
-.set s_block_gtc_ic1e, 54
-.set s_block_gtc_in, 55
-.set s_block_gtc_ig, 56
+.set s_hoxwo, 31
+.set s_out_stride_n, 34
+.set s_in_stride_c0, 35
+.set s_in_stride_c, 36
+.set s_in_stride_n, 37
+.set s_wei_stride_c, 38
+.set s_wei_stride_k, 39
+.set s_out_stride_n_n1, 40
+.set s_in_stride_n_n1, 41
+.set s_move_slice_n_n1, 42
+.set s_move_slice_n_dsho, 43
+.set s_move_slice_n_dswo, 44
+.set s_dim_b, 45
+.set s_block_gtc_ik, 46
+.set s_block_gtc_ic0, 47
+.set s_block_gtc_ic1e, 48
+.set s_block_gtc_in, 49
+.set s_block_gtc_ig, 50
 .set s_knum, 1
 .set s_gemm_k_num_n1, 0
-.set s_gemm_k_num_dsho, 57
-.set s_gemm_k_num_dswo, 58
 .set s_kitr, 3
-.set s_in_offset, 59
-.set s_out_offset, 73
-.set s_sub_n, 73
-.set s_tmp, 74
-.set s_end, 80
+.set s_in_offset, 51
+.set s_out_offset, 65
+.set s_sub_n, 65
+.set s_tmp, 66
+.set s_end, 72
 
-.set v_c, 0  ; coalescing:4, needed:2, resuable:37
-.set v_a, 2
-.set v_b, 6
-.set v_gld_a, 10
-.set v_gld_b, 11
-.set v_sst_a_os, 27
-.set v_sst_b_os, 28
-.set v_sld_a_os, 29
-.set v_sld_b_os, 30
-.set v_in_ihi, 31
-.set v_in_iwi, 32
-.set v_in_os, 33
-.set v_in_os_base, 34
-.set v_out_iho, 35
-.set v_out_iwo, 36
-.set v_out_os, 37
-.set v_out_os_base, 38
-.set v_in_flag, 39
-.set v_out_flag, 40
-.set v_co_sst, 41
-.set v_co_sld, 42
-.set v_wei_flag, 43
-.set v_wei_os, 44
-.set v_gtc_ik1, 45
-.set v_move_slice_n_in0, 46
-.set v_in_flag_prev, 46
-.set v_flag_n, 47
-.set v_flag_k, 48
-.set v_move_slice_n_in1, 49
-.set v_move_slice_n_idsho, 50
-.set v_move_slice_n_idswo, 51
-.set v_wei_iy, 52
-.set v_wei_ix, 53
-.set v_gtc_ic0, 54
-.set v_gtc_ic1e, 55
-.set v_gtc_ik0, 56
-.set v_gtc_ic1, 57
-.set v_gtc_in0, 58
-.set v_out_flag_prev, 58
-.set v_gtc_in1b, 59
-.set v_gtc_in1, 60
-.set v_gemm_in, 61
-.set v_gemm_im, 62
-.set v_wei_ic0, 63
-.set v_wei_ic1e, 64
-.set v_wei_ic1, 65
-.set v_co_sub_m_index, 66
-.set v_co_sub_n_index, 67
-.set v_cur_k, 68
-.set v_cur_c, 69
-.set v_in_flag_with_wi, 70
-.set v_tmp, 72
-.set v_end, 78
+.set v_c, 0  ; coalescing:4, needed:0, resuable:37
+.set v_a, 0
+.set v_b, 4
+.set v_gld_a, 8
+.set v_gld_b, 9
+.set v_sst_a_os, 25
+.set v_sst_b_os, 26
+.set v_sld_a_os, 27
+.set v_sld_b_os, 28
+.set v_in_ihi, 29
+.set v_in_iwi, 30
+.set v_in_os, 31
+.set v_in_os_base, 32
+.set v_out_iho, 33
+.set v_out_iwo, 34
+.set v_out_os, 35
+.set v_out_os_base, 36
+.set v_in_flag, 37
+.set v_out_flag, 38
+.set v_co_sst, 39
+.set v_co_sld, 40
+.set v_wei_flag, 41
+.set v_wei_os, 42
+.set v_gtc_ik1, 43
+.set v_move_slice_n_in0, 44
+.set v_in_flag_prev, 44
+.set v_flag_n, 45
+.set v_flag_k, 46
+.set v_move_slice_n_in1, 47
+.set v_move_slice_n_idsho, 48
+.set v_move_slice_n_idswo, 49
+.set v_wei_iy, 50
+.set v_wei_ix, 51
+.set v_gtc_ic0, 52
+.set v_gtc_ic1e, 53
+.set v_gtc_ik0, 54
+.set v_gtc_ic1, 55
+.set v_gtc_in0, 56
+.set v_out_flag_prev, 56
+.set v_gtc_in1b, 57
+.set v_gtc_in1, 58
+.set v_gemm_in, 59
+.set v_gemm_im, 60
+.set v_wei_ic0, 61
+.set v_wei_ic1e, 62
+.set v_wei_ic1, 63
+.set v_co_sub_m_index, 64
+.set v_co_sub_n_index, 65
+.set v_cur_k, 66
+.set v_cur_c, 67
+.set v_in_flag_with_wi, 68
+.set v_tmp, 70
+.set v_end, 76
 
 .set a_c, 0
 .set a_end, 4
@@ -3481,18 +3450,15 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16x1
     v_add_u32 v[v_wei_os], v[v_wei_os], v[v_tmp+4]
     v_lshlrev_b32 v[v_wei_os], 2, v[v_wei_os]
     ; move slice stride
+    s_mul_i32 s[s_hoxwo], s[s_ho], s[s_wo]
     s_mov_b32 s[0], 16
     .v_u32_div_rem_ss s_tmp+4, s_move_slice_n_n1, 0, s_dim_b, v_tmp+4, v_tmp, s_tmp
     .v_u32_div_rem_ss s_move_slice_n_dswo, s_move_slice_n_dsho, s_tmp+4, s_wo, v_tmp+4, v_tmp, s_tmp
 
-    s_mul_i32 s[s_in_stride_n_n0_n1_diff], 12, s[s_in_stride_n]
-    s_mul_i32 s[s_out_stride_n_n0_n1_diff], 12, s[s_out_stride_n]
     s_mul_i32 s[s_in_stride_n_n1], s[s_move_slice_n_n1], s[s_in_stride_n]  ; might be 0 or larger
     s_mul_i32 s[s_out_stride_n_n1], s[s_move_slice_n_n1], s[s_out_stride_n]  ; might be 0 or larger
     s_lshl_b32 s[s_in_stride_n_n1], s[s_in_stride_n_n1], 1
     s_lshl_b32 s[s_out_stride_n_n1], s[s_out_stride_n_n1], 1
-    s_lshl_b32 s[s_in_stride_n_n0_n1_diff], s[s_in_stride_n_n0_n1_diff], 1
-    s_lshl_b32 s[s_out_stride_n_n0_n1_diff], s[s_out_stride_n_n0_n1_diff], 1
     s_lshl_b32 s[s_in_stride_n], s[s_in_stride_n], 1
     s_lshl_b32 s[s_out_stride_n], s[s_out_stride_n], 1
     s_lshl_b32 s[s_wei_stride_k], s[s_wei_stride_k], 2
@@ -3626,26 +3592,30 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16
     v_add_u32 v[v_out_os_base], s[s_out_stride_n_n1], v[v_out_os_base]
     s_mov_b64 exec, -1
     v_cndmask_b32 v[v_flag_n], 0, 1, vcc
-    v_mul_lo_u32 v[v_tmp], s[s_stride_h], v[v_move_slice_n_idsho]
-    v_add_i32 v[v_in_ihi], v[v_tmp], v[v_wei_iy]
     ds_read_b64 v[v_a:v_a+1], v[v_sld_a_os] offset:64
     ds_read_b64 v[v_b:v_b+1], v[v_sld_b_os] offset:1024
     s_waitcnt lgkmcnt(2)
     v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+2:v_a+3], v[v_b+2:v_b+3], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
+    v_mul_lo_u32 v[v_tmp], s[s_stride_h], v[v_move_slice_n_idsho]
+    v_add_i32 v[v_in_ihi], v[v_tmp], v[v_wei_iy]
     v_mul_lo_u32 v[v_tmp+1], s[s_stride_w], v[v_move_slice_n_idswo]
     v_add_i32 v[v_in_iwi], v[v_tmp+1], v[v_wei_ix]
     v_mad_u32_u24 v[v_tmp], s[s_wi], v[v_in_ihi], v[v_in_iwi]
     v_lshl_add_u32 v[v_in_os], v[v_tmp], 1, v[v_in_os_base]
     v_cmp_gt_u32 vcc, s[s_hi], v[v_in_ihi]
+    ds_read_b64 v[v_a+2:v_a+2+1], v[v_sld_a_os] offset:96
+    ds_read_b64 v[v_b+2:v_b+2+1], v[v_sld_b_os] offset:1536
+    s_waitcnt lgkmcnt(2)
+    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+0:v_a+1], v[v_b+0:v_b+1], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
     v_cndmask_b32 v[v_in_flag], 0, 1, vcc
     v_cmp_gt_u32 vcc, s[s_wi], v[v_in_iwi]
     v_cndmask_b32 v[v_in_flag], 0, v[v_in_flag], vcc
     v_and_b32 v[v_in_flag], v[v_in_flag], v[v_flag_n]
-    ds_read_b64 v[v_a+2:v_a+2+1], v[v_sld_a_os] offset:96
-    ds_read_b64 v[v_b+2:v_b+2+1], v[v_sld_b_os] offset:1536
     v_mad_u32_u24 v[v_tmp], s[s_wo], v[v_move_slice_n_idsho], v[v_move_slice_n_idswo]
     v_lshl_add_u32 v[v_out_os], v[v_tmp], 1, v[v_out_os_base]
     v_cmp_gt_u32 vcc, s[s_ho], v[v_move_slice_n_idsho]
+    s_waitcnt lgkmcnt(0)
+    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+2:v_a+3], v[v_b+2:v_b+3], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
     v_cndmask_b32 v[v_out_flag], 0, 1, vcc
     v_cmp_gt_u32 vcc, s[s_wo], v[v_move_slice_n_idswo]
     v_cndmask_b32 v[v_out_flag], 0, v[v_out_flag], vcc
@@ -3671,9 +3641,8 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16
     ds_write_b16 v[v_sst_b_os], v[v_gld_b+14] offset:448
     ds_write_b16 v[v_sst_b_os], v[v_gld_b+14+1] offset:480
     s_waitcnt vmcnt(0)
-    ds_write_b16 v[v_sst_a_os], v[v_gld_a+0]
-    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+0:v_a+1], v[v_b+0:v_b+1], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
-    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+2:v_a+3], v[v_b+2:v_b+3], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
+    ds_write_b16 v[v_sst_a_os], v[v_gld_a+0] 
+    
     v_xor_b32 v[v_sld_b_os], 4096, v[v_sld_b_os] ; switch double buffer b load
     v_xor_b32 v[v_sld_a_os], 4096, v[v_sld_a_os] ; switch double buffer a load
     s_sub_i32 s[s_kitr], s[s_kitr], 16
@@ -3682,6 +3651,7 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16
     v_xor_b32 v[v_sst_b_os], 4096, v[v_sst_b_os] ; switch double buffer b store
     v_xor_b32 v[v_sst_a_os], 4096, v[v_sst_a_os] ; switch double buffer a store
     s_branch L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4_gkgs_mfma_body
+
 L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4_gkgs_mfma_finishing:
 L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4_gkgs_mfma_end:
     s_waitcnt lgkmcnt(0)
@@ -3739,8 +3709,8 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16
     .amdhsa_user_sgpr_kernarg_segment_ptr 1
     .amdhsa_system_sgpr_workgroup_id_x 1
     .amdhsa_system_vgpr_workitem_id 0
-    .amdhsa_next_free_vgpr 78
-    .amdhsa_next_free_sgpr 80
+    .amdhsa_next_free_vgpr 76
+    .amdhsa_next_free_sgpr 72
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
@@ -3816,93 +3786,86 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16
 .set s_gemmk_split, 31
 .set s_group, 32
 .set s_out_stride_k, 33
-.set s_out_stride_k0, 34
-.set s_out_stride_n, 35
-.set s_out_stride_n0, 36
-.set s_in_stride_c0, 37
-.set s_in_stride_c, 38
-.set s_in_stride_n0, 39
-.set s_in_stride_n, 40
-.set s_wei_stride_c, 41
-.set s_wei_stride_k, 42
-.set s_out_stride_n_n1, 43
-.set s_out_stride_n_n0_n1_diff, 44
-.set s_in_stride_n_n1, 45
-.set s_in_stride_n_n0_n1_diff, 46
-.set s_move_slice_n_n1, 47
-.set s_move_slice_n_dsho, 48
-.set s_move_slice_n_dswo, 49
-.set s_dim_b, 50
-.set s_block_gtc_ie, 51
-.set s_block_gtc_ik, 52
-.set s_block_gtc_ic0, 53
-.set s_block_gtc_ic1e, 54
-.set s_block_gtc_in, 55
-.set s_block_gtc_ig, 56
+.set s_hoxwo, 31
+.set s_out_stride_n, 34
+.set s_in_stride_c0, 35
+.set s_in_stride_c, 36
+.set s_in_stride_n, 37
+.set s_wei_stride_c, 38
+.set s_wei_stride_k, 39
+.set s_out_stride_n_n1, 40
+.set s_in_stride_n_n1, 41
+.set s_move_slice_n_n1, 42
+.set s_move_slice_n_dsho, 43
+.set s_move_slice_n_dswo, 44
+.set s_dim_b, 45
+.set s_block_gtc_ik, 46
+.set s_block_gtc_ic0, 47
+.set s_block_gtc_ic1e, 48
+.set s_block_gtc_in, 49
+.set s_block_gtc_ig, 50
 .set s_knum, 1
 .set s_gemm_k_num_n1, 0
-.set s_gemm_k_num_dsho, 57
-.set s_gemm_k_num_dswo, 58
 .set s_kitr, 3
-.set s_in_offset, 59
-.set s_out_offset, 73
-.set s_sub_n, 73
-.set s_tmp, 74
-.set s_end, 80
+.set s_in_offset, 51
+.set s_out_offset, 65
+.set s_sub_n, 65
+.set s_tmp, 66
+.set s_end, 72
 
-.set v_c, 0  ; coalescing:4, needed:2, resuable:37
-.set v_a, 2
-.set v_b, 6
-.set v_gld_a, 10
-.set v_gld_b, 11
-.set v_sst_a_os, 27
-.set v_sst_b_os, 28
-.set v_sld_a_os, 29
-.set v_sld_b_os, 30
-.set v_in_ihi, 31
-.set v_in_iwi, 32
-.set v_in_os, 33
-.set v_in_os_base, 34
-.set v_out_iho, 35
-.set v_out_iwo, 36
-.set v_out_os, 37
-.set v_out_os_base, 38
-.set v_in_flag, 39
-.set v_out_flag, 40
-.set v_co_sst, 41
-.set v_co_sld, 42
-.set v_wei_flag, 43
-.set v_wei_os, 44
-.set v_gtc_ik1, 45
-.set v_move_slice_n_in0, 46
-.set v_in_flag_prev, 46
-.set v_flag_n, 47
-.set v_flag_k, 48
-.set v_move_slice_n_in1, 49
-.set v_move_slice_n_idsho, 50
-.set v_move_slice_n_idswo, 51
-.set v_wei_iy, 52
-.set v_wei_ix, 53
-.set v_gtc_ic0, 54
-.set v_gtc_ic1e, 55
-.set v_gtc_ik0, 56
-.set v_gtc_ic1, 57
-.set v_gtc_in0, 58
-.set v_out_flag_prev, 58
-.set v_gtc_in1b, 59
-.set v_gtc_in1, 60
-.set v_gemm_in, 61
-.set v_gemm_im, 62
-.set v_wei_ic0, 63
-.set v_wei_ic1e, 64
-.set v_wei_ic1, 65
-.set v_co_sub_m_index, 66
-.set v_co_sub_n_index, 67
-.set v_cur_k, 68
-.set v_cur_c, 69
-.set v_in_flag_with_wi, 70
-.set v_tmp, 72
-.set v_end, 78
+.set v_c, 0  ; coalescing:4, needed:0, resuable:37
+.set v_a, 0
+.set v_b, 4
+.set v_gld_a, 8
+.set v_gld_b, 9
+.set v_sst_a_os, 25
+.set v_sst_b_os, 26
+.set v_sld_a_os, 27
+.set v_sld_b_os, 28
+.set v_in_ihi, 29
+.set v_in_iwi, 30
+.set v_in_os, 31
+.set v_in_os_base, 32
+.set v_out_iho, 33
+.set v_out_iwo, 34
+.set v_out_os, 35
+.set v_out_os_base, 36
+.set v_in_flag, 37
+.set v_out_flag, 38
+.set v_co_sst, 39
+.set v_co_sld, 40
+.set v_wei_flag, 41
+.set v_wei_os, 42
+.set v_gtc_ik1, 43
+.set v_move_slice_n_in0, 44
+.set v_in_flag_prev, 44
+.set v_flag_n, 45
+.set v_flag_k, 46
+.set v_move_slice_n_in1, 47
+.set v_move_slice_n_idsho, 48
+.set v_move_slice_n_idswo, 49
+.set v_wei_iy, 50
+.set v_wei_ix, 51
+.set v_gtc_ic0, 52
+.set v_gtc_ic1e, 53
+.set v_gtc_ik0, 54
+.set v_gtc_ic1, 55
+.set v_gtc_in0, 56
+.set v_out_flag_prev, 56
+.set v_gtc_in1b, 57
+.set v_gtc_in1, 58
+.set v_gemm_in, 59
+.set v_gemm_im, 60
+.set v_wei_ic0, 61
+.set v_wei_ic1e, 62
+.set v_wei_ic1, 63
+.set v_co_sub_m_index, 64
+.set v_co_sub_n_index, 65
+.set v_cur_k, 66
+.set v_cur_c, 67
+.set v_in_flag_with_wi, 68
+.set v_tmp, 70
+.set v_end, 76
 
 .set a_c, 0
 .set a_end, 4
@@ -4203,18 +4166,15 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16x1
     v_add_u32 v[v_wei_os], v[v_wei_os], v[v_tmp+4]
     v_lshlrev_b32 v[v_wei_os], 1, v[v_wei_os]
     ; move slice stride
+    s_mul_i32 s[s_hoxwo], s[s_ho], s[s_wo]
     s_mov_b32 s[0], 16
     .v_u32_div_rem_ss s_tmp+4, s_move_slice_n_n1, 0, s_dim_b, v_tmp+4, v_tmp, s_tmp
     .v_u32_div_rem_ss s_move_slice_n_dswo, s_move_slice_n_dsho, s_tmp+4, s_wo, v_tmp+4, v_tmp, s_tmp
 
-    s_mul_i32 s[s_in_stride_n_n0_n1_diff], 12, s[s_in_stride_n]
-    s_mul_i32 s[s_out_stride_n_n0_n1_diff], 12, s[s_out_stride_n]
     s_mul_i32 s[s_in_stride_n_n1], s[s_move_slice_n_n1], s[s_in_stride_n]  ; might be 0 or larger
     s_mul_i32 s[s_out_stride_n_n1], s[s_move_slice_n_n1], s[s_out_stride_n]  ; might be 0 or larger
     s_lshl_b32 s[s_in_stride_n_n1], s[s_in_stride_n_n1], 1
     s_lshl_b32 s[s_out_stride_n_n1], s[s_out_stride_n_n1], 1
-    s_lshl_b32 s[s_in_stride_n_n0_n1_diff], s[s_in_stride_n_n0_n1_diff], 1
-    s_lshl_b32 s[s_out_stride_n_n0_n1_diff], s[s_out_stride_n_n0_n1_diff], 1
     s_lshl_b32 s[s_in_stride_n], s[s_in_stride_n], 1
     s_lshl_b32 s[s_out_stride_n], s[s_out_stride_n], 1
     s_lshl_b32 s[s_wei_stride_k], s[s_wei_stride_k], 1
@@ -4348,26 +4308,30 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16
     v_add_u32 v[v_out_os_base], s[s_out_stride_n_n1], v[v_out_os_base]
     s_mov_b64 exec, -1
     v_cndmask_b32 v[v_flag_n], 0, 1, vcc
-    v_mul_lo_u32 v[v_tmp], s[s_stride_h], v[v_move_slice_n_idsho]
-    v_add_i32 v[v_in_ihi], v[v_tmp], v[v_wei_iy]
     ds_read_b64 v[v_a:v_a+1], v[v_sld_a_os] offset:64
     ds_read_b64 v[v_b:v_b+1], v[v_sld_b_os] offset:1024
     s_waitcnt lgkmcnt(2)
     v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+2:v_a+3], v[v_b+2:v_b+3], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
+    v_mul_lo_u32 v[v_tmp], s[s_stride_h], v[v_move_slice_n_idsho]
+    v_add_i32 v[v_in_ihi], v[v_tmp], v[v_wei_iy]
     v_mul_lo_u32 v[v_tmp+1], s[s_stride_w], v[v_move_slice_n_idswo]
     v_add_i32 v[v_in_iwi], v[v_tmp+1], v[v_wei_ix]
     v_mad_u32_u24 v[v_tmp], s[s_wi], v[v_in_ihi], v[v_in_iwi]
     v_lshl_add_u32 v[v_in_os], v[v_tmp], 1, v[v_in_os_base]
     v_cmp_gt_u32 vcc, s[s_hi], v[v_in_ihi]
+    ds_read_b64 v[v_a+2:v_a+2+1], v[v_sld_a_os] offset:96
+    ds_read_b64 v[v_b+2:v_b+2+1], v[v_sld_b_os] offset:1536
+    s_waitcnt lgkmcnt(2)
+    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+0:v_a+1], v[v_b+0:v_b+1], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
     v_cndmask_b32 v[v_in_flag], 0, 1, vcc
     v_cmp_gt_u32 vcc, s[s_wi], v[v_in_iwi]
     v_cndmask_b32 v[v_in_flag], 0, v[v_in_flag], vcc
     v_and_b32 v[v_in_flag], v[v_in_flag], v[v_flag_n]
-    ds_read_b64 v[v_a+2:v_a+2+1], v[v_sld_a_os] offset:96
-    ds_read_b64 v[v_b+2:v_b+2+1], v[v_sld_b_os] offset:1536
     v_mad_u32_u24 v[v_tmp], s[s_wo], v[v_move_slice_n_idsho], v[v_move_slice_n_idswo]
     v_lshl_add_u32 v[v_out_os], v[v_tmp], 1, v[v_out_os_base]
     v_cmp_gt_u32 vcc, s[s_ho], v[v_move_slice_n_idsho]
+    s_waitcnt lgkmcnt(0)
+    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+2:v_a+3], v[v_b+2:v_b+3], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
     v_cndmask_b32 v[v_out_flag], 0, 1, vcc
     v_cmp_gt_u32 vcc, s[s_wo], v[v_move_slice_n_idswo]
     v_cndmask_b32 v[v_out_flag], 0, v[v_out_flag], vcc
@@ -4393,9 +4357,8 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16
     ds_write_b16 v[v_sst_b_os], v[v_gld_b+14] offset:448
     ds_write_b16 v[v_sst_b_os], v[v_gld_b+14+1] offset:480
     s_waitcnt vmcnt(0)
-    ds_write_b16 v[v_sst_a_os], v[v_gld_a+0]
-    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+0:v_a+1], v[v_b+0:v_b+1], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
-    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+2:v_a+3], v[v_b+2:v_b+3], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
+    ds_write_b16 v[v_sst_a_os], v[v_gld_a+0] 
+    
     v_xor_b32 v[v_sld_b_os], 4096, v[v_sld_b_os] ; switch double buffer b load
     v_xor_b32 v[v_sld_a_os], 4096, v[v_sld_a_os] ; switch double buffer a load
     s_sub_i32 s[s_kitr], s[s_kitr], 16
@@ -4404,6 +4367,7 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16
     v_xor_b32 v[v_sst_b_os], 4096, v[v_sst_b_os] ; switch double buffer b store
     v_xor_b32 v[v_sst_a_os], 4096, v[v_sst_a_os] ; switch double buffer a store
     s_branch L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4_mfma_body
+
 L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4_mfma_finishing:
 L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4_mfma_end:
     s_waitcnt lgkmcnt(0)
@@ -4467,8 +4431,8 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16
     .amdhsa_user_sgpr_kernarg_segment_ptr 1
     .amdhsa_system_sgpr_workgroup_id_x 1
     .amdhsa_system_vgpr_workitem_id 0
-    .amdhsa_next_free_vgpr 78
-    .amdhsa_next_free_sgpr 80
+    .amdhsa_next_free_vgpr 76
+    .amdhsa_next_free_sgpr 72
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
@@ -4544,93 +4508,86 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16
 .set s_gemmk_split, 31
 .set s_group, 32
 .set s_out_stride_k, 33
-.set s_out_stride_k0, 34
-.set s_out_stride_n, 35
-.set s_out_stride_n0, 36
-.set s_in_stride_c0, 37
-.set s_in_stride_c, 38
-.set s_in_stride_n0, 39
-.set s_in_stride_n, 40
-.set s_wei_stride_c, 41
-.set s_wei_stride_k, 42
-.set s_out_stride_n_n1, 43
-.set s_out_stride_n_n0_n1_diff, 44
-.set s_in_stride_n_n1, 45
-.set s_in_stride_n_n0_n1_diff, 46
-.set s_move_slice_n_n1, 47
-.set s_move_slice_n_dsho, 48
-.set s_move_slice_n_dswo, 49
-.set s_dim_b, 50
-.set s_block_gtc_ie, 51
-.set s_block_gtc_ik, 52
-.set s_block_gtc_ic0, 53
-.set s_block_gtc_ic1e, 54
-.set s_block_gtc_in, 55
-.set s_block_gtc_ig, 56
+.set s_hoxwo, 31
+.set s_out_stride_n, 34
+.set s_in_stride_c0, 35
+.set s_in_stride_c, 36
+.set s_in_stride_n, 37
+.set s_wei_stride_c, 38
+.set s_wei_stride_k, 39
+.set s_out_stride_n_n1, 40
+.set s_in_stride_n_n1, 41
+.set s_move_slice_n_n1, 42
+.set s_move_slice_n_dsho, 43
+.set s_move_slice_n_dswo, 44
+.set s_dim_b, 45
+.set s_block_gtc_ik, 46
+.set s_block_gtc_ic0, 47
+.set s_block_gtc_ic1e, 48
+.set s_block_gtc_in, 49
+.set s_block_gtc_ig, 50
 .set s_knum, 1
 .set s_gemm_k_num_n1, 0
-.set s_gemm_k_num_dsho, 57
-.set s_gemm_k_num_dswo, 58
 .set s_kitr, 3
-.set s_in_offset, 59
-.set s_out_offset, 73
-.set s_sub_n, 73
-.set s_tmp, 74
-.set s_end, 80
+.set s_in_offset, 51
+.set s_out_offset, 65
+.set s_sub_n, 65
+.set s_tmp, 66
+.set s_end, 72
 
-.set v_c, 0  ; coalescing:4, needed:2, resuable:37
-.set v_a, 2
-.set v_b, 6
-.set v_gld_a, 10
-.set v_gld_b, 11
-.set v_sst_a_os, 27
-.set v_sst_b_os, 28
-.set v_sld_a_os, 29
-.set v_sld_b_os, 30
-.set v_in_ihi, 31
-.set v_in_iwi, 32
-.set v_in_os, 33
-.set v_in_os_base, 34
-.set v_out_iho, 35
-.set v_out_iwo, 36
-.set v_out_os, 37
-.set v_out_os_base, 38
-.set v_in_flag, 39
-.set v_out_flag, 40
-.set v_co_sst, 41
-.set v_co_sld, 42
-.set v_wei_flag, 43
-.set v_wei_os, 44
-.set v_gtc_ik1, 45
-.set v_move_slice_n_in0, 46
-.set v_in_flag_prev, 46
-.set v_flag_n, 47
-.set v_flag_k, 48
-.set v_move_slice_n_in1, 49
-.set v_move_slice_n_idsho, 50
-.set v_move_slice_n_idswo, 51
-.set v_wei_iy, 52
-.set v_wei_ix, 53
-.set v_gtc_ic0, 54
-.set v_gtc_ic1e, 55
-.set v_gtc_ik0, 56
-.set v_gtc_ic1, 57
-.set v_gtc_in0, 58
-.set v_out_flag_prev, 58
-.set v_gtc_in1b, 59
-.set v_gtc_in1, 60
-.set v_gemm_in, 61
-.set v_gemm_im, 62
-.set v_wei_ic0, 63
-.set v_wei_ic1e, 64
-.set v_wei_ic1, 65
-.set v_co_sub_m_index, 66
-.set v_co_sub_n_index, 67
-.set v_cur_k, 68
-.set v_cur_c, 69
-.set v_in_flag_with_wi, 70
-.set v_tmp, 72
-.set v_end, 78
+.set v_c, 0  ; coalescing:4, needed:0, resuable:37
+.set v_a, 0
+.set v_b, 4
+.set v_gld_a, 8
+.set v_gld_b, 9
+.set v_sst_a_os, 25
+.set v_sst_b_os, 26
+.set v_sld_a_os, 27
+.set v_sld_b_os, 28
+.set v_in_ihi, 29
+.set v_in_iwi, 30
+.set v_in_os, 31
+.set v_in_os_base, 32
+.set v_out_iho, 33
+.set v_out_iwo, 34
+.set v_out_os, 35
+.set v_out_os_base, 36
+.set v_in_flag, 37
+.set v_out_flag, 38
+.set v_co_sst, 39
+.set v_co_sld, 40
+.set v_wei_flag, 41
+.set v_wei_os, 42
+.set v_gtc_ik1, 43
+.set v_move_slice_n_in0, 44
+.set v_in_flag_prev, 44
+.set v_flag_n, 45
+.set v_flag_k, 46
+.set v_move_slice_n_in1, 47
+.set v_move_slice_n_idsho, 48
+.set v_move_slice_n_idswo, 49
+.set v_wei_iy, 50
+.set v_wei_ix, 51
+.set v_gtc_ic0, 52
+.set v_gtc_ic1e, 53
+.set v_gtc_ik0, 54
+.set v_gtc_ic1, 55
+.set v_gtc_in0, 56
+.set v_out_flag_prev, 56
+.set v_gtc_in1b, 57
+.set v_gtc_in1, 58
+.set v_gemm_in, 59
+.set v_gemm_im, 60
+.set v_wei_ic0, 61
+.set v_wei_ic1e, 62
+.set v_wei_ic1, 63
+.set v_co_sub_m_index, 64
+.set v_co_sub_n_index, 65
+.set v_cur_k, 66
+.set v_cur_c, 67
+.set v_in_flag_with_wi, 68
+.set v_tmp, 70
+.set v_end, 76
 
 .set a_c, 0
 .set a_end, 4
@@ -4931,18 +4888,15 @@ igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16x
     v_add_u32 v[v_wei_os], v[v_wei_os], v[v_tmp+4]
     v_lshlrev_b32 v[v_wei_os], 2, v[v_wei_os]
     ; move slice stride
+    s_mul_i32 s[s_hoxwo], s[s_ho], s[s_wo]
     s_mov_b32 s[0], 16
     .v_u32_div_rem_ss s_tmp+4, s_move_slice_n_n1, 0, s_dim_b, v_tmp+4, v_tmp, s_tmp
     .v_u32_div_rem_ss s_move_slice_n_dswo, s_move_slice_n_dsho, s_tmp+4, s_wo, v_tmp+4, v_tmp, s_tmp
 
-    s_mul_i32 s[s_in_stride_n_n0_n1_diff], 15, s[s_in_stride_n]
-    s_mul_i32 s[s_out_stride_n_n0_n1_diff], 15, s[s_out_stride_n]
     s_mul_i32 s[s_in_stride_n_n1], s[s_move_slice_n_n1], s[s_in_stride_n]  ; might be 0 or larger
     s_mul_i32 s[s_out_stride_n_n1], s[s_move_slice_n_n1], s[s_out_stride_n]  ; might be 0 or larger
     s_lshl_b32 s[s_in_stride_n_n1], s[s_in_stride_n_n1], 1
     s_lshl_b32 s[s_out_stride_n_n1], s[s_out_stride_n_n1], 1
-    s_lshl_b32 s[s_in_stride_n_n0_n1_diff], s[s_in_stride_n_n0_n1_diff], 1
-    s_lshl_b32 s[s_out_stride_n_n0_n1_diff], s[s_out_stride_n_n0_n1_diff], 1
     s_lshl_b32 s[s_in_stride_n], s[s_in_stride_n], 1
     s_lshl_b32 s[s_out_stride_n], s[s_out_stride_n], 1
     s_lshl_b32 s[s_wei_stride_k], s[s_wei_stride_k], 2
@@ -5076,26 +5030,30 @@ L_igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x1
     v_add_u32 v[v_out_os_base], s[s_out_stride_n_n1], v[v_out_os_base]
     s_mov_b64 exec, -1
     v_cndmask_b32 v[v_flag_n], 0, 1, vcc
-    v_mul_lo_u32 v[v_tmp], s[s_stride_h], v[v_move_slice_n_idsho]
-    v_add_i32 v[v_in_ihi], v[v_tmp], v[v_wei_iy]
     ds_read_b64 v[v_a:v_a+1], v[v_sld_a_os] offset:64
     ds_read_b64 v[v_b:v_b+1], v[v_sld_b_os] offset:1024
     s_waitcnt lgkmcnt(2)
     v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+2:v_a+3], v[v_b+2:v_b+3], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
+    v_mul_lo_u32 v[v_tmp], s[s_stride_h], v[v_move_slice_n_idsho]
+    v_add_i32 v[v_in_ihi], v[v_tmp], v[v_wei_iy]
     v_mul_lo_u32 v[v_tmp+1], s[s_stride_w], v[v_move_slice_n_idswo]
     v_add_i32 v[v_in_iwi], v[v_tmp+1], v[v_wei_ix]
     v_mad_u32_u24 v[v_tmp], s[s_wi], v[v_in_ihi], v[v_in_iwi]
     v_lshl_add_u32 v[v_in_os], v[v_tmp], 1, v[v_in_os_base]
     v_cmp_gt_u32 vcc, s[s_hi], v[v_in_ihi]
+    ds_read_b64 v[v_a+2:v_a+2+1], v[v_sld_a_os] offset:96
+    ds_read_b64 v[v_b+2:v_b+2+1], v[v_sld_b_os] offset:1536
+    s_waitcnt lgkmcnt(2)
+    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+0:v_a+1], v[v_b+0:v_b+1], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
     v_cndmask_b32 v[v_in_flag], 0, 1, vcc
     v_cmp_gt_u32 vcc, s[s_wi], v[v_in_iwi]
     v_cndmask_b32 v[v_in_flag], 0, v[v_in_flag], vcc
     v_and_b32 v[v_in_flag], v[v_in_flag], v[v_flag_n]
-    ds_read_b64 v[v_a+2:v_a+2+1], v[v_sld_a_os] offset:96
-    ds_read_b64 v[v_b+2:v_b+2+1], v[v_sld_b_os] offset:1536
     v_mad_u32_u24 v[v_tmp], s[s_wo], v[v_move_slice_n_idsho], v[v_move_slice_n_idswo]
     v_lshl_add_u32 v[v_out_os], v[v_tmp], 1, v[v_out_os_base]
     v_cmp_gt_u32 vcc, s[s_ho], v[v_move_slice_n_idsho]
+    s_waitcnt lgkmcnt(0)
+    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+2:v_a+3], v[v_b+2:v_b+3], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
     v_cndmask_b32 v[v_out_flag], 0, 1, vcc
     v_cmp_gt_u32 vcc, s[s_wo], v[v_move_slice_n_idswo]
     v_cndmask_b32 v[v_out_flag], 0, v[v_out_flag], vcc
@@ -5121,9 +5079,8 @@ L_igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x1
     ds_write_b16 v[v_sst_b_os], v[v_gld_b+14] offset:448
     ds_write_b16 v[v_sst_b_os], v[v_gld_b+14+1] offset:480
     s_waitcnt vmcnt(0)
-    ds_write_b16 v[v_sst_a_os], v[v_gld_a+0]
-    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+0:v_a+1], v[v_b+0:v_b+1], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
-    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+2:v_a+3], v[v_b+2:v_b+3], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
+    ds_write_b16 v[v_sst_a_os], v[v_gld_a+0] 
+    
     v_xor_b32 v[v_sld_b_os], 4096, v[v_sld_b_os] ; switch double buffer b load
     v_xor_b32 v[v_sld_a_os], 4096, v[v_sld_a_os] ; switch double buffer a load
     s_sub_i32 s[s_kitr], s[s_kitr], 16
@@ -5132,6 +5089,7 @@ L_igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x1
     v_xor_b32 v[v_sst_b_os], 4096, v[v_sst_b_os] ; switch double buffer b store
     v_xor_b32 v[v_sst_a_os], 4096, v[v_sst_a_os] ; switch double buffer a store
     s_branch L_igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4_gkgs_mfma_body
+
 L_igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4_gkgs_mfma_finishing:
 L_igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4_gkgs_mfma_end:
     s_waitcnt lgkmcnt(0)
@@ -5189,8 +5147,8 @@ L_igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x1
     .amdhsa_user_sgpr_kernarg_segment_ptr 1
     .amdhsa_system_sgpr_workgroup_id_x 1
     .amdhsa_system_vgpr_workitem_id 0
-    .amdhsa_next_free_vgpr 78
-    .amdhsa_next_free_sgpr 80
+    .amdhsa_next_free_vgpr 76
+    .amdhsa_next_free_sgpr 72
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
@@ -5266,93 +5224,86 @@ L_igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x1
 .set s_gemmk_split, 31
 .set s_group, 32
 .set s_out_stride_k, 33
-.set s_out_stride_k0, 34
-.set s_out_stride_n, 35
-.set s_out_stride_n0, 36
-.set s_in_stride_c0, 37
-.set s_in_stride_c, 38
-.set s_in_stride_n0, 39
-.set s_in_stride_n, 40
-.set s_wei_stride_c, 41
-.set s_wei_stride_k, 42
-.set s_out_stride_n_n1, 43
-.set s_out_stride_n_n0_n1_diff, 44
-.set s_in_stride_n_n1, 45
-.set s_in_stride_n_n0_n1_diff, 46
-.set s_move_slice_n_n1, 47
-.set s_move_slice_n_dsho, 48
-.set s_move_slice_n_dswo, 49
-.set s_dim_b, 50
-.set s_block_gtc_ie, 51
-.set s_block_gtc_ik, 52
-.set s_block_gtc_ic0, 53
-.set s_block_gtc_ic1e, 54
-.set s_block_gtc_in, 55
-.set s_block_gtc_ig, 56
+.set s_hoxwo, 31
+.set s_out_stride_n, 34
+.set s_in_stride_c0, 35
+.set s_in_stride_c, 36
+.set s_in_stride_n, 37
+.set s_wei_stride_c, 38
+.set s_wei_stride_k, 39
+.set s_out_stride_n_n1, 40
+.set s_in_stride_n_n1, 41
+.set s_move_slice_n_n1, 42
+.set s_move_slice_n_dsho, 43
+.set s_move_slice_n_dswo, 44
+.set s_dim_b, 45
+.set s_block_gtc_ik, 46
+.set s_block_gtc_ic0, 47
+.set s_block_gtc_ic1e, 48
+.set s_block_gtc_in, 49
+.set s_block_gtc_ig, 50
 .set s_knum, 1
 .set s_gemm_k_num_n1, 0
-.set s_gemm_k_num_dsho, 57
-.set s_gemm_k_num_dswo, 58
 .set s_kitr, 3
-.set s_in_offset, 59
-.set s_out_offset, 73
-.set s_sub_n, 73
-.set s_tmp, 74
-.set s_end, 80
+.set s_in_offset, 51
+.set s_out_offset, 65
+.set s_sub_n, 65
+.set s_tmp, 66
+.set s_end, 72
 
-.set v_c, 0  ; coalescing:4, needed:2, resuable:37
-.set v_a, 2
-.set v_b, 6
-.set v_gld_a, 10
-.set v_gld_b, 11
-.set v_sst_a_os, 27
-.set v_sst_b_os, 28
-.set v_sld_a_os, 29
-.set v_sld_b_os, 30
-.set v_in_ihi, 31
-.set v_in_iwi, 32
-.set v_in_os, 33
-.set v_in_os_base, 34
-.set v_out_iho, 35
-.set v_out_iwo, 36
-.set v_out_os, 37
-.set v_out_os_base, 38
-.set v_in_flag, 39
-.set v_out_flag, 40
-.set v_co_sst, 41
-.set v_co_sld, 42
-.set v_wei_flag, 43
-.set v_wei_os, 44
-.set v_gtc_ik1, 45
-.set v_move_slice_n_in0, 46
-.set v_in_flag_prev, 46
-.set v_flag_n, 47
-.set v_flag_k, 48
-.set v_move_slice_n_in1, 49
-.set v_move_slice_n_idsho, 50
-.set v_move_slice_n_idswo, 51
-.set v_wei_iy, 52
-.set v_wei_ix, 53
-.set v_gtc_ic0, 54
-.set v_gtc_ic1e, 55
-.set v_gtc_ik0, 56
-.set v_gtc_ic1, 57
-.set v_gtc_in0, 58
-.set v_out_flag_prev, 58
-.set v_gtc_in1b, 59
-.set v_gtc_in1, 60
-.set v_gemm_in, 61
-.set v_gemm_im, 62
-.set v_wei_ic0, 63
-.set v_wei_ic1e, 64
-.set v_wei_ic1, 65
-.set v_co_sub_m_index, 66
-.set v_co_sub_n_index, 67
-.set v_cur_k, 68
-.set v_cur_c, 69
-.set v_in_flag_with_wi, 70
-.set v_tmp, 72
-.set v_end, 78
+.set v_c, 0  ; coalescing:4, needed:0, resuable:37
+.set v_a, 0
+.set v_b, 4
+.set v_gld_a, 8
+.set v_gld_b, 9
+.set v_sst_a_os, 25
+.set v_sst_b_os, 26
+.set v_sld_a_os, 27
+.set v_sld_b_os, 28
+.set v_in_ihi, 29
+.set v_in_iwi, 30
+.set v_in_os, 31
+.set v_in_os_base, 32
+.set v_out_iho, 33
+.set v_out_iwo, 34
+.set v_out_os, 35
+.set v_out_os_base, 36
+.set v_in_flag, 37
+.set v_out_flag, 38
+.set v_co_sst, 39
+.set v_co_sld, 40
+.set v_wei_flag, 41
+.set v_wei_os, 42
+.set v_gtc_ik1, 43
+.set v_move_slice_n_in0, 44
+.set v_in_flag_prev, 44
+.set v_flag_n, 45
+.set v_flag_k, 46
+.set v_move_slice_n_in1, 47
+.set v_move_slice_n_idsho, 48
+.set v_move_slice_n_idswo, 49
+.set v_wei_iy, 50
+.set v_wei_ix, 51
+.set v_gtc_ic0, 52
+.set v_gtc_ic1e, 53
+.set v_gtc_ik0, 54
+.set v_gtc_ic1, 55
+.set v_gtc_in0, 56
+.set v_out_flag_prev, 56
+.set v_gtc_in1b, 57
+.set v_gtc_in1, 58
+.set v_gemm_in, 59
+.set v_gemm_im, 60
+.set v_wei_ic0, 61
+.set v_wei_ic1e, 62
+.set v_wei_ic1, 63
+.set v_co_sub_m_index, 64
+.set v_co_sub_n_index, 65
+.set v_cur_k, 66
+.set v_cur_c, 67
+.set v_in_flag_with_wi, 68
+.set v_tmp, 70
+.set v_end, 76
 
 .set a_c, 0
 .set a_end, 4
@@ -5653,18 +5604,15 @@ igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16x
     v_add_u32 v[v_wei_os], v[v_wei_os], v[v_tmp+4]
     v_lshlrev_b32 v[v_wei_os], 1, v[v_wei_os]
     ; move slice stride
+    s_mul_i32 s[s_hoxwo], s[s_ho], s[s_wo]
     s_mov_b32 s[0], 16
     .v_u32_div_rem_ss s_tmp+4, s_move_slice_n_n1, 0, s_dim_b, v_tmp+4, v_tmp, s_tmp
     .v_u32_div_rem_ss s_move_slice_n_dswo, s_move_slice_n_dsho, s_tmp+4, s_wo, v_tmp+4, v_tmp, s_tmp
 
-    s_mul_i32 s[s_in_stride_n_n0_n1_diff], 15, s[s_in_stride_n]
-    s_mul_i32 s[s_out_stride_n_n0_n1_diff], 15, s[s_out_stride_n]
     s_mul_i32 s[s_in_stride_n_n1], s[s_move_slice_n_n1], s[s_in_stride_n]  ; might be 0 or larger
     s_mul_i32 s[s_out_stride_n_n1], s[s_move_slice_n_n1], s[s_out_stride_n]  ; might be 0 or larger
     s_lshl_b32 s[s_in_stride_n_n1], s[s_in_stride_n_n1], 1
     s_lshl_b32 s[s_out_stride_n_n1], s[s_out_stride_n_n1], 1
-    s_lshl_b32 s[s_in_stride_n_n0_n1_diff], s[s_in_stride_n_n0_n1_diff], 1
-    s_lshl_b32 s[s_out_stride_n_n0_n1_diff], s[s_out_stride_n_n0_n1_diff], 1
     s_lshl_b32 s[s_in_stride_n], s[s_in_stride_n], 1
     s_lshl_b32 s[s_out_stride_n], s[s_out_stride_n], 1
     s_lshl_b32 s[s_wei_stride_k], s[s_wei_stride_k], 1
@@ -5798,26 +5746,30 @@ L_igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x1
     v_add_u32 v[v_out_os_base], s[s_out_stride_n_n1], v[v_out_os_base]
     s_mov_b64 exec, -1
     v_cndmask_b32 v[v_flag_n], 0, 1, vcc
-    v_mul_lo_u32 v[v_tmp], s[s_stride_h], v[v_move_slice_n_idsho]
-    v_add_i32 v[v_in_ihi], v[v_tmp], v[v_wei_iy]
     ds_read_b64 v[v_a:v_a+1], v[v_sld_a_os] offset:64
     ds_read_b64 v[v_b:v_b+1], v[v_sld_b_os] offset:1024
     s_waitcnt lgkmcnt(2)
     v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+2:v_a+3], v[v_b+2:v_b+3], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
+    v_mul_lo_u32 v[v_tmp], s[s_stride_h], v[v_move_slice_n_idsho]
+    v_add_i32 v[v_in_ihi], v[v_tmp], v[v_wei_iy]
     v_mul_lo_u32 v[v_tmp+1], s[s_stride_w], v[v_move_slice_n_idswo]
     v_add_i32 v[v_in_iwi], v[v_tmp+1], v[v_wei_ix]
     v_mad_u32_u24 v[v_tmp], s[s_wi], v[v_in_ihi], v[v_in_iwi]
     v_lshl_add_u32 v[v_in_os], v[v_tmp], 1, v[v_in_os_base]
     v_cmp_gt_u32 vcc, s[s_hi], v[v_in_ihi]
+    ds_read_b64 v[v_a+2:v_a+2+1], v[v_sld_a_os] offset:96
+    ds_read_b64 v[v_b+2:v_b+2+1], v[v_sld_b_os] offset:1536
+    s_waitcnt lgkmcnt(2)
+    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+0:v_a+1], v[v_b+0:v_b+1], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
     v_cndmask_b32 v[v_in_flag], 0, 1, vcc
     v_cmp_gt_u32 vcc, s[s_wi], v[v_in_iwi]
     v_cndmask_b32 v[v_in_flag], 0, v[v_in_flag], vcc
     v_and_b32 v[v_in_flag], v[v_in_flag], v[v_flag_n]
-    ds_read_b64 v[v_a+2:v_a+2+1], v[v_sld_a_os] offset:96
-    ds_read_b64 v[v_b+2:v_b+2+1], v[v_sld_b_os] offset:1536
     v_mad_u32_u24 v[v_tmp], s[s_wo], v[v_move_slice_n_idsho], v[v_move_slice_n_idswo]
     v_lshl_add_u32 v[v_out_os], v[v_tmp], 1, v[v_out_os_base]
     v_cmp_gt_u32 vcc, s[s_ho], v[v_move_slice_n_idsho]
+    s_waitcnt lgkmcnt(0)
+    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+2:v_a+3], v[v_b+2:v_b+3], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
     v_cndmask_b32 v[v_out_flag], 0, 1, vcc
     v_cmp_gt_u32 vcc, s[s_wo], v[v_move_slice_n_idswo]
     v_cndmask_b32 v[v_out_flag], 0, v[v_out_flag], vcc
@@ -5843,9 +5795,8 @@ L_igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x1
     ds_write_b16 v[v_sst_b_os], v[v_gld_b+14] offset:448
     ds_write_b16 v[v_sst_b_os], v[v_gld_b+14+1] offset:480
     s_waitcnt vmcnt(0)
-    ds_write_b16 v[v_sst_a_os], v[v_gld_a+0]
-    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+0:v_a+1], v[v_b+0:v_b+1], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
-    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+2:v_a+3], v[v_b+2:v_b+3], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
+    ds_write_b16 v[v_sst_a_os], v[v_gld_a+0] 
+    
     v_xor_b32 v[v_sld_b_os], 4096, v[v_sld_b_os] ; switch double buffer b load
     v_xor_b32 v[v_sld_a_os], 4096, v[v_sld_a_os] ; switch double buffer a load
     s_sub_i32 s[s_kitr], s[s_kitr], 16
@@ -5854,6 +5805,7 @@ L_igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x1
     v_xor_b32 v[v_sst_b_os], 4096, v[v_sst_b_os] ; switch double buffer b store
     v_xor_b32 v[v_sst_a_os], 4096, v[v_sst_a_os] ; switch double buffer a store
     s_branch L_igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4_mfma_body
+
 L_igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4_mfma_finishing:
 L_igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4_mfma_end:
     s_waitcnt lgkmcnt(0)
@@ -5917,8 +5869,8 @@ L_igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x1
     .amdhsa_user_sgpr_kernarg_segment_ptr 1
     .amdhsa_system_sgpr_workgroup_id_x 1
     .amdhsa_system_vgpr_workitem_id 0
-    .amdhsa_next_free_vgpr 78
-    .amdhsa_next_free_sgpr 80
+    .amdhsa_next_free_vgpr 76
+    .amdhsa_next_free_sgpr 72
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
