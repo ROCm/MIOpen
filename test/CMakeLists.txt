@@ -56,12 +56,15 @@ add_custom_target(tests)
 set(SKIP_TESTS)
 set(MIOPEN_TEST_FLOAT_ARG)
 
+# The usage is non-trivial, see function add_test_command.
+set(SKIP_ALL_EXCEPT_TESTS)
+
 if(MIOPEN_TEST_HALF)
     if(MIOPEN_BACKEND_OPENCL)
         set(SKIP_TESTS test_gru test_rnn_vanilla test_lstm test_conv_igemm_dynamic)
     endif()
     if(MIOPEN_TEST_GFX908)
-       set(SKIP_TESTS test_immed_conv3d test_conv3d test_fusion_aux test_activation test_lrn_test test_ctc test_conv2d_bias test_conv3d_bias test_cba_inference test_cbna_inference test_pooling2d test_na_train test_na_inference test_bn_aux test_conv_igemm_dynamic)
+       set(SKIP_TESTS test_immed_conv3d test_conv3d test_fusion_aux test_activation test_lrn_test test_ctc test_conv2d_bias test_conv3d_bias test_cba_inference test_cbna_inference test_pooling2d test_na_train test_na_inference test_bn_aux test_conv_igemm_dynamic ${SKIP_TESTS})
     endif()
     set(MIOPEN_TEST_FLOAT_ARG --half)
 elseif(MIOPEN_TEST_INT8)
@@ -83,7 +86,7 @@ if(MIOPEN_TEST_MIOTENSILE)
 endif()
 
 function(add_test_command NAME EXE)
-    # Restrict the use of SKIP_ALL_EXCEPT_TESTS list in the low-precision and miopentensile tests
+    # Limit the use of the SKIP_ALL_EXCEPT_TESTS list only to int8, BF16 and MIOpenTensile.
     if((NOT (NAME IN_LIST SKIP_ALL_EXCEPT_TESTS)) AND (MIOPEN_TEST_INT8 OR MIOPEN_TEST_BFLOAT16 OR MIOPEN_TEST_MIOTENSILE))
         add_test(NAME ${NAME} COMMAND echo skipped)
         set_tests_properties(${NAME} PROPERTIES DISABLED On)
@@ -218,7 +221,7 @@ function(add_custom_test NAME)
     OR (MIOPEN_TEST_BFLOAT16 AND ${PARSE_ALLOW_BFLOAT16})
     OR (MIOPEN_TEST_HALF AND ${PARSE_ALLOW_HALF})
     OR (MIOPEN_TEST_INT8 AND ${PARSE_ALLOW_INT8})
-    OR (NOT (MIOPEN_TEST_MIOTENSILE AND (NAME IN_LIST SKIP_TESTS))))
+    OR (MIOPEN_TEST_MIOTENSILE AND NOT(NAME IN_LIST SKIP_TESTS)))
         add_custom_target(${NAME} ${PARSE_UNPARSED_ARGUMENTS})
         if(NOT PARSE_SKIP_UNLESS_ALL OR MIOPEN_TEST_ALL)
             add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
@@ -238,7 +241,7 @@ function(add_perf_test NAME)
     OR (MIOPEN_TEST_BFLOAT16 AND ${PARSE_ALLOW_BFLOAT16})
     OR (MIOPEN_TEST_HALF AND ${PARSE_ALLOW_HALF})
     OR (MIOPEN_TEST_INT8 AND ${PARSE_ALLOW_INT8})
-    OR (NOT (MIOPEN_TEST_MIOTENSILE AND (NAME IN_LIST SKIP_TESTS))))
+    OR (MIOPEN_TEST_MIOTENSILE AND NOT(NAME IN_LIST SKIP_TESTS)))
         add_custom_target(${NAME} ${PARSE_UNPARSED_ARGUMENTS})
         if(NOT PARSE_SKIP_UNLESS_ALL OR MIOPEN_TEST_ALL)
             add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
@@ -249,6 +252,7 @@ function(add_perf_test NAME)
 endfunction()
 
 set(IMPLICITGEMM_ARGS ${MIOPEN_TEST_FLOAT_ARG})
+
 # ./bin/MIOpenDriver conv -n 128 -c 1024 -H 14 -W 14 -k 2048 -y 1 -x 1 -p 0 -q 0 -u 2 -v 2 -l 1 -j 1 -m conv -g 1 -F 1 -t 1
 # MIOPEN_DEBUG_CONV_IMMED_FALLBACK=0
 if(MIOPEN_EMBED_DB)
