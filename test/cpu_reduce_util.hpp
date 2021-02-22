@@ -74,19 +74,20 @@ static inline bool float_equal_one(T x)
 template <>
 inline bool float_equal_one<float>(float x)
 {
-    return std::isfinite(x) and x == 1.0f;
+    return std::isfinite(x) and x <= 1.0f and x >= 1.0f;
 };
 
 template <>
 inline bool float_equal_one<double>(double x)
 {
-    return std::isfinite(x) and x == 1.0;
+    return std::isfinite(x) and x <= 1.0 and x >= 1.0;
 };
 
 template <>
 inline bool float_equal_one<half_float::half>(half_float::half x)
 {
-    return half_float::isfinite(x) and x == convert_type<half_float::half>(1.0f);
+    return half_float::isfinite(x) and x <= convert_type<half_float::half>(1.0f) and
+           x >= convert_type<half_float::half>(1.0f);
 };
 
 template <typename T>
