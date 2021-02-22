@@ -54,7 +54,7 @@ class AutoMlirHandle
 /// @param[in]  params   Options for MLIR generator.
 /// @param[out] cflags   Build options for HIP compiler.
 /// @param[out] cpp_filename  Name of output .cpp file (with path).
-static void MlirGenerateSourcesForHipBuild(boost::optional<TmpDir>& tmp_dir,
+static void MlirGenerateSourcesForHipBuild(const boost::optional<TmpDir>& tmp_dir,
                                            const std::string& filename,
                                            const std::string& params,
                                            std::string& cflags,
