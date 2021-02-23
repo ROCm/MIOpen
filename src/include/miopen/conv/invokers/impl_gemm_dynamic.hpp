@@ -122,7 +122,6 @@ inline float CallImplGemmDynamicForward<int>(const miopen::Handle& handle,
     float elapsed = 0.0f;
 
     auto kernel = kernels[0];
-    MIOPEN_LOG_I(kernel.GetName());
 
     // clang-format off
     int hi          = conv_problem.GetInHeight();
@@ -184,7 +183,6 @@ inline float CallImplGemmDynamicForward<solver::TunableImplicitGemmGTCDynamic_t>
     float elapsed = 0.0f;
 
     auto kernel = kernels[0];
-    MIOPEN_LOG_I(kernel.GetName());
 
     // clang-format off
     int hi          = conv_problem.GetInHeight();
