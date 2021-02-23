@@ -71,25 +71,22 @@ static inline bool float_equal_one(T x)
     return false;
 };
 
-// use combination of "<=" and ">=" for float values equality checking to remove DeepCode warning
-// caused by direct using of "=="
 template <>
 inline bool float_equal_one<float>(float x)
 {
-    return std::isfinite(x) and x <= 1.0f and x >= 1.0f;
+    return x == 1.0f;
 };
 
 template <>
 inline bool float_equal_one<double>(double x)
 {
-    return std::isfinite(x) and x <= 1.0 and x >= 1.0;
+    return x == 1.0;
 };
 
 template <>
 inline bool float_equal_one<half_float::half>(half_float::half x)
 {
-    return half_float::isfinite(x) and x <= convert_type<half_float::half>(1.0f) and
-           x >= convert_type<half_float::half>(1.0f);
+    return x == convert_type<half_float::half>(1.0f);
 };
 
 template <typename T>
@@ -103,20 +100,19 @@ static inline bool float_equal_zero(T x)
 template <>
 inline bool float_equal_zero<float>(float x)
 {
-    return std::isfinite(x) and x <= 0.0f and x >= 0.0f;
+    return x == 0.0f;
 };
 
 template <>
 inline bool float_equal_zero<double>(double x)
 {
-    return std::isfinite(x) and x <= 0.0 and x >= 0.0;
+    return x == 0.0;
 };
 
 template <>
 inline bool float_equal_zero<half_float::half>(half_float::half x)
 {
-    return half_float::isfinite(x) and x <= convert_type<half_float::half>(0.0f) and
-           x >= convert_type<half_float::half>(0.0f);
+    return x == convert_type<half_float::half>(0.0f);
 };
 
 template <typename T>
