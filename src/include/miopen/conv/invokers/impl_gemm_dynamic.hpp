@@ -40,13 +40,13 @@
 namespace miopen {
 namespace conv {
 
-struct _magic_div_u32_
+struct magic_div_u32
 {
     uint32_t magic;
     uint8_t shift;
 };
 
-using magic_div_u32_t = _magic_div_u32_;
+using magic_div_u32_t = magic_div_u32;
 
 /*
 *
