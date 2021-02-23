@@ -40,27 +40,8 @@ namespace reduce {
 template <typename T>
 static inline bool IsNan(T x)
 {
-    // C++ isnan() is used for float and double
+    // C++ isnan() is used for float, double and half_float::half
     return (std::isnan(x));
-};
-
-template <>
-inline bool IsNan<half_float::half>(half_float::half x)
-{
-    return (half_float::isnan(x));
-};
-
-template <typename T>
-static inline bool IsFinite(T x)
-{
-    // C++ isfinite() is used for float and double
-    return (std::isfinite(x));
-};
-
-template <>
-inline bool IsFinite<half_float::half>(half_float::half x)
-{
-    return (half_float::isfinite(x));
 };
 
 template <typename T>
