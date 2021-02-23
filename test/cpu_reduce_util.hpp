@@ -30,6 +30,8 @@
 #include <limits>
 #include <cmath>
 #include <cassert>
+#include <stdexcept>
+#include <string>
 #include <miopen/miopen.h>
 #include <miopen/reduce_common.hpp>
 
@@ -160,7 +162,8 @@ static inline std::function<void(compType&)> PreUnaryOpFn(miopenReduceTensorOp_t
     case MIOPEN_REDUCE_TENSOR_MAX: return ([&](compType& a_) { (void)a_; });
     }
 
-    return (std::function<void(compType&)>{});
+    throw std::runtime_error(std::string(__FUNCTION__) +
+                             ": using undefined Reduction operation is not permitted");
 };
 
 template <typename compType>
@@ -184,7 +187,8 @@ static inline std::function<void(compType&)> PosUnaryOpFn(miopenReduceTensorOp_t
     case MIOPEN_REDUCE_TENSOR_AMAX: return ([&](compType& a_) { (void)a_; });
     }
 
-    return (std::function<void(compType&)>{});
+    throw std::runtime_error(std::string(__FUNCTION__) +
+                             ": using undefined Reduction operation is not permitted");
 };
 
 template <typename compType>
@@ -213,7 +217,8 @@ static inline std::function<void(compType&, compType)> ReduceOpFn(miopenReduceTe
         });
     }
 
-    return (std::function<void(compType&, compType)>{});
+    throw std::runtime_error(std::string(__FUNCTION__) +
+                             ": using undefined Reduction operation is not permitted");
 };
 
 template <typename compType>
@@ -252,7 +257,8 @@ ReduceOpFn2(miopenReduceTensorOp_t op_)
     case MIOPEN_REDUCE_TENSOR_NORM2: return (std::function<void(compType&, compType, bool&)>{});
     };
 
-    return (std::function<void(compType&, compType, bool&)>{});
+    throw std::runtime_error(std::string(__FUNCTION__) +
+                             ": using undefined Reduction operation is not permitted");
 };
 
 template <typename compType>
@@ -273,7 +279,8 @@ static inline compType ReduceOpZeroVal(miopenReduceTensorOp_t op_)
     case MIOPEN_REDUCE_TENSOR_AMAX: return (convert_type<compType>(0.0f));
     }
 
-    return (convert_type<compType>(0.0f));
+    throw std::runtime_error(std::string(__FUNCTION__) +
+                             ": using undefined Reduction operation is not permitted");
 };
 
 template <>
@@ -296,7 +303,8 @@ inline half_float::half ReduceOpZeroVal<half_float::half>(miopenReduceTensorOp_t
     case MIOPEN_REDUCE_TENSOR_AMAX: return (convert_type<half_float::half>(0.0f));
     }
 
-    return (convert_type<half_float::half>(0.0f));
+    throw std::runtime_error(std::string(__FUNCTION__) +
+                             ": using undefined Reduction operation is not permitted");
 };
 
 template <typename compType>
