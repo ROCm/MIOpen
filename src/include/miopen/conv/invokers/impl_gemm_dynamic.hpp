@@ -87,9 +87,7 @@ static inline magic_div_u32_t magic_div_u32_gen(uint32_t d)
     assert(magic <= 0xffffffffUL);
 
     magic_div_u32_t result;
-    result.magic = magic;
-    result.shift = shift;
-    return result;
+    return {magic, shift};
 }
 
 static inline uint32_t magic_div_u32_pack_shift(uint8_t s0, uint8_t s1, uint8_t s2, uint8_t s3)
