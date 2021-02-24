@@ -35,8 +35,6 @@
 #include <miopen/miopen.h>
 #include <miopen/reduce_common.hpp>
 
-#include <miopen/bfloat16.hpp>
-
 namespace reduce {
 
 template <typename T>
@@ -47,98 +45,46 @@ static inline bool IsNan(T x)
 };
 
 template <typename T>
-static inline bool float_equal_one(T x)
-{
-    (void)x;
-    static_assert(static_cast<T>(0), "float_equal_one() is not implemented for this data type");
-    return false;
-};
+static inline bool float_equal_one(T);
 
-template <>
-inline bool float_equal_one<float>(float x)
-{
-    return x == 1.0f;
-};
+static inline bool float_equal_one(float x) { return x == 1.0f; };
 
-template <>
-inline bool float_equal_one<double>(double x)
-{
-    return x == 1.0;
-};
+static inline bool float_equal_one(double x) { return x == 1.0; };
 
-template <>
-inline bool float_equal_one<half_float::half>(half_float::half x)
+static inline bool float_equal_one(half_float::half x)
 {
     return x == convert_type<half_float::half>(1.0f);
 };
 
 template <typename T>
-static inline bool float_equal_zero(T x)
-{
-    (void)x;
-    static_assert(static_cast<T>(0), "float_equal_zero() is not implemented for this data type");
-    return false;
-};
+static inline bool float_equal_zero(T x);
 
-template <>
-inline bool float_equal_zero<float>(float x)
-{
-    return x == 0.0f;
-};
+static inline bool float_equal_zero(float x) { return x == 0.0f; };
 
-template <>
-inline bool float_equal_zero<double>(double x)
-{
-    return x == 0.0;
-};
+static inline bool float_equal_zero(double x) { return x == 0.0; };
 
-template <>
-inline bool float_equal_zero<half_float::half>(half_float::half x)
+static inline bool float_equal_zero(half_float::half x)
 {
     return x == convert_type<half_float::half>(0.0f);
 };
 
 template <typename T>
-static inline T Sqrt(T a)
-{
-    return sqrt(a);
-};
+static inline T Sqrt(T a);
 
-template <>
-inline float Sqrt<float>(float a)
-{
-    return sqrtf(a);
-};
+static inline float Sqrt(float a) { return sqrtf(a); };
 
-template <>
-inline half_float::half Sqrt<half_float::half>(half_float::half a)
-{
-    return half_float::sqrt(a);
-};
+static inline double Sqrt(double a) { return sqrt(a); };
+
+static inline half_float::half Sqrt(half_float::half a) { return half_float::sqrt(a); };
 
 template <typename T>
-static inline T Abs(T a)
-{
-    return abs(a);
-};
+static inline T Abs(T a);
 
-template <>
-inline float Abs<float>(float a)
-{
-    return fabsf(a);
-};
+static inline float Abs(float a) { return fabsf(a); };
 
-template <>
-inline double Abs<double>(double a)
-{
-    return fabs(a);
-};
+static inline double Abs(double a) { return fabs(a); };
 
-template <>
-inline half_float::half Abs<half_float::half>(half_float::half a)
-{
-    return half_float::abs(a);
-};
+static inline half_float::half Abs(half_float::half a) { return half_float::abs(a); };
 
 template <typename compType>
 static inline std::function<void(compType&)> PreUnaryOpFn(miopenReduceTensorOp_t op_, int divider)
@@ -147,13 +93,13 @@ static inline std::function<void(compType&)> PreUnaryOpFn(miopenReduceTensorOp_t
     {
     case MIOPEN_REDUCE_TENSOR_NORM1:
         return ([&, divider](compType& a_) {
-            a_ = Abs<compType>(a_) / convert_type<compType>(static_cast<float>(divider));
+            a_ = Abs(a_) / convert_type<compType>(static_cast<float>(divider));
         });
     case MIOPEN_REDUCE_TENSOR_NORM2:
         return ([&, divider](compType& a_) {
             a_ = a_ * a_ / convert_type<compType>(static_cast<float>(divider));
         });
-    case MIOPEN_REDUCE_TENSOR_AMAX: return ([&](compType& a_) { a_ = Abs<compType>(a_); });
+    case MIOPEN_REDUCE_TENSOR_AMAX: return ([&](compType& a_) { a_ = Abs(a_); });
 
     case MIOPEN_REDUCE_TENSOR_AVG:
     case MIOPEN_REDUCE_TENSOR_ADD:
@@ -169,10 +115,9 @@ static inline std::function<void(compType&)> PreUnaryOpFn(miopenReduceTensorOp_t
 template <typename compType>
 static inline std::function<void(compType&)> PosUnaryOpFn(miopenReduceTensorOp_t op_, int divider)
 {
-    (void)divider;
     switch(op_)
     {
-    case MIOPEN_REDUCE_TENSOR_NORM2: return ([&](compType& a_) { a_ = Sqrt<compType>(a_); });
+    case MIOPEN_REDUCE_TENSOR_NORM2: return ([&](compType& a_) { a_ = Sqrt(a_); });
 
     case MIOPEN_REDUCE_TENSOR_AVG:
         return ([&, divider](compType& a_) {
