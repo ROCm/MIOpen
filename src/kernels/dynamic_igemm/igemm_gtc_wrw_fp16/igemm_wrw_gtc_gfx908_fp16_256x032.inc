@@ -2470,63 +2470,58 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt256x32x16_wt64x4x4_ws1x2_wr2x2_ta1x2x1x8_1x
     buffer_load_dword v[v_gld_a+7], v[v_out_os], s[s_p_out:s_p_out+3], s[s_out_offset+5] offen offset:0
     v_mfma_f32_4x4x4f16 a[a_c+4:a_c+7], v[v_a+4:v_a+5], v[v_b+10:v_b+11], a[a_c+4:a_c+7]     ; repeat:0x0, step:0x1, num_a_c:4
     v_add_u32 v[v_move_slice_n_idswo], s[s_move_slice_n_dswo], v[v_move_slice_n_idswo]
-    ds_read_b64 v[v_a+2:v_a+2+1], v[v_sld_a_os] offset:5120 ; load i_k:2 into local buffer 0, repeat 1
-    s_waitcnt lgkmcnt(5)
-    v_mfma_f32_4x4x4f16 a[a_c+8:a_c+11], v[v_a+4:v_a+5], v[v_b+12:v_b+13], a[a_c+8:a_c+11]     ; repeat:0x1, step:0x0, num_a_c:4
     v_cmpx_le_u32 vcc, s[s_wo], v[v_move_slice_n_idswo]
     v_subrev_u32 v[v_move_slice_n_idswo], s[s_wo], v[v_move_slice_n_idswo]
     v_add_u32 v[v_move_slice_n_idsho], 1, v[v_move_slice_n_idsho]
     s_mov_b64 exec, -1
-    v_mfma_f32_4x4x4f16 a[a_c+12:a_c+15], v[v_a+4:v_a+5], v[v_b+14:v_b+15], a[a_c+12:a_c+15]     ; repeat:0x1, step:0x1, num_a_c:4
-    v_add_u32 v[v_move_slice_n_idsho], s[s_move_slice_n_dsho], v[v_move_slice_n_idsho]
-    ds_read_b64 v[v_a+4:v_a+4+1], v[v_sld_a_os] offset:6144 ; load i_k:3 into local buffer 1, repeat 0
+    ds_read_b64 v[v_a+2:v_a+2+1], v[v_sld_a_os] offset:5120 ; load i_k:2 into local buffer 0, repeat 1
     s_waitcnt lgkmcnt(5)
-    v_mfma_f32_4x4x4f16 a[a_c+16:a_c+19], v[v_a+6:v_a+7], v[v_b+8:v_b+9], a[a_c+16:a_c+19]     ; repeat:1x0, step:0x0, num_a_c:4
+    v_mfma_f32_4x4x4f16 a[a_c+8:a_c+11], v[v_a+4:v_a+5], v[v_b+12:v_b+13], a[a_c+8:a_c+11]     ; repeat:0x1, step:0x0, num_a_c:4
+    v_add_u32 v[v_move_slice_n_idsho], s[s_move_slice_n_dsho], v[v_move_slice_n_idsho]
     v_cmpx_le_u32 vcc, s[s_ho], v[v_move_slice_n_idsho]
     v_subrev_u32 v[v_move_slice_n_idsho], s[s_ho], v[v_move_slice_n_idsho]
     v_add_u32 v[v_in_os_base], s[s_in_stride_n], v[v_in_os_base]
     v_add_u32 v[v_out_os_base], s[s_out_stride_n], v[v_out_os_base]
     s_mov_b64 exec, -1
-    v_mfma_f32_4x4x4f16 a[a_c+20:a_c+23], v[v_a+6:v_a+7], v[v_b+10:v_b+11], a[a_c+20:a_c+23]     ; repeat:1x0, step:0x1, num_a_c:4
+    v_mfma_f32_4x4x4f16 a[a_c+12:a_c+15], v[v_a+4:v_a+5], v[v_b+14:v_b+15], a[a_c+12:a_c+15]     ; repeat:0x1, step:0x1, num_a_c:4
     v_add_u32 v[v_in_os_base], s[s_in_stride_n_n1], v[v_in_os_base]
+    v_add_u32 v[v_out_os_base], s[s_out_stride_n_n1], v[v_out_os_base]
+    ds_read_b64 v[v_a+4:v_a+4+1], v[v_sld_a_os] offset:6144 ; load i_k:3 into local buffer 1, repeat 0
+    s_waitcnt lgkmcnt(5)
+    v_mfma_f32_4x4x4f16 a[a_c+16:a_c+19], v[v_a+6:v_a+7], v[v_b+8:v_b+9], a[a_c+16:a_c+19]     ; repeat:1x0, step:0x0, num_a_c:4
+    v_mad_u32_u24 v[v_tmp], s[s_wi], v[v_move_slice_n_idsho], v[v_move_slice_n_idswo]
+    v_lshl_add_u32 v[v_in_os], v[v_tmp], 1, v[v_in_os_base]
+    v_mfma_f32_4x4x4f16 a[a_c+20:a_c+23], v[v_a+6:v_a+7], v[v_b+10:v_b+11], a[a_c+20:a_c+23]     ; repeat:1x0, step:0x1, num_a_c:4
+    v_mad_u32_u24 v[v_tmp], s[s_wo], v[v_move_slice_n_idsho], v[v_move_slice_n_idswo]
+    v_lshl_add_u32 v[v_out_os], v[v_tmp], 1, v[v_out_os_base]
     ds_read2_b64 v[v_b+8+0:v_b+8+3], v[v_sld_b_os], offset0:96, offset1:100 ; load i_k:3 into local buffer 1, repeat 0
     v_mfma_f32_4x4x4f16 a[a_c+24:a_c+27], v[v_a+6:v_a+7], v[v_b+12:v_b+13], a[a_c+24:a_c+27]     ; repeat:1x1, step:0x0, num_a_c:4
-    v_add_u32 v[v_out_os_base], s[s_out_stride_n_n1], v[v_out_os_base]
     v_mfma_f32_4x4x4f16 a[a_c+28:a_c+31], v[v_a+6:v_a+7], v[v_b+14:v_b+15], a[a_c+28:a_c+31]     ; repeat:1x1, step:0x1, num_a_c:4
-    v_mad_u32_u24 v[v_tmp], s[s_wi], v[v_move_slice_n_idsho], v[v_move_slice_n_idswo]
     ds_read2_b64 v[v_b+12+0:v_b+12+3], v[v_sld_b_os], offset0:112, offset1:116 ; load i_k:3 into local buffer 1, repeat 1
     ds_read_b64 v[v_a+6:v_a+6+1], v[v_sld_a_os] offset:7168 ; load i_k:3 into local buffer 1, repeat 1
-    s_waitcnt lgkmcnt(6)
-    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+0:v_a+1], v[v_b+0:v_b+1], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
-    v_lshl_add_u32 v[v_in_os], v[v_tmp], 1, v[v_in_os_base]
-    v_mfma_f32_4x4x4f16 a[a_c+4:a_c+7], v[v_a+0:v_a+1], v[v_b+2:v_b+3], a[a_c+4:a_c+7]     ; repeat:0x0, step:0x1, num_a_c:4
-    v_mad_u32_u24 v[v_tmp], s[s_wo], v[v_move_slice_n_idsho], v[v_move_slice_n_idswo]
-    s_waitcnt lgkmcnt(5)
-    v_mfma_f32_4x4x4f16 a[a_c+8:a_c+11], v[v_a+0:v_a+1], v[v_b+4:v_b+5], a[a_c+8:a_c+11]     ; repeat:0x1, step:0x0, num_a_c:4
-    v_lshl_add_u32 v[v_out_os], v[v_tmp], 1, v[v_out_os_base]
-    v_mfma_f32_4x4x4f16 a[a_c+12:a_c+15], v[v_a+0:v_a+1], v[v_b+6:v_b+7], a[a_c+12:a_c+15]     ; repeat:0x1, step:0x1, num_a_c:4
-    s_waitcnt lgkmcnt(4)
-    v_mfma_f32_4x4x4f16 a[a_c+16:a_c+19], v[v_a+2:v_a+3], v[v_b+0:v_b+1], a[a_c+16:a_c+19]     ; repeat:1x0, step:0x0, num_a_c:4
-    v_mfma_f32_4x4x4f16 a[a_c+20:a_c+23], v[v_a+2:v_a+3], v[v_b+2:v_b+3], a[a_c+20:a_c+23]     ; repeat:1x0, step:0x1, num_a_c:4
-    v_mfma_f32_4x4x4f16 a[a_c+24:a_c+27], v[v_a+2:v_a+3], v[v_b+4:v_b+5], a[a_c+24:a_c+27]     ; repeat:1x1, step:0x0, num_a_c:4
-    v_mfma_f32_4x4x4f16 a[a_c+28:a_c+31], v[v_a+2:v_a+3], v[v_b+6:v_b+7], a[a_c+28:a_c+31]     ; repeat:1x1, step:0x1, num_a_c:4
-    s_waitcnt lgkmcnt(2)
-    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+4:v_a+5], v[v_b+8:v_b+9], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
-    v_mfma_f32_4x4x4f16 a[a_c+4:a_c+7], v[v_a+4:v_a+5], v[v_b+10:v_b+11], a[a_c+4:a_c+7]     ; repeat:0x0, step:0x1, num_a_c:4
-    s_waitcnt lgkmcnt(1)
-    v_mfma_f32_4x4x4f16 a[a_c+8:a_c+11], v[v_a+4:v_a+5], v[v_b+12:v_b+13], a[a_c+8:a_c+11]     ; repeat:0x1, step:0x0, num_a_c:4
-    v_mfma_f32_4x4x4f16 a[a_c+12:a_c+15], v[v_a+4:v_a+5], v[v_b+14:v_b+15], a[a_c+12:a_c+15]     ; repeat:0x1, step:0x1, num_a_c:4
     s_waitcnt lgkmcnt(0)
     s_barrier
     s_waitcnt vmcnt(8)
     ds_write_b32 v[v_sst_b_os], v[v_gld_b+0]
+    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+0:v_a+1], v[v_b+0:v_b+1], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
     s_waitcnt vmcnt(0)
     ds_write2_b32 v[v_sst_a_os], v[v_gld_a], v[v_gld_a+1], offset0:0, offset1:2
-    v_mfma_f32_4x4x4f16 a[a_c+16:a_c+19], v[v_a+6:v_a+7], v[v_b+8:v_b+9], a[a_c+16:a_c+19]     ; repeat:1x0, step:0x0, num_a_c:4
+    v_mfma_f32_4x4x4f16 a[a_c+4:a_c+7], v[v_a+0:v_a+1], v[v_b+2:v_b+3], a[a_c+4:a_c+7]     ; repeat:0x0, step:0x1, num_a_c:4
     ds_write2_b32 v[v_sst_a_os], v[v_gld_a+2], v[v_gld_a+3], offset0:4, offset1:6
+    v_mfma_f32_4x4x4f16 a[a_c+8:a_c+11], v[v_a+0:v_a+1], v[v_b+4:v_b+5], a[a_c+8:a_c+11]     ; repeat:0x1, step:0x0, num_a_c:4
     ds_write2_b32 v[v_sst_a_os], v[v_gld_a+4], v[v_gld_a+5], offset0:8, offset1:10
-    v_mfma_f32_4x4x4f16 a[a_c+20:a_c+23], v[v_a+6:v_a+7], v[v_b+10:v_b+11], a[a_c+20:a_c+23]     ; repeat:1x0, step:0x1, num_a_c:4
+    v_mfma_f32_4x4x4f16 a[a_c+12:a_c+15], v[v_a+0:v_a+1], v[v_b+6:v_b+7], a[a_c+12:a_c+15]     ; repeat:0x1, step:0x1, num_a_c:4
     ds_write2_b32 v[v_sst_a_os], v[v_gld_a+6], v[v_gld_a+7], offset0:12, offset1:14
+    v_mfma_f32_4x4x4f16 a[a_c+16:a_c+19], v[v_a+2:v_a+3], v[v_b+0:v_b+1], a[a_c+16:a_c+19]     ; repeat:1x0, step:0x0, num_a_c:4
+    v_mfma_f32_4x4x4f16 a[a_c+20:a_c+23], v[v_a+2:v_a+3], v[v_b+2:v_b+3], a[a_c+20:a_c+23]     ; repeat:1x0, step:0x1, num_a_c:4
+    v_mfma_f32_4x4x4f16 a[a_c+24:a_c+27], v[v_a+2:v_a+3], v[v_b+4:v_b+5], a[a_c+24:a_c+27]     ; repeat:1x1, step:0x0, num_a_c:4
+    v_mfma_f32_4x4x4f16 a[a_c+28:a_c+31], v[v_a+2:v_a+3], v[v_b+6:v_b+7], a[a_c+28:a_c+31]     ; repeat:1x1, step:0x1, num_a_c:4
+    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+4:v_a+5], v[v_b+8:v_b+9], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
+    v_mfma_f32_4x4x4f16 a[a_c+4:a_c+7], v[v_a+4:v_a+5], v[v_b+10:v_b+11], a[a_c+4:a_c+7]     ; repeat:0x0, step:0x1, num_a_c:4
+    v_mfma_f32_4x4x4f16 a[a_c+8:a_c+11], v[v_a+4:v_a+5], v[v_b+12:v_b+13], a[a_c+8:a_c+11]     ; repeat:0x1, step:0x0, num_a_c:4
+    v_mfma_f32_4x4x4f16 a[a_c+12:a_c+15], v[v_a+4:v_a+5], v[v_b+14:v_b+15], a[a_c+12:a_c+15]     ; repeat:0x1, step:0x1, num_a_c:4
+    v_mfma_f32_4x4x4f16 a[a_c+16:a_c+19], v[v_a+6:v_a+7], v[v_b+8:v_b+9], a[a_c+16:a_c+19]     ; repeat:1x0, step:0x0, num_a_c:4
+    v_mfma_f32_4x4x4f16 a[a_c+20:a_c+23], v[v_a+6:v_a+7], v[v_b+10:v_b+11], a[a_c+20:a_c+23]     ; repeat:1x0, step:0x1, num_a_c:4
     v_mfma_f32_4x4x4f16 a[a_c+24:a_c+27], v[v_a+6:v_a+7], v[v_b+12:v_b+13], a[a_c+24:a_c+27]     ; repeat:1x1, step:0x0, num_a_c:4
     v_mfma_f32_4x4x4f16 a[a_c+28:a_c+31], v[v_a+6:v_a+7], v[v_b+14:v_b+15], a[a_c+28:a_c+31]     ; repeat:1x1, step:0x1, num_a_c:4
     s_sub_i32 s[s_kitr], s[s_kitr], 16
@@ -2586,6 +2581,7 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt256x32x16_wt64x4x4_ws1x2_wr2x2_ta1x2x1x8_1x
     ds_read2_b64 v[v_b+12+0:v_b+12+3], v[v_sld_b_os], offset0:112, offset1:116 ; load i_k:3 into local buffer 1, repeat 1
     ds_read_b64 v[v_a+6:v_a+6+1], v[v_sld_a_os] offset:7168 ; load i_k:3 into local buffer 1, repeat 1
 
+    ; k iteration : 14
     s_waitcnt lgkmcnt(6)
     v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+0:v_a+1], v[v_b+0:v_b+1], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
     v_mfma_f32_4x4x4f16 a[a_c+4:a_c+7], v[v_a+0:v_a+1], v[v_b+2:v_b+3], a[a_c+4:a_c+7]     ; repeat:0x0, step:0x1, num_a_c:4
@@ -2600,7 +2596,7 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt256x32x16_wt64x4x4_ws1x2_wr2x2_ta1x2x1x8_1x
 
     v_mfma_f32_4x4x4f16 a[a_c+24:a_c+27], v[v_a+2:v_a+3], v[v_b+4:v_b+5], a[a_c+24:a_c+27]     ; repeat:1x1, step:0x0, num_a_c:4
     v_mfma_f32_4x4x4f16 a[a_c+28:a_c+31], v[v_a+2:v_a+3], v[v_b+6:v_b+7], a[a_c+28:a_c+31]     ; repeat:1x1, step:0x1, num_a_c:4
-
+    ; k iteration : 15
     s_waitcnt lgkmcnt(2)
     v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+4:v_a+5], v[v_b+8:v_b+9], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
     v_mfma_f32_4x4x4f16 a[a_c+4:a_c+7], v[v_a+4:v_a+5], v[v_b+10:v_b+11], a[a_c+4:a_c+7]     ; repeat:0x0, step:0x1, num_a_c:4
@@ -3277,63 +3273,58 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt256x32x16_wt64x4x4_ws1x2_wr2x2_ta1x2x1x8_1x
     buffer_load_dword v[v_gld_a+7], v[v_out_os], s[s_p_out:s_p_out+3], s[s_out_offset+5] offen offset:0
     v_mfma_f32_4x4x4f16 a[a_c+4:a_c+7], v[v_a+4:v_a+5], v[v_b+10:v_b+11], a[a_c+4:a_c+7]     ; repeat:0x0, step:0x1, num_a_c:4
     v_add_u32 v[v_move_slice_n_idswo], s[s_move_slice_n_dswo], v[v_move_slice_n_idswo]
-    ds_read_b64 v[v_a+2:v_a+2+1], v[v_sld_a_os] offset:5120 ; load i_k:2 into local buffer 0, repeat 1
-    s_waitcnt lgkmcnt(5)
-    v_mfma_f32_4x4x4f16 a[a_c+8:a_c+11], v[v_a+4:v_a+5], v[v_b+12:v_b+13], a[a_c+8:a_c+11]     ; repeat:0x1, step:0x0, num_a_c:4
     v_cmpx_le_u32 vcc, s[s_wo], v[v_move_slice_n_idswo]
     v_subrev_u32 v[v_move_slice_n_idswo], s[s_wo], v[v_move_slice_n_idswo]
     v_add_u32 v[v_move_slice_n_idsho], 1, v[v_move_slice_n_idsho]
     s_mov_b64 exec, -1
-    v_mfma_f32_4x4x4f16 a[a_c+12:a_c+15], v[v_a+4:v_a+5], v[v_b+14:v_b+15], a[a_c+12:a_c+15]     ; repeat:0x1, step:0x1, num_a_c:4
-    v_add_u32 v[v_move_slice_n_idsho], s[s_move_slice_n_dsho], v[v_move_slice_n_idsho]
-    ds_read_b64 v[v_a+4:v_a+4+1], v[v_sld_a_os] offset:6144 ; load i_k:3 into local buffer 1, repeat 0
+    ds_read_b64 v[v_a+2:v_a+2+1], v[v_sld_a_os] offset:5120 ; load i_k:2 into local buffer 0, repeat 1
     s_waitcnt lgkmcnt(5)
-    v_mfma_f32_4x4x4f16 a[a_c+16:a_c+19], v[v_a+6:v_a+7], v[v_b+8:v_b+9], a[a_c+16:a_c+19]     ; repeat:1x0, step:0x0, num_a_c:4
+    v_mfma_f32_4x4x4f16 a[a_c+8:a_c+11], v[v_a+4:v_a+5], v[v_b+12:v_b+13], a[a_c+8:a_c+11]     ; repeat:0x1, step:0x0, num_a_c:4
+    v_add_u32 v[v_move_slice_n_idsho], s[s_move_slice_n_dsho], v[v_move_slice_n_idsho]
     v_cmpx_le_u32 vcc, s[s_ho], v[v_move_slice_n_idsho]
     v_subrev_u32 v[v_move_slice_n_idsho], s[s_ho], v[v_move_slice_n_idsho]
     v_add_u32 v[v_in_os_base], s[s_in_stride_n], v[v_in_os_base]
     v_add_u32 v[v_out_os_base], s[s_out_stride_n], v[v_out_os_base]
     s_mov_b64 exec, -1
-    v_mfma_f32_4x4x4f16 a[a_c+20:a_c+23], v[v_a+6:v_a+7], v[v_b+10:v_b+11], a[a_c+20:a_c+23]     ; repeat:1x0, step:0x1, num_a_c:4
+    v_mfma_f32_4x4x4f16 a[a_c+12:a_c+15], v[v_a+4:v_a+5], v[v_b+14:v_b+15], a[a_c+12:a_c+15]     ; repeat:0x1, step:0x1, num_a_c:4
     v_add_u32 v[v_in_os_base], s[s_in_stride_n_n1], v[v_in_os_base]
+    v_add_u32 v[v_out_os_base], s[s_out_stride_n_n1], v[v_out_os_base]
+    ds_read_b64 v[v_a+4:v_a+4+1], v[v_sld_a_os] offset:6144 ; load i_k:3 into local buffer 1, repeat 0
+    s_waitcnt lgkmcnt(5)
+    v_mfma_f32_4x4x4f16 a[a_c+16:a_c+19], v[v_a+6:v_a+7], v[v_b+8:v_b+9], a[a_c+16:a_c+19]     ; repeat:1x0, step:0x0, num_a_c:4
+    v_mad_u32_u24 v[v_tmp], s[s_wi], v[v_move_slice_n_idsho], v[v_move_slice_n_idswo]
+    v_lshl_add_u32 v[v_in_os], v[v_tmp], 1, v[v_in_os_base]
+    v_mfma_f32_4x4x4f16 a[a_c+20:a_c+23], v[v_a+6:v_a+7], v[v_b+10:v_b+11], a[a_c+20:a_c+23]     ; repeat:1x0, step:0x1, num_a_c:4
+    v_mad_u32_u24 v[v_tmp], s[s_wo], v[v_move_slice_n_idsho], v[v_move_slice_n_idswo]
+    v_lshl_add_u32 v[v_out_os], v[v_tmp], 1, v[v_out_os_base]
     ds_read2_b64 v[v_b+8+0:v_b+8+3], v[v_sld_b_os], offset0:96, offset1:100 ; load i_k:3 into local buffer 1, repeat 0
     v_mfma_f32_4x4x4f16 a[a_c+24:a_c+27], v[v_a+6:v_a+7], v[v_b+12:v_b+13], a[a_c+24:a_c+27]     ; repeat:1x1, step:0x0, num_a_c:4
-    v_add_u32 v[v_out_os_base], s[s_out_stride_n_n1], v[v_out_os_base]
     v_mfma_f32_4x4x4f16 a[a_c+28:a_c+31], v[v_a+6:v_a+7], v[v_b+14:v_b+15], a[a_c+28:a_c+31]     ; repeat:1x1, step:0x1, num_a_c:4
-    v_mad_u32_u24 v[v_tmp], s[s_wi], v[v_move_slice_n_idsho], v[v_move_slice_n_idswo]
     ds_read2_b64 v[v_b+12+0:v_b+12+3], v[v_sld_b_os], offset0:112, offset1:116 ; load i_k:3 into local buffer 1, repeat 1
     ds_read_b64 v[v_a+6:v_a+6+1], v[v_sld_a_os] offset:7168 ; load i_k:3 into local buffer 1, repeat 1
-    s_waitcnt lgkmcnt(6)
-    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+0:v_a+1], v[v_b+0:v_b+1], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
-    v_lshl_add_u32 v[v_in_os], v[v_tmp], 1, v[v_in_os_base]
-    v_mfma_f32_4x4x4f16 a[a_c+4:a_c+7], v[v_a+0:v_a+1], v[v_b+2:v_b+3], a[a_c+4:a_c+7]     ; repeat:0x0, step:0x1, num_a_c:4
-    v_mad_u32_u24 v[v_tmp], s[s_wo], v[v_move_slice_n_idsho], v[v_move_slice_n_idswo]
-    s_waitcnt lgkmcnt(5)
-    v_mfma_f32_4x4x4f16 a[a_c+8:a_c+11], v[v_a+0:v_a+1], v[v_b+4:v_b+5], a[a_c+8:a_c+11]     ; repeat:0x1, step:0x0, num_a_c:4
-    v_lshl_add_u32 v[v_out_os], v[v_tmp], 1, v[v_out_os_base]
-    v_mfma_f32_4x4x4f16 a[a_c+12:a_c+15], v[v_a+0:v_a+1], v[v_b+6:v_b+7], a[a_c+12:a_c+15]     ; repeat:0x1, step:0x1, num_a_c:4
-    s_waitcnt lgkmcnt(4)
-    v_mfma_f32_4x4x4f16 a[a_c+16:a_c+19], v[v_a+2:v_a+3], v[v_b+0:v_b+1], a[a_c+16:a_c+19]     ; repeat:1x0, step:0x0, num_a_c:4
-    v_mfma_f32_4x4x4f16 a[a_c+20:a_c+23], v[v_a+2:v_a+3], v[v_b+2:v_b+3], a[a_c+20:a_c+23]     ; repeat:1x0, step:0x1, num_a_c:4
-    v_mfma_f32_4x4x4f16 a[a_c+24:a_c+27], v[v_a+2:v_a+3], v[v_b+4:v_b+5], a[a_c+24:a_c+27]     ; repeat:1x1, step:0x0, num_a_c:4
-    v_mfma_f32_4x4x4f16 a[a_c+28:a_c+31], v[v_a+2:v_a+3], v[v_b+6:v_b+7], a[a_c+28:a_c+31]     ; repeat:1x1, step:0x1, num_a_c:4
-    s_waitcnt lgkmcnt(2)
-    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+4:v_a+5], v[v_b+8:v_b+9], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
-    v_mfma_f32_4x4x4f16 a[a_c+4:a_c+7], v[v_a+4:v_a+5], v[v_b+10:v_b+11], a[a_c+4:a_c+7]     ; repeat:0x0, step:0x1, num_a_c:4
-    s_waitcnt lgkmcnt(1)
-    v_mfma_f32_4x4x4f16 a[a_c+8:a_c+11], v[v_a+4:v_a+5], v[v_b+12:v_b+13], a[a_c+8:a_c+11]     ; repeat:0x1, step:0x0, num_a_c:4
-    v_mfma_f32_4x4x4f16 a[a_c+12:a_c+15], v[v_a+4:v_a+5], v[v_b+14:v_b+15], a[a_c+12:a_c+15]     ; repeat:0x1, step:0x1, num_a_c:4
     s_waitcnt lgkmcnt(0)
     s_barrier
     s_waitcnt vmcnt(8)
     ds_write_b32 v[v_sst_b_os], v[v_gld_b+0]
+    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+0:v_a+1], v[v_b+0:v_b+1], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
     s_waitcnt vmcnt(0)
     ds_write2_b32 v[v_sst_a_os], v[v_gld_a], v[v_gld_a+1], offset0:0, offset1:2
-    v_mfma_f32_4x4x4f16 a[a_c+16:a_c+19], v[v_a+6:v_a+7], v[v_b+8:v_b+9], a[a_c+16:a_c+19]     ; repeat:1x0, step:0x0, num_a_c:4
+    v_mfma_f32_4x4x4f16 a[a_c+4:a_c+7], v[v_a+0:v_a+1], v[v_b+2:v_b+3], a[a_c+4:a_c+7]     ; repeat:0x0, step:0x1, num_a_c:4
     ds_write2_b32 v[v_sst_a_os], v[v_gld_a+2], v[v_gld_a+3], offset0:4, offset1:6
+    v_mfma_f32_4x4x4f16 a[a_c+8:a_c+11], v[v_a+0:v_a+1], v[v_b+4:v_b+5], a[a_c+8:a_c+11]     ; repeat:0x1, step:0x0, num_a_c:4
     ds_write2_b32 v[v_sst_a_os], v[v_gld_a+4], v[v_gld_a+5], offset0:8, offset1:10
-    v_mfma_f32_4x4x4f16 a[a_c+20:a_c+23], v[v_a+6:v_a+7], v[v_b+10:v_b+11], a[a_c+20:a_c+23]     ; repeat:1x0, step:0x1, num_a_c:4
+    v_mfma_f32_4x4x4f16 a[a_c+12:a_c+15], v[v_a+0:v_a+1], v[v_b+6:v_b+7], a[a_c+12:a_c+15]     ; repeat:0x1, step:0x1, num_a_c:4
     ds_write2_b32 v[v_sst_a_os], v[v_gld_a+6], v[v_gld_a+7], offset0:12, offset1:14
+    v_mfma_f32_4x4x4f16 a[a_c+16:a_c+19], v[v_a+2:v_a+3], v[v_b+0:v_b+1], a[a_c+16:a_c+19]     ; repeat:1x0, step:0x0, num_a_c:4
+    v_mfma_f32_4x4x4f16 a[a_c+20:a_c+23], v[v_a+2:v_a+3], v[v_b+2:v_b+3], a[a_c+20:a_c+23]     ; repeat:1x0, step:0x1, num_a_c:4
+    v_mfma_f32_4x4x4f16 a[a_c+24:a_c+27], v[v_a+2:v_a+3], v[v_b+4:v_b+5], a[a_c+24:a_c+27]     ; repeat:1x1, step:0x0, num_a_c:4
+    v_mfma_f32_4x4x4f16 a[a_c+28:a_c+31], v[v_a+2:v_a+3], v[v_b+6:v_b+7], a[a_c+28:a_c+31]     ; repeat:1x1, step:0x1, num_a_c:4
+    v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+4:v_a+5], v[v_b+8:v_b+9], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
+    v_mfma_f32_4x4x4f16 a[a_c+4:a_c+7], v[v_a+4:v_a+5], v[v_b+10:v_b+11], a[a_c+4:a_c+7]     ; repeat:0x0, step:0x1, num_a_c:4
+    v_mfma_f32_4x4x4f16 a[a_c+8:a_c+11], v[v_a+4:v_a+5], v[v_b+12:v_b+13], a[a_c+8:a_c+11]     ; repeat:0x1, step:0x0, num_a_c:4
+    v_mfma_f32_4x4x4f16 a[a_c+12:a_c+15], v[v_a+4:v_a+5], v[v_b+14:v_b+15], a[a_c+12:a_c+15]     ; repeat:0x1, step:0x1, num_a_c:4
+    v_mfma_f32_4x4x4f16 a[a_c+16:a_c+19], v[v_a+6:v_a+7], v[v_b+8:v_b+9], a[a_c+16:a_c+19]     ; repeat:1x0, step:0x0, num_a_c:4
+    v_mfma_f32_4x4x4f16 a[a_c+20:a_c+23], v[v_a+6:v_a+7], v[v_b+10:v_b+11], a[a_c+20:a_c+23]     ; repeat:1x0, step:0x1, num_a_c:4
     v_mfma_f32_4x4x4f16 a[a_c+24:a_c+27], v[v_a+6:v_a+7], v[v_b+12:v_b+13], a[a_c+24:a_c+27]     ; repeat:1x1, step:0x0, num_a_c:4
     v_mfma_f32_4x4x4f16 a[a_c+28:a_c+31], v[v_a+6:v_a+7], v[v_b+14:v_b+15], a[a_c+28:a_c+31]     ; repeat:1x1, step:0x1, num_a_c:4
     s_sub_i32 s[s_kitr], s[s_kitr], 16
@@ -3393,6 +3384,7 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt256x32x16_wt64x4x4_ws1x2_wr2x2_ta1x2x1x8_1x
     ds_read2_b64 v[v_b+12+0:v_b+12+3], v[v_sld_b_os], offset0:112, offset1:116 ; load i_k:3 into local buffer 1, repeat 1
     ds_read_b64 v[v_a+6:v_a+6+1], v[v_sld_a_os] offset:7168 ; load i_k:3 into local buffer 1, repeat 1
 
+    ; k iteration : 14
     s_waitcnt lgkmcnt(6)
     v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+0:v_a+1], v[v_b+0:v_b+1], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
     v_mfma_f32_4x4x4f16 a[a_c+4:a_c+7], v[v_a+0:v_a+1], v[v_b+2:v_b+3], a[a_c+4:a_c+7]     ; repeat:0x0, step:0x1, num_a_c:4
@@ -3407,7 +3399,7 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt256x32x16_wt64x4x4_ws1x2_wr2x2_ta1x2x1x8_1x
 
     v_mfma_f32_4x4x4f16 a[a_c+24:a_c+27], v[v_a+2:v_a+3], v[v_b+4:v_b+5], a[a_c+24:a_c+27]     ; repeat:1x1, step:0x0, num_a_c:4
     v_mfma_f32_4x4x4f16 a[a_c+28:a_c+31], v[v_a+2:v_a+3], v[v_b+6:v_b+7], a[a_c+28:a_c+31]     ; repeat:1x1, step:0x1, num_a_c:4
-
+    ; k iteration : 15
     s_waitcnt lgkmcnt(2)
     v_mfma_f32_4x4x4f16 a[a_c+0:a_c+3], v[v_a+4:v_a+5], v[v_b+8:v_b+9], a[a_c+0:a_c+3]     ; repeat:0x0, step:0x0, num_a_c:4
     v_mfma_f32_4x4x4f16 a[a_c+4:a_c+7], v[v_a+4:v_a+5], v[v_b+10:v_b+11], a[a_c+4:a_c+7]     ; repeat:0x0, step:0x1, num_a_c:4
