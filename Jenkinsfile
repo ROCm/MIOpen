@@ -486,8 +486,10 @@ pipeline {
                         }
                     }
                 }
+            }
         }
         stage("Aux tests 2"){
+            parallel{
                 stage('Hip Release Normal-Find') {
                     agent{ label rocmnode("vega") }
                     environment{
