@@ -30,7 +30,7 @@ int ProblemDescription::mloBuildConf_Key(std::string& conf_key) const
     return (0);
 }
 
-bool ProblemDescription::IsLayoutDefault() const { return conv_problem.IsLayoutDeafault(); }
+bool ProblemDescription::IsLayoutDefault() const { return conv_problem.IsLayoutDefault(); }
 
 void ProblemDescription::Serialize(std::ostream& stream) const
 {
