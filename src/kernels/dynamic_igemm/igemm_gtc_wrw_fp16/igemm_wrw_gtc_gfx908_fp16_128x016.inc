@@ -155,16 +155,17 @@
 .set v_gtc_in0, 47
 .set v_out_flag_prev, 47
 .set v_gtc_in1b, 48
-.set v_gemm_in, 49
-.set v_gemm_im, 50
-.set v_wei_ic0, 51
-.set v_wei_ic1e, 52
-.set v_wei_ic1, 53
-.set v_co_sub_m_index, 54
-.set v_co_sub_n_index, 55
-.set v_cur_k, 56
-.set v_cur_c, 57
-.set v_in_flag_with_wi, 58
+.set v_gtc_in1, 49
+.set v_gemm_in, 50
+.set v_gemm_im, 51
+.set v_wei_ic0, 52
+.set v_wei_ic1e, 53
+.set v_wei_ic1, 54
+.set v_co_sub_m_index, 55
+.set v_co_sub_n_index, 56
+.set v_cur_k, 57
+.set v_cur_c, 58
+.set v_in_flag_with_wi, 59
 .set v_tmp, 60
 .set v_end, 66
 
@@ -822,16 +823,17 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt128x16x32_wt32x8x4_ws2x1_wr1x1_ta1x2x1x8_1x
 .set v_gtc_in0, 47
 .set v_out_flag_prev, 47
 .set v_gtc_in1b, 48
-.set v_gemm_in, 49
-.set v_gemm_im, 50
-.set v_wei_ic0, 51
-.set v_wei_ic1e, 52
-.set v_wei_ic1, 53
-.set v_co_sub_m_index, 54
-.set v_co_sub_n_index, 55
-.set v_cur_k, 56
-.set v_cur_c, 57
-.set v_in_flag_with_wi, 58
+.set v_gtc_in1, 49
+.set v_gemm_in, 50
+.set v_gemm_im, 51
+.set v_wei_ic0, 52
+.set v_wei_ic1e, 53
+.set v_wei_ic1, 54
+.set v_co_sub_m_index, 55
+.set v_co_sub_n_index, 56
+.set v_cur_k, 57
+.set v_cur_c, 58
+.set v_in_flag_with_wi, 59
 .set v_tmp, 60
 .set v_end, 66
 
@@ -1508,18 +1510,19 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt128x16x32_wt32x8x4_ws2x1_wr1x1_ta1x2x1x8_1x
 .set v_gtc_in0, 60
 .set v_out_flag_prev, 60
 .set v_gtc_in1b, 61
-.set v_gemm_in, 62
-.set v_gemm_im, 63
-.set v_wei_ic0, 64
-.set v_wei_ic1e, 65
-.set v_wei_ic1, 66
-.set v_co_sub_m_index, 67
-.set v_co_sub_n_index, 68
-.set v_cur_k, 69
-.set v_cur_c, 70
-.set v_in_flag_with_wi, 71
-.set v_tmp, 72
-.set v_end, 78
+.set v_gtc_in1, 62
+.set v_gemm_in, 63
+.set v_gemm_im, 64
+.set v_wei_ic0, 65
+.set v_wei_ic1e, 66
+.set v_wei_ic1, 67
+.set v_co_sub_m_index, 68
+.set v_co_sub_n_index, 69
+.set v_cur_k, 70
+.set v_cur_c, 71
+.set v_in_flag_with_wi, 72
+.set v_tmp, 74
+.set v_end, 80
 
 .set a_c, 0
 .set a_end, 8
@@ -2170,7 +2173,7 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x16x32_wt32x8x4_ws2x1_wr1x1_ta1x1x1x16_1
     .amdhsa_user_sgpr_kernarg_segment_ptr 1
     .amdhsa_system_sgpr_workgroup_id_x 1
     .amdhsa_system_vgpr_workitem_id 0
-    .amdhsa_next_free_vgpr 78
+    .amdhsa_next_free_vgpr 80
     .amdhsa_next_free_sgpr 72
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
@@ -2313,18 +2316,19 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x16x32_wt32x8x4_ws2x1_wr1x1_ta1x1x1x16_1
 .set v_gtc_in0, 60
 .set v_out_flag_prev, 60
 .set v_gtc_in1b, 61
-.set v_gemm_in, 62
-.set v_gemm_im, 63
-.set v_wei_ic0, 64
-.set v_wei_ic1e, 65
-.set v_wei_ic1, 66
-.set v_co_sub_m_index, 67
-.set v_co_sub_n_index, 68
-.set v_cur_k, 69
-.set v_cur_c, 70
-.set v_in_flag_with_wi, 71
-.set v_tmp, 72
-.set v_end, 78
+.set v_gtc_in1, 62
+.set v_gemm_in, 63
+.set v_gemm_im, 64
+.set v_wei_ic0, 65
+.set v_wei_ic1e, 66
+.set v_wei_ic1, 67
+.set v_co_sub_m_index, 68
+.set v_co_sub_n_index, 69
+.set v_cur_k, 70
+.set v_cur_c, 71
+.set v_in_flag_with_wi, 72
+.set v_tmp, 74
+.set v_end, 80
 
 .set a_c, 0
 .set a_end, 8
@@ -2987,7 +2991,7 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x16x32_wt32x8x4_ws2x1_wr1x1_ta1x1x1x16_1
     .amdhsa_user_sgpr_kernarg_segment_ptr 1
     .amdhsa_system_sgpr_workgroup_id_x 1
     .amdhsa_system_vgpr_workitem_id 0
-    .amdhsa_next_free_vgpr 78
+    .amdhsa_next_free_vgpr 80
     .amdhsa_next_free_sgpr 72
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
@@ -3130,18 +3134,19 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x16x32_wt32x8x4_ws2x1_wr1x1_ta1x1x1x16_1
 .set v_gtc_in0, 52
 .set v_out_flag_prev, 52
 .set v_gtc_in1b, 53
-.set v_gemm_in, 54
-.set v_gemm_im, 55
-.set v_wei_ic0, 56
-.set v_wei_ic1e, 57
-.set v_wei_ic1, 58
-.set v_co_sub_m_index, 59
-.set v_co_sub_n_index, 60
-.set v_cur_k, 61
-.set v_cur_c, 62
-.set v_in_flag_with_wi, 63
-.set v_tmp, 64
-.set v_end, 70
+.set v_gtc_in1, 54
+.set v_gemm_in, 55
+.set v_gemm_im, 56
+.set v_wei_ic0, 57
+.set v_wei_ic1e, 58
+.set v_wei_ic1, 59
+.set v_co_sub_m_index, 60
+.set v_co_sub_n_index, 61
+.set v_cur_k, 62
+.set v_cur_c, 63
+.set v_in_flag_with_wi, 64
+.set v_tmp, 66
+.set v_end, 72
 
 .set a_c, 0
 .set a_end, 8
@@ -3713,7 +3718,7 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x16x16_wt32x8x4_ws2x1_wr1x1_ta1x1x1x8_1x
     .amdhsa_user_sgpr_kernarg_segment_ptr 1
     .amdhsa_system_sgpr_workgroup_id_x 1
     .amdhsa_system_vgpr_workitem_id 0
-    .amdhsa_next_free_vgpr 70
+    .amdhsa_next_free_vgpr 72
     .amdhsa_next_free_sgpr 64
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
@@ -3856,18 +3861,19 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x16x16_wt32x8x4_ws2x1_wr1x1_ta1x1x1x8_1x
 .set v_gtc_in0, 52
 .set v_out_flag_prev, 52
 .set v_gtc_in1b, 53
-.set v_gemm_in, 54
-.set v_gemm_im, 55
-.set v_wei_ic0, 56
-.set v_wei_ic1e, 57
-.set v_wei_ic1, 58
-.set v_co_sub_m_index, 59
-.set v_co_sub_n_index, 60
-.set v_cur_k, 61
-.set v_cur_c, 62
-.set v_in_flag_with_wi, 63
-.set v_tmp, 64
-.set v_end, 70
+.set v_gtc_in1, 54
+.set v_gemm_in, 55
+.set v_gemm_im, 56
+.set v_wei_ic0, 57
+.set v_wei_ic1e, 58
+.set v_wei_ic1, 59
+.set v_co_sub_m_index, 60
+.set v_co_sub_n_index, 61
+.set v_cur_k, 62
+.set v_cur_c, 63
+.set v_in_flag_with_wi, 64
+.set v_tmp, 66
+.set v_end, 72
 
 .set a_c, 0
 .set a_end, 8
@@ -4451,7 +4457,7 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x16x16_wt32x8x4_ws2x1_wr1x1_ta1x1x1x8_1x
     .amdhsa_user_sgpr_kernarg_segment_ptr 1
     .amdhsa_system_sgpr_workgroup_id_x 1
     .amdhsa_system_vgpr_workitem_id 0
-    .amdhsa_next_free_vgpr 70
+    .amdhsa_next_free_vgpr 72
     .amdhsa_next_free_sgpr 64
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
@@ -4594,18 +4600,19 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x16x16_wt32x8x4_ws2x1_wr1x1_ta1x1x1x8_1x
 .set v_gtc_in0, 52
 .set v_out_flag_prev, 52
 .set v_gtc_in1b, 53
-.set v_gemm_in, 54
-.set v_gemm_im, 55
-.set v_wei_ic0, 56
-.set v_wei_ic1e, 57
-.set v_wei_ic1, 58
-.set v_co_sub_m_index, 59
-.set v_co_sub_n_index, 60
-.set v_cur_k, 61
-.set v_cur_c, 62
-.set v_in_flag_with_wi, 63
-.set v_tmp, 64
-.set v_end, 70
+.set v_gtc_in1, 54
+.set v_gemm_in, 55
+.set v_gemm_im, 56
+.set v_wei_ic0, 57
+.set v_wei_ic1e, 58
+.set v_wei_ic1, 59
+.set v_co_sub_m_index, 60
+.set v_co_sub_n_index, 61
+.set v_cur_k, 62
+.set v_cur_c, 63
+.set v_in_flag_with_wi, 64
+.set v_tmp, 66
+.set v_end, 72
 
 .set a_c, 0
 .set a_end, 8
@@ -5177,7 +5184,7 @@ L_igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt128x16x16_wt32x8x4_ws2x1_wr1x1_ta1x1x1x8_1
     .amdhsa_user_sgpr_kernarg_segment_ptr 1
     .amdhsa_system_sgpr_workgroup_id_x 1
     .amdhsa_system_vgpr_workitem_id 0
-    .amdhsa_next_free_vgpr 70
+    .amdhsa_next_free_vgpr 72
     .amdhsa_next_free_sgpr 64
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
@@ -5320,18 +5327,19 @@ L_igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt128x16x16_wt32x8x4_ws2x1_wr1x1_ta1x1x1x8_1
 .set v_gtc_in0, 52
 .set v_out_flag_prev, 52
 .set v_gtc_in1b, 53
-.set v_gemm_in, 54
-.set v_gemm_im, 55
-.set v_wei_ic0, 56
-.set v_wei_ic1e, 57
-.set v_wei_ic1, 58
-.set v_co_sub_m_index, 59
-.set v_co_sub_n_index, 60
-.set v_cur_k, 61
-.set v_cur_c, 62
-.set v_in_flag_with_wi, 63
-.set v_tmp, 64
-.set v_end, 70
+.set v_gtc_in1, 54
+.set v_gemm_in, 55
+.set v_gemm_im, 56
+.set v_wei_ic0, 57
+.set v_wei_ic1e, 58
+.set v_wei_ic1, 59
+.set v_co_sub_m_index, 60
+.set v_co_sub_n_index, 61
+.set v_cur_k, 62
+.set v_cur_c, 63
+.set v_in_flag_with_wi, 64
+.set v_tmp, 66
+.set v_end, 72
 
 .set a_c, 0
 .set a_end, 8
@@ -5915,7 +5923,7 @@ L_igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt128x16x16_wt32x8x4_ws2x1_wr1x1_ta1x1x1x8_1
     .amdhsa_user_sgpr_kernarg_segment_ptr 1
     .amdhsa_system_sgpr_workgroup_id_x 1
     .amdhsa_system_vgpr_workitem_id 0
-    .amdhsa_next_free_vgpr 70
+    .amdhsa_next_free_vgpr 72
     .amdhsa_next_free_sgpr 64
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
