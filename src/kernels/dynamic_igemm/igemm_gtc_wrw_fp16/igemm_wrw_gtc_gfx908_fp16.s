@@ -811,7 +811,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt128x128x32_wt32x32x8_ws1x1_wr2x2_ta1x4x1x4_1x8x1x32_tb1x4x4x1_1x8x1x32_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt128x128x32_wt32x32x8_ws1x1_wr2x2_ta1x4x1x4_1x8x1x32_tb1x4x4x1_1x8x1x32_gkgs.kd
     .sgpr_count: 68
-    .vgpr_count: 78
+    .vgpr_count: 76
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -844,7 +844,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt128x128x32_wt32x32x8_ws1x1_wr2x2_ta1x4x1x4_1x8x1x32_tb1x4x4x1_1x8x1x32
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt128x128x32_wt32x32x8_ws1x1_wr2x2_ta1x4x1x4_1x8x1x32_tb1x4x4x1_1x8x1x32.kd
     .sgpr_count: 68
-    .vgpr_count: 78
+    .vgpr_count: 76
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -877,7 +877,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt128x128x16_wt32x32x8_ws1x1_wr2x2_ta1x4x1x2_1x4x1x64_tb1x4x2x1_1x4x1x64_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt128x128x16_wt32x32x8_ws1x1_wr2x2_ta1x4x1x2_1x4x1x64_tb1x4x2x1_1x4x1x64_gkgs.kd
     .sgpr_count: 64
-    .vgpr_count: 70
+    .vgpr_count: 68
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -910,7 +910,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt128x128x16_wt32x32x8_ws1x1_wr2x2_ta1x4x1x2_1x4x1x64_tb1x4x2x1_1x4x1x64
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt128x128x16_wt32x32x8_ws1x1_wr2x2_ta1x4x1x2_1x4x1x64_tb1x4x2x1_1x4x1x64.kd
     .sgpr_count: 64
-    .vgpr_count: 70
+    .vgpr_count: 68
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -943,7 +943,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x128x16_wt32x32x8_ws1x1_wr2x2_ta1x1x1x8_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x128x16_wt32x32x8_ws1x1_wr2x2_ta1x1x1x8_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs.kd
     .sgpr_count: 76
-    .vgpr_count: 82
+    .vgpr_count: 80
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -976,7 +976,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x128x16_wt32x32x8_ws1x1_wr2x2_ta1x1x1x8_1x16x1x16_tb1x1x8x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x128x16_wt32x32x8_ws1x1_wr2x2_ta1x1x1x8_1x16x1x16_tb1x1x8x1_1x16x1x16.kd
     .sgpr_count: 76
-    .vgpr_count: 82
+    .vgpr_count: 80
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -1009,7 +1009,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt128x128x16_wt32x32x8_ws1x1_wr2x2_ta1x1x1x8_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt128x128x16_wt32x32x8_ws1x1_wr2x2_ta1x1x1x8_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs.kd
     .sgpr_count: 76
-    .vgpr_count: 82
+    .vgpr_count: 80
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -1042,7 +1042,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt128x128x16_wt32x32x8_ws1x1_wr2x2_ta1x1x1x8_1x16x1x16_tb1x1x8x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt128x128x16_wt32x32x8_ws1x1_wr2x2_ta1x1x1x8_1x16x1x16_tb1x1x8x1_1x16x1x16.kd
     .sgpr_count: 76
-    .vgpr_count: 82
+    .vgpr_count: 80
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -1075,7 +1075,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt256x64x32_wt32x32x8_ws1x1_wr2x2_ta1x4x1x8_1x8x1x32_tb1x4x2x1_1x8x1x32_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt256x64x32_wt32x32x8_ws1x1_wr2x2_ta1x4x1x8_1x8x1x32_tb1x4x2x1_1x8x1x32_gkgs.kd
     .sgpr_count: 70
-    .vgpr_count: 82
+    .vgpr_count: 80
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -1108,7 +1108,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt256x64x32_wt32x32x8_ws1x1_wr2x2_ta1x4x1x8_1x8x1x32_tb1x4x2x1_1x8x1x32
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt256x64x32_wt32x32x8_ws1x1_wr2x2_ta1x4x1x8_1x8x1x32_tb1x4x2x1_1x8x1x32.kd
     .sgpr_count: 70
-    .vgpr_count: 98
+    .vgpr_count: 96
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -1141,7 +1141,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt256x64x16_wt32x32x8_ws1x1_wr2x2_ta1x4x1x4_1x4x1x64_tb1x4x1x1_1x4x1x64_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt256x64x16_wt32x32x8_ws1x1_wr2x2_ta1x4x1x4_1x4x1x64_tb1x4x1x1_1x4x1x64_gkgs.kd
     .sgpr_count: 64
-    .vgpr_count: 72
+    .vgpr_count: 70
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -1174,7 +1174,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt256x64x16_wt32x32x8_ws1x1_wr2x2_ta1x4x1x4_1x4x1x64_tb1x4x1x1_1x4x1x64
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt256x64x16_wt32x32x8_ws1x1_wr2x2_ta1x4x1x4_1x4x1x64_tb1x4x1x1_1x4x1x64.kd
     .sgpr_count: 64
-    .vgpr_count: 72
+    .vgpr_count: 70
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -1207,7 +1207,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt256x64x32_wt32x32x8_ws1x1_wr2x2_ta1x1x1x32_1x32x1x8_tb1x1x8x1_1x32x1x8_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt256x64x32_wt32x32x8_ws1x1_wr2x2_ta1x1x1x32_1x32x1x8_tb1x1x8x1_1x32x1x8_gkgs.kd
     .sgpr_count: 100
-    .vgpr_count: 106
+    .vgpr_count: 104
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -1240,7 +1240,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt256x64x32_wt32x32x8_ws1x1_wr2x2_ta1x1x1x32_1x32x1x8_tb1x1x8x1_1x32x1x8
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt256x64x32_wt32x32x8_ws1x1_wr2x2_ta1x1x1x32_1x32x1x8_tb1x1x8x1_1x32x1x8.kd
     .sgpr_count: 100
-    .vgpr_count: 106
+    .vgpr_count: 104
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -1273,7 +1273,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt256x64x16_wt32x32x8_ws1x1_wr2x2_ta1x1x1x16_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt256x64x16_wt32x32x8_ws1x1_wr2x2_ta1x1x1x16_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs.kd
     .sgpr_count: 80
-    .vgpr_count: 86
+    .vgpr_count: 84
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -1306,7 +1306,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt256x64x16_wt32x32x8_ws1x1_wr2x2_ta1x1x1x16_1x16x1x16_tb1x1x4x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt256x64x16_wt32x32x8_ws1x1_wr2x2_ta1x1x1x16_1x16x1x16_tb1x1x4x1_1x16x1x16.kd
     .sgpr_count: 80
-    .vgpr_count: 102
+    .vgpr_count: 100
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -1339,7 +1339,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt256x64x16_wt32x32x8_ws1x1_wr2x2_ta1x1x1x16_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt256x64x16_wt32x32x8_ws1x1_wr2x2_ta1x1x1x16_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs.kd
     .sgpr_count: 80
-    .vgpr_count: 86
+    .vgpr_count: 84
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -1372,7 +1372,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt256x64x16_wt32x32x8_ws1x1_wr2x2_ta1x1x1x16_1x16x1x16_tb1x1x4x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt256x64x16_wt32x32x8_ws1x1_wr2x2_ta1x1x1x16_1x16x1x16_tb1x1x4x1_1x16x1x16.kd
     .sgpr_count: 80
-    .vgpr_count: 102
+    .vgpr_count: 100
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -1405,7 +1405,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt64x256x32_wt32x32x8_ws1x1_wr2x2_ta1x4x1x2_1x8x1x32_tb1x4x8x1_1x8x1x32_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt64x256x32_wt32x32x8_ws1x1_wr2x2_ta1x4x1x2_1x8x1x32_tb1x4x8x1_1x8x1x32_gkgs.kd
     .sgpr_count: 70
-    .vgpr_count: 82
+    .vgpr_count: 80
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -1438,7 +1438,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt64x256x32_wt32x32x8_ws1x1_wr2x2_ta1x4x1x2_1x8x1x32_tb1x4x8x1_1x8x1x32
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt64x256x32_wt32x32x8_ws1x1_wr2x2_ta1x4x1x2_1x8x1x32_tb1x4x8x1_1x8x1x32.kd
     .sgpr_count: 70
-    .vgpr_count: 98
+    .vgpr_count: 96
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -1471,7 +1471,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt64x256x16_wt32x32x8_ws1x1_wr2x2_ta1x4x1x1_1x4x1x64_tb1x4x4x1_1x4x1x64_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt64x256x16_wt32x32x8_ws1x1_wr2x2_ta1x4x1x1_1x4x1x64_tb1x4x4x1_1x4x1x64_gkgs.kd
     .sgpr_count: 66
-    .vgpr_count: 72
+    .vgpr_count: 70
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -1504,7 +1504,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt64x256x16_wt32x32x8_ws1x1_wr2x2_ta1x4x1x1_1x4x1x64_tb1x4x4x1_1x4x1x64
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt64x256x16_wt32x32x8_ws1x1_wr2x2_ta1x4x1x1_1x4x1x64_tb1x4x4x1_1x4x1x64.kd
     .sgpr_count: 66
-    .vgpr_count: 72
+    .vgpr_count: 70
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -1537,7 +1537,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x256x32_wt32x32x8_ws1x1_wr2x2_ta1x1x1x8_1x32x1x8_tb1x1x32x1_1x32x1x8_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x256x32_wt32x32x8_ws1x1_wr2x2_ta1x1x1x8_1x32x1x8_tb1x1x32x1_1x32x1x8_gkgs.kd
     .sgpr_count: 100
-    .vgpr_count: 106
+    .vgpr_count: 104
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -1570,7 +1570,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x256x32_wt32x32x8_ws1x1_wr2x2_ta1x1x1x8_1x32x1x8_tb1x1x32x1_1x32x1x8
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x256x32_wt32x32x8_ws1x1_wr2x2_ta1x1x1x8_1x32x1x8_tb1x1x32x1_1x32x1x8.kd
     .sgpr_count: 100
-    .vgpr_count: 106
+    .vgpr_count: 104
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -1603,7 +1603,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x256x16_wt32x32x8_ws1x1_wr2x2_ta1x1x1x4_1x16x1x16_tb1x1x16x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x256x16_wt32x32x8_ws1x1_wr2x2_ta1x1x1x4_1x16x1x16_tb1x1x16x1_1x16x1x16_gkgs.kd
     .sgpr_count: 80
-    .vgpr_count: 86
+    .vgpr_count: 84
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -1636,7 +1636,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x256x16_wt32x32x8_ws1x1_wr2x2_ta1x1x1x4_1x16x1x16_tb1x1x16x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x256x16_wt32x32x8_ws1x1_wr2x2_ta1x1x1x4_1x16x1x16_tb1x1x16x1_1x16x1x16.kd
     .sgpr_count: 80
-    .vgpr_count: 86
+    .vgpr_count: 84
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -1669,7 +1669,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt64x256x16_wt32x32x8_ws1x1_wr2x2_ta1x1x1x4_1x16x1x16_tb1x1x16x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt64x256x16_wt32x32x8_ws1x1_wr2x2_ta1x1x1x4_1x16x1x16_tb1x1x16x1_1x16x1x16_gkgs.kd
     .sgpr_count: 80
-    .vgpr_count: 86
+    .vgpr_count: 84
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -1702,7 +1702,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt64x256x16_wt32x32x8_ws1x1_wr2x2_ta1x1x1x4_1x16x1x16_tb1x1x16x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt64x256x16_wt32x32x8_ws1x1_wr2x2_ta1x1x1x4_1x16x1x16_tb1x1x16x1_1x16x1x16.kd
     .sgpr_count: 80
-    .vgpr_count: 86
+    .vgpr_count: 84
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -1735,7 +1735,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt128x64x32_wt16x16x16_ws2x1_wr2x2_ta1x4x1x4_1x8x1x32_tb1x4x2x1_1x8x1x32_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt128x64x32_wt16x16x16_ws2x1_wr2x2_ta1x4x1x4_1x8x1x32_tb1x4x2x1_1x8x1x32_gkgs.kd
     .sgpr_count: 66
-    .vgpr_count: 82
+    .vgpr_count: 80
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -1768,7 +1768,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt128x64x32_wt16x16x16_ws2x1_wr2x2_ta1x4x1x4_1x8x1x32_tb1x4x2x1_1x8x1x32
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt128x64x32_wt16x16x16_ws2x1_wr2x2_ta1x4x1x4_1x8x1x32_tb1x4x2x1_1x8x1x32.kd
     .sgpr_count: 66
-    .vgpr_count: 82
+    .vgpr_count: 80
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -1801,7 +1801,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt128x64x16_wt32x8x4_ws1x2_wr2x2_ta1x4x1x2_1x4x1x64_tb1x4x1x1_1x4x1x64_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt128x64x16_wt32x8x4_ws1x2_wr2x2_ta1x4x1x2_1x4x1x64_tb1x4x1x1_1x4x1x64_gkgs.kd
     .sgpr_count: 62
-    .vgpr_count: 76
+    .vgpr_count: 74
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -1834,7 +1834,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt128x64x16_wt32x8x4_ws1x2_wr2x2_ta1x4x1x2_1x4x1x64_tb1x4x1x1_1x4x1x64
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt128x64x16_wt32x8x4_ws1x2_wr2x2_ta1x4x1x2_1x4x1x64_tb1x4x1x1_1x4x1x64.kd
     .sgpr_count: 62
-    .vgpr_count: 76
+    .vgpr_count: 74
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -1867,7 +1867,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x64x32_wt16x16x16_ws2x1_wr2x2_ta1x1x1x16_1x32x1x8_tb1x1x8x1_1x32x1x8_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x64x32_wt16x16x16_ws2x1_wr2x2_ta1x1x1x16_1x32x1x8_tb1x1x8x1_1x32x1x8_gkgs.kd
     .sgpr_count: 84
-    .vgpr_count: 98
+    .vgpr_count: 96
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -1900,7 +1900,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x64x32_wt16x16x16_ws2x1_wr2x2_ta1x1x1x16_1x32x1x8_tb1x1x8x1_1x32x1x8
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x64x32_wt16x16x16_ws2x1_wr2x2_ta1x1x1x16_1x32x1x8_tb1x1x8x1_1x32x1x8.kd
     .sgpr_count: 84
-    .vgpr_count: 98
+    .vgpr_count: 96
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -1933,7 +1933,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x64x16_wt32x8x4_ws1x2_wr2x2_ta1x1x1x8_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x64x16_wt32x8x4_ws1x2_wr2x2_ta1x1x1x8_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs.kd
     .sgpr_count: 72
-    .vgpr_count: 86
+    .vgpr_count: 84
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -1966,7 +1966,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x64x16_wt32x8x4_ws1x2_wr2x2_ta1x1x1x8_1x16x1x16_tb1x1x4x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x64x16_wt32x8x4_ws1x2_wr2x2_ta1x1x1x8_1x16x1x16_tb1x1x4x1_1x16x1x16.kd
     .sgpr_count: 72
-    .vgpr_count: 86
+    .vgpr_count: 84
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -1999,7 +1999,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt128x64x16_wt32x8x4_ws1x2_wr2x2_ta1x1x1x8_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt128x64x16_wt32x8x4_ws1x2_wr2x2_ta1x1x1x8_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs.kd
     .sgpr_count: 72
-    .vgpr_count: 86
+    .vgpr_count: 84
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -2032,7 +2032,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt128x64x16_wt32x8x4_ws1x2_wr2x2_ta1x1x1x8_1x16x1x16_tb1x1x4x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt128x64x16_wt32x8x4_ws1x2_wr2x2_ta1x1x1x8_1x16x1x16_tb1x1x4x1_1x16x1x16.kd
     .sgpr_count: 72
-    .vgpr_count: 86
+    .vgpr_count: 84
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -2065,7 +2065,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt64x128x32_wt16x16x16_ws1x2_wr2x2_ta1x4x1x2_1x8x1x32_tb1x4x4x1_1x8x1x32_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt64x128x32_wt16x16x16_ws1x2_wr2x2_ta1x4x1x2_1x8x1x32_tb1x4x4x1_1x8x1x32_gkgs.kd
     .sgpr_count: 66
-    .vgpr_count: 82
+    .vgpr_count: 80
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -2098,7 +2098,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt64x128x32_wt16x16x16_ws1x2_wr2x2_ta1x4x1x2_1x8x1x32_tb1x4x4x1_1x8x1x32
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt64x128x32_wt16x16x16_ws1x2_wr2x2_ta1x4x1x2_1x8x1x32_tb1x4x4x1_1x8x1x32.kd
     .sgpr_count: 66
-    .vgpr_count: 82
+    .vgpr_count: 80
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -2131,7 +2131,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt64x128x16_wt8x32x4_ws2x1_wr2x2_ta1x4x1x1_1x4x1x64_tb1x4x2x1_1x4x1x64_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt64x128x16_wt8x32x4_ws2x1_wr2x2_ta1x4x1x1_1x4x1x64_tb1x4x2x1_1x4x1x64_gkgs.kd
     .sgpr_count: 64
-    .vgpr_count: 76
+    .vgpr_count: 74
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -2164,7 +2164,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt64x128x16_wt8x32x4_ws2x1_wr2x2_ta1x4x1x1_1x4x1x64_tb1x4x2x1_1x4x1x64
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt64x128x16_wt8x32x4_ws2x1_wr2x2_ta1x4x1x1_1x4x1x64_tb1x4x2x1_1x4x1x64.kd
     .sgpr_count: 64
-    .vgpr_count: 76
+    .vgpr_count: 74
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -2197,7 +2197,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x128x32_wt16x16x16_ws1x2_wr2x2_ta1x1x1x8_1x32x1x8_tb1x1x16x1_1x32x1x8_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x128x32_wt16x16x16_ws1x2_wr2x2_ta1x1x1x8_1x32x1x8_tb1x1x16x1_1x32x1x8_gkgs.kd
     .sgpr_count: 84
-    .vgpr_count: 98
+    .vgpr_count: 96
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -2230,7 +2230,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x128x32_wt16x16x16_ws1x2_wr2x2_ta1x1x1x8_1x32x1x8_tb1x1x16x1_1x32x1x8
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x128x32_wt16x16x16_ws1x2_wr2x2_ta1x1x1x8_1x32x1x8_tb1x1x16x1_1x32x1x8.kd
     .sgpr_count: 84
-    .vgpr_count: 98
+    .vgpr_count: 96
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -2263,7 +2263,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x128x16_wt8x32x4_ws2x1_wr2x2_ta1x1x1x4_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x128x16_wt8x32x4_ws2x1_wr2x2_ta1x1x1x4_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs.kd
     .sgpr_count: 72
-    .vgpr_count: 86
+    .vgpr_count: 84
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -2296,7 +2296,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x128x16_wt8x32x4_ws2x1_wr2x2_ta1x1x1x4_1x16x1x16_tb1x1x8x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x128x16_wt8x32x4_ws2x1_wr2x2_ta1x1x1x4_1x16x1x16_tb1x1x8x1_1x16x1x16.kd
     .sgpr_count: 72
-    .vgpr_count: 86
+    .vgpr_count: 84
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -2329,7 +2329,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt64x128x16_wt8x32x4_ws2x1_wr2x2_ta1x1x1x4_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt64x128x16_wt8x32x4_ws2x1_wr2x2_ta1x1x1x4_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs.kd
     .sgpr_count: 72
-    .vgpr_count: 86
+    .vgpr_count: 84
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -2362,7 +2362,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt64x128x16_wt8x32x4_ws2x1_wr2x2_ta1x1x1x4_1x16x1x16_tb1x1x8x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt64x128x16_wt8x32x4_ws2x1_wr2x2_ta1x1x1x4_1x16x1x16_tb1x1x8x1_1x16x1x16.kd
     .sgpr_count: 72
-    .vgpr_count: 86
+    .vgpr_count: 84
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -2395,7 +2395,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt256x32x32_wt64x4x4_ws1x2_wr2x2_ta1x4x1x8_1x8x1x32_tb1x4x1x1_1x8x1x32_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt256x32x32_wt64x4x4_ws1x2_wr2x2_ta1x4x1x8_1x8x1x32_tb1x4x1x1_1x8x1x32_gkgs.kd
     .sgpr_count: 68
-    .vgpr_count: 88
+    .vgpr_count: 86
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -2428,7 +2428,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt256x32x32_wt64x4x4_ws1x2_wr2x2_ta1x4x1x8_1x8x1x32_tb1x4x1x1_1x8x1x32
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt256x32x32_wt64x4x4_ws1x2_wr2x2_ta1x4x1x8_1x8x1x32_tb1x4x1x1_1x8x1x32.kd
     .sgpr_count: 68
-    .vgpr_count: 88
+    .vgpr_count: 86
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -2527,7 +2527,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt256x32x32_wt64x4x4_ws1x2_wr2x2_ta1x1x1x32_1x32x1x8_tb1x1x4x1_1x32x1x8_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt256x32x32_wt64x4x4_ws1x2_wr2x2_ta1x1x1x32_1x32x1x8_tb1x1x4x1_1x32x1x8_gkgs.kd
     .sgpr_count: 96
-    .vgpr_count: 110
+    .vgpr_count: 108
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -2560,7 +2560,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt256x32x32_wt64x4x4_ws1x2_wr2x2_ta1x1x1x32_1x32x1x8_tb1x1x4x1_1x32x1x8
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt256x32x32_wt64x4x4_ws1x2_wr2x2_ta1x1x1x32_1x32x1x8_tb1x1x4x1_1x32x1x8.kd
     .sgpr_count: 96
-    .vgpr_count: 110
+    .vgpr_count: 108
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -2593,7 +2593,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt256x32x16_wt64x4x4_ws1x2_wr2x2_ta1x1x1x16_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt256x32x16_wt64x4x4_ws1x2_wr2x2_ta1x1x1x16_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs.kd
     .sgpr_count: 78
-    .vgpr_count: 92
+    .vgpr_count: 90
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -2626,7 +2626,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt256x32x16_wt64x4x4_ws1x2_wr2x2_ta1x1x1x16_1x16x1x16_tb1x1x2x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt256x32x16_wt64x4x4_ws1x2_wr2x2_ta1x1x1x16_1x16x1x16_tb1x1x2x1_1x16x1x16.kd
     .sgpr_count: 78
-    .vgpr_count: 92
+    .vgpr_count: 90
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -2659,7 +2659,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt256x32x16_wt64x4x4_ws1x2_wr2x2_ta1x1x1x16_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt256x32x16_wt64x4x4_ws1x2_wr2x2_ta1x1x1x16_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs.kd
     .sgpr_count: 78
-    .vgpr_count: 92
+    .vgpr_count: 90
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -2692,7 +2692,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt256x32x16_wt64x4x4_ws1x2_wr2x2_ta1x1x1x16_1x16x1x16_tb1x1x2x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt256x32x16_wt64x4x4_ws1x2_wr2x2_ta1x1x1x16_1x16x1x16_tb1x1x2x1_1x16x1x16.kd
     .sgpr_count: 78
-    .vgpr_count: 92
+    .vgpr_count: 90
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -2725,7 +2725,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x256x32_wt4x64x4_ws2x1_wr2x2_ta1x4x1x1_1x8x1x32_tb1x4x8x1_1x8x1x32_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x256x32_wt4x64x4_ws2x1_wr2x2_ta1x4x1x1_1x8x1x32_tb1x4x8x1_1x8x1x32_gkgs.kd
     .sgpr_count: 70
-    .vgpr_count: 88
+    .vgpr_count: 86
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -2758,7 +2758,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x256x32_wt4x64x4_ws2x1_wr2x2_ta1x4x1x1_1x8x1x32_tb1x4x8x1_1x8x1x32
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x256x32_wt4x64x4_ws2x1_wr2x2_ta1x4x1x1_1x8x1x32_tb1x4x8x1_1x8x1x32.kd
     .sgpr_count: 70
-    .vgpr_count: 88
+    .vgpr_count: 86
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -2857,7 +2857,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x256x32_wt4x64x4_ws2x1_wr2x2_ta1x1x1x4_1x32x1x8_tb1x1x32x1_1x32x1x8_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x256x32_wt4x64x4_ws2x1_wr2x2_ta1x1x1x4_1x32x1x8_tb1x1x32x1_1x32x1x8_gkgs.kd
     .sgpr_count: 96
-    .vgpr_count: 110
+    .vgpr_count: 108
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -2890,7 +2890,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x256x32_wt4x64x4_ws2x1_wr2x2_ta1x1x1x4_1x32x1x8_tb1x1x32x1_1x32x1x8
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x256x32_wt4x64x4_ws2x1_wr2x2_ta1x1x1x4_1x32x1x8_tb1x1x32x1_1x32x1x8.kd
     .sgpr_count: 96
-    .vgpr_count: 110
+    .vgpr_count: 108
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -2923,7 +2923,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x256x16_wt4x64x4_ws2x1_wr2x2_ta1x1x1x2_1x16x1x16_tb1x1x16x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x256x16_wt4x64x4_ws2x1_wr2x2_ta1x1x1x2_1x16x1x16_tb1x1x16x1_1x16x1x16_gkgs.kd
     .sgpr_count: 78
-    .vgpr_count: 92
+    .vgpr_count: 90
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -2956,7 +2956,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x256x16_wt4x64x4_ws2x1_wr2x2_ta1x1x1x2_1x16x1x16_tb1x1x16x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x256x16_wt4x64x4_ws2x1_wr2x2_ta1x1x1x2_1x16x1x16_tb1x1x16x1_1x16x1x16.kd
     .sgpr_count: 78
-    .vgpr_count: 92
+    .vgpr_count: 90
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -2989,7 +2989,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt32x256x16_wt4x64x4_ws2x1_wr2x2_ta1x1x1x2_1x16x1x16_tb1x1x16x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt32x256x16_wt4x64x4_ws2x1_wr2x2_ta1x1x1x2_1x16x1x16_tb1x1x16x1_1x16x1x16_gkgs.kd
     .sgpr_count: 78
-    .vgpr_count: 92
+    .vgpr_count: 90
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -3022,7 +3022,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt32x256x16_wt4x64x4_ws2x1_wr2x2_ta1x1x1x2_1x16x1x16_tb1x1x16x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt32x256x16_wt4x64x4_ws2x1_wr2x2_ta1x1x1x2_1x16x1x16_tb1x1x16x1_1x16x1x16.kd
     .sgpr_count: 78
-    .vgpr_count: 92
+    .vgpr_count: 90
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -3055,7 +3055,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt64x64x32_wt16x16x16_ws1x1_wr2x2_ta1x4x1x2_1x8x1x32_tb1x4x2x1_1x8x1x32_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt64x64x32_wt16x16x16_ws1x1_wr2x2_ta1x4x1x2_1x8x1x32_tb1x4x2x1_1x8x1x32_gkgs.kd
     .sgpr_count: 64
-    .vgpr_count: 70
+    .vgpr_count: 68
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -3088,7 +3088,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt64x64x32_wt16x16x16_ws1x1_wr2x2_ta1x4x1x2_1x8x1x32_tb1x4x2x1_1x8x1x32
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt64x64x32_wt16x16x16_ws1x1_wr2x2_ta1x4x1x2_1x8x1x32_tb1x4x2x1_1x8x1x32.kd
     .sgpr_count: 64
-    .vgpr_count: 70
+    .vgpr_count: 68
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -3121,7 +3121,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt64x64x16_wt32x32x8_ws1x1_wr1x1_ta1x4x1x1_1x4x1x64_tb1x4x1x1_1x4x1x64_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt64x64x16_wt32x32x8_ws1x1_wr1x1_ta1x4x1x1_1x4x1x64_tb1x4x1x1_1x4x1x64_gkgs.kd
     .sgpr_count: 62
-    .vgpr_count: 58
+    .vgpr_count: 56
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -3154,7 +3154,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt64x64x16_wt32x32x8_ws1x1_wr1x1_ta1x4x1x1_1x4x1x64_tb1x4x1x1_1x4x1x64
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt64x64x16_wt32x32x8_ws1x1_wr1x1_ta1x4x1x1_1x4x1x64_tb1x4x1x1_1x4x1x64.kd
     .sgpr_count: 62
-    .vgpr_count: 58
+    .vgpr_count: 56
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -3187,7 +3187,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x64x32_wt16x16x16_ws1x1_wr2x2_ta1x1x1x8_1x32x1x8_tb1x1x8x1_1x32x1x8_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x64x32_wt16x16x16_ws1x1_wr2x2_ta1x1x1x8_1x32x1x8_tb1x1x8x1_1x32x1x8_gkgs.kd
     .sgpr_count: 76
-    .vgpr_count: 82
+    .vgpr_count: 80
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -3220,7 +3220,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x64x32_wt16x16x16_ws1x1_wr2x2_ta1x1x1x8_1x32x1x8_tb1x1x8x1_1x32x1x8
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x64x32_wt16x16x16_ws1x1_wr2x2_ta1x1x1x8_1x32x1x8_tb1x1x8x1_1x32x1x8.kd
     .sgpr_count: 76
-    .vgpr_count: 82
+    .vgpr_count: 80
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -3253,7 +3253,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x64x16_wt32x32x8_ws1x1_wr1x1_ta1x1x1x4_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x64x16_wt32x32x8_ws1x1_wr1x1_ta1x1x1x4_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs.kd
     .sgpr_count: 68
-    .vgpr_count: 66
+    .vgpr_count: 64
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -3286,7 +3286,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x64x16_wt32x32x8_ws1x1_wr1x1_ta1x1x1x4_1x16x1x16_tb1x1x4x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x64x16_wt32x32x8_ws1x1_wr1x1_ta1x1x1x4_1x16x1x16_tb1x1x4x1_1x16x1x16.kd
     .sgpr_count: 68
-    .vgpr_count: 66
+    .vgpr_count: 64
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -3319,7 +3319,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt64x64x16_wt32x32x8_ws1x1_wr1x1_ta1x1x1x4_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt64x64x16_wt32x32x8_ws1x1_wr1x1_ta1x1x1x4_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs.kd
     .sgpr_count: 68
-    .vgpr_count: 66
+    .vgpr_count: 64
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -3352,7 +3352,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt64x64x16_wt32x32x8_ws1x1_wr1x1_ta1x1x1x4_1x16x1x16_tb1x1x4x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt64x64x16_wt32x32x8_ws1x1_wr1x1_ta1x1x1x4_1x16x1x16_tb1x1x4x1_1x16x1x16.kd
     .sgpr_count: 68
-    .vgpr_count: 66
+    .vgpr_count: 64
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -3385,7 +3385,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx8_ex1_bt64x64x32_wt16x16x16_ws1x1_wr2x2_ta1x8x1x1_1x4x1x64_tb1x8x1x1_1x4x1x64_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx8_ex1_bt64x64x32_wt16x16x16_ws1x1_wr2x2_ta1x8x1x1_1x4x1x64_tb1x8x1x1_1x4x1x64_gkgs.kd
     .sgpr_count: 70
-    .vgpr_count: 80
+    .vgpr_count: 78
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -3418,7 +3418,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt128x32x32_wt16x16x16_ws1x1_wr2x2_ta1x4x1x4_1x8x1x32_tb1x4x1x1_1x8x1x32_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt128x32x32_wt16x16x16_ws1x1_wr2x2_ta1x4x1x4_1x8x1x32_tb1x4x1x1_1x8x1x32_gkgs.kd
     .sgpr_count: 64
-    .vgpr_count: 72
+    .vgpr_count: 70
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -3451,7 +3451,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt128x32x32_wt16x16x16_ws1x1_wr2x2_ta1x4x1x4_1x8x1x32_tb1x4x1x1_1x8x1x32
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt128x32x32_wt16x16x16_ws1x1_wr2x2_ta1x4x1x4_1x8x1x32_tb1x4x1x1_1x8x1x32.kd
     .sgpr_count: 64
-    .vgpr_count: 72
+    .vgpr_count: 70
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -3550,7 +3550,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x32x32_wt16x16x16_ws1x1_wr2x2_ta1x1x1x16_1x32x1x8_tb1x1x4x1_1x32x1x8_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x32x32_wt16x16x16_ws1x1_wr2x2_ta1x1x1x16_1x32x1x8_tb1x1x4x1_1x32x1x8_gkgs.kd
     .sgpr_count: 80
-    .vgpr_count: 86
+    .vgpr_count: 84
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -3583,7 +3583,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x32x32_wt16x16x16_ws1x1_wr2x2_ta1x1x1x16_1x32x1x8_tb1x1x4x1_1x32x1x8
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x32x32_wt16x16x16_ws1x1_wr2x2_ta1x1x1x16_1x32x1x8_tb1x1x4x1_1x32x1x8.kd
     .sgpr_count: 80
-    .vgpr_count: 86
+    .vgpr_count: 84
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -3616,7 +3616,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x32x16_wt64x16x4_ws1x1_wr1x1_ta1x1x1x8_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x32x16_wt64x16x4_ws1x1_wr1x1_ta1x1x1x8_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs.kd
     .sgpr_count: 70
-    .vgpr_count: 68
+    .vgpr_count: 66
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -3649,7 +3649,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x32x16_wt64x16x4_ws1x1_wr1x1_ta1x1x1x8_1x16x1x16_tb1x1x2x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x32x16_wt64x16x4_ws1x1_wr1x1_ta1x1x1x8_1x16x1x16_tb1x1x2x1_1x16x1x16.kd
     .sgpr_count: 70
-    .vgpr_count: 68
+    .vgpr_count: 66
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -3682,7 +3682,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt128x32x16_wt64x16x4_ws1x1_wr1x1_ta1x1x1x8_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt128x32x16_wt64x16x4_ws1x1_wr1x1_ta1x1x1x8_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs.kd
     .sgpr_count: 70
-    .vgpr_count: 68
+    .vgpr_count: 66
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -3715,7 +3715,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt128x32x16_wt64x16x4_ws1x1_wr1x1_ta1x1x1x8_1x16x1x16_tb1x1x2x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt128x32x16_wt64x16x4_ws1x1_wr1x1_ta1x1x1x8_1x16x1x16_tb1x1x2x1_1x16x1x16.kd
     .sgpr_count: 70
-    .vgpr_count: 68
+    .vgpr_count: 66
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -3748,7 +3748,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x128x32_wt16x16x16_ws1x1_wr2x2_ta1x4x1x1_1x8x1x32_tb1x4x4x1_1x8x1x32_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x128x32_wt16x16x16_ws1x1_wr2x2_ta1x4x1x1_1x8x1x32_tb1x4x4x1_1x8x1x32_gkgs.kd
     .sgpr_count: 66
-    .vgpr_count: 72
+    .vgpr_count: 70
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -3781,7 +3781,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x128x32_wt16x16x16_ws1x1_wr2x2_ta1x4x1x1_1x8x1x32_tb1x4x4x1_1x8x1x32
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x128x32_wt16x16x16_ws1x1_wr2x2_ta1x4x1x1_1x8x1x32_tb1x4x4x1_1x8x1x32.kd
     .sgpr_count: 66
-    .vgpr_count: 72
+    .vgpr_count: 70
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -3880,7 +3880,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x128x32_wt16x16x16_ws1x1_wr2x2_ta1x1x1x4_1x32x1x8_tb1x1x16x1_1x32x1x8_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x128x32_wt16x16x16_ws1x1_wr2x2_ta1x1x1x4_1x32x1x8_tb1x1x16x1_1x32x1x8_gkgs.kd
     .sgpr_count: 80
-    .vgpr_count: 86
+    .vgpr_count: 84
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -3913,7 +3913,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x128x32_wt16x16x16_ws1x1_wr2x2_ta1x1x1x4_1x32x1x8_tb1x1x16x1_1x32x1x8
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x128x32_wt16x16x16_ws1x1_wr2x2_ta1x1x1x4_1x32x1x8_tb1x1x16x1_1x32x1x8.kd
     .sgpr_count: 80
-    .vgpr_count: 86
+    .vgpr_count: 84
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -3946,7 +3946,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x128x16_wt16x64x4_ws1x1_wr1x1_ta1x1x1x2_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x128x16_wt16x64x4_ws1x1_wr1x1_ta1x1x1x2_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs.kd
     .sgpr_count: 70
-    .vgpr_count: 68
+    .vgpr_count: 66
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -3979,7 +3979,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x128x16_wt16x64x4_ws1x1_wr1x1_ta1x1x1x2_1x16x1x16_tb1x1x8x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x128x16_wt16x64x4_ws1x1_wr1x1_ta1x1x1x2_1x16x1x16_tb1x1x8x1_1x16x1x16.kd
     .sgpr_count: 70
-    .vgpr_count: 68
+    .vgpr_count: 66
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -4012,7 +4012,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt32x128x16_wt16x64x4_ws1x1_wr1x1_ta1x1x1x2_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt32x128x16_wt16x64x4_ws1x1_wr1x1_ta1x1x1x2_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs.kd
     .sgpr_count: 70
-    .vgpr_count: 68
+    .vgpr_count: 66
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -4045,7 +4045,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt32x128x16_wt16x64x4_ws1x1_wr1x1_ta1x1x1x2_1x16x1x16_tb1x1x8x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt32x128x16_wt16x64x4_ws1x1_wr1x1_ta1x1x1x2_1x16x1x16_tb1x1x8x1_1x16x1x16.kd
     .sgpr_count: 70
-    .vgpr_count: 68
+    .vgpr_count: 66
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -4144,7 +4144,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt256x16x32_wt64x4x4_ws1x1_wr2x2_ta1x1x1x32_1x32x1x8_tb1x1x2x1_1x32x1x8_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt256x16x32_wt64x4x4_ws1x1_wr2x2_ta1x1x1x32_1x32x1x8_tb1x1x2x1_1x32x1x8_gkgs.kd
     .sgpr_count: 94
-    .vgpr_count: 100
+    .vgpr_count: 98
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -4177,7 +4177,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt256x16x32_wt64x4x4_ws1x1_wr2x2_ta1x1x1x32_1x32x1x8_tb1x1x2x1_1x32x1x8
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt256x16x32_wt64x4x4_ws1x1_wr2x2_ta1x1x1x32_1x32x1x8_tb1x1x2x1_1x32x1x8.kd
     .sgpr_count: 94
-    .vgpr_count: 100
+    .vgpr_count: 98
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -4210,7 +4210,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt256x16x16_wt64x4x4_ws1x1_wr2x2_ta1x1x1x16_1x16x1x16_tb1x1x1x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt256x16x16_wt64x4x4_ws1x1_wr2x2_ta1x1x1x16_1x16x1x16_tb1x1x1x1_1x16x1x16_gkgs.kd
     .sgpr_count: 78
-    .vgpr_count: 84
+    .vgpr_count: 82
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -4243,7 +4243,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt256x16x16_wt64x4x4_ws1x1_wr2x2_ta1x1x1x16_1x16x1x16_tb1x1x1x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt256x16x16_wt64x4x4_ws1x1_wr2x2_ta1x1x1x16_1x16x1x16_tb1x1x1x1_1x16x1x16.kd
     .sgpr_count: 78
-    .vgpr_count: 84
+    .vgpr_count: 82
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -4276,7 +4276,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt256x16x16_wt64x4x4_ws1x1_wr2x2_ta1x1x1x16_1x16x1x16_tb1x1x1x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt256x16x16_wt64x4x4_ws1x1_wr2x2_ta1x1x1x16_1x16x1x16_tb1x1x1x1_1x16x1x16_gkgs.kd
     .sgpr_count: 78
-    .vgpr_count: 84
+    .vgpr_count: 82
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -4309,7 +4309,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt256x16x16_wt64x4x4_ws1x1_wr2x2_ta1x1x1x16_1x16x1x16_tb1x1x1x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt256x16x16_wt64x4x4_ws1x1_wr2x2_ta1x1x1x16_1x16x1x16_tb1x1x1x1_1x16x1x16.kd
     .sgpr_count: 78
-    .vgpr_count: 84
+    .vgpr_count: 82
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -4408,7 +4408,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt16x256x32_wt4x64x4_ws1x1_wr2x2_ta1x1x1x2_1x32x1x8_tb1x1x32x1_1x32x1x8_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt16x256x32_wt4x64x4_ws1x1_wr2x2_ta1x1x1x2_1x32x1x8_tb1x1x32x1_1x32x1x8_gkgs.kd
     .sgpr_count: 94
-    .vgpr_count: 100
+    .vgpr_count: 98
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -4441,7 +4441,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt16x256x32_wt4x64x4_ws1x1_wr2x2_ta1x1x1x2_1x32x1x8_tb1x1x32x1_1x32x1x8
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt16x256x32_wt4x64x4_ws1x1_wr2x2_ta1x1x1x2_1x32x1x8_tb1x1x32x1_1x32x1x8.kd
     .sgpr_count: 94
-    .vgpr_count: 100
+    .vgpr_count: 98
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -4474,7 +4474,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt16x256x16_wt4x64x4_ws1x1_wr2x2_ta1x1x1x1_1x16x1x16_tb1x1x16x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt16x256x16_wt4x64x4_ws1x1_wr2x2_ta1x1x1x1_1x16x1x16_tb1x1x16x1_1x16x1x16_gkgs.kd
     .sgpr_count: 78
-    .vgpr_count: 84
+    .vgpr_count: 82
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -4507,7 +4507,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt16x256x16_wt4x64x4_ws1x1_wr2x2_ta1x1x1x1_1x16x1x16_tb1x1x16x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt16x256x16_wt4x64x4_ws1x1_wr2x2_ta1x1x1x1_1x16x1x16_tb1x1x16x1_1x16x1x16.kd
     .sgpr_count: 78
-    .vgpr_count: 84
+    .vgpr_count: 82
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -4540,7 +4540,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt16x256x16_wt4x64x4_ws1x1_wr2x2_ta1x1x1x1_1x16x1x16_tb1x1x16x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt16x256x16_wt4x64x4_ws1x1_wr2x2_ta1x1x1x1_1x16x1x16_tb1x1x16x1_1x16x1x16_gkgs.kd
     .sgpr_count: 78
-    .vgpr_count: 84
+    .vgpr_count: 82
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -4573,7 +4573,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt16x256x16_wt4x64x4_ws1x1_wr2x2_ta1x1x1x1_1x16x1x16_tb1x1x16x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt16x256x16_wt4x64x4_ws1x1_wr2x2_ta1x1x1x1_1x16x1x16_tb1x1x16x1_1x16x1x16.kd
     .sgpr_count: 78
-    .vgpr_count: 84
+    .vgpr_count: 82
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -4606,7 +4606,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt64x32x32_wt32x8x4_ws1x2_wr1x1_ta1x4x1x2_1x8x1x32_tb1x4x1x1_1x8x1x32_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt64x32x32_wt32x8x4_ws1x2_wr1x1_ta1x4x1x2_1x8x1x32_tb1x4x1x1_1x8x1x32_gkgs.kd
     .sgpr_count: 62
-    .vgpr_count: 64
+    .vgpr_count: 62
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -4639,7 +4639,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt64x32x32_wt32x8x4_ws1x2_wr1x1_ta1x4x1x2_1x8x1x32_tb1x4x1x1_1x8x1x32
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt64x32x32_wt32x8x4_ws1x2_wr1x1_ta1x4x1x2_1x8x1x32_tb1x4x1x1_1x8x1x32.kd
     .sgpr_count: 62
-    .vgpr_count: 64
+    .vgpr_count: 62
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -4738,7 +4738,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x32x32_wt32x8x4_ws1x2_wr1x1_ta1x1x1x8_1x32x1x8_tb1x1x4x1_1x32x1x8_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x32x32_wt32x8x4_ws1x2_wr1x1_ta1x1x1x8_1x32x1x8_tb1x1x4x1_1x32x1x8_gkgs.kd
     .sgpr_count: 72
-    .vgpr_count: 74
+    .vgpr_count: 72
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -4771,7 +4771,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x32x32_wt32x8x4_ws1x2_wr1x1_ta1x1x1x8_1x32x1x8_tb1x1x4x1_1x32x1x8
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x32x32_wt32x8x4_ws1x2_wr1x1_ta1x1x1x8_1x32x1x8_tb1x1x4x1_1x32x1x8.kd
     .sgpr_count: 72
-    .vgpr_count: 74
+    .vgpr_count: 72
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -4804,7 +4804,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x32x16_wt32x8x4_ws1x2_wr1x1_ta1x1x1x4_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x32x16_wt32x8x4_ws1x2_wr1x1_ta1x1x1x4_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs.kd
     .sgpr_count: 66
-    .vgpr_count: 68
+    .vgpr_count: 66
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -4837,7 +4837,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x32x16_wt32x8x4_ws1x2_wr1x1_ta1x1x1x4_1x16x1x16_tb1x1x2x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x32x16_wt32x8x4_ws1x2_wr1x1_ta1x1x1x4_1x16x1x16_tb1x1x2x1_1x16x1x16.kd
     .sgpr_count: 66
-    .vgpr_count: 68
+    .vgpr_count: 66
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -4870,7 +4870,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt64x32x16_wt32x8x4_ws1x2_wr1x1_ta1x1x1x4_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt64x32x16_wt32x8x4_ws1x2_wr1x1_ta1x1x1x4_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs.kd
     .sgpr_count: 66
-    .vgpr_count: 68
+    .vgpr_count: 66
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -4903,7 +4903,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt64x32x16_wt32x8x4_ws1x2_wr1x1_ta1x1x1x4_1x16x1x16_tb1x1x2x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt64x32x16_wt32x8x4_ws1x2_wr1x1_ta1x1x1x4_1x16x1x16_tb1x1x2x1_1x16x1x16.kd
     .sgpr_count: 66
-    .vgpr_count: 68
+    .vgpr_count: 66
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -4936,7 +4936,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx8_ex1_bt64x32x8_wt32x8x4_ws1x2_wr1x1_ta1x1x1x2_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx8_ex1_bt64x32x8_wt32x8x4_ws1x2_wr1x1_ta1x1x1x2_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs.kd
     .sgpr_count: 64
-    .vgpr_count: 66
+    .vgpr_count: 64
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -4969,7 +4969,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x64x32_wt8x32x4_ws2x1_wr1x1_ta1x4x1x1_1x8x1x32_tb1x4x2x1_1x8x1x32_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x64x32_wt8x32x4_ws2x1_wr1x1_ta1x4x1x1_1x8x1x32_tb1x4x2x1_1x8x1x32_gkgs.kd
     .sgpr_count: 64
-    .vgpr_count: 64
+    .vgpr_count: 62
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -5002,7 +5002,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x64x32_wt8x32x4_ws2x1_wr1x1_ta1x4x1x1_1x8x1x32_tb1x4x2x1_1x8x1x32
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x64x32_wt8x32x4_ws2x1_wr1x1_ta1x4x1x1_1x8x1x32_tb1x4x2x1_1x8x1x32.kd
     .sgpr_count: 64
-    .vgpr_count: 64
+    .vgpr_count: 62
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -5101,7 +5101,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x64x32_wt8x32x4_ws2x1_wr1x1_ta1x1x1x4_1x32x1x8_tb1x1x8x1_1x32x1x8_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x64x32_wt8x32x4_ws2x1_wr1x1_ta1x1x1x4_1x32x1x8_tb1x1x8x1_1x32x1x8_gkgs.kd
     .sgpr_count: 72
-    .vgpr_count: 74
+    .vgpr_count: 72
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -5134,7 +5134,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x64x32_wt8x32x4_ws2x1_wr1x1_ta1x1x1x4_1x32x1x8_tb1x1x8x1_1x32x1x8
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x64x32_wt8x32x4_ws2x1_wr1x1_ta1x1x1x4_1x32x1x8_tb1x1x8x1_1x32x1x8.kd
     .sgpr_count: 72
-    .vgpr_count: 74
+    .vgpr_count: 72
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -5167,7 +5167,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x1x1x2_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x1x1x2_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs.kd
     .sgpr_count: 66
-    .vgpr_count: 68
+    .vgpr_count: 66
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -5200,7 +5200,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x1x1x2_1x16x1x16_tb1x1x4x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x1x1x2_1x16x1x16_tb1x1x4x1_1x16x1x16.kd
     .sgpr_count: 66
-    .vgpr_count: 68
+    .vgpr_count: 66
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -5233,7 +5233,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x1x1x2_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x1x1x2_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs.kd
     .sgpr_count: 66
-    .vgpr_count: 68
+    .vgpr_count: 66
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -5266,7 +5266,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x1x1x2_1x16x1x16_tb1x1x4x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x1x1x2_1x16x1x16_tb1x1x4x1_1x16x1x16.kd
     .sgpr_count: 66
-    .vgpr_count: 68
+    .vgpr_count: 66
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -5299,7 +5299,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx8_ex1_bt32x64x8_wt8x32x4_ws2x1_wr1x1_ta1x1x1x1_1x8x1x32_tb1x1x2x1_1x8x1x32_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx8_ex1_bt32x64x8_wt8x32x4_ws2x1_wr1x1_ta1x1x1x1_1x8x1x32_tb1x1x2x1_1x8x1x32_gkgs.kd
     .sgpr_count: 64
-    .vgpr_count: 66
+    .vgpr_count: 64
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 4096
@@ -5398,7 +5398,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x16x32_wt32x8x4_ws2x1_wr1x1_ta1x1x1x16_1x32x1x8_tb1x1x2x1_1x32x1x8_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x16x32_wt32x8x4_ws2x1_wr1x1_ta1x1x1x16_1x32x1x8_tb1x1x2x1_1x32x1x8_gkgs.kd
     .sgpr_count: 78
-    .vgpr_count: 80
+    .vgpr_count: 78
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -5431,7 +5431,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x16x32_wt32x8x4_ws2x1_wr1x1_ta1x1x1x16_1x32x1x8_tb1x1x2x1_1x32x1x8
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x16x32_wt32x8x4_ws2x1_wr1x1_ta1x1x1x16_1x32x1x8_tb1x1x2x1_1x32x1x8.kd
     .sgpr_count: 78
-    .vgpr_count: 80
+    .vgpr_count: 78
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 32768
@@ -5464,7 +5464,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x16x16_wt32x8x4_ws2x1_wr1x1_ta1x1x1x8_1x16x1x16_tb1x1x1x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x16x16_wt32x8x4_ws2x1_wr1x1_ta1x1x1x8_1x16x1x16_tb1x1x1x1_1x16x1x16_gkgs.kd
     .sgpr_count: 70
-    .vgpr_count: 72
+    .vgpr_count: 70
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -5497,7 +5497,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x16x16_wt32x8x4_ws2x1_wr1x1_ta1x1x1x8_1x16x1x16_tb1x1x1x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt128x16x16_wt32x8x4_ws2x1_wr1x1_ta1x1x1x8_1x16x1x16_tb1x1x1x1_1x16x1x16.kd
     .sgpr_count: 70
-    .vgpr_count: 72
+    .vgpr_count: 70
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -5530,7 +5530,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt128x16x16_wt32x8x4_ws2x1_wr1x1_ta1x1x1x8_1x16x1x16_tb1x1x1x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt128x16x16_wt32x8x4_ws2x1_wr1x1_ta1x1x1x8_1x16x1x16_tb1x1x1x1_1x16x1x16_gkgs.kd
     .sgpr_count: 70
-    .vgpr_count: 72
+    .vgpr_count: 70
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -5563,7 +5563,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt128x16x16_wt32x8x4_ws2x1_wr1x1_ta1x1x1x8_1x16x1x16_tb1x1x1x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt128x16x16_wt32x8x4_ws2x1_wr1x1_ta1x1x1x8_1x16x1x16_tb1x1x1x1_1x16x1x16.kd
     .sgpr_count: 70
-    .vgpr_count: 72
+    .vgpr_count: 70
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -5662,7 +5662,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt16x128x32_wt8x32x4_ws1x2_wr1x1_ta1x1x1x2_1x32x1x8_tb1x1x16x1_1x32x1x8_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt16x128x32_wt8x32x4_ws1x2_wr1x1_ta1x1x1x2_1x32x1x8_tb1x1x16x1_1x32x1x8_gkgs.kd
     .sgpr_count: 78
-    .vgpr_count: 80
+    .vgpr_count: 78
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -5695,7 +5695,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt16x128x32_wt8x32x4_ws1x2_wr1x1_ta1x1x1x2_1x32x1x8_tb1x1x16x1_1x32x1x8
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt16x128x32_wt8x32x4_ws1x2_wr1x1_ta1x1x1x2_1x32x1x8_tb1x1x16x1_1x32x1x8.kd
     .sgpr_count: 78
-    .vgpr_count: 80
+    .vgpr_count: 78
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -5728,7 +5728,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt16x128x16_wt8x32x4_ws1x2_wr1x1_ta1x1x1x1_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt16x128x16_wt8x32x4_ws1x2_wr1x1_ta1x1x1x1_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs.kd
     .sgpr_count: 70
-    .vgpr_count: 72
+    .vgpr_count: 70
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -5761,7 +5761,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt16x128x16_wt8x32x4_ws1x2_wr1x1_ta1x1x1x1_1x16x1x16_tb1x1x8x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt16x128x16_wt8x32x4_ws1x2_wr1x1_ta1x1x1x1_1x16x1x16_tb1x1x8x1_1x16x1x16.kd
     .sgpr_count: 70
-    .vgpr_count: 72
+    .vgpr_count: 70
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -5794,7 +5794,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt16x128x16_wt8x32x4_ws1x2_wr1x1_ta1x1x1x1_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt16x128x16_wt8x32x4_ws1x2_wr1x1_ta1x1x1x1_1x16x1x16_tb1x1x8x1_1x16x1x16_gkgs.kd
     .sgpr_count: 70
-    .vgpr_count: 72
+    .vgpr_count: 70
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -5827,7 +5827,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt16x128x16_wt8x32x4_ws1x2_wr1x1_ta1x1x1x1_1x16x1x16_tb1x1x8x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt16x128x16_wt8x32x4_ws1x2_wr1x1_ta1x1x1x1_1x16x1x16_tb1x1x8x1_1x16x1x16.kd
     .sgpr_count: 70
-    .vgpr_count: 72
+    .vgpr_count: 70
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -5860,7 +5860,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x32x32_wt16x16x16_ws1x1_wr1x1_ta1x4x1x1_1x8x1x32_tb1x4x1x1_1x8x1x32_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x32x32_wt16x16x16_ws1x1_wr1x1_ta1x4x1x1_1x8x1x32_tb1x4x1x1_1x8x1x32_gkgs.kd
     .sgpr_count: 62
-    .vgpr_count: 58
+    .vgpr_count: 56
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -5893,7 +5893,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x32x32_wt16x16x16_ws1x1_wr1x1_ta1x4x1x1_1x8x1x32_tb1x4x1x1_1x8x1x32
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x32x32_wt16x16x16_ws1x1_wr1x1_ta1x4x1x1_1x8x1x32_tb1x4x1x1_1x8x1x32.kd
     .sgpr_count: 62
-    .vgpr_count: 58
+    .vgpr_count: 56
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -5926,7 +5926,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x32x16_wt16x16x4_ws1x1_wr1x1_ta1x2x1x1_1x8x1x32_tb1x2x1x1_1x8x1x32_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x32x16_wt16x16x4_ws1x1_wr1x1_ta1x2x1x1_1x8x1x32_tb1x2x1x1_1x8x1x32_gkgs.kd
     .sgpr_count: 62
-    .vgpr_count: 56
+    .vgpr_count: 54
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 4096
@@ -5959,7 +5959,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x32x16_wt16x16x4_ws1x1_wr1x1_ta1x2x1x1_1x8x1x32_tb1x2x1x1_1x8x1x32
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x32x16_wt16x16x4_ws1x1_wr1x1_ta1x2x1x1_1x8x1x32_tb1x2x1x1_1x8x1x32.kd
     .sgpr_count: 62
-    .vgpr_count: 56
+    .vgpr_count: 54
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 4096
@@ -5992,7 +5992,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x32x32_wt16x16x16_ws1x1_wr1x1_ta1x1x1x4_1x32x1x8_tb1x1x4x1_1x32x1x8_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x32x32_wt16x16x16_ws1x1_wr1x1_ta1x1x1x4_1x32x1x8_tb1x1x4x1_1x32x1x8_gkgs.kd
     .sgpr_count: 68
-    .vgpr_count: 66
+    .vgpr_count: 64
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -6025,7 +6025,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x32x32_wt16x16x16_ws1x1_wr1x1_ta1x1x1x4_1x32x1x8_tb1x1x4x1_1x32x1x8
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x32x32_wt16x16x16_ws1x1_wr1x1_ta1x1x1x4_1x32x1x8_tb1x1x4x1_1x32x1x8.kd
     .sgpr_count: 68
-    .vgpr_count: 62
+    .vgpr_count: 60
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -6058,7 +6058,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x32x16_wt16x16x4_ws1x1_wr1x1_ta1x1x1x2_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x32x16_wt16x16x4_ws1x1_wr1x1_ta1x1x1x2_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs.kd
     .sgpr_count: 64
-    .vgpr_count: 62
+    .vgpr_count: 60
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 4096
@@ -6091,7 +6091,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x32x16_wt16x16x4_ws1x1_wr1x1_ta1x1x1x2_1x16x1x16_tb1x1x2x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x32x16_wt16x16x4_ws1x1_wr1x1_ta1x1x1x2_1x16x1x16_tb1x1x2x1_1x16x1x16.kd
     .sgpr_count: 64
-    .vgpr_count: 62
+    .vgpr_count: 60
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 4096
@@ -6124,7 +6124,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt32x32x16_wt16x16x4_ws1x1_wr1x1_ta1x1x1x2_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt32x32x16_wt16x16x4_ws1x1_wr1x1_ta1x1x1x2_1x16x1x16_tb1x1x2x1_1x16x1x16_gkgs.kd
     .sgpr_count: 64
-    .vgpr_count: 62
+    .vgpr_count: 60
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 4096
@@ -6157,7 +6157,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt32x32x16_wt16x16x4_ws1x1_wr1x1_ta1x1x1x2_1x16x1x16_tb1x1x2x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt32x32x16_wt16x16x4_ws1x1_wr1x1_ta1x1x1x2_1x16x1x16_tb1x1x2x1_1x16x1x16.kd
     .sgpr_count: 64
-    .vgpr_count: 62
+    .vgpr_count: 60
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 4096
@@ -6190,7 +6190,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx8_ex1_bt32x32x8_wt16x16x4_ws1x1_wr1x1_ta1x1x1x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx8_ex1_bt32x32x8_wt16x16x4_ws1x1_wr1x1_ta1x1x1x1_1x8x1x32_tb1x1x1x1_1x8x1x32_gkgs.kd
     .sgpr_count: 64
-    .vgpr_count: 62
+    .vgpr_count: 60
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 4096
@@ -6223,7 +6223,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx8_ex1_bt32x32x8_wt16x16x4_ws1x1_wr1x1_ta1x1x1x1_1x8x1x32_tb1x1x1x1_1x8x1x32
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx8_ex1_bt32x32x8_wt16x16x4_ws1x1_wr1x1_ta1x1x1x1_1x8x1x32_tb1x1x1x1_1x8x1x32.kd
     .sgpr_count: 64
-    .vgpr_count: 62
+    .vgpr_count: 60
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 2048
@@ -6322,7 +6322,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x16x32_wt64x4x4_ws1x1_wr1x1_ta1x1x1x8_1x32x1x8_tb1x1x2x1_1x32x1x8_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x16x32_wt64x4x4_ws1x1_wr1x1_ta1x1x1x8_1x32x1x8_tb1x1x2x1_1x32x1x8_gkgs.kd
     .sgpr_count: 70
-    .vgpr_count: 68
+    .vgpr_count: 66
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -6355,7 +6355,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x16x32_wt64x4x4_ws1x1_wr1x1_ta1x1x1x8_1x32x1x8_tb1x1x2x1_1x32x1x8
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x16x32_wt64x4x4_ws1x1_wr1x1_ta1x1x1x8_1x32x1x8_tb1x1x2x1_1x32x1x8.kd
     .sgpr_count: 70
-    .vgpr_count: 68
+    .vgpr_count: 66
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -6388,7 +6388,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x16x16_wt64x4x4_ws1x1_wr1x1_ta1x1x1x4_1x16x1x16_tb1x1x1x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x16x16_wt64x4x4_ws1x1_wr1x1_ta1x1x1x4_1x16x1x16_tb1x1x1x1_1x16x1x16_gkgs.kd
     .sgpr_count: 66
-    .vgpr_count: 64
+    .vgpr_count: 62
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -6421,7 +6421,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x16x16_wt64x4x4_ws1x1_wr1x1_ta1x1x1x4_1x16x1x16_tb1x1x1x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x16x16_wt64x4x4_ws1x1_wr1x1_ta1x1x1x4_1x16x1x16_tb1x1x1x1_1x16x1x16.kd
     .sgpr_count: 66
-    .vgpr_count: 64
+    .vgpr_count: 62
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -6454,7 +6454,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt64x16x16_wt64x4x4_ws1x1_wr1x1_ta1x1x1x4_1x16x1x16_tb1x1x1x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt64x16x16_wt64x4x4_ws1x1_wr1x1_ta1x1x1x4_1x16x1x16_tb1x1x1x1_1x16x1x16_gkgs.kd
     .sgpr_count: 66
-    .vgpr_count: 64
+    .vgpr_count: 62
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -6487,7 +6487,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt64x16x16_wt64x4x4_ws1x1_wr1x1_ta1x1x1x4_1x16x1x16_tb1x1x1x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt64x16x16_wt64x4x4_ws1x1_wr1x1_ta1x1x1x4_1x16x1x16_tb1x1x1x1_1x16x1x16.kd
     .sgpr_count: 66
-    .vgpr_count: 64
+    .vgpr_count: 62
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -6586,7 +6586,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt16x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x1x2_1x32x1x8_tb1x1x8x1_1x32x1x8_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt16x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x1x2_1x32x1x8_tb1x1x8x1_1x32x1x8_gkgs.kd
     .sgpr_count: 70
-    .vgpr_count: 68
+    .vgpr_count: 66
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -6619,7 +6619,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt16x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x1x2_1x32x1x8_tb1x1x8x1_1x32x1x8
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt16x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x1x2_1x32x1x8_tb1x1x8x1_1x32x1x8.kd
     .sgpr_count: 70
-    .vgpr_count: 68
+    .vgpr_count: 66
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -6652,7 +6652,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt16x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt16x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs.kd
     .sgpr_count: 66
-    .vgpr_count: 64
+    .vgpr_count: 62
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -6685,7 +6685,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt16x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16x1x16_tb1x1x4x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt16x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16x1x16_tb1x1x4x1_1x16x1x16.kd
     .sgpr_count: 66
-    .vgpr_count: 64
+    .vgpr_count: 62
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -6718,7 +6718,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt16x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt16x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16x1x16_tb1x1x4x1_1x16x1x16_gkgs.kd
     .sgpr_count: 66
-    .vgpr_count: 64
+    .vgpr_count: 62
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -6751,7 +6751,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt16x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16x1x16_tb1x1x4x1_1x16x1x16
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt16x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16x1x16_tb1x1x4x1_1x16x1x16.kd
     .sgpr_count: 66
-    .vgpr_count: 64
+    .vgpr_count: 62
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -6850,7 +6850,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x4x32_wt64x4x4_ws1x1_wr1x1_ta1x1x1x32_1x32x1x2_tb1x1x2x1_1x32x1x2_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x4x32_wt64x4x4_ws1x1_wr1x1_ta1x1x1x32_1x32x1x2_tb1x1x2x1_1x32x1x2_gkgs.kd
     .sgpr_count: 94
-    .vgpr_count: 92
+    .vgpr_count: 90
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -6883,7 +6883,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x4x32_wt64x4x4_ws1x1_wr1x1_ta1x1x1x32_1x32x1x2_tb1x1x2x1_1x32x1x2
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x4x32_wt64x4x4_ws1x1_wr1x1_ta1x1x1x32_1x32x1x2_tb1x1x2x1_1x32x1x2.kd
     .sgpr_count: 94
-    .vgpr_count: 92
+    .vgpr_count: 90
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -6916,7 +6916,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x4x16_wt64x4x4_ws1x1_wr1x1_ta1x1x1x16_1x16x1x4_tb1x1x1x1_1x16x1x4_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x4x16_wt64x4x4_ws1x1_wr1x1_ta1x1x1x16_1x16x1x4_tb1x1x1x1_1x16x1x4_gkgs.kd
     .sgpr_count: 78
-    .vgpr_count: 76
+    .vgpr_count: 74
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -6949,7 +6949,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x4x16_wt64x4x4_ws1x1_wr1x1_ta1x1x1x16_1x16x1x4_tb1x1x1x1_1x16x1x4
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt64x4x16_wt64x4x4_ws1x1_wr1x1_ta1x1x1x16_1x16x1x4_tb1x1x1x1_1x16x1x4.kd
     .sgpr_count: 78
-    .vgpr_count: 76
+    .vgpr_count: 74
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -6982,7 +6982,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt64x4x16_wt64x4x4_ws1x1_wr1x1_ta1x1x1x16_1x16x1x4_tb1x1x1x1_1x16x1x4_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt64x4x16_wt64x4x4_ws1x1_wr1x1_ta1x1x1x16_1x16x1x4_tb1x1x1x1_1x16x1x4_gkgs.kd
     .sgpr_count: 78
-    .vgpr_count: 76
+    .vgpr_count: 74
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -7015,7 +7015,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt64x4x16_wt64x4x4_ws1x1_wr1x1_ta1x1x1x16_1x16x1x4_tb1x1x1x1_1x16x1x4
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt64x4x16_wt64x4x4_ws1x1_wr1x1_ta1x1x1x16_1x16x1x4_tb1x1x1x1_1x16x1x4.kd
     .sgpr_count: 78
-    .vgpr_count: 76
+    .vgpr_count: 74
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -7114,7 +7114,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x1x2_1x32x1x2_tb1x1x32x1_1x32x1x2_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x1x2_1x32x1x2_tb1x1x32x1_1x32x1x2_gkgs.kd
     .sgpr_count: 94
-    .vgpr_count: 92
+    .vgpr_count: 90
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -7147,7 +7147,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x1x2_1x32x1x2_tb1x1x32x1_1x32x1x2
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x32_wt4x64x4_ws1x1_wr1x1_ta1x1x1x2_1x32x1x2_tb1x1x32x1_1x32x1x2.kd
     .sgpr_count: 94
-    .vgpr_count: 92
+    .vgpr_count: 90
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 16384
@@ -7180,7 +7180,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4_gkgs.kd
     .sgpr_count: 78
-    .vgpr_count: 76
+    .vgpr_count: 74
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -7213,7 +7213,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4.kd
     .sgpr_count: 78
-    .vgpr_count: 76
+    .vgpr_count: 74
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -7246,7 +7246,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4_gkgs
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4_gkgs.kd
     .sgpr_count: 78
-    .vgpr_count: 76
+    .vgpr_count: 74
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192
@@ -7279,7 +7279,7 @@ amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt4x64x16_wt4x64x4_ws1x1_wr1x1_ta1x1x1x1_1x16x1x4_tb1x1x16x1_1x16x1x4.kd
     .sgpr_count: 78
-    .vgpr_count: 76
+    .vgpr_count: 74
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
     .group_segment_fixed_size: 8192

@@ -156,19 +156,18 @@
 .set v_gtc_in0, 44
 .set v_out_flag_prev, 44
 .set v_gtc_in1b, 45
-.set v_gtc_in1, 46
-.set v_gemm_in, 47
-.set v_gemm_im, 48
-.set v_wei_ic0, 49
-.set v_wei_ic1e, 50
-.set v_wei_ic1, 51
-.set v_co_sub_m_index, 52
-.set v_co_sub_n_index, 53
-.set v_cur_k, 54
-.set v_cur_c, 55
-.set v_in_flag_with_wi, 56
-.set v_tmp, 58
-.set v_end, 64
+.set v_gemm_in, 46
+.set v_gemm_im, 47
+.set v_wei_ic0, 48
+.set v_wei_ic1e, 49
+.set v_wei_ic1, 50
+.set v_co_sub_m_index, 51
+.set v_co_sub_n_index, 52
+.set v_cur_k, 53
+.set v_cur_c, 54
+.set v_in_flag_with_wi, 55
+.set v_tmp, 56
+.set v_end, 62
 
 .set a_c, 0
 .set a_end, 8
@@ -219,11 +218,8 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x64x32_wt8x32x4_ws2x1_wr1x1_ta1x4x1x1_1x8x1
     s_mul_i32 s[s_out_stride_n],      s[s_group],        s[s_tmp]
     s_lshl_b32 s[s_in_stride_c0], s[s_in_stride_c], 5
     ; n1b transform
-    .v_u32_div_rem_vs v_tmp+4, v_gtc_in1, v_gtc_in1b, s_out_stride_k, v_tmp, s_tmp
+    .v_u32_div_rem_vs v_tmp+4, v_move_slice_n_in1, v_gtc_in1b, s_out_stride_k, v_tmp, s_tmp
     .v_u32_div_rem_vs v_move_slice_n_idswo, v_move_slice_n_idsho, v_tmp+4, s_wo, v_tmp, s_tmp
-    v_mov_b32 v[v_out_iho], v[v_move_slice_n_idsho]
-    v_mov_b32 v[v_out_iwo], v[v_move_slice_n_idswo]
-    v_mov_b32 v[v_move_slice_n_in1], v[v_gtc_in1]
 
     ; add block i_n
     ; gemm_m_per_block:32, gemm_n_per_block:64
@@ -256,9 +252,9 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x64x32_wt8x32x4_ws2x1_wr1x1_ta1x4x1x1_1x8x1
     v_sub_i32 v[v_wei_ix], v[v_tmp+1], s[s_pad_w]
     ; ihi = iho * s_stride_h + iy * s_dilation_h - s_pad_h,   here make sure iy <- iy * s_dilation_h - s_pad_h before hand
     ; iwi = iwo * s_stride_w + ix * s_dilation_w - s_pad_w,   here make sure ix <- ix * s_dilation_w - s_pad_w before hand
-    v_mul_lo_u32 v[v_tmp], s[s_stride_h], v[v_out_iho]
+    v_mul_lo_u32 v[v_tmp], s[s_stride_h], v[v_move_slice_n_idsho]
     v_add_i32 v[v_in_ihi], v[v_tmp], v[v_wei_iy]
-    v_mul_lo_u32 v[v_tmp+1], s[s_stride_w], v[v_out_iwo]
+    v_mul_lo_u32 v[v_tmp+1], s[s_stride_w], v[v_move_slice_n_idswo]
     v_add_i32 v[v_in_iwi], v[v_tmp+1], v[v_wei_ix]
     ; calculate input offset
     ; set input range
@@ -278,7 +274,7 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x64x32_wt8x32x4_ws2x1_wr1x1_ta1x4x1x1_1x8x1
     s_add_u32 s[s_p_in], s[s_p_in], s[s_tmp]
     s_addc_u32 s[s_p_in+1], s[s_p_in+1], s[s_tmp+1]
 
-    v_mov_b32 v[v_tmp], v[v_gtc_in1]
+    v_mov_b32 v[v_tmp], v[v_move_slice_n_in1]
     v_add_u32 v[v_tmp], v[v_tmp], s[s_block_gtc_in]
     v_mul_lo_u32 v[v_tmp], s[s_in_stride_n], v[v_tmp]
     v_mov_b32 v[v_tmp+1], v[v_gtc_ic1]
@@ -310,12 +306,12 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x64x32_wt8x32x4_ws2x1_wr1x1_ta1x4x1x1_1x8x1
     v_mov_b32 v[v_tmp], v[v_gtc_ik1]
     v_add_u32 v[v_tmp+5], s[s_block_gtc_ik], v[v_tmp]
     v_mul_lo_u32 v[v_tmp], s[s_out_stride_k], v[v_tmp+5]
-    v_mov_b32 v[v_tmp+1], v[v_gtc_in1]
+    v_mov_b32 v[v_tmp+1], v[v_move_slice_n_in1]
     v_add_u32 v[v_tmp+1], v[v_tmp+1], s[s_block_gtc_in]
     v_mul_lo_u32 v[v_tmp+1], s[s_out_stride_n], v[v_tmp+1]
     v_add_lshl_u32 v[v_out_os_base], v[v_tmp], v[v_tmp+1], 1
     ; from ho, wo, os_base, compute final offset
-    v_mad_u32_u24 v[v_tmp], s[s_wo], v[v_out_iho], v[v_out_iwo]
+    v_mad_u32_u24 v[v_tmp], s[s_wo], v[v_move_slice_n_idsho], v[v_move_slice_n_idswo]
     v_lshl_add_u32 v[v_out_os], v[v_tmp], 1, v[v_out_os_base]
 
     s_lshl_b32 s[s_out_stride_n], s[s_out_stride_n], 1
@@ -678,7 +674,7 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x64x32_wt8x32x4_ws2x1_wr1x1_ta1x4x1x1_1x8
     .amdhsa_user_sgpr_kernarg_segment_ptr 1
     .amdhsa_system_sgpr_workgroup_id_x 1
     .amdhsa_system_vgpr_workitem_id 0
-    .amdhsa_next_free_vgpr 64
+    .amdhsa_next_free_vgpr 62
     .amdhsa_next_free_sgpr 58
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
@@ -815,19 +811,18 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x64x32_wt8x32x4_ws2x1_wr1x1_ta1x4x1x1_1x8
 .set v_gtc_in0, 44
 .set v_out_flag_prev, 44
 .set v_gtc_in1b, 45
-.set v_gtc_in1, 46
-.set v_gemm_in, 47
-.set v_gemm_im, 48
-.set v_wei_ic0, 49
-.set v_wei_ic1e, 50
-.set v_wei_ic1, 51
-.set v_co_sub_m_index, 52
-.set v_co_sub_n_index, 53
-.set v_cur_k, 54
-.set v_cur_c, 55
-.set v_in_flag_with_wi, 56
-.set v_tmp, 58
-.set v_end, 64
+.set v_gemm_in, 46
+.set v_gemm_im, 47
+.set v_wei_ic0, 48
+.set v_wei_ic1e, 49
+.set v_wei_ic1, 50
+.set v_co_sub_m_index, 51
+.set v_co_sub_n_index, 52
+.set v_cur_k, 53
+.set v_cur_c, 54
+.set v_in_flag_with_wi, 55
+.set v_tmp, 56
+.set v_end, 62
 
 .set a_c, 0
 .set a_end, 8
@@ -878,11 +873,8 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x64x32_wt8x32x4_ws2x1_wr1x1_ta1x4x1x1_1x8x1
     s_mul_i32 s[s_out_stride_n],      s[s_group],        s[s_tmp]
     s_lshl_b32 s[s_in_stride_c0], s[s_in_stride_c], 5
     ; n1b transform
-    .v_u32_div_rem_vs v_tmp+4, v_gtc_in1, v_gtc_in1b, s_out_stride_k, v_tmp, s_tmp
+    .v_u32_div_rem_vs v_tmp+4, v_move_slice_n_in1, v_gtc_in1b, s_out_stride_k, v_tmp, s_tmp
     .v_u32_div_rem_vs v_move_slice_n_idswo, v_move_slice_n_idsho, v_tmp+4, s_wo, v_tmp, s_tmp
-    v_mov_b32 v[v_out_iho], v[v_move_slice_n_idsho]
-    v_mov_b32 v[v_out_iwo], v[v_move_slice_n_idswo]
-    v_mov_b32 v[v_move_slice_n_in1], v[v_gtc_in1]
 
     ; add block i_n
     ; gemm_m_per_block:32, gemm_n_per_block:64
@@ -915,9 +907,9 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x64x32_wt8x32x4_ws2x1_wr1x1_ta1x4x1x1_1x8x1
     v_sub_i32 v[v_wei_ix], v[v_tmp+1], s[s_pad_w]
     ; ihi = iho * s_stride_h + iy * s_dilation_h - s_pad_h,   here make sure iy <- iy * s_dilation_h - s_pad_h before hand
     ; iwi = iwo * s_stride_w + ix * s_dilation_w - s_pad_w,   here make sure ix <- ix * s_dilation_w - s_pad_w before hand
-    v_mul_lo_u32 v[v_tmp], s[s_stride_h], v[v_out_iho]
+    v_mul_lo_u32 v[v_tmp], s[s_stride_h], v[v_move_slice_n_idsho]
     v_add_i32 v[v_in_ihi], v[v_tmp], v[v_wei_iy]
-    v_mul_lo_u32 v[v_tmp+1], s[s_stride_w], v[v_out_iwo]
+    v_mul_lo_u32 v[v_tmp+1], s[s_stride_w], v[v_move_slice_n_idswo]
     v_add_i32 v[v_in_iwi], v[v_tmp+1], v[v_wei_ix]
     ; calculate input offset
     ; set input range
@@ -937,7 +929,7 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x64x32_wt8x32x4_ws2x1_wr1x1_ta1x4x1x1_1x8x1
     s_add_u32 s[s_p_in], s[s_p_in], s[s_tmp]
     s_addc_u32 s[s_p_in+1], s[s_p_in+1], s[s_tmp+1]
 
-    v_mov_b32 v[v_tmp], v[v_gtc_in1]
+    v_mov_b32 v[v_tmp], v[v_move_slice_n_in1]
     v_add_u32 v[v_tmp], v[v_tmp], s[s_block_gtc_in]
     v_mul_lo_u32 v[v_tmp], s[s_in_stride_n], v[v_tmp]
     v_mov_b32 v[v_tmp+1], v[v_gtc_ic1]
@@ -969,12 +961,12 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x64x32_wt8x32x4_ws2x1_wr1x1_ta1x4x1x1_1x8x1
     v_mov_b32 v[v_tmp], v[v_gtc_ik1]
     v_add_u32 v[v_tmp+5], s[s_block_gtc_ik], v[v_tmp]
     v_mul_lo_u32 v[v_tmp], s[s_out_stride_k], v[v_tmp+5]
-    v_mov_b32 v[v_tmp+1], v[v_gtc_in1]
+    v_mov_b32 v[v_tmp+1], v[v_move_slice_n_in1]
     v_add_u32 v[v_tmp+1], v[v_tmp+1], s[s_block_gtc_in]
     v_mul_lo_u32 v[v_tmp+1], s[s_out_stride_n], v[v_tmp+1]
     v_add_lshl_u32 v[v_out_os_base], v[v_tmp], v[v_tmp+1], 1
     ; from ho, wo, os_base, compute final offset
-    v_mad_u32_u24 v[v_tmp], s[s_wo], v[v_out_iho], v[v_out_iwo]
+    v_mad_u32_u24 v[v_tmp], s[s_wo], v[v_move_slice_n_idsho], v[v_move_slice_n_idswo]
     v_lshl_add_u32 v[v_out_os], v[v_tmp], 1, v[v_out_os_base]
 
     s_lshl_b32 s[s_out_stride_n], s[s_out_stride_n], 1
@@ -1349,7 +1341,7 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x64x32_wt8x32x4_ws2x1_wr1x1_ta1x4x1x1_1x8
     .amdhsa_user_sgpr_kernarg_segment_ptr 1
     .amdhsa_system_sgpr_workgroup_id_x 1
     .amdhsa_system_vgpr_workitem_id 0
-    .amdhsa_next_free_vgpr 64
+    .amdhsa_next_free_vgpr 62
     .amdhsa_next_free_sgpr 58
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
@@ -1486,17 +1478,16 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x64x32_wt8x32x4_ws2x1_wr1x1_ta1x4x1x1_1x8
 .set v_gtc_in0, 41
 .set v_out_flag_prev, 41
 .set v_gtc_in1b, 42
-.set v_gtc_in1, 43
-.set v_gemm_in, 44
-.set v_gemm_im, 45
-.set v_wei_ic0, 46
-.set v_wei_ic1e, 47
-.set v_wei_ic1, 48
-.set v_co_sub_m_index, 49
-.set v_co_sub_n_index, 50
-.set v_cur_k, 51
-.set v_cur_c, 52
-.set v_in_flag_with_wi, 53
+.set v_gemm_in, 43
+.set v_gemm_im, 44
+.set v_wei_ic0, 45
+.set v_wei_ic1e, 46
+.set v_wei_ic1, 47
+.set v_co_sub_m_index, 48
+.set v_co_sub_n_index, 49
+.set v_cur_k, 50
+.set v_cur_c, 51
+.set v_in_flag_with_wi, 52
 .set v_tmp, 54
 .set v_end, 60
 
@@ -1549,11 +1540,8 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x2x1x1_1x8x1
     s_mul_i32 s[s_out_stride_n],      s[s_group],        s[s_tmp]
     s_lshl_b32 s[s_in_stride_c0], s[s_in_stride_c], 5
     ; n1b transform
-    .v_u32_div_rem_vs v_tmp+4, v_gtc_in1, v_gtc_in1b, s_out_stride_k, v_tmp, s_tmp
+    .v_u32_div_rem_vs v_tmp+4, v_move_slice_n_in1, v_gtc_in1b, s_out_stride_k, v_tmp, s_tmp
     .v_u32_div_rem_vs v_move_slice_n_idswo, v_move_slice_n_idsho, v_tmp+4, s_wo, v_tmp, s_tmp
-    v_mov_b32 v[v_out_iho], v[v_move_slice_n_idsho]
-    v_mov_b32 v[v_out_iwo], v[v_move_slice_n_idswo]
-    v_mov_b32 v[v_move_slice_n_in1], v[v_gtc_in1]
 
     ; add block i_n
     ; gemm_m_per_block:32, gemm_n_per_block:64
@@ -1586,9 +1574,9 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x2x1x1_1x8x1
     v_sub_i32 v[v_wei_ix], v[v_tmp+1], s[s_pad_w]
     ; ihi = iho * s_stride_h + iy * s_dilation_h - s_pad_h,   here make sure iy <- iy * s_dilation_h - s_pad_h before hand
     ; iwi = iwo * s_stride_w + ix * s_dilation_w - s_pad_w,   here make sure ix <- ix * s_dilation_w - s_pad_w before hand
-    v_mul_lo_u32 v[v_tmp], s[s_stride_h], v[v_out_iho]
+    v_mul_lo_u32 v[v_tmp], s[s_stride_h], v[v_move_slice_n_idsho]
     v_add_i32 v[v_in_ihi], v[v_tmp], v[v_wei_iy]
-    v_mul_lo_u32 v[v_tmp+1], s[s_stride_w], v[v_out_iwo]
+    v_mul_lo_u32 v[v_tmp+1], s[s_stride_w], v[v_move_slice_n_idswo]
     v_add_i32 v[v_in_iwi], v[v_tmp+1], v[v_wei_ix]
     ; calculate input offset
     ; set input range
@@ -1608,7 +1596,7 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x2x1x1_1x8x1
     s_add_u32 s[s_p_in], s[s_p_in], s[s_tmp]
     s_addc_u32 s[s_p_in+1], s[s_p_in+1], s[s_tmp+1]
 
-    v_mov_b32 v[v_tmp], v[v_gtc_in1]
+    v_mov_b32 v[v_tmp], v[v_move_slice_n_in1]
     v_add_u32 v[v_tmp], v[v_tmp], s[s_block_gtc_in]
     v_mul_lo_u32 v[v_tmp], s[s_in_stride_n], v[v_tmp]
     v_mov_b32 v[v_tmp+1], v[v_gtc_ic1]
@@ -1640,12 +1628,12 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x2x1x1_1x8x1
     v_mov_b32 v[v_tmp], v[v_gtc_ik1]
     v_add_u32 v[v_tmp+5], s[s_block_gtc_ik], v[v_tmp]
     v_mul_lo_u32 v[v_tmp], s[s_out_stride_k], v[v_tmp+5]
-    v_mov_b32 v[v_tmp+1], v[v_gtc_in1]
+    v_mov_b32 v[v_tmp+1], v[v_move_slice_n_in1]
     v_add_u32 v[v_tmp+1], v[v_tmp+1], s[s_block_gtc_in]
     v_mul_lo_u32 v[v_tmp+1], s[s_out_stride_n], v[v_tmp+1]
     v_add_lshl_u32 v[v_out_os_base], v[v_tmp], v[v_tmp+1], 1
     ; from ho, wo, os_base, compute final offset
-    v_mad_u32_u24 v[v_tmp], s[s_wo], v[v_out_iho], v[v_out_iwo]
+    v_mad_u32_u24 v[v_tmp], s[s_wo], v[v_move_slice_n_idsho], v[v_move_slice_n_idswo]
     v_lshl_add_u32 v[v_out_os], v[v_tmp], 1, v[v_out_os_base]
 
     s_lshl_b32 s[s_out_stride_n], s[s_out_stride_n], 1
@@ -2103,17 +2091,16 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x2x1x1_1x8
 .set v_gtc_in0, 41
 .set v_out_flag_prev, 41
 .set v_gtc_in1b, 42
-.set v_gtc_in1, 43
-.set v_gemm_in, 44
-.set v_gemm_im, 45
-.set v_wei_ic0, 46
-.set v_wei_ic1e, 47
-.set v_wei_ic1, 48
-.set v_co_sub_m_index, 49
-.set v_co_sub_n_index, 50
-.set v_cur_k, 51
-.set v_cur_c, 52
-.set v_in_flag_with_wi, 53
+.set v_gemm_in, 43
+.set v_gemm_im, 44
+.set v_wei_ic0, 45
+.set v_wei_ic1e, 46
+.set v_wei_ic1, 47
+.set v_co_sub_m_index, 48
+.set v_co_sub_n_index, 49
+.set v_cur_k, 50
+.set v_cur_c, 51
+.set v_in_flag_with_wi, 52
 .set v_tmp, 54
 .set v_end, 60
 
@@ -2166,11 +2153,8 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x2x1x1_1x8x1
     s_mul_i32 s[s_out_stride_n],      s[s_group],        s[s_tmp]
     s_lshl_b32 s[s_in_stride_c0], s[s_in_stride_c], 5
     ; n1b transform
-    .v_u32_div_rem_vs v_tmp+4, v_gtc_in1, v_gtc_in1b, s_out_stride_k, v_tmp, s_tmp
+    .v_u32_div_rem_vs v_tmp+4, v_move_slice_n_in1, v_gtc_in1b, s_out_stride_k, v_tmp, s_tmp
     .v_u32_div_rem_vs v_move_slice_n_idswo, v_move_slice_n_idsho, v_tmp+4, s_wo, v_tmp, s_tmp
-    v_mov_b32 v[v_out_iho], v[v_move_slice_n_idsho]
-    v_mov_b32 v[v_out_iwo], v[v_move_slice_n_idswo]
-    v_mov_b32 v[v_move_slice_n_in1], v[v_gtc_in1]
 
     ; add block i_n
     ; gemm_m_per_block:32, gemm_n_per_block:64
@@ -2203,9 +2187,9 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x2x1x1_1x8x1
     v_sub_i32 v[v_wei_ix], v[v_tmp+1], s[s_pad_w]
     ; ihi = iho * s_stride_h + iy * s_dilation_h - s_pad_h,   here make sure iy <- iy * s_dilation_h - s_pad_h before hand
     ; iwi = iwo * s_stride_w + ix * s_dilation_w - s_pad_w,   here make sure ix <- ix * s_dilation_w - s_pad_w before hand
-    v_mul_lo_u32 v[v_tmp], s[s_stride_h], v[v_out_iho]
+    v_mul_lo_u32 v[v_tmp], s[s_stride_h], v[v_move_slice_n_idsho]
     v_add_i32 v[v_in_ihi], v[v_tmp], v[v_wei_iy]
-    v_mul_lo_u32 v[v_tmp+1], s[s_stride_w], v[v_out_iwo]
+    v_mul_lo_u32 v[v_tmp+1], s[s_stride_w], v[v_move_slice_n_idswo]
     v_add_i32 v[v_in_iwi], v[v_tmp+1], v[v_wei_ix]
     ; calculate input offset
     ; set input range
@@ -2225,7 +2209,7 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x2x1x1_1x8x1
     s_add_u32 s[s_p_in], s[s_p_in], s[s_tmp]
     s_addc_u32 s[s_p_in+1], s[s_p_in+1], s[s_tmp+1]
 
-    v_mov_b32 v[v_tmp], v[v_gtc_in1]
+    v_mov_b32 v[v_tmp], v[v_move_slice_n_in1]
     v_add_u32 v[v_tmp], v[v_tmp], s[s_block_gtc_in]
     v_mul_lo_u32 v[v_tmp], s[s_in_stride_n], v[v_tmp]
     v_mov_b32 v[v_tmp+1], v[v_gtc_ic1]
@@ -2257,12 +2241,12 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x2x1x1_1x8x1
     v_mov_b32 v[v_tmp], v[v_gtc_ik1]
     v_add_u32 v[v_tmp+5], s[s_block_gtc_ik], v[v_tmp]
     v_mul_lo_u32 v[v_tmp], s[s_out_stride_k], v[v_tmp+5]
-    v_mov_b32 v[v_tmp+1], v[v_gtc_in1]
+    v_mov_b32 v[v_tmp+1], v[v_move_slice_n_in1]
     v_add_u32 v[v_tmp+1], v[v_tmp+1], s[s_block_gtc_in]
     v_mul_lo_u32 v[v_tmp+1], s[s_out_stride_n], v[v_tmp+1]
     v_add_lshl_u32 v[v_out_os_base], v[v_tmp], v[v_tmp+1], 1
     ; from ho, wo, os_base, compute final offset
-    v_mad_u32_u24 v[v_tmp], s[s_wo], v[v_out_iho], v[v_out_iwo]
+    v_mad_u32_u24 v[v_tmp], s[s_wo], v[v_move_slice_n_idsho], v[v_move_slice_n_idswo]
     v_lshl_add_u32 v[v_out_os], v[v_tmp], 1, v[v_out_os_base]
 
     s_lshl_b32 s[s_out_stride_n], s[s_out_stride_n], 1
@@ -2738,19 +2722,18 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x2x1x1_1x8
 .set v_gtc_in0, 54
 .set v_out_flag_prev, 54
 .set v_gtc_in1b, 55
-.set v_gtc_in1, 56
-.set v_gemm_in, 57
-.set v_gemm_im, 58
-.set v_wei_ic0, 59
-.set v_wei_ic1e, 60
-.set v_wei_ic1, 61
-.set v_co_sub_m_index, 62
-.set v_co_sub_n_index, 63
-.set v_cur_k, 64
-.set v_cur_c, 65
-.set v_in_flag_with_wi, 66
-.set v_tmp, 68
-.set v_end, 74
+.set v_gemm_in, 56
+.set v_gemm_im, 57
+.set v_wei_ic0, 58
+.set v_wei_ic1e, 59
+.set v_wei_ic1, 60
+.set v_co_sub_m_index, 61
+.set v_co_sub_n_index, 62
+.set v_cur_k, 63
+.set v_cur_c, 64
+.set v_in_flag_with_wi, 65
+.set v_tmp, 66
+.set v_end, 72
 
 .set a_c, 0
 .set a_end, 8
@@ -2804,11 +2787,8 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x64x32_wt8x32x4_ws2x1_wr1x1_ta1x1x1x4_1x32x
     s_lshr_b32 s[s_tmp+1], s[s_tmp], 2
     s_lshl_b32 s[s_dim_b], s[s_tmp+1], 2
     ; n1b transform
-    .v_u32_div_rem_vs v_tmp+4, v_gtc_in1, v_gtc_in1b, s_dim_b, v_tmp, s_tmp
+    .v_u32_div_rem_vs v_tmp+4, v_move_slice_n_in1, v_gtc_in1b, s_dim_b, v_tmp, s_tmp
     .v_u32_div_rem_vs v_move_slice_n_idswo, v_move_slice_n_idsho, v_tmp+4, s_wo, v_tmp, s_tmp
-    v_mov_b32 v[v_out_iho], v[v_move_slice_n_idsho]
-    v_mov_b32 v[v_out_iwo], v[v_move_slice_n_idswo]
-    v_mov_b32 v[v_move_slice_n_in1], v[v_gtc_in1]
     v_mov_b32 v[v_move_slice_n_in0], v[v_gtc_in0]
 
     ; add block i_n
@@ -2842,9 +2822,9 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x64x32_wt8x32x4_ws2x1_wr1x1_ta1x1x1x4_1x32x
     v_sub_i32 v[v_wei_ix], v[v_tmp+1], s[s_pad_w]
     ; ihi = iho * s_stride_h + iy * s_dilation_h - s_pad_h,   here make sure iy <- iy * s_dilation_h - s_pad_h before hand
     ; iwi = iwo * s_stride_w + ix * s_dilation_w - s_pad_w,   here make sure ix <- ix * s_dilation_w - s_pad_w before hand
-    v_mul_lo_u32 v[v_tmp], s[s_stride_h], v[v_out_iho]
+    v_mul_lo_u32 v[v_tmp], s[s_stride_h], v[v_move_slice_n_idsho]
     v_add_i32 v[v_in_ihi], v[v_tmp], v[v_wei_iy]
-    v_mul_lo_u32 v[v_tmp+1], s[s_stride_w], v[v_out_iwo]
+    v_mul_lo_u32 v[v_tmp+1], s[s_stride_w], v[v_move_slice_n_idswo]
     v_add_i32 v[v_in_iwi], v[v_tmp+1], v[v_wei_ix]
     ; calculate input offset
     ; set input range
@@ -2864,7 +2844,7 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x64x32_wt8x32x4_ws2x1_wr1x1_ta1x1x1x4_1x32x
     s_add_u32 s[s_p_in], s[s_p_in], s[s_tmp]
     s_addc_u32 s[s_p_in+1], s[s_p_in+1], s[s_tmp+1]
 
-    v_mov_b32 v[v_tmp], v[v_gtc_in1]
+    v_mov_b32 v[v_tmp], v[v_move_slice_n_in1]
     v_cmp_gt_u32 vcc, s[s_n], v[v_tmp]
     v_cndmask_b32 v[v_flag_n], 0, 1, vcc
     v_add_u32 v[v_tmp], v[v_tmp], s[s_block_gtc_in]
@@ -2916,16 +2896,16 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x64x32_wt8x32x4_ws2x1_wr1x1_ta1x1x1x4_1x32x
     v_mov_b32 v[v_tmp], v[v_gtc_ik1]
     v_add_u32 v[v_tmp+5], s[s_block_gtc_ik], v[v_tmp]
     v_mul_lo_u32 v[v_tmp], s[s_out_stride_k], v[v_tmp+5]
-    v_mov_b32 v[v_tmp+1], v[v_gtc_in1]
+    v_mov_b32 v[v_tmp+1], v[v_move_slice_n_in1]
     v_add_u32 v[v_tmp+1], v[v_tmp+1], s[s_block_gtc_in]
     v_mul_lo_u32 v[v_tmp+1], s[s_out_stride_n], v[v_tmp+1]
     v_add_lshl_u32 v[v_out_os_base], v[v_tmp], v[v_tmp+1], 1
     ; from ho, wo, os_base, compute final offset
-    v_mad_u32_u24 v[v_tmp], s[s_wo], v[v_out_iho], v[v_out_iwo]
+    v_mad_u32_u24 v[v_tmp], s[s_wo], v[v_move_slice_n_idsho], v[v_move_slice_n_idswo]
     v_lshl_add_u32 v[v_out_os], v[v_tmp], 1, v[v_out_os_base]
-    v_cmp_gt_u32 vcc, s[s_ho], v[v_out_iho]
+    v_cmp_gt_u32 vcc, s[s_ho], v[v_move_slice_n_idsho]
     v_cndmask_b32 v[v_out_flag], 0, 1, vcc
-    v_cmp_gt_u32 vcc, s[s_wo], v[v_out_iwo]
+    v_cmp_gt_u32 vcc, s[s_wo], v[v_move_slice_n_idswo]
     v_cndmask_b32 v[v_out_flag], 0, v[v_out_flag], vcc
     v_and_b32 v[v_out_flag], v[v_out_flag], v[v_flag_n]
 
@@ -3367,7 +3347,7 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x64x32_wt8x32x4_ws2x1_wr1x1_ta1x1x1x4_1x3
     .amdhsa_user_sgpr_kernarg_segment_ptr 1
     .amdhsa_system_sgpr_workgroup_id_x 1
     .amdhsa_system_vgpr_workitem_id 0
-    .amdhsa_next_free_vgpr 74
+    .amdhsa_next_free_vgpr 72
     .amdhsa_next_free_sgpr 66
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
@@ -3510,19 +3490,18 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x64x32_wt8x32x4_ws2x1_wr1x1_ta1x1x1x4_1x3
 .set v_gtc_in0, 54
 .set v_out_flag_prev, 54
 .set v_gtc_in1b, 55
-.set v_gtc_in1, 56
-.set v_gemm_in, 57
-.set v_gemm_im, 58
-.set v_wei_ic0, 59
-.set v_wei_ic1e, 60
-.set v_wei_ic1, 61
-.set v_co_sub_m_index, 62
-.set v_co_sub_n_index, 63
-.set v_cur_k, 64
-.set v_cur_c, 65
-.set v_in_flag_with_wi, 66
-.set v_tmp, 68
-.set v_end, 74
+.set v_gemm_in, 56
+.set v_gemm_im, 57
+.set v_wei_ic0, 58
+.set v_wei_ic1e, 59
+.set v_wei_ic1, 60
+.set v_co_sub_m_index, 61
+.set v_co_sub_n_index, 62
+.set v_cur_k, 63
+.set v_cur_c, 64
+.set v_in_flag_with_wi, 65
+.set v_tmp, 66
+.set v_end, 72
 
 .set a_c, 0
 .set a_end, 8
@@ -3576,11 +3555,8 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x64x32_wt8x32x4_ws2x1_wr1x1_ta1x1x1x4_1x32x
     s_lshr_b32 s[s_tmp+1], s[s_tmp], 2
     s_lshl_b32 s[s_dim_b], s[s_tmp+1], 2
     ; n1b transform
-    .v_u32_div_rem_vs v_tmp+4, v_gtc_in1, v_gtc_in1b, s_dim_b, v_tmp, s_tmp
+    .v_u32_div_rem_vs v_tmp+4, v_move_slice_n_in1, v_gtc_in1b, s_dim_b, v_tmp, s_tmp
     .v_u32_div_rem_vs v_move_slice_n_idswo, v_move_slice_n_idsho, v_tmp+4, s_wo, v_tmp, s_tmp
-    v_mov_b32 v[v_out_iho], v[v_move_slice_n_idsho]
-    v_mov_b32 v[v_out_iwo], v[v_move_slice_n_idswo]
-    v_mov_b32 v[v_move_slice_n_in1], v[v_gtc_in1]
     v_mov_b32 v[v_move_slice_n_in0], v[v_gtc_in0]
 
     ; add block i_n
@@ -3614,9 +3590,9 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x64x32_wt8x32x4_ws2x1_wr1x1_ta1x1x1x4_1x32x
     v_sub_i32 v[v_wei_ix], v[v_tmp+1], s[s_pad_w]
     ; ihi = iho * s_stride_h + iy * s_dilation_h - s_pad_h,   here make sure iy <- iy * s_dilation_h - s_pad_h before hand
     ; iwi = iwo * s_stride_w + ix * s_dilation_w - s_pad_w,   here make sure ix <- ix * s_dilation_w - s_pad_w before hand
-    v_mul_lo_u32 v[v_tmp], s[s_stride_h], v[v_out_iho]
+    v_mul_lo_u32 v[v_tmp], s[s_stride_h], v[v_move_slice_n_idsho]
     v_add_i32 v[v_in_ihi], v[v_tmp], v[v_wei_iy]
-    v_mul_lo_u32 v[v_tmp+1], s[s_stride_w], v[v_out_iwo]
+    v_mul_lo_u32 v[v_tmp+1], s[s_stride_w], v[v_move_slice_n_idswo]
     v_add_i32 v[v_in_iwi], v[v_tmp+1], v[v_wei_ix]
     ; calculate input offset
     ; set input range
@@ -3636,7 +3612,7 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x64x32_wt8x32x4_ws2x1_wr1x1_ta1x1x1x4_1x32x
     s_add_u32 s[s_p_in], s[s_p_in], s[s_tmp]
     s_addc_u32 s[s_p_in+1], s[s_p_in+1], s[s_tmp+1]
 
-    v_mov_b32 v[v_tmp], v[v_gtc_in1]
+    v_mov_b32 v[v_tmp], v[v_move_slice_n_in1]
     v_cmp_gt_u32 vcc, s[s_n], v[v_tmp]
     v_cndmask_b32 v[v_flag_n], 0, 1, vcc
     v_add_u32 v[v_tmp], v[v_tmp], s[s_block_gtc_in]
@@ -3688,16 +3664,16 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x64x32_wt8x32x4_ws2x1_wr1x1_ta1x1x1x4_1x32x
     v_mov_b32 v[v_tmp], v[v_gtc_ik1]
     v_add_u32 v[v_tmp+5], s[s_block_gtc_ik], v[v_tmp]
     v_mul_lo_u32 v[v_tmp], s[s_out_stride_k], v[v_tmp+5]
-    v_mov_b32 v[v_tmp+1], v[v_gtc_in1]
+    v_mov_b32 v[v_tmp+1], v[v_move_slice_n_in1]
     v_add_u32 v[v_tmp+1], v[v_tmp+1], s[s_block_gtc_in]
     v_mul_lo_u32 v[v_tmp+1], s[s_out_stride_n], v[v_tmp+1]
     v_add_lshl_u32 v[v_out_os_base], v[v_tmp], v[v_tmp+1], 1
     ; from ho, wo, os_base, compute final offset
-    v_mad_u32_u24 v[v_tmp], s[s_wo], v[v_out_iho], v[v_out_iwo]
+    v_mad_u32_u24 v[v_tmp], s[s_wo], v[v_move_slice_n_idsho], v[v_move_slice_n_idswo]
     v_lshl_add_u32 v[v_out_os], v[v_tmp], 1, v[v_out_os_base]
-    v_cmp_gt_u32 vcc, s[s_ho], v[v_out_iho]
+    v_cmp_gt_u32 vcc, s[s_ho], v[v_move_slice_n_idsho]
     v_cndmask_b32 v[v_out_flag], 0, 1, vcc
-    v_cmp_gt_u32 vcc, s[s_wo], v[v_out_iwo]
+    v_cmp_gt_u32 vcc, s[s_wo], v[v_move_slice_n_idswo]
     v_cndmask_b32 v[v_out_flag], 0, v[v_out_flag], vcc
     v_and_b32 v[v_out_flag], v[v_out_flag], v[v_flag_n]
 
@@ -4151,7 +4127,7 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x64x32_wt8x32x4_ws2x1_wr1x1_ta1x1x1x4_1x3
     .amdhsa_user_sgpr_kernarg_segment_ptr 1
     .amdhsa_system_sgpr_workgroup_id_x 1
     .amdhsa_system_vgpr_workitem_id 0
-    .amdhsa_next_free_vgpr 74
+    .amdhsa_next_free_vgpr 72
     .amdhsa_next_free_sgpr 66
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
@@ -4294,19 +4270,18 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x64x32_wt8x32x4_ws2x1_wr1x1_ta1x1x1x4_1x3
 .set v_gtc_in0, 48
 .set v_out_flag_prev, 48
 .set v_gtc_in1b, 49
-.set v_gtc_in1, 50
-.set v_gemm_in, 51
-.set v_gemm_im, 52
-.set v_wei_ic0, 53
-.set v_wei_ic1e, 54
-.set v_wei_ic1, 55
-.set v_co_sub_m_index, 56
-.set v_co_sub_n_index, 57
-.set v_cur_k, 58
-.set v_cur_c, 59
-.set v_in_flag_with_wi, 60
-.set v_tmp, 62
-.set v_end, 68
+.set v_gemm_in, 50
+.set v_gemm_im, 51
+.set v_wei_ic0, 52
+.set v_wei_ic1e, 53
+.set v_wei_ic1, 54
+.set v_co_sub_m_index, 55
+.set v_co_sub_n_index, 56
+.set v_cur_k, 57
+.set v_cur_c, 58
+.set v_in_flag_with_wi, 59
+.set v_tmp, 60
+.set v_end, 66
 
 .set a_c, 0
 .set a_end, 8
@@ -4360,11 +4335,8 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x1x1x2_1x16x
     s_lshr_b32 s[s_tmp+1], s[s_tmp], 2
     s_lshl_b32 s[s_dim_b], s[s_tmp+1], 2
     ; n1b transform
-    .v_u32_div_rem_vs v_tmp+4, v_gtc_in1, v_gtc_in1b, s_dim_b, v_tmp, s_tmp
+    .v_u32_div_rem_vs v_tmp+4, v_move_slice_n_in1, v_gtc_in1b, s_dim_b, v_tmp, s_tmp
     .v_u32_div_rem_vs v_move_slice_n_idswo, v_move_slice_n_idsho, v_tmp+4, s_wo, v_tmp, s_tmp
-    v_mov_b32 v[v_out_iho], v[v_move_slice_n_idsho]
-    v_mov_b32 v[v_out_iwo], v[v_move_slice_n_idswo]
-    v_mov_b32 v[v_move_slice_n_in1], v[v_gtc_in1]
     v_mov_b32 v[v_move_slice_n_in0], v[v_gtc_in0]
 
     ; add block i_n
@@ -4398,9 +4370,9 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x1x1x2_1x16x
     v_sub_i32 v[v_wei_ix], v[v_tmp+1], s[s_pad_w]
     ; ihi = iho * s_stride_h + iy * s_dilation_h - s_pad_h,   here make sure iy <- iy * s_dilation_h - s_pad_h before hand
     ; iwi = iwo * s_stride_w + ix * s_dilation_w - s_pad_w,   here make sure ix <- ix * s_dilation_w - s_pad_w before hand
-    v_mul_lo_u32 v[v_tmp], s[s_stride_h], v[v_out_iho]
+    v_mul_lo_u32 v[v_tmp], s[s_stride_h], v[v_move_slice_n_idsho]
     v_add_i32 v[v_in_ihi], v[v_tmp], v[v_wei_iy]
-    v_mul_lo_u32 v[v_tmp+1], s[s_stride_w], v[v_out_iwo]
+    v_mul_lo_u32 v[v_tmp+1], s[s_stride_w], v[v_move_slice_n_idswo]
     v_add_i32 v[v_in_iwi], v[v_tmp+1], v[v_wei_ix]
     ; calculate input offset
     ; set input range
@@ -4420,7 +4392,7 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x1x1x2_1x16x
     s_add_u32 s[s_p_in], s[s_p_in], s[s_tmp]
     s_addc_u32 s[s_p_in+1], s[s_p_in+1], s[s_tmp+1]
 
-    v_mov_b32 v[v_tmp], v[v_gtc_in1]
+    v_mov_b32 v[v_tmp], v[v_move_slice_n_in1]
     v_cmp_gt_u32 vcc, s[s_n], v[v_tmp]
     v_cndmask_b32 v[v_flag_n], 0, 1, vcc
     v_add_u32 v[v_tmp], v[v_tmp], s[s_block_gtc_in]
@@ -4464,16 +4436,16 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x1x1x2_1x16x
     v_mov_b32 v[v_tmp], v[v_gtc_ik1]
     v_add_u32 v[v_tmp+5], s[s_block_gtc_ik], v[v_tmp]
     v_mul_lo_u32 v[v_tmp], s[s_out_stride_k], v[v_tmp+5]
-    v_mov_b32 v[v_tmp+1], v[v_gtc_in1]
+    v_mov_b32 v[v_tmp+1], v[v_move_slice_n_in1]
     v_add_u32 v[v_tmp+1], v[v_tmp+1], s[s_block_gtc_in]
     v_mul_lo_u32 v[v_tmp+1], s[s_out_stride_n], v[v_tmp+1]
     v_add_lshl_u32 v[v_out_os_base], v[v_tmp], v[v_tmp+1], 1
     ; from ho, wo, os_base, compute final offset
-    v_mad_u32_u24 v[v_tmp], s[s_wo], v[v_out_iho], v[v_out_iwo]
+    v_mad_u32_u24 v[v_tmp], s[s_wo], v[v_move_slice_n_idsho], v[v_move_slice_n_idswo]
     v_lshl_add_u32 v[v_out_os], v[v_tmp], 1, v[v_out_os_base]
-    v_cmp_gt_u32 vcc, s[s_ho], v[v_out_iho]
+    v_cmp_gt_u32 vcc, s[s_ho], v[v_move_slice_n_idsho]
     v_cndmask_b32 v[v_out_flag], 0, 1, vcc
-    v_cmp_gt_u32 vcc, s[s_wo], v[v_out_iwo]
+    v_cmp_gt_u32 vcc, s[s_wo], v[v_move_slice_n_idswo]
     v_cndmask_b32 v[v_out_flag], 0, v[v_out_flag], vcc
     v_and_b32 v[v_out_flag], v[v_out_flag], v[v_flag_n]
 
@@ -4854,7 +4826,7 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x1x1x2_1x1
     .amdhsa_user_sgpr_kernarg_segment_ptr 1
     .amdhsa_system_sgpr_workgroup_id_x 1
     .amdhsa_system_vgpr_workitem_id 0
-    .amdhsa_next_free_vgpr 68
+    .amdhsa_next_free_vgpr 66
     .amdhsa_next_free_sgpr 60
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
@@ -4997,19 +4969,18 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x1x1x2_1x1
 .set v_gtc_in0, 48
 .set v_out_flag_prev, 48
 .set v_gtc_in1b, 49
-.set v_gtc_in1, 50
-.set v_gemm_in, 51
-.set v_gemm_im, 52
-.set v_wei_ic0, 53
-.set v_wei_ic1e, 54
-.set v_wei_ic1, 55
-.set v_co_sub_m_index, 56
-.set v_co_sub_n_index, 57
-.set v_cur_k, 58
-.set v_cur_c, 59
-.set v_in_flag_with_wi, 60
-.set v_tmp, 62
-.set v_end, 68
+.set v_gemm_in, 50
+.set v_gemm_im, 51
+.set v_wei_ic0, 52
+.set v_wei_ic1e, 53
+.set v_wei_ic1, 54
+.set v_co_sub_m_index, 55
+.set v_co_sub_n_index, 56
+.set v_cur_k, 57
+.set v_cur_c, 58
+.set v_in_flag_with_wi, 59
+.set v_tmp, 60
+.set v_end, 66
 
 .set a_c, 0
 .set a_end, 8
@@ -5063,11 +5034,8 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x1x1x2_1x16x
     s_lshr_b32 s[s_tmp+1], s[s_tmp], 2
     s_lshl_b32 s[s_dim_b], s[s_tmp+1], 2
     ; n1b transform
-    .v_u32_div_rem_vs v_tmp+4, v_gtc_in1, v_gtc_in1b, s_dim_b, v_tmp, s_tmp
+    .v_u32_div_rem_vs v_tmp+4, v_move_slice_n_in1, v_gtc_in1b, s_dim_b, v_tmp, s_tmp
     .v_u32_div_rem_vs v_move_slice_n_idswo, v_move_slice_n_idsho, v_tmp+4, s_wo, v_tmp, s_tmp
-    v_mov_b32 v[v_out_iho], v[v_move_slice_n_idsho]
-    v_mov_b32 v[v_out_iwo], v[v_move_slice_n_idswo]
-    v_mov_b32 v[v_move_slice_n_in1], v[v_gtc_in1]
     v_mov_b32 v[v_move_slice_n_in0], v[v_gtc_in0]
 
     ; add block i_n
@@ -5101,9 +5069,9 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x1x1x2_1x16x
     v_sub_i32 v[v_wei_ix], v[v_tmp+1], s[s_pad_w]
     ; ihi = iho * s_stride_h + iy * s_dilation_h - s_pad_h,   here make sure iy <- iy * s_dilation_h - s_pad_h before hand
     ; iwi = iwo * s_stride_w + ix * s_dilation_w - s_pad_w,   here make sure ix <- ix * s_dilation_w - s_pad_w before hand
-    v_mul_lo_u32 v[v_tmp], s[s_stride_h], v[v_out_iho]
+    v_mul_lo_u32 v[v_tmp], s[s_stride_h], v[v_move_slice_n_idsho]
     v_add_i32 v[v_in_ihi], v[v_tmp], v[v_wei_iy]
-    v_mul_lo_u32 v[v_tmp+1], s[s_stride_w], v[v_out_iwo]
+    v_mul_lo_u32 v[v_tmp+1], s[s_stride_w], v[v_move_slice_n_idswo]
     v_add_i32 v[v_in_iwi], v[v_tmp+1], v[v_wei_ix]
     ; calculate input offset
     ; set input range
@@ -5123,7 +5091,7 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x1x1x2_1x16x
     s_add_u32 s[s_p_in], s[s_p_in], s[s_tmp]
     s_addc_u32 s[s_p_in+1], s[s_p_in+1], s[s_tmp+1]
 
-    v_mov_b32 v[v_tmp], v[v_gtc_in1]
+    v_mov_b32 v[v_tmp], v[v_move_slice_n_in1]
     v_cmp_gt_u32 vcc, s[s_n], v[v_tmp]
     v_cndmask_b32 v[v_flag_n], 0, 1, vcc
     v_add_u32 v[v_tmp], v[v_tmp], s[s_block_gtc_in]
@@ -5167,16 +5135,16 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x1x1x2_1x16x
     v_mov_b32 v[v_tmp], v[v_gtc_ik1]
     v_add_u32 v[v_tmp+5], s[s_block_gtc_ik], v[v_tmp]
     v_mul_lo_u32 v[v_tmp], s[s_out_stride_k], v[v_tmp+5]
-    v_mov_b32 v[v_tmp+1], v[v_gtc_in1]
+    v_mov_b32 v[v_tmp+1], v[v_move_slice_n_in1]
     v_add_u32 v[v_tmp+1], v[v_tmp+1], s[s_block_gtc_in]
     v_mul_lo_u32 v[v_tmp+1], s[s_out_stride_n], v[v_tmp+1]
     v_add_lshl_u32 v[v_out_os_base], v[v_tmp], v[v_tmp+1], 1
     ; from ho, wo, os_base, compute final offset
-    v_mad_u32_u24 v[v_tmp], s[s_wo], v[v_out_iho], v[v_out_iwo]
+    v_mad_u32_u24 v[v_tmp], s[s_wo], v[v_move_slice_n_idsho], v[v_move_slice_n_idswo]
     v_lshl_add_u32 v[v_out_os], v[v_tmp], 1, v[v_out_os_base]
-    v_cmp_gt_u32 vcc, s[s_ho], v[v_out_iho]
+    v_cmp_gt_u32 vcc, s[s_ho], v[v_move_slice_n_idsho]
     v_cndmask_b32 v[v_out_flag], 0, 1, vcc
-    v_cmp_gt_u32 vcc, s[s_wo], v[v_out_iwo]
+    v_cmp_gt_u32 vcc, s[s_wo], v[v_move_slice_n_idswo]
     v_cndmask_b32 v[v_out_flag], 0, v[v_out_flag], vcc
     v_and_b32 v[v_out_flag], v[v_out_flag], v[v_flag_n]
 
@@ -5569,7 +5537,7 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x1x1x2_1x1
     .amdhsa_user_sgpr_kernarg_segment_ptr 1
     .amdhsa_system_sgpr_workgroup_id_x 1
     .amdhsa_system_vgpr_workitem_id 0
-    .amdhsa_next_free_vgpr 68
+    .amdhsa_next_free_vgpr 66
     .amdhsa_next_free_sgpr 60
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
@@ -5712,19 +5680,18 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex1_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x1x1x2_1x1
 .set v_gtc_in0, 48
 .set v_out_flag_prev, 48
 .set v_gtc_in1b, 49
-.set v_gtc_in1, 50
-.set v_gemm_in, 51
-.set v_gemm_im, 52
-.set v_wei_ic0, 53
-.set v_wei_ic1e, 54
-.set v_wei_ic1, 55
-.set v_co_sub_m_index, 56
-.set v_co_sub_n_index, 57
-.set v_cur_k, 58
-.set v_cur_c, 59
-.set v_in_flag_with_wi, 60
-.set v_tmp, 62
-.set v_end, 68
+.set v_gemm_in, 50
+.set v_gemm_im, 51
+.set v_wei_ic0, 52
+.set v_wei_ic1e, 53
+.set v_wei_ic1, 54
+.set v_co_sub_m_index, 55
+.set v_co_sub_n_index, 56
+.set v_cur_k, 57
+.set v_cur_c, 58
+.set v_in_flag_with_wi, 59
+.set v_tmp, 60
+.set v_end, 66
 
 .set a_c, 0
 .set a_end, 8
@@ -5778,11 +5745,8 @@ igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x1x1x2_1x16
     s_lshr_b32 s[s_tmp+1], s[s_tmp], 4
     s_lshl_b32 s[s_dim_b], s[s_tmp+1], 4
     ; n1b transform
-    .v_u32_div_rem_vs v_tmp+4, v_gtc_in1, v_gtc_in1b, s_dim_b, v_tmp, s_tmp
+    .v_u32_div_rem_vs v_tmp+4, v_move_slice_n_in1, v_gtc_in1b, s_dim_b, v_tmp, s_tmp
     .v_u32_div_rem_vs v_move_slice_n_idswo, v_move_slice_n_idsho, v_tmp+4, s_wo, v_tmp, s_tmp
-    v_mov_b32 v[v_out_iho], v[v_move_slice_n_idsho]
-    v_mov_b32 v[v_out_iwo], v[v_move_slice_n_idswo]
-    v_mov_b32 v[v_move_slice_n_in1], v[v_gtc_in1]
     v_mov_b32 v[v_move_slice_n_in0], v[v_gtc_in0]
 
     ; add block i_n
@@ -5816,9 +5780,9 @@ igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x1x1x2_1x16
     v_sub_i32 v[v_wei_ix], v[v_tmp+1], s[s_pad_w]
     ; ihi = iho * s_stride_h + iy * s_dilation_h - s_pad_h,   here make sure iy <- iy * s_dilation_h - s_pad_h before hand
     ; iwi = iwo * s_stride_w + ix * s_dilation_w - s_pad_w,   here make sure ix <- ix * s_dilation_w - s_pad_w before hand
-    v_mul_lo_u32 v[v_tmp], s[s_stride_h], v[v_out_iho]
+    v_mul_lo_u32 v[v_tmp], s[s_stride_h], v[v_move_slice_n_idsho]
     v_add_i32 v[v_in_ihi], v[v_tmp], v[v_wei_iy]
-    v_mul_lo_u32 v[v_tmp+1], s[s_stride_w], v[v_out_iwo]
+    v_mul_lo_u32 v[v_tmp+1], s[s_stride_w], v[v_move_slice_n_idswo]
     v_add_i32 v[v_in_iwi], v[v_tmp+1], v[v_wei_ix]
     ; calculate input offset
     ; set input range
@@ -5838,7 +5802,7 @@ igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x1x1x2_1x16
     s_add_u32 s[s_p_in], s[s_p_in], s[s_tmp]
     s_addc_u32 s[s_p_in+1], s[s_p_in+1], s[s_tmp+1]
 
-    v_mov_b32 v[v_tmp], v[v_gtc_in1]
+    v_mov_b32 v[v_tmp], v[v_move_slice_n_in1]
     v_cmp_gt_u32 vcc, s[s_n], v[v_tmp]
     v_cndmask_b32 v[v_flag_n], 0, 1, vcc
     v_add_u32 v[v_tmp], v[v_tmp], s[s_block_gtc_in]
@@ -5882,16 +5846,16 @@ igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x1x1x2_1x16
     v_mov_b32 v[v_tmp], v[v_gtc_ik1]
     v_add_u32 v[v_tmp+5], s[s_block_gtc_ik], v[v_tmp]
     v_mul_lo_u32 v[v_tmp], s[s_out_stride_k], v[v_tmp+5]
-    v_mov_b32 v[v_tmp+1], v[v_gtc_in1]
+    v_mov_b32 v[v_tmp+1], v[v_move_slice_n_in1]
     v_add_u32 v[v_tmp+1], v[v_tmp+1], s[s_block_gtc_in]
     v_mul_lo_u32 v[v_tmp+1], s[s_out_stride_n], v[v_tmp+1]
     v_add_lshl_u32 v[v_out_os_base], v[v_tmp], v[v_tmp+1], 1
     ; from ho, wo, os_base, compute final offset
-    v_mad_u32_u24 v[v_tmp], s[s_wo], v[v_out_iho], v[v_out_iwo]
+    v_mad_u32_u24 v[v_tmp], s[s_wo], v[v_move_slice_n_idsho], v[v_move_slice_n_idswo]
     v_lshl_add_u32 v[v_out_os], v[v_tmp], 1, v[v_out_os_base]
-    v_cmp_gt_u32 vcc, s[s_ho], v[v_out_iho]
+    v_cmp_gt_u32 vcc, s[s_ho], v[v_move_slice_n_idsho]
     v_cndmask_b32 v[v_out_flag], 0, 1, vcc
-    v_cmp_gt_u32 vcc, s[s_wo], v[v_out_iwo]
+    v_cmp_gt_u32 vcc, s[s_wo], v[v_move_slice_n_idswo]
     v_cndmask_b32 v[v_out_flag], 0, v[v_out_flag], vcc
     v_and_b32 v[v_out_flag], v[v_out_flag], v[v_flag_n]
 
@@ -6272,7 +6236,7 @@ L_igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x1x1x2_1x
     .amdhsa_user_sgpr_kernarg_segment_ptr 1
     .amdhsa_system_sgpr_workgroup_id_x 1
     .amdhsa_system_vgpr_workitem_id 0
-    .amdhsa_next_free_vgpr 68
+    .amdhsa_next_free_vgpr 66
     .amdhsa_next_free_sgpr 60
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
@@ -6415,19 +6379,18 @@ L_igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x1x1x2_1x
 .set v_gtc_in0, 48
 .set v_out_flag_prev, 48
 .set v_gtc_in1b, 49
-.set v_gtc_in1, 50
-.set v_gemm_in, 51
-.set v_gemm_im, 52
-.set v_wei_ic0, 53
-.set v_wei_ic1e, 54
-.set v_wei_ic1, 55
-.set v_co_sub_m_index, 56
-.set v_co_sub_n_index, 57
-.set v_cur_k, 58
-.set v_cur_c, 59
-.set v_in_flag_with_wi, 60
-.set v_tmp, 62
-.set v_end, 68
+.set v_gemm_in, 50
+.set v_gemm_im, 51
+.set v_wei_ic0, 52
+.set v_wei_ic1e, 53
+.set v_wei_ic1, 54
+.set v_co_sub_m_index, 55
+.set v_co_sub_n_index, 56
+.set v_cur_k, 57
+.set v_cur_c, 58
+.set v_in_flag_with_wi, 59
+.set v_tmp, 60
+.set v_end, 66
 
 .set a_c, 0
 .set a_end, 8
@@ -6481,11 +6444,8 @@ igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x1x1x2_1x16
     s_lshr_b32 s[s_tmp+1], s[s_tmp], 4
     s_lshl_b32 s[s_dim_b], s[s_tmp+1], 4
     ; n1b transform
-    .v_u32_div_rem_vs v_tmp+4, v_gtc_in1, v_gtc_in1b, s_dim_b, v_tmp, s_tmp
+    .v_u32_div_rem_vs v_tmp+4, v_move_slice_n_in1, v_gtc_in1b, s_dim_b, v_tmp, s_tmp
     .v_u32_div_rem_vs v_move_slice_n_idswo, v_move_slice_n_idsho, v_tmp+4, s_wo, v_tmp, s_tmp
-    v_mov_b32 v[v_out_iho], v[v_move_slice_n_idsho]
-    v_mov_b32 v[v_out_iwo], v[v_move_slice_n_idswo]
-    v_mov_b32 v[v_move_slice_n_in1], v[v_gtc_in1]
     v_mov_b32 v[v_move_slice_n_in0], v[v_gtc_in0]
 
     ; add block i_n
@@ -6519,9 +6479,9 @@ igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x1x1x2_1x16
     v_sub_i32 v[v_wei_ix], v[v_tmp+1], s[s_pad_w]
     ; ihi = iho * s_stride_h + iy * s_dilation_h - s_pad_h,   here make sure iy <- iy * s_dilation_h - s_pad_h before hand
     ; iwi = iwo * s_stride_w + ix * s_dilation_w - s_pad_w,   here make sure ix <- ix * s_dilation_w - s_pad_w before hand
-    v_mul_lo_u32 v[v_tmp], s[s_stride_h], v[v_out_iho]
+    v_mul_lo_u32 v[v_tmp], s[s_stride_h], v[v_move_slice_n_idsho]
     v_add_i32 v[v_in_ihi], v[v_tmp], v[v_wei_iy]
-    v_mul_lo_u32 v[v_tmp+1], s[s_stride_w], v[v_out_iwo]
+    v_mul_lo_u32 v[v_tmp+1], s[s_stride_w], v[v_move_slice_n_idswo]
     v_add_i32 v[v_in_iwi], v[v_tmp+1], v[v_wei_ix]
     ; calculate input offset
     ; set input range
@@ -6541,7 +6501,7 @@ igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x1x1x2_1x16
     s_add_u32 s[s_p_in], s[s_p_in], s[s_tmp]
     s_addc_u32 s[s_p_in+1], s[s_p_in+1], s[s_tmp+1]
 
-    v_mov_b32 v[v_tmp], v[v_gtc_in1]
+    v_mov_b32 v[v_tmp], v[v_move_slice_n_in1]
     v_cmp_gt_u32 vcc, s[s_n], v[v_tmp]
     v_cndmask_b32 v[v_flag_n], 0, 1, vcc
     v_add_u32 v[v_tmp], v[v_tmp], s[s_block_gtc_in]
@@ -6585,16 +6545,16 @@ igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x1x1x2_1x16
     v_mov_b32 v[v_tmp], v[v_gtc_ik1]
     v_add_u32 v[v_tmp+5], s[s_block_gtc_ik], v[v_tmp]
     v_mul_lo_u32 v[v_tmp], s[s_out_stride_k], v[v_tmp+5]
-    v_mov_b32 v[v_tmp+1], v[v_gtc_in1]
+    v_mov_b32 v[v_tmp+1], v[v_move_slice_n_in1]
     v_add_u32 v[v_tmp+1], v[v_tmp+1], s[s_block_gtc_in]
     v_mul_lo_u32 v[v_tmp+1], s[s_out_stride_n], v[v_tmp+1]
     v_add_lshl_u32 v[v_out_os_base], v[v_tmp], v[v_tmp+1], 1
     ; from ho, wo, os_base, compute final offset
-    v_mad_u32_u24 v[v_tmp], s[s_wo], v[v_out_iho], v[v_out_iwo]
+    v_mad_u32_u24 v[v_tmp], s[s_wo], v[v_move_slice_n_idsho], v[v_move_slice_n_idswo]
     v_lshl_add_u32 v[v_out_os], v[v_tmp], 1, v[v_out_os_base]
-    v_cmp_gt_u32 vcc, s[s_ho], v[v_out_iho]
+    v_cmp_gt_u32 vcc, s[s_ho], v[v_move_slice_n_idsho]
     v_cndmask_b32 v[v_out_flag], 0, 1, vcc
-    v_cmp_gt_u32 vcc, s[s_wo], v[v_out_iwo]
+    v_cmp_gt_u32 vcc, s[s_wo], v[v_move_slice_n_idswo]
     v_cndmask_b32 v[v_out_flag], 0, v[v_out_flag], vcc
     v_and_b32 v[v_out_flag], v[v_out_flag], v[v_flag_n]
 
@@ -6987,7 +6947,7 @@ L_igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x1x1x2_1x
     .amdhsa_user_sgpr_kernarg_segment_ptr 1
     .amdhsa_system_sgpr_workgroup_id_x 1
     .amdhsa_system_vgpr_workitem_id 0
-    .amdhsa_next_free_vgpr 68
+    .amdhsa_next_free_vgpr 66
     .amdhsa_next_free_sgpr 60
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
@@ -7131,19 +7091,18 @@ L_igemm_wrw_gtcx_nchw_fp16_bx16_ex1_bt32x64x16_wt8x32x4_ws2x1_wr1x1_ta1x1x1x2_1x
 .set v_gtc_in0, 46
 .set v_out_flag_prev, 46
 .set v_gtc_in1b, 47
-.set v_gtc_in1, 48
-.set v_gemm_in, 49
-.set v_gemm_im, 50
-.set v_wei_ic0, 51
-.set v_wei_ic1e, 52
-.set v_wei_ic1, 53
-.set v_co_sub_m_index, 54
-.set v_co_sub_n_index, 55
-.set v_cur_k, 56
-.set v_cur_c, 57
-.set v_in_flag_with_wi, 58
-.set v_tmp, 60
-.set v_end, 66
+.set v_gemm_in, 48
+.set v_gemm_im, 49
+.set v_wei_ic0, 50
+.set v_wei_ic1e, 51
+.set v_wei_ic1, 52
+.set v_co_sub_m_index, 53
+.set v_co_sub_n_index, 54
+.set v_cur_k, 55
+.set v_cur_c, 56
+.set v_in_flag_with_wi, 57
+.set v_tmp, 58
+.set v_end, 64
 
 .set a_c, 0
 .set a_end, 8
@@ -7196,11 +7155,8 @@ igemm_wrw_gtcx_nchw_fp16_bx8_ex1_bt32x64x8_wt8x32x4_ws2x1_wr1x1_ta1x1x1x1_1x8x1x
     s_lshr_b32 s[s_tmp+1], s[s_tmp], 3
     s_lshl_b32 s[s_dim_b], s[s_tmp+1], 3
     ; n1b transform
-    .v_u32_div_rem_vs v_tmp+4, v_gtc_in1, v_gtc_in1b, s_dim_b, v_tmp, s_tmp
+    .v_u32_div_rem_vs v_tmp+4, v_move_slice_n_in1, v_gtc_in1b, s_dim_b, v_tmp, s_tmp
     .v_u32_div_rem_vs v_move_slice_n_idswo, v_move_slice_n_idsho, v_tmp+4, s_wo, v_tmp, s_tmp
-    v_mov_b32 v[v_out_iho], v[v_move_slice_n_idsho]
-    v_mov_b32 v[v_out_iwo], v[v_move_slice_n_idswo]
-    v_mov_b32 v[v_move_slice_n_in1], v[v_gtc_in1]
     v_mov_b32 v[v_move_slice_n_in0], v[v_gtc_in0]
 
     ; add block i_n
@@ -7236,9 +7192,9 @@ igemm_wrw_gtcx_nchw_fp16_bx8_ex1_bt32x64x8_wt8x32x4_ws2x1_wr1x1_ta1x1x1x1_1x8x1x
     v_sub_i32 v[v_wei_ix], v[v_tmp+1], s[s_pad_w]
     ; ihi = iho * s_stride_h + iy * s_dilation_h - s_pad_h,   here make sure iy <- iy * s_dilation_h - s_pad_h before hand
     ; iwi = iwo * s_stride_w + ix * s_dilation_w - s_pad_w,   here make sure ix <- ix * s_dilation_w - s_pad_w before hand
-    v_mul_lo_u32 v[v_tmp], s[s_stride_h], v[v_out_iho]
+    v_mul_lo_u32 v[v_tmp], s[s_stride_h], v[v_move_slice_n_idsho]
     v_add_i32 v[v_in_ihi], v[v_tmp], v[v_wei_iy]
-    v_mul_lo_u32 v[v_tmp+1], s[s_stride_w], v[v_out_iwo]
+    v_mul_lo_u32 v[v_tmp+1], s[s_stride_w], v[v_move_slice_n_idswo]
     v_add_i32 v[v_in_iwi], v[v_tmp+1], v[v_wei_ix]
     ; calculate input offset
     ; set input range
@@ -7258,7 +7214,7 @@ igemm_wrw_gtcx_nchw_fp16_bx8_ex1_bt32x64x8_wt8x32x4_ws2x1_wr1x1_ta1x1x1x1_1x8x1x
     s_add_u32 s[s_p_in], s[s_p_in], s[s_tmp]
     s_addc_u32 s[s_p_in+1], s[s_p_in+1], s[s_tmp+1]
 
-    v_mov_b32 v[v_tmp], v[v_gtc_in1]
+    v_mov_b32 v[v_tmp], v[v_move_slice_n_in1]
     v_cmp_gt_u32 vcc, s[s_n], v[v_tmp]
     v_cndmask_b32 v[v_flag_n], 0, 1, vcc
     v_add_u32 v[v_tmp], v[v_tmp], s[s_block_gtc_in]
@@ -7301,16 +7257,16 @@ igemm_wrw_gtcx_nchw_fp16_bx8_ex1_bt32x64x8_wt8x32x4_ws2x1_wr1x1_ta1x1x1x1_1x8x1x
     v_cmp_gt_u32 vcc, s[s_k], v[v_tmp+5]
     v_cndmask_b32 v[v_flag_k], 0, 1, vcc
     v_mul_lo_u32 v[v_tmp], s[s_out_stride_k], v[v_tmp+5]
-    v_mov_b32 v[v_tmp+1], v[v_gtc_in1]
+    v_mov_b32 v[v_tmp+1], v[v_move_slice_n_in1]
     v_add_u32 v[v_tmp+1], v[v_tmp+1], s[s_block_gtc_in]
     v_mul_lo_u32 v[v_tmp+1], s[s_out_stride_n], v[v_tmp+1]
     v_add_lshl_u32 v[v_out_os_base], v[v_tmp], v[v_tmp+1], 1
     ; from ho, wo, os_base, compute final offset
-    v_mad_u32_u24 v[v_tmp], s[s_wo], v[v_out_iho], v[v_out_iwo]
+    v_mad_u32_u24 v[v_tmp], s[s_wo], v[v_move_slice_n_idsho], v[v_move_slice_n_idswo]
     v_lshl_add_u32 v[v_out_os], v[v_tmp], 1, v[v_out_os_base]
-    v_cmp_gt_u32 vcc, s[s_ho], v[v_out_iho]
+    v_cmp_gt_u32 vcc, s[s_ho], v[v_move_slice_n_idsho]
     v_cndmask_b32 v[v_out_flag], 0, 1, vcc
-    v_cmp_gt_u32 vcc, s[s_wo], v[v_out_iwo]
+    v_cmp_gt_u32 vcc, s[s_wo], v[v_move_slice_n_idswo]
     v_cndmask_b32 v[v_out_flag], 0, v[v_out_flag], vcc
     v_and_b32 v[v_out_flag], v[v_out_flag], v[v_flag_n]
     v_and_b32 v[v_out_flag], v[v_out_flag], v[v_flag_k]
@@ -7669,7 +7625,7 @@ L_igemm_wrw_gtcx_nchw_fp16_bx8_ex1_bt32x64x8_wt8x32x4_ws2x1_wr1x1_ta1x1x1x1_1x8x
     .amdhsa_user_sgpr_kernarg_segment_ptr 1
     .amdhsa_system_sgpr_workgroup_id_x 1
     .amdhsa_system_vgpr_workitem_id 0
-    .amdhsa_next_free_vgpr 66
+    .amdhsa_next_free_vgpr 64
     .amdhsa_next_free_sgpr 58
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
