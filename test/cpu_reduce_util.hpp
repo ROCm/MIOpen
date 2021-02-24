@@ -38,13 +38,6 @@
 namespace reduce {
 
 template <typename T>
-static inline bool IsNan(T x)
-{
-    // C++ isnan() is used for float, double and half_float::half
-    return (std::isnan(x));
-};
-
-template <typename T>
 static inline bool float_equal_one(T);
 
 static inline bool float_equal_one(float x) { return x == 1.0f; };
@@ -252,6 +245,8 @@ inline half_float::half ReduceOpZeroVal<half_float::half>(miopenReduceTensorOp_t
                              ": using undefined Reduction operation is not permitted");
 };
 
+using std::isnan;
+
 template <typename compType>
 static inline void binop_with_nan_check(miopenNanPropagation_t nanOpt,
                                         std::function<void(compType&, compType)> opReduce,
@@ -262,7 +257,7 @@ static inline void binop_with_nan_check(miopenNanPropagation_t nanOpt,
         opReduce(accuVal, currVal);
     else
     {
-        if(reduce::IsNan(currVal))
+        if(isnan(currVal))
             accuVal = currVal;
         else
             opReduce(accuVal, currVal);
@@ -288,7 +283,7 @@ static inline void binop_with_nan_check2(miopenNanPropagation_t nanOpt,
     }
     else
     {
-        if(reduce::IsNan(currVal))
+        if(isnan(currVal))
         {
             accuVal   = currVal;
             accuIndex = currIndex;
