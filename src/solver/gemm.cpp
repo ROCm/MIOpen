@@ -68,7 +68,7 @@ bool GemmFwdBase::IsApplicable(const ExecutionContext&,
     const auto& xDesc = problem.GetIn();
     const auto& wDesc = problem.GetWeights();
     const auto& yDesc = problem.GetOut();
-    return problem.GetDirection() == conv::Direction::Forward &&
+    return problem.GetDirection() == conv::Direction::Forward && problem.IsLayoutDefault() &&
            !(IsAnyBufferBF16(xDesc, yDesc, wDesc) && !IsUseRocBlas);
 #else
     std::ignore                          = problem;
