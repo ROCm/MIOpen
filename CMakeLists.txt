@@ -316,7 +316,12 @@ endif()
 
 if(MIOPEN_USE_MLIR)
     find_library(LIBMLIRMIOPEN MLIRMIOpen REQUIRED)
-    MESSAGE(STATUS "Build with LibMLIRMIOpen: " ${LIBMLIRMIOPEN})
+    # REQUIRED is not supported before cmake 3.18
+    if(NOT LIBMLIRMIOPEN)
+        message(FATAL_ERROR "libMLIRMIOpen not found")
+    else()
+        message(STATUS "Build with libMLIRMIOpen: " ${LIBMLIRMIOPEN})
+    endif()
 endif()
 
 
