@@ -34,13 +34,6 @@
 namespace ck {
 namespace detail {
 
-template <typename T>
-__device__ bool IsNan(T x)
-{
-    // for half_t, float and double, use the builtin hip/hcc/clang kernel functions
-    return (isnan(x));
-};
-
 template <NanPropagation_t nanPropaOpt, typename opReduce, typename compType>
 struct binop_with_nan_check;
 
@@ -72,7 +65,7 @@ struct binop_with_nan_check<NanPropagation_t::PROPAGATE_NAN, opReduce, compType>
 {
     __device__ static inline void calculate(compType& accuVal, compType currVal)
     {
-        if(IsNan(currVal))
+        if(isnan(currVal))
             accuVal = currVal;
         else
             opReduce{}(accuVal, currVal);
@@ -82,7 +75,7 @@ struct binop_with_nan_check<NanPropagation_t::PROPAGATE_NAN, opReduce, compType>
     __device__ static inline void
     calculate(compType& accuVal, compType currVal, int& accuIndex, int currIndex)
     {
-        if(IsNan(currVal))
+        if(isnan(currVal))
         {
             accuVal   = currVal;
             accuIndex = currIndex;
