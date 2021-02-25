@@ -843,26 +843,21 @@ static std::tuple<bool, // is suitable kernel found
                (cfg.gemm_k_per_block != 0));
 
         if(cfg.nxe == 0 && !unit_conv)
-        {
             continue;
-        }
+
         if((gemm_n_packed % cfg.gemm_n_per_block != 0) || (gemm_m % cfg.gemm_m_per_block != 0))
-        {
             continue;
-        }
+
         if(cfg.gemm_n_per_block % cfg.nxb != 0)
-        {
             continue;
-        }
+
         // ho * wo is 4x, gemm_n is 256, hence need batch size 256/4=64x
         if(n % (cfg.gemm_n_per_block / cfg.nxb) != 0)
-        {
             continue;
-        }
+
         if(cfg.nxe == 0 && (h_tilda_slice * w_tilda_slice) % cfg.nxb != 0)
-        {
             continue;
-        }
+
         bool gemm_k_valid = true;
         for(int gemm_id = 0; gemm_id < num_of_gemm; gemm_id++)
         {
@@ -889,7 +884,7 @@ static std::tuple<bool, // is suitable kernel found
                (ho * wo) % cfg.tensor_b_thread_lengths[3] != 0)
                 continue;
 
-            bool is_unit_yx = (y == 1 && x == 1) ? true : false;
+            bool is_unit_yx = (y == 1 && x == 1);
 
             // configs with nxe == 1 and tensor_a_thread_lengths[3] > 1 can only be used with x=y=1
             if(cfg.nxe == 1 && cfg.tensor_a_thread_lengths[3] > 1 && !is_unit_yx)
@@ -908,64 +903,58 @@ static std::tuple<bool, // is suitable kernel found
                                    integer_divide_ceil(gemm_n_packed, cfg.gemm_n_per_block));
     }
 
-    // the second try is only used for bwd fp32
-    if(ctx.IsFp16())
-        goto lquit;
-
-    // second try, try find if packed image size match
-    for(const auto& cfg : tunables)
+    if(ctx.IsFp32())
     {
-        const auto b = cfg.nxe == 0
-                           ? h_tilda_slice * w_tilda_slice
-                           : ((h_tilda_slice * w_tilda_slice + cfg.nxb - 1) / cfg.nxb) * cfg.nxb;
-        const auto gemm_n_packed = n * b;
-        if(cfg.nxe == 0)
+        // second try, try find if packed image size match
+        for(const auto& cfg : tunables)
         {
-            if((x != 1) || (y != 1) || (stride_h != 1) || (stride_w != 1) || (dilation_h != 1) ||
-               (dilation_w != 1) || (pad_h != 0) || (pad_w != 0))
+            const auto b =
+                cfg.nxe == 0 ? h_tilda_slice * w_tilda_slice
+                             : ((h_tilda_slice * w_tilda_slice + cfg.nxb - 1) / cfg.nxb) * cfg.nxb;
+            const auto gemm_n_packed = n * b;
+            if(cfg.nxe == 0)
             {
+                if((x != 1) || (y != 1) || (stride_h != 1) || (stride_w != 1) ||
+                   (dilation_h != 1) || (dilation_w != 1) || (pad_h != 0) || (pad_w != 0))
+                    continue;
+            }
+            if((gemm_n_packed % cfg.gemm_n_per_block != 0) || (gemm_m % cfg.gemm_m_per_block != 0))
                 continue;
-            }
-        }
-        if((gemm_n_packed % cfg.gemm_n_per_block != 0) || (gemm_m % cfg.gemm_m_per_block != 0))
-        {
-            continue;
-        }
-        if(cfg.gemm_n_per_block % cfg.nxb != 0)
-        {
-            continue;
-        }
-        // ho * wo is 4x, gemm_n is 256, hence need batch size 256/4=64x
-        if(n % (cfg.gemm_n_per_block / cfg.nxb) != 0)
-        {
-            continue;
-        }
 
-        bool gemm_k_valid = true;
-        for(int gemm_id = 0; gemm_id < num_of_gemm; gemm_id++)
-        {
-            int i_y_tilda          = gemm_id / x_tilda;
-            int i_x_tilda          = gemm_id % x_tilda;
-            int y_dot_slice        = (i_y_tilda + 1) * y_dot <= y ? y_dot : y % y_dot;
-            int x_dot_slice        = (i_x_tilda + 1) * x_dot <= x ? x_dot : x % x_dot;
-            int gemm_k             = k * y_dot_slice * x_dot_slice;
-            bool is_gemm_not_empty = gemm_k > 0;
-            if(is_gemm_not_empty)
+            if(cfg.gemm_n_per_block % cfg.nxb != 0)
+                continue;
+
+            // ho * wo is 4x, gemm_n is 256, hence need batch size 256/4=64x
+            if(n % (cfg.gemm_n_per_block / cfg.nxb) != 0)
+                continue;
+
+            bool gemm_k_valid = true;
+            for(int gemm_id = 0; gemm_id < num_of_gemm; gemm_id++)
             {
-                if(gemm_k % cfg.gemm_k_per_block != 0)
-                    gemm_k_valid = false;
+                int i_y_tilda          = gemm_id / x_tilda;
+                int i_x_tilda          = gemm_id % x_tilda;
+                int y_dot_slice        = (i_y_tilda + 1) * y_dot <= y ? y_dot : y % y_dot;
+                int x_dot_slice        = (i_x_tilda + 1) * x_dot <= x ? x_dot : x % x_dot;
+                int gemm_k             = k * y_dot_slice * x_dot_slice;
+                bool is_gemm_not_empty = gemm_k > 0;
+                if(is_gemm_not_empty)
+                {
+                    if(gemm_k % cfg.gemm_k_per_block != 0)
+                        gemm_k_valid = false;
+                }
             }
+            if(!gemm_k_valid)
+                continue;
+
+            return std::make_tuple(true,
+                                   cfg,
+                                   cfg.GetKernelName(),
+                                   cfg.GetBlockSize(),
+                                   integer_divide_ceil(gemm_m, cfg.gemm_m_per_block) *
+                                       integer_divide_ceil(gemm_n_packed, cfg.gemm_n_per_block));
         }
-        if(!gemm_k_valid)
-            continue;
-        return std::make_tuple(true,
-                               cfg,
-                               cfg.GetKernelName(),
-                               cfg.GetBlockSize(),
-                               integer_divide_ceil(gemm_m, cfg.gemm_m_per_block) *
-                                   integer_divide_ceil(gemm_n_packed, cfg.gemm_n_per_block));
-    }
-lquit:
+    };
+
     return std::make_tuple(false, TunableImplicitGemmGTCDynamic_t(), "", -1, -1);
 }
 
