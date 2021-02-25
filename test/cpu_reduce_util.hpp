@@ -61,39 +61,23 @@ static inline bool float_equal_zero(half_float::half x)
     return x == convert_type<half_float::half>(0.0f);
 };
 
-template <typename T>
-static inline T Sqrt(T a);
-
-static inline float Sqrt(float a) { return sqrtf(a); };
-
-static inline double Sqrt(double a) { return sqrt(a); };
-
-static inline half_float::half Sqrt(half_float::half a) { return half_float::sqrt(a); };
-
-template <typename T>
-static inline T Abs(T a);
-
-static inline float Abs(float a) { return fabsf(a); };
-
-static inline double Abs(double a) { return fabs(a); };
-
-static inline half_float::half Abs(half_float::half a) { return half_float::abs(a); };
-
 template <typename compType>
 static inline std::function<void(compType&)> PreUnaryOpFn(miopenReduceTensorOp_t op_,
                                                           std::size_t divider)
 {
+    using std::abs;
+
     switch(op_)
     {
     case MIOPEN_REDUCE_TENSOR_NORM1:
         return ([&, divider](compType& a_) {
-            a_ = Abs(a_) / convert_type<compType>(static_cast<float>(divider));
+            a_ = abs(a_) / convert_type<compType>(static_cast<float>(divider));
         });
     case MIOPEN_REDUCE_TENSOR_NORM2:
         return ([&, divider](compType& a_) {
             a_ = a_ * a_ / convert_type<compType>(static_cast<float>(divider));
         });
-    case MIOPEN_REDUCE_TENSOR_AMAX: return ([&](compType& a_) { a_ = Abs(a_); });
+    case MIOPEN_REDUCE_TENSOR_AMAX: return ([&](compType& a_) { a_ = abs(a_); });
 
     case MIOPEN_REDUCE_TENSOR_AVG:
     case MIOPEN_REDUCE_TENSOR_ADD:
@@ -110,9 +94,11 @@ template <typename compType>
 static inline std::function<void(compType&)> PosUnaryOpFn(miopenReduceTensorOp_t op_,
                                                           std::size_t divider)
 {
+    using std::sqrt;
+
     switch(op_)
     {
-    case MIOPEN_REDUCE_TENSOR_NORM2: return ([&](compType& a_) { a_ = Sqrt(a_); });
+    case MIOPEN_REDUCE_TENSOR_NORM2: return ([&](compType& a_) { a_ = sqrt(a_); });
 
     case MIOPEN_REDUCE_TENSOR_AVG:
         return ([&, divider](compType& a_) {
