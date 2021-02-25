@@ -83,7 +83,7 @@ static inline std::function<void(compType&)> PreUnaryOpFn(miopenReduceTensorOp_t
     case MIOPEN_REDUCE_TENSOR_ADD:
     case MIOPEN_REDUCE_TENSOR_MUL:
     case MIOPEN_REDUCE_TENSOR_MIN:
-    case MIOPEN_REDUCE_TENSOR_MAX: return ([&](compType& a_) { (void)a_; });
+    case MIOPEN_REDUCE_TENSOR_MAX: return ([&](compType&) {});
     }
 
     throw std::runtime_error(std::string(__FUNCTION__) +
@@ -110,7 +110,7 @@ static inline std::function<void(compType&)> PosUnaryOpFn(miopenReduceTensorOp_t
     case MIOPEN_REDUCE_TENSOR_MUL:
     case MIOPEN_REDUCE_TENSOR_MIN:
     case MIOPEN_REDUCE_TENSOR_MAX:
-    case MIOPEN_REDUCE_TENSOR_AMAX: return ([&](compType& a_) { (void)a_; });
+    case MIOPEN_REDUCE_TENSOR_AMAX: return ([&](compType&) {});
     }
 
     throw std::runtime_error(std::string(__FUNCTION__) +

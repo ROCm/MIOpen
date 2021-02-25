@@ -293,7 +293,6 @@ struct verify_reduce_with_indices
             toReduceLengths.begin(), toReduceLengths.end(), std::size_t{1}, std::multiplies<>{});
 
         auto PreUnaryOp = PreUnaryOpFn<compType>(reduceOp, divider);
-        auto PosUnaryOp = PosUnaryOpFn<compType>(reduceOp, divider);
 
         if(reduceAllDims)
         {
