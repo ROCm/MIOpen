@@ -289,9 +289,9 @@ struct verify_reduce_with_indices
 
         auto opReduce = ReduceOpFn2<compType>(reduceOp);
 
-        int divider = 1;
-        for(int i = 0; i < toReduceLengths.size(); i++)
-            divider *= toReduceLengths[i];
+        std::size_t divider = 1;
+        for(auto toReduceLen : toReduceLengths)
+            divider *= toReduceLen;
 
         auto PreUnaryOp = PreUnaryOpFn<compType>(reduceOp, divider);
         auto PosUnaryOp = PosUnaryOpFn<compType>(reduceOp, divider);
@@ -560,9 +560,9 @@ struct verify_reduce_no_indices
 
         auto opReduce = ReduceOpFn<compType>(reduceOp);
 
-        int divider = 1;
-        for(int i = 0; i < toReduceLengths.size(); i++)
-            divider *= toReduceLengths[i];
+        std::size_t divider = 1;
+        for(auto toReduceLen : toReduceLengths)
+            divider *= toReduceLen;
 
         auto PreUnaryOp = PreUnaryOpFn<compType>(reduceOp, divider);
         auto PosUnaryOp = PosUnaryOpFn<compType>(reduceOp, divider);

@@ -80,7 +80,8 @@ static inline double Abs(double a) { return fabs(a); };
 static inline half_float::half Abs(half_float::half a) { return half_float::abs(a); };
 
 template <typename compType>
-static inline std::function<void(compType&)> PreUnaryOpFn(miopenReduceTensorOp_t op_, int divider)
+static inline std::function<void(compType&)> PreUnaryOpFn(miopenReduceTensorOp_t op_,
+                                                          std::size_t divider)
 {
     switch(op_)
     {
@@ -106,7 +107,8 @@ static inline std::function<void(compType&)> PreUnaryOpFn(miopenReduceTensorOp_t
 };
 
 template <typename compType>
-static inline std::function<void(compType&)> PosUnaryOpFn(miopenReduceTensorOp_t op_, int divider)
+static inline std::function<void(compType&)> PosUnaryOpFn(miopenReduceTensorOp_t op_,
+                                                          std::size_t divider)
 {
     switch(op_)
     {
