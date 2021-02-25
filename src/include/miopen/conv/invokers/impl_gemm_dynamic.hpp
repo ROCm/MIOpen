@@ -82,8 +82,8 @@ static inline magic_div_u32_t magic_div_u32_gen(uint32_t d)
         if((1U << shift) >= d)
             break;
 
-    constexpr uint64_t one   = 1;
-    uint64_t magic = ((one << 32) * ((one << shift) - d)) / d + 1;
+    constexpr uint64_t one = 1;
+    uint64_t magic         = ((one << 32) * ((one << shift) - d)) / d + 1;
     assert(magic <= 0xffffffffUL);
 
     magic_div_u32_t result;
@@ -102,27 +102,14 @@ static inline uint32_t magic_div_u32_pack_shift(uint8_t s0, uint8_t s1, uint8_t 
 }
 
 template <typename T>
-inline float CallImplGemmDynamicForward(const miopen::Handle& handle,
-                                        const ProblemDescription& conv_problem,
-                                        const T& cfg,
-                                        ConstData_t src,
-                                        Data_t dst,
-                                        ConstData_t wei,
-                                        const std::vector<KernelInvoke>& kernels);
+inline std::vector<OpKernelArg>
+ComputeDynamicIGemmForwardKernelArgs(const ProblemDescription& conv_problem, const T& cfg);
 
 template <>
-inline float CallImplGemmDynamicForward<int>(const miopen::Handle& handle,
-                                             const ProblemDescription& conv_problem,
-                                             const int& cfg,
-                                             ConstData_t src,
-                                             Data_t dst,
-                                             ConstData_t wei,
-                                             const std::vector<KernelInvoke>& kernels)
+inline std::vector<OpKernelArg>
+ComputeDynamicIGemmForwardKernelArgs<int>(const ProblemDescription& conv_problem, const int& cfg)
 {
-    float elapsed = 0.0f;
-
-    auto kernel = kernels[0];
-
+    std::vector<OpKernelArg> opArgs;
     // clang-format off
     int hi          = conv_problem.GetInHeight();
     int wi          = conv_problem.GetInWidth();
@@ -139,13 +126,9 @@ inline float CallImplGemmDynamicForward<int>(const miopen::Handle& handle,
     int pad_w       = conv_problem.GetPadW();
     int y           = conv_problem.GetWeightsHeight();
     int x           = conv_problem.GetWeightsWidth();
-    int __pack0     = cfg;
+    int pack0       = cfg;
     // clang-format on
 
-    std::vector<OpKernelArg> opArgs;
-    opArgs.emplace_back(src);
-    opArgs.emplace_back(wei);
-    opArgs.emplace_back(dst);
     opArgs.emplace_back(hi);
     opArgs.emplace_back(wi);
     opArgs.emplace_back(n);
@@ -161,29 +144,17 @@ inline float CallImplGemmDynamicForward<int>(const miopen::Handle& handle,
     opArgs.emplace_back(pad_w);
     opArgs.emplace_back(y);
     opArgs.emplace_back(x);
-    opArgs.emplace_back(__pack0);
+    opArgs.emplace_back(pack0);
 
-    kernel(opArgs);
-
-    if(handle.IsProfilingEnabled())
-        elapsed += handle.GetKernelTime();
-    return elapsed;
-};
+    return opArgs;
+}
 
 template <>
-inline float CallImplGemmDynamicForward<solver::TunableImplicitGemmGTCDynamic_t>(
-    const miopen::Handle& handle,
-    const ProblemDescription& conv_problem,
-    const solver::TunableImplicitGemmGTCDynamic_t& cfg,
-    ConstData_t src,
-    Data_t dst,
-    ConstData_t wei,
-    const std::vector<KernelInvoke>& kernels)
+inline std::vector<OpKernelArg>
+ComputeDynamicIGemmForwardKernelArgs<solver::TunableImplicitGemmGTCDynamic_t>(
+    const ProblemDescription& conv_problem, const solver::TunableImplicitGemmGTCDynamic_t& cfg)
 {
-    float elapsed = 0.0f;
-
-    auto kernel = kernels[0];
-
+    std::vector<OpKernelArg> opArgs;
     // clang-format off
     int hi          = conv_problem.GetInHeight();
     int wi          = conv_problem.GetInWidth();
@@ -201,7 +172,7 @@ inline float CallImplGemmDynamicForward<solver::TunableImplicitGemmGTCDynamic_t>
     int y           = conv_problem.GetWeightsHeight();
     int x           = conv_problem.GetWeightsWidth();
     int group       = conv_problem.GetGroupCount();
-    int __pack0     = 0;
+    int pack0       = 0;
     // clang-format on
 
     int gemm_m =
@@ -237,10 +208,6 @@ inline float CallImplGemmDynamicForward<solver::TunableImplicitGemmGTCDynamic_t>
         magic_div_u32_pack_shift(mdiv_0.shift, mdiv_1.shift, mdiv_2.shift, mdiv_3.shift);
     uint32_t shift_pack_1 = magic_div_u32_pack_shift(mdiv_4.shift, mdiv_5.shift, mdiv_6.shift, 0);
 
-    std::vector<OpKernelArg> opArgs;
-    opArgs.emplace_back(src);
-    opArgs.emplace_back(wei);
-    opArgs.emplace_back(dst);
     opArgs.emplace_back(hi);
     opArgs.emplace_back(wi);
     opArgs.emplace_back(n);
@@ -269,21 +236,44 @@ inline float CallImplGemmDynamicForward<solver::TunableImplicitGemmGTCDynamic_t>
         opArgs.emplace_back(shift_pack_0);
         opArgs.emplace_back(shift_pack_1);
     }
-    opArgs.emplace_back(__pack0);
+    opArgs.emplace_back(pack0);
+
+    return opArgs;
+}
+
+inline float CallImplGemmDynamicForward(const miopen::Handle& handle,
+                                        ConstData_t src,
+                                        Data_t dst,
+                                        ConstData_t wei,
+                                        const std::vector<OpKernelArg>& opShapeArgs,
+                                        const std::vector<KernelInvoke>& kernels)
+{
+    float elapsed = 0.0f;
+    auto kernel   = kernels[0];
+    std::vector<OpKernelArg> opArgs;
+    opArgs.emplace_back(src);
+    opArgs.emplace_back(wei);
+    opArgs.emplace_back(dst);
+
+    for(const auto& arg : opShapeArgs)
+    {
+        opArgs.emplace_back(arg);
+    }
 
     kernel(opArgs);
 
     if(handle.IsProfilingEnabled())
         elapsed += handle.GetKernelTime();
     return elapsed;
-};
+}
 
 template <typename T>
 static inline InvokerFactory MakeImplGemmDynamicForwardInvokerFactory(const ConvolutionContext& ctx,
                                                                       const T& cfg)
 {
     const auto& conv_problem = ctx.conv_problem;
-    return [conv_problem, cfg](const std::vector<Kernel>& kernels) {
+    auto opShapeArgs         = ComputeDynamicIGemmForwardKernelArgs<T>(conv_problem, cfg);
+    return [opShapeArgs](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
             decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors     = data_ctx.tensors;
@@ -295,8 +285,8 @@ static inline InvokerFactory MakeImplGemmDynamicForwardInvokerFactory(const Conv
                            std::back_inserter(ks),
                            [&](const Kernel& k) { return handle.Run(k); });
             float elapsed = 0;
-            elapsed       = CallImplGemmDynamicForward<T>(
-                handle, conv_problem, cfg, tensors.in, tensors.out, tensors.w, ks);
+            elapsed       = CallImplGemmDynamicForward(
+                handle, tensors.in, tensors.out, tensors.w, opShapeArgs, ks);
             if(handle.IsProfilingEnabled())
             {
                 handle.ResetKernelTime();
