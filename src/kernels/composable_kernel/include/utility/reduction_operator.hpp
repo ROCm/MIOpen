@@ -152,7 +152,7 @@ __device__ half_t Min<half_t>::GetZeroVal()
 template <class T, int divider>
 struct unary_identic
 {
-    static constexpr float scaler = 1.0f / (float)divider;
+    static constexpr float scaler = 1.0f / divider;
 
     __device__ inline constexpr void operator()(T& a) const { a = a * type_convert<T>{}(scaler); };
 };
@@ -166,7 +166,7 @@ struct unary_identic<T, 1>
 template <class T, int divider>
 struct unary_square
 {
-    static constexpr float scaler = 1.0f / (float)divider;
+    static constexpr float scaler = 1.0f / divider;
 
     __device__ inline constexpr void operator()(T& a) const
     {
@@ -185,7 +185,7 @@ struct unary_square<T, 1>
 template <class T, int divider>
 struct unary_abs
 {
-    static constexpr float scaler = 1.0f / (float)divider;
+    static constexpr float scaler = 1.0f / divider;
 
     __device__ inline constexpr void operator()(T& a) const
     {
@@ -201,12 +201,28 @@ struct unary_abs<T, 1>
     __device__ inline constexpr void operator()(T& a) const { a = abs(a); };
 };
 
+// We know for sure that 4.0 has __habs(), but 3.0 does not have it.
+// Let's assume that __habs() exists since 3.5.
+#if HIP_PACKAGE_VERSION_FLAT < 3005000000
+inline __device__ __half __habs(__half x)
+{
+    union
+    {
+        __half half;
+        unsigned short u16;
+    } val;
+    val.half = x;
+    val.u16  = val.u16 & 0x7fff;
+    return val.half;
+}
+#endif
+
 template <int divider>
 struct unary_abs<half_t, divider>
 {
-    static constexpr float scaler = 1.0f / (float)divider;
+    static constexpr float scaler = 1.0f / divider;
 
-    __device__ inline constexpr void operator()(half_t& a) const
+    __device__ inline void operator()(half_t& a) const
     {
         a = static_cast<half_t>(__habs(a));
 
@@ -217,10 +233,7 @@ struct unary_abs<half_t, divider>
 template <>
 struct unary_abs<half_t, 1>
 {
-    __device__ inline constexpr void operator()(half_t& a) const
-    {
-        a = static_cast<half_t>(__habs(a));
-    };
+    __device__ inline void operator()(half_t& a) const { a = static_cast<half_t>(__habs(a)); };
 };
 
 template <class T>
@@ -232,10 +245,7 @@ struct unary_sqrt
 template <>
 struct unary_sqrt<half_t>
 {
-    __device__ inline constexpr void operator()(half_t& a) const
-    {
-        a = static_cast<half_t>(hsqrt(a));
-    };
+    __device__ inline void operator()(half_t& a) const { a = static_cast<half_t>(hsqrt(a)); };
 };
 
 }; // end of namespace reduce
