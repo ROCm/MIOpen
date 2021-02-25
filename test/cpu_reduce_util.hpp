@@ -245,14 +245,14 @@ inline half_float::half ReduceOpZeroVal<half_float::half>(miopenReduceTensorOp_t
                              ": using undefined Reduction operation is not permitted");
 };
 
-using std::isnan;
-
 template <typename compType>
 static inline void binop_with_nan_check(miopenNanPropagation_t nanOpt,
                                         std::function<void(compType&, compType)> opReduce,
                                         compType& accuVal,
                                         compType currVal)
 {
+    using std::isnan;
+
     if(nanOpt == MIOPEN_NOT_PROPAGATE_NAN)
         opReduce(accuVal, currVal);
     else
@@ -272,6 +272,8 @@ static inline void binop_with_nan_check2(miopenNanPropagation_t nanOpt,
                                          int& accuIndex,
                                          int currIndex)
 {
+    using std::isnan;
+
     if(nanOpt == MIOPEN_NOT_PROPAGATE_NAN)
     {
         bool changed;
