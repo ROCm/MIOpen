@@ -86,8 +86,7 @@ static inline magic_div_u32_t magic_div_u32_gen(uint32_t d)
     uint64_t magic         = ((one << 32) * ((one << shift) - d)) / d + 1;
     assert(magic <= 0xffffffffUL);
 
-    magic_div_u32_t result;
-    return {magic, shift};
+    return {static_cast<uint32_t>(magic), shift};
 }
 
 static inline uint32_t magic_div_u32_pack_shift(uint8_t s0, uint8_t s1, uint8_t s2, uint8_t s3)
@@ -253,10 +252,7 @@ inline float CallImplGemmDynamicForward(const miopen::Handle& handle,
     opArgs.emplace_back(wei);
     opArgs.emplace_back(dst);
 
-    for(const auto& arg : opShapeArgs)
-    {
-        opArgs.emplace_back(arg);
-    }
+    opArgs.insert(opArgs.end(), opShapeArgs.begin(), opShapeArgs.end());
 
     kernel(opArgs);
 
