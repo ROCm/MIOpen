@@ -1456,7 +1456,7 @@ static std::tuple<bool, // is suitable kernel found
         }
         else
         {
-            if((gemm_n_packed % cfg.gemm_n_per_block != 0))// || (gemm_m % cfg.gemm_m_per_block != 0))
+            if((gemm_n_packed % cfg.gemm_n_per_block != 0))
             {
                 continue;
             };
