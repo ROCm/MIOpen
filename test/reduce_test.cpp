@@ -763,7 +763,14 @@ struct reduce_driver : test_driver
     {
         add(inLengths, "D", generate_data(get_tensor_lengths()));
         add(toReduceDims, "R", generate_data(get_toreduce_dims()));
-        add(reduceOp, "ReduceOp", generate_data({0, 4, 5, 6, 7}));
+        add(reduceOp, "ReduceOp", generate_data({
+                MIOPEN_REDUCE_TENSOR_ADD, MIOPEN_REDUCE_TENSOR_MIN, MIOPEN_REDUCE_TENSOR_AMAX,
+                    MIOPEN_REDUCE_TENSOR_AVG
+#if MIOPEN_API_VERSION_REDUCE_TENSOR > 1
+                    ,
+                    MIOPEN_REDUCE_TENSOR_NORM1, MIOPEN_REDUCE_TENSOR_NORM2
+#endif
+            }));
         add(compTypeVal, "CompType", generate_data({1}));
         add(nanOpt, "N", generate_data({0}));
         add(indicesOpt, "I", generate_data({0, 1}));
