@@ -152,7 +152,7 @@ __device__ half_t Min<half_t>::GetZeroVal()
 template <class T, int divider>
 struct unary_identic
 {
-    static constexpr float scaler = 1.0f / divider;
+    static constexpr float scaler = 1.0f / static_cast<float>(divider);
 
     __device__ inline constexpr void operator()(T& a) const { a = a * type_convert<T>{}(scaler); };
 };
@@ -166,7 +166,7 @@ struct unary_identic<T, 1>
 template <class T, int divider>
 struct unary_square
 {
-    static constexpr float scaler = 1.0f / divider;
+    static constexpr float scaler = 1.0f / static_cast<float>(divider);
 
     __device__ inline constexpr void operator()(T& a) const
     {
@@ -185,7 +185,7 @@ struct unary_square<T, 1>
 template <class T, int divider>
 struct unary_abs
 {
-    static constexpr float scaler = 1.0f / divider;
+    static constexpr float scaler = 1.0f / static_cast<float>(divider);
 
     __device__ inline constexpr void operator()(T& a) const
     {
@@ -220,7 +220,7 @@ inline __device__ __half __habs(__half x)
 template <int divider>
 struct unary_abs<half_t, divider>
 {
-    static constexpr float scaler = 1.0f / divider;
+    static constexpr float scaler = 1.0f / static_cast<float>(divider);
 
     __device__ inline void operator()(half_t& a) const
     {
