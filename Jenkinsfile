@@ -257,7 +257,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildJob('hcc', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image + "rocm", gpu_arch: "gfx900;gfx906")
+                                buildJob('hcc', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image + "rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx900;gfx906")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
