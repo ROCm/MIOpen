@@ -62,7 +62,7 @@ Handle::Handle(miopenAcceleratorQueue_t /* stream */) : Handle::Handle() {}
 Handle::Handle() : impl(new HandleImpl())
 {
 #if MIOPEN_USE_ROCBLAS
-    rhandle_ = CreateRocblasHandle();
+// rhandle_ = CreateRocblasHandle();
 #endif
     this->impl->target_properties.Init(this);
     MIOPEN_LOG_NQI(*this);
