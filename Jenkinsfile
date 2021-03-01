@@ -119,14 +119,14 @@ def buildHipClangJob(Map conf, compiler){
         env.HSA_ENABLE_SDMA=0
         env.CODECOV_TOKEN="aec031be-7673-43b5-9840-d8fb71a2354e"
         checkout scm
+        def prefixpath = conf.get("prefixpath", "/usr/local")
         def flags = conf.get("flags", "")
         def env4make = conf.get("env4make", "")
         def image = conf.get("image", "miopen")
-        def prefixpath = conf.get("prefixpath", "/opt/rocm")
         def cmd = conf.get("cmd", "")
         def gpu_arch = conf.get("gpu_arch", "all")
-        def miotensile_version = conf.get("miotensile_version", "default")
         def codecov = conf.get("codecov", false)
+        def miotensile_version = conf.get("miotensile_version", "default")
         def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
         def dockerArgs = "--build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' -f hip-clang.docker "
         def extradebugflags = ""
@@ -310,7 +310,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                 buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', prefixpath: "/usr/local", cmd: cmd, gpu_arch: "gfx900;gfx906")
+                                 buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', cmd: cmd, gpu_arch: "gfx900;gfx906")
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -363,7 +363,7 @@ pipeline {
                         """
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', env4make: "MIOPEN_LOG_LEVEL=5 MIOPEN_COMPILE_PARALLEL_LEVEL=1", image: image+'-hipnogpu-clang', prefixpath: "/usr/local", cmd: cmd, gpu_arch: "gfx900;gfx906")
+                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', env4make: "MIOPEN_LOG_LEVEL=5 MIOPEN_COMPILE_PARALLEL_LEVEL=1", image: image+'-hipnogpu-clang', cmd: cmd, gpu_arch: "gfx900;gfx906")
                     }
                 }
                 stage('Hip Debug COMGR') {
@@ -382,7 +382,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', prefixpath: "/usr/local", cmd: cmd, gpu_arch: "gfx900;gfx906")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', cmd: cmd, gpu_arch: "gfx900;gfx906")
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -411,7 +411,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', prefixpath: "/usr/local", cmd: cmd, gpu_arch: "gfx906")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', cmd: cmd, gpu_arch: "gfx906")
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -443,7 +443,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', prefixpath: "/usr/local", cmd: cmd, gpu_arch: "gfx900;gfx906")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', cmd: cmd, gpu_arch: "gfx900;gfx906")
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -473,7 +473,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', prefixpath: "/usr/local", cmd: cmd, gpu_arch: "gfx900;gfx906")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', cmd: cmd, gpu_arch: "gfx900;gfx906")
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -503,7 +503,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', prefixpath: "/usr/local", cmd: cmd, gpu_arch: "gfx900;gfx906")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', cmd: cmd, gpu_arch: "gfx900;gfx906")
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -711,7 +711,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', prefixpath: "/usr/local", cmd: cmd, gpu_arch: "gfx908")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', cmd: cmd, gpu_arch: "gfx908")
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -763,7 +763,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image + "-hip-clang", prefixpath: "/usr/local", cmd: cmd, gpu_arch: "gfx908")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image + "-hip-clang", cmd: cmd, gpu_arch: "gfx908")
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -792,7 +792,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image + "-hip-clang", prefixpath: "/usr/local", cmd: cmd, gpu_arch: "gfx908")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image + "-hip-clang", cmd: cmd, gpu_arch: "gfx908")
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -826,7 +826,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image + "-hip-clang", prefixpath: "/usr/local", cmd: cmd, gpu_arch: "gfx906")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image + "-hip-clang", cmd: cmd, gpu_arch: "gfx906")
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -856,7 +856,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', prefixpath: "/usr/local", cmd: cmd, gpu_arch: "gfx906")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', cmd: cmd, gpu_arch: "gfx906")
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -889,7 +889,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', prefixpath: "/usr/local", cmd: cmd, gpu_arch: "gfx906")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', cmd: cmd, gpu_arch: "gfx906")
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -918,7 +918,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', prefixpath: "/usr/local", cmd: cmd, gpu_arch: "gfx908")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', cmd: cmd, gpu_arch: "gfx908")
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -947,7 +947,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', prefixpath: "/usr/local", cmd: cmd, gpu_arch: "gfx906", miotensile_version: "latest")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', cmd: cmd, gpu_arch: "gfx906", miotensile_version: "latest")
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -976,7 +976,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', prefixpath: "/usr/local", cmd: cmd, gpu_arch: "gfx908", miotensile_version: "latest")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', cmd: cmd, gpu_arch: "gfx908", miotensile_version: "latest")
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
