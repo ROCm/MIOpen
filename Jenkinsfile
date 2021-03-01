@@ -24,6 +24,11 @@ def cmake_build(compiler, flags, env4make, extradebugflags, prefixpath){
     def compilerpath = ""
     def configargs = ""
 
+    compilerpath = compiler;
+    if (prefixpath != "/usr/local") {
+        configargs = "-DCMAKE_PREFIX_PATH=${prefixpath}"
+    }
+
     if (archive == true) {
         config_targets = "package"
     }
