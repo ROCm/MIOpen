@@ -49,8 +49,15 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Setup ubsan environment to printstacktrace
+ENV UBSAN_OPTIONS=print_stacktrace=1
+
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
+
+# Install an init system
+RUN wget https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.2.0_amd64.deb
+RUN dpkg -i dumb-init_*.deb && rm dumb-init_*.deb
 
 # Install cget
 RUN pip3 install cget
@@ -59,11 +66,18 @@ RUN pip3 install cget
 RUN cget -p $PREFIX init --cxx /opt/rocm/llvm/bin/clang++ --std=c++14 -DAMDGPU_TARGETS=${GPU_ARCH}
 
 # Install dependencies
-RUN cget -p $PREFIX install pfultz2/rocm-recipes
+ADD dev-requirements.txt /dev-requirements.txt
+ADD requirements.txt /requirements.txt
 ADD min-requirements.txt /min-requirements.txt
-RUN CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -f /min-requirements.txt
-RUN export HIPCC_LINK_FLAGS_APPEND='-O3 -parallel-jobs=4'
-RUN export HIPCC_COMPILE_FLAGS_APPEND='-O3 -Wno-format-nonliteral -parallel-jobs=4'
+RUN locale
+RUN export HIPCC_LINK_FLAGS_APPEND='-O3 -parallel-jobs=4' && \
+    export HIPCC_COMPILE_FLAGS_APPEND='-O3 -Wno-format-nonliteral -parallel-jobs=4' && \
+    CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -f /dev-requirements.txt
+
+# Install doc requirements
+ADD doc/requirements.txt /doc-requirements.txt
+RUN pip install -r /doc-requirements.txt
+
 # install last released miopentensile in default, install latest commits when MIOTENSILE_VER="latest"
 RUN if [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@7568654c938d42e9a91c6b18fb382f5b978d12fd; else cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@5fe0bf4a8dc59f3ab62df929297280915372ce16; fi
 
