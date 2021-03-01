@@ -257,25 +257,6 @@ pipeline {
                     }
                 }
 
-                stage('OpenCL Release') {
-                    agent{ label rocmnode("vega") }
-                    steps{
-                        script{
-                            try{
-                                buildHipClangJob('g++', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx900;gfx906")
-                            }
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
-                        }
-                    }
-                }
-
                 stage('Hip Release') {
                     agent{ label rocmnode("vega") }
                     steps{
