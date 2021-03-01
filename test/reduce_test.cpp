@@ -133,8 +133,8 @@ struct verify_reduce_with_indices
     miopenReduceTensorIndices_t indicesOpt;
     miopenIndicesType_t indicesType;
 
-    verify_reduce_with_indices(
-        const miopen::ReduceTensorDescriptor& reduce_, // NOLINT (hicpp-member-init)
+    verify_reduce_with_indices( // NOLINT (hicpp-member-init)
+        const miopen::ReduceTensorDescriptor& reduce_,
         const tensor<T>& input_,
         const tensor<T>& output_,
         const tensor<T>& workspace_,
@@ -458,8 +458,8 @@ struct verify_reduce_no_indices
     miopenDataType_t compTypeVal;
     miopenNanPropagation_t nanOpt;
 
-    verify_reduce_no_indices(
-        const miopen::ReduceTensorDescriptor& reduce_, // NOLINT (hicpp-member-init)
+    verify_reduce_no_indices( // NOLINT (hicpp-member-init)
+        const miopen::ReduceTensorDescriptor& reduce_,
         const tensor<T>& input_,
         const tensor<T>& output_,
         const tensor<T>& workspace_,

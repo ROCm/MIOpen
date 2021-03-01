@@ -530,8 +530,11 @@ class DbParallelTest : public DbTest
 class DBMultiThreadedTestWork
 {
     public:
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static unsigned int threads_count;
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static unsigned int common_part_size;
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static unsigned int unique_part_size;
     static constexpr unsigned int ids_per_key      = 16;
     static constexpr unsigned int common_part_seed = 435345;
@@ -741,9 +744,12 @@ class DBMultiThreadedTestWork
     }
 };
 
-unsigned int DBMultiThreadedTestWork::threads_count    = 16;
-unsigned int DBMultiThreadedTestWork::common_part_size = 32;
-unsigned int DBMultiThreadedTestWork::unique_part_size = 32;
+unsigned int DBMultiThreadedTestWork::threads_count =
+    16; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+unsigned int DBMultiThreadedTestWork::common_part_size =
+    32; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+unsigned int DBMultiThreadedTestWork::unique_part_size =
+    32; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
 
 class DbMultiThreadedTest : public DbTest
 {

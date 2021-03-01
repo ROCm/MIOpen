@@ -62,7 +62,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_LOG_LEVEL)
 
 namespace debug {
 
-bool LoggingQuiet = false;
+bool LoggingQuiet = false; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
 
 } // namespace debug
 

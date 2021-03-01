@@ -36,7 +36,7 @@
 
 namespace miopen {
 
-bool testing_find_db_enabled = true;
+bool testing_find_db_enabled = true; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
 
 boost::optional<std::string>& testing_find_db_path_override()
 {
