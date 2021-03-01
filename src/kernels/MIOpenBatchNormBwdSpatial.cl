@@ -293,7 +293,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #if(MIO_BN_USESAVED == 0)
     //==== CALC MEAN and VARIANCE ONCE AGAIN =======================
     _FLOAT_PREC variance = (_FLOAT_PREC)0.;
-#if(MIO_BN_HW >= 4096)
+#if(0)
     _FLOAT4 read4;
 #if(MIO_BN_N > MIO_BN_LOOP_UNROLL_MAXN)
     __attribute__((opencl_unroll_hint(4))) for(unsigned int k = lid << 2; k < MIO_BN_LESS4;
