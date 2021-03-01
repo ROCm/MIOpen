@@ -73,7 +73,7 @@ RUN [ -d /opt/rocm ] || ln -sd $(realpath /opt/rocm-*) /opt/rocm
 ENV PATH="/opt/rocm:${PATH}"
 
 # Build using hip-clang
-RUN cget -p $PREFIX init --cxx /opt/rocm/llvm/bin/clang++ --std=c++14 -DAMDGPU_TARGETS=${GPU_ARCH}
+RUN cget -p $PREFIX init --cxx g++ --std=c++14 -DAMDGPU_TARGETS=${GPU_ARCH}
 
 # Install dependencies
 ADD dev-requirements.txt /dev-requirements.txt
