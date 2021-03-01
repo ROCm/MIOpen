@@ -711,11 +711,11 @@ class DBMultiThreadedTestWork
     }
 };
 
-// NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
 unsigned int DBMultiThreadedTestWork::threads_count = 16;
-// NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
 unsigned int DBMultiThreadedTestWork::common_part_size = 16;
-// NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
 unsigned int DBMultiThreadedTestWork::unique_part_size = 16;
 
 class DbMultiThreadedTest : public DbTest
