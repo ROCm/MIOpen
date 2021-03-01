@@ -450,7 +450,6 @@ enable_clang_tidy(
         -clang-diagnostic-unused-command-line-argument
         -cppcoreguidelines-avoid-c-arrays
         -cppcoreguidelines-avoid-magic-numbers
-        -cppcoreguidelines-avoid-non-const-global-variables
         -cppcoreguidelines-explicit-virtual-functions
         -cppcoreguidelines-init-variables
         -cppcoreguidelines-macro-usage
