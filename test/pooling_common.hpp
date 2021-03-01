@@ -516,7 +516,7 @@ struct pooling_driver : test_driver
                out.first,
                filter,
                indices,
-               wsidx == 0 ? false : true,
+               wsidx != 0,
                static_cast<bool>(this->verify_indices));
     }
 

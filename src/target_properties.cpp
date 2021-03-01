@@ -62,7 +62,7 @@ static std::string GetDeviceNameFromMap(const std::string& in)
     auto match = device_name_map.find(name);
     if(match != device_name_map.end())
         return match->second;
-    return name;
+    return name; //NOLINT (performance-no-automatic-move)
 }
 
 void TargetProperties::Init(const Handle* const handle)

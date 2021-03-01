@@ -662,7 +662,7 @@ struct mlo_construct_pooling2D : mlo_construct_activ_lrn_pooling_common
     int _pooling_method;
     miopenIndexType_t _index_type;
     miopenPoolingWorkspaceIndexMode_t _wsp_index;
-    int _NAN_option;
+    int _NAN_option; //NOLINT (bugprone-reserved-identifier)
     int mloConstructFwd();
     int mloConstructBwd();
 };

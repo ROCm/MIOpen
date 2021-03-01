@@ -37,7 +37,7 @@ float CallImplGemmDynamicForward(const miopen::Handle& handle,
     int pad_w       = conv_problem.GetPadW();
     int y           = conv_problem.GetWeightsHeight();
     int x           = conv_problem.GetWeightsWidth();
-    int __pack0     = 0;
+    int __pack0     = 0; //NOLINT (bugprone-reserved-identifier)
     // clang-format on
 
     std::vector<OpKernelArg> opArgs;
@@ -94,7 +94,7 @@ float CallImplGemmDynamicForward1x1(const miopen::Handle& handle,
     int dilation_w  = conv_problem.GetDilationW();
     int pad_h       = conv_problem.GetPadH();
     int pad_w       = conv_problem.GetPadW();
-    int __pack0     = 0;
+    int __pack0     = 0; //NOLINT (bugprone-reserved-identifier)
     // clang-format on
 
     std::vector<OpKernelArg> opArgs;

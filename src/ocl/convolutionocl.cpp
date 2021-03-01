@@ -1978,7 +1978,7 @@ static Invoker PrepareInvoker(Handle& handle,
         handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
 
     handle.RegisterInvoker(invoker, config, solver_id, AlgorithmName(solver_id.GetAlgo(dir)));
-    return invoker;
+    return invoker; //NOLINT (performance-no-automatic-move)
 }
 
 static Invoker LoadOrPrepareInvoker(Handle& handle,
