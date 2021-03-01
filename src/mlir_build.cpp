@@ -38,12 +38,12 @@ namespace miopen {
 /// Destroys handle in case of exception.
 class AutoMlirHandle
 {
-    mlir::MlirHandle handle;
+    MlirHandle handle;
 
     public:
-    AutoMlirHandle(const std::string& options) : handle(mlir::CreateMlirHandle(options.c_str())) {}
-    ~AutoMlirHandle() { mlir::DestroyMlirHandle(handle); }
-    mlir::MlirHandle operator()() { return handle; }
+    AutoMlirHandle(const std::string& options) : handle(CreateMlirHandle(options.c_str())) {}
+    ~AutoMlirHandle() { DestroyMlirHandle(handle); }
+    MlirHandle operator()() { return handle; }
 };
 
 /// Generates HIP source, header and options for HIP compiler.
@@ -77,23 +77,23 @@ static void MlirGenerateSourcesForHipBuild(const boost::optional<TmpDir>& tmp_di
     MIOPEN_LOG_I2(input_file.string() << ", options: '" << params << "'");
 
     AutoMlirHandle handle(params);
-    mlir::MlirLowerCpp(handle());
+    MlirLowerCpp(handle());
 
     cpp_filename = input_file_base + ".cpp";
     const auto hpp_filename(input_file_base + ".hpp");
 
-    const std::string cpp_text = mlir::MlirGenIgemmSource(handle());
+    const std::string cpp_text = MlirGenIgemmSource(handle());
     std::ofstream cpp_ofs(cpp_filename);
     throw_if_error("MlirGenIgemmSource", cpp_text, &cpp_ofs, cpp_filename);
     cpp_ofs << cpp_text;
 
-    const std::string hpp_text = mlir::MlirGenIgemmHeader(handle());
+    const std::string hpp_text = MlirGenIgemmHeader(handle());
     std::ofstream hpp_ofs(hpp_filename);
     throw_if_error("MlirGenIgemmHeader", hpp_text, &hpp_ofs, hpp_filename);
     hpp_ofs << hpp_text;
 
     // Get mlir kernel compilation flags.
-    cflags = mlir::MlirGenIgemmCflags(handle());
+    cflags = MlirGenIgemmCflags(handle());
     throw_if_error("MlirGenIgemmCflags", cflags);
 
     ///\todo This smells:
