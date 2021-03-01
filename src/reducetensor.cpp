@@ -266,12 +266,10 @@ inline int GetReduceTensorOpId(miopenReduceTensorOp_t t)
         return (657788); // 'A' * 10000 + 'M' * 100 + 'X'
     case MIOPEN_REDUCE_TENSOR_AVG:
         return (658671); // 'A' * 10000 + 'V' * 100 + 'G'
-#if MIOPEN_API_VERSION_REDUCE_TENSOR > 1
     case MIOPEN_REDUCE_TENSOR_NORM1:
         return (788201); // 'N' * 10000 + 'R' * 100 + '1'
     case MIOPEN_REDUCE_TENSOR_NORM2:
         return (788202); // 'N' * 10000 + 'R' * 100 + '2'
-#endif
 
     default: MIOPEN_THROW("Operation is not supported"); break;
     };

@@ -826,12 +826,8 @@ struct reduce_driver : test_driver
 
         unsigned long max_value;
 
-        if(reduceOp == MIOPEN_REDUCE_TENSOR_MUL
-#if MIOPEN_API_VERSION_REDUCE_TENSOR > 1
-           ||
-           reduceOp == MIOPEN_REDUCE_TENSOR_NORM1 || reduceOp == MIOPEN_REDUCE_TENSOR_NORM2
-#endif
-           )
+        if(reduceOp == MIOPEN_REDUCE_TENSOR_MUL || reduceOp == MIOPEN_REDUCE_TENSOR_NORM1 ||
+           reduceOp == MIOPEN_REDUCE_TENSOR_NORM2)
             max_value =
                 miopen_type<T>{} == miopenHalf ? 7 : miopen_type<T>{} == miopenInt8 ? 127 : 11;
         else

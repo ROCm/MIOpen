@@ -69,7 +69,6 @@ static inline std::function<void(compType&)> PreUnaryOpFn(miopenReduceTensorOp_t
 
     switch(op_)
     {
-#if MIOPEN_API_VERSION_REDUCE_TENSOR > 1
     case MIOPEN_REDUCE_TENSOR_NORM1:
         return ([&, divider](compType& a_) {
             a_ = abs(a_) / convert_type<compType>(static_cast<float>(divider));
@@ -78,9 +77,6 @@ static inline std::function<void(compType&)> PreUnaryOpFn(miopenReduceTensorOp_t
         return ([&, divider](compType& a_) {
             a_ = a_ * a_ / convert_type<compType>(static_cast<float>(divider));
         });
-#else
-        (void)divider;
-#endif
     case MIOPEN_REDUCE_TENSOR_AMAX: return ([&](compType& a_) { a_ = abs(a_); });
 
     case MIOPEN_REDUCE_TENSOR_AVG:
@@ -102,18 +98,15 @@ static inline std::function<void(compType&)> PosUnaryOpFn(miopenReduceTensorOp_t
 
     switch(op_)
     {
-#if MIOPEN_API_VERSION_REDUCE_TENSOR > 1
     case MIOPEN_REDUCE_TENSOR_NORM2: return ([&](compType& a_) { a_ = sqrt(a_); });
-#endif
+
     case MIOPEN_REDUCE_TENSOR_AVG:
         return ([&, divider](compType& a_) {
             a_ = a_ / convert_type<compType>(static_cast<float>(divider));
         });
 
     case MIOPEN_REDUCE_TENSOR_ADD:
-#if MIOPEN_API_VERSION_REDUCE_TENSOR > 1
     case MIOPEN_REDUCE_TENSOR_NORM1:
-#endif
     case MIOPEN_REDUCE_TENSOR_MUL:
     case MIOPEN_REDUCE_TENSOR_MIN:
     case MIOPEN_REDUCE_TENSOR_MAX:
@@ -131,11 +124,8 @@ static inline std::function<void(compType&, compType)> ReduceOpFn(miopenReduceTe
     {
     case MIOPEN_REDUCE_TENSOR_ADD:
     case MIOPEN_REDUCE_TENSOR_AVG:
-#if MIOPEN_API_VERSION_REDUCE_TENSOR > 1
     case MIOPEN_REDUCE_TENSOR_NORM1:
-    case MIOPEN_REDUCE_TENSOR_NORM2:
-#endif
-        return ([&](compType& a_, compType b_) { a_ = a_ + b_; });
+    case MIOPEN_REDUCE_TENSOR_NORM2: return ([&](compType& a_, compType b_) { a_ = a_ + b_; });
 
     case MIOPEN_REDUCE_TENSOR_MUL: return ([&](compType& a_, compType b_) { a_ = a_ * b_; });
 
@@ -189,11 +179,8 @@ ReduceOpFn2(miopenReduceTensorOp_t op_)
     case MIOPEN_REDUCE_TENSOR_ADD:
     case MIOPEN_REDUCE_TENSOR_MUL:
     case MIOPEN_REDUCE_TENSOR_AVG:
-#if MIOPEN_API_VERSION_REDUCE_TENSOR > 1
     case MIOPEN_REDUCE_TENSOR_NORM1:
-    case MIOPEN_REDUCE_TENSOR_NORM2:
-#endif
-        return (std::function<void(compType&, compType, bool&)>{});
+    case MIOPEN_REDUCE_TENSOR_NORM2: return (std::function<void(compType&, compType, bool&)>{});
     };
 
     throw std::runtime_error(std::string(__FUNCTION__) +
@@ -207,11 +194,8 @@ static inline compType ReduceOpZeroVal(miopenReduceTensorOp_t op_)
     {
     case MIOPEN_REDUCE_TENSOR_ADD:
     case MIOPEN_REDUCE_TENSOR_AVG:
-#if MIOPEN_API_VERSION_REDUCE_TENSOR > 1
     case MIOPEN_REDUCE_TENSOR_NORM1:
-    case MIOPEN_REDUCE_TENSOR_NORM2:
-#endif
-        return (convert_type<compType>(0.0f));
+    case MIOPEN_REDUCE_TENSOR_NORM2: return (convert_type<compType>(0.0f));
 
     case MIOPEN_REDUCE_TENSOR_MUL: return (convert_type<compType>(1.0f));
 
@@ -232,10 +216,8 @@ inline half_float::half ReduceOpZeroVal<half_float::half>(miopenReduceTensorOp_t
     {
     case MIOPEN_REDUCE_TENSOR_ADD:
     case MIOPEN_REDUCE_TENSOR_AVG:
-#if MIOPEN_API_VERSION_REDUCE_TENSOR > 1
     case MIOPEN_REDUCE_TENSOR_NORM1:
     case MIOPEN_REDUCE_TENSOR_NORM2:
-#endif
 
     case MIOPEN_REDUCE_TENSOR_MUL: return (convert_type<half_float::half>(1.0f));
 
