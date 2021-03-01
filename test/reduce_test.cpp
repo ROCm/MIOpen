@@ -747,16 +747,9 @@ struct reduce_driver : test_driver
     std::vector<std::vector<int>> get_toreduce_dims()
     {
         std::vector<std::vector<int>> tensor_dims = {
-            {0}, {1}, {2}, {3}, {0, 1}, {0, 3}, {0, 2}, {2, 3}, {0, 1, 3}, {1, 2, 3}};
+            {0}, {1}, {2}, {3}, {0, 1}, {0, 3}, {0, 2}, {2, 3}, {0, 1, 3}, {1, 2, 3}, {0, 1, 2, 3}};
 
-        if(std::is_same<T, half_float::half>::value)
-        {
-            tensor_dims.push_back({0, 1, 2, 3});
-
-            return tensor_dims;
-        }
-        else
-            return tensor_dims;
+        return tensor_dims;
     }
 
     reduce_driver()
@@ -830,6 +823,14 @@ struct reduce_driver : test_driver
         auto gen_value = [&](auto... is) {
             return (tensor_elem_gen_integer{max_value}(is...) *
                     tensor_elem_gen_checkboard_sign{}(is...));
+        };
+
+        if(reduceOp == MIOPEN_REDUCE_TENSOR_NORM1 || reduceOp == MIOPEN_REDUCE_TENSOR_NORM2)
+        {
+            if(toReduceDims.size() == 4)
+                this->tolerance = 80 * 500;
+            else
+                this->tolerance = 80 * 10;
         };
 
         auto inputTensor  = tensor<T>{this->inLengths}.generate(gen_value);
