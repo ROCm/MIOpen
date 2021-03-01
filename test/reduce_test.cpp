@@ -758,7 +758,7 @@ struct reduce_driver : test_driver
         add(toReduceDims, "R", generate_data(get_toreduce_dims()));
         add(reduceOp, "ReduceOp", generate_data({0, 4, 5, 6, 7}));
         add(compTypeVal, "CompType", generate_data({1}));
-        add(nanOpt, "N", generate_data({0}));
+        add(nanOpt, "N", generate_data({0, 1}));
         add(indicesOpt, "I", generate_data({0, 1}));
 
         add(scales, "scales", generate_data({{1.0f, 0.0f}, {0.5f, 0.5f}}));
