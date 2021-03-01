@@ -84,7 +84,7 @@ typedef unsigned int uint;
 #include <mach/mach.h>
 #include <mach/mach_time.h>
 #endif
-using __int64 = long long; //NOLINT (bugprone-reserved-identifier)
+using __int64 = long long; // NOLINT (bugprone-reserved-identifier)
 #endif
 
 using mlo_ocl_arg     = std::pair<size_t, void*>;

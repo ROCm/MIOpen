@@ -79,7 +79,10 @@ inline static bool Inc_1__8_optimized(int& v) // NOLINT (bugprone-reserved-ident
     }
 }
 
-inline static bool Is_6__12(const int& v) { return 6 <= v && v <= 12; } // NOLINT (bugprone-reserved-identifier)
+inline static bool Is_6__12(const int& v)
+{
+    return 6 <= v && v <= 12;
+} // NOLINT (bugprone-reserved-identifier)
 
 inline static bool Inc_6__12(int& v) // NOLINT (bugprone-reserved-identifier)
 {
@@ -104,9 +107,12 @@ inline static bool Inc_6__12_optimized(int& v) // NOLINT (bugprone-reserved-iden
     }
 }
 
-inline static bool Is_2__11(const int& v) { return 2 <= v && v <= 11; } // NOLINT (bugprone-reserved-identifier)
+inline static bool Is_2__11(const int& v)
+{
+    return 2 <= v && v <= 11;
+} // NOLINT (bugprone-reserved-identifier)
 
-inline static bool Inc_2__11(int& v)  // NOLINT (bugprone-reserved-identifier)
+inline static bool Inc_2__11(int& v) // NOLINT (bugprone-reserved-identifier)
 {
     assert(Is_2__11(v));
     if(++v <= 11)

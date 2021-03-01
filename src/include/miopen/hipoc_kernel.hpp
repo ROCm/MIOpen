@@ -56,7 +56,7 @@ struct KernelArgsPair
     static const int second_index = sizeof(T) + padding;
     KernelArgsPair(T x, U y)
     {
-        
+
         new(buffer) T(x); // NOLINT (clang-analyzer-cplusplus.PlacementNew)
         new(buffer + second_index) U(y);
     }

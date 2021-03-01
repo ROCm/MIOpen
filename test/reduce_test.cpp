@@ -133,13 +133,14 @@ struct verify_reduce_with_indices
     miopenReduceTensorIndices_t indicesOpt;
     miopenIndicesType_t indicesType;
 
-    verify_reduce_with_indices(const miopen::ReduceTensorDescriptor& reduce_, //NOLINT (hicpp-member-init)
-                               const tensor<T>& input_,
-                               const tensor<T>& output_,
-                               const tensor<T>& workspace_,
-                               const tensor<int>& indices_,
-                               T alpha_,
-                               T beta_)
+    verify_reduce_with_indices(
+        const miopen::ReduceTensorDescriptor& reduce_, // NOLINT (hicpp-member-init)
+        const tensor<T>& input_,
+        const tensor<T>& output_,
+        const tensor<T>& workspace_,
+        const tensor<int>& indices_,
+        T alpha_,
+        T beta_)
     {
         reduce    = reduce_;
         input     = input_;
@@ -457,12 +458,13 @@ struct verify_reduce_no_indices
     miopenDataType_t compTypeVal;
     miopenNanPropagation_t nanOpt;
 
-    verify_reduce_no_indices(const miopen::ReduceTensorDescriptor& reduce_, //NOLINT (hicpp-member-init)
-                             const tensor<T>& input_,
-                             const tensor<T>& output_,
-                             const tensor<T>& workspace_,
-                             T alpha_,
-                             T beta_)
+    verify_reduce_no_indices(
+        const miopen::ReduceTensorDescriptor& reduce_, // NOLINT (hicpp-member-init)
+        const tensor<T>& input_,
+        const tensor<T>& output_,
+        const tensor<T>& workspace_,
+        T alpha_,
+        T beta_)
     {
         reduce    = reduce_;
         input     = input_;
@@ -777,7 +779,7 @@ struct reduce_driver : test_driver
             assert(toReduceDims[i] < inLengths.size());
 
         // set the lengths of the dimensions to be reduced to 1 to represent the output Tensor
-        for(int & toReduceDim : toReduceDims)
+        for(int& toReduceDim : toReduceDims)
             outLengths[toReduceDim] = static_cast<std::size_t>(1);
 
         unsigned long max_value =
