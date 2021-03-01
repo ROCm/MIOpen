@@ -711,12 +711,12 @@ class DBMultiThreadedTestWork
     }
 };
 
-unsigned int DBMultiThreadedTestWork::threads_count =
-    16; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
-unsigned int DBMultiThreadedTestWork::common_part_size =
-    16; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
-unsigned int DBMultiThreadedTestWork::unique_part_size =
-    16; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+unsigned int DBMultiThreadedTestWork::threads_count = 16;
+// NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+unsigned int DBMultiThreadedTestWork::common_part_size = 16;
+// NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+unsigned int DBMultiThreadedTestWork::unique_part_size = 16;
 
 class DbMultiThreadedTest : public DbTest
 {
