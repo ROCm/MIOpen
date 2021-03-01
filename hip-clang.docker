@@ -15,11 +15,15 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     apt-utils \
     build-essential \
     cmake \
+    comgr \
     curl \
     doxygen \
     g++ \
     gdb \
     git \
+    hsa-rocr-dev \
+    hip-base \
+    hip-hcc \
     hip-rocclr \
     lcov \
     libelf-dev \
@@ -61,6 +65,12 @@ RUN dpkg -i dumb-init_*.deb && rm dumb-init_*.deb
 
 # Install cget
 RUN pip3 install cget
+
+# Add symlink to /opt/rocm
+RUN [ -d /opt/rocm ] || ln -sd $(realpath /opt/rocm-*) /opt/rocm
+
+# Make sure /opt/rcom is in the paths
+ENV PATH="/opt/rocm:${PATH}"
 
 # Build using hip-clang
 RUN cget -p $PREFIX init --cxx /opt/rocm/llvm/bin/clang++ --std=c++14 -DAMDGPU_TARGETS=${GPU_ARCH}
