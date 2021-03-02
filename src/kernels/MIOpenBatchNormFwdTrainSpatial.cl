@@ -241,7 +241,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 
-#if(0)
+#if(MIO_BN_HW >= 4096)
     _FLOAT4 read4;
     __attribute__((opencl_unroll_hint(2))) for(unsigned int k = lid << 2; k < MIO_BN_LESS4;
                                                k += GRPRD)
@@ -265,7 +265,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     nidx                = remkey / MIO_BN_HW;
     hwidx               = remkey - (nidx * MIO_BN_HW);
     index               = nidx * MIO_BN_CHW + chwid + hwidx;
-    if(index < MIO_BN_NCHW)
+    if(index < (MIO_BN_NCHW - 3))
     {
         read4 = *((const global _FLOAT4*)(in + index));
         mean += (_FLOAT_PREC)read4.x;
