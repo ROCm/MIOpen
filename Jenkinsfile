@@ -214,6 +214,76 @@ pipeline {
         image = "miopen"
     }
     stages{
+        // Run all static analysis tests
+        stage("Static checks"){
+            parallel{
+                stage('Clang Tidy') {
+                    agent{  label rocmnode("rocmtest") }
+                    environment{
+                        cmd = "rm -rf build; mkdir build; cd build; CXX='clang++-3.8' cmake -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
+                    }
+                    steps{
+                        script{
+                            try{
+                                buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd, gpu_arch: "all")
+                            } 
+                            catch(e){
+                                echo "throwing error exception for the stage"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                        }
+                    }
+                }
+
+                stage('Clang Format') {
+                    agent{ label rocmnode("rocmtest") }
+                    environment{
+                        cmd = "find . -iname \'*.h\' \
+                                -o -iname \'*.hpp\' \
+                                -o -iname \'*.cpp\' \
+                                -o -iname \'*.h.in\' \
+                                -o -iname \'*.hpp.in\' \
+                                -o -iname \'*.cpp.in\' \
+                                -o -iname \'*.cl\' \
+                                | grep -v 'build/' \
+                                | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-3.8 -style=file {} | diff - {}\'"
+                    }
+                    steps{
+                        script{
+                            try{
+                                buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd, gpu_arch: "all")
+                            } 
+                            catch(e){
+                                echo "throwing error exception for the stage"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                        }
+                    }
+                }
+
+                stage('Hip Tidy') {
+                    agent{ label rocmnode("rocmtest") }
+                    environment{
+                        cmd = "rm -rf build; mkdir build; cd build; CXX=/usr/local/bin/hcc cmake -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
+                    }
+                    steps{
+                        script{
+                            try{
+                                buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd, gpu_arch: "all")
+                            } 
+                            catch(e){
+                                echo "throwing error exception for the stage"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // Run quick fp32 tests
         stage("Fast full precision"){
             parallel{
