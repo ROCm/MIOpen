@@ -102,8 +102,8 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
                                             std::string src,
                                             std::string params,
                                             const TargetProperties& target,
-                                            const bool testing_mode,
-                                            const bool sources_already_reside_on_filesystem)
+                                            bool testing_mode,
+                                            bool sources_already_reside_on_filesystem)
 {
 #ifdef __linux__
     // Write out the include files
@@ -294,7 +294,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
                                  std::string src,
                                  std::string params,
                                  const TargetProperties& target,
-                                 const bool sources_already_reside_on_filesystem)
+                                 bool sources_already_reside_on_filesystem)
 {
     if(target.Name() == "gfx908")
         if(DetectIfBufferAtomicFaddReturnsFloat(target))
