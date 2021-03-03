@@ -36,6 +36,7 @@
 #include <miopen/mlo_internal.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/tensor_layout.hpp>
 #include <miopen/algorithm.hpp>
 
 #include <cassert>
@@ -255,10 +256,16 @@ TensorDescriptor ConvolutionDescriptor::GetForwardOutputTensor(const TensorDescr
     out_lens[0] = in_n;
     out_lens[1] = out_c;
 
+    std::string default_layout = tensor_layout_get_default(spatial_dim + 2);
+    std::string in_layout      = xDesc.GetLayout(default_layout);
+    std::vector<std::size_t> out_strides;
+    tensor_layout_to_strides(out_lens, default_layout, in_layout, out_strides);
+
     return TensorDescriptor((xDesc.GetType() == miopenInt8 || xDesc.GetType() == miopenInt8x4
                                  ? (yType == miopenInt32 ? yType : miopenFloat)
                                  : xDesc.GetType()),
-                            out_lens);
+                            out_lens,
+                            out_strides);
 }
 
 std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMM(const TensorDescriptor& wDesc,

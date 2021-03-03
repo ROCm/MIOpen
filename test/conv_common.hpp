@@ -33,6 +33,7 @@
 #include <miopen/convolution.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
+#include <miopen/tensor_layout.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/solver.hpp>
@@ -1544,6 +1545,9 @@ struct conv_driver : test_driver
     miopen::ConvolutionDescriptor filter;
     std::string conv_mode;
     std::string pad_mode;
+    std::string in_layout;
+    std::string fil_layout; // keep same as MIOpenDriver argument name
+    std::string out_layout;
     std::vector<int> pads_strides_dilations;
     std::vector<int> trans_output_pads;
     int groupCount{};
@@ -1631,6 +1635,37 @@ struct conv_driver : test_driver
 
     void run()
     {
+        std::cout << "in_layout:" << in_layout << ", fil_layout:" << fil_layout
+                  << ", out_layout:" << out_layout << std::endl;
+        if(input.desc.GetSize() != in_layout.size() || weights.desc.GetSize() != fil_layout.size())
+        {
+            MIOPEN_LOG_E("layout not match dimension size!");
+        }
+
+        // replace desc to set layout information here
+        if(in_layout != "NCHW" || in_layout != "NCDHW")
+        {
+            std::vector<std::size_t> dim_lens = input.desc.GetLengths();
+            std::vector<std::size_t> dim_strides;
+            miopen::tensor_layout_to_strides(
+                dim_lens,
+                miopen::tensor_layout_get_default(input.desc.GetSize()),
+                in_layout,
+                dim_strides);
+            input.desc = miopen::TensorDescriptor(miopen_type<T>{}, dim_lens, dim_strides);
+        }
+        if(fil_layout != "NCHW" || fil_layout != "NCDHW")
+        {
+            std::vector<std::size_t> dim_lens = weights.desc.GetLengths();
+            std::vector<std::size_t> dim_strides;
+            miopen::tensor_layout_to_strides(
+                dim_lens,
+                miopen::tensor_layout_get_default(weights.desc.GetSize()),
+                fil_layout,
+                dim_strides);
+            weights.desc = miopen::TensorDescriptor(miopen_type<T>{}, dim_lens, dim_strides);
+        }
+
         filter.spatialDim       = get_spatial_dim();
         filter.mode             = cmode_lookup[miopen::ToUpper(conv_mode)];
         filter.paddingMode      = pmode_lookup[miopen::ToUpper(pad_mode)];

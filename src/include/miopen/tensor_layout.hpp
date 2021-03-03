@@ -33,6 +33,8 @@
 #include <iterator>
 #include <miopen/errors.hpp>
 
+namespace miopen {
+
 template <typename T>
 void tensor_layout_to_strides(const std::vector<T>& len,
                               const std::string& len_layout,
@@ -76,5 +78,7 @@ inline std::string tensor_layout_get_default(int size)
         return "NCDHW";
     return "";
 }
+
+} // namespace miopen
 
 #endif
