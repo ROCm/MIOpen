@@ -49,69 +49,6 @@ def cmake_build(compiler, flags, env4make, extradebugflags, prefixpath){
     }
 }
 
-def buildJob(Map conf, compiler){
-
-        env.HSA_ENABLE_SDMA=0
-        env.CODECOV_TOKEN="aec031be-7673-43b5-9840-d8fb71a2354e"
-        checkout scm
-        def prefixpath = conf.get("prefixpath", "/usr/local")
-        def flags = conf.get("flags", "")
-        def env4make = conf.get("env4make", "")
-        def image = conf.get("image", "miopen")
-        def cmd = conf.get("cmd", "")
-        def gpu_arch = conf.get("gpu_arch", "all")
-        def codecov = conf.get("codecov", false)
-        def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
-        def dockerArgs = "--build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' "
-        def extradebugflags = ""
-        def variant = env.STAGE_NAME
-        if (codecov) {
-            extradebugflags = "-fprofile-arcs -ftest-coverage"
-        }
-        def retimage
-        gitStatusWrapper(credentialsId: '7126e5fe-eb51-4576-b52b-9aaf1de8f0fd', gitHubContext: "Jenkins - ${variant}", account: 'ROCmSoftwarePlatform', repo: 'MIOpen') {
-            try {
-                retimage = docker.build("${image}", dockerArgs + '.')
-                withDockerContainer(image: image, args: dockerOpts) {
-                    timeout(time: 5, unit: 'MINUTES')
-                    {
-                        sh 'PATH="/opt/rocm/opencl/bin/:/opt/rocm/opencl/bin/x86_64/:$PATH" clinfo'
-                    }
-                }
-            } catch(Exception ex) {
-                retimage = docker.build("${image}", dockerArgs + "--no-cache .")
-                withDockerContainer(image: image, args: dockerOpts) {
-                    timeout(time: 5, unit: 'MINUTES')
-                    {
-                        sh 'PATH="/opt/rocm/opencl/bin/:/opt/rocm/opencl/bin/x86_64/:$PATH" clinfo'
-                    }
-                }
-            }
-
-            withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
-                timeout(time: 5, unit: 'HOURS')
-                {
-                    if(cmd == ""){
-                        cmake_build(compiler, flags, env4make, extradebugflags, prefixpath)
-                    }else{
-                        sh cmd
-                    }
-                    if (codecov) {
-                        sh '''
-                            cd build
-                            lcov --directory . --capture --output-file $(pwd)/coverage.info
-                            lcov --remove $(pwd)/coverage.info '/usr/*' --output-file $(pwd)/coverage.info
-                            lcov --list $(pwd)/coverage.info
-                            curl -s https://codecov.io/bash | bash
-                            echo "Uploaded"
-                        '''
-                    }
-                }
-            }
-        }
-        return retimage
-}
-
 def buildHipClangJob(Map conf, compiler){
 
         env.HSA_ENABLE_SDMA=0
@@ -188,7 +125,7 @@ def reboot(){
 /// DataType := { Half | BF16 | Int8 | FP32* }
 ///   * "FP32" is the default and usually not specified.
 /// Backend := { Hip | OpenCL | HipNoGPU}
-/// Compiler := { Clang* | hcc | GCC* }
+/// Compiler := { Clang* | GCC* }
 ///   * "Clang" is the default for the Hip backend, and implies hip-clang compiler.
 ///     For the OpenCL backend, "Clang" implies the system x86 compiler.
 ///   * "GCC" is the default for OpenCL backend.
@@ -217,7 +154,7 @@ pipeline {
         // Run all static analysis tests
         stage("Static checks"){
             parallel{
-                stage('Clang Tidy') {
+                stage('Clang Hip Tidy') {
                     agent{  label rocmnode("rocmtest") }
                     environment{
                         cmd = "rm -rf build; mkdir build; cd build; CXX='clang++-3.8' cmake -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
@@ -225,7 +162,25 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd, gpu_arch: "all")
+                                buildHipClangJob('clang++', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd, gpu_arch: "all")
+                            } 
+                            catch(e){
+                                echo "throwing error exception for the stage"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                        }
+                    }
+                }
+                stage('Clang OpenCL Tidy') {
+                    agent{  label rocmnode("rocmtest") }
+                    environment{
+                        cmd = "rm -rf build; mkdir build; cd build; CXX='clang++-3.8' cmake -DMIOPEN_BACKEND=OpenCL -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
+                    }
+                    steps{
+                        script{
+                            try{
+                                buildHipClangJob('clang++', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd, gpu_arch: "all")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -252,26 +207,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd, gpu_arch: "all")
-                            } 
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                        }
-                    }
-                }
-
-                stage('Hip Tidy') {
-                    agent{ label rocmnode("rocmtest") }
-                    environment{
-                        cmd = "rm -rf build; mkdir build; cd build; CXX=/usr/local/bin/hcc cmake -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
-                    }
-                    steps{
-                        script{
-                            try{
-                                buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd, gpu_arch: "all")
+                                buildHipClangJob('clang++', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd, gpu_arch: "all")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
