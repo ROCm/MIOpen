@@ -338,6 +338,7 @@ find_program(MIOPEN_AMDGCN_ASSEMBLER
         ${CMAKE_INSTALL_PREFIX}/hcc
     PATH_SUFFIXES
         /opencl/bin/x86_64
+        /opencl/bin
         /bin
     NO_DEFAULT_PATH
 )
