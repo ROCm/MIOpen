@@ -45,7 +45,7 @@
 #include <cassert>
 #include "random.hpp"
 
-#include "miopen_ReductionHost.hpp"
+#include "miopen_Reduction.hpp"
 
 template <typename Tgpu, typename Tref>
 class ReduceDriver : public Driver
