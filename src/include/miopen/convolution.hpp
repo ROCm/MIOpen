@@ -98,6 +98,11 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
 
     int GetGroupCount() const;
 
+    TensorDescriptor GetForwardOutputTensorWithLayout(const TensorDescriptor& xDesc,
+                                                      const TensorDescriptor& wDesc,
+                                                      std::string yLayout,
+                                                      miopenDataType_t yType = miopenFloat) const;
+
     TensorDescriptor GetForwardOutputTensor(const TensorDescriptor& xDesc,
                                             const TensorDescriptor& wDesc,
                                             miopenDataType_t yType = miopenFloat) const;

@@ -141,9 +141,11 @@ const std::vector<int>& ConvolutionDescriptor::GetTransposeConvPads() const
 
 int ConvolutionDescriptor::GetGroupCount() const { return group_count; }
 
-TensorDescriptor ConvolutionDescriptor::GetForwardOutputTensor(const TensorDescriptor& xDesc,
-                                                               const TensorDescriptor& wDesc,
-                                                               miopenDataType_t yType) const
+TensorDescriptor
+ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& xDesc,
+                                                        const TensorDescriptor& wDesc,
+                                                        std::string yLayout,
+                                                        miopenDataType_t yType) const
 {
     const std::size_t spatial_dim = GetSpatialDimension();
 
@@ -256,16 +258,25 @@ TensorDescriptor ConvolutionDescriptor::GetForwardOutputTensor(const TensorDescr
     out_lens[0] = in_n;
     out_lens[1] = out_c;
 
-    std::string default_layout = tensor_layout_get_default(spatial_dim + 2);
-    std::string in_layout      = xDesc.GetLayout(default_layout);
+    std::string default_layout = tensor_layout_get_default(xDesc.GetSize());
     std::vector<std::size_t> out_strides;
-    tensor_layout_to_strides(out_lens, default_layout, in_layout, out_strides);
+    tensor_layout_to_strides(out_lens, default_layout, yLayout, out_strides);
 
     return TensorDescriptor((xDesc.GetType() == miopenInt8 || xDesc.GetType() == miopenInt8x4
                                  ? (yType == miopenInt32 ? yType : miopenFloat)
                                  : xDesc.GetType()),
                             out_lens,
                             out_strides);
+}
+
+TensorDescriptor ConvolutionDescriptor::GetForwardOutputTensor(const TensorDescriptor& xDesc,
+                                                               const TensorDescriptor& wDesc,
+                                                               miopenDataType_t yType) const
+{
+    // output layout same as input
+    std::string default_layout = tensor_layout_get_default(xDesc.GetSize());
+    std::string in_layout      = xDesc.GetLayout(default_layout);
+    return GetForwardOutputTensorWithLayout(xDesc, wDesc, in_layout, yType);
 }
 
 std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMM(const TensorDescriptor& wDesc,

@@ -164,11 +164,18 @@ struct conv_stats
 template <class T, class Tout = T>
 tensor<Tout> get_output_tensor(const miopen::ConvolutionDescriptor& filter,
                                const tensor<T>& input,
-                               const tensor<T>& weights)
+                               const tensor<T>& weights,
+                               std::string out_layout = "")
 {
-    return tensor<Tout>{filter.GetForwardOutputTensor(
+
+    std::string yLayout =
+        out_layout == ""
+            ? input.desc.GetLayout(miopen::tensor_layout_get_default(input.desc.GetSize()))
+            : out_layout;
+    return tensor<Tout>{filter.GetForwardOutputTensorWithLayout(
         input.desc,
         weights.desc,
+        yLayout,
         weights.desc.GetType() == miopenInt8 || weights.desc.GetType() == miopenInt8x4
             ? (std::is_same<Tout, int>{} ? miopenInt32 : miopenFloat)
             : weights.desc.GetType())};
@@ -206,6 +213,7 @@ struct verify_forward_conv : conv_base<T, Tout>
 {
     using conv_base<T, Tout>::input;
     using conv_base<T, Tout>::weights;
+    using conv_base<T, Tout>::out;
     using conv_base<T, Tout>::filter;
     using conv_base<T, Tout>::bias;
     using conv_base<T, Tout>::search;
@@ -215,6 +223,7 @@ struct verify_forward_conv : conv_base<T, Tout>
 
     verify_forward_conv(const tensor<T>& pinput,
                         const tensor<T>& pweights,
+                        const tensor<Tout>& pout,
                         const miopen::ConvolutionDescriptor& pfilter,
                         conv_stats& pstats,
                         int pbias,
@@ -224,6 +233,7 @@ struct verify_forward_conv : conv_base<T, Tout>
     {
         input   = pinput;
         weights = pweights;
+        out     = pout;
         filter  = pfilter;
         bias    = pbias;
         search  = psearch;
@@ -234,7 +244,7 @@ struct verify_forward_conv : conv_base<T, Tout>
 
     tensor<Tout> cpu() const
     {
-        auto rout = get_output_tensor<T, Tout>(filter, input, weights);
+        auto rout = out;
 
         if(filter.mode == miopenTranspose)
         {
@@ -288,7 +298,7 @@ struct verify_forward_conv : conv_base<T, Tout>
     tensor<Tout> gpu() const
     {
         auto&& handle = get_handle();
-        auto rout     = get_output_tensor<T, Tout>(filter, input, weights);
+        auto rout     = out;
 
         auto in_dev  = handle.Write(input.data);
         auto wei_dev = handle.Write(weights.data);
@@ -1635,9 +1645,8 @@ struct conv_driver : test_driver
 
     void run()
     {
-        std::cout << "in_layout:" << in_layout << ", fil_layout:" << fil_layout
-                  << ", out_layout:" << out_layout << std::endl;
-        if(input.desc.GetSize() != in_layout.size() || weights.desc.GetSize() != fil_layout.size())
+        if(input.desc.GetSize() != in_layout.size() ||
+           weights.desc.GetSize() != fil_layout.size() || input.desc.GetSize() != out_layout.size())
         {
             MIOPEN_LOG_E("layout not match dimension size!");
         }
@@ -1807,7 +1816,7 @@ struct conv_driver : test_driver
                  (filter.group_count > 1 &&
                   (input.desc.GetLengths().at(1) % weights.desc.GetLengths().at(1) == 0)))))
             {
-                auto output = get_output_tensor(filter, input, weights);
+                auto output = get_output_tensor(filter, input, weights, out_layout);
 
                 auto gen_positive_value = [=](auto...) {
                     auto data_type    = input.desc.GetType();
@@ -1879,7 +1888,8 @@ struct conv_driver : test_driver
                 size_t total_mem;
                 if(is_int8)
                 {
-                    auto output_int8      = get_output_tensor<T, float>(filter, input, weights);
+                    auto output_int8 =
+                        get_output_tensor<T, float>(filter, input, weights, out_layout);
                     size_t workspace_size = filter.ForwardGetWorkSpaceSize(
                         handle, weights.desc, input.desc, output_int8.desc);
 
@@ -1943,18 +1953,50 @@ struct conv_driver : test_driver
                     if(is_int8)
                     {
                         verify(verify_forward_conv<T, float>{
-                            input, weights, filter, stats, 0, search, false, immed});
+                            input,
+                            weights,
+                            get_output_tensor<T, float>(filter, input, weights, out_layout),
+                            filter,
+                            stats,
+                            0,
+                            search,
+                            false,
+                            immed});
                         verify(verify_forward_conv<T, float>{
-                            input, weights, filter, stats, 0, search, true, immed});
+                            input,
+                            weights,
+                            get_output_tensor<T, float>(filter, input, weights, out_layout),
+                            filter,
+                            stats,
+                            0,
+                            search,
+                            true,
+                            immed});
                         verify(verify_forward_conv<T, int>{
-                            input, weights, filter, stats, 0, search, false, immed});
+                            input,
+                            weights,
+                            get_output_tensor<T, int>(filter, input, weights, out_layout),
+                            filter,
+                            stats,
+                            0,
+                            search,
+                            false,
+                            immed});
                         verify(verify_forward_conv<T, int>{
-                            input, weights, filter, stats, 0, search, true, immed});
+                            input,
+                            weights,
+                            get_output_tensor<T, int>(filter, input, weights, out_layout),
+                            filter,
+                            stats,
+                            0,
+                            search,
+                            true,
+                            immed});
                     }
                     else
                     {
                         verify(verify_forward_conv<T>{
-                            input, weights, filter, stats, 0, search, false, immed});
+                            input, weights, output, filter, stats, 0, search, false, immed});
                     }
                 }
 
