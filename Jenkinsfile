@@ -23,11 +23,9 @@ def cmake_build(compiler, flags, env4make, extradebugflags, prefixpath){
     def debug_flags = "-g ${extradebugflags} -fno-omit-frame-pointer -fsanitize=undefined -fno-sanitize-recover=undefined"
     def compilerpath = ""
     def configargs = ""
-    if (prefixpath == "/usr/local")
-        compilerpath = compiler;
-    else
-    {
-        compilerpath = prefixpath + "/bin/" + compiler
+
+    compilerpath = compiler;
+    if (prefixpath != "/usr/local") {
         configargs = "-DCMAKE_PREFIX_PATH=${prefixpath}"
     }
 
@@ -77,7 +75,7 @@ def buildJob(Map conf, compiler){
                 withDockerContainer(image: image, args: dockerOpts) {
                     timeout(time: 5, unit: 'MINUTES')
                     {
-                        sh 'PATH="/opt/rocm/opencl/bin/x86_64/:$PATH" clinfo'
+                        sh 'PATH="/opt/rocm/opencl/bin/:/opt/rocm/opencl/bin/x86_64/:$PATH" clinfo'
                     }
                 }
             } catch(Exception ex) {
@@ -85,7 +83,7 @@ def buildJob(Map conf, compiler){
                 withDockerContainer(image: image, args: dockerOpts) {
                     timeout(time: 5, unit: 'MINUTES')
                     {
-                        sh 'PATH="/opt/rocm/opencl/bin/x86_64/:$PATH" clinfo'
+                        sh 'PATH="/opt/rocm/opencl/bin/:/opt/rocm/opencl/bin/x86_64/:$PATH" clinfo'
                     }
                 }
             }
@@ -114,13 +112,26 @@ def buildJob(Map conf, compiler){
         return retimage
 }
 
-def buildHipClangJob(compiler, flags, env4make, image, prefixpath="/opt/rocm", cmd = "", gpu_arch="all", miot_ver="default"){
+def buildHipClangJob(Map conf, compiler){
 
         env.HSA_ENABLE_SDMA=0
+        env.CODECOV_TOKEN="aec031be-7673-43b5-9840-d8fb71a2354e"
         checkout scm
+        def prefixpath = conf.get("prefixpath", "/usr/local")
+        def flags = conf.get("flags", "")
+        def env4make = conf.get("env4make", "")
+        def image = conf.get("image", "miopen")
+        def cmd = conf.get("cmd", "")
+        def gpu_arch = conf.get("gpu_arch", "all")
+        def codecov = conf.get("codecov", false)
+        def miotensile_version = conf.get("miotensile_version", "default")
         def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
-        def dockerArgs = "--build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miot_ver}' -f hip-clang.docker "
+        def dockerArgs = "--build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' -f hip-clang.docker "
+        def extradebugflags = ""
         def variant = env.STAGE_NAME
+        if (codecov) {
+            extradebugflags = "-fprofile-arcs -ftest-coverage"
+        }
         def retimage
         gitStatusWrapper(credentialsId: '7126e5fe-eb51-4576-b52b-9aaf1de8f0fd', gitHubContext: "Jenkins - ${variant}", account: 'ROCmSoftwarePlatform', repo: 'MIOpen') {
             try {
@@ -145,9 +156,19 @@ def buildHipClangJob(compiler, flags, env4make, image, prefixpath="/opt/rocm", c
                 timeout(time: 5, unit: 'HOURS')
                 {
                     if(cmd == ""){
-                        cmake_build(compiler, flags, env4make, prefixpath)
+                        cmake_build(compiler, flags, env4make, extradebugflags, prefixpath)
                     }else{
                         sh cmd
+                    }
+                    if (codecov) {
+                        sh '''
+                            cd build
+                            lcov --directory . --capture --output-file $(pwd)/coverage.info
+                            lcov --remove $(pwd)/coverage.info '/usr/*' --output-file $(pwd)/coverage.info
+                            lcov --list $(pwd)/coverage.info
+                            curl -s https://codecov.io/bash | bash
+                            echo "Uploaded"
+                        '''
                     }
                 }
             }
@@ -175,11 +196,12 @@ def reboot(){
 /// BuildType := { Release | Debug [ BuildTypeModifier ] }
 ///   * BuildTypeModifier := { COMGR | Embedded | Static | Normal-Find | Fast-Find
 ///                                  | Tensile | Tensile-Latest | Package | ... }
-/// TestSet := { All | Subset | Smoke* }
+/// TestSet := { All | Subset | Smoke* } [ Codecov ]
 ///   * "All" corresponds to "cmake -DMIOPEN_TEST_ALL=On".
 ///   * "Subset" corresponds to Target- or BuildTypeModifier-specific subsetting of
 ///     the "All" testset, e.g. -DMIOPEN_TEST_GFX908=On or -DMIOPEN_TEST_MIOTENSILE=On.
 ///   * "Smoke" (-DMIOPEN_TEST_ALL=Off) is the default and usually not specified.
+///   * "Codecov" is optional code coverage analysis.
 /// Target := { gfx908 | Vega20 | Vega10 | Vega* }
 ///   * "Vega" (gfx906 or gfx900) is the default and usually not specified.
 
@@ -265,32 +287,13 @@ pipeline {
         // Run quick fp32 tests
         stage("Fast full precision"){
             parallel{
-               stage('OpenCL/Clang Debug') {
+               stage('OpenCL Debug') {
                     agent{ label rocmnode("vega") }
                     steps{
                         script{
                             try{
-                                buildJob('clang++-3.8', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', gpu_arch: "gfx900;gfx906")
-                            } 
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
+                                buildHipClangJob('g++', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', gpu_arch: "gfx900;gfx906")
                             }
-                            finally{
-                                reboot()
-                            }
-                        }
-                    }
-                }
-
-                stage('OpenCL/Clang Release') {
-                    agent{ label rocmnode("vega") }
-                    steps{
-                        script{
-                            try{
-                                buildJob('clang++-3.8', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx900;gfx906")
-                            } 
                             catch(e){
                                 echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
@@ -308,8 +311,8 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildJob('g++-5', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx900;gfx906")
-                            } 
+                                buildHipClangJob('g++', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx900;gfx906")
+                            }
                             catch(e){
                                 echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
@@ -321,14 +324,14 @@ pipeline {
                         }
                     }
                 }
-              
-                stage('Hip/hcc Release') {
+
+                stage('Hip Release') {
                     agent{ label rocmnode("vega") }
                     steps{
                         script{
                             try{
-                                buildJob('hcc', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image + "rocm", gpu_arch: "gfx900;gfx906")
-                            } 
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image + "rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx900;gfx906")
+                            }
                             catch(e){
                                 echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
@@ -357,8 +360,8 @@ pipeline {
                     steps{
                         script{
                             try{
-                                 buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx900;gfx906")
-                            } 
+                                 buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', cmd: cmd, gpu_arch: "gfx900;gfx906")
+                            }
                             catch(e){
                                 echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
@@ -373,13 +376,13 @@ pipeline {
 
 
 
-                stage('Hip/hcc Debug gfx908') {
+                stage('Hip Debug gfx908') {
                     agent{ label rocmnode("gfx908") }
                     steps{
                         script{
                             try{
-                                buildJob('hcc', flags: '-DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx908")
-                            } 
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx908")
+                            }
                             catch(e){
                                 echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
@@ -406,11 +409,11 @@ pipeline {
                             mkdir build
                             cd build
                             CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug -DMIOPEN_BACKEND=HIPNOGPU -DMIOPEN_INSTALL_CXX_HEADERS=On ..
-                            make -j\$(nproc) 
+                            make -j\$(nproc)
                         """
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "MIOPEN_LOG_LEVEL=5 MIOPEN_COMPILE_PARALLEL_LEVEL=1",  image+'-hipnogpu-clang', "/usr/local", cmd, "gfx900;gfx906")
+                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', env4make: "MIOPEN_LOG_LEVEL=5 MIOPEN_COMPILE_PARALLEL_LEVEL=1", image: image+'-hipnogpu-clang', cmd: cmd, gpu_arch: "gfx900;gfx906")
                     }
                 }
                 stage('Hip Debug COMGR') {
@@ -429,8 +432,8 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx900;gfx906")
-                            } 
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', cmd: cmd, gpu_arch: "gfx900;gfx906")
+                            }
                             catch(e){
                                 echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
@@ -458,8 +461,8 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx906")
-                            } 
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', cmd: cmd, gpu_arch: "gfx906")
+                            }
                             catch(e){
                                 echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
@@ -490,8 +493,8 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx900;gfx906")
-                            } 
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', cmd: cmd, gpu_arch: "gfx900;gfx906")
+                            }
                             catch(e){
                                 echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
@@ -520,8 +523,8 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx900;gfx906")
-                            } 
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', cmd: cmd, gpu_arch: "gfx900;gfx906")
+                            }
                             catch(e){
                                 echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
@@ -550,8 +553,8 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx900;gfx906")
-                            } 
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', cmd: cmd, gpu_arch: "gfx900;gfx906")
+                            }
                             catch(e){
                                 echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
@@ -564,13 +567,13 @@ pipeline {
                     }
                 }
 
-                stage('Hip/hcc Release on /usr/local') {
+                stage('Hip Release on /usr/local') {
                     agent{ label rocmnode("vega") }
                     steps{
                         script{
                             try{
-                                buildJob('hcc', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx900;gfx906")
-                            } 
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx900;gfx906")
+                            }
                             catch(e){
                                 echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
@@ -589,13 +592,13 @@ pipeline {
         // Run fp16, bfp16, and int8 quick tests
         stage("Fast low precision"){
             parallel{
-                stage('Half Hip/hcc Release Vega20') {
+                stage('Half Hip Release Vega20') {
                     agent{ label rocmnode("vega20") }
                     steps{
                         script{
                             try{
-                                buildJob('hcc', flags: '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx906")
-                            } 
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx906")
+                            }
                             catch(e){
                                 echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
@@ -612,8 +615,8 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildJob('g++-5', flags: '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx906")
-                            } 
+                                buildHipClangJob('g++', flags: '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx906")
+                            }
                             catch(e){
                                 echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
@@ -630,8 +633,8 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildJob('g++-5', flags: '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx906")
-                            } 
+                                buildHipClangJob('g++', flags: '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx906")
+                            }
                             catch(e){
                                 echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
@@ -644,13 +647,13 @@ pipeline {
                     }
                 }
 
-                stage('BF16 Hip/hcc Release Vega20') {
+                stage('BF16 Hip Release Vega20') {
                     agent{ label rocmnode("vega20") }
                     steps{
                         script{
                             try{
-                                buildJob('hcc', flags: '-DMIOPEN_TEST_BFLOAT16=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx906")
-                            } 
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DMIOPEN_TEST_BFLOAT16=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx906")
+                            }
                             catch(e){
                                 echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
@@ -663,13 +666,13 @@ pipeline {
                     }
                 }
 
-                stage('BF16 Hip/hcc Debug gfx908') {
+                stage('BF16 Hip Debug gfx908') {
                     agent{ label rocmnode("gfx908") }
                     steps{
                         script{
                             try{
-                                buildJob('hcc', flags: '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx908")
-                            } 
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx908")
+                            }
                             catch(e){
                                 echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
@@ -681,13 +684,13 @@ pipeline {
                         }
                     }
                 }
-                stage('Half Hip/hcc Debug gfx908') {
+                stage('Half Hip Debug gfx908') {
                     agent{ label rocmnode("gfx908") }
                     steps{
                         script{
                             try{
-                                buildJob('hcc', flags: '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx908")
-                            } 
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx908")
+                            }
                             catch(e){
                                 echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
@@ -705,13 +708,13 @@ pipeline {
         stage("Full tests I"){
             parallel{
 
-                stage('GCC codecov') {
+                stage('OpenCL Debug + Codecov') {
                     agent{ label rocmnode("vega") }
                     steps{
                         script{
                             try{
-                                buildJob('g++-5', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', codecov: true, gpu_arch: "gfx900;gfx906")
-                            } 
+                                buildHipClangJob('g++', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', codecov: true, gpu_arch: "gfx900;gfx906")
+                            }
                             catch(e){
                                 echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
@@ -724,13 +727,13 @@ pipeline {
                     }
                 }
 
-                stage('Int8 Hip/hcc Release All Vega20') {
+                stage('Int8 Hip Release All Vega20') {
                     agent{ label rocmnode("vega20") }
                     steps{
                         script{
                             try{
-                                buildJob('hcc', flags: '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx906")
-                            } 
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "gfx906")
+                            }
                             catch(e){
                                 echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
@@ -758,8 +761,8 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx908")
-                            } 
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', cmd: cmd, gpu_arch: "gfx908")
+                            }
                             catch(e){
                                 echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
@@ -781,8 +784,8 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildJob('g++-5', flags: '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx900;gfx906")
-                            } 
+                                buildHipClangJob('g++', flags: '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx900;gfx906")
+                            }
                             catch(e){
                                 echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
@@ -810,8 +813,8 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx908")
-                            } 
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image + "-hip-clang", cmd: cmd, gpu_arch: "gfx908")
+                            }
                             catch(e){
                                 echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
@@ -839,8 +842,8 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd, "gfx908")
-                            } 
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image + "-hip-clang", cmd: cmd, gpu_arch: "gfx908")
+                            }
                             catch(e){
                                 echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
@@ -873,8 +876,8 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx906")
-                            } 
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image + "-hip-clang", cmd: cmd, gpu_arch: "gfx906")
+                            }
                             catch(e){
                                 echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
@@ -903,8 +906,8 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx906")
-                            } 
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', cmd: cmd, gpu_arch: "gfx906")
+                            }
                             catch(e){
                                 echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
@@ -936,8 +939,8 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx906")
-                            } 
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', cmd: cmd, gpu_arch: "gfx906")
+                            }
                             catch(e){
                                 echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
@@ -965,8 +968,8 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx908")
-                            } 
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', cmd: cmd, gpu_arch: "gfx908")
+                            }
                             catch(e){
                                 echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
@@ -994,8 +997,8 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx906", "latest")
-                            } 
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', cmd: cmd, gpu_arch: "gfx906", miotensile_version: "latest")
+                            }
                             catch(e){
                                 echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
@@ -1023,8 +1026,8 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "", image+'-hip-clang', "/usr/local", cmd, "gfx908", "latest")
-                            } 
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang', cmd: cmd, gpu_arch: "gfx908", miotensile_version: "latest")
+                            }
                             catch(e){
                                 echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
@@ -1047,8 +1050,8 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildJob('g++-5', flags: '-DCMAKE_BUILD_TYPE=release', gpu_arch: "all")
-                            } 
+                                buildHipClangJob('g++', flags: '-DCMAKE_BUILD_TYPE=release')
+                            }
                             catch(e){
                                 echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
@@ -1060,13 +1063,13 @@ pipeline {
                         }
                     }
                 }
-                stage("HIP/hcc Release Package"){
+                stage("HIP Release Package"){
                     agent{ label rocmnode("rocmtest") }
                     steps{
                         script{
                             try{
-                                buildJob('hcc', flags: '-DCMAKE_BUILD_TYPE=release', image: image+"rocm", prefixpath: '/opt/rocm', gpu_arch: "all")
-                            } 
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DCMAKE_BUILD_TYPE=release', image: image+"rocm", prefixpath: '/opt/rocm')
+                            }
                             catch(e){
                                 echo "throwing error exception for the stage"
                                 echo 'Exception occurred: ' + e.toString()
