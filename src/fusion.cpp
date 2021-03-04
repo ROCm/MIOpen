@@ -980,6 +980,13 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
             }
             program_name = kinder.first->vertex_data.at("program");
             auto d       = handle.GetDeviceName();
+
+            auto it = std::find(
+                kinder.first->supported_arch.begin(), kinder.first->supported_arch.end(), d);
+            // Empty inidicates any arch is supported (say OpenCL kernels)
+            if(!kinder.first->supported_arch.empty() && (it == kinder.first->supported_arch.end()))
+                continue;
+
             std::transform(d.begin(), d.end(), d.begin(), ::tolower);
             find_replace_first(program_name, "GFX*", d);
 
