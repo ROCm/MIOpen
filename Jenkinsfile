@@ -167,7 +167,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildJob('clang++', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd, gpu_arch: "all", image: 'miopen')
+                                buildJob('clang++', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd)
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -185,7 +185,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildJob('clang++', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd, gpu_arch: "all", image: 'miopen')
+                                buildJob('clang++', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd)
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -212,7 +212,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildJob('clang++', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd, gpu_arch: "all", image: 'miopen')
+                                buildJob('clang++', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd)
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
