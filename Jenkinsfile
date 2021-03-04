@@ -78,7 +78,12 @@ def buildJob(Map conf, compiler){
                         sh 'PATH="/opt/rocm/opencl/bin/:/opt/rocm/opencl/bin/x86_64/:$PATH" clinfo'
                     }
                 }
-            } catch(Exception ex) {
+            }
+            catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e){
+                echo "The job was cancelled or aborted"
+                throw e
+            }
+            catch(Exception ex) {
                 retimage = docker.build("${image}", dockerArgs + "--no-cache .")
                 withDockerContainer(image: image, args: dockerOpts) {
                     timeout(time: 5, unit: 'MINUTES')
@@ -142,7 +147,12 @@ def buildHipClangJob(Map conf, compiler){
                         sh 'PATH="/opt/rocm/opencl/bin:/opt/rocm/opencl/bin/x86_64:$PATH" clinfo'
                     }
                 }
-            } catch(Exception ex) {
+            }
+            catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e){
+                echo "The job was cancelled or aborted"
+                throw e
+            }
+            catch(Exception ex) {
                 retimage = docker.build("${image}", dockerArgs + "--no-cache .")
                 withDockerContainer(image: image, args: dockerOpts) {
                     timeout(time: 5, unit: 'MINUTES')

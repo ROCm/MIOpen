@@ -53,8 +53,9 @@ find_package(Threads REQUIRED)
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C ${CMAKE_CFG_INTDIR})
 add_custom_target(tests)
 
-set(SKIP_TESTS dummy) # dummy is for REMOVE_DUPLICATES
+# The usage is non-trivial, see function add_test_command.
 set(SKIP_ALL_EXCEPT_TESTS dummy)
+set(SKIP_TESTS dummy) # dummy is for REMOVE_DUPLICATES
 set(MIOPEN_TEST_FLOAT_ARG)
 
 if(MIOPEN_TEST_HALF)
@@ -221,7 +222,7 @@ function(add_custom_test NAME)
     OR (MIOPEN_TEST_BFLOAT16 AND ${PARSE_ALLOW_BFLOAT16})
     OR (MIOPEN_TEST_HALF AND ${PARSE_ALLOW_HALF})
     OR (MIOPEN_TEST_INT8 AND ${PARSE_ALLOW_INT8})
-    OR (NOT (MIOPEN_TEST_MIOTENSILE AND (NAME IN_LIST SKIP_TESTS))))
+    OR (MIOPEN_TEST_MIOTENSILE AND NOT(NAME IN_LIST SKIP_TESTS)))
         add_custom_target(${NAME} ${PARSE_UNPARSED_ARGUMENTS})
         if(NOT PARSE_SKIP_UNLESS_ALL OR MIOPEN_TEST_ALL)
             add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
@@ -241,7 +242,7 @@ function(add_perf_test NAME)
     OR (MIOPEN_TEST_BFLOAT16 AND ${PARSE_ALLOW_BFLOAT16})
     OR (MIOPEN_TEST_HALF AND ${PARSE_ALLOW_HALF})
     OR (MIOPEN_TEST_INT8 AND ${PARSE_ALLOW_INT8})
-    OR (NOT (MIOPEN_TEST_MIOTENSILE AND (NAME IN_LIST SKIP_TESTS))))
+    OR (MIOPEN_TEST_MIOTENSILE AND NOT(NAME IN_LIST SKIP_TESTS)))
         add_custom_target(${NAME} ${PARSE_UNPARSED_ARGUMENTS})
         if(NOT PARSE_SKIP_UNLESS_ALL OR MIOPEN_TEST_ALL)
             add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
@@ -252,6 +253,7 @@ function(add_perf_test NAME)
 endfunction()
 
 set(IMPLICITGEMM_ARGS ${MIOPEN_TEST_FLOAT_ARG})
+
 # ./bin/MIOpenDriver conv -n 128 -c 1024 -H 14 -W 14 -k 2048 -y 1 -x 1 -p 0 -q 0 -u 2 -v 2 -l 1 -j 1 -m conv -g 1 -F 1 -t 1
 # MIOPEN_DEBUG_CONV_IMMED_FALLBACK=0
 if(MIOPEN_EMBED_DB)
