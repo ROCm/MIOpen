@@ -44,6 +44,16 @@
 #define WORKAROUND_SWDEV_203031 1 // See also issues #2075, #2067
 #endif
 
+#define WORKAROUND_SWDEV_257202 1 // For SSD convergence issue.
+
+#if WORKAROUND_SWDEV_257202
+// Workaround, solver disabled by default.
+#define IS_DISABLED(expr) !miopen::IsEnabled(expr)
+#else
+// Normal behavior (solver enabled by default).
+#define IS_DISABLED(expr) miopen::IsDisabled(expr)
+#endif
+
 namespace miopen {
 namespace solver {
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F2X3)
@@ -173,7 +183,7 @@ inline bool IsApplicableTransform(const ConvolutionContext& params)
         return false;
     if(!params.Is2d())
         return false;
-    if(params.direction.IsBackwardWrW())
+    if(!(params.direction.IsForward() || params.direction.IsBackwardData()))
         return false;
     if(!(params.IsFp32() || params.IsFp16()))
         return false;
@@ -303,6 +313,11 @@ bool ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsA
     // HIP backend required for sending ptr (buffer + offset)
     // ROCBLAS for GEMM step
 
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
+
     if(!IsApplicableGEMM<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(params))
         return false;
 
@@ -310,19 +325,19 @@ bool ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsA
     static const int wino_filter_tile = std::max(WinoFilterH, WinoFilterW);
 
     if(wino_data_tile == 6 && wino_filter_tile == 3)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F6X3{}))
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F6X3{}))
             return false;
     if(wino_data_tile == 5 && wino_filter_tile == 3)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F5X3{}))
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F5X3{}))
             return false;
     if(wino_data_tile == 4 && wino_filter_tile == 3)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F4X3{}))
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F4X3{}))
             return false;
     if(wino_data_tile == 3 && wino_filter_tile == 3)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F3X3{}))
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F3X3{}))
             return false;
     if(wino_data_tile == 2 && wino_filter_tile == 3)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F2X3{}))
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F2X3{}))
             return false;
 
     return IsApplicableTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(params);
@@ -412,6 +427,7 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
     }
     else
     {
+#if MIOPEN_USE_ROCBLAS
         // GEMM
         gemm_conv_kernel_name = "WRW_WINO_GEMM: ";
 
@@ -426,7 +442,11 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
         GemmDescriptor wino_gemm_desc{isColMajor,transA,transB,m,n,k,
             lda,ldb,ldc,batch_count,strideA,strideB,
             strideC,alpha,beta,transform_data_type};
-        // clang-format on
+// clang-format on
+#else
+        (void)wino_xform_w;
+        (void)wino_xform_h;
+#endif
 
         gemm_conv_factory = [=](const std::vector<Kernel>&) {
 
@@ -808,19 +828,19 @@ bool ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilter
     static const int wino_filter_tile = std::max(WinoFilterH, WinoFilterW);
 
     if(wino_data_tile == 6 && wino_filter_tile == 3)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F6X3{}))
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F6X3{}))
             return false;
     if(wino_data_tile == 5 && wino_filter_tile == 3)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F5X3{}))
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F5X3{}))
             return false;
     if(wino_data_tile == 4 && wino_filter_tile == 3)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F4X3{}))
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F4X3{}))
             return false;
     if(wino_data_tile == 3 && wino_filter_tile == 3)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F3X3{}))
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F3X3{}))
             return false;
     if(wino_data_tile == 2 && wino_filter_tile == 3)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F2X3{}))
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F2X3{}))
             return false;
 
     return IsApplicableTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(ctx) &&

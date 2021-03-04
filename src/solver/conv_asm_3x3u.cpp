@@ -34,6 +34,7 @@
 #include <miopen/sequences.hpp>
 #include <miopen/conv/invokers/gen_x_w_y_pad.hpp>
 
+#include <cstdint>
 #include <sstream>
 #include <limits>
 #include <cassert>
@@ -177,6 +178,8 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(params.IsAsymmetricPadH() || params.IsAsymmetricPadW())
         return false;
+    if(!(params.direction.IsForward() || params.direction.IsBackwardData()))
+        return false;
     if(!params.rmv.IsV2orV3())
         return false;
     const std::string name = params.GetStream().GetDeviceName();
@@ -187,6 +190,18 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         return false;
     }
 
+    constexpr auto GIB                         = static_cast<int64_t>(1024) * 1024 * 1024;
+    constexpr auto TIB                         = GIB * 1024;
+    constexpr auto ELEM_SZ                     = static_cast<int64_t>(sizeof(float));
+    constexpr int64_t SHADER_FEATURE_INDEX_MAX = static_cast<uint32_t>(-1);
+    const auto IN_FEATURE_COUNT  = static_cast<int64_t>(params.batch_sz) * params.n_inputs;
+    const auto OUT_FEATURE_COUNT = static_cast<int64_t>(params.batch_sz) * params.n_outputs;
+    const auto IN_IMG_SZ         = ELEM_SZ * params.in_height * params.in_width;
+    const auto OUT_IMG_SZ        = ELEM_SZ * params.out_height * params.out_width;
+    const auto IN_BUF_SZ         = IN_IMG_SZ * IN_FEATURE_COUNT;
+    const auto OUT_BUF_SZ        = OUT_IMG_SZ * OUT_FEATURE_COUNT;
+    const auto WEI_BUF_SZ =
+        ELEM_SZ * params.n_inputs * params.n_outputs * params.kernel_size_h * params.kernel_size_w;
     // clang-format off
     return params.pad_w == 1
         && params.pad_h == 1
@@ -200,6 +215,13 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         && (params.n_inputs / params.group_counts) % 4 == 0 /// \todo: remove restriction that (n_inputs/group_counts) must be multiple of 4
         && params.in_width > 3
         && params.in_width <= 1000
+        && IN_IMG_SZ  <= GIB
+        && OUT_IMG_SZ <= 4 * GIB
+        && IN_FEATURE_COUNT  - 1 <= SHADER_FEATURE_INDEX_MAX
+        && OUT_FEATURE_COUNT - 1 <= SHADER_FEATURE_INDEX_MAX
+        && IN_BUF_SZ  <= 256 * TIB
+        && OUT_BUF_SZ <= 256 * TIB
+        && WEI_BUF_SZ <= 4 * GIB
         && params.IsFp32()
         && params.in_layout == "NCHW";
         // && (params.forward ? params.weights_layout == "KCHW" : params.weights_layout == "CKHW" )
@@ -252,13 +274,11 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
         {"output_channels", params.n_outputs},
         {"weights_layout", params.direction.IsForward() ? 0 : 1},
         {"reverse_weights", params.direction.IsForward() ? 0 : 1},
-        {"no_params_file", 1},
         {"ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4},
         {"limit_wave_cnt", pcfg->limit_wave_cnt},
         {"filters_per_wave", pcfg->filters_per_wave},
         {"output_lines_per_wave", pcfg->output_lines_per_wave},
         // Debugging:
-        {"enable_debug_output", 0},
         {"group_counts", params.group_counts},
         {"k_group_size_is_power_of_two", k_group_size_is_power_of_two},
         {"workgroup_size_x", active_lanes},

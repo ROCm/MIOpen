@@ -32,6 +32,8 @@
 #include <algorithm>
 #include "implicitgemm_util.hpp"
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_V4R1)
+
 namespace miopen {
 namespace solver {
 
@@ -128,6 +130,9 @@ static inline bool FindImplicitGemmDynamicKernelBwd(const ConvolutionContext& ct
 
 bool ConvAsmImplicitGemmV4R1DynamicBwd::IsApplicable(const ConvolutionContext& ctx) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_V4R1{}))
+        return false;
+
     const auto device_name = ctx.GetStream().GetDeviceName();
     if(!(StartsWith(device_name, "gfx900") || StartsWith(device_name, "gfx906")))
         return false;
@@ -149,6 +154,11 @@ bool ConvAsmImplicitGemmV4R1DynamicBwd::IsApplicable(const ConvolutionContext& c
 
     if(ctx.group_counts != 1)
         return false;
+
+    if(!ctx.IsLayoutDefault())
+    {
+        return false;
+    }
 
     std::string kernel_name;
     int block_size;

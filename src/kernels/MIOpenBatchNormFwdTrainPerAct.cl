@@ -69,54 +69,51 @@ __kernel void MIOpenBatchNormFwdTrainPerActivation(
     unsigned int xgid    = get_global_id(0);
     unsigned int ygid    = get_global_id(1);
     unsigned int yglb_sz = get_global_size(1);
-    unsigned int Cidx    = MIO_BN_HW * xgid;
-    unsigned int adjIndex, inImgIndex, index;
+    int cidx             = MIO_BN_HW * xgid;
+    int adjIndex, index;
 
     _FLOAT_PREC invN = 1.0 / (_FLOAT_PREC)MIO_BN_N;
 
     // move across the sections of the image mini_batch stack
-    for(unsigned int img_offset = 0; img_offset < in_cstride; img_offset += yglb_sz)
+    for(int idx = ygid; idx < in_cstride; idx += yglb_sz)
     {
-        inImgIndex = img_offset + ygid;
-        if(inImgIndex < in_cstride)
+        mean     = (_FLOAT_PREC)0.;
+        adjIndex = cidx + idx; // gamma and beta tensor index
+        for(int n = 0; n < MIO_BN_N; n++)
         {
-            mean     = (_FLOAT_PREC)0.;
-            variance = (_FLOAT_PREC)0.;
-            adjIndex = Cidx + inImgIndex; // gamma and beta tensor index
+            index = in_nstride * n + adjIndex;
+            mean += (_FLOAT_PREC)in[index];
+        } // end for(n)
+        mean *= invN;
+        variance = 0.;
 
-#pragma unroll
-            for(unsigned int n = 0; n < MIO_BN_N; n++)
-            {
-                index           = in_nstride * n + adjIndex;
-                _FLOAT_PREC xin = (_FLOAT_PREC)(*(in + index));
-                mean += xin;
-                variance = mad(xin, xin, variance);
-            } // end for(n)
-            mean *= (_FLOAT_PREC)invN;
-            variance *= (_FLOAT_PREC)invN;
-            variance    = mad(-mean, mean, variance);
-            invVariance = rsqrt(variance + epsilon);
-            pvt_scale   = *(scale + adjIndex);
-            pvt_bias    = *(bias + adjIndex);
+        for(int n = 0; n < MIO_BN_N; n++)
+        {
+            index             = in_nstride * n + adjIndex;
+            _FLOAT_PREC xdiff = (_FLOAT_PREC)(in[index] - mean);
+            variance += (xdiff * xdiff);
+        } // end for(n)
+        variance *= (_FLOAT_PREC)invN;
+        invVariance = rsqrt(variance + epsilon);
+        pvt_scale   = *(scale + adjIndex);
+        pvt_bias    = *(bias + adjIndex);
 
 #if(MIO_RUNNING_RESULT == 1)
-            running_stash_pa(
-                resultRunningMean, resultRunningVariance, expAvgFactor, mean, variance, adjIndex);
+        running_stash_pa(
+            resultRunningMean, resultRunningVariance, expAvgFactor, mean, variance, adjIndex);
 #endif
 
 #if(MIO_SAVE_MEAN_VARIANCE == 1)
-            saved_stash(resultSaveMean, resultSaveInvVariance, mean, invVariance, adjIndex);
+        saved_stash(resultSaveMean, resultSaveInvVariance, mean, invVariance, adjIndex);
 #endif
 
-#pragma unroll
-            for(unsigned int n = 0; n < MIO_BN_N; n++)
-            { // per (x-dims) channel load a block of data unsigned into LDS
-                index      = in_nstride * n + adjIndex;
-                inhat      = ((_FLOAT_PREC)(*(in + index)) - mean) * invVariance;
-                out[index] = (_FLOAT)(mad(pvt_scale, inhat, pvt_bias));
-            } // end for(n)
-        }     // end if(inImgIndex)
-    }         // end for(img_offset) //image mini_batch is processed
+        for(int n = 0; n < MIO_BN_N; n++)
+        { // per (x-dims) channel load a block of data unsigned into LDS
+            index      = in_nstride * n + adjIndex;
+            inhat      = ((_FLOAT_PREC)in[index] - mean) * invVariance;
+            out[index] = (_FLOAT)(mad(pvt_scale, inhat, pvt_bias));
+        } // end for(n)
+    }     // end for(img_offset) //image mini_batch is processed
 }
 
 // Restore warnings

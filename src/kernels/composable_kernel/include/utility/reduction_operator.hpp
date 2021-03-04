@@ -26,7 +26,9 @@
 #ifndef CK_REDUCTION_OPERATOR_HPP
 #define CK_REDUCTION_OPERATOR_HPP
 
+#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include <limits>
+#endif
 #include "reduction_common.hpp"
 
 namespace ck {
@@ -144,6 +146,108 @@ __device__ half_t Min<half_t>::GetZeroVal()
     return type_convert<half_t>{}(std::numeric_limits<float>::max());
 };
 
+// Unary operators are usually called element-wisely before the reduction is executed on the
+// elements.
+// They are needed for easy implementation of reduction types of AVG, NRM1, NRM2
+template <class T, int divider>
+struct unary_identic
+{
+    static constexpr float scaler = 1.0f / static_cast<float>(divider);
+
+    __device__ inline constexpr void operator()(T& a) const { a = a * type_convert<T>{}(scaler); };
+};
+
+template <class T>
+struct unary_identic<T, 1>
+{
+    __device__ inline constexpr void operator()(T&) const {};
+};
+
+template <class T, int divider>
+struct unary_square
+{
+    static constexpr float scaler = 1.0f / static_cast<float>(divider);
+
+    __device__ inline constexpr void operator()(T& a) const
+    {
+        a = a * a;
+
+        a = a * type_convert<T>{}(scaler);
+    };
+};
+
+template <class T>
+struct unary_square<T, 1>
+{
+    __device__ inline constexpr void operator()(T& a) const { a = a * a; };
+};
+
+template <class T, int divider>
+struct unary_abs
+{
+    static constexpr float scaler = 1.0f / static_cast<float>(divider);
+
+    __device__ inline constexpr void operator()(T& a) const
+    {
+        a = abs(a);
+
+        a = a * type_convert<T>{}(scaler);
+    };
+};
+
+template <class T>
+struct unary_abs<T, 1>
+{
+    __device__ inline constexpr void operator()(T& a) const { a = abs(a); };
+};
+
+// We know for sure that 4.0 has __habs(), but 3.0 does not have it.
+// Let's assume that __habs() exists since 3.5.
+#if HIP_PACKAGE_VERSION_FLAT < 3005000000
+inline __device__ __half __habs(__half x)
+{
+    union
+    {
+        __half half;
+        unsigned short u16;
+    } val;
+    val.half = x;
+    val.u16  = val.u16 & 0x7fff;
+    return val.half;
+}
+#endif
+
+template <int divider>
+struct unary_abs<half_t, divider>
+{
+    static constexpr float scaler = 1.0f / static_cast<float>(divider);
+
+    __device__ inline void operator()(half_t& a) const
+    {
+        a = static_cast<half_t>(__habs(a));
+
+        a = a * type_convert<half_t>{}(scaler);
+    };
+};
+
+template <>
+struct unary_abs<half_t, 1>
+{
+    __device__ inline void operator()(half_t& a) const { a = static_cast<half_t>(__habs(a)); };
+};
+
+template <class T>
+struct unary_sqrt
+{
+    __device__ inline constexpr void operator()(T& a) const { a = sqrtf(a); };
+};
+
+template <>
+struct unary_sqrt<half_t>
+{
+    __device__ inline void operator()(half_t& a) const { a = static_cast<half_t>(hsqrt(a)); };
+};
+
 }; // end of namespace reduce
 
 // The templated struct reduce_binary_operator maps the enum Ids of binary operators to their
@@ -197,6 +301,102 @@ struct reduce_binary_operator<T, ReduceTensorOp_t::MAX>
     __device__ static T GetZeroVal() { return reduce::Max<T>::GetZeroVal(); };
 
     static constexpr bool indexable = reduce::Max<T>::indexable;
+};
+
+template <typename T>
+struct reduce_binary_operator<T, ReduceTensorOp_t::AMAX>
+{
+    using opType   = reduce::Max<T>;
+    using dataType = T;
+
+    __device__ static T GetZeroVal() { return reduce::Max<T>::GetZeroVal(); };
+
+    static constexpr bool indexable = reduce::Max<T>::indexable;
+};
+
+template <typename T>
+struct reduce_binary_operator<T, ReduceTensorOp_t::AVG>
+{
+    using opType   = reduce::Add<T>;
+    using dataType = T;
+
+    __device__ static T GetZeroVal() { return reduce::Add<T>::GetZeroVal(); };
+
+    static constexpr bool indexable = reduce::Add<T>::indexable;
+};
+
+template <typename T>
+struct reduce_binary_operator<T, ReduceTensorOp_t::NORM1>
+{
+    using opType   = reduce::Add<T>;
+    using dataType = T;
+
+    __device__ static T GetZeroVal() { return reduce::Add<T>::GetZeroVal(); };
+
+    static constexpr bool indexable = reduce::Add<T>::indexable;
+};
+
+template <typename T>
+struct reduce_binary_operator<T, ReduceTensorOp_t::NORM2>
+{
+    using opType   = reduce::Add<T>;
+    using dataType = T;
+
+    __device__ static T GetZeroVal() { return reduce::Add<T>::GetZeroVal(); };
+
+    static constexpr bool indexable = reduce::Add<T>::indexable;
+};
+
+// The templated struct reduce_unary_operator maps the enum Ids of Reduce operators to two unary
+// functor classes.
+// The two unary functors are called before and afer the Reduction is executed respectively
+template <typename T, ReduceTensorOp_t op, int divider, bool isFirsReduce, bool isLastReduce>
+struct reduce_unary_operator
+{
+    using preUnaryOp = reduce::unary_identic<T, 1>;
+    using posUnaryOp = reduce::unary_identic<T, 1>;
+};
+
+template <typename T, int divider, bool isFirstReduce>
+struct reduce_unary_operator<T, ReduceTensorOp_t::AVG, divider, isFirstReduce, true>
+{
+    using preUnaryOp = reduce::unary_identic<T, 1>;
+    using posUnaryOp = reduce::unary_identic<T, divider>;
+};
+
+template <typename T, int divider, bool isLastReduce>
+struct reduce_unary_operator<T, ReduceTensorOp_t::NORM1, divider, true, isLastReduce>
+{
+    using preUnaryOp = reduce::unary_abs<T, divider>;
+    using posUnaryOp = reduce::unary_identic<T, 1>;
+};
+
+template <typename T, int divider, bool isLastReduce>
+struct reduce_unary_operator<T, ReduceTensorOp_t::AMAX, divider, true, isLastReduce>
+{
+    using preUnaryOp = reduce::unary_abs<T, 1>;
+    using posUnaryOp = reduce::unary_identic<T, 1>;
+};
+
+template <typename T, int divider>
+struct reduce_unary_operator<T, ReduceTensorOp_t::NORM2, divider, true, false>
+{
+    using preUnaryOp = reduce::unary_square<T, divider>;
+    using posUnaryOp = reduce::unary_identic<T, 1>;
+};
+
+template <typename T, int divider>
+struct reduce_unary_operator<T, ReduceTensorOp_t::NORM2, divider, true, true>
+{
+    using preUnaryOp = reduce::unary_square<T, divider>;
+    using posUnaryOp = reduce::unary_sqrt<T>;
+};
+
+template <typename T, int divider>
+struct reduce_unary_operator<T, ReduceTensorOp_t::NORM2, divider, false, true>
+{
+    using preUnaryOp = reduce::unary_identic<T, 1>;
+    using posUnaryOp = reduce::unary_sqrt<T>;
 };
 
 } // end of namespace ck
