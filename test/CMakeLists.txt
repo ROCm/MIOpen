@@ -53,15 +53,13 @@ find_package(Threads REQUIRED)
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C ${CMAKE_CFG_INTDIR})
 add_custom_target(tests)
 
-set(SKIP_TESTS)
+set(SKIP_TESTS dummy) # dummy is for REMOVE_DUPLICATES
+set(SKIP_ALL_EXCEPT_TESTS dummy)
 set(MIOPEN_TEST_FLOAT_ARG)
 
 if(MIOPEN_TEST_HALF)
     if(MIOPEN_BACKEND_OPENCL)
         set(SKIP_TESTS test_gru test_rnn_vanilla test_lstm test_conv_igemm_dynamic)
-    endif()
-    if(MIOPEN_TEST_GFX908)
-       set(SKIP_TESTS test_immed_conv3d test_conv3d test_fusion_aux test_activation test_lrn_test test_ctc test_conv2d_bias test_conv3d_bias test_cba_inference test_cbna_inference test_pooling2d test_na_train test_na_inference test_bn_aux test_conv_igemm_dynamic)
     endif()
     set(MIOPEN_TEST_FLOAT_ARG --half)
 elseif(MIOPEN_TEST_INT8)
@@ -70,11 +68,13 @@ elseif(MIOPEN_TEST_INT8)
 elseif(MIOPEN_TEST_BFLOAT16)
     set(SKIP_ALL_EXCEPT_TESTS test_conv2d test_tensor_copy test_tensor_set test_tensor_vec test_immed_conv2d test_check_numerics_test)
     if(MIOPEN_TEST_GFX908)
-        set(SKIP_ALL_EXCEPT_TESTS test_conv_extra test_conv_for_implicit_gemm test_miopen_conv test_deepbench_conv ${SKIP_ALL_EXCEPT_TESTS})
+        list(APPEND SKIP_ALL_EXCEPT_TESTS test_conv_extra test_conv_for_implicit_gemm test_miopen_conv test_deepbench_conv)
     endif()
     set(MIOPEN_TEST_FLOAT_ARG --bfloat16)
-elseif(MIOPEN_TEST_GFX908)
-    set(SKIP_TESTS test_main test_tensor_scale test_tensor_set test_tensor_transform test_tensor_vec test_w_supertensor test_dropout test_immed_conv3d test_conv3d test_soft_max test_fusion_aux test_activation test_lrn_test test_ctc test_conv2d_bias test_conv3d_bias test_cba_inference test_cbna_inference test_pooling2d test_na_train test_na_inference test_bn_aux test_conv_igemm_dynamic)
+endif()
+
+if(MIOPEN_TEST_GFX908)
+    list(APPEND SKIP_TESTS test_main test_tensor_scale test_tensor_set test_tensor_transform test_tensor_vec test_w_supertensor test_dropout test_immed_conv3d test_conv3d test_soft_max test_fusion_aux test_activation test_lrn_test test_ctc test_conv2d_bias test_conv3d_bias test_cba_inference test_cbna_inference test_pooling2d test_na_train test_na_inference test_bn_aux test_conv_igemm_dynamic)
 endif()
 
 if(MIOPEN_TEST_MIOTENSILE)
@@ -82,8 +82,11 @@ if(MIOPEN_TEST_MIOTENSILE)
     list(APPEND SKIP_TESTS test_conv_igemm_dynamic test_conv_igemm_dynamic_small test_conv_for_implicit_gemm)
 endif()
 
+list(REMOVE_DUPLICATES SKIP_TESTS)
+list(REMOVE_DUPLICATES SKIP_ALL_EXCEPT_TESTS)
+
 function(add_test_command NAME EXE)
-    # Restrict the use of SKIP_ALL_EXCEPT_TESTS list in the low-precision and miopentensile tests
+    # Restrict the use of SKIP_ALL_EXCEPT_TESTS list in the Int8, BF16 and MIOpenTensile tests
     if((NOT (NAME IN_LIST SKIP_ALL_EXCEPT_TESTS)) AND (MIOPEN_TEST_INT8 OR MIOPEN_TEST_BFLOAT16 OR MIOPEN_TEST_MIOTENSILE))
         add_test(NAME ${NAME} COMMAND echo skipped)
         set_tests_properties(${NAME} PROPERTIES DISABLED On)
