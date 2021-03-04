@@ -756,7 +756,7 @@ struct reduce_driver : test_driver
     {
         add(inLengths, "D", generate_data(get_tensor_lengths()));
         add(toReduceDims, "R", generate_data(get_toreduce_dims()));
-        add(reduceOp, "ReduceOp", generate_data({0, 4, 5, 6, 7}));
+        add(reduceOp, "ReduceOp", generate_data({0, 1, 4, 5, 6, 7}));
         add(compTypeVal, "CompType", generate_data({1}));
         add(nanOpt, "N", generate_data({0, 1}));
         add(indicesOpt, "I", generate_data({0, 1}));
@@ -812,8 +812,10 @@ struct reduce_driver : test_driver
 
         unsigned long max_value;
 
-        if(reduceOp == MIOPEN_REDUCE_TENSOR_MUL || reduceOp == MIOPEN_REDUCE_TENSOR_NORM1 ||
-           reduceOp == MIOPEN_REDUCE_TENSOR_NORM2)
+        if(reduceOp == MIOPEN_REDUCE_TENSOR_MUL)
+            max_value =
+                miopen_type<T>{} == miopenHalf ? 41 : miopen_type<T>{} == miopenInt8 ? 127 : 111;
+        else if(reduceOp == MIOPEN_REDUCE_TENSOR_NORM1 || reduceOp == MIOPEN_REDUCE_TENSOR_NORM2)
             max_value =
                 miopen_type<T>{} == miopenHalf ? 7 : miopen_type<T>{} == miopenInt8 ? 127 : 11;
         else
@@ -825,7 +827,19 @@ struct reduce_driver : test_driver
                     tensor_elem_gen_checkboard_sign{}(is...));
         };
 
-        if(reduceOp == MIOPEN_REDUCE_TENSOR_NORM1 || reduceOp == MIOPEN_REDUCE_TENSOR_NORM2)
+        // Special data generation for MUL, to avoid all-zero and large accumulative error in the
+        // reduced result
+        auto gen_value_2 = [&](auto... is) {
+            auto rand_value = tensor_elem_gen_integer{max_value}(is...);
+            auto sign_value = tensor_elem_gen_checkboard_sign{}(is...);
+
+            return sign_value > 0.0 ? (rand_value + max_value) / (rand_value + max_value + 1)
+                                    : (rand_value + max_value + 1) / (rand_value + max_value);
+        };
+
+        if(reduceOp == MIOPEN_REDUCE_TENSOR_MUL)
+            this->tolerance = 80 * 500;
+        else if(reduceOp == MIOPEN_REDUCE_TENSOR_NORM1 || reduceOp == MIOPEN_REDUCE_TENSOR_NORM2)
         {
             if(toReduceDims.size() == 4)
                 this->tolerance = 80 * 500;
@@ -833,7 +847,9 @@ struct reduce_driver : test_driver
                 this->tolerance = 80 * 10;
         };
 
-        auto inputTensor  = tensor<T>{this->inLengths}.generate(gen_value);
+        auto inputTensor = (reduceOp == MIOPEN_REDUCE_TENSOR_MUL)
+                               ? tensor<T>{this->inLengths}.generate(gen_value_2)
+                               : tensor<T>{this->inLengths}.generate(gen_value);
         auto outputTensor = tensor<T>{outLengths};
 
         std::fill(outputTensor.begin(), outputTensor.end(), convert_type<T>(0.0f));
