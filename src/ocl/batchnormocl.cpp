@@ -36,6 +36,7 @@
 /// \todo Get rid of this during implementation of #1938 (60)
 #include <miopen/convolution.hpp>
 #include <miopen/mlo_internal.hpp>
+#include <miopen/stringutils.hpp>
 
 #define WORKAROUND_SWDEV_253606 1
 #include <chrono>
@@ -473,7 +474,7 @@ void BatchNormForwardTraining(Handle& handle,
     {
         xlocalsize            = 1;
         ylocalsize            = 256;
-        size_t segment        = std::ceil(double(in_cstride) / double(ylocalsize));
+        std::size_t segment   = (in_cstride + ylocalsize - 1) / ylocalsize;
         xgridsize             = c;
         ygridsize             = segment * ylocalsize;
         std::string algo_name = "miopenBatchNormForwardTrainingPerActivation";
@@ -1051,7 +1052,10 @@ void BatchNormBackward(Handle& handle,
                 std::string parms;
 
                 if((n > 64) && (n % 2 == 0) && (variant == 3) && (bfpmixparm) && (useSaved) &&
-                   ctx.use_asm_kernels && ctx.rmv.IsV2orV3())
+                   ctx.use_asm_kernels && ctx.rmv.IsV2orV3() &&
+                   (StartsWith(handle.GetDeviceName(), "gfx8") ||
+                    (StartsWith(handle.GetDeviceName(), "gfx9") &&
+                     (handle.GetDeviceName() != "gfx90a"))))
                 {
                     kernel_name  = "miopenGcnAsmBNBwdTrainSpatial";
                     program_name = "gcnAsmBNBwdTrainSpatial.s";

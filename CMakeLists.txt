@@ -63,6 +63,8 @@ find_package(BZip2)
 if(MIOPEN_ENABLE_SQLITE_KERN_CACHE AND NOT MIOPEN_ENABLE_SQLITE)
     message(FATAL_ERROR "MIOPEN_ENABLE_SQLITE_KERN_CACHE requires MIOPEN_ENABLE_SQLITE")
 endif()
+set(MIOPEN_LOG_FUNC_TIME_ENABLE Off CACHE BOOL "")
+set(MIOPEN_ENABLE_SQLITE_BACKOFF On CACHE BOOL "")
 
 option( BUILD_DEV "Build for development only" OFF)
 
@@ -73,7 +75,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 2.10.0)
+rocm_setup_version(VERSION 2.11.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -83,8 +85,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         message(FATAL_ERROR "MIOpen requires at least gcc 5.3")
     endif()
 endif()
-
-
 
 
 ############################################################
@@ -108,7 +108,7 @@ else()
     set(WINE_CMD)
 endif()
 
-list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/llvm /opt/rocm/hip /opt/rocm/hcc)
+list(APPEND CMAKE_PREFIX_PATH ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_PREFIX}/llvm ${CMAKE_INSTALL_PREFIX}/hip /opt/rocm /opt/rocm/llvm /opt/rocm/hip /opt/rocm/hcc)
 
 option(ENABLE_HIP_WORKAROUNDS Off)
 set(MIOPEN_INSTALL_CXX_HEADERS Off CACHE BOOL "Install MIOpen's C++ header interface")
@@ -142,7 +142,7 @@ endif()
 set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
     "Which of MIOpens's backends to use?" )
 set_property( CACHE MIOPEN_BACKEND PROPERTY STRINGS
-    OpenCL HIP HIPOC )
+    OpenCL HIP HIPOC HIPNOGPU)
 
 # OpenCL 1.2
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
@@ -150,7 +150,8 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     find_package( OpenCL REQUIRED )
     find_program(MIOPEN_HIP_COMPILER hcc
             PATH_SUFFIXES bin
-            PATHS /opt/rocm
+            PATHS 
+	        /opt/rocm
     )
     set(MIOPEN_USE_MIOPENGEMM ON CACHE BOOL "")
     if(MIOPEN_HIP_COMPILER)
@@ -158,7 +159,9 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     else()
         find_program(MIOPEN_HIP_COMPILER clang++
             PATH_SUFFIXES bin
-	        PATHS /opt/rocm/llvm
+	        PATHS 
+		    /opt/rocm/llvm
+		    ${CMAKE_INSTALL_PREFIX}/llvm
         )
         if(MIOPEN_HIP_COMPILER)
             message("hip compiler: ${MIOPEN_HIP_COMPILER}")
@@ -174,6 +177,11 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     if(MIOPEN_USE_COMGR)
         message(FATAL_ERROR "comgr cannot be used with OpenCL backend")
     endif()
+
+    # This is to pass all necessary build flags to HIP compiler
+    # for device code compilation. Used within "find_package(hip...".
+    # See https://github.com/ROCm-Developer-Tools/HIP/pull/2035#issuecomment-616861118.
+    set (HIP_CXX_COMPILER ${MIOPEN_HIP_COMPILER})
 endif()
 
 
@@ -185,14 +193,36 @@ target_flags(HIP_COMPILER_FLAGS hip::device)
 string(REGEX REPLACE --cuda-gpu-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
 string(REGEX REPLACE --offload-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
 
+# Override HIP version in config.h, if necessary.
+# The variables set by find_package() can't be overwritten,
+# therefore let's use intermediate variables.
+set(MIOPEN_hip_VERSION_MAJOR "${hip_VERSION_MAJOR}")
+set(MIOPEN_hip_VERSION_MINOR "${hip_VERSION_MINOR}")
+set(MIOPEN_hip_VERSION_PATCH "${hip_VERSION_PATCH}")
+if( DEFINED MIOPEN_OVERRIDE_HIP_VERSION_MAJOR )
+    set(MIOPEN_hip_VERSION_MAJOR "${MIOPEN_OVERRIDE_HIP_VERSION_MAJOR}")
+    message(STATUS "MIOPEN_hip_VERSION_MAJOR overriden with ${MIOPEN_OVERRIDE_HIP_VERSION_MAJOR}")
+endif()
+if( DEFINED MIOPEN_OVERRIDE_HIP_VERSION_MINOR )
+    set(MIOPEN_hip_VERSION_MINOR "${MIOPEN_OVERRIDE_HIP_VERSION_MINOR}")
+    message(STATUS "MIOPEN_hip_VERSION_MINOR overriden with ${MIOPEN_OVERRIDE_HIP_VERSION_MINOR}")
+endif()
+if( DEFINED MIOPEN_OVERRIDE_HIP_VERSION_PATCH )
+    set(MIOPEN_hip_VERSION_PATCH "${MIOPEN_OVERRIDE_HIP_VERSION_PATCH}")
+    message(STATUS "MIOPEN_hip_VERSION_PATCH overriden with ${MIOPEN_OVERRIDE_HIP_VERSION_PATCH}")
+endif()
+
+
 message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
 
 add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
 
 
-
 # HIP
-if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
+if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
+    if( MIOPEN_BACKEND STREQUAL "HIPNOGPU")
+        set(MIOPEN_MODE_NOGPU 1)
+    endif()
     set(MIOPEN_BACKEND_HIP 1)
     set(MIOPEN_USE_MIOPENGEMM OFF CACHE BOOL "")
     # miopentensile default off
@@ -200,7 +230,10 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
 
     find_program(HIP_OC_COMPILER clang-ocl
         PATH_SUFFIXES bin
-        PATHS /opt/rocm
+        PATHS 
+	    /opt/rocm
+	    ${CMAKE_INSTALL_PREFIX}
+
     )
     if(HIP_OC_COMPILER)
         message(STATUS "hip compiler: ${HIP_OC_COMPILER}")
@@ -248,7 +281,9 @@ message( STATUS "${MIOPEN_BACKEND} backend selected." )
 if(MIOPEN_HIP_COMPILER MATCHES ".*clang\\+\\+$")
     find_program(MIOPEN_OFFLOADBUNDLER_BIN clang-offload-bundler
         PATH_SUFFIXES bin
-        PATHS /opt/rocm/llvm
+        PATHS 
+	    /opt/rocm/llvm
+	    ${CMAKE_INSTALL_PREFIX}/llvm
     )
 endif()
 if(MIOPEN_OFFLOADBUNDLER_BIN)
@@ -264,6 +299,10 @@ else()
             /opt/rocm/hip
             /opt/rocm/hcc
             /opt/rocm
+	        ${CMAKE_INSTALL_PREFIX}/hip
+            ${CMAKE_INSTALL_PREFIX}/hcc
+            ${CMAKE_INSTALL_PREFIX}
+
     )
     if(EXTRACTKERNEL_BIN)
         message(STATUS "extractkernel found: ${EXTRACTKERNEL_BIN}")
@@ -287,6 +326,7 @@ find_program(MIOPEN_AMDGCN_ASSEMBLER
         ${CMAKE_INSTALL_PREFIX}/hcc
     PATH_SUFFIXES
         /opencl/bin/x86_64
+        /opencl/bin
         /bin
     NO_DEFAULT_PATH
 )
@@ -383,7 +423,7 @@ set(MIOPEN_TIDY_ERRORS ERRORS * -readability-inconsistent-declaration-parameter-
 if(CMAKE_CXX_COMPILER MATCHES ".*hcc" OR CMAKE_CXX_COMPILER MATCHES ".*clang\\+\\+")
     set(MIOPEN_TIDY_CHECKS -modernize-use-override -readability-non-const-parameter)
 # Enable tidy on hip
-elseif(MIOPEN_BACKEND STREQUAL "HIP")
+elseif(MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
     set(MIOPEN_TIDY_ERRORS ALL)
 
 endif()

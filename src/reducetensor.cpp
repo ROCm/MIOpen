@@ -30,6 +30,7 @@
 #include <miopen/reduce_common.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/reducetensor.hpp>
+#include <miopen/stringutils.hpp>
 
 #include <cassert>
 #include <cstddef>
@@ -37,6 +38,8 @@
 #include <cmath>
 #include <ostream>
 #include <iostream>
+
+#define WORKAROUND_MIOPEN_ISSUE_557 1
 
 namespace miopen {
 
@@ -259,7 +262,16 @@ inline int GetReduceTensorOpId(miopenReduceTensorOp_t t)
         return (777378); // 'M' * 10000 + 'I' * 100 + 'N'
     case MIOPEN_REDUCE_TENSOR_MAX:
         return (776588); // 'M' * 10000 + 'A' * 100 + 'X'
-    default: MIOPEN_THROW("Only Add, Mul, Min, Max is supported."); break;
+    case MIOPEN_REDUCE_TENSOR_AMAX:
+        return (657788); // 'A' * 10000 + 'M' * 100 + 'X'
+    case MIOPEN_REDUCE_TENSOR_AVG:
+        return (658671); // 'A' * 10000 + 'V' * 100 + 'G'
+    case MIOPEN_REDUCE_TENSOR_NORM1:
+        return (788201); // 'N' * 10000 + 'R' * 100 + '1'
+    case MIOPEN_REDUCE_TENSOR_NORM2:
+        return (788202); // 'N' * 10000 + 'R' * 100 + '2'
+
+    default: MIOPEN_THROW("Operation is not supported"); break;
     };
 };
 
@@ -311,7 +323,8 @@ std::size_t ReduceTensorDescriptor::GetWorkspaceSize(const Handle& handle,
     auto reduceOp         = this->reduceTensorOp_;
     bool need_indices =
         (reduceIndicesOpt == MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES) &&
-        (reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX);
+        (reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX ||
+         reduceOp == MIOPEN_REDUCE_TENSOR_AMAX);
 
     std::size_t wsSizeInBytes =
         !need_indices ? workspace_size * detail::GetDataTypeSize(inDesc.GetType())
@@ -343,7 +356,8 @@ std::size_t ReduceTensorDescriptor::GetIndicesSize(const TensorDescriptor& inDes
     auto reduceOp         = this->reduceTensorOp_;
     bool need_indices =
         (reduceIndicesOpt == MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES) &&
-        (reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX);
+        (reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX ||
+         reduceOp == MIOPEN_REDUCE_TENSOR_AMAX);
 
     if(!need_indices)
         return (0);
@@ -378,7 +392,8 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
 
     bool need_indices =
         (reduceIndicesOpt == MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES) &&
-        (reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX);
+        (reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX ||
+         reduceOp == MIOPEN_REDUCE_TENSOR_AMAX);
 
     if(inDescLengths.size() > 6)
         MIOPEN_THROW("Invalid TensorDescriptor, at most number of dimensions of 6 is supported.");
@@ -551,6 +566,11 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
 
     // to remove the warning from clang-tidy checking
     param += " -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_FP16=0 ";
+
+#if WORKAROUND_MIOPEN_ISSUE_557
+    if(StartsWith(handle.GetDeviceName(), "gfx10"))
+        param += " -DCK_USE_AMD_BUFFER_ADDRESSING=0 ";
+#endif
 
     std::string program_name = "gridwise_generic_reduction.cpp";
     std::string algo_name    = "generic_reduce_tensor";
