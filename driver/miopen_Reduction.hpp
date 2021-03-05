@@ -192,7 +192,8 @@ class miopenReductionHost
     {
         bool need_indices =
             (indicesOpt == MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES) &&
-            (reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX);
+            (reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX ||
+             reduceOp == MIOPEN_REDUCE_TENSOR_AMAX);
 
         if(need_indices)
             RunImpl_with_indices<compType>(alpha, in_data, beta, out_data, indices);

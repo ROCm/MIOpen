@@ -284,7 +284,8 @@ int ReduceDriver<Tgpu, Tref>::SetReduceTensorDescriptorFromCmdLineArgs()
     // no other place is better to place this line of codes
     this->need_indices =
         (indicesOpt == MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES) &&
-        (reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX);
+        (reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX ||
+         reduceOp == MIOPEN_REDUCE_TENSOR_AMAX);
 
     return (miopenSetReduceTensorDescriptor(
         reduceDesc, reduceOp, compType, nanOpt, indicesOpt, indicesType));
