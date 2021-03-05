@@ -14,6 +14,17 @@ def rocmnode(name) {
     }
     return node_name
 }
+
+def show_node_info() {
+    sh """
+        echo "NODE_NAME = \$NODE_NAME"
+        lsb_release -sd
+        uname -r
+        cat /sys/module/amdgpu/version
+        ls /opt/ -la
+    """
+}
+
 def cmake_build(compiler, flags, env4make, extradebugflags, prefixpath){
     def workspace_dir = pwd()
     def vcache = "/var/jenkins/.cache/miopen/vcache"
@@ -50,6 +61,7 @@ def cmake_build(compiler, flags, env4make, extradebugflags, prefixpath){
 }
 
 def buildJob(Map conf, compiler){
+        show_node_info()
 
         env.HSA_ENABLE_SDMA=0
         env.CODECOV_TOKEN="aec031be-7673-43b5-9840-d8fb71a2354e"
@@ -118,6 +130,7 @@ def buildJob(Map conf, compiler){
 }
 
 def buildHipClangJob(Map conf, compiler){
+        show_node_info()
 
         env.HSA_ENABLE_SDMA=0
         env.CODECOV_TOKEN="aec031be-7673-43b5-9840-d8fb71a2354e"
