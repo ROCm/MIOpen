@@ -320,7 +320,7 @@ int ReduceDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     out_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_nelem, sizeof(Tgpu)));
     ws_dev  = this->need_indices ? std::unique_ptr<GPUMem>(new GPUMem(
                                       ctx, ws_nelem * 2, std::max<int>(sizeof(Tgpu), sizeof(int))))
-                                : std::unique_ptr<GPUMem>(new GPUMem(ctx, ws_nelem, sizeof(int)));
+                                : std::unique_ptr<GPUMem>(new GPUMem(ctx, ws_nelem, sizeof(Tgpu)));
 
     indices_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, indices_nelem, sizeof(int)));
 
