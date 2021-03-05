@@ -353,7 +353,7 @@ struct verify_reduce_with_indices
                 for(int k                       = 0; k < invariantDims.size(); k++)
                     dst_index[invariantDims[k]] = index_1[k];
 
-                int dst_offset = get_offset_from_index(outStrides, dst_index);
+                auto dst_offset = get_offset_from_index(outStrides, dst_index);
 
                 // generate the part of the index belonging to the invariant dims
                 for(int k                       = 0; k < invariantDims.size(); k++)
@@ -618,7 +618,7 @@ struct verify_reduce_no_indices
                 for(int k                       = 0; k < invariantDims.size(); k++)
                     dst_index[invariantDims[k]] = index_1[k];
 
-                int dst_offset = get_offset_from_index(outStrides, dst_index);
+                auto dst_offset = get_offset_from_index(outStrides, dst_index);
 
                 // generate the part of the index belonging to the invariant dims
                 for(int k                       = 0; k < invariantDims.size(); k++)

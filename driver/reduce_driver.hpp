@@ -205,6 +205,7 @@ int ReduceDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("iter", 'i', "1", "Number of Iterations (Default=1)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
+    inflags.AddInputFlag("dump_output", 'o', "0", "Dumps the output buffers (Default=0)", "int");
 
     return 0;
 }
@@ -459,9 +460,8 @@ int ReduceDriver<Tgpu, Tref>::VerifyForward()
 
     hostReduction.Run(alpha, in.data(), beta, outhost.data(), outhost_indices.data());
 
-    auto error = miopen::rms_range(outhost, out);
-    const Tref tolerance =
-        std::is_same<Tgpu, float16>::value ? static_cast<Tref>(2e-3) : static_cast<Tref>(1.5e-4);
+    auto error             = miopen::rms_range(outhost, out);
+    const double tolerance = std::is_same<Tgpu, float16>::value ? 2e-3 : 1.5e-4;
     if(error > tolerance)
     {
         std::cout << "ReduceTensor() Failed: " << error << "\n";
@@ -489,6 +489,13 @@ int ReduceDriver<Tgpu, Tref>::VerifyForward()
             printf("ReduceTensor() Verifies on CPU and GPU (err=%f)\n", error);
         };
     };
+
+    if(inflags.GetValueInt("dump_output"))
+    {
+        dumpBufferToFile("dump_in.bin", in.data(), in.size());
+        dumpBufferToFile("dump_out.bin", out.data(), out.size());
+        dumpBufferToFile("dump_outhost.bin", outhost.data(), outhost.size());
+    }
 
     return 0;
 }
