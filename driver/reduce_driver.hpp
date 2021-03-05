@@ -142,7 +142,7 @@ int ReduceDriver<Tgpu, Tref>::GetandSetData()
         assert(toReduceDims[i] < inLengths.size());
 
     // set the lengths of the dimensions to be reduced to 1 to represent the output Tensor
-    for(int i                       = 0; i < toReduceDims.size(); i++)
+    for(int i = 0; i < toReduceDims.size(); i++)
         outLengths[toReduceDims[i]] = 1;
 
     SetTensorNd(inputTensor, inLengths, data_type);
@@ -206,6 +206,7 @@ int ReduceDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
     inflags.AddInputFlag("dump_output", 'o', "0", "Dumps the output buffers (Default=0)", "int");
+    inflags.AddInputFlag("in_data", 'd', "", "Input data filename (Default=)", "string");
 
     return 0;
 }
@@ -330,10 +331,19 @@ int ReduceDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     out_indices     = std::vector<int>(indices_nelem, static_cast<int>(0));
     outhost_indices = std::vector<int>(indices_nelem, static_cast<int>(0));
 
-    for(int i = 0; i < in_nelem; i++)
+    std::string inFileName = inflags.GetValueStr("in_data");
+
+    bool rdResult = false;
+    if(!inFileName.empty())
+        rdResult = readBufferFromFile(in.data(), in.size(), inFileName.c_str());
+
+    if(!rdResult)
     {
-        in[i] = RAN_GEN<Tgpu>(convert_type<Tgpu>(0.0f), convert_type<Tgpu>(1.0f));
-    }
+        for(int i = 0; i < in_nelem; i++)
+        {
+            in[i] = RAN_GEN<Tgpu>(convert_type<Tgpu>(0.0f), convert_type<Tgpu>(1.0f));
+        };
+    };
 
 #if MIOPEN_BACKEND_OPENCL
     cl_int status;
