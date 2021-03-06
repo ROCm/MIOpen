@@ -24,8 +24,18 @@
  *
  *******************************************************************************/
 
+/// SWDEV-257056?focusedCommentId=6654244&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-6654244
+/// \todo Create dedicated ticket and rename macro.
+#define WORKAROUND_SWDEV_257056_PCH_MISSING_MACROS 1
+
 #include <miopen/config.h>
 #include <miopen/handle.hpp>
+#include <miopen/execution_context.hpp>
+
+#if WORKAROUND_SWDEV_257056_PCH_MISSING_MACROS
+#include <miopen/hip_build_utils.hpp>
+#endif
+
 #include "get_handle.hpp"
 #include <vector>
 #include <thread>
@@ -46,8 +56,32 @@ enum kernel_type_t
 std::string Write2s(kernel_type_t kern_type)
 {
     if(kern_type == miopenHIPKernelType)
-        return "#include <hip/hip_runtime.h>\n  extern \"C\" { __global__ void write(int* data) { "
-               "int num = hipThreadIdx_x + hipBlockDim_x * hipBlockIdx_x; data[num] *= 2;}}\n";
+        return "#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS\n"
+               "#include <hip/hip_runtime.h>\n"
+#if WORKAROUND_SWDEV_257056_PCH_MISSING_MACROS
+               "#else\n"
+               "#ifdef hipThreadIdx_x\n"
+               "#undef hipThreadIdx_x\n"
+               "#endif\n"
+               "#define hipThreadIdx_x threadIdx.x\n"
+               "\n"
+               "#ifdef hipBlockDim_x\n"
+               "#undef hipBlockDim_x\n"
+               "#endif\n"
+               "#define hipBlockDim_x blockDim.x\n"
+               "\n"
+               "#ifdef hipBlockIdx_x\n"
+               "#undef hipBlockIdx_x\n"
+               "#endif\n"
+               "#define hipBlockIdx_x blockIdx.x\n"
+#endif
+               "#endif\n"
+               "extern \"C\" {\n"
+               "__global__ void write(int* data) {\n"
+               "    int num = hipThreadIdx_x + hipBlockDim_x * hipBlockIdx_x;\n"
+               "    data[num] *= 2;\n"
+               "}\n"
+               "}\n";
     else if(kern_type == miopenOpenCLKernelType)
         return "__kernel void write(__global int* data) { data[get_global_id(0)] *= 2; }\n";
     else
@@ -80,13 +114,16 @@ void run2s(miopen::Handle& h, std::size_t n, kernel_type_t kern_type)
     CHECK(data_out == data_in);
 }
 
-void test_multithreads(kernel_type_t kern_type)
+void test_multithreads(kernel_type_t kern_type, const bool with_stream = false)
 {
-    auto&& h = get_handle();
-    std::thread([&] { run2s(h, 16, kern_type); }).join();
-    std::thread([&] { run2s(h, 32, kern_type); }).join();
-    std::thread([&] { std::thread([&] { run2s(h, 64, kern_type); }).join(); }).join();
-    run2s(h, 4, kern_type);
+    auto&& h1 = get_handle();
+    auto&& h2 = get_handle_with_stream(h1);
+    std::thread([&] { run2s(with_stream ? h2 : h1, 16, kern_type); }).join();
+    std::thread([&] { run2s(with_stream ? h2 : h1, 32, kern_type); }).join();
+    std::thread([&] {
+        std::thread([&] { run2s(with_stream ? h2 : h1, 64, kern_type); }).join();
+    }).join();
+    run2s(with_stream ? h2 : h1, 4, kern_type);
 }
 
 std::string WriteError(kernel_type_t kern_type)
@@ -94,8 +131,14 @@ std::string WriteError(kernel_type_t kern_type)
     if(kern_type == miopenOpenCLKernelType)
         return "__kernel void write(__global int* data) { data[i] = 0; }\n";
     else if(kern_type == miopenHIPKernelType)
-        return "#include <hip/hip_runtime.h>\n  extern \"C\" { __global__ void write(int* data) { "
-               "data[num] *= 2;}}\n";
+        return "#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS\n"
+               "#include <hip/hip_runtime.h>\n"
+               "#endif\n"
+               "extern \"C\" {\n"
+               "__global__ void write(int* data) {\n"
+               "    data[num] *= 2;\n"
+               "}\n"
+               "}\n";
     else
         MIOPEN_THROW("Unsupported kernel type");
 }
@@ -156,8 +199,13 @@ std::string WriteNop(kernel_type_t kern_type)
     if(kern_type == miopenOpenCLKernelType)
         return "__kernel void write(__global int* data) {}\n";
     else if(kern_type == miopenHIPKernelType)
-        return "#include <hip/hip_runtime.h>\n  extern \"C\" { __global__ void write(int* data) { "
-               "}}\n";
+        return "#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS\n"
+               "#include <hip/hip_runtime.h>\n"
+               "#endif\n"
+               "extern \"C\" {\n"
+               "__global__ void write(int* data) {\n"
+               "}\n"
+               "}\n";
     else
         MIOPEN_THROW("Unsupported kernel type");
 }
@@ -201,7 +249,7 @@ void test_arch_name()
 int main()
 {
     auto&& h = get_handle();
-    if(h.GetDeviceName() != "gfx803")
+    if(h.GetDeviceName() != "gfx803" && miopen::IsHipKernelsEnabled())
     {
         test_multithreads(miopenHIPKernelType);
         test_errors(miopenHIPKernelType);
@@ -211,6 +259,7 @@ int main()
 #endif
     }
     test_multithreads(miopenOpenCLKernelType);
+    test_multithreads(miopenOpenCLKernelType, true);
     test_errors(miopenOpenCLKernelType);
     test_arch_name();
 // Warnings currently dont work in opencl

@@ -105,6 +105,7 @@ set( MIOpen_Source
     lock_file.cpp
     lrn_api.cpp
     activ_api.cpp
+    target_properties.cpp
     handle_api.cpp
     softmax_api.cpp
     batch_norm.cpp
@@ -115,7 +116,6 @@ set( MIOpen_Source
     ctc_api.cpp
     temp_file.cpp
     problem_description.cpp
-    include/miopen/sequences.hpp
     kernel_build_params.cpp
     find_db.cpp
     conv_algo_name.cpp
@@ -141,6 +141,7 @@ set( MIOpen_Source
     include/miopen/errors.hpp
     include/miopen/invoker.hpp
     include/miopen/handle.hpp
+    include/miopen/target_properties.hpp
     include/miopen/kernel_cache.hpp
     include/miopen/solver.hpp
     include/miopen/generic_search.hpp
@@ -178,6 +179,8 @@ set( MIOpen_Source
     include/miopen/numeric.hpp
     include/miopen/reducetensor.hpp
     include/miopen/reduce_common.hpp
+    include/miopen/sequences.hpp
+    include/miopen/rocm_features.hpp
     md_graph.cpp
     mdg_expr.cpp
     conv/invokers/gcn_asm_1x1u.cpp
@@ -212,30 +215,33 @@ set( MIOpen_Source
     solver/conv_ocl_dir2D_bwdWrW_1x1.cpp
     solver/conv_ocl_dir2Dfwdgen.cpp
     solver/conv_ocl_dir2D11x11.cpp
-    solver/conv_ocl_dir2D3x3.cpp
     solver/conv_ocl_dir2Dfwd_exhaustive_search.cpp
     solver/conv_ocl_dir2Dfwd.cpp
     solver/conv_ocl_dir2Dfwd1x1.cpp
-    solver/conv_hip_implicit_gemm_v4r1.cpp
-    solver/conv_hip_implicit_gemm_v4r4.cpp
+    solver/conv_hip_implicit_gemm_fwd_v4r1.cpp
+    solver/conv_hip_implicit_gemm_fwd_v4r4.cpp
     solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops_padded_gemm.cpp
     solver/conv_hip_implicit_gemm_fwd_v4r5_xdlops.cpp
-    solver/conv_hip_implicit_gemm_wrw_weights_v4r4.cpp
+    solver/conv_hip_implicit_gemm_wrw_v4r4.cpp
     solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops.cpp
     solver/conv_hip_implicit_gemm_xdlops_common.cpp
     solver/conv_hip_implicit_gemm_nonxdlops_common.cpp
-    solver/conv_hip_implicit_gemm_bwd_data_v1r1.cpp
-    solver/conv_hip_implicit_gemm_bwd_data_v4r1.cpp
-    solver/conv_hip_implicit_gemm_bwd_data_v4r1_xdlops.cpp
+    solver/conv_hip_implicit_gemm_bwd_v1r1.cpp
+    solver/conv_hip_implicit_gemm_bwd_v4r1.cpp
+    solver/conv_hip_implicit_gemm_bwd_v4r1_xdlops.cpp
     solver/conv_asm_implicit_gemm_v4r1_dynamic.cpp
     solver/conv_asm_implicit_gemm_wrw_v4r1_dynamic.cpp
     solver/conv_asm_implicit_gemm_wrw_gtc_dynamic_xdlops.cpp
-    solver/conv_hip_implicit_gemm_bwd_v1r1_xdlops_nchw_kcyx_nkhw.cpp
+    solver/conv_hip_implicit_gemm_bwd_v1r1_xdlops.cpp
     solver/conv_asm_implicit_gemm_bwd_v4r1_dynamic.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops_padded_gemm.cpp
     solver/conv_asm_implicit_gemm_gtc_fwd.cpp
     solver/conv_asm_implicit_gemm_gtc_bwd.cpp
+    solver/conv_direct_naive_conv_fwd.cpp
+    solver/conv_direct_naive_conv_bwd.cpp
+    solver/conv_direct_naive_conv_wrw.cpp
+    solver/conv_direct_naive_conv.cpp
     )
 
 list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
@@ -247,12 +253,14 @@ if(MIOPEN_ENABLE_SQLITE AND MIOPEN_ENABLE_SQLITE_KERN_CACHE)
     list(APPEND MIOpen_Source kern_db.cpp bz2.cpp include/miopen/kern_db.hpp)
 endif()
 
-if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
+if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
     file(GLOB_RECURSE COMPOSABLE_KERNEL_INCLUDE "kernels/composable_kernel/include/*/*.hpp")
     file(GLOB_RECURSE COMPOSABLE_KERNEL_SOURCE "kernels/composable_kernel/src/*/*.cpp")
     file(GLOB_RECURSE COMPOSABLE_KERNEL_DYNAMIC_ASM_SOURCE "kernels/dynamic_igemm/*.s")
     file(GLOB_RECURSE COMPOSABLE_KERNEL_DYNAMIC_ASM_INCLUDE "kernels/dynamic_igemm/*.inc")
     file(GLOB_RECURSE COMPOSABLE_KERNEL_DYNAMIC_CPP_SOURCE "kernels/dynamic_igemm/*.cpp")
+    file(GLOB_RECURSE GPU_REFERENCE_KERNEL_HIP "kernels/gpu_reference_kernel/*.cpp")
+    file(GLOB_RECURSE GPU_REFERENCE_KERNEL_ASM "kernels/gpu_reference_kernel/*.s")
 
     set(MIOPEN_KERNEL_INCLUDES
         ${COMPOSABLE_KERNEL_INCLUDE}
@@ -284,19 +292,31 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil.inc
         kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec.inc
         kernels/conv_3x3_wheel_alpha_v9_0_15.inc
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_dilation2.inc
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride1.inc
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride2.inc
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_dilation2.inc
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride1.inc
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride2.inc
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_dilation2_group.inc
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride1_group.inc
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride2_group.inc
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_dilation2_group.inc
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride1_group.inc
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride2_group.inc
-        kernels/Conv_Winograd_v21_1_0_metadata.inc
+        kernels/Conv_Winograd_v21_1_2_gfx9_fp16_dot2_edc_dilation2.inc
+        kernels/Conv_Winograd_v21_1_2_gfx9_fp16_dot2_edc_stride1.inc
+        kernels/Conv_Winograd_v21_1_2_gfx9_fp16_dot2_edc_stride2.inc
+        kernels/Conv_Winograd_v21_1_2_gfx9_fp32_dilation2.inc
+        kernels/Conv_Winograd_v21_1_2_gfx9_fp32_stride1.inc
+        kernels/Conv_Winograd_v21_1_2_gfx9_fp32_stride2.inc
+        kernels/Conv_Winograd_v21_1_2_gfx9_fp16_dot2_edc_dilation2_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx9_fp16_dot2_edc_stride1_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx9_fp16_dot2_edc_stride2_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx9_fp32_dilation2_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx9_fp32_stride1_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx9_fp32_stride2_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx10_fp16_dot2_edc_dilation2.inc
+        kernels/Conv_Winograd_v21_1_2_gfx10_fp16_dot2_edc_stride1.inc
+        kernels/Conv_Winograd_v21_1_2_gfx10_fp16_dot2_edc_stride2.inc
+        kernels/Conv_Winograd_v21_1_2_gfx10_fp32_dilation2.inc
+        kernels/Conv_Winograd_v21_1_2_gfx10_fp32_stride1.inc
+        kernels/Conv_Winograd_v21_1_2_gfx10_fp32_stride2.inc
+        kernels/Conv_Winograd_v21_1_2_gfx10_fp16_dot2_edc_dilation2_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx10_fp16_dot2_edc_stride1_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx10_fp16_dot2_edc_stride2_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx10_fp32_dilation2_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx10_fp32_stride1_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx10_fp32_stride2_group.inc
+        kernels/Conv_Winograd_v21_1_2_metadata.inc
         kernels/xform_bidirect_winograd_code.inc
         kernels/rocm_version.inc
         kernels/inst_wrappers.inc
@@ -316,6 +336,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ${COMPOSABLE_KERNEL_SOURCE}
         ${COMPOSABLE_KERNEL_DYNAMIC_ASM_SOURCE}
         ${COMPOSABLE_KERNEL_DYNAMIC_CPP_SOURCE}
+        ${GPU_REFERENCE_KERNEL_HIP}
+        ${GPU_REFERENCE_KERNEL_ASM}
+        kernels/detect_llvm_amdgcn_buffer_atomic_fadd_f32_float.cpp
         kernels/MIOpenCheckNumerics.cl
         kernels/MIOpenBatchNormActivBwdPerAct.cl
         kernels/MIOpenBatchNormActivBwdSpatial.cl
@@ -341,7 +364,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConv1x1J1.cl
         kernels/MIOpenConv1x1J1_stride.cl
         kernels/MIOpenSoftmax.cl
-        kernels/MIOpenConvD3x3.cl
         kernels/MIOpenUtilKernels3.cl
         kernels/MIOpenUtilKernels4.cl
         kernels/MIOpenUtilKernels5.cl
@@ -390,18 +412,18 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv_3x3_wheel_alpha_v3_0b.s
         kernels/conv_3x3_wheel_alpha_v9_2_7.s
         kernels/conv_3x3_wheel_alpha_v9_2_7_stride_2_dec.s
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_dilation2.s
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride1.s
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride2.s
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_dilation2.s
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride1.s
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride2.s
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_dilation2_group.s
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride1_group.s
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride2_group.s
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_dilation2_group.s
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride1_group.s
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride2_group.s
+        kernels/Conv_Winograd_v21_1_2_fp16_dot2_edc_dilation2.s
+        kernels/Conv_Winograd_v21_1_2_fp16_dot2_edc_stride1.s
+        kernels/Conv_Winograd_v21_1_2_fp16_dot2_edc_stride2.s
+        kernels/Conv_Winograd_v21_1_2_fp32_dilation2.s
+        kernels/Conv_Winograd_v21_1_2_fp32_stride1.s
+        kernels/Conv_Winograd_v21_1_2_fp32_stride2.s
+        kernels/Conv_Winograd_v21_1_2_fp16_dot2_edc_dilation2_group.s
+        kernels/Conv_Winograd_v21_1_2_fp16_dot2_edc_stride1_group.s
+        kernels/Conv_Winograd_v21_1_2_fp16_dot2_edc_stride2_group.s
+        kernels/Conv_Winograd_v21_1_2_fp32_dilation2_group.s
+        kernels/Conv_Winograd_v21_1_2_fp32_stride1_group.s
+        kernels/Conv_Winograd_v21_1_2_fp32_stride2_group.s
         kernels/MIOpenConvBwdBias.cl
         kernels/MIOpenBatchNormActivInfer.cl
         kernels/MIOpenCTCLoss.cl
@@ -472,7 +494,17 @@ if( MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
         )
 endif()
 
-if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
+if( MIOPEN_BACKEND STREQUAL "HIPNOGPU")
+    list(APPEND MIOpen_Source
+        hip/hiperrors.cpp
+        nogpu/handle.cpp
+        hipoc/hipoc_kernel.cpp
+        hipoc/hipoc_program.cpp
+        include/miopen/nogpu/handle_impl.hpp
+        )
+endif()
+
+if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
     list(APPEND MIOpen_Source ${PROJECT_BINARY_DIR}/include/miopen_kernels.h)
     add_custom_command(
         OUTPUT ${PROJECT_BINARY_DIR}/include/miopen_kernels.h

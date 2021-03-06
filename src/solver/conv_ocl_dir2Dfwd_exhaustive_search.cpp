@@ -169,7 +169,7 @@ static int MeasurePerfConfig(const Handle& handle,
 
     MIOPEN_LOG_I2("Trying " << result);
     const auto kernel_params     = kernel_search_result.construction_params[0];
-    std::string compiler_options = params.general_compile_options + kernel_params.comp_options;
+    std::string compiler_options = kernel_params.comp_options;
 
     try
     {
