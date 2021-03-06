@@ -66,7 +66,8 @@ PlainTextDb::PlainTextDb(const std::string& filename_,
 
 PlainTextDb::PlainTextDb(const std::string& filename_, bool is_system)
     : filename(filename_),
-      lock_file(LockFile::Get(LockFilePath(filename_).c_str())),
+      lock_file(LockFile::Get((is_system) ? LockFilePath(filename_).c_str()
+                                          : std::string(filename_ + ".lock").c_str())),
       warn_if_unreadable(is_system)
 {
     if(!is_system)
