@@ -580,10 +580,9 @@ static void DirConvFindCore(Handle& handle,
                 workSpaceSize >= (conv.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc))
 #if WORKAROUND_MIOPENGEMM_ROCM37
                 &&
-                !(conv.GetSpatialDimension() == 2 && conv.group_count == 4 && in_n == 4 &&
-                  in_c == 4 && in_spatial[0] == 161 && in_spatial[1] == 700 &&
-                  wDesc.GetLengths()[0] == 32 && wDesc.GetLengths()[1] == 1 &&
-                  wei_spatial[0] == 5 && wei_spatial[1] == 20 &&
+                !(conv.GetSpatialDimension() == 2 && conv.group_count == 4 && in_c == 4 &&
+                  in_spatial[0] == 161 && in_spatial[1] == 700 && wDesc.GetLengths()[0] == 32 &&
+                  wDesc.GetLengths()[1] == 1 && wei_spatial[0] == 5 && wei_spatial[1] == 20 &&
                   miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
                   miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; }) &&
                   miopen::all_of(conv.GetConvDilations(), [](auto v) { return v == 1; }))
