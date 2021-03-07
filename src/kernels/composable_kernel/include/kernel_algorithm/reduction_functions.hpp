@@ -44,18 +44,18 @@ struct binop_with_nan_check;
 template <typename opReduce, typename compType>
 struct binop_with_nan_check<NanPropagation_t::NOT_PROPAGATE_NAN, opReduce, compType>
 {
-    __device__ static inline void calculate(const compType& accuVal, compType currVal)
+    __device__ static inline void calculate(compType& accuVal, compType currVal)
     {
-        opReduce{}(const_cast<compType&>(accuVal), currVal);
+        opReduce{}(accuVal, currVal);
     };
 
     // The method is called when the opReduce is indexable and the user asked for indices
     __device__ static inline void
-    calculate(const compType& accuVal, compType currVal, int& accuIndex, int currIndex)
+    calculate(compType& accuVal, compType currVal, int& accuIndex, int currIndex)
     {
         bool changed = false;
 
-        opReduce{}(const_cast<compType&>(accuVal), currVal, changed);
+        opReduce{}(accuVal, currVal, changed);
 
         if(changed)
             accuIndex = currIndex;
@@ -555,8 +555,8 @@ struct BlockwiseReduction_2d_block_buffer
                         p_block_buffer[offset1]       = type_convert<DataType>{}(currVal1);
                         block_indices_buffer[offset1] = currIndex1;
                     }
+                    __syncthreads();
                 }
-                __syncthreads();
             }
 
             if(thread_local_id == 0)
