@@ -1073,7 +1073,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('g++', flags: '-DCMAKE_BUILD_TYPE=release', image: image+'-gfxall', gpu_arch: "all")
+                                buildHipClangJob('g++', flags: '-DCMAKE_BUILD_TYPE=release', image: image+'-gfxall', gpu_arch: "gfx900;gfx906;gfx908")
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -1091,7 +1091,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DCMAKE_BUILD_TYPE=release', image: image+'rocm-gfxall', prefixpath: '/opt/rocm', gpu_arch: "all")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DCMAKE_BUILD_TYPE=release', image: image+'rocm-gfxall', prefixpath: '/opt/rocm', gpu_arch: "gfx900;gfx906;gfx908")
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
