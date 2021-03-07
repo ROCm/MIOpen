@@ -21,6 +21,13 @@ Minimal static build configuration line without embedded precompiled kernels pac
 CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_BACKEND=HIP -DMIOPEN_EMBED_BUILD=On -DCMAKE_PREFIX_PATH="/some/local/dir" ..
 ```
 
+To enable HIP kernels in MIOpen while using embedded builds add: `-DMIOPEN_USE_HIP_KERNELS=On` to the configure line.
+For example:
+```
+CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_BACKEND=HIP -DMIOPEN_USE_HIP_KERNELS=On -DMIOPEN_EMBED_BUILD=On -DCMAKE_PREFIX_PATH="/some/local/dir" ..
+```
+
+
 ### Embedding Find-Db and Performance database:
 The Find-db provides a database of known convolution inputs. This allows user to have the best tuned kernels for their network. Embedding find-db requires a semi-colon separated list of architecture CU pairs to embed on-disk DBs in the binary; e.g., gfx906_60;gfx900_56.
 
@@ -41,7 +48,7 @@ To install the precompiled kernels package use the command:
 ```
 apt-get install miopenkernels-<arch>-<num cu>
 ```
-Where <arch> is the GPU architecture (for example, gfx900, gfx906) and <num cu> is the number of CUs available in the GPU (for example 56 or 64 etc).
+Where `<arch>` is the GPU architecture (for example, gfx900, gfx906) and `<num cu>` is the number of CUs available in the GPU (for example 56 or 64 etc).
 
 Not installing the precompiled kernel package would not impact the functioning of MIOpen, since MIOpen will compile these kernels on the target machine once the kernel is run, however, the compilation step may significantly increase the startup time for different operations.
 

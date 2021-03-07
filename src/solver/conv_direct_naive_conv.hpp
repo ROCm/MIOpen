@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2020 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,10 +23,18 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-.include "Conv_Winograd_v21_1_2_metadata.inc"
+#pragma once
 
-KERNEL_PROLOG gfx9_fp32_dilation2_group
+#include <string>
+#include <miopen/conv/context.hpp>
 
-.include "Conv_Winograd_v21_1_2_gfx9_fp32_dilation2_group.inc"
+namespace miopen {
 
-KERNEL_EPILOG gfx9_fp32_dilation2_group
+namespace solver {
+
+std::string ConvDirectNaiveConvKernelName(const ConvolutionContext& ctx);
+std::string ConvDirectNaiveConvKernelFile(const ConvolutionContext& ctx);
+std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx);
+
+} // namespace solver
+} // namespace miopen

@@ -1,28 +1,28 @@
 /*******************************************************************************
-*
-* MIT License
-*
-* Copyright (c) 2020 Advanced Micro Devices, Inc.
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*******************************************************************************/
+ *
+ * MIT License
+ *
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 
 #include <miopen/solver.hpp>
 
@@ -176,7 +176,7 @@ inline bool IsShaderContraintsMet(const int R,
         if(!(0 <= params.GetBackwardPadH() && params.GetBackwardPadH() < std::pow(2, 16)))
             return false;
     }
-    const auto grid_workgroup_count_x = params.GetStream().GetMaxComputeUnits();
+    const auto grid_workgroup_count_x = params.GetStream().GetMaxHardwareComputeUnits();
     if(!params.IsLayoutDefault())
     {
         return false;
@@ -216,7 +216,7 @@ void PerformanceConfigConvBinWinogradRxSf2x3::EuristicInit(const ConvolutionCont
                n_outputs_per_group = config.n_outputs / config.group_counts;
     if(config.group_counts == 1)
     {
-        n_groups = config.GetStream().GetMaxComputeUnits();
+        n_groups = config.GetStream().GetMaxHardwareComputeUnits();
         return;
     }
 
@@ -235,7 +235,7 @@ void PerformanceConfigConvBinWinogradRxSf2x3::EuristicInit(const ConvolutionCont
                                       n_outputs_per_group, // C
                                       config.kernel_stride_h,
                                       config.kernel_stride_w,
-                                      config.GetStream().GetMaxComputeUnits(),
+                                      config.GetStream().GetMaxHardwareComputeUnits(),
                                       config.group_counts);
     }
     else
@@ -253,7 +253,7 @@ void PerformanceConfigConvBinWinogradRxSf2x3::EuristicInit(const ConvolutionCont
                                       config.batch_sz, // N
                                       config.kernel_dilation_h,
                                       config.kernel_dilation_w,
-                                      config.GetStream().GetMaxComputeUnits(),
+                                      config.GetStream().GetMaxHardwareComputeUnits(),
                                       config.group_counts);
     }
 }
@@ -270,7 +270,7 @@ bool PerformanceConfigConvBinWinogradRxSf2x3::IsValidValue() const
 
 bool PerformanceConfigConvBinWinogradRxSf2x3::IsValid(const ConvolutionContext& config) const
 {
-    if(config.GetStream().GetMaxComputeUnits() < n_groups)
+    if(config.GetStream().GetMaxHardwareComputeUnits() < n_groups)
         return false;
 
     if(!IsValidValue())
@@ -323,14 +323,15 @@ class ShaderModel : public UnifiedDescriptionConv2d
     ShaderModel(const ConvolutionContext& ctx)
         : UnifiedDescriptionConv2d(ctx),
           DATATYPE_BITS(ctx.IsFp16() ? 16 : 32),
-          n_groups(ctx.GetStream().GetMaxComputeUnits()), /// \todo Take n_groups from PerfConfig.
-          out_of_model_scope(!(ctx.group_counts == 1) ||  //
-                             !(U == 1) ||                 //
-                             !(V == 1) ||                 //
-                             !(input_stride_h == 1) ||    //
-                             !(input_stride_w == 1) ||    //
-                             !(filter_stride_h == 1) ||   //
-                             !(filter_stride_w == 1) ||   //
+          n_groups(ctx.GetStream()
+                       .GetMaxHardwareComputeUnits()),   /// \todo Take n_groups from PerfConfig.
+          out_of_model_scope(!(ctx.group_counts == 1) || //
+                             !(U == 1) ||                //
+                             !(V == 1) ||                //
+                             !(input_stride_h == 1) ||   //
+                             !(input_stride_w == 1) ||   //
+                             !(filter_stride_h == 1) ||  //
+                             !(filter_stride_w == 1) ||  //
 #if !WTI_MODEL_ALLOW_ANY_RS
                              !(R <= 5) || //
                              !(S <= 5) || //
@@ -451,9 +452,11 @@ static bool IsApplicableBase(const ConvolutionContext& params)
         return false;
 
     const auto name = params.GetStream().GetDeviceName();
-    if(!(StartsWith(name, "gfx9")))
+    if(!(StartsWith(name, "gfx9") || StartsWith(name, "gfx10")))
         return false;
-    if(params.IsFp16() && !(StartsWith(name, "gfx906") || StartsWith(name, "gfx908")))
+    if(params.IsFp16() &&
+       !(StartsWith(name, "gfx906") || StartsWith(name, "gfx908") || StartsWith(name, "gfx1011") ||
+         StartsWith(name, "gfx1012") || StartsWith(name, "gfx103")))
         return false;
 
     // clang-format off
@@ -519,9 +522,9 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
     static bool IsWarned;
     if(!IsWarned)
     {
-        if(params.GetStream().GetMaxComputeUnits() > MAX_CU_LIMIT)
+        if(params.GetStream().GetMaxHardwareComputeUnits() > MAX_CU_LIMIT)
             MIOPEN_LOG_WE(SolverDbId(*this) << ": GPU has "
-                                            << params.GetStream().GetMaxComputeUnits()
+                                            << params.GetStream().GetMaxHardwareComputeUnits()
                                             << "CUs, but this solver supports max "
                                             << MAX_CU_LIMIT
                                             << "and thus may show sub-optimal performance.");
@@ -557,13 +560,17 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
         }
     }
 
+    const auto name    = params.GetStream().GetDeviceName();
+    const auto is_gfx9 = StartsWith(name, "gfx9");
+    size_t wg_size     = is_gfx9 ? 512 : 256;
+
     KernelInfo kernel;
 
-    kernel.g_wk.push_back(512 * pcfg->GetNGroups() * params.group_counts);
+    kernel.g_wk.push_back(wg_size * pcfg->GetNGroups() * params.group_counts);
     kernel.g_wk.push_back(1);
     kernel.g_wk.push_back(1);
 
-    kernel.l_wk.push_back(512);
+    kernel.l_wk.push_back(wg_size);
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
@@ -572,16 +579,20 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
 
-    std::string kernel_name    = "miopenSp3AsmConv";
-    std::string kernel_file    = "Conv_Winograd";
-    std::string kernel_postfix = "_v21_1_2_gfx9";
+    std::string kernel_name    = "miopenSp3AsmConv_v21_1_2";
+    std::string kernel_file    = "Conv_Winograd_v21_1_2";
+    std::string kernel_postfix = params.IsFp32() ? "_fp32" : "_fp16_dot2_edc";
 
-    if(params.IsFp32())
-        kernel_postfix += "_fp32";
-    else
+    if(is_gfx9)
     {
-        kernel_postfix += "_fp16_dot2_edc";
+        kernel_name += "_gfx9";
     }
+    else // if(StartsWith(name, "gfx10"))
+    {
+        kernel_name += "_gfx10";
+        kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
+    }
+
     if(params.kernel_stride_w == 1)
     {
         kernel_postfix += "_stride1";

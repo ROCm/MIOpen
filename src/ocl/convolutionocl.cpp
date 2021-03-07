@@ -59,6 +59,11 @@
 
 #include <boost/range/adaptors.hpp>
 
+/// MIOpenGEMM issues with ROCm 3.7, most likely related to the
+/// issues in the OpenCL compiler. Not reproducible in ROCm 4.0.
+#define WORKAROUND_MIOPENGEMM_ROCM37 \
+    (MIOPEN_USE_MIOPENGEMM && HIP_PACKAGE_VERSION_MAJOR == 3 && HIP_PACKAGE_VERSION_MINOR == 7)
+
 namespace miopen {
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_GEMM)
@@ -69,6 +74,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_FFT)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMMED_FALLBACK)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMPILE_ONLY)
 
 #if MIOPEN_USE_GEMM
 #ifdef CPPCHECK
@@ -571,7 +577,17 @@ static void DirConvFindCore(Handle& handle,
         }
         // if not 1x1
         else if(workSpace != nullptr &&
-                workSpaceSize >= (conv.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc)))
+                workSpaceSize >= (conv.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc))
+#if WORKAROUND_MIOPENGEMM_ROCM37
+                &&
+                !(conv.GetSpatialDimension() == 2 && conv.group_count == 4 && in_c == 4 &&
+                  in_spatial[0] == 161 && in_spatial[1] == 700 && wDesc.GetLengths()[0] == 32 &&
+                  wDesc.GetLengths()[1] == 1 && wei_spatial[0] == 5 && wei_spatial[1] == 20 &&
+                  miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
+                  miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; }) &&
+                  miopen::all_of(conv.GetConvDilations(), [](auto v) { return v == 1; }))
+#endif
+                    )
         {
             if(conv.group_count > 1)
             {
@@ -797,6 +813,11 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                             IsWinograd3x3SupportedAndFast(ctx));
         });
     }
+
+    if(IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
+        MIOPEN_THROW(
+            miopenStatusGpuOperationsSkipped,
+            "MIOPEN_DEBUG_COMPILE_ONLY is enabled, escaping forward convolution. Search skipped.");
 
     if(perf_db.empty())
         MIOPEN_THROW("Forward Convolution cannot be executed due to incorrect params");
@@ -1428,7 +1449,7 @@ static std::size_t GetSolutionCount(Handle& handle, const ProblemDescription& pr
 }
 
 static const char immFallbackFailed[] =
-    "Requested convolution is not supported or Immediate mode Fallback has failed.";
+    "Requested convolution is not supported or Immediate mode Fallback unsuccessful.";
 
 std::size_t ConvolutionDescriptor::GetSolutionCountFallback(Handle& handle,
                                                             const ProblemDescription& problem) const
@@ -2428,6 +2449,11 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         });
     }
 
+    if(IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
+        MIOPEN_THROW(
+            miopenStatusGpuOperationsSkipped,
+            "MIOPEN_DEBUG_COMPILE_ONLY is enabled, escaping bwd convolution. Search skipped.");
+
     if(perf_db.empty())
         MIOPEN_THROW(miopenStatusUnknownError,
                      "Backward Data Convolution cannot be executed due to incorrect params");
@@ -3193,6 +3219,12 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             }
         });
     }
+
+    if(IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
+        MIOPEN_THROW(miopenStatusGpuOperationsSkipped,
+                     "MIOPEN_DEBUG_COMPILE_ONLY is enabled, "
+                     "escaping backwards convolution. Search "
+                     "skipped.");
 
     if(perf_db.empty())
         MIOPEN_THROW("Backward Weights Convolution cannot be executed due to incorrect params");
