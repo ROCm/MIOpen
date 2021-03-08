@@ -142,7 +142,7 @@ int ReduceDriver<Tgpu, Tref>::GetandSetData()
         assert(toReduceDims[i] < inLengths.size());
 
     // set the lengths of the dimensions to be reduced to 1 to represent the output Tensor
-    for(int i = 0; i < toReduceDims.size(); i++)
+    for(int i                       = 0; i < toReduceDims.size(); i++)
         outLengths[toReduceDims[i]] = 1;
 
     SetTensorNd(inputTensor, inLengths, data_type);
@@ -505,6 +505,12 @@ int ReduceDriver<Tgpu, Tref>::VerifyForward()
         dumpBufferToFile("dump_in.bin", in.data(), in.size());
         dumpBufferToFile("dump_out.bin", out.data(), out.size());
         dumpBufferToFile("dump_outhost.bin", outhost.data(), outhost.size());
+        if(!out_indices.empty())
+        {
+            dumpBufferToFile("dump_out_indices.bin", out_indices.data(), out_indices.size());
+            dumpBufferToFile(
+                "dump_outhost_indices.bin", outhost_indices.data(), outhost_indices.size());
+        };
     }
 
     return 0;
