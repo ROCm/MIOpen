@@ -365,8 +365,8 @@ struct WarpReduce
 
         for(index_t i = 0; i < ThreadBufferLen; i++)
         {
-            compType currVal   = type_convert<compType>{}(p_thread_buffer[i]);
-            compType currIndex = thread_indices_buffer[i];
+            compType currVal = type_convert<compType>{}(p_thread_buffer[i]);
+            int currIndex    = thread_indices_buffer[i];
             binop::calculate(lAccuData, currVal, lAccuIndex, currIndex);
         }
 
@@ -400,8 +400,8 @@ struct WarpReduce
 
         for(index_t i = 0; i < ThreadBufferLen; i++)
         {
-            compType currVal   = type_convert<compType>{}(p_thread_buffer[i]);
-            compType currIndex = thread_indices_buffer[i];
+            compType currVal = type_convert<compType>{}(p_thread_buffer[i]);
+            int currIndex    = thread_indices_buffer[i];
             binop::calculate(lAccuData, currVal, lAccuIndex, currIndex);
         }
 
