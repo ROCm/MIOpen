@@ -229,7 +229,7 @@ struct WarpReduce
 
         for(index_t stride = warpSize / 2; stride > 0; stride /= 2)
         {
-            if(thread_inwarp_id < warpSize)
+            if(thread_inwarp_id < stride)
             {
                 compType currVal1 = myBuffer[thread_inwarp_id];
                 compType currVal2 = myBuffer[thread_inwarp_id + stride];
@@ -321,18 +321,16 @@ struct WarpReduce
 
         for(index_t stride = 1; stride < warpSize; stride *= 2)
         {
-            if(thread_inwarp_id < warpSize)
-            {
-                compType currVal1 = myDataBuffer[thread_inwarp_id];
-                compType currVal2 = myDataBuffer[thread_inwarp_id + stride];
-                int currIndex1    = myIndicesBuffer[thread_inwarp_id];
-                int currIndex2    = myIndicesBuffer[thread_inwarp_id + stride];
+            compType currVal1 = myDataBuffer[thread_inwarp_id];
+            compType currVal2 = myDataBuffer[thread_inwarp_id + stride];
+            int currIndex1    = myIndicesBuffer[thread_inwarp_id];
+            int currIndex2    = myIndicesBuffer[thread_inwarp_id + stride];
 
-                binop::calculate(currVal1, currVal2, currIndex1, currIndex2);
+            binop::calculate(currVal1, currVal2, currIndex1, currIndex2);
 
-                myDataBuffer[thread_inwarp_id]    = currVal1;
-                myIndicesBuffer[thread_inwarp_id] = currIndex1;
-            }
+            myDataBuffer[thread_inwarp_id]    = currVal1;
+            myIndicesBuffer[thread_inwarp_id] = currIndex1;
+
             __syncthreads();
         }
 
@@ -418,18 +416,16 @@ struct WarpReduce
 
         for(index_t stride = 1; stride < warpSize; stride *= 2)
         {
-            if(thread_inwarp_id < warpSize)
-            {
-                compType currVal1 = myDataBuffer[thread_inwarp_id];
-                compType currVal2 = myDataBuffer[thread_inwarp_id + stride];
-                int currIndex1    = myIndicesBuffer[thread_inwarp_id];
-                int currIndex2    = myIndicesBuffer[thread_inwarp_id + stride];
+            compType currVal1 = myDataBuffer[thread_inwarp_id];
+            compType currVal2 = myDataBuffer[thread_inwarp_id + stride];
+            int currIndex1    = myIndicesBuffer[thread_inwarp_id];
+            int currIndex2    = myIndicesBuffer[thread_inwarp_id + stride];
 
-                binop::calculate(currVal1, currVal2, currIndex1, currIndex2);
+            binop::calculate(currVal1, currVal2, currIndex1, currIndex2);
 
-                myDataBuffer[thread_inwarp_id]    = currVal1;
-                myIndicesBuffer[thread_inwarp_id] = currIndex1;
-            }
+            myDataBuffer[thread_inwarp_id]    = currVal1;
+            myIndicesBuffer[thread_inwarp_id] = currIndex1;
+
             __syncthreads();
         }
 
