@@ -75,7 +75,7 @@ def buildHipClangJob(Map conf, compiler){
         def codecov = conf.get("codecov", false)
         def miotensile_version = conf.get("miotensile_version", "default")
         def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
-        def dockerArgs = "--build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' "
+        def dockerArgs = "--build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' -f hip-clang.docker "
         def extradebugflags = ""
         def variant = env.STAGE_NAME
         if (codecov) {
@@ -179,7 +179,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('clang++', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd)
+                                buildJob('clang++', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd)
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -197,7 +197,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('clang++', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd)
+                                buildJob('clang++', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd)
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -224,7 +224,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('clang++', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd)
+                                buildJob('clang++', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd)
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
