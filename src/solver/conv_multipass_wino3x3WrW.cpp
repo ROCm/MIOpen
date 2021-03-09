@@ -672,7 +672,6 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
                                         invoke_params.workSpace,
                                         static_cast<int>(wino_out_offset / GetTypeSize(in_data_type)),
                                         nullptr,
-                                false,
                                 GemmBackend_t::miopentensile);
                     // clang-format on
 
