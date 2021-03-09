@@ -74,6 +74,8 @@ RUN cget -p $PREFIX init --cxx /opt/rocm/llvm/bin/clang++ --std=c++14 -DAMDGPU_T
 
 # Install dependencies
 RUN cget -p $PREFIX install pfultz2/rocm-recipes
+# Install a newer version of cmake for libMLIRMIOpen
+RUN cget -p $PREFIX install kitware/cmake@v3.13.4
 ADD min-requirements.txt /min-requirements.txt
 RUN CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -f /min-requirements.txt
 RUN export HIPCC_LINK_FLAGS_APPEND='-O3 -parallel-jobs=4'
