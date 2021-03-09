@@ -45,6 +45,7 @@ template <index_t BlockSize,
           ReduceTensorOp_t op,
           NanPropagation_t nanPropaOpt,
           ReduceTensorIndices_t reduceIndicesOpt,
+          index_t origReduceLen,
           index_t blkGroupSize, // The number of blocks for doing each reduction
           index_t GredAccessesPerThreadInBlock>
 struct GridwiseReduction_xy_to_x_multiblock
@@ -53,7 +54,15 @@ struct GridwiseReduction_xy_to_x_multiblock
     static constexpr bool need_indices =
         indexable && (reduceIndicesOpt != ReduceTensorIndices_t::NO_INDICES);
 
+    static constexpr auto toReduceLength = src2dDesc::GetLength(Number<1>{});
+
+    static constexpr auto divider = static_cast<int>(origReduceLen);
+
     using opReduce = typename reduce_binary_operator<compType, op>::opType;
+    using preUnaryOp =
+        typename reduce_unary_operator<compType, op, divider, true, false>::preUnaryOp;
+    using posUnaryOp =
+        typename reduce_unary_operator<compType, op, divider, true, false>::posUnaryOp;
 
     __device__ void Run(srcDataType alpha,
                         const srcDataType* const __restrict__ p_src_global,
@@ -140,6 +149,9 @@ struct GridwiseReduction_xy_to_x_multiblock
             blockwise_src_load.Run(
                 p_src_global, p_in_block_buffer, type_convert<srcDataType>{}(zeroVal));
             __syncthreads();
+
+            // do element-wise pre-reduction operation
+            blockwise_reduce::template operate_on_elements<preUnaryOp>(p_in_block_buffer);
 
             index_t BlocksInOneOp = (reducedBlocks < toReduceBlocks - GredAccessesPerThreadInBlock)
                                         ? GredAccessesPerThreadInBlock
@@ -257,6 +269,10 @@ struct GridwiseReduction_xy_to_x_multiblock
             blockwise_src_load.Run(
                 p_src_global, p_in_block_buffer, type_convert<srcDataType>{}(zeroVal));
             __syncthreads();
+
+            // unary operation before reducing, needed by AMAX; For MIN/MAX, nothing is actually
+            // done here
+            blockwise_reduce::template operate_on_elements<preUnaryOp>(p_in_block_buffer);
 
             index_t BlocksInOneOp = (reducedBlocks < toReduceBlocks - GredAccessesPerThreadInBlock)
                                         ? GredAccessesPerThreadInBlock

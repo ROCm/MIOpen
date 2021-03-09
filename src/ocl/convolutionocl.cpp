@@ -59,6 +59,11 @@
 
 #include <boost/range/adaptors.hpp>
 
+/// MIOpenGEMM issues with ROCm 3.7, most likely related to the
+/// issues in the OpenCL compiler. Not reproducible in ROCm 4.0.
+#define WORKAROUND_MIOPENGEMM_ROCM37 \
+    (MIOPEN_USE_MIOPENGEMM && HIP_PACKAGE_VERSION_MAJOR == 3 && HIP_PACKAGE_VERSION_MINOR == 7)
+
 namespace miopen {
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_GEMM)
@@ -572,7 +577,17 @@ static void DirConvFindCore(Handle& handle,
         }
         // if not 1x1
         else if(workSpace != nullptr &&
-                workSpaceSize >= (conv.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc)))
+                workSpaceSize >= (conv.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc))
+#if WORKAROUND_MIOPENGEMM_ROCM37
+                &&
+                !(conv.GetSpatialDimension() == 2 && conv.group_count == 4 && in_c == 4 &&
+                  in_spatial[0] == 161 && in_spatial[1] == 700 && wDesc.GetLengths()[0] == 32 &&
+                  wDesc.GetLengths()[1] == 1 && wei_spatial[0] == 5 && wei_spatial[1] == 20 &&
+                  miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
+                  miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; }) &&
+                  miopen::all_of(conv.GetConvDilations(), [](auto v) { return v == 1; }))
+#endif
+                    )
         {
             if(conv.group_count > 1)
             {
