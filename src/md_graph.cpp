@@ -639,8 +639,6 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                                 "padded_x === (x ~ 3)",
                                                 "(c % 2) == 0"};
             add_meta_wino(map_wino_conv_xe3, 5);
-            map_wino_conv_xe3["constraints"].insert(
-                map_wino_conv_xe3["constraints"].end(), common_constr.begin(), common_constr.end());
             g.AddEdge(nullptr, vc_s1, map_wino_conv_xe3);
 
             /// C>B>A| (4)
@@ -657,30 +655,28 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                 vc_s2->supported_arch = supported_arch;
 
                 FusionMDGraph_Edge_Map map_wino_conv_s2;
-                map_wino_conv_s2["constraints"] = {
-                    "stride_h == 2", "padded_y === (y ~ 6)", "(x % 6) == 1", "padded_x === (x ~ 3)",
-                };
-
+                map_wino_conv_s2["constraints"] = {"stride_h == 2",
+                                                   "padded_y === (y ~ 6)",
+                                                   "(x % 6) == 1",
+                                                   "padded_x === (x ~ 3)"};
                 add_meta_wino(map_wino_conv_s2, 5);
                 g.AddEdge(nullptr, vc_s2, map_wino_conv_s2);
 
                 FusionMDGraph_Edge_Map map_wino_conv_s2_modd;
-                map_wino_conv_s2_modd["constraints"] = {
-                    "stride_h == 2", "padded_y === (y ~ 6)", "(x % 6) != 1", "padded_x === (x ~ 6)",
-                };
-
+                map_wino_conv_s2_modd["constraints"] = {"stride_h == 2",
+                                                        "padded_y === (y ~ 6)",
+                                                        "(x % 6) != 1",
+                                                        "padded_x === (x ~ 6)"};
                 add_meta_wino(map_wino_conv_s2_modd, 5);
                 g.AddEdge(nullptr, vc_s2, map_wino_conv_s2_modd);
 
                 // high priority edge for 3x3 kernels
                 FusionMDGraph_Edge_Map map_wino_conv_s2_modd_xe3;
-                map_wino_conv_s2_modd_xe3["constraints"] = {
-                    "stride_h == 2",
-                    "(x == 3) & (y == 3)",
-                    "padded_y === (y ~ 6)",
-                    "(x % 6) != 1",
-                    "padded_x === (x ~ 6)",
-                };
+                map_wino_conv_s2_modd_xe3["constraints"] = {"stride_h == 2",
+                                                            "(x == 3) & (y == 3)",
+                                                            "padded_y === (y ~ 6)",
+                                                            "(x % 6) != 1",
+                                                            "padded_x === (x ~ 6)"};
                 add_meta_wino(map_wino_conv_s2_modd_xe3, 100);
                 g.AddEdge(nullptr, vc_s2, map_wino_conv_s2_modd_xe3);
 
