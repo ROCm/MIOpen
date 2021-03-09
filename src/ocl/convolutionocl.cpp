@@ -59,6 +59,11 @@
 
 #include <boost/range/adaptors.hpp>
 
+/// MIOpenGEMM issues with ROCm 3.7, most likely related to the
+/// issues in the OpenCL compiler. Not reproducible in ROCm 4.0.
+#define WORKAROUND_MIOPENGEMM_ROCM37 \
+    (MIOPEN_USE_MIOPENGEMM && HIP_PACKAGE_VERSION_MAJOR == 3 && HIP_PACKAGE_VERSION_MINOR == 7)
+
 namespace miopen {
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_GEMM)
@@ -572,7 +577,17 @@ static void DirConvFindCore(Handle& handle,
         }
         // if not 1x1
         else if(workSpace != nullptr &&
-                workSpaceSize >= (conv.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc)))
+                workSpaceSize >= (conv.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc))
+#if WORKAROUND_MIOPENGEMM_ROCM37
+                &&
+                !(conv.GetSpatialDimension() == 2 && conv.group_count == 4 && in_c == 4 &&
+                  in_spatial[0] == 161 && in_spatial[1] == 700 && wDesc.GetLengths()[0] == 32 &&
+                  wDesc.GetLengths()[1] == 1 && wei_spatial[0] == 5 && wei_spatial[1] == 20 &&
+                  miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
+                  miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; }) &&
+                  miopen::all_of(conv.GetConvDilations(), [](auto v) { return v == 1; }))
+#endif
+                    )
         {
             if(conv.group_count > 1)
             {
@@ -1039,7 +1054,7 @@ void ConvolutionDescriptor::ConvFwdGemm(Handle& handle,
                 tensors.wDesc, tensors.xDesc, tensors.yDesc, group_count);
 
             CallGemmStridedBatched(
-                handle, gemm_desc, tensors.w, 0, workSpace, 0, workSpace, x_t_size, nullptr, false);
+                handle, gemm_desc, tensors.w, 0, workSpace, 0, workSpace, x_t_size, nullptr);
         }
         else
         {
@@ -1056,8 +1071,7 @@ void ConvolutionDescriptor::ConvFwdGemm(Handle& handle,
                      wksp_offset,
                      workSpace,
                      x_t_size,
-                     nullptr,
-                     false);
+                     nullptr);
         }
         if(handle.IsProfilingEnabled())
             t1 += handle.GetKernelTime();
@@ -1132,8 +1146,7 @@ void ConvolutionDescriptor::ConvFwdGemm(Handle& handle,
                                        in_offset,
                                        tensors.y,
                                        out_offset,
-                                       nullptr,
-                                       false);
+                                       nullptr);
                 if(handle.IsProfilingEnabled())
                 {
                     if(i == in_n - 1)
@@ -1188,8 +1201,7 @@ void ConvolutionDescriptor::ConvFwdGemm(Handle& handle,
                              0,
                              tensors.y,
                              out_offset,
-                             nullptr,
-                             false);
+                             nullptr);
                     if(handle.IsProfilingEnabled())
                         time_0 += handle.GetKernelTime();
                 }
@@ -1202,7 +1214,7 @@ void ConvolutionDescriptor::ConvFwdGemm(Handle& handle,
 
                 // tensors.y = tensors.w * tensors.x
                 CallGemmStridedBatched(
-                    handle, gemm_desc, tensors.w, 0, tensors.x, 0, tensors.y, 0, nullptr, false);
+                    handle, gemm_desc, tensors.w, 0, tensors.x, 0, tensors.y, 0, nullptr);
                 if(handle.IsProfilingEnabled())
                     time_0 += handle.GetKernelTime();
             }
@@ -1298,16 +1310,8 @@ void ConvolutionDescriptor::ConvFwdGemm(Handle& handle,
 
             // tensors.y = tensors.w * Im2Col(tensors.x)
             if(group_count > 1)
-                CallGemmStridedBatched(handle,
-                                       gemm_desc,
-                                       tensors.w,
-                                       0,
-                                       workSpace,
-                                       0,
-                                       tensors.y,
-                                       out_offset,
-                                       nullptr,
-                                       false);
+                CallGemmStridedBatched(
+                    handle, gemm_desc, tensors.w, 0, workSpace, 0, tensors.y, out_offset, nullptr);
             else
                 CallGemm(handle,
                          gemm_desc,
@@ -1318,7 +1322,6 @@ void ConvolutionDescriptor::ConvFwdGemm(Handle& handle,
                          tensors.y,
                          out_offset,
                          nullptr,
-                         false,
                          (tensors.wDesc.GetType() == miopenInt8 ||
                           tensors.wDesc.GetType() == miopenInt8x4)
                              ? GemmBackend_t::miopentensile
@@ -2623,8 +2626,7 @@ void ConvolutionDescriptor::ConvBwdGemm(Handle& handle,
                                    0,
                                    workSpace,
                                    tensors.dyDesc.GetElementSize(),
-                                   nullptr,
-                                   false);
+                                   nullptr);
         }
         else
         {
@@ -2641,8 +2643,7 @@ void ConvolutionDescriptor::ConvBwdGemm(Handle& handle,
                      0,
                      workSpace,
                      tensors.dyDesc.GetElementSize(),
-                     nullptr,
-                     false);
+                     nullptr);
         }
         if(handle.IsProfilingEnabled())
             t1 += handle.GetKernelTime();
@@ -2707,8 +2708,7 @@ void ConvolutionDescriptor::ConvBwdGemm(Handle& handle,
                                        out_offset,
                                        tensors.dx,
                                        in_offset,
-                                       nullptr,
-                                       false);
+                                       nullptr);
 
                 if(handle.IsProfilingEnabled())
                 {
@@ -2728,7 +2728,7 @@ void ConvolutionDescriptor::ConvBwdGemm(Handle& handle,
 
             // tensors.dx = transpose(tensors.w) * tensors.dy
             CallGemmStridedBatched(
-                handle, gemm_desc, tensors.w, 0, tensors.dy, 0, tensors.dx, 0, nullptr, false);
+                handle, gemm_desc, tensors.w, 0, tensors.dy, 0, tensors.dx, 0, nullptr);
         }
     }
     // if not 1x1
@@ -2771,16 +2771,8 @@ void ConvolutionDescriptor::ConvBwdGemm(Handle& handle,
 
             // tensors.dx = transpose(tensors.w) * tensors.dy
             if(group_count > 1)
-                CallGemmStridedBatched(handle,
-                                       gemm_desc,
-                                       tensors.w,
-                                       0,
-                                       tensors.dy,
-                                       out_offset,
-                                       workSpace,
-                                       0,
-                                       nullptr,
-                                       false);
+                CallGemmStridedBatched(
+                    handle, gemm_desc, tensors.w, 0, tensors.dy, out_offset, workSpace, 0, nullptr);
             else
                 CallGemm(handle,
                          gemm_desc,
@@ -2791,7 +2783,6 @@ void ConvolutionDescriptor::ConvBwdGemm(Handle& handle,
                          workSpace,
                          0,
                          nullptr,
-                         false,
                          GemmBackend_t::miopengemm);
 
             if(handle.IsProfilingEnabled())
@@ -3391,8 +3382,7 @@ void ConvolutionDescriptor::BackwardWeightsGemm(Handle& handle,
                                        0,
                                        tensors.dw,
                                        0,
-                                       nullptr,
-                                       false);
+                                       nullptr);
             }
             else
             {
@@ -3410,7 +3400,6 @@ void ConvolutionDescriptor::BackwardWeightsGemm(Handle& handle,
                          tensors.dw,
                          0,
                          nullptr,
-                         false,
                          GemmBackend_t::miopengemm);
             }
             // Update times for both the kernels
@@ -3459,8 +3448,7 @@ void ConvolutionDescriptor::BackwardWeightsGemm(Handle& handle,
                                        in_offset,
                                        tensors.dw,
                                        0,
-                                       nullptr,
-                                       false);
+                                       nullptr);
 
                 if(handle.IsProfilingEnabled())
                 {
@@ -3488,7 +3476,6 @@ void ConvolutionDescriptor::BackwardWeightsGemm(Handle& handle,
                                              tensors.dw,
                                              0,
                                              nullptr,
-                                             false,
                                              GemmBackend_t::miopengemm);
         }
     }
