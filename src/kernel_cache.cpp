@@ -52,19 +52,6 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 
 namespace miopen {
 
-static void ProcessParams(std::string& params)
-{
-    if(params.length() > 0)
-    {
-        // Ensure only one space after the -cl-std.
-        // >1 space can cause an Apple compiler bug. See clSPARSE issue #141.
-        if(params.at(0) != ' ')
-        {
-            params = " " + params;
-        }
-    }
-}
-
 const std::vector<Kernel>& KernelCache::GetKernels(const std::string& algorithm,
                                                    const std::string& network_config)
 {
@@ -110,7 +97,6 @@ bool KernelCache::HasProgram(const std::string& name, const std::string& params)
 
 void KernelCache::AddProgram(Program prog, const std::string& program_name, std::string params)
 {
-    ProcessParams(params);
     program_map[std::make_pair(program_name, params)] = prog;
 }
 
@@ -126,8 +112,6 @@ Kernel KernelCache::AddKernel(const Handle& h,
                               bool is_kernel_miopengemm_str,
                               const std::string& kernel_src)
 {
-    ProcessParams(params);
-
     const std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
     if(!network_config.empty() || !algorithm.empty()) // Don't log only _empty_ keys.
         MIOPEN_LOG_I2("Key: " << key.first << " \"" << key.second << '\"');
