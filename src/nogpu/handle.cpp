@@ -61,9 +61,6 @@ Handle::Handle(miopenAcceleratorQueue_t /* stream */) : Handle::Handle() {}
 
 Handle::Handle() : impl(new HandleImpl())
 {
-#if MIOPEN_USE_ROCBLAS
-// rhandle_ = CreateRocblasHandle();
-#endif
     this->impl->target_properties.Init(this);
     MIOPEN_LOG_NQI(*this);
 }
@@ -169,7 +166,6 @@ Program Handle::LoadProgram(const std::string& program_name,
                             bool is_kernel_str,
                             const std::string& kernel_src) const
 {
-    // this->impl->set_ctx();
     params += " -mcpu=" + this->GetTargetProperties().Name();
 
     auto hsaco = miopen::LoadBinary(this->GetTargetProperties(),
