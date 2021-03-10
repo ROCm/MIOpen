@@ -398,7 +398,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     float lowp_quant; // quantization factor for low precision
     FindMode findMode;
 
-    private:
     void ConvFwdGemm(Handle& handle,
                      const ConvFwdTensors& tensors,
                      Data_t workSpace,
