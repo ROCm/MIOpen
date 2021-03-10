@@ -222,7 +222,7 @@ bool ConvForwardOpDescriptor::GetOpAttr(const std::string& sym, int& val) const
 
     auto f_strides     = filter_desc.GetStrides();
     const int f_t_size = miopen::GetTypeSize(input_desc.GetType());
-    std::transform(f_strides.begin(), f_strides.end(), f_strides.begin(), [&f_t_size](auto& s) {
+    std::transform(f_strides.begin(), f_strides.end(), f_strides.begin(), [&f_t_size](const auto& s) {
         return s * f_t_size;
     });
 
@@ -868,10 +868,10 @@ bool FusionPlanDescriptor::GetTensorAttr(const std::string& sym, int& val) const
     const int o_t_size = miopen::GetTypeSize(output_desc.GetType());
     auto d_strides     = input_desc.GetStrides();
     auto o_strides     = output_desc.GetStrides();
-    std::transform(d_strides.begin(), d_strides.end(), d_strides.begin(), [&d_t_size](auto& s) {
+    std::transform(d_strides.begin(), d_strides.end(), d_strides.begin(), [&d_t_size](const auto& s) {
         return s * d_t_size;
     });
-    std::transform(o_strides.begin(), o_strides.end(), o_strides.begin(), [&o_t_size](auto& s) {
+    std::transform(o_strides.begin(), o_strides.end(), o_strides.begin(), [&o_t_size](const auto& s) {
         return s * o_t_size;
     });
 
