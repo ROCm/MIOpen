@@ -41,6 +41,11 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 
+/// MIOpenGEMM issues with ROCm 3.7, most likely related to the
+/// issues in the OpenCL compiler. Not reproducible in ROCm 4.0.
+#define WORKAROUND_MIOPENGEMM_ROCM37 \
+    (MIOPEN_USE_MIOPENGEMM && HIP_PACKAGE_VERSION_MAJOR == 3 && HIP_PACKAGE_VERSION_MINOR == 7)
+
 namespace miopen {
 namespace solver {
 
@@ -348,7 +353,7 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
                 if(group_count > 1)
                 {
                     gemm_status = CallGemmStridedBatched(
-                        handle, gemm_desc, w, 0, workSpace, 0, workSpace, x_t_size, nullptr, false);
+                        handle, gemm_desc, w, 0, workSpace, 0, workSpace, x_t_size, nullptr);
                 }
                 else
                 {
@@ -361,8 +366,7 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
                                            wksp_offset,
                                            workSpace,
                                            x_t_size,
-                                           nullptr,
-                                           false);
+                                           nullptr);
                 }
             }
             else
@@ -562,8 +566,8 @@ ConvSolution GemmFwd1x1_0_1_int8::GetSolution(const ExecutionContext& context,
 
                 if(conv_params.type == InvokeType::Run)
                 {
-                    gemm_status = CallGemm(
-                        handle, gemm_desc, w, 0, workSpace, 0, y, out_offset, nullptr, false);
+                    gemm_status =
+                        CallGemm(handle, gemm_desc, w, 0, workSpace, 0, y, out_offset, nullptr);
                 }
                 else
                 {
@@ -707,7 +711,7 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
                     if(conv_params.type == InvokeType::Run)
                     {
                         gemm_status = CallGemmStridedBatched(
-                            handle, gemm_desc, w, 0, x, in_offset, y, out_offset, nullptr, false);
+                            handle, gemm_desc, w, 0, x, in_offset, y, out_offset, nullptr);
                     }
                     else
                     {
@@ -781,7 +785,7 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
                 if(conv_params.type == InvokeType::Run)
                 {
                     gemm_status =
-                        CallGemmStridedBatched(handle, gemm_desc, w, 0, x, 0, y, 0, nullptr, false);
+                        CallGemmStridedBatched(handle, gemm_desc, w, 0, x, 0, y, 0, nullptr);
                 }
                 else
                 {
@@ -871,6 +875,24 @@ bool GemmFwdRest::IsApplicable(const ExecutionContext& context,
 #if MIOPEN_USE_GEMM
     if(!GemmFwdBase::IsApplicable(context, problem))
         return false;
+
+    decltype(auto) conv  = problem.GetConv();
+    decltype(auto) xDesc = problem.GetIn();
+    decltype(auto) wDesc = problem.GetWeights();
+
+    const auto spatial_dim  = conv.GetSpatialDimension();
+    const auto& in_spatial  = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
+    const auto& wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
+
+#if WORKAROUND_MIOPENGEMM_ROCM37
+    if(conv.GetSpatialDimension() == 2 && conv.group_count == 4 && in_c == 4 &&
+       in_spatial[0] == 161 && in_spatial[1] == 700 && wDesc.GetLengths()[0] == 32 &&
+       wDesc.GetLengths()[1] == 1 && wei_spatial[0] == 5 && wei_spatial[1] == 20 &&
+       miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
+       miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; }) &&
+       miopen::all_of(conv.GetConvDilations(), [](auto v) { return v == 1; }))
+        return false;
+#endif
 
     // Todo: This is a rest-of kind of logic. Should be revised later.
     if(GemmFwd1x1_0_1{}.IsApplicable(context, problem))
@@ -1018,7 +1040,7 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
                 {
                     if(conv.group_count > 1)
                         gemm_status = CallGemmStridedBatched(
-                            handle, gemm_desc, w, 0, workSpace, 0, y, out_offset, nullptr, false);
+                            handle, gemm_desc, w, 0, workSpace, 0, y, out_offset, nullptr);
                     else
                         gemm_status = CallGemm(
                             handle,
@@ -1030,7 +1052,6 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
                             y,
                             out_offset,
                             nullptr,
-                            false,
                             (wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4)
                                 ? GemmBackend_t::rocblas
                                 : GemmBackend_t::miopengemm);

@@ -56,25 +56,25 @@ class CTCDriver : public Driver
         workspace_dev = nullptr;
     }
 
-    int AddCmdLineArgs();
-    int ParseCmdLineArgs(int argc, char* argv[]);
-    InputFlags& GetInputFlags() { return inflags; }
+    int AddCmdLineArgs() override;
+    int ParseCmdLineArgs(int argc, char* argv[]) override;
+    InputFlags& GetInputFlags() override { return inflags; }
 
-    int GetandSetData();
+    int GetandSetData() override;
     std::vector<int> GetInputLengthsFromCmdLine(std::string input_str);
     std::vector<int> GetProbabilityTensorLengthsFromCmdLine();
 
     int SetCTCLossDescriptorFromCmdLineArgs();
-    int AllocateBuffersAndCopy();
+    int AllocateBuffersAndCopy() override;
 
-    int RunForwardGPU();
-    int RunBackwardGPU();
-    int VerifyForward();
-    int VerifyBackward();
+    int RunForwardGPU() override;
+    int RunBackwardGPU() override;
+    int VerifyForward() override;
+    int VerifyBackward() override;
 
     int RunCTCLossCPU();
 
-    ~CTCDriver()
+    ~CTCDriver() override
     {
         miopenDestroyTensorDescriptor(probsDesc);
         miopenDestroyTensorDescriptor(gradientsDesc);
