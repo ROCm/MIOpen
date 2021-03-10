@@ -32,6 +32,7 @@
 #include <miopen/each_args.hpp>
 #include <miopen/returns.hpp>
 #include <miopen/errors.hpp>
+#include <miopen/tensor_layout.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -175,30 +176,36 @@ struct TensorDescriptor : miopenTensorDescriptor
 
     std::string ToString() const;
 
-    template <class Vector, class Op>
-    static inline std::vector<int64_t> sort_permutation(const Vector& data, Op op)
-    {
-        std::vector<std::int64_t> result(data.size());
-        std::iota(result.begin(), result.end(), 0);
-        std::sort(
-            result.begin(), result.end(), [&](auto x, auto y) { return op(data[x], data[y]); });
-        return result;
-    }
-
     std::string GetLayout(std::string labels) const
     {
-        if(labels.size() != strides.size())
-        {
-            MIOPEN_THROW(
-                "Invalid labels size. Layout labels size must be equavalent to stride size");
-        }
+        std::ignore = labels;
+        return layout;
+    }
 
-        // Copy construct the result string from labels. This allocates the space at one go
-        // and is faster than calling push_back in transform.
-        auto result = labels;
-        auto p      = sort_permutation(strides, std::greater<>{});
-        std::transform(p.begin(), p.end(), result.begin(), [&](auto i) { return labels[i]; });
-        return result;
+    std::string ComputeLayout(const std::string& labels)
+    {
+        auto valid_layouts = compute_valid_layouts(strides, lens, labels);
+        std::string valid_layout;
+        if(std::find(valid_layouts.begin(), valid_layouts.end(), "NCHW") != valid_layouts.end())
+        {
+            valid_layout = "NCHW";
+        }
+        else if(std::find(valid_layouts.begin(), valid_layouts.end(), "NHWC") !=
+                valid_layouts.end())
+        {
+            valid_layout = "NHWC";
+        }
+        else
+        {
+            valid_layout = valid_layouts[0];
+        }
+        return valid_layout;
+    }
+
+    void SetLayout()
+    {
+        std::string picked_layout = ComputeLayout(tensor_layout_get_default(lens.size()));
+        layout                    = picked_layout;
     }
 
     friend std::ostream& operator<<(std::ostream& stream, const TensorDescriptor& t);
@@ -206,6 +213,7 @@ struct TensorDescriptor : miopenTensorDescriptor
     private:
     std::vector<std::size_t> lens;
     std::vector<std::size_t> strides;
+    std::string layout;
 
     bool packed;
 
