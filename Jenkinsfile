@@ -141,6 +141,7 @@ def buildHipClangJob(Map conf, compiler){
         def image = conf.get("image", "miopen")
         def cmd = conf.get("cmd", "")
         def gpu_arch = conf.get("gpu_arch", "gfx900;gfx906")
+        def target_id = conf.get("target_id", "OFF")
         def codecov = conf.get("codecov", false)
         def miotensile_version = conf.get("miotensile_version", "default")
         def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
