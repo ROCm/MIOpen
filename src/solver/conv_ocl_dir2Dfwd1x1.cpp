@@ -36,6 +36,8 @@
 /// Known since ROCm 2.9.
 #define WORKAROUND_ISSUE_2298 1
 
+#define WORKAROUND_SWDEV_271887 1
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1)
 
 namespace miopen {
@@ -50,6 +52,12 @@ bool ConvOclDirectFwd1x1::IsApplicable(const ConvolutionContext& params) const
     if(name == "gfx908")
         return false;
 #endif
+
+#if WORKAROUND_SWDEV_271887
+    if(name.find("gfx10") != std::string::npos)
+        return false;
+#endif
+
     if(!params.use_opencl_convolutions)
         return false;
     if(!params.Is2d())
