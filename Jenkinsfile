@@ -15,6 +15,10 @@ def rocmnode(name) {
     return node_name
 }
 
+def default_image_name() {
+    return 'miopen-hip-clang'
+}
+
 def show_node_info() {
     sh """
         echo "NODE_NAME = \$NODE_NAME"
@@ -138,7 +142,7 @@ def buildHipClangJob(Map conf, compiler){
         def prefixpath = conf.get("prefixpath", "/usr/local")
         def flags = conf.get("flags", "")
         def env4make = conf.get("env4make", "")
-        def image = conf.get("image", "miopen")
+        def image = conf.get("image", default_image_name())
         def cmd = conf.get("cmd", "")
         def gpu_arch = conf.get("gpu_arch", "gfx900;gfx906")
         def codecov = conf.get("codecov", false)
