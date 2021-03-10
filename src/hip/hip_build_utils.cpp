@@ -218,7 +218,8 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     {
         tmp_dir->Execute(MIOPEN_OFFLOADBUNDLER_BIN,
                          "--type=o "
-#if HIP_PACKAGE_VERSION_FLAT >= 4001021081
+#if(HIP_PACKAGE_VERSION_FLAT >= 4001021072 && HIP_PACKAGE_VERSION_FLAT < 4002000000) || \
+    HIP_PACKAGE_VERSION_FLAT >= 4002021072
                          "--targets=hipv4-amdgcn-amd-amdhsa-"
 #else
                          "--targets=hip-amdgcn-amd-amdhsa-"
