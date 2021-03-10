@@ -2,7 +2,7 @@
 def rocmnode(name) {
     def node_name = 'rocmtest-trial'
     if(name != '') {
-        node_name = node_name + ' && ' name;
+        node_name = node_name + ' && + ' name;
     }
     return node_name
 }
