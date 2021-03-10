@@ -58,28 +58,9 @@ gid_z = 4
 // dwords 0:1 - input buffer pointer
 // dwords 2:3 - weights pointer
 // dwords 4:5 - output buffer pointer
-// dwords 6:7 - debug buffer pointer
 .set in_ptr_off, 0x0
 .set wei_ptr_off, 0x8
 .set out_ptr_off, 0x10
-
-.ifnotdef no_params_file
-    //inliner-include-optional
-    .include "params.ins"
-    .ifndef params_file
-        .set batch_size, 1
-        .set img_width, 128
-        .set img_height, 64
-        .set input_channels, 8
-        .set output_channels, 96
-        .set output_lines_per_wave, 2
-        .set filters_per_wave, 4
-        .set weights_layout, 0 // 0 - KCHW, 1 - CKHW
-        .set reverse_weights, 0 // for backward conv
-        .set enable_debug_output, 0
-        .set limit_wave_cnt, 0
-    .endif
-.endif
 
 .set max_hw_wctn, 15
 .set padding_x, 1
@@ -353,14 +334,6 @@ __sgprs_allocated_after_filters = .SGPR_NEXT_FREE - __sgprs_ptr
   .set \name, accums + (\k * acc_lines_per_wave + \line) * gprs_per_input_line
 .endm
 
-.if enable_debug_output
-  .VGPR_ALLOC dbg_ptr, 2
-  .VGPR_ALLOC dbg, 16
-  .SGPR_ALLOC dbg_exec_lo
-  .SGPR_ALLOC dbg_exec_hi
-  .SGPR_RESERVE_VCC
-.endif
-
 .GPR_ALLOC_END
 
 
@@ -609,26 +582,6 @@ miopenGcnAsmConv3x3U:
 //.text 1
 //.p2align 8
 //.Lfunc_start0:
-  // debug
-  .if enable_debug_output
-    s_load_dwordx2 s[6:7], s[kernarg:kernarg+1], 0x18 // load debug buffer pointer
-    s_waitcnt 0
-    // compute per lane address
-    s_mov_b32 s[dbg_exec_lo], exec_lo
-    s_mov_b32 s[dbg_exec_hi], exec_hi
-    s_mov_b64 exec, -1
-    v_mbcnt_lo_u32_b32 v[dbg_ptr], -1, 0
-    v_mbcnt_hi_u32_b32 v[dbg_ptr], -1, v[dbg_ptr]
-    v_mul_u32_u24 v[dbg_ptr], v[dbg_ptr], 4
-    v_mov_b32 v[dbg_ptr+1], s[7]
-   _v_add_co_u32 v[dbg_ptr], vcc, v[dbg_ptr], s[6]
-    v_addc_u32 v[dbg_ptr+1], vcc, v[dbg_ptr+1], 0, vcc
-    s_mov_b32 exec_lo, s[dbg_exec_lo]
-    s_mov_b32 exec_hi, s[dbg_exec_hi]
-    s_mov_b32 s[gid_x], debug_gid_x //debug output batch
-    s_mov_b32 s[gid_y], debug_gid_y //debug line batch
-    s_mov_b32 s[gid_z], debug_gid_z //debug image
-  .endif
 
   num_wavefronts = output_channels / filters_per_wave
   //to-do add support of uneven_outputs into grouped conv
@@ -729,32 +682,49 @@ miopenGcnAsmConv3x3U:
       s_addc_u32 s[weights_ptr+1], s[weights_ptr+1], 0
   .endif
 
+.macro s_mul_u64_u32 sdst_lo, sdst_hi, ssrc0, ssrc1, vtmp0, vtmp1
+    v_mov_b32 \vtmp0, \ssrc1
+    v_mul_hi_u32 \vtmp1, \ssrc0, \vtmp0
+    v_mul_lo_u32 \vtmp0, \ssrc0, \vtmp0
+    v_readfirstlane_b32 \sdst_hi, \vtmp1
+    v_readfirstlane_b32 \sdst_lo, \vtmp0
+.endm
   // construct input buffer descriptor
+vtmp = linesA
+stmp2 = in_desc+2
+  s_mov_b32 s[tmp], 0
   .if batch_size > 1
-    s_mul_i32 s[tmp], s[gid_z], input_feature_map_stride * input_channels
-    s_add_u32 s[in_desc], s[in_desc], s[tmp] // add input image batch offset
-    s_addc_u32 s[in_desc+1], s[in_desc+1], 0
+    // adds (s[gid_z] * input_feature_map_stride * input_channels)
+    // to input base addr
+    s_mul_i32 s[tmp], s[gid_z], input_channels
   .endif
-  s_mov_b32 s[in_desc+2], input_buffer_window // size
-  s_mov_b32 s[in_desc+3], 0x00027000
-
 .if group_counts > 1
-  s_mul_i32 s[tmp], s[s_group_id], c_group_size * input_feature_map_stride // c_group_offset
-  s_add_u32 s[in_desc], s[in_desc], s[tmp]
-  s_addc_u32 s[in_desc+1], s[in_desc+1], 0
+    // adds (s[s_group_id] * input_feature_map_stride * c_group_size)
+    // to input base addr
+    s_mul_i32  s[stmp2], s[s_group_id], c_group_size
+    s_add_u32 s[tmp], s[tmp], s[stmp2]
+.endif
+.if batch_size > 1 || group_counts > 1
+    s_mul_u64_u32 s[tmp], s[stmp2], s[tmp], input_feature_map_stride, v[vtmp], v[vtmp+1]
+    s_add_u32 s[in_desc], s[in_desc], s[tmp]
+    s_addc_u32 s[in_desc+1], s[in_desc+1], s[stmp2]
 .endif
 
   .if uneven_outputs
     s_mul_i32 s[out_k], s[gid_x], filters_per_wave
   .endif
-  s_mul_i32 s[tmp], s[gid_x], output_feature_map_stride * filters_per_wave // output image filter offset
+
+  s_mul_i32 s[tmp], s[gid_x], filters_per_wave
   .if batch_size > 1 // add output image batch offset
-    s_mul_i32 s[gid_z], s[gid_z], output_feature_map_stride * output_channels
+    s_mul_i32 s[gid_z], s[gid_z], output_channels
     s_add_u32 s[tmp], s[tmp], s[gid_z]
   .endif
+  s_mul_u64_u32 s[tmp], s[stmp2], s[tmp], output_feature_map_stride, v[vtmp], v[vtmp+1]
   s_add_u32 s[out_ptr], s[out_ptr], s[tmp]
-  s_addc_u32 s[out_ptr+1], s[out_ptr+1], 0
+  s_addc_u32 s[out_ptr+1], s[out_ptr+1], s[stmp2]
   s_mul_i32 s[tmp], s[gid_y], output_line_stride * output_lines_per_wave // output line offset
+  .GPR_INVALIDATE vtmp
+  .GPR_INVALIDATE stmp2
   .GPR_REUSE tmp, out_img_off
   .GPR_INVALIDATE gid_x
   .GPR_INVALIDATE gid_y
@@ -765,6 +735,8 @@ miopenGcnAsmConv3x3U:
   .GPR_INVALIDATE s_group_id
   .GPR_INVALIDATE v_group_id
   .GPR_INVALIDATE vtmp_udiv
+  s_mov_b32 s[in_desc+2], input_buffer_window // size
+  s_mov_b32 s[in_desc+3], 0x00027000
 
 
   // zeroing acc
