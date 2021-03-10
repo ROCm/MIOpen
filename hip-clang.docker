@@ -94,7 +94,7 @@ RUN cd ~ && \
     tar -xvzf $MLIR_COMMIT.tar.gz && \
     rm -rf $MLIR_COMMIT.tar.gz && \
     cd llvm-project-mlir-$MLIR_COMMIT && mkdir -p build && cd build && \
-    cmake -G "Unix Makefiles" ../llvm \
+    $PREFIX/bin/cmake -G "Unix Makefiles" ../llvm \
       -DLLVM_ENABLE_PROJECTS="mlir;lld" \
       -DCMAKE_BUILD_TYPE=Release \
       -DBUILD_SHARED_LIBS=OFF \
