@@ -876,6 +876,7 @@ bool GemmFwdRest::IsApplicable(const ExecutionContext& context,
     if(!GemmFwdBase::IsApplicable(context, problem))
         return false;
 
+#if WORKAROUND_MIOPENGEMM_ROCM37
     decltype(auto) conv  = problem.GetConv();
     decltype(auto) xDesc = problem.GetIn();
     decltype(auto) wDesc = problem.GetWeights();
@@ -884,7 +885,6 @@ bool GemmFwdRest::IsApplicable(const ExecutionContext& context,
     const auto& in_spatial  = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
     const auto& wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
 
-#if WORKAROUND_MIOPENGEMM_ROCM37
     if(conv.GetSpatialDimension() == 2 && conv.group_count == 4 && in_c == 4 &&
        in_spatial[0] == 161 && in_spatial[1] == 700 && wDesc.GetLengths()[0] == 32 &&
        wDesc.GetLengths()[1] == 1 && wei_spatial[0] == 5 && wei_spatial[1] == 20 &&

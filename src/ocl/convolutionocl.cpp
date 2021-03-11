@@ -59,11 +59,6 @@
 
 #include <boost/range/adaptors.hpp>
 
-/// MIOpenGEMM issues with ROCm 3.7, most likely related to the
-/// issues in the OpenCL compiler. Not reproducible in ROCm 4.0.
-#define WORKAROUND_MIOPENGEMM_ROCM37 \
-    (MIOPEN_USE_MIOPENGEMM && HIP_PACKAGE_VERSION_MAJOR == 3 && HIP_PACKAGE_VERSION_MINOR == 7)
-
 namespace miopen {
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_GEMM)
