@@ -76,22 +76,22 @@ class BatchNormDriver : public Driver
         data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
     }
 
-    int AddCmdLineArgs();
-    int ParseCmdLineArgs(int argc, char* argv[]);
-    InputFlags& GetInputFlags() { return inflags; }
+    int AddCmdLineArgs() override;
+    int ParseCmdLineArgs(int argc, char* argv[]) override;
+    InputFlags& GetInputFlags() override { return inflags; }
 
-    int GetandSetData();
+    int GetandSetData() override;
     std::vector<int> GetInputTensorLengthsFromCmdLine();
     std::vector<int> GetModeFromCmdLine();
 
     int SetBNParametersFromCmdLineArgs();
 
-    int AllocateBuffersAndCopy();
+    int AllocateBuffersAndCopy() override;
 
-    int RunForwardGPU();
+    int RunForwardGPU() override;
     int RunForwardCPU();
 
-    int RunBackwardGPU();
+    int RunBackwardGPU() override;
     int RunBackwardCPU();
 
     void runGPUFwdInference(Tref epsilon, float alpha, float beta);
@@ -103,10 +103,10 @@ class BatchNormDriver : public Driver
     void runCPUFwdTrain(
         Tref epsilon, Tref eAF, int batch_sz, int channels, int height, int width, int depth = 0);
 
-    int VerifyBackward();
-    int VerifyForward();
+    int VerifyBackward() override;
+    int VerifyForward() override;
 
-    ~BatchNormDriver()
+    ~BatchNormDriver() override
     {
         miopenDestroyTensorDescriptor(outputTensor);
         miopenDestroyTensorDescriptor(inputTensor);

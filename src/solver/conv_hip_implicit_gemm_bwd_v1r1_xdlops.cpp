@@ -226,7 +226,7 @@ void PerformanceImplicitGemmBwdV1R1Xdlops::EuristicInit(const ConvolutionContext
     // final check
     if(!tmp.IsReallyValid(ctx))
     {
-        MIOPEN_LOG_I("All attempts failed");
+        MIOPEN_LOG_I("All attempts unsuccessful");
     }
     *this = tmp;
     MIOPEN_LOG_I(ToString());
@@ -778,6 +778,10 @@ bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ConvolutionContext
     if(!IsIndexRangeLargeEnough(ctx))
         return false;
 
+    if(!ctx.IsLayoutDefault())
+    {
+        return false;
+    }
     // gemm size
     int gemm_g       = -1;
     int gemm_m       = -1;
