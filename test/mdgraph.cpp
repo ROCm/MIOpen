@@ -32,6 +32,8 @@
 #include "get_handle.hpp"
 #include "test.hpp"
 
+#define WORKAROUND_ISSUE_763 1
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 void BNAlgTest(std::vector<int> inputs,
@@ -110,7 +112,16 @@ int main()
     std::string krn_name;
     std::string alg_name;
 
-    if(!miopen::IsDisabled(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD{}))
+    bool skip_unsupported_alg = false;
+
+#if WORKAROUND_ISSUE_763
+    auto&& h       = get_handle();
+    auto this_arch = h.GetDeviceName();
+    if(this_arch.find("gfx10") != std::string::npos)
+        skip_unsupported_alg = true;
+#endif
+
+    if(!miopen::IsDisabled(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD{}) && !skip_unsupported_alg)
     {
         // Winograd because c, x and y satisfy criteria
         ConvAlgTest(
@@ -131,7 +142,7 @@ int main()
         EXPECT(alg_name != "miopenConvolutionWinogradBiasActiv");
     }
     // the asm kernel is the fastest for 1x1 and padding
-    if(!miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}))
+    if(!miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) && !skip_unsupported_alg)
     {
         ConvAlgTest(
             {100, 32, 8, 8}, {64, 32, 1, 1}, {0, 0, 1, 1, 1, 1}, pgm_name, krn_name, alg_name);

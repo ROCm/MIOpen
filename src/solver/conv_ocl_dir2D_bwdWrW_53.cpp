@@ -54,6 +54,10 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!params.direction.IsBackwardWrW())
         return false;
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
 
     bool workaround = false;
 

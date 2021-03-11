@@ -34,6 +34,7 @@
 #include <miopen/errors.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/lock_file.hpp>
+#include <miopen/env.hpp>
 
 #include <boost/core/explicit_operator_bool.hpp>
 #include <boost/none.hpp>
@@ -55,9 +56,14 @@ class path;
 } // namespace boost
 
 namespace miopen {
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DISABLE_SQL_WAL)
 
-constexpr bool InMemDb                = MIOPEN_EMBED_DB;
+constexpr bool InMemDb = MIOPEN_EMBED_DB;
+#if MIOPEN_ENABLE_SQLITE_BACKOFF
+const auto MIOPEN_SQL_BUSY_TIMEOUT_MS = 10;
+#else
 const auto MIOPEN_SQL_BUSY_TIMEOUT_MS = 60000;
+#endif
 template <class Derived>
 struct SQLiteSerializable
 {
@@ -258,6 +264,14 @@ class SQLiteBase
         else
         {
             dbInvalid = false;
+            if(!is_system && !miopen::IsEnabled(MIOPEN_DEBUG_DISABLE_SQL_WAL{}))
+            {
+                auto res = sql.Exec("PRAGMA journal_mode=WAL;");
+                if(res.empty() || res[0]["journal_mode"] != "wal")
+                {
+                    MIOPEN_LOG_I("SQLite does not support WAL");
+                }
+            }
         }
     }
 

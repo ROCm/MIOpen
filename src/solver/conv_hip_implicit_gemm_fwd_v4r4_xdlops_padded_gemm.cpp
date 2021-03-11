@@ -260,7 +260,7 @@ void PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::EuristicInit(
     // final check
     if(!tmp.IsReallyValid(ctx))
     {
-        MIOPEN_LOG_I("All attempts failed");
+        MIOPEN_LOG_I("All attempts unsuccessful");
     }
     *this = tmp;
     MIOPEN_LOG_I(ToString());
@@ -1054,6 +1054,10 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
     if(!IsIndexRangeLargeEnough(ctx))
         return false;
 
+    if(!ctx.IsLayoutDefault())
+    {
+        return false;
+    }
     // gemm size
     {
         int gemm_g       = -1;

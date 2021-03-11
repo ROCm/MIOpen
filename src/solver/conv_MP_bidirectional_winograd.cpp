@@ -313,6 +313,11 @@ bool ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsA
     // HIP backend required for sending ptr (buffer + offset)
     // ROCBLAS for GEMM step
 
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
+
     if(!IsApplicableGEMM<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(params))
         return false;
 
@@ -461,7 +466,6 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
                     workSpace,
                     static_cast<int>(transform_offset.out / wino_out.buff_info.element_size),
                     nullptr,
-                    false,
                     GemmBackend_t::rocblas);
 #else
                 (void)handle;

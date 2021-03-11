@@ -1515,6 +1515,11 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ConvolutionConte
     if(ctx.group_counts != 1)
         return false;
 
+    if(!ctx.IsLayoutDefault())
+    {
+        return false;
+    }
+
     bool isValid;
     std::tie(isValid, std::ignore, std::ignore, std::ignore, std::ignore) =
         FindImplicitGemmGtcDynamicFwdKernel(ctx);
