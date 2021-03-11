@@ -269,7 +269,7 @@ pipeline {
                     }
                 }
 
-                stage('MIOpenTensile Half Hip Release') {
+                stage('Half Hip Release Tensile Subset Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
@@ -298,7 +298,7 @@ pipeline {
                     }
                 }
 
-                stage('MIOpenTensile Bfloat16 Hip Release') {
+                stage('Bfloat16 Hip Release Tensile Subset Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
@@ -327,7 +327,7 @@ pipeline {
                     }
                 }
 
-                stage('MIOpenTensile Int8 Hip Release') {
+                stage('Int8 Hip Release Tensile Subset Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
@@ -389,7 +389,7 @@ pipeline {
                     }
                 }
 
-                stage('MIOpenTensile Half gfx908 Hip Release') {
+                stage('Half Hip Release Tensile Subset gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
@@ -418,7 +418,7 @@ pipeline {
                     }
                 }
 
-                stage('MIOpenTensile Bfloat16 gfx908 Hip Release') {
+                stage('Bfloat16 Hip Release Tensile Subset gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
@@ -447,7 +447,7 @@ pipeline {
                     }
                 }
 
-                stage('MIOpenTensile Int8 gfx908 Hip Release') {
+                stage('Int8 Hip Release Tensile Subset gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
@@ -509,7 +509,7 @@ pipeline {
                     }
                 }
 
-                stage('MIOpenTensile Latest Version Half Hip Release') {
+                stage('Half Hip Release Tensile-Latest Subset Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
@@ -538,7 +538,7 @@ pipeline {
                     }
                 }
 
-                stage('MIOpenTensile Latest Version Bfloat16 Hip Release') {
+                stage('Bfloat16 Hip Release Tensile-Latest Subset Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
@@ -567,7 +567,7 @@ pipeline {
                     }
                 }
 
-                stage('MIOpenTensile Latest Version Int8 Hip Release') {
+                stage('Int8 Hip Release Tensile-Latest Subset Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
@@ -629,7 +629,7 @@ pipeline {
                     }
                 }
 
-                stage('MIOpenTensile Latest Version Half gfx908 Hip Release') {
+                stage('Half Hip Release Tensile-Latest Subset gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
@@ -658,7 +658,7 @@ pipeline {
                     }
                 }
 
-                stage('MIOpenTensile Latest Version Bfloat16 gfx908 Hip Release') {
+                stage('Bfloat16 Hip Release Tensile-Latest Subset gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
@@ -687,7 +687,7 @@ pipeline {
                     }
                 }
 
-                stage('MIOpenTensile Latest Version Int8 gfx908 Hip Release') {
+                stage('Int8 Hip Release Tensile-Latest Subset gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
