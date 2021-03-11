@@ -238,7 +238,7 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     environment{
-        image = "miopen-v1"
+        image = default_image_name()
     }
     stages{
         // Run all static analysis tests
