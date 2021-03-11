@@ -108,7 +108,6 @@ static inline bool is_direct_bwd_wrw_supported(miopen::Handle& handle,
 }
 #endif
 
-#endif
 #if WORKAROUND_MI100_ROM37_HIP_COMPILER_CRASH
 static inline bool skip_config(miopen::Handle& handle,
                                const miopen::ConvolutionDescriptor convDesc,
