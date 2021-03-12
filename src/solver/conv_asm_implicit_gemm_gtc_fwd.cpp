@@ -41,6 +41,7 @@ GetImplicitGemmGtcDynamicFwdXdlopsTunablesList()
 {
     // list all the dynamic igemm conv-fwd kernels
     // clang-format off
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::vector<TunableImplicitGemmGTCDynamic_t> kernel_param_list {
         { "fwd", "fp32",   4,   0, 128, 256,  16,  32,  64,   1,   1,   1,   2,   2,   {1,   4,   2,   1},   {1,   4,   1,  64},   {1,   4,   4,   1},   {1,   4,   1,  64},   0},
         { "fwd", "fp32",   4,   1, 128, 256,  16,  32,  64,   1,   1,   1,   2,   2,   {1,   4,   2,   1},   {1,   4,   1,  64},   {1,   4,   4,   1},   {1,   4,   1,  64},   0},

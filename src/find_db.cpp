@@ -40,6 +40,7 @@ bool testing_find_db_enabled = true; // NOLINT (cppcoreguidelines-avoid-non-cons
 
 boost::optional<std::string>& testing_find_db_path_override()
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static boost::optional<std::string> data = boost::none;
     return data;
 }

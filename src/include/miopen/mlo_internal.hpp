@@ -150,6 +150,7 @@ class StaticContainer
     public:
     inline static TInstance& Instance()
     {
+        // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
         static TInstance data{};
         return data;
     }

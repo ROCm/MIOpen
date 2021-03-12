@@ -44,6 +44,7 @@ GetImplicitGemmWrwGTCDynamicXdlopsKernelList()
 {
     // retrieve dynamic igemm wrw pass's possible kernel name
     // clang-format off
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::vector<TunableImplicitGemmGTCDynamic_t> kernel_param_list {
         { "wrw", "fp32",   4,   0, 256, 128,  16,  64,  32,   1,   1,   1,   2,   2,   {1,   4,   4,   1},   {1,   4,   1,  64},   {1,   4,   2,   1},   {1,   4,   1,  64},   0},
         { "wrw", "fp32",   4,   0, 256, 128,  16,  64,  32,   1,   1,   1,   2,   2,   {1,   4,   4,   1},   {1,   4,   1,  64},   {1,   4,   2,   1},   {1,   4,   1,  64},   1},

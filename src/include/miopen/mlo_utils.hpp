@@ -121,6 +121,7 @@ inline double miopen_mach_absolute_time() // Linux
 inline double subtractTimes(double endTime, double startTime)
 {
     double difference        = endTime - startTime;
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static double conversion = 0.0;
 
     if(conversion == 0.0)

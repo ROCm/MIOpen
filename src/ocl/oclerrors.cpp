@@ -30,6 +30,7 @@ namespace miopen {
 
 std::string OpenCLErrorMessage(int error, const std::string& msg)
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::unordered_map<int, std::string> error_map = {
         {CL_SUCCESS, "Success"},
         {CL_DEVICE_NOT_FOUND, "Device Not Found"},

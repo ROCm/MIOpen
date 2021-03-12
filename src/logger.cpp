@@ -102,6 +102,7 @@ inline int GetProcessAndThreadId()
 
 inline float GetTimeDiff()
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static auto prev = std::chrono::steady_clock::now();
     auto now         = std::chrono::steady_clock::now();
     auto rv =
