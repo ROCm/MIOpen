@@ -61,7 +61,7 @@ static boost::optional<std::string>& thread_logs_root()
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::mutex mutex;
     std::lock_guard<std::mutex> lock(mutex);
-    
+
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static boost::optional<std::string> path(boost::none);
     return path;

@@ -43,17 +43,15 @@ void HIPOCKernelInvoke::run(void* args, std::size_t size) const
 {
     HipEventPtr start = nullptr;
     HipEventPtr stop  = nullptr;
-    void* config[]    = {
-// HIP_LAUNCH_PARAM_* are macros that do horrible things
-        // NOLINTNEXTLINE cppcoreguidelines-pro-type-cstyle-cast
-        HIP_LAUNCH_PARAM_BUFFER_POINTER,
-        args,
-        // NOLINTNEXTLINE cppcoreguidelines-pro-type-cstyle-cast
-        HIP_LAUNCH_PARAM_BUFFER_SIZE,
-        &size,
-        // NOLINTNEXTLINE cppcoreguidelines-pro-type-cstyle-cast
-        HIP_LAUNCH_PARAM_END
-    };
+    void* config[]    = {// HIP_LAUNCH_PARAM_* are macros that do horrible things
+                      // NOLINTNEXTLINE cppcoreguidelines-pro-type-cstyle-cast
+                      HIP_LAUNCH_PARAM_BUFFER_POINTER,
+                      args,
+                      // NOLINTNEXTLINE cppcoreguidelines-pro-type-cstyle-cast
+                      HIP_LAUNCH_PARAM_BUFFER_SIZE,
+                      &size,
+                      // NOLINTNEXTLINE cppcoreguidelines-pro-type-cstyle-cast
+                      HIP_LAUNCH_PARAM_END};
     if(callback)
     {
         start = make_hip_event();
