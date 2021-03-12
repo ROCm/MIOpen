@@ -9,6 +9,7 @@ RUN dpkg --add-architecture i386
 
 # Add rocm repository
 RUN sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/.apt_3.7/ xenial main > /etc/apt/sources.list.d/rocm.list'
+RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu xenial main universe | tee -a /etc/apt/sources.list"
 
 # Install dependencies
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
@@ -17,6 +18,9 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     cmake \
     comgr \
     curl \
+    clang-format-3.8 \
+    clang-3.8 \
+    clang-tidy-3.8\
     doxygen \
     g++ \
     gdb \
@@ -76,6 +80,8 @@ RUN cget -p $PREFIX init --cxx /opt/rocm/llvm/bin/clang++ --std=c++14 -DAMDGPU_T
 RUN cget -p $PREFIX install pfultz2/rocm-recipes
 ADD min-requirements.txt /min-requirements.txt
 RUN CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -f /min-requirements.txt
+RUN cget -p $PREFIX install danmar/cppcheck@dd05839a7e63ef04afd34711cb3e1e0ef742882f
+
 RUN export HIPCC_LINK_FLAGS_APPEND='-O3 -parallel-jobs=4'
 RUN export HIPCC_COMPILE_FLAGS_APPEND='-O3 -Wno-format-nonliteral -parallel-jobs=4'
 

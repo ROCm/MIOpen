@@ -75,7 +75,7 @@ def buildHipClangJob(Map conf, compiler){
         def codecov = conf.get("codecov", false)
         def miotensile_version = conf.get("miotensile_version", "default")
         def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
-        def dockerArgs = "--build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' -f hip-clang.docker "
+        def dockerArgs = "--build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' "
         def extradebugflags = ""
         def variant = env.STAGE_NAME
         if (codecov) {
@@ -174,12 +174,12 @@ pipeline {
                 stage('Clang Hip Tidy') {
                     agent{  label rocmnode("rocmtest") }
                     environment{
-                        cmd = "rm -rf build; mkdir build; cd build; CXX='clang++-3.8' cmake -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
+                        cmd = "rm -rf build; mkdir build; cd build; CXX='/opt/rocm/llvm/bin/clang++' cmake -DMIOPEN_BACKEND=HIP -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
                     }
                     steps{
                         script{
                             try{
-                                buildJob('clang++', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd)
+                                buildHipClangJob('clang++', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd)
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -197,7 +197,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildJob('clang++', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd)
+                                buildHipClangJob('clang++-3.8', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd)
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -224,7 +224,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildJob('clang++', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd)
+                                buildHipClangJob('clang++', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd)
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
