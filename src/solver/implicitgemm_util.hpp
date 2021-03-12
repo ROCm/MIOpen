@@ -841,6 +841,7 @@ static inline bool IsComposableKernelSupportedHardware(const ConvolutionContext&
            StartsWith(c.GetStream().GetDeviceName(), "gfx900") ||
            StartsWith(c.GetStream().GetDeviceName(), "gfx906") ||
            StartsWith(c.GetStream().GetDeviceName(), "gfx908") ||
+           StartsWith(c.GetStream().GetDeviceName(), "gfx90a") ||
            StartsWith(c.GetStream().GetDeviceName(), "gfx1030");
 }
 
