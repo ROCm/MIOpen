@@ -45,15 +45,14 @@ void HIPOCKernelInvoke::run(void* args, std::size_t size) const
     HipEventPtr stop  = nullptr;
     void* config[]    = {
 // HIP_LAUNCH_PARAM_* are macros that do horrible things
-#ifdef MIOPEN_USE_CLANG_TIDY
-        nullptr, args, nullptr, &size, nullptr
-#else
+        // NOLINTNEXTLINE cppcoreguidelines-pro-type-cstyle-cast
         HIP_LAUNCH_PARAM_BUFFER_POINTER,
         args,
+        // NOLINTNEXTLINE cppcoreguidelines-pro-type-cstyle-cast
         HIP_LAUNCH_PARAM_BUFFER_SIZE,
         &size,
+        // NOLINTNEXTLINE cppcoreguidelines-pro-type-cstyle-cast
         HIP_LAUNCH_PARAM_END
-#endif
     };
     if(callback)
     {
