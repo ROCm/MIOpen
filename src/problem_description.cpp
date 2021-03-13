@@ -30,17 +30,7 @@ int ProblemDescription::mloBuildConf_Key(std::string& conf_key) const
     return (0);
 }
 
-bool ProblemDescription::IsLayoutDefault() const
-{
-    if(spatial_dims == 2)
-    {
-        return (in_layout == "NCHW") && (out_layout == "NCHW") && (weights_layout == "NCHW");
-    }
-    else
-    {
-        return (in_layout == "NCDHW") && (out_layout == "NCDHW") && (weights_layout == "NCDHW");
-    }
-}
+bool ProblemDescription::IsLayoutDefault() const { return conv_problem.IsLayoutDefault(); }
 
 void ProblemDescription::Serialize(std::ostream& stream) const
 {
@@ -62,7 +52,7 @@ void ProblemDescription::Serialize(std::ostream& stream) const
     stream << sep << PrintDHW('x', spatial_dims, kernel_stride_d, kernel_stride_h, kernel_stride_w);
     stream << sep << PrintDHW('x', spatial_dims, kernel_dilation_d, kernel_dilation_h, kernel_dilation_w);
     stream << sep << bias;
-    if ((in_layout == "NCHW" && weights_layout == "NCHW" && out_layout == "NCHW") 
+    if ((in_layout == "NCHW" && weights_layout == "NCHW" && out_layout == "NCHW")
         || (in_layout == "NCDHW" && weights_layout == "NCDHW" && out_layout == "NCDHW"))
     {
         stream << sep << in_layout;

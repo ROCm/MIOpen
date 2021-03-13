@@ -120,6 +120,7 @@ set( MIOpen_Source
     find_db.cpp
     conv_algo_name.cpp
     conv/problem_description.cpp
+    solver/gemm.cpp
     dropout.cpp
     dropout_api.cpp
     readonlyramdb.cpp

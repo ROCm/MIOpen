@@ -181,6 +181,7 @@ struct SolverContainer
             Solvers{}...);
         return ss;
     }
+
     template <class Context>
     std::vector<std::pair<std::string, size_t>>
     GetWorkspaceSize(const Context& search_params,
@@ -210,6 +211,39 @@ struct SolverContainer
             },
             Solvers{}...);
         return res;
+    }
+
+    // Search for all applicable solutions among many solvers
+    template <class Context>
+    bool IsAnySolverApplicable(const Context& search_params) const
+    {
+        const auto find_only = GetEnvFindOnlySolver();
+        auto found           = false;
+
+        miopen::each_args(
+            [&](auto solver) {
+                if(found || (find_only.IsValid() && find_only != Id{SolverDbId(solver)}))
+                    return;
+
+                // For better performance, check IsDynamic() first, because
+                // it is much faster than IsApplicable().
+                if(search_params.use_dynamic_solutions_only && !solver.IsDynamic())
+                {
+                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Skipped (non-dynamic)");
+                    return;
+                }
+
+                if(solver.IsApplicable(search_params))
+                {
+                    found = true;
+                    return;
+                }
+
+                MIOPEN_LOG_I2(SolverDbId(solver) << ": Not applicable");
+            },
+            Solvers{}...);
+
+        return found;
     }
 };
 

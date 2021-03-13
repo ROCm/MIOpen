@@ -76,7 +76,7 @@ miopen::PerformanceDb mlo_construct_base::GetDb() const
             h.GetTargetProperties().DbId(),
             h.GetMaxComputeUnits()};
 }
-miopen::PerformanceDb miopen::GetDb(const miopen::ConvolutionContext& ctx)
+miopen::PerformanceDb miopen::GetDb(const miopen::ExecutionContext& ctx)
 {
     auto& h = ctx.GetStream();
     return {ctx.GetPerfDbPath(),
@@ -90,7 +90,7 @@ miopen::PerformanceDb mlo_construct_base::GetDb() const
     return {db_path(), _search_params.GetUserPerfDbPath()};
 }
 
-miopen::PerformanceDb miopen::GetDb(const ConvolutionContext& ctx)
+miopen::PerformanceDb miopen::GetDb(const miopen::ExecutionContext& ctx)
 {
     return {ctx.GetPerfDbPath(), ctx.GetUserPerfDbPath()};
 }
@@ -116,6 +116,14 @@ mlo_construct_direct2D_fusion::FindSolution(const std::vector<miopen::solver::An
         MIOPEN_THROW(std::string("Internal error in solver: ") + solver_id);
     }
     return solution;
+}
+
+static auto GetGemmSolvers()
+{
+    return miopen::solver::SolverContainer<miopen::solver::GemmFwd1x1_0_1,
+                                           miopen::solver::GemmFwd1x1_0_1_int8,
+                                           miopen::solver::GemmFwd1x1_0_2,
+                                           miopen::solver::GemmFwdRest>{};
 }
 
 static auto GetDirectSolvers()
@@ -221,6 +229,24 @@ static auto GetBwdWrW2DSolvers()
 }
 
 static auto GetFFTSolvers() { return miopen::solver::SolverContainer<miopen::solver::fft>{}; }
+
+bool IsGemmAplicable(const miopen::ConvolutionContext& ctx)
+{
+    return GetGemmSolvers().IsAnySolverApplicable(ctx);
+}
+
+std::vector<miopen::solver::ConvSolution>
+FindAllGemmSolutions(const miopen::ConvolutionContext& ctx,
+                     const miopen::AnyInvokeParams& invoke_ctx)
+{
+    return GetGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
+}
+
+std::vector<std::pair<std::string, size_t>>
+AllGemmWorkspaceSize(const miopen::ConvolutionContext& ctx)
+{
+    return GetGemmSolvers().GetWorkspaceSize(ctx);
+}
 
 std::vector<miopen::solver::ConvSolution>
 FindAllDirectSolutions(const miopen::ConvolutionContext& ctx,
