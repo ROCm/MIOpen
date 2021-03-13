@@ -569,7 +569,7 @@ int ConvDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("in_layout", 'I', "NCHW", "Input Layout (Default=NCHW)", "string");
     inflags.AddInputFlag("out_layout", 'O', "NCHW", "Output Layout (Default=NCHW)", "string");
-    inflags.AddInputFlag("fil_layout", 'f', "NCHW", "Input Layout (Default=NCHW)", "string");
+    inflags.AddInputFlag("fil_layout", 'f', "NCHW", "Filter Layout (Default=NCHW)", "string");
     inflags.AddInputFlag(
         "spatial_dim", '_', "2", "convolution spatial dimension (Default-2)", "int");
     inflags.AddInputFlag("forw",
