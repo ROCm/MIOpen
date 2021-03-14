@@ -350,19 +350,23 @@ static void DirConvFindCore(Handle& handle,
     ValidateGroupCount(xDesc, wDesc, conv);
 
 #if MIOPEN_USE_GEMM
+    const std::size_t spatial_dim = conv.GetSpatialDimension();
+    const auto in_spatial         = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
+    const auto wei_spatial        = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
+    const auto out_spatial        = boost::adaptors::slice(yDesc.GetLengths(), 2, 2 + spatial_dim);
+
     if(!use_winograd_only && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) &&
-       !(IsAnyBufferBF16(xDesc, yDesc, wDesc) && !IsUseRocBlas))
+       !(IsAnyBufferBF16(xDesc, yDesc, wDesc) && !IsUseRocBlas)
+#if WORKAROUND_MIOPENGEMM_ROCM41
+       &&
+       !(miopen::any_of(in_spatial, [](auto v) { return v >= 161; }) &&
+         miopen::any_of(wei_spatial, [](auto v) { return v >= 7; }))
+#endif
+           )
     { // GEMM algo
         std::size_t in_n, in_c;
         std::tie(in_n, in_c) = tie_pick<0, 1>()(xDesc.GetLengths());
-
         std::size_t wei_k = wDesc.GetLengths()[0];
-
-        std::size_t spatial_dim = conv.GetSpatialDimension();
-
-        auto in_spatial  = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
-        auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
-        auto out_spatial = boost::adaptors::slice(yDesc.GetLengths(), 2, 2 + spatial_dim);
 
         float time_gemm           = 0;
         const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
@@ -572,14 +576,7 @@ static void DirConvFindCore(Handle& handle,
         }
         // if not 1x1
         else if(workSpace != nullptr &&
-                workSpaceSize >= (conv.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc))
-#if WORKAROUND_MIOPENGEMM_ROCM41
-                &&
-                !(miopen::any_of(in_spatial, [](auto v) { return v >= 161; }) &&
-                  miopen::any_of(wei_spatial, [](auto v) { return v >= 7; }))
-#endif
-                    )
-
+                workSpaceSize >= (conv.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc)))
         {
             if(conv.group_count > 1)
             {
@@ -1551,6 +1548,13 @@ float ConvolutionDescriptor::ComputeGemmWtiFwd(const TensorDescriptor& wDesc,
     std::tie(in_n, in_c) = tie_pick<0, 1>()(xDesc.GetLengths());
     std::size_t spatial_dim = GetSpatialDimension();
     auto wei_spatial        = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
+
+#if WORKAROUND_MIOPENGEMM_ROCM41
+    const auto in_spatial = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
+    if(miopen::any_of(in_spatial, [](auto v) { return v >= 161; }) &&
+       miopen::any_of(wei_spatial, [](auto v) { return v >= 7; }))
+        return -2.0;
+#endif
 
     // Use transpose path 1x1, stride=2
     if(GetSpatialDimension() == 2 && miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
