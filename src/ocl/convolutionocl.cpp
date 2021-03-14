@@ -38,6 +38,7 @@
 #include <miopen/float_equal.hpp>
 #include <miopen/invoker.hpp>
 #include <miopen/kernel.hpp>
+#include <miopen/rocm_features.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/tensor.hpp>
@@ -571,7 +572,14 @@ static void DirConvFindCore(Handle& handle,
         }
         // if not 1x1
         else if(workSpace != nullptr &&
-                workSpaceSize >= (conv.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc)))
+                workSpaceSize >= (conv.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc))
+#if WORKAROUND_MIOPENGEMM_ROCM41
+                &&
+                !(miopen::any_of(in_spatial, [](auto v) { return v >= 161; }) &&
+                  miopen::any_of(wei_spatial, [](auto v) { return v >= 7; }))
+#endif
+                    )
+
         {
             if(conv.group_count > 1)
             {
