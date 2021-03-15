@@ -637,7 +637,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                                 "padded_y === 3",
                                                 "padded_x === (x ~ 3)",
                                                 "(c % 2) == 0"};
-            add_meta_wino(map_wino_conv_xe3, 5);
+            add_meta_wino(map_wino_conv_xe3, 100);
             g.AddEdge(nullptr, vc_s1, map_wino_conv_xe3);
 
             /// C>B>A| (4)
