@@ -90,7 +90,7 @@ RUN if [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftw
 
 RUN cd ~ && \
     export MLIR_COMMIT=06a6d3fc1af1fdfbe706dbfcd588fb3744526124 && \
-    wget https://github.com/ROCmSoftwarePlatform/llvm-project-mlir/archive/$MLIR_COMMIT.tar.gz && \ 
+    wget https://github.com/ROCmSoftwarePlatform/llvm-project-mlir/archive/$MLIR_COMMIT.tar.gz && \
     tar -xvzf $MLIR_COMMIT.tar.gz && \
     rm -rf $MLIR_COMMIT.tar.gz && \
     cd llvm-project-mlir-$MLIR_COMMIT && mkdir -p build && cd build && \
@@ -100,5 +100,5 @@ RUN cd ~ && \
       -DBUILD_SHARED_LIBS=OFF \
       -DLLVM_BUILD_LLVM_DYLIB=OFF \
       -DLLVM_ENABLE_TERMINFO=OFF && \
-    make -j libMLIRMIOpen && \
-    cd ~ && rm -rf llvm-project-mlir-$MLIR_COMMIT 
+    make -j$(nproc) libMLIRMIOpen && \
+    cd ~ && rm -rf llvm-project-mlir-$MLIR_COMMIT

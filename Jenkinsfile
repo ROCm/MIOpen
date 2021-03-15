@@ -16,7 +16,7 @@ def rocmnode(name) {
 }
 
 def default_image_name() {
-    return 'miopen-v1'
+    return 'miopen-v2'
 }
 
 def show_node_info() {
