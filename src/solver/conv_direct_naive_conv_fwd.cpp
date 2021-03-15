@@ -36,7 +36,8 @@ namespace solver {
 
 bool ConvDirectNaiveConvFwd::IsApplicable(const ConvolutionContext& ctx) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_FWD{}))
+    if(!miopen::debug::AlwaysEnableConvDirectNaive &&
+       miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_FWD{}))
         return false;
 
     if(!ctx.IsLayoutDefault())

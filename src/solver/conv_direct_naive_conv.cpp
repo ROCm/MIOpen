@@ -33,6 +33,13 @@
 
 namespace miopen {
 
+namespace debug {
+
+bool AlwaysEnableConvDirectNaive =
+    false; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+
+} // namespace debug
+
 namespace solver {
 
 std::string ConvDirectNaiveConvKernelName(const ConvolutionContext& ctx)
