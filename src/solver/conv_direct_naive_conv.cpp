@@ -34,9 +34,8 @@
 namespace miopen {
 
 namespace debug {
-
-bool AlwaysEnableConvDirectNaive =
-    false; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
+bool AlwaysEnableConvDirectNaive = false;
 
 } // namespace debug
 

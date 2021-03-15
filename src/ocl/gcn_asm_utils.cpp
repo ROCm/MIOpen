@@ -147,8 +147,7 @@ bool ValidateGcnAssemblerImpl()
 
 bool ValidateGcnAssembler()
 {
-    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-    static bool result = ValidateGcnAssemblerImpl();
+    static const bool result = ValidateGcnAssemblerImpl();
     return result;
 }
 
