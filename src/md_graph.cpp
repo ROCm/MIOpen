@@ -607,8 +607,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
 
             static const std::string program("conv_3x3_wheel_alpha_v9_2_7.s");
             static const std::string kernel("miopenSp3AsmConvRxSU_CBA");
-            static const std::vector<std::string> supported_arch = {
-                "gfx803", "gfx900", "gfx906", "gfx908"};
+            static const std::vector<std::string> supported_arch = {"gfx803"};
 
             auto vc_s1 =
                 std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward, program, kernel, algo);
