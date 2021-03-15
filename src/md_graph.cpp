@@ -692,12 +692,15 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                     m["constraints"].end(), common_constr.begin(), common_constr.end());
             };
 
-            auto add_v21_wino = [&](const std::string& program,
-                                    const std::string& kernel,
+            auto add_v21_wino = [&](const std::string family,
                                     const std::vector<std::string> supported_arch,
-                                    int stride) {
+                                    const int stride) {
+                const auto kernel_postfix = "_fp32_stride" + std::to_string(stride);
+                const auto kernel_file    = "Conv_Winograd_v21_1_2" + kernel_postfix + ".s";
+                const auto kernel_name    = "miopenSp3AsmConv_v21_1_2_" + family + kernel_postfix;
+
                 auto vc = std::make_shared<MDGraph_vertex>(
-                    miopenFusionOpConvForward, program, kernel, algo);
+                    miopenFusionOpConvForward, kernel_file, kernel_name, algo);
                 vc->solver         = solver::ConvBinWinogradRxSf2x3g1Fused{};
                 vc->default_args   = WinogradV21NodeArgs();
                 vc->supported_arch = supported_arch;
@@ -715,15 +718,13 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                 add_meta_wino(map_wino_conv_xe3, 100);
                 g.AddEdge(nullptr, vc, map_wino_conv_xe3);
 
-                add_relu(program, kernel, vc, WinogradV21NodeArgs, supported_arch);
+                add_relu(kernel_file, kernel_name, vc, WinogradV21NodeArgs, supported_arch);
             };
 
-            // clang-format off
-            add_v21_wino("Conv_Winograd_v21_1_2_fp32_stride1.s", "miopenSp3AsmConv_v21_1_2_gfx9_fp32_stride1",  {"gfx900", "gfx906", "gfx908"}, 1);
-            add_v21_wino("Conv_Winograd_v21_1_2_fp32_stride2.s", "miopenSp3AsmConv_v21_1_2_gfx9_fp32_stride2",  {"gfx900", "gfx906", "gfx908"}, 2);
-            add_v21_wino("Conv_Winograd_v21_1_2_fp32_stride1.s", "miopenSp3AsmConv_v21_1_2_gfx10_fp32_stride1", {"gfx1011", "gfx1012", "gfx1030"}, 1);
-            add_v21_wino("Conv_Winograd_v21_1_2_fp32_stride2.s", "miopenSp3AsmConv_v21_1_2_gfx10_fp32_stride2", {"gfx1011", "gfx1012", "gfx1030"}, 2);
-            // clang-format onn
+            add_v21_wino("gfx9", {"gfx900", "gfx906", "gfx908"}, 1);
+            add_v21_wino("gfx9", {"gfx900", "gfx906", "gfx908"}, 2);
+            add_v21_wino("gfx10", {"gfx1011", "gfx1012", "gfx1030"}, 1);
+            add_v21_wino("gfx10", {"gfx1011", "gfx1012", "gfx1030"}, 2);
         }
     }
 
