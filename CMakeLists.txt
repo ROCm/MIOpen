@@ -444,15 +444,18 @@ include(ClangTidy)
 enable_clang_tidy(
     CHECKS
         *
-        -abseil-string-find-startswith
+        -abseil-*
         -android-cloexec-fopen
         # Yea we shouldn't be using rand()
         -cert-msc30-c
         -bugprone-exception-escape
+        -bugprone-macro-parentheses
         -cert-env33-c
         -cert-msc32-c
         -cert-msc50-cpp
         -cert-msc51-cpp
+        -cert-dcl37-c
+        -cert-dcl51-cpp
         -clang-analyzer-alpha.core.CastToStruct
         -clang-analyzer-optin.performance.Padding
         -clang-diagnostic-deprecated-declarations
@@ -478,8 +481,10 @@ enable_clang_tidy(
         -google-readability-todo
         -google-runtime-int
         -google-runtime-references
+        -hicpp-vararg
         -hicpp-braces-around-statements
         -hicpp-explicit-conversions
+        -hicpp-named-parameter
         -hicpp-no-array-decay
         # We really shouldn't use bitwise operators with signed integers, but
         # opencl leaves us no choice
@@ -492,8 +497,15 @@ enable_clang_tidy(
         -hicpp-use-override
         -llvm-header-guard
         -llvm-include-order
+        #-llvmlibc-*
+        -llvmlibc-restrict-system-libc-headers
+        -llvmlibc-callee-namespace
+        -llvmlibc-implementation-in-namespace
+        -llvm-else-after-return
+        -llvm-qualified-auto
         -misc-misplaced-const
         -misc-non-private-member-variables-in-classes
+        -misc-no-recursion
         -modernize-avoid-bind
         -modernize-avoid-c-arrays
         -modernize-pass-by-value
@@ -510,6 +522,8 @@ enable_clang_tidy(
         -readability-named-parameter
         -readability-uppercase-literal-suffix
         -readability-convert-member-functions-to-static
+        -readability-qualified-auto
+        -readability-redundant-string-init
 
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}

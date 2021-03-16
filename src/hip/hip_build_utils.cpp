@@ -391,6 +391,7 @@ static external_tool_version_t HipCompilerVersionImpl()
 
 external_tool_version_t HipCompilerVersion()
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static auto once = HipCompilerVersionImpl();
     return once;
 }
