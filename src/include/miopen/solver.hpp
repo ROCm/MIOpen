@@ -50,7 +50,8 @@ namespace debug {
 /// If set to true, then always enable ConvDirectNaive* solver, regardless of environment value
 /// MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_* that control enable/disable of these solvers.
 /// Currently used during driver using naive kernel as gpu reference.
-extern bool AlwaysEnableConvDirectNaive;
+extern bool
+    AlwaysEnableConvDirectNaive; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
 
 } // namespace debug
 
@@ -2076,6 +2077,102 @@ struct ConvDirectNaiveConvWrw : SolverBase<ConvolutionContext>
     bool IsApplicable(const ConvolutionContext& ctx) const;
     bool IsDynamic() const { return true; }
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+};
+
+struct GemmFwdBase : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
+    bool IsDynamic() const { return true; }
+    float GetWti(const ConvolutionContext& ctx) const { return GetWti(ctx, ctx.conv_problem); }
+    float GetWti(const ExecutionContext& context, const conv::ProblemDescription& problem) const;
+};
+
+struct GemmFwd1x1_0_2 : GemmFwdBase
+{
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const
+    {
+        return GetWorkspaceSize(ctx, ctx.conv_problem);
+    }
+
+    bool IsApplicable(const ConvolutionContext& ctx) const
+    {
+        return IsApplicable(ctx, ctx.conv_problem);
+    }
+
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const
+    {
+        return GetSolution(ctx, ctx.conv_problem);
+    }
+
+    size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
+    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
+    ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
+};
+
+struct GemmFwd1x1_0_1_int8 : GemmFwdBase
+{
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const
+    {
+        return GetWorkspaceSize(ctx, ctx.conv_problem);
+    }
+
+    bool IsApplicable(const ConvolutionContext& ctx) const
+    {
+        return IsApplicable(ctx, ctx.conv_problem);
+    }
+
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const
+    {
+        return GetSolution(ctx, ctx.conv_problem);
+    }
+
+    size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
+    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
+    ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
+};
+
+struct GemmFwd1x1_0_1 : GemmFwdBase
+{
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const
+    {
+        return GetWorkspaceSize(ctx, ctx.conv_problem);
+    }
+
+    bool IsApplicable(const ConvolutionContext& ctx) const
+    {
+        return IsApplicable(ctx, ctx.conv_problem);
+    }
+
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const
+    {
+        return GetSolution(ctx, ctx.conv_problem);
+    }
+
+    size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
+    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
+    ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
+};
+
+struct GemmFwdRest : GemmFwdBase
+{
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const
+    {
+        return GetWorkspaceSize(ctx, ctx.conv_problem);
+    }
+
+    bool IsApplicable(const ConvolutionContext& ctx) const
+    {
+        return IsApplicable(ctx, ctx.conv_problem);
+    }
+
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const
+    {
+        return GetSolution(ctx, ctx.conv_problem);
+    }
+
+    size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
+    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
+    ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
 };
 
 struct AnySolver;

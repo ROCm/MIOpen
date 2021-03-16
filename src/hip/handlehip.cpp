@@ -194,7 +194,7 @@ struct HandleImpl
         const std::string name(props.gcnArchName);
 #endif
         MIOPEN_LOG_NQI("Raw device name: " << name);
-        return name;
+        return name; // NOLINT (performance-no-automatic-move)
     }
 
     bool enable_profiling  = false;
