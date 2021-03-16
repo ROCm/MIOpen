@@ -740,8 +740,7 @@ struct reduce_driver : test_driver
             max_value =
                 miopen_type<T>{} == miopenHalf ? 41 : miopen_type<T>{} == miopenInt8 ? 127 : 111;
         else if(reduceOp == MIOPEN_REDUCE_TENSOR_NORM1 || reduceOp == MIOPEN_REDUCE_TENSOR_NORM2)
-            max_value =
-                miopen_type<T>{} == miopenHalf ? 7 : miopen_type<T>{} == miopenInt8 ? 127 : 11;
+            max_value = 3;
         else
             max_value =
                 miopen_type<T>{} == miopenHalf ? 13 : miopen_type<T>{} == miopenInt8 ? 127 : 17;
@@ -780,16 +779,15 @@ struct reduce_driver : test_driver
             this->tolerance = 80 * 500;
         else if(reduceOp == MIOPEN_REDUCE_TENSOR_NORM1 || reduceOp == MIOPEN_REDUCE_TENSOR_NORM2)
         {
-            if(toReduceDims.size() == 4)
-                this->tolerance = 80 * 500;
-            else
-                this->tolerance = 80 * 10;
+            this->tolerance = 80 * 10;
         };
 
         auto inputTensor = (reduceOp == MIOPEN_REDUCE_TENSOR_MUL)
                                ? tensor<T>{this->inLengths}.generate(gen_value_2)
-                               : (need_indices ? tensor<T>{this->inLengths}.generate(gen_value_3)
-                                               : tensor<T>{this->inLengths}.generate(gen_value));
+                               : (need_indices || reduceOp == MIOPEN_REDUCE_TENSOR_NORM1 ||
+                                          reduceOp == MIOPEN_REDUCE_TENSOR_NORM1
+                                      ? tensor<T>{this->inLengths}.generate(gen_value_3)
+                                      : tensor<T>{this->inLengths}.generate(gen_value));
         auto outputTensor = tensor<T>{outLengths};
 
         std::fill(outputTensor.begin(), outputTensor.end(), convert_type<T>(0.0f));

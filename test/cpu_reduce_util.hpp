@@ -62,21 +62,14 @@ static inline bool float_equal_zero(half_float::half x)
 };
 
 template <typename compType>
-static inline std::function<void(compType&)> PreUnaryOpFn(miopenReduceTensorOp_t op_,
-                                                          std::size_t divider)
+static inline std::function<void(compType&)> PreUnaryOpFn(miopenReduceTensorOp_t op_, std::size_t)
 {
     using std::abs;
 
     switch(op_)
     {
-    case MIOPEN_REDUCE_TENSOR_NORM1:
-        return ([&, divider](compType& a_) {
-            a_ = abs(a_) / convert_type<compType>(static_cast<float>(divider));
-        });
-    case MIOPEN_REDUCE_TENSOR_NORM2:
-        return ([&, divider](compType& a_) {
-            a_ = a_ * a_ / convert_type<compType>(static_cast<float>(divider));
-        });
+    case MIOPEN_REDUCE_TENSOR_NORM1: return ([&](compType& a_) { a_ = abs(a_); });
+    case MIOPEN_REDUCE_TENSOR_NORM2: return ([&](compType& a_) { a_ = a_ * a_; });
     case MIOPEN_REDUCE_TENSOR_AMAX: return ([&](compType& a_) { a_ = abs(a_); });
 
     case MIOPEN_REDUCE_TENSOR_AVG:

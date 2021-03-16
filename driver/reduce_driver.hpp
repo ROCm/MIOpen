@@ -462,6 +462,8 @@ int ReduceDriver<Tgpu, Tref>::VerifyForward()
     auto beta =
         reduce::convert_type<Tgpu>(static_cast<float>(this->inflags.GetValueDouble("beta")));
 
+    auto reduceOp = static_cast<miopenReduceTensorOp_t>(inflags.GetValueInt("ReduceOp"));
+
     if(indices_sizeInBytes > 0)
     {
         alpha = reduce::convert_type<Tgpu>(1.0f);
@@ -470,8 +472,11 @@ int ReduceDriver<Tgpu, Tref>::VerifyForward()
 
     hostReduction.Run(alpha, in.data(), beta, outhost.data(), outhost_indices.data());
 
-    auto error             = miopen::rms_range(outhost, out);
-    const double tolerance = std::is_same<Tgpu, float16>::value ? 2e-3 : 1.5e-4;
+    auto error = miopen::rms_range(outhost, out);
+    const double tolerance =
+        std::is_same<Tgpu, float16>::value || reduceOp == MIOPEN_REDUCE_TENSOR_NORM2 ? 2e-3
+                                                                                     : 1.5e-4;
+
     if(error > tolerance)
     {
         std::cout << "ReduceTensor() Failed: " << error << "\n";
