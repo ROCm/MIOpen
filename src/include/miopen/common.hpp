@@ -40,14 +40,9 @@ inline Data_t DataCast(void* p) { return reinterpret_cast<Data_t>(p); }
 
 inline ConstData_t DataCast(const void* p)
 {
-// Casting away const is undefined behaviour, but we do it anyways
-#ifdef MIOPEN_USE_CLANG_TIDY
-    static cl_mem s = nullptr;
-    (void)p;
-    return s;
-#else
+    // Casting away const is undefined behaviour, but we do it anyways
+    // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
     return reinterpret_cast<ConstData_t>(const_cast<void*>(p));
-#endif
 }
 
 #elif MIOPEN_BACKEND_HIP

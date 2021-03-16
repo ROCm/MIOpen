@@ -91,6 +91,7 @@ LockFile::LockFile(const char* path_, PassKey) : path(path_)
 
 LockFile& LockFile::Get(const char* path)
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::mutex mutex;
     std::lock_guard<std::mutex> lock(mutex);
 

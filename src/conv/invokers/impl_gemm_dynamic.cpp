@@ -37,7 +37,7 @@ float CallImplGemmDynamicForward(const miopen::Handle& handle,
     int pad_w       = conv_problem.GetPadW();
     int y           = conv_problem.GetWeightsHeight();
     int x           = conv_problem.GetWeightsWidth();
-    int __pack0     = 0;
+    int gap_0     = 0;
     // clang-format on
 
     std::vector<OpKernelArg> opArgs;
@@ -59,7 +59,7 @@ float CallImplGemmDynamicForward(const miopen::Handle& handle,
     opArgs.emplace_back(pad_w);
     opArgs.emplace_back(y);
     opArgs.emplace_back(x);
-    opArgs.emplace_back(__pack0);
+    opArgs.emplace_back(gap_0);
 
     kernel(opArgs);
 
@@ -94,7 +94,7 @@ float CallImplGemmDynamicForward1x1(const miopen::Handle& handle,
     int dilation_w  = conv_problem.GetDilationW();
     int pad_h       = conv_problem.GetPadH();
     int pad_w       = conv_problem.GetPadW();
-    int __pack0     = 0;
+    int gap_0     = 0;
     // clang-format on
 
     std::vector<OpKernelArg> opArgs;
@@ -114,7 +114,7 @@ float CallImplGemmDynamicForward1x1(const miopen::Handle& handle,
     opArgs.emplace_back(dilation_w);
     opArgs.emplace_back(pad_h);
     opArgs.emplace_back(pad_w);
-    opArgs.emplace_back(__pack0);
+    opArgs.emplace_back(gap_0);
 
     kernel(opArgs);
 

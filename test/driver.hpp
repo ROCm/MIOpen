@@ -1243,6 +1243,7 @@ void test_drive_impl_1(std::string program_name, std::vector<std::string> as)
 template <class Driver>
 void test_drive_impl(std::string program_name, std::vector<std::string> as)
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static bool called = false;
     if(called)
     {

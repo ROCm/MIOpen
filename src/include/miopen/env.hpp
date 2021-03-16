@@ -81,7 +81,7 @@ inline unsigned long int EnvvarValue(const char* name, unsigned long int fallbac
 
 inline std::vector<std::string> GetEnv(const char* name)
 {
-    auto p = std::getenv(name);
+    const auto p = std::getenv(name);
     if(p == nullptr)
         return {};
     else

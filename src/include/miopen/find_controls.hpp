@@ -38,7 +38,7 @@ namespace debug {
 /// Disable MIOPEN_FIND_ENFORCE. Intended for debugging/testing purposes.
 /// Currently used during warm-up phase in MIOpenDriver.
 /// WARNING: This switch is not intended for use in multi-threaded applications.
-extern bool FindEnforceDisable;
+extern bool FindEnforceDisable; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
 
 } // namespace debug
 

@@ -38,7 +38,9 @@
 
 static inline miopen::Handle& get_handle()
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static miopen::Handle h{};
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::thread::id id = std::this_thread::get_id();
     if(std::this_thread::get_id() != id)
     {
