@@ -761,6 +761,21 @@ struct reduce_driver : test_driver
                                     : (rand_value + max_value + 1) / (rand_value + max_value);
         };
 
+        bool need_indices =
+            ((reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX ||
+              reduceOp == MIOPEN_REDUCE_TENSOR_AMAX) &&
+             indicesOpt != MIOPEN_REDUCE_TENSOR_NO_INDICES);
+
+        // Special data generation for MIN/MAX/AMAX using a space of limitless number of values.
+        // This method is slower due to the use of rand(), it is usually used for manual testing
+        auto gen_value_3 = [&](auto... is) {
+            auto rand_upper   = tensor_elem_gen_integer{max_value}(is...);
+            auto sign_value   = tensor_elem_gen_checkboard_sign{}(is...);
+            double rand_ratio = static_cast<double>(rand() / (static_cast<double>(RAND_MAX)));
+
+            return rand_upper * sign_value * rand_ratio;
+        };
+
         if(reduceOp == MIOPEN_REDUCE_TENSOR_MUL)
             this->tolerance = 80 * 500;
         else if(reduceOp == MIOPEN_REDUCE_TENSOR_NORM1 || reduceOp == MIOPEN_REDUCE_TENSOR_NORM2)
@@ -773,7 +788,8 @@ struct reduce_driver : test_driver
 
         auto inputTensor = (reduceOp == MIOPEN_REDUCE_TENSOR_MUL)
                                ? tensor<T>{this->inLengths}.generate(gen_value_2)
-                               : tensor<T>{this->inLengths}.generate(gen_value);
+                               : (need_indices ? tensor<T>{this->inLengths}.generate(gen_value_3)
+                                               : tensor<T>{this->inLengths}.generate(gen_value));
         auto outputTensor = tensor<T>{outLengths};
 
         std::fill(outputTensor.begin(), outputTensor.end(), convert_type<T>(0.0f));
