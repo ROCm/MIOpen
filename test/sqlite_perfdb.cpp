@@ -54,20 +54,23 @@ namespace miopen {
 namespace tests {
 static boost::filesystem::path& exe_path()
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static boost::filesystem::path exe_path;
     return exe_path;
 }
 static boost::optional<std::string>& thread_logs_root()
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::mutex mutex;
     std::lock_guard<std::mutex> lock(mutex);
-
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static boost::optional<std::string> path(boost::none);
     return path;
 }
 
 static bool& full_set()
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static bool full_set = false;
     return full_set;
 }
@@ -86,6 +89,7 @@ class Random
 
 static Random& Rnd()
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static Random rnd;
     return rnd;
 }
@@ -170,6 +174,7 @@ struct SolverData
     template <unsigned int seed>
     static SolverData Seeded()
     {
+        // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
         static Random rnd(seed);
         return {static_cast<int>(rnd.Next()), static_cast<int>(rnd.Next())};
     }
@@ -276,24 +281,24 @@ class DbTest
         return data;
     }
 
-    static std::string& id0()
+    static const std::string& id0()
     {
-        static std::string id0_ = "Solver0";
+        static const std::string id0_ = "Solver0";
         return id0_;
     }
-    static std::string& id1()
+    static const std::string& id1()
     {
-        static std::string id1_ = "Solver1";
+        static const std::string id1_ = "Solver1";
         return id1_;
     }
-    static std::string& id2()
+    static const std::string& id2()
     {
-        static std::string id2_ = "Solver2";
+        static const std::string id2_ = "Solver2";
         return id2_;
     }
-    static std::string& missing_id()
+    static const std::string& missing_id()
     {
-        static std::string missing_id_ = "UnknownSolver";
+        static const std::string missing_id_ = "UnknownSolver";
         return missing_id_;
     }
 
@@ -498,14 +503,18 @@ class DbParallelTest : public DbTest
 class DBMultiThreadedTestWork
 {
     public:
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static unsigned int threads_count;
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static unsigned int common_part_size;
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static unsigned int unique_part_size;
     static constexpr unsigned int ids_per_key      = 16;
     static constexpr unsigned int common_part_seed = 435345;
 
     static const std::vector<SolverData>& common_part()
     {
+        // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
         static std::mutex mutex;
         std::lock_guard<std::mutex> lock(mutex);
 
@@ -699,6 +708,7 @@ class DBMultiThreadedTestWork
 
     static const std::vector<SolverData>& common_part_init()
     {
+        // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
         static std::vector<SolverData> data(common_part_size, SolverData::NoInit{});
 
         for(auto i  = 0u; i < common_part_size; i++)
@@ -708,8 +718,11 @@ class DBMultiThreadedTestWork
     }
 };
 
-unsigned int DBMultiThreadedTestWork::threads_count    = 16;
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
+unsigned int DBMultiThreadedTestWork::threads_count = 16;
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
 unsigned int DBMultiThreadedTestWork::common_part_size = 16;
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
 unsigned int DBMultiThreadedTestWork::unique_part_size = 16;
 
 class DbMultiThreadedTest : public DbTest
