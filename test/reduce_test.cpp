@@ -779,13 +779,16 @@ struct reduce_driver : test_driver
             this->tolerance = 80 * 500;
         else if(reduceOp == MIOPEN_REDUCE_TENSOR_NORM1 || reduceOp == MIOPEN_REDUCE_TENSOR_NORM2)
         {
-            this->tolerance = 80 * 10;
+            if(toReduceDims.size() == 4)
+                this->tolerance = 80 * 100;
+            else
+                this->tolerance = 80 * 10;
         };
 
         auto inputTensor = (reduceOp == MIOPEN_REDUCE_TENSOR_MUL)
                                ? tensor<T>{this->inLengths}.generate(gen_value_2)
                                : (need_indices || reduceOp == MIOPEN_REDUCE_TENSOR_NORM1 ||
-                                          reduceOp == MIOPEN_REDUCE_TENSOR_NORM1
+                                          reduceOp == MIOPEN_REDUCE_TENSOR_NORM2
                                       ? tensor<T>{this->inLengths}.generate(gen_value_3)
                                       : tensor<T>{this->inLengths}.generate(gen_value));
         auto outputTensor = tensor<T>{outLengths};
