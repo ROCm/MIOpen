@@ -39,12 +39,12 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS)
 namespace miopen {
 namespace solver {
 
-static inline std::vector<TunableImplicitGemmGTCDynamic_t>&
+static const inline std::vector<TunableImplicitGemmGTCDynamic_t>&
 GetImplicitGemmWrwGTCDynamicXdlopsKernelList()
 {
     // retrieve dynamic igemm wrw pass's possible kernel name
     // clang-format off
-    static std::vector<TunableImplicitGemmGTCDynamic_t> kernel_param_list {
+    static const std::vector<TunableImplicitGemmGTCDynamic_t> kernel_param_list {
         { "wrw", "fp32",   4,   0, 256, 128,  16,  64,  32,   1,   1,   1,   2,   2,   {1,   4,   4,   1},   {1,   4,   1,  64},   {1,   4,   2,   1},   {1,   4,   1,  64},   0},
         { "wrw", "fp32",   4,   0, 256, 128,  16,  64,  32,   1,   1,   1,   2,   2,   {1,   4,   4,   1},   {1,   4,   1,  64},   {1,   4,   2,   1},   {1,   4,   1,  64},   1},
         { "wrw", "fp32",   4,   0, 256, 128,   8,  64,  32,   1,   1,   1,   2,   2,   {1,   4,   2,   1},   {1,   2,   1, 128},   {1,   4,   1,   1},   {1,   2,   1, 128},   0},
@@ -316,7 +316,7 @@ static inline std::tuple<bool, // is valid
     const auto gemm_n  = c * y * x;
     const auto& gemm_m = k;
 
-    std::vector<TunableImplicitGemmGTCDynamic_t> tunables =
+    const std::vector<TunableImplicitGemmGTCDynamic_t>& tunables =
         GetImplicitGemmWrwGTCDynamicXdlopsKernelList();
 
     /* applicable table (except 128x128 case):
@@ -498,7 +498,7 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
     KernelInfo kernel;
     std::ostringstream options;
 
-    std::vector<TunableImplicitGemmGTCDynamic_t> kernel_configs =
+    const std::vector<TunableImplicitGemmGTCDynamic_t>& kernel_configs =
         GetImplicitGemmWrwGTCDynamicXdlopsKernelList();
 
     bool is_valid;
