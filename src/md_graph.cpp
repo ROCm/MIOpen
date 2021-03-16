@@ -38,7 +38,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 
 namespace miopen {
 
-int MDGraph_vertex::running_id = 1;
+int MDGraph_vertex::running_id = 1; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
 
 MDGraph_vertex::MDGraph_vertex(miopenFusionOp_t o,
                                std::string program_name,

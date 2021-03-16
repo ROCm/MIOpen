@@ -37,6 +37,7 @@ namespace miopen {
 
 static std::string GetDeviceNameFromMap(const std::string& in)
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::map<std::string, std::string> device_name_map = {
         {"Ellesmere", "gfx803"},
         {"Baffin", "gfx803"},
@@ -62,7 +63,7 @@ static std::string GetDeviceNameFromMap(const std::string& in)
     auto match = device_name_map.find(name);
     if(match != device_name_map.end())
         return match->second;
-    return name;
+    return name; // NOLINT (performance-no-automatic-move)
 }
 
 void TargetProperties::Init(const Handle* const handle)

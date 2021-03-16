@@ -57,7 +57,7 @@ static std::string GetAbsolutePath(const std::string& path)
     if(retval == 0)
         return "";
 #else
-    const auto retval = realpath(path.c_str(), &result[0]);
+    auto* const retval = realpath(path.c_str(), &result[0]);
 
     if(retval == nullptr)
         return "";

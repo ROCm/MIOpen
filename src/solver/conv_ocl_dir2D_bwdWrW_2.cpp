@@ -41,7 +41,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2)
 namespace miopen {
 namespace solver {
 
-inline static bool Is_1__8(const int& v)
+inline static bool Is_1__8(const int& v) // NOLINT (bugprone-reserved-identifier)
 {
     // full: {1,2,4,8}, optimized: {1,3,8}
     switch(v)
@@ -55,7 +55,7 @@ inline static bool Is_1__8(const int& v)
     }
 }
 
-inline static bool Inc_1__8(int& v)
+inline static bool Inc_1__8(int& v) // NOLINT (bugprone-reserved-identifier)
 {
     assert(Is_1__8(v));
     if(v == 8)
@@ -67,7 +67,7 @@ inline static bool Inc_1__8(int& v)
     return false;
 }
 
-inline static bool Inc_1__8_optimized(int& v)
+inline static bool Inc_1__8_optimized(int& v) // NOLINT (bugprone-reserved-identifier)
 {
     assert(Is_1__8(v));
     switch(v)
@@ -79,9 +79,12 @@ inline static bool Inc_1__8_optimized(int& v)
     }
 }
 
-inline static bool Is_6__12(const int& v) { return 6 <= v && v <= 12; }
+inline static bool Is_6__12(const int& v) // NOLINT (bugprone-reserved-identifier)
+{
+    return 6 <= v && v <= 12;
+}
 
-inline static bool Inc_6__12(int& v)
+inline static bool Inc_6__12(int& v) // NOLINT (bugprone-reserved-identifier)
 {
     assert(Is_6__12(v));
     if(++v <= 12)
@@ -90,7 +93,7 @@ inline static bool Inc_6__12(int& v)
     return true;
 }
 
-inline static bool Inc_6__12_optimized(int& v)
+inline static bool Inc_6__12_optimized(int& v) // NOLINT (bugprone-reserved-identifier)
 {
     assert(Is_6__12(v));
     // {6,8,10,12}, {7,9,11}...
@@ -104,9 +107,12 @@ inline static bool Inc_6__12_optimized(int& v)
     }
 }
 
-inline static bool Is_2__11(const int& v) { return 2 <= v && v <= 11; }
+inline static bool Is_2__11(const int& v) // NOLINT (bugprone-reserved-identifier)
+{
+    return 2 <= v && v <= 11;
+}
 
-inline static bool Inc_2__11(int& v)
+inline static bool Inc_2__11(int& v) // NOLINT (bugprone-reserved-identifier)
 {
     assert(Is_2__11(v));
     if(++v <= 11)
@@ -115,7 +121,7 @@ inline static bool Inc_2__11(int& v)
     return true;
 }
 
-inline static bool Inc_2__11_optimized(int& v)
+inline static bool Inc_2__11_optimized(int& v) // NOLINT (bugprone-reserved-identifier)
 {
     // {2 3 5 7 9 11}
     assert(Is_2__11(v));

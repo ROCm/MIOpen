@@ -171,6 +171,7 @@ class LockFile
 
     static std::map<std::string, LockFile>& LockFiles()
     {
+        // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
         static std::map<std::string, LockFile> lock_files;
         return lock_files;
     }
