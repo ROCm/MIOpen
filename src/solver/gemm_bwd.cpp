@@ -728,19 +728,19 @@ ConvSolution GemmBwdRest::GetSolution(const ExecutionContext& context,
                 if(handle.IsProfilingEnabled())
                     time_gemm = in_n * handle.GetKernelTime();
 
-                const auto time_col2im = time_col2im = Col2ImGPU(handle,
-                                                                 spatial_dims,
-                                                                 workspace,
-                                                                 out_spatial,
-                                                                 wei_spatial,
-                                                                 pads,
-                                                                 strides,
-                                                                 dilations,
-                                                                 in_c,
-                                                                 in_spatial,
-                                                                 dx,
-                                                                 in_offset,
-                                                                 dyDesc_.GetType());
+                const auto time_col2im = Col2ImGPU(handle,
+                                                   spatial_dims,
+                                                   workspace,
+                                                   out_spatial,
+                                                   wei_spatial,
+                                                   pads,
+                                                   strides,
+                                                   dilations,
+                                                   in_c,
+                                                   in_spatial,
+                                                   dx,
+                                                   in_offset,
+                                                   dyDesc_.GetType());
 
                 if(handle.IsProfilingEnabled())
                 {
