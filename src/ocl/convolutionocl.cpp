@@ -165,6 +165,23 @@ ConvolutionDescriptor::FindWinogradSolutions(const ConvolutionContext& ctx,
 }
 
 std::vector<miopen::solver::ConvSolution>
+ConvolutionDescriptor::FindDataGemmSolutions(const ConvolutionContext& ctx,
+                                             const AnyInvokeParams& invoke_ctx) const
+{
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
+        return {};
+    try
+    {
+        return FindAllGemmSolutions(ctx, invoke_ctx);
+    }
+    catch(miopen::Exception& ex)
+    {
+        MIOPEN_LOG_WE(ex.what());
+        return {};
+    }
+}
+
+std::vector<miopen::solver::ConvSolution>
 ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
                                                const TensorDescriptor& xDesc,
                                                const TensorDescriptor& wDesc,
@@ -369,14 +386,6 @@ static void DirConvFindCore(Handle& handle,
     const auto invoke_ctx     = conv::DataInvokeParams{
         InvokeType::Evaluate, {xDesc, x, wDesc, w, yDesc, y}, workSpace, workSpaceSize};
 
-    if(!use_winograd_only && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
-    {
-        const auto all = FindAllGemmSolutions(ctx, invoke_ctx);
-        PrecompileSolutions(handle, all);
-        const auto algorithm_name = AlgorithmName{"miopenConvolutionFwdAlgoGEMM"};
-        EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
-    }
-
     // Find solutions
     const auto winograd = !use_winograd_only ? conv.FindWinogradSolutions(ctx, invoke_ctx) : [&]() {
         AutoUseFastDynamicSolutions tmp{ctx};
@@ -384,12 +393,14 @@ static void DirConvFindCore(Handle& handle,
     }();
     ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
     bufs.SetFwd(x, w, y);
+    const auto gemm = !use_winograd_only ? conv.FindDataGemmSolutions(ctx, invoke_ctx)
+                                         : std::vector<miopen::solver::ConvSolution>{};
     const auto direct =
         !use_winograd_only
             ? conv.FindDataDirectSolutions(
                   handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx)
             : std::vector<miopen::solver::ConvSolution>{};
-    const auto implictgemm =
+    const auto igemm =
         !use_winograd_only
             ? conv.FindDataImplicitGemmSolutions(
                   handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx)
@@ -400,15 +411,22 @@ static void DirConvFindCore(Handle& handle,
     // Precompile
     {
         std::vector<const miopen::solver::ConvSolution*> all;
-        all.reserve(winograd.size() + direct.size() + implictgemm.size() + fft.size());
+        all.reserve(gemm.size() + winograd.size() + direct.size() + igemm.size() + fft.size());
+        AppendPointersToElements(gemm, all);
         AppendPointersToElements(winograd, all);
         AppendPointersToElements(direct, all);
-        AppendPointersToElements(implictgemm, all);
+        AppendPointersToElements(igemm, all);
         AppendPointersToElements(fft, all);
         PrecompileSolutions(handle, all);
     }
 
     // Evaluate Invokers
+    EvaluateInvokers(handle,
+                     gemm,
+                     AlgorithmName{"miopenConvolutionFwdAlgoGEMM"},
+                     network_config,
+                     invoke_ctx,
+                     record);
     EvaluateInvokers(handle,
                      winograd,
                      AlgorithmName{"miopenConvolutionFwdAlgoWinograd"},
@@ -422,7 +440,7 @@ static void DirConvFindCore(Handle& handle,
                      invoke_ctx,
                      record);
     EvaluateInvokers(handle,
-                     implictgemm,
+                     igemm,
                      AlgorithmName{"miopenConvolutionFwdAlgoImplicitGEMM"},
                      network_config,
                      invoke_ctx,

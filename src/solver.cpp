@@ -60,7 +60,7 @@ std::vector<Program> PrecompileKernels(const Handle& h, const std::vector<Kernel
 
     // clang-format off
     par_for_strided(kernels.size(),
-                    Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, 20),
+                    max_threads{Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, 20)},
                     [&](auto i) {
                         const KernelInfo& k = kernels[i];
                         programs[i]         = h.LoadProgram(k.kernel_file, k.comp_options, false, "");
