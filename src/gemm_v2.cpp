@@ -429,7 +429,7 @@ miopenStatus_t CallGemm(const Handle& handle,
                 rocblas_datatype::rocblas_datatype_i32_r,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
-                0);
+                rocblas_gemm_flags_pack_int8x4);
         }
         break;
         case miopenInt32: break;
@@ -731,7 +731,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                 rocblas_datatype::rocblas_datatype_i32_r,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
-                0);
+                rocblas_gemm_flags_pack_int8x4);
         }
         break;
         case miopenInt32: break;
@@ -971,7 +971,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
                     rocblas_datatype::rocblas_datatype_i32_r,
                     rocblas_gemm_algo::rocblas_gemm_algo_standard,
                     0,
-                    0);
+                    rocblas_gemm_flags_pack_int8x4);
             }
         }
         break;
