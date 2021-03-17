@@ -84,7 +84,6 @@ typedef unsigned int uint;
 #include <mach/mach.h>
 #include <mach/mach_time.h>
 #endif
-using __int64 = long long;
 #endif
 
 using mlo_ocl_arg     = std::pair<size_t, void*>;
@@ -98,8 +97,8 @@ using manage_file_ptr = MIOPEN_MANAGE_PTR(FILE*, fclose);
 inline double miopen_mach_absolute_time(void) // Windows
 {
     double ret = 0;
-    __int64 frec;
-    __int64 clocks;
+    int64_t frec;
+    int64_t clocks;
     QueryPerformanceFrequency((LARGE_INTEGER*)&frec);
     QueryPerformanceCounter((LARGE_INTEGER*)&clocks);
     ret = (double)clocks * 1000. / (double)frec;
@@ -121,7 +120,8 @@ inline double miopen_mach_absolute_time() // Linux
 
 inline double subtractTimes(double endTime, double startTime)
 {
-    double difference        = endTime - startTime;
+    double difference = endTime - startTime;
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static double conversion = 0.0;
 
     if(conversion == 0.0)

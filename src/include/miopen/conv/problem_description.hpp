@@ -188,7 +188,7 @@ struct ProblemDescription
     std::size_t GetInSize() const
     {
         // clang-format off
-        return GetInBatchSize() * GetInChannels() * GetInDepth() * GetInHeight() * 
+        return GetInBatchSize() * GetInChannels() * GetInDepth() * GetInHeight() *
             GetInWidth() * GetInElementSize();
         // clang-format on
     }
@@ -255,7 +255,7 @@ struct ProblemDescription
     std::size_t GetWeightsSize() const
     {
         // clang-format off
-        return GetInChannels() * GetOutChannels() * GetWeightsDepth() * GetWeightsHeight() * 
+        return GetInChannels() * GetOutChannels() * GetWeightsDepth() * GetWeightsHeight() *
                GetWeightsWidth() * GetWeightsElementSize();
         // clang-format on
     }
@@ -302,6 +302,7 @@ struct ProblemDescription
                GetOutDataType() == miopenBFloat16;
     }
 
+    bool IsLayoutDefault() const;
     void BuildConfKey(std::string& conf_key) const;
 
     NetworkConfig BuildConfKey() const

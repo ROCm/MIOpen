@@ -217,7 +217,14 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     if(IsHipClangCompiler())
     {
         tmp_dir->Execute(MIOPEN_OFFLOADBUNDLER_BIN,
-                         "--type=o --targets=hip-amdgcn-amd-amdhsa-" +
+                         "--type=o "
+#if(HIP_PACKAGE_VERSION_FLAT >= 4001021072 && HIP_PACKAGE_VERSION_FLAT < 4002000000) || \
+    HIP_PACKAGE_VERSION_FLAT >= 4002021072
+                         "--targets=hipv4-amdgcn-amd-amdhsa-"
+#else
+                         "--targets=hip-amdgcn-amd-amdhsa-"
+#endif
+                             +
                              (HipCompilerVersion() < external_tool_version_t{4, 1, 0}
                                   ? lots.device
                                   : (std::string{'-'} + lots.device + lots.xnack)) +
@@ -376,6 +383,7 @@ static external_tool_version_t HipCompilerVersionImpl()
 
 external_tool_version_t HipCompilerVersion()
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static auto once = HipCompilerVersionImpl();
     return once;
 }
