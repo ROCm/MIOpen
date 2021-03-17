@@ -43,6 +43,11 @@ def cmake_build(compiler, flags, env4make, extradebugflags, prefixpath){
     if (prefixpath != "/usr/local") {
         configargs = "-DCMAKE_PREFIX_PATH=${prefixpath}"
     }
+    
+    if(flags.contains('-DBUILD_DEV=Off')
+    {
+    	config_targets = 'install ' + config_targets
+    }
 
     if (archive == true) {
         config_targets = "package"
@@ -151,7 +156,7 @@ def reboot(){
 ///     For the OpenCL backend, "Clang" implies the system x86 compiler.
 ///   * "GCC" is the default for OpenCL backend.
 ///   * The default compiler is usually not specified.
-/// BuildType := { Release | Debug [ BuildTypeModifier ] }
+/// BuildType := { Release | Debug | Install } [ BuildTypeModifier ]
 ///   * BuildTypeModifier := { COMGR | Embedded | Static | Normal-Find | Fast-Find
 ///                                  | Tensile | Tensile-Latest | Package | ... }
 /// TestSet := { All | Smoke* } [ Codecov ]
@@ -701,7 +706,7 @@ pipeline {
                     }
                 }
 
-                stage('BF16 Hip Release All gfx908') {
+                stage('BF16 Hip Install All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
@@ -709,8 +714,8 @@ pipeline {
                             rm -rf build
                             mkdir build
                             cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DMIOPEN_TEST_ALL=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
-                            MIOPEN_LOG_LEVEL=5 CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DMIOPEN_TEST_ALL=On -DBUILD_DEV=Off -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
+                            MIOPEN_LOG_LEVEL=5 CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) install check
                         """
                     }
                     steps{
@@ -734,12 +739,12 @@ pipeline {
 
         stage("Full tests II"){
             parallel{
-                stage('OpenCL Release All') {
+                stage('OpenCL Install All') {
                     agent{ label rocmnode("vega") }
                     steps{
                         script{
                             try{
-                                buildHipClangJob('g++', flags: '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
+                                buildHipClangJob('g++', flags: '-DBUILD_DEV=Off -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -782,7 +787,7 @@ pipeline {
                     }
                 }
 
-                stage('Half Hip Release All gfx908') {
+                stage('Half Hip Install All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
@@ -790,8 +795,8 @@ pipeline {
                             rm -rf build
                             mkdir build
                             cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_TEST_HALF=On -DMIOPEN_TEST_GFX908=On -DMIOPEN_TEST_ALL=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
-                            MIOPEN_LOG_LEVEL=5 CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_TEST_HALF=On -DMIOPEN_TEST_GFX908=On -DMIOPEN_TEST_ALL=On -DBUILD_DEV=Off -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
+                            MIOPEN_LOG_LEVEL=5 CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) install check
                         """
                     }
                     steps{
@@ -815,7 +820,7 @@ pipeline {
 
         stage("Full tests III"){
             parallel{
-                stage('Half Hip Release All Vega20') {
+                stage('Half Hip Install All Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
@@ -823,8 +828,8 @@ pipeline {
                             rm -rf build
                             mkdir build
                             cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_TEST_HALF=On -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_ALL=On -DMIOPEN_TEST_FLAGS=--disable-verification-cache ..
-                            CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=Off -DCMAKE_BUILD_TYPE=release -DMIOPEN_TEST_HALF=On -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_ALL=On -DMIOPEN_TEST_FLAGS=--disable-verification-cache ..
+                            CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) install check
                         """
 
                     }
