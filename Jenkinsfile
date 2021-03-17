@@ -154,10 +154,8 @@ def reboot(){
 /// BuildType := { Release | Debug [ BuildTypeModifier ] }
 ///   * BuildTypeModifier := { COMGR | Embedded | Static | Normal-Find | Fast-Find
 ///                                  | Tensile | Tensile-Latest | Package | ... }
-/// TestSet := { All | Subset | Smoke* } [ Codecov ]
+/// TestSet := { All | Smoke* } [ Codecov ]
 ///   * "All" corresponds to "cmake -DMIOPEN_TEST_ALL=On".
-///   * "Subset" corresponds to Target- or BuildTypeModifier-specific subsetting of
-///     the "All" testset, e.g. -DMIOPEN_TEST_GFX908=On or -DMIOPEN_TEST_MIOTENSILE=On.
 ///   * "Smoke" (-DMIOPEN_TEST_ALL=Off) is the default and usually not specified.
 ///   * "Codecov" is optional code coverage analysis.
 /// Target := { gfx908 | Vega20 | Vega10 | Vega* }
@@ -703,7 +701,7 @@ pipeline {
                     }
                 }
 
-                stage('BF16 Hip Release Subset gfx908') {
+                stage('BF16 Hip Release All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
@@ -755,7 +753,7 @@ pipeline {
                     }
                 }
 
-                stage('Hip Release Subset gfx908') {
+                stage('Hip Release All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
@@ -784,7 +782,7 @@ pipeline {
                     }
                 }
 
-                stage('Half Hip Release Subset gfx908') {
+                stage('Half Hip Release All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
@@ -881,7 +879,7 @@ pipeline {
 
         stage("MIOpenTensile"){
             parallel{
-                stage('Hip Release Tensile Subset Vega20') {
+                stage('Hip Release Tensile All Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
@@ -910,7 +908,7 @@ pipeline {
                     }
                 }
 
-                stage('Hip Release Tensile Subset gfx908') {
+                stage('Hip Release Tensile All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
@@ -939,7 +937,7 @@ pipeline {
                     }
                 }
 
-                stage('Hip Release Tensile-Latest Subset Vega20') {
+                stage('Hip Release Tensile-Latest All Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
@@ -968,7 +966,7 @@ pipeline {
                     }
                 }
 
-                stage('Hip Release Tensile-Latest Subset gfx908') {
+                stage('Hip Release Tensile-Latest All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
