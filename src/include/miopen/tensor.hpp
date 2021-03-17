@@ -176,6 +176,8 @@ struct TensorDescriptor : miopenTensorDescriptor
 
     std::string ToString() const;
 
+    bool IsLayout(const std::string& labels, const std::string& layout) const;
+
     std::string GetLayout(std::string labels) const
     {
         std::ignore = labels;

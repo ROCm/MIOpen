@@ -127,6 +127,13 @@ std::size_t TensorDescriptor::GetElementSpace() const
            1;
 }
 
+bool TensorDescriptor::IsLayout(const std::string& labels, const std::string& layout) const
+{
+    std::vector<size_t> derived_strides;
+    tensor_layout_to_strides(lens, labels, layout, derived_strides);
+    return derived_strides == strides;
+}
+
 std::size_t TensorDescriptor::GetNumBytes() const
 {
     std::size_t typesize = 0;

@@ -144,6 +144,7 @@ struct ProblemDescription
           direction(direction_),
           bias(bias_)
     {
+        HeuristicUpdateLayouts();
     }
 
     // Conv descriptor getters
@@ -301,6 +302,8 @@ struct ProblemDescription
         return GetInDataType() == miopenBFloat16 && GetWeightsDataType() == miopenBFloat16 &&
                GetOutDataType() == miopenBFloat16;
     }
+
+    void HeuristicUpdateLayouts();
 
     void BuildConfKey(std::string& conf_key) const;
 

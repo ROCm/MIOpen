@@ -59,6 +59,41 @@ std::ostream& operator<<(std::ostream& stream, std::function<void(std::ostream&)
     return stream;
 }
 
+void ProblemDescription::HeuristicUpdateLayouts()
+{
+    std::string labels = tensor_layout_get_default(in_layout.size());
+
+    std::set<std::string> input_layouts;
+    std::set<std::string> output_layouts;
+    std::set<std::string> weight_layouts;
+
+    std::vector<std::string> supported_layouts = {"NCHW", "NHWC", "NCDHW"};
+    for(const std::string& layout : supported_layouts)
+    {
+        // Skip layouts that doesn't match dimension sizes
+        if(layout.size() != labels.size())
+            continue;
+
+        if(in.IsLayout(labels, layout))
+            input_layouts.insert(layout);
+        if(out.IsLayout(labels, layout))
+            output_layouts.insert(layout);
+        if(weights.IsLayout(labels, layout))
+            weight_layouts.insert(layout);
+
+        // If we have found consistent layout among 3 tensors, assign them
+        if((input_layouts.count(layout) == 1) && (weight_layouts.count(layout)) &&
+           (output_layouts.count(layout) == 1))
+        {
+            in_layout      = layout;
+            weights_layout = layout;
+            out_layout     = layout;
+            return;
+        }
+    }
+    // If we did not find consistent layout, leave them as-is
+}
+
 void ProblemDescription::BuildConfKey(std::string& conf_key) const
 {
     std::ostringstream ss;
