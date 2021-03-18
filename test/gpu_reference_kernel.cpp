@@ -39,6 +39,31 @@
 #include "driver.hpp"
 #include "tensor_holder.hpp"
 #include "cpu_conv.hpp"
+#include "tensor_layout.hpp"
+
+enum tensor_layout_t
+{
+    miopen_tensor_layout_nchw,
+    miopen_tensor_layout_ncdhw,
+    miopen_tensor_layout_nhwc,
+    miopen_tensor_layout_ndhwc,
+};
+
+std::string tensor_layout_to_string(tensor_layout_t layout)
+{
+    std::string layout_string("N/A");
+    if(layout == miopen_tensor_layout_nchw)
+        layout_string = "NCHW";
+    else if(layout == miopen_tensor_layout_ncdhw)
+        layout_string = "NCDHW";
+    else if(layout == miopen_tensor_layout_nhwc)
+        layout_string = "NHWC";
+    else if(layout == miopen_tensor_layout_ndhwc)
+        layout_string = "NDHWC";
+    else
+        MIOPEN_THROW("Unsupported tensor layout");
+    return layout_string;
+}
 
 static int gen_rand_integer()
 {
@@ -114,29 +139,22 @@ struct gpu_reference_kernel_base
                             {
                                 for(int px : get_pad_size())
                                 {
-                                    for(int sy : get_stride_dilation_size())
-                                    {
-                                        for(int sx : get_stride_dilation_size())
-                                        {
-                                            int n = get_batch_size()[gen_rand_integer() % 2];
-                                            int g = get_group_size()[gen_rand_integer() % 2];
-                                            int k = get_channel_size()[gen_rand_integer() % 2];
-                                            int dy =
-                                                get_stride_dilation_size()[gen_rand_integer() % 2];
-                                            int dx =
-                                                get_stride_dilation_size()[gen_rand_integer() % 2];
-                                            int ho = conv_out_size(hi, py, dy, fy, sy);
-                                            int wo = conv_out_size(wi, px, dx, fx, sx);
+                                    int n  = get_batch_size()[gen_rand_integer() % 2];
+                                    int g  = get_group_size()[gen_rand_integer() % 2];
+                                    int k  = get_channel_size()[gen_rand_integer() % 2];
+                                    int sy = get_stride_dilation_size()[gen_rand_integer() % 2];
+                                    int sx = get_stride_dilation_size()[gen_rand_integer() % 2];
+                                    int dy = get_stride_dilation_size()[gen_rand_integer() % 2];
+                                    int dx = get_stride_dilation_size()[gen_rand_integer() % 2];
+                                    int ho = conv_out_size(hi, py, dy, fy, sy);
+                                    int wo = conv_out_size(wi, px, dx, fx, sx);
 
-                                            if(fy > hi || fx > wi || (fy - 1) < py ||
-                                               (fx - 1) < px || ho <= 0 || wo <= 0 || c % g != 0 ||
-                                               k % g != 0)
-                                                continue;
-                                            if((fx == 3 && fy == 5) || (fx == 5 && fy == 3))
-                                                continue;
-                                            f(n, wi, hi, c, k, fx, fy, px, py, sx, sy, dx, dy, g);
-                                        }
-                                    }
+                                    if(fy > hi || fx > wi || (fy - 1) < py || (fx - 1) < px ||
+                                       ho <= 0 || wo <= 0 || c % g != 0 || k % g != 0)
+                                        continue;
+                                    if((fx == 3 && fy == 5) || (fx == 5 && fy == 3))
+                                        continue;
+                                    f(n, wi, hi, c, k, fx, fy, px, py, sx, sy, dx, dy, g);
                                 }
                             }
                         }
@@ -159,56 +177,48 @@ struct gpu_reference_kernel_base
                     {
                         for(int px : get_pad_size())
                         {
-                            for(int sy : get_stride_dilation_size())
-                            {
-                                for(int sx : get_stride_dilation_size())
-                                {
-                                    for(int dy : get_stride_dilation_size())
-                                    {
-                                        for(int dx : get_stride_dilation_size())
-                                        {
-                                            int n   = get_batch_size()[gen_rand_integer() % 2];
-                                            int g   = get_group_size()[gen_rand_integer() % 2];
-                                            int k   = get_channel_size()[gen_rand_integer() % 2];
-                                            int di  = get_image_depth()[gen_rand_integer() % 2];
-                                            int hi  = get_image_size()[gen_rand_integer() % 2];
-                                            int wi  = get_image_size()[gen_rand_integer() % 2];
-                                            int fz  = get_filter_depth()[gen_rand_integer() % 2];
-                                            int pz  = get_pad_depth()[gen_rand_integer() % 2];
-                                            int sz  = get_stride_depth()[gen_rand_integer() % 2];
-                                            int dz  = get_dilation_depth()[0];
-                                            int ho  = conv_out_size(hi, py, dy, fy, sy);
-                                            int wo  = conv_out_size(wi, px, dx, fx, sx);
-                                            int do_ = conv_out_size(di, pz, dz, fz, sz);
-                                            if(fy > hi || fx > wi || fz > di || (fy - 1) < py ||
-                                               (fx - 1) < px || (fz - 1) < pz || ho <= 0 ||
-                                               wo <= 0 || do_ <= 0 || c % g != 0 || k % g != 0)
-                                                continue;
-                                            if((fx == 3 && fy == 5) || (fx == 5 && fy == 3))
-                                                continue;
-                                            f(n,
-                                              di,
-                                              wi,
-                                              hi,
-                                              c,
-                                              k,
-                                              fz,
-                                              fx,
-                                              fy,
-                                              pz,
-                                              px,
-                                              py,
-                                              sz,
-                                              sx,
-                                              sy,
-                                              dz,
-                                              dx,
-                                              dy,
-                                              g);
-                                        }
-                                    }
-                                }
-                            }
+                            int n   = get_batch_size()[gen_rand_integer() % 2];
+                            int g   = get_group_size()[gen_rand_integer() % 2];
+                            int k   = get_channel_size()[gen_rand_integer() % 2];
+                            int di  = get_image_depth()[gen_rand_integer() % 2];
+                            int hi  = get_image_size()[gen_rand_integer() % 2];
+                            int wi  = get_image_size()[gen_rand_integer() % 2];
+                            int fz  = get_filter_depth()[gen_rand_integer() % 2];
+                            int pz  = get_pad_depth()[gen_rand_integer() % 2];
+                            int sx  = get_stride_dilation_size()[gen_rand_integer() % 2];
+                            int sy  = get_stride_dilation_size()[gen_rand_integer() % 2];
+                            int sz  = get_stride_depth()[gen_rand_integer() % 2];
+                            int dx  = get_stride_dilation_size()[gen_rand_integer() % 2];
+                            int dy  = get_stride_dilation_size()[gen_rand_integer() % 2];
+                            int dz  = get_dilation_depth()[0];
+                            int ho  = conv_out_size(hi, py, dy, fy, sy);
+                            int wo  = conv_out_size(wi, px, dx, fx, sx);
+                            int do_ = conv_out_size(di, pz, dz, fz, sz);
+                            if(fy > hi || fx > wi || fz > di || (fy - 1) < py || (fx - 1) < px ||
+                               (fz - 1) < pz || ho <= 0 || wo <= 0 || do_ <= 0 || c % g != 0 ||
+                               k % g != 0)
+                                continue;
+                            if((fx == 3 && fy == 5) || (fx == 5 && fy == 3))
+                                continue;
+                            f(n,
+                              di,
+                              wi,
+                              hi,
+                              c,
+                              k,
+                              fz,
+                              fx,
+                              fy,
+                              pz,
+                              px,
+                              py,
+                              sz,
+                              sx,
+                              sy,
+                              dz,
+                              dx,
+                              dy,
+                              g);
                         }
                     }
                 }
@@ -304,8 +314,8 @@ static std::string miopen_type_to_string(miopenDataType_t type)
     return "n/a";
 }
 
-template <miopen::conv::Direction direction, typename TRef>
-struct gpu_reference_conv_nchw : gpu_reference_kernel_base
+template <miopen::conv::Direction direction, typename TRef, tensor_layout_t tensor_layout>
+struct gpu_reference_conv_2d : gpu_reference_kernel_base
 {
     void run()
     {
@@ -338,11 +348,24 @@ struct gpu_reference_conv_nchw : gpu_reference_kernel_base
             int wei_sz = g * k_per_group * c_per_group * fy * fx;
             int out_sz = g * n * k_per_group * ho * wo;
 
-            tensor<TRef> in(n, c, hi, wi);
-            tensor<TRef> wei(k, c_per_group, fy, fx); // refer to ConvDriver<Tgpu,
-            // Tref>::GetWeightTensorLengthsFromCmdLine() to
-            // deal with group_count
-            tensor<TRef> out(n, k, ho, wo);
+            std::vector<int> in_len({n, c, hi, wi});
+            std::vector<int> wei_len({k, c_per_group, fy, fx});
+            std::vector<int> out_len({n, k, ho, wo});
+
+            std::vector<int> in_strides;
+            std::vector<int> wei_strides;
+            std::vector<int> out_strides;
+
+            std::string layout_default = tensor_layout_get_default(4);
+            std::string layout_string  = tensor_layout_to_string(tensor_layout);
+
+            tensor_layout_to_strides(in_len, layout_default, layout_string, in_strides);
+            tensor_layout_to_strides(wei_len, layout_default, layout_string, wei_strides);
+            tensor_layout_to_strides(out_len, layout_default, layout_string, out_strides);
+
+            tensor<TRef> in(in_len, in_strides);
+            tensor<TRef> wei(wei_len, wei_strides);
+            tensor<TRef> out(out_len, out_strides);
 #if MIOPEN_BACKEND_OPENCL
             cl_context ctx;
             clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
@@ -374,13 +397,21 @@ struct gpu_reference_conv_nchw : gpu_reference_kernel_base
             EXPECT(miopenCreateTensorDescriptor(&inDesc) == miopenStatusSuccess);
             EXPECT(miopenCreateTensorDescriptor(&weiDesc) == miopenStatusSuccess);
             EXPECT(miopenCreateTensorDescriptor(&outDesc) == miopenStatusSuccess);
-            EXPECT(miopenSet4dTensorDescriptor(inDesc, miopen_type<TRef>{}, n, c, hi, wi) ==
-                   miopenStatusSuccess);
+
             EXPECT(
-                miopenSet4dTensorDescriptor(weiDesc, miopen_type<TRef>{}, k, c_per_group, fy, fx) ==
+                miopenSetTensorDescriptor(
+                    inDesc, miopen_type<TRef>{}, in_len.size(), in_len.data(), in_strides.data()) ==
                 miopenStatusSuccess);
-            EXPECT(miopenSet4dTensorDescriptor(outDesc, miopen_type<TRef>{}, n, k, ho, wo) ==
-                   miopenStatusSuccess);
+            EXPECT(miopenSetTensorDescriptor(weiDesc,
+                                             miopen_type<TRef>{},
+                                             wei_len.size(),
+                                             wei_len.data(),
+                                             wei_strides.data()) == miopenStatusSuccess);
+            EXPECT(miopenSetTensorDescriptor(outDesc,
+                                             miopen_type<TRef>{},
+                                             out_len.size(),
+                                             out_len.data(),
+                                             out_strides.data()) == miopenStatusSuccess);
 
             bool valid_result = false;
 
@@ -441,7 +472,7 @@ struct gpu_reference_conv_nchw : gpu_reference_kernel_base
                            miopen::solver::Id("ConvDirectNaiveConvFwd").Value()) ==
                        miopenStatusSuccess);
 
-                tensor<TRef> out_host(n, k, ho, wo);
+                tensor<TRef> out_host(out_len, out_strides);
 #if MIOPEN_BACKEND_OPENCL
                 status = clEnqueueReadBuffer(q,
                                              out_dev,
@@ -520,7 +551,7 @@ struct gpu_reference_conv_nchw : gpu_reference_kernel_base
                            miopen::solver::Id("ConvDirectNaiveConvBwd").Value()) ==
                        miopenStatusSuccess);
 
-                tensor<TRef> in_host(n, c, hi, wi);
+                tensor<TRef> in_host(in_len, in_strides);
 #if MIOPEN_BACKEND_OPENCL
                 status = clEnqueueReadBuffer(q,
                                              in_dev,
@@ -598,7 +629,7 @@ struct gpu_reference_conv_nchw : gpu_reference_kernel_base
                            miopen::solver::Id("ConvDirectNaiveConvWrw").Value()) ==
                        miopenStatusSuccess);
 
-                tensor<TRef> wei_host(k, c / g, fy, fx);
+                tensor<TRef> wei_host(wei_len, wei_strides);
 #if MIOPEN_BACKEND_OPENCL
                 status = clEnqueueReadBuffer(q,
                                              wei_dev,
@@ -630,7 +661,7 @@ struct gpu_reference_conv_nchw : gpu_reference_kernel_base
                       << ", dy:" << dy << ",dx:" << dx << ", g:" << g
                       << ", dir:" << direction_to_string(direction)
                       << ", type:" << miopen_type_to_string(miopen_type<TRef>{})
-                      << ", valid:" << valid_result << std::endl;
+                      << ", layout:" << layout_string << ", valid:" << valid_result << std::endl;
             EXPECT(valid_result == true);
 
             miopenDestroyConvolutionDescriptor(convDesc);
@@ -652,8 +683,8 @@ struct gpu_reference_conv_nchw : gpu_reference_kernel_base
     }
 };
 
-template <miopen::conv::Direction direction, typename TRef>
-struct gpu_reference_conv_ncdhw : gpu_reference_kernel_base
+template <miopen::conv::Direction direction, typename TRef, tensor_layout_t tensor_layout>
+struct gpu_reference_conv_3d : gpu_reference_kernel_base
 {
     void run()
     {
@@ -688,19 +719,28 @@ struct gpu_reference_conv_ncdhw : gpu_reference_kernel_base
             int c_per_group = c / g;
             int k_per_group = k / g;
 
-            int in_dims[]  = {n, c, di, hi, wi};
-            int wei_dims[] = {k, c_per_group, fz, fy, fx};
-            int out_dims[] = {n, k, do_, ho, wo};
-
             int in_sz  = g * n * c_per_group * di * hi * wi;
             int wei_sz = g * k_per_group * c_per_group * fz * fy * fx;
             int out_sz = g * n * k_per_group * do_ * ho * wo;
 
-            tensor<TRef> in(n, c, di, hi, wi);
-            tensor<TRef> wei(k, c / g, fz, fy, fx); // refer to ConvDriver<Tgpu,
-                                                    // Tref>::GetWeightTensorLengthsFromCmdLine() to
-                                                    // deal with group_count
-            tensor<TRef> out(n, k, do_, ho, wo);
+            std::vector<int> in_len({n, c, di, hi, wi});
+            std::vector<int> wei_len({k, c_per_group, fz, fy, fx});
+            std::vector<int> out_len({n, k, do_, ho, wo});
+
+            std::vector<int> in_strides;
+            std::vector<int> wei_strides;
+            std::vector<int> out_strides;
+
+            std::string layout_default = tensor_layout_get_default(5);
+            std::string layout_string  = tensor_layout_to_string(tensor_layout);
+
+            tensor_layout_to_strides(in_len, layout_default, layout_string, in_strides);
+            tensor_layout_to_strides(wei_len, layout_default, layout_string, wei_strides);
+            tensor_layout_to_strides(out_len, layout_default, layout_string, out_strides);
+
+            tensor<TRef> in(in_len, in_strides);
+            tensor<TRef> wei(wei_len, wei_strides);
+            tensor<TRef> out(out_len, out_strides);
 #if MIOPEN_BACKEND_OPENCL
             cl_context ctx;
             clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
@@ -733,15 +773,20 @@ struct gpu_reference_conv_ncdhw : gpu_reference_kernel_base
             EXPECT(miopenCreateTensorDescriptor(&weiDesc) == miopenStatusSuccess);
             EXPECT(miopenCreateTensorDescriptor(&outDesc) == miopenStatusSuccess);
 
-            EXPECT(miopenSetTensorDescriptor(
-                       inDesc, miopen_type<TRef>{}, 5, static_cast<int*>(in_dims), nullptr) ==
-                   miopenStatusSuccess);
-            EXPECT(miopenSetTensorDescriptor(
-                       weiDesc, miopen_type<TRef>{}, 5, static_cast<int*>(wei_dims), nullptr) ==
-                   miopenStatusSuccess);
-            EXPECT(miopenSetTensorDescriptor(
-                       outDesc, miopen_type<TRef>{}, 5, static_cast<int*>(out_dims), nullptr) ==
-                   miopenStatusSuccess);
+            EXPECT(
+                miopenSetTensorDescriptor(
+                    inDesc, miopen_type<TRef>{}, in_len.size(), in_len.data(), in_strides.data()) ==
+                miopenStatusSuccess);
+            EXPECT(miopenSetTensorDescriptor(weiDesc,
+                                             miopen_type<TRef>{},
+                                             wei_len.size(),
+                                             wei_len.data(),
+                                             wei_strides.data()) == miopenStatusSuccess);
+            EXPECT(miopenSetTensorDescriptor(outDesc,
+                                             miopen_type<TRef>{},
+                                             out_len.size(),
+                                             out_len.data(),
+                                             out_strides.data()) == miopenStatusSuccess);
 
             bool valid_result = false;
 
@@ -803,7 +848,7 @@ struct gpu_reference_conv_ncdhw : gpu_reference_kernel_base
                            miopen::solver::Id("ConvDirectNaiveConvFwd").Value()) ==
                        miopenStatusSuccess);
 
-                tensor<TRef> out_host(n, k, do_, ho, wo);
+                tensor<TRef> out_host(out_len, out_strides);
 #if MIOPEN_BACKEND_OPENCL
                 status = clEnqueueReadBuffer(q,
                                              out_dev,
@@ -883,7 +928,7 @@ struct gpu_reference_conv_ncdhw : gpu_reference_kernel_base
                            miopen::solver::Id("ConvDirectNaiveConvBwd").Value()) ==
                        miopenStatusSuccess);
 
-                tensor<TRef> in_host(n, c, di, hi, wi);
+                tensor<TRef> in_host(in_len, in_strides);
 #if MIOPEN_BACKEND_OPENCL
                 status = clEnqueueReadBuffer(q,
                                              in_dev,
@@ -961,7 +1006,7 @@ struct gpu_reference_conv_ncdhw : gpu_reference_kernel_base
                            miopen::solver::Id("ConvDirectNaiveConvWrw").Value()) ==
                        miopenStatusSuccess);
 
-                tensor<TRef> wei_host(k, c / g, fz, fy, fx);
+                tensor<TRef> wei_host(wei_len, wei_strides);
 #if MIOPEN_BACKEND_OPENCL
                 status = clEnqueueReadBuffer(q,
                                              wei_dev,
@@ -996,7 +1041,7 @@ struct gpu_reference_conv_ncdhw : gpu_reference_kernel_base
                       << ", sx:" << sx << ", dz:" << dz << ", dy:" << dy << ", dx:" << dx
                       << ", g:" << g << ", dir:" << direction_to_string(direction)
                       << ", type:" << miopen_type_to_string(miopen_type<TRef>{})
-                      << ", valid:" << valid_result << std::endl;
+                      << ", layout:" << layout_string << ", valid:" << valid_result << std::endl;
             EXPECT(valid_result == true);
 
             miopenDestroyConvolutionDescriptor(convDesc);
@@ -1021,24 +1066,119 @@ struct gpu_reference_conv_ncdhw : gpu_reference_kernel_base
 
 int main()
 {
-    run_test<gpu_reference_conv_nchw<miopen::conv::Direction::Forward, float>>();
-    run_test<gpu_reference_conv_nchw<miopen::conv::Direction::Forward, half_float::half>>();
-    run_test<gpu_reference_conv_nchw<miopen::conv::Direction::Forward, bfloat16>>();
-    run_test<gpu_reference_conv_nchw<miopen::conv::Direction::BackwardData, float>>();
-    run_test<gpu_reference_conv_nchw<miopen::conv::Direction::BackwardData, half_float::half>>();
-    run_test<gpu_reference_conv_nchw<miopen::conv::Direction::BackwardData, bfloat16>>();
-    run_test<gpu_reference_conv_nchw<miopen::conv::Direction::BackwardWeights, float>>();
-    run_test<gpu_reference_conv_nchw<miopen::conv::Direction::BackwardWeights, half_float::half>>();
-    run_test<gpu_reference_conv_nchw<miopen::conv::Direction::BackwardWeights, bfloat16>>();
+    // 2d NCHW
+    run_test<gpu_reference_conv_2d<miopen::conv::Direction::Forward,
+                                   float,
+                                   miopen_tensor_layout_nchw>>();
+    run_test<gpu_reference_conv_2d<miopen::conv::Direction::Forward,
+                                   half_float::half,
+                                   miopen_tensor_layout_nchw>>();
+    run_test<gpu_reference_conv_2d<miopen::conv::Direction::Forward,
+                                   bfloat16,
+                                   miopen_tensor_layout_nchw>>();
+    run_test<gpu_reference_conv_2d<miopen::conv::Direction::BackwardData,
+                                   float,
+                                   miopen_tensor_layout_nchw>>();
+    run_test<gpu_reference_conv_2d<miopen::conv::Direction::BackwardData,
+                                   half_float::half,
+                                   miopen_tensor_layout_nchw>>();
+    run_test<gpu_reference_conv_2d<miopen::conv::Direction::BackwardData,
+                                   bfloat16,
+                                   miopen_tensor_layout_nchw>>();
+    run_test<gpu_reference_conv_2d<miopen::conv::Direction::BackwardWeights,
+                                   float,
+                                   miopen_tensor_layout_nchw>>();
+    run_test<gpu_reference_conv_2d<miopen::conv::Direction::BackwardWeights,
+                                   half_float::half,
+                                   miopen_tensor_layout_nchw>>();
+    run_test<gpu_reference_conv_2d<miopen::conv::Direction::BackwardWeights,
+                                   bfloat16,
+                                   miopen_tensor_layout_nchw>>();
 
-    run_test<gpu_reference_conv_ncdhw<miopen::conv::Direction::Forward, float>>();
-    run_test<gpu_reference_conv_ncdhw<miopen::conv::Direction::Forward, half_float::half>>();
-    run_test<gpu_reference_conv_ncdhw<miopen::conv::Direction::Forward, bfloat16>>();
-    run_test<gpu_reference_conv_ncdhw<miopen::conv::Direction::BackwardData, float>>();
-    run_test<gpu_reference_conv_ncdhw<miopen::conv::Direction::BackwardData, half_float::half>>();
-    run_test<gpu_reference_conv_ncdhw<miopen::conv::Direction::BackwardData, bfloat16>>();
-    run_test<gpu_reference_conv_ncdhw<miopen::conv::Direction::BackwardWeights, float>>();
-    run_test<
-        gpu_reference_conv_ncdhw<miopen::conv::Direction::BackwardWeights, half_float::half>>();
-    run_test<gpu_reference_conv_ncdhw<miopen::conv::Direction::BackwardWeights, bfloat16>>();
+    // 3d NCDHW
+    run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
+                                   float,
+                                   miopen_tensor_layout_ncdhw>>();
+    run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
+                                   half_float::half,
+                                   miopen_tensor_layout_ncdhw>>();
+    run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
+                                   bfloat16,
+                                   miopen_tensor_layout_ncdhw>>();
+    run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardData,
+                                   float,
+                                   miopen_tensor_layout_ncdhw>>();
+    run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardData,
+                                   half_float::half,
+                                   miopen_tensor_layout_ncdhw>>();
+    run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardData,
+                                   bfloat16,
+                                   miopen_tensor_layout_ncdhw>>();
+    run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardWeights,
+                                   float,
+                                   miopen_tensor_layout_ncdhw>>();
+    run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardWeights,
+                                   half_float::half,
+                                   miopen_tensor_layout_ncdhw>>();
+    run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardWeights,
+                                   bfloat16,
+                                   miopen_tensor_layout_ncdhw>>();
+
+    // 2d NHWC
+    run_test<gpu_reference_conv_2d<miopen::conv::Direction::Forward,
+                                   float,
+                                   miopen_tensor_layout_nhwc>>();
+    run_test<gpu_reference_conv_2d<miopen::conv::Direction::Forward,
+                                   half_float::half,
+                                   miopen_tensor_layout_nhwc>>();
+    run_test<gpu_reference_conv_2d<miopen::conv::Direction::Forward,
+                                   bfloat16,
+                                   miopen_tensor_layout_nhwc>>();
+    run_test<gpu_reference_conv_2d<miopen::conv::Direction::BackwardData,
+                                   float,
+                                   miopen_tensor_layout_nhwc>>();
+    run_test<gpu_reference_conv_2d<miopen::conv::Direction::BackwardData,
+                                   half_float::half,
+                                   miopen_tensor_layout_nhwc>>();
+    run_test<gpu_reference_conv_2d<miopen::conv::Direction::BackwardData,
+                                   bfloat16,
+                                   miopen_tensor_layout_nhwc>>();
+    run_test<gpu_reference_conv_2d<miopen::conv::Direction::BackwardWeights,
+                                   float,
+                                   miopen_tensor_layout_nhwc>>();
+    run_test<gpu_reference_conv_2d<miopen::conv::Direction::BackwardWeights,
+                                   half_float::half,
+                                   miopen_tensor_layout_nhwc>>();
+    run_test<gpu_reference_conv_2d<miopen::conv::Direction::BackwardWeights,
+                                   bfloat16,
+                                   miopen_tensor_layout_nhwc>>();
+
+    // 3d NDHWC
+    run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
+                                   float,
+                                   miopen_tensor_layout_ndhwc>>();
+    run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
+                                   half_float::half,
+                                   miopen_tensor_layout_ndhwc>>();
+    run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
+                                   bfloat16,
+                                   miopen_tensor_layout_ndhwc>>();
+    run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardData,
+                                   float,
+                                   miopen_tensor_layout_ndhwc>>();
+    run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardData,
+                                   half_float::half,
+                                   miopen_tensor_layout_ndhwc>>();
+    run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardData,
+                                   bfloat16,
+                                   miopen_tensor_layout_ndhwc>>();
+    run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardWeights,
+                                   float,
+                                   miopen_tensor_layout_ndhwc>>();
+    run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardWeights,
+                                   half_float::half,
+                                   miopen_tensor_layout_ndhwc>>();
+    run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardWeights,
+                                   bfloat16,
+                                   miopen_tensor_layout_ndhwc>>();
 }

@@ -115,6 +115,8 @@ struct ProblemDescription
 
     bool IsLayoutDefault() const;
 
+    bool IsLayoutNHWC() const;
+
     template <class Self>
     static void Visit(Self&& self, std::function<void(int, std::string)> f)
     {
