@@ -28,6 +28,7 @@
 
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
+#include <miopen/tensor_layout.hpp>
 
 #include <sstream>
 
