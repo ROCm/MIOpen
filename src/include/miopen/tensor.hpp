@@ -186,11 +186,6 @@ struct TensorDescriptor : miopenTensorDescriptor
 
     std::string ComputeLayout(const std::string& labels)
     {
-        //std::cout << "lens: ";
-        //printVector(lens);
-        //std::cout << "Strides: ";
-        //printVector(strides);
-
         auto valid_layouts = compute_valid_layouts(strides, lens, labels);
         std::string valid_layout;
         if(std::find(valid_layouts.begin(), valid_layouts.end(), "NCHW") != valid_layouts.end())
@@ -206,7 +201,6 @@ struct TensorDescriptor : miopenTensorDescriptor
         {
             valid_layout = valid_layouts[0];
         }
-        //std::cout << "picked: " << valid_layout << std::endl;
         return valid_layout;
     }
 
