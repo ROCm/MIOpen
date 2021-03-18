@@ -519,6 +519,7 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
                                     const bool disableConfigOverrideFromEnv) const
 {
     const auto n_groups = config.n_groups;
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static bool IsWarned;
     if(!IsWarned)
     {
