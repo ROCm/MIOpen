@@ -314,6 +314,7 @@ struct cbna_fusion_driver : test_driver
 
     void run()
     {
+        // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
         static bool ranonce = false;
 
         switch(amode)

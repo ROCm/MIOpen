@@ -50,7 +50,8 @@ namespace debug {
 /// If set to true, then always enable ConvDirectNaive* solver, regardless of environment value
 /// MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_* that control enable/disable of these solvers.
 /// Currently used during driver using naive kernel as gpu reference.
-extern bool AlwaysEnableConvDirectNaive;
+extern bool
+    AlwaysEnableConvDirectNaive; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
 
 } // namespace debug
 
@@ -785,6 +786,24 @@ struct ConvHipImplicitGemmV4R4Fwd : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const PerformanceImplicitGemmV4R4Fwd& config,
                              bool disableConfigOverrideFromEnv = false) const;
+
+    protected:
+    bool IsApplicableMlirCommon(const ConvolutionContext& ctx) const;
+};
+
+class ConvHipImplicitGemmMlirCppFwd : ConvHipImplicitGemmV4R4Fwd
+{
+    using Base = ConvHipImplicitGemmV4R4Fwd;
+
+    public:
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+    bool IsDynamic() const { return Base::IsDynamic(); }
+    float GetWti(const ConvolutionContext& ctx) const { return Base::GetWti(ctx); }
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const
+    {
+        return Base::GetWorkspaceSize(ctx);
+    };
 };
 
 struct PerformanceImplicitGemmV4R4GenXdlopsFwdFp32
@@ -844,6 +863,24 @@ struct ConvHipImplicitGemmV4R4WrW : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const PerformanceImplicitGemmV4R4WrW& config,
                              bool disableConfigOverrideFromEnv = false) const;
+
+    protected:
+    bool IsApplicableMlirCommon(const ConvolutionContext& ctx) const;
+};
+
+class ConvHipImplicitGemmMlirCppWrW : ConvHipImplicitGemmV4R4WrW
+{
+    using Base = ConvHipImplicitGemmV4R4WrW;
+
+    public:
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+    bool IsDynamic() const { return Base::IsDynamic(); }
+    float GetWti(const ConvolutionContext& ctx) const { return Base::GetWti(ctx); }
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const
+    {
+        return Base::GetWorkspaceSize(ctx);
+    };
 };
 
 struct PerformanceImplicitGemmXdlops : Serializable<PerformanceImplicitGemmXdlops>
@@ -1235,6 +1272,24 @@ struct ConvHipImplicitGemmBwdDataV1R1 : SolverBase<ConvolutionContext>
                              const PerformanceImplicitGemmBwdDataV1R1& config,
                              bool disableConfigOverrideFromEnv = false) const;
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const;
+
+    protected:
+    bool IsApplicableMlirCommon(const ConvolutionContext& ctx) const;
+};
+
+class ConvHipImplicitGemmMlirCppBwd : ConvHipImplicitGemmBwdDataV1R1
+{
+    using Base = ConvHipImplicitGemmBwdDataV1R1;
+
+    public:
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+    bool IsDynamic() const { return Base::IsDynamic(); }
+    float GetWti(const ConvolutionContext& ctx) const { return Base::GetWti(ctx); }
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const
+    {
+        return Base::GetWorkspaceSize(ctx);
+    };
 };
 
 struct ConvHipImplicitGemmBwdDataV4R1 : SolverBase<ConvolutionContext>
