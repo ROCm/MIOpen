@@ -2,7 +2,7 @@
 *
 * MIT License
 *
-* Copyright (c) 2019 Advanced Micro Devices, Inc.
+* Copyright (c) 2021 Advanced Micro Devices, Inc.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -23,44 +23,27 @@
 * SOFTWARE.
 *
 *******************************************************************************/
-#ifndef MIOPEN_GUARD_MLOPEN_HIP_BUILD_UTILS_HPP
-#define MIOPEN_GUARD_MLOPEN_HIP_BUILD_UTILS_HPP
+#ifndef MIOPEN_GUARD_MLIR_BUILD_HPP
+#define MIOPEN_GUARD_MLIR_BUILD_HPP
 
 #include <miopen/config.h>
+#if MIOPEN_USE_MLIR
+
 #include <miopen/target_properties.hpp>
-#include <miopen/kernel.hpp>
 #include <miopen/tmp_dir.hpp>
-#include <miopen/write_file.hpp>
+#include <boost/filesystem/path.hpp>
 #include <boost/optional.hpp>
 #include <string>
 
 namespace miopen {
 
-boost::filesystem::path HipBuild(boost::optional<miopen::TmpDir>& tmp_dir,
-                                 const std::string& filename,
-                                 std::string src,
-                                 std::string params,
-                                 const TargetProperties& target,
-                                 bool sources_already_reside_on_filesystem = false);
-
-void bin_file_to_str(const boost::filesystem::path& file, std::string& buf);
-
-struct external_tool_version_t
-{
-    int major = -1;
-    int minor = -1;
-    int patch = -1;
-    friend bool operator>(const external_tool_version_t& lhs, const external_tool_version_t& rhs);
-    friend bool operator<(const external_tool_version_t& lhs, const external_tool_version_t& rhs);
-    friend bool operator>=(const external_tool_version_t& lhs, const external_tool_version_t& rhs);
-    friend bool operator<=(const external_tool_version_t& lhs, const external_tool_version_t& rhs);
-};
-
-external_tool_version_t HipCompilerVersion();
-
-bool IsHccCompiler();
-bool IsHipClangCompiler();
+boost::filesystem::path MlirBuildViaHip(boost::optional<TmpDir>& tmp_dir,
+                                        const std::string& filename,
+                                        const std::string& src,
+                                        const std::string& params,
+                                        const TargetProperties& target);
 
 } // namespace miopen
 
-#endif
+#endif // MIOPEN_USE_MLIR
+#endif // MIOPEN_GUARD_MLIR_BUILD_HPP
