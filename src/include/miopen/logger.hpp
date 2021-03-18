@@ -199,7 +199,7 @@ namespace debug {
 /// by MIOPEN_LOG_NQ* macros (that ignore this switch).
 ///
 /// WARNING: This switch is not intended for use in multi-threaded applications.
-extern bool LoggingQuiet;
+extern bool LoggingQuiet; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
 
 } // namespace debug
 
