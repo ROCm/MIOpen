@@ -67,6 +67,7 @@ std::string tensor_layout_to_string(tensor_layout_t layout)
 
 static int gen_rand_integer()
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static int inited = 0;
     if(inited == 0)
     {

@@ -153,7 +153,7 @@ void ProblemDescription::Serialize(std::ostream& stream) const
     stream << sep << PrintDHW('x', GetSpatialDims(), GetKernelStrideD(), GetKernelStrideH(), GetKernelStrideW());
     stream << sep << PrintDHW('x', GetSpatialDims(), GetDilationD(), GetDilationH(), GetDilationW());
     stream << sep << GetBias();
-    if ((GetInLayout() == "NCHW" && GetWeightsLayout() == "NCHW" && GetOutLayout() == "NCHW") 
+    if ((GetInLayout() == "NCHW" && GetWeightsLayout() == "NCHW" && GetOutLayout() == "NCHW")
         || (GetInLayout() == "NCDHW" && GetWeightsLayout() == "NCDHW" && GetOutLayout() == "NCDHW"))
     {
         stream << sep << GetInLayout();
@@ -183,6 +183,18 @@ void ProblemDescription::Serialize(std::ostream& stream) const
     if(!optional.str().empty())
     {
         stream << '_' << optional.str();
+    }
+}
+
+bool ProblemDescription::IsLayoutDefault() const
+{
+    if(GetSpatialDims() == 2)
+    {
+        return (in_layout == "NCHW") && (out_layout == "NCHW") && (weights_layout == "NCHW");
+    }
+    else
+    {
+        return (in_layout == "NCDHW") && (out_layout == "NCDHW") && (weights_layout == "NCDHW");
     }
 }
 

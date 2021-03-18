@@ -189,7 +189,7 @@ struct ProblemDescription
     std::size_t GetInSize() const
     {
         // clang-format off
-        return GetInBatchSize() * GetInChannels() * GetInDepth() * GetInHeight() * 
+        return GetInBatchSize() * GetInChannels() * GetInDepth() * GetInHeight() *
             GetInWidth() * GetInElementSize();
         // clang-format on
     }
@@ -256,7 +256,7 @@ struct ProblemDescription
     std::size_t GetWeightsSize() const
     {
         // clang-format off
-        return GetInChannels() * GetOutChannels() * GetWeightsDepth() * GetWeightsHeight() * 
+        return GetInChannels() * GetOutChannels() * GetWeightsDepth() * GetWeightsHeight() *
                GetWeightsWidth() * GetWeightsElementSize();
         // clang-format on
     }
@@ -302,6 +302,8 @@ struct ProblemDescription
         return GetInDataType() == miopenBFloat16 && GetWeightsDataType() == miopenBFloat16 &&
                GetOutDataType() == miopenBFloat16;
     }
+
+    bool IsLayoutDefault() const;
 
     void HeuristicUpdateLayouts();
 

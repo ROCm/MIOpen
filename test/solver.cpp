@@ -114,9 +114,10 @@ class SearchableTestSolver : public solver::SolverBase<ConvolutionContext>
     }
 
     private:
-    static int _serches_done;
+    static int _serches_done; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
 };
 
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
 int SearchableTestSolver::_serches_done = 0;
 
 static solver::ConvSolution FindSolution(const ConvolutionContext& ctx, const std::string& db_path)
