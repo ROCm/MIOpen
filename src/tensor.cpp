@@ -39,7 +39,6 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t, std::initializer_list<std
     : lens(plens), packed(true), type(t)
 {
     this->CalculateStrides();
-    this->SetLayout();
 }
 
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
@@ -48,7 +47,6 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
     : lens(plens), strides(pstrides), type(t)
 {
     packed = (this->GetElementSize() == this->GetElementSpace());
-    this->SetLayout();
 }
 
 TensorDescriptor::TensorDescriptor(miopenDataType_t t, const int* plens, int size)
@@ -57,7 +55,6 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t, const int* plens, int siz
     if(!std::all_of(plens, plens + size, [](int x) { return x >= 0; }))
         MIOPEN_THROW("Invalid length. Length must be greater than 0.");
     this->CalculateStrides();
-    this->SetLayout();
 }
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    const int* plens,
@@ -70,7 +67,6 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
     if(!std::all_of(pstrides, pstrides + size, [](int x) { return x >= 0; }))
         MIOPEN_THROW("Invalid strides. Strides must be greater than 0.");
     packed = (this->GetElementSize() == this->GetElementSpace());
-    this->SetLayout();
 }
 
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
@@ -79,7 +75,6 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
     : lens(std::move(lens_in)), strides(std::move(strides_in)), type(t)
 {
     packed = (this->GetElementSize() == this->GetElementSpace());
-    this->SetLayout();
 }
 
 void TensorDescriptor::CalculateStrides()
