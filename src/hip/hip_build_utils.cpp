@@ -102,7 +102,8 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
                                             std::string src,
                                             std::string params,
                                             const TargetProperties& target,
-                                            const bool testing_mode)
+                                            const bool testing_mode,
+                                            const bool sources_already_reside_on_filesystem)
 {
 #ifdef __linux__
     // Write out the include files
@@ -118,8 +119,13 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
             WriteFile(inc_src, inc_path / inc_file);
         }
     }
-    src += "\nint main() {}\n";
-    WriteFile(src, tmp_dir->path / filename);
+
+    // Sources produced by MLIR-cpp already reside in tmp dir.
+    if(!sources_already_reside_on_filesystem)
+    {
+        src += "\nint main() {}\n";
+        WriteFile(src, tmp_dir->path / filename);
+    }
 
     // cppcheck-suppress unreadVariable
     const LcOptionTargetStrings lots(target);
@@ -261,7 +267,7 @@ HipBuildTest(const std::string& program_name, std::string params, const TargetPr
     std::string source = miopen::GetKernelSrc(program_name);
     try
     {
-        std::ignore = HipBuildImpl(dir, program_name, source, params, target, true);
+        std::ignore = HipBuildImpl(dir, program_name, source, params, target, true, false);
     }
     catch(...)
     {
@@ -294,12 +300,14 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
                                  const std::string& filename,
                                  std::string src,
                                  std::string params,
-                                 const TargetProperties& target)
+                                 const TargetProperties& target,
+                                 const bool sources_already_reside_on_filesystem)
 {
     if(target.Name() == "gfx908")
         if(DetectIfBufferAtomicFaddReturnsFloat(target))
             params += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
-    return HipBuildImpl(tmp_dir, filename, src, params, target, false);
+    return HipBuildImpl(
+        tmp_dir, filename, src, params, target, false, sources_already_reside_on_filesystem);
 }
 
 void bin_file_to_str(const boost::filesystem::path& file, std::string& buf)
