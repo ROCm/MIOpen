@@ -238,29 +238,6 @@ ComputeDynamicIGemmForwardKernelArgs<solver::TunableImplicitGemmGTCDynamic_t>(
     return opArgs;
 }
 
-inline float CallImplGemmDynamicForward(const miopen::Handle& handle,
-                                        ConstData_t src,
-                                        Data_t dst,
-                                        ConstData_t wei,
-                                        const std::vector<OpKernelArg>& opShapeArgs,
-                                        const std::vector<KernelInvoke>& kernels)
-{
-    float elapsed = 0.0f;
-    auto kernel   = kernels[0];
-    std::vector<OpKernelArg> opArgs;
-    opArgs.emplace_back(src);
-    opArgs.emplace_back(wei);
-    opArgs.emplace_back(dst);
-
-    opArgs.insert(opArgs.end(), opShapeArgs.begin(), opShapeArgs.end());
-
-    kernel(opArgs);
-
-    if(handle.IsProfilingEnabled())
-        elapsed += handle.GetKernelTime();
-    return elapsed;
-}
-
 template <typename T>
 static inline InvokerFactory MakeImplGemmDynamicForwardInvokerFactory(const ConvolutionContext& ctx,
                                                                       const T& cfg)
@@ -271,21 +248,20 @@ static inline InvokerFactory MakeImplGemmDynamicForwardInvokerFactory(const Conv
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
             decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors     = data_ctx.tensors;
-            auto kernel             = handle.Run(kernels[0]);
+            const auto k            = handle.Run(kernels[0]);
 
-            std::vector<KernelInvoke> ks;
-            std::transform(kernels.begin(),
-                           kernels.end(),
-                           std::back_inserter(ks),
-                           [&](const Kernel& k) { return handle.Run(k); });
-            float elapsed = 0;
-            elapsed       = CallImplGemmDynamicForward(
-                handle, tensors.in, tensors.out, tensors.w, opShapeArgs, ks);
-            if(handle.IsProfilingEnabled())
-            {
-                handle.ResetKernelTime();
-                handle.AccumKernelTime(elapsed);
-            }
+            std::vector<OpKernelArg> opArgs;
+            opArgs.reserve(3 + opShapeArgs.size()); // Avoids vector resize.
+            opArgs.emplace_back(tensors.in);
+            opArgs.emplace_back(tensors.w);
+            opArgs.emplace_back(tensors.out);
+
+            std::transform(opShapeArgs.begin(),
+                           opShapeArgs.end(),
+                           std::back_inserter(opArgs),
+                           [](const OpKernelArg& arg) { return arg; });
+
+            k(opArgs);
         };
     };
 }
