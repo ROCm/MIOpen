@@ -153,7 +153,7 @@ def reboot(){
 ///     For the OpenCL backend, "Clang" implies the system x86 compiler.
 ///   * "GCC" is the default for OpenCL backend.
 ///   * The default compiler is usually not specified.
-/// BuildType := { Release | Debug | Install } [ BuildTypeModifier ]
+/// BuildType := { Release* | Debug | Install } [ BuildTypeModifier ]
 ///   * BuildTypeModifier := { COMGR | Embedded | Static | Normal-Find | Fast-Find
 ///                            MLIR | Tensile | Tensile-Latest | Package | ... }
 /// TestSet := { All | Smoke* } [ Codecov ]
@@ -255,7 +255,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Fp32 OpenCL Release') {
+                stage('Fp32 OpenCL') {
                     agent{ label rocmnode("vega") }
                     steps{
                         script{
@@ -273,7 +273,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Fp32 Hip Release /opt/rocm') {
+                stage('Fp32 Hip /opt/rocm') {
                     agent{ label rocmnode("vega") }
                     steps{
                         script{
@@ -415,7 +415,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Fp32 Hip Release Static') {
+                stage('Fp32 Hip Static') {
                     agent{ label rocmnode("vega") }
                     environment{
                         cmd = """
@@ -447,7 +447,7 @@ pipeline {
         }
         stage("Aux tests 2"){
             parallel{
-                stage('Fp32 Hip Release Normal-Find') {
+                stage('Fp32 Hip Normal-Find') {
                     agent{ label rocmnode("vega") }
                     environment{
                         cmd = """
@@ -476,7 +476,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Fp32 Hip Release Fast-Find') {
+                stage('Fp32 Hip Fast-Find') {
                     agent{ label rocmnode("vega") }
                     environment{
                         cmd = """
@@ -505,7 +505,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Fp32 Hip Release') {
+                stage('Fp32 Hip') {
                     agent{ label rocmnode("vega") }
                     steps{
                         script{
@@ -523,7 +523,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Fp32 Hip Release MLIR') {
+                stage('Fp32 Hip MLIR') {
                     agent{ label rocmnode("vega") }
                     environment{
                         cmd = """
@@ -555,7 +555,7 @@ pipeline {
         }
         stage("Smoke Fp16/Bf16/Int8"){
             parallel{
-                stage('Fp16 Hip Release Vega20 /opt/rocm') {
+                stage('Fp16 Hip Vega20 /opt/rocm') {
                     agent{ label rocmnode("vega20") }
                     steps{
                         script{
@@ -573,7 +573,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Fp16 OpenCL Release Vega20') {
+                stage('Fp16 OpenCL Vega20') {
                     agent{ label rocmnode("vega20") }
                     steps{
                         script{
@@ -591,7 +591,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Int8 OpenCL Release Vega20') {
+                stage('Int8 OpenCL Vega20') {
                     agent{ label rocmnode("vega20") }
                     steps{
                         script{
@@ -609,7 +609,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Bf16 Hip Release Vega20 /opt/rocm') {
+                stage('Bf16 Hip Vega20 /opt/rocm') {
                     agent{ label rocmnode("vega20") }
                     steps{
                         script{
@@ -685,7 +685,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Int8 Hip Release All Vega20 /opt/rocm') {
+                stage('Int8 Hip All Vega20 /opt/rocm') {
                     agent{ label rocmnode("vega20") }
                     steps{
                         script{
@@ -755,7 +755,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Fp32 Hip Release All gfx908') {
+                stage('Fp32 Hip All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
@@ -848,7 +848,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Fp32 Hip Release All Vega20') {
+                stage('Fp32 Hip All Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
@@ -880,7 +880,7 @@ pipeline {
         }
         stage("MIOpenTensile"){
             parallel{
-                stage('Fp32 Hip Release Tensile All Vega20') {
+                stage('Fp32 Hip Tensile All Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
@@ -908,7 +908,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Fp32 Hip Release Tensile All gfx908') {
+                stage('Fp32 Hip Tensile All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
@@ -936,7 +936,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Fp32 Hip Release Tensile-Latest All Vega20') {
+                stage('Fp32 Hip Tensile-Latest All Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
@@ -964,7 +964,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Fp32 Hip Release Tensile-Latest All gfx908') {
+                stage('Fp32 Hip Tensile-Latest All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
@@ -996,7 +996,7 @@ pipeline {
         }
         stage("Packages"){
             parallel {
-                stage('OpenCL Release Package') {
+                stage('OpenCL Package') {
                     agent{ label rocmnode("rocmtest") }
                     steps{
                         script{
@@ -1014,7 +1014,7 @@ pipeline {
                         }
                     }
                 }
-                stage("HIP Release Package /opt/rocm"){
+                stage("HIP Package /opt/rocm"){
                     agent{ label rocmnode("rocmtest") }
                     steps{
                         script{
