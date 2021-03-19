@@ -1,17 +1,5 @@
 def rocmnode(name) {
-    def node_name = 'rocmtest'
-    if(name == 'vega') {
-        node_name = 'rocmtest && vega';
-    } else if(name == 'vega10') {
-        node_name = 'rocmtest && vega10';
-    } else if(name == 'vega20') {
-        node_name = 'rocmtest && vega20';
-    } else if(name == 'gfx908') {
-        node_name = 'gfx908';
-    } else {
-        node_name = name
-    }
-    return node_name
+    return 'rocmtest && ' + name
 }
 
 def show_node_info() {
@@ -172,7 +160,7 @@ pipeline {
         stage("Static checks"){
             parallel{
                 stage('Hip Tidy') {
-                    agent{  label rocmnode("rocmtest") }
+                    agent{  label rocmnode("nogpu") }
                     environment{
                         cmd = "rm -rf build; mkdir build; cd build; CXX='/opt/rocm/llvm/bin/clang++' cmake -DMIOPEN_BACKEND=HIP -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
                     }
@@ -190,7 +178,7 @@ pipeline {
                     }
                 }
                 stage('OpenCL Tidy') {
-                    agent{  label rocmnode("rocmtest") }
+                    agent{  label rocmnode("nogpu") }
                     environment{
                         cmd = "rm -rf build; mkdir build; cd build; CXX='clang++-3.8' cmake -DMIOPEN_BACKEND=OpenCL -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
                     }
@@ -208,7 +196,7 @@ pipeline {
                     }
                 }
                 stage('Clang Format') {
-                    agent{ label rocmnode("rocmtest") }
+                    agent{ label rocmnode("nogpu") }
                     environment{
                         cmd = "find . -iname \'*.h\' \
                                 -o -iname \'*.hpp\' \
@@ -343,7 +331,7 @@ pipeline {
         stage("Smoke Aux 1"){
             parallel{
                 stage('Fp32 HipNoGPU Debug') {
-                    agent{  label rocmnode("rocmtest") }
+                    agent{  label rocmnode("nogpu") }
                     environment{
                         cmd = """
                             ulimit -c unlimited
@@ -997,7 +985,7 @@ pipeline {
         stage("Packages"){
             parallel {
                 stage('OpenCL Package') {
-                    agent{ label rocmnode("rocmtest") }
+                    agent{ label rocmnode("nogpu") }
                     steps{
                         script{
                             try{
@@ -1015,7 +1003,7 @@ pipeline {
                     }
                 }
                 stage("HIP Package /opt/rocm"){
-                    agent{ label rocmnode("rocmtest") }
+                    agent{ label rocmnode("nogpu") }
                     steps{
                         script{
                             try{
