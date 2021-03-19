@@ -340,7 +340,7 @@ pipeline {
                 }
             }
         }
-        stage("Aux tests 1"){
+        stage("Smoke Aux 1"){
             parallel{
                 stage('Fp32 HipNoGPU Debug') {
                     agent{  label rocmnode("rocmtest") }
@@ -445,7 +445,7 @@ pipeline {
                 }
             }
         }
-        stage("Aux tests 2"){
+        stage("Smoke Aux 2"){
             parallel{
                 stage('Fp32 Hip Normal-Find') {
                     agent{ label rocmnode("vega") }
