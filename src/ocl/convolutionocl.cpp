@@ -1309,6 +1309,11 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                     : std::vector<miopen::solver::ConvSolution>{};
             const auto fft = !use_winograd_only ? FindFftSolutions(ctx, invoke_ctx)
                                                 : std::vector<miopen::solver::ConvSolution>{};
+#if MIOPEN_USE_GEMM
+            const auto gemm = (!use_winograd_only && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
+                                  ? FindAllGemmSolutions(ctx, invoke_ctx)
+                                  : std::vector<miopen::solver::ConvSolution>{};
+#endif
 
             // Precompile
             {
@@ -1318,6 +1323,9 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 AppendPointersToElements(direct, all);
                 AppendPointersToElements(implictgemm, all);
                 AppendPointersToElements(fft, all);
+#if MIOPEN_USE_GEMM
+                AppendPointersToElements(gemm, all);
+#endif
                 PrecompileSolutions(handle, all);
             }
 
@@ -1347,15 +1355,12 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                              invoke_ctx,
                              record);
 #if MIOPEN_USE_GEMM
-            if(!use_winograd_only && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
-            { // GEMM based
-                ValidateGroupCount(dxDesc, wDesc, *this);
-
-                const auto all            = FindAllGemmSolutions(ctx, invoke_ctx);
-                const auto algorithm_name = AlgorithmName{"miopenConvolutionBwdDataAlgoGEMM"};
-                PrecompileSolutions(handle, all);
-                EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
-            }
+            EvaluateInvokers(handle,
+                             gemm,
+                             AlgorithmName{"miopenConvolutionBwdDataAlgoGEMM"},
+                             network_config,
+                             invoke_ctx,
+                             record);
 #endif
         });
     }
