@@ -1,4 +1,3 @@
-
 def rocmnode(name) {
     def node_name = 'rocmtest'
     if(name == 'vega') {
@@ -147,8 +146,7 @@ def reboot(){
 ///
 /// The only mandatory elements are Backend and BuildType; others are optional.
 ///
-/// DataType := { Half | BF16 | Int8 | FP32* }
-///   * "FP32" is the default and usually not specified.
+/// DataType := { Fp16 | Bf16 | Int8 | Fp32 }
 /// Backend := { Hip | OpenCL | HipNoGPU}
 /// Compiler := { Clang* | GCC* }
 ///   * "Clang" is the default for the Hip backend, and implies hip-clang compiler.
@@ -171,10 +169,9 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     stages{
-        // Run all static analysis tests
         stage("Static checks"){
             parallel{
-                stage('Clang Hip Tidy') {
+                stage('Hip Tidy') {
                     agent{  label rocmnode("rocmtest") }
                     environment{
                         cmd = "rm -rf build; mkdir build; cd build; CXX='/opt/rocm/llvm/bin/clang++' cmake -DMIOPEN_BACKEND=HIP -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
@@ -192,7 +189,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Clang OpenCL Tidy') {
+                stage('OpenCL Tidy') {
                     agent{  label rocmnode("rocmtest") }
                     environment{
                         cmd = "rm -rf build; mkdir build; cd build; CXX='clang++-3.8' cmake -DMIOPEN_BACKEND=OpenCL -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
@@ -238,10 +235,9 @@ pipeline {
                 }
             }
         }
-        // Run quick fp32 tests
-        stage("Fast full precision"){
+        stage("Smoke Fp32"){
             parallel{
-               stage('OpenCL Debug') {
+               stage('Fp32 OpenCL Debug') {
                     agent{ label rocmnode("vega") }
                     steps{
                         script{
@@ -259,7 +255,7 @@ pipeline {
                         }
                     }
                 }
-                stage('OpenCL Release') {
+                stage('Fp32 OpenCL Release') {
                     agent{ label rocmnode("vega") }
                     steps{
                         script{
@@ -277,7 +273,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Hip Release /opt/rocm') {
+                stage('Fp32 Hip Release /opt/rocm') {
                     agent{ label rocmnode("vega") }
                     steps{
                         script{
@@ -295,7 +291,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Hip Debug') {
+                stage('Fp32 Hip Debug') {
                     agent{ label rocmnode("vega") }
                     environment{
                         cmd = """
@@ -324,7 +320,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Hip Debug gfx908 /opt/rocm') {
+                stage('Fp32 Hip Debug gfx908 /opt/rocm') {
                     agent{ label rocmnode("gfx908") }
                     steps{
                         script{
@@ -346,7 +342,7 @@ pipeline {
         }
         stage("Aux tests 1"){
             parallel{
-                stage('HipNoGPU Debug') {
+                stage('Fp32 HipNoGPU Debug') {
                     agent{  label rocmnode("rocmtest") }
                     environment{
                         cmd = """
@@ -362,7 +358,7 @@ pipeline {
                         buildHipClangJob('/opt/rocm/llvm/bin/clang++', env4make: "MIOPEN_LOG_LEVEL=5 MIOPEN_COMPILE_PARALLEL_LEVEL=1", cmd: cmd)
                     }
                 }
-                stage('Hip Debug COMGR') {
+                stage('Fp32 Hip Debug COMGR') {
                     agent{ label rocmnode("vega") }
                     environment{
                         cmd = """
@@ -390,7 +386,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Hip Debug Embedded Vega20') {
+                stage('Fp32 Hip Debug Embedded Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
@@ -419,7 +415,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Hip Release Static') {
+                stage('Fp32 Hip Release Static') {
                     agent{ label rocmnode("vega") }
                     environment{
                         cmd = """
@@ -451,7 +447,7 @@ pipeline {
         }
         stage("Aux tests 2"){
             parallel{
-                stage('Hip Release Normal-Find') {
+                stage('Fp32 Hip Release Normal-Find') {
                     agent{ label rocmnode("vega") }
                     environment{
                         cmd = """
@@ -480,7 +476,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Hip Release Fast-Find') {
+                stage('Fp32 Hip Release Fast-Find') {
                     agent{ label rocmnode("vega") }
                     environment{
                         cmd = """
@@ -509,7 +505,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Hip Release') {
+                stage('Fp32 Hip Release') {
                     agent{ label rocmnode("vega") }
                     steps{
                         script{
@@ -527,7 +523,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Hip Release MLIR') {
+                stage('Fp32 Hip Release MLIR') {
                     agent{ label rocmnode("vega") }
                     environment{
                         cmd = """
@@ -557,11 +553,9 @@ pipeline {
                 }
             }
         }
-
-        // Run fp16, bfp16, and int8 quick tests
-        stage("Fast low precision"){
+        stage("Smoke Fp16/Bf16/Int8"){
             parallel{
-                stage('Half Hip Release Vega20 /opt/rocm') {
+                stage('Fp16 Hip Release Vega20 /opt/rocm') {
                     agent{ label rocmnode("vega20") }
                     steps{
                         script{
@@ -579,7 +573,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Half OpenCL Release Vega20') {
+                stage('Fp16 OpenCL Release Vega20') {
                     agent{ label rocmnode("vega20") }
                     steps{
                         script{
@@ -615,8 +609,7 @@ pipeline {
                         }
                     }
                 }
-
-                stage('BF16 Hip Release Vega20 /opt/rocm') {
+                stage('Bf16 Hip Release Vega20 /opt/rocm') {
                     agent{ label rocmnode("vega20") }
                     steps{
                         script{
@@ -634,8 +627,7 @@ pipeline {
                         }
                     }
                 }
-
-                stage('BF16 Hip Debug gfx908 /opt/rocm') {
+                stage('Bf16 Hip Debug gfx908 /opt/rocm') {
                     agent{ label rocmnode("gfx908") }
                     steps{
                         script{
@@ -653,7 +645,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Half Hip Debug gfx908 /opt/rocm') {
+                stage('Fp16 Hip Debug gfx908 /opt/rocm') {
                     agent{ label rocmnode("gfx908") }
                     steps{
                         script{
@@ -673,11 +665,9 @@ pipeline {
                 }
             }
         }
-
         stage("Full tests I"){
             parallel{
-
-                stage('OpenCL Debug + Codecov') {
+                stage('Fp32 OpenCL Debug + Codecov') {
                     agent{ label rocmnode("vega") }
                     steps{
                         script{
@@ -695,7 +685,6 @@ pipeline {
                         }
                     }
                 }
-
                 stage('Int8 Hip Release All Vega20 /opt/rocm') {
                     agent{ label rocmnode("vega20") }
                     steps{
@@ -714,8 +703,7 @@ pipeline {
                         }
                     }
                 }
-
-                stage('BF16 Hip Install All gfx908') {
+                stage('Bf16 Hip Install All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
@@ -747,10 +735,9 @@ pipeline {
                 }
             }
         }
-
         stage("Full tests II"){
             parallel{
-                stage('OpenCL Install All') {
+                stage('Fp32 OpenCL Install All') {
                     agent{ label rocmnode("vega") }
                     steps{
                         script{
@@ -768,8 +755,7 @@ pipeline {
                         }
                     }
                 }
-
-                stage('Hip Release All gfx908') {
+                stage('Fp32 Hip Release All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
@@ -797,8 +783,7 @@ pipeline {
                         }
                     }
                 }
-
-                stage('Half Hip Install All gfx908') {
+                stage('Fp16 Hip Install All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
@@ -830,10 +815,9 @@ pipeline {
                 }
             }
         }
-
         stage("Full tests III"){
             parallel{
-                stage('Half Hip Install All Vega20') {
+                stage('Fp16 Hip Install All Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
@@ -864,8 +848,7 @@ pipeline {
                         }
                     }
                 }
-
-                stage('Hip Release All Vega20') {
+                stage('Fp32 Hip Release All Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
@@ -876,7 +859,6 @@ pipeline {
                             CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_TEST_ALL=On -DMIOPEN_TEST_FLAGS=--disable-verification-cache ..
                             CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
                         """
-
                     }
                     steps{
                         script{
@@ -896,10 +878,9 @@ pipeline {
                 }
             }
         }
-
         stage("MIOpenTensile"){
             parallel{
-                stage('Hip Release Tensile All Vega20') {
+                stage('Fp32 Hip Release Tensile All Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
@@ -927,8 +908,7 @@ pipeline {
                         }
                     }
                 }
-
-                stage('Hip Release Tensile All gfx908') {
+                stage('Fp32 Hip Release Tensile All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
@@ -956,8 +936,7 @@ pipeline {
                         }
                     }
                 }
-
-                stage('Hip Release Tensile-Latest All Vega20') {
+                stage('Fp32 Hip Release Tensile-Latest All Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
@@ -985,8 +964,7 @@ pipeline {
                         }
                     }
                 }
-
-                stage('Hip Release Tensile-Latest All gfx908') {
+                stage('Fp32 Hip Release Tensile-Latest All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
@@ -1016,8 +994,6 @@ pipeline {
                 }
             }
         }
-
-       // Run package building
         stage("Packages"){
             parallel {
                 stage('OpenCL Release Package') {
