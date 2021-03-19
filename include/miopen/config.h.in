@@ -48,6 +48,7 @@
 #cmakedefine01 MIOPEN_DISABLE_SYSDB
 #cmakedefine01 MIOPEN_LOG_FUNC_TIME_ENABLE
 #cmakedefine01 MIOPEN_ENABLE_SQLITE_BACKOFF
+#cmakedefine01 MIOPEN_USE_MLIR
 
 // "_PACKAGE_" to avoid name contentions: the macros like
 // HIP_VERSION_MAJOR are defined in hip_version.h.
