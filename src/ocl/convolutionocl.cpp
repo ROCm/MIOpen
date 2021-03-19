@@ -168,6 +168,7 @@ std::vector<miopen::solver::ConvSolution>
 ConvolutionDescriptor::FindDataGemmSolutions(const ConvolutionContext& ctx,
                                              const AnyInvokeParams& invoke_ctx) const
 {
+#if MIOPEN_USE_GEMM
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
         return {};
     try
@@ -179,6 +180,9 @@ ConvolutionDescriptor::FindDataGemmSolutions(const ConvolutionContext& ctx,
         MIOPEN_LOG_WE(ex.what());
         return {};
     }
+#else
+    return {};
+#endif
 }
 
 std::vector<miopen::solver::ConvSolution>
@@ -1248,6 +1252,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     *returnedAlgoCount = 0;
 
     AutoEnableProfiling enableProfiling{handle};
+    ValidateGroupCount(dxDesc, wDesc, *this);
 
     const ProblemDescription problem(dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData);
     std::vector<PerfField> perf_db;
@@ -1297,39 +1302,41 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 }();
             ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
             bufs.SetBwd(dx, w, dy);
+            const auto gemm = !use_winograd_only ? FindDataGemmSolutions(ctx, invoke_ctx)
+                                                 : std::vector<miopen::solver::ConvSolution>{};
             const auto direct =
                 !use_winograd_only
                     ? FindDataDirectSolutions(
                           handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, bufs, invoke_ctx)
                     : std::vector<miopen::solver::ConvSolution>{};
-            const auto implictgemm =
+            const auto igemm =
                 !use_winograd_only
                     ? FindDataImplicitGemmSolutions(
                           handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, bufs, invoke_ctx)
                     : std::vector<miopen::solver::ConvSolution>{};
             const auto fft = !use_winograd_only ? FindFftSolutions(ctx, invoke_ctx)
                                                 : std::vector<miopen::solver::ConvSolution>{};
-#if MIOPEN_USE_GEMM
-            const auto gemm = (!use_winograd_only && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
-                                  ? FindAllGemmSolutions(ctx, invoke_ctx)
-                                  : std::vector<miopen::solver::ConvSolution>{};
-#endif
 
             // Precompile
             {
                 std::vector<const miopen::solver::ConvSolution*> all;
-                all.reserve(winograd.size() + direct.size() + implictgemm.size() + fft.size());
+                all.reserve(gemm.size() + winograd.size() + direct.size() + igemm.size() +
+                            fft.size());
+                AppendPointersToElements(gemm, all);
                 AppendPointersToElements(winograd, all);
                 AppendPointersToElements(direct, all);
-                AppendPointersToElements(implictgemm, all);
+                AppendPointersToElements(igemm, all);
                 AppendPointersToElements(fft, all);
-#if MIOPEN_USE_GEMM
-                AppendPointersToElements(gemm, all);
-#endif
                 PrecompileSolutions(handle, all);
             }
 
             // Evaluate Invokers
+            EvaluateInvokers(handle,
+                             gemm,
+                             AlgorithmName{"miopenConvolutionBwdDataAlgoGEMM"},
+                             network_config,
+                             invoke_ctx,
+                             record);
             EvaluateInvokers(handle,
                              winograd,
                              AlgorithmName{"miopenConvolutionBwdDataAlgoWinograd"},
@@ -1343,7 +1350,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                              invoke_ctx,
                              record);
             EvaluateInvokers(handle,
-                             implictgemm,
+                             igemm,
                              AlgorithmName{"miopenConvolutionBwdDataAlgoImplicitGEMM"},
                              network_config,
                              invoke_ctx,
@@ -1354,14 +1361,6 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                              network_config,
                              invoke_ctx,
                              record);
-#if MIOPEN_USE_GEMM
-            EvaluateInvokers(handle,
-                             gemm,
-                             AlgorithmName{"miopenConvolutionBwdDataAlgoGEMM"},
-                             network_config,
-                             invoke_ctx,
-                             record);
-#endif
         });
     }
 
