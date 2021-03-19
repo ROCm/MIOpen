@@ -65,14 +65,6 @@ std::string tensor_layout_to_string(tensor_layout_t layout)
     return layout_string;
 }
 
-enum tensor_layout_t
-{
-    miopen_tensor_layout_nchw,
-    miopen_tensor_layout_ncdhw,
-    miopen_tensor_layout_nhwc,
-    miopen_tensor_layout_ndhwc,
-};
-
 std::string tensor_layout_to_string(tensor_layout_t layout)
 {
     std::string layout_string("N/A");

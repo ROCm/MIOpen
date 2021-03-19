@@ -184,7 +184,7 @@ tensor<Tout> get_output_tensor(const miopen::ConvolutionDescriptor& filter,
 {
 
     std::string yLayout =
-        out_layout == ""
+        out_layout.empty()
             ? input.desc.GetLayout(miopen::tensor_layout_get_default(input.desc.GetSize()))
             : out_layout;
     return tensor<Tout>{filter.GetForwardOutputTensorWithLayout(

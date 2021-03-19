@@ -83,7 +83,7 @@ void ProblemDescription::HeuristicUpdateLayouts()
             weight_layouts.insert(layout);
 
         // If we have found consistent layout among 3 tensors, assign them
-        if((input_layouts.count(layout) == 1) && (weight_layouts.count(layout)) &&
+        if((input_layouts.count(layout) == 1) && (weight_layouts.count(layout) == 1) &&
            (output_layouts.count(layout) == 1))
         {
             in_layout      = layout;
