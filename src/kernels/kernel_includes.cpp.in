@@ -23,7 +23,9 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#ifndef MIOPEN_USE_CLANG_TIDY // Huge generated source
 #include "miopen_kernel_includes.h"
+#endif
 #include <algorithm>
 #include <map>
 #include <miopen/kernel.hpp>
@@ -33,7 +35,11 @@ namespace miopen {
 
 const std::map<std::string, std::string>& kernel_includes()
 {
-    static const std::map<std::string, std::string> data{${INIT_KERNELS}};
+    static const std::map<std::string, std::string> data{
+#ifndef MIOPEN_USE_CLANG_TIDY // Huge generated source
+        ${INIT_KERNELS}
+#endif
+    };
     return data;
 }
 
