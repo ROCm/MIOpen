@@ -53,6 +53,9 @@
 
 #define TEST_DIRECT_SUPPORTED_CONFIG_ONLY (!MIOPEN_USE_ROCBLAS && !MIOPEN_USE_MIOPENTENSILE)
 
+#define WORKAROUND_MI100_ROM37_HIP_COMPILER_CRASH \
+    (HIP_PACKAGE_VERSION_MAJOR == 3 && HIP_PACKAGE_VERSION_MINOR == 7)
+
 #if TEST_DIRECT_SUPPORTED_CONFIG_ONLY
 static inline bool is_direct_fwd_bwd_data_supported(miopen::Handle& handle,
                                                     const miopen::ConvolutionDescriptor convDesc,
@@ -105,23 +108,35 @@ static inline bool is_direct_bwd_wrw_supported(miopen::Handle& handle,
 }
 #endif
 
-static inline bool is_gemm_workspace_valid(miopen::Handle& handle,
-                                           const miopen::ConvolutionDescriptor convDesc,
-                                           const miopen::TensorDescriptor& xDesc,
-                                           const miopen::TensorDescriptor& wDesc,
-                                           const miopen::TensorDescriptor& yDesc)
+#if WORKAROUND_MI100_ROM37_HIP_COMPILER_CRASH
+static inline bool skip_config(miopen::Handle& handle,
+                               const miopen::ConvolutionDescriptor convDesc,
+                               const miopen::TensorDescriptor& xDesc,
+                               const miopen::TensorDescriptor& wDesc,
+                               const miopen::TensorDescriptor& yDesc)
 {
-    bool is_gemmtrans = convDesc.GetSpatialDimension() == 2 &&
-                        std::all_of(wDesc.GetLengths().begin() + 2,
-                                    wDesc.GetLengths().end(),
-                                    [](auto v) { return v == 1; }) &&
-                        miopen::all_of(convDesc.GetConvPads(), [](auto v) { return v == 0; }) &&
-                        miopen::all_of(convDesc.GetConvStrides(), [](auto v) { return v == 2; });
-    auto fwd_get_wksp = convDesc.ForwardGetWorkSpaceSize(handle, wDesc, xDesc, yDesc);
-    return !((is_gemmtrans &&
-              fwd_get_wksp < convDesc.ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc)) ||
-             (!is_gemmtrans && fwd_get_wksp < convDesc.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc)));
+    if(convDesc.mode != miopenConvolution)
+        return false;
+
+    auto ctx =
+        miopen::ConvolutionContext{xDesc, wDesc, yDesc, convDesc, miopen::conv::Direction::Forward};
+
+    ctx.do_search               = false;
+    ctx.save_srch_req           = false;
+    ctx.general_compile_options = "";
+    ctx.disable_perfdb_access   = true;
+    ctx.SetStream(&handle);
+    ctx.SetupFloats();
+    ctx.DetectRocm();
+
+    return ctx.GetStream().GetDeviceName() == "gfx908" && ctx.Is2d() && ctx.IsFp16() &&
+           ctx.IsLayoutDefault() && ctx.use_hip_kernels && ctx.group_counts == 1 &&
+           ctx.batch_sz == 1 && ctx.n_inputs == 192 && ctx.in_height == 28 && ctx.in_width == 28 &&
+           ctx.n_outputs == 1 && ctx.kernel_size_h == 3 && ctx.kernel_size_w == 3 &&
+           ctx.pad_w == 1 && ctx.pad_h == 1 && ctx.kernel_stride_w == 1 &&
+           ctx.kernel_stride_h == 1 && ctx.kernel_dilation_w == 1 && ctx.kernel_dilation_h == 1;
 }
+#endif
 
 struct scalar_gen_random_float
 {
@@ -1913,10 +1928,14 @@ struct conv_driver : test_driver
                                            tensor_elem_gen_checkboard_sign{}(is...);
                 };
 
-                bool skip_forward =
-                    is_int8 &&
-                    !is_gemm_workspace_valid(
-                        get_handle(), filter, input.desc, weights.desc, output.desc);
+                auto ctx = miopen::ConvolutionContext(input.desc,
+                                                      weights.desc,
+                                                      output.desc,
+                                                      filter,
+                                                      miopen::conv::Direction::Forward);
+                ctx.SetStream(&get_handle());
+
+                bool skip_forward = is_int8 && !IsGemmAplicable(ctx);
                 if(skip_forward)
                 {
                     show_command();
@@ -1944,6 +1963,15 @@ struct conv_driver : test_driver
 
                     skip_backward_weights = !is_direct_bwd_wrw_supported(
                         get_handle(), filter, input.desc, weights.desc, output.desc);
+                }
+#endif
+
+#if WORKAROUND_MI100_ROM37_HIP_COMPILER_CRASH
+                if(skip_config(get_handle(), filter, input.desc, weights.desc, output.desc))
+                {
+                    skip_forward          = true;
+                    skip_backward_data    = true;
+                    skip_backward_weights = true;
                 }
 #endif
 

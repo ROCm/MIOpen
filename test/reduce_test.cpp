@@ -50,7 +50,7 @@ static void get_all_indexes(const std::vector<std::size_t>& dimLengths,
 
         if(dim == 0)
         {
-            assert(indexes.size() == 0);
+            assert(indexes.empty());
             assert(dimLengths[dim] > 0);
             for(std::size_t i = 0; i < dimLengths[dim]; i++)
             {
@@ -98,7 +98,7 @@ static std::size_t get_flatten_offset(const std::vector<std::size_t>& lengths,
 {
     std::size_t offset = 0;
 
-    assert(lengths.size() == index.size() && lengths.size() > 0);
+    assert(lengths.size() == index.size() && !index.empty());
 
     int len            = lengths.size();
     std::size_t stride = 1;
@@ -133,13 +133,14 @@ struct verify_reduce_with_indices
     miopenReduceTensorIndices_t indicesOpt;
     miopenIndicesType_t indicesType;
 
-    verify_reduce_with_indices(const miopen::ReduceTensorDescriptor& reduce_,
-                               const tensor<T>& input_,
-                               const tensor<T>& output_,
-                               const tensor<T>& workspace_,
-                               const tensor<int>& indices_,
-                               T alpha_,
-                               T beta_)
+    verify_reduce_with_indices( // NOLINT (hicpp-member-init)
+        const miopen::ReduceTensorDescriptor& reduce_,
+        const tensor<T>& input_,
+        const tensor<T>& output_,
+        const tensor<T>& workspace_,
+        const tensor<int>& indices_,
+        T alpha_,
+        T beta_)
     {
         reduce    = reduce_;
         input     = input_;
@@ -247,6 +248,8 @@ struct verify_reduce_with_indices
     std::tuple<tensor<T>, tensor<int>> cpuImpl() const
     {
         using reduce::ReduceOpFn2;
+        using reduce::PreUnaryOpFn;
+        using reduce::PosUnaryOpFn;
         using reduce::ReduceOpZeroVal;
         using reduce::float_equal_one;
         using reduce::float_equal_zero;
@@ -287,6 +290,11 @@ struct verify_reduce_with_indices
 
         auto opReduce = ReduceOpFn2<compType>(reduceOp);
 
+        std::size_t divider = std::accumulate(
+            toReduceLengths.begin(), toReduceLengths.end(), std::size_t{1}, std::multiplies<>{});
+
+        auto PreUnaryOp = PreUnaryOpFn<compType>(reduceOp, divider);
+
         if(reduceAllDims)
         {
             std::vector<std::vector<std::size_t>> indexes_1;
@@ -302,6 +310,10 @@ struct verify_reduce_with_indices
                 auto src_offset = get_offset_from_index(inStrides, src_index);
 
                 auto currVal = convert_type<compType>(input.data[src_offset]);
+
+                // unary operation before reducing, only needed by AMAX. For MIN/MAX, nothing is
+                // actually done
+                PreUnaryOp(currVal);
 
                 int currIndex = get_flatten_offset(inLengths, src_index);
                 binop_with_nan_check2(nanOpt, opReduce, accuVal, currVal, accuIndex, currIndex);
@@ -361,6 +373,10 @@ struct verify_reduce_with_indices
                     auto src_offset = get_offset_from_index(inStrides, src_index);
 
                     auto currVal = convert_type<compType>(input.data[src_offset]);
+
+                    // unary operation before reducing, only needed by AMAX. For MIN/MAX, nothing is
+                    // actually done
+                    PreUnaryOp(currVal);
 
                     auto currIndex = get_flatten_offset(toReduceLengths, index_2);
                     binop_with_nan_check2(nanOpt, opReduce, accuVal, currVal, accuIndex, currIndex);
@@ -457,12 +473,13 @@ struct verify_reduce_no_indices
     miopenDataType_t compTypeVal;
     miopenNanPropagation_t nanOpt;
 
-    verify_reduce_no_indices(const miopen::ReduceTensorDescriptor& reduce_,
-                             const tensor<T>& input_,
-                             const tensor<T>& output_,
-                             const tensor<T>& workspace_,
-                             T alpha_,
-                             T beta_)
+    verify_reduce_no_indices( // NOLINT (hicpp-member-init)
+        const miopen::ReduceTensorDescriptor& reduce_,
+        const tensor<T>& input_,
+        const tensor<T>& output_,
+        const tensor<T>& workspace_,
+        T alpha_,
+        T beta_)
     {
         reduce    = reduce_;
         input     = input_;
@@ -502,6 +519,8 @@ struct verify_reduce_no_indices
     tensor<T> cpuImpl() const
     {
         using reduce::ReduceOpFn;
+        using reduce::PreUnaryOpFn;
+        using reduce::PosUnaryOpFn;
         using reduce::ReduceOpZeroVal;
         using reduce::float_equal_one;
         using reduce::float_equal_zero;
@@ -541,6 +560,12 @@ struct verify_reduce_no_indices
 
         auto opReduce = ReduceOpFn<compType>(reduceOp);
 
+        std::size_t divider = std::accumulate(
+            toReduceLengths.begin(), toReduceLengths.end(), std::size_t{1}, std::multiplies<>{});
+
+        auto PreUnaryOp = PreUnaryOpFn<compType>(reduceOp, divider);
+        auto PosUnaryOp = PosUnaryOpFn<compType>(reduceOp, divider);
+
         if(reduceAllDims)
         {
             std::vector<std::vector<std::size_t>> indexes_1;
@@ -556,8 +581,12 @@ struct verify_reduce_no_indices
 
                 auto currVal = convert_type<compType>(input.data[src_offset]);
 
+                PreUnaryOp(currVal);
+
                 binop_with_nan_check(nanOpt, opReduce, accuVal, currVal);
             };
+
+            PosUnaryOp(accuVal);
 
             // scale the accumulated value
             if(!float_equal_one(alpha))
@@ -610,8 +639,12 @@ struct verify_reduce_no_indices
 
                     auto currVal = convert_type<compType>(input.data[src_offset]);
 
+                    PreUnaryOp(currVal);
+
                     binop_with_nan_check(nanOpt, opReduce, accuVal, currVal);
                 };
+
+                PosUnaryOp(accuVal);
 
                 // scale the accumulated value
                 if(!float_equal_one(alpha))
@@ -715,30 +748,19 @@ struct reduce_driver : test_driver
 
     std::vector<std::vector<int>> get_toreduce_dims()
     {
-        return {
-            {0},
-            {1},
-            {2},
-            {3},
-            {0, 1},
-            {1, 2},
-            {0, 3},
-            {1, 3},
-            {0, 2},
-            {2, 3},
-            {0, 1, 3},
-            {1, 2, 3},
-            {0, 1, 2, 3},
-        };
+        std::vector<std::vector<int>> tensor_dims = {
+            {0}, {1}, {2}, {3}, {0, 1}, {0, 3}, {0, 2}, {2, 3}, {0, 1, 3}, {1, 2, 3}, {0, 1, 2, 3}};
+
+        return tensor_dims;
     }
 
     reduce_driver()
     {
         add(inLengths, "D", generate_data(get_tensor_lengths()));
         add(toReduceDims, "R", generate_data(get_toreduce_dims()));
-        add(reduceOp, "ReduceOp", generate_data({0, 2}));
+        add(reduceOp, "ReduceOp", generate_data({0, 4, 5, 6, 7}));
         add(compTypeVal, "CompType", generate_data({1}));
-        add(nanOpt, "N", generate_data({0}));
+        add(nanOpt, "N", generate_data({0, 1}));
         add(indicesOpt, "I", generate_data({0, 1}));
 
         add(scales, "scales", generate_data({{1.0f, 0.0f}, {0.5f, 0.5f}}));
@@ -753,8 +775,8 @@ struct reduce_driver : test_driver
 
         if(std::is_same<T, half_float::half>::value)
         {
-            if(reduceOp == static_cast<int>(MIOPEN_REDUCE_TENSOR_MIN) ||
-               reduceOp == static_cast<int>(MIOPEN_REDUCE_TENSOR_MAX))
+            if(reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX ||
+               reduceOp == MIOPEN_REDUCE_TENSOR_AMAX)
                 compTypeVal = static_cast<int>(miopenHalf); // let compType be same as the data type
             else
                 compTypeVal = static_cast<int>(miopenFloat);
@@ -770,6 +792,16 @@ struct reduce_driver : test_driver
         alpha = scales[0];
         beta  = scales[1];
 
+        // The test is ignored if (alpha, beta) is not (1.0f, 0.0f) and reduceOp is not Add/MUL/AVG
+        if(reduceOp != MIOPEN_REDUCE_TENSOR_ADD && reduceOp != MIOPEN_REDUCE_TENSOR_MUL &&
+           reduceOp != MIOPEN_REDUCE_TENSOR_AVG && alpha != 1.0f && beta != 0.0f)
+            return;
+
+        // The test is ignored if indices are requested but the reduceOp is neither MIN nor MAX
+        if(indicesOpt != MIOPEN_REDUCE_TENSOR_NO_INDICES && reduceOp != MIOPEN_REDUCE_TENSOR_MIN &&
+           reduceOp != MIOPEN_REDUCE_TENSOR_MAX && reduceOp != MIOPEN_REDUCE_TENSOR_AMAX)
+            return;
+
         auto outLengths = this->inLengths;
 
         assert(toReduceDims.size() <= outLengths.size());
@@ -777,15 +809,30 @@ struct reduce_driver : test_driver
             assert(toReduceDims[i] < inLengths.size());
 
         // set the lengths of the dimensions to be reduced to 1 to represent the output Tensor
-        for(int i                       = 0; i < toReduceDims.size(); i++)
-            outLengths[toReduceDims[i]] = static_cast<std::size_t>(1);
+        for(const int& toReduceDim : toReduceDims)
+            outLengths[toReduceDim] = static_cast<std::size_t>(1);
 
-        unsigned long max_value =
-            miopen_type<T>{} == miopenHalf ? 13 : miopen_type<T>{} == miopenInt8 ? 127 : 17;
+        unsigned long max_value;
+
+        if(reduceOp == MIOPEN_REDUCE_TENSOR_MUL || reduceOp == MIOPEN_REDUCE_TENSOR_NORM1 ||
+           reduceOp == MIOPEN_REDUCE_TENSOR_NORM2)
+            max_value =
+                miopen_type<T>{} == miopenHalf ? 7 : miopen_type<T>{} == miopenInt8 ? 127 : 11;
+        else
+            max_value =
+                miopen_type<T>{} == miopenHalf ? 13 : miopen_type<T>{} == miopenInt8 ? 127 : 17;
 
         auto gen_value = [&](auto... is) {
             return (tensor_elem_gen_integer{max_value}(is...) *
                     tensor_elem_gen_checkboard_sign{}(is...));
+        };
+
+        if(reduceOp == MIOPEN_REDUCE_TENSOR_NORM1 || reduceOp == MIOPEN_REDUCE_TENSOR_NORM2)
+        {
+            if(toReduceDims.size() == 4)
+                this->tolerance = 80 * 500;
+            else
+                this->tolerance = 80 * 10;
         };
 
         auto inputTensor  = tensor<T>{this->inLengths}.generate(gen_value);

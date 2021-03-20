@@ -55,6 +55,14 @@ add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C ${
 add_custom_target(tests)
 
 set(SKIP_TESTS test_conv3d test_conv3d_bias)
+set(MIOPEN_TEST_NONXDLOPS TRUE)
+if(MIOPEN_TEST_GFX908)
+    set(MIOPEN_TEST_NONXDLOPS FALSE)
+endif()
+
+# The usage is non-trivial, see function add_test_command.
+set(SKIP_ALL_EXCEPT_TESTS dummy)
+set(SKIP_TESTS dummy) # dummy is for REMOVE_DUPLICATES
 set(MIOPEN_TEST_FLOAT_ARG)
 set(MIOPEN_SKIP_CONV3D Off CACHE BOOL "")
 set(MIOPEN_SKIP_CONV2D Off CACHE BOOL "")
@@ -65,19 +73,24 @@ if(MIOPEN_TEST_HALF)
     if(MIOPEN_BACKEND_OPENCL)
         set(SKIP_TESTS test_gru test_rnn_vanilla test_lstm test_conv_igemm_dynamic)
     endif()
-    if(MIOPEN_TEST_GFX908)
-       set(SKIP_TESTS test_immed_conv3d test_fusion_aux test_activation test_lrn_test test_ctc test_conv2d_bias test_cba_inference test_cbna_inference test_pooling2d test_na_train test_na_inference test_bn_aux test_conv_igemm_dynamic $SKIP_TESTS)
-    endif()
     set(MIOPEN_TEST_FLOAT_ARG --half)
 elseif(MIOPEN_TEST_INT8)
     set(SKIP_ALL_EXCEPT_TESTS test_tensor_vec test_tensor_cast test_tensor_trans test_tensor_copy test_tensor_set test_tensor_transform)
     set(MIOPEN_TEST_FLOAT_ARG --int8)
 elseif(MIOPEN_TEST_BFLOAT16)
     set(SKIP_ALL_EXCEPT_TESTS test_conv2d test_tensor_copy test_tensor_set  test_immed_conv2d test_check_numerics_test test_conv_extra test_conv_for_implicit_gemm test_miopen_conv test_deepbench_conv)
+    #set(SKIP_ALL_EXCEPT_TESTS test_conv2d test_tensor_copy test_tensor_set test_tensor_vec test_immed_conv2d test_check_numerics_test)
+    #if(MIOPEN_TEST_GFX908)
+    #    list(APPEND SKIP_ALL_EXCEPT_TESTS test_conv_extra test_conv_for_implicit_gemm test_miopen_conv test_deepbench_conv)
+    #endif()
     set(MIOPEN_TEST_FLOAT_ARG --bfloat16)
 elseif(MIOPEN_TEST_GFX908)
     set(SKIP_TESTS test_main test_tensor_scale test_tensor_set test_tensor_transform test_tensor_vec test_w_supertensor test_dropout test_immed_conv3d test_conv3d test_soft_max test_fusion_aux test_activation test_lrn_test test_ctc test_conv2d_bias test_conv3d_bias test_cba_inference test_cbna_inference test_pooling2d test_na_train test_na_inference test_bn_aux test_conv_igemm_dynamic $SKIP_TESTS)
 endif()
+
+#if(MIOPEN_TEST_GFX908)
+#    list(APPEND SKIP_TESTS test_main test_tensor_scale test_tensor_set test_tensor_transform test_tensor_vec test_w_supertensor test_dropout test_immed_conv3d test_conv3d test_soft_max test_fusion_aux test_activation test_lrn_test test_ctc test_conv2d_bias test_conv3d_bias test_cba_inference test_cbna_inference test_pooling2d test_na_train test_na_inference test_bn_aux test_conv_igemm_dynamic)
+#endif()
 
 if(MIOPEN_SKIP_ALL_BUT_CONV2D)
     set(SKIP_ALL_EXCEPT_TESTS test_conv2d test_conv_group test_conv_igemm_dynamic test_conv_igemm_dynamic_small test_conv_trans test_immed_conv2d)
@@ -97,8 +110,11 @@ if(MIOPEN_TEST_MIOTENSILE)
     list(APPEND SKIP_TESTS test_conv_igemm_dynamic test_conv_igemm_dynamic_small test_conv_for_implicit_gemm)
 endif()
 
+list(REMOVE_DUPLICATES SKIP_TESTS)
+list(REMOVE_DUPLICATES SKIP_ALL_EXCEPT_TESTS)
+
 function(add_test_command NAME EXE)
-    # Restrict the use of SKIP_ALL_EXCEPT_TESTS list in the low-precision and miopentensile tests
+    # Restrict the use of SKIP_ALL_EXCEPT_TESTS list in the Int8, BF16 and MIOpenTensile tests
     if(NOT (NAME IN_LIST SKIP_ALL_EXCEPT_TESTS) AND SKIP_ALL_EXCEPT_TESTS)
         add_test(NAME ${NAME} COMMAND echo skipped)
         set_tests_properties(${NAME} PROPERTIES DISABLED On)
@@ -226,7 +242,7 @@ set_tests_properties(test_sqlite_perfdb test_perfdb
 # add_sanitize_test(type_name.cpp)
 
 function(add_custom_test NAME)
-    set(options SKIP_UNLESS_ALL ALLOW_BFLOAT16 ALLOW_HALF ALLOW_INT8)
+    set(options SKIP_UNLESS_ALL ALLOW_BFLOAT16 ALLOW_HALF ALLOW_INT8 ALLOW_NONXDLOPS)
     set(oneValueArgs)
     set(multiValueArgs)
     cmake_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
@@ -234,11 +250,13 @@ function(add_custom_test NAME)
     # Many custom tests do test only FP32 data type and therefore
     # added only if none of MIOPEN_TEST_HALF, MIOPEN_TEST_INT8, MIOPEN_TEST_BFLOAT16
     # are set, except the test is allowed explicitly.
-    if((NOT (MIOPEN_TEST_INT8 OR MIOPEN_TEST_BFLOAT16 OR MIOPEN_TEST_HALF OR MIOPEN_TEST_MIOTENSILE))
+    # Some tests are xDLOPs specific and should not run on gfx900/906 targets.
+    if((NOT (MIOPEN_TEST_INT8 OR MIOPEN_TEST_BFLOAT16 OR MIOPEN_TEST_HALF OR MIOPEN_TEST_MIOTENSILE OR MIOPEN_TEST_NONXDLOPS))
     OR (MIOPEN_TEST_BFLOAT16 AND ${PARSE_ALLOW_BFLOAT16})
     OR (MIOPEN_TEST_HALF AND ${PARSE_ALLOW_HALF})
     OR (MIOPEN_TEST_INT8 AND ${PARSE_ALLOW_INT8})
-    OR (NOT (MIOPEN_TEST_MIOTENSILE AND (NAME IN_LIST SKIP_TESTS))))
+    OR (MIOPEN_TEST_NONXDLOPS AND ${PARSE_ALLOW_NONXDLOPS})
+    OR (MIOPEN_TEST_MIOTENSILE AND NOT(NAME IN_LIST SKIP_TESTS)))
         add_custom_target(${NAME} ${PARSE_UNPARSED_ARGUMENTS})
         if(NOT PARSE_SKIP_UNLESS_ALL OR MIOPEN_TEST_ALL)
             add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
@@ -247,18 +265,22 @@ function(add_custom_test NAME)
     endif()
 endfunction()
 
-
 function(add_perf_test NAME)
-    set(options SKIP_UNLESS_ALL ALLOW_BFLOAT16 ALLOW_HALF ALLOW_INT8)
+    set(options SKIP_UNLESS_ALL ALLOW_BFLOAT16 ALLOW_HALF ALLOW_INT8 ALLOW_NONXDLOPS)
     set(oneValueArgs)
     set(multiValueArgs)
     cmake_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-    if((NOT (MIOPEN_TEST_INT8 OR MIOPEN_TEST_BFLOAT16 OR MIOPEN_TEST_HALF OR MIOPEN_TEST_MIOTENSILE))
+    # Many custom tests do test only FP32 data type and therefore
+    # added only if none of MIOPEN_TEST_HALF, MIOPEN_TEST_INT8, MIOPEN_TEST_BFLOAT16
+    # are set, except the test is allowed explicitly.
+    # Some tests are xDLOPs specific and should not run on gfx900/906 targets.
+    if((NOT (MIOPEN_TEST_INT8 OR MIOPEN_TEST_BFLOAT16 OR MIOPEN_TEST_HALF OR MIOPEN_TEST_MIOTENSILE OR MIOPEN_TEST_NONXDLOPS))
     OR (MIOPEN_TEST_BFLOAT16 AND ${PARSE_ALLOW_BFLOAT16})
     OR (MIOPEN_TEST_HALF AND ${PARSE_ALLOW_HALF})
     OR (MIOPEN_TEST_INT8 AND ${PARSE_ALLOW_INT8})
-    OR (NOT (MIOPEN_TEST_MIOTENSILE AND (NAME IN_LIST SKIP_TESTS))))
+    OR (MIOPEN_TEST_NONXDLOPS AND ${PARSE_ALLOW_NONXDLOPS})
+    OR (MIOPEN_TEST_MIOTENSILE AND NOT(NAME IN_LIST SKIP_TESTS)))
         add_custom_target(${NAME} ${PARSE_UNPARSED_ARGUMENTS})
         if(NOT PARSE_SKIP_UNLESS_ALL OR MIOPEN_TEST_ALL)
             add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
@@ -441,6 +463,7 @@ endif()
 if(NOT MIOPEN_SKIP_CONV2D_AUX)
 
 set(IMPLICITGEMM_ARGS ${MIOPEN_TEST_FLOAT_ARG})
+
 # ./bin/MIOpenDriver conv -n 128 -c 1024 -H 14 -W 14 -k 2048 -y 1 -x 1 -p 0 -q 0 -u 2 -v 2 -l 1 -j 1 -m conv -g 1 -F 1 -t 1
 # MIOPEN_DEBUG_CONV_IMMED_FALLBACK=0
 if(MIOPEN_EMBED_DB)
@@ -471,6 +494,7 @@ add_perf_test(test_conv_embed_db
 endif()
 
 add_custom_test(test_conv_for_implicit_gemm ALLOW_BFLOAT16 ALLOW_HALF
+#SKIP_UNLESS_ALL ALLOW_NONXDLOPS
 COMMAND	$<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose	--input	64	 16	28	28	--weights	192  16		3	3	--pads_strides_dilations	0	0	2	2	1	1
 COMMAND	$<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose	--input	64	 16	14	14	--weights	160  16		3	3	--pads_strides_dilations	0	0	2	2	1	1
 COMMAND	$<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose	--input	64	 16	 7	 7	--weights	128  16		3	3	--pads_strides_dilations	0	0	2	2	1	1
@@ -554,15 +578,16 @@ COMMAND	$<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose   --input 64	 
 )
 
 add_custom_test(test_conv_group
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	128	56	56	--weights	256	4	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32				
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	256	56	56	--weights	512	8	3	3	--pads_strides_dilations	1	1	2	2	1	1	--group-count	32				
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	256	28	28	--weights	512	8	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32				
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	512	28	28	--weights	1024	16	3	3	--pads_strides_dilations	1	1	2	2	1	1	--group-count	32				
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	512	14	14	--weights	1024	16	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32				
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	1024	14	14	--weights	2048	32	3	3	--pads_strides_dilations	1	1	2	2	1	1	--group-count	32				
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	1024	7	7	--weights	2048	32	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32				
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	32	128	56	56	--weights	256	4	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32				
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	32	256	56	56	--weights	512	8	3	3	--pads_strides_dilations	1	1	2	2	1	1	--group-count	32				
+#SKIP_UNLESS_ALL ALLOW_NONXDLOPS
+COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	128	56	56	--weights	256	4	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32
+COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	256	56	56	--weights	512	8	3	3	--pads_strides_dilations	1	1	2	2	1	1	--group-count	32
+COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	256	28	28	--weights	512	8	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32
+COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	512	28	28	--weights	1024	16	3	3	--pads_strides_dilations	1	1	2	2	1	1	--group-count	32
+COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	512	14	14	--weights	1024	16	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32
+COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	1024	14	14	--weights	2048	32	3	3	--pads_strides_dilations	1	1	2	2	1	1	--group-count	32
+COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	1024	7	7	--weights	2048	32	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32
+COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	32	128	56	56	--weights	256	4	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32
+COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	32	256	56	56	--weights	512	8	3	3	--pads_strides_dilations	1	1	2	2	1	1	--group-count	32
 #
 # Workaround for "Memory access fault by GPU node" during "HIP Release All" - WrW disabled.
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	32	256	28	28	--weights	512	8	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32 --disable-backward-weights
@@ -749,7 +774,7 @@ COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> --ver
 )
 
 if(MIOPEN_TEST_DEEPBENCH)
-    add_custom_test(test_deepbench_conv
+    add_custom_test(test_deepbench_conv ALLOW_NONXDLOPS
     COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	4	1	161	700	--weights	32	1	5	20	--pads_strides_dilations	0	0	2	2	1	1
     COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	1	161	700	--weights	32	1	5	20	--pads_strides_dilations	0	0	2	2	1	1
     COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	1	161	700	--weights	32	1	5	20	--pads_strides_dilations	0	0	2	2	1	1
@@ -790,7 +815,7 @@ if(MIOPEN_TEST_DEEPBENCH)
 endif()
 
 
-    add_custom_test(test_miopen_conv
+    add_custom_test(test_miopen_conv ALLOW_NONXDLOPS
     COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	1	3	32	32	--weights	1	3	7	7	--pads_strides_dilations	1	1	1	1	1	1
     COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	1	3	227	227	--weights	1	3	7	7	--pads_strides_dilations	1	1	1	1	1	1
     COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	1	64	56	56	--weights	1	64	1	1	--pads_strides_dilations	0	0	2	2	1	1

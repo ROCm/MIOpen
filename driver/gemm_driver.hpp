@@ -107,24 +107,24 @@ class GemmDriver : public Driver
     public:
     GemmDriver() : Driver() {}
 
-    int AddCmdLineArgs();
-    int ParseCmdLineArgs(int argc, char* argv[]);
-    InputFlags& GetInputFlags() { return inflags; }
+    int AddCmdLineArgs() override;
+    int ParseCmdLineArgs(int argc, char* argv[]) override;
+    InputFlags& GetInputFlags() override { return inflags; }
 
-    int GetandSetData();
+    int GetandSetData() override;
     std::vector<int> GetInputTensorLengthsFromCmdLine();
 
-    int AllocateBuffersAndCopy();
+    int AllocateBuffersAndCopy() override;
 
-    int RunForwardGPU();
+    int RunForwardGPU() override;
 
     int RunForwardCPU();
 
-    int RunBackwardGPU();
+    int RunBackwardGPU() override;
 
-    int VerifyBackward();
-    int VerifyForward();
-    ~GemmDriver() {}
+    int VerifyBackward() override;
+    int VerifyForward() override;
+    ~GemmDriver() override {}
 
     private:
     InputFlags inflags;
@@ -290,18 +290,6 @@ int GemmDriver<T>::RunForwardGPU()
         }
 #endif
 
-#if 0
-        CallGemmStridedBatched(miopen::deref(GetHandle()),
-                               gemm_desc,
-                               a_dev->GetMem(),
-                               0,
-                               b_dev->GetMem(),
-                               0,
-                               c_dev->GetMem(),
-                               0,
-                               nullptr,
-                               false);
-#else
         if(gemm_desc.batch_count > 1)
             CallGemmStridedBatched(miopen::deref(GetHandle()),
                                    gemm_desc,
@@ -311,8 +299,7 @@ int GemmDriver<T>::RunForwardGPU()
                                    0,
                                    c_dev->GetMem(),
                                    0,
-                                   nullptr,
-                                   false);
+                                   nullptr);
         else
             CallGemm(miopen::deref(GetHandle()),
                      gemm_desc,
@@ -322,9 +309,7 @@ int GemmDriver<T>::RunForwardGPU()
                      0,
                      c_dev->GetMem(),
                      0,
-                     nullptr,
-                     false);
-#endif
+                     nullptr);
 
 #if GEMM_DRIVER_DEBUG
         {

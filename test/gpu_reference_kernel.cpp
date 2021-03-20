@@ -42,6 +42,7 @@
 
 static int gen_rand_integer()
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static int inited = 0;
     if(inited == 0)
     {

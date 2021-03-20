@@ -177,6 +177,11 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     if(MIOPEN_USE_COMGR)
         message(FATAL_ERROR "comgr cannot be used with OpenCL backend")
     endif()
+
+    # This is to pass all necessary build flags to HIP compiler
+    # for device code compilation. Used within "find_package(hip...".
+    # See https://github.com/ROCm-Developer-Tools/HIP/pull/2035#issuecomment-616861118.
+    set (HIP_CXX_COMPILER ${MIOPEN_HIP_COMPILER})
 endif()
 
 
@@ -271,7 +276,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
     endif()
 endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
-	
+
 # look for and register clang-offload-bundler
 if(MIOPEN_HIP_COMPILER MATCHES ".*clang\\+\\+$")
     find_program(MIOPEN_OFFLOADBUNDLER_BIN clang-offload-bundler
@@ -321,6 +326,7 @@ find_program(MIOPEN_AMDGCN_ASSEMBLER
         ${CMAKE_INSTALL_PREFIX}/hcc
     PATH_SUFFIXES
         /opencl/bin/x86_64
+        /opencl/bin
         /bin
     NO_DEFAULT_PATH
 )
@@ -426,15 +432,18 @@ include(ClangTidy)
 enable_clang_tidy(
     CHECKS
         *
-        -abseil-string-find-startswith
+        -abseil-*
         -android-cloexec-fopen
         # Yea we shouldn't be using rand()
         -cert-msc30-c
         -bugprone-exception-escape
+        -bugprone-macro-parentheses
         -cert-env33-c
         -cert-msc32-c
         -cert-msc50-cpp
         -cert-msc51-cpp
+        -cert-dcl37-c
+        -cert-dcl51-cpp
         -clang-analyzer-alpha.core.CastToStruct
         -clang-analyzer-optin.performance.Padding
         -clang-diagnostic-deprecated-declarations
@@ -460,8 +469,10 @@ enable_clang_tidy(
         -google-readability-todo
         -google-runtime-int
         -google-runtime-references
+        -hicpp-vararg
         -hicpp-braces-around-statements
         -hicpp-explicit-conversions
+        -hicpp-named-parameter
         -hicpp-no-array-decay
         # We really shouldn't use bitwise operators with signed integers, but
         # opencl leaves us no choice
@@ -474,8 +485,15 @@ enable_clang_tidy(
         -hicpp-use-override
         -llvm-header-guard
         -llvm-include-order
+        #-llvmlibc-*
+        -llvmlibc-restrict-system-libc-headers
+        -llvmlibc-callee-namespace
+        -llvmlibc-implementation-in-namespace
+        -llvm-else-after-return
+        -llvm-qualified-auto
         -misc-misplaced-const
         -misc-non-private-member-variables-in-classes
+        -misc-no-recursion
         -modernize-avoid-bind
         -modernize-avoid-c-arrays
         -modernize-pass-by-value
@@ -492,6 +510,8 @@ enable_clang_tidy(
         -readability-named-parameter
         -readability-uppercase-literal-suffix
         -readability-convert-member-functions-to-static
+        -readability-qualified-auto
+        -readability-redundant-string-init
 
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}

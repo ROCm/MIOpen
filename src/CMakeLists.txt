@@ -120,6 +120,7 @@ set( MIOpen_Source
     find_db.cpp
     conv_algo_name.cpp
     conv/problem_description.cpp
+    solver/gemm.cpp
     dropout.cpp
     dropout_api.cpp
     readonlyramdb.cpp
@@ -277,10 +278,12 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v16_5_0_epilogue.inc
         kernels/Conv_Winograd_v16_5_0_prologue.inc
         kernels/Conv_Winograd_v16_5_0_stride1.inc
-        kernels/conv_3x3_wheel_alpha_v9_2_7.inc
         kernels/conv_3x3_wheel_alpha_v9_2_7_epilogue.inc
         kernels/conv_3x3_wheel_alpha_v9_2_7_prologue.inc
-        kernels/conv_3x3_wheel_alpha_v9_2_7_stride_2_dec.inc
+        kernels/conv_3x3_wheel_alpha_v9_2_7_gfx8_stride_2_dec.inc
+        kernels/conv_3x3_wheel_alpha_v9_2_7_gfx8.inc
+        kernels/conv_3x3_wheel_alpha_v9_2_7_gfx9_stride_2_dec.inc
+        kernels/conv_3x3_wheel_alpha_v9_2_7_gfx9.inc
         kernels/conv_3x3_wheel_alpha_v3_0b_epilogue.inc
         kernels/conv_3x3_wheel_alpha_v3_0b_prologue.inc
         kernels/conv_3x3_wheel_alpha_v3_0b.inc
@@ -289,9 +292,12 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv_3x3_wheel_alpha_v7_0_3b.inc
         kernels/conv_3x3_wheel_alpha_v9_0_15_epilogue.inc
         kernels/conv_3x3_wheel_alpha_v9_0_15_prologue.inc
-        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil.inc
-        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec.inc
-        kernels/conv_3x3_wheel_alpha_v9_0_15.inc
+        kernels/conv_3x3_wheel_alpha_v9_0_15_gfx8_stride_2_dil.inc
+        kernels/conv_3x3_wheel_alpha_v9_0_15_gfx8_stride_2_dec.inc
+        kernels/conv_3x3_wheel_alpha_v9_0_15_gfx8.inc
+        kernels/conv_3x3_wheel_alpha_v9_0_15_gfx9_stride_2_dil.inc
+        kernels/conv_3x3_wheel_alpha_v9_0_15_gfx9_stride_2_dec.inc
+        kernels/conv_3x3_wheel_alpha_v9_0_15_gfx9.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_fp16_dot2_edc_dilation2.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_fp16_dot2_edc_stride1.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_fp16_dot2_edc_stride2.inc
