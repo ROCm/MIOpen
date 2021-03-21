@@ -553,6 +553,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         // set the bias parameters
         vb->default_args[18].type   = OpArg;
         vb->default_args[18].op_idx = 1;
+        vb->supported_arch          = {"gfx803", "gfx900", "gfx906", "gfx908"};
         g.AddEdge(vc_s1, vb, empty_map);
 
         auto vba_leaf = std::make_shared<MDGraph_vertex>(
@@ -565,6 +566,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
 
         vba_leaf->default_args[19].type   = OpArg;
         vba_leaf->default_args[19].op_idx = 2;
+        vba_leaf->supported_arch          = {"gfx803", "gfx900", "gfx906", "gfx908"};
 
         FusionMDGraph_Edge_Map edg_activ_relu;
         edg_activ_relu["constraints"] = {"activ_mode == miopenActivationRELU", "weight === 0"};
@@ -582,6 +584,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         va_leaf->default_args[6].default_val = OpKernelArg((1 << 8));
         va_leaf->default_args[19].type       = OpArg;
         va_leaf->default_args[19].op_idx     = 1;
+        va_leaf->supported_arch              = {"gfx803", "gfx900", "gfx906", "gfx908"};
 
         g.AddEdge(vc_s1, va_leaf, edg_activ_relu);
         g.AddEdge(vc_s1, va_leaf, edg_activ_leaky_relu);
@@ -651,6 +654,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
             // set the bias parameters
             bias_s2->default_args[18].type   = OpArg;
             bias_s2->default_args[18].op_idx = 1;
+            bias_s2->supported_arch          = {"gfx803", "gfx900", "gfx906", "gfx908"};
             g.AddEdge(vc_s2, bias_s2, empty_map);
 
             auto vba_leaf_s2 = std::make_shared<MDGraph_vertex>(
@@ -663,6 +667,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
 
             vba_leaf_s2->default_args[19].type   = OpArg;
             vba_leaf_s2->default_args[19].op_idx = 2;
+            vba_leaf_s2->supported_arch          = {"gfx803", "gfx900", "gfx906", "gfx908"};
 
             FusionMDGraph_Edge_Map edg_activ_relu_s2;
             edg_activ_relu_s2["constraints"] = {"activ_mode == miopenActivationRELU",
@@ -682,6 +687,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
             va_leaf_s2->default_args[6].default_val = OpKernelArg((1 << 8));
             va_leaf_s2->default_args[19].type       = OpArg;
             va_leaf_s2->default_args[19].op_idx     = 1;
+            va_leaf_s2->supported_arch              = {"gfx803", "gfx900", "gfx906", "gfx908"};
 
             g.AddEdge(vc_s2, va_leaf_s2, edg_activ_relu_s2);
             g.AddEdge(vc_s2, va_leaf_s2, edg_activ_leaky_relu_s2);
