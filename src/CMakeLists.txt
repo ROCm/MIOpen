@@ -475,6 +475,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/fusionopconvocl.cpp
         ocl/fusionopbiasbnactivocl.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
+        )
+
+    list(INSERT MIOpen_Source 0
         ${PROJECT_BINARY_DIR}/kernel.cpp
         ${PROJECT_BINARY_DIR}/kernel_includes.cpp
         )
