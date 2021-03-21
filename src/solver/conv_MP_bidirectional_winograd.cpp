@@ -189,7 +189,7 @@ inline bool IsApplicableTransform(const ConvolutionContext& params)
         return false;
 
     const std::string name = params.GetStream().GetDeviceName();
-    if(!(StartsWith(name, "gfx9")))
+    if(!((name != "gfx90a") && (StartsWith(name, "gfx9"))))
         return false;
 
     {
