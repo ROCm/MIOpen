@@ -27,6 +27,7 @@
 #include <miopen/miopen.h>
 #include <miopen/manage_ptr.hpp>
 #include <miopen/fusion_plan.hpp>
+#include <miopen/stringutils.hpp>
 #include <miopen/env.hpp>
 
 #include "get_handle.hpp"
@@ -123,23 +124,58 @@ int main()
 
     if(!miopen::IsDisabled(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD{}) && !skip_unsupported_alg)
     {
-        // Winograd because c, x and y satisfy criteria
-        ConvAlgTest(
-            {100, 32, 8, 8}, {64, 32, 3, 3}, {1, 1, 1, 1, 1, 1}, pgm_name, krn_name, alg_name);
-        EXPECT(krn_name == "miopenSp3AsmConvRxSU_CBA");
-        EXPECT(alg_name == "miopenConvolutionWinogradBiasActiv");
+        const auto name = get_handle().GetDeviceName();
+        if(miopen::StartsWith(name, "gfx8"))
+        {
+            // Winograd because c, x and y satisfy criteria
+            ConvAlgTest(
+                {100, 32, 8, 8}, {64, 32, 3, 3}, {1, 1, 1, 1, 1, 1}, pgm_name, krn_name, alg_name);
+            EXPECT(krn_name == "miopenSp3AsmConvRxSU_CBA");
+            EXPECT(alg_name == "miopenConvolutionWinogradBiasActiv");
 
-        // c is odd so winograd not supported and padding is zero
-        ConvAlgTest(
-            {100, 31, 8, 8}, {64, 31, 3, 3}, {0, 0, 1, 1, 1, 1}, pgm_name, krn_name, alg_name);
-        EXPECT(krn_name != "miopenSp3AsmConvRxSU_CBA");
-        EXPECT(alg_name != "miopenConvolutionWinogradBiasActiv");
+            // c is odd so winograd not supported and padding is zero
+            ConvAlgTest(
+                {100, 31, 8, 8}, {64, 31, 3, 3}, {0, 0, 1, 1, 1, 1}, pgm_name, krn_name, alg_name);
+            EXPECT(krn_name != "miopenSp3AsmConvRxSU_CBA");
+            EXPECT(alg_name != "miopenConvolutionWinogradBiasActiv");
 
-        // c is less than 18 so winograd not supported and padding is zero
-        ConvAlgTest(
-            {100, 15, 8, 8}, {64, 15, 3, 3}, {0, 0, 1, 1, 1, 1}, pgm_name, krn_name, alg_name);
-        EXPECT(krn_name != "miopenSp3AsmConvRxSU_CBA");
-        EXPECT(alg_name != "miopenConvolutionWinogradBiasActiv");
+            // c is less than 18 so winograd not supported and padding is zero
+            ConvAlgTest(
+                {100, 15, 8, 8}, {64, 15, 3, 3}, {0, 0, 1, 1, 1, 1}, pgm_name, krn_name, alg_name);
+            EXPECT(krn_name != "miopenSp3AsmConvRxSU_CBA");
+            EXPECT(alg_name != "miopenConvolutionWinogradBiasActiv");
+        }
+        else if(miopen::StartsWith(name, "gfx9") || miopen::StartsWith(name, "gfx10"))
+        {
+            std::string krn_name_ref = "miopenSp3AsmConv_v21_1_2_";
+            if(miopen::StartsWith(name, "gfx9"))
+            {
+                krn_name_ref += "gfx9";
+            }
+            else // StartsWith(name, "gfx10")
+            {
+                krn_name_ref += "gfx10";
+            }
+            krn_name_ref += "_fp32_stride1";
+
+            // Winograd because c, x and y satisfy criteria
+            ConvAlgTest(
+                {100, 32, 8, 8}, {64, 32, 3, 3}, {1, 1, 1, 1, 1, 1}, pgm_name, krn_name, alg_name);
+            EXPECT(krn_name == krn_name_ref);
+            EXPECT(alg_name == "miopenConvolutionWinogradBiasActiv");
+
+            // Winograd because c, x and y satisfy criteria
+            ConvAlgTest(
+                {100, 31, 8, 8}, {64, 31, 3, 3}, {0, 0, 1, 1, 1, 1}, pgm_name, krn_name, alg_name);
+            EXPECT(krn_name == krn_name_ref);
+            EXPECT(alg_name == "miopenConvolutionWinogradBiasActiv");
+
+            // Winograd because c, x and y satisfy criteria
+            ConvAlgTest(
+                {100, 15, 8, 8}, {64, 15, 3, 3}, {0, 0, 1, 1, 1, 1}, pgm_name, krn_name, alg_name);
+            EXPECT(krn_name == krn_name_ref);
+            EXPECT(alg_name == "miopenConvolutionWinogradBiasActiv");
+        }
     }
     // the asm kernel is the fastest for 1x1 and padding
     if(!miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) && !skip_unsupported_alg)
