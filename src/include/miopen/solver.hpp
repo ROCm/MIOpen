@@ -1504,6 +1504,12 @@ struct ConvBinWinogradRxSf2x3g1 : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
+struct ConvBinWinogradRxSf2x3g1Fused : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& params) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
+};
+
 struct ConvBinWinogradRxSFused : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;
