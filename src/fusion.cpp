@@ -219,6 +219,14 @@ bool ConvForwardOpDescriptor::GetOpAttr(const std::string& sym, int& val) const
 {
     int o, c, x, y;
     std::tie(o, c, x, y) = tien<4>(filter_desc.GetLengths());
+
+    auto f_strides     = filter_desc.GetStrides();
+    const int f_t_size = miopen::GetTypeSize(input_desc.GetType());
+    std::transform(f_strides.begin(),
+                   f_strides.end(),
+                   f_strides.begin(),
+                   [&f_t_size](const auto& s) { return s * f_t_size; });
+
     if(sym == "x")
     {
         val = x;
@@ -262,6 +270,22 @@ bool ConvForwardOpDescriptor::GetOpAttr(const std::string& sym, int& val) const
     else if(sym == "group_count")
     {
         val = base_desc.GetGroupCount();
+    }
+    else if(sym == "f_byte_stride_nk")
+    {
+        val = f_strides[0];
+    }
+    else if(sym == "f_byte_stride_c")
+    {
+        val = f_strides[1];
+    }
+    else if(sym == "f_byte_stride_h")
+    {
+        val = f_strides[2];
+    }
+    else if(sym == "f_byte_stride_w")
+    {
+        val = f_strides[3];
     }
     else
         return false;
@@ -840,54 +864,93 @@ bool FusionPlanDescriptor::GetTensorAttr(const std::string& sym, int& val) const
     int N, C, H, W, oN, K, oH, oW;
     std::tie(N, C, H, W)    = miopen::tien<4>(input_desc.GetLengths(), 1);
     std::tie(oN, K, oH, oW) = miopen::tien<4>(output_desc.GetLengths(), 1);
+
+    const int d_t_size = miopen::GetTypeSize(input_desc.GetType());
+    const int o_t_size = miopen::GetTypeSize(output_desc.GetType());
+    auto d_strides     = input_desc.GetStrides();
+    auto o_strides     = output_desc.GetStrides();
+    std::transform(d_strides.begin(),
+                   d_strides.end(),
+                   d_strides.begin(),
+                   [&d_t_size](const auto& s) { return s * d_t_size; });
+    std::transform(o_strides.begin(),
+                   o_strides.end(),
+                   o_strides.begin(),
+                   [&o_t_size](const auto& s) { return s * o_t_size; });
+
     if(sym == "iN")
     {
         val = N;
-        return true;
     }
     else if(sym == "iC")
     {
         val = C;
-        return true;
     }
     else if(sym == "iH")
     {
         val = H;
-        return true;
     }
     else if(sym == "iW")
     {
         val = W;
-        return true;
     }
     else if(sym == "oN")
     {
         val = oN;
-        return true;
     }
     else if(sym == "oK")
     {
         val = K;
-        return true;
     }
     else if(sym == "oH")
     {
         val = oH;
-        return true;
     }
     else if(sym == "oW")
     {
         val = oW;
-        return true;
+    }
+    else if(sym == "d_byte_stride_nk")
+    {
+        val = d_strides[0];
+    }
+    else if(sym == "d_byte_stride_c")
+    {
+        val = d_strides[1];
+    }
+    else if(sym == "d_byte_stride_h")
+    {
+        val = d_strides[2];
+    }
+    else if(sym == "d_byte_stride_w")
+    {
+        val = d_strides[3];
+    }
+    else if(sym == "o_byte_stride_nk")
+    {
+        val = o_strides[0];
+    }
+    else if(sym == "o_byte_stride_c")
+    {
+        val = o_strides[1];
+    }
+    else if(sym == "o_byte_stride_h")
+    {
+        val = o_strides[2];
+    }
+    else if(sym == "o_byte_stride_w")
+    {
+        val = o_strides[3];
     }
     else if(sym == "precision")
     {
         assert(input_desc.GetType() == output_desc.GetType());
         val = input_desc.GetType();
-        return true;
     }
     else
         return false;
+
+    return true;
 }
 
 OpKernelArg FusionPlanDescriptor::GetTensorAttr(const std::string& sym) const
@@ -980,6 +1043,13 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
             }
             program_name = kinder.first->vertex_data.at("program");
             auto d       = handle.GetDeviceName();
+
+            auto it = std::find(
+                kinder.first->supported_arch.begin(), kinder.first->supported_arch.end(), d);
+            // Empty inidicates any arch is supported (say OpenCL kernels)
+            if(!kinder.first->supported_arch.empty() && (it == kinder.first->supported_arch.end()))
+                continue;
+
             std::transform(d.begin(), d.end(), d.begin(), ::tolower);
             find_replace_first(program_name, "GFX*", d);
 
