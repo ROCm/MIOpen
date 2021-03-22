@@ -36,10 +36,11 @@
 
 namespace miopen {
 
-bool testing_find_db_enabled = true;
+bool testing_find_db_enabled = true; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
 
 boost::optional<std::string>& testing_find_db_path_override()
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static boost::optional<std::string> data = boost::none;
     return data;
 }
@@ -78,7 +79,8 @@ bool CheckInvokerSupport(const std::string& algo)
            algo == "miopenConvolutionFwdAlgoImplicitGEMM" ||
            algo == "miopenConvolutionBwdDataAlgoImplicitGEMM" ||
            algo == "miopenConvolutionBwdWeightsAlgoImplicitGEMM" ||
-           algo == "miopenConvolutionFwdAlgoFFT" || algo == "miopenConvolutionBwdDataAlgoFFT";
+           algo == "miopenConvolutionFwdAlgoFFT" || algo == "miopenConvolutionBwdDataAlgoFFT" ||
+           algo == "miopenConvolutionFwdAlgoGEMM";
 }
 
 template <class TDb>

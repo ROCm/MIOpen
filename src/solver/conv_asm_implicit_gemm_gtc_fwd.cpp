@@ -36,12 +36,12 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS)
 namespace miopen {
 namespace solver {
 
-static inline std::vector<TunableImplicitGemmGTCDynamic_t>&
+static const inline std::vector<TunableImplicitGemmGTCDynamic_t>&
 GetImplicitGemmGtcDynamicFwdXdlopsTunablesList()
 {
     // list all the dynamic igemm conv-fwd kernels
     // clang-format off
-    static std::vector<TunableImplicitGemmGTCDynamic_t> kernel_param_list {
+    static const  std::vector<TunableImplicitGemmGTCDynamic_t> kernel_param_list {
         { "fwd", "fp32",   4,   0, 128, 256,  16,  32,  64,   1,   1,   1,   2,   2,   {1,   4,   2,   1},   {1,   4,   1,  64},   {1,   4,   4,   1},   {1,   4,   1,  64},   0},
         { "fwd", "fp32",   4,   1, 128, 256,  16,  32,  64,   1,   1,   1,   2,   2,   {1,   4,   2,   1},   {1,   4,   1,  64},   {1,   4,   4,   1},   {1,   4,   1,  64},   0},
         { "fwd", "fp32",   1,   0, 128, 256,  16,  32,  64,   1,   1,   1,   2,   2,   {1,   4,   2,   1},   {1,   4,   1,  64},   {1,   4,   4,   1},   {1,   4,   1,  64},   0},
