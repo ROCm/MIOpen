@@ -110,7 +110,7 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     // Let's assume includes are overkill for feature tests & optimize'em out.
     if(!testing_mode)
     {
-        auto inc_list = GetKernelIncList();
+        auto inc_list = GetHipKernelIncList();
         auto inc_path = tmp_dir->path;
         boost::filesystem::create_directories(inc_path);
         for(auto inc_file : inc_list)
