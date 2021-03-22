@@ -786,24 +786,14 @@ struct ConvHipImplicitGemmV4R4Fwd : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const PerformanceImplicitGemmV4R4Fwd& config,
                              bool disableConfigOverrideFromEnv = false) const;
-
-    protected:
-    bool IsApplicableMlirCommon(const ConvolutionContext& ctx) const;
 };
 
-class ConvHipImplicitGemmMlirCppFwd : ConvHipImplicitGemmV4R4Fwd
+// Mlir based igemm kernels do not support tuning, for now
+struct ConvHipImplicitGemmMlirCppFwd : SolverBase<ConvolutionContext>
 {
-    using Base = ConvHipImplicitGemmV4R4Fwd;
-
-    public:
+    static std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
     bool IsApplicable(const ConvolutionContext& ctx) const;
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
-    bool IsDynamic() const { return Base::IsDynamic(); }
-    float GetWti(const ConvolutionContext& ctx) const { return Base::GetWti(ctx); }
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const
-    {
-        return Base::GetWorkspaceSize(ctx);
-    };
 };
 
 struct PerformanceImplicitGemmV4R4GenXdlopsFwdFp32

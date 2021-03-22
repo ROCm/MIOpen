@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #include <miopen/conv/invokers/impl_gemm.hpp>
+#include <miopen/mlir_build.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/handle.hpp>
 
@@ -33,6 +34,27 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_HIP_IMPLICIT_GEMM_MLIR_CPP_FWD)
 
 namespace miopen {
 namespace solver {
+
+std::tuple<int, int, int>
+ConvHipImplicitGemmMlirCppFwd::CalculateGemmSize(const ConvolutionContext& ctx)
+{
+    const auto n  = ConvolutionContextInterpreter::GetBatchN(ctx);
+    const auto k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
+    const auto c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
+    const auto ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
+    const auto wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
+    const auto y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+    const auto x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+
+    const auto gemm_m = k;
+    const auto gemm_n = ctx.Is3d()
+                            ? n * ho * wo * ConvolutionContextInterpreter::GetOutputDepthDo(ctx)
+                            : n * ho * wo;
+    const auto gemm_k =
+        ctx.Is3d() ? c * y * x * ConvolutionContextInterpreter::GetFilterDepthZ(ctx) : c * y * x;
+
+    return std::make_tuple(gemm_m, gemm_n, gemm_k);
+}
 
 bool ConvHipImplicitGemmMlirCppFwd::IsApplicable(const ConvolutionContext& ctx) const
 {
@@ -48,9 +70,26 @@ bool ConvHipImplicitGemmMlirCppFwd::IsApplicable(const ConvolutionContext& ctx) 
     // Future: MLIR will support non-default layouts.
     if(!ctx.IsLayoutDefault())
         return false;
+    // Below: Generic checks between this solver and ConvHipImplicitGemmV4R4Fwd
     if(ctx.Is3d())
         return false;
-    return IsApplicableMlirCommon(ctx);
+    if(!IsComposableKernelSupportedHardware(ctx))
+        return false;
+    if(!ctx.direction.IsForward())
+        return false;
+    if(!ctx.Is2d() && !ctx.Is3d())
+        return false;
+    if(!ctx.IsFp32())
+        return false;
+    if(ctx.group_counts != 1)
+        return false;
+
+    int gemm_m = 0;
+    int gemm_n = 0;
+    int gemm_k = 0;
+
+    std::tie(gemm_m, gemm_n, gemm_k) = CalculateGemmSize(ctx);
+    return gemm_m % 32 == 0 && gemm_n % 32 == 0 && gemm_k % 4 == 0;
 #else
     std::ignore = ctx;
     return false;
@@ -61,19 +100,6 @@ ConvSolution ConvHipImplicitGemmMlirCppFwd::GetSolution(const ConvolutionContext
 {
     ConvSolution result;
     KernelInfo construction_parameters;
-
-    int grid_size = 0;
-
-    const auto config = GetPerformanceConfig(ctx);
-    std::tie(grid_size, std::ignore) = config.CalculateGridSize(ctx);
-
-    construction_parameters.l_wk.push_back(config.BlockSize);
-    construction_parameters.l_wk.push_back(1);
-    construction_parameters.l_wk.push_back(1);
-
-    construction_parameters.g_wk.push_back(config.BlockSize * grid_size);
-    construction_parameters.g_wk.push_back(1);
-    construction_parameters.g_wk.push_back(1);
 
     std::string version   = "_v4r4";
     std::string direction = "_fwd";
@@ -89,9 +115,14 @@ ConvSolution ConvHipImplicitGemmMlirCppFwd::GetSolution(const ConvolutionContext
     using CI = ConvolutionContextInterpreter;
     construction_parameters.comp_options =
         std::string(" --operation ") + operation +
+        std::string(" --num_cu ") + std::to_string(ctx.GetStream().GetMaxComputeUnits()) +
+        std::string(" --arch ") + ctx.GetStream().GetDeviceName() +
         std::string(" --fil_layout ") + CI::GetFilterLayout(ctx) +
+        std::string(" --fil_type ") + "fp32" +
         std::string(" --in_layout ") + CI::GetInputLayout(ctx) +
+        std::string(" --in_type ") + "fp32" +
         std::string(" --out_layout ") + CI::GetOutputLayout(ctx) +
+        std::string(" --out_type ") + "fp32" +
         std::string(" --batchsize ") + std::to_string(CI::GetBatchN(ctx)) +
         std::string(" --in_channels ") + std::to_string(CI::GetInputChannelC(ctx)) +
         std::string(" --out_channels ") + std::to_string(CI::GetOutputChannelK(ctx)) +
@@ -109,6 +140,18 @@ ConvSolution ConvHipImplicitGemmMlirCppFwd::GetSolution(const ConvolutionContext
         std::string(" --padding_w ") + std::to_string(CI::GetInputLeftPadW(ctx)) +
         std::string(" --kernel_name ") + construction_parameters.kernel_name;
     // clang-format on
+
+    size_t local_size  = 0;
+    size_t global_size = 0;
+    MiirGenLaunchParams(construction_parameters.comp_options, local_size, global_size);
+
+    construction_parameters.l_wk.push_back(local_size);
+    construction_parameters.l_wk.push_back(1);
+    construction_parameters.l_wk.push_back(1);
+
+    construction_parameters.g_wk.push_back(global_size);
+    construction_parameters.g_wk.push_back(1);
+    construction_parameters.g_wk.push_back(1);
 
     result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
     result.construction_params.push_back(construction_parameters);
