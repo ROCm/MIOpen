@@ -228,11 +228,13 @@ ConvSolution GemmBwd1x1_stride2::GetSolution(const ExecutionContext& context,
     std::size_t in_n, in_c;
     std::tie(in_n, in_c) = tie_pick<0, 1>()(dxDesc.GetLengths());
 
-    const auto wei_k       = wDesc.GetLengths()[0];
-    const auto spatial_dim = conv.GetSpatialDimension();
-    const auto in_spatial  = boost::adaptors::slice(dxDesc.GetLengths(), 2, 2 + spatial_dim);
-    const auto out_spatial = boost::adaptors::slice(dyDesc.GetLengths(), 2, 2 + spatial_dim);
-    const auto strides     = conv.GetConvStrides();
+    const auto wei_k        = wDesc.GetLengths()[0];
+    const auto spatial_dim  = conv.GetSpatialDimension();
+    const auto in_spatial_  = boost::adaptors::slice(dxDesc.GetLengths(), 2, 2 + spatial_dim);
+    const auto out_spatial_ = boost::adaptors::slice(dyDesc.GetLengths(), 2, 2 + spatial_dim);
+    const auto in_spatial   = std::vector<std::size_t>(in_spatial_.begin(), in_spatial_.end());
+    const auto out_spatial  = std::vector<std::size_t>(out_spatial_.begin(), out_spatial_.end());
+    const auto strides      = conv.GetConvStrides();
 
     const auto workspace_req = GetWorkspaceSize(context, problem);
 
