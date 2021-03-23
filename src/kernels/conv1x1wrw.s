@@ -324,7 +324,7 @@ accums_cnt = wei_w * wei_h * k_per_gpr * c_mult * k_mult
 single_lane_vgpr_offset = read_size
 
 .if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_stepping == 10)
-.VGPR_ALLOC vtmp_align, (.VGPR_NEXT_FREE % 4) // buffer_load_dwordx4 vdst must be 64 bit aligned
+.VGPR_ALLOC valign_unused, (.VGPR_NEXT_FREE % 2) // lines_in/out must be 64 bit aligned
 .endif
 inbuf_prefetch_vgpr_offset = single_lane_vgpr_offset * c_mult
 inbuf_bit_convert_vgpr_offset = inbuf_prefetch_vgpr_offset * (data_prefetch + 1)

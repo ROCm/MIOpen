@@ -362,7 +362,7 @@ bias_buffer_size = (output_channels + elements_in_dword - 1) / elements_in_dword
     .VGPR_ALLOC voffset_in
     .VGPR_ALLOC voffset_out
     .if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_stepping == 10)
-    .VGPR_ALLOC vtmp_align, (.VGPR_NEXT_FREE % 4) // buffer_load_dwordx4 vdst must be 64 bit aligned
+    .VGPR_ALLOC valign_unused, (.VGPR_NEXT_FREE % 2) // inputA/B must be 64 bit aligned
     .endif
     .VGPR_ALLOC inputA, in_gprs
     .VGPR_ALLOC inputB, in_gprs
