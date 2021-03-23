@@ -47,17 +47,16 @@ class AutoMiirHandle
     MiirHandle operator()() { return handle; }
 };
 
-void check_miir_error(MiirStatus status, const std::string& name)
+void check_miir_error(MiirStatus status, const std::string& miir_fn_name)
 {
-    if(status == MIIR_SUCCESS)
-        return;
-    if(status == MIIR_INVALID_PARAM)
-        MIOPEN_THROW(name + " failed: invalid parameters!");
-    if(status == MIIR_INVALID_MODULE)
-        MIOPEN_THROW(name + " failed: invalid module!");
-    if(status == MIIR_BUILD_FAILURE)
-        MIOPEN_THROW(name + " failed: build failed!");
-    MIOPEN_THROW(name + " failed: unkown error!");
+    switch(status)
+    {
+    case MIIR_SUCCESS: return;
+    case MIIR_INVALID_PARAM: MIOPEN_THROW(miir_fn_name + " MIIR_INVALID_PARAM"); break;
+    case MIIR_INVALID_MODULE: MIOPEN_THROW(miir_fn_name + " MIIR_INVALID_MODULE"); break;
+    case MIIR_BUILD_FAILURE: MIOPEN_THROW(miir_fn_name + " MIIR_BUILD_FAILURE"); break;
+    default: MIOPEN_THROW(miir_fn_name + " failed: unkown error!");
+    }
 }
 } // namespace
 /// Generates HIP source, header and options for HIP compiler.
@@ -138,7 +137,7 @@ boost::filesystem::path MiirBuildViaHip(boost::optional<TmpDir>& tmp_dir,
 
 void MiirGenLaunchParams(const std::string& params, size_t& local_size, size_t& global_size)
 {
-    AutoMiirHandle handle(params.c_str());
+    AutoMiirHandle handle(params);
     miirLowerInit();
     auto status = miirLowerTuningParams(handle());
     check_miir_error(status, "miirLowerTuningParams");

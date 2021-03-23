@@ -70,14 +70,13 @@ bool ConvHipImplicitGemmMlirCppFwd::IsApplicable(const ConvolutionContext& ctx) 
     // Future: MLIR will support non-default layouts.
     if(!ctx.IsLayoutDefault())
         return false;
-    // Below: Generic checks between this solver and ConvHipImplicitGemmV4R4Fwd
-    if(ctx.Is3d())
+    // Future: MLIR will support 3d convolution
+    if(!ctx.Is2d())
         return false;
+    // Below: Generic checks between this solver and ConvHipImplicitGemmV4R4Fwd
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
     if(!ctx.direction.IsForward())
-        return false;
-    if(!ctx.Is2d() && !ctx.Is3d())
         return false;
     if(!ctx.IsFp32())
         return false;
@@ -143,7 +142,9 @@ ConvSolution ConvHipImplicitGemmMlirCppFwd::GetSolution(const ConvolutionContext
 
     size_t local_size  = 0;
     size_t global_size = 0;
+#if MIOPEN_USE_MLIR
     MiirGenLaunchParams(construction_parameters.comp_options, local_size, global_size);
+#endif
 
     construction_parameters.l_wk.push_back(local_size);
     construction_parameters.l_wk.push_back(1);
