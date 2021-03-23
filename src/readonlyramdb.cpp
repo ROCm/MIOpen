@@ -48,9 +48,11 @@ ReadonlyRamDb& ReadonlyRamDb::GetCached(const std::string& path,
                                         const std::string& /*arch*/,
                                         const std::size_t /*num_cu*/)
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::mutex mutex;
     const std::lock_guard<std::mutex> lock{mutex};
 
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static auto instances = std::map<std::string, ReadonlyRamDb*>{};
     const auto it         = instances.find(path);
 
