@@ -25,9 +25,5 @@
  *******************************************************************************/
 .include "rocm_version.inc"
 .include "conv_3x3_wheel_alpha_v9_2_7_prologue.inc"
-.if (.option.machine_version_major == 8)
-    .include "conv_3x3_wheel_alpha_v9_2_7_gfx8_stride_2_dec.inc"
-.elseif (.option.machine_version_major == 9)
-    .include "conv_3x3_wheel_alpha_v9_2_7_gfx9_stride_2_dec.inc"
-.endif
+.include "conv_3x3_wheel_alpha_v9_2_7_gfx8_stride_2_dec.inc"
 .include "conv_3x3_wheel_alpha_v9_2_7_epilogue.inc"

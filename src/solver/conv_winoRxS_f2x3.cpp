@@ -867,5 +867,42 @@ ConvSolution ConvBinWinogradRxSf2x3g1::GetSolution(const ConvolutionContext& par
     return tunable.GetSolution(params, tunable.GetPerformanceConfig(params), false);
 }
 
+bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const ConvolutionContext&) const
+{
+    return true; // Actual checks moved to FusionMDGraph.
+}
+
+ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const ConvolutionContext& params) const
+{
+    ConvSolution result;
+    KernelInfo kernel;
+
+    const auto n_groups = params.GetStream().GetMaxHardwareComputeUnits();
+    const auto name     = params.GetStream().GetDeviceName();
+    const auto is_gfx9  = StartsWith(name, "gfx9");
+    size_t wg_size      = is_gfx9 ? 512 : 256;
+    kernel.g_wk.push_back(wg_size * n_groups);
+    kernel.g_wk.push_back(1);
+    kernel.g_wk.push_back(1);
+
+    kernel.l_wk.push_back(wg_size);
+    kernel.l_wk.push_back(1);
+    kernel.l_wk.push_back(1);
+
+    KernelBuildParameters options{
+        {"ROCM_METADATA_VERSION", 5},
+    };
+    kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
+    if(!is_gfx9)
+        kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
+
+    // File and name are defined in FusionMDGraph, so no need (and harmful)
+    // to duplicate this information here.
+    kernel.kernel_name = "<name not set>";
+    kernel.kernel_file = "<file not set>";
+    result.construction_params.push_back(kernel);
+    return result;
+}
+
 } // namespace solver
 } // namespace miopen
