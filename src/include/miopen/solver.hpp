@@ -788,7 +788,6 @@ struct ConvHipImplicitGemmV4R4Fwd : SolverBase<ConvolutionContext>
                              bool disableConfigOverrideFromEnv = false) const;
 };
 
-// Mlir based igemm kernels do not support tuning, for now
 struct ConvHipImplicitGemmMlirCppFwd : SolverBase<ConvolutionContext>
 {
     static std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
@@ -855,7 +854,6 @@ struct ConvHipImplicitGemmV4R4WrW : SolverBase<ConvolutionContext>
                              bool disableConfigOverrideFromEnv = false) const;
 };
 
-// Mlir based igemm kernels do not support tuning, for now
 struct ConvHipImplicitGemmMlirCppWrW : SolverBase<ConvolutionContext>
 {
     static std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
@@ -1254,7 +1252,6 @@ struct ConvHipImplicitGemmBwdDataV1R1 : SolverBase<ConvolutionContext>
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const;
 };
 
-// Mlir based igemm kernels do not support tuning, for now
 struct ConvHipImplicitGemmMlirCppBwd : SolverBase<ConvolutionContext>
 {
     static std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);

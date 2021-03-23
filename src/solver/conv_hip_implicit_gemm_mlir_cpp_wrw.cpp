@@ -73,7 +73,6 @@ bool ConvHipImplicitGemmMlirCppWrW::IsApplicable(const ConvolutionContext& ctx) 
     // Future: MLIR will support 3d convolution
     if(!ctx.Is2d())
         return false;
-    // Below: Generic checks between this solver and ConvHipImplicitGemmV4R4WrW
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
     if(!ctx.direction.IsBackwardWrW())

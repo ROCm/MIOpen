@@ -76,7 +76,6 @@ bool ConvHipImplicitGemmMlirCppBwd::IsApplicable(const ConvolutionContext& ctx) 
     // Future: MLIR will support multiple data types
     if(!ctx.IsFp32())
         return false;
-    // Below: Generic checks between this solver and ConvHipImplicitGemmBwdDataV1R1
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
     if(!ctx.direction.IsBackwardData())
