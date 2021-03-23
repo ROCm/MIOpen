@@ -55,7 +55,7 @@ void check_miir_error(MiirStatus status, const std::string& miir_fn_name)
     case MIIR_INVALID_PARAM: MIOPEN_THROW(miir_fn_name + " MIIR_INVALID_PARAM"); break;
     case MIIR_INVALID_MODULE: MIOPEN_THROW(miir_fn_name + " MIIR_INVALID_MODULE"); break;
     case MIIR_BUILD_FAILURE: MIOPEN_THROW(miir_fn_name + " MIIR_BUILD_FAILURE"); break;
-    default: MIOPEN_THROW(miir_fn_name + " <UNKOWN ERROR>");
+    default: MIOPEN_THROW(miir_fn_name + " <UNKNOWN ERROR>");
     }
 }
 } // namespace

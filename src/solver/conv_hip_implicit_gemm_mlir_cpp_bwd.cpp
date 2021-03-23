@@ -102,6 +102,7 @@ bool ConvHipImplicitGemmMlirCppBwd::IsApplicable(const ConvolutionContext& ctx) 
 
 ConvSolution ConvHipImplicitGemmMlirCppBwd::GetSolution(const ConvolutionContext& ctx) const
 {
+#if MIOPEN_USE_MLIR
     ConvSolution result;
     KernelInfo construction_parameters;
 
@@ -147,9 +148,7 @@ ConvSolution ConvHipImplicitGemmMlirCppBwd::GetSolution(const ConvolutionContext
 
     size_t local_size  = 0;
     size_t global_size = 0;
-#if MIOPEN_USE_MLIR
     MiirGenLaunchParams(construction_parameters.comp_options, local_size, global_size);
-#endif
 
     construction_parameters.l_wk.push_back(local_size);
     construction_parameters.l_wk.push_back(1);
@@ -162,6 +161,10 @@ ConvSolution ConvHipImplicitGemmMlirCppBwd::GetSolution(const ConvolutionContext
     result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
     result.construction_params.push_back(construction_parameters);
     return result;
+#else
+    std::ignore = ctx;
+    return {};
+#endif
 }
 
 } // namespace solver
