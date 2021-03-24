@@ -27,7 +27,7 @@ def cmake_build(compiler, flags, env4make, extradebugflags, prefixpath){
         configargs = "-DCMAKE_PREFIX_PATH=${prefixpath}"
     }
     
-    if(flags.contains('-DBUILD_DEV=Off'))
+    if(!flags.contains('-DBUILD_DEV=On'))
     {
     	config_targets = 'install ' + config_targets
     	flags = '-DCMAKE_INSTALL_PREFIX=../install ' + flags
