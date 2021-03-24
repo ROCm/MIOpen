@@ -56,8 +56,14 @@ struct HIPOCProgramImpl
     boost::optional<TmpDir> dir;
     std::vector<char> binary;
 
+#if !MIOPEN_USE_COMGR
     void
     BuildCodeObjectInFile(std::string& params, const std::string& src, const std::string& filename);
+#else
+    void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
+                                                   const std::string& src,
+                                                   const std::string& filename);
+#endif
 
     void BuildCodeObject(std::string params, bool is_kernel_str, const std::string& kernel_src);
 };
