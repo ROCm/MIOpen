@@ -92,9 +92,11 @@ RamDb::RamDb(std::string path, bool is_system) : PlainTextDb(path, is_system) {}
 
 RamDb& RamDb::GetCached(const std::string& path, bool is_system)
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::mutex mutex;
     const std::lock_guard<std::mutex> lock{mutex};
 
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static auto instances = std::map<std::string, RamDb*>{};
     const auto it         = instances.find(path);
 
