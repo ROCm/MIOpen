@@ -263,7 +263,7 @@ ConvSolution GemmBwd1x1_stride2::GetSolution(const ExecutionContext& context,
                 MIOPEN_LOG_FUNCTION("convolution, 1x1 u2xv2");
             }
 
-            if(workspace != nullptr && workspace_req > 0 && workspace_size < workspace_req)
+            if((workspace_req > 0 && workspace == nullptr) || workspace_size < workspace_req)
                 MIOPEN_THROW("Not enough workspace for GemmBwd1x1_stride2. (" +
                              std::to_string(workspace_size) + " < " +
                              std::to_string(workspace_req) + ")");
@@ -640,68 +640,63 @@ ConvSolution GemmBwdRest::GetSolution(const ExecutionContext& context,
                 MIOPEN_LOG_FUNCTION("convolution, non 1x1");
             }
 
-            if(workspace != nullptr && workspace_req > 0 && workspace_size < workspace_req)
+            if((workspace_req > 0 && workspace == nullptr) || workspace_size < workspace_req)
                 MIOPEN_THROW("Not enough workspace for GemmBwdRest. (" +
                              std::to_string(workspace_size) + " < " +
                              std::to_string(workspace_req) + ")");
 
             if(conv_params.type == InvokeType::Run)
             {
-                float time_0 = 0;
-                float t1     = 0;
+                float time_gemm = 0;
+
                 for(std::size_t i = 0; i < in_n; i++)
                 {
                     std::size_t out_offset = i * wei_k * out_spatial_size;
                     std::size_t in_offset  = i * in_c * in_spatial_size;
 
+                    miopenStatus_t gemm_status;
+
                     // tensors.dx = transpose(tensors.w) * tensors.dy
                     if(group_count > 1)
-                        CallGemmStridedBatched(
+                        gemm_status = CallGemmStridedBatched(
                             handle, gemm_desc, w, 0, dy, out_offset, workspace, 0, nullptr);
                     else
-                        CallGemm(handle,
-                                 gemm_desc,
-                                 w,
-                                 0,
-                                 dy,
-                                 out_offset,
-                                 workspace,
-                                 0,
-                                 nullptr,
-                                 GemmBackend_t::miopengemm);
+                        gemm_status = CallGemm(handle,
+                                               gemm_desc,
+                                               w,
+                                               0,
+                                               dy,
+                                               out_offset,
+                                               workspace,
+                                               0,
+                                               nullptr,
+                                               GemmBackend_t::miopengemm);
+
+                    if(gemm_status != miopenStatusSuccess)
+                        MIOPEN_THROW("GemmBwdRest execution failure.");
 
                     if(handle.IsProfilingEnabled())
-                        t1 = handle.GetKernelTime();
+                        time_gemm += handle.GetKernelTime();
 
-                    Col2ImGPU(handle,
-                              spatial_dims,
-                              workspace,
-                              out_spatial,
-                              wei_spatial,
-                              pads,
-                              strides,
-                              dilations,
-                              in_c,
-                              in_spatial,
-                              dx,
-                              in_offset,
-                              dyDesc_.GetType());
-
-                    // Update times for both the kernels
-                    if(handle.IsProfilingEnabled())
-                    {
-                        if(i == in_n - 1)
-                            handle.AccumKernelTime(t1 + time_0);
-                        else
-                            handle.AccumKernelTime(t1);
-                        time_0 += handle.GetKernelTime();
-                    }
+                    time_gemm += Col2ImGPU(handle,
+                                           spatial_dims,
+                                           workspace,
+                                           out_spatial,
+                                           wei_spatial,
+                                           pads,
+                                           strides,
+                                           dilations,
+                                           in_c,
+                                           in_spatial,
+                                           dx,
+                                           in_offset,
+                                           dyDesc_.GetType());
                 }
 
                 if(handle.IsProfilingEnabled())
                 {
                     handle.ResetKernelTime();
-                    handle.AccumKernelTime(time_0);
+                    handle.AccumKernelTime(time_gemm);
                 }
             }
             else
