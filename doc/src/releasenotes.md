@@ -2,6 +2,17 @@
 ## MIOpen Release notes
 
 
+### 03/25/2021 [2.10.0]
+
+ - This release contains new reduction operations, Winograd algorithm performance improvements as well as bug fixes. Various host side performance improvements have been added as well.
+
+ - Added a GPU reference kernel implementation for faster testing.
+ - Add TargetID support for new AMD GPU architectures.
+ - Implementation of four additional generic tensor reduction operations (AVG, AMAX, NORM1, NORM2).
+ - Fixed a bug where Batchnorm would give incorrect results when the product of image height and image width is not a factor of four.
+ - Various host side improvements for better find and tuning performance.
+ - Added support for AMD Code Object V4.
+
 ### 12/01/2020 [ 2.9.0 ]
 
  - This release contains implicit GEMM algorithm performance updates and bug fixes. Additional performance improvements have been implemented for batch normalization.
