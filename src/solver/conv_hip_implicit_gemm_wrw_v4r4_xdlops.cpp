@@ -36,12 +36,20 @@
 #include <miopen/tensor_ops.hpp>
 #include <miopen/implicitgemm_params.hpp>
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_XDLOPS)
+
 namespace miopen {
 namespace solver {
 
 PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops()
     : PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops(
-          64, 64, 2, 32, 32, 4, false, false)
+          4, 4, 1, 4, 4, 1, false, false, false)
+{
+}
+
+PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops(bool spare)
+    : PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops(
+          4, 4, 1, 4, 4, 1, false, false, spare)
 {
 }
 
@@ -53,7 +61,8 @@ PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops(
     int GemmNPerWave_,
     int GemmKPack_,
     bool GemmAThreadCopyMoreGemmK_,
-    bool GemmBThreadCopyMoreGemmKPack_)
+    bool GemmBThreadCopyMoreGemmK_,
+    bool use_spare_set_)
     : GemmMPerBlock(GemmMPerBlock_),
       GemmNPerBlock(GemmNPerBlock_),
       GemmKPerBlock(GemmKPerBlock_),
@@ -61,7 +70,8 @@ PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops(
       GemmNPerWave(GemmNPerWave_),
       GemmKPack(GemmKPack_),
       GemmAThreadCopyMoreGemmK(GemmAThreadCopyMoreGemmK_),
-      GemmBThreadCopyMoreGemmKPack(GemmBThreadCopyMoreGemmKPack_)
+      GemmBThreadCopyMoreGemmK(GemmBThreadCopyMoreGemmK_),
+      use_spare_set(use_spare_set_)
 {
 }
 
@@ -76,7 +86,8 @@ operator==(const PerformanceImplicitGemmWrwV4R4Xdlops& other) const
         && GemmNPerWave == other.GemmNPerWave
         && GemmKPack == other.GemmKPack
         && GemmAThreadCopyMoreGemmK  == other.GemmAThreadCopyMoreGemmK
-        && GemmBThreadCopyMoreGemmKPack  == other.GemmBThreadCopyMoreGemmKPack;
+        && GemmBThreadCopyMoreGemmK  == other.GemmBThreadCopyMoreGemmK
+        && use_spare_set == other.use_spare_set;
     // clang-format on
 }
 
@@ -86,7 +97,7 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::SetNextValue()
     {
         // list performance parameters in reverse order, in order for tuning to iterate over the
         // range in normal order
-        if(!NextFlag<false, true>(GemmBThreadCopyMoreGemmKPack))
+        if(!NextFlag<false, true>(GemmBThreadCopyMoreGemmK))
             break;
         if(!NextFlag<false, false>(GemmAThreadCopyMoreGemmK))
             break;
@@ -273,12 +284,17 @@ PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGridSize(const ConvolutionContext
 
     try
     {
+        bool valid = false;
+
         int gemm_g = -1;
         int gemm_m = -1;
         int gemm_n = -1;
 
-        std::tie(gemm_g, gemm_m, gemm_n, std::ignore) =
-            ConvHipImplicitGemmWrwV4R4Xdlops::CalculateGemmSize(ctx);
+        std::tie(gemm_g, gemm_m, gemm_n, std::ignore, std::ignore, valid) =
+            CalculateGemmSizeAndGemmKBlock(ctx);
+
+        if(!valid)
+            MIOPEN_THROW("invalid performance parameter");
 
         if(!(gemm_m % GemmMPerBlock == 0 && gemm_n % GemmNPerBlock == 0))
             MIOPEN_THROW("invalid performance parameter");
@@ -293,41 +309,73 @@ PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGridSize(const ConvolutionContext
     return std::make_tuple(GridSize, true);
 }
 
-int PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGemmKBlocks(const ConvolutionContext& ctx) const
+std::tuple<int, int, int, int, int, bool>
+PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGemmSizeAndGemmKBlock(
+    const ConvolutionContext& ctx) const
 {
-    const int MaxBlocks = 2400;
-    int GemmKBlocks     = 1;
-    int gemm_g          = -1;
-    int gemm_m          = -1;
-    int gemm_n          = -1;
-    int gemm_k_total    = -1;
+    int gemm_g       = -1;
+    int gemm_m       = -1;
+    int gemm_n       = -1;
+    int gemm_k_total = -1;
+    int gemm_k_block = -1;
 
-    std::tie(gemm_g, gemm_m, gemm_n, gemm_k_total) =
-        ConvHipImplicitGemmWrwV4R4Xdlops::CalculateGemmSize(ctx);
-    const auto n = ConvolutionContextInterpreter::GetBatchN(ctx);
-    if(!(gemm_m % GemmMPerBlock == 0 && gemm_n % GemmNPerBlock == 0))
-        return GemmKBlocks;
-    int GridSize = gemm_g * (gemm_m / GemmMPerBlock) * (gemm_n / GemmNPerBlock);
-    int Blocks   = std::max(MaxBlocks / GridSize, 1);
-    Blocks       = std::min(Blocks, n);
-
-    if(gemm_k_total % GemmKPack != 0)
-        return GemmKBlocks;
-    const auto gemm_k = gemm_k_total / GemmKPack;
-    for(; Blocks > 1; Blocks--)
+    try
     {
-        if(n % Blocks != 0)
-            continue;
-        if(gemm_k % Blocks != 0)
-            continue;
-        const auto gemm_k_sub = gemm_k / Blocks;
-        if(!(gemm_k_sub % GemmKPerBlock == 0))
-            continue;
-        break;
-    }
-    GemmKBlocks = std::max(1, Blocks);
+        const auto g  = ConvolutionContextInterpreter::GetGroupCountG(ctx);
+        const auto n  = ConvolutionContextInterpreter::GetBatchN(ctx);
+        const auto k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
+        const auto c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
+        const auto ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
+        const auto wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
+        const auto y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+        const auto x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
 
-    return GemmKBlocks;
+        const auto k_per_group = k / g;
+        const auto c_per_group = c / g;
+
+        gemm_m = k_per_group;
+        gemm_n = c_per_group * y * x;
+
+        int gemm_k_block_times_gemm_k_total = n * ho * wo;
+
+        if(!(gemm_m % GemmMPerBlock == 0 && gemm_n % GemmNPerBlock == 0 &&
+             gemm_k_block_times_gemm_k_total % (GemmKPerBlock * GemmKPack) == 0))
+            MIOPEN_THROW("invalid performance parameter");
+
+        int grid_size_without_split_gemmk = g * (gemm_m / GemmMPerBlock) * (gemm_n / GemmNPerBlock);
+
+        const int max_grid_size = 20 * static_cast<int>(ctx.GetStream().GetMaxComputeUnits());
+
+        gemm_k_block = std::max(max_grid_size / grid_size_without_split_gemmk, 1);
+        gemm_k_block = std::min(gemm_k_block, n);
+
+        for(; gemm_k_block > 1; gemm_k_block--)
+        {
+            if(n % gemm_k_block != 0)
+                continue;
+
+            if(gemm_k_block_times_gemm_k_total % (gemm_k_block * GemmKPack) != 0)
+                continue;
+
+            const auto gemm_k = gemm_k_block_times_gemm_k_total / (gemm_k_block * GemmKPack);
+
+            if(!(gemm_k % GemmKPerBlock == 0))
+                continue;
+
+            break;
+        }
+
+        gemm_k_block = std::max(1, gemm_k_block);
+
+        gemm_g       = g * gemm_k_block;
+        gemm_k_total = gemm_k_block_times_gemm_k_total / gemm_k_block;
+    }
+    catch(...)
+    {
+        return std::make_tuple(-1, -1, -1, -1, -1, false);
+    }
+
+    return std::make_tuple(gemm_g, gemm_m, gemm_n, gemm_k_total, gemm_k_block, true);
 }
 
 std::tuple<int, int, int, int, int, bool>
@@ -506,14 +554,14 @@ PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGemmBBlockCopyPerformanceParamete
         int data_per_thread_copy_gemmn = -1;
         int data_per_thread_copy_gemmk = -1;
 
-        if(GemmBThreadCopyMoreGemmKPack)
+        if(GemmBThreadCopyMoreGemmK)
         {
             data_per_thread_copy_gemmk = gcd(GemmKPerBlock, tmp);
             data_per_thread_copy_gemmn = tmp / data_per_thread_copy_gemmk;
         }
         else
         {
-            data_per_thread_copy_gemmn = gcd(GemmKPerBlock, tmp);
+            data_per_thread_copy_gemmn = gcd(GemmNPerBlock, tmp);
             data_per_thread_copy_gemmk = tmp / data_per_thread_copy_gemmn;
         }
 
@@ -597,8 +645,11 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::IsReallyValid(const ConvolutionContex
         int gemm_n       = -1;
         int gemm_k_total = -1;
 
-        std::tie(std::ignore, gemm_m, gemm_n, gemm_k_total) =
-            ConvHipImplicitGemmWrwV4R4Xdlops::CalculateGemmSize(ctx);
+        std::tie(std::ignore, gemm_m, gemm_n, gemm_k_total, std::ignore, valid) =
+            CalculateGemmSizeAndGemmKBlock(ctx);
+
+        if(!valid)
+            return false;
 
         if(gemm_k_total % GemmKPack != 0)
             return false;
@@ -641,6 +692,9 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::IsReallyValid(const ConvolutionContex
 bool PerformanceImplicitGemmWrwV4R4Xdlops::IsFastToBeUsedForTuning(
     const ConvolutionContext& ctx) const
 {
+
+    if(use_spare_set)
+        return true;
     // somehow, 128x128 wave-wise GEMM tend to spill register
     // TODO revisit this when 128x128 wave-wise GEMM become efficient
     {
@@ -653,8 +707,8 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::IsFastToBeUsedForTuning(
         int gemm_m = 0;
         int gemm_n = 0;
 
-        std::tie(std::ignore, gemm_m, gemm_n, std::ignore) =
-            ConvHipImplicitGemmWrwV4R4Xdlops::CalculateGemmSize(ctx);
+        std::tie(std::ignore, gemm_m, gemm_n, std::ignore, std::ignore, std::ignore) =
+            CalculateGemmSizeAndGemmKBlock(ctx);
 
         // this is grid size using current blockwise-GEMM
         const int grid_size = (gemm_m * gemm_n) / (GemmMPerBlock * GemmNPerBlock);
@@ -669,29 +723,32 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::IsFastToBeUsedForTuning(
 
         const float ratio = float(grid_size) / grid_size_max_blockwise_gemm;
 
-        if(grid_size_max_blockwise_gemm > 600)
+        const auto num_cu = ctx.GetStream().GetMaxComputeUnits();
+
+        // heuristic to exclude performance paramater that result in very large number of blocks
+        if(grid_size_max_blockwise_gemm > 5 * num_cu)
         {
-            if(ratio > 1.41)
+            if(ratio > 2.81)
                 return false;
         }
-        if(grid_size_max_blockwise_gemm > 480)
+        else if(grid_size_max_blockwise_gemm > 4 * num_cu)
         {
-            if(ratio > 1.81)
+            if(ratio > 3.61)
                 return false;
         }
-        if(grid_size_max_blockwise_gemm > 360)
+        else if(grid_size_max_blockwise_gemm > 3 * num_cu)
         {
-            if(ratio > 2.21)
+            if(ratio > 4.41)
                 return false;
         }
-        if(grid_size_max_blockwise_gemm > 240)
+        else if(grid_size_max_blockwise_gemm > 2 * num_cu)
         {
-            if(ratio > 3.21)
+            if(ratio > 6.41)
                 return false;
         }
-        else if(grid_size_max_blockwise_gemm > 120)
+        else if(grid_size_max_blockwise_gemm > num_cu)
         {
-            if(ratio > 6.21)
+            if(ratio > 12.41)
                 return false;
         }
     }
@@ -711,8 +768,8 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::IsFastToBeUsedForTuning(
         int gemm_m = 0;
         int gemm_n = 0;
 
-        std::tie(std::ignore, gemm_m, gemm_n, std::ignore) =
-            ConvHipImplicitGemmWrwV4R4Xdlops::CalculateGemmSize(ctx);
+        std::tie(std::ignore, gemm_m, gemm_n, std::ignore, std::ignore, std::ignore) =
+            CalculateGemmSizeAndGemmKBlock(ctx);
 
         if(GemmMPerBlock > 2 * GemmNPerBlock)
         {
@@ -798,29 +855,6 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops::IsValidPerformanceConfig(
     return c.IsReallyValid(ctx);
 }
 
-std::tuple<int, int, int, int>
-ConvHipImplicitGemmWrwV4R4Xdlops::CalculateGemmSize(const ConvolutionContext& ctx)
-{
-    const auto g  = ConvolutionContextInterpreter::GetGroupCountG(ctx);
-    const auto n  = ConvolutionContextInterpreter::GetBatchN(ctx);
-    const auto k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
-    const auto c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
-    const auto ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
-    const auto wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
-    const auto y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-    const auto x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
-
-    const auto k_per_group = k / g;
-    const auto c_per_group = c / g;
-
-    const auto gemm_g       = g;
-    const auto gemm_m       = k_per_group;
-    const auto gemm_n       = c_per_group * y * x;
-    const auto gemm_k_total = n * ho * wo;
-
-    return std::make_tuple(gemm_g, gemm_m, gemm_n, gemm_k_total);
-}
-
 PerformanceImplicitGemmWrwV4R4Xdlops
 ConvHipImplicitGemmWrwV4R4Xdlops::GetPerformanceConfig(const ConvolutionContext& ctx) const
 {
@@ -849,12 +883,9 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
     construction_parameters.kernel_name =
         "gridwise_convolution_backward_weights_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw";
 
-    int grid_size   = 0;
-    int block_size  = 0;
-    int GemmKBlocks = 1;
-    GemmKBlocks     = config.CalculateGemmKBlocks(ctx);
-    std::tie(grid_size, std::ignore) = config.CalculateGridSize(ctx);
-    grid_size = grid_size * GemmKBlocks;
+    int grid_size  = 0;
+    int block_size = 0;
+    std::tie(grid_size, std::ignore)  = config.CalculateGridSize(ctx);
     std::tie(block_size, std::ignore) = config.CalculateBlockSize();
 
     construction_parameters.l_wk.push_back(block_size);
@@ -864,6 +895,8 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
     construction_parameters.g_wk.push_back(block_size * grid_size);
     construction_parameters.g_wk.push_back(1);
     construction_parameters.g_wk.push_back(1);
+
+    int GemmKBlock = -1;
 
     int GemmABlockCopyClusterLengths_GemmK      = -1;
     int GemmABlockCopyClusterLengths_GemmM      = -1;
@@ -876,6 +909,9 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
     int GemmBBlockCopyClusterLengths_GemmKPack  = -1;
     int GemmBBlockCopySrcDataPerRead_GemmKPack  = -1;
     int GemmBBlockCopyDstDataPerWrite_GemmKPack = -1;
+
+    std::tie(std::ignore, std::ignore, std::ignore, std::ignore, GemmKBlock, std::ignore) =
+        config.CalculateGemmSizeAndGemmKBlock(ctx);
 
     std::tie(GemmABlockCopyClusterLengths_GemmK,
              GemmABlockCopyClusterLengths_GemmM,
@@ -917,7 +953,7 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
         std::string(" -DCK_PARAM_TUNABLE_GEMM_M_PER_WAVE=") + std::to_string(config.GemmMPerWave) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_N_PER_WAVE=") + std::to_string(config.GemmNPerWave) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_KPACK=") + std::to_string(config.GemmKPack) +
-        std::string(" -DCK_PARAM_GEMM_K_BLOCKS=") + std::to_string(GemmKBlocks) +
+        std::string(" -DCK_PARAM_GEMM_K_BLOCK=") + std::to_string(GemmKBlock) +
         std::string(" -DCK_PARAM_DEPENDENT_BLOCK_SIZE=") + std::to_string(block_size) +
         std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size) +
         std::string(" -DCK_PARAM_DEPENDENT_GEMM_A_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_K=") + std::to_string(GemmABlockCopyClusterLengths_GemmK) +
@@ -933,7 +969,6 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
         std::string(" -DCK_USE_AMD_XDLOPS=") + std::to_string(IsXdlopsSupport(ctx) ? 1 : 0) +
         std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + std::to_string(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}) ? 1 : 0) +
         std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}) ? '1' : '0') +
-        std::string(" -DCK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM=") + (miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM{}) ? '0' : '1') +
         get_ck_common_compiler_flag(ctx) +
         ctx.general_compile_options;
     // clang-format on
@@ -997,10 +1032,19 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
 
 bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_XDLOPS{}))
+        return false;
+
     if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
         return false;
 
     if(!ctx.use_hip_kernels)
+        return false;
+
+    if(!IsComposableKernelSupportedHardware(ctx))
+        return false;
+
+    if(!IsXdlopsSupport(ctx))
         return false;
 
     if(!IsXdlopsSupport(ctx))
@@ -1017,25 +1061,24 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ConvolutionContext& ct
 
     if(!IsIndexRangeLargeEnough(ctx))
         return false;
-    // gemm size
-    {
-        int gemm_g       = -1;
-        int gemm_m       = -1;
-        int gemm_n       = -1;
-        int gemm_k_total = -1;
-
-        std::tie(gemm_g, gemm_m, gemm_n, gemm_k_total) = CalculateGemmSize(ctx);
-
-        if(!IsValidGridGemmXdlops(gemm_m, gemm_n, gemm_k_total))
-            return false;
-    }
 
     // this particular EuristicInit is so comprehensive, that if it cannot predict a valid
     // performance config, the problem is probably not applicable
     PerformanceImplicitGemmWrwV4R4Xdlops config;
     config.EuristicInit(ctx);
 
-    return config.IsReallyValid(ctx);
+    if(!config.IsReallyValid(ctx))
+        return false;
+
+    // gemm size
+    int gemm_m       = -1;
+    int gemm_n       = -1;
+    int gemm_k_total = -1;
+
+    std::tie(std::ignore, gemm_m, gemm_n, gemm_k_total, std::ignore, std::ignore) =
+        config.CalculateGemmSizeAndGemmKBlock(ctx);
+
+    return IsValidGridGemmXdlops(gemm_m, gemm_n, gemm_k_total);
 }
 
 PerformanceImplicitGemmWrwV4R4Xdlops

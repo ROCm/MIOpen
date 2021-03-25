@@ -73,7 +73,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 2.9.0)
+rocm_setup_version(VERSION 2.10.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -83,8 +83,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         message(FATAL_ERROR "MIOpen requires at least gcc 5.3")
     endif()
 endif()
-
-
 
 
 ############################################################
@@ -108,7 +106,7 @@ else()
     set(WINE_CMD)
 endif()
 
-list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/llvm /opt/rocm/hip /opt/rocm/hcc)
+list(APPEND CMAKE_PREFIX_PATH ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_PREFIX}/llvm ${CMAKE_INSTALL_PREFIX}/hip /opt/rocm /opt/rocm/llvm /opt/rocm/hip /opt/rocm/hcc)
 
 option(ENABLE_HIP_WORKAROUNDS Off)
 set(MIOPEN_INSTALL_CXX_HEADERS Off CACHE BOOL "Install MIOpen's C++ header interface")
@@ -150,7 +148,8 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     find_package( OpenCL REQUIRED )
     find_program(MIOPEN_HIP_COMPILER hcc
             PATH_SUFFIXES bin
-            PATHS /opt/rocm
+            PATHS 
+	        /opt/rocm
     )
     set(MIOPEN_USE_MIOPENGEMM ON CACHE BOOL "")
     if(MIOPEN_HIP_COMPILER)
@@ -158,7 +157,9 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     else()
         find_program(MIOPEN_HIP_COMPILER clang++
             PATH_SUFFIXES bin
-	        PATHS /opt/rocm/llvm
+	        PATHS 
+		    /opt/rocm/llvm
+		    ${CMAKE_INSTALL_PREFIX}/llvm
         )
         if(MIOPEN_HIP_COMPILER)
             message("hip compiler: ${MIOPEN_HIP_COMPILER}")
@@ -166,6 +167,9 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
             message(FATAL_ERROR "hip compiler not found")
         endif()
     endif()
+
+    # MIOpenTensile does not support opencl backend yet.
+    set(MIOPEN_USE_MIOPENTENSILE OFF CACHE BOOL "")
 
     # TODO (priority_low) Use to build HIP and ASM kernels.
     if(MIOPEN_USE_COMGR)
@@ -180,20 +184,46 @@ message(STATUS "Build with HIP ${hip_VERSION}")
 target_flags(HIP_COMPILER_FLAGS hip::device)
 # Remove cuda arch flags
 string(REGEX REPLACE --cuda-gpu-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
+string(REGEX REPLACE --offload-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
+
+# Override HIP version in config.h, if necessary.
+# The variables set by find_package() can't be overwritten,
+# therefore let's use intermediate variables.
+set(MIOPEN_hip_VERSION_MAJOR "${hip_VERSION_MAJOR}")
+set(MIOPEN_hip_VERSION_MINOR "${hip_VERSION_MINOR}")
+set(MIOPEN_hip_VERSION_PATCH "${hip_VERSION_PATCH}")
+if( DEFINED MIOPEN_OVERRIDE_HIP_VERSION_MAJOR )
+    set(MIOPEN_hip_VERSION_MAJOR "${MIOPEN_OVERRIDE_HIP_VERSION_MAJOR}")
+    message(STATUS "MIOPEN_hip_VERSION_MAJOR overriden with ${MIOPEN_OVERRIDE_HIP_VERSION_MAJOR}")
+endif()
+if( DEFINED MIOPEN_OVERRIDE_HIP_VERSION_MINOR )
+    set(MIOPEN_hip_VERSION_MINOR "${MIOPEN_OVERRIDE_HIP_VERSION_MINOR}")
+    message(STATUS "MIOPEN_hip_VERSION_MINOR overriden with ${MIOPEN_OVERRIDE_HIP_VERSION_MINOR}")
+endif()
+if( DEFINED MIOPEN_OVERRIDE_HIP_VERSION_PATCH )
+    set(MIOPEN_hip_VERSION_PATCH "${MIOPEN_OVERRIDE_HIP_VERSION_PATCH}")
+    message(STATUS "MIOPEN_hip_VERSION_PATCH overriden with ${MIOPEN_OVERRIDE_HIP_VERSION_PATCH}")
+endif()
+
 
 message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
 
 add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
 
 
-
 # HIP
 if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     set(MIOPEN_BACKEND_HIP 1)
     set(MIOPEN_USE_MIOPENGEMM OFF CACHE BOOL "")
+    # miopentensile default off
+    set(MIOPEN_USE_MIOPENTENSILE OFF CACHE BOOL "")
+
     find_program(HIP_OC_COMPILER clang-ocl
         PATH_SUFFIXES bin
-        PATHS /opt/rocm
+        PATHS 
+	    /opt/rocm
+	    ${CMAKE_INSTALL_PREFIX}
+
     )
     if(HIP_OC_COMPILER)
         message(STATUS "hip compiler: ${HIP_OC_COMPILER}")
@@ -241,7 +271,9 @@ message( STATUS "${MIOPEN_BACKEND} backend selected." )
 if(MIOPEN_HIP_COMPILER MATCHES ".*clang\\+\\+$")
     find_program(MIOPEN_OFFLOADBUNDLER_BIN clang-offload-bundler
         PATH_SUFFIXES bin
-        PATHS /opt/rocm/llvm
+        PATHS 
+	    /opt/rocm/llvm
+	    ${CMAKE_INSTALL_PREFIX}/llvm
     )
 endif()
 if(MIOPEN_OFFLOADBUNDLER_BIN)
@@ -257,6 +289,10 @@ else()
             /opt/rocm/hip
             /opt/rocm/hcc
             /opt/rocm
+	        ${CMAKE_INSTALL_PREFIX}/hip
+            ${CMAKE_INSTALL_PREFIX}/hcc
+            ${CMAKE_INSTALL_PREFIX}
+
     )
     if(EXTRACTKERNEL_BIN)
         message(STATUS "extractkernel found: ${EXTRACTKERNEL_BIN}")
@@ -284,6 +320,14 @@ find_program(MIOPEN_AMDGCN_ASSEMBLER
     NO_DEFAULT_PATH
 )
 message(STATUS "AMDGCN assembler: ${MIOPEN_AMDGCN_ASSEMBLER}")
+
+# miopentensile
+if(MIOPEN_USE_MIOPENTENSILE)
+    find_package(miopentensile)
+    message(STATUS "Build with miopentensile")
+else()
+    message(STATUS "Build without miopentensile")
+endif()
 
 # miopengemm
 if(MIOPEN_USE_MIOPENGEMM)
@@ -345,6 +389,15 @@ endif()
 
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "${MIOPEN_PACKAGE_REQS}, rocm-opencl-dev")
 set(CPACK_RPM_PACKAGE_REQUIRES "${MIOPEN_PACKAGE_REQS}, rocm-opencl-devel")
+
+# Make backends explicitly conflict
+if(MIOPEN_BACKEND STREQUAL "HIP")
+    set(CPACK_DEBIAN_PACKAGE_CONFLICTS miopen-opencl)
+    set(CPACK_RPM_PACKAGE_CONFLICTS miopen-opencl)
+elseif(MIOPEN_BACKEND STREQUAL "OpenCL")
+    set(CPACK_DEBIAN_PACKAGE_CONFLICTS miopen-hip)
+    set(CPACK_RPM_PACKAGE_CONFLICTS miopen-hip)
+endif()
 
 rocm_create_package(
     NAME MIOpen-${MIOPEN_BACKEND}

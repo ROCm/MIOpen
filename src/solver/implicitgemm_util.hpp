@@ -21,6 +21,10 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SY
 // due to compiler bug, iGEMM xdlops kernels fail verification in some cases, if using "-O3" flag,
 // (but will pass verification with "-O1" flag)
 #define WORKAROUND_SWDEV_251757 1
+// although gfx1030 supports buffer instructions,but it not work properly when we use the
+// corresponding llvm intrinsic functions
+// so we disable using those llvm intrinsic functions on gfx1030
+#define WORKAROUND_MIOPEN_ISSUE_557 1
 
 namespace miopen {
 
@@ -102,12 +106,28 @@ struct ConvolutionContextInterpreter
 
     static auto GetBatchN(const ConvolutionContext& c) { return c.batch_sz; }
 
+    static auto GetOutputLayout(const ConvolutionContext& c)
+    {
+        if(c.direction.IsForward())
+            return c.out_layout;
+        else
+            return c.in_layout;
+    }
+
     static auto GetOutputChannelK(const ConvolutionContext& c)
     {
         if(c.direction.IsForward())
             return c.n_outputs;
         else
             return c.n_inputs;
+    }
+
+    static auto GetInputLayout(const ConvolutionContext& c)
+    {
+        if(c.direction.IsForward())
+            return c.in_layout;
+        else
+            return c.out_layout;
     }
 
     static auto GetInputChannelC(const ConvolutionContext& c)
@@ -167,6 +187,8 @@ struct ConvolutionContextInterpreter
     }
 
     static auto GetFilterDepthZ(const ConvolutionContext& c) { return c.kernel_size_d; }
+
+    static auto GetFilterLayout(const ConvolutionContext& c) { return c.weights_layout; }
 
     static auto GetFilterHeightY(const ConvolutionContext& c) { return c.kernel_size_h; }
 
@@ -689,6 +711,22 @@ static inline bool support_amd_buffer_atomic_fadd(const ConvolutionContext& ctx)
     return StartsWith(device_name, "gfx908");
 }
 
+static inline bool is_use_amd_buffer_load_store(const ConvolutionContext& ctx)
+{
+#if WORKAROUND_MIOPEN_ISSUE_557
+    const auto device_name = ctx.GetStream().GetDeviceName();
+    return !StartsWith(device_name, "gfx1030");
+#else
+    return true;
+#endif
+}
+
+static inline bool is_use_v_fmac_f32(const ConvolutionContext& ctx)
+{
+    const auto device_name = ctx.GetStream().GetDeviceName();
+    return StartsWith(device_name, "gfx1030");
+}
+
 template <typename T>
 int amd_buffer_load_max_length()
 {
@@ -767,20 +805,41 @@ static inline auto get_ck_common_compiler_flag(const ConvolutionContext& ctx)
 {
     auto compiler_flag = std::string(" --std=c++14");
 
-    // HIP version
-    compiler_flag +=
-        std::string(" -DCK_HIP_VERSION_FLAT=") + std::to_string(HIP_PACKAGE_VERSION_FLAT);
-
     // atomic-fadd
     compiler_flag += std::string(" -DCK_USE_AMD_BUFFER_ATOMIC_FADD=") +
                      (support_amd_buffer_atomic_fadd(ctx) ? '1' : '0');
+
+    // LDS sync
+    compiler_flag +=
+        std::string(" -DCK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM=") +
+        (miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM{})
+             ? '0'
+             : '1');
 
     // workaround
     compiler_flag +=
         std::string(" -DCK_WORKAROUND_SWDEV_229564=") + std::to_string(WORKAROUND_SWDEV_229564) +
         std::string(" -DCK_WORKAROUND_SWDEV_231101=") + std::to_string(WORKAROUND_SWDEV_231101);
 
+    // enable or disable buffer load/store
+    compiler_flag += std::string(" -DCK_USE_AMD_BUFFER_ADDRESSING=") +
+                     (is_use_amd_buffer_load_store(ctx) ? '1' : '0');
+
+    // use v_fmac_f32 or not
+    compiler_flag +=
+        std::string(" -DCK_USE_AMD_V_FMAC_F32=") + (is_use_v_fmac_f32(ctx) ? '1' : '0');
+
     return compiler_flag;
+}
+
+static inline bool IsComposableKernelSupportedHardware(const ConvolutionContext& c)
+{
+    return (StartsWith(c.GetStream().GetDeviceName(), "gfx803") &&
+            c.GetStream().GetMaxComputeUnits() == 64) ||
+           StartsWith(c.GetStream().GetDeviceName(), "gfx900") ||
+           StartsWith(c.GetStream().GetDeviceName(), "gfx906") ||
+           StartsWith(c.GetStream().GetDeviceName(), "gfx908") ||
+           StartsWith(c.GetStream().GetDeviceName(), "gfx1030");
 }
 
 } // namespace solver

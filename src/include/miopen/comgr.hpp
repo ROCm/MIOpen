@@ -29,6 +29,7 @@
 #include <miopen/config.h>
 #if MIOPEN_USE_COMGR
 
+#include <miopen/target_properties.hpp>
 #include <string>
 #include <vector>
 
@@ -38,19 +39,19 @@ namespace comgr {
 void BuildHip(const std::string& name,
               const std::string& text,
               const std::string& options,
-              const std::string& device,
+              const miopen::TargetProperties& target,
               std::vector<char>& binary);
 
 void BuildOcl(const std::string& name,
               const std::string& text,
               const std::string& options,
-              const std::string& device,
+              const miopen::TargetProperties& target,
               std::vector<char>& binary);
 
 void BuildAsm(const std::string& name,
               const std::string& text,
               const std::string& options,
-              const std::string& device,
+              const miopen::TargetProperties& target,
               std::vector<char>& binary);
 
 } // namespace comgr

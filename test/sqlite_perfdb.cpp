@@ -1236,9 +1236,9 @@ struct PerfDbDriver : test_driver
         if(full_set)
         {
             tests::full_set()                         = true;
-            DBMultiThreadedTestWork::threads_count    = 32;
-            DBMultiThreadedTestWork::common_part_size = 128;
-            DBMultiThreadedTestWork::unique_part_size = 128;
+            DBMultiThreadedTestWork::threads_count    = 16;
+            DBMultiThreadedTestWork::common_part_size = 32;
+            DBMultiThreadedTestWork::unique_part_size = 32;
         }
         if(mt_child_id >= 0)
         {

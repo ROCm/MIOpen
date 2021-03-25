@@ -34,6 +34,7 @@
 #include <miopen/sequences.hpp>
 #include <miopen/conv/invokers/gen_x_w_y_pad.hpp>
 
+#include <cstdint>
 #include <sstream>
 #include <limits>
 #include <cassert>
@@ -177,12 +178,24 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(params.IsAsymmetricPadH() || params.IsAsymmetricPadW())
         return false;
+    if(!(params.direction.IsForward() || params.direction.IsBackwardData()))
+        return false;
     if(!params.rmv.IsV2orV3())
         return false;
     const std::string name = params.GetStream().GetDeviceName();
     if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")))
         return false;
-    assert(params.weights_layout.length() == 0); // FIXME _weights_layout is not supported yet.
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
+
+    constexpr auto GIB     = static_cast<int64_t>(1024) * 1024 * 1024;
+    constexpr auto ELEM_SZ = static_cast<int64_t>(sizeof(float));
+    const auto IN_BUF_SZ =
+        ELEM_SZ * params.batch_sz * params.n_inputs * params.in_height * params.in_width;
+    const auto OUT_BUF_SZ =
+        ELEM_SZ * params.batch_sz * params.n_outputs * params.out_height * params.out_width;
     // clang-format off
     return params.pad_w == 1
         && params.pad_h == 1
@@ -196,6 +209,8 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         && (params.n_inputs / params.group_counts) % 4 == 0 /// \todo: remove restriction that (n_inputs/group_counts) must be multiple of 4
         && params.in_width > 3
         && params.in_width <= 1000
+        && IN_BUF_SZ <= 4 * GIB
+        && OUT_BUF_SZ <= 4 * GIB
         && params.IsFp32()
         && params.in_layout == "NCHW";
         // && (params.forward ? params.weights_layout == "KCHW" : params.weights_layout == "CKHW" )
