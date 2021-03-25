@@ -596,12 +596,6 @@ bool ConvHipImplicitGemmV4R4WrW::IsApplicable(const ConvolutionContext& ctx) con
         return false;
     if(!ctx.IsLayoutDefault())
         return false;
-    return IsApplicableMlirCommon(ctx);
-}
-
-/// This is necessary only for MLIR solvers that re-use parts of this solver.
-bool ConvHipImplicitGemmV4R4WrW::IsApplicableMlirCommon(const ConvolutionContext& ctx) const
-{
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
     if(!ctx.direction.IsBackwardWrW())
