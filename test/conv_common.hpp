@@ -53,6 +53,9 @@
 
 #define TEST_DIRECT_SUPPORTED_CONFIG_ONLY (!MIOPEN_USE_ROCBLAS && !MIOPEN_USE_MIOPENTENSILE)
 
+#define WORKAROUND_MI100_ROM37_HIP_COMPILER_CRASH \
+    (HIP_PACKAGE_VERSION_MAJOR == 3 && HIP_PACKAGE_VERSION_MINOR == 7)
+
 #if TEST_DIRECT_SUPPORTED_CONFIG_ONLY
 static inline bool is_direct_fwd_bwd_data_supported(miopen::Handle& handle,
                                                     const miopen::ConvolutionDescriptor convDesc,
@@ -105,23 +108,35 @@ static inline bool is_direct_bwd_wrw_supported(miopen::Handle& handle,
 }
 #endif
 
-static inline bool is_gemm_workspace_valid(miopen::Handle& handle,
-                                           const miopen::ConvolutionDescriptor convDesc,
-                                           const miopen::TensorDescriptor& xDesc,
-                                           const miopen::TensorDescriptor& wDesc,
-                                           const miopen::TensorDescriptor& yDesc)
+#if WORKAROUND_MI100_ROM37_HIP_COMPILER_CRASH
+static inline bool skip_config(miopen::Handle& handle,
+                               const miopen::ConvolutionDescriptor convDesc,
+                               const miopen::TensorDescriptor& xDesc,
+                               const miopen::TensorDescriptor& wDesc,
+                               const miopen::TensorDescriptor& yDesc)
 {
-    bool is_gemmtrans = convDesc.GetSpatialDimension() == 2 &&
-                        std::all_of(wDesc.GetLengths().begin() + 2,
-                                    wDesc.GetLengths().end(),
-                                    [](auto v) { return v == 1; }) &&
-                        miopen::all_of(convDesc.GetConvPads(), [](auto v) { return v == 0; }) &&
-                        miopen::all_of(convDesc.GetConvStrides(), [](auto v) { return v == 2; });
-    auto fwd_get_wksp = convDesc.ForwardGetWorkSpaceSize(handle, wDesc, xDesc, yDesc);
-    return !((is_gemmtrans &&
-              fwd_get_wksp < convDesc.ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc)) ||
-             (!is_gemmtrans && fwd_get_wksp < convDesc.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc)));
+    if(convDesc.mode != miopenConvolution)
+        return false;
+
+    auto ctx =
+        miopen::ConvolutionContext{xDesc, wDesc, yDesc, convDesc, miopen::conv::Direction::Forward};
+
+    ctx.do_search               = false;
+    ctx.save_srch_req           = false;
+    ctx.general_compile_options = "";
+    ctx.disable_perfdb_access   = true;
+    ctx.SetStream(&handle);
+    ctx.SetupFloats();
+    ctx.DetectRocm();
+
+    return ctx.GetStream().GetDeviceName() == "gfx908" && ctx.Is2d() && ctx.IsFp16() &&
+           ctx.IsLayoutDefault() && ctx.use_hip_kernels && ctx.group_counts == 1 &&
+           ctx.batch_sz == 1 && ctx.n_inputs == 192 && ctx.in_height == 28 && ctx.in_width == 28 &&
+           ctx.n_outputs == 1 && ctx.kernel_size_h == 3 && ctx.kernel_size_w == 3 &&
+           ctx.pad_w == 1 && ctx.pad_h == 1 && ctx.kernel_stride_w == 1 &&
+           ctx.kernel_stride_h == 1 && ctx.kernel_dilation_w == 1 && ctx.kernel_dilation_h == 1;
 }
+#endif
 
 struct scalar_gen_random_float
 {
@@ -301,7 +316,8 @@ struct verify_forward_conv : conv_base<T, Tout>
         /// So we use one Immediate mode call during Find mode tests,
         /// to print solver name onto console.
         miopenConvSolution_t selected;
-        std::size_t count = 0;
+        bool fallback_path_taken = false;
+        std::size_t count        = 0;
 
         std::vector<char> ws;
         miopen::Allocator::ManageDataPtr ws_dev = nullptr;
@@ -344,8 +360,14 @@ struct verify_forward_conv : conv_base<T, Tout>
 
                 auto solutions = std::vector<miopenConvSolution_t>(count);
 
-                filter.GetBackwardSolutions(
-                    handle, input.desc, weights.desc, rout.desc, count, &count, solutions.data());
+                filter.GetBackwardSolutions(handle,
+                                            input.desc,
+                                            weights.desc,
+                                            rout.desc,
+                                            count,
+                                            &count,
+                                            solutions.data(),
+                                            &fallback_path_taken);
 
                 if(count == 0)
                 {
@@ -415,8 +437,14 @@ struct verify_forward_conv : conv_base<T, Tout>
                 // std::cout << "Forward Conv solutions available: " << count << std::endl;
                 auto solutions = std::vector<miopenConvSolution_t>(count);
 
-                filter.GetForwardSolutions(
-                    handle, weights.desc, input.desc, rout.desc, count, &count, solutions.data());
+                filter.GetForwardSolutions(handle,
+                                           weights.desc,
+                                           input.desc,
+                                           rout.desc,
+                                           count,
+                                           &count,
+                                           solutions.data(),
+                                           &fallback_path_taken);
 
                 if(count == 0)
                 {
@@ -552,7 +580,8 @@ struct verify_forward_conv : conv_base<T, Tout>
                                            rout.desc,
                                            1,
                                            &count,
-                                           &selected); /// \ref read_solver_name
+                                           &selected,
+                                           &fallback_path_taken); /// \ref read_solver_name
             }
             else
             {
@@ -612,7 +641,8 @@ struct verify_forward_conv : conv_base<T, Tout>
                                                 rout.desc,
                                                 1,
                                                 &count,
-                                                &selected); /// \ref read_solver_name
+                                                &selected,
+                                                &fallback_path_taken); /// \ref read_solver_name
                 }
                 else
                 {
@@ -656,7 +686,8 @@ struct verify_forward_conv : conv_base<T, Tout>
                                                rout.desc,
                                                1,
                                                &count,
-                                               &selected); /// \ref read_solver_name
+                                               &selected,
+                                               &fallback_path_taken); /// \ref read_solver_name
                 }
             }
         }
@@ -665,7 +696,7 @@ struct verify_forward_conv : conv_base<T, Tout>
         {
             stats->algorithm   = selected.algorithm;
             stats->solver_name = miopen::solver::Id(selected.solution_id).ToString();
-            if(selected.time < 0)
+            if(fallback_path_taken)
                 stats->solver_name += "_fallback";
         }
         rout.data = handle.Read<Tout>(out_dev, rout.data.size());
@@ -752,7 +783,8 @@ struct verify_backward_conv : conv_base<T>
         auto in_dev  = handle.Write(rinput.data);
 
         miopenConvSolution_t selected;
-        std::size_t count = 0;
+        bool fallback_path_taken = false;
+        std::size_t count        = 0;
 
         if(immed)
         {
@@ -799,8 +831,14 @@ struct verify_backward_conv : conv_base<T>
                 // std::endl;
                 auto solutions = std::vector<miopenConvSolution_t>(count);
 
-                filter.GetForwardSolutions(
-                    handle, weights.desc, out.desc, rinput.desc, count, &count, solutions.data());
+                filter.GetForwardSolutions(handle,
+                                           weights.desc,
+                                           out.desc,
+                                           rinput.desc,
+                                           count,
+                                           &count,
+                                           solutions.data(),
+                                           &fallback_path_taken);
 
                 if(count == 0)
                 {
@@ -871,8 +909,14 @@ struct verify_backward_conv : conv_base<T>
                 // std::cout << "Backward Conv solutions available: " << count << std::endl;
                 auto solutions = std::vector<miopenConvSolution_t>(count);
 
-                filter.GetBackwardSolutions(
-                    handle, out.desc, weights.desc, rinput.desc, count, &count, solutions.data());
+                filter.GetBackwardSolutions(handle,
+                                            out.desc,
+                                            weights.desc,
+                                            rinput.desc,
+                                            count,
+                                            &count,
+                                            solutions.data(),
+                                            &fallback_path_taken);
 
                 if(count == 0)
                 {
@@ -971,7 +1015,8 @@ struct verify_backward_conv : conv_base<T>
                                            rinput.desc,
                                            1,
                                            &count,
-                                           &selected); /// \ref read_solver_name
+                                           &selected,
+                                           &fallback_path_taken); /// \ref read_solver_name
             }
             else
             {
@@ -1015,7 +1060,8 @@ struct verify_backward_conv : conv_base<T>
                                             rinput.desc,
                                             1,
                                             &count,
-                                            &selected); /// \ref read_solver_name
+                                            &selected,
+                                            &fallback_path_taken); /// \ref read_solver_name
             }
         }
 
@@ -1023,7 +1069,7 @@ struct verify_backward_conv : conv_base<T>
         {
             stats->algorithm   = selected.algorithm;
             stats->solver_name = miopen::solver::Id(selected.solution_id).ToString();
-            if(selected.time < 0)
+            if(fallback_path_taken)
                 stats->solver_name += "_fallback";
         }
         rinput.data = handle.Read<T>(in_dev, rinput.data.size());
@@ -1110,7 +1156,8 @@ struct verify_backward_weights_conv : conv_base<T>
         auto in_dev  = handle.Write(input.data);
 
         miopenConvSolution_t selected;
-        std::size_t count = 0;
+        bool fallback_path_taken = false;
+        std::size_t count        = 0;
 
         if(immed)
         {
@@ -1165,7 +1212,8 @@ struct verify_backward_weights_conv : conv_base<T>
                                    rweights.desc,
                                    count,
                                    &count,
-                                   solutions.data());
+                                   solutions.data(),
+                                   &fallback_path_taken);
 
             if(count == 0)
             {
@@ -1271,14 +1319,15 @@ struct verify_backward_weights_conv : conv_base<T>
                                    rweights.desc,
                                    1,
                                    &count,
-                                   &selected); /// \ref read_solver_name
+                                   &selected,
+                                   &fallback_path_taken); /// \ref read_solver_name
         }
 
         if(count != 0)
         {
             stats->algorithm   = selected.algorithm;
             stats->solver_name = miopen::solver::Id(selected.solution_id).ToString();
-            if(selected.time < 0)
+            if(fallback_path_taken)
                 stats->solver_name += "_fallback";
         }
         rweights.data = handle.Read<T>(wei_dev, rweights.data.size());
@@ -1426,7 +1475,8 @@ struct verify_forward_conv_int8 : conv_base<T>
         }
 
         // std::cout << "Forward Conv solutions available: " << count << std::endl;
-        auto solutions = std::vector<miopenConvSolution_t>(count);
+        auto solutions           = std::vector<miopenConvSolution_t>(count);
+        bool fallback_path_taken = false;
 
         filter.GetForwardSolutions(handle,
                                    (is_transform ? weight_vpad_desc : weights.desc),
@@ -1434,7 +1484,8 @@ struct verify_forward_conv_int8 : conv_base<T>
                                    rout.desc,
                                    count,
                                    &count,
-                                   solutions.data());
+                                   solutions.data(),
+                                   &fallback_path_taken);
 
         if(count == 0)
         {
@@ -1485,7 +1536,7 @@ struct verify_forward_conv_int8 : conv_base<T>
         {
             stats->algorithm   = selected.algorithm;
             stats->solver_name = miopen::solver::Id(selected.solution_id).ToString();
-            if(selected.time < 0)
+            if(fallback_path_taken)
                 stats->solver_name += "_fallback";
         }
         rout.data = handle.Read<float>(out_dev, rout.data.size());
@@ -1755,10 +1806,14 @@ struct conv_driver : test_driver
                                            tensor_elem_gen_checkboard_sign{}(is...);
                 };
 
-                bool skip_forward =
-                    is_int8 &&
-                    !is_gemm_workspace_valid(
-                        get_handle(), filter, input.desc, weights.desc, output.desc);
+                auto ctx = miopen::ConvolutionContext(input.desc,
+                                                      weights.desc,
+                                                      output.desc,
+                                                      filter,
+                                                      miopen::conv::Direction::Forward);
+                ctx.SetStream(&get_handle());
+
+                bool skip_forward = is_int8 && !IsGemmAplicable(ctx);
                 if(skip_forward)
                 {
                     show_command();
@@ -1786,6 +1841,15 @@ struct conv_driver : test_driver
 
                     skip_backward_weights = !is_direct_bwd_wrw_supported(
                         get_handle(), filter, input.desc, weights.desc, output.desc);
+                }
+#endif
+
+#if WORKAROUND_MI100_ROM37_HIP_COMPILER_CRASH
+                if(skip_config(get_handle(), filter, input.desc, weights.desc, output.desc))
+                {
+                    skip_forward          = true;
+                    skip_backward_data    = true;
+                    skip_backward_weights = true;
                 }
 #endif
 

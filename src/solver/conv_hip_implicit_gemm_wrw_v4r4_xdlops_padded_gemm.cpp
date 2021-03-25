@@ -36,6 +36,8 @@
 #include <miopen/tensor_ops.hpp>
 #include <miopen/implicitgemm_params.hpp>
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_PADDED_GEMM_XDLOPS)
+
 namespace miopen {
 namespace solver {
 
@@ -238,7 +240,7 @@ void PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::EuristicInit(const Convol
     // final check
     if(!tmp.IsReallyValid(ctx))
     {
-        MIOPEN_LOG_I("All attempts failed");
+        MIOPEN_LOG_I("All attempts unsuccessful");
     }
     *this = tmp;
     MIOPEN_LOG_I(ToString());
@@ -668,29 +670,32 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsFastToBeUsedForTuning(
 
         const float ratio = float(grid_size) / grid_size_max_blockwise_gemm;
 
-        if(grid_size_max_blockwise_gemm > 600)
+        const auto num_cu = ctx.GetStream().GetMaxComputeUnits();
+
+        // heuristic to exclude performance paramater that result in very large number of blocks
+        if(grid_size_max_blockwise_gemm > 5 * num_cu)
         {
-            if(ratio > 1.41)
+            if(ratio > 2.81)
                 return false;
         }
-        if(grid_size_max_blockwise_gemm > 480)
+        else if(grid_size_max_blockwise_gemm > 4 * num_cu)
         {
-            if(ratio > 1.81)
+            if(ratio > 3.61)
                 return false;
         }
-        if(grid_size_max_blockwise_gemm > 360)
+        else if(grid_size_max_blockwise_gemm > 3 * num_cu)
         {
-            if(ratio > 2.21)
+            if(ratio > 4.41)
                 return false;
         }
-        if(grid_size_max_blockwise_gemm > 240)
+        else if(grid_size_max_blockwise_gemm > 2 * num_cu)
         {
-            if(ratio > 3.21)
+            if(ratio > 6.41)
                 return false;
         }
-        else if(grid_size_max_blockwise_gemm > 120)
+        else if(grid_size_max_blockwise_gemm > num_cu)
         {
-            if(ratio > 6.21)
+            if(ratio > 12.41)
                 return false;
         }
     }
@@ -1094,13 +1099,19 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetSolution(
 
 bool ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsApplicable(const ConvolutionContext& ctx) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_PADDED_GEMM_XDLOPS{}))
+        return false;
+
+    if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
+        return false;
+
+    if(!IsComposableKernelSupportedHardware(ctx))
+        return false;
+
     if(!IsXdlopsSupport(ctx))
         return false;
 
     if(!ctx.use_hip_kernels)
-        return false;
-
-    if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
         return false;
 
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
@@ -1114,6 +1125,11 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsApplicable(const Convolutio
 
     if(!IsIndexRangeLargeEnough(ctx))
         return false;
+
+    if(!ctx.IsLayoutDefault())
+    {
+        return false;
+    }
 
     // this particular EuristicInit is so comprehensive, that if it cannot predict a valid
     // performance config, the problem is probably not applicable

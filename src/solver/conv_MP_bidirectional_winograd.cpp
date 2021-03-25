@@ -183,13 +183,13 @@ inline bool IsApplicableTransform(const ConvolutionContext& params)
         return false;
     if(!params.Is2d())
         return false;
-    if(params.direction.IsBackwardWrW())
+    if(!(params.direction.IsForward() || params.direction.IsBackwardData()))
         return false;
     if(!(params.IsFp32() || params.IsFp16()))
         return false;
 
     const std::string name = params.GetStream().GetDeviceName();
-    if(!(StartsWith(name, "gfx9")))
+    if(!StartsWith(name, "gfx9") || name == "gfx90a")
         return false;
 
     {
@@ -312,6 +312,11 @@ bool ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsA
 {
     // HIP backend required for sending ptr (buffer + offset)
     // ROCBLAS for GEMM step
+
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
 
     if(!IsApplicableGEMM<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(params))
         return false;
@@ -461,7 +466,6 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
                     workSpace,
                     static_cast<int>(transform_offset.out / wino_out.buff_info.element_size),
                     nullptr,
-                    false,
                     GemmBackend_t::rocblas);
 #else
                 (void)handle;

@@ -100,11 +100,11 @@ class CBAInferFusionDriver : public Driver
         iters = 0;
     }
 
-    int AddCmdLineArgs();
-    int ParseCmdLineArgs(int argc, char* argv[]);
-    InputFlags& GetInputFlags() { return inflags; }
+    int AddCmdLineArgs() override;
+    int ParseCmdLineArgs(int argc, char* argv[]) override;
+    InputFlags& GetInputFlags() override { return inflags; }
 
-    int GetandSetData();
+    int GetandSetData() override;
     std::vector<int> GetInputTensorLengthsFromCmdLine();
     std::vector<int> GetOutputTensorLengths();
     std::vector<int> GetWeightTensorLengthsFromCmdLine();
@@ -115,12 +115,12 @@ class CBAInferFusionDriver : public Driver
 
     int SetBNParametersFromCmdLineArgs();
 
-    int AllocateBuffersAndCopy();
+    int AllocateBuffersAndCopy() override;
 
-    int RunForwardGPU();
+    int RunForwardGPU() override;
     int RunForwardCPU();
 
-    int RunBackwardGPU() { return 0; };
+    int RunBackwardGPU() override { return 0; };
     int RunBackwardCPU() { return 0; };
 
     void runGPUConvBatchNormActivInference();
@@ -139,8 +139,8 @@ class CBAInferFusionDriver : public Driver
     void runGPUFusedConvBiasInference();
     void runCPUConvBiasInference();
 
-    int VerifyBackward() { return 0; };
-    int VerifyForward();
+    int VerifyBackward() override { return 0; };
+    int VerifyForward() override;
 
     Timer t;
     double fulltime;
@@ -189,7 +189,7 @@ class CBAInferFusionDriver : public Driver
         return;
     }
 
-    ~CBAInferFusionDriver()
+    ~CBAInferFusionDriver() override
     {
         miopenDestroyTensorDescriptor(outputTensor);
         miopenDestroyTensorDescriptor(inputTensor);

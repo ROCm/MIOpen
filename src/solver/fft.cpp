@@ -110,9 +110,13 @@ static void cgemm_grid(size_t* global_work_size,
 bool fft::IsApplicable(const ConvolutionContext& ctx) const
 {
     // disable running any FFT based convolutions by checking this env variable
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT{}) || ctx.direction.IsBackwardWrW() ||
-       !ctx.conv_problem.IsFp32())
+    if(ctx.direction.IsBackwardWrW() || !ctx.conv_problem.IsFp32())
         return false;
+
+    if(!ctx.IsLayoutDefault())
+    {
+        return false;
+    }
 
     const auto is_fwd    = ctx.direction.IsForward();
     decltype(auto) conv  = ctx.conv_problem.GetConv();

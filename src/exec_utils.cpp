@@ -55,7 +55,7 @@ int Run(const std::string& p, std::istream* in, std::ostream* out)
     MIOPEN_MANAGE_PTR(FILE*, pclose) pipe{popen(p.c_str(), file_mode)};
 
     if(!pipe)
-        MIOPEN_THROW("miopen::exec::Run(): popen() failed");
+        MIOPEN_THROW("miopen::exec::Run(): popen(" + p + ", " + file_mode + ") failed");
 
     if(redirect_stdin || redirect_stdout)
     {

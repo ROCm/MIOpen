@@ -116,12 +116,12 @@ inline static bool NextLinear(int& v)
 }
 
 // This range is like regular range [0,4,8...32], but 1 is used instead of 0.
-inline static bool Is_1_4_8_12__32(const int& v)
+inline static bool Is_1_4_8_12__32(const int& v) // NOLINT (bugprone-reserved-identifier)
 {
     return v == 1 || (v % 4 == 0 && IsLinear<1, 8>(v / 4));
 }
 
-inline static bool Next_1_4_8_12__32(int& v)
+inline static bool Next_1_4_8_12__32(int& v) // NOLINT (bugprone-reserved-identifier)
 {
     assert(Is_1_4_8_12__32(v));
     int tmp        = v / 4;
@@ -381,6 +381,8 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!params.Is2d())
         return false;
+    if(!(params.direction.IsForward() || params.direction.IsBackwardData()))
+        return false;
     if(params.IsAsymmetricPadH() || params.IsAsymmetricPadW())
         return false;
     if(!params.rmv.IsV2orV3())
@@ -389,7 +391,7 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
         return false;
 
     const std::string name = params.GetStream().GetDeviceName();
-    if(name.find("gfx8") == std::string::npos && name.find("gfx9") == std::string::npos)
+    if(name.find("gfx9") == std::string::npos)
     {
         return false;
     }

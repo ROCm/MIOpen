@@ -30,7 +30,7 @@ namespace miopen {
 
 std::string OpenCLErrorMessage(int error, const std::string& msg)
 {
-    static std::unordered_map<int, std::string> error_map = {
+    static const std::unordered_map<int, std::string> error_map = {
         {CL_SUCCESS, "Success"},
         {CL_DEVICE_NOT_FOUND, "Device Not Found"},
         {CL_DEVICE_NOT_AVAILABLE, "Device Not Available"},
@@ -92,7 +92,7 @@ std::string OpenCLErrorMessage(int error, const std::string& msg)
         {CL_INVALID_DEVICE_PARTITION_COUNT, "Invalid Device Partition Count"}};
     if(error_map.count(error) > 0)
     {
-        return msg + " " + error_map[error];
+        return msg + " " + error_map.at(error);
     }
     else
     {

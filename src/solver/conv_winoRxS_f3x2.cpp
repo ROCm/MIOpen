@@ -218,15 +218,19 @@ bool ConvBinWinogradRxSf3x2::IsApplicable(const ConvolutionContext& params) cons
         return false;
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2{}))
         return false;
-    if(params.direction.IsBackwardWrW())
+    if(!(params.direction.IsForward() || params.direction.IsBackwardData()))
         return false;
     if(!params.use_asm_kernels)
         return false;
     if(!params.rmv.IsV2orV3())
         return false;
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
 
     const auto name = params.GetStream().GetDeviceName();
-    if(!(StartsWith(name, "gfx9")))
+    if(!StartsWith(name, "gfx9") || name == "gfx90a")
         return false;
 
     // clang-format off

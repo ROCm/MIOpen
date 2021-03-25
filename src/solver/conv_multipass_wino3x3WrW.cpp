@@ -430,13 +430,17 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
         return false;
     if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))
         return false;
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
 
     if(!(InTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(params) &&
          OutTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(params) &&
          FilterTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(params)))
         return false;
 
-    if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")))
+    if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")) || name == "gfx90a")
         return false;
 
     {
@@ -668,7 +672,6 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
                                         invoke_params.workSpace,
                                         static_cast<int>(wino_out_offset / GetTypeSize(in_data_type)),
                                         nullptr,
-                                false,
                                 GemmBackend_t::miopentensile);
                     // clang-format on
 

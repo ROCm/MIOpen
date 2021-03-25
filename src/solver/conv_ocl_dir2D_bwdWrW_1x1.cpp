@@ -34,21 +34,36 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1)
 
 #define TWO_PASSES 1
 
+#define WORKAROUND_SWDEV_266868 1
+
 namespace miopen {
 namespace solver {
 
 bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
 {
+
+#if WORKAROUND_SWDEV_266868
+    const std::string name = params.GetStream().GetDeviceName();
+    if(name.find("gfx10") != std::string::npos)
+        return false;
+#endif
+
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1{}))
         return false;
     if(!params.use_opencl_convolutions)
         return false;
     if(!params.Is2d())
         return false;
+    if(!params.direction.IsBackwardWrW())
+        return false;
     if(params.IsAsymmetricPadH() || params.IsAsymmetricPadW())
         return false;
     if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))
         return false;
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
 
     bool result =
         (params.kernel_size_w == 1 && params.kernel_size_h == 1 && params.kernel_dilation_w == 1 &&

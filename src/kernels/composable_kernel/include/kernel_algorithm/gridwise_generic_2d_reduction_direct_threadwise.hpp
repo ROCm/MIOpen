@@ -44,18 +44,25 @@ template <index_t BlockSize,
           ReduceTensorOp_t op,
           NanPropagation_t nanPropaOpt,
           ReduceTensorIndices_t reduceIndicesOpt,
-          index_t callId,
+          bool isFirstCall,
+          bool isLastCall,
+          index_t origReduceLen,
           index_t GredThreadBufferLength>
 struct GridwiseReduction_xy_to_x_direct_threadwise
 {
     static constexpr bool indexable = reduce_binary_operator<compType, op>::indexable;
     static constexpr bool need_indices =
         indexable && (reduceIndicesOpt != ReduceTensorIndices_t::NO_INDICES);
-    static constexpr bool firstCall = (callId == 0) ? true : false;
 
     static constexpr auto toReduceLength = src2dDesc::GetLength(Number<1>{});
 
+    static constexpr auto divider = static_cast<int>(origReduceLen);
+
     using opReduce = typename reduce_binary_operator<compType, op>::opType;
+    using preUnaryOp =
+        typename reduce_unary_operator<compType, op, divider, isFirstCall, isLastCall>::preUnaryOp;
+    using posUnaryOp =
+        typename reduce_unary_operator<compType, op, divider, isFirstCall, isLastCall>::posUnaryOp;
 
     __device__ void Run(srcDataType alpha,
                         const srcDataType* const __restrict__ p_src_global,
@@ -65,7 +72,7 @@ struct GridwiseReduction_xy_to_x_direct_threadwise
                         int* const __restrict__ indices_global)
     {
         static_if<need_indices>{}([&](auto) {
-            static_if<firstCall>{}([&](auto) {
+            static_if<isFirstCall>{}([&](auto) {
                 RunImpl2(alpha, p_src_global, beta, p_dst_global, indices_global);
             }).Else([&](auto) {
                 RunImpl3(
@@ -114,12 +121,17 @@ struct GridwiseReduction_xy_to_x_direct_threadwise
             threadwise_src_load.Run(
                 p_src_global, p_in_thread_buffer, type_convert<srcDataType>{}(zeroVal));
 
+            // do element-wise pre-reduction operation
+            threadwise_reduce::template operate_on_elements<preUnaryOp>(p_in_thread_buffer);
+
             // do the reduction on the Thread Buffer
             threadwise_reduce::Reduce(p_in_thread_buffer, accuValue);
 
             constexpr auto True = integral_constant<bool, true>{};
             threadwise_src_load.MoveSrcSliceWindow(Sequence<0, GredThreadBufferLength>{}, True);
         }
+
+        posUnaryOp{}(accuValue);
 
         using ReducedDataLengths       = Sequence<1>;
         constexpr auto ReducedDataDesc = make_native_tensor_descriptor_packed(ReducedDataLengths{});
@@ -207,6 +219,10 @@ struct GridwiseReduction_xy_to_x_direct_threadwise
 
             threadwise_src_load.Run(
                 p_src_global, p_in_thread_buffer, type_convert<srcDataType>{}(zeroVal));
+
+            // unary operation before reducing, needed by AMAX; For MIN/MAX, nothing is actually
+            // done here
+            threadwise_reduce::template operate_on_elements<preUnaryOp>(p_in_thread_buffer);
 
             // do the reduction on the Thread Buffer
             threadwise_reduce::Reduce2(p_in_thread_buffer, accuValue, accuIndex, indexStart);
