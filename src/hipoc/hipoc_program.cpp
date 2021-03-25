@@ -258,9 +258,6 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
     if(!boost::filesystem::exists(hsaco_file))
         MIOPEN_THROW("Cant find file: " + hsaco_file.string());
 }
-if(!boost::filesystem::exists(hsaco_file))
-    MIOPEN_THROW("Cant find file: " + hsaco_file.string());
-}
 
 #else // MIOPEN_USE_COMGR
 void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
