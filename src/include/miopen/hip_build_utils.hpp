@@ -40,7 +40,8 @@ boost::filesystem::path HipBuild(boost::optional<miopen::TmpDir>& tmp_dir,
                                  const std::string& filename,
                                  std::string src,
                                  std::string params,
-                                 const TargetProperties& target);
+                                 const TargetProperties& target,
+                                 bool sources_already_reside_on_filesystem = false);
 
 void bin_file_to_str(const boost::filesystem::path& file, std::string& buf);
 

@@ -147,7 +147,7 @@ bool ValidateGcnAssemblerImpl()
 
 bool ValidateGcnAssembler()
 {
-    static bool result = ValidateGcnAssemblerImpl();
+    static const bool result = ValidateGcnAssemblerImpl();
     return result;
 }
 

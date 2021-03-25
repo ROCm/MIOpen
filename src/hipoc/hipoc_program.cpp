@@ -32,12 +32,15 @@
 #include <miopen/kernel.hpp>
 #include <miopen/kernel_warnings.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/mlir_build.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/target_properties.hpp>
 #include <miopen/tmp_dir.hpp>
 #include <miopen/write_file.hpp>
 #include <miopen/env.hpp>
 #include <miopen/comgr.hpp>
+#include <miopen/logger.hpp>
+#include <boost/optional.hpp>
 
 #include <cstring>
 #include <mutex>
@@ -223,6 +226,7 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
                                              const std::string& src,
                                              const std::string& filename)
 {
+
     dir.emplace(filename);
     hsaco_file = dir->path / (filename + ".o");
 
@@ -239,6 +243,12 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
     {
         hsaco_file = HipBuild(dir, filename, src, params, target);
     }
+#if MIOPEN_USE_MLIR
+    else if(miopen::EndsWith(filename, ".mlir-cpp"))
+    {
+        hsaco_file = MlirBuildViaHip(dir, filename, src, params, target);
+    }
+#endif
     else
     {
         params += " " + GetCodeObjectVersionOption();
@@ -247,6 +257,9 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
     }
     if(!boost::filesystem::exists(hsaco_file))
         MIOPEN_THROW("Cant find file: " + hsaco_file.string());
+}
+if(!boost::filesystem::exists(hsaco_file))
+    MIOPEN_THROW("Cant find file: " + hsaco_file.string());
 }
 
 #else // MIOPEN_USE_COMGR
@@ -270,6 +283,8 @@ void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
             comgr::BuildHip(filename, src, params, target, binary);
         else if(miopen::EndsWith(filename, ".s"))
             comgr::BuildAsm(filename, src, params, target, binary);
+        else if(miopen::EndsWith(filename, ".mlir-cpp"))
+            MIOPEN_THROW(miopenStatusNotImplemented, "MLIR builds are not supported with COMgr");
         else
             comgr::BuildOcl(filename, src, params, target, binary);
     }
@@ -284,8 +299,15 @@ void HIPOCProgramImpl::BuildCodeObject(std::string params,
 {
     std::string filename = is_kernel_str ? "tinygemm.cl" // Fixed name for miopengemm.
                                          : program;
-    const std::string src =
-        !kernel_src.empty() ? kernel_src : is_kernel_str ? program : GetKernelSrc(program);
+    const auto src = [&]() -> std::string {
+        if(miopen::EndsWith(filename, ".mlir-cpp"))
+            return {}; // MLIR solutions do not use source code.
+        if(!kernel_src.empty())
+            return kernel_src;
+        if(is_kernel_str)
+            return program;
+        return GetKernelSrc(program);
+    }();
 
     if(miopen::EndsWith(filename, ".cpp"))
     {
