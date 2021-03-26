@@ -319,7 +319,7 @@ pipeline {
                 stage('Fp32 Hip Debug COMGR') {
                     agent{ label rocmnode("vega") }
                     environment{
-                        build_env = "CTEST_PARALLEL_LEVEL=2" + extra_log_env
+                        build_env = "CTEST_PARALLEL_LEVEL=2 ${extra_log_env}"
                     }
                     steps{
                         buildHipClangJobAndReboot( build_type: 'debug', setup_flags: "-DMIOPEN_USE_COMGR=On", build_env: build_env, test_flags: ' --verbose ')
