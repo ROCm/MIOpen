@@ -246,7 +246,7 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
 #if MIOPEN_USE_MLIR
     else if(miopen::EndsWith(filename, ".mlir-cpp"))
     {
-        hsaco_file = MlirBuildViaHip(dir, filename, src, params, target);
+        hsaco_file = MiirBuildViaHip(dir, filename, src, params, target);
     }
 #endif
     else
