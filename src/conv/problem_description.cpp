@@ -62,13 +62,13 @@ std::ostream& operator<<(std::ostream& stream, std::function<void(std::ostream&)
 
 void ProblemDescription::HeuristicUpdateLayouts()
 {
-    std::string labels = tensor_layout_get_default(in_layout.size());
+    const std::string labels = tensor_layout_get_default(in_layout.size());
 
     std::set<std::string> input_layouts;
     std::set<std::string> output_layouts;
     std::set<std::string> weight_layouts;
 
-    std::vector<std::string> supported_layouts = {"NCHW", "NHWC", "NCDHW"};
+    static const std::vector<std::string> supported_layouts = {"NCHW", "NHWC", "NCDHW"};
     for(const std::string& layout : supported_layouts)
     {
         // Skip layouts that doesn't match dimension sizes

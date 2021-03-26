@@ -144,7 +144,7 @@ int ConvolutionDescriptor::GetGroupCount() const { return group_count; }
 TensorDescriptor
 ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& xDesc,
                                                         const TensorDescriptor& wDesc,
-                                                        std::string yLayout,
+                                                        const std::string& yLayout,
                                                         miopenDataType_t yType) const
 {
     const std::size_t spatial_dim = GetSpatialDimension();
@@ -258,7 +258,7 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
     out_lens[0] = in_n;
     out_lens[1] = out_c;
 
-    std::string default_layout = tensor_layout_get_default(xDesc.GetSize());
+    const std::string default_layout = tensor_layout_get_default(xDesc.GetSize());
     std::vector<std::size_t> out_strides;
     tensor_layout_to_strides(out_lens, default_layout, yLayout, out_strides);
 
@@ -274,8 +274,8 @@ TensorDescriptor ConvolutionDescriptor::GetForwardOutputTensor(const TensorDescr
                                                                miopenDataType_t yType) const
 {
     // output layout same as input
-    std::string default_layout = tensor_layout_get_default(xDesc.GetSize());
-    std::string in_layout      = xDesc.GetLayout(default_layout);
+    const std::string default_layout = tensor_layout_get_default(xDesc.GetSize());
+    const std::string in_layout      = xDesc.GetLayout(default_layout);
     return GetForwardOutputTensorWithLayout(xDesc, wDesc, in_layout, yType);
 }
 

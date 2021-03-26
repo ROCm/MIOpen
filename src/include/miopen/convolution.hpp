@@ -101,7 +101,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
 
     TensorDescriptor GetForwardOutputTensorWithLayout(const TensorDescriptor& xDesc,
                                                       const TensorDescriptor& wDesc,
-                                                      std::string yLayout,
+                                                      const std::string& yLayout,
                                                       miopenDataType_t yType = miopenFloat) const;
 
     TensorDescriptor GetForwardOutputTensor(const TensorDescriptor& xDesc,

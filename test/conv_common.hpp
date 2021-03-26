@@ -1663,13 +1663,14 @@ struct conv_driver : test_driver
         if(input.desc.GetSize() != in_layout.size() ||
            weights.desc.GetSize() != fil_layout.size() || input.desc.GetSize() != out_layout.size())
         {
-            MIOPEN_LOG_E("layout not match dimension size!");
+            std::cerr << "FAILED: layout not match dimension size!" << std::endl;
+            return;
         }
 
         // replace desc to set layout information here
         if(in_layout != "NCHW" || in_layout != "NCDHW")
         {
-            std::vector<std::size_t> dim_lens = input.desc.GetLengths();
+            const std::vector<std::size_t> dim_lens = input.desc.GetLengths();
             std::vector<std::size_t> dim_strides;
             miopen::tensor_layout_to_strides(
                 dim_lens,
@@ -1680,7 +1681,7 @@ struct conv_driver : test_driver
         }
         if(fil_layout != "NCHW" || fil_layout != "NCDHW")
         {
-            std::vector<std::size_t> dim_lens = weights.desc.GetLengths();
+            const std::vector<std::size_t> dim_lens = weights.desc.GetLengths();
             std::vector<std::size_t> dim_strides;
             miopen::tensor_layout_to_strides(
                 dim_lens,
@@ -1699,7 +1700,8 @@ struct conv_driver : test_driver
            pads_strides_dilations.size() != 3 * spatial_dim ||
            trans_output_pads.size() != spatial_dim)
         {
-            MIOPEN_LOG_E("dimension is wrong!");
+            std::cerr << "FAILED: dimension is wrong!" << std::endl;
+            return;
         }
 
         filter.pads.resize(spatial_dim);

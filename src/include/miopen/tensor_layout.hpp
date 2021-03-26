@@ -26,12 +26,12 @@
 #ifndef GUARD_TENSOR_LAYOUT_HPP
 #define GUARD_TENSOR_LAYOUT_HPP
 
+#include <miopen/errors.hpp>
 #include <map>
 #include <algorithm>
 #include <vector>
 #include <string>
 #include <iterator>
-#include <miopen/errors.hpp>
 
 namespace miopen {
 
