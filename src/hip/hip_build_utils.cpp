@@ -84,19 +84,6 @@ inline const std::string& GetCoV3Option(const bool enable)
 }
 } // namespace
 
-struct LcOptionTargetStrings
-{
-    const std::string& device;
-    const std::string xnack;
-    const std::string sramecc;
-    LcOptionTargetStrings(const TargetProperties& target)
-        : device(target.Name()),
-          xnack(std::string{":xnack"} + (target.Xnack() ? "+" : "-")),
-          sramecc(std::string{":sramecc"} + (target.Sramecc() ? "+" : "-"))
-    {
-    }
-};
-
 static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
                                             const std::string& filename,
                                             std::string src,
