@@ -20,10 +20,10 @@ def cmake_build(Map conf=[:]){
 
     def compiler = conf.get("compiler","/opt/rocm/llvm/bin/clang++")
     def config_targets = conf.get("config_targets","check")
-    def debug_flags = "-g -fno-omit-frame-pointer -fsanitize=undefined -fno-sanitize-recover=undefined" + conf.get("extradebugflags", "")
-    def build_envs = "CTEST_PARALLEL_LEVEL=4 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0" + conf.get("build_env"," ")
+    def debug_flags = "-g -fno-omit-frame-pointer -fsanitize=undefined -fno-sanitize-recover=undefined " + conf.get("extradebugflags", "")
+    def build_envs = "CTEST_PARALLEL_LEVEL=4 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 " + conf.get("build_env","")
     def prefixpath = conf.get("prefixpath","/usr/local")
-    def setup_args = "-DMIOPEN_GPU_SYNC=Off -DCMAKE_PREFIX_PATH=${prefixpath} "
+    def setup_args = " -DMIOPEN_GPU_SYNC=Off -DCMAKE_PREFIX_PATH=${prefixpath} " + conf.get("setup_flags","")
     
     def build_type_debug = (conf.get("build_type",'release') == 'debug')
 
@@ -39,9 +39,9 @@ def cmake_build(Map conf=[:]){
     if(conf.get("build_install","") == "true")
     {
         config_targets = 'install ' + config_targets
-        setup_args = setup_args + '-DBUILD_DEV=Off -DCMAKE_INSTALL_PREFIX=../install '
-    }else{
-        setup_args = setup_args + '-DBUILD_DEV=On '
+        setup_args = ' -DBUILD_DEV=Off -DCMAKE_INSTALL_PREFIX=../install' + setup_args
+    } else{
+        setup_args = ' -DBUILD_DEV=On' + setup_args
     }
 
     // test_flags = ctest -> MIopen flags
@@ -49,22 +49,17 @@ def cmake_build(Map conf=[:]){
 
     if (conf.get("vcache_enable","") == "true"){
         def vcache = conf.get(vcache_path,"/var/jenkins/.cache/miopen/vcache")
-        build_envs = "MIOPEN_VERIFY_CACHE_PATH='${vcache}' " + build_envs
+        build_envs = " MIOPEN_VERIFY_CACHE_PATH='${vcache}' " + build_envs
     } else{
-        test_flags = "--disable-verification-cache " + test_flags
+        test_flags = " --disable-verification-cache " + test_flags
     }
 
     if(build_type_debug){
-        setup_args = setup_args + " -DCMAKE_BUILD_TYPE=debug" + "-DCMAKE_CXX_FLAGS_DEBUG='${debug_flags}' "
+        setup_args = " -DCMAKE_BUILD_TYPE=debug" + setup_args
     }else{
-        setup_args = setup_args + " -DCMAKE_BUILD_TYPE=release"
+        setup_args = " -DCMAKE_BUILD_TYPE=release" + setup_args
     }
 
-    if(test_flags != ""){
-        setup_args = setup_args + "-DMIOPEN_TEST_FLAGS='${test_flags}' " + conf.get("setup_flags","")
-    } else{
-        setup_args = setup_args + conf.get("setup_flags","")
-    }
 
     def pre_setup_cmd = """
             echo \$HSA_ENABLE_SDMA
@@ -75,7 +70,7 @@ def cmake_build(Map conf=[:]){
             mkdir install
             cd build
         """
-    def setup_cmd = conf.get("setup_cmd", "${cmake_envs} cmake ${setup_args} .. ")
+    def setup_cmd = conf.get("setup_cmd", "${cmake_envs} cmake -DCMAKE_CXX_FLAGS_DEBUG='${debug_flags}' -DMIOPEN_TEST_FLAGS='${test_flags}' ${setup_args}   .. ")
     def build_cmd = conf.get("build_cmd", "${build_envs} dumb-init make -j\$(nproc) ${config_targets}")
     def execute_cmd = conf.get("execute_cmd", "")
 
@@ -168,7 +163,7 @@ def reboot(){
     build job: 'reboot-slaves', propagate: false , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
 }
 
-def buildHipClangJobAndReboot(Map conf){
+def buildHipClangJobAndReboot(Map conf=[:]){
     try{
         buildHipClangJob(conf)
     }
@@ -319,10 +314,10 @@ pipeline {
                 stage('Fp32 Hip Debug COMGR') {
                     agent{ label rocmnode("vega") }
                     environment{
-                        build_env = "CTEST_PARALLEL_LEVEL=2 ${extra_log_env}"
+                        COMGR_build_cmd = "CTEST_PARALLEL_LEVEL=2 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
                     }
                     steps{
-                        buildHipClangJobAndReboot( build_type: 'debug', setup_flags: "-DMIOPEN_USE_COMGR=On", build_env: build_env, test_flags: ' --verbose ')
+                        buildHipClangJobAndReboot( build_type: 'debug', setup_flags: "-DMIOPEN_USE_COMGR=On", build_cmd: COMGR_build_cmd, test_flags: ' --verbose ')
                     }
                 }
                 stage('Fp32 Hip Debug Embedded Vega20') {
@@ -382,23 +377,26 @@ pipeline {
             }
         }
         stage("Smoke Fp16/Bf16/Int8"){
+            environment{
+                Smoke_targets = "check doc MIOpenDriver"
+            }
             parallel{
                 stage('Fp16 Hip Vega20 /opt/rocm') {
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, prefixpath: '/opt/rocm')
+                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, prefixpath: '/opt/rocm', config_targets: Smoke_targets)
                     }
                 }
-                stage('FP16 HIP Debug gfx908') {
+                stage('FP16 HIP Debug gfx908 /opt/rocm') {
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Fp16_flags + gfx908_test, gpu_arch: "gfx908")
+                        buildHipClangJobAndReboot(build_type: 'debug', setup_flags: Fp16_flags + gfx908_test, prefixpath: '/opt/rocm', config_targets: Smoke_targets, gpu_arch: "gfx908")
                     }
                 }
                 stage('Bf16 Hip Debug gfx908 /opt/rocm') {
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Bf16_flags + gfx908_test, prefixpath: '/opt/rocm', gpu_arch: "gfx908")
+                        buildHipClangJobAndReboot(build_type: 'debug', setup_flags: Bf16_flags + gfx908_test, prefixpath: '/opt/rocm', config_targets: Smoke_targets, gpu_arch: "gfx908")
                     }
                 }
             }
@@ -476,7 +474,7 @@ pipeline {
                         setup_flag = "-DMIOPEN_SKIP_ALL_BUT_CONV2D=On -DMIOPEN_TEST_LIMIT=2"
                     }
                     steps{
-                        buildHipClangJobAndReboot( setup_cmd: setup_flag + Full_test)
+                        buildHipClangJobAndReboot( setup_flags: setup_flag + Full_test)
                     }
                 }
                 stage('Fp16 Hip All Install gfx908') {
@@ -506,7 +504,7 @@ pipeline {
                 stage('Fp32 Hip Tensile All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
-                        setup_cmd =   "-DMIOPEN_TEST_LIMIT=2"
+                        setup_flag =   "-DMIOPEN_TEST_LIMIT=2"
                     }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: setup_flag + gfx908_test + Full_test + Tensile_setup, build_env: Tensile_build_env + extra_log_env, gpu_arch: "gfx908", test_flags: ' --verbose ')
@@ -515,7 +513,7 @@ pipeline {
                 stage('Fp32 Hip Tensile-Latest All Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
-                        setup_cmd = " -DMIOPEN_TEST_LIMIT=2"
+                        setup_flag = " -DMIOPEN_TEST_LIMIT=2"
                     }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: setup_flag + Full_test + Tensile_setup, build_env: Tensile_build_env, miotensile_version: "latest")
@@ -524,7 +522,7 @@ pipeline {
                 stage('Fp32 Hip Tensile-Latest All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
-                        setup_cmd = " -DMIOPEN_TEST_LIMIT=2"
+                        setup_flag = " -DMIOPEN_TEST_LIMIT=2"
                     }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: setup_flag + gfx908_test + Full_test + Tensile_setup, build_env: Tensile_build_env + extra_log_env, gpu_arch: "gfx908", miotensile_version: "latest", test_flags: ' --verbose ')
