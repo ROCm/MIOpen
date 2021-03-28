@@ -293,11 +293,12 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
                                  const TargetProperties& target,
                                  const bool sources_already_reside_on_filesystem)
 {
-    if(target.Name() == "gfx908")
 #ifndef ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
+    if(target.Name() == "gfx908")
         if(DetectIfBufferAtomicFaddReturnsFloat(target))
             params += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
 #elif ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
+    if(target.Name() == "gfx908")
         params += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
 #endif
     return HipBuildImpl(

@@ -751,7 +751,8 @@ void BuildHip(const std::string& name,
                        + " " + MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS) +
                        (" -DHIP_PACKAGE_VERSION_FLAT=") + std::to_string(HIP_PACKAGE_VERSION_FLAT);
 #if ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
-            raw += "-DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
+            if(target.Name() == "gfx908")
+                raw += "-DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
 #endif
             auto optCompile = miopen::SplitSpaceSeparated(raw, compiler::lc::GetOptionsNoSplit());
             compiler::lc::hip::RemoveCompilerOptionsUnwanted(optCompile);
@@ -766,7 +767,8 @@ void BuildHip(const std::string& name,
                        + " " + MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS) +
                        (" -DHIP_PACKAGE_VERSION_FLAT=") + std::to_string(HIP_PACKAGE_VERSION_FLAT);
 #if ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
-            raw += "-DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
+            if(target.Name() == "gfx908")
+                raw += "-DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
 #endif
 #if COMGR_SUPPORTS_PCH
             if(compiler::lc::hip::IsPchEnabled())
