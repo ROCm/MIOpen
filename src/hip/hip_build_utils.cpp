@@ -30,6 +30,7 @@
 #include <miopen/exec_utils.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/env.hpp>
+#include <miopen/rocm_features.hpp>
 #include <miopen/target_properties.hpp>
 #include <boost/optional.hpp>
 #include <sstream>
@@ -247,6 +248,7 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 #endif
 }
 
+#ifndef ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
 static bool
 HipBuildTest(const std::string& program_name, std::string params, const TargetProperties& target)
 {
@@ -282,6 +284,7 @@ static bool DetectIfBufferAtomicFaddReturnsFloat(const TargetProperties& target)
     static const bool once = DetectIfBufferAtomicFaddReturnsFloatImpl(target);
     return once;
 }
+#endif
 
 boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
                                  const std::string& filename,
@@ -291,8 +294,12 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
                                  const bool sources_already_reside_on_filesystem)
 {
     if(target.Name() == "gfx908")
+#ifndef ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
         if(DetectIfBufferAtomicFaddReturnsFloat(target))
             params += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
+#elif ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
+        params += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
+#endif
     return HipBuildImpl(
         tmp_dir, filename, src, params, target, false, sources_already_reside_on_filesystem);
 }
