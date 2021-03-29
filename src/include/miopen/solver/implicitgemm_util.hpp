@@ -705,9 +705,8 @@ static inline bool use_amd_inline_asm(const ConvolutionContext& ctx)
     return !miopen::IsDisabled(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM{});
 }
 
-static inline bool support_amd_buffer_atomic_fadd(const ConvolutionContext& ctx)
+static inline bool support_amd_buffer_atomic_fadd(const std::string& device_name)
 {
-    const auto device_name = ctx.GetStream().GetDeviceName();
     return StartsWith(device_name, "gfx908");
 }
 
@@ -807,7 +806,7 @@ static inline auto get_ck_common_compiler_flag(const ConvolutionContext& ctx)
 
     // atomic-fadd
     compiler_flag += std::string(" -DCK_USE_AMD_BUFFER_ATOMIC_FADD=") +
-                     (support_amd_buffer_atomic_fadd(ctx) ? '1' : '0');
+                     (support_amd_buffer_atomic_fadd(ctx.GetStream().GetDeviceName()) ? '1' : '0');
 
     // LDS sync
     compiler_flag +=
