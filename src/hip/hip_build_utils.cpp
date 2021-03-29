@@ -31,6 +31,7 @@
 #include <miopen/logger.hpp>
 #include <miopen/env.hpp>
 #include <miopen/rocm_features.hpp>
+#include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/target_properties.hpp>
 #include <boost/optional.hpp>
 #include <sstream>
@@ -294,11 +295,11 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
                                  const bool sources_already_reside_on_filesystem)
 {
 #ifndef ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
-    if(target.Name() == "gfx908")
+    if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
         if(DetectIfBufferAtomicFaddReturnsFloat(target))
             params += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
 #elif ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
-    if(target.Name() == "gfx908")
+    if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
         params += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
 #endif
     return HipBuildImpl(
