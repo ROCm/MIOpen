@@ -1546,8 +1546,7 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlops::GetSolution(const ConvolutionContext& ct
     else if(ctx.IsFp16())
     {
         std::ostringstream kernel_file_name;
-        kernel_file_name << "igemm_fwd_gtc_gfx908_fp16_" << cfg.gemm_m_per_block << "x"
-                         << cfg.gemm_n_per_block << ".s";
+        kernel_file_name << kernel_name << ".s";
         kernel.kernel_file = kernel_file_name.str();
     }
     kernel.kernel_name = kernel_name;
