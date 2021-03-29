@@ -123,6 +123,7 @@ else()
 endif()
 set(MIOPEN_BINCACHE_PATH "" CACHE STRING "URL or path containing binary cache files to embed")
 option(MIOPEN_EMBED_BUILD "Build with the set of embed flags." Off)
+option(MIOPEN_USE_MLIR "Use MLIR -- EXPERIMENTAL" Off)
 option(MIOPEN_USE_COMGR "Use comgr to build kernels instead of offline tools" ${MIOPEN_EMBED_BUILD})
 option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD})
 
@@ -309,6 +310,17 @@ else()
         set(EXTRACTKERNEL_BIN "${EXTRACTKERNEL_BIN}")
     else()
         message(FATAL_ERROR "extractkernel not found")
+    endif()
+endif()
+
+
+if(MIOPEN_USE_MLIR)
+    find_library(LIBMLIRMIOPEN MLIRMIOpen REQUIRED)
+    # REQUIRED is not supported before cmake 3.18
+    if(NOT LIBMLIRMIOPEN)
+        message(FATAL_ERROR "libMLIRMIOpen not found")
+    else()
+        message(STATUS "Build with libMLIRMIOpen: " ${LIBMLIRMIOPEN})
     endif()
 endif()
 

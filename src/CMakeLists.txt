@@ -149,6 +149,7 @@ set( MIOpen_Source
     include/miopen/problem_description.hpp
     include/miopen/mlo_internal.hpp
     include/miopen/mlo_utils.hpp
+    include/miopen/mlir_build.hpp
     include/miopen/oclkernel.hpp
     include/miopen/tensor.hpp
     include/miopen/tensor_ops.hpp
@@ -223,6 +224,9 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_fwd_v4r4.cpp
     solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops_padded_gemm.cpp
     solver/conv_hip_implicit_gemm_fwd_v4r5_xdlops.cpp
+    solver/conv_hip_implicit_gemm_mlir_cpp_fwd.cpp
+    solver/conv_hip_implicit_gemm_mlir_cpp_bwd.cpp
+    solver/conv_hip_implicit_gemm_mlir_cpp_wrw.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4.cpp
     solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops.cpp
     solver/conv_hip_implicit_gemm_xdlops_common.cpp
@@ -282,8 +286,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv_3x3_wheel_alpha_v9_2_7_prologue.inc
         kernels/conv_3x3_wheel_alpha_v9_2_7_gfx8_stride_2_dec.inc
         kernels/conv_3x3_wheel_alpha_v9_2_7_gfx8.inc
-        kernels/conv_3x3_wheel_alpha_v9_2_7_gfx9_stride_2_dec.inc
-        kernels/conv_3x3_wheel_alpha_v9_2_7_gfx9.inc
         kernels/conv_3x3_wheel_alpha_v3_0b_epilogue.inc
         kernels/conv_3x3_wheel_alpha_v3_0b_prologue.inc
         kernels/conv_3x3_wheel_alpha_v3_0b.inc
@@ -304,12 +306,18 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v21_1_2_gfx9_fp32_dilation2.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_fp32_stride1.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_fp32_stride2.inc
+        kernels/Conv_Winograd_v21_1_2_gfx90a_fp32_dilation2.inc
+        kernels/Conv_Winograd_v21_1_2_gfx90a_fp32_stride1.inc
+        kernels/Conv_Winograd_v21_1_2_gfx90a_fp32_stride2.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_fp16_dot2_edc_dilation2_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_fp16_dot2_edc_stride1_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_fp16_dot2_edc_stride2_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_fp32_dilation2_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_fp32_stride1_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_fp32_stride2_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx90a_fp32_dilation2_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx90a_fp32_stride1_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx90a_fp32_stride2_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx10_fp16_dot2_edc_dilation2.inc
         kernels/Conv_Winograd_v21_1_2_gfx10_fp16_dot2_edc_stride1.inc
         kernels/Conv_Winograd_v21_1_2_gfx10_fp16_dot2_edc_stride2.inc
@@ -470,6 +478,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/fusionopconvocl.cpp
         ocl/fusionopbiasbnactivocl.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
+        )
+
+    list(INSERT MIOpen_Source 0
         ${PROJECT_BINARY_DIR}/kernel.cpp
         ${PROJECT_BINARY_DIR}/kernel_includes.cpp
         )
@@ -538,6 +549,10 @@ endif()
 
 if(MIOPEN_USE_COMGR)
     list(APPEND MIOpen_Source comgr.cpp)
+endif()
+
+if(MIOPEN_USE_MLIR)
+    list(APPEND MIOpen_Source mlir_build.cpp)
 endif()
 
 # build library
@@ -617,6 +632,10 @@ endif()
 # MIOpen depends on miopentensile
 if(miopentensile_FOUND)
     target_link_libraries(MIOpen PRIVATE MIOpenTensile)
+endif()
+
+if(LIBMLIRMIOPEN)
+  target_link_libraries(MIOpen PRIVATE ${LIBMLIRMIOPEN})
 endif()
 
 if(WIN32 AND NOT MSVC)
