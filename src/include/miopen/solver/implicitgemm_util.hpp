@@ -709,6 +709,7 @@ static inline bool use_amd_inline_asm(const ConvolutionContext& ctx)
 static inline bool support_amd_buffer_atomic_fadd(const std::string& device_name)
 {
 #if MIOPEN_USE_COMGR && ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_FAILS_WITH_COMGR
+    (void)device_name;
     return false;
 #else
     return StartsWith(device_name, "gfx908");
