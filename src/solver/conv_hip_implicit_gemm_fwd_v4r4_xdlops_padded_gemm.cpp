@@ -24,12 +24,19 @@
  *
  *******************************************************************************/
 
+#include <miopen/config.h>
 #include <miopen/conv/invokers/impl_gemm.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/hip_build_utils.hpp>
 #include "implicitgemm_util.hpp"
+
+/// The solver has correctness issues with ROCm 3.7 on MI100 with several configs.
+/// The issues are not reproducible with ROCm no-npi build 6738-STG2
+/// (proposed 4.2 release candidate). Let's disable thes configs for 3.7.
+#define WORKAROUND_MI100_ROM37_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_PADDED_GEMM_XDLOPS \
+    (HIP_PACKAGE_VERSION_MAJOR == 3 && HIP_PACKAGE_VERSION_MINOR == 7)
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_PADDED_GEMM_XDLOPS)
 
@@ -1077,6 +1084,19 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
         if(!IsValidGridGemmXdlops(gemm_m, gemm_n, gemm_k_total))
             return false;
     }
+#if WORKAROUND_MI100_ROM37_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_PADDED_GEMM_XDLOPS
+    if(ctx.GetStream().GetDeviceName() == "gfx908" && ctx.IsFp32())
+    {
+        if(ctx.n_inputs == 3 && ctx.in_width == 227 && ctx.in_height == 277 && ctx.n_outputs == 1 &&
+           ctx.kernel_size_w == 3 && ctx.kernel_size_h == 3)
+            return false;
+        else if(ctx.n_inputs == 64 && ctx.in_width == 112 && ctx.in_height == 112 &&
+                ctx.n_outputs == 1 && ctx.kernel_size_w == 3 && ctx.kernel_size_h == 3 &&
+                ctx.kernel_stride_w >= 2 && ctx.kernel_stride_h >= 2 &&
+                ctx.kernel_dilation_w >= 3 && ctx.kernel_dilation_h >= 3)
+            return false;
+    }
+#endif
 
     // this particular EuristicInit is so comprehensive, that if it cannot predict a valid
     // performance config, the problem is probably not applicable
