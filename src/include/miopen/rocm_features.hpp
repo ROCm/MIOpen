@@ -49,6 +49,6 @@
 /// Without COMGR: at least 3.10 compiler doesn't care of return type of this atomic.
 /// Therefore auto-detection delivers wrong information we should not rely on.
 #define ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT \
-    (HIP_PACKAGE_VERSION_FLAT >= 4001000000ULL)
+    (HIP_PACKAGE_VERSION_FLAT >= 4001021072ULL)
 
 #endif // GUARD_ROCM_FEATURES_HPP_
