@@ -1,10 +1,11 @@
 #ifndef CK_IMPLICITGEMM_UTIL_HPP_
 #define CK_IMPLICITGEMM_UTIL_HPP_
 
-#include <algorithm>
 #include <miopen/env.hpp>
 #include <miopen/hip_build_utils.hpp>
 #include <miopen/mlo_internal.hpp>
+#include <miopen/rocm_features.hpp>
+#include <algorithm>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS)
@@ -707,7 +708,11 @@ static inline bool use_amd_inline_asm(const ConvolutionContext& ctx)
 
 static inline bool support_amd_buffer_atomic_fadd(const std::string& device_name)
 {
+#if MIOPEN_USE_COMGR && ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_FAILS_WITH_COMGR
+    return false;
+#else
     return StartsWith(device_name, "gfx908");
+#endif
 }
 
 static inline bool is_use_amd_buffer_load_store(const ConvolutionContext& ctx)
