@@ -71,8 +71,8 @@ void ProblemDescription::HeuristicUpdateLayouts()
         if(layout.size() != labels.size())
             continue;
 
-        if(in.IsLayout(labels, layout) && out.IsLayout(labels, layout) &&
-           weights.IsLayout(labels, layout))
+        if(in.IsPossibleLayout(labels, layout) && out.IsPossibleLayout(labels, layout) &&
+           weights.IsPossibleLayout(labels, layout))
         {
             in_layout      = layout;
             weights_layout = layout;

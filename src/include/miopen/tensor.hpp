@@ -176,7 +176,7 @@ struct TensorDescriptor : miopenTensorDescriptor
 
     std::string ToString() const;
 
-    bool IsLayout(const std::string& labels, const std::string& layout) const;
+    bool IsPossibleLayout(const std::string& labels, const std::string& layout) const;
 
     static inline std::vector<int64_t> find_permutation(const std::vector<std::size_t>& lens,
                                                         const std::vector<std::size_t>& strides)
