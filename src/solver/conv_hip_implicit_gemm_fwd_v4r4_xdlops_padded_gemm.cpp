@@ -1085,14 +1085,16 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
 #if WORKAROUND_MI100_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_PADDED_GEMM_XDLOPS
     if(ctx.GetStream().GetDeviceName() == "gfx908" && ctx.IsFp32())
     {
-        if(ctx.n_inputs == 3 && ctx.in_width == 227 && ctx.in_height == 277 && ctx.n_outputs == 1 &&
-           ctx.kernel_size_w == 3 && ctx.kernel_size_h == 3)
+        if((ctx.n_inputs == 3 && ctx.n_outputs == 1 && ctx.in_width == 227 &&
+            ctx.in_height == 277 && ctx.kernel_size_w == 3 && ctx.kernel_size_h == 3) //
+           ||
+           (ctx.n_inputs == 64 && ctx.n_outputs == 1 && ctx.in_width == 112 &&
+            ctx.in_height == 112 && ctx.kernel_size_w == 3 && ctx.kernel_size_h == 3 &&
+            ctx.kernel_stride_w >= 2 && ctx.kernel_stride_h >= 2 && ctx.kernel_dilation_w >= 3 &&
+            ctx.kernel_dilation_h >= 3))
+        {
             return false;
-        else if(ctx.n_inputs == 64 && ctx.in_width == 112 && ctx.in_height == 112 &&
-                ctx.n_outputs == 1 && ctx.kernel_size_w == 3 && ctx.kernel_size_h == 3 &&
-                ctx.kernel_stride_w >= 2 && ctx.kernel_stride_h >= 2 &&
-                ctx.kernel_dilation_w >= 3 && ctx.kernel_dilation_h >= 3)
-            return false;
+        }
     }
 #endif
 
