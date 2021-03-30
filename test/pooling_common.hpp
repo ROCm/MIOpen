@@ -48,11 +48,15 @@
 #include "cpu_conv.hpp"
 
 #define TEST_PADDING_MODE 0
-
-static int num_uint16_case        = 0;
-static int num_uint32_case        = 0;
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
+static int num_uint16_case = 0;
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
+static int num_uint32_case = 0;
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
 static int num_uint32_case_imgidx = 0;
-static int num_uint64_case        = 0;
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
+static int num_uint64_case = 0;
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
 static int num_uint64_case_imgidx = 0;
 
 template <class T>
@@ -516,7 +520,7 @@ struct pooling_driver : test_driver
                out.first,
                filter,
                indices,
-               wsidx == 0 ? false : true,
+               wsidx != 0,
                static_cast<bool>(this->verify_indices));
     }
 

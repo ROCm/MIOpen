@@ -136,6 +136,18 @@ void par_for(std::size_t n, max_threads mt, F f)
     par_for_impl(n, std::min(threadsize, n), f);
 }
 
+template <class F>
+void par_for_strided(std::size_t n, max_threads mt, F f)
+{
+    auto threadsize = std::min<std::size_t>(std::thread::hardware_concurrency(), mt.n);
+    par_for_impl(threadsize, threadsize, [&](auto start) {
+        for(std::size_t i = start; i < n; i += threadsize)
+        {
+            f(i);
+        }
+    });
+}
+
 } // namespace miopen
 
 #endif
