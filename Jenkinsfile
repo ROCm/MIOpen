@@ -153,17 +153,21 @@ def reboot(){
 /// Target := { gfx908 | Vega20 | Vega10 | Vega* }
 ///   * "Vega" (gfx906 or gfx900) is the default and usually not specified.
 
-def buildCurrentStage = true
-
 pipeline {
     agent none
+    parameters {
+        booleanParam(
+            name: "BUILD_CURRENT_STAGE", 
+            defaultValue: true,
+            description: "Run current stage")
+    }
     options {
         parallelsAlwaysFailFast()
     }
     stages{
         stage("Static checks"){
             when {
-                express { buildCurrentStage == true }
+                express { params.BUILD_CURRENT_STAGE }
             }
             parallel{
                 stage('Hip Tidy') {
@@ -232,7 +236,7 @@ pipeline {
         }
         stage("Smoke Fp32"){
             when {
-                express { buildCurrentStage == true }
+                express { params.BUILD_CURRENT_STAGE }
             }
             parallel{
                stage('Fp32 OpenCL Debug') {
@@ -338,7 +342,7 @@ pipeline {
         }
         stage("Smoke Aux 1"){
             when {
-                express { buildCurrentStage == true }
+                express { params.BUILD_CURRENT_STAGE }
             }
             parallel{
                 stage('Fp32 HipNoGPU Debug') {
@@ -438,7 +442,7 @@ pipeline {
         }
         stage("Smoke Aux 2"){
             when {
-                express { buildCurrentStage == true }
+                express { params.BUILD_CURRENT_STAGE }
             }
             parallel{
                 stage('Fp32 Hip Normal-Find') {
@@ -543,7 +547,7 @@ pipeline {
         }
         stage("Smoke Fp16/Bf16/Int8"){
             when {
-                express { buildCurrentStage == true }
+                express { params.BUILD_CURRENT_STAGE }
             }
             parallel{
                 stage('Fp16 Hip Vega20 /opt/rocm') {
@@ -658,7 +662,7 @@ pipeline {
         }
         stage("Full tests I"){
             when {
-                express { buildCurrentStage == true }
+                express { params.BUILD_CURRENT_STAGE }
             }
             parallel{
                 stage('Fp32 OpenCL Debug + Codecov') {
@@ -727,7 +731,7 @@ pipeline {
         }
         stage("Full tests II"){
             when {
-                express { buildCurrentStage == true }
+                express { params.BUILD_CURRENT_STAGE }
             }
             parallel{
                 stage('Fp32 OpenCL Install All') {
@@ -804,7 +808,7 @@ pipeline {
         }
         stage("Full tests III"){
             when {
-                express { buildCurrentStage == true }
+                express { params.BUILD_CURRENT_STAGE }
             }
             parallel{
                 stage('Fp16 Hip Install All Vega20') {
@@ -864,7 +868,7 @@ pipeline {
         }
         stage("MIOpenTensile"){
             when {
-                express { buildCurrentStage == true }
+                express { params.BUILD_CURRENT_STAGE }
             }
             parallel{
                 stage('Fp32 Hip Tensile All Vega20') {
@@ -975,7 +979,7 @@ pipeline {
         }
         stage("Packages"){
             when {
-                express { buildCurrentStage == true }
+                express { params.BUILD_CURRENT_STAGE }
             }
             parallel {
                 stage('OpenCL Package') {
