@@ -153,6 +153,8 @@ def reboot(){
 /// Target := { gfx908 | Vega20 | Vega10 | Vega* }
 ///   * "Vega" (gfx906 or gfx900) is the default and usually not specified.
 
+import com.orctom.jenkins.plugin.globalpostscript.GlobalPostScript
+
 pipeline {
     agent none
     parameters {
