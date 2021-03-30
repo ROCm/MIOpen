@@ -1,3 +1,5 @@
+#!/usr/bin/env groovy
+
 def rocmnode(name) {
     return 'rocmtest && miopen && ' + name
 }
