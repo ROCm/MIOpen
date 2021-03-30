@@ -1,3 +1,5 @@
+#!/usr/bin/env groovy
+
 def rocmnode(name) {
     return 'rocmtest && miopen && ' + name
 }
@@ -153,6 +155,8 @@ def reboot(){
 /// Target := { gfx908 | Vega20 | Vega10 | Vega* }
 ///   * "Vega" (gfx906 or gfx900) is the default and usually not specified.
 
+import com.onresolve.scriptrunner.runner.ScriptRunnerImpl
+
 pipeline {
     agent none
     parameters {
@@ -166,7 +170,9 @@ pipeline {
     }
     stages{
         stage("Static checks"){
-            if (params.BUILD_CURRENT_STAGE) {
+            when {
+                express { params.BUILD_CURRENT_STAGE }
+            }
             parallel{
                 stage('Hip Tidy') {
                     agent{  label rocmnode("nogpu") }
@@ -231,10 +237,11 @@ pipeline {
                     }
                 }
             }
-            }
         }
         stage("Smoke Fp32"){
-            if (params.BUILD_CURRENT_STAGE) {
+            when {
+                express { params.BUILD_CURRENT_STAGE }
+            }
             parallel{
                stage('Fp32 OpenCL Debug') {
                     agent{ label rocmnode("vega") }
@@ -336,10 +343,11 @@ pipeline {
                     }
                 }
             }
-            }
         }
         stage("Smoke Aux 1"){
-            if (params.BUILD_CURRENT_STAGE) {
+            when {
+                express { params.BUILD_CURRENT_STAGE }
+            }
             parallel{
                 stage('Fp32 HipNoGPU Debug') {
                     agent{  label rocmnode("nogpu") }
@@ -435,10 +443,11 @@ pipeline {
                     }
                 }
             }
-            }
         }
         stage("Smoke Aux 2"){
-            if (params.BUILD_CURRENT_STAGE) {
+            when {
+                express { params.BUILD_CURRENT_STAGE }
+            }
             parallel{
                 stage('Fp32 Hip Normal-Find') {
                     agent{ label rocmnode("vega") }
@@ -539,10 +548,11 @@ pipeline {
                     }
                 }
             }
-            }
         }
         stage("Smoke Fp16/Bf16/Int8"){
-            if (params.BUILD_CURRENT_STAGE) {
+            when {
+                express { params.BUILD_CURRENT_STAGE }
+            }
             parallel{
                 stage('Fp16 Hip Vega20 /opt/rocm') {
                     agent{ label rocmnode("vega20") }
@@ -653,10 +663,11 @@ pipeline {
                     }
                 }
             }
-            }
         }
         stage("Full tests I"){
-            if (params.BUILD_CURRENT_STAGE) {
+            when {
+                express { params.BUILD_CURRENT_STAGE }
+            }
             parallel{
                 stage('Fp32 OpenCL Debug + Codecov') {
                     agent{ label rocmnode("vega") }
@@ -721,10 +732,11 @@ pipeline {
                     }
                 }
             }
-            }
         }
         stage("Full tests II"){
-            if (params.BUILD_CURRENT_STAGE) {
+            when {
+                express { params.BUILD_CURRENT_STAGE }
+            }
             parallel{
                 stage('Fp32 OpenCL Install All') {
                     agent{ label rocmnode("vega") }
@@ -797,10 +809,11 @@ pipeline {
                     }
                 }
             }
-            }
         }
         stage("Full tests III"){
-            if (params.BUILD_CURRENT_STAGE) {
+            when {
+                express { params.BUILD_CURRENT_STAGE }
+            }
             parallel{
                 stage('Fp16 Hip Install All Vega20') {
                     agent{ label rocmnode("vega20") }
@@ -856,10 +869,11 @@ pipeline {
                     }
                 }
             }
-            }
         }
         stage("MIOpenTensile"){
-            if (params.BUILD_CURRENT_STAGE) {
+            when {
+                express { params.BUILD_CURRENT_STAGE }
+            }
             parallel{
                 stage('Fp32 Hip Tensile All Vega20') {
                     agent{ label rocmnode("vega20") }
@@ -966,10 +980,11 @@ pipeline {
                     }
                 }
             }
-            }
         }
         stage("Packages"){
-            if (params.BUILD_CURRENT_STAGE) {
+            when {
+                express { params.BUILD_CURRENT_STAGE }
+            }
             parallel {
                 stage('OpenCL Package') {
                     agent{ label rocmnode("nogpu") }
@@ -1007,7 +1022,6 @@ pipeline {
                         }
                     }
                 }
-            }
             }
         }
     }
