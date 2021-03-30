@@ -1,22 +1,5 @@
-
 def rocmnode(name) {
-    def node_name = 'rocmtest'
-    if(name == 'vega') {
-        node_name = 'rocmtest && vega';
-    } else if(name == 'vega10') {
-        node_name = 'rocmtest && vega10';
-    } else if(name == 'vega20') {
-        node_name = 'rocmtest && vega20';
-    } else if(name == 'gfx908') {
-        node_name = 'gfx908';
-    } else {
-        node_name = name
-    }
-    return node_name
-}
-
-def default_image_name() {
-    return 'miopen-hip-clang'
+    return 'rocmtest && miopen && ' + name
 }
 
 def show_node_info() {
@@ -43,6 +26,12 @@ def cmake_build(compiler, flags, env4make, extradebugflags, prefixpath){
     if (prefixpath != "/usr/local") {
         configargs = "-DCMAKE_PREFIX_PATH=${prefixpath}"
     }
+    
+    if(!flags.contains('-DBUILD_DEV=On'))
+    {
+    	config_targets = 'install ' + config_targets
+    	flags = '-DCMAKE_INSTALL_PREFIX=../install ' + flags
+    }
 
     if (archive == true) {
         config_targets = "package"
@@ -50,10 +39,8 @@ def cmake_build(compiler, flags, env4make, extradebugflags, prefixpath){
     def cmd = """
         echo \$HSA_ENABLE_SDMA
         ulimit -c unlimited
-        rm -rf build
-        mkdir build
         cd build
-        CXX=${compilerpath} CXXFLAGS='-Werror' cmake ${configargs} -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_FLAGS='${test_flags}' -DCMAKE_CXX_FLAGS_DEBUG='${debug_flags}' ${flags} ..
+        CXX=${compilerpath} CXXFLAGS='-Werror' cmake ${configargs} -DMIOPEN_TEST_FLAGS='${test_flags}' -DCMAKE_CXX_FLAGS_DEBUG='${debug_flags}' ${flags} ..
         MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS=1 CTEST_PARALLEL_LEVEL=4 MIOPEN_VERIFY_CACHE_PATH=${vcache} MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 ${env4make} dumb-init make -j\$(nproc) ${config_targets}
     """
     echo cmd
@@ -73,7 +60,7 @@ def buildHipClangJob(Map conf, compiler){
         def prefixpath = conf.get("prefixpath", "/usr/local")
         def flags = conf.get("flags", "")
         def env4make = conf.get("env4make", "")
-        def image = conf.get("image", default_image_name())
+        def image = "miopen"
         def cmd = conf.get("cmd", "")
         def gpu_arch = conf.get("gpu_arch", "gfx900;gfx906")
         def codecov = conf.get("codecov", false)
@@ -113,6 +100,12 @@ def buildHipClangJob(Map conf, compiler){
             withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
                 timeout(time: 5, unit: 'HOURS')
                 {
+                    sh '''
+                        rm -rf build
+                        mkdir build
+                        rm -rf install
+                        mkdir install
+                    '''
                     if(cmd == ""){
                         cmake_build(compiler, flags, env4make, extradebugflags, prefixpath)
                     }else{
@@ -143,21 +136,18 @@ def reboot(){
 ///
 /// The only mandatory elements are Backend and BuildType; others are optional.
 ///
-/// DataType := { Half | BF16 | Int8 | FP32* }
-///   * "FP32" is the default and usually not specified.
+/// DataType := { Fp16 | Bf16 | Int8 | Fp32 }
 /// Backend := { Hip | OpenCL | HipNoGPU}
 /// Compiler := { Clang* | GCC* }
 ///   * "Clang" is the default for the Hip backend, and implies hip-clang compiler.
 ///     For the OpenCL backend, "Clang" implies the system x86 compiler.
 ///   * "GCC" is the default for OpenCL backend.
 ///   * The default compiler is usually not specified.
-/// BuildType := { Release | Debug [ BuildTypeModifier ] }
+/// BuildType := { Release* | Debug | Install } [ BuildTypeModifier ]
 ///   * BuildTypeModifier := { COMGR | Embedded | Static | Normal-Find | Fast-Find
-///                                  | Tensile | Tensile-Latest | Package | ... }
-/// TestSet := { All | Subset | Smoke* } [ Codecov ]
+///                            MLIR | Tensile | Tensile-Latest | Package | ... }
+/// TestSet := { All | Smoke* } [ Codecov ]
 ///   * "All" corresponds to "cmake -DMIOPEN_TEST_ALL=On".
-///   * "Subset" corresponds to Target- or BuildTypeModifier-specific subsetting of
-///     the "All" testset, e.g. -DMIOPEN_TEST_GFX908=On or -DMIOPEN_TEST_MIOTENSILE=On.
 ///   * "Smoke" (-DMIOPEN_TEST_ALL=Off) is the default and usually not specified.
 ///   * "Codecov" is optional code coverage analysis.
 /// Target := { gfx908 | Vega20 | Vega10 | Vega* }
@@ -168,17 +158,13 @@ pipeline {
     options {
         parallelsAlwaysFailFast()
     }
-    environment{
-        image = default_image_name()
-    }
     stages{
-        // Run all static analysis tests
         stage("Static checks"){
             parallel{
-                stage('Clang Hip Tidy') {
-                    agent{  label rocmnode("rocmtest") }
+                stage('Hip Tidy') {
+                    agent{  label rocmnode("nogpu") }
                     environment{
-                        cmd = "rm -rf build; mkdir build; cd build; CXX='/opt/rocm/llvm/bin/clang++' cmake -DMIOPEN_BACKEND=HIP -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
+                        cmd = "cd build; CXX='/opt/rocm/llvm/bin/clang++' cmake -DMIOPEN_BACKEND=HIP -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
                     }
                     steps{
                         script{
@@ -193,10 +179,10 @@ pipeline {
                         }
                     }
                 }
-                stage('Clang OpenCL Tidy') {
-                    agent{  label rocmnode("rocmtest") }
+                stage('OpenCL Tidy') {
+                    agent{  label rocmnode("nogpu") }
                     environment{
-                        cmd = "rm -rf build; mkdir build; cd build; CXX='clang++-3.8' cmake -DMIOPEN_BACKEND=OpenCL -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
+                        cmd = "cd build; CXX='clang++-3.8' cmake -DMIOPEN_BACKEND=OpenCL -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
                     }
                     steps{
                         script{
@@ -211,9 +197,8 @@ pipeline {
                         }
                     }
                 }
-
                 stage('Clang Format') {
-                    agent{ label rocmnode("rocmtest") }
+                    agent{ label rocmnode("nogpu") }
                     environment{
                         cmd = "find . -iname \'*.h\' \
                                 -o -iname \'*.hpp\' \
@@ -240,11 +225,9 @@ pipeline {
                 }
             }
         }
-
-        // Run quick fp32 tests
-        stage("Fast full precision"){
+        stage("Smoke Fp32"){
             parallel{
-               stage('OpenCL Debug') {
+               stage('Fp32 OpenCL Debug') {
                     agent{ label rocmnode("vega") }
                     steps{
                         script{
@@ -262,8 +245,7 @@ pipeline {
                         }
                     }
                 }
-
-                stage('OpenCL Release') {
+                stage('Fp32 OpenCL') {
                     agent{ label rocmnode("vega") }
                     steps{
                         script{
@@ -281,13 +263,12 @@ pipeline {
                         }
                     }
                 }
-
-                stage('Hip Release /opt/rocm') {
+                stage('Fp32 Hip /opt/rocm') {
                     agent{ label rocmnode("vega") }
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image+'rocm', prefixpath: '/opt/rocm')
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', prefixpath: '/opt/rocm')
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -300,16 +281,13 @@ pipeline {
                         }
                     }
                 }
-
-                stage('Hip Debug') {
+                stage('Fp32 Hip Debug') {
                     agent{ label rocmnode("vega") }
                     environment{
                         cmd = """
                             ulimit -c unlimited
-                            rm -rf build
-                            mkdir build
                             cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_FLAGS=--disable-verification-cache ..
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug -DMIOPEN_TEST_FLAGS=--disable-verification-cache ..
                             CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
                         """
 
@@ -330,15 +308,12 @@ pipeline {
                         }
                     }
                 }
-
-
-
-                stage('Hip Debug gfx908 /opt/rocm') {
+                stage('Fp32 Hip Debug gfx908 /opt/rocm') {
                     agent{ label rocmnode("gfx908") }
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', image: image+'rocm', prefixpath: '/opt/rocm', gpu_arch: "gfx908")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', prefixpath: '/opt/rocm', gpu_arch: "gfx908")
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -353,17 +328,13 @@ pipeline {
                 }
             }
         }
-
-        // Misc tests
-        stage("Aux tests"){
+        stage("Smoke Aux 1"){
             parallel{
-                stage('HipNoGPU Debug') {
-                    agent{  label rocmnode("rocmtest") }
+                stage('Fp32 HipNoGPU Debug') {
+                    agent{  label rocmnode("nogpu") }
                     environment{
                         cmd = """
                             ulimit -c unlimited
-                            rm -rf build
-                            mkdir build
                             cd build
                             CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug -DMIOPEN_BACKEND=HIPNOGPU -DMIOPEN_INSTALL_CXX_HEADERS=On ..
                             make -j\$(nproc)
@@ -373,18 +344,15 @@ pipeline {
                         buildHipClangJob('/opt/rocm/llvm/bin/clang++', env4make: "MIOPEN_LOG_LEVEL=5 MIOPEN_COMPILE_PARALLEL_LEVEL=1", cmd: cmd)
                     }
                 }
-                stage('Hip Debug COMGR') {
+                stage('Fp32 Hip Debug COMGR') {
                     agent{ label rocmnode("vega") }
                     environment{
                         cmd = """
                             ulimit -c unlimited
-                            rm -rf build
-                            mkdir build
                             cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_USE_COMGR=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_USE_COMGR=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
                             CTEST_PARALLEL_LEVEL=2 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check
                         """
-
                     }
                     steps{
                         script{
@@ -402,15 +370,13 @@ pipeline {
                         }
                     }
                 }
-                stage('Hip Debug Embedded Vega20') {
+                stage('Fp32 Hip Debug Embedded Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
                             ulimit -c unlimited
-                            rm -rf build
-                            mkdir build
                             cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_EMBED_DB="gfx906_60;gfx906_64" -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_EMBED_DB="gfx906_60;gfx906_64" -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
                             MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check
                         """
 
@@ -429,23 +395,17 @@ pipeline {
                                 reboot()
                             }
                         }
-
-
                     }
                 }
-
-                stage('Hip Release Static') {
+                stage('Fp32 Hip Static') {
                     agent{ label rocmnode("vega") }
                     environment{
                         cmd = """
                             ulimit -c unlimited
-                            rm -rf build
-                            mkdir build
                             cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DBUILD_SHARED_LIBS=Off -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_FLAGS=--disable-verification-cache ..
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DBUILD_SHARED_LIBS=Off -DCMAKE_BUILD_TYPE=release -DMIOPEN_TEST_FLAGS=--disable-verification-cache ..
                             CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
                         """
-
                     }
                     steps{
                         script{
@@ -463,18 +423,19 @@ pipeline {
                         }
                     }
                 }
-
-                stage('Hip Release Normal-Find') {
+            }
+        }
+        stage("Smoke Aux 2"){
+            parallel{
+                stage('Fp32 Hip Normal-Find') {
                     agent{ label rocmnode("vega") }
                     environment{
                         cmd = """
                             ulimit -c unlimited
-                            rm -rf build
-                            mkdir build
                             cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On ..
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release ..
                             make -j test_conv2d
-                            MIOPEN_FIND_MODE=1 CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --disable-verification-cache
+                            MIOPEN_FIND_MODE=normal CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --disable-verification-cache
                         """
                     }
                     steps{
@@ -493,18 +454,15 @@ pipeline {
                         }
                     }
                 }
-
-                stage('Hip Release Fast-Find') {
+                stage('Fp32 Hip Fast-Find') {
                     agent{ label rocmnode("vega") }
                     environment{
                         cmd = """
                             ulimit -c unlimited
-                            rm -rf build
-                            mkdir build
                             cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On ..
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release ..
                             make -j test_conv2d
-                            MIOPEN_FIND_MODE=2 CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --disable-verification-cache
+                            MIOPEN_FIND_MODE=fast CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --disable-verification-cache
                         """
                     }
                     steps{
@@ -523,8 +481,7 @@ pipeline {
                         }
                     }
                 }
-
-                stage('Hip Release') {
+                stage('Fp32 Hip') {
                     agent{ label rocmnode("vega") }
                     steps{
                         script{
@@ -542,19 +499,20 @@ pipeline {
                         }
                     }
                 }
-
-            }
-        }
-
-        // Run fp16, bfp16, and int8 quick tests
-        stage("Fast low precision"){
-            parallel{
-                stage('Half Hip Release Vega20 /opt/rocm') {
-                    agent{ label rocmnode("vega20") }
+                stage('Fp32 Hip MLIR') {
+                    agent{ label rocmnode("vega") }
+                    environment{
+                        cmd = """
+                            ulimit -c unlimited
+                            cd build
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_USE_MLIR=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
+                            CTEST_PARALLEL_LEVEL=4 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check
+                        """
+                    }
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image+'rocm', prefixpath: '/opt/rocm')
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', cmd: cmd)
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -567,7 +525,29 @@ pipeline {
                         }
                     }
                 }
-                stage('Half OpenCL Release Vega20') {
+            }
+        }
+        stage("Smoke Fp16/Bf16/Int8"){
+            parallel{
+                stage('Fp16 Hip Vega20 /opt/rocm') {
+                    agent{ label rocmnode("vega20") }
+                    steps{
+                        script{
+                            try{
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', prefixpath: '/opt/rocm')
+                            }
+                            catch(e){
+                                echo "throwing error exception for the stage"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                reboot()
+                            }
+                        }
+                    }
+                }
+                stage('Fp16 OpenCL Vega20') {
                     agent{ label rocmnode("vega20") }
                     steps{
                         script{
@@ -585,7 +565,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Int8 OpenCL Release Vega20') {
+                stage('Int8 OpenCL Vega20') {
                     agent{ label rocmnode("vega20") }
                     steps{
                         script{
@@ -603,13 +583,12 @@ pipeline {
                         }
                     }
                 }
-
-                stage('BF16 Hip Release Vega20 /opt/rocm') {
+                stage('Bf16 Hip Vega20 /opt/rocm') {
                     agent{ label rocmnode("vega20") }
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DMIOPEN_TEST_BFLOAT16=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image: image+'rocm', prefixpath: '/opt/rocm')
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DMIOPEN_TEST_BFLOAT16=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', prefixpath: '/opt/rocm')
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -622,13 +601,12 @@ pipeline {
                         }
                     }
                 }
-
-                stage('BF16 Hip Debug gfx908 /opt/rocm') {
+                stage('Bf16 Hip Debug gfx908 /opt/rocm') {
                     agent{ label rocmnode("gfx908") }
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', image: image+'rocm', prefixpath: '/opt/rocm', gpu_arch: "gfx908")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', prefixpath: '/opt/rocm', gpu_arch: "gfx908")
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -641,12 +619,12 @@ pipeline {
                         }
                     }
                 }
-                stage('Half Hip Debug gfx908 /opt/rocm') {
+                stage('Fp16 Hip Debug gfx908 /opt/rocm') {
                     agent{ label rocmnode("gfx908") }
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', image: image+'rocm', prefixpath: '/opt/rocm', gpu_arch: "gfx908")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', prefixpath: '/opt/rocm', gpu_arch: "gfx908")
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -661,11 +639,9 @@ pipeline {
                 }
             }
         }
-
         stage("Full tests I"){
             parallel{
-
-                stage('OpenCL Debug + Codecov') {
+                stage('Fp32 OpenCL Debug + Codecov') {
                     agent{ label rocmnode("vega") }
                     steps{
                         script{
@@ -683,13 +659,12 @@ pipeline {
                         }
                     }
                 }
-
-                stage('Int8 Hip Release All Vega20 /opt/rocm') {
+                stage('Int8 Hip All Vega20 /opt/rocm') {
                     agent{ label rocmnode("vega20") }
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image: image+'rocm', prefixpath: '/opt/rocm')
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', prefixpath: '/opt/rocm')
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -702,17 +677,14 @@ pipeline {
                         }
                     }
                 }
-
-                stage('BF16 Hip Release Subset gfx908') {
+                stage('Bf16 Hip Install All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
                             ulimit -c unlimited
-                            rm -rf build
-                            mkdir build
                             cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DMIOPEN_TEST_ALL=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
-                            MIOPEN_LOG_LEVEL=5 CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DMIOPEN_TEST_ALL=On -DBUILD_DEV=Off -DCMAKE_INSTALL_PREFIX=../install -DCMAKE_BUILD_TYPE=release -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
+                            MIOPEN_LOG_LEVEL=5 CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) install check
                         """
                     }
                     steps{
@@ -733,15 +705,14 @@ pipeline {
                 }
             }
         }
-
         stage("Full tests II"){
             parallel{
-                stage('OpenCL Release All') {
+                stage('Fp32 OpenCL Install All') {
                     agent{ label rocmnode("vega") }
                     steps{
                         script{
                             try{
-                                buildHipClangJob('g++', flags: '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
+                                buildHipClangJob('g++', flags: '-DBUILD_DEV=Off -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -754,16 +725,13 @@ pipeline {
                         }
                     }
                 }
-
-                stage('Hip Release Subset gfx908') {
+                stage('Fp32 Hip All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
                             ulimit -c unlimited
-                            rm -rf build
-                            mkdir build
                             cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_TEST_GFX908=On -DMIOPEN_TEST_ALL=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_TEST_GFX908=On -DMIOPEN_TEST_ALL=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
                             MIOPEN_LOG_LEVEL=5 CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
                         """
                     }
@@ -783,17 +751,14 @@ pipeline {
                         }
                     }
                 }
-
-                stage('Half Hip Release Subset gfx908') {
+                stage('Fp16 Hip Install All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
                             ulimit -c unlimited
-                            rm -rf build
-                            mkdir build
                             cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_TEST_HALF=On -DMIOPEN_TEST_GFX908=On -DMIOPEN_TEST_ALL=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
-                            MIOPEN_LOG_LEVEL=5 CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_TEST_HALF=On -DMIOPEN_TEST_GFX908=On -DMIOPEN_TEST_ALL=On -DBUILD_DEV=Off -DCMAKE_INSTALL_PREFIX=../install -DCMAKE_BUILD_TYPE=release -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
+                            MIOPEN_LOG_LEVEL=5 CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) install check
                         """
                     }
                     steps{
@@ -814,19 +779,16 @@ pipeline {
                 }
             }
         }
-
         stage("Full tests III"){
             parallel{
-                stage('Half Hip Release All Vega20') {
+                stage('Fp16 Hip Install All Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
                             ulimit -c unlimited
-                            rm -rf build
-                            mkdir build
                             cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_TEST_HALF=On -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_ALL=On -DMIOPEN_TEST_FLAGS=--disable-verification-cache ..
-                            CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=Off -DCMAKE_INSTALL_PREFIX=../install -DCMAKE_BUILD_TYPE=release -DMIOPEN_TEST_HALF=On -DMIOPEN_TEST_ALL=On -DMIOPEN_TEST_FLAGS=--disable-verification-cache ..
+                            CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) install check
                         """
 
                     }
@@ -846,19 +808,15 @@ pipeline {
                         }
                     }
                 }
-
-                stage('Hip Release All Vega20') {
+                stage('Fp32 Hip All Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
                             ulimit -c unlimited
-                            rm -rf build
-                            mkdir build
                             cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_ALL=On -DMIOPEN_TEST_FLAGS=--disable-verification-cache ..
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_TEST_ALL=On -DMIOPEN_TEST_FLAGS=--disable-verification-cache ..
                             CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
                         """
-
                     }
                     steps{
                         script{
@@ -878,18 +836,15 @@ pipeline {
                 }
             }
         }
-
         stage("MIOpenTensile"){
             parallel{
-                stage('Hip Release Tensile Subset Vega20') {
+                stage('Fp32 Hip Tensile All Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
                             ulimit -c unlimited
-                            rm -rf build
-                            mkdir build
                             cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_ALL=On -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF -DMIOPEN_TEST_FLAGS=--disable-verification-cache ..
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_TEST_ALL=On -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF -DMIOPEN_TEST_FLAGS=--disable-verification-cache ..
                             MIOPEN_DEBUG_HIP_KERNELS=0 CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
                         """
                     }
@@ -909,16 +864,13 @@ pipeline {
                         }
                     }
                 }
-
-                stage('Hip Release Tensile Subset gfx908') {
+                stage('Fp32 Hip Tensile All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
                             ulimit -c unlimited
-                            rm -rf build
-                            mkdir build
                             cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_GFX908=On -DMIOPEN_TEST_ALL=On -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_TEST_GFX908=On -DMIOPEN_TEST_ALL=On -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
                             MIOPEN_DEBUG_HIP_KERNELS=0 MIOPEN_LOG_LEVEL=5 CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
                         """
                     }
@@ -938,23 +890,20 @@ pipeline {
                         }
                     }
                 }
-
-                stage('Hip Release Tensile-Latest Subset Vega20') {
+                stage('Fp32 Hip Tensile-Latest All Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
                             ulimit -c unlimited
-                            rm -rf build
-                            mkdir build
                             cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_ALL=On -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF -DMIOPEN_TEST_FLAGS=--disable-verification-cache ..
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_TEST_ALL=On -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF -DMIOPEN_TEST_FLAGS=--disable-verification-cache ..
                             MIOPEN_DEBUG_HIP_KERNELS=0 CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
                         """
                     }
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-gfx906-miotensilelatest', cmd: cmd, gpu_arch: "gfx906", miotensile_version: "latest")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx906", miotensile_version: "latest")
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -967,23 +916,20 @@ pipeline {
                         }
                     }
                 }
-
-                stage('Hip Release Tensile-Latest Subset gfx908') {
+                stage('Fp32 Hip Tensile-Latest All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
                             ulimit -c unlimited
-                            rm -rf build
-                            mkdir build
                             cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_GFX908=On -DMIOPEN_TEST_ALL=On -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_TEST_GFX908=On -DMIOPEN_TEST_ALL=On -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
                             MIOPEN_DEBUG_HIP_KERNELS=0 MIOPEN_LOG_LEVEL=5 CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
                         """
                     }
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-miotensilelatest', cmd: cmd, gpu_arch: "gfx908", miotensile_version: "latest")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx908", miotensile_version: "latest")
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -998,16 +944,14 @@ pipeline {
                 }
             }
         }
-
-       // Run package building
         stage("Packages"){
             parallel {
-                stage('OpenCL Release Package') {
-                    agent{ label rocmnode("rocmtest") }
+                stage('OpenCL Package') {
+                    agent{ label rocmnode("nogpu") }
                     steps{
                         script{
                             try{
-                                buildHipClangJob('g++', flags: '-DCMAKE_BUILD_TYPE=release', image: image+'-gfxall', gpu_arch: "gfx900;gfx906;gfx908")
+                                buildHipClangJob('g++', flags: '-DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx900;gfx906;gfx908")
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -1020,12 +964,12 @@ pipeline {
                         }
                     }
                 }
-                stage("HIP Release Package /opt/rocm"){
-                    agent{ label rocmnode("rocmtest") }
+                stage("HIP Package /opt/rocm"){
+                    agent{ label rocmnode("nogpu") }
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DCMAKE_BUILD_TYPE=release', image: image+'rocm-gfxall', prefixpath: '/opt/rocm', gpu_arch: "gfx900;gfx906;gfx908")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DCMAKE_BUILD_TYPE=release', prefixpath: '/opt/rocm', gpu_arch: "gfx900;gfx906;gfx908")
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
