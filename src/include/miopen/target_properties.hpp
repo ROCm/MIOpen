@@ -38,14 +38,16 @@ struct TargetProperties
     const std::string& DbId() const { return dbId; }
     bool Xnack() const { return xnack; }
     bool Sramecc() const { return sramecc; }
+    bool SrameccReported() const { return sramecc_reported; }
     void Init(const Handle*);
 
     private:
     void InitDbId();
     std::string name;
     std::string dbId;
-    bool xnack   = false;
-    bool sramecc = false;
+    bool xnack            = false;
+    bool sramecc          = false;
+    bool sramecc_reported = false;
 };
 
 } // namespace miopen
