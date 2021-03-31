@@ -24,12 +24,12 @@
  *
  *******************************************************************************/
 
-#include "conv_direct_naive_conv.hpp"
+#include <miopen/solver/conv_direct_naive_conv.hpp>
 #include <miopen/solver.hpp>
-#include <ostream>
 #include <miopen/problem_description.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/stringutils.hpp>
+#include <ostream>
 
 namespace miopen {
 

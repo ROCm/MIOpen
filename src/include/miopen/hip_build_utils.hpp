@@ -60,6 +60,26 @@ external_tool_version_t HipCompilerVersion();
 bool IsHccCompiler();
 bool IsHipClangCompiler();
 
+struct LcOptionTargetStrings
+{
+    const std::string& device;
+    const std::string xnack;
+    const std::string sramecc;
+    const std::string targetId;
+    LcOptionTargetStrings(const TargetProperties& target)
+        : device(target.Name()),
+          xnack(std::string{":xnack"} + (target.Xnack() ? "+" : "-")),
+          sramecc(std::string{":sramecc"} + (target.Sramecc() ? "+" : "-")),
+#if MIOPEN_USE_COMGR
+          targetId(device + (std::string{":sramecc"} + (target.SrameccReported() ? "+" : "-")) +
+                   xnack)
+#else
+          targetId(device + sramecc + xnack)
+#endif
+    {
+    }
+};
+
 } // namespace miopen
 
 #endif

@@ -30,6 +30,8 @@
 #include <miopen/exec_utils.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/env.hpp>
+#include <miopen/rocm_features.hpp>
+#include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/target_properties.hpp>
 #include <boost/optional.hpp>
 #include <sstream>
@@ -83,19 +85,6 @@ inline const std::string& GetCoV3Option(const bool enable)
         return no_option;
 }
 } // namespace
-
-struct LcOptionTargetStrings
-{
-    const std::string& device;
-    const std::string xnack;
-    const std::string sramecc;
-    LcOptionTargetStrings(const TargetProperties& target)
-        : device(target.Name()),
-          xnack(std::string{":xnack"} + (target.Xnack() ? "+" : "-")),
-          sramecc(std::string{":sramecc"} + (target.Sramecc() ? "+" : "-"))
-    {
-    }
-};
 
 static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
                                             const std::string& filename,
@@ -253,6 +242,7 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 #endif
 }
 
+#ifndef ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
 static bool
 HipBuildTest(const std::string& program_name, std::string params, const TargetProperties& target)
 {
@@ -288,6 +278,7 @@ static bool DetectIfBufferAtomicFaddReturnsFloat(const TargetProperties& target)
     static const bool once = DetectIfBufferAtomicFaddReturnsFloatImpl(target);
     return once;
 }
+#endif
 
 boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
                                  const std::string& filename,
@@ -295,9 +286,14 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
                                  std::string params,
                                  const TargetProperties& target)
 {
-    if(target.Name() == "gfx908")
+#ifndef ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
+    if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
         if(DetectIfBufferAtomicFaddReturnsFloat(target))
             params += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
+#elif ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
+    if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
+        params += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
+#endif
     return HipBuildImpl(tmp_dir, filename, src, params, target, false);
 }
 
