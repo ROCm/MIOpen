@@ -37,6 +37,7 @@ namespace miopen {
 
 static std::string GetDeviceNameFromMap(const std::string& in)
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::map<std::string, std::string> device_name_map = {
         {"Ellesmere", "gfx803"},
         {"Baffin", "gfx803"},
@@ -62,25 +63,37 @@ static std::string GetDeviceNameFromMap(const std::string& in)
     auto match = device_name_map.find(name);
     if(match != device_name_map.end())
         return match->second;
-    return name;
+    return name; // NOLINT (performance-no-automatic-move)
 }
 
 void TargetProperties::Init(const Handle* const handle)
 {
-    const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
-    if(arch != nullptr && strlen(arch) > 0)
-    {
-        name = arch;
-    }
-    else
-    {
-        name = handle->GetDeviceNameImpl();
-    }
-    name = GetDeviceNameFromMap(name);
-
-    // Set features to defaults.
+    const auto rawName = [&]() -> std::string {
+        const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
+        if(arch != nullptr && strlen(arch) > 0)
+            return arch;
+        return handle->GetDeviceNameImpl();
+    }();
+    name = GetDeviceNameFromMap(rawName);
+    // DKMS driver older than 5.9 may report incorrect state of SRAMECC feature.
+    // Therefore we compute and rely on default SRAMECC for now.
     sramecc = StartsWith(name, "gfx906") || StartsWith(name, "gfx908");
-    xnack   = false;
+    // However we need to store the reported state, even if it is incorrect,
+    // to use together with COMGR.
+    sramecc_reported = [&]() {
+        if(rawName.find(":sramecc+") != std::string::npos)
+            return true;
+        if(rawName.find(":sramecc-") != std::string::npos)
+            return false;
+        return sramecc; // default
+    }();
+    xnack = [&]() {
+        if(rawName.find(":xnack+") != std::string::npos)
+            return true;
+        if(rawName.find(":xnack-") != std::string::npos)
+            return false;
+        return false; // default
+    }();
     InitDbId();
 }
 
