@@ -23,11 +23,11 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "miopen/solver.hpp"
-#include "miopen/handle.hpp"
-#include "miopen/stringutils.hpp"
-#include "implicitgemm_util.hpp"
-#include "miopen/implicitgemm_params.hpp"
+#include <miopen/solver.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/stringutils.hpp>
+#include <miopen/solver/implicitgemm_util.hpp>
+#include <miopen/implicitgemm_params.hpp>
 
 #define WORKAROUND_ISSUE_659 1
 
