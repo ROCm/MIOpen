@@ -30,7 +30,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/hip_build_utils.hpp>
-#include "implicitgemm_util.hpp"
+#include <miopen/solver/implicitgemm_util.hpp>
 
 /// The solver has correctness issues with ROCm 3.7 and 4.0 on MI100 with several configs. The
 /// issues are not reproducible with ROCm no-npi build 6738-STG2 (proposed 4.2 release candidate).

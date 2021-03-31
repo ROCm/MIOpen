@@ -28,8 +28,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/hip_build_utils.hpp>
 #include <miopen/generic_search.hpp>
-
-#include "implicitgemm_util.hpp"
+#include <miopen/solver/implicitgemm_util.hpp>
 
 #include <cstddef>
 
