@@ -39,6 +39,20 @@
 #include <functional>
 
 namespace miopen {
+
+struct TestRordbEmbedFsOverrideLock
+{
+    TestRordbEmbedFsOverrideLock() : cached(debug::rordb_embed_fs_override())
+    {
+        debug::rordb_embed_fs_override() = true;
+    }
+
+    ~TestRordbEmbedFsOverrideLock() { debug::rordb_embed_fs_override() = cached; }
+
+    private:
+    bool cached;
+};
+
 static auto Duration(const std::function<void()>& func)
 {
     const auto start = std::chrono::steady_clock::now();
