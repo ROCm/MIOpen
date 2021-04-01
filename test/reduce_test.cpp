@@ -720,8 +720,7 @@ struct reduce_driver : test_driver
                 (reduceOp == 4 && /*compTypeVal == X && nanOpt == X*/ indicesOpt == 0) ||
                 (reduceOp == 5 && compTypeVal == 1 && /*nanOpt == X &&*/ indicesOpt == 0) ||
                 (reduceOp == 6 && compTypeVal == 1 && /*nanOpt == X &&*/ indicesOpt == 0) ||
-                (reduceOp == 7 && compTypeVal == 1 && /*nanOpt == X &&*/ indicesOpt == 0)
-                ))
+                (reduceOp == 7 && compTypeVal == 1 && /*nanOpt == X &&*/ indicesOpt == 0)))
             {
                 std::cout << "Workaround: Skipping the test." << std::endl;
                 return;
