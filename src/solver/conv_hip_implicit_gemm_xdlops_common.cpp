@@ -23,10 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "miopen/solver.hpp"
-#include "miopen/handle.hpp"
-#include "miopen/stringutils.hpp"
-#include "implicitgemm_util.hpp"
+#include <miopen/solver.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/stringutils.hpp>
+#include <miopen/solver/implicitgemm_util.hpp>
 
 namespace miopen {
 namespace solver {
@@ -215,7 +215,7 @@ bool PerformanceImplicitGemmXdlops::operator==(const PerformanceImplicitGemmXdlo
         && KPerBlock == other.KPerBlock
         && EPerBlock == other.EPerBlock
         && EBlocks == other.EBlocks
-        && EPACKSize == other.EPACKSize 
+        && EPACKSize == other.EPACKSize
         && GemmMPerWave == other.GemmMPerWave
         && GemmNPerWave == other.GemmNPerWave
         && InBlockCopyClusterLengths_E == other.InBlockCopyClusterLengths_E
