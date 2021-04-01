@@ -205,6 +205,8 @@ int ReduceDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("iter", 'i', "1", "Number of Iterations (Default=1)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
+    inflags.AddInputFlag("dump_output", 'o', "0", "Dumps the output buffers (Default=0)", "int");
+    inflags.AddInputFlag("in_data", 'd', "", "Input data filename (Default=)", "string");
 
     return 0;
 }
@@ -284,7 +286,8 @@ int ReduceDriver<Tgpu, Tref>::SetReduceTensorDescriptorFromCmdLineArgs()
     // no other place is better to place this line of codes
     this->need_indices =
         (indicesOpt == MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES) &&
-        (reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX);
+        (reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX ||
+         reduceOp == MIOPEN_REDUCE_TENSOR_AMAX);
 
     return (miopenSetReduceTensorDescriptor(
         reduceDesc, reduceOp, compType, nanOpt, indicesOpt, indicesType));
@@ -318,7 +321,7 @@ int ReduceDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     out_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_nelem, sizeof(Tgpu)));
     ws_dev  = this->need_indices ? std::unique_ptr<GPUMem>(new GPUMem(
                                       ctx, ws_nelem * 2, std::max<int>(sizeof(Tgpu), sizeof(int))))
-                                : std::unique_ptr<GPUMem>(new GPUMem(ctx, ws_nelem, sizeof(int)));
+                                : std::unique_ptr<GPUMem>(new GPUMem(ctx, ws_nelem, sizeof(Tgpu)));
 
     indices_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, indices_nelem, sizeof(int)));
 
@@ -328,10 +331,19 @@ int ReduceDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     out_indices     = std::vector<int>(indices_nelem, static_cast<int>(0));
     outhost_indices = std::vector<int>(indices_nelem, static_cast<int>(0));
 
-    for(int i = 0; i < in_nelem; i++)
+    std::string inFileName = inflags.GetValueStr("in_data");
+
+    bool rdResult = false;
+    if(!inFileName.empty())
+        rdResult = readBufferFromFile(in.data(), in.size(), inFileName.c_str());
+
+    if(!rdResult)
     {
-        in[i] = RAN_GEN<Tgpu>(convert_type<Tgpu>(0.0f), convert_type<Tgpu>(1.0f));
-    }
+        for(int i = 0; i < in_nelem; i++)
+        {
+            in[i] = RAN_GEN<Tgpu>(convert_type<Tgpu>(0.0f), convert_type<Tgpu>(1.0f));
+        };
+    };
 
 #if MIOPEN_BACKEND_OPENCL
     cl_int status;
@@ -450,6 +462,8 @@ int ReduceDriver<Tgpu, Tref>::VerifyForward()
     auto beta =
         reduce::convert_type<Tgpu>(static_cast<float>(this->inflags.GetValueDouble("beta")));
 
+    auto reduceOp = static_cast<miopenReduceTensorOp_t>(inflags.GetValueInt("ReduceOp"));
+
     if(indices_sizeInBytes > 0)
     {
         alpha = reduce::convert_type<Tgpu>(1.0f);
@@ -459,8 +473,10 @@ int ReduceDriver<Tgpu, Tref>::VerifyForward()
     hostReduction.Run(alpha, in.data(), beta, outhost.data(), outhost_indices.data());
 
     auto error = miopen::rms_range(outhost, out);
-    const Tref tolerance =
-        std::is_same<Tgpu, float16>::value ? static_cast<Tref>(2e-3) : static_cast<Tref>(1.5e-4);
+    const double tolerance =
+        std::is_same<Tgpu, float16>::value || reduceOp == MIOPEN_REDUCE_TENSOR_NORM2 ? 2e-3
+                                                                                     : 1.5e-4;
+
     if(error > tolerance)
     {
         std::cout << "ReduceTensor() Failed: " << error << "\n";
@@ -488,6 +504,19 @@ int ReduceDriver<Tgpu, Tref>::VerifyForward()
             printf("ReduceTensor() Verifies on CPU and GPU (err=%f)\n", error);
         };
     };
+
+    if(inflags.GetValueInt("dump_output"))
+    {
+        dumpBufferToFile("dump_in.bin", in.data(), in.size());
+        dumpBufferToFile("dump_out.bin", out.data(), out.size());
+        dumpBufferToFile("dump_outhost.bin", outhost.data(), outhost.size());
+        if(!out_indices.empty())
+        {
+            dumpBufferToFile("dump_out_indices.bin", out_indices.data(), out_indices.size());
+            dumpBufferToFile(
+                "dump_outhost_indices.bin", outhost_indices.data(), outhost_indices.size());
+        };
+    }
 
     return 0;
 }

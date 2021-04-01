@@ -39,78 +39,6 @@
 
 using float16 = half_float::half;
 
-static inline void
-get_all_indexes(const std::vector<int>& dimLengths, int dim, std::vector<std::vector<int>>& indexes)
-{
-    if(dim < dimLengths.size())
-    {
-        std::vector<std::vector<int>> updated_indexes;
-
-        if(dim == 0)
-        {
-            for(int i = 0; i < dimLengths[dim]; i++)
-            {
-                std::vector<int> index = {i};
-
-                updated_indexes.push_back(index);
-            };
-        }
-        else
-        {
-            // go through all the current indexes
-            for(const auto& index : indexes)
-                for(int i = 0; i < dimLengths[dim]; i++)
-                {
-                    auto index_new = index; // explicit copying
-
-                    index_new.push_back(i);
-
-                    updated_indexes.push_back(index_new);
-                };
-        };
-
-        // update to the indexes (output)
-        indexes = updated_indexes;
-
-        // further to construct the indexes from the updated status
-        get_all_indexes(dimLengths, dim + 1, indexes);
-    };
-};
-
-static inline int get_offset_from_index(const std::vector<int>& strides,
-                                        const std::vector<int>& index)
-{
-    int offset = 0;
-
-    assert(index.size() == strides.size());
-    for(int i = 0; i < index.size(); i++)
-        offset += strides[i] * index[i];
-
-    return (offset);
-};
-
-static inline int get_flatten_offset(const std::vector<int>& lengths, const std::vector<int>& index)
-{
-    int offset = 0;
-
-    assert(lengths.size() == index.size() && lengths.size() > 0);
-
-    int len    = lengths.size();
-    int stride = 1;
-
-    // for len==1, the loop is not executed
-    for(int i = len - 1; i > 0; i--)
-    {
-        offset += stride * index[i];
-
-        stride *= lengths[i];
-    };
-
-    offset += stride * index[0];
-
-    return (offset);
-};
-
 template <typename Tgpu, typename Tref>
 class miopenReductionHost
 {
@@ -192,7 +120,8 @@ class miopenReductionHost
     {
         bool need_indices =
             (indicesOpt == MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES) &&
-            (reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX);
+            (reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX ||
+             reduceOp == MIOPEN_REDUCE_TENSOR_AMAX);
 
         if(need_indices)
             RunImpl_with_indices<compType>(alpha, in_data, beta, out_data, indices);

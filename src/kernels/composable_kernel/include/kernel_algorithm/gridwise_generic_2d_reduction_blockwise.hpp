@@ -71,7 +71,7 @@ struct GridwiseReduction_xy_to_x_blockwise
                         const srcDataType* const __restrict__ p_src_global,
                         dstDataType beta,
                         dstDataType* const __restrict__ p_dst_global,
-                        int* const __restrict__ ws_indices_global,
+                        const int* const __restrict__ ws_indices_global,
                         int* const __restrict__ indices_global)
     {
         static_if<need_indices>{}([&](auto) {
@@ -350,7 +350,7 @@ struct GridwiseReduction_xy_to_x_blockwise
                                     const srcDataType* const __restrict__ p_src_global,
                                     dstDataType beta,
                                     dstDataType* const __restrict__ p_dst_global,
-                                    int* const __restrict__ ws_indices_global,
+                                    const int* const __restrict__ ws_indices_global,
                                     int* const __restrict__ indices_global)
     {
         // LDS

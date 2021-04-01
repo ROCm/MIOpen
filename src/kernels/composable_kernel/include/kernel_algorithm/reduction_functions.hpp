@@ -229,7 +229,7 @@ struct WarpReduce
 
         for(index_t stride = warpSize / 2; stride > 0; stride /= 2)
         {
-            if(thread_inwarp_id < warpSize)
+            if(thread_inwarp_id < stride)
             {
                 compType currVal1 = myBuffer[thread_inwarp_id];
                 compType currVal2 = myBuffer[thread_inwarp_id + stride];
@@ -321,18 +321,16 @@ struct WarpReduce
 
         for(index_t stride = 1; stride < warpSize; stride *= 2)
         {
-            if(thread_inwarp_id < warpSize)
-            {
-                compType currVal1 = myDataBuffer[thread_inwarp_id];
-                compType currVal2 = myDataBuffer[thread_inwarp_id + stride];
-                int currIndex1    = myIndicesBuffer[thread_inwarp_id];
-                int currIndex2    = myIndicesBuffer[thread_inwarp_id + stride];
+            compType currVal1 = myDataBuffer[thread_inwarp_id];
+            compType currVal2 = myDataBuffer[thread_inwarp_id + stride];
+            int currIndex1    = myIndicesBuffer[thread_inwarp_id];
+            int currIndex2    = myIndicesBuffer[thread_inwarp_id + stride];
 
-                binop::calculate(currVal1, currVal2, currIndex1, currIndex2);
+            binop::calculate(currVal1, currVal2, currIndex1, currIndex2);
 
-                myDataBuffer[thread_inwarp_id]    = currVal1;
-                myIndicesBuffer[thread_inwarp_id] = currIndex1;
-            }
+            myDataBuffer[thread_inwarp_id]    = currVal1;
+            myIndicesBuffer[thread_inwarp_id] = currIndex1;
+
             __syncthreads();
         }
 
@@ -365,8 +363,8 @@ struct WarpReduce
 
         for(index_t i = 0; i < ThreadBufferLen; i++)
         {
-            compType currVal   = type_convert<compType>{}(p_thread_buffer[i]);
-            compType currIndex = thread_indices_buffer[i];
+            compType currVal = type_convert<compType>{}(p_thread_buffer[i]);
+            int currIndex    = thread_indices_buffer[i];
             binop::calculate(lAccuData, currVal, lAccuIndex, currIndex);
         }
 
@@ -400,8 +398,8 @@ struct WarpReduce
 
         for(index_t i = 0; i < ThreadBufferLen; i++)
         {
-            compType currVal   = type_convert<compType>{}(p_thread_buffer[i]);
-            compType currIndex = thread_indices_buffer[i];
+            compType currVal = type_convert<compType>{}(p_thread_buffer[i]);
+            int currIndex    = thread_indices_buffer[i];
             binop::calculate(lAccuData, currVal, lAccuIndex, currIndex);
         }
 
@@ -418,18 +416,16 @@ struct WarpReduce
 
         for(index_t stride = 1; stride < warpSize; stride *= 2)
         {
-            if(thread_inwarp_id < warpSize)
-            {
-                compType currVal1 = myDataBuffer[thread_inwarp_id];
-                compType currVal2 = myDataBuffer[thread_inwarp_id + stride];
-                int currIndex1    = myIndicesBuffer[thread_inwarp_id];
-                int currIndex2    = myIndicesBuffer[thread_inwarp_id + stride];
+            compType currVal1 = myDataBuffer[thread_inwarp_id];
+            compType currVal2 = myDataBuffer[thread_inwarp_id + stride];
+            int currIndex1    = myIndicesBuffer[thread_inwarp_id];
+            int currIndex2    = myIndicesBuffer[thread_inwarp_id + stride];
 
-                binop::calculate(currVal1, currVal2, currIndex1, currIndex2);
+            binop::calculate(currVal1, currVal2, currIndex1, currIndex2);
 
-                myDataBuffer[thread_inwarp_id]    = currVal1;
-                myIndicesBuffer[thread_inwarp_id] = currIndex1;
-            }
+            myDataBuffer[thread_inwarp_id]    = currVal1;
+            myIndicesBuffer[thread_inwarp_id] = currIndex1;
+
             __syncthreads();
         }
 
@@ -555,8 +551,8 @@ struct BlockwiseReduction_2d_block_buffer
                         p_block_buffer[offset1]       = type_convert<DataType>{}(currVal1);
                         block_indices_buffer[offset1] = currIndex1;
                     }
+                    __syncthreads();
                 }
-                __syncthreads();
             }
 
             if(thread_local_id == 0)
