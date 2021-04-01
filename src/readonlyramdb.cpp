@@ -43,6 +43,7 @@
 namespace miopen {
 bool& testing_rordb_embed_fs_override()
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static bool data = false;
     return data;
 }
