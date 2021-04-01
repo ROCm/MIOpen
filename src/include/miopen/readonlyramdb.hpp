@@ -36,20 +36,9 @@
 
 namespace miopen {
 
-extern bool& testing_rordb_embed_fs_override();
-
-struct TestRordbEmbedFsOverrideLock
-{
-    TestRordbEmbedFsOverrideLock() : cached(testing_rordb_embed_fs_override())
-    {
-        testing_rordb_embed_fs_override() = true;
-    }
-
-    ~TestRordbEmbedFsOverrideLock() { testing_rordb_embed_fs_override() = cached; }
-
-    private:
-    bool cached;
-};
+namespace debug {
+extern bool& rordb_embed_fs_override();
+} // namespace debug
 
 class ReadonlyRamDb
 {

@@ -41,12 +41,15 @@
 #include <map>
 
 namespace miopen {
-bool& testing_rordb_embed_fs_override()
+
+namespace debug {
+bool& rordb_embed_fs_override()
 {
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static bool data = false;
     return data;
 }
+} // namespace debug
 
 ReadonlyRamDb& ReadonlyRamDb::GetCached(const std::string& path,
                                         bool warn_if_unreadable,
@@ -131,7 +134,7 @@ void ReadonlyRamDb::Prefetch(bool warn_if_unreadable)
     Measure("Prefetch", [this, warn_if_unreadable]() {
 
         constexpr bool isEmbedded = MIOPEN_EMBED_DB;
-        if(!testing_rordb_embed_fs_override() && isEmbedded)
+        if(!debug::rordb_embed_fs_override() && isEmbedded)
         {
 #if MIOPEN_EMBED_DB
             boost::filesystem::path filepath(db_path);
