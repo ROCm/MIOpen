@@ -75,6 +75,7 @@ struct FindDbTest : test_driver
 
         const TempFile temp_file{"miopen.test.find_db"};
         testing_find_db_path_override() = temp_file;
+        TestRordbEmbedFsOverrideLock rordb_embed_fs_override;
 
         TestForward();
         TestBwdData();

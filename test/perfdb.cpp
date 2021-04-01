@@ -1102,6 +1102,11 @@ class DbMultiFileTest : public DbTest
         DbTest::ResetDb();
         user_db_path = temp_file.Path() + ".user";
     }
+
+    private:
+#if MIOPEN_EMBED_DB
+    TestRordbEmbedFsOverrideLock rordb_embed_fs_override;
+#endif
 };
 
 template <bool merge_records>
