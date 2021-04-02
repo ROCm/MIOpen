@@ -202,10 +202,13 @@ static void AddCompilerOptions(OptionList& list, const miopen::TargetProperties&
 #if ROCM_FEATURE_TARGETID_OFF
     // It seems like these options are used only in codegen.
     // However it seems ok to pass these to compiler.
-    if(target.Sramecc())
-        list.push_back("-msram-ecc");
-    else
-        list.push_back("-mno-sram-ecc");
+    if(target.IsSramecc())
+    {
+        if(*target.IsSramecc())
+            list.push_back("-msram-ecc");
+        else
+            list.push_back("-mno-sram-ecc");
+    }
 #else
     std::ignore = target;
 #endif
@@ -306,7 +309,7 @@ static void RemoveLinkOptionsUnwanted(OptionList& list)
 static std::string GetIsaName(const miopen::TargetProperties& target)
 {
 #if ROCM_FEATURE_TARGETID_OFF
-    const char* const ecc_suffix = target.Sramecc() ? "+sram-ecc" : "";
+    const char* const ecc_suffix = (target.IsSramecc() && *target.IsSramecc()) ? "+sram-ecc" : "";
     return {"amdgcn-amd-amdhsa--" + target.Name() + ecc_suffix};
 #else
     const LcOptionTargetStrings lots(target);
