@@ -922,7 +922,8 @@ void BuildAsm(const std::string& name,
         auto optAsm = miopen::SplitSpaceSeparated(options);
 #if WORKAROUND_SWDEV_255735
         if(miopen::HipCompilerVersion() >= miopen::external_tool_version_t{3, 8, 20403})
-            optAsm.push_back("-mno-xnack");
+            if(target.IsXnack() && !*target.IsXnack())
+                optAsm.push_back("-mno-xnack");
 #endif
         compiler::lc::gcnasm::RemoveOptionsUnwanted(optAsm);
         action.SetOptionList(optAsm);
