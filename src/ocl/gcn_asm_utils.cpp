@@ -190,7 +190,7 @@ std::string AmdgcnAssemble(const std::string& source,
     options << " -x assembler -target amdgcn--amdhsa";
 #if WORKAROUND_SWDEV_255735
     if(miopen::HipCompilerVersion() >= miopen::external_tool_version_t{3, 8, 20403})
-        if(target.IsXnack() && !*target.IsXnack())
+        if(target.Xnack() && !*target.Xnack())
             options << " -mno-xnack";
 #endif
     /// \todo Hacky way to find out which CO version we need to assemble for.

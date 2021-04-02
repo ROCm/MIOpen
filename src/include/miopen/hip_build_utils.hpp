@@ -76,18 +76,18 @@ class LcOptionTargetStrings
     LcOptionTargetStrings(const TargetProperties& target)
         : device(target.Name()),
           xnack([&]() -> std::string {
-              if(target.IsXnack())
-                  return std::string{":xnack"} + (*target.IsXnack() ? "+" : "-");
+              if(target.Xnack())
+                  return std::string{":xnack"} + (*target.Xnack() ? "+" : "-");
               return {};
           }()),
           sramecc([&]() -> std::string {
-              if(target.IsSramecc())
-                  return std::string{":sramecc"} + (*target.IsSramecc() ? "+" : "-");
+              if(target.Sramecc())
+                  return std::string{":sramecc"} + (*target.Sramecc() ? "+" : "-");
               return {};
           }()),
           sramecc_reported([&]() -> std::string {
-              if(target.IsSrameccReported())
-                  return std::string{":sramecc"} + (*target.IsSrameccReported() ? "+" : "-");
+              if(target.SrameccReported())
+                  return std::string{":sramecc"} + (*target.SrameccReported() ? "+" : "-");
               return {};
           }()),
 #if MIOPEN_USE_COMGR

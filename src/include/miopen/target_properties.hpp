@@ -37,9 +37,9 @@ struct TargetProperties
 {
     const std::string& Name() const { return name; }
     const std::string& DbId() const { return dbId; }
-    boost::optional<bool> IsXnack() const { return xnack; }
-    boost::optional<bool> IsSramecc() const { return sramecc; }
-    boost::optional<bool> IsSrameccReported() const { return sramecc_reported; }
+    boost::optional<bool> Xnack() const { return xnack; }
+    boost::optional<bool> Sramecc() const { return sramecc; }
+    boost::optional<bool> SrameccReported() const { return sramecc_reported; }
     void Init(const Handle*);
 
     private:

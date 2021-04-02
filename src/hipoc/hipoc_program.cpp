@@ -243,7 +243,7 @@ struct HIPOCProgramImpl
         }
         else if(miopen::EndsWith(filename, ".s"))
         {
-            const auto assembled = AmdgcnAssemble(src, params, target); // FIXME
+            const auto assembled = AmdgcnAssemble(src, params, target);
             WriteFile(assembled, hsaco_file);
         }
         else if(miopen::EndsWith(filename, ".cpp"))

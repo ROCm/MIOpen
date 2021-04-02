@@ -202,9 +202,9 @@ static void AddCompilerOptions(OptionList& list, const miopen::TargetProperties&
 #if ROCM_FEATURE_TARGETID_OFF
     // It seems like these options are used only in codegen.
     // However it seems ok to pass these to compiler.
-    if(target.IsSramecc())
+    if(target.Sramecc())
     {
-        if(*target.IsSramecc())
+        if(*target.Sramecc())
             list.push_back("-msram-ecc");
         else
             list.push_back("-mno-sram-ecc");
@@ -309,7 +309,7 @@ static void RemoveLinkOptionsUnwanted(OptionList& list)
 static std::string GetIsaName(const miopen::TargetProperties& target)
 {
 #if ROCM_FEATURE_TARGETID_OFF
-    const char* const ecc_suffix = (target.IsSramecc() && *target.IsSramecc()) ? "+sram-ecc" : "";
+    const char* const ecc_suffix = (target.Sramecc() && *target.Sramecc()) ? "+sram-ecc" : "";
     return {"amdgcn-amd-amdhsa--" + target.Name() + ecc_suffix};
 #else
     const LcOptionTargetStrings lots(target);
@@ -925,7 +925,7 @@ void BuildAsm(const std::string& name,
         auto optAsm = miopen::SplitSpaceSeparated(options);
 #if WORKAROUND_SWDEV_255735
         if(miopen::HipCompilerVersion() >= miopen::external_tool_version_t{3, 8, 20403})
-            if(target.IsXnack() && !*target.IsXnack())
+            if(target.Xnack() && !*target.Xnack())
                 optAsm.push_back("-mno-xnack");
 #endif
         compiler::lc::gcnasm::RemoveOptionsUnwanted(optAsm);
