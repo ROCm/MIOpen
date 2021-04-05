@@ -76,43 +76,49 @@ void TargetProperties::Init(const Handle* const handle)
     }();
     name = GetDeviceNameFromMap(rawName);
     // DKMS driver older than 5.9 may report incorrect state of SRAMECC feature.
-    // Therefore we compute and rely on default SRAMECC for now.
-    sramecc = StartsWith(name, "gfx906") || StartsWith(name, "gfx908");
+    // Therefore we compute default SRAMECC and rely on it for now.
+    sramecc = [&]() -> boost::optional<bool> {
+        if(name == "gfx906" || name == "gfx908")
+            return {true};
+        return {};
+    }();
     // However we need to store the reported state, even if it is incorrect,
     // to use together with COMGR.
-    sramecc_reported = [&]() {
+    sramecc_reported = [&]() -> boost::optional<bool> {
         if(rawName.find(":sramecc+") != std::string::npos)
             return true;
         if(rawName.find(":sramecc-") != std::string::npos)
             return false;
         return sramecc; // default
     }();
-    xnack = [&]() {
+    xnack = [&]() -> boost::optional<bool> {
         if(rawName.find(":xnack+") != std::string::npos)
             return true;
         if(rawName.find(":xnack-") != std::string::npos)
             return false;
-        return false; // default
+        return {}; // default
     }();
     InitDbId();
 }
 
 void TargetProperties::InitDbId()
 {
-    // Let's stay compatible with existing databases:
-    // When feature equal to the default, do not append feature suffice.
     dbId = name;
-    if(StartsWith(name, "gfx906") || StartsWith(name, "gfx908"))
+    if(name == "gfx906" || name == "gfx908")
     {
-        if(!sramecc)
+        // Let's stay compatible with existing gfx906/908 databases.
+        // When feature equal to the default (SRAMECC ON), do not
+        // append feature suffix. This is for backward compatibility
+        // with legacy databases ONLY!
+        if(!sramecc || !(*sramecc))
             dbId += "_nosramecc";
     }
     else
     {
-        if(sramecc)
+        if(sramecc && *sramecc)
             dbId += "_sramecc";
     }
-    if(xnack)
+    if(xnack && *xnack)
         dbId += "_xnack";
 }
 

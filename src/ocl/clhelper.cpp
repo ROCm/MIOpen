@@ -34,6 +34,7 @@
 #include <miopen/ocldeviceinfo.hpp>
 #include <miopen/rocm_features.hpp>
 #include <miopen/tmp_dir.hpp>
+#include <miopen/target_properties.hpp>
 #include <miopen/write_file.hpp>
 #include <miopen/env.hpp>
 
@@ -68,14 +69,16 @@ static cl_program CreateProgram(cl_context ctx, const char* char_source, size_t 
     return result;
 }
 
-static std::string
-ClAssemble(cl_device_id device, const std::string& source, const std::string& params)
+static std::string ClAssemble(cl_device_id device,
+                              const std::string& source,
+                              const std::string& params,
+                              const TargetProperties& target)
 {
     std::string name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(device);
 #if WORKAROUND_MLOPEN_ISSUE_1711
     WorkaroundIssue1711(name);
 #endif
-    return AmdgcnAssemble(source, std::string("-mcpu=") + name + " " + params);
+    return AmdgcnAssemble(source, std::string("-mcpu=") + name + " " + params, target);
 }
 
 static cl_program
@@ -164,7 +167,7 @@ ClProgramPtr LoadProgram(cl_context ctx,
     bool load_binary = false;
     if(miopen::EndsWith(program_name, ".s"))
     {
-        source      = ClAssemble(device, source, params); // Puts output binary into source.
+        source      = ClAssemble(device, source, params, target); // Puts output binary into source.
         load_binary = true;
     }
 
