@@ -61,19 +61,37 @@ external_tool_version_t HipCompilerVersion();
 bool IsHccCompiler();
 bool IsHipClangCompiler();
 
-struct LcOptionTargetStrings
+class LcOptionTargetStrings
 {
+    public:
     const std::string& device;
     const std::string xnack;
+
+    private:
     const std::string sramecc;
+    const std::string sramecc_reported;
+
+    public:
     const std::string targetId;
     LcOptionTargetStrings(const TargetProperties& target)
         : device(target.Name()),
-          xnack(std::string{":xnack"} + (target.Xnack() ? "+" : "-")),
-          sramecc(std::string{":sramecc"} + (target.Sramecc() ? "+" : "-")),
+          xnack([&]() -> std::string {
+              if(target.Xnack())
+                  return std::string{":xnack"} + (*target.Xnack() ? "+" : "-");
+              return {};
+          }()),
+          sramecc([&]() -> std::string {
+              if(target.Sramecc())
+                  return std::string{":sramecc"} + (*target.Sramecc() ? "+" : "-");
+              return {};
+          }()),
+          sramecc_reported([&]() -> std::string {
+              if(target.SrameccReported())
+                  return std::string{":sramecc"} + (*target.SrameccReported() ? "+" : "-");
+              return {};
+          }()),
 #if MIOPEN_USE_COMGR
-          targetId(device + (std::string{":sramecc"} + (target.SrameccReported() ? "+" : "-")) +
-                   xnack)
+          targetId(device + sramecc_reported + xnack)
 #else
           targetId(device + sramecc + xnack)
 #endif
