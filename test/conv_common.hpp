@@ -1693,7 +1693,8 @@ struct conv_driver : test_driver
                pads_strides_dilations.size() == i * 3 and trans_output_pads.size() == i)
                 return i;
         }
-        return -1;
+        std::cout << "FAILED: get_spatial_dim() can't calculate dims count." << std::endl;
+        exit(-1);
     }
 
     conv_driver()
@@ -1723,6 +1724,7 @@ struct conv_driver : test_driver
         filter.mode             = cmode_lookup[miopen::ToUpper(conv_mode)];
         filter.paddingMode      = pmode_lookup[miopen::ToUpper(pad_mode)];
         std::size_t spatial_dim = filter.GetSpatialDimension();
+        filter.group_count      = std::max(static_cast<int>(groupCount), 1);
 
         if(!input_dims.empty())
         {
@@ -1758,15 +1760,18 @@ struct conv_driver : test_driver
         }
         else if(spatial_dim == 2)
         {
-            weights =
-                tensor<T>{output_channels, input_channels, filter_dims.at(0), filter_dims.at(1)}
-                    .generate(tensor_elem_gen_integer{17});
+            weights = tensor<T>{
+                output_channels,
+                input_channels / filter.group_count,
+                filter_dims.at(0),
+                filter_dims.at(
+                    1)}.generate(tensor_elem_gen_integer{17});
         }
         else if(spatial_dim == 3)
         {
             weights = tensor<T>{
                 output_channels,
-                input_channels,
+                input_channels / filter.group_count,
                 filter_dims.at(0),
                 filter_dims.at(1),
                 filter_dims.at(
@@ -1792,8 +1797,6 @@ struct conv_driver : test_driver
                     spatial_dim,
                     filter.dilations.begin());
         std::copy_n(trans_output_pads.begin(), spatial_dim, filter.trans_output_pads.begin());
-
-        filter.group_count = std::max(static_cast<int>(groupCount), 1);
 
         std::size_t in_c_len  = input.desc.GetLengths()[1];
         std::size_t wei_k_len = weights.desc.GetLengths()[0];
