@@ -205,7 +205,10 @@ size_t GemmFwd1x1_0_2::GetWorkspaceSize(const ExecutionContext& context,
     const auto gemm_trans = x_t_size + y_t_size;
 
     if(gemm_trans > MAX_MEM_ALLOC_SZ)
+    {
+        MIOPEN_LOG_I2(gemm_trans << " > " << MAX_MEM_ALLOC_SZ);
         return 0;
+    }
     return gemm_trans;
 #else
     std::ignore = context;
@@ -459,7 +462,10 @@ size_t GemmFwd1x1_0_1_int8::GetWorkspaceSize(const ExecutionContext& context,
                          GetTypeSize(wDesc.GetType()) * conv.group_count;
 
     if(ws_size > MAX_MEM_ALLOC_SZ)
+    {
+        MIOPEN_LOG_I2(ws_size << " > " << MAX_MEM_ALLOC_SZ);
         return 0;
+    }
     return ws_size;
 #else
     std::ignore = context;
@@ -860,7 +866,10 @@ size_t GemmFwdRest::GetWorkspaceSize(const ExecutionContext& context,
     const auto ws_sz = (wDesc.GetType() == miopenInt8 ? 2 * workspace_size : workspace_size);
 
     if(ws_sz > MAX_MEM_ALLOC_SZ)
+    {
+        MIOPEN_LOG_I2(ws_sz << " > " << MAX_MEM_ALLOC_SZ);
         return 0;
+    }
     return ws_sz;
 #else
     std::ignore = context;

@@ -175,7 +175,10 @@ size_t GemmBwd1x1_stride2::GetWorkspaceSize(const ExecutionContext& context,
     const auto gemm_trans = dx_t_size + dy_t_size;
 
     if(gemm_trans > MAX_MEM_ALLOC_SZ)
+    {
+        MIOPEN_LOG_I2(gemm_trans << " > " << MAX_MEM_ALLOC_SZ);
         return 0;
+    }
     return gemm_trans;
 #else
     std::ignore = context;
@@ -549,7 +552,10 @@ size_t GemmBwdRest::GetWorkspaceSize(const ExecutionContext& context,
                            GetTypeSize(dyDesc.GetType()) * conv.group_count;
 
     if(gemm_size > MAX_MEM_ALLOC_SZ)
+    {
+        MIOPEN_LOG_I2(gemm_size << " > " << MAX_MEM_ALLOC_SZ);
         return 0;
+    }
     return gemm_size;
 #else
     std::ignore = context;
