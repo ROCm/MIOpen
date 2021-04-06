@@ -37,12 +37,13 @@
 
 namespace miopen {
 
-boost::filesystem::path MlirBuildViaHip(boost::optional<TmpDir>& tmp_dir,
+boost::filesystem::path MiirBuildViaHip(boost::optional<TmpDir>& tmp_dir,
                                         const std::string& filename,
                                         const std::string& src,
                                         const std::string& params,
                                         const TargetProperties& target);
 
+void MiirGenLaunchParams(const std::string& params, size_t& local_size, size_t& global_size);
 } // namespace miopen
 
 #endif // MIOPEN_USE_MLIR

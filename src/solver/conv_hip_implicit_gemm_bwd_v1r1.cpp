@@ -28,8 +28,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/hip_build_utils.hpp>
 #include <miopen/generic_search.hpp>
-
-#include "implicitgemm_util.hpp"
+#include <miopen/solver/implicitgemm_util.hpp>
 
 #include <cstddef>
 
@@ -645,12 +644,6 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx)
         return false;
     if(!ctx.IsLayoutDefault())
         return false;
-    return IsApplicableMlirCommon(ctx);
-}
-
-/// This is necessary only for MLIR solvers that re-use parts of this solver.
-bool ConvHipImplicitGemmBwdDataV1R1::IsApplicableMlirCommon(const ConvolutionContext& ctx) const
-{
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
     if(!ctx.direction.IsBackwardData())

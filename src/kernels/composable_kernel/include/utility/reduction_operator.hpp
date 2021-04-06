@@ -367,7 +367,7 @@ struct reduce_unary_operator<T, ReduceTensorOp_t::AVG, divider, isFirstReduce, t
 template <typename T, int divider, bool isLastReduce>
 struct reduce_unary_operator<T, ReduceTensorOp_t::NORM1, divider, true, isLastReduce>
 {
-    using preUnaryOp = reduce::unary_abs<T, divider>;
+    using preUnaryOp = reduce::unary_abs<T, 1>;
     using posUnaryOp = reduce::unary_identic<T, 1>;
 };
 
@@ -381,14 +381,14 @@ struct reduce_unary_operator<T, ReduceTensorOp_t::AMAX, divider, true, isLastRed
 template <typename T, int divider>
 struct reduce_unary_operator<T, ReduceTensorOp_t::NORM2, divider, true, false>
 {
-    using preUnaryOp = reduce::unary_square<T, divider>;
+    using preUnaryOp = reduce::unary_square<T, 1>;
     using posUnaryOp = reduce::unary_identic<T, 1>;
 };
 
 template <typename T, int divider>
 struct reduce_unary_operator<T, ReduceTensorOp_t::NORM2, divider, true, true>
 {
-    using preUnaryOp = reduce::unary_square<T, divider>;
+    using preUnaryOp = reduce::unary_square<T, 1>;
     using posUnaryOp = reduce::unary_sqrt<T>;
 };
 
