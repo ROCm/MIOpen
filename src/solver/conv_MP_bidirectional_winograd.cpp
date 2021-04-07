@@ -189,7 +189,7 @@ inline bool IsApplicableTransform(const ConvolutionContext& params)
         return false;
 
     const std::string name = params.GetStream().GetDeviceName();
-    if(!(StartsWith(name, "gfx9")))
+    if(!StartsWith(name, "gfx9") || name == "gfx90a")
         return false;
 
     {
@@ -466,7 +466,6 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
                     workSpace,
                     static_cast<int>(transform_offset.out / wino_out.buff_info.element_size),
                     nullptr,
-                    false,
                     GemmBackend_t::rocblas);
 #else
                 (void)handle;

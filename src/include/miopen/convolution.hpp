@@ -49,6 +49,7 @@ namespace solver {
 struct ConvSolution;
 } // namespace solver
 
+struct ExecutionContext;
 struct ConvolutionContext;
 struct Handle;
 struct TensorDescriptor;
@@ -102,17 +103,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                             const TensorDescriptor& wDesc,
                                             miopenDataType_t yType = miopenFloat) const;
 
-    std::size_t ForwardGetWorkSpaceSizeGEMM(const TensorDescriptor& wDesc,
-                                            const TensorDescriptor& yDesc) const;
-
-    std::size_t ForwardGetWorkSpaceSizeGEMMTranspose(const TensorDescriptor& xDesc,
-                                                     const TensorDescriptor& yDesc) const;
-
-    std::size_t ForwardGetWorkSpaceSizeGEMMStridedBatched(Handle& handle,
-                                                          const TensorDescriptor& xDesc,
-                                                          const TensorDescriptor& wDesc,
-                                                          const TensorDescriptor& yDesc) const;
-
     std::size_t
     ForwardBackwardDataGetWorkSpaceSizeDirect(const miopen::ConvolutionContext& ctx) const;
 
@@ -125,11 +115,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     ForwardBackwardDataGetWorkSpaceSizeWinograd(const miopen::ConvolutionContext& ctx) const;
 
     bool IsWinograd3x3SupportedAndFast(miopen::ConvolutionContext& ctx) const;
-
-    std::size_t ForwardGetValidWorkSpaceSizeGemm(Handle& handle,
-                                                 const TensorDescriptor& wDesc,
-                                                 const TensorDescriptor& xDesc,
-                                                 const TensorDescriptor& yDesc) const;
 
     std::size_t BackwardGetValidWorkSpaceSizeGemm(const TensorDescriptor& dyDesc,
                                                   const TensorDescriptor& wDesc,
@@ -170,6 +155,9 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
 
     std::vector<miopen::solver::ConvSolution>
     FindWinogradSolutions(const ConvolutionContext& ctx, const AnyInvokeParams& invoke_ctx) const;
+
+    std::vector<miopen::solver::ConvSolution>
+    FindDataGemmSolutions(const ConvolutionContext& ctx, const AnyInvokeParams& invoke_ctx) const;
 
     std::vector<miopen::solver::ConvSolution>
     FindDataImplicitGemmSolutions(Handle& handle,
@@ -233,12 +221,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                      Data_t workSpace,
                                      std::size_t workSpaceSize,
                                      solver::Id solver_id) const;
-
-    std::size_t BackwardDataGetWorkSpaceSizeGEMM(const TensorDescriptor& wDesc,
-                                                 const TensorDescriptor& dyDesc) const;
-
-    std::size_t BackwardDataGetWorkSpaceSizeGEMMTranspose(const TensorDescriptor& dyDesc,
-                                                          const TensorDescriptor& dxDesc) const;
 
     std::size_t BackwardDataGetWorkSpaceSize(Handle& handle,
                                              const TensorDescriptor& wDesc,
@@ -399,11 +381,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     FindMode findMode;
 
     private:
-    void ConvFwdGemm(Handle& handle,
-                     const ConvFwdTensors& tensors,
-                     Data_t workSpace,
-                     std::size_t workSpaceSize) const;
-
     void ConvBwdGemm(Handle& handle,
                      const struct ConvBwdTensors& tensors,
                      Data_t workSpace,
@@ -431,10 +408,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                               size_t* solutionCount,
                               miopenConvSolution_t* solutions) const;
 
-    bool IsGemmApplicableFwd(const TensorDescriptor& wDesc,
-                             const TensorDescriptor& xDesc,
-                             const TensorDescriptor& yDesc) const;
-
     bool IsGemmApplicableBwd(const TensorDescriptor& dyDesc,
                              const TensorDescriptor& wDesc,
                              const TensorDescriptor& dxDesc) const;
@@ -442,10 +415,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     bool IsGemmApplicableWrw(const TensorDescriptor& dyDesc,
                              const TensorDescriptor& xDesc,
                              const TensorDescriptor& dwDesc) const;
-
-    float ComputeGemmWtiFwd(const TensorDescriptor& wDesc,
-                            const TensorDescriptor& xDesc,
-                            const TensorDescriptor& yDesc) const;
 
     float ComputeGemmWtiBwd(const TensorDescriptor& dyDesc,
                             const TensorDescriptor& wDesc,
