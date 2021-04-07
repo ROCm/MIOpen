@@ -132,9 +132,9 @@ def reboot(){
     build job: 'reboot-slaves', propagate: false , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
 }
 
-def tensileStage(image, cmd, gpu_arch, miotensile_version, target_id){
+def tensileStage(cmd, gpu_arch, miotensile_version, target_id){
     try{
-        buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: gpu_arch, miotensile_version: miotensile_version, target_id: target_id)
+        buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: 'miopen-hip-clang-targetid', cmd: cmd, gpu_arch: gpu_arch, miotensile_version: miotensile_version, target_id: target_id)
     }
     catch(e){
         echo "throwing error exception for the stage"
@@ -880,7 +880,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            tensileStage(image, cmd, "gfx906:xnack-", "default", "ON")
+                            tensileStage(cmd, "gfx906:xnack-", "default", "ON")
                         }
                     }
                 }
@@ -899,7 +899,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            tensileStage(image, cmd, "gfx906:xnack-", "default", "ON")
+                            tensileStage(cmd, "gfx906:xnack-", "default", "ON")
                         }
                     }
                 }
@@ -918,7 +918,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            tensileStage(image, cmd, "gfx906:xnack-", "default", "ON")
+                            tensileStage(cmd, "gfx906:xnack-", "default", "ON")
                         }
                     }
                 }
@@ -937,7 +937,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            tensileStage(image, cmd, "gfx906:xnack-", "default", "ON")
+                            tensileStage(cmd, "gfx906:xnack-", "default", "ON")
                         }
                     }
                 }
@@ -954,7 +954,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            tensileStage(image, cmd, "gfx908:xnack-", "default", "ON")
+                            tensileStage(cmd, "gfx908:xnack-", "default", "ON")
                         }
                     }
                 }
@@ -973,7 +973,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            tensileStage(image, cmd, "gfx908:xnack-", "default", "ON")
+                            tensileStage(cmd, "gfx908:xnack-", "default", "ON")
                         }
                     }
                 }
@@ -992,7 +992,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            tensileStage(image, cmd, "gfx908:xnack-", "default", "ON")
+                            tensileStage(cmd, "gfx908:xnack-", "default", "ON")
                         }
                     }
                 }
@@ -1011,7 +1011,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            tensileStage(image, cmd, "gfx908:xnack-", "default", "ON")
+                            tensileStage(cmd, "gfx908:xnack-", "default", "ON")
                         }
                     }
                 }
@@ -1033,7 +1033,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            tensileStage(image, cmd, "gfx906:xnack-", "latest", "ON")
+                            tensileStage(cmd, "gfx906:xnack-", "latest", "ON")
                         }
                     }
                 }
@@ -1052,7 +1052,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            tensileStage(image, cmd, "gfx906:xnack-", "latest", "ON")
+                            tensileStage(cmd, "gfx906:xnack-", "latest", "ON")
                         }
                     }
                 }
@@ -1071,7 +1071,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            tensileStage(image, cmd, "gfx906:xnack-", "latest", "ON")
+                            tensileStage(cmd, "gfx906:xnack-", "latest", "ON")
                         }
                     }
                 }
@@ -1090,7 +1090,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            tensileStage(image, cmd, "gfx906:xnack-", "latest", "ON")
+                            tensileStage(cmd, "gfx906:xnack-", "latest", "ON")
                         }
                     }
                 }
@@ -1107,7 +1107,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            tensileStage(image, cmd, "gfx908:xnack-", "latest", "ON")
+                            tensileStage(cmd, "gfx908:xnack-", "latest", "ON")
                         }
                     }
                 }
@@ -1126,7 +1126,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            tensileStage(image, cmd, "gfx908:xnack-", "latest", "ON")
+                            tensileStage(cmd, "gfx908:xnack-", "latest", "ON")
                         }
                     }
                 }
@@ -1145,7 +1145,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            tensileStage(image, cmd, "gfx908:xnack-", "latest", "ON")
+                            tensileStage(cmd, "gfx908:xnack-", "latest", "ON")
                         }
                     }
                 }
@@ -1164,7 +1164,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            tensileStage(image, cmd, "gfx908:xnack-", "latest", "ON")
+                            tensileStage(cmd, "gfx908:xnack-", "latest", "ON")
                         }
                     }
                 }
