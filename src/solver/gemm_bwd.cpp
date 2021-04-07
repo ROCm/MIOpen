@@ -204,7 +204,8 @@ bool GemmBwd1x1_stride2::IsApplicable(const ExecutionContext& context,
     return conv.GetSpatialDimension() == 2 &&
            miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
            miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
-           miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; });
+           miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; }) &&
+           GetWorkspaceSize(context, problem) > 0;
 #else
     std::ignore = context;
     std::ignore = problem;
@@ -573,7 +574,8 @@ bool GemmBwdRest::IsApplicable(const ExecutionContext& context,
         return false;
 
     return !GemmBwd1x1_stride2{}.IsApplicable(context, problem) &&
-           !GemmBwd1x1_stride1{}.IsApplicable(context, problem);
+           !GemmBwd1x1_stride1{}.IsApplicable(context, problem) &&
+           GetWorkspaceSize(context, problem) > 0;
 #else
     std::ignore = context;
     std::ignore = problem;
