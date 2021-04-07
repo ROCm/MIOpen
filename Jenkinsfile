@@ -60,7 +60,7 @@ def buildHipClangJob(Map conf, compiler){
         def prefixpath = conf.get("prefixpath", "/usr/local")
         def flags = conf.get("flags", "")
         def env4make = conf.get("env4make", "")
-        def image = "miopen"
+        def image = conf.get("image", "miopen")
         def cmd = conf.get("cmd", "")
         def gpu_arch = conf.get("gpu_arch", "gfx900;gfx906")
         def target_id = conf.get("target_id", "OFF")
