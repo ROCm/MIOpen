@@ -867,7 +867,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', prefixpath: "/usr/local", cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "default", target_id: "ON")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "default", target_id: "ON")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -896,7 +896,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', prefixpath: "/usr/local", cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "default", target_id: "ON")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "default", target_id: "ON")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -925,7 +925,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', prefixpath: "/usr/local", cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "default", target_id: "ON")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "default", target_id: "ON")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -954,7 +954,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', prefixpath: "/usr/local", cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "default", target_id: "ON")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "default", target_id: "ON")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -971,6 +971,7 @@ pipeline {
         }
 
         stage("MIOpenTensile gfx908"){
+            when { expression { params.BUILD_CURRENT_STAGE } }
             parallel{
                 stage('Fp32 Hip Release Tensile All gfx908') {
                     agent{ label rocmnode("gfx908") }
@@ -985,7 +986,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', prefixpath: "/usr/local", cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "default", target_id: "ON")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "default", target_id: "ON")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -1014,7 +1015,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', prefixpath: "/usr/local", cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "default", target_id: "ON")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "default", target_id: "ON")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -1043,7 +1044,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', prefixpath: "/usr/local", cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "default", target_id: "ON")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "default", target_id: "ON")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -1072,7 +1073,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', prefixpath: "/usr/local", cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "default", target_id: "ON")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "default", target_id: "ON")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -1089,6 +1090,7 @@ pipeline {
         }
 
         stage("MIOpenTensile Latest"){
+            when { expression { params.BUILD_CURRENT_STAGE } }
             parallel{
                 stage('Fp32 Hip Release Tensile-Latest All Vega20') {
                     agent{ label rocmnode("vega20") }
@@ -1103,7 +1105,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', prefixpath: "/usr/local", cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "latest", target_id: "ON")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "latest", target_id: "ON")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -1132,7 +1134,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', prefixpath: "/usr/local", cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "latest", target_id: "ON")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "latest", target_id: "ON")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -1161,7 +1163,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', prefixpath: "/usr/local", cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "latest", target_id: "ON")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "latest", target_id: "ON")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -1190,7 +1192,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', prefixpath: "/usr/local", cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "latest", target_id: "ON")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "latest", target_id: "ON")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -1207,6 +1209,7 @@ pipeline {
         }
 
         stage("MIOpenTensile Latest gfx908"){
+            when { expression { params.BUILD_CURRENT_STAGE } }
             parallel{
                 stage('Fp32 Hip Release Tensile-Latest All gfx908') {
                     agent{ label rocmnode("gfx908") }
@@ -1221,7 +1224,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', prefixpath: "/usr/local", cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "latest", target_id: "ON")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "latest", target_id: "ON")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -1250,7 +1253,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', prefixpath: "/usr/local", cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "latest", target_id: "ON")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "latest", target_id: "ON")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -1279,7 +1282,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', prefixpath: "/usr/local", cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "latest", target_id: "ON")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "latest", target_id: "ON")
                             } 
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -1308,7 +1311,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', prefixpath: "/usr/local", cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "latest", target_id: "ON")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "latest", target_id: "ON")
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"

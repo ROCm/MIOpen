@@ -669,7 +669,7 @@ bool ConvolutionDescriptor::IsGemmApplicableWrw(const TensorDescriptor& dyDesc,
 {
 #if MIOPEN_USE_GEMM
     if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) &&
-       !(IsAnyBufferBF16(xDesc, dyDesc, dwDesc) && !IsUseRocBlas))
+       !(IsAnyBufferBF16(xDesc, dyDesc, dwDesc) && !IsBF16PathValid))
     {
         const std::size_t spatial_dim = GetSpatialDimension();
         const auto wei_spatial = boost::adaptors::slice(dwDesc.GetLengths(), 2, 2 + spatial_dim);
