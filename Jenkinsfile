@@ -967,12 +967,7 @@ pipeline {
                         }
                     }
                 }
-            }
-        }
 
-        stage("MIOpenTensile gfx908"){
-            when { expression { params.BUILD_CURRENT_STAGE } }
-            parallel{
                 stage('Fp32 Hip Release Tensile All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
@@ -1205,12 +1200,7 @@ pipeline {
                         }
                     }
                 }
-            }
-        }
 
-        stage("MIOpenTensile Latest gfx908"){
-            when { expression { params.BUILD_CURRENT_STAGE } }
-            parallel{
                 stage('Fp32 Hip Release Tensile-Latest All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
