@@ -28,7 +28,7 @@
 #include <miopen/conv/invokers/impl_gemm_dynamic.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/gcn_asm_utils.hpp>
-#include "implicitgemm_util.hpp"
+#include <miopen/solver/implicitgemm_util.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1_1X1)
@@ -387,7 +387,11 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     if(kernel_is_1x1)
         result.invoker_factory = conv::MakeImplGemmDynamicForward1x1InvokerFactory(ctx);
     else
-        result.invoker_factory = conv::MakeImplGemmDynamicForwardInvokerFactory(ctx);
+    {
+        int packed_value = 0;
+        result.invoker_factory =
+            conv::MakeImplGemmDynamicForwardInvokerFactory<int>(ctx, packed_value);
+    }
     result.construction_params.push_back(kernel);
     return result;
 }

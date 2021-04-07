@@ -33,28 +33,28 @@ namespace solver {
 
 struct TunableImplicitGemmGTCDynamic_t
 {
-    std::string direction;
-    std::string precision;
-    int nxb;
-    int nxe;
+    std::string direction = " ";
+    std::string precision = " ";
+    int nxb               = 0;
+    int nxe               = 0;
 
-    int gemm_m_per_block;
-    int gemm_n_per_block;
-    int gemm_k_per_block;
+    int gemm_m_per_block = 0;
+    int gemm_n_per_block = 0;
+    int gemm_k_per_block = 0;
 
-    int wave_tile_m;
-    int wave_tile_n;
-    int wave_tile_k;
-    int wave_step_m;
-    int wave_step_n;
-    int wave_repeat_m;
-    int wave_repeat_n;
+    int wave_tile_m   = 0;
+    int wave_tile_n   = 0;
+    int wave_tile_k   = 0;
+    int wave_step_m   = 0;
+    int wave_step_n   = 0;
+    int wave_repeat_m = 0;
+    int wave_repeat_n = 0;
 
-    int tensor_a_thread_lengths[4];
-    int tensor_a_cluster_lengths[4];
-    int tensor_b_thread_lengths[4];
-    int tensor_b_cluster_lengths[4];
-    int gemm_k_global_split;
+    int tensor_a_thread_lengths[4]  = {0, 0, 0, 0};
+    int tensor_a_cluster_lengths[4] = {0, 0, 0, 0};
+    int tensor_b_thread_lengths[4]  = {0, 0, 0, 0};
+    int tensor_b_cluster_lengths[4] = {0, 0, 0, 0};
+    int gemm_k_global_split         = 0;
 
     int GetBlockSize() const
     {
@@ -81,7 +81,7 @@ struct TunableImplicitGemmGTCDynamic_t
                     << tensor_b_thread_lengths[3] << "_" << tensor_b_cluster_lengths[0] << "x"
                     << tensor_b_cluster_lengths[1] << "x" << tensor_b_cluster_lengths[2] << "x"
                     << tensor_b_cluster_lengths[3];
-        if(gemm_k_global_split != 0)
+        if(this->gemm_k_global_split != 0)
             kernel_name << "_gkgs";
 
         return kernel_name.str();

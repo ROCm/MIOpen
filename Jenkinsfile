@@ -158,8 +158,15 @@ pipeline {
     options {
         parallelsAlwaysFailFast()
     }
+    parameters {
+        booleanParam(
+            name: "BUILD_CURRENT_STAGE",
+            defaultValue: true,
+            description: "Run current stage")
+    }
     stages{
         stage("Smoke Fp32"){
+            when { expression { params.BUILD_CURRENT_STAGE } }
             parallel{
                 stage('Fp32 Hip Debug gfx908 /opt/rocm') {
                     agent{ label rocmnode("gfx908") }
@@ -182,6 +189,7 @@ pipeline {
             }
         }
         stage("Smoke Fp16/Bf16/Int8"){
+            when { expression { params.BUILD_CURRENT_STAGE } }
             parallel{
                 stage('Bf16 Hip Debug gfx908 /opt/rocm') {
                     agent{ label rocmnode("gfx908") }
@@ -222,6 +230,7 @@ pipeline {
             }
         }
         stage("Full tests I"){
+            when { expression { params.BUILD_CURRENT_STAGE } }
             parallel{
                 stage('Bf16 Hip Install All gfx908') {
                     agent{ label rocmnode("gfx908") }
@@ -252,6 +261,7 @@ pipeline {
             }
         }
         stage("Full tests II"){
+            when { expression { params.BUILD_CURRENT_STAGE } }
             parallel{
                 stage('Fp32 Hip All gfx908') {
                     agent{ label rocmnode("gfx908") }
@@ -308,6 +318,7 @@ pipeline {
             }
         }
         stage("MIOpenTensile"){
+            when { expression { params.BUILD_CURRENT_STAGE } }
             parallel{
                 stage('Fp32 Hip Tensile All gfx908') {
                     agent{ label rocmnode("gfx908") }
