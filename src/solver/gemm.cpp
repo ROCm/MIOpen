@@ -205,7 +205,10 @@ size_t GemmFwd1x1_0_2::GetWorkspaceSize(const ExecutionContext& context,
     const auto gemm_trans = x_t_size + y_t_size;
 
     if(gemm_trans > MAX_MEM_ALLOC_SZ)
+    {
+        MIOPEN_LOG_I2(gemm_trans << " > " << MAX_MEM_ALLOC_SZ);
         return 0;
+    }
     return gemm_trans;
 #else
     std::ignore = context;
@@ -230,7 +233,8 @@ bool GemmFwd1x1_0_2::IsApplicable(const ExecutionContext& context,
     return conv.GetSpatialDimension() == 2 &&
            miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
            miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
-           miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; });
+           miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; }) &&
+           GetWorkspaceSize(context, problem) > 0;
 #else
     std::ignore = context;
     std::ignore = problem;
@@ -459,7 +463,10 @@ size_t GemmFwd1x1_0_1_int8::GetWorkspaceSize(const ExecutionContext& context,
                          GetTypeSize(wDesc.GetType()) * conv.group_count;
 
     if(ws_size > MAX_MEM_ALLOC_SZ)
+    {
+        MIOPEN_LOG_I2(ws_size << " > " << MAX_MEM_ALLOC_SZ);
         return 0;
+    }
     return ws_size;
 #else
     std::ignore = context;
@@ -484,7 +491,8 @@ bool GemmFwd1x1_0_1_int8::IsApplicable(const ExecutionContext& context,
     return miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
            miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
            miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 1; }) &&
-           wDesc.GetType() == miopenInt8 && conv.group_count == 1;
+           wDesc.GetType() == miopenInt8 && conv.group_count == 1 &&
+           GetWorkspaceSize(context, problem) > 0;
 #else
     std::ignore = context;
     std::ignore = problem;
@@ -860,7 +868,10 @@ size_t GemmFwdRest::GetWorkspaceSize(const ExecutionContext& context,
     const auto ws_sz = (wDesc.GetType() == miopenInt8 ? 2 * workspace_size : workspace_size);
 
     if(ws_sz > MAX_MEM_ALLOC_SZ)
+    {
+        MIOPEN_LOG_I2(ws_sz << " > " << MAX_MEM_ALLOC_SZ);
         return 0;
+    }
     return ws_sz;
 #else
     std::ignore = context;
@@ -904,7 +915,7 @@ bool GemmFwdRest::IsApplicable(const ExecutionContext& context,
     if(GemmFwd1x1_0_2{}.IsApplicable(context, problem))
         return false;
 
-    return true;
+    return GetWorkspaceSize(context, problem) > 0;
 #else
     std::ignore = context;
     std::ignore = problem;
