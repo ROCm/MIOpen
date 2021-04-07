@@ -52,7 +52,8 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 // Keep the value unknown in cppcheck since this can differ between opencl and hip
 static bool IsBF16PathValid;
 #else
-static constexpr const bool IsBF16PathValid = (MIOPEN_USE_ROCBLAS == 1 || MIOPEN_USE_MIOPENTENSILE == 1);
+static constexpr const bool IsBF16PathValid =
+    (MIOPEN_USE_ROCBLAS == 1 || MIOPEN_USE_MIOPENTENSILE == 1);
 #endif
 
 namespace miopen {
@@ -91,7 +92,7 @@ bool GemmBwdBase::IsApplicable(const ExecutionContext&,
     return problem.GetDirection() == conv::Direction::BackwardData && problem.IsLayoutDefault() &&
            !(IsAnyBufferBF16(dxDesc, dyDesc, wDesc) && !IsBF16PathValid);
 #else
-    std::ignore                          = problem;
+    std::ignore = problem;
     return false;
 #endif
 }

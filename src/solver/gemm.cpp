@@ -54,7 +54,8 @@ namespace solver {
 // Keep the value unknown in cppcheck since this can differ between opencl and hip
 static bool IsBF16PathValid;
 #else
-static constexpr const bool IsBF16PathValid = (MIOPEN_USE_ROCBLAS == 1 || MIOPEN_USE_MIOPENTENSILE == 1);
+static constexpr const bool IsBF16PathValid =
+    (MIOPEN_USE_ROCBLAS == 1 || MIOPEN_USE_MIOPENTENSILE == 1);
 #endif
 
 static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
@@ -76,7 +77,7 @@ bool GemmFwdBase::IsApplicable(const ExecutionContext&,
     return problem.GetDirection() == conv::Direction::Forward && problem.IsLayoutDefault() &&
            !(IsAnyBufferBF16(xDesc, yDesc, wDesc) && !IsBF16PathValid);
 #else
-    std::ignore                          = problem;
+    std::ignore = problem;
     return false;
 #endif
 };
