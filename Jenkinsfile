@@ -132,6 +132,20 @@ def reboot(){
     build job: 'reboot-slaves', propagate: false , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
 }
 
+def tensileStage(image, cmd, gpu_arch, miotensile_version, target_id){
+    try{
+        buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: gpu_arch, miotensile_version: miotensile_version, target_id: target_id)
+    }
+    catch(e){
+        echo "throwing error exception for the stage"
+        echo 'Exception occurred: ' + e.toString()
+        throw e
+    }
+    finally{
+        reboot()
+    }
+}
+
 /// Stage name format:
 /// [DataType] Backend[/Compiler] BuildType [TestSet] [Target]
 ///
@@ -866,17 +880,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "default", target_id: "ON")
-                            } 
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
+                            tensileStage(image, cmd, "gfx906:xnack-", "default", "ON")
                         }
                     }
                 }
@@ -895,17 +899,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "default", target_id: "ON")
-                            } 
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
+                            tensileStage(image, cmd, "gfx906:xnack-", "default", "ON")
                         }
                     }
                 }
@@ -924,17 +918,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "default", target_id: "ON")
-                            } 
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
+                            tensileStage(image, cmd, "gfx906:xnack-", "default", "ON")
                         }
                     }
                 }
@@ -953,17 +937,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "default", target_id: "ON")
-                            } 
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
+                            tensileStage(image, cmd, "gfx906:xnack-", "default", "ON")
                         }
                     }
                 }
@@ -980,17 +954,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "default", target_id: "ON")
-                            } 
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
+                            tensileStage(image, cmd, "gfx908:xnack-", "default", "ON")
                         }
                     }
                 }
@@ -1009,17 +973,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "default", target_id: "ON")
-                            } 
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
+                            tensileStage(image, cmd, "gfx908:xnack-", "default", "ON")
                         }
                     }
                 }
@@ -1038,17 +992,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "default", target_id: "ON")
-                            } 
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
+                            tensileStage(image, cmd, "gfx908:xnack-", "default", "ON")
                         }
                     }
                 }
@@ -1067,17 +1011,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "default", target_id: "ON")
-                            } 
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
+                            tensileStage(image, cmd, "gfx908:xnack-", "default", "ON")
                         }
                     }
                 }
@@ -1099,17 +1033,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "latest", target_id: "ON")
-                            } 
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
+                            tensileStage(image, cmd, "gfx906:xnack-", "latest", "ON")
                         }
                     }
                 }
@@ -1128,17 +1052,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "latest", target_id: "ON")
-                            } 
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
+                            tensileStage(image, cmd, "gfx906:xnack-", "latest", "ON")
                         }
                     }
                 }
@@ -1157,17 +1071,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "latest", target_id: "ON")
-                            } 
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
+                            tensileStage(image, cmd, "gfx906:xnack-", "latest", "ON")
                         }
                     }
                 }
@@ -1186,17 +1090,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "latest", target_id: "ON")
-                            } 
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
+                            tensileStage(image, cmd, "gfx906:xnack-", "latest", "ON")
                         }
                     }
                 }
@@ -1213,17 +1107,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "latest", target_id: "ON")
-                            } 
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
+                            tensileStage(image, cmd, "gfx908:xnack-", "latest", "ON")
                         }
                     }
                 }
@@ -1242,17 +1126,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "latest", target_id: "ON")
-                            } 
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
+                            tensileStage(image, cmd, "gfx908:xnack-", "latest", "ON")
                         }
                     }
                 }
@@ -1271,17 +1145,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "latest", target_id: "ON")
-                            } 
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
+                            tensileStage(image, cmd, "gfx908:xnack-", "latest", "ON")
                         }
                     }
                 }
@@ -1300,17 +1164,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', image: image+'-hip-clang-targetid', cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "latest", target_id: "ON")
-                            }
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
+                            tensileStage(image, cmd, "gfx908:xnack-", "latest", "ON")
                         }
                     }
                 }
