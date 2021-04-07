@@ -203,9 +203,12 @@ static void AddCompilerOptions(OptionList& list, const miopen::TargetProperties&
     // It seems like these options are used only in codegen.
     // However it seems ok to pass these to compiler.
     if(target.Sramecc())
-        list.push_back("-msram-ecc");
-    else
-        list.push_back("-mno-sram-ecc");
+    {
+        if(*target.Sramecc())
+            list.push_back("-msram-ecc");
+        else
+            list.push_back("-mno-sram-ecc");
+    }
 #else
     std::ignore = target;
 #endif
@@ -306,7 +309,7 @@ static void RemoveLinkOptionsUnwanted(OptionList& list)
 static std::string GetIsaName(const miopen::TargetProperties& target)
 {
 #if ROCM_FEATURE_TARGETID_OFF
-    const char* const ecc_suffix = target.Sramecc() ? "+sram-ecc" : "";
+    const char* const ecc_suffix = (target.Sramecc() && *target.Sramecc()) ? "+sram-ecc" : "";
     return {"amdgcn-amd-amdhsa--" + target.Name() + ecc_suffix};
 #else
     const LcOptionTargetStrings lots(target);
@@ -753,7 +756,7 @@ void BuildHip(const std::string& name,
                        (" -DHIP_PACKAGE_VERSION_FLAT=") + std::to_string(HIP_PACKAGE_VERSION_FLAT);
 #if ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
             if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
-                raw += "-DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
+                raw += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
 #endif
             auto optCompile = miopen::SplitSpaceSeparated(raw, compiler::lc::GetOptionsNoSplit());
             compiler::lc::hip::RemoveCompilerOptionsUnwanted(optCompile);
@@ -769,7 +772,7 @@ void BuildHip(const std::string& name,
                        (" -DHIP_PACKAGE_VERSION_FLAT=") + std::to_string(HIP_PACKAGE_VERSION_FLAT);
 #if ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
             if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
-                raw += "-DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
+                raw += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
 #endif
 #if COMGR_SUPPORTS_PCH
             if(compiler::lc::hip::IsPchEnabled())
@@ -922,7 +925,8 @@ void BuildAsm(const std::string& name,
         auto optAsm = miopen::SplitSpaceSeparated(options);
 #if WORKAROUND_SWDEV_255735
         if(miopen::HipCompilerVersion() >= miopen::external_tool_version_t{3, 8, 20403})
-            optAsm.push_back("-mno-xnack");
+            if(target.Xnack() && !*target.Xnack())
+                optAsm.push_back("-mno-xnack");
 #endif
         compiler::lc::gcnasm::RemoveOptionsUnwanted(optAsm);
         action.SetOptionList(optAsm);

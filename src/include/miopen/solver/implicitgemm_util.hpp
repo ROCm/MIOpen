@@ -446,7 +446,9 @@ static inline bool IsXdlopsSupport(const ConvolutionContext& c)
     // disable xdlops kernels by default due to possible failures:
     // 1) inline asm may crash
     // 2) llvm intrin may has incorrect results
-    return StartsWith(c.GetStream().GetDeviceName(), "gfx908") &&
+    bool is_xdlops_supported = StartsWith(c.GetStream().GetDeviceName(), "gfx908") ||
+                               StartsWith(c.GetStream().GetDeviceName(), "gfx90a");
+    return is_xdlops_supported &&
 #if WORKAROUND_SWDEV_200782
            /// \todo Remove workaround when we drop suport of HCC older than 2.10.19392.
            ((miopen::HipCompilerVersion() >= external_tool_version_t{2, 10, 19392})
@@ -708,12 +710,7 @@ static inline bool use_amd_inline_asm(const ConvolutionContext& ctx)
 
 static inline bool support_amd_buffer_atomic_fadd(const std::string& device_name)
 {
-#if MIOPEN_USE_COMGR && ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_FAILS_WITH_COMGR
-    (void)device_name;
-    return false;
-#else
     return StartsWith(device_name, "gfx908");
-#endif
 }
 
 static inline bool is_use_amd_buffer_load_store(const ConvolutionContext& ctx)
@@ -844,6 +841,7 @@ static inline bool IsComposableKernelSupportedHardware(const ConvolutionContext&
            StartsWith(c.GetStream().GetDeviceName(), "gfx900") ||
            StartsWith(c.GetStream().GetDeviceName(), "gfx906") ||
            StartsWith(c.GetStream().GetDeviceName(), "gfx908") ||
+           StartsWith(c.GetStream().GetDeviceName(), "gfx90a") ||
            StartsWith(c.GetStream().GetDeviceName(), "gfx1030");
 }
 
