@@ -90,7 +90,11 @@ ADD doc/requirements.txt /doc-requirements.txt
 RUN pip install -r /doc-requirements.txt
 
 # Use parallel job to accelerate tensile build
-RUN if [ "$USE_TARGETID" = "ON" ] ; then export HIPCC_LINK_FLAGS_APPEND='-O3 -parallel-jobs=4' && export HIPCC_COMPILE_FLAGS_APPEND='-O3 -Wno-format-nonliteral -parallel-jobs=4' && rm /usr/bin/hipcc; fi
+export HIPCC_LINK_FLAGS_APPEND='-O3 -parallel-jobs=4'
+export HIPCC_COMPILE_FLAGS_APPEND='-O3 -Wno-format-nonliteral -parallel-jobs=4'
+
+# Workaround for Tensile with TargetID feature
+RUN if [ "$USE_TARGETID" = "ON" ] ; then rm /usr/bin/hipcc; fi
 
 # install last released miopentensile in default (master), install latest commits when MIOTENSILE_VER="latest" (develop)
 RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."; elif [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@403fc13acb8518c3f82a79dc501b21ef1751e470; else cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@4bfe00a8de61d12862d9fa803b8ea9a981a50f97; fi
