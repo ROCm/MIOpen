@@ -175,7 +175,10 @@ size_t GemmBwd1x1_stride2::GetWorkspaceSize(const ExecutionContext& context,
     const auto gemm_trans = dx_t_size + dy_t_size;
 
     if(gemm_trans > MAX_MEM_ALLOC_SZ)
+    {
+        MIOPEN_LOG_I2(gemm_trans << " > " << MAX_MEM_ALLOC_SZ);
         return 0;
+    }
     return gemm_trans;
 #else
     std::ignore = context;
@@ -201,7 +204,8 @@ bool GemmBwd1x1_stride2::IsApplicable(const ExecutionContext& context,
     return conv.GetSpatialDimension() == 2 &&
            miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
            miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
-           miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; });
+           miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; }) &&
+           GetWorkspaceSize(context, problem) > 0;
 #else
     std::ignore = context;
     std::ignore = problem;
@@ -549,7 +553,10 @@ size_t GemmBwdRest::GetWorkspaceSize(const ExecutionContext& context,
                            GetTypeSize(dyDesc.GetType()) * conv.group_count;
 
     if(gemm_size > MAX_MEM_ALLOC_SZ)
+    {
+        MIOPEN_LOG_I2(gemm_size << " > " << MAX_MEM_ALLOC_SZ);
         return 0;
+    }
     return gemm_size;
 #else
     std::ignore = context;
@@ -567,7 +574,8 @@ bool GemmBwdRest::IsApplicable(const ExecutionContext& context,
         return false;
 
     return !GemmBwd1x1_stride2{}.IsApplicable(context, problem) &&
-           !GemmBwd1x1_stride1{}.IsApplicable(context, problem);
+           !GemmBwd1x1_stride1{}.IsApplicable(context, problem) &&
+           GetWorkspaceSize(context, problem) > 0;
 #else
     std::ignore = context;
     std::ignore = problem;
