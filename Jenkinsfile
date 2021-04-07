@@ -176,7 +176,7 @@ pipeline {
     parameters {
         booleanParam(
             name: "BUILD_CURRENT_STAGE",
-            defaultValue: false,
+            defaultValue: true,
             description: "Run current stage")
     }
     stages{
@@ -866,7 +866,7 @@ pipeline {
             }
         }
         stage("MIOpenTensile"){
-            when { expression { !params.BUILD_CURRENT_STAGE } }
+            when { expression { params.BUILD_CURRENT_STAGE } }
             parallel{
                 stage('Fp32 Hip Tensile All Vega20') {
                     agent{ label rocmnode("vega20") }
@@ -1019,7 +1019,7 @@ pipeline {
         }
 
         stage("MIOpenTensile Latest"){
-            when { expression { !params.BUILD_CURRENT_STAGE } }
+            when { expression { params.BUILD_CURRENT_STAGE } }
             parallel{
                 stage('Fp32 Hip Release Tensile-Latest All Vega20') {
                     agent{ label rocmnode("vega20") }
