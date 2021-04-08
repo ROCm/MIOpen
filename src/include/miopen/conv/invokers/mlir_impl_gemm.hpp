@@ -27,34 +27,10 @@
 #pragma once
 
 #include <miopen/invoker.hpp>
-#include <miopen/kernel.hpp>
 #include <miopen/conv/context.hpp>
-#include <miopen/memref.hpp>
-#include <miopen/conv/tensors.hpp>
-
-#include <vector>
 
 namespace miopen {
 namespace conv {
-
-using MemRef4DGeneric = StridedMemRefType<void, 4>;
-
-struct MlirConvArgs
-{
-    MemRef4DGeneric filter;
-    MemRef4DGeneric input;
-    MemRef4DGeneric output;
-};
-
-MlirConvArgs MakeMlirConvArgs(ConstData_t in,
-                              const std::vector<size_t>& in_dims,
-                              const std::vector<size_t>& in_strides,
-                              ConstData_t w,
-                              const std::vector<size_t>& weights_dims,
-                              const std::vector<size_t>& weights_strides,
-                              ConstData_t out,
-                              const std::vector<size_t>& out_dims,
-                              const std::vector<size_t>& out_strides);
 
 InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx);
 

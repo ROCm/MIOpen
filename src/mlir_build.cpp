@@ -154,7 +154,7 @@ void MiirGenBin(const std::string& params, std::vector<char>& buffer)
     check_miir_error(status, "miirLowerTuningParams");
     buffer.resize(size);
     status = miirBufferGet(handle(), buffer.data(), &size);
-    check_miir_error(status, "miirLowerTuningParams");
+    check_miir_error(status, "miirBufferGet");
 }
 
 } // namespace miopen

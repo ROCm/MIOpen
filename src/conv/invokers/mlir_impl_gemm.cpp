@@ -11,6 +11,55 @@
 namespace miopen {
 namespace conv {
 
+namespace {
+using MemRef4DGeneric = StridedMemRefType<void, 4>;
+
+struct MlirConvArgs
+{
+    MemRef4DGeneric filter;
+    MemRef4DGeneric input;
+    MemRef4DGeneric output;
+};
+
+// Rearrange strides correctly
+// In MLIR: the layout, sizes and strides are coherent. The layout information is not
+// embedded into the permutation of strides.
+// - For NCHW, sizes = {N, C, H, W}; strides = {C*H*W, H*W, W, 1}
+// - For NHWC, sizes = {N, H, W, C}; strides = {C*H*W, W*C, C, 1}
+
+// In MIOpen however, size and strides are not aligned. Permutation of the strides are used to
+// infer actual layout
+// - For NCHW, sizes = {N, C, H, W}; strides = {C*H*W, H*W, W, 1}
+// - For NHWC, sizes = {N, C, H, W}; strides = {C*H*W, 1, W*C, C}
+auto permuteDimsStrides(const std::vector<size_t>& dims, const std::vector<size_t>& strides)
+{
+    auto sorted_dims    = dims;
+    auto sorted_strides = strides;
+    auto p              = TensorDescriptor::sort_permutation(strides, std::greater<>{});
+    std::transform(p.begin(), p.end(), sorted_dims.begin(), [&](auto i) { return dims[i]; });
+    std::transform(p.begin(), p.end(), sorted_strides.begin(), [&](auto i) { return strides[i]; });
+    return std::make_tuple(sorted_dims, sorted_strides);
+};
+
+void permuteDimStridesAllDir(const conv::ProblemDescription& conv_problem,
+                             std::vector<size_t>& in_dims,
+                             std::vector<size_t>& in_strides,
+                             std::vector<size_t>& weights_dims,
+                             std::vector<size_t>& weights_strides,
+                             std::vector<size_t>& out_dims,
+                             std::vector<size_t>& out_strides)
+{
+    const TensorDescriptor& in = conv_problem.GetIn();
+    std::make_tuple(in_dims, in_strides) = permuteDimsStrides(in.GetLengths(), in.GetStrides());
+
+    const TensorDescriptor& weights = conv_problem.GetWeights();
+    std::make_tuple(weights_dims, weights_strides) =
+        permuteDimsStrides(weights.GetLengths(), weights.GetStrides());
+
+    const TensorDescriptor& out = conv_problem.GetOut();
+    std::make_tuple(out_dims, out_strides) = permuteDimsStrides(out.GetLengths(), out.GetStrides());
+}
+
 MlirConvArgs MakeMlirConvArgs(ConstData_t in,
                               const std::vector<size_t>& in_dims,
                               const std::vector<size_t>& in_strides,
@@ -38,45 +87,22 @@ MlirConvArgs MakeMlirConvArgs(ConstData_t in,
     cpyToMemRef(out, out_dims, out_strides, args.output);
     return args;
 }
+} // Anonymous namespace
 
 InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
 {
-    assert(ctx.direction.IsForward());
-
-    // Rearrange strides correctly
-    // In MLIR: the layout, sizes and strides are coherent. The layout information is not
-    // embedded into the permutation of strides.
-    // - For NCHW, sizes = {N, C, H, W}; strides = {C*H*W, H*W, W, 1}
-    // - For NHWC, sizes = {N, H, W, C}; strides = {C*H*W, W*C, C, 1}
-
-    // In MIOpen however, size and strides are not aligned. Permutation of the strides are used to
-    // infer actual layout
-    // - For NCHW, sizes = {N, C, H, W}; strides = {C*H*W, H*W, W, 1}
-    // - For NHWC, sizes = {N, C, H, W}; strides = {C*H*W, 1, W*C, C}
-    auto permuteDimsStrides = [](const std::vector<size_t>& dims,
-                                 const std::vector<size_t>& strides) {
-        auto sorted_dims    = dims;
-        auto sorted_strides = strides;
-        auto p              = TensorDescriptor::sort_permutation(strides, std::greater<>{});
-        std::transform(p.begin(), p.end(), sorted_dims.begin(), [&](auto i) { return dims[i]; });
-        std::transform(
-            p.begin(), p.end(), sorted_strides.begin(), [&](auto i) { return strides[i]; });
-        return std::make_tuple(sorted_dims, sorted_strides);
-    };
-
-    TensorDescriptor in      = ctx.conv_problem.GetIn();
-    TensorDescriptor weights = ctx.conv_problem.GetWeights();
-    TensorDescriptor out     = ctx.conv_problem.GetOut();
+    assert((ctx.direction.IsForward()));
 
     std::vector<size_t> in_dims, in_strides;
-    std::make_tuple(in_dims, in_strides) = permuteDimsStrides(in.GetLengths(), in.GetStrides());
-
     std::vector<size_t> weights_dims, weights_strides;
-    std::make_tuple(weights_dims, weights_strides) =
-        permuteDimsStrides(weights.GetLengths(), weights.GetStrides());
-
     std::vector<size_t> out_dims, out_strides;
-    std::make_tuple(out_dims, out_strides) = permuteDimsStrides(out.GetLengths(), out.GetStrides());
+    permuteDimStridesAllDir(ctx.conv_problem,
+                            in_dims,
+                            in_strides,
+                            weights_dims,
+                            weights_strides,
+                            out_dims,
+                            out_strides);
 
     return [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
@@ -93,6 +119,13 @@ InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
                                                  out_dims,
                                                  out_strides);
             handle.Run(kernels[0])(args);
+            if(handle.IsProfilingEnabled())
+            {
+                float elapsed = 0;
+                elapsed += handle.GetKernelTime();
+                handle.ResetKernelTime();
+                handle.AccumKernelTime(elapsed);
+            }
         };
     };
 }
