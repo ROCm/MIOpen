@@ -121,6 +121,7 @@ set( MIOpen_Source
     conv_algo_name.cpp
     conv/problem_description.cpp
     solver/gemm.cpp
+    solver/gemm_bwd.cpp
     dropout.cpp
     dropout_api.cpp
     readonlyramdb.cpp
@@ -306,12 +307,18 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v21_1_2_gfx9_fp32_dilation2.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_fp32_stride1.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_fp32_stride2.inc
+        kernels/Conv_Winograd_v21_1_2_gfx90a_fp32_dilation2.inc
+        kernels/Conv_Winograd_v21_1_2_gfx90a_fp32_stride1.inc
+        kernels/Conv_Winograd_v21_1_2_gfx90a_fp32_stride2.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_fp16_dot2_edc_dilation2_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_fp16_dot2_edc_stride1_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_fp16_dot2_edc_stride2_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_fp32_dilation2_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_fp32_stride1_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_fp32_stride2_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx90a_fp32_dilation2_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx90a_fp32_stride1_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx90a_fp32_stride2_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx10_fp16_dot2_edc_dilation2.inc
         kernels/Conv_Winograd_v21_1_2_gfx10_fp16_dot2_edc_stride1.inc
         kernels/Conv_Winograd_v21_1_2_gfx10_fp16_dot2_edc_stride2.inc

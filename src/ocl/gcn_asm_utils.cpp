@@ -179,7 +179,9 @@ static std::string CleanupPath(const char* p)
  * Not intended to be used in production code, so error handling is very straghtforward,
  * just catch whatever possible and throw an exception.
  */
-std::string AmdgcnAssemble(const std::string& source, const std::string& params)
+std::string AmdgcnAssemble(const std::string& source,
+                           const std::string& params,
+                           const miopen::TargetProperties& target)
 {
 #ifdef __linux__
     miopen::TempFile outfile("amdgcn-asm-out-XXXXXX");
@@ -188,7 +190,8 @@ std::string AmdgcnAssemble(const std::string& source, const std::string& params)
     options << " -x assembler -target amdgcn--amdhsa";
 #if WORKAROUND_SWDEV_255735
     if(miopen::HipCompilerVersion() >= miopen::external_tool_version_t{3, 8, 20403})
-        options << " -mno-xnack";
+        if(target.Xnack() && !*target.Xnack())
+            options << " -mno-xnack";
 #endif
     /// \todo Hacky way to find out which CO version we need to assemble for.
     if(params.find("ROCM_METADATA_VERSION=5", 0) == std::string::npos) // Assume that !COv3 == COv2.

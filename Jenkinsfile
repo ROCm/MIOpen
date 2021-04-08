@@ -207,6 +207,12 @@ pipeline {
     options {
         parallelsAlwaysFailFast()
     }
+    parameters {
+        booleanParam(
+            name: "BUILD_CURRENT_STAGE",
+            defaultValue: true,
+            description: "Run current stage")
+    }
     environment{
         extra_log_env = " MIOPEN_LOG_LEVEL=5 "
         gfx908_test = " -DMIOPEN_TEST_GFX908=On"
@@ -217,6 +223,7 @@ pipeline {
     }
     stages{
         stage("Static checks"){
+            when { expression { params.BUILD_CURRENT_STAGE } }
             parallel{
                 stage('Hip Tidy') {
                     agent{  label rocmnode("nogpu") }
@@ -258,6 +265,7 @@ pipeline {
             }
         }
         stage("Smoke Fp32"){
+            when { expression { params.BUILD_CURRENT_STAGE } }
             environment{
                 Smoke_targets = "check doc MIOpenDriver"
             }
@@ -300,6 +308,7 @@ pipeline {
             }
         }
         stage("Smoke Aux 1"){
+            when { expression { params.BUILD_CURRENT_STAGE } }
             parallel{
                 stage('Fp32 HipNoGPU Debug') {
                     agent{  label rocmnode("nogpu") }
@@ -338,6 +347,7 @@ pipeline {
             }
         }
         stage("Smoke Aux 2"){
+            when { expression { params.BUILD_CURRENT_STAGE } }
             parallel{
                 stage('Fp32 Hip Normal-Find') {
                     agent{ label rocmnode("vega") }
@@ -377,6 +387,7 @@ pipeline {
             }
         }
         stage("Smoke Fp16/Bf16/Int8"){
+            when { expression { params.BUILD_CURRENT_STAGE } }
             environment{
                 Smoke_targets = "check doc MIOpenDriver"
             }
@@ -402,6 +413,7 @@ pipeline {
             }
         }
         stage("Full Tests I"){
+            when { expression { params.BUILD_CURRENT_STAGE } }
             parallel{
                 stage('Int8 HIP conv2d All Vega20') {
                     agent{ label rocmnode("vega20") }
@@ -434,6 +446,7 @@ pipeline {
         }
 
         stage("Full Tests II"){
+            when { expression { params.BUILD_CURRENT_STAGE } }
             parallel{
                 stage('Fp32 Hip All gfx908') {
                     agent{ label rocmnode("gfx908") }
@@ -456,6 +469,7 @@ pipeline {
             }
         }
         stage("Full tests III"){
+            when { expression { params.BUILD_CURRENT_STAGE } }
             parallel{
                 stage('Fp32 Hip conv3d') {
                     agent{ label rocmnode("vega20") }
@@ -490,6 +504,7 @@ pipeline {
         }
 
         stage("MIOpenTensile"){
+            when { expression { params.BUILD_CURRENT_STAGE } }
             environment{
                 Tensile_build_env = "MIOPEN_DEBUG_HIP_KERNELS=0 "
                 Tensile_setup = " -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF"
@@ -531,6 +546,7 @@ pipeline {
             }
         }
         stage("Packages"){
+            when { expression { params.BUILD_CURRENT_STAGE } }
             parallel {
                 stage('OpenCL Package') {
                     agent{ label rocmnode("nogpu") }

@@ -23,12 +23,12 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <cstddef>
-#include "miopen/solver.hpp"
-#include "miopen/handle.hpp"
+#include <miopen/solver.hpp>
+#include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
-#include "implicitgemm_util.hpp"
+#include <miopen/solver/implicitgemm_util.hpp>
+#include <cstddef>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4)
 
@@ -596,12 +596,6 @@ bool ConvHipImplicitGemmV4R4WrW::IsApplicable(const ConvolutionContext& ctx) con
         return false;
     if(!ctx.IsLayoutDefault())
         return false;
-    return IsApplicableMlirCommon(ctx);
-}
-
-/// This is necessary only for MLIR solvers that re-use parts of this solver.
-bool ConvHipImplicitGemmV4R4WrW::IsApplicableMlirCommon(const ConvolutionContext& ctx) const
-{
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
     if(!ctx.direction.IsBackwardWrW())
