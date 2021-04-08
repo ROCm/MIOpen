@@ -33,6 +33,7 @@
 #include <miopen/convolution.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
+#include <miopen/tensor_layout.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/solver.hpp>
@@ -138,24 +139,6 @@ static inline bool skip_config(miopen::Handle& handle,
 }
 #endif
 
-static inline bool is_gemm_workspace_valid(miopen::Handle& handle,
-                                           const miopen::ConvolutionDescriptor convDesc,
-                                           const miopen::TensorDescriptor& xDesc,
-                                           const miopen::TensorDescriptor& wDesc,
-                                           const miopen::TensorDescriptor& yDesc)
-{
-    bool is_gemmtrans = convDesc.GetSpatialDimension() == 2 &&
-                        std::all_of(wDesc.GetLengths().begin() + 2,
-                                    wDesc.GetLengths().end(),
-                                    [](auto v) { return v == 1; }) &&
-                        miopen::all_of(convDesc.GetConvPads(), [](auto v) { return v == 0; }) &&
-                        miopen::all_of(convDesc.GetConvStrides(), [](auto v) { return v == 2; });
-    auto fwd_get_wksp = convDesc.ForwardGetWorkSpaceSize(handle, wDesc, xDesc, yDesc);
-    return !((is_gemmtrans &&
-              fwd_get_wksp < convDesc.ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc)) ||
-             (!is_gemmtrans && fwd_get_wksp < convDesc.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc)));
-}
-
 struct scalar_gen_random_float
 {
     double min_val = 0;
@@ -196,11 +179,18 @@ struct conv_stats
 template <class T, class Tout = T>
 tensor<Tout> get_output_tensor(const miopen::ConvolutionDescriptor& filter,
                                const tensor<T>& input,
-                               const tensor<T>& weights)
+                               const tensor<T>& weights,
+                               const std::string& out_layout)
 {
-    return tensor<Tout>{filter.GetForwardOutputTensor(
+
+    std::string yLayout =
+        out_layout.empty()
+            ? input.desc.GetLayout(miopen::tensor_layout_get_default(input.desc.GetSize()))
+            : out_layout;
+    return tensor<Tout>{filter.GetForwardOutputTensorWithLayout(
         input.desc,
         weights.desc,
+        yLayout,
         weights.desc.GetType() == miopenInt8 || weights.desc.GetType() == miopenInt8x4
             ? (std::is_same<Tout, int>{} ? miopenInt32 : miopenFloat)
             : weights.desc.GetType())};
@@ -238,6 +228,7 @@ struct verify_forward_conv : conv_base<T, Tout>
 {
     using conv_base<T, Tout>::input;
     using conv_base<T, Tout>::weights;
+    using conv_base<T, Tout>::out;
     using conv_base<T, Tout>::filter;
     using conv_base<T, Tout>::bias;
     using conv_base<T, Tout>::search;
@@ -247,6 +238,7 @@ struct verify_forward_conv : conv_base<T, Tout>
 
     verify_forward_conv(const tensor<T>& pinput,
                         const tensor<T>& pweights,
+                        const tensor<Tout>& pout,
                         const miopen::ConvolutionDescriptor& pfilter,
                         conv_stats& pstats,
                         int pbias,
@@ -256,6 +248,7 @@ struct verify_forward_conv : conv_base<T, Tout>
     {
         input   = pinput;
         weights = pweights;
+        out     = pout;
         filter  = pfilter;
         bias    = pbias;
         search  = psearch;
@@ -266,7 +259,7 @@ struct verify_forward_conv : conv_base<T, Tout>
 
     tensor<Tout> cpu() const
     {
-        auto rout = get_output_tensor<T, Tout>(filter, input, weights);
+        auto rout = out;
 
         if(filter.mode == miopenTranspose)
         {
@@ -320,7 +313,7 @@ struct verify_forward_conv : conv_base<T, Tout>
     tensor<Tout> gpu() const
     {
         auto&& handle = get_handle();
-        auto rout     = get_output_tensor<T, Tout>(filter, input, weights);
+        auto rout     = out;
 
         auto in_dev  = handle.Write(input.data);
         auto wei_dev = handle.Write(weights.data);
@@ -1577,6 +1570,9 @@ struct conv_driver : test_driver
     miopen::ConvolutionDescriptor filter;
     std::string conv_mode;
     std::string pad_mode;
+    std::string in_layout;
+    std::string fil_layout; // keep same as MIOpenDriver argument name
+    std::string out_layout;
     std::vector<int> pads_strides_dilations;
     std::vector<int> trans_output_pads;
     int groupCount{};
@@ -1664,6 +1660,40 @@ struct conv_driver : test_driver
 
     void run()
     {
+        if(input.desc.GetSize() != in_layout.size() ||
+           weights.desc.GetSize() != fil_layout.size() || input.desc.GetSize() != out_layout.size())
+        {
+            std::cerr << "FAILED: layout not match dimension size!" << std::endl;
+            return;
+        }
+
+        // reconstruct tensor descriptor(desc) when layout is not the default NCHW layout.
+        // by default, this member is constructed when conv2d/3d is constructed (see
+        // test_driver::add())
+        // but this requires the dimensions come from commandline, which is hard for non-NCHW layout
+        if(in_layout != "NCHW" || in_layout != "NCDHW")
+        {
+            const std::vector<std::size_t> dim_lens = input.desc.GetLengths();
+            std::vector<std::size_t> dim_strides;
+            miopen::tensor_layout_to_strides(
+                dim_lens,
+                miopen::tensor_layout_get_default(input.desc.GetSize()),
+                in_layout,
+                dim_strides);
+            input.desc = miopen::TensorDescriptor(miopen_type<T>{}, dim_lens, dim_strides);
+        }
+        if(fil_layout != "NCHW" || fil_layout != "NCDHW")
+        {
+            const std::vector<std::size_t> dim_lens = weights.desc.GetLengths();
+            std::vector<std::size_t> dim_strides;
+            miopen::tensor_layout_to_strides(
+                dim_lens,
+                miopen::tensor_layout_get_default(weights.desc.GetSize()),
+                fil_layout,
+                dim_strides);
+            weights.desc = miopen::TensorDescriptor(miopen_type<T>{}, dim_lens, dim_strides);
+        }
+
         filter.spatialDim       = get_spatial_dim();
         filter.mode             = cmode_lookup[miopen::ToUpper(conv_mode)];
         filter.paddingMode      = pmode_lookup[miopen::ToUpper(pad_mode)];
@@ -1673,7 +1703,8 @@ struct conv_driver : test_driver
            pads_strides_dilations.size() != 3 * spatial_dim ||
            trans_output_pads.size() != spatial_dim)
         {
-            MIOPEN_LOG_E("dimension is wrong!");
+            std::cerr << "FAILED: dimension is wrong!" << std::endl;
+            return;
         }
 
         filter.pads.resize(spatial_dim);
@@ -1805,7 +1836,7 @@ struct conv_driver : test_driver
                  (filter.group_count > 1 &&
                   (input.desc.GetLengths().at(1) % weights.desc.GetLengths().at(1) == 0)))))
             {
-                auto output = get_output_tensor(filter, input, weights);
+                auto output = get_output_tensor(filter, input, weights, out_layout);
 
                 auto gen_positive_value = [=](auto...) {
                     auto data_type    = input.desc.GetType();
@@ -1824,10 +1855,14 @@ struct conv_driver : test_driver
                                            tensor_elem_gen_checkboard_sign{}(is...);
                 };
 
-                bool skip_forward =
-                    is_int8 &&
-                    !is_gemm_workspace_valid(
-                        get_handle(), filter, input.desc, weights.desc, output.desc);
+                auto ctx = miopen::ConvolutionContext(input.desc,
+                                                      weights.desc,
+                                                      output.desc,
+                                                      filter,
+                                                      miopen::conv::Direction::Forward);
+                ctx.SetStream(&get_handle());
+
+                bool skip_forward = is_int8 && !IsGemmAplicable(ctx);
                 if(skip_forward)
                 {
                     show_command();
@@ -1886,7 +1921,8 @@ struct conv_driver : test_driver
                 size_t total_mem;
                 if(is_int8)
                 {
-                    auto output_int8      = get_output_tensor<T, float>(filter, input, weights);
+                    auto output_int8 =
+                        get_output_tensor<T, float>(filter, input, weights, out_layout);
                     size_t workspace_size = filter.ForwardGetWorkSpaceSize(
                         handle, weights.desc, input.desc, output_int8.desc);
 
@@ -1950,18 +1986,50 @@ struct conv_driver : test_driver
                     if(is_int8)
                     {
                         verify(verify_forward_conv<T, float>{
-                            input, weights, filter, stats, 0, search, false, immed});
+                            input,
+                            weights,
+                            get_output_tensor<T, float>(filter, input, weights, out_layout),
+                            filter,
+                            stats,
+                            0,
+                            search,
+                            false,
+                            immed});
                         verify(verify_forward_conv<T, float>{
-                            input, weights, filter, stats, 0, search, true, immed});
+                            input,
+                            weights,
+                            get_output_tensor<T, float>(filter, input, weights, out_layout),
+                            filter,
+                            stats,
+                            0,
+                            search,
+                            true,
+                            immed});
                         verify(verify_forward_conv<T, int>{
-                            input, weights, filter, stats, 0, search, false, immed});
+                            input,
+                            weights,
+                            get_output_tensor<T, int>(filter, input, weights, out_layout),
+                            filter,
+                            stats,
+                            0,
+                            search,
+                            false,
+                            immed});
                         verify(verify_forward_conv<T, int>{
-                            input, weights, filter, stats, 0, search, true, immed});
+                            input,
+                            weights,
+                            get_output_tensor<T, int>(filter, input, weights, out_layout),
+                            filter,
+                            stats,
+                            0,
+                            search,
+                            true,
+                            immed});
                     }
                     else
                     {
                         verify(verify_forward_conv<T>{
-                            input, weights, filter, stats, 0, search, false, immed});
+                            input, weights, output, filter, stats, 0, search, false, immed});
                     }
                 }
 

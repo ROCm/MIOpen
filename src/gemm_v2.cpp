@@ -58,6 +58,9 @@
 /// "disabled expansion of recursive macro" injected by rocblas headers.
 #define AVOID_ROCBLAS_WRAPPERS_204 (MIOPEN_ROCBLAS_VERSION_DECIMAL >= 204)
 
+/// Maintain API compatibility with various rocBLAS version
+#define USE_GEMM_FLAGS_PACK_INT8X4 (MIOPEN_ROCBLAS_VERSION_DECIMAL >= 238)
+
 template <class... Ts>
 auto miopen_rocblas_gemm_ex(Ts... xs)
 {
@@ -429,7 +432,12 @@ miopenStatus_t CallGemm(const Handle& handle,
                 rocblas_datatype::rocblas_datatype_i32_r,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
-                0);
+#if USE_GEMM_FLAGS_PACK_INT8X4
+                rocblas_gemm_flags_pack_int8x4
+#else
+                0
+#endif
+                );
         }
         break;
         case miopenInt32: break;
@@ -731,7 +739,12 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                 rocblas_datatype::rocblas_datatype_i32_r,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
-                0);
+#if USE_GEMM_FLAGS_PACK_INT8X4
+                rocblas_gemm_flags_pack_int8x4
+#else
+                0
+#endif
+                );
         }
         break;
         case miopenInt32: break;
@@ -971,7 +984,12 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
                     rocblas_datatype::rocblas_datatype_i32_r,
                     rocblas_gemm_algo::rocblas_gemm_algo_standard,
                     0,
-                    0);
+#if USE_GEMM_FLAGS_PACK_INT8X4
+                    rocblas_gemm_flags_pack_int8x4
+#else
+                    0
+#endif
+                    );
             }
         }
         break;

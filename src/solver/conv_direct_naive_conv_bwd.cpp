@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include "conv_direct_naive_conv.hpp"
+#include <miopen/solver/conv_direct_naive_conv.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/env.hpp>
@@ -40,7 +40,7 @@ bool ConvDirectNaiveConvBwd::IsApplicable(const ConvolutionContext& ctx) const
        miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_BWD{}))
         return false;
 
-    if(!ctx.IsLayoutDefault())
+    if(!ctx.IsLayoutDefault() && !ctx.IsLayoutNHWC())
         return false;
 
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
@@ -55,27 +55,6 @@ bool ConvDirectNaiveConvBwd::IsApplicable(const ConvolutionContext& ctx) const
 ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ConvolutionContext& ctx) const
 {
     ConvSolution result;
-
-    int block_size = 256;
-    int grid_size  = ctx.batch_sz * ctx.n_outputs; // batch * channel
-
-    KernelInfo kernel;
-
-    kernel.kernel_file = ConvDirectNaiveConvKernelFile(ctx);
-    kernel.kernel_name = ConvDirectNaiveConvKernelName(ctx);
-    kernel.g_wk.clear();
-
-    kernel.g_wk.push_back(grid_size * block_size);
-    kernel.g_wk.push_back(1);
-    kernel.g_wk.push_back(1);
-    kernel.l_wk.clear();
-    kernel.l_wk.push_back(block_size);
-    kernel.l_wk.push_back(1);
-    kernel.l_wk.push_back(1);
-
-    kernel.comp_options = ConvDirectNaiveConvCompileOption(ctx);
-
-    MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
 
     int di          = ctx.out_depth;
     int hi          = ctx.out_height;
@@ -101,6 +80,38 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ConvolutionContext& ctx) 
     int group       = ctx.group_counts;
     int c_per_group = c / group;
     int k_per_group = k / group;
+
+    size_t block_size = 256;
+    size_t grid_size  = 1;
+    if(ctx.IsLayoutDefault())
+    {
+        grid_size = static_cast<size_t>(n) * c;
+    }
+    else if(ctx.IsLayoutNHWC())
+    {
+        if(ctx.Is2d())
+            grid_size = static_cast<size_t>(group) * n * hi;
+        else
+            grid_size = static_cast<size_t>(group) * n * di;
+    }
+    else
+        MIOPEN_THROW("Unsupported layout");
+
+    KernelInfo kernel;
+
+    kernel.kernel_file = ConvDirectNaiveConvKernelFile(ctx);
+    kernel.kernel_name = ConvDirectNaiveConvKernelName(ctx);
+    kernel.g_wk.clear();
+
+    kernel.g_wk.push_back(grid_size * block_size);
+    kernel.g_wk.push_back(1);
+    kernel.g_wk.push_back(1);
+    kernel.l_wk.clear();
+    kernel.l_wk.push_back(block_size);
+    kernel.l_wk.push_back(1);
+    kernel.l_wk.push_back(1);
+
+    kernel.comp_options = ConvDirectNaiveConvCompileOption(ctx);
 
     if(ctx.Is2d())
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {

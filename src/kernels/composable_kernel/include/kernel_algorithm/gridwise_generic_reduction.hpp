@@ -134,7 +134,7 @@ struct GridwiseReduction
                                   p_src_global,
                                   beta,
                                   p_dst_global,
-                                  ws_buf2_global,
+                                  const_cast<const int* const __restrict__>(ws_buf2_global),
                                   indices_global); // ws_buf2_global will be read at the second-time
         };
     };
@@ -192,7 +192,7 @@ struct GridwiseReduction
                                   p_src_global,
                                   beta,
                                   p_dst_global,
-                                  ws_buf2_global,
+                                  const_cast<const int* const __restrict__>(ws_buf2_global),
                                   indices_global); // ws_buf2_global will be read at the second-time
         };
     };
@@ -254,7 +254,7 @@ struct GridwiseReduction
                                   p_src_global,
                                   beta,
                                   p_dst_global,
-                                  ws_buf2_global,
+                                  const_cast<const int* const __restrict__>(ws_buf2_global),
                                   indices_global); // ws_buf2_global will be read at the second-time
         };
     };
