@@ -97,7 +97,7 @@ export HIPCC_COMPILE_FLAGS_APPEND='-O3 -Wno-format-nonliteral -parallel-jobs=4'
 RUN if [ "$USE_TARGETID" = "ON" ] ; then rm /usr/bin/hipcc; fi
 
 # install last released miopentensile in default (master), install latest commits when MIOTENSILE_VER="latest" (develop)
-RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."; elif [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@403fc13acb8518c3f82a79dc501b21ef1751e470; else cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@4bfe00a8de61d12862d9fa803b8ea9a981a50f97; fi
+RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."; elif [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@be26d30d3d7509a414134a45f4a6d49e5da250b8; else cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@4bfe00a8de61d12862d9fa803b8ea9a981a50f97; fi
 
 RUN cd ~ && \
     export MLIR_COMMIT=31d92f4c64ae6fa6b7c5d543f68b69300b4513ce && \
