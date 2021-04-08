@@ -26,6 +26,7 @@
 #include <miopen/pooling.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/tensor_layout.hpp>
 #include <miopen/datatype.hpp>
 
 #include <cassert>
@@ -216,7 +217,13 @@ TensorDescriptor PoolingDescriptor::GetForwardOutputTensor(const TensorDescripto
 {
     std::vector<int> out_dim(xDesc.GetSize());
     GetForwardOutputDimNd(xDesc, xDesc.GetSize(), out_dim.data());
-    return TensorDescriptor(xDesc.GetType(), out_dim);
+
+    const std::string default_layout = tensor_layout_get_default(xDesc.GetSize());
+    const std::string in_layout      = xDesc.GetLayout(default_layout);
+    std::vector<int> out_strides;
+    tensor_layout_to_strides(out_dim, default_layout, in_layout, out_strides);
+
+    return TensorDescriptor(xDesc.GetType(), out_dim, out_strides);
 }
 
 std::size_t PoolingDescriptor::GetWorkSpaceSize(const TensorDescriptor& yDesc) const
