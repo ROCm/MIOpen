@@ -28,6 +28,7 @@
 
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
+#include <miopen/tensor_layout.hpp>
 
 #include <sstream>
 
@@ -57,6 +58,29 @@ std::ostream& operator<<(std::ostream& stream, std::function<void(std::ostream&)
 {
     manipulator(stream);
     return stream;
+}
+
+void ProblemDescription::HeuristicUpdateLayouts()
+{
+    const std::string labels = tensor_layout_get_default(in_layout.size());
+
+    static const std::vector<std::string> supported_layouts = {"NCHW", "NHWC", "NCDHW"};
+    for(const std::string& layout : supported_layouts)
+    {
+        // Skip layouts that doesn't match dimension sizes
+        if(layout.size() != labels.size())
+            continue;
+
+        if(in.IsPossibleLayout(labels, layout) && out.IsPossibleLayout(labels, layout) &&
+           weights.IsPossibleLayout(labels, layout))
+        {
+            in_layout      = layout;
+            weights_layout = layout;
+            out_layout     = layout;
+            return;
+        }
+    }
+    // If we did not find consistent layout, leave them as-is
 }
 
 void ProblemDescription::BuildConfKey(std::string& conf_key) const
