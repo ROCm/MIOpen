@@ -476,7 +476,7 @@ pipeline {
                     environment{
                         setup_flag = " -DMIOPEN_TEST_LIMIT=2"
                         config_targets = "test_conv3d"
-                        execute_cmd = "bin/test_conv3d --all --limit=2 --disable-verification-cache"
+                        execute_cmd = "bin/test_conv3d --all --limit 2 --disable-verification-cache"
                     }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: setup_flag + Full_test, config_targets: config_targets, execute_cmd: execute_cmd )
