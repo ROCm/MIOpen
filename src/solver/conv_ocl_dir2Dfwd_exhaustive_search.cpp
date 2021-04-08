@@ -395,7 +395,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
         }
 
         int version = result.out_pix_tile1;
-        
+
         ConvOclDirectFwd1x1 solver{};
         if(solver.IsValidPerformanceConfig(params, default_config))
         {
@@ -441,8 +441,6 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
                 }
             }
         }
-// PrecompileKernels call saves to binary_cache, this needs to be escaped if KERN_CACHE is not on.
-#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
         std::vector<KernelInfo> kernels;
         for(const auto& current_solution : all_solutions)
         {
@@ -454,18 +452,16 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
             }
         }
         std::ignore = PrecompileKernels(profile_h, kernels);
-#endif
         for(const auto& current_solution : all_solutions)
         {
-            const auto ret =
-                MeasurePerfConfig<Tgpu>(profile_h,
-                                        bot_ocl_ptr,
-                                        top_ocl_ptr,
-                                        wei_ocl_ptr,
-                                        bias_ocl_ptr,
-                                        processing_time,
-                                        params,
-                                        current_solution);
+            const auto ret = MeasurePerfConfig<Tgpu>(profile_h,
+                                                     bot_ocl_ptr,
+                                                     top_ocl_ptr,
+                                                     wei_ocl_ptr,
+                                                     bias_ocl_ptr,
+                                                     processing_time,
+                                                     params,
+                                                     current_solution);
             --runs_left;
             if(ret != 0)
             {
@@ -474,24 +470,22 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
             }
 
             is_passed = true;
-            MIOPEN_LOG_T("##(n_current, n_failed, n_runs_total): " << run_counter
-                                                                    << " / "
-                                                                    << failed_counter
-                                                                    << " / "
-                                                                    << total_runs
-                                                                    << " elapsed_time: "
-                                                                    << processing_time
-                                                                    << " best_time: "
-                                                                    << processing_time
-                                                                    << ", "
-                                                                    << current_solution.performance_config);
+            MIOPEN_LOG_T(
+                "##(n_current, n_failed, n_runs_total): " << run_counter << " / " << failed_counter
+                                                          << " / "
+                                                          << total_runs
+                                                          << " elapsed_time: "
+                                                          << processing_time
+                                                          << " best_time: "
+                                                          << processing_time
+                                                          << ", "
+                                                          << current_solution.performance_config);
 
             if(processing_time < min_proc_time)
             {
-                MIOPEN_LOG_I('#' << run_counter << ' ' << processing_time << " < "
-                                    << min_proc_time
-                                    << ' '
-                                    << current_solution.performance_config);
+                MIOPEN_LOG_I('#' << run_counter << ' ' << processing_time << " < " << min_proc_time
+                                 << ' '
+                                 << current_solution.performance_config);
                 min_proc_time = processing_time;
                 candidate     = current_solution;
             }
@@ -499,13 +493,13 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
             if(run_counter % report_inteval == 0)
             {
                 MIOPEN_LOG_W("Runs left: " << runs_left << ", "
-                                            << "min time so far: "
-                                            << min_proc_time
-                                            << ", "
-                                            << "curr time: "
-                                            << processing_time
-                                            << ' '
-                                            << current_solution.performance_config);
+                                           << "min time so far: "
+                                           << min_proc_time
+                                           << ", "
+                                           << "curr time: "
+                                           << processing_time
+                                           << ' '
+                                           << current_solution.performance_config);
             }
             run_counter++;
         }
@@ -519,9 +513,10 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
             all_solutions.push_back(solver.GetSolution(params, default_config));
         }
         runs_left = /*n_grp_tiles * */ n_tiles_cnt * out_pix_tl_cnt * out_pix_tl_cnt * n_out_tls *
-                    n_in_tls * stack_cnt + 1;/*default solution*/
+                        n_in_tls * stack_cnt +
+                    1; /*default solution*/
         total_runs = runs_left;
-        
+
         // tile1
         for(int j = 0; j < n_tile1_sz; ++j)
         {
@@ -628,8 +623,6 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
                 }
             }
         }
-// PrecompileKernels call saves to binary_cache, this needs to be escaped if KERN_CACHE is not on.
-#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
         std::vector<KernelInfo> kernels;
         for(const auto& current_solution : all_solutions)
         {
@@ -641,18 +634,16 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
             }
         }
         std::ignore = PrecompileKernels(profile_h, kernels);
-#endif
         for(const auto& current_solution : all_solutions)
         {
-            const auto ret =
-                MeasurePerfConfig<Tgpu>(profile_h,
-                                        bot_ocl_ptr,
-                                        top_ocl_ptr,
-                                        wei_ocl_ptr,
-                                        bias_ocl_ptr,
-                                        processing_time,
-                                        params,
-                                        current_solution);
+            const auto ret = MeasurePerfConfig<Tgpu>(profile_h,
+                                                     bot_ocl_ptr,
+                                                     top_ocl_ptr,
+                                                     wei_ocl_ptr,
+                                                     bias_ocl_ptr,
+                                                     processing_time,
+                                                     params,
+                                                     current_solution);
 
             --runs_left;
             if(ret != 0)
@@ -662,26 +653,22 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
             }
 
             is_passed = true;
-            MIOPEN_LOG_T("##(n_current, n_failed, n_runs_total): "
-                            << run_counter
-                            << " / "
-                            << failed_counter
-                            << " / "
-                            << total_runs
-                            << " elapsed_time: "
-                            << processing_time
-                            << " best_time: "
-                            << processing_time
-                            << ", "
-                            << current_solution.performance_config);
+            MIOPEN_LOG_T(
+                "##(n_current, n_failed, n_runs_total): " << run_counter << " / " << failed_counter
+                                                          << " / "
+                                                          << total_runs
+                                                          << " elapsed_time: "
+                                                          << processing_time
+                                                          << " best_time: "
+                                                          << processing_time
+                                                          << ", "
+                                                          << current_solution.performance_config);
 
             if(processing_time < min_proc_time)
             {
-                MIOPEN_LOG_I('#' << run_counter << ' ' << processing_time
-                                    << " < "
-                                    << min_proc_time
-                                    << ' '
-                                    << current_solution.performance_config);
+                MIOPEN_LOG_I('#' << run_counter << ' ' << processing_time << " < " << min_proc_time
+                                 << ' '
+                                 << current_solution.performance_config);
                 min_proc_time = processing_time;
                 candidate     = current_solution;
             }
@@ -689,13 +676,13 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
             if(run_counter % report_inteval == 0)
             {
                 MIOPEN_LOG_W("Runs left: " << runs_left << ", "
-                                            << "min time so far: "
-                                            << min_proc_time
-                                            << ", "
-                                            << "curr time: "
-                                            << processing_time
-                                            << ' '
-                                            << current_solution.performance_config);
+                                           << "min time so far: "
+                                           << min_proc_time
+                                           << ", "
+                                           << "curr time: "
+                                           << processing_time
+                                           << ' '
+                                           << current_solution.performance_config);
             }
             run_counter++;
         }

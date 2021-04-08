@@ -347,9 +347,6 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     size_t n_best   = 0;
     HeartBeat<PerformanceConfig> heartbeat;
     heartbeat.Start();
-
-// PrecompileKernels call saves to binary_cache, this needs to be escaped if KERN_CACHE is not on.
-#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
     std::vector<KernelInfo> kernels;
     for(const auto& current_config : all_configs)
     {
@@ -362,8 +359,6 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
         }
     }
     std::ignore = PrecompileKernels(profile_h, kernels);
-#endif
-
     if(!IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
     {
         size_t n_current = 0;
