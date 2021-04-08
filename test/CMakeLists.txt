@@ -240,6 +240,7 @@ function(add_custom_test NAME)
     # Many custom tests do test only FP32 data type and therefore
     # added only if none of MIOPEN_TEST_HALF, MIOPEN_TEST_INT8, MIOPEN_TEST_BFLOAT16
     # are set, except the test is allowed explicitly.
+    # Some tests are xDLOPs specific and should not run on gfx900/906 targets.
     if((NOT (MIOPEN_TEST_INT8 OR MIOPEN_TEST_BFLOAT16 OR MIOPEN_TEST_HALF OR MIOPEN_TEST_MIOTENSILE OR MIOPEN_TEST_NONXDLOPS))
     OR (MIOPEN_TEST_BFLOAT16 AND ${PARSE_ALLOW_BFLOAT16} AND (NOT MIOPEN_TEST_MIOTENSILE))
     OR (MIOPEN_TEST_HALF AND ${PARSE_ALLOW_HALF} AND (NOT MIOPEN_TEST_MIOTENSILE))
