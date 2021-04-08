@@ -34,6 +34,8 @@
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/rocm_features.hpp>
+#include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/stringutils.hpp>
 
 #include <amd_comgr.h>
@@ -154,14 +156,6 @@ static auto GetOptionsNoSplit()
     return rv;
 }
 
-static bool IsEnabledFeatureSramEcc(const std::string& device)
-{
-    /// \todo Read actual feature status from runtime.
-    static const auto rv = (device == "gfx906" || device == "gfx908") &&
-                           !miopen::IsEnabled(MIOPEN_DEBUG_SRAM_EDC_DISABLED{});
-    return rv;
-}
-
 namespace gcnasm {
 
 static void RemoveOptionsUnwanted(OptionList& list)
@@ -205,12 +199,19 @@ static void AddCompilerOptions(OptionList& list, const miopen::TargetProperties&
     list.push_back("-mcumode");          // gfx1000+ WGP mode: always disabled.
     list.push_back("-O3");
 
+#if ROCM_FEATURE_TARGETID_OFF
     // It seems like these options are used only in codegen.
     // However it seems ok to pass these to compiler.
-    if(IsEnabledFeatureSramEcc(target.Name()))
-        list.push_back("-msram-ecc");
-    else
-        list.push_back("-mno-sram-ecc");
+    if(target.Sramecc())
+    {
+        if(*target.Sramecc())
+            list.push_back("-msram-ecc");
+        else
+            list.push_back("-mno-sram-ecc");
+    }
+#else
+    std::ignore = target;
+#endif
     list.push_back("-mllvm");
     list.push_back("-amdgpu-internalize-symbols");
 }
@@ -305,10 +306,15 @@ static void RemoveLinkOptionsUnwanted(OptionList& list)
 } // namespace hip
 
 /// \todo Get list of supported isa names from comgr and select.
-static std::string GetIsaName(const std::string& device)
+static std::string GetIsaName(const miopen::TargetProperties& target)
 {
-    const char* const ecc_suffix = IsEnabledFeatureSramEcc(device) ? "+sram-ecc" : "";
-    return {"amdgcn-amd-amdhsa--" + device + ecc_suffix};
+#if ROCM_FEATURE_TARGETID_OFF
+    const char* const ecc_suffix = (target.Sramecc() && *target.Sramecc()) ? "+sram-ecc" : "";
+    return {"amdgcn-amd-amdhsa--" + target.Name() + ecc_suffix};
+#else
+    const LcOptionTargetStrings lots(target);
+    return {"amdgcn-amd-amdhsa--" + lots.targetId};
+#endif
 }
 
 } // namespace lc
@@ -688,11 +694,11 @@ static std::string GetLog(const Dataset& dataset, const bool comgr_error_handlin
     return text;
 }
 
-static void SetIsaName(const ActionInfo& action, const std::string& device)
+static void SetIsaName(const ActionInfo& action, const miopen::TargetProperties& target)
 {
     // This can't be implemented in ActionInfo because
     // comgr wrappers should not depend on compiler implementation.
-    const auto isaName = compiler::lc::GetIsaName(device);
+    const auto isaName = compiler::lc::GetIsaName(target);
     MIOPEN_LOG_I2(isaName);
     action.SetIsaName(isaName);
 }
@@ -738,7 +744,7 @@ void BuildHip(const std::string& name,
 
         const ActionInfo action;
         action.SetLanguage(AMD_COMGR_LANGUAGE_HIP);
-        SetIsaName(action, target.Name());
+        SetIsaName(action, target);
         action.SetLogging(true);
 
         const Dataset exe;
@@ -748,6 +754,10 @@ void BuildHip(const std::string& name,
                        + " " + GetDebugCompilerOptionsInsert() //
                        + " " + MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS) +
                        (" -DHIP_PACKAGE_VERSION_FLAT=") + std::to_string(HIP_PACKAGE_VERSION_FLAT);
+#if ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
+            if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
+                raw += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
+#endif
             auto optCompile = miopen::SplitSpaceSeparated(raw, compiler::lc::GetOptionsNoSplit());
             compiler::lc::hip::RemoveCompilerOptionsUnwanted(optCompile);
             action.SetOptionList(optCompile);
@@ -760,6 +770,10 @@ void BuildHip(const std::string& name,
                        + " " + GetDebugCompilerOptionsInsert() //
                        + " " + MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS) +
                        (" -DHIP_PACKAGE_VERSION_FLAT=") + std::to_string(HIP_PACKAGE_VERSION_FLAT);
+#if ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
+            if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
+                raw += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
+#endif
 #if COMGR_SUPPORTS_PCH
             if(compiler::lc::hip::IsPchEnabled())
             {
@@ -830,7 +844,7 @@ void BuildOcl(const std::string& name,
 #else
         action.SetLanguage(AMD_COMGR_LANGUAGE_OPENCL_1_2);
 #endif
-        SetIsaName(action, target.Name());
+        SetIsaName(action, target);
         action.SetLogging(true);
 
         auto optCompile = miopen::SplitSpaceSeparated(options);
@@ -906,12 +920,13 @@ void BuildAsm(const std::string& name,
         inputs.AddData(name, text, AMD_COMGR_DATA_KIND_SOURCE);
 
         const ActionInfo action;
-        SetIsaName(action, target.Name());
+        SetIsaName(action, target);
         action.SetLogging(true);
         auto optAsm = miopen::SplitSpaceSeparated(options);
 #if WORKAROUND_SWDEV_255735
         if(miopen::HipCompilerVersion() >= miopen::external_tool_version_t{3, 8, 20403})
-            optAsm.push_back("-mno-xnack");
+            if(target.Xnack() && !*target.Xnack())
+                optAsm.push_back("-mno-xnack");
 #endif
         compiler::lc::gcnasm::RemoveOptionsUnwanted(optAsm);
         action.SetOptionList(optAsm);

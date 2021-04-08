@@ -26,9 +26,10 @@
 #ifndef GCN_ASM_UTILS_H
 #define GCN_ASM_UTILS_H
 
-#include <string>
-#include <sstream>
 #include <miopen/config.h>
+#include <miopen/target_properties.hpp>
+#include <sstream>
+#include <string>
 
 /// Since 3.8.20403, ".amdhsa_reserve_xnack_mask 0" is not working without
 /// explicit "-mno-xnack" option.
@@ -36,7 +37,9 @@
 
 bool ValidateGcnAssembler();
 #if !MIOPEN_USE_COMGR
-std::string AmdgcnAssemble(const std::string& source, const std::string& params);
+std::string AmdgcnAssemble(const std::string& source,
+                           const std::string& params,
+                           const miopen::TargetProperties& target);
 #endif
 
 template <typename TValue>
