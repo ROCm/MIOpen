@@ -653,12 +653,12 @@ pipeline {
         stage("Full tests I"){
             when { expression { params.BUILD_CURRENT_STAGE } }
             parallel{
-                stage('Fp32 OpenCL Debug (Codecov OFF)') {
+                stage('Fp32 OpenCL Debug + Codecov') {
                     agent{ label rocmnode("vega") }
                     steps{
                         script{
                             try{
-                                buildHipClangJob('g++', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', codecov: false)
+                                buildHipClangJob('g++', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', codecov: true)
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
