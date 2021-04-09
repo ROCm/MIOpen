@@ -338,8 +338,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                                 const TensorDescriptor& xDesc,
                                                 const TensorDescriptor& dwDesc) const;
 
-    std::size_t BackwardWeightsGetWorkSpaceSizeGEMM(const TensorDescriptor& dyDesc,
-                                                    const TensorDescriptor& dwDesc) const;
+    std::size_t BackwardWeightsGetWorkSpaceSizeGEMM(const miopen::ConvolutionContext& ctx) const;
 
     std::size_t BackwardWeightsGetWorkSpaceSizeDirect(const miopen::ConvolutionContext& ctx) const;
     std::size_t
@@ -394,11 +393,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     ProblemDescription MakeWrwProblem(const TensorDescriptor& dyDesc,
                                       const TensorDescriptor& xDesc,
                                       const TensorDescriptor& dwDesc) const;
-
-    void BackwardWeightsGemm(Handle& handle,
-                             const ConvWrwTensors& tensors,
-                             Data_t workSpace,
-                             std::size_t workSpaceSize) const;
 
     template <class TKernels>
     void BackwardWeightsDirect(Handle& handle,

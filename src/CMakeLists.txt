@@ -122,6 +122,7 @@ set( MIOpen_Source
     conv/problem_description.cpp
     solver/gemm.cpp
     solver/gemm_bwd.cpp
+    solver/gemm_wrw.cpp
     dropout.cpp
     dropout_api.cpp
     readonlyramdb.cpp
