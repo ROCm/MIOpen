@@ -1367,7 +1367,7 @@ static std::tuple<bool, // is suitable kernel found
     const auto gemm_n  = n * ho * wo;
     const auto gemm_k  = c * y * x;
 
-    const auto& precision = ctx.IsFp32() ? std::string("fp32") : std::string("fp16");
+    const auto& precision = ctx.IsFp16() ? miopenHalf : miopenFloat;
 
     for(const auto& cfg : tunables)
     {
@@ -1381,7 +1381,7 @@ static std::tuple<bool, // is suitable kernel found
                 continue;
             }
         };
-        if(precision == "fp32")
+        if(precision == miopenFloat)
         {
             if((gemm_n % cfg.gemm_n_per_block != 0) || (gemm_m % cfg.gemm_m_per_block != 0) ||
                (gemm_k % cfg.gemm_k_per_block != 0))
@@ -1446,7 +1446,7 @@ static std::tuple<bool, // is suitable kernel found
                 continue;
             }
         };
-        if(precision == "fp32")
+        if(precision == miopenFloat)
         {
             if((gemm_n_packed % cfg.gemm_n_per_block != 0) ||
                (gemm_m % cfg.gemm_m_per_block != 0) || (gemm_k % cfg.gemm_k_per_block != 0))
