@@ -653,7 +653,7 @@ pipeline {
         stage("Full tests I"){
             when { expression { params.BUILD_CURRENT_STAGE } }
             parallel{
-                /* stage('Fp32 OpenCL Debug + Codecov') {
+                stage('Fp32 OpenCL Debug + Codecov') {
                     agent{ label rocmnode("vega") }
                     steps{
                         script{
@@ -670,7 +670,7 @@ pipeline {
                             }
                         }
                     }
-                } */
+                }
                 stage('Int8 Hip All Vega20 /opt/rocm') {
                     agent{ label rocmnode("vega20") }
                     steps{
