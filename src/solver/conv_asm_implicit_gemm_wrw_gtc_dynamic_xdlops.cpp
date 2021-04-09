@@ -29,7 +29,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
-#include "implicitgemm_util.hpp"
+#include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/conv/asm_implicit_gemm.hpp>
@@ -39,7 +39,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS)
 namespace miopen {
 namespace solver {
 
-static inline std::vector<TunableImplicitGemmGTCDynamic_t>&
+static const inline std::vector<TunableImplicitGemmGTCDynamic_t>&
 GetImplicitGemmWrwGTCDynamicXdlopsKernelList()
 {
     // retrieve dynamic igemm wrw pass's possible kernel name
@@ -562,7 +562,7 @@ static inline std::tuple<bool, // is valid
     const auto gemm_n  = c * y * x;
     const auto& gemm_m = k;
 
-    std::vector<TunableImplicitGemmGTCDynamic_t> tunables =
+    const std::vector<TunableImplicitGemmGTCDynamic_t>& tunables =
         GetImplicitGemmWrwGTCDynamicXdlopsKernelList();
 
     /* applicable table (except 128x128 case):
@@ -847,7 +847,7 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
     KernelInfo kernel;
     std::ostringstream options;
 
-    std::vector<TunableImplicitGemmGTCDynamic_t> kernel_configs =
+    const std::vector<TunableImplicitGemmGTCDynamic_t>& kernel_configs =
         GetImplicitGemmWrwGTCDynamicXdlopsKernelList();
 
     bool is_valid;
@@ -869,12 +869,13 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
 
     if(ctx.IsFp32())
         kernel.kernel_file = "igemm_wrw_gtc_gfx908.s";
-    else if(ctx.IsFp16()){
+    else if(ctx.IsFp16())
+    {
         std::ostringstream kernel_file_name;
         kernel_file_name << kernel_name << ".s";
         kernel.kernel_file = kernel_file_name.str();
     }
-    kernel.kernel_name     = kernel_name;
+    kernel.kernel_name = kernel_name;
     kernel.g_wk.clear();
     /* Note here, for API like hipHccModuleLaunchKernel(), hipExtModuleLaunchKernel()
     * grid dims is in unit of work item.
