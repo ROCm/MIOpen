@@ -443,18 +443,10 @@ static inline int if_gemm_k_global_split(const ConvolutionContext& ctx,
     return gemm_k_global_split;
 }
 
-static inline float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
-                                               const conv::ProblemDescription& conv_problem,
-                                               ConstData_t src,
-                                               ConstData_t dst,
-                                               Data_t wei,
-                                               const std::vector<KernelInvoke>& kernels,
-                                               const int log2_gemm_k_global_splits)
+inline std::vector<OpKernelArg>
+ComputeDynamicIGemmWrwKernelArgs(const conv::ProblemDescription& conv_problem,
+                                 const int log2_gemm_k_global_splits)
 {
-    float elapsed = 0.0f;
-
-    auto kernel = kernels[0];
-
     int hi         = conv_problem.GetOutHeight();
     int wi         = conv_problem.GetOutWidth();
     int n          = conv_problem.GetInBatchSize();
@@ -472,17 +464,7 @@ static inline float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
     int x          = conv_problem.GetWeightsWidth();
     int group      = conv_problem.GetGroupCount();
 
-    // std::cout << "nchiwi: " << n << " " << c  << " " << hi << " " << wi << std::endl;
-    // std::cout << "nkhowo: " << n << " " << k  << " " << ho << " " << wo << std::endl;
-    // std::cout << "kcyx: " << k << " " << c  << " " << y << " " << x << std::endl;
-
-    MIOPEN_LOG_I2(kernel.GetName() << " with groups for reduction: "
-                                   << (1 << log2_gemm_k_global_splits));
-
     std::vector<OpKernelArg> opArgs;
-    opArgs.emplace_back(src);
-    opArgs.emplace_back(wei);
-    opArgs.emplace_back(dst);
     opArgs.emplace_back(hi);
     opArgs.emplace_back(wi);
     opArgs.emplace_back(n);
@@ -500,12 +482,8 @@ static inline float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
     opArgs.emplace_back(x);
     opArgs.emplace_back(log2_gemm_k_global_splits);
     opArgs.emplace_back(group);
-    kernel(opArgs);
 
-    if(handle.IsProfilingEnabled())
-        elapsed = handle.GetKernelTime();
-
-    return elapsed;
+    return opArgs;
 }
 
 // calculate log2_gemm_k_global_splits
@@ -677,7 +655,6 @@ static inline std::tuple<bool, // is valid
                                     }
                                 }
 
-                                // std::cout << tunable_index << std::endl;
                                 grid_size = grid_size << log2_gemm_k_global_splits;
 
                                 if(block_size >= sel_block_size && grid_size > sel_grid_size)
@@ -865,6 +842,9 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
 
     kernel_name = kernel_configs[kernel_index].GetKernelName();
 
+    // MIOPEN_LOG_I2(kernel_name << " with groups for reduction: "
+    //                           << (1 << log2_gemm_k_global_splits));
+
     result.workspce_sz = GetWorkspaceSize(ctx);
 
     if(ctx.IsFp32())
@@ -900,15 +880,25 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
     const auto& conv_problem = ctx.conv_problem;
     const auto& lowp_quant   = ctx.conv_problem.GetConv().lowp_quant;
 
+    auto opShapeArgs = ComputeDynamicIGemmWrwKernelArgs(conv_problem, log2_gemm_k_global_splits);
+
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
             decltype(auto) data_ctx = primitive_parameters.CastTo<conv::WrWInvokeParams>();
             const auto& tensors     = data_ctx.tensors;
-            std::vector<KernelInvoke> ks;
-            std::transform(kernels.begin(),
-                           kernels.end(),
-                           std::back_inserter(ks),
-                           [&](const Kernel& k_wrw) { return handle.Run(k_wrw); });
+            const auto k            = handle.Run(kernels[0]);
+
+            std::vector<OpKernelArg> opArgs;
+            opArgs.reserve(3 + opShapeArgs.size()); // Avoids vector resize.
+            opArgs.emplace_back(tensors.x);
+            opArgs.emplace_back(tensors.dw);
+            opArgs.emplace_back(tensors.dy);
+
+            std::transform(opShapeArgs.begin(),
+                           opShapeArgs.end(),
+                           std::back_inserter(opArgs),
+                           [](const OpKernelArg& arg) { return arg; });
+
             float elapsed = 0;
             float zero    = 0.f;
 
@@ -918,13 +908,9 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
 
-                elapsed += CallImplicitGemmWrwDynamic(handle,
-                                                      conv_problem,
-                                                      tensors.x,
-                                                      tensors.dy,
-                                                      tensors.dw,
-                                                      ks,
-                                                      log2_gemm_k_global_splits);
+                k(opArgs);
+                if(handle.IsProfilingEnabled())
+                    elapsed += handle.GetKernelTime();
             }
             else if(conv_problem.IsFp16())
             {
@@ -937,13 +923,11 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
                     if(handle.IsProfilingEnabled())
                         elapsed += handle.GetKernelTime();
 
-                    elapsed += CallImplicitGemmWrwDynamic(handle,
-                                                          conv_problem,
-                                                          tensors.x,
-                                                          tensors.dy,
-                                                          workSpace,
-                                                          ks,
-                                                          log2_gemm_k_global_splits);
+                    // replace dw by workspace for fp16 datatype
+                    opArgs[1] = workSpace;
+                    k(opArgs);
+                    if(handle.IsProfilingEnabled())
+                        elapsed += handle.GetKernelTime();
 
                     CastTensor(handle,
                                &lowp_quant,
@@ -958,13 +942,9 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
                 }
                 else
                 {
-                    elapsed += CallImplicitGemmWrwDynamic(handle,
-                                                          conv_problem,
-                                                          tensors.x,
-                                                          tensors.dy,
-                                                          tensors.dw,
-                                                          ks,
-                                                          log2_gemm_k_global_splits);
+                    k(opArgs);
+                    if(handle.IsProfilingEnabled())
+                        elapsed += handle.GetKernelTime();
                 }
             }
 
