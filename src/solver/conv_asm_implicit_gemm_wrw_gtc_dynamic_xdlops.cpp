@@ -793,7 +793,7 @@ size_t ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetWorkspaceSize(const Convolutio
         const auto x       = ctx.kernel_size_w;
         const auto ngroups = ctx.group_counts;
 
-        return ngroups * (k / ngroups) * (c / ngroups) * y * x * miopen::GetTypeSize(miopenFloat);
+        return static_cast<size_t>(ngroups) * (k / ngroups) * (c / ngroups) * y * x * miopen::GetTypeSize(miopenFloat);
     }
 }
 
