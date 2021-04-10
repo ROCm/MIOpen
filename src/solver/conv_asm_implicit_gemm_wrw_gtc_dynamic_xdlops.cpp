@@ -743,12 +743,8 @@ static inline std::tuple<bool, // is valid
             }
 
             if(cfg.tensor_a_thread_lengths[2] * cfg.tensor_a_thread_lengths[3] > 1)
-            {
                 if(gemm_m % gemm_m_per_block != 0)
-                {
                     continue;
-                }
-            }
 
             if(wo % cfg.tensor_b_thread_lengths[1] != 0)
             {
