@@ -725,6 +725,9 @@ static inline std::tuple<bool, // is valid
             const auto& gemm_m_per_block = cfg.gemm_m_per_block;
             const auto& gemm_n_per_block = cfg.gemm_n_per_block;
             const auto& gemm_k_per_block = cfg.gemm_k_per_block;
+            if(gemm_m_per_block == 0 || gemm_n_per_block == 0 || gemm_k_per_block == 0 ||
+               cfg.tensor_b_thread_lengths[1] == 0)
+                MIOPEN_THROW("invalid config parameter");
 
             const auto b      = (ho * wo + cfg.nxb - 1) / cfg.nxb * cfg.nxb;
             const auto gemm_k = n * b;
@@ -793,7 +796,8 @@ size_t ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetWorkspaceSize(const Convolutio
         const auto x       = ctx.kernel_size_w;
         const auto ngroups = ctx.group_counts;
 
-        return static_cast<size_t>(ngroups) * (k / ngroups) * (c / ngroups) * y * x * miopen::GetTypeSize(miopenFloat);
+        return static_cast<size_t>(ngroups) * (k / ngroups) * (c / ngroups) * y * x *
+               miopen::GetTypeSize(miopenFloat);
     }
 }
 
