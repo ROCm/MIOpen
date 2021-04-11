@@ -34,12 +34,7 @@
 namespace ck {
 namespace detail {
 
-template <typename T>
-__device__ bool IsNan(T x)
-{
-    // for half_t, float and double, use the builtin hip/hcc/clang kernel functions
-    return (isnan(x));
-};
+static inline __device__ bool isnan(half_t x) { return __hisnan(x); };
 
 template <NanPropagation_t nanPropaOpt, typename opReduce, typename compType>
 struct binop_with_nan_check;
@@ -72,7 +67,7 @@ struct binop_with_nan_check<NanPropagation_t::PROPAGATE_NAN, opReduce, compType>
 {
     __device__ static inline void calculate(compType& accuVal, compType currVal)
     {
-        if(IsNan(currVal))
+        if(isnan(currVal))
             accuVal = currVal;
         else
             opReduce{}(accuVal, currVal);
@@ -82,7 +77,7 @@ struct binop_with_nan_check<NanPropagation_t::PROPAGATE_NAN, opReduce, compType>
     __device__ static inline void
     calculate(compType& accuVal, compType currVal, int& accuIndex, int currIndex)
     {
-        if(IsNan(currVal))
+        if(isnan(currVal))
         {
             accuVal   = currVal;
             accuIndex = currIndex;
@@ -152,6 +147,14 @@ struct ThreadReduce
     {
         for(index_t i          = 0; i < ThreadBufferLen; i++)
             p_thread_buffer[i] = value;
+    };
+
+    // Execute unary operation on the per-thread buffer elements
+    template <typename unary_op>
+    __device__ static void operate_on_elements(DataType* p_thread_buffer)
+    {
+        for(index_t i = 0; i < ThreadBufferLen; i++)
+            unary_op{}(p_thread_buffer[i]);
     };
 };
 
@@ -226,7 +229,7 @@ struct WarpReduce
 
         for(index_t stride = warpSize / 2; stride > 0; stride /= 2)
         {
-            if(thread_inwarp_id < warpSize)
+            if(thread_inwarp_id < stride)
             {
                 compType currVal1 = myBuffer[thread_inwarp_id];
                 compType currVal2 = myBuffer[thread_inwarp_id + stride];
@@ -318,18 +321,16 @@ struct WarpReduce
 
         for(index_t stride = 1; stride < warpSize; stride *= 2)
         {
-            if(thread_inwarp_id < warpSize)
-            {
-                compType currVal1 = myDataBuffer[thread_inwarp_id];
-                compType currVal2 = myDataBuffer[thread_inwarp_id + stride];
-                int currIndex1    = myIndicesBuffer[thread_inwarp_id];
-                int currIndex2    = myIndicesBuffer[thread_inwarp_id + stride];
+            compType currVal1 = myDataBuffer[thread_inwarp_id];
+            compType currVal2 = myDataBuffer[thread_inwarp_id + stride];
+            int currIndex1    = myIndicesBuffer[thread_inwarp_id];
+            int currIndex2    = myIndicesBuffer[thread_inwarp_id + stride];
 
-                binop::calculate(currVal1, currVal2, currIndex1, currIndex2);
+            binop::calculate(currVal1, currVal2, currIndex1, currIndex2);
 
-                myDataBuffer[thread_inwarp_id]    = currVal1;
-                myIndicesBuffer[thread_inwarp_id] = currIndex1;
-            }
+            myDataBuffer[thread_inwarp_id]    = currVal1;
+            myIndicesBuffer[thread_inwarp_id] = currIndex1;
+
             __syncthreads();
         }
 
@@ -362,8 +363,8 @@ struct WarpReduce
 
         for(index_t i = 0; i < ThreadBufferLen; i++)
         {
-            compType currVal   = type_convert<compType>{}(p_thread_buffer[i]);
-            compType currIndex = thread_indices_buffer[i];
+            compType currVal = type_convert<compType>{}(p_thread_buffer[i]);
+            int currIndex    = thread_indices_buffer[i];
             binop::calculate(lAccuData, currVal, lAccuIndex, currIndex);
         }
 
@@ -397,8 +398,8 @@ struct WarpReduce
 
         for(index_t i = 0; i < ThreadBufferLen; i++)
         {
-            compType currVal   = type_convert<compType>{}(p_thread_buffer[i]);
-            compType currIndex = thread_indices_buffer[i];
+            compType currVal = type_convert<compType>{}(p_thread_buffer[i]);
+            int currIndex    = thread_indices_buffer[i];
             binop::calculate(lAccuData, currVal, lAccuIndex, currIndex);
         }
 
@@ -415,18 +416,16 @@ struct WarpReduce
 
         for(index_t stride = 1; stride < warpSize; stride *= 2)
         {
-            if(thread_inwarp_id < warpSize)
-            {
-                compType currVal1 = myDataBuffer[thread_inwarp_id];
-                compType currVal2 = myDataBuffer[thread_inwarp_id + stride];
-                int currIndex1    = myIndicesBuffer[thread_inwarp_id];
-                int currIndex2    = myIndicesBuffer[thread_inwarp_id + stride];
+            compType currVal1 = myDataBuffer[thread_inwarp_id];
+            compType currVal2 = myDataBuffer[thread_inwarp_id + stride];
+            int currIndex1    = myIndicesBuffer[thread_inwarp_id];
+            int currIndex2    = myIndicesBuffer[thread_inwarp_id + stride];
 
-                binop::calculate(currVal1, currVal2, currIndex1, currIndex2);
+            binop::calculate(currVal1, currVal2, currIndex1, currIndex2);
 
-                myDataBuffer[thread_inwarp_id]    = currVal1;
-                myIndicesBuffer[thread_inwarp_id] = currIndex1;
-            }
+            myDataBuffer[thread_inwarp_id]    = currVal1;
+            myIndicesBuffer[thread_inwarp_id] = currIndex1;
+
             __syncthreads();
         }
 
@@ -438,6 +437,16 @@ struct WarpReduce
     {
         for(index_t i          = 0; i < ThreadBufferLen; i++)
             p_thread_buffer[i] = value;
+
+        __all(1);
+    };
+
+    // Execute unary operation on the per-thread buffer elements
+    template <typename unary_op>
+    __device__ static void operate_on_elements(DataType* p_thread_buffer)
+    {
+        for(index_t i = 0; i < ThreadBufferLen; i++)
+            unary_op{}(p_thread_buffer[i]);
 
         __all(1);
     };
@@ -542,8 +551,8 @@ struct BlockwiseReduction_2d_block_buffer
                         p_block_buffer[offset1]       = type_convert<DataType>{}(currVal1);
                         block_indices_buffer[offset1] = currIndex1;
                     }
+                    __syncthreads();
                 }
-                __syncthreads();
             }
 
             if(thread_local_id == 0)
@@ -640,6 +649,24 @@ struct BlockwiseReduction_2d_block_buffer
                                  : buffer2dDesc::CalculateOffset({thread_id, otherDimInd});
 
             block_indices_buffer[offset] = offset + indexStart;
+
+            __syncthreads();
+        }
+    };
+
+    // Execute unary operation on the block buffer elements
+    template <typename unary_op>
+    __device__ static void operate_on_elements(DataType* p_block_buffer)
+    {
+        index_t thread_id = get_thread_local_1d_id();
+
+        for(index_t otherDimInd = 0; otherDimInd < NumBlocks; otherDimInd++)
+        {
+            index_t offset = blockIsOneRow
+                                 ? buffer2dDesc::CalculateOffset({otherDimInd, thread_id})
+                                 : buffer2dDesc::CalculateOffset({thread_id, otherDimInd});
+
+            unary_op{}(p_block_buffer[offset]);
 
             __syncthreads();
         }

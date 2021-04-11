@@ -176,7 +176,7 @@ inline bool IsShaderContraintsMet(const int R,
         if(!(0 <= params.GetBackwardPadH() && params.GetBackwardPadH() < std::pow(2, 16)))
             return false;
     }
-    const auto grid_workgroup_count_x = params.GetStream().GetMaxComputeUnits();
+    const auto grid_workgroup_count_x = params.GetStream().GetMaxHardwareComputeUnits();
     if(!params.IsLayoutDefault())
     {
         return false;
@@ -216,7 +216,7 @@ void PerformanceConfigConvBinWinogradRxSf2x3::EuristicInit(const ConvolutionCont
                n_outputs_per_group = config.n_outputs / config.group_counts;
     if(config.group_counts == 1)
     {
-        n_groups = config.GetStream().GetMaxComputeUnits();
+        n_groups = config.GetStream().GetMaxHardwareComputeUnits();
         return;
     }
 
@@ -235,7 +235,7 @@ void PerformanceConfigConvBinWinogradRxSf2x3::EuristicInit(const ConvolutionCont
                                       n_outputs_per_group, // C
                                       config.kernel_stride_h,
                                       config.kernel_stride_w,
-                                      config.GetStream().GetMaxComputeUnits(),
+                                      config.GetStream().GetMaxHardwareComputeUnits(),
                                       config.group_counts);
     }
     else
@@ -253,7 +253,7 @@ void PerformanceConfigConvBinWinogradRxSf2x3::EuristicInit(const ConvolutionCont
                                       config.batch_sz, // N
                                       config.kernel_dilation_h,
                                       config.kernel_dilation_w,
-                                      config.GetStream().GetMaxComputeUnits(),
+                                      config.GetStream().GetMaxHardwareComputeUnits(),
                                       config.group_counts);
     }
 }
@@ -270,7 +270,7 @@ bool PerformanceConfigConvBinWinogradRxSf2x3::IsValidValue() const
 
 bool PerformanceConfigConvBinWinogradRxSf2x3::IsValid(const ConvolutionContext& config) const
 {
-    if(config.GetStream().GetMaxComputeUnits() < n_groups)
+    if(config.GetStream().GetMaxHardwareComputeUnits() < n_groups)
         return false;
 
     if(!IsValidValue())
@@ -323,14 +323,15 @@ class ShaderModel : public UnifiedDescriptionConv2d
     ShaderModel(const ConvolutionContext& ctx)
         : UnifiedDescriptionConv2d(ctx),
           DATATYPE_BITS(ctx.IsFp16() ? 16 : 32),
-          n_groups(ctx.GetStream().GetMaxComputeUnits()), /// \todo Take n_groups from PerfConfig.
-          out_of_model_scope(!(ctx.group_counts == 1) ||  //
-                             !(U == 1) ||                 //
-                             !(V == 1) ||                 //
-                             !(input_stride_h == 1) ||    //
-                             !(input_stride_w == 1) ||    //
-                             !(filter_stride_h == 1) ||   //
-                             !(filter_stride_w == 1) ||   //
+          n_groups(ctx.GetStream()
+                       .GetMaxHardwareComputeUnits()),   /// \todo Take n_groups from PerfConfig.
+          out_of_model_scope(!(ctx.group_counts == 1) || //
+                             !(U == 1) ||                //
+                             !(V == 1) ||                //
+                             !(input_stride_h == 1) ||   //
+                             !(input_stride_w == 1) ||   //
+                             !(filter_stride_h == 1) ||  //
+                             !(filter_stride_w == 1) ||  //
 #if !WTI_MODEL_ALLOW_ANY_RS
                              !(R <= 5) || //
                              !(S <= 5) || //
@@ -518,12 +519,13 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
                                     const bool disableConfigOverrideFromEnv) const
 {
     const auto n_groups = config.n_groups;
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static bool IsWarned;
     if(!IsWarned)
     {
-        if(params.GetStream().GetMaxComputeUnits() > MAX_CU_LIMIT)
+        if(params.GetStream().GetMaxHardwareComputeUnits() > MAX_CU_LIMIT)
             MIOPEN_LOG_WE(SolverDbId(*this) << ": GPU has "
-                                            << params.GetStream().GetMaxComputeUnits()
+                                            << params.GetStream().GetMaxHardwareComputeUnits()
                                             << "CUs, but this solver supports max "
                                             << MAX_CU_LIMIT
                                             << "and thus may show sub-optimal performance.");
@@ -863,6 +865,43 @@ ConvSolution ConvBinWinogradRxSf2x3g1::GetSolution(const ConvolutionContext& par
 {
     const auto tunable = ConvBinWinogradRxSf2x3{};
     return tunable.GetSolution(params, tunable.GetPerformanceConfig(params), false);
+}
+
+bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const ConvolutionContext&) const
+{
+    return true; // Actual checks moved to FusionMDGraph.
+}
+
+ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const ConvolutionContext& params) const
+{
+    ConvSolution result;
+    KernelInfo kernel;
+
+    const auto n_groups = params.GetStream().GetMaxHardwareComputeUnits();
+    const auto name     = params.GetStream().GetDeviceName();
+    const auto is_gfx9  = StartsWith(name, "gfx9");
+    size_t wg_size      = is_gfx9 ? 512 : 256;
+    kernel.g_wk.push_back(wg_size * n_groups);
+    kernel.g_wk.push_back(1);
+    kernel.g_wk.push_back(1);
+
+    kernel.l_wk.push_back(wg_size);
+    kernel.l_wk.push_back(1);
+    kernel.l_wk.push_back(1);
+
+    KernelBuildParameters options{
+        {"ROCM_METADATA_VERSION", 5},
+    };
+    kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
+    if(!is_gfx9)
+        kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
+
+    // File and name are defined in FusionMDGraph, so no need (and harmful)
+    // to duplicate this information here.
+    kernel.kernel_name = "<name not set>";
+    kernel.kernel_file = "<file not set>";
+    result.construction_params.push_back(kernel);
+    return result;
 }
 
 } // namespace solver

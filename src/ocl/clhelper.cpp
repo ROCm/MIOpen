@@ -23,9 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <cstdio>
-#include <cstring>
-#include <fstream>
 #include <miopen/clhelper.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/gcn_asm_utils.hpp>
@@ -35,20 +32,28 @@
 #include <miopen/logger.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/ocldeviceinfo.hpp>
+#include <miopen/rocm_features.hpp>
 #include <miopen/tmp_dir.hpp>
+#include <miopen/target_properties.hpp>
 #include <miopen/write_file.hpp>
 #include <miopen/env.hpp>
+
+#include <cstdio>
+#include <cstring>
+#include <fstream>
 #include <string>
 #include <vector>
 
 namespace miopen {
 
+#if WORKAROUND_MLOPEN_ISSUE_1711
 void WorkaroundIssue1711(std::string& name)
 {
     auto loc_p = name.find('+');
     if(loc_p != std::string::npos)
         name = name.substr(0, loc_p);
 }
+#endif
 
 static cl_program CreateProgram(cl_context ctx, const char* char_source, size_t size)
 {
@@ -64,12 +69,16 @@ static cl_program CreateProgram(cl_context ctx, const char* char_source, size_t 
     return result;
 }
 
-static std::string
-ClAssemble(cl_device_id device, const std::string& source, const std::string& params)
+static std::string ClAssemble(cl_device_id device,
+                              const std::string& source,
+                              const std::string& params,
+                              const TargetProperties& target)
 {
     std::string name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(device);
+#if WORKAROUND_MLOPEN_ISSUE_1711
     WorkaroundIssue1711(name);
-    return AmdgcnAssemble(source, std::string("-mcpu=") + name + " " + params);
+#endif
+    return AmdgcnAssemble(source, std::string("-mcpu=") + name + " " + params, target);
 }
 
 static cl_program
@@ -158,7 +167,7 @@ ClProgramPtr LoadProgram(cl_context ctx,
     bool load_binary = false;
     if(miopen::EndsWith(program_name, ".s"))
     {
-        source      = ClAssemble(device, source, params); // Puts output binary into source.
+        source      = ClAssemble(device, source, params, target); // Puts output binary into source.
         load_binary = true;
     }
 

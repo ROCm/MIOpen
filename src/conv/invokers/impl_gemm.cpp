@@ -128,6 +128,7 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
                 // clang-format off
                 else if(
                     kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw" ||
+                    kernel.GetName() == "mlir_gen_igemm_conv2d_cpp_v1r1_bwd" ||
                     kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_ncdhw_kczyx_nkdhw")
                 // clang-format on
                 {

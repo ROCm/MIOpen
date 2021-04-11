@@ -35,6 +35,7 @@
 #endif
 
 #include <miopen/errors.hpp>
+#include <miopen/rocm_features.hpp>
 #include <string>
 #include <type_traits>
 
@@ -566,10 +567,9 @@ template <int N>
 auto GetPlatformInfo(cl_platform_id platform) MIOPEN_RETURNS(
     detail::GetPlatformInfoImpl<detail::PlatformAttributeReturnType<N>>::apply(N, platform));
 
-/// Workaround for https://github.com/AMDComputeLibraries/MLOpen/issues/1711:
-/// Since ROCM 2.4 rc1, OCL returns "gfx906+sram-ecc" on a gfx906 machine.
-/// See also rejected SWDEV-188028.
+#if WORKAROUND_MLOPEN_ISSUE_1711
 void WorkaroundIssue1711(std::string& name);
+#endif
 
 } // namespace miopen
 #endif // GUARD_MIOPEN_OCLDEVICE_HPP

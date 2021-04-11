@@ -1069,6 +1069,28 @@ workgroup_size_x = waves_in_group * 64
 .if ROCM_METADATA_VERSION == 5
 .rodata
 .p2align 6
+.if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_stepping == 10)
+.amdhsa_kernel miopenGcnAsmConv1x1U_stride2
+        .amdhsa_user_sgpr_kernarg_segment_ptr 1
+        .amdhsa_system_sgpr_workgroup_id_x 1
+        .amdhsa_system_sgpr_workgroup_id_y 1
+        .amdhsa_system_sgpr_workgroup_id_z 1
+        .amdhsa_system_vgpr_workitem_id 1
+        .amdhsa_next_free_sgpr __amdhsa_next_free_sgpr
+        .amdhsa_next_free_vgpr .AUTO_VGPR_COUNT
+        .amdhsa_group_segment_fixed_size .AUTO_LDS_BYTE_SIZE
+        .amdhsa_dx10_clamp 0
+        .amdhsa_ieee_mode 0
+        .amdhsa_float_round_mode_32 0
+        .amdhsa_float_round_mode_16_64 0
+        .amdhsa_float_denorm_mode_32 0
+        .amdhsa_float_denorm_mode_16_64 3
+        .amdhsa_reserve_flat_scratch __sgpr_reserve_flatscr
+        .amdhsa_reserve_xnack_mask __sgpr_reserve_xnack
+        .amdhsa_reserve_vcc __sgpr_reserve_vcc
+        .amdhsa_accum_offset ((.AUTO_VGPR_COUNT + 4 - 1) / 4) * 4
+.end_amdhsa_kernel
+.else
 .amdhsa_kernel miopenGcnAsmConv1x1U_stride2
         .amdhsa_user_sgpr_kernarg_segment_ptr 1
         .amdhsa_system_sgpr_workgroup_id_x 1
@@ -1088,6 +1110,7 @@ workgroup_size_x = waves_in_group * 64
         .amdhsa_reserve_xnack_mask __sgpr_reserve_xnack
         .amdhsa_reserve_vcc __sgpr_reserve_vcc
 .end_amdhsa_kernel
+.endif
 
 .altmacro
 .macro METADATA sc,vc,wg_x,lds_sz,kernarg_size

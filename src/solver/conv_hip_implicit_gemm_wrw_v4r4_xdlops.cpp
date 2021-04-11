@@ -30,8 +30,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/hip_build_utils.hpp>
-#include "implicitgemm_util.hpp"
-
+#include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/implicitgemm_params.hpp>
@@ -244,7 +243,7 @@ void PerformanceImplicitGemmWrwV4R4Xdlops::EuristicInit(const ConvolutionContext
     // final check
     if(!tmp.IsReallyValid(ctx))
     {
-        MIOPEN_LOG_I("All attempts failed");
+        MIOPEN_LOG_I("All attempts unsuccessful");
     }
     *this = tmp;
     MIOPEN_LOG_I(ToString());

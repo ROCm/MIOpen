@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/config.h>
 #include "driver.hpp"
 #include "test.hpp"
 #include "verify.hpp"
@@ -40,81 +41,9 @@
 
 #include "cpu_reduce_util.hpp"
 
-static void get_all_indexes(const std::vector<std::size_t>& dimLengths,
-                            int dim,
-                            std::vector<std::vector<std::size_t>>& indexes)
-{
-    if(dim < dimLengths.size())
-    {
-        std::vector<std::vector<std::size_t>> updated_indexes;
-
-        if(dim == 0)
-        {
-            assert(indexes.size() == 0);
-            assert(dimLengths[dim] > 0);
-            for(std::size_t i = 0; i < dimLengths[dim]; i++)
-            {
-                std::vector<std::size_t> index = {i};
-
-                updated_indexes.push_back(index);
-            };
-        }
-        else
-        {
-            // go through all the current indexes
-            for(const auto& index : indexes)
-                for(std::size_t i = 0; i < dimLengths[dim]; i++)
-                {
-                    auto index_new = index;
-                    index_new.push_back(i);
-
-                    updated_indexes.push_back(index_new);
-                };
-        };
-
-        // update to the indexes (output)
-        indexes = updated_indexes;
-
-        // further to construct the indexes from the updated status
-        get_all_indexes(dimLengths, dim + 1, indexes);
-    };
-};
-
-static std::size_t get_offset_from_index(const std::vector<std::size_t>& strides,
-                                         const std::vector<std::size_t>& index)
-{
-    std::size_t offset = 0;
-
-    assert(strides.size() == index.size());
-
-    for(int i = 0; i < index.size(); i++)
-        offset += strides[i] * index[i];
-
-    return (offset);
-};
-
-static std::size_t get_flatten_offset(const std::vector<std::size_t>& lengths,
-                                      const std::vector<std::size_t>& index)
-{
-    std::size_t offset = 0;
-
-    assert(lengths.size() == index.size() && lengths.size() > 0);
-
-    int len            = lengths.size();
-    std::size_t stride = 1;
-
-    // for len==1, the loop is not executed
-    for(int i = len - 1; i > 0; i--)
-    {
-        offset += stride * index[i];
-
-        stride *= lengths[i];
-    };
-
-    offset += stride * index[0];
-
-    return (offset);
-};
+/// Not reproducible with ROCm 4.0 and 4.1.
+#define WORKAROUND_GPU_MEM_ACCESS_FAULT \
+    (HIP_PACKAGE_VERSION_MAJOR == 3 && HIP_PACKAGE_VERSION_MINOR == 7)
 
 template <class T, bool toVerifyData>
 struct verify_reduce_with_indices
@@ -133,13 +62,14 @@ struct verify_reduce_with_indices
     miopenReduceTensorIndices_t indicesOpt;
     miopenIndicesType_t indicesType;
 
-    verify_reduce_with_indices(const miopen::ReduceTensorDescriptor& reduce_,
-                               const tensor<T>& input_,
-                               const tensor<T>& output_,
-                               const tensor<T>& workspace_,
-                               const tensor<int>& indices_,
-                               T alpha_,
-                               T beta_)
+    verify_reduce_with_indices( // NOLINT (hicpp-member-init)
+        const miopen::ReduceTensorDescriptor& reduce_,
+        const tensor<T>& input_,
+        const tensor<T>& output_,
+        const tensor<T>& workspace_,
+        const tensor<int>& indices_,
+        T alpha_,
+        T beta_)
     {
         reduce    = reduce_;
         input     = input_;
@@ -247,6 +177,8 @@ struct verify_reduce_with_indices
     std::tuple<tensor<T>, tensor<int>> cpuImpl() const
     {
         using reduce::ReduceOpFn2;
+        using reduce::PreUnaryOpFn;
+        using reduce::PosUnaryOpFn;
         using reduce::ReduceOpZeroVal;
         using reduce::float_equal_one;
         using reduce::float_equal_zero;
@@ -287,6 +219,11 @@ struct verify_reduce_with_indices
 
         auto opReduce = ReduceOpFn2<compType>(reduceOp);
 
+        std::size_t divider = std::accumulate(
+            toReduceLengths.begin(), toReduceLengths.end(), std::size_t{1}, std::multiplies<>{});
+
+        auto PreUnaryOp = PreUnaryOpFn<compType>(reduceOp, divider);
+
         if(reduceAllDims)
         {
             std::vector<std::vector<std::size_t>> indexes_1;
@@ -302,6 +239,10 @@ struct verify_reduce_with_indices
                 auto src_offset = get_offset_from_index(inStrides, src_index);
 
                 auto currVal = convert_type<compType>(input.data[src_offset]);
+
+                // unary operation before reducing, only needed by AMAX. For MIN/MAX, nothing is
+                // actually done
+                PreUnaryOp(currVal);
 
                 int currIndex = get_flatten_offset(inLengths, src_index);
                 binop_with_nan_check2(nanOpt, opReduce, accuVal, currVal, accuIndex, currIndex);
@@ -342,7 +283,7 @@ struct verify_reduce_with_indices
                 for(int k                       = 0; k < invariantDims.size(); k++)
                     dst_index[invariantDims[k]] = index_1[k];
 
-                int dst_offset = get_offset_from_index(outStrides, dst_index);
+                auto dst_offset = get_offset_from_index(outStrides, dst_index);
 
                 // generate the part of the index belonging to the invariant dims
                 for(int k                       = 0; k < invariantDims.size(); k++)
@@ -361,6 +302,10 @@ struct verify_reduce_with_indices
                     auto src_offset = get_offset_from_index(inStrides, src_index);
 
                     auto currVal = convert_type<compType>(input.data[src_offset]);
+
+                    // unary operation before reducing, only needed by AMAX. For MIN/MAX, nothing is
+                    // actually done
+                    PreUnaryOp(currVal);
 
                     auto currIndex = get_flatten_offset(toReduceLengths, index_2);
                     binop_with_nan_check2(nanOpt, opReduce, accuVal, currVal, accuIndex, currIndex);
@@ -457,12 +402,13 @@ struct verify_reduce_no_indices
     miopenDataType_t compTypeVal;
     miopenNanPropagation_t nanOpt;
 
-    verify_reduce_no_indices(const miopen::ReduceTensorDescriptor& reduce_,
-                             const tensor<T>& input_,
-                             const tensor<T>& output_,
-                             const tensor<T>& workspace_,
-                             T alpha_,
-                             T beta_)
+    verify_reduce_no_indices( // NOLINT (hicpp-member-init)
+        const miopen::ReduceTensorDescriptor& reduce_,
+        const tensor<T>& input_,
+        const tensor<T>& output_,
+        const tensor<T>& workspace_,
+        T alpha_,
+        T beta_)
     {
         reduce    = reduce_;
         input     = input_;
@@ -502,6 +448,8 @@ struct verify_reduce_no_indices
     tensor<T> cpuImpl() const
     {
         using reduce::ReduceOpFn;
+        using reduce::PreUnaryOpFn;
+        using reduce::PosUnaryOpFn;
         using reduce::ReduceOpZeroVal;
         using reduce::float_equal_one;
         using reduce::float_equal_zero;
@@ -541,6 +489,12 @@ struct verify_reduce_no_indices
 
         auto opReduce = ReduceOpFn<compType>(reduceOp);
 
+        std::size_t divider = std::accumulate(
+            toReduceLengths.begin(), toReduceLengths.end(), std::size_t{1}, std::multiplies<>{});
+
+        auto PreUnaryOp = PreUnaryOpFn<compType>(reduceOp, divider);
+        auto PosUnaryOp = PosUnaryOpFn<compType>(reduceOp, divider);
+
         if(reduceAllDims)
         {
             std::vector<std::vector<std::size_t>> indexes_1;
@@ -556,8 +510,12 @@ struct verify_reduce_no_indices
 
                 auto currVal = convert_type<compType>(input.data[src_offset]);
 
+                PreUnaryOp(currVal);
+
                 binop_with_nan_check(nanOpt, opReduce, accuVal, currVal);
             };
+
+            PosUnaryOp(accuVal);
 
             // scale the accumulated value
             if(!float_equal_one(alpha))
@@ -591,7 +549,7 @@ struct verify_reduce_no_indices
                 for(int k                       = 0; k < invariantDims.size(); k++)
                     dst_index[invariantDims[k]] = index_1[k];
 
-                int dst_offset = get_offset_from_index(outStrides, dst_index);
+                auto dst_offset = get_offset_from_index(outStrides, dst_index);
 
                 // generate the part of the index belonging to the invariant dims
                 for(int k                       = 0; k < invariantDims.size(); k++)
@@ -610,8 +568,12 @@ struct verify_reduce_no_indices
 
                     auto currVal = convert_type<compType>(input.data[src_offset]);
 
+                    PreUnaryOp(currVal);
+
                     binop_with_nan_check(nanOpt, opReduce, accuVal, currVal);
                 };
+
+                PosUnaryOp(accuVal);
 
                 // scale the accumulated value
                 if(!float_equal_one(alpha))
@@ -715,30 +677,19 @@ struct reduce_driver : test_driver
 
     std::vector<std::vector<int>> get_toreduce_dims()
     {
-        return {
-            {0},
-            {1},
-            {2},
-            {3},
-            {0, 1},
-            {1, 2},
-            {0, 3},
-            {1, 3},
-            {0, 2},
-            {2, 3},
-            {0, 1, 3},
-            {1, 2, 3},
-            {0, 1, 2, 3},
-        };
+        std::vector<std::vector<int>> tensor_dims = {
+            {0}, {1}, {2}, {3}, {0, 1}, {0, 3}, {0, 2}, {2, 3}, {0, 1, 3}, {1, 2, 3}, {0, 1, 2, 3}};
+
+        return tensor_dims;
     }
 
     reduce_driver()
     {
         add(inLengths, "D", generate_data(get_tensor_lengths()));
         add(toReduceDims, "R", generate_data(get_toreduce_dims()));
-        add(reduceOp, "ReduceOp", generate_data({0, 2}));
+        add(reduceOp, "ReduceOp", generate_data({0, 1, 4, 5, 6, 7}));
         add(compTypeVal, "CompType", generate_data({1}));
-        add(nanOpt, "N", generate_data({0}));
+        add(nanOpt, "N", generate_data({0, 1}));
         add(indicesOpt, "I", generate_data({0, 1}));
 
         add(scales, "scales", generate_data({{1.0f, 0.0f}, {0.5f, 0.5f}}));
@@ -753,13 +704,29 @@ struct reduce_driver : test_driver
 
         if(std::is_same<T, half_float::half>::value)
         {
-            if(reduceOp == static_cast<int>(MIOPEN_REDUCE_TENSOR_MIN) ||
-               reduceOp == static_cast<int>(MIOPEN_REDUCE_TENSOR_MAX))
+            if(reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX ||
+               reduceOp == MIOPEN_REDUCE_TENSOR_AMAX)
                 compTypeVal = static_cast<int>(miopenHalf); // let compType be same as the data type
             else
                 compTypeVal = static_cast<int>(miopenFloat);
         }
 
+#if WORKAROUND_GPU_MEM_ACCESS_FAULT
+        if(std::is_same<T, half_float::half>::value)
+        {
+            if(inLengths == std::vector<std::size_t>{4, 3, 60, 50} &&
+               toReduceDims == std::vector<int>{1, 2, 3} &&
+               ((reduceOp == 1 && compTypeVal == 1 && nanOpt == 1 && indicesOpt == 0) ||
+                (reduceOp == 4 && /*compTypeVal == X && nanOpt == X*/ indicesOpt == 0) ||
+                (reduceOp == 5 && compTypeVal == 1 && /*nanOpt == X &&*/ indicesOpt == 0) ||
+                (reduceOp == 6 && compTypeVal == 1 && /*nanOpt == X &&*/ indicesOpt == 0) ||
+                (reduceOp == 7 && compTypeVal == 1 && /*nanOpt == X &&*/ indicesOpt == 0)))
+            {
+                std::cout << "Workaround: Skipping the test." << std::endl;
+                return;
+            }
+        }
+#endif
         miopen::ReduceTensorDescriptor reduceDesc(
             static_cast<miopenReduceTensorOp_t>(reduceOp),
             static_cast<miopenDataType_t>(compTypeVal),
@@ -770,6 +737,16 @@ struct reduce_driver : test_driver
         alpha = scales[0];
         beta  = scales[1];
 
+        // The test is ignored if (alpha, beta) is not (1.0f, 0.0f) and reduceOp is not Add/MUL/AVG
+        if(reduceOp != MIOPEN_REDUCE_TENSOR_ADD && reduceOp != MIOPEN_REDUCE_TENSOR_MUL &&
+           reduceOp != MIOPEN_REDUCE_TENSOR_AVG && alpha != 1.0f && beta != 0.0f)
+            return;
+
+        // The test is ignored if indices are requested but the reduceOp is neither MIN nor MAX
+        if(indicesOpt != MIOPEN_REDUCE_TENSOR_NO_INDICES && reduceOp != MIOPEN_REDUCE_TENSOR_MIN &&
+           reduceOp != MIOPEN_REDUCE_TENSOR_MAX && reduceOp != MIOPEN_REDUCE_TENSOR_AMAX)
+            return;
+
         auto outLengths = this->inLengths;
 
         assert(toReduceDims.size() <= outLengths.size());
@@ -777,18 +754,66 @@ struct reduce_driver : test_driver
             assert(toReduceDims[i] < inLengths.size());
 
         // set the lengths of the dimensions to be reduced to 1 to represent the output Tensor
-        for(int i                       = 0; i < toReduceDims.size(); i++)
-            outLengths[toReduceDims[i]] = static_cast<std::size_t>(1);
+        for(const int& toReduceDim : toReduceDims)
+            outLengths[toReduceDim] = static_cast<std::size_t>(1);
 
-        unsigned long max_value =
-            miopen_type<T>{} == miopenHalf ? 13 : miopen_type<T>{} == miopenInt8 ? 127 : 17;
+        unsigned long max_value;
+
+        if(reduceOp == MIOPEN_REDUCE_TENSOR_MUL)
+            max_value =
+                miopen_type<T>{} == miopenHalf ? 41 : miopen_type<T>{} == miopenInt8 ? 127 : 111;
+        else if(reduceOp == MIOPEN_REDUCE_TENSOR_NORM1 || reduceOp == MIOPEN_REDUCE_TENSOR_NORM2)
+            max_value = 3;
+        else
+            max_value =
+                miopen_type<T>{} == miopenHalf ? 13 : miopen_type<T>{} == miopenInt8 ? 127 : 17;
 
         auto gen_value = [&](auto... is) {
             return (tensor_elem_gen_integer{max_value}(is...) *
                     tensor_elem_gen_checkboard_sign{}(is...));
         };
 
-        auto inputTensor  = tensor<T>{this->inLengths}.generate(gen_value);
+        // Special data generation for MUL, to avoid all-zero and large accumulative error in the
+        // reduced result
+        auto gen_value_2 = [&](auto... is) {
+            auto rand_value = tensor_elem_gen_integer{max_value}(is...);
+            auto sign_value = tensor_elem_gen_checkboard_sign{}(is...);
+
+            return sign_value > 0.0 ? (rand_value + max_value) / (rand_value + max_value + 1)
+                                    : (rand_value + max_value + 1) / (rand_value + max_value);
+        };
+
+        bool need_indices =
+            ((reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX ||
+              reduceOp == MIOPEN_REDUCE_TENSOR_AMAX) &&
+             indicesOpt != MIOPEN_REDUCE_TENSOR_NO_INDICES);
+
+        // Special data generation for MIN/MAX/AMAX using a space of limitless number of values.
+        // This method is slower due to the use of rand(), it is usually used for manual testing
+        auto gen_value_3 = [&](auto... is) {
+            auto rand_upper   = tensor_elem_gen_integer{max_value}(is...);
+            auto sign_value   = tensor_elem_gen_checkboard_sign{}(is...);
+            double rand_ratio = static_cast<double>(rand() / (static_cast<double>(RAND_MAX)));
+
+            return rand_upper * sign_value * rand_ratio;
+        };
+
+        if(reduceOp == MIOPEN_REDUCE_TENSOR_MUL)
+            this->tolerance = 80 * 500;
+        else if(reduceOp == MIOPEN_REDUCE_TENSOR_NORM1 || reduceOp == MIOPEN_REDUCE_TENSOR_NORM2)
+        {
+            if(toReduceDims.size() == 4)
+                this->tolerance = 80 * 100;
+            else
+                this->tolerance = 80 * 10;
+        };
+
+        auto inputTensor = (reduceOp == MIOPEN_REDUCE_TENSOR_MUL)
+                               ? tensor<T>{this->inLengths}.generate(gen_value_2)
+                               : (need_indices || reduceOp == MIOPEN_REDUCE_TENSOR_NORM1 ||
+                                          reduceOp == MIOPEN_REDUCE_TENSOR_NORM2
+                                      ? tensor<T>{this->inLengths}.generate(gen_value_3)
+                                      : tensor<T>{this->inLengths}.generate(gen_value));
         auto outputTensor = tensor<T>{outLengths};
 
         std::fill(outputTensor.begin(), outputTensor.end(), convert_type<T>(0.0f));

@@ -81,7 +81,7 @@ struct TunableImplicitGemmGTCDynamic_t
                     << tensor_b_thread_lengths[3] << "_" << tensor_b_cluster_lengths[0] << "x"
                     << tensor_b_cluster_lengths[1] << "x" << tensor_b_cluster_lengths[2] << "x"
                     << tensor_b_cluster_lengths[3];
-        if(gemm_k_global_split != 0)
+        if(this->gemm_k_global_split != 0)
             kernel_name << "_gkgs";
 
         return kernel_name.str();
