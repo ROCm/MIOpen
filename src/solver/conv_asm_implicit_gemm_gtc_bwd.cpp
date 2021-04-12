@@ -1011,8 +1011,11 @@ ConvAsmImplicitGemmGTCDynamicBwdXdlops::GetSolution(const ConvolutionContext& ct
     std::tie(std::ignore, cfg, kernel_name, block_size, grid_size) =
         FindImplicitGemmGtcDynamicBwdKernel(ctx);
 
-    kernel.kernel_file = ctx.IsFp16() ? "igemm_bwd_gtc_gfx908_fp16.s" : "igemm_bwd_gtc_gfx908.s";
-    kernel.kernel_name = kernel_name;
+    if(ctx.IsFp32())
+        kernel.kernel_file = "igemm_bwd_gtc_gfx908.s";
+    else if(ctx.IsFp16())
+        kernel.kernel_file = kernel_name + ".s";
+    kernel.kernel_name     = kernel_name;
     kernel.g_wk.clear();
     kernel.g_wk.push_back(grid_size * block_size);
     kernel.g_wk.push_back(1);
