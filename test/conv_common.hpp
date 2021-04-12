@@ -1615,12 +1615,12 @@ struct conv_driver : test_driver
 
     std::vector<std::size_t> get_output_channels()
     {
-        return {16, 32, 96, 112, 128, 192, 256, 320, 512, 1024};
+        return {16, 32, 128, 96, 112, 192, 256, 320, 512, 1024};
     }
 
     std::vector<std::size_t> get_input_channels()
     {
-        return {16, 32, 96, 112, 128, 192, 256, 320, 512, 1024, 3};
+        return {16, 32, 128, 96, 112, 192, 256, 320, 512, 1024, 3};
     }
 
     std::vector<std::vector<int>> get_2d_pads_strides_dilations()

@@ -48,10 +48,10 @@ struct conv3d_driver : conv_driver<T>
                   this->generate_data_limited(this->get_3d_filter_dims()));
         this->add(this->pads_strides_dilations,
                   "pads_strides_dilations",
-                  this->generate_data(this->get_3d_pads_strides_dilations()));
+                  this->generate_data_limited(this->get_3d_pads_strides_dilations()));
         this->add(this->trans_output_pads,
                   "trans_output_pads",
-                  this->generate_data(this->get_3d_trans_output_pads()));
+                  this->generate_data_limited(this->get_3d_trans_output_pads()));
     }
 };
 
