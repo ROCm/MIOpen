@@ -23,8 +23,12 @@ def cmake_build(Map conf=[:]){
     def debug_flags = "-g -fno-omit-frame-pointer -fsanitize=undefined -fno-sanitize-recover=undefined " + conf.get("extradebugflags", "")
     def build_envs = "CTEST_PARALLEL_LEVEL=4 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 " + conf.get("build_env","")
     def prefixpath = conf.get("prefixpath","/usr/local")
-    def setup_args = " -DMIOPEN_GPU_SYNC=Off -DCMAKE_PREFIX_PATH=${prefixpath} " + conf.get("setup_flags","")
+    def setup_args = " -DMIOPEN_GPU_SYNC=Off " + conf.get("setup_flags","")
     
+    if (prefixpath != "/usr/local"){
+        setup_args = setup_args + " -DCMAKE_PREFIX_PATH=${prefixpath} "
+    }
+
     def build_type_debug = (conf.get("build_type",'release') == 'debug')
 
     //cmake_env can overwrite default CXX variables. 
@@ -55,11 +59,14 @@ def cmake_build(Map conf=[:]){
     }
 
     if(build_type_debug){
-        setup_args = " -DCMAKE_BUILD_TYPE=debug" + setup_args
+        setup_args = " -DCMAKE_BUILD_TYPE=debug -DCMAKE_CXX_FLAGS_DEBUG='${debug_flags}'" + setup_args
     }else{
         setup_args = " -DCMAKE_BUILD_TYPE=release" + setup_args
     }
 
+    if(test_flags != ""){
+       setup_args = "-DMIOPEN_TEST_FLAGS='${test_flags}'" + setup_args
+    }
 
     def pre_setup_cmd = """
             echo \$HSA_ENABLE_SDMA
@@ -70,7 +77,7 @@ def cmake_build(Map conf=[:]){
             mkdir install
             cd build
         """
-    def setup_cmd = conf.get("setup_cmd", "${cmake_envs} cmake -DCMAKE_CXX_FLAGS_DEBUG='${debug_flags}' -DMIOPEN_TEST_FLAGS='${test_flags}' ${setup_args}   .. ")
+    def setup_cmd = conf.get("setup_cmd", "${cmake_envs} cmake ${setup_args}   .. ")
     def build_cmd = conf.get("build_cmd", "${build_envs} dumb-init make -j\$(nproc) ${config_targets}")
     def execute_cmd = conf.get("execute_cmd", "")
 
@@ -270,10 +277,10 @@ pipeline {
                 Smoke_targets = "check doc MIOpenDriver"
             }
             parallel{
-               stage('Fp32 OpenCL Debug + Codecov') {
+               stage('Fp32 OpenCL Debug') {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', build_type: 'debug', config_targets: Smoke_targets, codecov: true)
+                        buildHipClangJobAndReboot(compiler: 'g++', build_type: 'debug', config_targets: Smoke_targets)
                     }
                 }
                 stage('Fp32 OpenCL') {
@@ -282,7 +289,6 @@ pipeline {
                         buildHipClangJobAndReboot(compiler: 'g++', config_targets: Smoke_targets)
                     }
                 }
-
                 stage('Fp32 Hip /opt/rocm') {
                     agent{ label rocmnode("vega") }
                     steps{
@@ -305,11 +311,6 @@ pipeline {
                         buildHipClangJobAndReboot(prefixpath: prefixpath, build_type: 'debug', setup_flags: gfx908_test, config_targets: Smoke_targets, gpu_arch: gpu_arch)
                     }
                 }
-            }
-        }
-        stage("Smoke Aux 1"){
-            when { expression { params.BUILD_CURRENT_STAGE } }
-            parallel{
                 stage('Fp32 HipNoGPU Debug') {
                     agent{  label rocmnode("nogpu") }
                     environment{
@@ -320,6 +321,11 @@ pipeline {
                         buildHipClangJob( build_type: 'debug', setup_flags: HipNoGPU_flags, build_cmd: build_cmd)
                     }
                 }
+            }
+        }
+        stage("Smoke Aux 1"){
+            when { expression { params.BUILD_CURRENT_STAGE } }
+            parallel{
                 stage('Fp32 Hip Debug COMGR') {
                     agent{ label rocmnode("vega") }
                     environment{
@@ -344,11 +350,6 @@ pipeline {
                         buildHipClangJobAndReboot( setup_flags: "-DBUILD_SHARED_LIBS=Off")
                     }
                 }
-            }
-        }
-        stage("Smoke Aux 2"){
-            when { expression { params.BUILD_CURRENT_STAGE } }
-            parallel{
                 stage('Fp32 Hip Normal-Find') {
                     agent{ label rocmnode("vega") }
                     environment{
@@ -366,7 +367,7 @@ pipeline {
                         execute_cmd = "MIOPEN_FIND_MODE=2 CTEST_PARALLEL_LEVEL=4  MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --disable-verification-cache"
                     }
                     steps{
-                          buildHipClangJobAndReboot( config_targets: config_targets, execute_cmd: execute_cmd)
+                        buildHipClangJobAndReboot( config_targets: config_targets, execute_cmd: execute_cmd)
                     }
                 }
                 stage('Fp32 Hip') {
@@ -418,9 +419,8 @@ pipeline {
                 stage('Int8 HIP conv2d All Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
-                        setup_flags =   "-DMIOPEN_TEST_LIMIT=2"
                         config_targets = "test_conv2d"
-                        execute_cmd = "MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --limit 3 --disable-verification-cache"
+                        execute_cmd = "MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --limit 4 --disable-verification-cache"
                     }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: setup_flags + Int8_flags + Full_test, config_targets: config_targets, execute_cmd: execute_cmd)
@@ -430,7 +430,7 @@ pipeline {
                     agent{ label rocmnode("vega") }
                     environment{
                         config_targets = "test_conv2d "
-                        execute_cmd = "CTEST_PARALLEL_LEVEL=4  MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --limit 3 --disable-verification-cache"
+                        execute_cmd = "CTEST_PARALLEL_LEVEL=4  MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --limit 4 --disable-verification-cache"
                     }
                     steps{
                         buildHipClangJobAndReboot( compiler: 'g++', setup_flags: Full_test, config_targets: config_targets, execute_cmd: execute_cmd)
@@ -451,7 +451,7 @@ pipeline {
                 stage('Fp32 Hip All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
-                        setup_flag = "-DMIOPEN_TEST_LIMIT=2"
+                        setup_flag = "-DMIOPEN_TEST_LIMIT=4"
                     }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: setup_flag + gfx908_test + Full_test, gpu_arch: "gfx908")
@@ -460,7 +460,7 @@ pipeline {
                 stage('Fp16 Hip All') {
                     agent{ label rocmnode("vega20") }
                     environment{
-                        setup_flag = "-DMIOPEN_TEST_LIMIT=2"
+                        setup_flag = "-DMIOPEN_TEST_LIMIT=4"
                     }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: setup_flag + Fp16_flags + Full_test)
@@ -474,9 +474,9 @@ pipeline {
                 stage('Fp32 Hip conv3d') {
                     agent{ label rocmnode("vega20") }
                     environment{
-                        setup_flag = " -DMIOPEN_TEST_LIMIT=2"
+                        setup_flag = " -DMIOPEN_TEST_LIMIT=4"
                         config_targets = "test_conv3d"
-                        execute_cmd = "bin/test_conv3d --all --limit 2 --disable-verification-cache"
+                        execute_cmd = "bin/test_conv3d --all --limit 4 --disable-verification-cache"
                     }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: setup_flag + Full_test, config_targets: config_targets, execute_cmd: execute_cmd )
@@ -485,7 +485,7 @@ pipeline {
                 stage('Fp32 Hip conv2d All') {
                     agent{ label rocmnode("vega20") }
                     environment{
-                        setup_flag = "-DMIOPEN_SKIP_ALL_BUT_CONV2D=On -DMIOPEN_TEST_LIMIT=2"
+                        setup_flag = "-DMIOPEN_SKIP_ALL_BUT_CONV2D=On -DMIOPEN_TEST_LIMIT=4"
                     }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: setup_flag + Full_test)
@@ -494,7 +494,7 @@ pipeline {
                 stage('Fp16 Hip All Install gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
-                        setup_flag = "-DMIOPEN_TEST_LIMIT=2"
+                        setup_flag = "-DMIOPEN_TEST_LIMIT=4"
                     }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: setup_flag + gfx908_test + Full_test + Fp16_flags, build_install: "true", gpu_arch: "gfx908")
@@ -519,7 +519,7 @@ pipeline {
                 stage('Fp32 Hip Tensile All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
-                        setup_flag =   "-DMIOPEN_TEST_LIMIT=2"
+                        setup_flag =   "-DMIOPEN_TEST_LIMIT=4"
                     }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: setup_flag + gfx908_test + Full_test + Tensile_setup, build_env: Tensile_build_env + extra_log_env, gpu_arch: "gfx908", test_flags: ' --verbose ')
@@ -528,7 +528,7 @@ pipeline {
                 stage('Fp32 Hip Tensile-Latest All Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
-                        setup_flag = " -DMIOPEN_TEST_LIMIT=2"
+                        setup_flag = " -DMIOPEN_TEST_LIMIT=4"
                     }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: setup_flag + Full_test + Tensile_setup, build_env: Tensile_build_env, miotensile_version: "latest")
@@ -537,7 +537,7 @@ pipeline {
                 stage('Fp32 Hip Tensile-Latest All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
-                        setup_flag = " -DMIOPEN_TEST_LIMIT=2"
+                        setup_flag = " -DMIOPEN_TEST_LIMIT=4"
                     }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: setup_flag + gfx908_test + Full_test + Tensile_setup, build_env: Tensile_build_env + extra_log_env, gpu_arch: "gfx908", miotensile_version: "latest", test_flags: ' --verbose ')
