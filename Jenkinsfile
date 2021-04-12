@@ -216,10 +216,35 @@ pipeline {
     }
     parameters {
         booleanParam(
-            name: "BUILD_CURRENT_STAGE",
+            name: "DISABLE_ALL_STAGES",
             defaultValue: true,
-            description: "Run current stage")
+            description: "Disables each stage in the pipline")
+        booleanParam(
+                name: "BUILD_STATIC_STAGE",
+                defaultValue: true,
+                description: "Run static stage")
+        booleanParam(
+                name: "BUILD_SMOKE_STATATIC_STAGE",
+                defaultValue: true,
+                description: "Run smoke static stage")
+        booleanParam(
+                name: "BUILD_SMOKE_AUX_LOW_STAGES",
+                defaultValue: true,
+                description: "Run smoke AUX and Smoke Fp16/Bf16/Int8 stages")
+        booleanParam(
+                name: "BUILD_FULL_STAGES",
+                defaultValue: true,
+                description: "Run all FULL stages")
+        booleanParam(
+                name: "BUILD_TENSILE_STAGE",
+                defaultValue: true,
+                description: "Run Tensile stage")
+        booleanParam(
+                name: "BUILD_PACKAGES",
+                defaultValue: true,
+                description: "Run packages stage")
     }
+    
     environment{
         extra_log_env = " MIOPEN_LOG_LEVEL=5 "
         gfx908_test = " -DMIOPEN_TEST_GFX908=On"
@@ -230,7 +255,7 @@ pipeline {
     }
     stages{
         stage("Static checks"){
-            when { expression { params.BUILD_CURRENT_STAGE } }
+            when { expression { params.BUILD_STATIC_STAGE && !params.DISABLE_ALL_STAGES } }
             parallel{
                 stage('Hip Tidy') {
                     agent{  label rocmnode("nogpu") }
@@ -272,7 +297,7 @@ pipeline {
             }
         }
         stage("Smoke Fp32"){
-            when { expression { params.BUILD_CURRENT_STAGE } }
+            when { expression { params.BUILD_SMOKE_STATATIC_STAGE && !params.DISABLE_ALL_STAGES } }
             environment{
                 Smoke_targets = "check doc MIOpenDriver"
             }
@@ -324,7 +349,7 @@ pipeline {
             }
         }
         stage("Smoke Aux 1"){
-            when { expression { params.BUILD_CURRENT_STAGE } }
+            when { expression { params.BUILD_SMOKE_AUX_LOW_STAGES && !params.DISABLE_ALL_STAGES } }
             parallel{
                 stage('Fp32 Hip Debug COMGR') {
                     agent{ label rocmnode("vega") }
@@ -388,7 +413,7 @@ pipeline {
             }
         }
         stage("Smoke Fp16/Bf16/Int8"){
-            when { expression { params.BUILD_CURRENT_STAGE } }
+            when { expression { params.BUILD_SMOKE_AUX_LOW_STAGES && !params.DISABLE_ALL_STAGES } }
             environment{
                 Smoke_targets = "check doc MIOpenDriver"
             }
@@ -414,7 +439,7 @@ pipeline {
             }
         }
         stage("Full Tests I"){
-            when { expression { params.BUILD_CURRENT_STAGE } }
+            when { expression { params.BUILD_FULL_STAGES && !params.DISABLE_ALL_STAGES } }
             parallel{
                 stage('Int8 HIP conv2d All Vega20') {
                     agent{ label rocmnode("vega20") }
@@ -446,7 +471,7 @@ pipeline {
         }
 
         stage("Full Tests II"){
-            when { expression { params.BUILD_CURRENT_STAGE } }
+            when { expression { params.BUILD_FULL_STAGES && !params.DISABLE_ALL_STAGES } }
             parallel{
                 stage('Fp32 Hip All gfx908') {
                     agent{ label rocmnode("gfx908") }
@@ -469,7 +494,7 @@ pipeline {
             }
         }
         stage("Full tests III"){
-            when { expression { params.BUILD_CURRENT_STAGE } }
+            when { expression { params.BUILD_FULL_STAGES && !params.DISABLE_ALL_STAGES } }
             parallel{
                 stage('Fp32 Hip conv3d') {
                     agent{ label rocmnode("vega20") }
@@ -504,7 +529,7 @@ pipeline {
         }
 
         stage("MIOpenTensile"){
-            when { expression { params.BUILD_CURRENT_STAGE } }
+            when { expression { params.BUILD_TENSILE_STAGE && !params.DISABLE_ALL_STAGES } }
             environment{
                 Tensile_build_env = "MIOPEN_DEBUG_HIP_KERNELS=0 "
                 Tensile_setup = " -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF"
@@ -546,7 +571,7 @@ pipeline {
             }
         }
         stage("Packages"){
-            when { expression { params.BUILD_CURRENT_STAGE } }
+            when { expression { params.BUILD_PACKAGES && !params.DISABLE_ALL_STAGES } }
             parallel {
                 stage('OpenCL Package') {
                     agent{ label rocmnode("nogpu") }
