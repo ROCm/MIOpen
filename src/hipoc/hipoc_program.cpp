@@ -243,7 +243,7 @@ struct HIPOCProgramImpl
         }
         else if(miopen::EndsWith(filename, ".s"))
         {
-            const auto assembled = AmdgcnAssemble(src, params); // FIXME
+            const auto assembled = AmdgcnAssemble(src, params, target);
             WriteFile(assembled, hsaco_file);
         }
         else if(miopen::EndsWith(filename, ".cpp"))
@@ -253,7 +253,7 @@ struct HIPOCProgramImpl
 #if MIOPEN_USE_MLIR
         else if(miopen::EndsWith(filename, ".mlir-cpp"))
         {
-            hsaco_file = MlirBuildViaHip(dir, filename, src, params, target);
+            hsaco_file = MiirBuildViaHip(dir, filename, src, params, target);
         }
 #endif
         else

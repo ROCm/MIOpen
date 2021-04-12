@@ -30,8 +30,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/hip_build_utils.hpp>
-#include "implicitgemm_util.hpp"
-
+#include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/implicitgemm_params.hpp>

@@ -29,23 +29,36 @@
 #include <miopen/logger.hpp>
 #include <miopen/mlir_build.hpp>
 
-#include <mlir-miopen-lib.hpp>
+#include <Miir.h>
 
 #include <fstream>
 
 namespace miopen {
-
+// Anonymous namespace
+namespace {
 /// Destroys handle in case of exception.
-class AutoMlirHandle
+class AutoMiirHandle
 {
-    MlirHandle handle;
+    MiirHandle handle;
 
     public:
-    AutoMlirHandle(const std::string& options) : handle(CreateMlirHandle(options.c_str())) {}
-    ~AutoMlirHandle() { DestroyMlirHandle(handle); }
-    MlirHandle operator()() { return handle; }
+    AutoMiirHandle(const std::string& options) : handle(miirCreateHandle(options.c_str())) {}
+    ~AutoMiirHandle() { miirDestroyHandle(handle); }
+    MiirHandle operator()() { return handle; }
 };
 
+void check_miir_error(MiirStatus status, const std::string& miir_fn_name)
+{
+    switch(status)
+    {
+    case MIIR_SUCCESS: return;
+    case MIIR_INVALID_PARAM: MIOPEN_THROW(miir_fn_name + " MIIR_INVALID_PARAM"); break;
+    case MIIR_INVALID_MODULE: MIOPEN_THROW(miir_fn_name + " MIIR_INVALID_MODULE"); break;
+    case MIIR_BUILD_FAILURE: MIOPEN_THROW(miir_fn_name + " MIIR_BUILD_FAILURE"); break;
+    default: MIOPEN_THROW(miir_fn_name + " <UNKNOWN ERROR>");
+    }
+}
+} // namespace
 /// Generates HIP source, header and options for HIP compiler.
 /// Writes HIP source and header into output directory.
 ///
@@ -54,7 +67,7 @@ class AutoMlirHandle
 /// @param[in]  params   Options for MLIR generator.
 /// @param[out] cflags   Build options for HIP compiler.
 /// @param[out] cpp_filename  Name of output .cpp file (with path).
-static void MlirGenerateSourcesForHipBuild(const boost::optional<TmpDir>& tmp_dir,
+static void MiirGenerateSourcesForHipBuild(const boost::optional<TmpDir>& tmp_dir,
                                            const std::string& filename,
                                            const std::string& params,
                                            std::string& cflags,
@@ -76,25 +89,25 @@ static void MlirGenerateSourcesForHipBuild(const boost::optional<TmpDir>& tmp_di
 
     MIOPEN_LOG_I2(input_file.string() << ", options: '" << params << "'");
 
-    AutoMlirHandle handle(params);
-    MlirLowerCpp(handle());
+    AutoMiirHandle handle(params);
+    miirLowerCpp(handle());
 
     cpp_filename = input_file_base + ".cpp";
     const auto hpp_filename(input_file_base + ".hpp");
 
-    const std::string cpp_text = MlirGenIgemmSource(handle());
+    const std::string cpp_text = miirGenIgemmSource(handle());
     std::ofstream cpp_ofs(cpp_filename);
-    throw_if_error("MlirGenIgemmSource", cpp_text, &cpp_ofs, cpp_filename);
+    throw_if_error("miirGenIgemmSource", cpp_text, &cpp_ofs, cpp_filename);
     cpp_ofs << cpp_text;
 
-    const std::string hpp_text = MlirGenIgemmHeader(handle());
+    const std::string hpp_text = miirGenIgemmHeader(handle());
     std::ofstream hpp_ofs(hpp_filename);
-    throw_if_error("MlirGenIgemmHeader", hpp_text, &hpp_ofs, hpp_filename);
+    throw_if_error("miirGenIgemmHeader", hpp_text, &hpp_ofs, hpp_filename);
     hpp_ofs << hpp_text;
 
     // Get mlir kernel compilation flags.
-    cflags = MlirGenIgemmCflags(handle());
-    throw_if_error("MlirGenIgemmCflags", cflags);
+    cflags = miirGenIgemmCflags(handle());
+    throw_if_error("miirGenIgemmCflags", cflags);
 
     ///\todo This smells:
     cflags     = cflags.substr(cflags.find("\n") + 1); // Skip first line.
@@ -103,7 +116,7 @@ static void MlirGenerateSourcesForHipBuild(const boost::optional<TmpDir>& tmp_di
         cflags.replace(pos, sizeof("\n"), " ");
 }
 
-boost::filesystem::path MlirBuildViaHip(boost::optional<TmpDir>& tmp_dir,
+boost::filesystem::path MiirBuildViaHip(boost::optional<TmpDir>& tmp_dir,
                                         const std::string& filename,
                                         const std::string& src,
                                         const std::string& params,
@@ -111,7 +124,7 @@ boost::filesystem::path MlirBuildViaHip(boost::optional<TmpDir>& tmp_dir,
 {
     std::string hip_options;
     std::string hip_filename;
-    MlirGenerateSourcesForHipBuild(tmp_dir, filename, params, hip_options, hip_filename);
+    MiirGenerateSourcesForHipBuild(tmp_dir, filename, params, hip_options, hip_filename);
     // Workaround: We can't pass HIP build options from BuildCodeObject(),
     // so let's care about warnings here.
     // Workaround: The MLIR-produced HIP code causes build warnings,
@@ -120,6 +133,16 @@ boost::filesystem::path MlirBuildViaHip(boost::optional<TmpDir>& tmp_dir,
     // HipBuild requires name without path.
     hip_filename = boost::filesystem::path(hip_filename).filename().string();
     return HipBuild(tmp_dir, hip_filename, src, hip_options, target, true);
+}
+
+void MiirGenLaunchParams(const std::string& params, size_t& local_size, size_t& global_size)
+{
+    AutoMiirHandle handle(params);
+    miirLowerInit();
+    auto status = miirLowerTuningParams(handle());
+    check_miir_error(status, "miirLowerTuningParams");
+    miirGetExecutionDims(handle(), &global_size, &local_size);
+    check_miir_error(status, "miirGetExecutionDims");
 }
 
 } // namespace miopen
