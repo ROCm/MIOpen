@@ -1,10 +1,11 @@
 #ifndef CK_IMPLICITGEMM_UTIL_HPP_
 #define CK_IMPLICITGEMM_UTIL_HPP_
 
-#include <algorithm>
 #include <miopen/env.hpp>
 #include <miopen/hip_build_utils.hpp>
 #include <miopen/mlo_internal.hpp>
+#include <miopen/rocm_features.hpp>
+#include <algorithm>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS)
@@ -445,7 +446,9 @@ static inline bool IsXdlopsSupport(const ConvolutionContext& c)
     // disable xdlops kernels by default due to possible failures:
     // 1) inline asm may crash
     // 2) llvm intrin may has incorrect results
-    return StartsWith(c.GetStream().GetDeviceName(), "gfx908") &&
+    bool is_xdlops_supported = StartsWith(c.GetStream().GetDeviceName(), "gfx908") ||
+                               StartsWith(c.GetStream().GetDeviceName(), "gfx90a");
+    return is_xdlops_supported &&
 #if WORKAROUND_SWDEV_200782
            /// \todo Remove workaround when we drop suport of HCC older than 2.10.19392.
            ((miopen::HipCompilerVersion() >= external_tool_version_t{2, 10, 19392})
@@ -705,9 +708,8 @@ static inline bool use_amd_inline_asm(const ConvolutionContext& ctx)
     return !miopen::IsDisabled(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM{});
 }
 
-static inline bool support_amd_buffer_atomic_fadd(const ConvolutionContext& ctx)
+static inline bool support_amd_buffer_atomic_fadd(const std::string& device_name)
 {
-    const auto device_name = ctx.GetStream().GetDeviceName();
     return StartsWith(device_name, "gfx908");
 }
 
@@ -807,7 +809,7 @@ static inline auto get_ck_common_compiler_flag(const ConvolutionContext& ctx)
 
     // atomic-fadd
     compiler_flag += std::string(" -DCK_USE_AMD_BUFFER_ATOMIC_FADD=") +
-                     (support_amd_buffer_atomic_fadd(ctx) ? '1' : '0');
+                     (support_amd_buffer_atomic_fadd(ctx.GetStream().GetDeviceName()) ? '1' : '0');
 
     // LDS sync
     compiler_flag +=
@@ -839,6 +841,7 @@ static inline bool IsComposableKernelSupportedHardware(const ConvolutionContext&
            StartsWith(c.GetStream().GetDeviceName(), "gfx900") ||
            StartsWith(c.GetStream().GetDeviceName(), "gfx906") ||
            StartsWith(c.GetStream().GetDeviceName(), "gfx908") ||
+           StartsWith(c.GetStream().GetDeviceName(), "gfx90a") ||
            StartsWith(c.GetStream().GetDeviceName(), "gfx1030");
 }
 
