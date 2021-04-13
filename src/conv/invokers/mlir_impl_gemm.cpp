@@ -60,32 +60,31 @@ void permuteDimStridesAllDir(const conv::ProblemDescription& conv_problem,
     std::make_tuple(out_dims, out_strides) = permuteDimsStrides(out.GetLengths(), out.GetStrides());
 }
 
-MlirConvArgs MakeMlirConvArgs(ConstData_t in,
-                              const std::vector<size_t>& in_dims,
+MlirConvArgs MakeMlirConvArgs(const std::vector<size_t>& in_dims,
                               const std::vector<size_t>& in_strides,
-                              ConstData_t w,
                               const std::vector<size_t>& weights_dims,
                               const std::vector<size_t>& weights_strides,
-                              ConstData_t out,
                               const std::vector<size_t>& out_dims,
                               const std::vector<size_t>& out_strides)
 {
-    auto cpyToMemRef = [](const void* ptr,
-                          const std::vector<size_t>& dims,
-                          const std::vector<size_t>& strides,
-                          MemRef4DGeneric& target) {
-        target.basePtr = const_cast<void*>(ptr); // NOLINT (cppcoreguidelines-pro-type-const-cast)
-        target.data    = const_cast<void*>(ptr); // NOLINT (cppcoreguidelines-pro-type-const-cast)
+    auto initializeMemRef = [](const std::vector<size_t>& dims,
+                               const std::vector<size_t>& strides,
+                               MemRef4DGeneric& target) {
+        target.basePtr = nullptr;
+        target.data    = nullptr;
         target.offset  = 0;
         std::copy(dims.cbegin(), dims.cend(), &target.sizes[0]);
         std::copy(strides.cbegin(), strides.cend(), &target.strides[0]);
     };
 
-    MlirConvArgs args{};
-    cpyToMemRef(w, weights_dims, weights_strides, args.filter);
-    cpyToMemRef(in, in_dims, in_strides, args.input);
-    cpyToMemRef(out, out_dims, out_strides, args.output);
-    return args;
+    MemRef4DGeneric filter;
+    initializeMemRef(weights_dims, weights_strides, filter);
+    MemRef4DGeneric input;
+    initializeMemRef(in_dims, in_strides, input);
+    MemRef4DGeneric output;
+    initializeMemRef(out_dims, out_strides, output);
+
+    return {filter, input, output};
 }
 } // Anonymous namespace
 
@@ -104,20 +103,30 @@ InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
                             out_dims,
                             out_strides);
 
+    MlirConvArgs args =
+        MakeMlirConvArgs(in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides);
+
     return [=](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
             const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors  = data_ctx.tensors;
 
-            MlirConvArgs args = MakeMlirConvArgs(tensors.in,
-                                                 in_dims,
-                                                 in_strides,
-                                                 tensors.w,
-                                                 weights_dims,
-                                                 weights_strides,
-                                                 tensors.out,
-                                                 out_dims,
-                                                 out_strides);
+            // Filter
+            args.filter.basePtr =
+                const_cast<void*>(tensors.w); // NOLINT (cppcoreguidelines-pro-type-const-cast)
+            args.filter.data =
+                const_cast<void*>(tensors.w); // NOLINT (cppcoreguidelines-pro-type-const-cast)
+
+            // Input
+            args.input.basePtr =
+                const_cast<void*>(tensors.in); // NOLINT (cppcoreguidelines-pro-type-const-cast)
+            args.input.data =
+                const_cast<void*>(tensors.in); // NOLINT (cppcoreguidelines-pro-type-const-cast)
+
+            // Output
+            args.output.basePtr = tensors.out;
+            args.output.data    = tensors.out;
+
             handle.Run(kernels[0])(args);
             if(handle.IsProfilingEnabled())
             {
