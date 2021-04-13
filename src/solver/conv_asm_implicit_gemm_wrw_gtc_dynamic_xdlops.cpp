@@ -845,7 +845,8 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
     // MIOPEN_LOG_I2(kernel_name << " with groups for reduction: "
     //                           << (1 << log2_gemm_k_global_splits));
 
-    result.workspce_sz = GetWorkspaceSize(ctx);
+    const auto workspce_sz = GetWorkspaceSize(ctx);
+    result.workspce_sz     = workspce_sz;
 
     if(ctx.IsFp32())
         kernel.kernel_file = "igemm_wrw_gtc_gfx908.s";
@@ -882,28 +883,27 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
 
     auto opShapeArgs = ComputeDynamicIGemmWrwKernelArgs(conv_problem, log2_gemm_k_global_splits);
 
-    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            decltype(auto) data_ctx = primitive_parameters.CastTo<conv::WrWInvokeParams>();
-            const auto& tensors     = data_ctx.tensors;
-            const auto k            = handle.Run(kernels[0]);
+    if(conv_problem.IsFp32())
+    {
+        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+            return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+                decltype(auto) data_ctx = primitive_parameters.CastTo<conv::WrWInvokeParams>();
+                const auto& tensors     = data_ctx.tensors;
+                const auto k            = handle.Run(kernels[0]);
+                float elapsed           = 0;
+                float zero              = 0.f;
 
-            std::vector<OpKernelArg> opArgs;
-            opArgs.reserve(3 + opShapeArgs.size()); // Avoids vector resize.
-            opArgs.emplace_back(tensors.x);
-            opArgs.emplace_back(tensors.dw);
-            opArgs.emplace_back(tensors.dy);
+                std::vector<OpKernelArg> opArgs;
+                opArgs.reserve(3 + opShapeArgs.size()); // Avoids vector resize.
+                opArgs.emplace_back(tensors.x);
+                opArgs.emplace_back(tensors.dw);
+                opArgs.emplace_back(tensors.dy);
 
-            std::transform(opShapeArgs.begin(),
-                           opShapeArgs.end(),
-                           std::back_inserter(opArgs),
-                           [](const OpKernelArg& arg) { return arg; });
+                std::transform(opShapeArgs.begin(),
+                               opShapeArgs.end(),
+                               std::back_inserter(opArgs),
+                               [](const OpKernelArg& arg) { return arg; });
 
-            float elapsed = 0;
-            float zero    = 0.f;
-
-            if(conv_problem.IsFp32())
-            {
                 SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
@@ -911,50 +911,100 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
                 k(opArgs);
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
-            }
-            else if(conv_problem.IsFp16())
-            {
-                if(log2_gemm_k_global_splits > 0)
+
+                if(handle.IsProfilingEnabled())
                 {
-                    const auto& workSpace = data_ctx.workSpace;
-                    TensorDescriptor workspaceDesc(
-                        miopenFloat, tensors.dwDesc.GetLengths(), tensors.dwDesc.GetStrides());
-                    SetTensor(handle, workspaceDesc, workSpace, &zero);
-                    if(handle.IsProfilingEnabled())
-                        elapsed += handle.GetKernelTime();
-
-                    // replace dw by workspace for fp16 datatype
-                    opArgs[1] = workSpace;
-                    k(opArgs);
-                    if(handle.IsProfilingEnabled())
-                        elapsed += handle.GetKernelTime();
-
-                    CastTensor(handle,
-                               &lowp_quant,
-                               workspaceDesc,
-                               workSpace,
-                               tensors.dwDesc,
-                               tensors.dw,
-                               0,
-                               0);
-                    if(handle.IsProfilingEnabled())
-                        elapsed += handle.GetKernelTime();
+                    handle.ResetKernelTime();
+                    handle.AccumKernelTime(elapsed);
                 }
-                else
-                {
-                    k(opArgs);
-                    if(handle.IsProfilingEnabled())
-                        elapsed += handle.GetKernelTime();
-                }
-            }
-
-            if(handle.IsProfilingEnabled())
-            {
-                handle.ResetKernelTime();
-                handle.AccumKernelTime(elapsed);
-            }
+            };
         };
-    };
+    }
+    else if(conv_problem.IsFp16() && log2_gemm_k_global_splits > 0)
+    {
+        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+            return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+                decltype(auto) data_ctx   = primitive_parameters.CastTo<conv::WrWInvokeParams>();
+                const auto& tensors       = data_ctx.tensors;
+                const auto k              = handle.Run(kernels[0]);
+                const auto& workSpace     = data_ctx.workSpace;
+                const auto& workSpaceSize = data_ctx.workSpaceSize;
+                float elapsed             = 0;
+                float zero                = 0.f;
+
+                if(workSpace == nullptr || workSpaceSize == 0)
+                    MIOPEN_THROW("Workspace is required for ConvAsmImplicitGemmGTCDynamicWrwXdlops "
+                                 "with fp16 and atomic add.");
+
+                if(workSpaceSize < workspce_sz)
+                    MIOPEN_THROW("Not enough workspace has been provided for "
+                                 "ConvAsmImplicitGemmGTCDynamicWrwXdlops with fp16 and atomic "
+                                 "add.");
+
+                TensorDescriptor workspaceDesc(
+                    miopenFloat, tensors.dwDesc.GetLengths(), tensors.dwDesc.GetStrides());
+                SetTensor(handle, workspaceDesc, workSpace, &zero);
+                if(handle.IsProfilingEnabled())
+                    elapsed += handle.GetKernelTime();
+
+                std::vector<OpKernelArg> opArgs;
+                opArgs.reserve(3 + opShapeArgs.size()); // Avoids vector resize.
+                opArgs.emplace_back(tensors.x);
+                opArgs.emplace_back(workSpace);
+                opArgs.emplace_back(tensors.dy);
+
+                std::transform(opShapeArgs.begin(),
+                               opShapeArgs.end(),
+                               std::back_inserter(opArgs),
+                               [](const OpKernelArg& arg) { return arg; });
+
+                k(opArgs);
+                if(handle.IsProfilingEnabled())
+                    elapsed += handle.GetKernelTime();
+
+                CastTensor(handle,
+                           &lowp_quant,
+                           workspaceDesc,
+                           workSpace,
+                           tensors.dwDesc,
+                           tensors.dw,
+                           0,
+                           0);
+
+                if(handle.IsProfilingEnabled())
+                    elapsed += handle.GetKernelTime();
+
+                if(handle.IsProfilingEnabled())
+                {
+                    handle.ResetKernelTime();
+                    handle.AccumKernelTime(elapsed);
+                }
+            };
+        };
+    }
+    else
+    {
+        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+            return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+                decltype(auto) data_ctx = primitive_parameters.CastTo<conv::WrWInvokeParams>();
+                const auto& tensors     = data_ctx.tensors;
+                const auto k            = handle.Run(kernels[0]);
+
+                std::vector<OpKernelArg> opArgs;
+                opArgs.reserve(3 + opShapeArgs.size()); // Avoids vector resize.
+                opArgs.emplace_back(tensors.x);
+                opArgs.emplace_back(tensors.dw);
+                opArgs.emplace_back(tensors.dy);
+
+                std::transform(opShapeArgs.begin(),
+                               opShapeArgs.end(),
+                               std::back_inserter(opArgs),
+                               [](const OpKernelArg& arg) { return arg; });
+
+                k(opArgs);
+            };
+        };
+    }
 
     return result;
 }
