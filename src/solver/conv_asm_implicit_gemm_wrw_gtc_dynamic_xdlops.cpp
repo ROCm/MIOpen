@@ -582,6 +582,8 @@ static inline std::tuple<bool, // is valid
                     if(gemm_m % gemm_m_per_block != 0)
                         continue;
 
+                    // j = log2(gemm_k_per_block).
+                    // In wrw kernels, gemm_k_per_block={32, 16, 8, 4}, so j={5,4,3,2}.
                     for(int j = 5; j > 1; j--)
                     {
                         const auto gemm_k_per_block = 1 << j;
