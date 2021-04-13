@@ -9,7 +9,7 @@ ARG USE_TARGETID="OFF"
 RUN dpkg --add-architecture i386
 
 # Add rocm repository
-RUN if [ "$USE_TARGETID" = "ON" ] ; then sh -c 'echo deb [arch=amd64 trusted=yes] http://compute-artifactory.amd.com/artifactory/list/rocm-osdb-deb/ compute-rocm-dkms-no-npi-hipclang 6825 > /etc/apt/sources.list.d/rocm.list'; else sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/.apt_3.7/ xenial main > /etc/apt/sources.list.d/rocm.list'; fi
+RUN if [ "$USE_TARGETID" = "ON" ] ; then sh -c 'echo deb [arch=amd64 trusted=yes] http://compute-artifactory.amd.com/artifactory/list/rocm-osdb-deb/ compute-rocm-dkms-no-npi-hipclang 6416 > /etc/apt/sources.list.d/rocm.list'; else sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/.apt_3.7/ xenial main > /etc/apt/sources.list.d/rocm.list'; fi
 RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu xenial main universe | tee -a /etc/apt/sources.list"
 
 # Install dependencies
