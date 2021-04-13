@@ -236,7 +236,7 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
     }
     else if(miopen::EndsWith(filename, ".s"))
     {
-        const auto assembled = AmdgcnAssemble(src, params); // FIXME
+        const auto assembled = AmdgcnAssemble(src, params, target);
         WriteFile(assembled, hsaco_file);
     }
     else if(miopen::EndsWith(filename, ".cpp"))
