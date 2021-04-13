@@ -392,6 +392,7 @@ miopenStatus_t CallGemm(const Handle& handle,
     gemm_backend = enforce_gemm_backend(gemm_desc.dataType, gemm_backend);
 
 // do row-to-column major conversion here
+// add macro to distinguish MIOpenTensile and rocBlas logic
 #if MIOPEN_USE_MIOPENTENSILE
     if(gemm_desc.isColMajor)
 #else
@@ -687,6 +688,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
     gemm_backend = enforce_gemm_backend(gemm_desc.dataType, gemm_backend);
 
 // do row-to-column major conversion here
+// add macro to distinguish MIOpenTensile and rocBlas logic
 #if MIOPEN_USE_MIOPENTENSILE
     if(gemm_desc.isColMajor)
 #else
@@ -931,6 +933,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
     gemm_backend = enforce_gemm_backend(gemm_desc.dataType, gemm_backend);
 
 // do row-to-column major conversion here
+// add macro to distinguish MIOpenTensile and rocBlas logic
 #if MIOPEN_USE_MIOPENTENSILE
     if(gemm_desc.isColMajor)
 #else
