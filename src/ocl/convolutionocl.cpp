@@ -1665,7 +1665,7 @@ static void ConvWrwCheckNumerics(const Handle& handle,
 }
 
 // BackwardWeightsAlgorithm()
-void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
+void ConvolutionDescriptor::ConvolutionBackwardWeights(const Handle& handle,
                                                        const void* alpha,
                                                        const TensorDescriptor& dyDesc,
                                                        ConstData_t dy,

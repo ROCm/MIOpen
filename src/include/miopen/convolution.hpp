@@ -360,7 +360,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                      std::size_t workSpaceSize,
                                      bool exhaustiveSearch) const;
 
-    void ConvolutionBackwardWeights(Handle& handle,
+    void ConvolutionBackwardWeights(const Handle& handle,
                                     const void* alpha,
                                     const TensorDescriptor& dyDesc,
                                     ConstData_t dy,
