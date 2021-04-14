@@ -571,12 +571,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         COMMAND ${WINE_CMD} $<TARGET_FILE:addkernels> -no-recurse -guard GUARD_MIOPEN_KERNEL_INCLUDES_HPP_ -target ${PROJECT_BINARY_DIR}/include/miopen_kernel_includes.h -source ${MIOPEN_KERNEL_INCLUDES}
         COMMENT "Inlining MIOpen HIP kernel includes"
         )
-
-    add_custom_target(miopen_tidy_inlining
-        DEPENDS ${PROJECT_BINARY_DIR}/include/miopen_kernels.h ${PROJECT_BINARY_DIR}/include/miopen_kernel_includes.h
-        )
-
-    add_dependencies(tidy miopen_tidy_inlining)
 endif()
 
 if(MIOPEN_USE_COMGR)
