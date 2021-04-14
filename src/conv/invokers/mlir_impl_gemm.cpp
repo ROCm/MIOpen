@@ -60,7 +60,7 @@ void permuteDimStridesAllDir(const conv::ProblemDescription& conv_problem,
     std::make_tuple(out_dims, out_strides) = permuteDimsStrides(out.GetLengths(), out.GetStrides());
 }
 
-MlirConvArgs MakeMlirConvArgs(const std::vector<size_t>& in_dims,
+MlirConvArgs makeMlirConvArgs(const std::vector<size_t>& in_dims,
                               const std::vector<size_t>& in_strides,
                               const std::vector<size_t>& weights_dims,
                               const std::vector<size_t>& weights_strides,
@@ -104,7 +104,7 @@ InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
                             out_strides);
 
     MlirConvArgs args =
-        MakeMlirConvArgs(in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides);
+        makeMlirConvArgs(in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides);
 
     return [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
@@ -112,16 +112,16 @@ InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
             const auto& tensors  = data_ctx.tensors;
 
             // Filter
-            args.filter.basePtr =
-                const_cast<void*>(tensors.w); // NOLINT (cppcoreguidelines-pro-type-const-cast)
-            args.filter.data =
-                const_cast<void*>(tensors.w); // NOLINT (cppcoreguidelines-pro-type-const-cast)
+            // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
+            args.filter.basePtr = const_cast<void*>(reinterpret_cast<const void*>(tensors.w));
+            // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
+            args.filter.data = const_cast<void*>(reinterpret_cast<const void*>(tensors.w));
 
             // Input
-            args.input.basePtr =
-                const_cast<void*>(tensors.in); // NOLINT (cppcoreguidelines-pro-type-const-cast)
-            args.input.data =
-                const_cast<void*>(tensors.in); // NOLINT (cppcoreguidelines-pro-type-const-cast)
+            // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
+            args.input.basePtr = const_cast<void*>(reinterpret_cast<const void*>(tensors.in));
+            // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
+            args.input.data = const_cast<void*>(reinterpret_cast<const void*>(tensors.in));
 
             // Output
             args.output.basePtr = tensors.out;
