@@ -530,11 +530,12 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     set(KERNELS_BATCH)
     set(KERNELS_BATCH_ID 0)
     set(KERNELS_BATCH_SIZE 0)
+    set(KERNELS_SRC_BATCH_FACTOR 50 CACHE STRING "Amount of kernel source files to inline to a single object file.")
 
     foreach(KERNEL ${MIOPEN_KERNELS})
         list(APPEND KERNELS_BATCH ${KERNEL})
         math(EXPR KERNELS_BATCH_SIZE "1+${KERNELS_BATCH_SIZE}")
-        if(KERNELS_BATCH_SIZE EQUAL 50)
+        if(KERNELS_BATCH_SIZE EQUAL ${KERNELS_SRC_BATCH_FACTOR})
             # string(REPLACE "/" "_" KERNEL_SRC_OBJ_FILENAME ${KERNEL})
             # set(KERNEL_SRC_OBJ_FILENAME ${PROJECT_BINARY_DIR}/inlined_kernels/${KERNEL}.c)
             set(KERNEL_SRC_OBJ_FILENAME ${PROJECT_BINARY_DIR}/inlined_kernels/batch_${KERNELS_BATCH_ID}.c)
