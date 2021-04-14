@@ -39,4 +39,16 @@
 /// To be removed as soon as support for ROCm 3.x is discontinued.
 #define WORKAROUND_MLOPEN_ISSUE_1711 (HIP_PACKAGE_VERSION_FLAT < 4000000000ULL)
 
+#define ROCM_FEATURE_TARGETID_OFF (HIP_PACKAGE_VERSION_FLAT < 4001000000ULL)
+
+/// Return type of llvm.amdgcn.buffer.atomic.fadd.f32 can't be detected.
+/// With COMGR: llvm sends SIGABRT when return type is wrong.
+/// SIGABRT means that llvm instance can't be used anymore, therefore
+/// custom handling of this signal should not be used.
+/// Repetitive use of llvm instance after that would lead to UB.
+/// Without COMGR: at least 3.10 compiler doesn't care of return type of this atomic.
+/// Therefore auto-detection delivers wrong information we should not rely on.
+#define ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT \
+    (HIP_PACKAGE_VERSION_FLAT >= 4001021072ULL)
+
 #endif // GUARD_ROCM_FEATURES_HPP_

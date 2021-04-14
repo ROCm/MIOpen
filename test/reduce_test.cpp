@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/config.h>
 #include "driver.hpp"
 #include "test.hpp"
 #include "verify.hpp"
@@ -40,81 +41,9 @@
 
 #include "cpu_reduce_util.hpp"
 
-static void get_all_indexes(const std::vector<std::size_t>& dimLengths,
-                            int dim,
-                            std::vector<std::vector<std::size_t>>& indexes)
-{
-    if(dim < dimLengths.size())
-    {
-        std::vector<std::vector<std::size_t>> updated_indexes;
-
-        if(dim == 0)
-        {
-            assert(indexes.empty());
-            assert(dimLengths[dim] > 0);
-            for(std::size_t i = 0; i < dimLengths[dim]; i++)
-            {
-                std::vector<std::size_t> index = {i};
-
-                updated_indexes.push_back(index);
-            };
-        }
-        else
-        {
-            // go through all the current indexes
-            for(const auto& index : indexes)
-                for(std::size_t i = 0; i < dimLengths[dim]; i++)
-                {
-                    auto index_new = index;
-                    index_new.push_back(i);
-
-                    updated_indexes.push_back(index_new);
-                };
-        };
-
-        // update to the indexes (output)
-        indexes = updated_indexes;
-
-        // further to construct the indexes from the updated status
-        get_all_indexes(dimLengths, dim + 1, indexes);
-    };
-};
-
-static std::size_t get_offset_from_index(const std::vector<std::size_t>& strides,
-                                         const std::vector<std::size_t>& index)
-{
-    std::size_t offset = 0;
-
-    assert(strides.size() == index.size());
-
-    for(int i = 0; i < index.size(); i++)
-        offset += strides[i] * index[i];
-
-    return (offset);
-};
-
-static std::size_t get_flatten_offset(const std::vector<std::size_t>& lengths,
-                                      const std::vector<std::size_t>& index)
-{
-    std::size_t offset = 0;
-
-    assert(lengths.size() == index.size() && !index.empty());
-
-    int len            = lengths.size();
-    std::size_t stride = 1;
-
-    // for len==1, the loop is not executed
-    for(int i = len - 1; i > 0; i--)
-    {
-        offset += stride * index[i];
-
-        stride *= lengths[i];
-    };
-
-    offset += stride * index[0];
-
-    return (offset);
-};
+/// Not reproducible with ROCm 4.0 and 4.1.
+#define WORKAROUND_GPU_MEM_ACCESS_FAULT \
+    (HIP_PACKAGE_VERSION_MAJOR == 3 && HIP_PACKAGE_VERSION_MINOR == 7)
 
 template <class T, bool toVerifyData>
 struct verify_reduce_with_indices
@@ -354,7 +283,7 @@ struct verify_reduce_with_indices
                 for(int k                       = 0; k < invariantDims.size(); k++)
                     dst_index[invariantDims[k]] = index_1[k];
 
-                int dst_offset = get_offset_from_index(outStrides, dst_index);
+                auto dst_offset = get_offset_from_index(outStrides, dst_index);
 
                 // generate the part of the index belonging to the invariant dims
                 for(int k                       = 0; k < invariantDims.size(); k++)
@@ -620,7 +549,7 @@ struct verify_reduce_no_indices
                 for(int k                       = 0; k < invariantDims.size(); k++)
                     dst_index[invariantDims[k]] = index_1[k];
 
-                int dst_offset = get_offset_from_index(outStrides, dst_index);
+                auto dst_offset = get_offset_from_index(outStrides, dst_index);
 
                 // generate the part of the index belonging to the invariant dims
                 for(int k                       = 0; k < invariantDims.size(); k++)
@@ -758,7 +687,7 @@ struct reduce_driver : test_driver
     {
         add(inLengths, "D", generate_data(get_tensor_lengths()));
         add(toReduceDims, "R", generate_data(get_toreduce_dims()));
-        add(reduceOp, "ReduceOp", generate_data({0, 4, 5, 6, 7}));
+        add(reduceOp, "ReduceOp", generate_data({0, 1, 4, 5, 6, 7}));
         add(compTypeVal, "CompType", generate_data({1}));
         add(nanOpt, "N", generate_data({0, 1}));
         add(indicesOpt, "I", generate_data({0, 1}));
@@ -782,6 +711,22 @@ struct reduce_driver : test_driver
                 compTypeVal = static_cast<int>(miopenFloat);
         }
 
+#if WORKAROUND_GPU_MEM_ACCESS_FAULT
+        if(std::is_same<T, half_float::half>::value)
+        {
+            if(inLengths == std::vector<std::size_t>{4, 3, 60, 50} &&
+               toReduceDims == std::vector<int>{1, 2, 3} &&
+               ((reduceOp == 1 && compTypeVal == 1 && nanOpt == 1 && indicesOpt == 0) ||
+                (reduceOp == 4 && /*compTypeVal == X && nanOpt == X*/ indicesOpt == 0) ||
+                (reduceOp == 5 && compTypeVal == 1 && /*nanOpt == X &&*/ indicesOpt == 0) ||
+                (reduceOp == 6 && compTypeVal == 1 && /*nanOpt == X &&*/ indicesOpt == 0) ||
+                (reduceOp == 7 && compTypeVal == 1 && /*nanOpt == X &&*/ indicesOpt == 0)))
+            {
+                std::cout << "Workaround: Skipping the test." << std::endl;
+                return;
+            }
+        }
+#endif
         miopen::ReduceTensorDescriptor reduceDesc(
             static_cast<miopenReduceTensorOp_t>(reduceOp),
             static_cast<miopenDataType_t>(compTypeVal),
@@ -814,10 +759,11 @@ struct reduce_driver : test_driver
 
         unsigned long max_value;
 
-        if(reduceOp == MIOPEN_REDUCE_TENSOR_MUL || reduceOp == MIOPEN_REDUCE_TENSOR_NORM1 ||
-           reduceOp == MIOPEN_REDUCE_TENSOR_NORM2)
+        if(reduceOp == MIOPEN_REDUCE_TENSOR_MUL)
             max_value =
-                miopen_type<T>{} == miopenHalf ? 7 : miopen_type<T>{} == miopenInt8 ? 127 : 11;
+                miopen_type<T>{} == miopenHalf ? 41 : miopen_type<T>{} == miopenInt8 ? 127 : 111;
+        else if(reduceOp == MIOPEN_REDUCE_TENSOR_NORM1 || reduceOp == MIOPEN_REDUCE_TENSOR_NORM2)
+            max_value = 3;
         else
             max_value =
                 miopen_type<T>{} == miopenHalf ? 13 : miopen_type<T>{} == miopenInt8 ? 127 : 17;
@@ -827,15 +773,47 @@ struct reduce_driver : test_driver
                     tensor_elem_gen_checkboard_sign{}(is...));
         };
 
-        if(reduceOp == MIOPEN_REDUCE_TENSOR_NORM1 || reduceOp == MIOPEN_REDUCE_TENSOR_NORM2)
+        // Special data generation for MUL, to avoid all-zero and large accumulative error in the
+        // reduced result
+        auto gen_value_2 = [&](auto... is) {
+            auto rand_value = tensor_elem_gen_integer{max_value}(is...);
+            auto sign_value = tensor_elem_gen_checkboard_sign{}(is...);
+
+            return sign_value > 0.0 ? (rand_value + max_value) / (rand_value + max_value + 1)
+                                    : (rand_value + max_value + 1) / (rand_value + max_value);
+        };
+
+        bool need_indices =
+            ((reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX ||
+              reduceOp == MIOPEN_REDUCE_TENSOR_AMAX) &&
+             indicesOpt != MIOPEN_REDUCE_TENSOR_NO_INDICES);
+
+        // Special data generation for MIN/MAX/AMAX using a space of limitless number of values.
+        // This method is slower due to the use of rand(), it is usually used for manual testing
+        auto gen_value_3 = [&](auto... is) {
+            auto rand_upper   = tensor_elem_gen_integer{max_value}(is...);
+            auto sign_value   = tensor_elem_gen_checkboard_sign{}(is...);
+            double rand_ratio = static_cast<double>(rand() / (static_cast<double>(RAND_MAX)));
+
+            return rand_upper * sign_value * rand_ratio;
+        };
+
+        if(reduceOp == MIOPEN_REDUCE_TENSOR_MUL)
+            this->tolerance = 80 * 500;
+        else if(reduceOp == MIOPEN_REDUCE_TENSOR_NORM1 || reduceOp == MIOPEN_REDUCE_TENSOR_NORM2)
         {
             if(toReduceDims.size() == 4)
-                this->tolerance = 80 * 500;
+                this->tolerance = 80 * 100;
             else
                 this->tolerance = 80 * 10;
         };
 
-        auto inputTensor  = tensor<T>{this->inLengths}.generate(gen_value);
+        auto inputTensor = (reduceOp == MIOPEN_REDUCE_TENSOR_MUL)
+                               ? tensor<T>{this->inLengths}.generate(gen_value_2)
+                               : (need_indices || reduceOp == MIOPEN_REDUCE_TENSOR_NORM1 ||
+                                          reduceOp == MIOPEN_REDUCE_TENSOR_NORM2
+                                      ? tensor<T>{this->inLengths}.generate(gen_value_3)
+                                      : tensor<T>{this->inLengths}.generate(gen_value));
         auto outputTensor = tensor<T>{outLengths};
 
         std::fill(outputTensor.begin(), outputTensor.end(), convert_type<T>(0.0f));

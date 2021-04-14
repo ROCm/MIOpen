@@ -39,6 +39,9 @@ struct conv2d_driver : conv_driver<T>
         this->add(this->trans_output_pads,
                   "trans_output_pads",
                   this->generate_data(this->get_2d_trans_output_pads()));
+        this->add(this->in_layout, "in_layout", this->generate_data({"NCHW"}));
+        this->add(this->fil_layout, "fil_layout", this->generate_data({"NCHW"}));
+        this->add(this->out_layout, "out_layout", this->generate_data({"NCHW"}));
     }
 };
 

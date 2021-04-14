@@ -121,6 +121,7 @@ set( MIOpen_Source
     conv_algo_name.cpp
     conv/problem_description.cpp
     solver/gemm.cpp
+    solver/gemm_bwd.cpp
     dropout.cpp
     dropout_api.cpp
     readonlyramdb.cpp
@@ -152,6 +153,7 @@ set( MIOpen_Source
     include/miopen/mlir_build.hpp
     include/miopen/oclkernel.hpp
     include/miopen/tensor.hpp
+    include/miopen/tensor_layout.hpp
     include/miopen/tensor_ops.hpp
     include/miopen/pooling.hpp
     include/miopen/lrn.hpp

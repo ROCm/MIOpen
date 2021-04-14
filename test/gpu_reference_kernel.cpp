@@ -29,6 +29,7 @@
 #include <miopen/convolution.hpp>
 #include <miopen/problem_description.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/tensor_layout.hpp>
 #include <miopen/bfloat16.hpp>
 #include <vector>
 #include <cstdlib>
@@ -39,7 +40,6 @@
 #include "driver.hpp"
 #include "tensor_holder.hpp"
 #include "cpu_conv.hpp"
-#include "tensor_layout.hpp"
 
 enum tensor_layout_t
 {
@@ -356,12 +356,12 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
             std::vector<int> wei_strides;
             std::vector<int> out_strides;
 
-            std::string layout_default = tensor_layout_get_default(4);
+            std::string layout_default = miopen::tensor_layout_get_default(4);
             std::string layout_string  = tensor_layout_to_string(tensor_layout);
 
-            tensor_layout_to_strides(in_len, layout_default, layout_string, in_strides);
-            tensor_layout_to_strides(wei_len, layout_default, layout_string, wei_strides);
-            tensor_layout_to_strides(out_len, layout_default, layout_string, out_strides);
+            miopen::tensor_layout_to_strides(in_len, layout_default, layout_string, in_strides);
+            miopen::tensor_layout_to_strides(wei_len, layout_default, layout_string, wei_strides);
+            miopen::tensor_layout_to_strides(out_len, layout_default, layout_string, out_strides);
 
             tensor<TRef> in(in_len, in_strides);
             tensor<TRef> wei(wei_len, wei_strides);
@@ -731,12 +731,12 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
             std::vector<int> wei_strides;
             std::vector<int> out_strides;
 
-            std::string layout_default = tensor_layout_get_default(5);
+            std::string layout_default = miopen::tensor_layout_get_default(5);
             std::string layout_string  = tensor_layout_to_string(tensor_layout);
 
-            tensor_layout_to_strides(in_len, layout_default, layout_string, in_strides);
-            tensor_layout_to_strides(wei_len, layout_default, layout_string, wei_strides);
-            tensor_layout_to_strides(out_len, layout_default, layout_string, out_strides);
+            miopen::tensor_layout_to_strides(in_len, layout_default, layout_string, in_strides);
+            miopen::tensor_layout_to_strides(wei_len, layout_default, layout_string, wei_strides);
+            miopen::tensor_layout_to_strides(out_len, layout_default, layout_string, out_strides);
 
             tensor<TRef> in(in_len, in_strides);
             tensor<TRef> wei(wei_len, wei_strides);
