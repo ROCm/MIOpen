@@ -538,7 +538,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         if(KERNELS_BATCH_SIZE EQUAL ${KERNELS_SRC_BATCH_FACTOR})
             # string(REPLACE "/" "_" KERNEL_SRC_OBJ_FILENAME ${KERNEL})
             # set(KERNEL_SRC_OBJ_FILENAME ${PROJECT_BINARY_DIR}/inlined_kernels/${KERNEL}.c)
-            set(KERNEL_SRC_OBJ_FILENAME ${PROJECT_BINARY_DIR}/inlined_kernels/batch_${KERNELS_BATCH_ID}.c)
+            set(KERNEL_SRC_OBJ_FILENAME ${PROJECT_BINARY_DIR}/inlined_kernels/batch_${KERNELS_BATCH_ID}.cpp)
             add_custom_command(
                 OUTPUT ${KERNEL_SRC_OBJ_FILENAME}
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -554,7 +554,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     endforeach()
 
     if(KERNELS_BATCH_SIZE GREATER 0)
-        set(KERNEL_SRC_OBJ_FILENAME ${PROJECT_BINARY_DIR}/inlined_kernels/batch_${KERNELS_BATCH_ID}.c)
+        set(KERNEL_SRC_OBJ_FILENAME ${PROJECT_BINARY_DIR}/inlined_kernels/batch_${KERNELS_BATCH_ID}.cpp)
         add_custom_command(
             OUTPUT ${KERNEL_SRC_OBJ_FILENAME}
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
