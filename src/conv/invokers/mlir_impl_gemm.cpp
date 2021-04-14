@@ -111,21 +111,31 @@ InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
             const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors  = data_ctx.tensors;
 
-            // Filter
+            void* filter = nullptr;
+            void* input  = nullptr;
+            void* output = nullptr;
+#if MIOPEN_BACKEND_OPENCL
+            clGetMemObjectInfo(tensors.w, CL_MEM_HOST_PTR, sizeof(filter), &filter, nullptr);
+            clGetMemObjectInfo(tensors.in, CL_MEM_HOST_PTR, sizeof(input), &input, nullptr);
+            clGetMemObjectInfo(tensors.out, CL_MEM_HOST_PTR, sizeof(output), &output, nullptr);
+#elif MIOPEN_BACKEND_HIP
             // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
-            args.filter.basePtr = const_cast<void*>(reinterpret_cast<const void*>(tensors.w));
+            filter = const_cast<void*>(tensors.w);
             // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
-            args.filter.data = const_cast<void*>(reinterpret_cast<const void*>(tensors.w));
+            input = const_cast<void*>(tensors.in);
+            // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
+            output = const_cast<void*>(tensors.out);
+#endif
 
-            // Input
-            // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
-            args.input.basePtr = const_cast<void*>(reinterpret_cast<const void*>(tensors.in));
-            // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
-            args.input.data = const_cast<void*>(reinterpret_cast<const void*>(tensors.in));
+            if((filter == nullptr) || (input == nullptr) || (output == nullptr))
+                MIOPEN_THROW("Invalid device pointers");
 
-            // Output
-            args.output.basePtr = tensors.out;
-            args.output.data    = tensors.out;
+            args.filter.basePtr = filter;
+            args.filter.data    = filter;
+            args.input.basePtr  = input;
+            args.input.data     = input;
+            args.output.basePtr = output;
+            args.output.data    = output;
 
             handle.Run(kernels[0])(args);
             if(handle.IsProfilingEnabled())
