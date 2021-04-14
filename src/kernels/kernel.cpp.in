@@ -23,13 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_USE_CLANG_TIDY // Huge generated source
-#include "miopen_kernels.h"
-#endif
 #include <algorithm>
 #include <map>
 #include <miopen/kernel.hpp>
 #include <miopen/stringutils.hpp>
+
+#ifndef MIOPEN_USE_CLANG_TIDY // Huge generated source
+${KERNELS_DECLS}
+#endif
 
 namespace miopen {
 
