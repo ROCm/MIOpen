@@ -445,17 +445,17 @@ pipeline {
                     agent{ label rocmnode("vega20") }
                     environment{
                         config_targets = "test_conv2d"
-                        execute_cmd = "MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --limit 4 --disable-verification-cache"
+                        execute_cmd = "MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --limit 4 --disable-verification-cache --verbose"
                     }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: setup_flags + Int8_flags + Full_test, config_targets: config_targets, execute_cmd: execute_cmd)
+                        buildHipClangJobAndReboot( setup_flags: Int8_flags + Full_test, config_targets: config_targets, execute_cmd: execute_cmd)
                     }
                 }
                 stage('Fp32 OpenCL conv2d') {
                     agent{ label rocmnode("vega") }
                     environment{
                         config_targets = "test_conv2d "
-                        execute_cmd = "CTEST_PARALLEL_LEVEL=4  MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --limit 4 --disable-verification-cache"
+                        execute_cmd = "CTEST_PARALLEL_LEVEL=4  MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --limit 4 --disable-verification-cache --verbose"
                     }
                     steps{
                         buildHipClangJobAndReboot( compiler: 'g++', setup_flags: Full_test, config_targets: config_targets, execute_cmd: execute_cmd)
