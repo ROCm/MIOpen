@@ -788,6 +788,13 @@ struct ConvHipImplicitGemmV4R4Fwd : SolverBase<ConvolutionContext>
                              bool disableConfigOverrideFromEnv = false) const;
 };
 
+struct ConvHipImplicitGemmMlirCppFwd : SolverBase<ConvolutionContext>
+{
+    static std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+};
+
 struct PerformanceImplicitGemmV4R4GenXdlopsFwdFp32
     : Serializable<PerformanceImplicitGemmV4R4GenXdlopsFwdFp32>
 {
@@ -845,6 +852,13 @@ struct ConvHipImplicitGemmV4R4WrW : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const PerformanceImplicitGemmV4R4WrW& config,
                              bool disableConfigOverrideFromEnv = false) const;
+};
+
+struct ConvHipImplicitGemmMlirCppWrW : SolverBase<ConvolutionContext>
+{
+    static std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
 struct PerformanceImplicitGemmXdlops : Serializable<PerformanceImplicitGemmXdlops>
@@ -1238,6 +1252,13 @@ struct ConvHipImplicitGemmBwdDataV1R1 : SolverBase<ConvolutionContext>
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const;
 };
 
+struct ConvHipImplicitGemmMlirCppBwd : SolverBase<ConvolutionContext>
+{
+    static std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+};
+
 struct ConvHipImplicitGemmBwdDataV4R1 : SolverBase<ConvolutionContext>
 {
     static int CalculateNumberOfGemm(const ConvolutionContext& ctx);
@@ -1447,6 +1468,12 @@ struct ConvBinWinogradRxSf2x3g1 : SolverBase<ConvolutionContext>
     bool IsApplicable(const ConvolutionContext& params) const;
     bool IsDynamic() const { return true; }
     float GetWti(const ConvolutionContext& params) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
+};
+
+struct ConvBinWinogradRxSf2x3g1Fused : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
@@ -2154,6 +2181,80 @@ struct GemmFwd1x1_0_1 : GemmFwdBase
 };
 
 struct GemmFwdRest : GemmFwdBase
+{
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const
+    {
+        return GetWorkspaceSize(ctx, ctx.conv_problem);
+    }
+
+    bool IsApplicable(const ConvolutionContext& ctx) const
+    {
+        return IsApplicable(ctx, ctx.conv_problem);
+    }
+
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const
+    {
+        return GetSolution(ctx, ctx.conv_problem);
+    }
+
+    size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
+    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
+    ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
+};
+
+struct GemmBwdBase : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
+    bool IsDynamic() const { return true; }
+    float GetWti(const ConvolutionContext& ctx) const { return GetWti(ctx, ctx.conv_problem); }
+    float GetWti(const ExecutionContext& context, const conv::ProblemDescription& problem) const;
+};
+
+struct GemmBwd1x1_stride2 : GemmBwdBase
+{
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const
+    {
+        return GetWorkspaceSize(ctx, ctx.conv_problem);
+    }
+
+    bool IsApplicable(const ConvolutionContext& ctx) const
+    {
+        return IsApplicable(ctx, ctx.conv_problem);
+    }
+
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const
+    {
+        return GetSolution(ctx, ctx.conv_problem);
+    }
+
+    size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
+    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
+    ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
+};
+
+struct GemmBwd1x1_stride1 : GemmBwdBase
+{
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const
+    {
+        return GetWorkspaceSize(ctx, ctx.conv_problem);
+    }
+
+    bool IsApplicable(const ConvolutionContext& ctx) const
+    {
+        return IsApplicable(ctx, ctx.conv_problem);
+    }
+
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const
+    {
+        return GetSolution(ctx, ctx.conv_problem);
+    }
+
+    size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
+    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
+    ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
+};
+
+struct GemmBwdRest : GemmBwdBase
 {
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const
     {

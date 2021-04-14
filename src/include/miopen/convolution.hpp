@@ -99,6 +99,11 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
 
     int GetGroupCount() const;
 
+    TensorDescriptor GetForwardOutputTensorWithLayout(const TensorDescriptor& xDesc,
+                                                      const TensorDescriptor& wDesc,
+                                                      const std::string& yLayout,
+                                                      miopenDataType_t yType = miopenFloat) const;
+
     TensorDescriptor GetForwardOutputTensor(const TensorDescriptor& xDesc,
                                             const TensorDescriptor& wDesc,
                                             miopenDataType_t yType = miopenFloat) const;
@@ -155,6 +160,9 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
 
     std::vector<miopen::solver::ConvSolution>
     FindWinogradSolutions(const ConvolutionContext& ctx, const AnyInvokeParams& invoke_ctx) const;
+
+    std::vector<miopen::solver::ConvSolution>
+    FindDataGemmSolutions(const ConvolutionContext& ctx, const AnyInvokeParams& invoke_ctx) const;
 
     std::vector<miopen::solver::ConvSolution>
     FindDataImplicitGemmSolutions(Handle& handle,
@@ -218,12 +226,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                      Data_t workSpace,
                                      std::size_t workSpaceSize,
                                      solver::Id solver_id) const;
-
-    std::size_t BackwardDataGetWorkSpaceSizeGEMM(const TensorDescriptor& wDesc,
-                                                 const TensorDescriptor& dyDesc) const;
-
-    std::size_t BackwardDataGetWorkSpaceSizeGEMMTranspose(const TensorDescriptor& dyDesc,
-                                                          const TensorDescriptor& dxDesc) const;
 
     std::size_t BackwardDataGetWorkSpaceSize(Handle& handle,
                                              const TensorDescriptor& wDesc,

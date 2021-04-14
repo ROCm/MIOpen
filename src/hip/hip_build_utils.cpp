@@ -30,6 +30,8 @@
 #include <miopen/exec_utils.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/env.hpp>
+#include <miopen/rocm_features.hpp>
+#include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/target_properties.hpp>
 #include <boost/optional.hpp>
 #include <sstream>
@@ -84,32 +86,20 @@ inline const std::string& GetCoV3Option(const bool enable)
 }
 } // namespace
 
-struct LcOptionTargetStrings
-{
-    const std::string& device;
-    const std::string xnack;
-    const std::string sramecc;
-    LcOptionTargetStrings(const TargetProperties& target)
-        : device(target.Name()),
-          xnack(std::string{":xnack"} + (target.Xnack() ? "+" : "-")),
-          sramecc(std::string{":sramecc"} + (target.Sramecc() ? "+" : "-"))
-    {
-    }
-};
-
 static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
                                             const std::string& filename,
                                             std::string src,
                                             std::string params,
                                             const TargetProperties& target,
-                                            const bool testing_mode)
+                                            const bool testing_mode,
+                                            const bool sources_already_reside_on_filesystem)
 {
 #ifdef __linux__
     // Write out the include files
     // Let's assume includes are overkill for feature tests & optimize'em out.
     if(!testing_mode)
     {
-        auto inc_list = GetKernelIncList();
+        auto inc_list = GetHipKernelIncList();
         auto inc_path = tmp_dir->path;
         boost::filesystem::create_directories(inc_path);
         for(auto inc_file : inc_list)
@@ -118,8 +108,13 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
             WriteFile(inc_src, inc_path / inc_file);
         }
     }
-    src += "\nint main() {}\n";
-    WriteFile(src, tmp_dir->path / filename);
+
+    // Sources produced by MLIR-cpp already reside in tmp dir.
+    if(!sources_already_reside_on_filesystem)
+    {
+        src += "\nint main() {}\n";
+        WriteFile(src, tmp_dir->path / filename);
+    }
 
     // cppcheck-suppress unreadVariable
     const LcOptionTargetStrings lots(target);
@@ -254,6 +249,7 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 #endif
 }
 
+#ifndef ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
 static bool
 HipBuildTest(const std::string& program_name, std::string params, const TargetProperties& target)
 {
@@ -261,7 +257,7 @@ HipBuildTest(const std::string& program_name, std::string params, const TargetPr
     std::string source = miopen::GetKernelSrc(program_name);
     try
     {
-        std::ignore = HipBuildImpl(dir, program_name, source, params, target, true);
+        std::ignore = HipBuildImpl(dir, program_name, source, params, target, true, false);
     }
     catch(...)
     {
@@ -289,17 +285,25 @@ static bool DetectIfBufferAtomicFaddReturnsFloat(const TargetProperties& target)
     static const bool once = DetectIfBufferAtomicFaddReturnsFloatImpl(target);
     return once;
 }
+#endif
 
 boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
                                  const std::string& filename,
                                  std::string src,
                                  std::string params,
-                                 const TargetProperties& target)
+                                 const TargetProperties& target,
+                                 const bool sources_already_reside_on_filesystem)
 {
-    if(target.Name() == "gfx908")
+#ifndef ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
+    if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
         if(DetectIfBufferAtomicFaddReturnsFloat(target))
             params += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
-    return HipBuildImpl(tmp_dir, filename, src, params, target, false);
+#elif ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
+    if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
+        params += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
+#endif
+    return HipBuildImpl(
+        tmp_dir, filename, src, params, target, false, sources_already_reside_on_filesystem);
 }
 
 void bin_file_to_str(const boost::filesystem::path& file, std::string& buf)

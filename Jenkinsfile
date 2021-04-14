@@ -1,14 +1,5 @@
-
 def rocmnode(name) {
-    def node_name = 'rocmtest-trial'
-    if(name != '') {
-        node_name = node_name + ' && ' + name;
-    }
-    return node_name
-}
-
-def default_image_name() {
-    return 'miopen-hip-clang'
+    return 'rocmtest-trial && miopen && ' + name
 }
 
 def show_node_info() {
@@ -35,6 +26,12 @@ def cmake_build(compiler, flags, env4make, extradebugflags, prefixpath){
     if (prefixpath != "/usr/local") {
         configargs = "-DCMAKE_PREFIX_PATH=${prefixpath}"
     }
+    
+    if(!flags.contains('-DBUILD_DEV=On'))
+    {
+    	config_targets = 'install ' + config_targets
+    	flags = '-DCMAKE_INSTALL_PREFIX=../install ' + flags
+    }
 
     if (archive == true) {
         config_targets = "package"
@@ -42,10 +39,8 @@ def cmake_build(compiler, flags, env4make, extradebugflags, prefixpath){
     def cmd = """
         echo \$HSA_ENABLE_SDMA
         ulimit -c unlimited
-        rm -rf build
-        mkdir build
         cd build
-        CXX=${compilerpath} CXXFLAGS='-Werror' cmake ${configargs} -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_FLAGS='${test_flags}' -DCMAKE_CXX_FLAGS_DEBUG='${debug_flags}' ${flags} ..
+        CXX=${compilerpath} CXXFLAGS='-Werror' cmake ${configargs} -DMIOPEN_TEST_FLAGS='${test_flags}' -DCMAKE_CXX_FLAGS_DEBUG='${debug_flags}' ${flags} ..
         MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS=1 CTEST_PARALLEL_LEVEL=4 MIOPEN_VERIFY_CACHE_PATH=${vcache} MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 ${env4make} dumb-init make -j\$(nproc) ${config_targets}
     """
     echo cmd
@@ -65,7 +60,7 @@ def buildHipClangJob(Map conf, compiler){
         def prefixpath = conf.get("prefixpath", "/usr/local")
         def flags = conf.get("flags", "")
         def env4make = conf.get("env4make", "")
-        def image = conf.get("image", default_image_name())
+        def image = "miopen"
         def cmd = conf.get("cmd", "")
         def gpu_arch = conf.get("gpu_arch", "gfx900;gfx906")
         def codecov = conf.get("codecov", false)
@@ -105,6 +100,12 @@ def buildHipClangJob(Map conf, compiler){
             withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
                 timeout(time: 5, unit: 'HOURS')
                 {
+                    sh '''
+                        rm -rf build
+                        mkdir build
+                        rm -rf install
+                        mkdir install
+                    '''
                     if(cmd == ""){
                         cmake_build(compiler, flags, env4make, extradebugflags, prefixpath)
                     }else{
@@ -135,21 +136,18 @@ def reboot(){
 ///
 /// The only mandatory elements are Backend and BuildType; others are optional.
 ///
-/// DataType := { Half | BF16 | Int8 | FP32* }
-///   * "FP32" is the default and usually not specified.
+/// DataType := { Fp16 | Bf16 | Int8 | Fp32 }
 /// Backend := { Hip | OpenCL | HipNoGPU}
 /// Compiler := { Clang* | GCC* }
 ///   * "Clang" is the default for the Hip backend, and implies hip-clang compiler.
 ///     For the OpenCL backend, "Clang" implies the system x86 compiler.
 ///   * "GCC" is the default for OpenCL backend.
 ///   * The default compiler is usually not specified.
-/// BuildType := { Release | Debug [ BuildTypeModifier ] }
+/// BuildType := { Release* | Debug | Install } [ BuildTypeModifier ]
 ///   * BuildTypeModifier := { COMGR | Embedded | Static | Normal-Find | Fast-Find
-///                                  | Tensile | Tensile-Latest | Package | ... }
-/// TestSet := { All | Subset | Smoke* } [ Codecov ]
+///                            MLIR | Tensile | Tensile-Latest | Package | ... }
+/// TestSet := { All | Smoke* } [ Codecov ]
 ///   * "All" corresponds to "cmake -DMIOPEN_TEST_ALL=On".
-///   * "Subset" corresponds to Target- or BuildTypeModifier-specific subsetting of
-///     the "All" testset, e.g. -DMIOPEN_TEST_GFX908=On or -DMIOPEN_TEST_MIOTENSILE=On.
 ///   * "Smoke" (-DMIOPEN_TEST_ALL=Off) is the default and usually not specified.
 ///   * "Codecov" is optional code coverage analysis.
 /// Target := { gfx908 | Vega20 | Vega10 | Vega* }
@@ -160,17 +158,20 @@ pipeline {
     options {
         parallelsAlwaysFailFast()
     }
-    environment{
-        image = default_image_name()
+    parameters {
+        booleanParam(
+            name: "BUILD_CURRENT_STAGE",
+            defaultValue: true,
+            description: "Run current stage")
     }
     stages{
-        // Run all static analysis tests
         stage("Static checks"){
+            when { expression { params.BUILD_CURRENT_STAGE } }
             parallel{
-                stage('Clang Hip Tidy') {
+                stage('Hip Tidy') {
                     agent{  label rocmnode("nogpu") }
                     environment{
-                        cmd = "rm -rf build; mkdir build; cd build; CXX='/opt/rocm/llvm/bin/clang++' cmake -DMIOPEN_BACKEND=HIP -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
+                        cmd = "cd build; CXX='/opt/rocm/llvm/bin/clang++' cmake -DMIOPEN_BACKEND=HIP -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
                     }
                     steps{
                         script{
@@ -185,11 +186,10 @@ pipeline {
                         }
                     }
                 }
-
-                stage('Clang OpenCL Tidy') {
-                    agent{ label rocmnode("nogpu") }
+                stage('OpenCL Tidy') {
+                    agent{  label rocmnode("nogpu") }
                     environment{
-                        cmd = "rm -rf build; mkdir build; cd build; CXX='clang++-3.8' cmake -DMIOPEN_BACKEND=OpenCL -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
+                        cmd = "cd build; CXX='clang++-3.8' cmake -DMIOPEN_BACKEND=OpenCL -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
                     }
                     steps{
                         script{
@@ -204,7 +204,6 @@ pipeline {
                         }
                     }
                 }
-
                 stage('Clang Format') {
                     agent{ label rocmnode("nogpu") }
                     environment{
@@ -233,17 +232,15 @@ pipeline {
                 }
             }
         }
-
-
-       // Run package building
         stage("Packages"){
+            when { expression { params.BUILD_CURRENT_STAGE } }
             parallel {
-                stage('OpenCL Release Package') {
+                stage('OpenCL Package') {
                     agent{ label rocmnode("nogpu") }
                     steps{
                         script{
                             try{
-                                buildHipClangJob('g++', flags: '-DCMAKE_BUILD_TYPE=release', image: image+'-gfxall', gpu_arch: "gfx900;gfx906;gfx908")
+                                buildHipClangJob('g++', flags: '-DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx900;gfx906;gfx908")
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -256,12 +253,12 @@ pipeline {
                         }
                     }
                 }
-                stage("HIP Release Package /opt/rocm"){
+                stage("HIP Package /opt/rocm"){
                     agent{ label rocmnode("nogpu") }
                     steps{
                         script{
                             try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DCMAKE_BUILD_TYPE=release', image: image+'rocm-gfxall', prefixpath: '/opt/rocm', gpu_arch: "gfx900;gfx906;gfx908")
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DCMAKE_BUILD_TYPE=release', prefixpath: '/opt/rocm', gpu_arch: "gfx900;gfx906;gfx908")
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"

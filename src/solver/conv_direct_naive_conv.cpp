@@ -24,12 +24,12 @@
  *
  *******************************************************************************/
 
-#include "conv_direct_naive_conv.hpp"
+#include <miopen/solver/conv_direct_naive_conv.hpp>
 #include <miopen/solver.hpp>
-#include <ostream>
 #include <miopen/problem_description.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/stringutils.hpp>
+#include <ostream>
 
 namespace miopen {
 
@@ -54,12 +54,19 @@ std::string ConvDirectNaiveConvKernelName(const ConvolutionContext& ctx)
     else
         MIOPEN_THROW("unsupported convolution direction");
 
-    if(ctx.in_layout == "NCHW" || ctx.in_layout == "NCDHW")
+    if(ctx.IsLayoutDefault())
     {
         if(ctx.Is2d())
             kernel_name << "nchw_";
         else
             kernel_name << "ncdhw_";
+    }
+    else if(ctx.IsLayoutNHWC())
+    {
+        if(ctx.Is2d())
+            kernel_name << "nhwc_";
+        else
+            kernel_name << "ndhwc_";
     }
     else
         MIOPEN_THROW("unsupported tensor layout");
@@ -81,7 +88,7 @@ std::string ConvDirectNaiveConvKernelFile(const ConvolutionContext& ctx)
     const auto device_name = ctx.GetStream().GetDeviceName();
     if(device_name == "gfx906" || device_name == "gfx908")
     {
-        if(ctx.rmv.IsV3())
+        if(ctx.rmv.IsV3() && ctx.IsLayoutDefault())
             return "naive_conv_gcn.s";
     }
     return "naive_conv.cpp";
