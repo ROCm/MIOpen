@@ -938,7 +938,7 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
                     MIOPEN_THROW("Workspace is required for ConvAsmImplicitGemmGTCDynamicWrwXdlops "
                                  "with fp16 and atomic add.");
 
-                if(workSpaceSize < workspce_sz)
+                if(workSpace == nullptr || workSpaceSize < required_workspce_size)
                     MIOPEN_THROW("Not enough workspace has been provided for "
                                  "ConvAsmImplicitGemmGTCDynamicWrwXdlops with fp16 and atomic "
                                  "add.");
