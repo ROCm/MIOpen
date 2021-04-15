@@ -848,7 +848,7 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
     //                           << (1 << log2_gemm_k_global_splits));
 
     const auto required_workspace_size = GetWorkspaceSize(ctx);
-    result.workspce_sz     = required_workspace_size;
+    result.workspce_sz                 = required_workspace_size;
 
     if(ctx.IsFp32())
         kernel.kernel_file = "igemm_wrw_gtc_gfx908.s";
@@ -889,11 +889,12 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
     {
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-                decltype(auto) data_ctx = primitive_parameters.CastTo<conv::WrWInvokeParams>();
-                const auto& tensors     = data_ctx.tensors;
-                const auto k            = handle.Run(kernels[0]);
-                float elapsed           = 0;
-                float zero              = 0.f;
+                decltype(auto) wrw_invoke_params =
+                    primitive_parameters.CastTo<conv::WrWInvokeParams>();
+                const auto& tensors = wrw_invoke_params.tensors;
+                const auto k        = handle.Run(kernels[0]);
+                float elapsed       = 0;
+                float zero          = 0.f;
 
                 std::vector<OpKernelArg> opArgs;
                 opArgs.reserve(3 + opShapeArgs.size()); // Avoids vector resize.
@@ -924,23 +925,25 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
     }
     else if(conv_problem.IsFp16() && log2_gemm_k_global_splits > 0)
     {
+        TensorDescriptor workspaceDesc(miopenFloat,
+                                       conv_problem.GetWeights().GetLengths(),
+                                       conv_problem.GetWeights().GetStrides());
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-                decltype(auto) data_ctx   = primitive_parameters.CastTo<conv::WrWInvokeParams>();
-                const auto& tensors       = data_ctx.tensors;
+                decltype(auto) wrw_invoke_params =
+                    primitive_parameters.CastTo<conv::WrWInvokeParams>();
+                const auto& tensors       = wrw_invoke_params.tensors;
                 const auto k              = handle.Run(kernels[0]);
-                const auto& workSpace     = data_ctx.workSpace;
-                const auto& workSpaceSize = data_ctx.workSpaceSize;
+                const auto& workSpace     = wrw_invoke_params.workSpace;
+                const auto& workSpaceSize = wrw_invoke_params.workSpaceSize;
                 float elapsed             = 0;
                 float zero                = 0.f;
 
-                if(workSpace == nullptr || workSpaceSize < required_workspce_size)
+                if(workSpace == nullptr || workSpaceSize < required_workspace_size)
                     MIOPEN_THROW("Not enough workspace has been provided for "
                                  "ConvAsmImplicitGemmGTCDynamicWrwXdlops with fp16 and atomic "
                                  "add.");
 
-                TensorDescriptor workspaceDesc(
-                    miopenFloat, tensors.dwDesc.GetLengths(), tensors.dwDesc.GetStrides());
                 SetTensor(handle, workspaceDesc, workSpace, &zero);
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
@@ -984,9 +987,10 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
     {
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-                decltype(auto) data_ctx = primitive_parameters.CastTo<conv::WrWInvokeParams>();
-                const auto& tensors     = data_ctx.tensors;
-                const auto k            = handle.Run(kernels[0]);
+                decltype(auto) wrw_invoke_params =
+                    primitive_parameters.CastTo<conv::WrWInvokeParams>();
+                const auto& tensors = wrw_invoke_params.tensors;
+                const auto k        = handle.Run(kernels[0]);
 
                 std::vector<OpKernelArg> opArgs;
                 opArgs.reserve(3 + opShapeArgs.size()); // Avoids vector resize.
