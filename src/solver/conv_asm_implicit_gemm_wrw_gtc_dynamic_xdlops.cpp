@@ -847,8 +847,8 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
     // MIOPEN_LOG_I2(kernel_name << " with groups for reduction: "
     //                           << (1 << log2_gemm_k_global_splits));
 
-    const auto workspce_sz = GetWorkspaceSize(ctx);
-    result.workspce_sz     = workspce_sz;
+    const auto required_workspace_size = GetWorkspaceSize(ctx);
+    result.workspce_sz     = required_workspace_size;
 
     if(ctx.IsFp32())
         kernel.kernel_file = "igemm_wrw_gtc_gfx908.s";
@@ -938,7 +938,7 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
                     MIOPEN_THROW("Workspace is required for ConvAsmImplicitGemmGTCDynamicWrwXdlops "
                                  "with fp16 and atomic add.");
 
-                if(workSpaceSize < workspce_sz)
+                if(workSpaceSize < required_workspace_size)
                     MIOPEN_THROW("Not enough workspace has been provided for "
                                  "ConvAsmImplicitGemmGTCDynamicWrwXdlops with fp16 and atomic "
                                  "add.");
