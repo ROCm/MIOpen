@@ -866,7 +866,7 @@ pipeline {
             }
         }
         stage("MIOpenTensile"){
-            when { expression { params.BUILD_CURRENT_STAGE } }
+            when { expression { !params.BUILD_CURRENT_STAGE } }
             parallel{
                 stage('Fp32 Hip Tensile All Vega20') {
                     agent{ label rocmnode("vega20") }
