@@ -38,7 +38,6 @@
 #include <miopen/float_equal.hpp>
 #include <miopen/invoker.hpp>
 #include <miopen/kernel.hpp>
-#include <miopen/rocm_features.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/tensor.hpp>
