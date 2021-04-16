@@ -232,6 +232,10 @@ pipeline {
                 defaultValue: true,
                 description: "Run smoke AUX and Smoke Fp16/Bf16/Int8 stages")
         booleanParam(
+                name: "BUILD_SMOKE_AUX_LOW_VEGA20_EX",
+                defaultValue: false,
+                description: "Run extra Smoke Fp16/Bf16/Int8 tests for VEGA20 ")
+        booleanParam(
                 name: "BUILD_FULL_STAGES",
                 defaultValue: true,
                 description: "Run all FULL stages")
@@ -252,7 +256,7 @@ pipeline {
         Bf16_flags = " -DMIOPEN_TEST_BFLOAT16=On"
         Int8_flags = " -DMIOPEN_TEST_INT8=On"
         Full_test = " -DMIOPEN_TEST_ALL=On"
-        Full_test_limit = " -DMIOPEN_TEST_LIMIT=3"
+        Full_test_limit = " -DMIOPEN_TEST_ALL=On -DMIOPEN_TEST_LIMIT=3"
     }
     stages{
         stage("Static checks"){
@@ -303,10 +307,10 @@ pipeline {
                 Smoke_targets = "check doc MIOpenDriver"
             }
             parallel{
-               stage('Fp32 OpenCL Debug') {
+               stage('Fp32 OpenCL Debug + Codecov') {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', build_type: 'debug', config_targets: Smoke_targets)
+                        buildHipClangJobAndReboot(compiler: 'g++', build_type: 'debug', config_targets: Smoke_targets, codecov: true)
                     }
                 }
                 stage('Fp32 OpenCL') {
@@ -321,10 +325,10 @@ pipeline {
                         buildHipClangJobAndReboot(prefixpath: '/opt/rocm', config_targets: Smoke_targets)
                     }
                 }
-                stage('Fp32 Hip Debug') {
+                stage('Fp32 Hip Debug + Codecov') {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildHipClangJobAndReboot(build_type: 'debug', config_targets: Smoke_targets)
+                        buildHipClangJobAndReboot(build_type: 'debug', config_targets: Smoke_targets, codecov: true)
                     }
                 }
                 stage('Fp32 Hip Debug gfx908 /opt/rocm') {
@@ -437,35 +441,46 @@ pipeline {
                         buildHipClangJobAndReboot(build_type: 'debug', setup_flags: Bf16_flags + gfx908_test, prefixpath: '/opt/rocm', config_targets: Smoke_targets, gpu_arch: "gfx908")
                     }
                 }
+                stage('Fp16 OpenCL Vega20') {
+                    when { expression { params.BUILD_SMOKE_AUX_LOW_VEGA20_EX} }
+                    agent{ label rocmnode("vega20") }
+                    steps{
+                    }
+                }
+                stage('Int8 OpenCL Vega20') {
+                    when { expression { params.BUILD_SMOKE_AUX_LOW_VEGA20_EX} }
+                    agent{ label rocmnode("vega20") }
+                    steps{
+                    }
+                }
+                stage('Bf16 Hip Vega20 /opt/rocm') {
+                    when { expression { params.BUILD_SMOKE_AUX_LOW_VEGA20_EX} }
+                    agent{ label rocmnode("vega20") }
+                    steps{
+                        buildHipClangJobAndReboot(setup_flags: Bf16_flags, prefixpath: '/opt/rocm', config_targets: Smoke_targets)
+                    }
+                }
             }
         }
         stage("Full Tests I"){
             when { expression { params.BUILD_FULL_STAGES && !params.DISABLE_ALL_STAGES } }
             parallel{
-                stage('Int8 HIP conv2d All Vega20') {
+                stage('Int8 HIP All Vega20 /opt/rocm') {
                     agent{ label rocmnode("vega20") }
-                    environment{
-                        config_targets = "test_conv2d"
-                        execute_cmd = "MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --limit 3 --disable-verification-cache --verbose"
-                    }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Int8_flags + Full_test, config_targets: config_targets, execute_cmd: execute_cmd)
-                    }
-                }
-                stage('Fp32 OpenCL conv2d') {
-                    agent{ label rocmnode("vega") }
-                    environment{
-                        config_targets = "test_conv2d "
-                        execute_cmd = "CTEST_PARALLEL_LEVEL=4  MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --limit 3 --disable-verification-cache --verbose"
-                    }
-                    steps{
-                        buildHipClangJobAndReboot( compiler: 'g++', setup_flags: Full_test, config_targets: config_targets, execute_cmd: execute_cmd)
+                        buildHipClangJobAndReboot( setup_flags: Int8_flags + Full_test_limit, prefixpath: '/opt/rocm')
                     }
                 }
                 stage('Fp32 OpenCL Install All') {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, build_install: "true")
+                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test_limit, build_install: "true")
+                    }
+                }
+                stage('Bf16 Hip Install All gfx908') {
+                    agent{ label rocmnode("gfx908") }
+                    steps{
+                        buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test_limit + gfx908_test, build_install: "true", gpu_arch: "gfx908")
                     }
                 }
             }
@@ -477,13 +492,13 @@ pipeline {
                 stage('Fp32 Hip All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Full_test_limit + gfx908_test + Full_test, gpu_arch: "gfx908")
+                        buildHipClangJobAndReboot(setup_flags: Full_test_limit + gfx908_test, gpu_arch: "gfx908")
                     }
                 }
-                stage('Fp16 Hip All') {
+                stage('Fp16 Hip Install All Vega20') {
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Full_test_limit + Fp16_flags + Full_test)
+                        buildHipClangJobAndReboot( setup_flags: Full_test_limit + Fp16_flags, build_install: "true")
                     }
                 }
             }
@@ -491,29 +506,16 @@ pipeline {
         stage("Full tests III"){
             when { expression { params.BUILD_FULL_STAGES && !params.DISABLE_ALL_STAGES } }
             parallel{
-                stage('Fp32 Hip conv3d') {
+                stage('Fp32 Hip All Vega20') {
                     agent{ label rocmnode("vega20") }
-                    environment{
-                        config_targets = "test_conv3d"
-                        execute_cmd = "bin/test_conv3d --all --limit 3 --disable-verification-cache"
-                    }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Full_test_limit + Full_test, config_targets: config_targets, execute_cmd: execute_cmd )
-                    }
-                }
-                stage('Fp32 Hip conv2d All') {
-                    agent{ label rocmnode("vega20") }
-                    environment{
-                        setup_flag = "-DMIOPEN_SKIP_ALL_BUT_CONV2D=On"
-                    }
-                    steps{
-                        buildHipClangJobAndReboot( setup_flags: setup_flag + Full_test_limit + Full_test)
+                        buildHipClangJobAndReboot( setup_flags: Full_test_limit)
                     }
                 }
                 stage('Fp16 Hip All Install gfx908') {
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Full_test_limit + gfx908_test + Full_test + Fp16_flags, build_install: "true", gpu_arch: "gfx908")
+                        buildHipClangJobAndReboot(setup_flags: Full_test_limit + gfx908_test + Fp16_flags, build_install: "true", gpu_arch: "gfx908")
                     }
                 }
             }
@@ -529,25 +531,25 @@ pipeline {
                 stage('Fp32 Hip Tensile All Vega20') {
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test, build_env: Tensile_build_env)
+                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test_limit, build_env: Tensile_build_env)
                     }
                 }
                 stage('Fp32 Hip Tensile All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Full_test_limit + gfx908_test + Full_test + Tensile_setup, build_env: Tensile_build_env + extra_log_env, gpu_arch: "gfx908", test_flags: ' --verbose ')
+                        buildHipClangJobAndReboot( setup_flags: Full_test_limit + gfx908_test + Tensile_setup, build_env: Tensile_build_env + extra_log_env, gpu_arch: "gfx908", test_flags: ' --verbose ')
                     }
                 }
                 stage('Fp32 Hip Tensile-Latest All Vega20') {
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Full_test_limit + Full_test + Tensile_setup, build_env: Tensile_build_env, miotensile_version: "latest")
+                        buildHipClangJobAndReboot( setup_flags: Full_test_limit + Tensile_setup, build_env: Tensile_build_env, miotensile_version: "latest")
                     }
                 }
                 stage('Fp32 Hip Tensile-Latest All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Full_test_limit + gfx908_test + Full_test + Tensile_setup, build_env: Tensile_build_env + extra_log_env, gpu_arch: "gfx908", miotensile_version: "latest", test_flags: ' --verbose ')
+                        buildHipClangJobAndReboot( setup_flags: Full_test_limit + gfx908_test + Tensile_setup, build_env: Tensile_build_env + extra_log_env, gpu_arch: "gfx908", miotensile_version: "latest", test_flags: ' --verbose ')
                     }
                 }
             }
