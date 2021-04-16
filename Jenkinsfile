@@ -429,18 +429,6 @@ pipeline {
                         buildHipClangJobAndReboot( setup_flags: Fp16_flags, prefixpath: '/opt/rocm', config_targets: Smoke_targets)
                     }
                 }
-                stage('FP16 HIP Debug gfx908 /opt/rocm') {
-                    agent{ label rocmnode("gfx908") }
-                    steps{
-                        buildHipClangJobAndReboot(build_type: 'debug', setup_flags: Fp16_flags + gfx908_test, prefixpath: '/opt/rocm', config_targets: Smoke_targets, gpu_arch: "gfx908")
-                    }
-                }
-                stage('Bf16 Hip Debug gfx908 /opt/rocm') {
-                    agent{ label rocmnode("gfx908") }
-                    steps{
-                        buildHipClangJobAndReboot(build_type: 'debug', setup_flags: Bf16_flags + gfx908_test, prefixpath: '/opt/rocm', config_targets: Smoke_targets, gpu_arch: "gfx908")
-                    }
-                }
                 stage('Fp16 OpenCL Vega20') {
                     when { expression { params.BUILD_SMOKE_AUX_LOW_VEGA20_EX} }
                     agent{ label rocmnode("vega20") }
@@ -503,11 +491,6 @@ pipeline {
                         buildHipClangJobAndReboot( setup_flags: Full_test_limit + Fp16_flags, build_install: "true")
                     }
                 }
-            }
-        }
-        stage("Full tests III"){
-            when { expression { params.BUILD_FULL_STAGES && !params.DISABLE_ALL_STAGES } }
-            parallel{
                 stage('Fp32 Hip All Vega20') {
                     agent{ label rocmnode("vega20") }
                     steps{
