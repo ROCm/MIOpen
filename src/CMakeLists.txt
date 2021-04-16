@@ -531,7 +531,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     set(KERNELS_BATCH_ID 0)
     set(KERNELS_BATCHES)
 
-    function(inline_kernels_src BATCH_FACTOR KERNELS)
+    function(inline_kernels_src BATCH_FACTOR KERNELS SOURCE_LIST_TO_ADD_TO)
         set(KERNELS_BATCH)
         set(KERNELS_BATCH_SIZE 0)
 
@@ -548,7 +548,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
                     COMMAND ${WINE_CMD} $<TARGET_FILE:addkernels> -target ${KERNEL_SRC_CPP_FILENAME} -extern -source ${KERNELS_BATCH}
                     COMMENT "Inlining kernels batch #${KERNELS_BATCH_ID}"
                     )
-                list(APPEND MIOpen_Source ${KERNEL_SRC_CPP_FILENAME})
+                if (NOT SOURCE_LIST_TO_ADD_TO STREQUAL "")
+                    list(APPEND ${SOURCE_LIST_TO_ADD_TO} ${KERNEL_SRC_CPP_FILENAME})
+                endif()
                 set(KERNELS_BATCH)
                 set(KERNELS_BATCH_SIZE 0)
                 math(EXPR KERNELS_BATCH_ID "1+${KERNELS_BATCH_ID}")
@@ -565,15 +567,21 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
                 COMMAND ${WINE_CMD} $<TARGET_FILE:addkernels> -target ${KERNEL_SRC_CPP_FILENAME} -extern -source ${KERNELS_BATCH}
                 COMMENT "Inlining kernels batch #${KERNELS_BATCH_ID}"
                 )
-            list(APPEND MIOpen_Source ${KERNEL_SRC_CPP_FILENAME})
+            if (NOT SOURCE_LIST_TO_ADD_TO STREQUAL "")
+                list(APPEND ${SOURCE_LIST_TO_ADD_TO} ${KERNEL_SRC_CPP_FILENAME})
+            endif()
             math(EXPR KERNELS_BATCH_ID "1+${KERNELS_BATCH_ID}")
         endif()
 
         set(KERNELS_BATCHES "${KERNELS_BATCHES}" PARENT_SCOPE)
         set(KERNELS_BATCH_ID ${KERNELS_BATCH_ID} PARENT_SCOPE)
+        set(MIOpen_Source ${MIOpen_Source} PARENT_SCOPE)
+        if (NOT SOURCE_LIST_TO_ADD_TO STREQUAL "")
+            set(${SOURCE_LIST_TO_ADD_TO} ${${SOURCE_LIST_TO_ADD_TO}} PARENT_SCOPE)
+        endif()
     endfunction()
 
-    inline_kernels_src(${KERNELS_SRC_BATCH_FACTOR} "${MIOPEN_KERNELS}")
+    inline_kernels_src(${KERNELS_SRC_BATCH_FACTOR} "${MIOPEN_KERNELS}" MIOpen_Source)
 
     list(APPEND MIOpen_Source ${PROJECT_BINARY_DIR}/include/miopen_kernel_includes.h)
     add_custom_command(
