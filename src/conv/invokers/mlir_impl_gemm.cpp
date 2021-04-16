@@ -67,22 +67,19 @@ MlirConvArgs makeMlirConvArgs(const std::vector<size_t>& in_dims,
                               const std::vector<size_t>& out_dims,
                               const std::vector<size_t>& out_strides)
 {
-    auto initializeMemRef = [](const std::vector<size_t>& dims,
-                               const std::vector<size_t>& strides,
-                               MemRef4DGeneric& target) {
-        target.basePtr = nullptr;
-        target.data    = nullptr;
-        target.offset  = 0;
+    auto initDimStrides = [](const std::vector<size_t>& dims,
+                             const std::vector<size_t>& strides,
+                             MemRef4DGeneric& target) {
         std::copy(dims.cbegin(), dims.cend(), &target.sizes[0]);
         std::copy(strides.cbegin(), strides.cend(), &target.strides[0]);
     };
 
-    MemRef4DGeneric filter;
-    initializeMemRef(weights_dims, weights_strides, filter);
-    MemRef4DGeneric input;
-    initializeMemRef(in_dims, in_strides, input);
-    MemRef4DGeneric output;
-    initializeMemRef(out_dims, out_strides, output);
+    MemRef4DGeneric filter{nullptr, nullptr, 0, {0, 0, 0, 0}, {0, 0, 0, 0}};
+    initDimStrides(weights_dims, weights_strides, filter);
+    MemRef4DGeneric input{nullptr, nullptr, 0, {0, 0, 0, 0}, {0, 0, 0, 0}};
+    initDimStrides(in_dims, in_strides, input);
+    MemRef4DGeneric output{nullptr, nullptr, 0, {0, 0, 0, 0}, {0, 0, 0, 0}};
+    initDimStrides(out_dims, out_strides, output);
 
     return {filter, input, output};
 }
@@ -106,7 +103,7 @@ InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
     MlirConvArgs args =
         makeMlirConvArgs(in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides);
 
-    return [=](const std::vector<Kernel>& kernels) {
+    return [=](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
             const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors  = data_ctx.tensors;
