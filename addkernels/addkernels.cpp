@@ -197,8 +197,6 @@ void Process(const std::string& sourcePath,
     if(as_extern && variable.length() != 0)
     {
         variable = "MIOPEN_KERNEL_" + variable;
-        // target << "extern const size_t " << variable << "_SIZE;" << std::endl;
-        // target << "extern const unsigned char " << variable << "[];" << std::endl;
     }
 
     Bin2Hex(*source, target, variable, true, bufferSize, lineSize);
