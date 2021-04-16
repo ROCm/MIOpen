@@ -227,12 +227,15 @@ int main(int argsn, char** args)
                 *target << "#define " << guard << std::endl;
             }
 
-            *target << "#include <stddef.h>" << std::endl;
+            *target << "#ifndef MIOPEN_USE_CLANG_TIDY" << std::endl;
+            *target << "#include <cstddef>" << std::endl;
 
             while(++i < argsn)
             {
                 Process(args[i], *target, bufferSize, lineSize, recurse, as_extern);
             }
+
+            *target << "#endif" << std::endl;
 
             if(guard.length() > 0)
             {
