@@ -31,9 +31,9 @@
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_extra.hpp>
+#include <miopen/tensor_layout.hpp>
 #include <numeric>
 #include <vector>
-#include "../test/tensor_layout.hpp"
 
 std::vector<int> GetTensorLengths(miopenTensorDescriptor_t& tensor)
 {
@@ -125,14 +125,14 @@ int SetTensorNd(miopenTensorDescriptor_t t,
     }
 
     // Dimension lengths vector 'len' comes with a default layout.
-    std::string len_layout = tensor_layout_get_default(layout.size());
+    std::string len_layout = miopen::tensor_layout_get_default(layout.size());
     if(len_layout.empty())
     {
         return SetTensorNd(t, len, data_type);
     }
 
     std::vector<int> strides;
-    tensor_layout_to_strides(len, len_layout, layout, strides);
+    miopen::tensor_layout_to_strides(len, len_layout, layout, strides);
 
     return miopenSetTensorDescriptor(t, data_type, len.size(), len.data(), strides.data());
 }
