@@ -445,12 +445,14 @@ pipeline {
                     when { expression { params.BUILD_SMOKE_AUX_LOW_VEGA20_EX} }
                     agent{ label rocmnode("vega20") }
                     steps{
+                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Fp16_flags, config_targets: Smoke_targets)
                     }
                 }
                 stage('Int8 OpenCL Vega20') {
                     when { expression { params.BUILD_SMOKE_AUX_LOW_VEGA20_EX} }
                     agent{ label rocmnode("vega20") }
                     steps{
+                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Int8_flags, config_targets: Smoke_targets)
                     }
                 }
                 stage('Bf16 Hip Vega20 /opt/rocm') {

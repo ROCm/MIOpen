@@ -55,7 +55,6 @@ find_package(Threads REQUIRED)
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C ${CMAKE_CFG_INTDIR})
 add_custom_target(tests)
 
-set(SKIP_TESTS test_conv3d test_conv3d_bias)
 set(MIOPEN_TEST_NONXDLOPS TRUE)
 if(MIOPEN_TEST_GFX908)
     set(MIOPEN_TEST_NONXDLOPS FALSE)
@@ -66,8 +65,8 @@ set(SKIP_ALL_EXCEPT_TESTS dummy)
 set(SKIP_TESTS dummy) # dummy is for REMOVE_DUPLICATES
 set(MIOPEN_TEST_FLOAT_ARG)
 set(MIOPEN_SKIP_CONV3D Off CACHE BOOL "")
-set(MIOPEN_SKIP_CONV2D Off CACHE BOOL "")
-set(MIOPEN_SKIP_CONV2D_AUX On CACHE BOOL "")
+#set(MIOPEN_SKIP_CONV2D On CACHE BOOL "")
+#set(MIOPEN_SKIP_CONV2D_AUX Off CACHE BOOL "")
 set(MIOPEN_SKIP_ALL_BUT_CONV2D Off CACHE BOOL "")
 
 if(MIOPEN_TEST_HALF)
@@ -97,14 +96,6 @@ if(MIOPEN_SKIP_ALL_BUT_CONV2D)
     set(SKIP_ALL_EXCEPT_TESTS test_conv2d test_conv_group test_conv_igemm_dynamic test_conv_igemm_dynamic_small test_conv_trans test_immed_conv2d)
 endif()
 
-if(MIOPEN_TEST_ALL)
-    set(MIOPEN_SKIP_CONV2D_AUX Off)
-endif()
-
-if(MIOPEN_SKIP_CONV2D)
-    set(SKIP_TESTS test_conv2d test_conv_group test_conv_igemm_dynamic test_conv_igemm_dynamic_small test_conv_trans)
-    set(MIOPEN_SKIP_CONV2D_AUX On)
-endif()
 
 if(MIOPEN_TEST_MIOTENSILE)
     set(SKIP_ALL_EXCEPT_TESTS test_conv2d test_conv3d test_immed_conv2d test_immed_conv3d test_gru test_rnn_vanilla test_lstm test_gru_extra test_rnn_extra test_lstm_extra )
@@ -292,8 +283,6 @@ function(add_perf_test NAME)
 endfunction()
 
 
-if(NOT MIOPEN_SKIP_ALL_BUT_CONV2D)
-
 if(MIOPEN_TEST_DEEPBENCH)
     add_custom_test(test_deepbench_rnn
     COMMAND $<TARGET_FILE:test_rnn_vanilla> --verbose --batch-size 16 --seq-len 50 --vector-len 1760 --hidden-size 1760 --num-layers 1 --in-mode 1 --bias-mode 0 -dir-mode 0 --rnn-mode 0 --flat-batch-fill
@@ -457,11 +446,7 @@ COMMAND $<TARGET_FILE:test_conv3d> --verbose --conv_dim_type conv3d --input 16  
 )
 endif()
 
-endif()
-#end MIOPEN_SKIP_ALL_BUT_CONV2D
 
-
-if(NOT MIOPEN_SKIP_CONV2D_AUX)
 
 set(IMPLICITGEMM_ARGS ${MIOPEN_TEST_FLOAT_ARG})
 
@@ -887,6 +872,4 @@ endif()
     COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	1	32	28	28	--weights	1	32	5	5	--pads_strides_dilations	0	0	4	4	1	1
     COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	1	48	7	7	--weights	1	48	5	5	--pads_strides_dilations	0	0	4	4	1	1
 )
-endif() 
-
 
