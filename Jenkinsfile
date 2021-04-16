@@ -161,23 +161,23 @@ pipeline {
     parameters {
         booleanParam(
             name: "STATIC_CHECKS",
-            defaultValue: true
+            defaultValue: true,
             description: "")
         booleanParam(
             name: "SMOKE_TESTS",
-            defaultValue: true
+            defaultValue: true,
             description: "")
         booleanParam(
             name: "FULL_TESTS",
-            defaultValue: true
+            defaultValue: true,
             description: "")
         booleanParam(
             name: "MIOPENTENSILE",
-            defaultValue: false
+            defaultValue: true,
             description: "")
         booleanParam(
             name: "PACKAGES",
-            defaultValue: true
+            defaultValue: true,
             description: "")
     }
     stages{
