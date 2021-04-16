@@ -529,7 +529,6 @@ endif()
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
     set(KERNELS_SRC_BATCH_FACTOR 50 CACHE STRING "Amount of kernel source files to inline to a single object file.")
     set(KERNELS_BATCH_ID 0)
-    set(KERNELS_BATCHES)
 
     function(inline_kernels_src BATCH_FACTOR KERNELS SOURCE_LIST_TO_ADD_TO)
         set(KERNELS_BATCH)
@@ -537,10 +536,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
 
         foreach(KERNEL ${KERNELS})
             list(APPEND KERNELS_BATCH ${KERNEL})
-            math(EXPR KERNELS_BATCH_SIZE "1+${KERNELS_BATCH_SIZE}")
+            list(LENGTH KERNELS_BATCH KERNELS_BATCH_SIZE)
             if(KERNELS_BATCH_SIZE EQUAL ${BATCH_FACTOR})
                 set(KERNEL_SRC_CPP_FILENAME ${PROJECT_BINARY_DIR}/inlined_kernels/batch_${KERNELS_BATCH_ID}.cpp)
-                list(APPEND KERNELS_BATCHES ${KERNEL_SRC_CPP_FILENAME})
                 add_custom_command(
                     OUTPUT ${KERNEL_SRC_CPP_FILENAME}
                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -552,14 +550,12 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
                     list(APPEND ${SOURCE_LIST_TO_ADD_TO} ${KERNEL_SRC_CPP_FILENAME})
                 endif()
                 set(KERNELS_BATCH)
-                set(KERNELS_BATCH_SIZE 0)
                 math(EXPR KERNELS_BATCH_ID "1+${KERNELS_BATCH_ID}")
             endif()
         endforeach()
 
         if(KERNELS_BATCH_SIZE GREATER 0)
             set(KERNEL_SRC_CPP_FILENAME ${PROJECT_BINARY_DIR}/inlined_kernels/batch_${KERNELS_BATCH_ID}.cpp)
-            list(APPEND KERNELS_BATCHES ${KERNEL_SRC_CPP_FILENAME})
             add_custom_command(
                 OUTPUT ${KERNEL_SRC_CPP_FILENAME}
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -573,7 +569,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
             math(EXPR KERNELS_BATCH_ID "1+${KERNELS_BATCH_ID}")
         endif()
 
-        set(KERNELS_BATCHES "${KERNELS_BATCHES}" PARENT_SCOPE)
         set(KERNELS_BATCH_ID ${KERNELS_BATCH_ID} PARENT_SCOPE)
         set(MIOpen_Source ${MIOpen_Source} PARENT_SCOPE)
         if (NOT SOURCE_LIST_TO_ADD_TO STREQUAL "")
