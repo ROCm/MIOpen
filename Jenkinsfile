@@ -191,6 +191,10 @@ pipeline {
             defaultValue: true,
             description: "")
         booleanParam(
+            name: "MIOPENTENSILE_LATEST",
+            defaultValue: true,
+            description: "")
+        booleanParam(
             name: "PACKAGES",
             defaultValue: true,
             description: "")
@@ -901,7 +905,7 @@ pipeline {
                     }
                 }
 
-                stage('Half Hip Release Tensile Subset Vega20') {
+                stage('Fp16 Hip Tensile All Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
@@ -920,7 +924,7 @@ pipeline {
                     }
                 }
 
-                stage('Bfloat16 Hip Release Tensile Subset Vega20') {
+                stage('Bf16 Hip Tensile All Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
@@ -939,7 +943,7 @@ pipeline {
                     }
                 }
 
-                stage('Int8 Hip Release Tensile Subset Vega20') {
+                stage('Int8 Hip Tensile All Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
@@ -958,7 +962,7 @@ pipeline {
                     }
                 }
 
-                stage('Fp32 Hip Release Tensile All gfx908') {
+                stage('Fp32 Hip Tensile All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
@@ -975,7 +979,7 @@ pipeline {
                     }
                 }
 
-                stage('Half Hip Release Tensile Subset gfx908') {
+                stage('Fp16 Hip Tensile All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
@@ -994,7 +998,7 @@ pipeline {
                     }
                 }
 
-                stage('Bfloat16 Hip Release Tensile Subset gfx908') {
+                stage('Bf16 Hip Tensile All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
@@ -1013,7 +1017,7 @@ pipeline {
                     }
                 }
 
-                stage('Int8 Hip Release Tensile Subset gfx908') {
+                stage('Int8 Hip Tensile All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
@@ -1035,9 +1039,9 @@ pipeline {
         }
 
         stage("MIOpenTensile Latest"){
-            when { expression { params.BUILD_CURRENT_STAGE } }
+            when { expression { params.MIOPENTENSILE_LATEST } }
             parallel{
-                stage('Fp32 Hip Release Tensile-Latest All Vega20') {
+                stage('Fp32 Hip Tensile-Latest All Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
@@ -1054,7 +1058,7 @@ pipeline {
                     }
                 }
 
-                stage('Half Hip Release Tensile-Latest Subset Vega20') {
+                stage('Fp16 Hip Tensile-Latest All Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
@@ -1073,7 +1077,7 @@ pipeline {
                     }
                 }
 
-                stage('Bfloat16 Hip Release Tensile-Latest Subset Vega20') {
+                stage('Bf16 Hip Tensile-Latest All Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
@@ -1092,7 +1096,7 @@ pipeline {
                     }
                 }
 
-                stage('Int8 Hip Release Tensile-Latest Subset Vega20') {
+                stage('Int8 Hip Tensile-Latest All Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
@@ -1111,7 +1115,7 @@ pipeline {
                     }
                 }
 
-                stage('Fp32 Hip Release Tensile-Latest All gfx908') {
+                stage('Fp32 Hip Tensile-Latest All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
@@ -1128,7 +1132,7 @@ pipeline {
                     }
                 }
 
-                stage('Half Hip Release Tensile-Latest Subset gfx908') {
+                stage('Fp16 Hip Tensile-Latest All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
@@ -1147,7 +1151,7 @@ pipeline {
                     }
                 }
 
-                stage('Bfloat16 Hip Release Tensile-Latest Subset gfx908') {
+                stage('Bf16 Hip Tensile-Latest All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
@@ -1166,7 +1170,7 @@ pipeline {
                     }
                 }
 
-                stage('Int8 Hip Release Tensile-Latest Subset gfx908') {
+                stage('Int8 Hip Tensile-Latest All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         cmd = """
