@@ -325,10 +325,10 @@ pipeline {
                         buildHipClangJobAndReboot(prefixpath: '/opt/rocm', config_targets: Smoke_targets)
                     }
                 }
-                stage('Fp32 Hip Debug + Codecov') {
+                stage('Fp32 Hip Debug') {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildHipClangJobAndReboot(build_type: 'debug', config_targets: Smoke_targets, codecov: true)
+                        buildHipClangJobAndReboot(build_type: 'debug', config_targets: Smoke_targets)
                     }
                 }
                 stage('Fp32 Hip Debug gfx908 /opt/rocm') {
