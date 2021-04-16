@@ -46,11 +46,17 @@ void Bin2Hex(std::istream& source,
 
     if(variable.length() != 0)
     {
+        target << "#ifndef MIOPEN_USE_CLANG_TIDY" << std::endl;
         target << "const size_t " << variable << "_SIZE = " << std::setbase(10) << sourceSize << ";"
                << std::endl;
+        target << "#else" << std::endl;
+        target << "const size_t " << variable << "_SIZE = 0;"
+               << std::endl;
+        target << "#endif" << std::endl;
         target << "const unsigned char " << variable << "[] = {" << std::endl;
     }
 
+    target << "#ifndef MIOPEN_USE_CLANG_TIDY" << std::endl;
     target << std::setbase(16) << std::setfill('0');
     source.seekg(0, std::ios::beg);
 
@@ -78,7 +84,9 @@ void Bin2Hex(std::istream& source,
     }
 
     if(nullTerminate)
-        target << "0x00,";
+        target << "0x00," << std::endl;
+
+    target << "#endif" << std::endl;
 
     if(variable.length() != 0)
     {
@@ -189,8 +197,8 @@ void Process(const std::string& sourcePath,
     if(as_extern && variable.length() != 0)
     {
         variable = "MIOPEN_KERNEL_" + variable;
-        target << "extern const size_t " << variable << "_SIZE;" << std::endl;
-        target << "extern const unsigned char " << variable << "[];" << std::endl;
+        // target << "extern const size_t " << variable << "_SIZE;" << std::endl;
+        // target << "extern const unsigned char " << variable << "[];" << std::endl;
     }
 
     Bin2Hex(*source, target, variable, true, bufferSize, lineSize);
@@ -227,15 +235,12 @@ int main(int argsn, char** args)
                 *target << "#define " << guard << std::endl;
             }
 
-            *target << "#ifndef MIOPEN_USE_CLANG_TIDY" << std::endl;
             *target << "#include <cstddef>" << std::endl;
 
             while(++i < argsn)
             {
                 Process(args[i], *target, bufferSize, lineSize, recurse, as_extern);
             }
-
-            *target << "#endif" << std::endl;
 
             if(guard.length() > 0)
             {
