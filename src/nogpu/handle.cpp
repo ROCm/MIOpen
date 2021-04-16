@@ -166,7 +166,10 @@ Program Handle::LoadProgram(const std::string& program_name,
                             bool is_kernel_str,
                             const std::string& kernel_src) const
 {
-    params += " -mcpu=" + this->GetTargetProperties().Name();
+    if(!miopen::EndsWith(program_name, ".mlir-cpp"))
+    {
+        params += " -mcpu=" + this->GetTargetProperties().Name();
+    }
 
     auto hsaco = miopen::LoadBinary(this->GetTargetProperties(),
                                     this->GetMaxComputeUnits(),
