@@ -72,7 +72,7 @@ elseif(MIOPEN_TEST_INT8)
     set(MIOPEN_TEST_FLOAT_ARG --int8)
 elseif(MIOPEN_TEST_BFLOAT16)
     set(MIOPEN_TEST_FLOAT_ARG --bfloat16)
-else
+else()
     set(MIOPEN_TEST_FLOAT On)
 endif()
 
