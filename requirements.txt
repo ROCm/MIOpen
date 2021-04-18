@@ -3,4 +3,4 @@ RadeonOpenCompute/rocm-cmake@cdd0f632b3a65bd4411593bb827eb664e25c80bc --build
 RadeonOpenCompute/clang-ocl@930015924b012c332d373535ff31a663b6ad2c64
 ROCmSoftwarePlatform/MIOpenGEMM@0eb1257cfaef83ea155aabd67af4437c0028db48
 ROCmSoftwarePlatform/rocBLAS@9790a8658341bc665c11c311129ad0dfc533d5c4
-# ROCmSoftwarePlatform/MIOpenTensile@5fe0bf4a8dc59f3ab62df929297280915372ce16
+# ROCmSoftwarePlatform/MIOpenTensile@master

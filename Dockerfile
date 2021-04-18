@@ -3,12 +3,13 @@ FROM ubuntu:18.04
 ARG PREFIX=/usr/local
 ARG GPU_ARCH=";"
 ARG MIOTENSILE_VER="default"
+ARG USE_TARGETID="OFF"
 
 # Support multiarch
 RUN dpkg --add-architecture i386
 
 # Add rocm repository
-RUN sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/.apt_3.7/ xenial main > /etc/apt/sources.list.d/rocm.list'
+RUN if [ "$USE_TARGETID" = "ON" ] ; then sh -c 'echo deb [arch=amd64 trusted=yes] http://compute-artifactory.amd.com/artifactory/list/rocm-osdb-deb/ compute-rocm-dkms-no-npi-hipclang 6416 > /etc/apt/sources.list.d/rocm.list'; else sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/.apt_3.7/ xenial main > /etc/apt/sources.list.d/rocm.list'; fi
 RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu xenial main universe | tee -a /etc/apt/sources.list"
 
 # Install dependencies
@@ -84,15 +85,16 @@ ADD min-requirements.txt /min-requirements.txt
 RUN CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -f /min-requirements.txt
 RUN cget -p $PREFIX install danmar/cppcheck@dd05839a7e63ef04afd34711cb3e1e0ef742882f
 
-RUN export HIPCC_LINK_FLAGS_APPEND='-O3 -parallel-jobs=4'
-RUN export HIPCC_COMPILE_FLAGS_APPEND='-O3 -Wno-format-nonliteral -parallel-jobs=4'
-
 # Install doc requirements
 ADD doc/requirements.txt /doc-requirements.txt
 RUN pip install -r /doc-requirements.txt
 
-# install last released miopentensile in default, install latest commits when MIOTENSILE_VER="latest"
-RUN if [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@7568654c938d42e9a91c6b18fb382f5b978d12fd; else cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@5fe0bf4a8dc59f3ab62df929297280915372ce16; fi
+# Use parallel job to accelerate tensile build
+# Workaround for Tensile with TargetID feature
+RUN if [ "$USE_TARGETID" = "ON" ] ; then export HIPCC_LINK_FLAGS_APPEND='-O3 -parallel-jobs=4' && export HIPCC_COMPILE_FLAGS_APPEND='-O3 -Wno-format-nonliteral -parallel-jobs=4' && rm /usr/bin/hipcc; fi
+
+# install last released miopentensile in default (master), install latest commits when MIOTENSILE_VER="latest" (develop)
+RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."; elif [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@be26d30d3d7509a414134a45f4a6d49e5da250b8; else cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@4bfe00a8de61d12862d9fa803b8ea9a981a50f97; fi
 
 RUN cd ~ && \
     export MLIR_COMMIT=31d92f4c64ae6fa6b7c5d543f68b69300b4513ce && \
