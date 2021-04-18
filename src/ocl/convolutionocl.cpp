@@ -74,9 +74,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMPILE_ONLY)
 #if MIOPEN_USE_GEMM
 #ifdef CPPCHECK
 // Keep the value unknown in cppcheck since this can differ between opencl and hip
-static bool IsUseRocBlas;
+static bool IsBF16PathValid;
 #else
-static const bool IsUseRocBlas = (MIOPEN_USE_ROCBLAS == 1);
+static const bool IsBF16PathValid = (MIOPEN_USE_ROCBLAS == 1 || MIOPEN_USE_MIOPENTENSILE == 1);
 #endif
 
 static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
@@ -669,7 +669,7 @@ bool ConvolutionDescriptor::IsGemmApplicableWrw(const TensorDescriptor& dyDesc,
 {
 #if MIOPEN_USE_GEMM
     if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) &&
-       !(IsAnyBufferBF16(xDesc, dyDesc, dwDesc) && !IsUseRocBlas))
+       !(IsAnyBufferBF16(xDesc, dyDesc, dwDesc) && !IsBF16PathValid))
     {
         const std::size_t spatial_dim = GetSpatialDimension();
         const auto wei_spatial = boost::adaptors::slice(dwDesc.GetLengths(), 2, 2 + spatial_dim);
@@ -1644,7 +1644,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         perf_db = UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
 #if MIOPEN_USE_GEMM
             if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) &&
-               !(IsAnyBufferBF16(xDesc, dyDesc, dwDesc) && !IsUseRocBlas))
+               !(IsAnyBufferBF16(xDesc, dyDesc, dwDesc) && !IsBF16PathValid))
             {
                 const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
 
@@ -1934,7 +1934,7 @@ void ConvolutionDescriptor::BackwardWeightsGemm(Handle& handle,
     {
         MIOPEN_THROW("GEMM convolution is disabled");
     }
-    if(IsAnyBufferBF16(tensors.xDesc, tensors.dyDesc, tensors.dwDesc) && !IsUseRocBlas)
+    if(IsAnyBufferBF16(tensors.xDesc, tensors.dyDesc, tensors.dwDesc) && !IsBF16PathValid)
     {
         MIOPEN_THROW("GEMM convolution is unsupported");
     }
