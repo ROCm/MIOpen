@@ -80,7 +80,7 @@ elseif(MIOPEN_TEST_INT8)
 elseif(MIOPEN_TEST_BFLOAT16)
     set(SKIP_ALL_EXCEPT_TESTS test_conv2d test_tensor_copy test_tensor_set  test_immed_conv2d test_check_numerics_test test_conv_extra test_conv_for_implicit_gemm test_miopen_conv test_deepbench_conv)
     set(MIOPEN_TEST_FLOAT_ARG --bfloat16)                                                               
-else
+else()
     if(MIOPEN_TEST_GFX908)
         set(SKIP_TESTS test_main test_tensor_scale test_tensor_set test_tensor_transform test_tensor_vec test_w_supertensor test_dropout test_immed_conv3d test_conv3d test_soft_max test_fusion_aux test_activation test_lrn_test test_ctc test_conv2d_bias test_conv3d_bias test_cba_inference test_cbna_inference test_pooling2d test_na_train test_na_inference test_bn_aux test_conv_igemm_dynamic $SKIP_TESTS)
     endif()
