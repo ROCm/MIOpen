@@ -149,20 +149,13 @@ static GemmBackend_t enforce_gemm_backend(miopenDataType_t data_type,
 
 // make sure backend chosen based on env variable is suppported
 #if MIOPEN_USE_MIOPENTENSILE
+    (void)data_type;
     switch(gemm_backend_env)
     {
     case GemmBackend_t::nogemmbackend: gemm_backend_enforced = GemmBackend_t::nogemmbackend; break;
     case GemmBackend_t::rocblas:
     case GemmBackend_t::miopengemm:
-    case GemmBackend_t::miopentensile:
-        gemm_backend_enforced = (data_type == miopenFloat) ? GemmBackend_t::miopentensile :
-#if MIOPEN_USE_ROCBLAS
-                                                           GemmBackend_t::rocblas
-#else
-                                                           GemmBackend_t::nogemmbackend
-#endif
-            ;
-        break;
+    case GemmBackend_t::miopentensile: gemm_backend_enforced = GemmBackend_t::miopentensile; break;
     }
 #elif MIOPEN_USE_ROCBLAS and MIOPEN_USE_MIOPENGEMM
     switch(gemm_backend_env)
@@ -270,8 +263,49 @@ miopenStatus_t CallGemmMIOpenTensile(const Handle& handle,
 {
     MIOPEN_LOG_FUNCTION("MIOpenTensile");
 
-    if(gemm_desc.dataType != miopenFloat)
-        return miopenStatusNotImplemented;
+    miopen_tensile_type miotsl_in_dtype, miotsl_out_dtype;
+    Data_t ptrA, ptrB, ptrC;
+    switch(gemm_desc.dataType)
+    {
+    case miopenFloat:
+        miotsl_in_dtype = miopen_tensile_type_float;
+        ptrA            = Data_t(reinterpret_cast<const float*>(A) + a_offset);
+        ptrB            = Data_t(reinterpret_cast<const float*>(B) + b_offset);
+        ptrC            = Data_t(reinterpret_cast<float*>(C) + c_offset);
+        break;
+    case miopenHalf:
+        miotsl_in_dtype = miopen_tensile_type_half;
+        ptrA            = Data_t(reinterpret_cast<const half_float::half*>(A) + a_offset);
+        ptrB            = Data_t(reinterpret_cast<const half_float::half*>(B) + b_offset);
+        ptrC            = Data_t(reinterpret_cast<half_float::half*>(C) + c_offset);
+        break;
+    case miopenBFloat16:
+        miotsl_in_dtype = miopen_tensile_type_bfloat16;
+        ptrA            = Data_t(reinterpret_cast<const unsigned short*>(A) + a_offset);
+        ptrB            = Data_t(reinterpret_cast<const unsigned short*>(B) + b_offset);
+        ptrC            = Data_t(reinterpret_cast<unsigned short*>(C) + c_offset);
+        break;
+    case miopenInt32:
+        miotsl_in_dtype = miopen_tensile_type_int32;
+        ptrA            = Data_t(reinterpret_cast<const int32_t*>(A) + a_offset);
+        ptrB            = Data_t(reinterpret_cast<const int32_t*>(B) + b_offset);
+        ptrC            = Data_t(reinterpret_cast<int32_t*>(C) + c_offset);
+        break;
+    case miopenInt8:
+    case miopenInt8x4:
+        miotsl_in_dtype = miopen_tensile_type_int8x4;
+        ptrA            = Data_t(reinterpret_cast<const int8_t*>(A) + a_offset);
+        ptrB            = Data_t(reinterpret_cast<const int8_t*>(B) + b_offset);
+        ptrC            = Data_t(reinterpret_cast<int32_t*>(C) + c_offset);
+    }
+    if(gemm_desc.dataType == miopenInt8 || gemm_desc.dataType == miopenInt8x4)
+    {
+        miotsl_out_dtype = miopen_tensile_type_int32;
+    }
+    else
+    {
+        miotsl_out_dtype = miotsl_in_dtype;
+    }
 
 #if MIOPEN_BACKEND_HIP
     HipEventPtr start = nullptr;
@@ -302,21 +336,21 @@ miopenStatus_t CallGemmMIOpenTensile(const Handle& handle,
     miopen_tensile_matrix mtA{{mtA_len0, mtA_len1},
                               {mtA_str0, mtA_str1},
                               {mtA_b_n, mtA_b_str},
-                              miopen_tensile_type_float,
+                              miotsl_in_dtype,
                               gemm_desc.transA,
-                              Data_t(reinterpret_cast<const float*>(A) + a_offset)};
+                              ptrA};
     miopen_tensile_matrix mtB{{mtB_len0, mtB_len1},
                               {mtB_str0, mtB_str1},
                               {mtB_b_n, mtB_b_str},
-                              miopen_tensile_type_float,
+                              miotsl_in_dtype,
                               gemm_desc.transB,
-                              Data_t(reinterpret_cast<const float*>(B) + b_offset)};
+                              ptrB};
     miopen_tensile_matrix mtC{{mtC_len0, mtC_len1},
                               {mtC_str0, mtC_str1},
                               {mtC_b_n, mtC_b_str},
-                              miopen_tensile_type_float,
+                              miotsl_out_dtype,
                               false,
-                              Data_t(reinterpret_cast<float*>(C) + c_offset)};
+                              ptrC};
 
     miopen_tensile_status mt_status = miopen_tensile_status_no_solution;
 #if MIOPEN_BACKEND_HIP
@@ -358,13 +392,9 @@ miopenStatus_t CallGemm(const Handle& handle,
     gemm_backend = enforce_gemm_backend(gemm_desc.dataType, gemm_backend);
 
 // do row-to-column major conversion here
+// add macro to distinguish MIOpenTensile and rocBlas logic
 #if MIOPEN_USE_MIOPENTENSILE
-    if((gemm_desc.isColMajor && gemm_desc.dataType == miopenFloat)
-#if MIOPEN_USE_ROCBLAS
-       ||
-       (!gemm_desc.isColMajor && gemm_desc.dataType != miopenFloat)
-#endif
-           )
+    if(gemm_desc.isColMajor)
 #else
     if(!gemm_desc.isColMajor)
 #endif
@@ -658,13 +688,9 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
     gemm_backend = enforce_gemm_backend(gemm_desc.dataType, gemm_backend);
 
 // do row-to-column major conversion here
+// add macro to distinguish MIOpenTensile and rocBlas logic
 #if MIOPEN_USE_MIOPENTENSILE
-    if((gemm_desc.isColMajor && gemm_desc.dataType == miopenFloat)
-#if MIOPEN_USE_ROCBLAS
-       ||
-       (!gemm_desc.isColMajor && gemm_desc.dataType != miopenFloat)
-#endif
-           )
+    if(gemm_desc.isColMajor)
 #else
     if(!gemm_desc.isColMajor)
 #endif
@@ -907,13 +933,9 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
     gemm_backend = enforce_gemm_backend(gemm_desc.dataType, gemm_backend);
 
 // do row-to-column major conversion here
+// add macro to distinguish MIOpenTensile and rocBlas logic
 #if MIOPEN_USE_MIOPENTENSILE
-    if((gemm_desc.isColMajor && gemm_desc.dataType == miopenFloat)
-#if MIOPEN_USE_ROCBLAS
-       ||
-       (!gemm_desc.isColMajor && gemm_desc.dataType != miopenFloat)
-#endif
-           )
+    if(gemm_desc.isColMajor)
 #else
     if(!gemm_desc.isColMajor)
 #endif
