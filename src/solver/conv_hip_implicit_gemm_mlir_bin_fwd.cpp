@@ -60,9 +60,6 @@ bool ConvHipImplicitGemmMlirBinFwd::IsApplicable(const ConvolutionContext& ctx) 
 #if MIOPEN_USE_MLIR
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_HIP_IMPLICIT_GEMM_MLIR_BIN_FWD{}))
         return false;
-    // Future: MLIR-binary solutions do not take long time to build
-    if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
-        return false;
     // Future: MLIR will support non-default layouts.
     if(!ctx.IsLayoutDefault())
         return false;
