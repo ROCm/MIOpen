@@ -26,7 +26,7 @@ def cmake_build(compiler, flags, env4make, extradebugflags, prefixpath){
     if (prefixpath != "/usr/local") {
         configargs = "-DCMAKE_PREFIX_PATH=${prefixpath}"
     }
-    
+
     if(!flags.contains('-DBUILD_DEV=On'))
     {
     	config_targets = 'install ' + config_targets
@@ -183,6 +183,10 @@ pipeline {
             defaultValue: true,
             description: "")
         booleanParam(
+            name: "SMOKE_MIOPENTENSILE_LATEST",
+            defaultValue: true,
+            description: "")
+        booleanParam(
             name: "FULL_TESTS",
             defaultValue: true,
             description: "")
@@ -192,7 +196,7 @@ pipeline {
             description: "")
         booleanParam(
             name: "MIOPENTENSILE_LATEST",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "PACKAGES",
@@ -333,7 +337,6 @@ pipeline {
                             CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug -DMIOPEN_TEST_FLAGS=--disable-verification-cache ..
                             CTEST_PARALLEL_LEVEL=4 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
                         """
-
                     }
                     steps{
                         script{
@@ -423,7 +426,6 @@ pipeline {
                             CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_EMBED_DB="gfx906_60;gfx906_64" -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
                             MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check
                         """
-
                     }
                     steps{
                         script{
@@ -685,6 +687,81 @@ pipeline {
                 }
             }
         }
+        stage("Smoke MIOpenTensile Latest"){
+            when { expression { params.SMOKE_MIOPENTENSILE_LATEST } }
+            parallel{
+                stage('Fp16 Hip Tensile-Latest Vega20') {
+                    agent{ label rocmnode("vega20") }
+                    environment{
+                        cmd = """
+                            ulimit -c unlimited
+                            rm -rf build
+                            mkdir build
+                            cd build
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_TEST_HALF=On -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF -DMIOPEN_TEST_FLAGS=--disable-verification-cache ..
+                            MIOPEN_DEBUG_HIP_KERNELS=0 CTEST_PARALLEL_LEVEL=4 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
+                        """
+                    }
+                    steps{
+                        script{
+                            tensileStage(cmd, "gfx906:xnack-", "latest", "ON")
+                        }
+                    }
+                }
+                stage('Int8 Hip Tensile-Latest Vega20') {
+                    agent{ label rocmnode("vega20") }
+                    environment{
+                        cmd = """
+                            ulimit -c unlimited
+                            rm -rf build
+                            mkdir build
+                            cd build
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF ..
+                            MIOPEN_DEBUG_HIP_KERNELS=0 MIOPEN_LOG_LEVEL=5 CTEST_PARALLEL_LEVEL=4 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
+                        """
+                    }
+                    steps{
+                        script{
+                            tensileStage(cmd, "gfx906:xnack-", "latest", "ON")
+                        }
+                    }
+                }
+                stage('Fp32 Hip Tensile-Latest gfx908') {
+                    agent{ label rocmnode("gfx908") }
+                    environment{
+                        cmd = """
+                            ulimit -c unlimited
+                            cd build
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_TEST_GFX908=On -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
+                            MIOPEN_DEBUG_HIP_KERNELS=0 MIOPEN_LOG_LEVEL=5 CTEST_PARALLEL_LEVEL=4 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
+                        """
+                    }
+                    steps{
+                        script{
+                            tensileStage(cmd, "gfx908:xnack-", "latest", "ON")
+                        }
+                    }
+                }
+                stage('Bf16 Hip Tensile-Latest gfx908') {
+                    agent{ label rocmnode("gfx908") }
+                    environment{
+                        cmd = """
+                            ulimit -c unlimited
+                            rm -rf build
+                            mkdir build
+                            cd build
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF ..
+                            MIOPEN_DEBUG_HIP_KERNELS=0 MIOPEN_LOG_LEVEL=5 CTEST_PARALLEL_LEVEL=4 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
+                        """
+                    }
+                    steps{
+                        script{
+                            tensileStage(cmd, "gfx908:xnack-", "latest", "ON")
+                        }
+                    }
+                }
+            }
+        }
         stage("Full tests I"){
             when { expression { params.FULL_TESTS } }
             parallel{
@@ -839,7 +916,6 @@ pipeline {
                             CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=Off -DCMAKE_INSTALL_PREFIX=../install -DCMAKE_BUILD_TYPE=release -DMIOPEN_TEST_HALF=On -DMIOPEN_TEST_ALL=On -DMIOPEN_TEST_FLAGS=--disable-verification-cache ..
                             CTEST_PARALLEL_LEVEL=4 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) install check
                         """
-
                     }
                     steps{
                         script{
@@ -904,7 +980,6 @@ pipeline {
                         }
                     }
                 }
-
                 stage('Fp16 Hip Tensile All Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
@@ -923,7 +998,6 @@ pipeline {
                         }
                     }
                 }
-
                 stage('Bf16 Hip Tensile All Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
@@ -942,7 +1016,6 @@ pipeline {
                         }
                     }
                 }
-
                 stage('Int8 Hip Tensile All Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
@@ -961,7 +1034,6 @@ pipeline {
                         }
                     }
                 }
-
                 stage('Fp32 Hip Tensile All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
@@ -978,7 +1050,6 @@ pipeline {
                         }
                     }
                 }
-
                 stage('Fp16 Hip Tensile All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
@@ -997,7 +1068,6 @@ pipeline {
                         }
                     }
                 }
-
                 stage('Bf16 Hip Tensile All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
@@ -1016,7 +1086,6 @@ pipeline {
                         }
                     }
                 }
-
                 stage('Int8 Hip Tensile All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
@@ -1037,7 +1106,6 @@ pipeline {
                 }
             }
         }
-
         stage("MIOpenTensile Latest"){
             when { expression { params.MIOPENTENSILE_LATEST } }
             parallel{
@@ -1057,7 +1125,6 @@ pipeline {
                         }
                     }
                 }
-
                 stage('Fp16 Hip Tensile-Latest All Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
@@ -1076,7 +1143,6 @@ pipeline {
                         }
                     }
                 }
-
                 stage('Bf16 Hip Tensile-Latest All Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
@@ -1095,7 +1161,6 @@ pipeline {
                         }
                     }
                 }
-
                 stage('Int8 Hip Tensile-Latest All Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
@@ -1114,7 +1179,6 @@ pipeline {
                         }
                     }
                 }
-
                 stage('Fp32 Hip Tensile-Latest All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
@@ -1131,7 +1195,6 @@ pipeline {
                         }
                     }
                 }
-
                 stage('Fp16 Hip Tensile-Latest All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
@@ -1150,7 +1213,6 @@ pipeline {
                         }
                     }
                 }
-
                 stage('Bf16 Hip Tensile-Latest All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
@@ -1169,7 +1231,6 @@ pipeline {
                         }
                     }
                 }
-
                 stage('Int8 Hip Tensile-Latest All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
@@ -1233,4 +1294,3 @@ pipeline {
         }
     }
 }
-
