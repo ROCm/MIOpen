@@ -798,7 +798,6 @@ struct ConvHipImplicitGemmMlirCppFwd : SolverBase<ConvolutionContext>
 
 struct ConvHipImplicitGemmMlirBinFwd : SolverBase<ConvolutionContext>
 {
-    static std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
     bool IsApplicable(const ConvolutionContext& ctx) const;
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };

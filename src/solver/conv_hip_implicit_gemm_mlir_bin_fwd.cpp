@@ -34,8 +34,8 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_HIP_IMPLICIT_GEMM_MLIR_BIN_FWD)
 namespace miopen {
 namespace solver {
 
-std::tuple<int, int, int>
-ConvHipImplicitGemmMlirBinFwd::CalculateGemmSize(const ConvolutionContext& ctx)
+namespace {
+std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx)
 {
     const size_t n  = ConvolutionContextInterpreter::GetBatchN(ctx);
     const size_t k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
@@ -54,6 +54,7 @@ ConvHipImplicitGemmMlirBinFwd::CalculateGemmSize(const ConvolutionContext& ctx)
 
     return std::make_tuple(gemm_m, gemm_n, gemm_k);
 }
+} // Anonymous namespace
 
 bool ConvHipImplicitGemmMlirBinFwd::IsApplicable(const ConvolutionContext& ctx) const
 {
