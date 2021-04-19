@@ -99,6 +99,11 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
 
     int GetGroupCount() const;
 
+    TensorDescriptor GetForwardOutputTensorWithLayout(const TensorDescriptor& xDesc,
+                                                      const TensorDescriptor& wDesc,
+                                                      const std::string& yLayout,
+                                                      miopenDataType_t yType = miopenFloat) const;
+
     TensorDescriptor GetForwardOutputTensor(const TensorDescriptor& xDesc,
                                             const TensorDescriptor& wDesc,
                                             miopenDataType_t yType = miopenFloat) const;
@@ -380,7 +385,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     float lowp_quant; // quantization factor for low precision
     FindMode findMode;
 
-    private:
     void ConvBwdGemm(Handle& handle,
                      const struct ConvBwdTensors& tensors,
                      Data_t workSpace,

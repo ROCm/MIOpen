@@ -35,6 +35,7 @@
 #include <miopen/kernel_cache.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/timer.hpp>
+#include <miopen/hipoc_program.hpp>
 
 #if !MIOPEN_ENABLE_SQLITE_KERN_CACHE
 #include <miopen/write_file.hpp>
@@ -60,9 +61,6 @@ Handle::Handle(miopenAcceleratorQueue_t /* stream */) : Handle::Handle() {}
 
 Handle::Handle() : impl(new HandleImpl())
 {
-#if MIOPEN_USE_ROCBLAS
-    rhandle_ = CreateRocblasHandle();
-#endif
     this->impl->target_properties.Init(this);
     MIOPEN_LOG_NQI(*this);
 }
@@ -99,63 +97,134 @@ void Handle::ReadTo(void* /* data */,
 
 void Handle::Copy(ConstData_t /* src */, Data_t /* dest */, std::size_t /* size */) const {}
 
-KernelInvoke Handle::AddKernel(const std::string& /* algorithm */,
-                               const std::string& /* network_config */,
-                               const std::string& /* program_name */,
-                               const std::string& /* kernel_name */,
-                               const std::vector<size_t>& /* vld */,
-                               const std::vector<size_t>& /* vgd */,
-                               const std::string& /* params */,
-                               std::size_t /* cache_index */,
-                               bool /* is_kernel_str */,
-                               const std::string& /* kernel_src */) const
+KernelInvoke Handle::AddKernel(const std::string& algorithm,
+                               const std::string& network_config,
+                               const std::string& program_name,
+                               const std::string& kernel_name,
+                               const std::vector<size_t>& vld,
+                               const std::vector<size_t>& vgd,
+                               const std::string& params,
+                               std::size_t cache_index,
+                               bool is_kernel_str,
+                               const std::string& kernel_src) const
 {
-    return {};
+    auto obj = this->impl->cache.AddKernel(*this,
+                                           algorithm,
+                                           network_config,
+                                           program_name,
+                                           kernel_name,
+                                           vld,
+                                           vgd,
+                                           params,
+                                           cache_index,
+                                           is_kernel_str,
+                                           kernel_src);
+    return this->Run(obj);
 }
 
-Invoker Handle::PrepareInvoker(const InvokerFactory& /* factory */,
-                               const std::vector<solver::KernelInfo>& /* kernels */) const
+Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
+                               const std::vector<solver::KernelInfo>& kernels) const
 {
-    return {};
+    std::vector<Kernel> built;
+    for(auto& k : kernels)
+    {
+        MIOPEN_LOG_I2("Preparing kernel: " << k.kernel_name);
+        const auto kernel = this->impl->cache.AddKernel(*this,
+                                                        "",
+                                                        "",
+                                                        k.kernel_file,
+                                                        k.kernel_name,
+                                                        k.l_wk,
+                                                        k.g_wk,
+                                                        k.comp_options,
+                                                        kernels.size());
+        built.push_back(kernel);
+    }
+    return factory(built);
 }
 
-void Handle::ClearKernels(const std::string& /* algorithm */,
-                          const std::string& /* network_config */) const
+void Handle::ClearKernels(const std::string& algorithm, const std::string& network_config) const
 {
+    this->impl->cache.ClearKernels(algorithm, network_config);
 }
 
-const std::vector<Kernel>& Handle::GetKernelsImpl(const std::string& /* algorithm */,
-                                                  const std::string& /* network_config */) const
+const std::vector<Kernel>& Handle::GetKernelsImpl(const std::string& algorithm,
+                                                  const std::string& network_config) const
 {
-    static std::vector<Kernel> tmp;
-    return tmp;
+    return this->impl->cache.GetKernels(algorithm, network_config);
 }
 
-bool Handle::HasKernel(const std::string& /* algorithm */,
-                       const std::string& /* network_config */) const
+bool Handle::HasKernel(const std::string& algorithm, const std::string& network_config) const
 {
-    return false;
+    return this->impl->cache.HasKernels(algorithm, network_config);
 }
 
 KernelInvoke Handle::Run(Kernel /* k */) const { return {}; }
 
-Program Handle::LoadProgram(const std::string& /* program_name */,
-                            std::string /* params */,
-                            bool /* is_kernel_str */,
-                            const std::string& /* kernel_src */) const
+Program Handle::LoadProgram(const std::string& program_name,
+                            std::string params,
+                            bool is_kernel_str,
+                            const std::string& kernel_src) const
 {
-    return {};
+    if(!miopen::EndsWith(program_name, ".mlir-cpp"))
+    {
+        params += " -mcpu=" + this->GetTargetProperties().Name();
+    }
+
+    auto hsaco = miopen::LoadBinary(this->GetTargetProperties(),
+                                    this->GetMaxComputeUnits(),
+                                    program_name,
+                                    params,
+                                    is_kernel_str);
+    auto pgmImpl     = std::make_shared<HIPOCProgramImpl>();
+    pgmImpl->program = program_name;
+    pgmImpl->target  = this->GetTargetProperties();
+    auto p           = HIPOCProgram{};
+    p.impl           = pgmImpl;
+    if(hsaco.empty())
+    {
+        // avoid the constructor since it implicitly calls the HIP API
+        pgmImpl->BuildCodeObject(params, is_kernel_str, kernel_src);
+// auto p = HIPOCProgram{
+//     program_name, params, is_kernel_str, this->GetTargetProperties(), kernel_src};
+
+// Save to cache
+#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
+        miopen::SaveBinary(p.IsCodeObjectInMemory()
+                               ? p.GetCodeObjectBlob()
+                               : miopen::LoadFile(p.GetCodeObjectPathname().string()),
+                           this->GetTargetProperties(),
+                           this->GetMaxComputeUnits(),
+                           program_name,
+                           params,
+                           is_kernel_str);
+#else
+        auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path();
+        if(p.IsCodeObjectInMemory())
+            miopen::WriteFile(p.GetCodeObjectBlob(), path);
+        else
+            boost::filesystem::copy_file(p.GetCodeObjectPathname(), path);
+        miopen::SaveBinary(path, this->GetTargetProperties(), program_name, params, is_kernel_str);
+#endif
+    }
+    else
+    {
+        pgmImpl->binary = std::vector<char>(hsaco.begin(), hsaco.end());
+        // return HIPOCProgram{program_name, hsaco};
+    }
+    return p;
 }
 
-bool Handle::HasProgram(const std::string& /*program_name*/, const std::string& /*params*/) const
+bool Handle::HasProgram(const std::string& program_name, const std::string& params) const
 {
-    return false;
+    return this->impl->cache.HasProgram(program_name, params);
 }
 
-void Handle::AddProgram(Program /*prog*/,
-                        const std::string& /*program_name*/,
-                        const std::string& /*params*/) const
+void Handle::AddProgram(Program prog,
+                        const std::string& program_name,
+                        const std::string& params) const
 {
+    this->impl->cache.AddProgram(prog, program_name, params);
 }
 
 void Handle::Finish() const {}

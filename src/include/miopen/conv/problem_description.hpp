@@ -144,6 +144,7 @@ struct ProblemDescription
           direction(direction_),
           bias(bias_)
     {
+        HeuristicUpdateLayouts();
     }
 
     // Conv descriptor getters
@@ -303,6 +304,9 @@ struct ProblemDescription
     }
 
     bool IsLayoutDefault() const;
+
+    void HeuristicUpdateLayouts();
+
     void BuildConfKey(std::string& conf_key) const;
 
     NetworkConfig BuildConfKey() const
