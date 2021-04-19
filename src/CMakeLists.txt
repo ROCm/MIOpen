@@ -530,30 +530,32 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     set(KERNELS_SRC_BATCH_FACTOR 50 CACHE STRING "Amount of kernel source files to inline to a single object file.")
     set(KERNELS_BATCH_ID 0)
 
-    function(inline_kernels_src BATCH_FACTOR KERNELS)
+    function(inline_kernels_src BATCH_FACTOR KERNELS_VAR KERNEL_INCLUDES_VAR)
         set(KERNELS_BATCH)
         set(KERNELS_BATCH_SIZE 0)
         set(PROCESSED 0)
         list(LENGTH KERNELS KERNELS_NUMBER)
 
-        foreach(KERNEL ${KERNELS})
+        foreach(KERNEL ${${KERNELS_VAR}})
             list(APPEND KERNELS_BATCH ${KERNEL})
             list(LENGTH KERNELS_BATCH KERNELS_BATCH_SIZE)
             math(EXPR PROCESSED "1+${PROCESSED}")
             if((KERNELS_BATCH_SIZE EQUAL ${BATCH_FACTOR}) OR (PROCESSED EQUAL KERNELS_NUMBER))
-                set(KERNEL_SRC_CPP_FILENAME ${PROJECT_BINARY_DIR}/inlined_kernels/batch_${KERNELS_BATCH_ID}.cpp)
-                set(KERNEL_SRC_CPP_INL_FILENAME batch_${KERNELS_BATCH_ID}.cpp.inl)
+                set(KERNEL_SRC_CPP_INL_FILENAME batch_${KERNELS_BATCH_ID}.cpp.hpp)
+                set(KERNEL_SRC_CPP_INL_PATH ${PROJECT_BINARY_DIR}/inlined_kernels/${KERNEL_SRC_CPP_INL_FILENAME})
+                set(KERNEL_SRC_CPP_PATH ${PROJECT_BINARY_DIR}/inlined_kernels/batch_${KERNELS_BATCH_ID}.cpp)
+
                 add_custom_command(
-                    OUTPUT ${KERNEL_SRC_CPP_FILENAME}.inl
+                    OUTPUT ${KERNEL_SRC_CPP_INL_PATH}
                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                    DEPENDS addkernels ${KERNELS_BATCH} ${MIOPEN_KERNEL_INCLUDES}
-                    COMMAND ${WINE_CMD} $<TARGET_FILE:addkernels> -target ${KERNEL_SRC_CPP_FILENAME}.inl -extern -source ${KERNELS_BATCH}
+                    DEPENDS addkernels ${KERNELS_BATCH} ${${KERNEL_INCLUDES_VAR}}
+                    COMMAND ${WINE_CMD} $<TARGET_FILE:addkernels> -target ${KERNEL_SRC_CPP_INL_PATH} -extern -source ${KERNELS_BATCH}
                     COMMENT "Inlining kernels batch #${KERNELS_BATCH_ID}"
                     )
+                configure_file(kernels/kernels_batch.cpp.in ${KERNEL_SRC_CPP_PATH})
 
-                configure_file(kernels/kernels_batch.cpp.in ${KERNEL_SRC_CPP_FILENAME})
-
-                list(APPEND MIOpen_Source ${KERNEL_SRC_CPP_FILENAME} ${KERNEL_SRC_CPP_FILENAME}.inl)
+                list(INSERT MIOpen_Source 0 ${KERNEL_SRC_CPP_PATH})
+                list(INSERT MIOpen_Source 1 ${KERNEL_SRC_CPP_INL_PATH})
                 set(KERNELS_BATCH)
                 math(EXPR KERNELS_BATCH_ID "1+${KERNELS_BATCH_ID}")
             endif()
@@ -563,7 +565,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         set(MIOpen_Source ${MIOpen_Source} PARENT_SCOPE)
     endfunction()
 
-    inline_kernels_src(${KERNELS_SRC_BATCH_FACTOR} "${MIOPEN_KERNELS}")
+    inline_kernels_src(${KERNELS_SRC_BATCH_FACTOR} MIOPEN_KERNELS MIOPEN_KERNEL_INCLUDES)
 
     list(APPEND MIOpen_Source ${PROJECT_BINARY_DIR}/include/miopen_kernel_includes.h)
     add_custom_command(
