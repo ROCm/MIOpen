@@ -1,19 +1,19 @@
 ################################################################################
-# 
+#
 # MIT License
-# 
+#
 # Copyright (c) 2017 Advanced Micro Devices, Inc.
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,15 +21,15 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-# 
+#
 ################################################################################
 include(CMakeParseArguments)
 include(Analyzers)
 
 get_filename_component(CLANG_TIDY_EXE_HINT "${CMAKE_CXX_COMPILER}" PATH)
 
-find_program(CLANG_TIDY_EXE 
-    NAMES 
+find_program(CLANG_TIDY_EXE
+    NAMES
         clang-tidy
         clang-tidy-5.0
         clang-tidy-4.0
@@ -93,7 +93,7 @@ macro(enable_clang_tidy)
     if(PARSE_ALL)
         set(CLANG_TIDY_ALL ALL)
     endif()
-    
+
     message(STATUS "Clang tidy checks: ${CLANG_TIDY_CHECKS}")
 
     if (${PARSE_ANALYZE_TEMPORARY_DTORS})
@@ -118,10 +118,10 @@ macro(enable_clang_tidy)
         set(CLANG_TIDY_HEADER_FILTER ".*")
     endif()
 
-    set(CLANG_TIDY_COMMAND 
+    set(CLANG_TIDY_COMMAND
         ${CLANG_TIDY_EXE}
-        ${CLANG_TIDY_QUIET_ARG} 
-        -p ${CMAKE_BINARY_DIR} 
+        ${CLANG_TIDY_QUIET_ARG}
+        -p ${CMAKE_BINARY_DIR}
         -checks='${CLANG_TIDY_CHECKS}'
         ${CLANG_TIDY_ERRORS_ARG}
         ${CLANG_TIDY_EXTRA_ARGS}
@@ -144,10 +144,11 @@ function(clang_tidy_check TARGET)
     # COMMAND ${CLANG_TIDY_COMMAND} $<JOIN:$<TARGET_PROPERTY:${TARGET},SOURCES>, >
     foreach(SOURCE ${SOURCES})
         if((NOT "${SOURCE}" MATCHES "(h|hpp|hxx)$") AND (NOT "${SOURCE}" MATCHES "TARGET_OBJECTS"))
-            string(MAKE_C_IDENTIFIER "${SOURCE}" tidy_file)        
+            string(MAKE_C_IDENTIFIER "${SOURCE}" tidy_file)
             set(tidy_target tidy-target-${TARGET}-${tidy_file})
             add_custom_target(${tidy_target}
                 # for some targets clang-tidy not able to get information from .clang-tidy
+                DEPENDS ${SOURCE}
                 COMMAND ${CLANG_TIDY_COMMAND} "-config=\{CheckOptions: \[\{key: bugprone-reserved-identifier.AllowedIdentifiers,value: __HIP_PLATFORM_HCC__\; __HIP_ROCclr__\}\]\}" ${SOURCE} "-export-fixes=${CLANG_TIDY_FIXIT_DIR}/${TARGET}-${tidy_file}.yaml"
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                 COMMENT "clang-tidy: Running clang-tidy on target ${SOURCE}..."

@@ -52,6 +52,7 @@ set( MIOpen_SOVERSION 1.0 )
 
 function(add_kernels KERNEL_FILES)
     set(INIT_KERNELS_LIST)
+    set(KERNELS_DECLS)
     foreach(KERNEL_FILE ${KERNEL_FILES})
         if("${CMAKE_VERSION}" VERSION_LESS 3.0)
             configure_file(${KERNEL_FILE} ${KERNEL_FILE}.delete)
@@ -61,7 +62,9 @@ function(add_kernels KERNEL_FILES)
         get_filename_component(BASE_NAME ${KERNEL_FILE} NAME_WE)
         string(TOUPPER "${BASE_NAME}" KEY_NAME)
         string(MAKE_C_IDENTIFIER "${KEY_NAME}" VAR_NAME)
-        list(APPEND INIT_KERNELS_LIST "    { \"${KEY_NAME}\", std::string(reinterpret_cast<const char*>(${VAR_NAME}), ${VAR_NAME}_SIZE) }")
+        string(APPEND KERNELS_DECLS "extern const size_t MIOPEN_KERNEL_${VAR_NAME}_SIZE;\n")
+        string(APPEND KERNELS_DECLS "extern const unsigned char MIOPEN_KERNEL_${VAR_NAME}[];\n")
+        list(APPEND INIT_KERNELS_LIST "    { \"${KEY_NAME}\", std::string(reinterpret_cast<const char*>(MIOPEN_KERNEL_${VAR_NAME}), MIOPEN_KERNEL_${VAR_NAME}_SIZE) }")
     endforeach()
     string(REPLACE ";" ",\n" INIT_KERNELS "${INIT_KERNELS_LIST}")
     configure_file(kernels/kernel.cpp.in ${PROJECT_BINARY_DIR}/kernel.cpp)
@@ -524,14 +527,44 @@ if( MIOPEN_BACKEND STREQUAL "HIPNOGPU")
 endif()
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
-    list(APPEND MIOpen_Source ${PROJECT_BINARY_DIR}/include/miopen_kernels.h)
-    add_custom_command(
-        OUTPUT ${PROJECT_BINARY_DIR}/include/miopen_kernels.h
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        DEPENDS addkernels ${MIOPEN_KERNELS} ${MIOPEN_KERNEL_INCLUDES}
-        COMMAND ${WINE_CMD} $<TARGET_FILE:addkernels> -guard GUARD_MIOPEN_KERNELS_HPP_ -target ${PROJECT_BINARY_DIR}/include/miopen_kernels.h -source ${MIOPEN_KERNELS}
-        COMMENT "Inlining MIOpen kernels"
-        )
+    set(KERNELS_SRC_BATCH_FACTOR 50 CACHE STRING "Amount of kernel source files to inline to a single object file.")
+    set(KERNELS_BATCH_ID 0)
+
+    function(inline_kernels_src BATCH_FACTOR KERNELS KERNEL_INCLUDES)
+        set(KERNELS_BATCH)
+        set(KERNELS_BATCH_SIZE 0)
+        set(PROCESSED 0)
+        list(LENGTH KERNELS KERNELS_NUMBER)
+
+        foreach(KERNEL ${KERNELS})
+            list(APPEND KERNELS_BATCH ${KERNEL})
+            list(LENGTH KERNELS_BATCH KERNELS_BATCH_SIZE)
+            math(EXPR PROCESSED "1+${PROCESSED}")
+            if((KERNELS_BATCH_SIZE EQUAL ${BATCH_FACTOR}) OR (PROCESSED EQUAL KERNELS_NUMBER))
+                set(KERNEL_SRC_HPP_FILENAME batch_${KERNELS_BATCH_ID}.cpp.hpp)
+                set(KERNEL_SRC_HPP_PATH ${PROJECT_BINARY_DIR}/inlined_kernels/${KERNEL_SRC_HPP_FILENAME})
+                set(KERNEL_SRC_CPP_PATH ${PROJECT_BINARY_DIR}/inlined_kernels/batch_${KERNELS_BATCH_ID}.cpp)
+
+                add_custom_command(
+                    OUTPUT ${KERNEL_SRC_HPP_PATH}
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                    DEPENDS addkernels ${KERNELS_BATCH} ${KERNEL_INCLUDES}
+                    COMMAND ${WINE_CMD} $<TARGET_FILE:addkernels> -target ${KERNEL_SRC_HPP_PATH} -extern -source ${KERNELS_BATCH}
+                    COMMENT "Inlining kernels batch #${KERNELS_BATCH_ID}"
+                    )
+                configure_file(kernels/kernels_batch.cpp.in ${KERNEL_SRC_CPP_PATH})
+                list(APPEND MIOpen_Source ${KERNEL_SRC_CPP_PATH} ${KERNEL_SRC_HPP_PATH})
+
+                set(KERNELS_BATCH)
+                math(EXPR KERNELS_BATCH_ID "1+${KERNELS_BATCH_ID}")
+            endif()
+        endforeach()
+
+        set(KERNELS_BATCH_ID ${KERNELS_BATCH_ID} PARENT_SCOPE)
+        set(MIOpen_Source ${MIOpen_Source} PARENT_SCOPE)
+    endfunction()
+
+    inline_kernels_src(${KERNELS_SRC_BATCH_FACTOR} "${MIOPEN_KERNELS}" "${MIOPEN_KERNEL_INCLUDES}")
 
     list(APPEND MIOpen_Source ${PROJECT_BINARY_DIR}/include/miopen_kernel_includes.h)
     add_custom_command(
@@ -541,12 +574,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         COMMAND ${WINE_CMD} $<TARGET_FILE:addkernels> -no-recurse -guard GUARD_MIOPEN_KERNEL_INCLUDES_HPP_ -target ${PROJECT_BINARY_DIR}/include/miopen_kernel_includes.h -source ${MIOPEN_KERNEL_INCLUDES}
         COMMENT "Inlining MIOpen HIP kernel includes"
         )
-
-    add_custom_target(miopen_tidy_inlining
-        DEPENDS ${PROJECT_BINARY_DIR}/include/miopen_kernels.h ${PROJECT_BINARY_DIR}/include/miopen_kernel_includes.h
-        )
-
-    add_dependencies(tidy miopen_tidy_inlining)
 endif()
 
 if(MIOPEN_USE_COMGR)

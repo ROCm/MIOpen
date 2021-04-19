@@ -46,6 +46,8 @@ void Bin2Hex(std::istream& source,
 
     if(variable.length() != 0)
     {
+        target << "extern const size_t " << variable << "_SIZE;" << std::endl;
+        target << "extern const unsigned char " << variable << "[];" << std::endl;
         target << "const size_t " << variable << "_SIZE = " << std::setbase(10) << sourceSize << ";"
                << std::endl;
         target << "const unsigned char " << variable << "[] = {" << std::endl;
@@ -78,7 +80,7 @@ void Bin2Hex(std::istream& source,
     }
 
     if(nullTerminate)
-        target << "0x00,";
+        target << "0x00," << std::endl;
 
     if(variable.length() != 0)
     {
@@ -122,7 +124,8 @@ void Process(const std::string& sourcePath,
              std::ostream& target,
              size_t bufferSize,
              size_t lineSize,
-             bool recurse)
+             bool recurse,
+             bool as_extern)
 {
     std::string fileName(sourcePath);
     std::string extension, root;
@@ -184,6 +187,12 @@ void Process(const std::string& sourcePath,
     }
 
     std::transform(variable.begin(), variable.end(), variable.begin(), ::toupper);
+
+    if(as_extern && variable.length() != 0)
+    {
+        variable = "MIOPEN_KERNEL_" + variable;
+    }
+
     Bin2Hex(*source, target, variable, true, bufferSize, lineSize);
 }
 
@@ -202,6 +211,7 @@ int main(int argsn, char** args)
     std::ofstream targetFile;
     std::ostream* target = &std::cout;
     bool recurse         = true;
+    bool as_extern       = false;
 
     int i = 0;
     while(++i < argsn && **args != '-')
@@ -215,13 +225,17 @@ int main(int argsn, char** args)
             {
                 *target << "#ifndef " << guard << std::endl;
                 *target << "#define " << guard << std::endl;
-                *target << "#include <stddef.h>" << std::endl;
             }
+
+            *target << "#ifndef MIOPEN_USE_CLANG_TIDY" << std::endl;
+            *target << "#include <cstddef>" << std::endl;
 
             while(++i < argsn)
             {
-                Process(args[i], *target, bufferSize, lineSize, recurse);
+                Process(args[i], *target, bufferSize, lineSize, recurse, as_extern);
             }
+
+            *target << "#endif" << std::endl;
 
             if(guard.length() > 0)
             {
@@ -243,6 +257,8 @@ int main(int argsn, char** args)
             guard = args[++i];
         else if(arg == "n" || arg == "no-recurse")
             recurse = false;
+        else if(arg == "e" || arg == "extern")
+            as_extern = true;
         else
             UnknownArgument(arg);
     }
