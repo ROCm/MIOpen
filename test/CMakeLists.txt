@@ -117,6 +117,9 @@ endif()
 message(STATUS "SKIP_TESTS: ${SKIP_TESTS}")
 message(STATUS "SKIP_ALL_EXCEPT_TESTS: ${SKIP_ALL_EXCEPT_TESTS}")
 
+
+
+
 function(add_test_command NAME EXE)
     # Restrict the use of SKIP_ALL_EXCEPT_TESTS list in the Int8, BF16 and MIOpenTensile tests
     if(NOT (NAME IN_LIST SKIP_ALL_EXCEPT_TESTS) AND SKIP_ALL_EXCEPT_TESTS)
@@ -173,6 +176,7 @@ function(add_test_executable TEST_NAME)
     endif()
 
     add_test_command(${TEST_NAME} ${TEST_COMMAND})
+    rate_added_test(${TEST_NAME})
     add_dependencies(tests ${TEST_NAME})
     add_dependencies(check ${TEST_NAME})
     set_tests_properties(${TEST_NAME} PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
@@ -212,30 +216,34 @@ file(GLOB TESTS *.cpp)
 # LONG_TESTS if it takes more than 800 seconds, or to SHORT_TESTS otherwise.
 # Please notice that each list is also sorted and it is highly recommended
 # to keep this sorting when adding new tests.
+#For files NAME = test_ + (File name with neither the directory nor the longest extension)
 
-set( LONG_TESTS
-    pooling2d.cpp
-    dropout.cpp
-    conv2d.cpp
-    pooling3d.cpp
-    soft_max.cpp
-    lrn_test.cpp
-    reduce_test.cpp
-    )
-
-foreach(TEST ${TESTS})
-    get_filename_component(BASE_NAME ${TEST} NAME_WE)
-    add_test_executable(test_${BASE_NAME} ${TEST})
-endforeach()
-
-set_tests_properties(
+set(LONG_TESTS
     test_pooling2d
     test_dropout
     test_conv2d
     test_pooling3d
     test_soft_max
     test_lrn_test
-    PROPERTIES COST 800)
+    test_reduce_test
+    )
+
+function(rate_added_test NAME)
+    if(${NAME} IN_LIST LONG_TESTS)
+        set_tests_properties(${NAME} PROPERTIES COST 800)
+    elseif()
+        set_tests_properties(${NAME} PROPERTIES COST 600)
+    endif()
+endfunction()
+
+
+
+foreach(TEST ${TESTS})
+    get_filename_component(BASE_NAME ${TEST} NAME_WE)
+    add_test_executable(test_${BASE_NAME} ${TEST})
+endforeach()
+
+
 
 set_tests_properties(test_sqlite_perfdb test_perfdb
     PROPERTIES RUN_SERIAL On)
@@ -264,7 +272,7 @@ function(add_custom_test NAME)
         add_custom_target(${NAME} ${PARSE_UNPARSED_ARGUMENTS})
         if(NOT PARSE_SKIP_UNLESS_ALL OR MIOPEN_TEST_ALL)
             add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
-            set_tests_properties(${NAME} PROPERTIES COST 600)
+            rate_added_test(${NAME})
         endif()
     endif()
 endfunction()
@@ -289,7 +297,7 @@ function(add_perf_test NAME)
         if(NOT PARSE_SKIP_UNLESS_ALL OR MIOPEN_TEST_ALL)
             add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
             set_tests_properties(${NAME} PROPERTIES FAIL_REGULAR_EXPRESSION "(FAILED)|(Perf Db: record not found)")
-            set_tests_properties(${NAME} PROPERTIES COST 600)
+            rate_added_test(${NAME})
         endif()
     endif()
 endfunction()
