@@ -132,7 +132,7 @@ bool PerformanceConfigConvAsm3x3U::IsValid(const ConvolutionContext& config) con
     return n < available_vgprs;
 }
 
-void PerformanceConfigConvAsm3x3U::EuristicInit(const ConvolutionContext& config)
+void PerformanceConfigConvAsm3x3U::HeuristicInit(const ConvolutionContext& config)
 {
     limit_wave_cnt        = 0;
     filters_per_wave      = 2;
@@ -157,7 +157,7 @@ PerformanceConfigConvAsm3x3U
 ConvAsm3x3U::GetPerformanceConfig(const ConvolutionContext& params) const
 {
     PerformanceConfigConvAsm3x3U pp;
-    pp.EuristicInit(params);
+    pp.HeuristicInit(params);
     MIOPEN_LOG_I(pp.ToString());
     return pp;
 }
