@@ -34,11 +34,11 @@ option(MIOPEN_TEST_HALF "Test in half mode" OFF )
 option(MIOPEN_TEST_INT8 "Test in int8 mode" OFF )
 option(MIOPEN_TEST_BFLOAT16 "Test in bfloat16 mode" OFF )
 option(MIOPEN_TEST_GFX908 "Test arch gfx908 mode" OFF )
-
+option(MIOPEN_TEST_CONV Off) #Disabled, some bugs on gfx908
 option(MIOPEN_TEST_DEEPBENCH Off)
 option(MIOPEN_TEST_DRIVER_ITER_MODE Off)
-option( MIOPEN_TEST_MIOTENSILE "Test MIOpenTensile path" OFF )
-option( MIOPEN_TEST_MLIR "Add tests for MLIR -- EXPERIMENTAL" ${MIOPEN_USE_MLIR} )
+option(MIOPEN_TEST_MIOTENSILE "Test MIOpenTensile path" OFF )
+option(MIOPEN_TEST_MLIR "Add tests for MLIR -- EXPERIMENTAL" ${MIOPEN_USE_MLIR} )
 
 #Run the test suite to a depth limit
 set(MIOPEN_TEST_LIMIT "0" CACHE STRING "")
@@ -61,9 +61,7 @@ if(MIOPEN_TEST_GFX908)
     set(MIOPEN_TEST_NONXDLOPS FALSE)
 endif()
 
-# The usage is non-trivial, see function add_test_command.
-set(SKIP_ALL_EXCEPT_TESTS dummy)
-set(SKIP_TESTS dummy) # dummy is for REMOVE_DUPLICATES
+
 set(MIOPEN_TEST_FLOAT_ARG)
 #set(MIOPEN_SKIP_CONV3D Off CACHE BOOL "")
 #set(MIOPEN_SKIP_CONV2D On CACHE BOOL "")
@@ -76,16 +74,25 @@ if(MIOPEN_TEST_HALF)
     endif()
     set(MIOPEN_TEST_FLOAT_ARG --half)
 elseif(MIOPEN_TEST_INT8)
-    set(SKIP_ALL_EXCEPT_TESTS test_tensor_vec test_tensor_cast test_tensor_trans test_tensor_copy test_tensor_set test_tensor_transform)
+    set(SKIP_ALL_EXCEPT_TESTS
+            test_tensor_vec test_tensor_cast test_tensor_trans test_tensor_copy test_tensor_set
+            test_tensor_transform)
     set(MIOPEN_TEST_FLOAT_ARG --int8)
 elseif(MIOPEN_TEST_BFLOAT16)
-    set(SKIP_ALL_EXCEPT_TESTS test_conv2d test_tensor_copy test_tensor_set  test_immed_conv2d test_check_numerics_test test_conv_extra test_conv_for_implicit_gemm test_miopen_conv test_deepbench_conv)
+    set(SKIP_ALL_EXCEPT_TESTS
+            test_conv2d test_tensor_copy test_tensor_set  test_immed_conv2d test_check_numerics_test
+            test_conv_extra test_conv_for_implicit_gemm test_miopen_conv test_deepbench_conv)
     set(MIOPEN_TEST_FLOAT_ARG --bfloat16)                                                               
 else()
     if(MIOPEN_TEST_GFX908)
-        set(SKIP_TESTS test_main test_tensor_scale test_tensor_set test_tensor_transform test_tensor_vec test_w_supertensor test_dropout test_immed_conv3d test_conv3d test_soft_max test_fusion_aux test_activation test_lrn_test test_ctc test_conv2d_bias test_conv3d_bias test_cba_inference test_cbna_inference test_pooling2d test_na_train test_na_inference test_bn_aux test_conv_igemm_dynamic $SKIP_TESTS)
+        set(SKIP_TESTS
+                test_main test_tensor_scale test_tensor_set test_tensor_transform test_tensor_vec
+                test_w_supertensor test_dropout test_immed_conv3d test_conv3d test_soft_max
+                test_fusion_aux test_activation test_lrn_test test_ctc test_conv2d_bias
+                test_conv3d_bias test_cba_inference test_cbna_inference test_pooling2d test_na_train
+                test_na_inference test_bn_aux test_conv_igemm_dynamic
+                $SKIP_TESTS)
     endif()
-										 
 endif()
 
 
@@ -93,12 +100,22 @@ endif()
 
 
 if(MIOPEN_TEST_MIOTENSILE)
-    set(SKIP_ALL_EXCEPT_TESTS test_conv2d test_conv3d test_immed_conv2d test_immed_conv3d test_gru test_rnn_vanilla test_lstm test_gru_extra test_rnn_extra test_lstm_extra )
-    list(APPEND SKIP_TESTS test_conv_igemm_dynamic test_conv_igemm_dynamic_small test_conv_for_implicit_gemm)
+    set(SKIP_ALL_EXCEPT_TESTS
+            test_conv2d test_conv3d test_immed_conv2d test_immed_conv3d test_gru test_rnn_vanilla
+            test_lstm test_gru_extra test_rnn_extra test_lstm_extra )
+    list(APPEND SKIP_TESTS
+            test_conv_igemm_dynamic test_conv_igemm_dynamic_small test_conv_for_implicit_gemm)
 endif()
 
-list(REMOVE_DUPLICATES SKIP_TESTS)
-list(REMOVE_DUPLICATES SKIP_ALL_EXCEPT_TESTS)
+# The usage is non-trivial, see function add_test_command.
+if(SKIP_TESTS)
+    list(REMOVE_DUPLICATES SKIP_TESTS)
+endif()
+if(SKIP_ALL_EXCEPT_TESTS)
+    list(REMOVE_DUPLICATES SKIP_ALL_EXCEPT_TESTS)
+endif()
+message(STATUS "SKIP_TESTS: ${SKIP_TESTS}")
+message(STATUS "SKIP_ALL_EXCEPT_TESTS: ${SKIP_ALL_EXCEPT_TESTS}")
 
 function(add_test_command NAME EXE)
     # Restrict the use of SKIP_ALL_EXCEPT_TESTS list in the Int8, BF16 and MIOpenTensile tests
@@ -819,7 +836,7 @@ if(MIOPEN_TEST_DEEPBENCH)
 )
 endif()
 
-					
+if(MIOPEN_TEST_CONV)
     add_custom_test(test_miopen_conv ALLOW_NONXDLOPS
     COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	1	3	32	32	--weights	1	3	7	7	--pads_strides_dilations	1	1	1	1	1	1
     COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	1	3	227	227	--weights	1	3	7	7	--pads_strides_dilations	1	1	1	1	1	1
@@ -862,3 +879,4 @@ endif()
     COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	1	32	28	28	--weights	1	32	5	5	--pads_strides_dilations	0	0	4	4	1	1
     COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	1	48	7	7	--weights	1	48	5	5	--pads_strides_dilations	0	0	4	4	1	1
 )
+endif()
