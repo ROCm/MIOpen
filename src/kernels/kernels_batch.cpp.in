@@ -1,1 +1,1 @@
-#include "${KERNEL_SRC_CPP_INL_FILENAME}"
+#include "${KERNEL_SRC_HPP_FILENAME}"
