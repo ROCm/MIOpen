@@ -32,6 +32,7 @@
 #include <Miir.h>
 
 #include <fstream>
+#include <vector>
 
 namespace miopen {
 // Anonymous namespace
@@ -43,6 +44,9 @@ class AutoMiirHandle
 
     public:
     AutoMiirHandle(const std::string& options) : handle(miirCreateHandle(options.c_str())) {}
+    // Explicitly disable copy and assignment of the handle to avoid double-free risk
+    AutoMiirHandle(const AutoMiirHandle&) = delete;
+    void operator=(const AutoMiirHandle&) = delete;
     ~AutoMiirHandle() { miirDestroyHandle(handle); }
     MiirHandle operator()() { return handle; }
 };
@@ -151,7 +155,7 @@ void MiirGenBin(const std::string& params, std::vector<char>& buffer)
 
     size_t size = 0;
     auto status = miirBufferGet(handle(), nullptr, &size);
-    check_miir_error(status, "miirLowerTuningParams");
+    check_miir_error(status, "miirBufferGet");
     buffer.resize(size);
     status = miirBufferGet(handle(), buffer.data(), &size);
     check_miir_error(status, "miirBufferGet");

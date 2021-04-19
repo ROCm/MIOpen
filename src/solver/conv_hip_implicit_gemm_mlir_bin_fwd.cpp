@@ -37,13 +37,13 @@ namespace solver {
 std::tuple<int, int, int>
 ConvHipImplicitGemmMlirBinFwd::CalculateGemmSize(const ConvolutionContext& ctx)
 {
-    const auto n  = ConvolutionContextInterpreter::GetBatchN(ctx);
-    const auto k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
-    const auto c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
-    const auto ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
-    const auto wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
-    const auto y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-    const auto x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+    const size_t n  = ConvolutionContextInterpreter::GetBatchN(ctx);
+    const size_t k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
+    const size_t c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
+    const size_t ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
+    const size_t wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
+    const size_t y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+    const size_t x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
 
     const auto gemm_m = k;
     const auto gemm_n = ctx.Is3d()
@@ -100,9 +100,8 @@ ConvSolution ConvHipImplicitGemmMlirBinFwd::GetSolution(const ConvolutionContext
     std::string direction = "_fwd";
     std::string operation = "conv2d";
 
-    construction_parameters.kernel_file = "mlir_gen_igemm_conv2d" + version + direction + ".mlir";
-
     construction_parameters.kernel_name = "mlir_gen_igemm_conv2d" + version + direction;
+    construction_parameters.kernel_file = construction_parameters.kernel_name + ".mlir";
 
     // Arguments for mlir-miopen-driver.
     // clang-format off

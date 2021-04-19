@@ -1,3 +1,29 @@
+/*******************************************************************************
+*
+* MIT License
+*
+* Copyright (c) 2021 Advanced Micro Devices, Inc.
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+*
+*******************************************************************************/
+
 #include <miopen/conv/invokers/mlir_impl_gemm.hpp>
 #include <miopen/memref.hpp>
 
@@ -35,7 +61,7 @@ auto permuteDimsStrides(const std::vector<size_t>& dims, const std::vector<size_
 {
     auto sorted_dims    = dims;
     auto sorted_strides = strides;
-    auto p              = TensorDescriptor::sort_permutation(strides, std::greater<>{});
+    auto p              = TensorDescriptor::find_permutation(dims, strides);
     std::transform(p.begin(), p.end(), sorted_dims.begin(), [&](auto i) { return dims[i]; });
     std::transform(p.begin(), p.end(), sorted_strides.begin(), [&](auto i) { return strides[i]; });
     return std::make_tuple(sorted_dims, sorted_strides);
@@ -105,8 +131,9 @@ InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
 
     return [=](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
-            const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
-            const auto& tensors  = data_ctx.tensors;
+            const auto& forward_invoke_params =
+                primitive_parameters.CastTo<conv::DataInvokeParams>();
+            const auto& tensors = forward_invoke_params.tensors;
 
             void* filter = nullptr;
             void* input  = nullptr;
@@ -135,13 +162,6 @@ InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
             args.output.data    = output;
 
             handle.Run(kernels[0])(args);
-            if(handle.IsProfilingEnabled())
-            {
-                float elapsed = 0;
-                elapsed += handle.GetKernelTime();
-                handle.ResetKernelTime();
-                handle.AccumKernelTime(elapsed);
-            }
         };
     };
 }
