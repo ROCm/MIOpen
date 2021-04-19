@@ -542,14 +542,18 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
             math(EXPR PROCESSED "1+${PROCESSED}")
             if((KERNELS_BATCH_SIZE EQUAL ${BATCH_FACTOR}) OR (PROCESSED EQUAL KERNELS_NUMBER))
                 set(KERNEL_SRC_CPP_FILENAME ${PROJECT_BINARY_DIR}/inlined_kernels/batch_${KERNELS_BATCH_ID}.cpp)
+                set(KERNEL_SRC_CPP_INL_FILENAME batch_${KERNELS_BATCH_ID}.cpp.inl)
                 add_custom_command(
-                    OUTPUT ${KERNEL_SRC_CPP_FILENAME}
+                    OUTPUT ${KERNEL_SRC_CPP_FILENAME}.inl
                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                     DEPENDS addkernels ${KERNELS_BATCH} ${MIOPEN_KERNEL_INCLUDES}
-                    COMMAND ${WINE_CMD} $<TARGET_FILE:addkernels> -target ${KERNEL_SRC_CPP_FILENAME} -extern -source ${KERNELS_BATCH}
+                    COMMAND ${WINE_CMD} $<TARGET_FILE:addkernels> -target ${KERNEL_SRC_CPP_FILENAME}.inl -extern -source ${KERNELS_BATCH}
                     COMMENT "Inlining kernels batch #${KERNELS_BATCH_ID}"
                     )
-                list(APPEND MIOpen_Source ${KERNEL_SRC_CPP_FILENAME})
+
+                configure_file(kernels/kernels_batch.cpp.in ${KERNEL_SRC_CPP_FILENAME})
+
+                list(APPEND MIOpen_Source ${KERNEL_SRC_CPP_FILENAME} ${KERNEL_SRC_CPP_FILENAME}.inl)
                 set(KERNELS_BATCH)
                 math(EXPR KERNELS_BATCH_ID "1+${KERNELS_BATCH_ID}")
             endif()
