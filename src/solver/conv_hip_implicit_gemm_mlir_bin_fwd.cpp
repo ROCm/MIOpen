@@ -29,6 +29,11 @@
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/handle.hpp>
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-function"
+#endif
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_HIP_IMPLICIT_GEMM_MLIR_BIN_FWD)
 
 namespace miopen {
