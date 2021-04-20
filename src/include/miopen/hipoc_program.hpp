@@ -28,13 +28,13 @@
 
 #include <miopen/target_properties.hpp>
 #include <miopen/manage_ptr.hpp>
+#include <miopen/hipoc_program_impl.hpp>
 #include <boost/filesystem/path.hpp>
 #include <hip/hip_runtime_api.h>
 #include <string>
 
 namespace miopen {
 
-using hipModulePtr = MIOPEN_MANAGE_PTR(hipModule_t, hipModuleUnload);
 struct HIPOCProgramImpl;
 struct HIPOCProgram
 {
