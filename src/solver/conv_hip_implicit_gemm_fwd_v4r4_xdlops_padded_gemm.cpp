@@ -602,7 +602,8 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsValidValue() const
     // clang-format on
 }
 
-/// Used by HeuristicInit() and GenericSearch. Only return false if a performance config will violate
+/// Used by HeuristicInit() and GenericSearch. Only return false if a performance config will
+/// violate
 /// requirements given by kernel algorithm.
 bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsReallyValid(
     const ConvolutionContext& ctx) const
