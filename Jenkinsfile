@@ -58,7 +58,9 @@ def cmake_build(Map conf=[:]){
         test_flags = " --disable-verification-cache " + test_flags
     }
 
-    if(build_type_debug){
+    if(conf.get("codecov", false)){ //Need 
+        setup_args = " -DCMAKE_BUILD_TYPE=debug -DCMAKE_CXX_FLAGS_DEBUG='${debug_flags} -fprofile-arcs -ftest-coverage' -DCODECOV_TEST=On " + setup_args
+    }else if(build_type_debug){
         setup_args = " -DCMAKE_BUILD_TYPE=debug -DCMAKE_CXX_FLAGS_DEBUG='${debug_flags}'" + setup_args
     }else{
         setup_args = " -DCMAKE_BUILD_TYPE=release" + setup_args
@@ -116,9 +118,6 @@ def buildHipClangJob(Map conf=[:]){
         def variant = env.STAGE_NAME
 
         def codecov = conf.get("codecov", false)
-        if (codecov) {
-            conf["extradebugflags"] = "-fprofile-arcs -ftest-coverage" + conf.get("extradebugflags", "")
-        }
         
         def retimage
         gitStatusWrapper(credentialsId: '7126e5fe-eb51-4576-b52b-9aaf1de8f0fd', gitHubContext: "Jenkins - ${variant}", account: 'ROCmSoftwarePlatform', repo: 'MIOpen') {
