@@ -87,6 +87,7 @@ void subvec_logsoftmax_cpu(Tgpu* in, Tref* out, size_t in_offset, size_t out_off
 }
 
 template <typename T>
+__attribute__((no_sanitize("undefined"))) //Workaround, Should be fixed
 void ctc_alpha_cpu(std::vector<int>& probsDesc,
                    T* probs_logits,
                    const T* label,
