@@ -29,17 +29,13 @@
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/handle.hpp>
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-function"
-#endif
-
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_HIP_IMPLICIT_GEMM_MLIR_BIN_FWD)
 
 namespace miopen {
 namespace solver {
 
 namespace {
+#if MIOPEN_USE_MLIR
 std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx)
 {
     const size_t n  = ConvolutionContextInterpreter::GetBatchN(ctx);
@@ -59,6 +55,7 @@ std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx)
 
     return std::make_tuple(gemm_m, gemm_n, gemm_k);
 }
+#endif
 } // Anonymous namespace
 
 bool ConvHipImplicitGemmMlirBinFwd::IsApplicable(const ConvolutionContext& ctx) const
