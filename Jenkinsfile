@@ -26,7 +26,7 @@ def cmake_build(compiler, flags, env4make, extradebugflags, prefixpath){
     if (prefixpath != "/usr/local") {
         configargs = "-DCMAKE_PREFIX_PATH=${prefixpath}"
     }
-    
+
     if(!flags.contains('-DBUILD_DEV=On'))
     {
     	config_targets = 'install ' + config_targets
@@ -63,10 +63,11 @@ def buildHipClangJob(Map conf, compiler){
         def image = "miopen"
         def cmd = conf.get("cmd", "")
         def gpu_arch = conf.get("gpu_arch", "gfx900;gfx906")
+        def target_id = conf.get("target_id", "OFF")
         def codecov = conf.get("codecov", false)
         def miotensile_version = conf.get("miotensile_version", "default")
         def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
-        def dockerArgs = "--build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' "
+        def dockerArgs = "--build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' --build-arg USE_TARGETID='${target_id}' "
         def extradebugflags = ""
         def variant = env.STAGE_NAME
         if (codecov) {
@@ -131,6 +132,20 @@ def reboot(){
     build job: 'reboot-slaves', propagate: false , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
 }
 
+def tensileStage(cmd, gpu_arch, miotensile_version, target_id){
+    try{
+        buildHipClangJob('/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: gpu_arch, miotensile_version: miotensile_version, target_id: target_id)
+    }
+    catch(e){
+        echo "throwing error exception for the stage"
+        echo 'Exception occurred: ' + e.toString()
+        throw e
+    }
+    finally{
+        reboot()
+    }
+}
+
 /// Stage name format:
 /// [DataType] Backend[/Compiler] BuildType [TestSet] [Target]
 ///
@@ -160,13 +175,37 @@ pipeline {
     }
     parameters {
         booleanParam(
-            name: "BUILD_CURRENT_STAGE",
+            name: "STATIC_CHECKS",
             defaultValue: true,
-            description: "Run current stage")
+            description: "")
+        booleanParam(
+            name: "SMOKE_TESTS",
+            defaultValue: true,
+            description: "")
+        booleanParam(
+            name: "SMOKE_MIOPENTENSILE_LATEST",
+            defaultValue: true,
+            description: "")
+        booleanParam(
+            name: "FULL_TESTS",
+            defaultValue: true,
+            description: "")
+        booleanParam(
+            name: "MIOPENTENSILE",
+            defaultValue: false,
+            description: "")
+        booleanParam(
+            name: "MIOPENTENSILE_LATEST",
+            defaultValue: false,
+            description: "")
+        booleanParam(
+            name: "PACKAGES",
+            defaultValue: true,
+            description: "")
     }
     stages{
         stage("Static checks"){
-            when { expression { params.BUILD_CURRENT_STAGE } }
+            when { expression { params.STATIC_CHECKS } }
             parallel{
                 stage('Hip Tidy') {
                     agent{  label rocmnode("nogpu") }
@@ -233,7 +272,7 @@ pipeline {
             }
         }
         stage("Packages"){
-            when { expression { params.BUILD_CURRENT_STAGE } }
+            when { expression { params.PACKAGES } }
             parallel {
                 stage('OpenCL Package') {
                     agent{ label rocmnode("nogpu") }
@@ -275,4 +314,3 @@ pipeline {
         }
     }
 }
-
