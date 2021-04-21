@@ -57,46 +57,8 @@ ConvHipImplicitGemmMlirCppBwd::CalculateGemmSize(const ConvolutionContext& ctx)
 
 bool ConvHipImplicitGemmMlirCppBwd::IsApplicable(const ConvolutionContext& ctx) const
 {
-#if MIOPEN_USE_MLIR
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_HIP_IMPLICIT_GEMM_MLIR_CPP_BWD{}))
-        return false;
-    // Future: MLIR-binary solutions do not take long time to build
-    if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
-        return false;
-    // Future: MLIR-binary solutions do not use HIP kernels.
-    if(!ctx.use_hip_kernels)
-        return false;
-    // Future: MLIR will support non-default layouts.
-    if(!ctx.IsLayoutDefault())
-        return false;
-    // Future: MLIR will support 3d convolution
-    if(!ctx.Is2d())
-        return false;
-    // Future: MLIR will support multiple data types
-    if(!ctx.IsFp32())
-        return false;
-    if(!IsComposableKernelSupportedHardware(ctx))
-        return false;
-    if(!ctx.direction.IsBackwardData())
-        return false;
-    if(ctx.group_counts != 1)
-        return false;
-
-    const auto k = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
-    if(k % GetEPackLength(ctx, false) != 0)
-        return false;
-
-    int gemm_m = 0;
-    int gemm_n = 0;
-    int gemm_k = 0;
-
-    std::tie(gemm_m, gemm_n, gemm_k) = CalculateGemmSize(ctx);
-
-    return gemm_m % 32 == 0 && gemm_n % 32 == 0 && gemm_k % 4 == 0;
-#else
     std::ignore = ctx;
     return false;
-#endif
 }
 
 ConvSolution ConvHipImplicitGemmMlirCppBwd::GetSolution(const ConvolutionContext& ctx) const
