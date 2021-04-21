@@ -114,6 +114,7 @@ def buildHipClangJob(Map conf, compiler){
                     }
                     if (codecov) {
                         sh '''
+                            env
                             cd build
                             lcov --directory . --capture --output-file $(pwd)/coverage.info
                             lcov --remove $(pwd)/coverage.info '/usr/*' --output-file $(pwd)/coverage.info
