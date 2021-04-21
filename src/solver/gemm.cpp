@@ -31,6 +31,7 @@
 #include <miopen/gemm_v2.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/kernel.hpp>
+#include <miopen/rocm_features.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/util.hpp>
@@ -52,9 +53,10 @@ namespace solver {
 #if MIOPEN_USE_GEMM
 #ifdef CPPCHECK
 // Keep the value unknown in cppcheck since this can differ between opencl and hip
-static bool IsUseRocBlas;
+static bool IsBF16PathValid;
 #else
-static constexpr const bool IsUseRocBlas = (MIOPEN_USE_ROCBLAS == 1);
+static constexpr const bool IsBF16PathValid =
+    (MIOPEN_USE_ROCBLAS == 1 || MIOPEN_USE_MIOPENTENSILE == 1);
 #endif
 
 static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
@@ -74,9 +76,9 @@ bool GemmFwdBase::IsApplicable(const ExecutionContext&,
     const auto& wDesc = problem.GetWeights();
     const auto& yDesc = problem.GetOut();
     return problem.GetDirection() == conv::Direction::Forward && problem.IsLayoutDefault() &&
-           !(IsAnyBufferBF16(xDesc, yDesc, wDesc) && !IsUseRocBlas);
+           !(IsAnyBufferBF16(xDesc, yDesc, wDesc) && !IsBF16PathValid);
 #else
-    std::ignore                          = problem;
+    std::ignore = problem;
     return false;
 #endif
 };
@@ -888,23 +890,40 @@ bool GemmFwdRest::IsApplicable(const ExecutionContext& context,
         return false;
 
 #if WORKAROUND_MIOPENGEMM_ROCM37
-    decltype(auto) conv  = problem.GetConv();
-    decltype(auto) xDesc = problem.GetIn();
-    decltype(auto) wDesc = problem.GetWeights();
+    {
+        decltype(auto) conv  = problem.GetConv();
+        decltype(auto) xDesc = problem.GetIn();
+        decltype(auto) wDesc = problem.GetWeights();
 
-    const auto spatial_dim  = conv.GetSpatialDimension();
-    const auto& in_spatial  = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
-    const auto& wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
+        const auto spatial_dim  = conv.GetSpatialDimension();
+        const auto& in_spatial  = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
+        const auto& wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
 
-    const auto in_c = xDesc.GetLengths()[1];
+        const auto in_c = xDesc.GetLengths()[1];
 
-    if(conv.GetSpatialDimension() == 2 && conv.group_count == 4 && in_c == 4 &&
-       in_spatial[0] == 161 && in_spatial[1] == 700 && wDesc.GetLengths()[0] == 32 &&
-       wDesc.GetLengths()[1] == 1 && wei_spatial[0] == 5 && wei_spatial[1] == 20 &&
-       miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
-       miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; }) &&
-       miopen::all_of(conv.GetConvDilations(), [](auto v) { return v == 1; }))
-        return false;
+        if(conv.GetSpatialDimension() == 2 && conv.group_count == 4 && in_c == 4 &&
+           in_spatial[0] == 161 && in_spatial[1] == 700 && wDesc.GetLengths()[0] == 32 &&
+           wDesc.GetLengths()[1] == 1 && wei_spatial[0] == 5 && wei_spatial[1] == 20 &&
+           miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
+           miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; }) &&
+           miopen::all_of(conv.GetConvDilations(), [](auto v) { return v == 1; }))
+            return false;
+    }
+#endif
+#if WORKAROUND_MIOPENGEMM_SINCE_ROCM41
+    {
+        decltype(auto) conv  = problem.GetConv();
+        decltype(auto) xDesc = problem.GetIn();
+        decltype(auto) wDesc = problem.GetWeights();
+
+        const std::size_t spatial_dim = conv.GetSpatialDimension();
+        const auto in_spatial  = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
+        const auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
+
+        if(miopen::any_of(in_spatial, [](auto v) { return v >= 161; }) &&
+           miopen::any_of(wei_spatial, [](auto v) { return v >= 7; }))
+            return false;
+    }
 #endif
 
     // Todo: This is a rest-of kind of logic. Should be revised later.
