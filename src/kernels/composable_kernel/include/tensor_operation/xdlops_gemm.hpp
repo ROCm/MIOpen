@@ -722,10 +722,12 @@ struct XdlopsGemm_t
 #if CK_USE_AMD_XDLOPS_EMULATE
         p_c_thread = XdlopsEmulate<M, N, K>(p_a_wave, p_b_wave, p_c_thread);
 #else
-        static_assert(sizeof(FloatA) % (sizeof(data_type) * mfma_type.k_base) == 0,
-                      "wrong! FloatA is consistent with mfma");
 
-        constexpr index_t KRepeats = sizeof(FloatA) / (sizeof(data_type) * mfma_type.k_base);
+        constexpr index_t KPACT = sizeof(FloatA) / sizeof(data_type);
+
+        static_assert(KPACT % mfma_type.k_base == 0, "wrong! KPACT is not supported by mfma");
+
+        constexpr index_t KRepeats = KPACT / mfma_type.k_base;
 
         static_assert(!IsKReduction || K % mfma_type.num_input_blks == 0,
                       "K cannot divided by mfma_type.num_input_blks!");
@@ -756,43 +758,29 @@ struct XdlopsGemm_t
                 for(index_t k_i               = 0; k_i < KPerThread; ++k_i)
                     b[k_i + n_i * KPerThread] = p_b_wave[k_i * N + laneId + NPerXdlops * n_i];
 
-#if CK_WORKAROUND_SWDEV_229564
-#pragma unroll
-#endif
-            for(index_t k_i = 0; k_i < KPerThread * KRepeats; ++k_i)
-            {
-                p_c_thread = mfma_type.template run<MPerXdlops * MRepeats,
-                                                    NPerXdlops * NRepeats,
-                                                    AStride,
-                                                    BStride>(
-                    &pa[k_i * mfma_type.k_base], &pb[k_i * mfma_type.k_base], p_c_thread);
-            }
-
         }).Else([&](auto) {
 
             const index_t blk_id = laneId / mfma_type.num_threads_blk;
             const index_t blk_td = laneId % mfma_type.num_threads_blk;
 
-            // load into registers
             for(index_t k_i = 0; k_i < KPerThread; ++k_i)
             {
                 a[k_i] = p_a_wave[(k_i * mfma_type.num_input_blks + blk_id) * M + blk_td];
                 b[k_i] = p_b_wave[(k_i * mfma_type.num_input_blks + blk_id) * N + blk_td];
             }
 
+        });
+
 #if CK_WORKAROUND_SWDEV_229564
 #pragma unroll
 #endif
-            for(index_t k_i = 0; k_i < KPerThread; ++k_i)
-            {
-                for(index_t i = 0; i < KRepeats; ++i)
-                    p_c_thread = mfma_type.template run<MPerXdlops, NPerXdlops, AStride, BStride>(
-                        &pa[(k_i * KRepeats + i) * mfma_type.k_base],
-                        &pb[(k_i * KRepeats + i) * mfma_type.k_base],
-                        p_c_thread);
-            }
-
-        });
+        for(index_t k_i = 0; k_i < KPerThread * KRepeats; ++k_i)
+        {
+            p_c_thread =
+                mfma_type
+                    .template run<MPerXdlops * MRepeats, NPerXdlops * NRepeats, AStride, BStride>(
+                        &pa[k_i * mfma_type.k_base], &pb[k_i * mfma_type.k_base], p_c_thread);
+        }
 #endif
 
         return p_c_thread;
