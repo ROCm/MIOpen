@@ -21,9 +21,9 @@ namespace solver {
 
 #ifdef CPPCHECK
 // Keep the value unknown in cppcheck since this can differ between opencl and hip
-static bool IsUseRocBlas;
+static bool IsBF16PathValid;
 #else
-static constexpr const bool IsUseRocBlas = (MIOPEN_USE_ROCBLAS == 1);
+static const bool IsBF16PathValid = (MIOPEN_USE_ROCBLAS == 1 || MIOPEN_USE_MIOPENTENSILE == 1);
 #endif
 
 static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
