@@ -2254,17 +2254,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                         sp_desc    = miopen::TensorDescriptor(
                             wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
-                        CopyTensor(handle,
-                                   sp_desc,
-                                   reserveSpace,
-                                   sp_desc,
-                                   reserveSpace,
-                                   static_cast<int>(offset) + 2 * hy_h + ri * wei_len,
-                                   static_cast<int>(offset) + hid_off + ri * hy_h +
-                                       static_cast<int>(nLayers) * batch_n * hy_stride);
-                        // Update time
-                        profileRNNkernels(handle, 1, ctime);
-
                         alpha0 = 1;
                         alpha1 = 1;
                         beta_t = 0;
