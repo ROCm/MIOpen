@@ -599,8 +599,8 @@ struct pooling_driver : test_driver
             break;
         }
         }
-
-        auto input_desc = miopen::TensorDescriptor(this->type, in_shape.data(), in_shape.size());
+        std::vector<size_t> in_shape_(in_shape.begin(), in_shape.end());
+        auto input_desc = miopen::TensorDescriptor(this->type, in_shape_.data(), in_shape_.size());
 
         if(spt_dim != 2 && spt_dim != 3)
         {

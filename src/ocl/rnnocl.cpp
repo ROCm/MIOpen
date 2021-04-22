@@ -148,7 +148,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     float alpha0, alpha1, beta_t;
     float alpha = 1, beta = 0;
 
-    std::vector<int> sp_size(3, 1), sp_stride(3, 1), w_size(3, 1), w_stride(3, 1), x_size(3, 1),
+    std::vector<size_t> sp_size(3, 1), sp_stride(3, 1), w_size(3, 1), w_stride(3, 1), x_size(3, 1),
         x_stride(3, 1), y_size(3, 1), y_stride(3, 1), hx_size(3, 1), hx_stride(3, 1);
     miopen::TensorDescriptor sp_desc, w_desc, x_desc, y_desc, hx_desc;
 
@@ -1378,7 +1378,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     float alpha0, alpha1, beta_t;
     float alpha = 1, beta = 0;
 
-    std::vector<int> sp_size(3, 1), sp_stride(3, 1), w_size(3, 1), w_stride(3, 1), x_size(3, 1),
+    std::vector<size_t> sp_size(3, 1), sp_stride(3, 1), w_size(3, 1), w_stride(3, 1), x_size(3, 1),
         x_stride(3, 1), y_size(3, 1), y_stride(3, 1), hx_size(3, 1), hx_stride(3, 1);
     miopen::TensorDescriptor sp_desc, w_desc, x_desc, y_desc, hx_desc;
 
@@ -1538,7 +1538,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
             bool use_dropout = !float_equal(miopen::deref(dropoutDesc).dropout, 0);
             if(use_dropout)
             {
-                std::vector<int> drop_size(2), drop_in_str(2, 1), drop_out_str(2, 1);
+                std::vector<size_t> drop_size(2), drop_in_str(2, 1), drop_out_str(2, 1);
                 drop_size[0]    = batch_n;
                 drop_size[1]    = hy_h * bi;
                 drop_in_str[0]  = hy_stride;
@@ -2687,7 +2687,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     float alpha0, alpha1, beta_t;
     float alpha = 1, beta = 0;
 
-    std::vector<int> sp_size(3, 1), sp_stride(3, 1), x_size(3, 1), x_stride(3, 1), y_size(3, 1),
+    std::vector<size_t> sp_size(3, 1), sp_stride(3, 1), x_size(3, 1), x_stride(3, 1), y_size(3, 1),
         y_stride(3, 1), hx_size(3, 1), hx_stride(3, 1);
     miopen::TensorDescriptor sp_desc, x_desc, y_desc, hx_desc;
 
@@ -2842,7 +2842,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 
             if(!float_equal(miopen::deref(dropoutDesc).dropout, 0))
             {
-                std::vector<int> drop_size(2), drop_in_str(2, 1);
+                std::vector<size_t> drop_size(2), drop_in_str(2, 1);
                 drop_size[0]   = batch_n;
                 drop_size[1]   = hy_h * bi;
                 drop_in_str[0] = hy_stride;
@@ -4163,7 +4163,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
     float alpha0, alpha1, beta_t = 0;
 
-    std::vector<int> sp_size(3, 1), sp_stride(3, 1), w_size(3, 1), w_stride(3, 1);
+    std::vector<size_t> sp_size(3, 1), sp_stride(3, 1), w_size(3, 1), w_stride(3, 1);
     miopen::TensorDescriptor sp_desc, w_desc;
 
     sp_stride[0] = batch_n * hy_stride;

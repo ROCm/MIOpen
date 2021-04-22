@@ -162,17 +162,18 @@ struct tensor_copy_driver : test_driver
 
         std::vector<size_t> srcSuperStrides = srcSuper.desc.GetStrides();
         std::vector<size_t> dstSuperStrides = dstSuper.desc.GetStrides();
-        std::vector<int> src_super_strides(srcSuperStrides.begin() +
-                                               (srcSuper.desc.GetSize() - copyLens.size()),
-                                           srcSuperStrides.end());
-        std::vector<int> dst_super_strides(dstSuperStrides.begin() +
-                                               (dstSuper.desc.GetSize() - copyLens.size()),
-                                           dstSuperStrides.end());
+        std::vector<size_t> src_super_strides(srcSuperStrides.begin() +
+                                                  (srcSuper.desc.GetSize() - copyLens.size()),
+                                              srcSuperStrides.end());
+        std::vector<size_t> dst_super_strides(dstSuperStrides.begin() +
+                                                  (dstSuper.desc.GetSize() - copyLens.size()),
+                                              dstSuperStrides.end());
 
+        std::vector<size_t> copyLens_(copyLens.begin(), copyLens.end());
         srcDesc = miopen::TensorDescriptor(
-            this->type, copyLens.data(), src_super_strides.data(), copyLens.size());
+            this->type, copyLens_.data(), src_super_strides.data(), copyLens_.size());
         dstDesc = miopen::TensorDescriptor(
-            this->type, copyLens.data(), dst_super_strides.data(), copyLens.size());
+            this->type, copyLens_.data(), dst_super_strides.data(), copyLens_.size());
 
         if(srcDesc.GetLengths().size() == dstDesc.GetLengths().size())
         {

@@ -184,17 +184,18 @@ struct tensor_cast_driver : test_driver
 
         std::vector<size_t> srcSuperStrides = srcSuper.desc.GetStrides();
         std::vector<size_t> dstSuperStrides = dstSuper.desc.GetStrides();
-        std::vector<int> src_super_strides(srcSuperStrides.begin() +
-                                               (srcSuper.desc.GetSize() - castLens.size()),
-                                           srcSuperStrides.end());
-        std::vector<int> dst_super_strides(dstSuperStrides.begin() +
-                                               (dstSuper.desc.GetSize() - castLens.size()),
-                                           dstSuperStrides.end());
+        std::vector<size_t> src_super_strides(srcSuperStrides.begin() +
+                                                  (srcSuper.desc.GetSize() - castLens.size()),
+                                              srcSuperStrides.end());
+        std::vector<size_t> dst_super_strides(dstSuperStrides.begin() +
+                                                  (dstSuper.desc.GetSize() - castLens.size()),
+                                              dstSuperStrides.end());
+        std::vector<size_t> castLens_(castLens.begin(), castLens.end());
 
         srcDesc = miopen::TensorDescriptor(
-            miopenInt32, castLens.data(), src_super_strides.data(), castLens.size());
+            miopenInt32, castLens_.data(), src_super_strides.data(), castLens_.size());
         dstDesc = miopen::TensorDescriptor(
-            miopen_type<T>{}, castLens.data(), dst_super_strides.data(), castLens.size());
+            miopen_type<T>{}, castLens_.data(), dst_super_strides.data(), castLens_.size());
 
         if(srcDesc.GetLengths().size() == dstDesc.GetLengths().size())
         {

@@ -124,8 +124,8 @@ struct TensorDescriptor : miopenTensorDescriptor
     TensorDescriptor(miopenDataType_t t,
                      std::initializer_list<std::size_t> plens,
                      std::initializer_list<std::size_t> pstrides);
-    TensorDescriptor(miopenDataType_t t, const int* plens, int size);
-    TensorDescriptor(miopenDataType_t t, const int* plens, const int* pstrides, int size);
+    TensorDescriptor(miopenDataType_t t, const size_t* plens, int size);
+    TensorDescriptor(miopenDataType_t t, const size_t* plens, const size_t* pstrides, int size);
 
     TensorDescriptor(miopenDataType_t t,
                      std::vector<std::size_t> lens_in,

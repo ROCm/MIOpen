@@ -50,22 +50,22 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
     packed = (this->GetElementSize() == this->GetElementSpace());
 }
 
-TensorDescriptor::TensorDescriptor(miopenDataType_t t, const int* plens, int size)
+TensorDescriptor::TensorDescriptor(miopenDataType_t t, const size_t* plens, int size)
     : lens(plens, plens + size), packed(true), type(t)
 {
-    if(!std::all_of(plens, plens + size, [](int x) { return x >= 0; }))
+    if(!std::all_of(plens, plens + size, [](size_t x) { return x >= 0; }))
         MIOPEN_THROW("Invalid length. Length must be greater than 0.");
     this->CalculateStrides();
 }
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
-                                   const int* plens,
-                                   const int* pstrides,
+                                   const size_t* plens,
+                                   const size_t* pstrides,
                                    int size)
     : lens(plens, plens + size), strides(pstrides, pstrides + size), type(t)
 {
-    if(!std::all_of(plens, plens + size, [](int x) { return x >= 0; }))
+    if(!std::all_of(plens, plens + size, [](size_t x) { return x >= 0; }))
         MIOPEN_THROW("Invalid length. Length must be greater than 0.");
-    if(!std::all_of(pstrides, pstrides + size, [](int x) { return x >= 0; }))
+    if(!std::all_of(pstrides, pstrides + size, [](size_t x) { return x >= 0; }))
         MIOPEN_THROW("Invalid strides. Strides must be greater than 0.");
     packed = (this->GetElementSize() == this->GetElementSpace());
 }

@@ -44,7 +44,7 @@ void DeriveBNTensorDescriptor(TensorDescriptor& derivedBnDesc,
 {
 
     auto lengths = xDesc.GetLengths();
-    std::vector<int> newlens(lengths.size());
+    std::vector<size_t> newlens(lengths.size());
     newlens[1] = lengths[1];
     if(bn_mode == miopenBNSpatial)
     {

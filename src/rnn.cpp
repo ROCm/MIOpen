@@ -218,9 +218,9 @@ size_t RNNDescriptor::paramsOffsetCalculation(const TensorDescriptor& xDesc,
     return layerJump;
 }
 
-std::vector<int> RNNDescriptor::pTensorLengthsCalculation(const TensorDescriptor& xDesc,
-                                                          const int layer,
-                                                          const int paramID) const
+std::vector<size_t> RNNDescriptor::pTensorLengthsCalculation(const TensorDescriptor& xDesc,
+                                                             const int layer,
+                                                             const int paramID) const
 {
     auto inputVectorLen = xDesc.GetLengths()[1];
     if(inputMode == miopenRNNskip)
@@ -228,7 +228,7 @@ std::vector<int> RNNDescriptor::pTensorLengthsCalculation(const TensorDescriptor
         inputVectorLen = 0;
     }
 
-    std::vector<int> tdim(2, 0);
+    std::vector<size_t> tdim(2, 0);
 
     if(dirMode != 0u)
     {
@@ -564,7 +564,7 @@ void RNNDescriptor::GetParamsDescriptor(Handle& /* handle */,
 
     // Create weight super tensor descriptor
     int bi = (dirMode == miopenRNNbidirection) ? 2 : 1;
-    std::vector<int> weight_lens(2, 0);
+    std::vector<size_t> weight_lens(2, 0);
     weight_lens[0] = inputVectorLen + ((nLayers - 1) * (bi + 1) + 1) * hsize;
     weight_lens[1] = bi * hsize * nHiddenTensorsPerLayer;
     if(biasMode == miopenRNNwithBias)
@@ -668,8 +668,7 @@ void RNNDescriptor::GetLayerBias(const Handle& handle,
     }
 
     // Get the dimensions of the parameter matrix
-    auto bdim = int(hsize);
-    biasDesc  = miopen::TensorDescriptor(dataType, &bdim, 1);
+    biasDesc = miopen::TensorDescriptor(dataType, &hsize, 1);
     if(bias == nullptr)
     {
         return;
@@ -720,14 +719,13 @@ void RNNDescriptor::SetLayerParam(const Handle& handle,
     auto poffset = paramsOffsetCalculation(xDesc, layer, paramID);
 
     // 2. Calculate the strides for the matrix
-    std::vector<int> pstride(2, 1);
+    std::vector<size_t> pstride(2, 1);
 
     pstride[1] = paramDesc.GetLengths()[0];
 
-    std::vector<int> intLens(paramDesc.GetLengths().begin(), paramDesc.GetLengths().end());
-
     // 3. Construct descriptor to access into w
-    auto paramSrc = miopen::TensorDescriptor(dataType, intLens.data(), pstride.data(), 2);
+    auto paramSrc =
+        miopen::TensorDescriptor(dataType, paramDesc.GetLengths().data(), pstride.data(), 2);
 
     if(paramSrc.GetLengths() != paramDesc.GetLengths())
     {
@@ -773,12 +771,11 @@ void RNNDescriptor::SetLayerBias(const Handle& handle,
     auto boffset = biasOffsetCalculation(xDesc, layer, biasID) + poffset;
 
     // 2. Calculate the strides for the matrix
-    std::vector<int> bstride(1, 1);
-
-    std::vector<int> intLens(biasDesc.GetLengths().begin(), biasDesc.GetLengths().end());
+    std::vector<size_t> bstride(1, 1);
 
     // 3. Construct descriptor to access into w
-    auto biasSrc = miopen::TensorDescriptor(dataType, intLens.data(), bstride.data(), 1);
+    auto biasSrc =
+        miopen::TensorDescriptor(dataType, biasDesc.GetLengths().data(), bstride.data(), 1);
 
     if(biasSrc.GetLengths() != biasDesc.GetLengths())
     {
@@ -845,8 +842,7 @@ void RNNDescriptor::GetLayerBiasOffset(const int layer,
         return;
     }
 
-    auto bdim = int(hsize);
-    biasDesc  = miopen::TensorDescriptor(dataType, &bdim, 1);
+    biasDesc = miopen::TensorDescriptor(dataType, &hsize, 1);
     if(biasOffset == nullptr)
     {
         return;

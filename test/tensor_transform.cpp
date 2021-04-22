@@ -397,17 +397,19 @@ struct tensor_transform_driver : test_driver
         bool skip_layout = !(miopen::float_equal(static_cast<const float>(alpha), 1.0) &&
                              miopen::float_equal(static_cast<const float>(beta), 0.0) &&
                              std::is_same<T, int8_t>{});
+        std::vector<size_t> srcLens_(srcLens.begin(), srcLens.end());
         if(!skip_layout)
         {
             // Test tensor layout transform
+
             srcSuper_pad   = tensor<T>{srcLens}.generate(tensor_elem_gen_integer{max_value});
             dstSuper_depad = tensor<T>{srcLens}.generate(tensor_elem_gen_integer{max_value});
-            srcDesc        = miopen::TensorDescriptor(this->type, srcLens.data(), srcLens.size());
+            srcDesc        = miopen::TensorDescriptor(this->type, srcLens_.data(), srcLens_.size());
 
             srcLens[1]     = (srcLens[1] % 4 == 0) ? srcLens[1] : ((srcLens[1] + 3) / 4) * 4;
             dstSuper_pad   = tensor<T>{srcLens}.generate(tensor_elem_gen_integer{max_value});
             srcSuper_depad = tensor<T>{srcLens}.generate(tensor_elem_gen_integer{max_value});
-            dstDesc        = miopen::TensorDescriptor(this->type, srcLens.data(), srcLens.size());
+            dstDesc        = miopen::TensorDescriptor(this->type, srcLens_.data(), srcLens_.size());
 
             if(srcDesc.GetLengths().size() == dstDesc.GetLengths().size() && !skip_layout)
             {
@@ -434,17 +436,17 @@ struct tensor_transform_driver : test_driver
 #endif
         std::vector<size_t> superStrides_src = super_src.desc.GetStrides();
         std::vector<size_t> superStrides_dst = super_dst.desc.GetStrides();
-        std::vector<int> subStrides_src(superStrides_src.begin() +
-                                            (super_src.desc.GetSize() - subLens.size()),
-                                        superStrides_src.end());
-        std::vector<int> subStrides_dst(superStrides_dst.begin() +
-                                            (super_dst.desc.GetSize() - subLens.size()),
-                                        superStrides_dst.end());
+        std::vector<size_t> subStrides_src(superStrides_src.begin() +
+                                               (super_src.desc.GetSize() - subLens.size()),
+                                           superStrides_src.end());
+        std::vector<size_t> subStrides_dst(superStrides_dst.begin() +
+                                               (super_dst.desc.GetSize() - subLens.size()),
+                                           superStrides_dst.end());
 
         subDesc_src = miopen::TensorDescriptor(
-            this->type, subLens.data(), subStrides_src.data(), subLens.size());
+            this->type, srcLens_.data(), subStrides_src.data(), srcLens_.size());
         subDesc_dst = miopen::TensorDescriptor(
-            this->type, subLens.data(), subStrides_dst.data(), subLens.size());
+            this->type, srcLens_.data(), subStrides_dst.data(), srcLens_.size());
 
         verify_equals(verify_tensor_transform_scale<T>{
             super_src, subDesc_src, super_dst, subDesc_dst, offset, offset, T(alpha), T(beta)});

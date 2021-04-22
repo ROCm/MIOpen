@@ -595,6 +595,23 @@ MIOPEN_EXPORT miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t 
 
 /*! @brief Set shape of N-dimensional tensor
  *
+ * Interface for setting tensor shape. MIOpen has support for 1, 2, 3, 4, 5 dimensional tensor of
+ * layout.
+ * @param tensorDesc   Tensor descriptor type (input)
+ * @param dataType     MIOpen datatype (input)
+ * @param nbDims       Number of dimensions in the dimsA array (input)
+ * @param dimsA        Array containing the size of dimensions (input)
+ * @param stridesA     Array containing the size of stride (input)
+ * @return             miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenSetTensorDescriptorV2(miopenTensorDescriptor_t tensorDesc,
+                                                         miopenDataType_t dataType,
+                                                         int nbDims,
+                                                         size_t* dimsA,
+                                                         size_t* stridesA);
+
+/*! @brief Set shape of N-dimensional tensor
+ *
  * Interface for querying tensor size. MIOpen has support for 1, 2, 3, 4, 5 dimensional tensor of
  * layout.
  * @param tensorDesc   Tensor descriptor type (input)
@@ -616,6 +633,19 @@ MIOPEN_EXPORT miopenStatus_t miopenGetTensorDescriptor(miopenTensorDescriptor_t 
                                                        miopenDataType_t* dataType,
                                                        int* dimsA,
                                                        int* stridesA);
+
+/*! @brief Get the details of the N-dimensional tensor descriptor.
+ *
+ * @param tensorDesc Tensor descriptor type (input)
+ * @param dataType   MIOpen datatype (input)
+ * @param dimsA      Array containing the size of dimensions (output)
+ * @param stridesA   Array containing the size of stride (output)
+ * @return           miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetTensorDescriptorV2(miopenTensorDescriptor_t tensorDesc,
+                                                         miopenDataType_t* dataType,
+                                                         size_t* dimsA,
+                                                         size_t* stridesA);
 
 /*! @brief Destroys the tensor descriptor
  *
