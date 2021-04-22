@@ -106,6 +106,7 @@ def buildHipClangJob(Map conf, compiler){
                         mkdir build
                         rm -rf install
                         mkdir install
+                        rm -rf src/kernels/*.ufdb.txt
                     '''
                     if(cmd == ""){
                         cmake_build(compiler, flags, env4make, extradebugflags, prefixpath)
