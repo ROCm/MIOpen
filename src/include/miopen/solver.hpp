@@ -1931,16 +1931,6 @@ struct fft : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
-/// Partial implementation.
-struct gemm : SolverBase<ConvolutionContext>
-{
-    bool IsApplicable(const ConvolutionContext& /*params*/) const { return false; };
-    ConvSolution GetSolution(const ConvolutionContext&) const
-    {
-        return ConvSolution{miopenStatusNotInitialized};
-    }
-};
-
 struct PerformanceImplicitGemmWrwV4R4Xdlops : Serializable<PerformanceImplicitGemmWrwV4R4Xdlops>
 {
     int GemmMPerBlock;

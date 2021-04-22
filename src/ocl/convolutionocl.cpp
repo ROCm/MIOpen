@@ -50,10 +50,6 @@
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
 
-#if MIOPEN_USE_GEMM
-#include <miopen/gemm_v2.hpp>
-#endif
-
 #include <cassert>
 #include <type_traits>
 
@@ -70,23 +66,6 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_FFT)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMMED_FALLBACK)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMPILE_ONLY)
-
-#if MIOPEN_USE_GEMM
-#ifdef CPPCHECK
-// Keep the value unknown in cppcheck since this can differ between opencl and hip
-static bool IsBF16PathValid;
-#else
-static const bool IsBF16PathValid = (MIOPEN_USE_ROCBLAS == 1 || MIOPEN_USE_MIOPENTENSILE == 1);
-#endif
-
-static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
-                                   const TensorDescriptor& yDesc,
-                                   const TensorDescriptor& wDesc)
-{
-    return xDesc.GetType() == miopenBFloat16 || yDesc.GetType() == miopenBFloat16 ||
-           wDesc.GetType() == miopenBFloat16;
-}
-#endif
 
 size_t GetKernelGlobalWorkDim(const KernelInvoke& kernel, int dim) { return kernel.gdims[dim]; }
 
@@ -663,38 +642,6 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
     });
 }
 
-bool ConvolutionDescriptor::IsGemmApplicableWrw(const TensorDescriptor& dyDesc,
-                                                const TensorDescriptor& xDesc,
-                                                const TensorDescriptor& dwDesc) const
-{
-#if MIOPEN_USE_GEMM
-    if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) &&
-       !(IsAnyBufferBF16(xDesc, dyDesc, dwDesc) && !IsBF16PathValid))
-    {
-        const std::size_t spatial_dim = GetSpatialDimension();
-        const auto wei_spatial = boost::adaptors::slice(dwDesc.GetLengths(), 2, 2 + spatial_dim);
-
-        // if not 1x1
-        if((miopen::any_of(wei_spatial, [](auto v) { return v != 1; }) ||
-            miopen::any_of(GetConvPads(), [](auto v) { return v != 0; }) ||
-            miopen::any_of(GetConvStrides(), [](auto v) { return v != 1; })))
-            return true;
-
-        if(miopen::any_of(wei_spatial, [](auto v) { return v == 1; }) &&
-           miopen::any_of(GetConvPads(), [](auto v) { return v == 0; }) &&
-           miopen::any_of(GetConvStrides(), [](auto v) { return v == 1; }))
-            return true;
-
-        return false;
-    }
-#else
-    std::ignore = dyDesc;
-    std::ignore = xDesc;
-    std::ignore = dwDesc;
-#endif
-    return false;
-}
-
 static std::size_t GetSolutionCount(Handle& handle, const ProblemDescription& problem)
 {
     const FindDbRecord fdb_record{handle, problem};
@@ -841,10 +788,6 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
             continue;
         if(!s.IsApplicable(ctx))
             continue;
-
-        // gemm can appear here only after actual (non-dummy) GEMM Solver is implemented.
-        if(solver_id == solver::Id::gemm())
-            MIOPEN_LOG_W("GEMM solver is ready, rework this function");
 
         const auto wti = s.GetWti(ctx);
         MIOPEN_LOG_I2(solver_id.ToString() << " Estimated WTI = " << wti);

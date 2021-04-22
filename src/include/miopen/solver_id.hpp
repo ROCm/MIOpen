@@ -62,6 +62,7 @@ struct Id
     }
     bool operator!=(const Id& other) const { return !(*this == other); }
 
+    // For comparing with legacy find db items
     static solver::Id gemm()
     {
         static const auto value = solver::Id{"gemm"};

@@ -406,22 +406,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                               size_t* solutionCount,
                               miopenConvSolution_t* solutions) const;
 
-    bool IsGemmApplicableBwd(const TensorDescriptor& dyDesc,
-                             const TensorDescriptor& wDesc,
-                             const TensorDescriptor& dxDesc) const;
-
-    bool IsGemmApplicableWrw(const TensorDescriptor& dyDesc,
-                             const TensorDescriptor& xDesc,
-                             const TensorDescriptor& dwDesc) const;
-
-    float ComputeGemmWtiBwd(const TensorDescriptor& dyDesc,
-                            const TensorDescriptor& wDesc,
-                            const TensorDescriptor& dxDesc) const;
-
-    float ComputeGemmWtiWrw(const TensorDescriptor& dyDesc,
-                            const TensorDescriptor& xDesc,
-                            const TensorDescriptor& dwDesc) const;
-
     std::size_t GetSolutionCountFallback(Handle& handle, const ProblemDescription& problem) const;
 };
 
