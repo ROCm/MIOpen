@@ -55,7 +55,8 @@ bool GemmWrwBase::IsApplicable(const ExecutionContext&,
     const auto& dyDesc = problem.GetIn();
     const auto& dwDesc = problem.GetWeights();
     const auto& xDesc  = problem.GetOut();
-    return problem.GetDirection() == conv::Direction::BackwardWeights && problem.IsLayoutDefault() &&
+    return problem.GetDirection() == conv::Direction::BackwardWeights &&
+           problem.IsLayoutDefault() &&
            !(IsAnyBufferBF16(xDesc, dyDesc, dwDesc) && !IsBF16PathValid);
 #else
     std::ignore = problem;
