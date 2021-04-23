@@ -84,9 +84,8 @@ bool GemmFwdBase::IsApplicable(const ExecutionContext&,
     const auto& xDesc = problem.GetIn();
     const auto& wDesc = problem.GetWeights();
     const auto& yDesc = problem.GetOut();
-    return problem.GetDirection() == conv::Direction::Forward &&          //
-           problem.IsLayoutDefault() &&                                   //
-           !(IsAnyBufferBF16(xDesc, yDesc, wDesc) && !IsBf16Supported) && //
+    return problem.GetDirection() == conv::Direction::Forward && problem.IsLayoutDefault() &&
+           !(IsAnyBufferBF16(xDesc, yDesc, wDesc) && !IsBf16Supported) &&
            !(IsAnyBufferFp16(xDesc, yDesc, wDesc) && !IsFp16Supported);
 #else
     std::ignore                             = problem;
