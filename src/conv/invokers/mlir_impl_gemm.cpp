@@ -33,6 +33,7 @@
 #include <miopen/tensor_ops.hpp>
 
 #include <boost/any.hpp>
+#include <boost/range/adaptors.hpp>
 
 namespace miopen {
 namespace conv {
@@ -187,20 +188,16 @@ InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
     MlirConvArgs args =
         makeMlirConvArgs(in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides);
 
-    const auto& conv = ctx.conv_problem.GetConv();
+    const auto& conv  = ctx.conv_problem.GetConv();
     const auto& wDesc = ctx.conv_problem.GetWeights();
-    bool is_1x1_s1    = false;
-    if(miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
-       miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 1; }))
-    {
-        if(wDesc.GetLengths()[2] == 1 && wDesc.GetLengths()[3] == 1)
-        { // filter = 1
-            if(wDesc.GetSize() == 4 || (wDesc.GetSize() == 5 && wDesc.GetLengths()[4] == 1))
-            {
-                is_1x1_s1 = true;
-            }
-        }
-    }
+
+    const bool isFilter1Padding0Stride1 = [=]() {
+        const auto wei_spatial =
+            boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + conv.GetSpatialDimension());
+        return miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
+               miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
+               miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 1; });
+    }();
 
     return [=](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
@@ -208,7 +205,7 @@ InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
             const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors  = data_ctx.tensors;
 
-            if(!is_1x1_s1)
+            if(!isFilter1Padding0Stride1)
             {
                 float zero = 0.f;
                 SetTensor(handle, tensors.outDesc, tensors.out, &zero);

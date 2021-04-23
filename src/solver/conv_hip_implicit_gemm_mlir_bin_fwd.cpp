@@ -25,9 +25,10 @@
  *******************************************************************************/
 #include <miopen/mlir_build.hpp>
 #include <miopen/conv/invokers/mlir_impl_gemm.hpp>
+#include <miopen/config.h>
+#include <miopen/env.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
-#include <miopen/handle.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_HIP_IMPLICIT_GEMM_MLIR_BIN_FWD)
 
