@@ -391,7 +391,7 @@ Program Handle::LoadProgram(const std::string& program_name,
 {
     this->impl->set_ctx();
 
-    if(!miopen::EndsWith(program_name, ".mlir-cpp"))
+    if((!miopen::EndsWith(program_name, ".mlir-cpp")) && (!miopen::EndsWith(program_name, ".mlir")))
     {
         params += " -mcpu=" + this->GetTargetProperties().Name();
     }
