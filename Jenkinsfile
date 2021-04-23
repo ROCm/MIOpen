@@ -192,11 +192,11 @@ pipeline {
             description: "")
         booleanParam(
             name: "MIOPENTENSILE",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "MIOPENTENSILE_LATEST",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "PACKAGES",
