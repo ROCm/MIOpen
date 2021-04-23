@@ -109,6 +109,35 @@ MlirConvArgs makeMlirConvArgs(const std::vector<size_t>& in_dims,
 
     return {filter, input, output};
 }
+
+void setMlirConvArgsPtr(const ConvDataTensors& tensors, MlirConvArgs& args)
+{
+    void* filter = nullptr;
+    void* input  = nullptr;
+    void* output = nullptr;
+#if MIOPEN_BACKEND_OPENCL
+    clGetMemObjectInfo(tensors.w, CL_MEM_HOST_PTR, sizeof(filter), &filter, nullptr);
+    clGetMemObjectInfo(tensors.in, CL_MEM_HOST_PTR, sizeof(input), &input, nullptr);
+    clGetMemObjectInfo(tensors.out, CL_MEM_HOST_PTR, sizeof(output), &output, nullptr);
+#elif MIOPEN_BACKEND_HIP
+    // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
+    filter = const_cast<void*>(tensors.w);
+    // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
+    input = const_cast<void*>(tensors.in);
+    // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
+    output = const_cast<void*>(tensors.out);
+#endif
+
+    if((filter == nullptr) || (input == nullptr) || (output == nullptr))
+        MIOPEN_THROW("Invalid device pointers");
+
+    args.filter.basePtr = filter;
+    args.filter.data    = filter;
+    args.input.basePtr  = input;
+    args.input.data     = input;
+    args.output.basePtr = output;
+    args.output.data    = output;
+}
 } // Anonymous namespace
 
 InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
@@ -135,33 +164,68 @@ InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
                 primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors = forward_invoke_params.tensors;
 
-            void* filter = nullptr;
-            void* input  = nullptr;
-            void* output = nullptr;
-#if MIOPEN_BACKEND_OPENCL
-            clGetMemObjectInfo(tensors.w, CL_MEM_HOST_PTR, sizeof(filter), &filter, nullptr);
-            clGetMemObjectInfo(tensors.in, CL_MEM_HOST_PTR, sizeof(input), &input, nullptr);
-            clGetMemObjectInfo(tensors.out, CL_MEM_HOST_PTR, sizeof(output), &output, nullptr);
-#elif MIOPEN_BACKEND_HIP
-            // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
-            filter = const_cast<void*>(tensors.w);
-            // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
-            input = const_cast<void*>(tensors.in);
-            // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
-            output = const_cast<void*>(tensors.out);
-#endif
-
-            if((filter == nullptr) || (input == nullptr) || (output == nullptr))
-                MIOPEN_THROW("Invalid device pointers");
-
-            args.filter.basePtr = filter;
-            args.filter.data    = filter;
-            args.input.basePtr  = input;
-            args.input.data     = input;
-            args.output.basePtr = output;
-            args.output.data    = output;
-
+            setMlirConvArgsPtr(tensors, args);
             handle.Run(kernels[0])(args);
+        };
+    };
+}
+
+InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
+{
+    assert(ctx.direction.IsBackwardData());
+
+    std::vector<size_t> in_dims, in_strides;
+    std::vector<size_t> weights_dims, weights_strides;
+    std::vector<size_t> out_dims, out_strides;
+    permuteDimStridesAllDir(ctx.conv_problem,
+                            in_dims,
+                            in_strides,
+                            weights_dims,
+                            weights_strides,
+                            out_dims,
+                            out_strides);
+
+    MlirConvArgs args =
+        makeMlirConvArgs(in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides);
+    const auto& conv = ctx.conv_problem.GetConv();
+
+    return [=](const std::vector<Kernel>& kernels) mutable {
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
+            float elapsed        = 0;
+            const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
+            const auto& tensors  = data_ctx.tensors;
+
+            bool is_1x1_s1 = false;
+            if(miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
+               miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 1; }))
+            {
+                if(tensors.wDesc.GetLengths()[2] == 1 && tensors.wDesc.GetLengths()[3] == 1)
+                { // filter = 1
+                    if(tensors.wDesc.GetSize() == 4 ||
+                       (tensors.wDesc.GetSize() == 5 && tensors.wDesc.GetLengths()[4] == 1))
+                    {
+                        is_1x1_s1 = true;
+                    }
+                }
+            }
+
+            if(!is_1x1_s1)
+            {
+                float zero = 0.f;
+                SetTensor(handle, tensors.outDesc, tensors.out, &zero);
+            }
+
+            if(handle.IsProfilingEnabled())
+                elapsed += handle.GetKernelTime();
+
+            setMlirConvArgsPtr(tensors, args);
+            handle.Run(kernels[0])(args);
+            if(handle.IsProfilingEnabled())
+            {
+                elapsed += handle.GetKernelTime();
+                handle.ResetKernelTime();
+                handle.AccumKernelTime(elapsed);
+            }
         };
     };
 }

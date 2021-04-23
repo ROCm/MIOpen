@@ -33,6 +33,7 @@ namespace miopen {
 namespace conv {
 
 InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx);
+InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx);
 
 } // namespace conv
 } // namespace miopen

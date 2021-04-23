@@ -1266,6 +1266,12 @@ struct ConvHipImplicitGemmMlirCppBwd : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
+struct ConvHipImplicitGemmMlirBinBwd : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+};
+
 struct ConvHipImplicitGemmBwdDataV4R1 : SolverBase<ConvolutionContext>
 {
     static int CalculateNumberOfGemm(const ConvolutionContext& ctx);
