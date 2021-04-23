@@ -166,7 +166,7 @@ Program Handle::LoadProgram(const std::string& program_name,
                             bool is_kernel_str,
                             const std::string& kernel_src) const
 {
-    if(!miopen::EndsWith(program_name, ".mlir-cpp"))
+    if((!miopen::EndsWith(program_name, ".mlir-cpp")) && (!miopen::EndsWith(program_name, ".mlir")))
     {
         params += " -mcpu=" + this->GetTargetProperties().Name();
     }
