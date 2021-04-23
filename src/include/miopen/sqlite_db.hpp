@@ -250,6 +250,7 @@ class SQLiteBase
         if(!sql.Valid())
         {
             dbInvalid = true;
+            filename  = "";
             if(!is_system)
                 MIOPEN_THROW(miopenStatusInternalError, "Cannot open database file:" + filename_);
             else
