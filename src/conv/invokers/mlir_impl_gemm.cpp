@@ -184,30 +184,29 @@ InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
                             weights_strides,
                             out_dims,
                             out_strides);
-
     MlirConvArgs args =
         makeMlirConvArgs(in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides);
+
     const auto& conv = ctx.conv_problem.GetConv();
+    const auto& wDesc = ctx.conv_problem.GetWeights();
+    bool is_1x1_s1    = false;
+    if(miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
+       miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 1; }))
+    {
+        if(wDesc.GetLengths()[2] == 1 && wDesc.GetLengths()[3] == 1)
+        { // filter = 1
+            if(wDesc.GetSize() == 4 || (wDesc.GetSize() == 5 && wDesc.GetLengths()[4] == 1))
+            {
+                is_1x1_s1 = true;
+            }
+        }
+    }
 
     return [=](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
             float elapsed        = 0;
             const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors  = data_ctx.tensors;
-
-            bool is_1x1_s1 = false;
-            if(miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
-               miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 1; }))
-            {
-                if(tensors.wDesc.GetLengths()[2] == 1 && tensors.wDesc.GetLengths()[3] == 1)
-                { // filter = 1
-                    if(tensors.wDesc.GetSize() == 4 ||
-                       (tensors.wDesc.GetSize() == 5 && tensors.wDesc.GetLengths()[4] == 1))
-                    {
-                        is_1x1_s1 = true;
-                    }
-                }
-            }
 
             if(!is_1x1_s1)
             {

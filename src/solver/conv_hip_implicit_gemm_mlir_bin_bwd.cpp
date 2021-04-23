@@ -60,7 +60,7 @@ std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx)
 bool ConvHipImplicitGemmMlirBinBwd::IsApplicable(const ConvolutionContext& ctx) const
 {
 #if MIOPEN_USE_MLIR
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_HIP_IMPLICIT_GEMM_MLIR_BIN_BWD{}))
+    if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_HIP_IMPLICIT_GEMM_MLIR_BIN_BWD{}))
         return false;
     // Future: MLIR will support non-default layouts.
     if(!ctx.IsLayoutDefault())
