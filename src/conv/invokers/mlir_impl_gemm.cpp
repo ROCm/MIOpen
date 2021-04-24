@@ -191,7 +191,7 @@ InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
     const auto& conv  = ctx.conv_problem.GetConv();
     const auto& wDesc = ctx.conv_problem.GetWeights();
 
-    const bool isFilter1Padding0Stride1 = [=]() {
+    const bool isFilter1Padding0Stride1 = [&]() {
         const auto wei_spatial =
             boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + conv.GetSpatialDimension());
         return miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
