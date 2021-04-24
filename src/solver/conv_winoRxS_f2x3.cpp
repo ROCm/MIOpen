@@ -210,7 +210,7 @@ PerformanceConfigConvBinWinogradRxSf2x3::PerformanceConfigConvBinWinogradRxSf2x3
 {
 }
 
-void PerformanceConfigConvBinWinogradRxSf2x3::EuristicInit(const ConvolutionContext& config)
+void PerformanceConfigConvBinWinogradRxSf2x3::HeuristicInit(const ConvolutionContext& config)
 {
     const auto n_inputs_per_group  = config.n_inputs / config.group_counts,
                n_outputs_per_group = config.n_outputs / config.group_counts;
@@ -295,7 +295,7 @@ PerformanceConfigConvBinWinogradRxSf2x3
 ConvBinWinogradRxSf2x3::GetPerformanceConfig(const ConvolutionContext& params) const
 {
     PerformanceConfigConvBinWinogradRxSf2x3 pp;
-    pp.EuristicInit(params);
+    pp.HeuristicInit(params);
     MIOPEN_LOG_I(pp.ToString());
     return pp;
 }

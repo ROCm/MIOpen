@@ -306,7 +306,7 @@ bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) con
     return (c_per_wave % c_mult == 0) && (c_per_last_wave % c_mult == 0);
 }
 
-void PerformanceConfigConvAsm1x1U::EuristicInit(const ConvolutionContext& config)
+void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& config)
 {
     const auto elements_in_dword = 4 / GetTypeSize(config.in_data_type);
     read_size                    = 4;
@@ -362,7 +362,7 @@ PerformanceConfigConvAsm1x1U
 ConvAsm1x1U::GetPerformanceConfig(const ConvolutionContext& params) const
 {
     PerformanceConfigConvAsm1x1U pp;
-    pp.EuristicInit(params);
+    pp.HeuristicInit(params);
     MIOPEN_LOG_I(pp.ToString());
     return pp;
 }

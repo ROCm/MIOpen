@@ -480,7 +480,7 @@ bool PerformanceImplicitGemmV4R4WrW::IsValid(const ConvolutionContext& ctx) cons
     return (valid and lds_size <= get_lds_max_number_of_byte());
 }
 
-void PerformanceImplicitGemmV4R4WrW::EuristicInit(const ConvolutionContext& ctx)
+void PerformanceImplicitGemmV4R4WrW::HeuristicInit(const ConvolutionContext& ctx)
 {
     PerformanceImplicitGemmV4R4WrW config;
 

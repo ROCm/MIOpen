@@ -240,7 +240,7 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& config)
     return true;
 }
 
-void PerformanceConfigAsmDirect3x3WrW::EuristicInit(const ConvolutionContext& config)
+void PerformanceConfigAsmDirect3x3WrW::HeuristicInit(const ConvolutionContext& config)
 {
     limit_wave_cnt = 0;
 
@@ -326,7 +326,7 @@ PerformanceConfigAsmDirect3x3WrW
 ConvAsmBwdWrW3x3::GetPerformanceConfig(const ConvolutionContext& params) const
 {
     PerformanceConfigAsmDirect3x3WrW pp;
-    pp.EuristicInit(params);
+    pp.HeuristicInit(params);
     MIOPEN_LOG_I(pp.ToString());
     return pp;
 }

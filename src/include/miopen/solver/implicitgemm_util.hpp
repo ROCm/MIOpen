@@ -658,7 +658,7 @@ template <class PerformanceImplicitGemm_t>
 inline static auto GetPerformanceConfigBase(const ConvolutionContext& ctx)
 {
     PerformanceImplicitGemm_t pp;
-    pp.EuristicInit(ctx);
+    pp.HeuristicInit(ctx);
     MIOPEN_LOG_I(pp.ToString());
     return pp;
 }
