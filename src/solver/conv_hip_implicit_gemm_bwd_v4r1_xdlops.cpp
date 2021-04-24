@@ -587,7 +587,7 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::SetNextValue()
     return true;
 }
 
-void PerformanceImplicitGemmBwdDataV4R1Xdlops::EuristicInit(const ConvolutionContext& ctx)
+void PerformanceImplicitGemmBwdDataV4R1Xdlops::HeuristicInit(const ConvolutionContext& ctx)
 {
     PerformanceImplicitGemmBwdDataV4R1Xdlops tmp;
 

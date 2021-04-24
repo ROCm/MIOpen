@@ -518,7 +518,7 @@ bool PerformanceImplicitGemmBwdDataV4R1::IsValid(const ConvolutionContext& ctx) 
     return (valid and lds_size <= get_lds_max_number_of_byte());
 }
 
-void PerformanceImplicitGemmBwdDataV4R1::EuristicInit(const ConvolutionContext& ctx)
+void PerformanceImplicitGemmBwdDataV4R1::HeuristicInit(const ConvolutionContext& ctx)
 {
     PerformanceImplicitGemmBwdDataV4R1 config;
 

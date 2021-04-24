@@ -154,7 +154,7 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::SetNextValue()
     return true;
 }
 
-void PerformanceImplicitGemmForwardV4R5Xdlops::EuristicInit(const ConvolutionContext& ctx)
+void PerformanceImplicitGemmForwardV4R5Xdlops::HeuristicInit(const ConvolutionContext& ctx)
 {
     PerformanceImplicitGemmForwardV4R5Xdlops tmp;
 
@@ -606,7 +606,7 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsValidValue() const
     // clang-format on
 }
 
-// Used by EuristicInit() and GenericSearch
+// Used by HeuristicInit() and GenericSearch
 // Only return false if a performance config will violate requirements given by kernel algorithm
 bool PerformanceImplicitGemmForwardV4R5Xdlops::IsReallyValid(const ConvolutionContext& ctx) const
 {
@@ -672,7 +672,7 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsReallyValid(const ConvolutionCo
     return (valid and lds_size <= get_lds_max_number_of_byte());
 }
 
-// Used by GenericSearch, not used by EuristicInit
+// Used by GenericSearch, not used by HeuristicInit
 // Return false if a performance config is known to be sub-optimal, comparing to other performance
 // config inside tuning range
 bool PerformanceImplicitGemmForwardV4R5Xdlops::IsFastToBeUsedForTuning(
@@ -851,7 +851,7 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsFastToBeUsedForTuning(
     return true;
 }
 
-// Used by GenericSearch, not used by EuristicInit
+// Used by GenericSearch, not used by HeuristicInit
 // Return false, if you don't want to this to be included in tuning range used by generic search
 // A performance config may still be valid w.r.t algorithm correctness, even when IsValid() return
 // false
@@ -860,7 +860,7 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsValid(const ConvolutionContext&
     return IsReallyValid(ctx) && IsFastToBeUsedForTuning(ctx);
 }
 
-// Used by GenericSearch, not used by EuristicInit
+// Used by GenericSearch, not used by HeuristicInit
 bool ConvHipImplicitGemmForwardV4R5Xdlops::IsValidPerformanceConfig(
     const ConvolutionContext& ctx, const PerformanceImplicitGemmForwardV4R5Xdlops& c) const
 {
@@ -871,7 +871,7 @@ PerformanceImplicitGemmForwardV4R5Xdlops
 ConvHipImplicitGemmForwardV4R5Xdlops::GetPerformanceConfig(const ConvolutionContext& ctx) const
 {
     PerformanceImplicitGemmForwardV4R5Xdlops config;
-    config.EuristicInit(ctx);
+    config.HeuristicInit(ctx);
     MIOPEN_LOG_I(config.ToString());
     return config;
 }
@@ -1045,10 +1045,10 @@ bool ConvHipImplicitGemmForwardV4R5Xdlops::IsApplicable(const ConvolutionContext
             return false;
     }
 
-    // this particular EuristicInit is so comprehensive, that if it cannot predict a valid
+    // this particular HeuristicInit is so comprehensive, that if it cannot predict a valid
     // performance config, the problem is probably not applicable
     PerformanceImplicitGemmForwardV4R5Xdlops config;
-    config.EuristicInit(ctx);
+    config.HeuristicInit(ctx);
 
     return config.IsReallyValid(ctx);
 }
