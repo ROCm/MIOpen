@@ -140,7 +140,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::SetNextValue()
     return true;
 }
 
-void PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::EuristicInit(
+void PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::HeuristicInit(
     const ConvolutionContext& ctx)
 {
     PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm tmp;
@@ -602,7 +602,8 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsValidValue() const
     // clang-format on
 }
 
-/// Used by EuristicInit() and GenericSearch. Only return false if a performance config will violate
+/// Used by HeuristicInit() and GenericSearch. Only return false if a performance config will
+/// violate
 /// requirements given by kernel algorithm.
 bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsReallyValid(
     const ConvolutionContext& ctx) const
@@ -661,7 +662,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsReallyValid(
     return (valid and lds_size <= get_lds_max_number_of_byte());
 }
 
-/// Used by GenericSearch, not used by EuristicInit. Return false if a performance config is known
+/// Used by GenericSearch, not used by HeuristicInit. Return false if a performance config is known
 /// to be sub-optimal, comparing to other performance config inside tuning range.
 bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsFastToBeUsedForTuning(
     const ConvolutionContext& ctx) const
@@ -840,7 +841,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsFastToBeUsedForTuni
     return true;
 }
 
-/// Used by GenericSearch, not used by EuristicInit. Return false, if you don't want to this to be
+/// Used by GenericSearch, not used by HeuristicInit. Return false, if you don't want to this to be
 /// included in tuning range used by generic search. A performance config may still be valid w.r.t
 /// algorithm correctness, even when IsValid() returns false.
 bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsValid(
@@ -849,7 +850,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsValid(
     return IsReallyValid(ctx) && IsFastToBeUsedForTuning(ctx);
 }
 
-// Used by GenericSearch, not used by EuristicInit
+// Used by GenericSearch, not used by HeuristicInit
 bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsValidPerformanceConfig(
     const ConvolutionContext& ctx,
     const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm& c) const
@@ -897,7 +898,7 @@ ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::GetPerformanceConfig(
     const ConvolutionContext& ctx) const
 {
     PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm config;
-    config.EuristicInit(ctx);
+    config.HeuristicInit(ctx);
     MIOPEN_LOG_I(config.ToString());
     return config;
 }
@@ -1098,10 +1099,10 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
     }
 #endif
 
-    // this particular EuristicInit is so comprehensive, that if it cannot predict a valid
+    // this particular HeuristicInit is so comprehensive, that if it cannot predict a valid
     // performance config, the problem is probably not applicable
     PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm config;
-    config.EuristicInit(ctx);
+    config.HeuristicInit(ctx);
 
     return config.IsReallyValid(ctx);
 }
