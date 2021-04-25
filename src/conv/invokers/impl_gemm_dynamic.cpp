@@ -317,6 +317,31 @@ MakeImplGemmDynamicBackwardDataInvokerFactory<solver::TunableImplicitGemmGTCDyna
     magic_div_u32_t mdiv_5 = magic_div_u32_gen(b);
     magic_div_u32_t mdiv_6 = magic_div_u32_gen(w_tilda_slice);
 
+    std::vector<magic_div_u32_t> mdiv_0_vec;
+    std::vector<magic_div_u32_t> mdiv_1_vec;
+    std::vector<uint32_t> shift_pack_0_vec;
+    uint32_t shift_pack_1;
+
+    for(int gemm_id = 0; gemm_id < num_of_gemms; gemm_id++)
+    {
+        if(is_gemm_not_empty[gemm_id])
+        {
+            mdiv_0_vec.push_back(
+                magic_div_u32_gen(y_dot_slice_gid[gemm_id] * x_dot_slice_gid[gemm_id]));
+            mdiv_1_vec.push_back(magic_div_u32_gen(x_dot_slice_gid[gemm_id]));
+        }
+        else
+        {
+            mdiv_0_vec.push_back(magic_div_u32_t({0, 0}));
+            mdiv_1_vec.push_back(magic_div_u32_t({0, 0}));
+        };
+
+        shift_pack_0_vec.push_back(magic_div_u32_pack_shift(
+            mdiv_0_vec[gemm_id].shift, mdiv_1_vec[gemm_id].shift, mdiv_2.shift, mdiv_3.shift));
+    };
+
+    shift_pack_1 = magic_div_u32_pack_shift(mdiv_4.shift, mdiv_5.shift, mdiv_6.shift, 0);
+
     return [=](const std::vector<Kernel>& kernels) {
         const auto kernel = kernels[0];
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
@@ -335,19 +360,6 @@ MakeImplGemmDynamicBackwardDataInvokerFactory<solver::TunableImplicitGemmGTCDyna
             {
                 if(is_gemm_not_empty[gemm_id])
                 {
-                    magic_div_u32_t mdiv_0 =
-                        is_gemm_not_empty[gemm_id]
-                            ? magic_div_u32_gen(y_dot_slice_gid[gemm_id] * x_dot_slice_gid[gemm_id])
-                            : magic_div_u32_t({0, 0});
-                    magic_div_u32_t mdiv_1 = is_gemm_not_empty[gemm_id]
-                                                 ? magic_div_u32_gen(x_dot_slice_gid[gemm_id])
-                                                 : magic_div_u32_t({0, 0});
-
-                    uint32_t shift_pack_0 = magic_div_u32_pack_shift(
-                        mdiv_0.shift, mdiv_1.shift, mdiv_2.shift, mdiv_3.shift);
-                    uint32_t shift_pack_1 =
-                        magic_div_u32_pack_shift(mdiv_4.shift, mdiv_5.shift, mdiv_6.shift, 0);
-
                     handle.Run(kernel)(tensors.out,
                                        tensors.w,
                                        tensors.in,
@@ -381,14 +393,14 @@ MakeImplGemmDynamicBackwardDataInvokerFactory<solver::TunableImplicitGemmGTCDyna
                                        dslice_h_left,
                                        dslice_w_left,
                                        group,
-                                       mdiv_0.magic,
-                                       mdiv_1.magic,
+                                       mdiv_0_vec[gemm_id].magic,
+                                       mdiv_1_vec[gemm_id].magic,
                                        mdiv_2.magic,
                                        mdiv_3.magic,
                                        mdiv_4.magic,
                                        mdiv_5.magic,
                                        mdiv_6.magic,
-                                       shift_pack_0,
+                                       shift_pack_0_vec[gemm_id],
                                        shift_pack_1,
                                        pack_align);
                     if(handle.IsProfilingEnabled())
