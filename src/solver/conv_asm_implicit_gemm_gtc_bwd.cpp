@@ -834,7 +834,7 @@ static std::tuple<bool, // is suitable kernel found
 
     for(const auto& cfg : tunables)
     {
-        const auto b = cfg.nxe == 0
+        const auto b = (cfg.nxe == 0 || ctx.IsFp32())
                            ? h_tilda_slice * w_tilda_slice
                            : ((h_tilda_slice * w_tilda_slice + cfg.nxb - 1) / cfg.nxb) * cfg.nxb;
         const auto gemm_n_packed = ctx.IsFp16() ? n * b : gemm_n;
@@ -855,7 +855,7 @@ static std::tuple<bool, // is suitable kernel found
         if(n % (cfg.gemm_n_per_block / cfg.nxb) != 0)
             continue;
 
-        if(cfg.nxe == 0 && (h_tilda_slice * w_tilda_slice) % cfg.nxb != 0)
+        if(b % cfg.nxb != 0)
             continue;
 
         bool gemm_k_valid = true;
@@ -912,12 +912,10 @@ static std::tuple<bool, // is suitable kernel found
                 cfg.nxe == 0 ? h_tilda_slice * w_tilda_slice
                              : ((h_tilda_slice * w_tilda_slice + cfg.nxb - 1) / cfg.nxb) * cfg.nxb;
             const auto gemm_n_packed = n * b;
-            if(cfg.nxe == 0)
-            {
-                if((x != 1) || (y != 1) || (stride_h != 1) || (stride_w != 1) ||
-                   (dilation_h != 1) || (dilation_w != 1) || (pad_h != 0) || (pad_w != 0))
-                    continue;
-            }
+
+            if(cfg.nxe == 0 && !unit_conv)
+                continue;
+
             if((gemm_n_packed % cfg.gemm_n_per_block != 0) || (gemm_m % cfg.gemm_m_per_block != 0))
                 continue;
 
@@ -926,6 +924,9 @@ static std::tuple<bool, // is suitable kernel found
 
             // ho * wo is 4x, gemm_n is 256, hence need batch size 256/4=64x
             if(n % (cfg.gemm_n_per_block / cfg.nxb) != 0)
+                continue;
+
+            if(b % cfg.nxb != 0)
                 continue;
 
             bool gemm_k_valid = true;
