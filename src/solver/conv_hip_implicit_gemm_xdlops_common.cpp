@@ -288,7 +288,7 @@ bool PerformanceImplicitGemmXdlops::SetNextValue()
     return true;
 }
 
-void PerformanceImplicitGemmXdlops::EuristicInit(const ConvolutionContext& ctx)
+void PerformanceImplicitGemmXdlops::HeuristicInit(const ConvolutionContext& ctx)
 {
     PerformanceImplicitGemmXdlops tmp;
     if(ctx.IsFp32())
