@@ -159,6 +159,7 @@ static auto GetImplicitGemmSolvers()
         miopen::solver::ConvHipImplicitGemmMlirCppFwd,
         miopen::solver::ConvHipImplicitGemmMlirBinFwd,
         miopen::solver::ConvHipImplicitGemmMlirCppBwd,
+        miopen::solver::ConvHipImplicitGemmMlirBinBwd,
         miopen::solver::ConvHipImplicitGemmBwdDataV1R1,
         miopen::solver::ConvHipImplicitGemmBwdDataV4R1,
         miopen::solver::ConvAsmImplicitGemmV4R1DynamicFwd_1x1,
