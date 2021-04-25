@@ -436,7 +436,7 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(const ConvolutionCo
 }
 
 template <int N_BATCH_LOOPS>
-void PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::EuristicInit(const ConvolutionContext& params)
+void PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::HeuristicInit(const ConvolutionContext& params)
 {
     n_waves                                = 1;
     read_size                              = 6;
@@ -533,7 +533,7 @@ PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
 ConvOclBwdWrW2<N_BATCH_LOOPS>::GetPerformanceConfig(const ConvolutionContext& params) const
 {
     PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS> pp;
-    pp.EuristicInit(params);
+    pp.HeuristicInit(params);
     return pp;
 }
 

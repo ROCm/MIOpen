@@ -33,6 +33,7 @@
 #include <miopen/logger.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/legacy_exhaustive_search.hpp>
+#include <miopen/rocm_features.hpp>
 #include <miopen/type_name.hpp>
 #include <miopen/miopen.h>
 #include <miopen/buffer_info.hpp>
@@ -94,7 +95,7 @@ struct SolverBase
 {
 
     /// Initializes performance config to the default values.
-    /// The function may involve some euristic to guess the best solution
+    /// The function may involve some heuristic to guess the best solution
     /// configuration. It is assumed that the function takes constant time
     /// to finish and does not run kernels to measure performance etc.
     /// The function shall always return valid config.
@@ -162,7 +163,7 @@ struct PerformanceConfigConvAsm3x3U : Serializable<PerformanceConfigConvAsm3x3U>
         f(self.output_lines_per_wave, "output_lines_per_wave");
     }
 
-    void EuristicInit(const ConvolutionContext& config);
+    void HeuristicInit(const ConvolutionContext& config);
     bool IsValidValue() const;
     bool SetNextValue();
     bool IsValid(const ConvolutionContext& config) const;
@@ -229,7 +230,7 @@ struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
     int GetNPerGpr() const { assert(chunk_size); return 64 / chunk_size; }
     // clang-format on
 
-    void EuristicInit(const ConvolutionContext& config);
+    void HeuristicInit(const ConvolutionContext& config);
     bool IsValidValue() const;
     bool SetNextValue();
     bool IsValid(const ConvolutionContext& config) const;
@@ -325,7 +326,7 @@ struct PerformanceConfigConvAsm1x1UV2 : Serializable<PerformanceConfigConvAsm1x1
     int GetNPerGpr() const { assert(chunk_size); return 64 / chunk_size; }
     // clang-format on
 
-    void EuristicInit(const ConvolutionContext& config);
+    void HeuristicInit(const ConvolutionContext& config);
     bool IsValidValue() const;
     bool SetNextValue();
     bool IsValid(const ConvolutionContext& config) const;
@@ -434,7 +435,7 @@ struct PerformanceImplicitGemm : Serializable<PerformanceImplicitGemm>
         f(self.WeiBlockCopyClusterLengths_K, "WeiBlockCopyClusterLengths_K");
     }
 
-    void EuristicInit(const ConvolutionContext& config);
+    void HeuristicInit(const ConvolutionContext& config);
     bool IsValidValue() const;
     bool SetNextValue();
     bool IsValid(const ConvolutionContext& ctx) const;
@@ -527,7 +528,7 @@ struct PerformanceImplicitGemmV4R4Fwd : Serializable<PerformanceImplicitGemmV4R4
     std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
-    void EuristicInit(const ConvolutionContext& ctx);
+    void HeuristicInit(const ConvolutionContext& ctx);
     bool SetNextValue();
     std::string ToString() const;
 };
@@ -583,7 +584,7 @@ struct PerformanceImplicitGemmV4R4WrW : Serializable<PerformanceImplicitGemmV4R4
     std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
-    void EuristicInit(const ConvolutionContext& ctx);
+    void HeuristicInit(const ConvolutionContext& ctx);
     bool SetNextValue();
     std::string ToString() const;
 };
@@ -640,7 +641,7 @@ struct PerformanceImplicitGemmBwdDataV1R1 : Serializable<PerformanceImplicitGemm
     std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
-    void EuristicInit(const ConvolutionContext& ctx);
+    void HeuristicInit(const ConvolutionContext& ctx);
     bool SetNextValue();
     std::string ToString() const;
 };
@@ -697,7 +698,7 @@ struct PerformanceImplicitGemmBwdDataV4R1 : Serializable<PerformanceImplicitGemm
     std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
-    void EuristicInit(const ConvolutionContext& ctx);
+    void HeuristicInit(const ConvolutionContext& ctx);
     bool SetNextValue();
     std::string ToString() const;
 };
@@ -754,7 +755,7 @@ struct PerformanceImplicitGemmBwdDataV4R1Xdlops
     bool IsValid(const ConvolutionContext& ctx) const;
     bool IsReallyValid(const ConvolutionContext& ctx) const;
     bool IsFastToBeUsedForTuning(const ConvolutionContext& ctx) const;
-    void EuristicInit(const ConvolutionContext& ctx);
+    void HeuristicInit(const ConvolutionContext& ctx);
     bool SetNextValue();
     std::string ToString() const;
 };
@@ -795,6 +796,12 @@ struct ConvHipImplicitGemmMlirCppFwd : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
+struct ConvHipImplicitGemmMlirBinFwd : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+};
+
 struct PerformanceImplicitGemmV4R4GenXdlopsFwdFp32
     : Serializable<PerformanceImplicitGemmV4R4GenXdlopsFwdFp32>
 {
@@ -826,7 +833,7 @@ struct PerformanceImplicitGemmV4R4GenXdlopsFwdFp32
         f(self.GemmNPerWave, "GemmNPerWave");
     }
 
-    void EuristicInit(const ConvolutionContext& ctx);
+    void HeuristicInit(const ConvolutionContext& ctx);
     bool IsValidValue() const;
     bool SetNextValue();
     bool IsValid(const ConvolutionContext& ctx) const;
@@ -905,7 +912,7 @@ struct PerformanceImplicitGemmXdlops : Serializable<PerformanceImplicitGemmXdlop
         f(self.WeiBlockCopyClusterLengths_K, "WeiBlockCopyClusterLengths_K");
     }
 
-    void EuristicInit(const ConvolutionContext& ctx);
+    void HeuristicInit(const ConvolutionContext& ctx);
     bool IsValidValue() const;
     bool SetNextValue();
     bool IsValid(const ConvolutionContext& ctx) const;
@@ -947,7 +954,7 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops
     bool operator==(const PerformanceImplicitGemmForwardV4R4Xdlops& other) const;
     std::string ToString() const;
 
-    void EuristicInit(const ConvolutionContext& ctx);
+    void HeuristicInit(const ConvolutionContext& ctx);
     bool SetNextValue();
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
@@ -1005,7 +1012,7 @@ struct PerformanceImplicitGemmForwardV4R5Xdlops
     bool operator==(const PerformanceImplicitGemmForwardV4R5Xdlops& other) const;
     std::string ToString() const;
 
-    void EuristicInit(const ConvolutionContext& ctx);
+    void HeuristicInit(const ConvolutionContext& ctx);
     bool SetNextValue();
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
@@ -1065,7 +1072,7 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm
     bool operator==(const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm& other) const;
     std::string ToString() const;
 
-    void EuristicInit(const ConvolutionContext& ctx);
+    void HeuristicInit(const ConvolutionContext& ctx);
     bool SetNextValue();
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
@@ -1112,7 +1119,7 @@ struct PerformanceImplicitGemmBwdV1R1Xdlops : Serializable<PerformanceImplicitGe
     bool operator==(const PerformanceImplicitGemmBwdV1R1Xdlops& other) const;
     std::string ToString() const;
 
-    void EuristicInit(const ConvolutionContext& ctx);
+    void HeuristicInit(const ConvolutionContext& ctx);
     bool SetNextValue();
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
@@ -1209,7 +1216,7 @@ struct PerformanceImplicitGemmV4R4GenXdlopsWrWFp32
         f(self.GemmNPerWave, "GemmNPerWave");
     }
 
-    void EuristicInit(const ConvolutionContext& ctx);
+    void HeuristicInit(const ConvolutionContext& ctx);
     bool IsValidValue() const;
     bool SetNextValue();
     bool IsValid(const ConvolutionContext& ctx) const;
@@ -1332,6 +1339,7 @@ struct ConvAsmImplicitGemmGTCDynamicWrwXdlops : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& ctx) const;
     bool IsDynamic() const { return true; }
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const;
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
@@ -1434,7 +1442,7 @@ struct PerformanceConfigConvBinWinogradRxSf2x3
     }
     int GetNGroups() const { return n_groups; }
 
-    void EuristicInit(const ConvolutionContext& config);
+    void HeuristicInit(const ConvolutionContext& config);
     bool IsValidValue() const;
     bool SetNextValue();
     bool IsValid(const ConvolutionContext& config) const;
@@ -1679,7 +1687,7 @@ struct PerformanceConfigAsmDirect3x3WrW : Serializable<PerformanceConfigAsmDirec
     int GetNPerGroup() const { return n_per_group; }
     int GetCPerWave() const { assert(chunk_size); return 64 / chunk_size; } // clang-format on
 
-    void EuristicInit(const ConvolutionContext& config);
+    void HeuristicInit(const ConvolutionContext& config);
     bool IsValidValue() const;
     bool SetNextValue();
     bool IsValid(const ConvolutionContext& config) const;
@@ -1783,7 +1791,7 @@ struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsm
     int GetDataPrefetch() const { return data_prefetch; }
     // clang-format on
 
-    void EuristicInit(const ConvolutionContext& config);
+    void HeuristicInit(const ConvolutionContext& config);
     bool IsValidValue() const;
     bool SetNextValue();
     bool IsValid(const ConvolutionContext& config) const;
@@ -1858,7 +1866,7 @@ struct PerformanceConfigConvOclBwdWrw2
     int GetNumOutChannelTiles() const { return n_out_channels_tiles; }
     int GetNumOutRowsPerIterPerWork() const { return n_out_rows_in_lcl; } // clang-format on
 
-    void EuristicInit(const ConvolutionContext& params);
+    void HeuristicInit(const ConvolutionContext& params);
     bool IsValidValue() const;
     bool SetNextValue();
     bool IsValid(const ConvolutionContext& params) const;
@@ -1976,7 +1984,7 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops : Serializable<PerformanceImplicitGe
     bool operator==(const PerformanceImplicitGemmWrwV4R4Xdlops& other) const;
     std::string ToString() const;
 
-    void EuristicInit(const ConvolutionContext& ctx);
+    void HeuristicInit(const ConvolutionContext& ctx);
     bool SetNextValue();
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
@@ -2051,7 +2059,7 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
     bool operator==(const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm& other) const;
     std::string ToString() const;
 
-    void EuristicInit(const ConvolutionContext& ctx);
+    void HeuristicInit(const ConvolutionContext& ctx);
     bool SetNextValue();
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
@@ -2089,6 +2097,11 @@ struct ConvDirectNaiveConvFwd : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& ctx) const;
     bool IsDynamic() const { return true; }
+#if WORKAROUND_MIOPENGEMM_SINCE_ROCM41
+    /// Use very small fixed value enough to backup GEMM for cases when
+    /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
+    float GetWti(const ConvolutionContext&) const { return 0.01; }
+#endif
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
@@ -2096,6 +2109,11 @@ struct ConvDirectNaiveConvBwd : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& ctx) const;
     bool IsDynamic() const { return true; }
+#if WORKAROUND_MIOPENGEMM_SINCE_ROCM41
+    /// Use very small fixed value enough to backup GEMM for cases when
+    /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
+    float GetWti(const ConvolutionContext&) const { return 0.01; }
+#endif
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
@@ -2103,6 +2121,11 @@ struct ConvDirectNaiveConvWrw : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& ctx) const;
     bool IsDynamic() const { return true; }
+#if WORKAROUND_MIOPENGEMM_SINCE_ROCM41
+    /// Use very small fixed value enough to backup GEMM for cases when
+    /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
+    float GetWti(const ConvolutionContext&) const { return 0.01; }
+#endif
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
