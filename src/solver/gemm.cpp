@@ -53,10 +53,11 @@ namespace solver {
 #if MIOPEN_USE_GEMM
 #ifdef CPPCHECK
 // Keep the value unknown in cppcheck since this can differ between opencl and hip
-static bool IsBF16PathValid;
+static bool IsBf16Supported;
+static bool IsFp16Supported;
 #else
-static constexpr const bool IsBF16PathValid =
-    (MIOPEN_USE_ROCBLAS == 1 || MIOPEN_USE_MIOPENTENSILE == 1);
+static constexpr const bool IsBf16Supported = (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE);
+static constexpr const bool IsFp16Supported = (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE);
 #endif
 
 static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
@@ -65,6 +66,14 @@ static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
 {
     return xDesc.GetType() == miopenBFloat16 || yDesc.GetType() == miopenBFloat16 ||
            wDesc.GetType() == miopenBFloat16;
+}
+
+static inline bool IsAnyBufferFp16(const TensorDescriptor& xDesc,
+                                   const TensorDescriptor& yDesc,
+                                   const TensorDescriptor& wDesc)
+{
+    return xDesc.GetType() == miopenHalf || yDesc.GetType() == miopenHalf ||
+           wDesc.GetType() == miopenHalf;
 }
 #endif
 
@@ -76,9 +85,10 @@ bool GemmFwdBase::IsApplicable(const ExecutionContext&,
     const auto& wDesc = problem.GetWeights();
     const auto& yDesc = problem.GetOut();
     return problem.GetDirection() == conv::Direction::Forward && problem.IsLayoutDefault() &&
-           !(IsAnyBufferBF16(xDesc, yDesc, wDesc) && !IsBF16PathValid);
+           !(IsAnyBufferBF16(xDesc, yDesc, wDesc) && !IsBf16Supported) &&
+           !(IsAnyBufferFp16(xDesc, yDesc, wDesc) && !IsFp16Supported);
 #else
-    std::ignore = problem;
+    std::ignore                             = problem;
     return false;
 #endif
 };
