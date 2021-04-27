@@ -476,7 +476,7 @@ ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
                                         conv_strides,
                                         conv_dilations,
                                         workspace,
-                                        dyDesc.GetType());
+                                        dyDesc_.GetType());
 
                 const auto status = CallGemmTimeMeasure(
                     handle,
