@@ -1588,16 +1588,16 @@ struct conv_driver : test_driver
         {"VALID", miopenPaddingValid},
         {"DEFAULT", miopenPaddingDefault}};
 
-    std::vector<std::size_t> get_batch_sizes() { return {1, 16, 2, 64, 30, 128, 352, 512}; }
+    std::vector<std::size_t> get_batch_sizes() { return {1, 8, 2, 64, 30, 128, 352, 512}; }
 
     std::vector<std::vector<std::size_t>> get_2d_spatial_dims()
     {
-        return {{7, 7},
+        return {{14, 14},
                 {28, 28},
-                {56, 56},
-                {14, 14},
-                {17, 17},
                 {32, 32},
+                {7, 7},
+                {17, 17},
+                {56, 56},
                 {55, 55},
                 {64, 128},
                 {224, 224},
@@ -1615,7 +1615,7 @@ struct conv_driver : test_driver
 
     std::vector<std::size_t> get_output_channels()
     {
-        return {16, 32, 64, 128, 96, 112, 192, 256, 320, 512, 1024};
+        return {32, 64, 16, 128, 96, 112, 192, 256, 320, 512, 1024};
     }
 
     std::vector<std::size_t> get_input_channels()

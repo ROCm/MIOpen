@@ -61,7 +61,7 @@ struct pooling2d_driver : pooling_driver<T>
         this->add(this->in_shape, "input", this->generate_data(in_dim_vec, {16, 32, 8, 8}));
 #else
         this->add(
-            this->in_shape, "input", this->generate_data_limited(get_2d_pooling_input_shapes()));
+            this->in_shape, "input", this->generate_data_limited(get_2d_pooling_input_shapes(), 8));
 #endif
         this->add(this->lens, "lens", this->generate_data({{2, 2}, {3, 3}}));
         this->add(this->strides, "strides", this->generate_data({{2, 2}, {1, 1}}));

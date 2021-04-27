@@ -478,12 +478,14 @@ struct test_driver
     }
 
     template <class T>
-    generate_data_t<std::vector<T>> generate_data_limited(std::vector<T> dims, T single)
+    generate_data_t<std::vector<T>>
+    generate_data_limited(std::vector<T> dims, int limit_multiplier, T single)
     {
         return {[=]() -> std::vector<T> {
             if(limit_set > 0)
             {
-                auto endpoint = std::min(static_cast<int>(dims.size()), limit_set);
+                auto endpoint =
+                    std::min(static_cast<int>(dims.size()), limit_set * limit_multiplier);
                 std::vector<T> subvec(dims.cbegin(), dims.cbegin() + endpoint);
                 return subvec;
             }
@@ -519,12 +521,13 @@ struct test_driver
     }
 
     template <class T>
-    generate_data_t<std::vector<T>> generate_data_limited(std::vector<T> dims)
+    generate_data_t<std::vector<T>> generate_data_limited(std::vector<T> dims, int limit_multiplier)
     {
         return {[=]() -> std::vector<T> {
             if(limit_set > 0)
             {
-                auto endpoint = std::min(static_cast<int>(dims.size()), limit_set);
+                auto endpoint =
+                    std::min(static_cast<int>(dims.size()), limit_set * limit_multiplier);
                 std::vector<T> subvec(dims.cbegin(), dims.cbegin() + endpoint);
                 return subvec;
             }
