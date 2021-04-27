@@ -222,12 +222,10 @@ file(GLOB TESTS *.cpp)
 #For files NAME = test_ + (File name with neither the directory nor the longest extension)
 
 set(LONG_TESTS
-    test_pooling2d
     test_dropout
     test_conv2d
     test_conv3d
     test_conv_group
-    test_pooling3d
     test_soft_max
     test_lrn_test
     test_conv_for_implicit_gemm
