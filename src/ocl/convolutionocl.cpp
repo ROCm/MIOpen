@@ -1503,8 +1503,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             ctx.SetupFloats();
             ctx.DetectRocm();
             const auto network_config = ctx.BuildConfKey();
-            const auto invoke_ctx =
-                conv::WrWInvokeParams{{dyDesc, dy, xDesc, x, dwDesc, dw}, workSpace, workSpaceSize};
+            const auto invoke_ctx     = conv::WrWInvokeParams{
+                InvokeType::Evaluate, {dyDesc, dy, xDesc, x, dwDesc, dw}, workSpace, workSpaceSize};
 
             // Find solutions
             const auto gemm = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{})
