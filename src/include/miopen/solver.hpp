@@ -2093,11 +2093,9 @@ struct ConvDirectNaiveConvFwd : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& ctx) const;
     bool IsDynamic() const { return true; }
-#if WORKAROUND_MIOPENGEMM_SINCE_ROCM41
     /// Use very small fixed value enough to backup GEMM for cases when
     /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
     float GetWti(const ConvolutionContext&) const { return 0.01; }
-#endif
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
@@ -2105,11 +2103,9 @@ struct ConvDirectNaiveConvBwd : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& ctx) const;
     bool IsDynamic() const { return true; }
-#if WORKAROUND_MIOPENGEMM_SINCE_ROCM41
     /// Use very small fixed value enough to backup GEMM for cases when
     /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
     float GetWti(const ConvolutionContext&) const { return 0.01; }
-#endif
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
@@ -2117,11 +2113,9 @@ struct ConvDirectNaiveConvWrw : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& ctx) const;
     bool IsDynamic() const { return true; }
-#if WORKAROUND_MIOPENGEMM_SINCE_ROCM41
     /// Use very small fixed value enough to backup GEMM for cases when
     /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
     float GetWti(const ConvolutionContext&) const { return 0.01; }
-#endif
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 

@@ -641,7 +641,6 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         MIOPEN_THROW("No invoker was registered for convolution forward. Was find executed?");
     });
 }
-
 static std::size_t GetSolutionCount(Handle& handle, const ProblemDescription& problem)
 {
     const FindDbRecord fdb_record{handle, problem};

@@ -22,8 +22,10 @@ namespace solver {
 #ifdef CPPCHECK
 // Keep the value unknown in cppcheck since this can differ between opencl and hip
 static bool IsBF16PathValid;
+static bool IsFp16Supported;
 #else
-static const bool IsBF16PathValid = (MIOPEN_USE_ROCBLAS == 1 || MIOPEN_USE_MIOPENTENSILE == 1);
+static const bool IsBF16PathValid = (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE);
+static const bool IsFp16Supported = (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE);
 #endif
 
 static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
@@ -32,6 +34,14 @@ static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
 {
     return xDesc.GetType() == miopenBFloat16 || yDesc.GetType() == miopenBFloat16 ||
            wDesc.GetType() == miopenBFloat16;
+}
+
+static inline bool IsAnyBufferFp16(const TensorDescriptor& xDesc,
+                                   const TensorDescriptor& yDesc,
+                                   const TensorDescriptor& wDesc)
+{
+    return xDesc.GetType() == miopenHalf || yDesc.GetType() == miopenHalf ||
+           wDesc.GetType() == miopenHalf;
 }
 
 static double
@@ -57,7 +67,8 @@ bool GemmWrwBase::IsApplicable(const ExecutionContext&,
     const auto& xDesc  = problem.GetOut();
     return problem.GetDirection() == conv::Direction::BackwardWeights &&
            problem.IsLayoutDefault() &&
-           !(IsAnyBufferBF16(xDesc, dyDesc, dwDesc) && !IsBF16PathValid);
+           !(IsAnyBufferBF16(xDesc, dyDesc, dwDesc) && !IsBF16PathValid) &&
+           !(IsAnyBufferFp16(xDesc, dyDesc, dwDesc) && !IsFp16Supported);
 #else
     std::ignore = problem;
     return false;

@@ -548,6 +548,8 @@ class Data : ComgrOwner
     std::string GetString() const
     {
         std::vector<char> bytes;
+        if(GetSize() == 0)
+            return {};
         const auto sz = GetBytes(bytes);
         return {&bytes[0], sz};
     }
