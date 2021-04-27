@@ -130,9 +130,9 @@ bool GemmWrw1x1_stride1::IsApplicable(const ExecutionContext& context,
     const auto wei_spatial =
         boost::adaptors::slice(dwDesc.GetLengths(), 2, 2 + conv.GetSpatialDimension());
 
-    return miopen::any_of(wei_spatial, [](auto v) { return v == 1; }) &&
-           miopen::any_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
-           miopen::any_of(conv.GetConvStrides(), [](auto v) { return v == 1; });
+    return miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
+           miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 1; }) &&
+           miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; });
 #else
     std::ignore = context;
     std::ignore = problem;
@@ -315,15 +315,8 @@ bool GemmWrwUniversal::IsApplicable(const ExecutionContext& context,
     if(!GemmWrwBase::IsApplicable(context, problem))
         return false;
 
-    const auto& dwDesc = problem.GetWeights();
-    const auto& conv   = problem.GetConv();
-
-    const auto wei_spatial =
-        boost::adaptors::slice(dwDesc.GetLengths(), 2, 2 + conv.GetSpatialDimension());
-
-    return miopen::any_of(wei_spatial, [](auto v) { return v != 1; }) ||
-           miopen::any_of(conv.GetConvPads(), [](auto v) { return v != 0; }) ||
-           miopen::any_of(conv.GetConvStrides(), [](auto v) { return v != 1; });
+    return !GemmWrw1x1_stride1{}.IsApplicable(context, problem) &&
+           GetWorkspaceSize(context, problem) != 0;
 #else
     std::ignore = context;
     std::ignore = problem;
