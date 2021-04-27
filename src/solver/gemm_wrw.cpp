@@ -392,7 +392,7 @@ ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
 
             if(workspace_req > 0 && (workspace == nullptr || workspace_size < workspace_req))
             {
-                MIOPEN_THROW("Not enough workspace for GemmBwdRest. (" +
+                MIOPEN_THROW("Not enough workspace for GemmWrwUniversal. (" +
                              std::to_string(workspace_size) + " < " +
                              std::to_string(workspace_req) + ")");
             }
