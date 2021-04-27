@@ -306,6 +306,44 @@ function(add_perf_test NAME)
     endif()
 endfunction()
 
+
+
+if( (MIOPEN_TEST_LIMIT GREATER 0) AND MIOPEN_TEST_ALL )
+    if(   NOT(SKIP_ALL_EXCEPT_TESTS AND NOT (test_conv2d IN_LIST SKIP_ALL_EXCEPT_TESTS)) 
+       AND NOT(NOT SKIP_ALL_EXCEPT_TESTS AND (test_conv2d IN_LIST SKIP_TESTS) )
+       )
+        # important cases not included in testing. used only with test_conv2d
+        add_custom_test(test_conv2d_with_low_limit ALLOW_NONXDLOPS SKIP_UNLESS_ALL
+
+        COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 128 56 56 --weights 128 128 1 7 --pads_strides_dilations 0 0 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+        COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 128 56 56 --weights 128 128 7 1 --pads_strides_dilations 0 0 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+        COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 128 56 56 --weights 128 128 1 7 --pads_strides_dilations 0 3 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+        COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 128 56 56 --weights 128 128 7 1 --pads_strides_dilations 3 0 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+
+        COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 16 3 14 14 --weights 128 3 5 5 --pads_strides_dilations 0 0 1 1 2 2 ${MIOPEN_TEST_FLAGS_ARGS}
+        COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 16 1024 14 14 --weights 512 1024 5 5 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+        COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 16 3 14 14 --weights 128 3 5 5 --pads_strides_dilations 2 2 1 1 2 2 ${MIOPEN_TEST_FLAGS_ARGS}
+        COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 16 3 14 14 --weights 128 3 5 5 --pads_strides_dilations 2 2 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+
+        COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 16 3 64 128 --weights 96 3 11 11 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+        COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 16 3 32 32 --weights 96 3 11 11 --pads_strides_dilations 0 0 2 2 1 1  ${MIOPEN_TEST_FLAGS_ARGS}
+        COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 16 3 64 128 --weights 96 3 11 11 --pads_strides_dilations 5 5 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+        COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 16 3 32 32 --weights 96 3 11 11 --pads_strides_dilations 5 5 2 2 1 1  ${MIOPEN_TEST_FLAGS_ARGS}
+
+        COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 1024 2048 --weights 32 16 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+        COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 1024 2048 --weights 32 16 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+        COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 3072 3072 --weights 32 16 3 3 --pads_strides_dilations 0 0 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+        COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 3072 3072 --weights 32 16 3 3 --pads_strides_dilations 2 2 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+
+        COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 128 320 1 7 --weights 256 320 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+        COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 128 1024 1 7 --weights 2048 1024 1 1 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+        COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 352 192 7 1 --weights 320 192 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+        COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 352 16 7 1 --weights 32 16 1 1 --pads_strides_dilations 2 2 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+        )
+    endif()
+endif()
+
+
 set(IMPLICITGEMM_ARGS ${MIOPEN_TEST_FLOAT_ARG})
 
 # ./bin/MIOpenDriver conv -n 128 -c 1024 -H 14 -W 14 -k 2048 -y 1 -x 1 -p 0 -q 0 -u 2 -v 2 -l 1 -j 1 -m conv -g 1 -F 1 -t 1

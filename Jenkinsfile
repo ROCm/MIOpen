@@ -255,7 +255,8 @@ pipeline {
         Bf16_flags = " -DMIOPEN_TEST_BFLOAT16=On"
         Int8_flags = " -DMIOPEN_TEST_INT8=On"
         Full_test = " -DMIOPEN_TEST_ALL=On"
-        Full_test_limit = " -DMIOPEN_TEST_ALL=On -DMIOPEN_TEST_LIMIT=3"
+        //limit greater than 2 leads to prolonged testing more than 5hrs per stage.
+        Full_test_limit = " -DMIOPEN_TEST_ALL=On -DMIOPEN_TEST_LIMIT=2"
     }
     stages{
         stage("Static checks"){
