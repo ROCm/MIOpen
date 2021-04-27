@@ -293,35 +293,6 @@ bool ConvolutionDescriptor::IsWinograd3x3SupportedAndFast(miopen::ConvolutionCon
 }
 
 std::size_t
-ConvolutionDescriptor::BackwardGetValidWorkSpaceSizeGemm(const TensorDescriptor& dyDesc,
-                                                         const TensorDescriptor& wDesc,
-                                                         const TensorDescriptor& dxDesc) const
-{
-#if MIOPEN_USE_GEMM
-    if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
-    {
-        const auto ctx =
-            ConvolutionContext{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
-        decltype(auto) gemm_ws_sz_pairs = AllGemmWorkspaceSize(ctx);
-
-        if(!gemm_ws_sz_pairs.empty())
-        {
-            decltype(auto) gemm_ws_szs =
-                gemm_ws_sz_pairs |
-                boost::adaptors::transformed([](const auto& p) { return p.second; });
-            return *std::max_element(gemm_ws_szs.begin(), gemm_ws_szs.end());
-        }
-    }
-    return 0;
-#else
-    std::ignore = dyDesc;
-    std::ignore = wDesc;
-    std::ignore = dxDesc;
-    return 0;
-#endif
-}
-
-std::size_t
 ConvolutionDescriptor::WrwGetValidWorkSpaceSizeGemm(const TensorDescriptor& dyDesc,
                                                     const TensorDescriptor& xDesc,
                                                     const TensorDescriptor& dwDesc) const
