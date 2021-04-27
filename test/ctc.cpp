@@ -129,11 +129,14 @@ void ctc_alpha_cpu(std::vector<int>& probsDesc,
             size_t aidx_ts  = j * label_prime_len + i;
             size_t aidx_t1s = (j - 1) * label_prime_len + i;
 
-            assert(aidx_t1s >= 2);
-            T alpha_t1s2 = alpha[aidx_t1s - 2];
-            T alpha_t1s1 = alpha[aidx_t1s - 1];
-            T alpha_t1s  = alpha[aidx_t1s];
-            T alpha_ts   = i == 0 ? alpha_t1s : logaddexp_cpu(&alpha_t1s, &alpha_t1s1);
+            T alpha_t1s2 = 0;
+            if(aidx_t1s >= 2)
+                alpha_t1s2 = alpha[aidx_t1s - 2];
+            T alpha_t1s1   = 0;
+            if(aidx_t1s >= 1)
+                alpha_t1s1 = alpha[aidx_t1s - 1];
+            T alpha_t1s    = alpha[aidx_t1s];
+            T alpha_ts     = i == 0 ? alpha_t1s : logaddexp_cpu(&alpha_t1s, &alpha_t1s1);
             if(i >= 2)
                 if(lb_cur != blank_lb && lb_cur != lb_pre)
                     alpha_ts = logaddexp_cpu(&alpha_ts, &alpha_t1s2);
