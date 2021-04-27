@@ -375,6 +375,7 @@ ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
             const auto& conv_params    = primitive_params.CastTo<conv::WrWInvokeParams>();
             const auto& dy             = conv_params.tensors.dy;
             const auto& dyDesc_        = conv_params.tensors.dyDesc;
+            const auto& dwDesc_        = conv_params.tensors.dwDesc;
             const auto& dw             = conv_params.tensors.dw;
             const auto& x              = conv_params.tensors.x;
             const auto& workspace      = conv_params.workSpace;
@@ -398,6 +399,10 @@ ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
 
             if(conv_params.type == InvokeType::Run)
             {
+                // Zeroing out the output buffer
+                float zero = 0.0f;
+                SetTensor(handle, dwDesc_, dw, &zero);
+
                 float time = 0;
 
                 for(std::size_t i = 0; i < in_n; i++)
