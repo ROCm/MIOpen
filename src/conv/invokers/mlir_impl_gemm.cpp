@@ -28,6 +28,7 @@
 #include <miopen/memref.hpp>
 
 #include <miopen/conv/data_invoke_params.hpp>
+#include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/algorithm.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/tensor_ops.hpp>
@@ -111,22 +112,22 @@ MlirConvArgs makeMlirConvArgs(const std::vector<size_t>& in_dims,
     return {filter, input, output};
 }
 
-void setMlirConvArgsPtr(const ConvDataTensors& tensors, MlirConvArgs& args)
+void setMlirConvArgsPtr(ConstData_t in, ConstData_t out, ConstData_t w, MlirConvArgs& args)
 {
     void* filter = nullptr;
     void* input  = nullptr;
     void* output = nullptr;
 #if MIOPEN_BACKEND_OPENCL
-    clGetMemObjectInfo(tensors.w, CL_MEM_HOST_PTR, sizeof(filter), &filter, nullptr);
-    clGetMemObjectInfo(tensors.in, CL_MEM_HOST_PTR, sizeof(input), &input, nullptr);
-    clGetMemObjectInfo(tensors.out, CL_MEM_HOST_PTR, sizeof(output), &output, nullptr);
+    clGetMemObjectInfo(w, CL_MEM_HOST_PTR, sizeof(filter), &filter, nullptr);
+    clGetMemObjectInfo(in, CL_MEM_HOST_PTR, sizeof(input), &input, nullptr);
+    clGetMemObjectInfo(out, CL_MEM_HOST_PTR, sizeof(output), &output, nullptr);
 #elif MIOPEN_BACKEND_HIP
     // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
-    filter = const_cast<void*>(tensors.w);
+    filter = const_cast<void*>(w);
     // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
-    input = const_cast<void*>(tensors.in);
+    input = const_cast<void*>(in);
     // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
-    output = const_cast<void*>(tensors.out);
+    output = const_cast<void*>(out);
 #endif
 
     if((filter == nullptr) || (input == nullptr) || (output == nullptr))
@@ -165,7 +166,7 @@ InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
                 primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors = forward_invoke_params.tensors;
 
-            setMlirConvArgsPtr(tensors, args);
+            setMlirConvArgsPtr(tensors.in, tensors.out, tensors.w, args);
             handle.Run(kernels[0])(args);
         };
     };
@@ -214,7 +215,7 @@ InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
             if(handle.IsProfilingEnabled())
                 elapsed += handle.GetKernelTime();
 
-            setMlirConvArgsPtr(tensors, args);
+            setMlirConvArgsPtr(tensors.in, tensors.out, tensors.w, args);
             handle.Run(kernels[0])(args);
             if(handle.IsProfilingEnabled())
             {
@@ -222,6 +223,34 @@ InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
                 handle.ResetKernelTime();
                 handle.AccumKernelTime(elapsed);
             }
+        };
+    };
+}
+
+InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx)
+{
+    assert((ctx.direction.IsBackwardWrW()));
+
+    std::vector<size_t> in_dims, in_strides;
+    std::vector<size_t> weights_dims, weights_strides;
+    std::vector<size_t> out_dims, out_strides;
+    permuteDimStridesAllDir(ctx.conv_problem,
+                            in_dims,
+                            in_strides,
+                            weights_dims,
+                            weights_strides,
+                            out_dims,
+                            out_strides);
+    MlirConvArgs args =
+        makeMlirConvArgs(in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides);
+
+    return [=](const std::vector<Kernel>& kernels) mutable {
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
+            const auto& wrw_invoke_params = primitive_parameters.CastTo<conv::WrWInvokeParams>();
+            const auto& tensors           = wrw_invoke_params.tensors;
+
+            setMlirConvArgsPtr(tensors.x, tensors.dy, tensors.dw, args);
+            handle.Run(kernels[0])(args);
         };
     };
 }
