@@ -121,16 +121,22 @@ void ctc_alpha_cpu(std::vector<int>& probsDesc,
     {
         for(int i = 0; i < label_prime_len; i++)
         {
-            int lb_cur      = label_prime[i];
-            int lb_pre      = label_prime[i - 2];
+            int lb_cur = label_prime[i];
+            int lb_pre = -1;
+            if(i >= 2)
+                lb_pre      = label_prime[i - 2];
             size_t pidx     = j * probs_stride[0] + batch_id * probs_stride[1] + lb_cur;
             size_t aidx_ts  = j * label_prime_len + i;
             size_t aidx_t1s = (j - 1) * label_prime_len + i;
 
-            T alpha_t1s2 = alpha[aidx_t1s - 2];
-            T alpha_t1s1 = alpha[aidx_t1s - 1];
-            T alpha_t1s  = alpha[aidx_t1s];
-            T alpha_ts   = i == 0 ? alpha_t1s : logaddexp_cpu(&alpha_t1s, &alpha_t1s1);
+            T alpha_t1s2 = 0;
+            if(aidx_t1s >= 2)
+                alpha_t1s2 = alpha[aidx_t1s - 2];
+            T alpha_t1s1   = 0;
+            if(aidx_t1s >= 1)
+                alpha_t1s1 = alpha[aidx_t1s - 1];
+            T alpha_t1s    = alpha[aidx_t1s];
+            T alpha_ts     = i == 0 ? alpha_t1s : logaddexp_cpu(&alpha_t1s, &alpha_t1s1);
             if(i >= 2)
                 if(lb_cur != blank_lb && lb_cur != lb_pre)
                     alpha_ts = logaddexp_cpu(&alpha_ts, &alpha_t1s2);
@@ -164,7 +170,8 @@ void ctc_gradient_cpu(std::vector<int>& probsDesc,
     int label_prime_len = 2 * label_length + 1;
     blank_lb            = blank_lb < 0 ? 0 : (blank_lb >= class_sz ? class_sz - 1 : blank_lb);
 
-    int alpha_len     = input_length * label_prime_len;
+    int alpha_len = input_length * label_prime_len;
+    assert(alpha_len >= 2);
     float prob_lx_log = logaddexp_cpu(&(alpha_log[alpha_len - 1]), &(alpha_log[alpha_len - 2]));
 
     std::vector<T> beta_buff0(label_prime_len, T(NEGATIVE_CUTOFF_VAL));
