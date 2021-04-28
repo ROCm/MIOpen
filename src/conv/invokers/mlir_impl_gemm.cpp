@@ -59,7 +59,7 @@ struct MlirConvArgs
 // infer actual layout
 // - For NCHW, sizes = {N, C, H, W}; strides = {C*H*W, H*W, W, 1}
 // - For NHWC, sizes = {N, C, H, W}; strides = {C*H*W, 1, W*C, C}
-auto permuteDimsStrides(const std::vector<size_t>& dims, const std::vector<size_t>& strides)
+auto permute_dim_stride(const std::vector<size_t>& dims, const std::vector<size_t>& strides)
 {
     auto sorted_dims    = dims;
     auto sorted_strides = strides;
@@ -69,31 +69,31 @@ auto permuteDimsStrides(const std::vector<size_t>& dims, const std::vector<size_
     return std::make_tuple(sorted_dims, sorted_strides);
 };
 
-void permuteDimStridesAllDir(const conv::ProblemDescription& conv_problem,
-                             std::vector<size_t>& in_dims,
-                             std::vector<size_t>& in_strides,
-                             std::vector<size_t>& weights_dims,
-                             std::vector<size_t>& weights_strides,
-                             std::vector<size_t>& out_dims,
-                             std::vector<size_t>& out_strides)
+void compute_mlir_dims_strides(const conv::ProblemDescription& conv_problem,
+                               std::vector<size_t>& in_dims,
+                               std::vector<size_t>& in_strides,
+                               std::vector<size_t>& weights_dims,
+                               std::vector<size_t>& weights_strides,
+                               std::vector<size_t>& out_dims,
+                               std::vector<size_t>& out_strides)
 {
     const TensorDescriptor& in = conv_problem.GetIn();
-    std::make_tuple(in_dims, in_strides) = permuteDimsStrides(in.GetLengths(), in.GetStrides());
+    std::make_tuple(in_dims, in_strides) = permute_dim_stride(in.GetLengths(), in.GetStrides());
 
     const TensorDescriptor& weights = conv_problem.GetWeights();
     std::make_tuple(weights_dims, weights_strides) =
-        permuteDimsStrides(weights.GetLengths(), weights.GetStrides());
+        permute_dim_stride(weights.GetLengths(), weights.GetStrides());
 
     const TensorDescriptor& out = conv_problem.GetOut();
-    std::make_tuple(out_dims, out_strides) = permuteDimsStrides(out.GetLengths(), out.GetStrides());
+    std::make_tuple(out_dims, out_strides) = permute_dim_stride(out.GetLengths(), out.GetStrides());
 }
 
-MlirConvArgs makeMlirConvArgs(const std::vector<size_t>& in_dims,
-                              const std::vector<size_t>& in_strides,
-                              const std::vector<size_t>& weights_dims,
-                              const std::vector<size_t>& weights_strides,
-                              const std::vector<size_t>& out_dims,
-                              const std::vector<size_t>& out_strides)
+MlirConvArgs make_mlir_conv_args(const std::vector<size_t>& in_dims,
+                                 const std::vector<size_t>& in_strides,
+                                 const std::vector<size_t>& weights_dims,
+                                 const std::vector<size_t>& weights_strides,
+                                 const std::vector<size_t>& out_dims,
+                                 const std::vector<size_t>& out_strides)
 {
     auto initDimStrides = [](const std::vector<size_t>& dims,
                              const std::vector<size_t>& strides,
@@ -112,7 +112,7 @@ MlirConvArgs makeMlirConvArgs(const std::vector<size_t>& in_dims,
     return {filter, input, output};
 }
 
-void setMlirConvArgsPtr(ConstData_t in, ConstData_t out, ConstData_t w, MlirConvArgs& args)
+void set_mlir_conv_args_ptr(ConstData_t in, ConstData_t out, ConstData_t w, MlirConvArgs& args)
 {
     void* filter = nullptr;
     void* input  = nullptr;
@@ -149,16 +149,16 @@ InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
     std::vector<size_t> in_dims, in_strides;
     std::vector<size_t> weights_dims, weights_strides;
     std::vector<size_t> out_dims, out_strides;
-    permuteDimStridesAllDir(ctx.conv_problem,
-                            in_dims,
-                            in_strides,
-                            weights_dims,
-                            weights_strides,
-                            out_dims,
-                            out_strides);
+    compute_mlir_dims_strides(ctx.conv_problem,
+                              in_dims,
+                              in_strides,
+                              weights_dims,
+                              weights_strides,
+                              out_dims,
+                              out_strides);
 
-    MlirConvArgs args =
-        makeMlirConvArgs(in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides);
+    MlirConvArgs args = make_mlir_conv_args(
+        in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides);
 
     return [=](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
@@ -166,7 +166,7 @@ InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
                 primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors = forward_invoke_params.tensors;
 
-            setMlirConvArgsPtr(tensors.in, tensors.out, tensors.w, args);
+            set_mlir_conv_args_ptr(tensors.in, tensors.out, tensors.w, args);
             handle.Run(kernels[0])(args);
         };
     };
@@ -179,15 +179,15 @@ InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
     std::vector<size_t> in_dims, in_strides;
     std::vector<size_t> weights_dims, weights_strides;
     std::vector<size_t> out_dims, out_strides;
-    permuteDimStridesAllDir(ctx.conv_problem,
-                            in_dims,
-                            in_strides,
-                            weights_dims,
-                            weights_strides,
-                            out_dims,
-                            out_strides);
-    MlirConvArgs args =
-        makeMlirConvArgs(in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides);
+    compute_mlir_dims_strides(ctx.conv_problem,
+                              in_dims,
+                              in_strides,
+                              weights_dims,
+                              weights_strides,
+                              out_dims,
+                              out_strides);
+    MlirConvArgs args = make_mlir_conv_args(
+        in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides);
 
     const auto& conv  = ctx.conv_problem.GetConv();
     const auto& wDesc = ctx.conv_problem.GetWeights();
@@ -215,7 +215,7 @@ InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
             if(handle.IsProfilingEnabled())
                 elapsed += handle.GetKernelTime();
 
-            setMlirConvArgsPtr(tensors.in, tensors.out, tensors.w, args);
+            set_mlir_conv_args_ptr(tensors.in, tensors.out, tensors.w, args);
             handle.Run(kernels[0])(args);
             if(handle.IsProfilingEnabled())
             {
@@ -234,22 +234,22 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx)
     std::vector<size_t> in_dims, in_strides;
     std::vector<size_t> weights_dims, weights_strides;
     std::vector<size_t> out_dims, out_strides;
-    permuteDimStridesAllDir(ctx.conv_problem,
-                            in_dims,
-                            in_strides,
-                            weights_dims,
-                            weights_strides,
-                            out_dims,
-                            out_strides);
-    MlirConvArgs args =
-        makeMlirConvArgs(in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides);
+    compute_mlir_dims_strides(ctx.conv_problem,
+                              in_dims,
+                              in_strides,
+                              weights_dims,
+                              weights_strides,
+                              out_dims,
+                              out_strides);
+    MlirConvArgs args = make_mlir_conv_args(
+        in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides);
 
     return [=](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
             const auto& wrw_invoke_params = primitive_parameters.CastTo<conv::WrWInvokeParams>();
             const auto& tensors           = wrw_invoke_params.tensors;
 
-            setMlirConvArgsPtr(tensors.x, tensors.dy, tensors.dw, args);
+            set_mlir_conv_args_ptr(tensors.x, tensors.dy, tensors.dw, args);
             handle.Run(kernels[0])(args);
         };
     };

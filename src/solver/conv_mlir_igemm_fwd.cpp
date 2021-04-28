@@ -25,44 +25,44 @@
  *******************************************************************************/
 #include <miopen/mlir_build.hpp>
 #include <miopen/conv/invokers/mlir_impl_gemm.hpp>
-#include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/config.h>
 #include <miopen/env.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_HIP_IMPLICIT_GEMM_MLIR_BIN_WRW)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD)
 
 namespace miopen {
 namespace solver {
 
 namespace {
 #if MIOPEN_USE_MLIR
-std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx)
+std::tuple<int, int, int> calculate_gemm_size(const ConvolutionContext& ctx)
 {
     const size_t n  = ConvolutionContextInterpreter::GetBatchN(ctx);
-    const size_t c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
     const size_t k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
+    const size_t c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
     const size_t ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
     const size_t wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
     const size_t y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
     const size_t x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
 
     const auto gemm_m = k;
-    const auto gemm_n =
-        c * y * x * (ctx.Is3d() ? ConvolutionContextInterpreter::GetFilterDepthZ(ctx) : 1);
+    const auto gemm_n = ctx.Is3d()
+                            ? n * ho * wo * ConvolutionContextInterpreter::GetOutputDepthDo(ctx)
+                            : n * ho * wo;
     const auto gemm_k =
-        n * ho * wo * (ctx.Is3d() ? ConvolutionContextInterpreter::GetOutputDepthDo(ctx) : 1);
+        ctx.Is3d() ? c * y * x * ConvolutionContextInterpreter::GetFilterDepthZ(ctx) : c * y * x;
 
     return std::make_tuple(gemm_m, gemm_n, gemm_k);
 }
 #endif
 } // Anonymous namespace
 
-bool ConvHipImplicitGemmMlirBinWrW::IsApplicable(const ConvolutionContext& ctx) const
+bool ConvMlirIgemmFwd::IsApplicable(const ConvolutionContext& ctx) const
 {
 #if MIOPEN_USE_MLIR
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_HIP_IMPLICIT_GEMM_MLIR_BIN_WRW{}))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD{}))
         return false;
     // Future: MLIR will support non-default layouts.
     if(!ctx.IsLayoutDefault())
@@ -72,7 +72,7 @@ bool ConvHipImplicitGemmMlirBinWrW::IsApplicable(const ConvolutionContext& ctx) 
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
-    if(!ctx.direction.IsBackwardWrW())
+    if(!ctx.direction.IsForward())
         return false;
     if(!ctx.IsFp32())
         return false;
@@ -83,7 +83,7 @@ bool ConvHipImplicitGemmMlirBinWrW::IsApplicable(const ConvolutionContext& ctx) 
     int gemm_n = 0;
     int gemm_k = 0;
 
-    std::tie(gemm_m, gemm_n, gemm_k) = CalculateGemmSize(ctx);
+    std::tie(gemm_m, gemm_n, gemm_k) = calculate_gemm_size(ctx);
     return gemm_m % 32 == 0 && gemm_n % 32 == 0 && gemm_k % 4 == 0;
 #else
     std::ignore = ctx;
@@ -91,15 +91,15 @@ bool ConvHipImplicitGemmMlirBinWrW::IsApplicable(const ConvolutionContext& ctx) 
 #endif
 }
 
-ConvSolution ConvHipImplicitGemmMlirBinWrW::GetSolution(const ConvolutionContext& ctx) const
+ConvSolution ConvMlirIgemmFwd::GetSolution(const ConvolutionContext& ctx) const
 {
 #if MIOPEN_USE_MLIR
     ConvSolution result;
     KernelInfo construction_parameters;
 
     std::string version   = "_v4r4";
-    std::string direction = "_wrw";
-    std::string operation = "conv2d_bwd_weight";
+    std::string direction = "_fwd";
+    std::string operation = "conv2d";
 
     construction_parameters.kernel_name = "mlir_gen_igemm_conv2d" + version + direction;
     construction_parameters.kernel_file = construction_parameters.kernel_name + ".mlir";
@@ -147,7 +147,7 @@ ConvSolution ConvHipImplicitGemmMlirBinWrW::GetSolution(const ConvolutionContext
     construction_parameters.g_wk.push_back(1);
     construction_parameters.g_wk.push_back(1);
 
-    result.invoker_factory = conv::MakeMlirWrWInvokerFactory(ctx);
+    result.invoker_factory = conv::MakeMlirFwdInvokerFactory(ctx);
     result.construction_params.push_back(construction_parameters);
     return result;
 #else
