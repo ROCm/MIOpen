@@ -317,7 +317,8 @@ if(MIOPEN_TEST_MLIR)
     set(IMPLICITGEMM_MLIR_ENV_F_CPP ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmMlirCppFwd)
     set(IMPLICITGEMM_MLIR_ENV_F_BIN ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmMlirBinFwd)
     set(IMPLICITGEMM_MLIR_ENV_B ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmMlirCppBwd)
-    set(IMPLICITGEMM_MLIR_ENV_W ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmMlirCppWrW)
+    set(IMPLICITGEMM_MLIR_ENV_W_CPP ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_CONV_GEMM=0 MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmMlirCppWrW)
+    set(IMPLICITGEMM_MLIR_ENV_W_BIN ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_CONV_GEMM=0 MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmMlirBinWrW)
 
     set(IMPLICITGEMM_MLIR_ARGS_F ${IMPLICITGEMM_ARGS} --verbose --disable-backward-data --disable-backward-weights)
     set(IMPLICITGEMM_MLIR_ARGS_B ${IMPLICITGEMM_ARGS} --verbose --disable-forward --disable-backward-weights)
@@ -334,9 +335,12 @@ if(MIOPEN_TEST_MLIR)
         COMMAND ${IMPLICITGEMM_MLIR_ENV_B} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_B} --input 64 256 56 56  --weights  256  256 1 1 --pads_strides_dilations 0 0 1 1 1 1
         COMMAND ${IMPLICITGEMM_MLIR_ENV_B} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_B} --input 64 128 58 58  --weights  128  128 3 3 --pads_strides_dilations 0 0 1 1 1 1
 
-        COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_W} --input 64 1024 14 14 --weights 1024 1024 1 1 --pads_strides_dilations 0 0 1 1 1 1
-        COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_W} --input 64 256 56 56  --weights  256  256 1 1 --pads_strides_dilations 0 0 1 1 1 1
-        COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_W} --input 64 128 58 58  --weights  128  128 3 3 --pads_strides_dilations 0 0 1 1 1 1
+        COMMAND ${IMPLICITGEMM_MLIR_ENV_W_CPP} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_W} --input 64 1024 14 14 --weights 1024 1024 1 1 --pads_strides_dilations 0 0 1 1 1 1
+        COMMAND ${IMPLICITGEMM_MLIR_ENV_W_CPP} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_W} --input 64 256 56 56  --weights  256  256 1 1 --pads_strides_dilations 0 0 1 1 1 1
+        COMMAND ${IMPLICITGEMM_MLIR_ENV_W_CPP} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_W} --input 64 128 58 58  --weights  128  128 3 3 --pads_strides_dilations 0 0 1 1 1 1
+        COMMAND ${IMPLICITGEMM_MLIR_ENV_W_BIN} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_W} --input 64 1024 14 14 --weights 1024 1024 1 1 --pads_strides_dilations 0 0 1 1 1 1
+        COMMAND ${IMPLICITGEMM_MLIR_ENV_W_BIN} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_W} --input 64 256 56 56  --weights  256  256 1 1 --pads_strides_dilations 0 0 1 1 1 1
+        COMMAND ${IMPLICITGEMM_MLIR_ENV_W_BIN} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_W} --input 64 128 58 58  --weights  128  128 3 3 --pads_strides_dilations 0 0 1 1 1 1
     )
 endif()
 

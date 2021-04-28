@@ -868,6 +868,12 @@ struct ConvHipImplicitGemmMlirCppWrW : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
+struct ConvHipImplicitGemmMlirBinWrW : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+};
+
 struct PerformanceImplicitGemmXdlops : Serializable<PerformanceImplicitGemmXdlops>
 {
     int BPerBlock; // 2^n[8..16]
