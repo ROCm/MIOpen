@@ -196,6 +196,7 @@ static auto GetImplicitGemmWrWSolvers()
         miopen::solver::ConvHipImplicitGemmV4R4WrW,
         miopen::solver::ConvAsmImplicitGemmV4R1DynamicWrw,
         miopen::solver::ConvHipImplicitGemmMlirCppWrW,
+        miopen::solver::ConvHipImplicitGemmMlirBinWrW,
         miopen::solver::ConvAsmImplicitGemmGTCDynamicWrwXdlops>{};
 }
 

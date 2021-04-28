@@ -235,6 +235,7 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_mlir_cpp_wrw.cpp
     solver/conv_hip_implicit_gemm_mlir_bin_fwd.cpp
     solver/conv_hip_implicit_gemm_mlir_bin_bwd.cpp
+    solver/conv_hip_implicit_gemm_mlir_bin_wrw.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4.cpp
     solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops.cpp
     solver/conv_hip_implicit_gemm_xdlops_common.cpp
