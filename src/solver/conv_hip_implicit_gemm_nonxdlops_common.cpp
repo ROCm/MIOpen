@@ -276,7 +276,7 @@ bool PerformanceImplicitGemmV4R1::IsValid(const ConvolutionContext& ctx) const
     return (InBlockCopySubLengths_E == 1 && InBlockCopySubLengths_B == 1);
 }
 
-void PerformanceImplicitGemm::EuristicInit(const ConvolutionContext& config)
+void PerformanceImplicitGemm::HeuristicInit(const ConvolutionContext& config)
 {
     // default
     {
