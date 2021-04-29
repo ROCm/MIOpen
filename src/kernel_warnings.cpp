@@ -53,7 +53,7 @@ static std::vector<std::string> OclKernelWarnings(const bool is_miopengemm)
     };
     // W/A for SWDEV-270602. We'll remove this when we stop using MIOpenGEMM (deprecated).
     if(is_miopengemm)
-        rv.push_back("-Wno-tautological-unsigned-zero-compare");
+        rv.emplace_back("-Wno-tautological-unsigned-zero-compare");
     return rv;
 }
 
