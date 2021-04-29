@@ -77,6 +77,8 @@ def cmake_build(Map conf=[:]){
             mkdir build
             rm -rf install
             mkdir install
+            rm -f src/kernels/*.ufdb.txt
+            rm -f src/kernels/miopen*.udb
             cd build
         """
     def setup_cmd = conf.get("setup_cmd", "${cmake_envs} cmake ${setup_args}   .. ")
@@ -111,9 +113,10 @@ def buildHipClangJob(Map conf=[:]){
         def gpu_arch = conf.get("gpu_arch", "gfx900;gfx906")
 
         def miotensile_version = conf.get("miotensile_version", "default")
+        def target_id = conf.get("target_id", "OFF")
         
         def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
-        def dockerArgs = "--build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' "
+        def dockerArgs = "--build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' --build-arg USE_TARGETID='${target_id}' "
 
         def variant = env.STAGE_NAME
 
@@ -185,6 +188,7 @@ def buildHipClangJobAndReboot(Map conf=[:]){
     }
 }
 
+
 /// Stage name format:
 /// [DataType] Backend[/Compiler] BuildType [TestSet] [Target]
 ///
@@ -219,29 +223,33 @@ pipeline {
             defaultValue: true,
             description: "Disables each stage in the pipline")
         booleanParam(
-                name: "BUILD_STATIC_STAGE",
-                defaultValue: true,
-                description: "Run static stage")
+            name: "STATIC_CHECKS",
+            defaultValue: true,
+            description: "")
         booleanParam(
-                name: "BUILD_SMOKE_STATATIC_STAGE",
-                defaultValue: true,
-                description: "Run smoke static stage")
+            name: "SMOKE_TESTS",
+            defaultValue: true,
+            description: "")
         booleanParam(
-                name: "BUILD_SMOKE_AUX_LOW_STAGES",
-                defaultValue: true,
-                description: "Run smoke AUX and Smoke Fp16/Bf16/Int8 stages")
+            name: "SMOKE_MIOPENTENSILE_LATEST",
+            defaultValue: true,
+            description: "")
         booleanParam(
-                name: "BUILD_SMOKE_AUX_LOW_VEGA20_EX",
-                defaultValue: false,
-                description: "Run extra Smoke Fp16/Bf16/Int8 tests for VEGA20 ")
+            name: "FULL_TESTS",
+            defaultValue: true,
+            description: "")
         booleanParam(
-                name: "BUILD_FULL_STAGES",
-                defaultValue: true,
-                description: "Run all FULL stages")
+            name: "MIOPENTENSILE",
+            defaultValue: false,
+            description: "")
         booleanParam(
-                name: "BUILD_TENSILE_STAGE",
-                defaultValue: true,
-                description: "Run Tensile stage")
+            name: "MIOPENTENSILE_LATEST",
+            defaultValue: false,
+            description: "")
+        booleanParam(
+            name: "PACKAGES",
+            defaultValue: true,
+            description: "")
         booleanParam(
                 name: "BUILD_PACKAGES",
                 defaultValue: true,
@@ -249,18 +257,20 @@ pipeline {
     }
     
     environment{
-        extra_log_env = " MIOPEN_LOG_LEVEL=5 "
-        gfx908_test = " -DMIOPEN_TEST_GFX908=On"
-        Fp16_flags = " -DMIOPEN_TEST_HALF=On"
-        Bf16_flags = " -DMIOPEN_TEST_BFLOAT16=On"
-        Int8_flags = " -DMIOPEN_TEST_INT8=On"
-        Full_test = " -DMIOPEN_TEST_ALL=On"
+        extra_log_env   = " MIOPEN_LOG_LEVEL=5 "
+        gfx908_test     = " -DMIOPEN_TEST_GFX908=On"
+        Fp16_flags      = " -DMIOPEN_TEST_HALF=On"
+        Bf16_flags      = " -DMIOPEN_TEST_BFLOAT16=On"
+        Int8_flags      = " -DMIOPEN_TEST_INT8=On"
+        Full_test       = " -DMIOPEN_TEST_ALL=On"
         //limit greater than 2 leads to prolonged testing more than 5hrs per stage.
         Full_test_limit = " -DMIOPEN_TEST_ALL=On -DMIOPEN_TEST_LIMIT=2"
+        Tensile_build_env = "MIOPEN_DEBUG_HIP_KERNELS=0 "
+        Tensile_setup = " -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF"
     }
     stages{
         stage("Static checks"){
-            when { expression { params.BUILD_STATIC_STAGE && !params.DISABLE_ALL_STAGES } }
+            when { expression { params.STATIC_CHECKS && !params.DISABLE_ALL_STAGES } }
             parallel{
                 stage('Hip Tidy') {
                     agent{  label rocmnode("nogpu") }
@@ -302,7 +312,7 @@ pipeline {
             }
         }
         stage("Smoke Fp32"){
-            when { expression { params.BUILD_SMOKE_STATATIC_STAGE && !params.DISABLE_ALL_STAGES } }
+            when { expression { params.SMOKE_TESTS && !params.DISABLE_ALL_STAGES } }
             environment{
                 Smoke_targets = "check doc MIOpenDriver"
             }
@@ -354,7 +364,7 @@ pipeline {
             }
         }
         stage("Smoke Aux 1"){
-            when { expression { params.BUILD_SMOKE_AUX_LOW_STAGES && !params.DISABLE_ALL_STAGES } }
+            when { expression { params.SMOKE_TESTS && !params.DISABLE_ALL_STAGES } }
             parallel{
                 stage('Fp32 Hip Debug COMGR') {
                     agent{ label rocmnode("vega") }
@@ -418,7 +428,7 @@ pipeline {
             }
         }
         stage("Smoke Fp16/Bf16/Int8"){
-            when { expression { params.BUILD_SMOKE_AUX_LOW_STAGES && !params.DISABLE_ALL_STAGES } }
+            when { expression { params.SMOKE_TESTS && !params.DISABLE_ALL_STAGES } }
             environment{
                 Smoke_targets = "check doc MIOpenDriver"
             }
@@ -430,21 +440,19 @@ pipeline {
                     }
                 }
                 stage('Fp16 OpenCL Vega20') {
-                    when { expression { params.BUILD_SMOKE_AUX_LOW_VEGA20_EX} }
+                    when { expression { params.SMOKE_TESTS} }
                     agent{ label rocmnode("vega20") }
                     steps{
                         buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Fp16_flags, config_targets: Smoke_targets)
                     }
                 }
                 stage('Int8 OpenCL Vega20') {
-                    when { expression { params.BUILD_SMOKE_AUX_LOW_VEGA20_EX} }
                     agent{ label rocmnode("vega20") }
                     steps{
                         buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Int8_flags, config_targets: Smoke_targets)
                     }
                 }
                 stage('Bf16 Hip Vega20 /opt/rocm') {
-                    when { expression { params.BUILD_SMOKE_AUX_LOW_VEGA20_EX} }
                     agent{ label rocmnode("vega20") }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: Bf16_flags, prefixpath: '/opt/rocm', config_targets: Smoke_targets)
@@ -452,8 +460,41 @@ pipeline {
                 }
             }
         }
+        stage("Smoke MIOpenTensile Latest"){
+            when { expression { params.SMOKE_MIOPENTENSILE_LATEST && !params.DISABLE_ALL_STAGES } }
+            environment{
+                Tensile_version = "latest"
+            }
+            parallel{
+                stage('Fp16 Hip Tensile-Latest All Vega20') {
+                    agent{ label rocmnode("vega20") }
+                    steps{
+                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Fp16_flags, build_env: Tensile_build_env, gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+                    }
+                }
+                stage('Int8 Hip Tensile-Latest All Vega20') {
+                    agent{ label rocmnode("vega20") }
+                    steps{
+                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + extra_log_env + Int8_flags, build_env: Tensile_build_env, gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+                    }
+                }
+
+                stage('Fp32 Hip Tensile-Latest All gfx908') {
+                    agent{ label rocmnode("gfx908") }
+                    steps{
+                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + extra_log_env + gfx908_test , build_env: Tensile_build_env + extra_log_env, gpu_arch: "gfx908:xnack-", test_flags: ' --verbose ')
+                    }
+                }
+                stage('Bf16 Hip Tensile-Latest All gfx908') {
+                    agent{ label rocmnode("gfx908") }
+                    steps{
+                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + extra_log_env + gfx908_test + Bf16_flags, build_env: Tensile_build_env + extra_log_env, gpu_arch: "gfx908:xnack-")
+                    }
+                }
+            }
+        }
         stage("Full Tests I"){
-            when { expression { params.BUILD_FULL_STAGES && !params.DISABLE_ALL_STAGES } }
+            when { expression { params.FULL_TESTS && !params.DISABLE_ALL_STAGES } }
             parallel{
                 stage('Int8 HIP All Vega20 /opt/rocm') {
                     agent{ label rocmnode("vega20") }
@@ -477,7 +518,7 @@ pipeline {
         }
 
         stage("Full Tests II"){
-            when { expression { params.BUILD_FULL_STAGES && !params.DISABLE_ALL_STAGES } }
+            when { expression { params.FULL_TESTS && !params.DISABLE_ALL_STAGES } }
             parallel{
                 stage('Fp32 Hip All gfx908') {
                     agent{ label rocmnode("gfx908") }
@@ -507,40 +548,119 @@ pipeline {
         }
 
         stage("MIOpenTensile"){
-            when { expression { params.BUILD_TENSILE_STAGE && !params.DISABLE_ALL_STAGES } }
+            when { expression { params.MIOPENTENSILE && !params.DISABLE_ALL_STAGES } }
             environment{
-                Tensile_build_env = "MIOPEN_DEBUG_HIP_KERNELS=0 "
-                Tensile_setup = " -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF"
+                Tensile_version = "default"
             }
             parallel{
                 stage('Fp32 Hip Tensile All Vega20') {
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test_limit, build_env: Tensile_build_env)
+                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test_limit, build_env: Tensile_build_env, gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+                    }
+                }
+                stage('Fp16 Hip Tensile All Vega20') {
+                    agent{ label rocmnode("vega20") }
+                    steps{
+                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test_limit + Fp16_flags, build_env: Tensile_build_env, gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+                    }
+                }
+                stage('Bf16 Hip Tensile All Vega20') {
+                    agent{ label rocmnode("vega20") }
+                    steps{
+                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test_limit + extra_log_env + Bf16_flags, build_env: Tensile_build_env, gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+                    }
+                }
+                stage('Int8 Hip Tensile All Vega20') {
+                    agent{ label rocmnode("vega20") }
+                    steps{
+                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test_limit + extra_log_env + Int8_flags, build_env: Tensile_build_env, gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
                     }
                 }
                 stage('Fp32 Hip Tensile All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Full_test_limit + gfx908_test + Tensile_setup, build_env: Tensile_build_env + extra_log_env, gpu_arch: "gfx908", test_flags: ' --verbose ')
+                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test_limit + extra_log_env + gfx908_test , build_env: Tensile_build_env + extra_log_env, gpu_arch: "gfx908:xnack-", test_flags: ' --verbose ')
                     }
                 }
+                stage('Fp16 Hip Tensile All gfx908') {
+                    agent{ label rocmnode("gfx908") }
+                    steps{
+                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test_limit + extra_log_env + gfx908_test + Fp16_flags, build_env: Tensile_build_env + extra_log_env, gpu_arch: "gfx908:xnack-")
+                    }
+                }
+                stage('Bf16 Hip Tensile All gfx908') {
+                    agent{ label rocmnode("gfx908") }
+                    steps{
+                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test_limit + extra_log_env + gfx908_test + Bf16_flags, build_env: Tensile_build_env + extra_log_env, gpu_arch: "gfx908:xnack-")
+                    }
+                }
+                stage('Int8 Hip Tensile All gfx908') {
+                    agent{ label rocmnode("gfx908") }
+                    steps{
+                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test_limit + extra_log_env + gfx908_test + Int8_flags, build_env: Tensile_build_env + extra_log_env, gpu_arch: "gfx908:xnack-")
+                    }
+                }
+            }
+        }
+        stage("MIOpenTensile Latest"){
+            when { expression { params.MIOPENTENSILE_LATEST && !params.DISABLE_ALL_STAGES  } }
+            environment{
+                Tensile_version = "latest"
+            }
+            parallel{
                 stage('Fp32 Hip Tensile-Latest All Vega20') {
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Full_test_limit + Tensile_setup, build_env: Tensile_build_env, miotensile_version: "latest")
+                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test_limit, build_env: Tensile_build_env, gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+                    }
+                }
+                stage('Fp16 Hip Tensile-Latest All Vega20') {
+                    agent{ label rocmnode("vega20") }
+                    steps{
+                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test_limit + Fp16_flags, build_env: Tensile_build_env, gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+                    }
+                }
+                stage('Bf16 Hip Tensile-Latest All Vega20') {
+                    agent{ label rocmnode("vega20") }
+                    steps{
+                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test_limit + extra_log_env + Bf16_flags, build_env: Tensile_build_env, gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+                    }
+                }
+                stage('Int8 Hip Tensile-Latest All Vega20') {
+                    agent{ label rocmnode("vega20") }
+                    steps{
+                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test_limit + extra_log_env + Int8_flags, build_env: Tensile_build_env, gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
                     }
                 }
                 stage('Fp32 Hip Tensile-Latest All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Full_test_limit + gfx908_test + Tensile_setup, build_env: Tensile_build_env + extra_log_env, gpu_arch: "gfx908", miotensile_version: "latest", test_flags: ' --verbose ')
+                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test_limit + extra_log_env + gfx908_test , build_env: Tensile_build_env + extra_log_env, gpu_arch: "gfx908:xnack-", test_flags: ' --verbose ')
+                    }
+                }
+                stage('Fp16 Hip Tensile-Latest All gfx908') {
+                    agent{ label rocmnode("gfx908") }
+                    steps{
+                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test_limit + extra_log_env + gfx908_test + Fp16_flags, build_env: Tensile_build_env + extra_log_env, gpu_arch: "gfx908:xnack-")
+                    }
+                }
+                stage('Bf16 Hip Tensile-Latest All gfx908') {
+                    agent{ label rocmnode("gfx908") }
+                    steps{
+                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test_limit + extra_log_env + gfx908_test + Bf16_flags, build_env: Tensile_build_env + extra_log_env, gpu_arch: "gfx908:xnack-")
+                    }
+                }
+                stage('Int8 Hip Tensile-Latest All gfx908') {
+                    agent{ label rocmnode("gfx908") }
+                    steps{
+                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test_limit + extra_log_env + gfx908_test + Int8_flags, build_env: Tensile_build_env + extra_log_env, gpu_arch: "gfx908:xnack-")
                     }
                 }
             }
         }
         stage("Packages"){
-            when { expression { params.BUILD_PACKAGES && !params.DISABLE_ALL_STAGES } }
+            when { expression { params.PACKAGES && !params.DISABLE_ALL_STAGES } }
             parallel {
                 stage('OpenCL Package') {
                     agent{ label rocmnode("nogpu") }
