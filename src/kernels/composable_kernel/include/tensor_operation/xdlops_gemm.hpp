@@ -722,75 +722,65 @@ struct XdlopsGemm_t
 #if CK_USE_AMD_XDLOPS_EMULATE
         p_c_thread = XdlopsEmulate<M, N, K>(p_a_wave, p_b_wave, p_c_thread);
 #else
-        const index_t laneId = get_thread_local_1d_id() % mfma_type.wave_size;
 
-        FloatA a[K * MRepeats];
-        FloatB b[K * NRepeats];
+        constexpr index_t KPACT = sizeof(FloatA) / sizeof(data_type);
 
-        static_assert(sizeof(FloatA) % (sizeof(data_type) * mfma_type.k_base) == 0,
-                      "wrong! FloatA is consistent with mfma");
+        static_assert(KPACT % mfma_type.k_base == 0, "wrong! KPACT is not supported by mfma");
+
+        constexpr index_t KRepeats = KPACT / mfma_type.k_base;
 
         static_assert(!IsKReduction || K % mfma_type.num_input_blks == 0,
                       "K cannot divided by mfma_type.num_input_blks!");
 
+        constexpr index_t KPerThread = IsKReduction ? K / mfma_type.num_input_blks : K;
+
         static_assert(!IsKReduction || (MRepeats == 1 && NRepeats == 1),
                       "KReduction does not support M/N Repeats!");
 
-        constexpr index_t KRepeats = sizeof(FloatA) / (sizeof(data_type) * mfma_type.k_base);
+        FloatA a[KPerThread * MRepeats];
+        FloatB b[KPerThread * NRepeats];
 
         auto pa = reinterpret_cast<const data_type*>(&a);
         auto pb = reinterpret_cast<const data_type*>(&b);
 
-        constexpr index_t AStride = K * KRepeats;
-        constexpr index_t BStride = K * KRepeats;
+        constexpr index_t AStride = KPerThread * KRepeats;
+        constexpr index_t BStride = KPerThread * KRepeats;
+
+        const index_t laneId = get_thread_local_1d_id() % mfma_type.wave_size;
 
         static_if<!IsKReduction>{}([&](auto) {
 
             for(index_t m_i = 0; m_i < MRepeats; ++m_i)
-                for(index_t k_i      = 0; k_i < K; ++k_i)
-                    a[k_i + m_i * K] = p_a_wave[k_i * M + laneId + MPerXdlops * m_i];
+                for(index_t k_i               = 0; k_i < KPerThread; ++k_i)
+                    a[k_i + m_i * KPerThread] = p_a_wave[k_i * M + laneId + MPerXdlops * m_i];
 
             for(index_t n_i = 0; n_i < NRepeats; ++n_i)
-                for(index_t k_i      = 0; k_i < K; ++k_i)
-                    b[k_i + n_i * K] = p_b_wave[k_i * N + laneId + NPerXdlops * n_i];
-
-#if CK_WORKAROUND_SWDEV_229564
-#pragma unroll
-#endif
-            for(index_t k_i = 0; k_i < K * KRepeats; ++k_i)
-            {
-                p_c_thread = mfma_type.template run<MPerXdlops * MRepeats,
-                                                    NPerXdlops * NRepeats,
-                                                    AStride,
-                                                    BStride>(
-                    &pa[k_i * mfma_type.k_base], &pb[k_i * mfma_type.k_base], p_c_thread);
-            }
+                for(index_t k_i               = 0; k_i < KPerThread; ++k_i)
+                    b[k_i + n_i * KPerThread] = p_b_wave[k_i * N + laneId + NPerXdlops * n_i];
 
         }).Else([&](auto) {
 
             const index_t blk_id = laneId / mfma_type.num_threads_blk;
             const index_t blk_td = laneId % mfma_type.num_threads_blk;
 
-            // load into registers
-            for(index_t k_i = 0; k_i < K; k_i += mfma_type.num_input_blks)
+            for(index_t k_i = 0; k_i < KPerThread; ++k_i)
             {
-                a[k_i] = p_a_wave[(k_i + blk_id) * M + blk_td];
-                b[k_i] = p_b_wave[(k_i + blk_id) * N + blk_td];
+                a[k_i] = p_a_wave[(k_i * mfma_type.num_input_blks + blk_id) * M + blk_td];
+                b[k_i] = p_b_wave[(k_i * mfma_type.num_input_blks + blk_id) * N + blk_td];
             }
+
+        });
 
 #if CK_WORKAROUND_SWDEV_229564
 #pragma unroll
 #endif
-            for(index_t k_i = 0; k_i < K; k_i += mfma_type.num_input_blks)
-            {
-                for(index_t i = 0; i < KRepeats; ++i)
-                    p_c_thread = mfma_type.template run<MPerXdlops, NPerXdlops, AStride, BStride>(
-                        &pa[(k_i * KRepeats + i) * mfma_type.k_base],
-                        &pb[(k_i * KRepeats + i) * mfma_type.k_base],
-                        p_c_thread);
-            }
-
-        });
+        for(index_t k_i = 0; k_i < KPerThread * KRepeats; ++k_i)
+        {
+            p_c_thread =
+                mfma_type
+                    .template run<MPerXdlops * MRepeats, NPerXdlops * NRepeats, AStride, BStride>(
+                        &pa[k_i * mfma_type.k_base], &pb[k_i * mfma_type.k_base], p_c_thread);
+        }
 #endif
 
         return p_c_thread;
