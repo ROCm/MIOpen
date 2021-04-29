@@ -36,19 +36,20 @@ std::vector<std::string> OclKernelWarnings()
 {
     return {
         "-Weverything",
-        "-Wno-shorten-64-to-32",
-        "-Wno-unused-macros",
-        "-Wno-unused-function",
-        "-Wno-sign-compare",
-        "-Wno-reserved-id-macro",
-        "-Wno-sign-conversion",
-        "-Wno-missing-prototypes",
-        "-Wno-cast-qual",
         "-Wno-cast-align",
+        "-Wno-cast-qual",
         "-Wno-conversion",
         "-Wno-double-promotion",
         "-Wno-float-equal",
-        "-Wno-pass-failed", // Disable "loop not unrolled" warnings. See #1735.
+        "-Wno-missing-prototypes",
+        "-Wno-pass-failed",            // Disable "loop not unrolled" warnings. See #1735.
+        "-Wno-pedantic-core-features", // Cases like "#pragma OPENCL EXTENSION cl_khr_fp64 : enable"
+        "-Wno-reserved-id-macro",
+        "-Wno-shorten-64-to-32",
+        "-Wno-sign-compare",
+        "-Wno-sign-conversion",
+        "-Wno-unused-function",
+        "-Wno-unused-macros",
     };
 }
 
@@ -81,8 +82,8 @@ std::vector<std::string> HipKernelWarnings()
     };
 }
 
-std::string MakeKernelWarningsString(const std::vector<std::string>& kernel_warnings,
-                                     const std::string& prefix)
+static std::string MakeKernelWarningsString(const std::vector<std::string>& kernel_warnings,
+                                            const std::string& prefix)
 {
     return prefix + JoinStrings(kernel_warnings, prefix);
 }
