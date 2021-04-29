@@ -32,9 +32,9 @@
 
 namespace miopen {
 
-std::vector<std::string> OclKernelWarnings()
+static std::vector<std::string> OclKernelWarnings(const bool is_miopengemm)
 {
-    return {
+    std::vector<std::string> rv = {
         "-Weverything",
         "-Wno-cast-align",
         "-Wno-cast-qual",
@@ -51,9 +51,13 @@ std::vector<std::string> OclKernelWarnings()
         "-Wno-unused-function",
         "-Wno-unused-macros",
     };
+    // W/A for SWDEV-270602. We'll remove this when we stop using MIOpenGEMM (deprecated).
+    if(is_miopengemm)
+        rv.push_back("-Wno-tautological-unsigned-zero-compare");
+    return rv;
 }
 
-std::vector<std::string> HipKernelWarnings()
+static std::vector<std::string> HipKernelWarnings()
 {
     return {
         "-Weverything",
@@ -88,6 +92,18 @@ static std::string MakeKernelWarningsString(const std::vector<std::string>& kern
     return prefix + JoinStrings(kernel_warnings, prefix);
 }
 
+const std::string& MiopengemmWarningsString()
+{
+#if MIOPEN_BACKEND_OPENCL
+    std::string prefix = " -Wf,";
+#else
+    std::string prefix = " ";
+#endif
+
+    static const std::string result = MakeKernelWarningsString(OclKernelWarnings(true), prefix);
+    return result;
+}
+
 const std::string& OclKernelWarningsString()
 {
 #if MIOPEN_BACKEND_OPENCL
@@ -96,7 +112,7 @@ const std::string& OclKernelWarningsString()
     std::string prefix = " ";
 #endif
 
-    static const std::string result = MakeKernelWarningsString(OclKernelWarnings(), prefix);
+    static const std::string result = MakeKernelWarningsString(OclKernelWarnings(false), prefix);
     return result;
 }
 
