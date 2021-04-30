@@ -38,7 +38,7 @@ namespace solver {
 
 namespace {
 #if MIOPEN_USE_MLIR
-std::tuple<int, int, int> calculate_gemm_size(const ConvolutionContext& ctx)
+std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx)
 {
     const size_t n  = ConvolutionContextInterpreter::GetBatchN(ctx);
     const size_t c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
@@ -83,7 +83,7 @@ bool ConvMlirIgemmWrW::IsApplicable(const ConvolutionContext& ctx) const
     int gemm_n = 0;
     int gemm_k = 0;
 
-    std::tie(gemm_m, gemm_n, gemm_k) = calculate_gemm_size(ctx);
+    std::tie(gemm_m, gemm_n, gemm_k) = CalculateGemmSize(ctx);
     return gemm_m % 32 == 0 && gemm_n % 32 == 0 && gemm_k % 4 == 0;
 #else
     std::ignore = ctx;
