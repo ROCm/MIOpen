@@ -106,6 +106,10 @@ if(NOT MIOPEN_TEST_MIOTENSILE)
                     $SKIP_TESTS)
         endif()
     endif()
+    if(${CODECOV_TEST})
+        list(APPEND SKIP_TESTS test_conv3d test_immed_conv3d test_immed_conv2d test_pooling2d)
+        # replaced by smaller tests with suffix _codecov
+    endif()
 else()
 	if(MIOPEN_TEST_HALF)
 	    set(SKIP_ALL_EXCEPT_TESTS test_conv2d test_conv3d test_conv3d_extra test_immed_conv2d test_immed_conv3d test_gru test_rnn_vanilla test_lstm test_gru_extra test_rnn_extra test_lstm_extra )
@@ -315,7 +319,21 @@ function(add_perf_test NAME)
     endif()
 endfunction()
 
-
+if(${CODECOV_TEST})
+    add_custom_test(test_conv3d_codecov
+        COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 4 4 4 4 --weights 2 4 1 1 1 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    )
+    add_custom_test(test_immed_conv2d_codecov
+        COMMAND $<TARGET_FILE:test_immed_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input  2 2 14 14 --weights 8 2 3 3 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    )
+    add_custom_test(test_immed_conv3d_codecov
+        COMMAND $<TARGET_FILE:test_immed_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 1 4 4 4 4 --weights 2 4 3 3 3 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    )
+    add_custom_test(test_pooling2d_codecov
+        COMMAND $<TARGET_FILE:test_pooling2d> ${MIOPEN_TEST_FLOAT_ARG} --input 1, 192, 28, 28 --lens 2 2 --strides 2 2 --pads 0 0 ${MIOPEN_TEST_FLAGS_ARGS}
+    )
+    
+endif()
 
 
 set(IMPLICITGEMM_ARGS ${MIOPEN_TEST_FLOAT_ARG})
