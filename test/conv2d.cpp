@@ -46,7 +46,7 @@ struct conv2d_driver : conv_driver<T>
                   this->generate_data_limited(this->get_2d_spatial_dims(), 1, {28, 28}));
         this->add(this->filter_dims,
                   "filter_dims",
-                  this->generate_data_limited(this->get_2d_filter_dims(), 3, {3, 3}));
+                  this->generate_data_limited(this->get_2d_filter_dims(), 2, {3, 3}));
         this->add(this->pads_strides_dilations,
                   "pads_strides_dilations",
                   this->generate_data_limited(this->get_2d_pads_strides_dilations(), 2));

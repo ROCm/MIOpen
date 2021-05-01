@@ -1624,7 +1624,7 @@ struct conv_driver : test_driver
 
     std::vector<std::vector<std::size_t>> get_2d_filter_dims()
     {
-        return {{1, 1}, {3, 3}, {1, 7}, {7, 1}, {5, 5}, {7, 7}, {11, 11}, {2, 2}, {4, 4}};
+        return {{1, 1}, {3, 3}, {1, 7}, {5, 5}, {7, 1}, {7, 7}, {11, 11}, {2, 2}, {4, 4}};
     }
 
     std::vector<std::size_t> get_output_channels()
