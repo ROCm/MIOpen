@@ -796,7 +796,7 @@ struct ConvHipImplicitGemmMlirCppFwd : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
-struct ConvHipImplicitGemmMlirBinFwd : SolverBase<ConvolutionContext>
+struct ConvMlirIgemmFwd : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& ctx) const;
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
@@ -868,7 +868,7 @@ struct ConvHipImplicitGemmMlirCppWrW : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
-struct ConvHipImplicitGemmMlirBinWrW : SolverBase<ConvolutionContext>
+struct ConvMlirIgemmWrW : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& ctx) const;
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
@@ -1272,7 +1272,7 @@ struct ConvHipImplicitGemmMlirCppBwd : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
-struct ConvHipImplicitGemmMlirBinBwd : SolverBase<ConvolutionContext>
+struct ConvMlirIgemmBwd : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& ctx) const;
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
