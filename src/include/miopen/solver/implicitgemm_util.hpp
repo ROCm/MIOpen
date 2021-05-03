@@ -874,7 +874,6 @@ static inline bool IsComposableKernelSupportedHardware(const ConvolutionContext&
            StartsWith(c.GetStream().GetDeviceName(), "gfx90a") ||
            StartsWith(c.GetStream().GetDeviceName(), "gfx1030");
 }
-
 } // namespace solver
 } // namespace miopen
 

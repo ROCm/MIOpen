@@ -604,6 +604,58 @@ pipeline {
                         }
                     }
                 }
+                stage('Fp32 Hip MLIR Xdlops') {
+                    agent{ label rocmnode("gfx908") }
+                    environment{
+                        cmd = """
+                            ulimit -c unlimited
+                            cd build
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_USE_MLIR=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
+                            CTEST_PARALLEL_LEVEL=4 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check
+                        """
+                    }
+                    steps{
+                        script{
+                            try{
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', cmd: cmd)
+                            }
+                            catch(e){
+                                echo "throwing error exception for the stage"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                reboot()
+                            }
+                        }
+                    }
+                }
+                stage('Fp16 Hip MLIR Xdlops') {
+                    agent{ label rocmnode("gfx908") }
+                    environment{
+                        cmd = """
+                            ulimit -c unlimited
+                            cd build
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake  -DMIOPEN_TEST_HALF=On -DMIOPEN_USE_MLIR=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
+                            CTEST_PARALLEL_LEVEL=4 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check
+                        """
+                    }
+                    steps{
+                        script{
+                            try{
+                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', cmd: cmd)
+                            }
+                            catch(e){
+                                echo "throwing error exception for the stage"
+                                echo 'Exception occurred: ' + e.toString()
+                                throw e
+                            }
+                            finally{
+                                reboot()
+                            }
+                        }
+                    }
+                }
             }
         }
         stage("Smoke Fp16/Bf16/Int8"){

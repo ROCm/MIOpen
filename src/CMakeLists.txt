@@ -220,6 +220,9 @@ set( MIOpen_Source
     solver/conv_mlir_igemm_fwd.cpp
     solver/conv_mlir_igemm_bwd.cpp
     solver/conv_mlir_igemm_wrw.cpp
+    solver/conv_mlir_igemm_fwd_xdlops.cpp
+    solver/conv_mlir_igemm_bwd_xdlops.cpp
+    solver/conv_mlir_igemm_wrw_xdlops.cpp
     solver/conv_ocl_dir2D_bwdWrW_2.cpp
     solver/conv_ocl_dir2D_bwdWrW_53.cpp
     solver/conv_ocl_dir2D_bwdWrW_1x1.cpp
