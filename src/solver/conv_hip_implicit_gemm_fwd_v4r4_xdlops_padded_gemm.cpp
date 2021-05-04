@@ -1087,7 +1087,7 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
     if(ctx.GetStream().GetDeviceName() == "gfx908" && ctx.IsFp32())
     {
         if((ctx.n_inputs == 3 && ctx.n_outputs == 1 && ctx.in_width == 227 &&
-            ctx.in_height == 277 && ctx.kernel_size_w == 3 && ctx.kernel_size_h == 3) //
+            ctx.in_height == 227 && ctx.kernel_size_w == 3 && ctx.kernel_size_h == 3) //
            ||
            (ctx.n_inputs == 64 && ctx.n_outputs == 1 && ctx.in_width == 112 &&
             ctx.in_height == 112 && ctx.kernel_size_w == 3 && ctx.kernel_size_h == 3 &&
