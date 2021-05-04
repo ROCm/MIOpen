@@ -243,6 +243,9 @@ set(LONG_TESTS
     test_lrn_test
     test_conv_for_implicit_gemm
     test_immed_conv3d
+    test_conv3d_extra
+    test_conv_3d
+    test_pooling2d
     )
 
 function(rate_added_test NAME)
