@@ -195,7 +195,7 @@ ClProgramPtr LoadProgram(cl_context ctx,
 #if MIOPEN_BUILD_DEV
         params += " -Werror";
 #ifdef __linux__
-        params += OclKernelWarningsString();
+        params += is_kernel_str ? MiopengemmWarningsString() : OclKernelWarningsString();
 #endif
 #endif
         params += " -cl-std=CL1.2";
