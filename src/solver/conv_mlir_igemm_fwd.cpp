@@ -30,7 +30,7 @@
 #include <miopen/solver.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_HIP_IMPLICIT_GEMM_MLIR_BIN_FWD)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD)
 
 namespace miopen {
 namespace solver {
@@ -59,10 +59,10 @@ std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx)
 #endif
 } // Anonymous namespace
 
-bool ConvHipImplicitGemmMlirBinFwd::IsApplicable(const ConvolutionContext& ctx) const
+bool ConvMlirIgemmFwd::IsApplicable(const ConvolutionContext& ctx) const
 {
 #if MIOPEN_USE_MLIR
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_HIP_IMPLICIT_GEMM_MLIR_BIN_FWD{}))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD{}))
         return false;
     // Future: MLIR will support non-default layouts.
     if(!ctx.IsLayoutDefault())
@@ -91,7 +91,7 @@ bool ConvHipImplicitGemmMlirBinFwd::IsApplicable(const ConvolutionContext& ctx) 
 #endif
 }
 
-ConvSolution ConvHipImplicitGemmMlirBinFwd::GetSolution(const ConvolutionContext& ctx) const
+ConvSolution ConvMlirIgemmFwd::GetSolution(const ConvolutionContext& ctx) const
 {
 #if MIOPEN_USE_MLIR
     ConvSolution result;
