@@ -28,7 +28,6 @@
 #include <miopen/conv/invokers/impl_gemm_dynamic.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/gcn_asm_utils.hpp>
-#include <miopen/numeric.hpp>
 #include <algorithm>
 #include <miopen/solver/implicitgemm_util.hpp>
 
