@@ -646,10 +646,7 @@ static std::size_t GetSolutionCount(Handle& handle, const ProblemDescription& pr
     const FindDbRecord fdb_record{handle, problem};
     if(fdb_record.empty())
         return 0;
-    // To stop crashes with old ufdb file
-    return std::count_if(fdb_record.begin(), fdb_record.end(), [](const auto& item) {
-        return item.second.solver_id != solver::Id::gemm().ToString();
-    });
+    return std::distance(fdb_record.begin(), fdb_record.end());
 }
 
 static const char immFallbackFailed[] =
@@ -861,10 +858,6 @@ void GetSolutions(Handle& handle,
             MIOPEN_LOG_I("[Warning] incorrect solver_id: " << pair.second.solver_id);
             continue;
         }
-
-        // To stop crashes with old ufdb file
-        if(solver_id == solver::Id::gemm())
-            continue;
 
         if(solver_id.GetSolver().IsApplicable(ctx))
             interim.emplace_back(pair.second.time, pair.second.workspace, solver_id.Value(), algo);
