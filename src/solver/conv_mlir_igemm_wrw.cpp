@@ -30,6 +30,7 @@
 #include <miopen/env.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
+#include <miopen/solver/mlir_util.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_WRW)
 

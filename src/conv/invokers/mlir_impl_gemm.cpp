@@ -59,21 +59,22 @@ struct MlirConvArgs
 // infer actual layout
 // - For NCHW, sizes = {N, C, H, W}; strides = {C*H*W, H*W, W, 1}
 // - For NHWC, sizes = {N, C, H, W}; strides = {C*H*W, 1, W*C, C}
-auto PermuteDimStride(const std::vector<size_t>& dims, const std::vector<size_t>& strides)
+void PermuteDimsStrides(std::vector<size_t>& dims, std::vector<size_t>& strides)
 {
     auto sorted_dims    = dims;
     auto sorted_strides = strides;
     auto p              = TensorDescriptor::find_permutation(dims, strides);
     std::transform(p.begin(), p.end(), sorted_dims.begin(), [&](auto i) { return dims[i]; });
     std::transform(p.begin(), p.end(), sorted_strides.begin(), [&](auto i) { return strides[i]; });
-    return std::make_tuple(sorted_dims, sorted_strides);
+    dims    = sorted_dims;
+    strides = sorted_strides;
 };
 
-auto InsertGToDimStride(const std::string& layout,
-                        char dim,
-                        const std::vector<size_t>& dims,
-                        const std::vector<size_t>& strides,
-                        int group_count)
+void InsertGToDimsStrides(const std::string& layout,
+                          char dim,
+                          int group_count,
+                          std::vector<size_t>& dims,
+                          std::vector<size_t>& strides)
 {
     auto dims_with_g    = dims;
     auto strides_with_g = strides;
@@ -84,15 +85,16 @@ auto InsertGToDimStride(const std::string& layout,
     // For dimensions,
     //    Insert an additional dimension g before channel
     //    Amend the channel size to be channel_size / group_count
+    dims_with_g[index] /= group_count;
     dims_with_g.insert(dims_with_g.begin() + index, group_count);
-    dims_with_g[index + 1] = dims[index] / group_count;
 
     // For strides,
     //   The channel stride remain the same
     //   Insert an additional group stride to be channel_stride * new_channel_size
     strides_with_g.insert(strides_with_g.begin() + index, strides[index] * dims_with_g[index + 1]);
 
-    return std::make_tuple(dims_with_g, strides_with_g);
+    dims    = dims_with_g;
+    strides = strides_with_g;
 }
 
 void ComputeMlirDimsStrides(const conv::ProblemDescription& conv_problem,
@@ -105,30 +107,27 @@ void ComputeMlirDimsStrides(const conv::ProblemDescription& conv_problem,
 {
     auto group_count = conv_problem.GetGroupCount();
 
-    // Add a virtual group dimenions before input channel
+    // Add a virtual group dimension before input channel
     const TensorDescriptor& in = conv_problem.GetIn();
     in_dims                    = in.GetLengths();
     in_strides                 = in.GetStrides();
-    std::make_tuple(in_dims, in_strides) =
-        InsertGToDimStride(in.GetLayout("NCHW"), 'C', in_dims, in_strides, group_count);
-    std::make_tuple(in_dims, in_strides) = PermuteDimStride(in_dims, in_strides);
+    InsertGToDimsStrides(in.GetLayout("NCHW"), 'C', group_count, in_dims, in_strides);
+    PermuteDimsStrides(in_dims, in_strides);
 
-    // Add a virtual group dimenions before output channel
+    // Add a virtual group dimension before output channel
     const TensorDescriptor& weights = conv_problem.GetWeights();
     weights_dims                    = weights.GetLengths();
     weights_strides                 = weights.GetStrides();
-    std::make_tuple(weights_dims, weights_strides) = InsertGToDimStride(
-        weights.GetLayout("NCHW"), 'N', weights_dims, weights_strides, group_count);
-    std::make_tuple(weights_dims, weights_strides) =
-        PermuteDimStride(weights_dims, weights_strides);
+    InsertGToDimsStrides(
+        weights.GetLayout("NCHW"), 'N', group_count, weights_dims, weights_strides);
+    PermuteDimsStrides(weights_dims, weights_strides);
 
-    // Add a virtual group dimenions before output channel
+    // Add a virtual group dimension before output channel
     const TensorDescriptor& out = conv_problem.GetOut();
     out_dims                    = out.GetLengths();
     out_strides                 = out.GetStrides();
-    std::make_tuple(out_dims, out_strides) =
-        InsertGToDimStride(out.GetLayout("NCHW"), 'C', out_dims, out_strides, group_count);
-    std::make_tuple(out_dims, out_strides) = PermuteDimStride(out_dims, out_strides);
+    InsertGToDimsStrides(out.GetLayout("NCHW"), 'C', group_count, out_dims, out_strides);
+    PermuteDimsStrides(out_dims, out_strides);
 }
 
 MlirConvArgs MakeMlirConvArgs(const std::vector<size_t>& in_dims,

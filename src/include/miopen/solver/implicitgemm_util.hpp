@@ -845,16 +845,6 @@ static inline bool IsComposableKernelSupportedHardware(const ConvolutionContext&
            StartsWith(c.GetStream().GetDeviceName(), "gfx1030");
 }
 
-static inline std::string InsertGToLayout(const std::string& layout, char dim)
-{
-    std::string layout_with_g = layout;
-    std::size_t index         = layout.find(dim);
-    if(index == std::string::npos)
-        MIOPEN_THROW(std::string("Failed to find dim") + dim + " in the layout " + layout);
-    layout_with_g.insert(index, 1, 'G');
-    return layout_with_g;
-}
-
 } // namespace solver
 } // namespace miopen
 
