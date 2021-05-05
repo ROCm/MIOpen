@@ -33,7 +33,6 @@
 #include <miopen/conv/context.hpp>
 #include <miopen/conv/asm_implicit_gemm.hpp>
 #include <miopen/tensor_ops.hpp>
-#include <miopen/numeric.hpp>
 
 #include <vector>
 
