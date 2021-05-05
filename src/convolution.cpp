@@ -289,6 +289,11 @@ bool ConvolutionDescriptor::IsWinograd3x3SupportedAndFast(miopen::ConvolutionCon
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{}))
         return false;
 
+    // Disable this performance optimization when we want to run some specific Solver.
+    // Other Solvers will be skipped anyway.
+    if(GetEnvFindOnlySolver().IsValid())
+        return false;
+
     // Filter out configs where 3x3 Winograd does not have high WTI.
     if(!(ctx.n_outputs >= 16 && ctx.n_outputs % 2 == 0))
         return false;
