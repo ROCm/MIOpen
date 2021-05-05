@@ -37,7 +37,11 @@ T gcd(T x, T y)
 {
     assert(!(x == 0 && y == 0));
 
-    if(x == y || x == 0)
+    if(x < 0 || y < 0)
+    {
+        return gcd(abs(x), abs(y));
+    }
+    else if(x == y || x == 0)
     {
         return y;
     }
@@ -47,11 +51,11 @@ T gcd(T x, T y)
     }
     else if(x > y)
     {
-        return gcd(x - y, y);
+        return gcd(x % y, y);
     }
     else
     {
-        return gcd(x, y - x);
+        return gcd(x, y % x);
     }
 }
 
