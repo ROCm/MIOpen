@@ -3,7 +3,7 @@
 #include <miopen/algorithm.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/tensor_ops.hpp>
-#include <miopen/numeric.hpp>
+#include <miopen/solver/implicitgemm_util.hpp>
 #include <boost/any.hpp>
 
 namespace miopen {
@@ -111,8 +111,8 @@ InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory<int>(const Convolut
     int y          = conv_problem.GetWeightsHeight();
     int x          = conv_problem.GetWeightsWidth();
 
-    int gcd_stride_dilation_h = gcd(stride_h, dilation_h);
-    int gcd_stride_dilation_w = gcd(stride_w, dilation_w);
+    int gcd_stride_dilation_h = solver::gcd(stride_h, dilation_h);
+    int gcd_stride_dilation_w = solver::gcd(stride_w, dilation_w);
     int y_tilda               = stride_h / gcd_stride_dilation_h;
     int x_tilda               = stride_w / gcd_stride_dilation_w;
 
@@ -250,8 +250,8 @@ MakeImplGemmDynamicBackwardDataInvokerFactory<solver::TunableImplicitGemmGTCDyna
     int x          = conv_problem.GetWeightsWidth();
     int group      = conv_problem.GetGroupCount();
 
-    int gcd_stride_dilation_h = gcd(stride_h, dilation_h);
-    int gcd_stride_dilation_w = gcd(stride_w, dilation_w);
+    int gcd_stride_dilation_h = solver::gcd(stride_h, dilation_h);
+    int gcd_stride_dilation_w = solver::gcd(stride_w, dilation_w);
     int y_tilda               = stride_h / gcd_stride_dilation_h;
     int x_tilda               = stride_w / gcd_stride_dilation_w;
 
