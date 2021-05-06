@@ -183,7 +183,6 @@ set( MIOpen_Source
     include/miopen/rnn_util.hpp
     include/miopen/bz2.hpp
     include/miopen/comgr.hpp
-    include/miopen/numeric.hpp
     include/miopen/reducetensor.hpp
     include/miopen/reduce_common.hpp
     include/miopen/sequences.hpp
@@ -218,6 +217,9 @@ set( MIOpen_Source
     solver/conv_winoRxS_f3x2.cpp
     solver/conv_winoRxS_f2x3.cpp
     solver/fft.cpp
+    solver/conv_mlir_igemm_fwd.cpp
+    solver/conv_mlir_igemm_bwd.cpp
+    solver/conv_mlir_igemm_wrw.cpp
     solver/conv_ocl_dir2D_bwdWrW_2.cpp
     solver/conv_ocl_dir2D_bwdWrW_53.cpp
     solver/conv_ocl_dir2D_bwdWrW_1x1.cpp
@@ -233,8 +235,6 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_mlir_cpp_fwd.cpp
     solver/conv_hip_implicit_gemm_mlir_cpp_bwd.cpp
     solver/conv_hip_implicit_gemm_mlir_cpp_wrw.cpp
-    solver/conv_hip_implicit_gemm_mlir_bin_fwd.cpp
-    solver/conv_hip_implicit_gemm_mlir_bin_bwd.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4.cpp
     solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops.cpp
     solver/conv_hip_implicit_gemm_xdlops_common.cpp
