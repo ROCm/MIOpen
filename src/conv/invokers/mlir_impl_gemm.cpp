@@ -25,13 +25,14 @@
 *******************************************************************************/
 
 #include <miopen/conv/invokers/mlir_impl_gemm.hpp>
-#include <miopen/memref.hpp>
 
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/algorithm.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/tensor_ops.hpp>
+
+#include <Miir.h>
 
 #include <boost/any.hpp>
 #include <boost/range/adaptors.hpp>
@@ -40,13 +41,12 @@ namespace miopen {
 namespace conv {
 
 namespace {
-using MemRef4DGeneric = StridedMemRefType<void, 4>;
-
+#if MIOPEN_USE_MLIR
 struct MlirConvArgs
 {
-    MemRef4DGeneric filter;
-    MemRef4DGeneric input;
-    MemRef4DGeneric output;
+    StridedMemRef5D filter;
+    StridedMemRef5D input;
+    StridedMemRef5D output;
 };
 
 // Rearrange strides correctly
@@ -59,15 +59,38 @@ struct MlirConvArgs
 // infer actual layout
 // - For NCHW, sizes = {N, C, H, W}; strides = {C*H*W, H*W, W, 1}
 // - For NHWC, sizes = {N, C, H, W}; strides = {C*H*W, 1, W*C, C}
-auto PermuteDimStride(const std::vector<size_t>& dims, const std::vector<size_t>& strides)
+void PermuteDimsStrides(std::vector<size_t>& dims, std::vector<size_t>& strides)
 {
     auto sorted_dims    = dims;
     auto sorted_strides = strides;
     auto p              = TensorDescriptor::find_permutation(dims, strides);
     std::transform(p.begin(), p.end(), sorted_dims.begin(), [&](auto i) { return dims[i]; });
     std::transform(p.begin(), p.end(), sorted_strides.begin(), [&](auto i) { return strides[i]; });
-    return std::make_tuple(sorted_dims, sorted_strides);
+    dims    = sorted_dims;
+    strides = sorted_strides;
 };
+
+void InsertGToDimsStrides(const std::string& layout,
+                          char dim,
+                          int group_count,
+                          std::vector<size_t>& dims,
+                          std::vector<size_t>& strides)
+{
+    std::size_t index = layout.find(dim);
+    if(index == std::string::npos)
+        MIOPEN_THROW("Failed to find channel in the layout");
+
+    // For dimensions,
+    //    Insert an additional dimension g before channel
+    //    Amend the channel size to be channel_size / group_count
+    dims[index] /= group_count;
+    dims.insert(dims.begin() + index, group_count);
+
+    // For strides,
+    //   The channel stride remain the same
+    //   Insert an additional group stride to be channel_stride * new_channel_size
+    strides.insert(strides.begin() + index, strides[index] * dims[index + 1]);
+}
 
 void ComputeMlirDimsStrides(const conv::ProblemDescription& conv_problem,
                             std::vector<size_t>& in_dims,
@@ -77,15 +100,29 @@ void ComputeMlirDimsStrides(const conv::ProblemDescription& conv_problem,
                             std::vector<size_t>& out_dims,
                             std::vector<size_t>& out_strides)
 {
+    auto group_count = conv_problem.GetGroupCount();
+
+    // Add a virtual group dimension before input channel.
     const TensorDescriptor& in = conv_problem.GetIn();
-    std::make_tuple(in_dims, in_strides) = PermuteDimStride(in.GetLengths(), in.GetStrides());
+    in_dims                    = in.GetLengths();
+    in_strides                 = in.GetStrides();
+    InsertGToDimsStrides(in.GetLayout("NCHW"), 'C', group_count, in_dims, in_strides);
+    PermuteDimsStrides(in_dims, in_strides);
 
+    // Add a virtual group dimension before output channel.
     const TensorDescriptor& weights = conv_problem.GetWeights();
-    std::make_tuple(weights_dims, weights_strides) =
-        PermuteDimStride(weights.GetLengths(), weights.GetStrides());
+    weights_dims                    = weights.GetLengths();
+    weights_strides                 = weights.GetStrides();
+    InsertGToDimsStrides(
+        weights.GetLayout("NCHW"), 'N', group_count, weights_dims, weights_strides);
+    PermuteDimsStrides(weights_dims, weights_strides);
 
+    // Add a virtual group dimension before output channel.
     const TensorDescriptor& out = conv_problem.GetOut();
-    std::make_tuple(out_dims, out_strides) = PermuteDimStride(out.GetLengths(), out.GetStrides());
+    out_dims                    = out.GetLengths();
+    out_strides                 = out.GetStrides();
+    InsertGToDimsStrides(out.GetLayout("NCHW"), 'C', group_count, out_dims, out_strides);
+    PermuteDimsStrides(out_dims, out_strides);
 }
 
 MlirConvArgs MakeMlirConvArgs(const std::vector<size_t>& in_dims,
@@ -97,16 +134,16 @@ MlirConvArgs MakeMlirConvArgs(const std::vector<size_t>& in_dims,
 {
     auto initDimStrides = [](const std::vector<size_t>& dims,
                              const std::vector<size_t>& strides,
-                             MemRef4DGeneric& target) {
+                             StridedMemRef5D& target) {
         std::copy(dims.cbegin(), dims.cend(), &target.sizes[0]);
         std::copy(strides.cbegin(), strides.cend(), &target.strides[0]);
     };
 
-    MemRef4DGeneric filter{nullptr, nullptr, 0, {0, 0, 0, 0}, {0, 0, 0, 0}};
+    StridedMemRef5D filter{nullptr, nullptr, 0, {0, 0, 0, 0}, {0, 0, 0, 0}};
     initDimStrides(weights_dims, weights_strides, filter);
-    MemRef4DGeneric input{nullptr, nullptr, 0, {0, 0, 0, 0}, {0, 0, 0, 0}};
+    StridedMemRef5D input{nullptr, nullptr, 0, {0, 0, 0, 0}, {0, 0, 0, 0}};
     initDimStrides(in_dims, in_strides, input);
-    MemRef4DGeneric output{nullptr, nullptr, 0, {0, 0, 0, 0}, {0, 0, 0, 0}};
+    StridedMemRef5D output{nullptr, nullptr, 0, {0, 0, 0, 0}, {0, 0, 0, 0}};
     initDimStrides(out_dims, out_strides, output);
 
     return {filter, input, output};
@@ -127,7 +164,7 @@ void SetMlirConvArgsPtr(ConstData_t in, ConstData_t out, ConstData_t w, MlirConv
     // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
     input = const_cast<void*>(in);
     // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
-    output = const_cast<void*>(out);
+    output      = const_cast<void*>(out);
 #endif
 
     if((filter == nullptr) || (input == nullptr) || (output == nullptr))
@@ -140,10 +177,12 @@ void SetMlirConvArgsPtr(ConstData_t in, ConstData_t out, ConstData_t w, MlirConv
     args.output.basePtr = output;
     args.output.data    = output;
 }
+#endif
 } // Anonymous namespace
 
 InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
 {
+#if MIOPEN_USE_MLIR
     assert((ctx.direction.IsForward()));
 
     std::vector<size_t> in_dims, in_strides;
@@ -170,10 +209,15 @@ InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
             handle.Run(kernels[0])(args);
         };
     };
+#else
+    std::ignore = ctx;
+    return {};
+#endif
 }
 
 InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
 {
+#if MIOPEN_USE_MLIR
     assert(ctx.direction.IsBackwardData());
 
     std::vector<size_t> in_dims, in_strides;
@@ -225,10 +269,15 @@ InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
             }
         };
     };
+#else
+    std::ignore = ctx;
+    return {};
+#endif
 }
 
 InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx)
 {
+#if MIOPEN_USE_MLIR
     assert((ctx.direction.IsBackwardWrW()));
 
     std::vector<size_t> in_dims, in_strides;
@@ -253,6 +302,10 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx)
             handle.Run(kernels[0])(args);
         };
     };
+#else
+    std::ignore = ctx;
+    return {};
+#endif
 }
 
 } // namespace conv
