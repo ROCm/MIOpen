@@ -29,6 +29,7 @@
 #include <miopen/env.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
+#include <miopen/solver/mlir_util.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD)
 
@@ -39,6 +40,7 @@ namespace {
 #if MIOPEN_USE_MLIR
 std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx)
 {
+    const size_t g  = ConvolutionContextInterpreter::GetGroupCountG(ctx);
     const size_t n  = ConvolutionContextInterpreter::GetBatchN(ctx);
     const size_t k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
     const size_t c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
@@ -47,14 +49,14 @@ std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx)
     const size_t y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
     const size_t x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
 
-    const auto gemm_m = k;
-    const auto gemm_n = ctx.Is3d()
-                            ? n * ho * wo * ConvolutionContextInterpreter::GetOutputDepthDo(ctx)
-                            : n * ho * wo;
-    const auto gemm_k =
-        ctx.Is3d() ? c * y * x * ConvolutionContextInterpreter::GetFilterDepthZ(ctx) : c * y * x;
+    const auto k_per_group = k / g;
+    const auto c_per_group = c / g;
 
-    return std::make_tuple(gemm_m, gemm_n, gemm_k);
+    const auto gemm_m       = k_per_group;
+    const auto gemm_n       = n * ho * wo;
+    const auto gemm_k_total = c_per_group * y * x;
+
+    return std::make_tuple(gemm_m, gemm_n, gemm_k_total);
 }
 #endif
 } // Anonymous namespace
@@ -64,8 +66,7 @@ bool ConvMlirIgemmFwd::IsApplicable(const ConvolutionContext& ctx) const
 #if MIOPEN_USE_MLIR
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD{}))
         return false;
-    // Future: MLIR will support non-default layouts.
-    if(!ctx.IsLayoutDefault())
+    if(!ctx.IsLayoutDefault() && !ctx.IsLayoutNHWC())
         return false;
     // Future: MLIR will support 3d convolution
     if(!ctx.Is2d())
@@ -74,9 +75,7 @@ bool ConvMlirIgemmFwd::IsApplicable(const ConvolutionContext& ctx) const
         return false;
     if(!ctx.direction.IsForward())
         return false;
-    if(!ctx.IsFp32())
-        return false;
-    if(ctx.group_counts != 1)
+    if(!ctx.IsFp32() && !ctx.IsFp16())
         return false;
 
     int gemm_m = 0;
@@ -107,16 +106,24 @@ ConvSolution ConvMlirIgemmFwd::GetSolution(const ConvolutionContext& ctx) const
     // Arguments for mlir-miopen-driver.
     // clang-format off
     using CI = ConvolutionContextInterpreter;
+
+    std::string in_layout = InsertGToLayout(CI::GetInputLayout(ctx), 'C');
+    std::string fil_layout = InsertGToLayout(CI::GetFilterLayout(ctx), 'N');
+    std::string out_layout = InsertGToLayout(CI::GetOutputLayout(ctx), 'C');
+
+    std::string data_type = ctx.IsFp32() ? "fp32" : "fp16";
+
     construction_parameters.comp_options =
         std::string(" --operation ") + operation +
         std::string(" --num_cu ") + std::to_string(ctx.GetStream().GetMaxComputeUnits()) +
         std::string(" --arch ") + ctx.GetStream().GetDeviceName() +
-        std::string(" --fil_layout ") + CI::GetFilterLayout(ctx) +
-        std::string(" --fil_type ") + "fp32" +
-        std::string(" --in_layout ") + CI::GetInputLayout(ctx) +
-        std::string(" --in_type ") + "fp32" +
-        std::string(" --out_layout ") + CI::GetOutputLayout(ctx) +
-        std::string(" --out_type ") + "fp32" +
+        std::string(" --groupsize ") + std::to_string(CI::GetGroupCountG(ctx)) +
+        std::string(" --fil_layout ") + fil_layout +
+        std::string(" --fil_type ") + data_type +
+        std::string(" --in_layout ") + in_layout +
+        std::string(" --in_type ") + data_type +
+        std::string(" --out_layout ") + out_layout +
+        std::string(" --out_type ") + data_type +
         std::string(" --batchsize ") + std::to_string(CI::GetBatchN(ctx)) +
         std::string(" --in_channels ") + std::to_string(CI::GetInputChannelC(ctx)) +
         std::string(" --out_channels ") + std::to_string(CI::GetOutputChannelK(ctx)) +
