@@ -76,25 +76,20 @@ void InsertGToDimsStrides(const std::string& layout,
                           std::vector<size_t>& dims,
                           std::vector<size_t>& strides)
 {
-    auto dims_with_g    = dims;
-    auto strides_with_g = strides;
-    std::size_t index   = layout.find(dim);
+    std::size_t index = layout.find(dim);
     if(index == std::string::npos)
         MIOPEN_THROW("Failed to find channel in the layout");
 
     // For dimensions,
     //    Insert an additional dimension g before channel
     //    Amend the channel size to be channel_size / group_count
-    dims_with_g[index] /= group_count;
-    dims_with_g.insert(dims_with_g.begin() + index, group_count);
+    dims[index] /= group_count;
+    dims.insert(dims.begin() + index, group_count);
 
     // For strides,
     //   The channel stride remain the same
     //   Insert an additional group stride to be channel_stride * new_channel_size
-    strides_with_g.insert(strides_with_g.begin() + index, strides[index] * dims_with_g[index + 1]);
-
-    dims    = dims_with_g;
-    strides = strides_with_g;
+    strides.insert(strides.begin() + index, strides[index] * dims[index + 1]);
 }
 
 void ComputeMlirDimsStrides(const conv::ProblemDescription& conv_problem,
@@ -107,14 +102,14 @@ void ComputeMlirDimsStrides(const conv::ProblemDescription& conv_problem,
 {
     auto group_count = conv_problem.GetGroupCount();
 
-    // Add a virtual group dimension before input channel
+    // Add a virtual group dimension before input channel.
     const TensorDescriptor& in = conv_problem.GetIn();
     in_dims                    = in.GetLengths();
     in_strides                 = in.GetStrides();
     InsertGToDimsStrides(in.GetLayout("NCHW"), 'C', group_count, in_dims, in_strides);
     PermuteDimsStrides(in_dims, in_strides);
 
-    // Add a virtual group dimension before output channel
+    // Add a virtual group dimension before output channel.
     const TensorDescriptor& weights = conv_problem.GetWeights();
     weights_dims                    = weights.GetLengths();
     weights_strides                 = weights.GetStrides();
@@ -122,7 +117,7 @@ void ComputeMlirDimsStrides(const conv::ProblemDescription& conv_problem,
         weights.GetLayout("NCHW"), 'N', group_count, weights_dims, weights_strides);
     PermuteDimsStrides(weights_dims, weights_strides);
 
-    // Add a virtual group dimension before output channel
+    // Add a virtual group dimension before output channel.
     const TensorDescriptor& out = conv_problem.GetOut();
     out_dims                    = out.GetLengths();
     out_strides                 = out.GetStrides();
