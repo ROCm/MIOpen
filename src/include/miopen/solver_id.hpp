@@ -62,12 +62,6 @@ struct Id
     }
     bool operator!=(const Id& other) const { return !(*this == other); }
 
-    static solver::Id gemm()
-    {
-        static const auto value = solver::Id{"gemm"};
-        return value;
-    }
-
     private:
     uint64_t value = invalid_value;
     bool is_valid  = false;
