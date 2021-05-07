@@ -53,33 +53,35 @@ bool FwdSolver0::IsApplicable(const ExecutionContext&,
     const auto x_elem_sz = problem.GetXDesc().GetElementSize();
     const auto y_elem_sz = problem.GetYDesc().GetElementSize();
 
-    const auto x_stride2D = static_cast<unsigned int>((x_lens.size() == 2)   ? x_strides[0]
-                                                      : (x_lens.size() == 3) ? x_strides[1]
-                                                      : (x_lens.size() == 4) ? x_strides[2]
-                                                                             : x_strides[3]);
-    const auto y_stride2D = static_cast<unsigned int>((y_lens.size() == 2)   ? y_strides[0]
-                                                      : (y_lens.size() == 3) ? y_strides[1]
-                                                      : (y_lens.size() == 4) ? y_strides[2]
-                                                                             : y_strides[3]);
+    const auto x_stride2D = static_cast<unsigned int>(
+        (x_lens.size() == 2) ? x_strides[0] : (x_lens.size() == 3)
+                                                  ? x_strides[1]
+                                                  : (x_lens.size() == 4) ? x_strides[2]
+                                                                         : x_strides[3]);
+    const auto y_stride2D = static_cast<unsigned int>(
+        (y_lens.size() == 2) ? y_strides[0] : (y_lens.size() == 3)
+                                                  ? y_strides[1]
+                                                  : (y_lens.size() == 4) ? y_strides[2]
+                                                                         : y_strides[3]);
 
-    const auto x_width2D = ((x_lens.size() == 2)   ? x_lens[1]
-                            : (x_lens.size() == 3) ? x_lens[2]
-                            : (x_lens.size() == 4) ? x_lens[3]
-                                                   : x_lens[4]);
+    const auto x_width2D =
+        ((x_lens.size() == 2) ? x_lens[1] : (x_lens.size() == 3) ? x_lens[2] : (x_lens.size() == 4)
+                                                                                   ? x_lens[3]
+                                                                                   : x_lens[4]);
 
-    const auto y_width2D = ((y_lens.size() == 2)   ? y_lens[1]
-                      : (y_lens.size() == 3) ? y_lens[2]
-                      : (y_lens.size() == 4) ? y_lens[3]
-                                             : y_lens[4]);
+    const auto y_width2D =
+        ((y_lens.size() == 2) ? y_lens[1] : (y_lens.size() == 3) ? y_lens[2] : (y_lens.size() == 4)
+                                                                                   ? y_lens[3]
+                                                                                   : y_lens[4]);
 
     const auto t2D =
         (x_lens.size() == y_lens.size() &&
-                ((x_width2D != x_stride2D) || (y_width2D != y_stride2D)) &&
-                (x_lens.size() == 2 || (x_lens.size() == 3 && x_lens[0] == 1 && y_lens[0] == 1) ||
-                 (x_lens.size() == 4 && x_lens[0] == 1 && x_lens[1] == 1 && y_lens[0] == 1 &&
-                  y_lens[1] == 1) ||
-                 (x_lens.size() == 5 && x_lens[0] == 1 && x_lens[1] == 1 && x_lens[2] == 1 &&
-                  y_lens[0] == 1 && y_lens[1] == 1 && y_lens[2] == 1)));
+         ((x_width2D != x_stride2D) || (y_width2D != y_stride2D)) &&
+         (x_lens.size() == 2 || (x_lens.size() == 3 && x_lens[0] == 1 && y_lens[0] == 1) ||
+          (x_lens.size() == 4 && x_lens[0] == 1 && x_lens[1] == 1 && y_lens[0] == 1 &&
+           y_lens[1] == 1) ||
+          (x_lens.size() == 5 && x_lens[0] == 1 && x_lens[1] == 1 && x_lens[2] == 1 &&
+           y_lens[0] == 1 && y_lens[1] == 1 && y_lens[2] == 1)));
     const auto packed = problem.GetXDesc().IsPacked() && problem.GetYDesc().IsPacked();
 
     return x_elem_sz == y_elem_sz && (packed || t2D);
@@ -99,10 +101,10 @@ ConvSolution FwdSolver0::GetSolution(const ExecutionContext&,
 
     const auto x_elem_sz = problem.GetXDesc().GetElementSize();
 
-    const auto x_width2D = ((x_lens.size() == 2)   ? x_lens[1]
-                      : (x_lens.size() == 3) ? x_lens[2]
-                      : (x_lens.size() == 4) ? x_lens[3]
-                                             : x_lens[4]);
+    const auto x_width2D =
+        ((x_lens.size() == 2) ? x_lens[1] : (x_lens.size() == 3) ? x_lens[2] : (x_lens.size() == 4)
+                                                                                   ? x_lens[3]
+                                                                                   : x_lens[4]);
 
     const auto packed    = problem.GetXDesc().IsPacked() && problem.GetYDesc().IsPacked();
     const auto read_len  = (packed) ? x_elem_sz : x_width2D;
@@ -110,19 +112,21 @@ ConvSolution FwdSolver0::GetSolution(const ExecutionContext&,
 
     const auto READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(read_unit);
 
-    const auto height = (x_lens.size() == 2)   ? x_lens[0]
-                        : (x_lens.size() == 3) ? x_lens[1]
-                        : (x_lens.size() == 4) ? x_lens[2]
-                                               : x_lens[3];
+    const auto height =
+        (x_lens.size() == 2) ? x_lens[0] : (x_lens.size() == 3) ? x_lens[1] : (x_lens.size() == 4)
+                                                                                  ? x_lens[2]
+                                                                                  : x_lens[3];
 
-    const auto x_stride2D = static_cast<unsigned int>((x_lens.size() == 2)   ? x_strides[0]
-                                                      : (x_lens.size() == 3) ? x_strides[1]
-                                                      : (x_lens.size() == 4) ? x_strides[2]
-                                                                             : x_strides[3]);
-    const auto y_stride2D = static_cast<unsigned int>((y_lens.size() == 2)   ? y_strides[0]
-                                                      : (y_lens.size() == 3) ? y_strides[1]
-                                                      : (y_lens.size() == 4) ? y_strides[2]
-                                                                             : y_strides[3]);
+    const auto x_stride2D = static_cast<unsigned int>(
+        (x_lens.size() == 2) ? x_strides[0] : (x_lens.size() == 3)
+                                                  ? x_strides[1]
+                                                  : (x_lens.size() == 4) ? x_strides[2]
+                                                                         : x_strides[3]);
+    const auto y_stride2D = static_cast<unsigned int>(
+        (y_lens.size() == 2) ? y_strides[0] : (y_lens.size() == 3)
+                                                  ? y_strides[1]
+                                                  : (y_lens.size() == 4) ? y_strides[2]
+                                                                         : y_strides[3]);
 
     auto build_params = KernelBuildParameters{
         {"LITE"},
@@ -143,7 +147,7 @@ ConvSolution FwdSolver0::GetSolution(const ExecutionContext&,
     }
 
     {
-        auto kernel_info = KernelInfo{};
+        auto kernel_info         = KernelInfo{};
         kernel_info.comp_options = build_params.GenerateFor(kbp::OpenCL{});
 
         kernel_info.l_wk.push_back(256);
@@ -157,14 +161,14 @@ ConvSolution FwdSolver0::GetSolution(const ExecutionContext&,
         kernel_info.g_wk.push_back(1);
 
         kernel_info.kernel_file = "MIOpenNeuron.cl";
-        kernel_info.kernel_name  = (packed) ? "MIOpenActiveFwdLite" : "MIOpenActiveFwd2DLite";
+        kernel_info.kernel_name = (packed) ? "MIOpenActiveFwdLite" : "MIOpenActiveFwd2DLite";
 
         result.construction_params.push_back(kernel_info);
     }
 
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& raw_params) {
-            auto kernel = handle.Run(kernels.front());
+            auto kernel       = handle.Run(kernels.front());
             const auto params = raw_params.CastTo<miopen::activ::InvokeParams>();
 
             visit_float(params.x_desc.GetType(), [&](auto as_float) {

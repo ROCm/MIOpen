@@ -84,7 +84,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
 
     if(slns.size() > 0)
     {
-        const auto& sln    = slns.front();
+        const auto& sln = slns.front();
         if(!sln.invoker_factory)
             MIOPEN_THROW("Invoker missing in solver " + sln.solver_id);
         const auto invoker = handle.PrepareInvoker(*sln.invoker_factory, sln.construction_params);

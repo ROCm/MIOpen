@@ -29,8 +29,7 @@
 #include <miopen/invoke_params.hpp>
 #include <miopen/tensor.hpp>
 
-namespace miopen
-{
+namespace miopen {
 namespace activ {
 
 struct InvokeParams : public miopen::InvokeParams
