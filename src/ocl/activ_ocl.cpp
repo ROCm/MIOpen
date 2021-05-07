@@ -51,18 +51,14 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
 
-    double activ_alpha = GetAlpha();
-    double activ_beta  = GetBeta();
-    double activ_gamma = GetGamma();
-
     const auto problem = activ::ProblemDescription{activ::Direction::Forward, *this, xDesc, yDesc};
 
     const auto invoke_params = [&]() {
         auto tmp     = activ::InvokeParams{};
         tmp.type     = InvokeType::Run;
-        tmp.alpha    = &activ_alpha;
-        tmp.beta     = &activ_beta;
-        tmp.gamma    = &activ_gamma;
+        tmp.alpha    = GetAlpha();
+        tmp.beta     = GetBeta();
+        tmp.gamma    = GetGamma();
         tmp.x        = x;
         tmp.x_desc   = xDesc;
         tmp.y        = y;
@@ -98,8 +94,13 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
         return miopenStatusSuccess;
     }
 
+    // legacy part start
     miopenStatus_t status = miopenStatusSuccess;
     mlo_construct_neuron construct_params(conv::Direction::Forward);
+
+    double activ_alpha = GetAlpha();
+    double activ_beta  = GetBeta();
+    double activ_gamma = GetGamma();
 
     std::string network_config{};
 

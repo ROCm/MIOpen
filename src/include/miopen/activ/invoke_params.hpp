@@ -37,13 +37,13 @@ struct InvokeParams : public miopen::InvokeParams
 {
     InvokeParams() = default;
 
-    const void* alpha;
+    double alpha;
     TensorDescriptor x_desc;
     ConstData_t x;
-    const void* beta;
+    double beta;
     TensorDescriptor y_desc;
     Data_t y;
-    const void* gamma;
+    double gamma;
     size_t x_offset;
     size_t y_offset;
 };
