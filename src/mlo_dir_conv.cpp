@@ -124,9 +124,13 @@ static auto GetGemmSolvers()
                                            miopen::solver::GemmFwd1x1_0_1_int8,
                                            miopen::solver::GemmFwd1x1_0_2,
                                            miopen::solver::GemmFwdRest,
+
                                            miopen::solver::GemmBwd1x1_stride1,
                                            miopen::solver::GemmBwd1x1_stride2,
-                                           miopen::solver::GemmBwdRest>{};
+                                           miopen::solver::GemmBwdRest,
+
+                                           miopen::solver::GemmWrw1x1_stride1,
+                                           miopen::solver::GemmWrwUniversal>{};
 }
 
 static auto GetDirectSolvers()
