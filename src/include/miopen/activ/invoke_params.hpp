@@ -36,15 +36,15 @@ struct InvokeParams : public miopen::InvokeParams
 {
     InvokeParams() = default;
 
-    double alpha;
+    double alpha = 0;
     TensorDescriptor x_desc;
-    ConstData_t x;
-    double beta;
+    ConstData_t x = nullptr;
+    double beta   = 0;
     TensorDescriptor y_desc;
-    Data_t y;
-    double gamma;
-    size_t x_offset;
-    size_t y_offset;
+    Data_t y        = nullptr;
+    double gamma    = 0;
+    size_t x_offset = 0;
+    size_t y_offset = 0;
 };
 
 } // namespace activ

@@ -82,7 +82,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
 
     const auto slns = solvers.SearchForSolutions(ctx, problem, 1);
 
-    if(slns.size() > 0)
+    if(!slns.empty())
     {
         const auto& sln = slns.front();
         if(!sln.invoker_factory)

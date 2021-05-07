@@ -168,8 +168,8 @@ ConvSolution FwdSolver0::GetSolution(const ExecutionContext&,
 
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& raw_params) {
-            auto kernel       = handle.Run(kernels.front());
-            const auto params = raw_params.CastTo<miopen::activ::InvokeParams>();
+            decltype(auto) kernel = handle.Run(kernels.front());
+            decltype(auto) params = raw_params.CastTo<miopen::activ::InvokeParams>();
 
             visit_float(params.x_desc.GetType(), [&](auto as_float) {
                 const auto alpha = as_float(params.alpha);
