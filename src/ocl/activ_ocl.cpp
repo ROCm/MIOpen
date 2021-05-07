@@ -28,6 +28,10 @@
 #include <miopen/mlo_internal.hpp>
 #include <miopen/float_equal.hpp>
 #include <miopen/visit_float.hpp>
+#include <miopen/activ/invoke_params.hpp>
+#include <miopen/activ/problem_description.hpp>
+#include <miopen/activ/solvers.hpp>
+#include <miopen/find_solution.hpp>
 
 namespace miopen {
 
@@ -46,12 +50,56 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
-    miopenStatus_t status = miopenStatusSuccess;
-    mlo_construct_neuron construct_params(conv::Direction::Forward);
 
     double activ_alpha = GetAlpha();
     double activ_beta  = GetBeta();
     double activ_gamma = GetGamma();
+
+    const auto problem = activ::ProblemDescription{activ::Direction::Forward, *this, xDesc, yDesc};
+
+    const auto invoke_params = [&]() {
+        auto tmp     = activ::InvokeParams{};
+        tmp.type     = InvokeType::Run;
+        tmp.alpha    = &activ_alpha;
+        tmp.beta     = &activ_beta;
+        tmp.gamma    = &activ_gamma;
+        tmp.x        = x;
+        tmp.x_desc   = xDesc;
+        tmp.y        = y;
+        tmp.y_desc   = yDesc;
+        tmp.x_offset = xOffset;
+        tmp.y_offset = yOffset;
+        return tmp;
+    }();
+
+    const auto cfg = problem.MakeNetworkConfig();
+
+    if(const auto invoker = handle.GetInvoker(cfg, boost::none))
+    {
+        (*invoker)(handle, invoke_params);
+        return miopenStatusSuccess;
+    }
+
+    const auto ctx = ExecutionContext{&handle};
+
+    const auto solvers = solver::SolverContainer<solver::activ::FwdSolver0>{};
+
+    const auto slns = solvers.SearchForSolutions(ctx, problem, 1);
+
+    if(slns.size() > 0)
+    {
+        const auto& sln    = slns.front();
+        if(!sln.invoker_factory)
+            MIOPEN_THROW("Invoker missing in solver " + sln.solver_id);
+        const auto invoker = handle.PrepareInvoker(*sln.invoker_factory, sln.construction_params);
+        handle.RegisterInvoker(
+            invoker, cfg, sln.solver_id, AlgorithmName{"miopenActivationForward"});
+        invoker(handle, invoke_params);
+        return miopenStatusSuccess;
+    }
+
+    miopenStatus_t status = miopenStatusSuccess;
+    mlo_construct_neuron construct_params(conv::Direction::Forward);
 
     std::string network_config{};
 
@@ -62,166 +110,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
     auto x_strides = xDesc.GetStrides();
     auto y_strides = yDesc.GetStrides();
 
-    auto x_elem_sz = xDesc.GetElementSize();
-    auto y_elem_sz = yDesc.GetElementSize();
-
-    auto x_stride2D = static_cast<unsigned int>(
-        (x_lens.size() == 2) ? x_strides[0] : (x_lens.size() == 3)
-                                                  ? x_strides[1]
-                                                  : (x_lens.size() == 4) ? x_strides[2]
-                                                                         : x_strides[3]);
-    auto y_stride2D = static_cast<unsigned int>(
-        (y_lens.size() == 2) ? y_strides[0] : (y_lens.size() == 3)
-                                                  ? y_strides[1]
-                                                  : (y_lens.size() == 4) ? y_strides[2]
-                                                                         : y_strides[3]);
-
-    auto x_width2D =
-        ((x_lens.size() == 2) ? x_lens[1] : (x_lens.size() == 3) ? x_lens[2] : (x_lens.size() == 4)
-                                                                                   ? x_lens[3]
-                                                                                   : x_lens[4]);
-
-    auto y_width2D =
-        ((y_lens.size() == 2) ? y_lens[1] : (y_lens.size() == 3) ? y_lens[2] : (y_lens.size() == 4)
-                                                                                   ? y_lens[3]
-                                                                                   : y_lens[4]);
-
-    bool t2D = (x_lens.size() == y_lens.size() &&
-                ((x_width2D != x_stride2D) || (y_width2D != y_stride2D)) &&
-                (x_lens.size() == 2 || (x_lens.size() == 3 && x_lens[0] == 1 && y_lens[0] == 1) ||
-                 (x_lens.size() == 4 && x_lens[0] == 1 && x_lens[1] == 1 && y_lens[0] == 1 &&
-                  y_lens[1] == 1) ||
-                 (x_lens.size() == 5 && x_lens[0] == 1 && x_lens[1] == 1 && x_lens[2] == 1 &&
-                  y_lens[0] == 1 && y_lens[1] == 1 && y_lens[2] == 1)));
-    bool packed = xDesc.IsPacked() && yDesc.IsPacked();
-
     visit_float(xDesc.GetType(), [&](auto as_float) {
-
-        if(x_elem_sz == y_elem_sz && (packed || t2D))
-        {
-            std::string compiler_options;
-            auto f_activ_alpha = as_float(activ_alpha);
-            auto f_activ_beta  = as_float(activ_beta);
-            auto f_activ_gamma = as_float(activ_gamma);
-
-            size_t height = (x_lens.size() == 2) ? x_lens[0] : (x_lens.size() == 3)
-                                                                   ? x_lens[1]
-                                                                   : (x_lens.size() == 4)
-                                                                         ? x_lens[2]
-                                                                         : x_lens[3];
-
-            size_t read_len = (packed) ? x_elem_sz : x_width2D;
-
-            size_t read_unit = (read_len % 4 == 0) ? 4 : (read_len % 2 == 0) ? 2 : 1;
-            size_t MAP_RD    = read_len / read_unit;
-
-            const std::string READ_TYPE =
-                (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(read_unit);
-
-            network_config = ((packed) ? "11" : "10") // + lite bit
-                             + std::to_string(xDesc.GetType()) + std::to_string(mode) +
-                             std::to_string(read_unit) + std::to_string(MAP_RD) +
-                             std::to_string(height);
-
-            auto&& kernels = handle.GetKernels("miopenActivationForward", network_config);
-            if(!kernels.empty())
-            {
-                auto kernel = kernels.front();
-                if(packed)
-                {
-                    kernel(x,
-                           y,
-                           f_activ_gamma,
-                           f_activ_beta,
-                           f_activ_alpha,
-                           static_cast<long long>(xOffset),
-                           static_cast<long long>(yOffset));
-                }
-                else
-                {
-                    kernel(x,
-                           y,
-                           f_activ_gamma,
-                           f_activ_beta,
-                           f_activ_alpha,
-                           static_cast<long long>(xOffset),
-                           static_cast<long long>(yOffset),
-                           x_stride2D,
-                           y_stride2D);
-                }
-            }
-            else
-            {
-                std::string type_opt;
-                if(xDesc.GetType() == miopenFloat)
-                {
-                    type_opt = " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
-                }
-                else if(xDesc.GetType() == miopenHalf)
-                {
-                    type_opt = " -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
-                }
-
-                compiler_options = " -DLITE -DMIOPEN_READ_UNIT=" + std::to_string(read_unit) +
-                                   " -DMIOPEN_READ_TYPE=" + READ_TYPE + " -DMIOPEN_NRN_OP_ID=" +
-                                   std::to_string(mode) + type_opt;
-
-                std::vector<size_t> vld;
-                std::vector<size_t> vgd;
-
-                vld.push_back(256);
-                vld.push_back(1);
-                vld.push_back(1);
-
-                vgd.push_back(MAP_RD);
-
-                std::string program_name = "MIOpenNeuron.cl";
-                std::string kernel_name =
-                    (packed) ? "MIOpenActiveFwdLite" : "MIOpenActiveFwd2DLite";
-                if(packed)
-                {
-                    vgd.push_back(1);
-                    vgd.push_back(1);
-
-                    handle.AddKernel("miopenActivationForward",
-                                     network_config,
-                                     program_name,
-                                     kernel_name,
-                                     vld,
-                                     vgd,
-                                     compiler_options)(x,
-                                                       y,
-                                                       as_float(f_activ_gamma),
-                                                       as_float(f_activ_beta),
-                                                       as_float(f_activ_alpha),
-                                                       static_cast<long long>(xOffset),
-                                                       static_cast<long long>(yOffset));
-                }
-                else
-                {
-
-                    vgd.push_back(height);
-                    vgd.push_back(1);
-
-                    handle.AddKernel("miopenActivationForward",
-                                     network_config,
-                                     program_name,
-                                     kernel_name,
-                                     vld,
-                                     vgd,
-                                     compiler_options)(x,
-                                                       y,
-                                                       as_float(f_activ_gamma),
-                                                       as_float(f_activ_beta),
-                                                       as_float(f_activ_alpha),
-                                                       static_cast<long long>(xOffset),
-                                                       static_cast<long long>(yOffset),
-                                                       x_stride2D,
-                                                       y_stride2D);
-                }
-            }
-        }
-        else
         {
             construct_params.setStream(&handle);
 

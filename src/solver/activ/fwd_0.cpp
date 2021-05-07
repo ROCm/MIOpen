@@ -173,13 +173,17 @@ ConvSolution FwdSolver0::GetSolution(const ExecutionContext& context,
             const auto params = raw_params.CastTo<miopen::activ::InvokeParams>();
 
             visit_float(params.x_desc.GetType(), [&](auto as_float) {
+                const auto alpha = as_float(params.alpha);
+                const auto beta  = as_float(params.beta);
+                const auto gamma = as_float(params.gamma);
+
                 if(packed)
                 {
                     kernel(params.x,
                            params.y,
-                           as_float(params.gamma),
-                           as_float(params.beta),
-                           as_float(params.alpha),
+                           gamma,
+                           beta,
+                           alpha,
                            static_cast<long long>(params.x_offset),
                            static_cast<long long>(params.y_offset));
                 }
@@ -187,9 +191,9 @@ ConvSolution FwdSolver0::GetSolution(const ExecutionContext& context,
                 {
                     kernel(params.x,
                            params.y,
-                           as_float(params.gamma),
-                           as_float(params.beta),
-                           as_float(params.alpha),
+                           gamma,
+                           beta,
+                           alpha,
                            static_cast<long long>(params.x_offset),
                            static_cast<long long>(params.y_offset),
                            x_stride2D,

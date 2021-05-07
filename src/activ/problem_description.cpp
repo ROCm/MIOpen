@@ -37,10 +37,8 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
     // short cut for packed tensors and 2D tensors with stride != width
     const auto& x_lens = xDesc.GetLengths();
-    const auto& y_lens = yDesc.GetLengths();
 
     const auto x_elem_sz = xDesc.GetElementSize();
-    const auto y_elem_sz = yDesc.GetElementSize();
 
     const auto x_width2D = ((x_lens.size() == 2)   ? x_lens[1]
                             : (x_lens.size() == 3) ? x_lens[2]

@@ -35,11 +35,13 @@ namespace activ {
 
 struct InvokeParams : public miopen::InvokeParams
 {
+    InvokeParams() = default;
+
     const void* alpha;
-    const TensorDescriptor x_desc;
+    TensorDescriptor x_desc;
     ConstData_t x;
     const void* beta;
-    const TensorDescriptor y_desc;
+    TensorDescriptor y_desc;
     Data_t y;
     const void* gamma;
     size_t x_offset;

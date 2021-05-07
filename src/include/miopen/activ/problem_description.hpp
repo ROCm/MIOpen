@@ -52,7 +52,7 @@ struct ProblemDescription
         : direction(direction_),
           activDesc(activ),
           xDesc(xDesc_),
-          yDesc(yDesc_),
+          yDesc(yDesc_)
     {
     }
 
