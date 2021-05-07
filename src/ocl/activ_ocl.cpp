@@ -102,7 +102,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
     double activ_beta  = GetBeta();
     double activ_gamma = GetGamma();
 
-    std::string network_config{};
+    const auto network_config = cfg.ToString();
 
     // short cut for packed tensors and 2D tensors with stride != width
     auto x_lens = xDesc.GetLengths();
