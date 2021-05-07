@@ -207,7 +207,8 @@ struct SolverContainer
                     MIOPEN_LOG_I2(SolverDbId(solver) << ": Not applicable");
                 else
                 {
-                    const Solution s = solver.GetSolution(ctx, problem);
+                    auto s      = solver.GetSolution(ctx, problem);
+                    s.solver_id = SolverDbId(solver);
                     if(s.Succeeded())
                     {
                         ++count;
