@@ -506,8 +506,9 @@ ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
                 if(status != miopenStatusSuccess)
                     MIOPEN_THROW("GemmWrw1x1_stride1 execution failure.");
 
+                const auto gemm_time = handle.GetKernelTime();
                 handle.ResetKernelTime();
-                handle.AccumKernelTime(in_n * (time_im2col + handle.GetKernelTime()));
+                handle.AccumKernelTime(in_n * (time_im2col + gemm_time));
             }
         };
     };
