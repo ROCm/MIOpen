@@ -32,7 +32,9 @@
 #include <miopen/handle.hpp>
 #include <miopen/tensor_ops.hpp>
 
+#if MIOPEN_USE_MLIR
 #include <Miir.h>
+#endif
 
 #include <boost/any.hpp>
 #include <boost/range/adaptors.hpp>
@@ -164,7 +166,7 @@ void SetMlirConvArgsPtr(ConstData_t in, ConstData_t out, ConstData_t w, MlirConv
     // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
     input = const_cast<void*>(in);
     // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
-    output      = const_cast<void*>(out);
+    output = const_cast<void*>(out);
 #endif
 
     if((filter == nullptr) || (input == nullptr) || (output == nullptr))
