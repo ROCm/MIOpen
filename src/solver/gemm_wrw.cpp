@@ -203,6 +203,15 @@ ConvSolution GemmWrw1x1_stride1::GetSolution(const ExecutionContext&,
             const auto& dwDesc_     = conv_params.tensors.dwDesc;
             const auto& x           = conv_params.tensors.x;
 
+            if(group_count > 1)
+            {
+                MIOPEN_LOG_FUNCTION("groupconv, 1x1");
+            }
+            else
+            {
+                MIOPEN_LOG_FUNCTION("conv, 1x1");
+            }
+
             if(conv_params.type != InvokeType::Run)
             {
                 const auto status = CallGemmTimeMeasure(
@@ -227,6 +236,7 @@ ConvSolution GemmWrw1x1_stride1::GetSolution(const ExecutionContext&,
                 if(group_count > 1)
                     time *= in_n;
 
+                handle.ResetKernelTime();
                 handle.AccumKernelTime(time);
             }
             else
@@ -237,8 +247,6 @@ ConvSolution GemmWrw1x1_stride1::GetSolution(const ExecutionContext&,
 
                 if(group_count > 1)
                 {
-                    MIOPEN_LOG_FUNCTION("groupconv, 1x1");
-
                     auto time = 0;
 
                     for(std::size_t i = 0; i < in_n; i++)
@@ -264,8 +272,6 @@ ConvSolution GemmWrw1x1_stride1::GetSolution(const ExecutionContext&,
                 }
                 else
                 {
-                    MIOPEN_LOG_FUNCTION("convolution, 1x1");
-
                     // dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
                     const auto status = CallGemmStridedBatchedSequential(
                         handle, gemm_desc, dy, 0, x, 0, dw, 0, nullptr, GemmBackend_t::miopengemm);
