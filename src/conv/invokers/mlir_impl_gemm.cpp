@@ -32,9 +32,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/tensor_ops.hpp>
 
-#if MIOPEN_USE_MLIR
 #include <Miir.h>
-#endif
 
 #include <boost/any.hpp>
 #include <boost/range/adaptors.hpp>
