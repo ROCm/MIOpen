@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2020 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,42 +23,26 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MLOPEN_NUMERIC_HPP
-#define GUARD_MLOPEN_NUMERIC_HPP
 
-#include <numeric>
+#ifndef GUARD_MLIR_UTIL_HPP_
+#define GUARD_MLIR_UTIL_HPP_
+
+#include <miopen/errors.hpp>
+#include <string>
 
 namespace miopen {
+namespace solver {
 
-template <typename T>
-T gcd(T x, T y)
+static inline std::string InsertGToLayout(const std::string& layout, char dim)
 {
-    assert(!(x == 0 && y == 0));
-
-    if(x == y || x == 0)
-    {
-        return y;
-    }
-    else if(y == 0)
-    {
-        return x;
-    }
-    else if(x > y)
-    {
-        return gcd(x - y, y);
-    }
-    else
-    {
-        return gcd(x, y - x);
-    }
+    std::string layout_with_g = layout;
+    std::size_t index         = layout.find(dim);
+    if(index == std::string::npos)
+        MIOPEN_THROW(std::string("Failed to find dim '") + dim + "' in the layout " + layout);
+    return layout_with_g.insert(index, 1, 'G');
 }
 
-template <typename T, typename... Ys>
-T gcd(T x, Ys... ys)
-{
-    return gcd(x, gcd(ys...));
-}
-
+} // namespace solver
 } // namespace miopen
 
 #endif

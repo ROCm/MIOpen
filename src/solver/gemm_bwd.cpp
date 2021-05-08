@@ -47,17 +47,18 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 // Vega10
 #define MAX_MEM_ALLOC_SZ (std::min(handle.GetMaxMemoryAllocSize(), size_t(7287183769)))
 
+namespace miopen {
+namespace solver {
+
 #if MIOPEN_USE_GEMM
 #ifdef CPPCHECK
 // Keep the value unknown in cppcheck since this can differ between opencl and hip
-static bool IsBF16PathValid;
+static bool IsBf16Supported;
+static bool IsFp16Supported;
 #else
-static constexpr const bool IsBF16PathValid =
-    (MIOPEN_USE_ROCBLAS == 1 || MIOPEN_USE_MIOPENTENSILE == 1);
+static constexpr const bool IsBf16Supported = (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE);
+static constexpr const bool IsFp16Supported = (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE);
 #endif
-
-namespace miopen {
-namespace solver {
 
 static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
                                    const TensorDescriptor& yDesc,
@@ -65,6 +66,14 @@ static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
 {
     return xDesc.GetType() == miopenBFloat16 || yDesc.GetType() == miopenBFloat16 ||
            wDesc.GetType() == miopenBFloat16;
+}
+
+static inline bool IsAnyBufferFp16(const TensorDescriptor& xDesc,
+                                   const TensorDescriptor& yDesc,
+                                   const TensorDescriptor& wDesc)
+{
+    return xDesc.GetType() == miopenHalf || yDesc.GetType() == miopenHalf ||
+           wDesc.GetType() == miopenHalf;
 }
 #endif
 
@@ -90,9 +99,10 @@ bool GemmBwdBase::IsApplicable(const ExecutionContext&,
     const auto& wDesc  = problem.GetWeights();
     const auto& dxDesc = problem.GetOut();
     return problem.GetDirection() == conv::Direction::BackwardData && problem.IsLayoutDefault() &&
-           !(IsAnyBufferBF16(dxDesc, dyDesc, wDesc) && !IsBF16PathValid);
+           !(IsAnyBufferBF16(dxDesc, dyDesc, wDesc) && !IsBf16Supported) &&
+           !(IsAnyBufferFp16(dxDesc, dyDesc, wDesc) && !IsFp16Supported);
 #else
-    std::ignore = problem;
+    std::ignore                             = problem;
     return false;
 #endif
 }

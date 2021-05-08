@@ -125,6 +125,7 @@ set( MIOpen_Source
     conv/problem_description.cpp
     solver/gemm.cpp
     solver/gemm_bwd.cpp
+    solver/gemm_wrw.cpp
     dropout.cpp
     dropout_api.cpp
     readonlyramdb.cpp
@@ -183,7 +184,6 @@ set( MIOpen_Source
     include/miopen/rnn_util.hpp
     include/miopen/bz2.hpp
     include/miopen/comgr.hpp
-    include/miopen/numeric.hpp
     include/miopen/reducetensor.hpp
     include/miopen/reduce_common.hpp
     include/miopen/sequences.hpp
@@ -196,6 +196,7 @@ set( MIOpen_Source
     conv/invokers/gen_x_w_y_pad.cpp
     conv/invokers/ocl_wrw_rdc.cpp
     conv/invokers/impl_gemm.cpp
+    conv/invokers/mlir_impl_gemm.cpp
     conv/invokers/impl_gemm_dynamic.cpp
     invoker_cache.cpp
     tensor.cpp
@@ -217,6 +218,9 @@ set( MIOpen_Source
     solver/conv_winoRxS_f3x2.cpp
     solver/conv_winoRxS_f2x3.cpp
     solver/fft.cpp
+    solver/conv_mlir_igemm_fwd.cpp
+    solver/conv_mlir_igemm_bwd.cpp
+    solver/conv_mlir_igemm_wrw.cpp
     solver/conv_ocl_dir2D_bwdWrW_2.cpp
     solver/conv_ocl_dir2D_bwdWrW_53.cpp
     solver/conv_ocl_dir2D_bwdWrW_1x1.cpp

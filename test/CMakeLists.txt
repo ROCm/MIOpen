@@ -283,53 +283,65 @@ set(IMPLICITGEMM_ARGS ${MIOPEN_TEST_FLOAT_ARG})
 # MIOPEN_DEBUG_CONV_IMMED_FALLBACK=0
 if(MIOPEN_EMBED_DB)
     set(MIOPEN_EMBED_TEST_ARG ${MIOPEN_TEST_FLOAT_ARG} --disable-validation --verbose)
+    # WORKAROUND for issue #874
+    set(MIOPEN_WA_ISSUE_874_F  MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0)
+    set(MIOPEN_WA_ISSUE_874_W  MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0)
+    set(MIOPEN_WA_ISSUE_874_FW MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0 MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0)
 add_perf_test(test_conv_embed_db
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
-    # COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 1024 14 14 --weights 256 1024 1 1 --pads_strides_dilations 0 0 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 1024 14 14 --weights 512 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 128 28 28 --weights 128 128 3 3 --pads_strides_dilations 1 1 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 1024 14 14 --weights 512 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
-    # COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 128 28 28 --weights 512 128 1 1 --pads_strides_dilations 0 0 1 1 1 1
-    # COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 2048 7 7 --weights 512 2048 1 1 --pads_strides_dilations 0 0 1 1 1 1
-    # COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 256 14 14 --weights 1024 256 1 1 --pads_strides_dilations 0 0 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 256 14 14 --weights 256 256 3 3 --pads_strides_dilations 1 1 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 256 56 56 --weights 128 256 1 1 --pads_strides_dilations 0 0 2 2 1 1
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 256 56 56 --weights 512 256 1 1 --pads_strides_dilations 0 0 2 2 1 1
-    # COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 256 56 56 --weights 64 256 1 1 --pads_strides_dilations 0 0 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 3 230 230   --weights 64 3 7 7 --pads_strides_dilations 0 0 2 2 1 1
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 512 28 28 --weights 1024 512 1 1 --pads_strides_dilations 0 0 2 2 1 1
-    # COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 512 28 28 --weights 128 512 1 1 --pads_strides_dilations 0 0 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 512 28 28 --weights 256 512 1 1 --pads_strides_dilations 0 0 2 2 1 1
-    # COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 512 7 7   --weights 2048 512 1 1 --pads_strides_dilations 0 0 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 512 7 7   --weights 512 512 3 3  --pads_strides_dilations 1 1 1 1 1 1
-    # COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 64 56 56 --weights 256 64 1 1  --pads_strides_dilations 0 0 1 1 1 1
-    # COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 64 56 56 --weights 64 64 1 1  --pads_strides_dilations 0 0 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 64 56 56 --weights 64 64 3 3   --pads_strides_dilations 1 1 1 1 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_874_W}  $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_874_F}  $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 1024 14 14 --weights 256 1024 1 1 --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_874_W}  $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 1024 14 14 --weights 512 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
+    COMMAND                           $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 128 28 28 --weights 128 128 3 3 --pads_strides_dilations 1 1 1 1 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_874_W}  $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 1024 14 14 --weights 512 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_874_FW} $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 128 28 28 --weights 512 128 1 1 --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_874_FW} $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 2048 7 7 --weights 512 2048 1 1 --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_874_F}  $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 256 14 14 --weights 1024 256 1 1 --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_874_W}  $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 256 14 14 --weights 256 256 3 3 --pads_strides_dilations 1 1 1 1 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_874_FW} $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 256 56 56 --weights 128 256 1 1 --pads_strides_dilations 0 0 2 2 1 1
+    COMMAND                           $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 256 56 56 --weights 512 256 1 1 --pads_strides_dilations 0 0 2 2 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_874_FW} $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 256 56 56 --weights 64 256 1 1 --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND                           $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 3 230 230   --weights 64 3 7 7 --pads_strides_dilations 0 0 2 2 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_874_FW} $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 512 28 28 --weights 1024 512 1 1 --pads_strides_dilations 0 0 2 2 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_874_FW} $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 512 28 28 --weights 128 512 1 1 --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_874_FW} $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 512 28 28 --weights 256 512 1 1 --pads_strides_dilations 0 0 2 2 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_874_FW} $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 512 7 7   --weights 2048 512 1 1 --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_874_W}  $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 512 7 7   --weights 512 512 3 3  --pads_strides_dilations 1 1 1 1 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_874_FW} $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 64 56 56 --weights 256 64 1 1  --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_874_FW} $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 64 56 56 --weights 64 64 1 1  --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_874_W}  $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 64 56 56 --weights 64 64 3 3   --pads_strides_dilations 1 1 1 1 1 1
 )
 endif()
 
 if(MIOPEN_TEST_MLIR)
     set(IMPLICITGEMM_MLIR_ENV_BASE MIOPEN_FIND_MODE=normal)
-    set(IMPLICITGEMM_MLIR_ENV_F ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmMlirCppFwd)
-    set(IMPLICITGEMM_MLIR_ENV_B ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmMlirCppBwd)
-    set(IMPLICITGEMM_MLIR_ENV_W ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmMlirCppWrW)
+    set(IMPLICITGEMM_MLIR_ENV_F ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvMlirIgemmFwd)
+    set(IMPLICITGEMM_MLIR_ENV_B ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvMlirIgemmBwd)
+    set(IMPLICITGEMM_MLIR_ENV_W ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_CONV_GEMM=0 MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvMlirIgemmWrW)
 
     set(IMPLICITGEMM_MLIR_ARGS_F ${IMPLICITGEMM_ARGS} --verbose --disable-backward-data --disable-backward-weights)
     set(IMPLICITGEMM_MLIR_ARGS_B ${IMPLICITGEMM_ARGS} --verbose --disable-forward --disable-backward-weights)
     set(IMPLICITGEMM_MLIR_ARGS_W ${IMPLICITGEMM_ARGS} --verbose --disable-forward --disable-backward-data)
     
     add_custom_test(test_conv_igemm_mlir ALLOW_NONXDLOPS
-        COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_F} --input 64 1024 14 14 --weights 1024 1024 1 1 --pads_strides_dilations 0 0 1 1 1 1
-        COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_F} --input 64 256 56 56  --weights  256  256 1 1 --pads_strides_dilations 0 0 1 1 1 1
-        COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_F} --input 64 128 58 58  --weights  128  128 3 3 --pads_strides_dilations 0 0 1 1 1 1
+        COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_F} --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
+        COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_F} --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+        COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_F} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1
+        COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_F} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+        COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_F} --input 128 512  7  7  --weights 512  512  3 3 --pads_strides_dilations 1 1 1 1 1 1
+        COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_F} --input 128 512  7  7  --weights 512  512  3 3 --pads_strides_dilations 1 1 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+        COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_F} --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1
+        COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_F} --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+        COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_F} --input 256 256  56 56 --weights 256  64   1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 4
 
-        COMMAND ${IMPLICITGEMM_MLIR_ENV_B} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_B} --input 64 1024 14 14 --weights 1024 1024 1 1 --pads_strides_dilations 0 0 1 1 1 1
-        COMMAND ${IMPLICITGEMM_MLIR_ENV_B} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_B} --input 64 256 56 56  --weights  256  256 1 1 --pads_strides_dilations 0 0 1 1 1 1
-        COMMAND ${IMPLICITGEMM_MLIR_ENV_B} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_B} --input 64 128 58 58  --weights  128  128 3 3 --pads_strides_dilations 0 0 1 1 1 1
-
-        COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_W} --input 64 1024 14 14 --weights 1024 1024 1 1 --pads_strides_dilations 0 0 1 1 1 1
-        COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_W} --input 64 256 56 56  --weights  256  256 1 1 --pads_strides_dilations 0 0 1 1 1 1
-        COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_W} --input 64 128 58 58  --weights  128  128 3 3 --pads_strides_dilations 0 0 1 1 1 1
+        COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_W} --input 64  1024 14 14 --weights 256  1024 1 1 --pads_strides_dilations 0 0 1 1 1 1
+        COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_W} --input 64  1024 14 14 --weights 256  1024 1 1 --pads_strides_dilations 0 0 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+        COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_W} --input 256 256  14 14 --weights 256  256  3 3 --pads_strides_dilations 0 0 2 2 1 1
+        COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_W} --input 256 256  14 14 --weights 256  256  3 3 --pads_strides_dilations 0 0 2 2 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+        COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_W} --input 128 2048 7  7  --weights 512  2048 1 1 --pads_strides_dilations 0 0 1 1 1 1
+        COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_W} --input 128 2048 7  7  --weights 512  2048 1 1 --pads_strides_dilations 0 0 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+        COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_W} --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1
+        COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_W} --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+        COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_W} --input 256 1024 14 14 --weights 1024 32   1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 32
     )
 endif()
 
@@ -758,7 +770,7 @@ COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_c
 COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 2 256 100 104 --weights 12 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
 COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 1 256 28 28 --weights 80 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
 )
-add_custom_test(test_conv_igemm_dynamic_xdlops_wrw SKIP_UNLESS_ALL
+add_custom_test(test_conv_igemm_dynamic_xdlops_wrw SKIP_UNLESS_ALL ALLOW_HALF
 COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> --verbose --input  64  64 28 28 --weights 32  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
 COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> --verbose --input  16  128 36 36 --weights 32  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
 COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> --verbose --input  64   64 56 56 --weights 256  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data

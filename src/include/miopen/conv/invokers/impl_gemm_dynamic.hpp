@@ -33,7 +33,6 @@
 #include <miopen/conv/context.hpp>
 #include <miopen/conv/asm_implicit_gemm.hpp>
 #include <miopen/tensor_ops.hpp>
-#include <miopen/numeric.hpp>
 
 #include <vector>
 
@@ -267,7 +266,19 @@ static inline InvokerFactory MakeImplGemmDynamicForwardInvokerFactory(const Conv
 }
 
 InvokerFactory MakeImplGemmDynamicForward1x1InvokerFactory(const ConvolutionContext& ctx);
-InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory(const ConvolutionContext& ctx);
+
+template <typename T = int>
+InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory(const ConvolutionContext& ctx,
+                                                             const T& cfg);
+
+template <>
+InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory<int>(const ConvolutionContext& ctx,
+                                                                  const int& cfg);
+
+template <>
+InvokerFactory
+MakeImplGemmDynamicBackwardDataInvokerFactory<solver::TunableImplicitGemmGTCDynamic_t>(
+    const ConvolutionContext& ctx, const solver::TunableImplicitGemmGTCDynamic_t& cfg);
 
 } // namespace conv
 } // namespace miopen

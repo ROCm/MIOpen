@@ -226,6 +226,9 @@ static_assert (output_n_stride * (batch_size + n_per_wave) < maxU31)
     .VGPR_ALLOC voffset_out
     .VGPR_ALLOC input_storage, in_gprs
     .if(idilation_h > 1 )
+        .if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_stepping == 10)
+            .VGPR_ALLOC valign_unused, ((input_storage + 1) % 2) // expand acc_dil_buff if its pointer shifted for 64 bit alignment
+        .endif
         store_buffer_size = 4
         .if(dwords_per_ld == 1)
             store_buffer_size = 2
@@ -235,6 +238,9 @@ static_assert (output_n_stride * (batch_size + n_per_wave) < maxU31)
         .endif
     .elseif (gid_hw_size >= 0x10000 && in_gprs < 2)
         .VGPR_ALLOC input_storage_ex
+    .endif
+    .if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_stepping == 10)
+        .VGPR_ALLOC valign_unused2, (.VGPR_NEXT_FREE % 2)
     .endif
     .VGPR_ALLOC accums, accums_cnt
     .VGPR_ALLOC vtmp
@@ -927,6 +933,9 @@ loop_end:
     .GPR_REUSE voffset_in, v_offset_part
     .if(idilation_w > 1)
         acc_dil_buff = input_storage + 1
+        .if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_stepping == 10)
+            acc_dil_buff = acc_dil_buff + (acc_dil_buff % 2) // acc_ptr used by buffer_store_dwordx must be 64 bit aligned
+        .endif
         reset_dil_buffer store_buffer_size
     .endif
     .GPR_REUSE input_storage, v_offset_single

@@ -105,7 +105,7 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::SetNextValue()
     return true;
 }
 
-void PerformanceImplicitGemmBwdV1R1Xdlops::EuristicInit(const ConvolutionContext& ctx)
+void PerformanceImplicitGemmBwdV1R1Xdlops::HeuristicInit(const ConvolutionContext& ctx)
 {
     PerformanceImplicitGemmBwdV1R1Xdlops tmp;
     // loop over certain ranges of tuning parameter
@@ -464,7 +464,7 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::IsValidValue() const
     // clang-format on
 }
 
-// Used by EuristicInit() and GenericSearch
+// Used by HeuristicInit() and GenericSearch
 // Only return false if a performance config will violate requirements given by kernel algorithm
 bool PerformanceImplicitGemmBwdV1R1Xdlops::IsReallyValid(const ConvolutionContext& ctx) const
 {
@@ -521,7 +521,7 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::IsReallyValid(const ConvolutionContex
     return (valid and lds_size <= get_lds_max_number_of_byte());
 }
 
-// Used by GenericSearch, not used by EuristicInit
+// Used by GenericSearch, not used by HeuristicInit
 // Return false if a performance config is known to be sub-optimal, comparing to other performance
 // config inside tuning range
 bool PerformanceImplicitGemmBwdV1R1Xdlops::IsFastToBeUsedForTuning(
@@ -653,7 +653,7 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::IsFastToBeUsedForTuning(
     return true;
 }
 
-// Used by GenericSearch, not used by EuristicInit
+// Used by GenericSearch, not used by HeuristicInit
 // Return false, if you don't want to this to be included in tuning range used by generic search
 // A performance config may still be valid w.r.t algorithm correctness, even when IsValid() return
 // false
@@ -662,7 +662,7 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::IsValid(const ConvolutionContext& ctx
     return IsReallyValid(ctx) && IsFastToBeUsedForTuning(ctx);
 }
 
-// Used by GenericSearch, not used by EuristicInit
+// Used by GenericSearch, not used by HeuristicInit
 bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsValidPerformanceConfig(
     const ConvolutionContext& ctx, const PerformanceImplicitGemmBwdV1R1Xdlops& c) const
 {
