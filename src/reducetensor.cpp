@@ -51,8 +51,6 @@ enum ReductionMethod_t
     Reduce_MultiBlock       = 4
 };
 
-using reduce::convert_type;
-
 namespace detail {
 
 struct get_tunable_reduction_kernel_constants
