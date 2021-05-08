@@ -41,7 +41,6 @@ namespace miopen {
 namespace conv {
 
 namespace {
-#if MIOPEN_USE_MLIR
 struct MlirConvArgs
 {
     StridedMemRef5D filter;
@@ -164,7 +163,7 @@ void SetMlirConvArgsPtr(ConstData_t in, ConstData_t out, ConstData_t w, MlirConv
     // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
     input = const_cast<void*>(in);
     // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
-    output      = const_cast<void*>(out);
+    output = const_cast<void*>(out);
 #endif
 
     if((filter == nullptr) || (input == nullptr) || (output == nullptr))
@@ -177,12 +176,10 @@ void SetMlirConvArgsPtr(ConstData_t in, ConstData_t out, ConstData_t w, MlirConv
     args.output.basePtr = output;
     args.output.data    = output;
 }
-#endif
 } // Anonymous namespace
 
 InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
 {
-#if MIOPEN_USE_MLIR
     assert((ctx.direction.IsForward()));
 
     std::vector<size_t> in_dims, in_strides;
@@ -209,15 +206,10 @@ InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
             handle.Run(kernels[0])(args);
         };
     };
-#else
-    std::ignore = ctx;
-    return {};
-#endif
 }
 
 InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
 {
-#if MIOPEN_USE_MLIR
     assert(ctx.direction.IsBackwardData());
 
     std::vector<size_t> in_dims, in_strides;
@@ -269,15 +261,10 @@ InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
             }
         };
     };
-#else
-    std::ignore = ctx;
-    return {};
-#endif
 }
 
 InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx)
 {
-#if MIOPEN_USE_MLIR
     assert((ctx.direction.IsBackwardWrW()));
 
     std::vector<size_t> in_dims, in_strides;
@@ -302,10 +289,6 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx)
             handle.Run(kernels[0])(args);
         };
     };
-#else
-    std::ignore = ctx;
-    return {};
-#endif
 }
 
 } // namespace conv
