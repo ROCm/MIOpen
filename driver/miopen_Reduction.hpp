@@ -75,7 +75,7 @@ class miopenReductionHost
 
     ~miopenReductionHost(){};
 
-    void Run(Tgpu alpha, const Tgpu* in_data, Tgpu beta, Tref* out_data, int* indices)
+    void Run(float alpha, const Tgpu* in_data, float beta, Tref* out_data, int* indices)
     {
         if(compTypeVal == miopenFloat)
         {
@@ -116,7 +116,7 @@ class miopenReductionHost
     bool reduceAllDims;
 
     template <typename compType>
-    void RunImpl(Tgpu alpha, const Tgpu* in_data, Tgpu beta, Tref* out_data, int* indices)
+    void RunImpl(float alpha, const Tgpu* in_data, float beta, Tref* out_data, int* indices)
     {
         bool need_indices =
             (indicesOpt == MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES) &&
@@ -131,7 +131,7 @@ class miopenReductionHost
 
     template <typename compType>
     void
-    RunImpl_with_indices(Tgpu alpha, const Tgpu* in_data, Tgpu beta, Tref* out_data, int* indices)
+    RunImpl_with_indices(float alpha, const Tgpu* in_data, float beta, Tref* out_data, int* indices)
     {
         using reduce::ReduceOpFn2;
         using reduce::PreUnaryOpFn;
@@ -182,7 +182,7 @@ class miopenReductionHost
 
             // scale the prior dst value and add it to the accumulated value
             if(!float_equal_zero(beta))
-                accuVal += convert_type<compType>(out_data[0] * convert_type<Tref>(beta));
+                accuVal += convert_type<compType>(out_data[0]) * convert_type<compType>(beta);
 
             // store the reduced value to dst location
             out_data[0] = convert_type<Tref>(accuVal);
@@ -246,7 +246,7 @@ class miopenReductionHost
                 // scale the prior dst value and add it to the accumulated value
                 if(!float_equal_zero(beta))
                     accuVal +=
-                        convert_type<compType>(out_data[dst_offset] * convert_type<Tref>(beta));
+                        convert_type<compType>(out_data[dst_offset]) * convert_type<compType>(beta);
 
                 // store the reduced value to dst location
                 out_data[dst_offset] = convert_type<Tref>(accuVal);
@@ -256,7 +256,7 @@ class miopenReductionHost
     }; // end of RunImpl_with_indices()
 
     template <typename compType>
-    void RunImpl_no_indices(Tgpu alpha, const Tgpu* in_data, Tgpu beta, Tref* out_data)
+    void RunImpl_no_indices(float alpha, const Tgpu* in_data, float beta, Tref* out_data)
     {
         using reduce::ReduceOpFn;
         using reduce::PreUnaryOpFn;
@@ -305,7 +305,7 @@ class miopenReductionHost
 
             // scale the prior dst value and add it to the accumulated value
             if(!float_equal_zero(beta))
-                accuVal += convert_type<compType>(out_data[0] * convert_type<Tref>(beta));
+                accuVal += convert_type<compType>(out_data[0]) * convert_type<compType>(beta);
 
             // store the reduced value to dst location
             out_data[0] = convert_type<Tref>(accuVal);
@@ -367,7 +367,7 @@ class miopenReductionHost
                 // scale the prior dst value and add it to the accumulated value
                 if(!float_equal_zero(beta))
                     accuVal +=
-                        convert_type<compType>(out_data[dst_offset] * convert_type<Tref>(beta));
+                        convert_type<compType>(out_data[dst_offset]) * convert_type<compType>(beta);
 
                 // store the reduced value to dst location
                 out_data[dst_offset] = convert_type<Tref>(accuVal);
