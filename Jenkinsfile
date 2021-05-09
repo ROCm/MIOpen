@@ -269,7 +269,7 @@ pipeline {
             when { expression { params.STATIC_CHECKS } }
             parallel{
                 stage('Clang Tidy') {
-                    agent{  label rocmnode("rocmtest") }
+                    agent{  label rocmnode("nogpu") }
                     environment{
                         cmd = "cd build; CXX='clang++-3.8' cmake -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
                     }
@@ -288,7 +288,7 @@ pipeline {
                 }
 
                 stage('Clang Format') {
-                    agent{ label rocmnode("rocmtest") }
+                    agent{ label rocmnode("nogpu") }
                     environment{
                         cmd = "find . -iname \'*.h\' \
                                 -o -iname \'*.hpp\' \
@@ -315,7 +315,7 @@ pipeline {
                 }
 
                 stage('Hip Tidy') {
-                    agent{ label rocmnode("rocmtest") }
+                    agent{ label rocmnode("nogpu") }
                     environment{
                         cmd = "cd build; CXX=/usr/local/bin/hcc cmake -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
                     }
@@ -452,7 +452,7 @@ pipeline {
             when { expression { params.SMOKE_TESTS } }
             parallel{
                 stage('HipNoGPU Debug') {
-                    agent{  label rocmnode("rocmtest") }
+                    agent{  label rocmnode("nogpu") }
                     environment{
                         cmd = """
                             ulimit -c unlimited
@@ -1073,7 +1073,7 @@ pipeline {
             when { expression { params.PACKAGES } }
             parallel {
                 stage('OpenCL Release Package') {
-                    agent{ label rocmnode("rocmtest") }
+                    agent{ label rocmnode("nogpu") }
                     steps{
                         script{
                             try{
@@ -1091,7 +1091,7 @@ pipeline {
                     }
                 }
                 stage("HIP Release Package /opt/rocm"){
-                    agent{ label rocmnode("rocmtest") }
+                    agent{ label rocmnode("nogpu") }
                     steps{
                         script{
                             try{
