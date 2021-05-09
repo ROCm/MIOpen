@@ -51,8 +51,6 @@ enum ReductionMethod_t
     Reduce_MultiBlock       = 4
 };
 
-using reduce::convert_type;
-
 namespace detail {
 
 struct get_tunable_reduction_kernel_constants
@@ -592,14 +590,11 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
     const std::vector<size_t> vgd_1 = {
         static_cast<size_t>(gridSize * blockSize), size_t{1}, size_t{1}};
 
-    visit_float(srcDataType, [&](auto as_float) {
-        float alphaVal = convert_type<float>(*as_float(alpha));
-        float betaVal  = convert_type<float>(*as_float(beta));
+    float alphaVal = *reinterpret_cast<const float*>(alpha);
+    float betaVal  = *reinterpret_cast<const float*>(beta);
 
-        handle.AddKernel(
-            algo_name, network_config, program_name, kernel_name1, vld_1, vgd_1, param)(
-            alphaVal, A, betaVal, C, ws_buf1_global, ws_buf2_bytes_offset, indices);
-    });
+    handle.AddKernel(algo_name, network_config, program_name, kernel_name1, vld_1, vgd_1, param)(
+        alphaVal, A, betaVal, C, ws_buf1_global, ws_buf2_bytes_offset, indices);
 
     if(useTwoCalls)
     {
@@ -614,14 +609,9 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
         // kernel for the second call
         std::string kernel_name2 = "gridwise_generic_reduce_2";
 
-        visit_float(srcDataType, [&](auto as_float) {
-            float alphaVal = convert_type<float>(*as_float(alpha));
-            float betaVal  = convert_type<float>(*as_float(beta));
-
-            handle.AddKernel(
-                algo_name, network_config, program_name, kernel_name2, vld_2, vgd_2, param)(
-                alphaVal, A, betaVal, C, ws_buf1_global, ws_buf2_bytes_offset, indices);
-        });
+        handle.AddKernel(
+            algo_name, network_config, program_name, kernel_name2, vld_2, vgd_2, param)(
+            alphaVal, A, betaVal, C, ws_buf1_global, ws_buf2_bytes_offset, indices);
     };
 };
 
