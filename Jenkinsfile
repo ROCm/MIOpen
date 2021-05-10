@@ -244,11 +244,11 @@ pipeline {
     parameters {
         booleanParam(
             name: "STATIC_CHECKS",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "SMOKE_TESTS",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "FULL_TESTS",
@@ -260,7 +260,7 @@ pipeline {
             description: "")
         booleanParam(
             name: "PACKAGES",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
     }
     stages{
@@ -749,44 +749,6 @@ pipeline {
             when { expression { params.FULL_TESTS } }
             parallel{
 
-                stage('OpenCL Debug + Codecov') {
-                    agent{ label rocmnode("vega") }
-                    steps{
-                        script{
-                            try{
-                                buildHipClangJob('g++', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', codecov: true)
-                            }
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
-                        }
-                    }
-                }
-
-                stage('Int8 Hip Release All Vega20 /opt/rocm') {
-                    agent{ label rocmnode("vega20") }
-                    steps{
-                        script{
-                            try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image: image+'rocm', prefixpath: '/opt/rocm')
-                            }
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
-                        }
-                    }
-                }
-
                 stage('BF16 Hip Release Subset gfx908') {
                     agent{ label rocmnode("gfx908") }
                     environment{
@@ -816,144 +778,7 @@ pipeline {
             }
         }
 
-        stage("Full tests II"){
-            when { expression { params.FULL_TESTS } }
-            parallel{
-                stage('OpenCL Release All') {
-                    agent{ label rocmnode("vega") }
-                    steps{
-                        script{
-                            try{
-                                buildHipClangJob('g++', flags: '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
-                            }
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
-                        }
-                    }
-                }
 
-                stage('Hip Release Subset gfx908') {
-                    agent{ label rocmnode("gfx908") }
-                    environment{
-                        cmd = """
-                            ulimit -c unlimited
-                            cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_TEST_GFX908=On -DMIOPEN_TEST_ALL=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
-                            MIOPEN_LOG_LEVEL=5 CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
-                        """
-                    }
-                    steps{
-                        script{
-                            try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx908")
-                            }
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
-                        }
-                    }
-                }
-
-                stage('Half Hip Release Subset gfx908') {
-                    agent{ label rocmnode("gfx908") }
-                    environment{
-                        cmd = """
-                            ulimit -c unlimited
-                            cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_TEST_HALF=On -DMIOPEN_TEST_GFX908=On -DMIOPEN_TEST_ALL=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
-                            MIOPEN_LOG_LEVEL=5 CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
-                        """
-                    }
-                    steps{
-                        script{
-                            try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx908")
-                            }
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        stage("Full tests III"){
-            when { expression { params.FULL_TESTS } }
-            parallel{
-                stage('Half Hip Release All Vega20') {
-                    agent{ label rocmnode("vega20") }
-                    environment{
-                        cmd = """
-                            ulimit -c unlimited
-                            cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_TEST_HALF=On -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_ALL=On -DMIOPEN_TEST_FLAGS=--disable-verification-cache ..
-                            CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
-                        """
-
-                    }
-                    steps{
-                        script{
-                            try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', cmd: cmd)
-                            }
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
-                        }
-                    }
-                }
-
-                stage('Hip Release All Vega20') {
-                    agent{ label rocmnode("vega20") }
-                    environment{
-                        cmd = """
-                            ulimit -c unlimited
-                            cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_ALL=On -DMIOPEN_TEST_FLAGS=--disable-verification-cache ..
-                            CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
-                        """
-
-                    }
-                    steps{
-                        script{
-                            try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', cmd: cmd)
-                            }
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
-                        }
-                    }
-                }
-            }
-        }
 
         stage("MIOpenTensile"){
             when { expression { params.MIOPENTENSILE } }
