@@ -125,6 +125,7 @@ set( MIOpen_Source
     conv/problem_description.cpp
     solver/gemm.cpp
     solver/gemm_bwd.cpp
+    solver/gemm_wrw.cpp
     dropout.cpp
     dropout_api.cpp
     readonlyramdb.cpp
@@ -195,7 +196,6 @@ set( MIOpen_Source
     conv/invokers/gen_x_w_y_pad.cpp
     conv/invokers/ocl_wrw_rdc.cpp
     conv/invokers/impl_gemm.cpp
-    conv/invokers/mlir_impl_gemm.cpp
     conv/invokers/impl_gemm_dynamic.cpp
     invoker_cache.cpp
     tensor.cpp
@@ -587,7 +587,7 @@ if(MIOPEN_USE_COMGR)
 endif()
 
 if(MIOPEN_USE_MLIR)
-    list(APPEND MIOpen_Source mlir_build.cpp)
+    list(APPEND MIOpen_Source mlir_build.cpp conv/invokers/mlir_impl_gemm.cpp)
 endif()
 
 # build library
