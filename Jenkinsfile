@@ -560,8 +560,11 @@ pipeline {
                 }
                 stage('Fp16 Hip All Install gfx908') {
                     agent{ label rocmnode("gfx908") }
+                    environment{
+                        WORKAROUND_iGemm_917 = "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS=0"
+                    }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Full_test_limit + gfx908_test + Fp16_flags, build_install: "true", gpu_arch: "gfx908")
+                        buildHipClangJobAndReboot(setup_flags: Full_test_limit + gfx908_test + Fp16_flags, build_env: WORKAROUND_iGemm_917, build_install: "true", gpu_arch: "gfx908")
                     }
                 }
             }
