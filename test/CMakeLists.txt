@@ -34,7 +34,7 @@ option(MIOPEN_TEST_HALF "Test in half mode" OFF )
 option(MIOPEN_TEST_INT8 "Test in int8 mode" OFF )
 option(MIOPEN_TEST_BFLOAT16 "Test in bfloat16 mode" OFF )
 option(MIOPEN_TEST_GFX908 "Test arch gfx908 mode" OFF )
-option(MIOPEN_TEST_CONV Off) #Disabled, some bugs on gfx908
+option(MIOPEN_TEST_CONV On)
 option(MIOPEN_TEST_DEEPBENCH Off)
 option(MIOPEN_TEST_DRIVER_ITER_MODE Off)
 option(MIOPEN_TEST_MIOTENSILE "Test MIOpenTensile path" OFF )
