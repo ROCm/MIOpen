@@ -318,24 +318,31 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     }
 
 #if(MIO_BN_REM4)
-    if(lid < MIO_BN_REM4)
+    unsigned int remkey = (lid << 2) + MIO_BN_LESS4;
+    nidx                = remkey / MIO_BN_HW;
+    hwidx               = remkey - (nidx * MIO_BN_HW);
+    index               = nidx * MIO_BN_CHW + chwid + hwidx;
+    if(index < ((MIO_BN_NCHW / 4) * 4))
     {
-        unsigned int remkey = (lid << 2) + MIO_BN_LESS4;
-        nidx                = remkey / MIO_BN_HW;
-        hwidx               = remkey - (nidx * MIO_BN_HW);
-        index               = nidx * MIO_BN_CHW + chwid + hwidx;
-        if(index < (MIO_BN_NCHW - 3))
-        {
-            read4 = *((const global _FLOAT4*)(x_in + index));
-            mean += (_FLOAT_PREC)read4.x;
-            mean += (_FLOAT_PREC)read4.y;
-            mean += (_FLOAT_PREC)read4.z;
-            mean += (_FLOAT_PREC)read4.w;
-            variance = mad((_FLOAT_PREC)read4.x, (_FLOAT_PREC)read4.x, variance);
-            variance = mad((_FLOAT_PREC)read4.y, (_FLOAT_PREC)read4.y, variance);
-            variance = mad((_FLOAT_PREC)read4.z, (_FLOAT_PREC)read4.z, variance);
-            variance = mad((_FLOAT_PREC)read4.w, (_FLOAT_PREC)read4.w, variance);
-        }
+        read4 = *((const global _FLOAT4*)(x_in + index));
+        mean += (_FLOAT_PREC)read4.x;
+        mean += (_FLOAT_PREC)read4.y;
+        mean += (_FLOAT_PREC)read4.z;
+        mean += (_FLOAT_PREC)read4.w;
+        variance = mad((_FLOAT_PREC)read4.x, (_FLOAT_PREC)read4.x, variance);
+        variance = mad((_FLOAT_PREC)read4.y, (_FLOAT_PREC)read4.y, variance);
+        variance = mad((_FLOAT_PREC)read4.z, (_FLOAT_PREC)read4.z, variance);
+        variance = mad((_FLOAT_PREC)read4.w, (_FLOAT_PREC)read4.w, variance);
+    }
+    remkey = lid + (MIO_BN_NCHW / 4) * 4;
+    nidx   = remkey / MIO_BN_HW;
+    hwidx  = remkey - (nidx * MIO_BN_HW);
+    index  = nidx * MIO_BN_CHW + chwid + hwidx;
+    if(index < MIO_BN_NCHW)
+    {
+        _FLOAT_PREC in = (_FLOAT_PREC)(*(x_in + index));
+        mean += in;
+        variance = mad(in, in, variance);
     }
 #endif
 #else
