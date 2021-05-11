@@ -796,7 +796,7 @@ struct ConvHipImplicitGemmMlirCppFwd : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
-struct ConvHipImplicitGemmMlirBinFwd : SolverBase<ConvolutionContext>
+struct ConvMlirIgemmFwd : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& ctx) const;
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
@@ -864,6 +864,12 @@ struct ConvHipImplicitGemmV4R4WrW : SolverBase<ConvolutionContext>
 struct ConvHipImplicitGemmMlirCppWrW : SolverBase<ConvolutionContext>
 {
     static std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+};
+
+struct ConvMlirIgemmWrW : SolverBase<ConvolutionContext>
+{
     bool IsApplicable(const ConvolutionContext& ctx) const;
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
@@ -1266,7 +1272,7 @@ struct ConvHipImplicitGemmMlirCppBwd : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
-struct ConvHipImplicitGemmMlirBinBwd : SolverBase<ConvolutionContext>
+struct ConvMlirIgemmBwd : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& ctx) const;
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
@@ -1944,16 +1950,6 @@ struct fft : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
-/// Partial implementation.
-struct gemm : SolverBase<ConvolutionContext>
-{
-    bool IsApplicable(const ConvolutionContext& /*params*/) const { return false; };
-    ConvSolution GetSolution(const ConvolutionContext&) const
-    {
-        return ConvSolution{miopenStatusNotInitialized};
-    }
-};
-
 struct PerformanceImplicitGemmWrwV4R4Xdlops : Serializable<PerformanceImplicitGemmWrwV4R4Xdlops>
 {
     int GemmMPerBlock;
@@ -2278,6 +2274,58 @@ struct GemmBwd1x1_stride1 : GemmBwdBase
 };
 
 struct GemmBwdRest : GemmBwdBase
+{
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const
+    {
+        return GetWorkspaceSize(ctx, ctx.conv_problem);
+    }
+
+    bool IsApplicable(const ConvolutionContext& ctx) const
+    {
+        return IsApplicable(ctx, ctx.conv_problem);
+    }
+
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const
+    {
+        return GetSolution(ctx, ctx.conv_problem);
+    }
+
+    size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
+    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
+    ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
+};
+
+struct GemmWrwBase : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
+    bool IsDynamic() const { return true; }
+    float GetWti(const ConvolutionContext& ctx) const { return GetWti(ctx, ctx.conv_problem); }
+    float GetWti(const ExecutionContext& context, const conv::ProblemDescription& problem) const;
+};
+
+struct GemmWrw1x1_stride1 : GemmWrwBase
+{
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const
+    {
+        return GetWorkspaceSize(ctx, ctx.conv_problem);
+    }
+
+    bool IsApplicable(const ConvolutionContext& ctx) const
+    {
+        return IsApplicable(ctx, ctx.conv_problem);
+    }
+
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const
+    {
+        return GetSolution(ctx, ctx.conv_problem);
+    }
+
+    size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
+    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
+    ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
+};
+
+struct GemmWrwUniversal : GemmWrwBase
 {
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const
     {
