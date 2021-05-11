@@ -456,59 +456,53 @@ pipeline {
             }
         }
         stage("Smoke for ext libs"){
+            environment{
+                Tensile_version = "latest"
+                MLIR_flags = "-DMIOPEN_USE_MLIR=On"
+            }
             parallel{
-                stage("Smoke MIOpenTensile Latest"){
+                stage('Fp16 Hip Tensile-Latest All Vega20') {
                     when { expression { params.SMOKE_MIOPENTENSILE_LATEST && !params.DISABLE_ALL_STAGES } }
-                    environment{
-                        Tensile_version = "latest"
+                    agent{ label rocmnode("vega20") }
+                    steps{
+                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Fp16_flags, build_env: Tensile_build_env, gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
                     }
-                    parallel{
-                        stage('Fp16 Hip Tensile-Latest All Vega20') {
-                            agent{ label rocmnode("vega20") }
-                            steps{
-                                buildHipClangJobAndReboot( setup_flags: Tensile_setup + Fp16_flags, build_env: Tensile_build_env, gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                            }
-                        }
-                        stage('Int8 Hip Tensile-Latest All Vega20') {
-                            agent{ label rocmnode("vega20") }
-                            steps{
-                                buildHipClangJobAndReboot( setup_flags: Tensile_setup + extra_log_env + Int8_flags, build_env: Tensile_build_env, gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                            }
-                        }
-
-                        stage('Fp32 Hip Tensile-Latest All gfx908') {
-                            agent{ label rocmnode("gfx908") }
-                            steps{
-                                buildHipClangJobAndReboot( setup_flags: Tensile_setup + extra_log_env + gfx908_test , build_env: Tensile_build_env + extra_log_env, gpu_arch: "gfx908:xnack-", test_flags: ' --verbose ', miotensile_version: Tensile_version, target_id: "ON")
-                            }
-                        }
-                        stage('Bf16 Hip Tensile-Latest All gfx908') {
-                            agent{ label rocmnode("gfx908") }
-                            steps{
-                                buildHipClangJobAndReboot( setup_flags: Tensile_setup + extra_log_env + gfx908_test + Bf16_flags, build_env: Tensile_build_env + extra_log_env, gpu_arch: "gfx908:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                            }
-                        }
+                }
+                stage('Int8 Hip Tensile-Latest All Vega20') {
+                    when { expression { params.SMOKE_MIOPENTENSILE_LATEST && !params.DISABLE_ALL_STAGES } }
+                    agent{ label rocmnode("vega20") }
+                    steps{
+                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + extra_log_env + Int8_flags, build_env: Tensile_build_env, gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
                     }
                 }
 
-                stage("Smoke MLIR"){
-                    when { expression { params.SMOKE_MLIR && !params.DISABLE_ALL_STAGES } }
-                    environment{
-                        MLIR_flags = "-DMIOPEN_USE_MLIR=On"
+                stage('Fp32 Hip Tensile-Latest All gfx908') {
+                    when { expression { params.SMOKE_MIOPENTENSILE_LATEST && !params.DISABLE_ALL_STAGES } }
+                    agent{ label rocmnode("gfx908") }
+                    steps{
+                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + extra_log_env + gfx908_test , build_env: Tensile_build_env + extra_log_env, gpu_arch: "gfx908:xnack-", test_flags: ' --verbose ', miotensile_version: Tensile_version, target_id: "ON")
                     }
-                    parallel{
-                        stage('Fp32 Hip MLIR') {
-                            agent{ label rocmnode("vega") }
-                            steps{
-                                buildHipClangJobAndReboot(setup_flags: MLIR_flags, build_env: extra_log_env, test_flags: ' --verbose ')
-                            }
-                        }
-                        stage('Fp16 Hip MLIR') {
-                            agent{ label rocmnode("vega") }
-                            steps{
-                                buildHipClangJobAndReboot(setup_flags: MLIR_flags + Fp16_flags, build_env: extra_log_env, test_flags: ' --verbose ')
-                            }
-                        }
+                }
+                stage('Bf16 Hip Tensile-Latest All gfx908') {
+                    when { expression { params.SMOKE_MIOPENTENSILE_LATEST && !params.DISABLE_ALL_STAGES } }
+                    agent{ label rocmnode("gfx908") }
+                    steps{
+                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + extra_log_env + gfx908_test + Bf16_flags, build_env: Tensile_build_env + extra_log_env, gpu_arch: "gfx908:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+                    }
+                }
+
+                stage('Fp32 Hip MLIR') {
+                    when { expression { params.SMOKE_MLIR && !params.DISABLE_ALL_STAGES } }
+                    agent{ label rocmnode("vega") }
+                    steps{
+                        buildHipClangJobAndReboot(setup_flags: MLIR_flags, build_env: extra_log_env, test_flags: ' --verbose ')
+                    }
+                }
+                stage('Fp16 Hip MLIR') {
+                    when { expression { params.SMOKE_MLIR && !params.DISABLE_ALL_STAGES } }
+                    agent{ label rocmnode("vega") }
+                    steps{
+                        buildHipClangJobAndReboot(setup_flags: MLIR_flags + Fp16_flags, build_env: extra_log_env, test_flags: ' --verbose ')
                     }
                 }
             }
