@@ -455,7 +455,7 @@ pipeline {
                 }
             }
         }
-        stege("Smoke for ext libs"){
+        stage("Smoke for ext libs"){
             parallel{
                 stage("Smoke MIOpenTensile Latest"){
                     when { expression { params.SMOKE_MIOPENTENSILE_LATEST && !params.DISABLE_ALL_STAGES } }
