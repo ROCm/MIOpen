@@ -117,7 +117,6 @@ ConvSolution ConvMlirIgemmWrWXdlops::GetSolution(const ConvolutionContext& ctx) 
 
     construction_parameters.kernel_name = GetKernelName();
     construction_parameters.kernel_file = construction_parameters.kernel_name + ".mlir";
-
     construction_parameters.comp_options =
         mlir::PopulateHandle(ctx, GetOperation(), GetKernelName(), true);
 
