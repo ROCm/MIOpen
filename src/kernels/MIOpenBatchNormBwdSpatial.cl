@@ -340,9 +340,9 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     index  = nidx * MIO_BN_CHW + chwid + hwidx;
     if(index < MIO_BN_NCHW)
     {
-        _FLOAT_PREC in = (_FLOAT_PREC)(*(x_in + index));
-        mean += in;
-        variance = mad(in, in, variance);
+        _FLOAT read_rem = *((const global _FLOAT*)(x_in + index));
+        mean += (_FLOAT_PREC)read_rem;
+        variance = mad((_FLOAT_PREC)read_rem, (_FLOAT_PREC)read_rem, variance);
     }
 #endif
 #else
@@ -432,11 +432,11 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     }
 
 #if(MIO_BN_REM4)
-    unsigned int remkey = (lid << 2) + MIO_BN_LESS4;
-    nidx                = remkey / MIO_BN_HW;
-    hwidx               = remkey - (nidx * MIO_BN_HW);
-    index               = nidx * MIO_BN_CHW + chwid + hwidx;
-    if(index < (MIO_BN_NCHW - 3))
+    remkey = (lid << 2) + MIO_BN_LESS4;
+    nidx   = remkey / MIO_BN_HW;
+    hwidx  = remkey - (nidx * MIO_BN_HW);
+    index  = nidx * MIO_BN_CHW + chwid + hwidx;
+    if(index < ((MIO_BN_NCHW / 4) * 4))
     {
         xread4  = *((const global _FLOAT4*)(x_in + index));
         dyRead4 = *((const global _FLOAT4*)(dy_in + index));
@@ -454,6 +454,18 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
         ds = mad(xhat4.w, (_FLOAT_PREC)dyRead4.w, ds);
     }
 
+    remkey = lid + (MIO_BN_NCHW / 4) * 4;
+    nidx   = remkey / MIO_BN_HW;
+    hwidx  = remkey - (nidx * MIO_BN_HW);
+    index  = nidx * MIO_BN_CHW + chwid + hwidx;
+    if(index < MIO_BN_NCHW)
+    {
+        _FLOAT xread_rem     = *((const global _FLOAT*)(x_in + index));
+        _FLOAT dyRead_rem    = *((const global _FLOAT*)(dy_in + index));
+        _FLOAT_PREC xhat_rem = ((_FLOAT_PREC)xread_rem - mean) * invVariance;
+        db += (_FLOAT_PREC)dyRead_rem;
+        ds = mad(xhat_rem, (_FLOAT_PREC)dyRead_rem, ds);
+    }
 #endif
     barrier(CLK_GLOBAL_MEM_FENCE);
 
@@ -475,8 +487,9 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     if(lid == 0)
     {
 #if MIOPEN_USE_FP16 == 1
-        *(dbias + grpid)  = (temp_db >= (float)MAX_VAL) ? MAX_VAL : db;
-        *(dscale + grpid) = (temp_ds >= (float)MAX_VAL || temp_ds < 0) ? MAX_VAL : ds;
+        *(dbias + grpid) = (temp_db >= (float)MAX_VAL) ? (_FLOAT_PREC)MAX_VAL : (_FLOAT_PREC)db;
+        *(dscale + grpid) =
+            (temp_ds >= (float)MAX_VAL || temp_ds < 0) ? (_FLOAT_PREC)MAX_VAL : (_FLOAT_PREC)ds;
 #else
         *(dbias + grpid)  = (_FLOAT_PREC)db;
         *(dscale + grpid) = (_FLOAT_PREC)ds;
