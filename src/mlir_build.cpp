@@ -151,8 +151,7 @@ void MiirGenLaunchParams(const std::string& params, size_t& local_size, size_t& 
 bool MiirIsConfigApplicable(const std::string& params)
 {
     AutoMiirHandle handle(params);
-    auto status = miirLowerTuningParams(handle());
-    return status == MIIR_SUCCESS;
+    return MIIR_SUCCESS == miirLowerTuningParams(handle());
 }
 
 void MiirGenBin(const std::string& params, std::vector<char>& buffer)

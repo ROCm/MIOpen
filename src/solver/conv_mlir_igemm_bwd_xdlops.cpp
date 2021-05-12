@@ -23,12 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/mlir_build.hpp>
+
 #include <miopen/conv/invokers/mlir_impl_gemm.hpp>
 #include <miopen/config.h>
 #include <miopen/env.hpp>
+#include <miopen/mlir_build.hpp>
 #include <miopen/solver.hpp>
-#include <miopen/solver/mlir_util.hpp>
+#include <miopen/solver/implicitgemm_util.hpp>
+#include <miopen/solver/mlir_common.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD_XDLOPS)
 
@@ -97,7 +99,7 @@ bool ConvMlirIgemmBwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
     if(!IsValidGridGemmXdlops(gemm_m, gemm_n, gemm_k))
         return false;
 
-    return MiirIsConfigApplicable(PopulateMlirHandle(ctx, GetOperation(), GetKernelName(), true));
+    return MiirIsConfigApplicable(mlir::PopulateHandle(ctx, GetOperation(), GetKernelName(), true));
 #else
     std::ignore = ctx;
     return false;
@@ -113,7 +115,7 @@ ConvSolution ConvMlirIgemmBwdXdlops::GetSolution(const ConvolutionContext& ctx) 
     construction_parameters.kernel_name = GetKernelName();
     construction_parameters.kernel_file = construction_parameters.kernel_name + ".mlir";
     construction_parameters.comp_options =
-        PopulateMlirHandle(ctx, GetOperation(), GetKernelName(), true);
+        mlir::PopulateHandle(ctx, GetOperation(), GetKernelName(), true);
 
     size_t local_size  = 0;
     size_t global_size = 0;

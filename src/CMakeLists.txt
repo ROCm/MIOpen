@@ -587,7 +587,11 @@ if(MIOPEN_USE_COMGR)
 endif()
 
 if(MIOPEN_USE_MLIR)
-    list(APPEND MIOpen_Source mlir_build.cpp conv/invokers/mlir_impl_gemm.cpp)
+    list(APPEND MIOpen_Source 
+        mlir_build.cpp 
+        solver/mlir_common.cpp
+        conv/invokers/mlir_impl_gemm.cpp
+        )
 endif()
 
 # build library

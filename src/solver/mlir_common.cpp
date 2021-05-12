@@ -24,17 +24,15 @@
  *
  *******************************************************************************/
 
-#ifndef GUARD_MLIR_UTIL_HPP_
-#define GUARD_MLIR_UTIL_HPP_
-
 #include <miopen/errors.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
-#include <string>
+#include <miopen/solver/mlir_common.hpp>
 
 namespace miopen {
 namespace solver {
+namespace mlir {
 
-static inline std::string InsertGToLayout(const std::string& layout, char dim)
+std::string InsertGToLayout(const std::string& layout, char dim)
 {
     std::string layout_with_g = layout;
     std::size_t index         = layout.find(dim);
@@ -43,10 +41,10 @@ static inline std::string InsertGToLayout(const std::string& layout, char dim)
     return layout_with_g.insert(index, 1, 'G');
 }
 
-static inline std::string PopulateMlirHandle(const ConvolutionContext& ctx,
-                                             const std::string& operation,
-                                             const std::string& kernel_name,
-                                             bool isXdlops)
+std::string PopulateHandle(const ConvolutionContext& ctx,
+                           const std::string& operation,
+                           const std::string& kernel_name,
+                           bool isXdlops)
 {
     // Arguments for mlir-miopen-driver.
     // clang-format off
@@ -92,7 +90,7 @@ static inline std::string PopulateMlirHandle(const ConvolutionContext& ctx,
     // clang-format on
     return mlir_handle;
 }
+
+} // namespace mlir
 } // namespace solver
 } // namespace miopen
-
-#endif

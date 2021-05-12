@@ -148,7 +148,7 @@ def tensileStage(cmd, gpu_arch, miotensile_version, target_id){
     }
 }
 
-def mlirStage(cmd, gpu_arch){
+def hipClangStage(cmd, gpu_arch){
     try{
         buildHipClangJob('/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: gpu_arch)
     }
@@ -578,7 +578,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            mlirStage(cmd, "gfx900;gfx906")
+                            hipClangStage(cmd, "gfx900;gfx906")
                         }
                     }
                 }
@@ -594,7 +594,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            mlirStage(cmd, "gfx900;gfx906")
+                            hipClangStage(cmd, "gfx900;gfx906")
                         }
                     }
                 }
@@ -610,7 +610,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            mlirStage(cmd, "gfx908")
+                            hipClangStage(cmd, "gfx908")
                         }
                     }
                 }
@@ -626,7 +626,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            mlirStage(cmd, "gfx908")
+                            hipClangStage(cmd, "gfx908")
                         }
                     }
                 }
