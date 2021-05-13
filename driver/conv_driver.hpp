@@ -439,6 +439,17 @@ int ConvDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
 
+    // try to set a default layout value for 3d conv if not specified from cmd line
+    int spatial_dim = inflags.GetValueInt("spatial_dim");
+    if(spatial_dim == 3 &&
+       (inflags.GetValueStr("in_layout") == "NCHW" && inflags.GetValueStr("fil_layout") == "NCHW" &&
+        inflags.GetValueStr("out_layout") == "NCHW"))
+    {
+        inflags.SetValue("in_layout", "NCDHW");
+        inflags.SetValue("fil_layout", "NCDHW");
+        inflags.SetValue("out_layout", "NCDHW");
+    }
+
     num_iterations = inflags.GetValueInt("iter");
     if(num_iterations < 1)
     {
