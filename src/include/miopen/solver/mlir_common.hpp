@@ -24,8 +24,8 @@
  *
  *******************************************************************************/
 
-#ifndef GUARD_MLIR_UTIL_HPP_
-#define GUARD_MLIR_UTIL_HPP_
+#ifndef GUARD_MLIR_COMMON_HPP_
+#define GUARD_MLIR_COMMON_HPP_
 
 #include <miopen/conv/context.hpp>
 
