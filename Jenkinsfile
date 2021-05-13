@@ -148,6 +148,20 @@ def tensileStage(cmd, gpu_arch, miotensile_version, target_id){
     }
 }
 
+def hipClangStage(cmd, gpu_arch){
+    try{
+        buildHipClangJob('/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: gpu_arch)
+    }
+    catch(e){
+        echo "throwing error exception for the stage"
+        echo 'Exception occurred: ' + e.toString()
+        throw e
+    }
+    finally{
+        reboot()
+    }
+}
+
 /// Stage name format:
 /// [DataType] Backend[/Compiler] BuildType [TestSet] [Target]
 ///
@@ -564,17 +578,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', cmd: cmd)
-                            }
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
+                            hipClangStage(cmd, "gfx900;gfx906")
                         }
                     }
                 }
@@ -590,17 +594,39 @@ pipeline {
                     }
                     steps{
                         script{
-                            try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', cmd: cmd)
-                            }
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
+                            hipClangStage(cmd, "gfx900;gfx906")
+                        }
+                    }
+                }
+                stage('Fp32 Hip MLIR Xdlops') {
+                    agent{ label rocmnode("gfx908") }
+                    environment{
+                        cmd = """
+                            ulimit -c unlimited
+                            cd build
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_USE_MLIR=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
+                            CTEST_PARALLEL_LEVEL=4 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check
+                        """
+                    }
+                    steps{
+                        script{
+                            hipClangStage(cmd, "gfx908")
+                        }
+                    }
+                }
+                stage('Fp16 Hip MLIR Xdlops') {
+                    agent{ label rocmnode("gfx908") }
+                    environment{
+                        cmd = """
+                            ulimit -c unlimited
+                            cd build
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake  -DMIOPEN_TEST_HALF=On -DMIOPEN_USE_MLIR=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
+                            CTEST_PARALLEL_LEVEL=4 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check
+                        """
+                    }
+                    steps{
+                        script{
+                            hipClangStage(cmd, "gfx908")
                         }
                     }
                 }
