@@ -24,24 +24,24 @@
  *
  *******************************************************************************/
 
-#ifndef GUARD_MLIR_UTIL_HPP_
-#define GUARD_MLIR_UTIL_HPP_
+#ifndef GUARD_MLIR_COMMON_HPP_
+#define GUARD_MLIR_COMMON_HPP_
 
-#include <miopen/errors.hpp>
+#include <miopen/conv/context.hpp>
+
 #include <string>
 
 namespace miopen {
 namespace solver {
+namespace mlir {
 
-static inline std::string InsertGToLayout(const std::string& layout, char dim)
-{
-    std::string layout_with_g = layout;
-    std::size_t index         = layout.find(dim);
-    if(index == std::string::npos)
-        MIOPEN_THROW(std::string("Failed to find dim '") + dim + "' in the layout " + layout);
-    return layout_with_g.insert(index, 1, 'G');
-}
+std::string InsertGToLayout(const std::string& layout, char dim);
+std::string PopulateHandle(const ConvolutionContext& ctx,
+                           const std::string& operation,
+                           const std::string& kernel_name,
+                           bool isXdlops);
 
+} // namespace mlir
 } // namespace solver
 } // namespace miopen
 

@@ -413,6 +413,10 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     RegisterWithSolver(registry, ++id, GemmWrw1x1_stride1{}, miopenConvolutionAlgoGEMM);
     RegisterWithSolver(registry, ++id, GemmWrwUniversal{}, miopenConvolutionAlgoGEMM);
+
+    RegisterWithSolver(registry, ++id, ConvMlirIgemmFwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(registry, ++id, ConvMlirIgemmBwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(registry, ++id, ConvMlirIgemmWrWXdlops{}, miopenConvolutionAlgoImplicitGEMM);
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 

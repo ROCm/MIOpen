@@ -802,6 +802,12 @@ struct ConvMlirIgemmFwd : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
+struct ConvMlirIgemmFwdXdlops : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+};
+
 struct PerformanceImplicitGemmV4R4GenXdlopsFwdFp32
     : Serializable<PerformanceImplicitGemmV4R4GenXdlopsFwdFp32>
 {
@@ -869,6 +875,12 @@ struct ConvHipImplicitGemmMlirCppWrW : SolverBase<ConvolutionContext>
 };
 
 struct ConvMlirIgemmWrW : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+};
+
+struct ConvMlirIgemmWrWXdlops : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& ctx) const;
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
@@ -1273,6 +1285,12 @@ struct ConvHipImplicitGemmMlirCppBwd : SolverBase<ConvolutionContext>
 };
 
 struct ConvMlirIgemmBwd : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+};
+
+struct ConvMlirIgemmBwdXdlops : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& ctx) const;
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;

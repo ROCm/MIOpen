@@ -23,97 +23,44 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/mlir_build.hpp>
-#include <miopen/conv/invokers/mlir_impl_gemm.hpp>
-#include <miopen/config.h>
-#include <miopen/env.hpp>
-#include <miopen/solver.hpp>
+
+#include <miopen/errors.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/solver/mlir_common.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD)
-
 namespace miopen {
 namespace solver {
+namespace mlir {
 
-namespace {
-#if MIOPEN_USE_MLIR
-std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx)
+std::string InsertGToLayout(const std::string& layout, char dim)
 {
-    const size_t g  = ConvolutionContextInterpreter::GetGroupCountG(ctx);
-    const size_t n  = ConvolutionContextInterpreter::GetBatchN(ctx);
-    const size_t k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
-    const size_t c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
-    const size_t ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
-    const size_t wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
-    const size_t y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-    const size_t x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
-
-    const auto k_per_group = k / g;
-    const auto c_per_group = c / g;
-
-    const auto gemm_m       = k_per_group;
-    const auto gemm_n       = n * ho * wo;
-    const auto gemm_k_total = c_per_group * y * x;
-
-    return std::make_tuple(gemm_m, gemm_n, gemm_k_total);
-}
-#endif
-} // Anonymous namespace
-
-bool ConvMlirIgemmFwd::IsApplicable(const ConvolutionContext& ctx) const
-{
-#if MIOPEN_USE_MLIR
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD{}))
-        return false;
-    if(!ctx.IsLayoutDefault() && !ctx.IsLayoutNHWC())
-        return false;
-    // Future: MLIR will support 3d convolution
-    if(!ctx.Is2d())
-        return false;
-    if(!IsComposableKernelSupportedHardware(ctx))
-        return false;
-    if(!ctx.direction.IsForward())
-        return false;
-    if(!ctx.IsFp32() && !ctx.IsFp16())
-        return false;
-
-    int gemm_m = 0;
-    int gemm_n = 0;
-    int gemm_k = 0;
-
-    std::tie(gemm_m, gemm_n, gemm_k) = CalculateGemmSize(ctx);
-    return gemm_m % 32 == 0 && gemm_n % 32 == 0 && gemm_k % 4 == 0;
-#else
-    std::ignore = ctx;
-    return false;
-#endif
+    std::string layout_with_g = layout;
+    std::size_t index         = layout.find(dim);
+    if(index == std::string::npos)
+        MIOPEN_THROW(std::string("Failed to find dim '") + dim + "' in the layout " + layout);
+    return layout_with_g.insert(index, 1, 'G');
 }
 
-ConvSolution ConvMlirIgemmFwd::GetSolution(const ConvolutionContext& ctx) const
+std::string PopulateHandle(const ConvolutionContext& ctx,
+                           const std::string& operation,
+                           const std::string& kernel_name,
+                           bool isXdlops)
 {
-#if MIOPEN_USE_MLIR
-    ConvSolution result;
-    KernelInfo construction_parameters;
-
-    std::string version   = "_v4r4";
-    std::string direction = "_fwd";
-    std::string operation = "conv2d";
-
-    construction_parameters.kernel_name = "mlir_gen_igemm_conv2d" + version + direction;
-    construction_parameters.kernel_file = construction_parameters.kernel_name + ".mlir";
-
     // Arguments for mlir-miopen-driver.
     // clang-format off
     using CI = ConvolutionContextInterpreter;
 
-    std::string in_layout = mlir::InsertGToLayout(CI::GetInputLayout(ctx), 'C');
-    std::string fil_layout = mlir::InsertGToLayout(CI::GetFilterLayout(ctx), 'N');
-    std::string out_layout = mlir::InsertGToLayout(CI::GetOutputLayout(ctx), 'C');
+    std::string in_layout = InsertGToLayout(CI::GetInputLayout(ctx), 'C');
+    std::string fil_layout = InsertGToLayout(CI::GetFilterLayout(ctx), 'N');
+    std::string out_layout = InsertGToLayout(CI::GetOutputLayout(ctx), 'C');
+
+    std::string mlir_handle;
+    if (isXdlops)
+        mlir_handle += std::string(" --x2 ") + "1";
 
     std::string data_type = ctx.IsFp32() ? "fp32" : "fp16";
 
-    construction_parameters.comp_options =
+    mlir_handle +=
         std::string(" --operation ") + operation +
         std::string(" --num_cu ") + std::to_string(ctx.GetStream().GetMaxComputeUnits()) +
         std::string(" --arch ") + ctx.GetStream().GetDeviceName() +
@@ -139,29 +86,11 @@ ConvSolution ConvMlirIgemmFwd::GetSolution(const ConvolutionContext& ctx) const
         std::string(" --conv_stride_w ") + std::to_string(CI::GetAdjustedConvolutionStrideW(ctx)) +
         std::string(" --padding_h ") + std::to_string(CI::GetInputLeftPadH(ctx)) +
         std::string(" --padding_w ") + std::to_string(CI::GetInputLeftPadW(ctx)) +
-        std::string(" --kernel_name ") + construction_parameters.kernel_name;
+        std::string(" --kernel_name ") + kernel_name;
     // clang-format on
-
-    size_t local_size  = 0;
-    size_t global_size = 0;
-    MiirGenLaunchParams(construction_parameters.comp_options, local_size, global_size);
-
-    construction_parameters.l_wk.push_back(local_size);
-    construction_parameters.l_wk.push_back(1);
-    construction_parameters.l_wk.push_back(1);
-
-    construction_parameters.g_wk.push_back(global_size);
-    construction_parameters.g_wk.push_back(1);
-    construction_parameters.g_wk.push_back(1);
-
-    result.invoker_factory = conv::MakeMlirFwdInvokerFactory(ctx);
-    result.construction_params.push_back(construction_parameters);
-    return result;
-#else
-    std::ignore = ctx;
-    return {};
-#endif
+    return mlir_handle;
 }
 
+} // namespace mlir
 } // namespace solver
 } // namespace miopen
