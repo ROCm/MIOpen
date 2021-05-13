@@ -440,14 +440,26 @@ int ConvDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     inflags.Parse(argc, argv);
 
     // try to set a default layout value for 3d conv if not specified from cmd line
-    int spatial_dim = inflags.GetValueInt("spatial_dim");
-    if(spatial_dim == 3 &&
-       (inflags.GetValueStr("in_layout") == "NCHW" && inflags.GetValueStr("fil_layout") == "NCHW" &&
-        inflags.GetValueStr("out_layout") == "NCHW"))
+    int spatial_dim             = inflags.GetValueInt("spatial_dim");
+    bool layout_not_initialized = inflags.GetValueStr("in_layout").empty() &&
+                                  inflags.GetValueStr("fil_layout").empty() &&
+                                  inflags.GetValueStr("out_layout").empty();
+
+    if(layout_not_initialized && spatial_dim == 2)
+    {
+        inflags.SetValue("in_layout", "NCHW");
+        inflags.SetValue("fil_layout", "NCHW");
+        inflags.SetValue("out_layout", "NCHW");
+    }
+    else if(layout_not_initialized && spatial_dim == 3)
     {
         inflags.SetValue("in_layout", "NCDHW");
         inflags.SetValue("fil_layout", "NCDHW");
         inflags.SetValue("out_layout", "NCDHW");
+    }
+    else if(layout_not_initialized)
+    {
+        MIOPEN_THROW("unsupported spatial_dim to set default tensor layout");
     }
 
     num_iterations = inflags.GetValueInt("iter");
@@ -578,9 +590,21 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
 template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
-    inflags.AddInputFlag("in_layout", 'I', "NCHW", "Input Layout (Default=NCHW)", "string");
-    inflags.AddInputFlag("out_layout", 'O', "NCHW", "Output Layout (Default=NCHW)", "string");
-    inflags.AddInputFlag("fil_layout", 'f', "NCHW", "Filter Layout (Default=NCHW)", "string");
+    inflags.AddInputFlag("in_layout",
+                         'I',
+                         "",
+                         "Input Layout (Default=NCHW for 2d conv, NCDHW for 3d conv)",
+                         "string");
+    inflags.AddInputFlag("out_layout",
+                         'O',
+                         "",
+                         "Output Layout (Default=NCHW for 2d conv, NCDHW for 3d conv)",
+                         "string");
+    inflags.AddInputFlag("fil_layout",
+                         'f',
+                         "",
+                         "Filter Layout (Default=NCHW for 2d conv, NCDHW for 3d conv)",
+                         "string");
     inflags.AddInputFlag(
         "spatial_dim", '_', "2", "convolution spatial dimension (Default-2)", "int");
     inflags.AddInputFlag("forw",
