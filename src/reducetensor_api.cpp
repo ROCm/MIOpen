@@ -59,7 +59,7 @@ static void LogCmdRedux(const miopen::ReduceTensorDescriptor reduceTensorDesc,
         ss << " -A " << *reinterpret_cast<const float*>(alpha);
         ss << " -B " << *reinterpret_cast<const float*>(beta);
         ss << " -C " << reduceTensorDesc.reduceTensorCompType_;
-        const auto inLens = aDesc.GetLengths();
+        const auto& inLens = aDesc.GetLengths();
         std::vector<std::string> strInLens;
         std::transform(inLens.begin(),
                        inLens.end(),
