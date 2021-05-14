@@ -183,3 +183,9 @@ double InputFlags::GetValueDouble(const std::string& long_name) const
 
     return value;
 }
+
+void InputFlags::SetValue(const std::string& long_name, const std::string& new_value)
+{
+    char short_name                = FindShortName(long_name);
+    MapInputs.at(short_name).value = new_value;
+}

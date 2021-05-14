@@ -439,6 +439,18 @@ int ConvDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
 
+    // try to set a default layout value for 3d conv if not specified from cmd line
+    int spatial_dim = inflags.GetValueInt("spatial_dim");
+
+    const std::string default_layout = (spatial_dim == 2) ? "NCHW" : "NCDHW";
+
+    if(inflags.GetValueStr("in_layout").empty())
+        inflags.SetValue("in_layout", default_layout);
+    if(inflags.GetValueStr("fil_layout").empty())
+        inflags.SetValue("fil_layout", default_layout);
+    if(inflags.GetValueStr("out_layout").empty())
+        inflags.SetValue("out_layout", default_layout);
+
     num_iterations = inflags.GetValueInt("iter");
     if(num_iterations < 1)
     {
@@ -567,9 +579,21 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
 template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
-    inflags.AddInputFlag("in_layout", 'I', "NCHW", "Input Layout (Default=NCHW)", "string");
-    inflags.AddInputFlag("out_layout", 'O', "NCHW", "Output Layout (Default=NCHW)", "string");
-    inflags.AddInputFlag("fil_layout", 'f', "NCHW", "Filter Layout (Default=NCHW)", "string");
+    inflags.AddInputFlag("in_layout",
+                         'I',
+                         "",
+                         "Input Layout (Default=NCHW for 2d conv, NCDHW for 3d conv)",
+                         "string");
+    inflags.AddInputFlag("out_layout",
+                         'O',
+                         "",
+                         "Output Layout (Default=NCHW for 2d conv, NCDHW for 3d conv)",
+                         "string");
+    inflags.AddInputFlag("fil_layout",
+                         'f',
+                         "",
+                         "Filter Layout (Default=NCHW for 2d conv, NCDHW for 3d conv)",
+                         "string");
     inflags.AddInputFlag(
         "spatial_dim", '_', "2", "convolution spatial dimension (Default-2)", "int");
     inflags.AddInputFlag("forw",
