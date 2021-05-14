@@ -432,10 +432,10 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     }
 
 #if(MIO_BN_REM4)
-    remkey = (lid << 2) + MIO_BN_LESS4;
-    nidx   = remkey / MIO_BN_HW;
-    hwidx  = remkey - (nidx * MIO_BN_HW);
-    index  = nidx * MIO_BN_CHW + chwid + hwidx;
+    unsigned int remkey_calc = (lid << 2) + MIO_BN_LESS4;
+    nidx                     = remkey_calc / MIO_BN_HW;
+    hwidx                    = remkey_calc - (nidx * MIO_BN_HW);
+    index                    = nidx * MIO_BN_CHW + chwid + hwidx;
     if(index < ((MIO_BN_NCHW / 4) * 4))
     {
         xread4  = *((const global _FLOAT4*)(x_in + index));
@@ -454,10 +454,10 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
         ds = mad(xhat4.w, (_FLOAT_PREC)dyRead4.w, ds);
     }
 
-    remkey = lid + (MIO_BN_NCHW / 4) * 4;
-    nidx   = remkey / MIO_BN_HW;
-    hwidx  = remkey - (nidx * MIO_BN_HW);
-    index  = nidx * MIO_BN_CHW + chwid + hwidx;
+    remkey_calc = lid + (MIO_BN_NCHW / 4) * 4;
+    nidx        = remkey_calc / MIO_BN_HW;
+    hwidx       = remkey_calc - (nidx * MIO_BN_HW);
+    index       = nidx * MIO_BN_CHW + chwid + hwidx;
     if(index < MIO_BN_NCHW)
     {
         _FLOAT xread_rem     = *((const global _FLOAT*)(x_in + index));
