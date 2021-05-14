@@ -80,7 +80,8 @@ bool CheckInvokerSupport(const std::string& algo)
            algo == "miopenConvolutionBwdDataAlgoImplicitGEMM" ||
            algo == "miopenConvolutionBwdWeightsAlgoImplicitGEMM" ||
            algo == "miopenConvolutionFwdAlgoFFT" || algo == "miopenConvolutionBwdDataAlgoFFT" ||
-           algo == "miopenConvolutionFwdAlgoGEMM" || algo == "miopenConvolutionBwdDataAlgoGEMM";
+           algo == "miopenConvolutionFwdAlgoGEMM" || algo == "miopenConvolutionBwdDataAlgoGEMM" ||
+           algo == "miopenConvolutionBwdWeightsAlgoGEMM";
 }
 
 template <class TDb>
