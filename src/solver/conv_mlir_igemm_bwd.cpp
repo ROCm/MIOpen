@@ -29,7 +29,7 @@
 #include <miopen/env.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
-#include <miopen/solver/mlir_util.hpp>
+#include <miopen/solver/mlir_common.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD)
 
@@ -112,9 +112,9 @@ ConvSolution ConvMlirIgemmBwd::GetSolution(const ConvolutionContext& ctx) const
     // clang-format off
     using CI = ConvolutionContextInterpreter;
 
-    std::string in_layout = InsertGToLayout(CI::GetInputLayout(ctx), 'C');
-    std::string fil_layout = InsertGToLayout(CI::GetFilterLayout(ctx), 'N');
-    std::string out_layout = InsertGToLayout(CI::GetOutputLayout(ctx), 'C');
+    std::string in_layout = mlir::InsertGToLayout(CI::GetInputLayout(ctx), 'C');
+    std::string fil_layout = mlir::InsertGToLayout(CI::GetFilterLayout(ctx), 'N');
+    std::string out_layout = mlir::InsertGToLayout(CI::GetOutputLayout(ctx), 'C');
 
     std::string data_type = ctx.IsFp32() ? "fp32" : "fp16";
 
