@@ -75,8 +75,10 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMPILE_ONLY)
 #ifdef CPPCHECK
 // Keep the value unknown in cppcheck since this can differ between opencl and hip
 static bool IsBF16PathValid;
+static bool IsGemmFp16Supported;
 #else
-static const bool IsBF16PathValid = (MIOPEN_USE_ROCBLAS == 1 || MIOPEN_USE_MIOPENTENSILE == 1);
+static const bool IsBF16PathValid     = (MIOPEN_USE_ROCBLAS == 1 || MIOPEN_USE_MIOPENTENSILE == 1);
+static const bool IsGemmFp16Supported = (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE);
 #endif
 
 static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
@@ -85,6 +87,14 @@ static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
 {
     return xDesc.GetType() == miopenBFloat16 || yDesc.GetType() == miopenBFloat16 ||
            wDesc.GetType() == miopenBFloat16;
+}
+
+static inline bool IsAnyBufferFp16(const TensorDescriptor& xDesc,
+                                   const TensorDescriptor& yDesc,
+                                   const TensorDescriptor& wDesc)
+{
+    return xDesc.GetType() == miopenHalf || yDesc.GetType() == miopenHalf ||
+           wDesc.GetType() == miopenHalf;
 }
 #endif
 
@@ -669,7 +679,8 @@ bool ConvolutionDescriptor::IsGemmApplicableWrw(const TensorDescriptor& dyDesc,
 {
 #if MIOPEN_USE_GEMM
     if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) &&
-       !(IsAnyBufferBF16(xDesc, dyDesc, dwDesc) && !IsBF16PathValid))
+       !(IsAnyBufferBF16(xDesc, dyDesc, dwDesc) && !IsBF16PathValid) &&
+       !(IsAnyBufferFp16(xDesc, dyDesc, dwDesc) && !IsGemmFp16Supported))
     {
         const std::size_t spatial_dim = GetSpatialDimension();
         const auto wei_spatial = boost::adaptors::slice(dwDesc.GetLengths(), 2, 2 + spatial_dim);
@@ -1644,7 +1655,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         perf_db = UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
 #if MIOPEN_USE_GEMM
             if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) &&
-               !(IsAnyBufferBF16(xDesc, dyDesc, dwDesc) && !IsBF16PathValid))
+               !(IsAnyBufferBF16(xDesc, dyDesc, dwDesc) && !IsBF16PathValid) &&
+               !(IsAnyBufferFp16(xDesc, dyDesc, dwDesc) && !IsGemmFp16Supported))
             {
                 const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
 
