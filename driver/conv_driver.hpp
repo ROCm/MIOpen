@@ -440,27 +440,16 @@ int ConvDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     inflags.Parse(argc, argv);
 
     // try to set a default layout value for 3d conv if not specified from cmd line
-    int spatial_dim             = inflags.GetValueInt("spatial_dim");
-    bool layout_not_initialized = inflags.GetValueStr("in_layout").empty() &&
-                                  inflags.GetValueStr("fil_layout").empty() &&
-                                  inflags.GetValueStr("out_layout").empty();
+    int spatial_dim = inflags.GetValueInt("spatial_dim");
 
-    if(layout_not_initialized && spatial_dim == 2)
-    {
-        inflags.SetValue("in_layout", "NCHW");
-        inflags.SetValue("fil_layout", "NCHW");
-        inflags.SetValue("out_layout", "NCHW");
-    }
-    else if(layout_not_initialized && spatial_dim == 3)
-    {
-        inflags.SetValue("in_layout", "NCDHW");
-        inflags.SetValue("fil_layout", "NCDHW");
-        inflags.SetValue("out_layout", "NCDHW");
-    }
-    else if(layout_not_initialized)
-    {
-        MIOPEN_THROW("unsupported spatial_dim to set default tensor layout");
-    }
+    const std::string default_layout = (spatial_dim == 2) ? "NCHW" : "NCDHW";
+
+    if(inflags.GetValueStr("in_layout").empty())
+        inflags.SetValue("in_layout", default_layout);
+    if(inflags.GetValueStr("fil_layout").empty())
+        inflags.SetValue("fil_layout", default_layout);
+    if(inflags.GetValueStr("out_layout").empty())
+        inflags.SetValue("out_layout", default_layout);
 
     num_iterations = inflags.GetValueInt("iter");
     if(num_iterations < 1)
