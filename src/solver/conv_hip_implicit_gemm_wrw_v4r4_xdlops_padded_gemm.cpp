@@ -1134,7 +1134,7 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsApplicable(const Convolutio
         return false;
     }
 
-    // this particular HeuristicInit is so comprehensive, that if it cannot predict a valid
+// this particular HeuristicInit is so comprehensive, that if it cannot predict a valid
 #if WORKAROUND_MI100_BF16_FATAL_COMPILER_ERRORS
     if(ctx.GetStream().GetDeviceName() == "gfx908" && ctx.IsBfp16())
         return false;
