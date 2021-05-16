@@ -176,11 +176,15 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmBBlockCopyPerformancePara
         SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, GemmNPerBlock);
 
         // calculate vector length on gemmn dimension
-        const auto y = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-        const auto x = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+        const auto y     = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+        const auto x     = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+        const auto left_pad_h = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
+        const auto left_pad_w = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
+        const auto right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
+        const auto right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
 
         // \todo too conversative
-        if(y == 1 && x == 1)
+        if(y == 1 && x == 1 && left_pad_h == 0 && left_pad_w == 0 && right_pad_h == 0 && right_pad_w == 0)
         {
             const auto ho        = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
             const auto wo        = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
