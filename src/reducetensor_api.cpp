@@ -30,6 +30,56 @@
 #include <miopen/tensor_ops.hpp>
 #include <algorithm>
 
+static void LogCmdRedux(const miopen::ReduceTensorDescriptor reduceTensorDesc,
+                        const miopen::TensorDescriptor aDesc,
+                        const miopen::TensorDescriptor cDesc,
+                        const void* alpha,
+                        const void* beta)
+{
+    if(miopen::IsLoggingCmd())
+    {
+        std::stringstream ss;
+        if(aDesc.GetType() == miopenHalf)
+            ss << "reducefp16";
+        else if(aDesc.GetType() == miopenBFloat16)
+            ss << "reducebfp16";
+        else if(aDesc.GetType() == miopenInt8 || aDesc.GetType() == miopenInt8x4)
+            ss << "reduceint8";
+        else
+            ss << "reduce";
+
+        ss << " -A " << *reinterpret_cast<const float*>(alpha);
+        ss << " -B " << *reinterpret_cast<const float*>(beta);
+        ss << " -C " << reduceTensorDesc.reduceTensorCompType_;
+        const auto& inLens = aDesc.GetLengths();
+        std::vector<std::string> strInLens;
+        std::transform(inLens.begin(),
+                       inLens.end(),
+                       std::back_inserter(strInLens),
+                       [](const int x) { return std::to_string(x); });
+        ss << " -D " << miopen::JoinStrings(strInLens, ",");
+        ss << " -I " << reduceTensorDesc.reduceTensorIndices_;
+        ss << " -N " << reduceTensorDesc.reduceTensorNanOpt_;
+        ss << " -O " << reduceTensorDesc.reduceTensorOp_;
+        std::vector<int> dimsToReduce;
+        int i = 0;
+        for(const auto& len : cDesc.GetLengths())
+        {
+            if(len == 1)
+                dimsToReduce.push_back(i);
+            ++i;
+        }
+        std::vector<std::string> strDimsToReduce;
+        std::transform(dimsToReduce.begin(),
+                       dimsToReduce.end(),
+                       std::back_inserter(strDimsToReduce),
+                       [](const int x) { return std::to_string(x); });
+        ss << " -R " << miopen::JoinStrings(strDimsToReduce, ",");
+        // const auto reduceIndicesType = reduceTensorDesc.reduceTensorIndicesType_;
+        MIOPEN_LOG_DRIVER_CMD(ss.str());
+    }
+}
+
 extern "C" miopenStatus_t
 miopenCreateReduceTensorDescriptor(miopenReduceTensorDescriptor_t* reduceTensorDesc)
 {
@@ -151,6 +201,8 @@ extern "C" miopenStatus_t miopenReduceTensor(miopenHandle_t handle,
                         beta,
                         cDesc,
                         C);
+    LogCmdRedux(
+        miopen::deref(reduceTensorDesc), miopen::deref(aDesc), miopen::deref(cDesc), alpha, beta);
 
     return miopen::try_([&] {
         miopen::deref(reduceTensorDesc)
