@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                2.9.0
+                2.11.0
               </div>
             
           
@@ -85,6 +85,8 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/17/2021 [2.11.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/25/2021 [2.10.0]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/01/2020 [ 2.9.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">10/28/2020 [ 2.8.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/18/2020 [ 2.7.0 ]</a></li>
@@ -201,7 +203,6 @@
 <li class="toctree-l1"><a class="reference internal" href="perfdatabase.html">Performance Database</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="perfdatabase.html#auto-tuning-the-kernels">Auto-tuning the kernels.</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="perfdatabase.html#miopen-find-enforce">MIOPEN_FIND_ENFORCE</a></li>
-<li class="toctree-l3"><a class="reference internal" href="perfdatabase.html#miopen-find-enforce-scope">MIOPEN_FIND_ENFORCE_SCOPE</a></li>
 <li class="toctree-l3"><a class="reference internal" href="perfdatabase.html#updating-miopen-and-the-user-db">Updating MIOpen and the User Db</a></li>
 </ul>
 </li>
@@ -531,6 +532,11 @@
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">CXX</span><span class="o">=/</span><span class="n">opt</span><span class="o">/</span><span class="n">rocm</span><span class="o">/</span><span class="n">llvm</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">clang</span><span class="o">++</span> <span class="n">cmake</span> <span class="o">-</span><span class="n">DMIOPEN_BACKEND</span><span class="o">=</span><span class="n">HIP</span> <span class="o">-</span><span class="n">DMIOPEN_EMBED_BUILD</span><span class="o">=</span><span class="n">On</span> <span class="o">-</span><span class="n">DCMAKE_PREFIX_PATH</span><span class="o">=</span><span class="s2">&quot;/some/local/dir&quot;</span> <span class="o">..</span>
 </pre></div>
 </div>
+<p>To enable HIP kernels in MIOpen while using embedded builds add: <code class="docutils literal"><span class="pre">-DMIOPEN_USE_HIP_KERNELS=On</span></code> to the configure line.
+For example:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">CXX</span><span class="o">=/</span><span class="n">opt</span><span class="o">/</span><span class="n">rocm</span><span class="o">/</span><span class="n">llvm</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">clang</span><span class="o">++</span> <span class="n">cmake</span> <span class="o">-</span><span class="n">DMIOPEN_BACKEND</span><span class="o">=</span><span class="n">HIP</span> <span class="o">-</span><span class="n">DMIOPEN_USE_HIP_KERNELS</span><span class="o">=</span><span class="n">On</span> <span class="o">-</span><span class="n">DMIOPEN_EMBED_BUILD</span><span class="o">=</span><span class="n">On</span> <span class="o">-</span><span class="n">DCMAKE_PREFIX_PATH</span><span class="o">=</span><span class="s2">&quot;/some/local/dir&quot;</span> <span class="o">..</span>
+</pre></div>
+</div>
 </div>
 <div class="section" id="embedding-find-db-and-performance-database">
 <span id="embedding-find-db-and-performance-database"></span><h2>Embedding Find-Db and Performance database:<a class="headerlink" href="#embedding-find-db-and-performance-database" title="Permalink to this headline">¶</a></h2>
@@ -639,7 +645,7 @@ For example for the architecture gfx906 with 64 compute units:</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.9.0',
+            VERSION:'2.11.0',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

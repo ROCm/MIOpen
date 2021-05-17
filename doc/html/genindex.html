@@ -57,7 +57,7 @@
             
             
               <div class="version">
-                2.9.0
+                2.11.0
               </div>
             
           
@@ -84,6 +84,8 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/17/2021 [2.11.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/25/2021 [2.10.0]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/01/2020 [ 2.9.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">10/28/2020 [ 2.8.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/18/2020 [ 2.7.0 ]</a></li>
@@ -200,7 +202,6 @@
 <li class="toctree-l1"><a class="reference internal" href="perfdatabase.html">Performance Database</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="perfdatabase.html#auto-tuning-the-kernels">Auto-tuning the kernels.</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="perfdatabase.html#miopen-find-enforce">MIOPEN_FIND_ENFORCE</a></li>
-<li class="toctree-l3"><a class="reference internal" href="perfdatabase.html#miopen-find-enforce-scope">MIOPEN_FIND_ENFORCE_SCOPE</a></li>
 <li class="toctree-l3"><a class="reference internal" href="perfdatabase.html#updating-miopen-and-the-user-db">Updating MIOpen and the User Db</a></li>
 </ul>
 </li>
@@ -535,6 +536,10 @@
 </li>
       <li><a href="reduction.html#_CPPv224MIOPEN_REDUCE_TENSOR_ADD">MIOPEN_REDUCE_TENSOR_ADD (C++ enumerator)</a>
 </li>
+      <li><a href="reduction.html#_CPPv225MIOPEN_REDUCE_TENSOR_AMAX">MIOPEN_REDUCE_TENSOR_AMAX (C++ enumerator)</a>
+</li>
+      <li><a href="reduction.html#_CPPv224MIOPEN_REDUCE_TENSOR_AVG">MIOPEN_REDUCE_TENSOR_AVG (C++ enumerator)</a>
+</li>
       <li><a href="reduction.html#_CPPv238MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES">MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES (C++ enumerator)</a>
 </li>
       <li><a href="reduction.html#_CPPv224MIOPEN_REDUCE_TENSOR_MAX">MIOPEN_REDUCE_TENSOR_MAX (C++ enumerator)</a>
@@ -544,6 +549,10 @@
       <li><a href="reduction.html#_CPPv224MIOPEN_REDUCE_TENSOR_MUL">MIOPEN_REDUCE_TENSOR_MUL (C++ enumerator)</a>
 </li>
       <li><a href="reduction.html#_CPPv231MIOPEN_REDUCE_TENSOR_NO_INDICES">MIOPEN_REDUCE_TENSOR_NO_INDICES (C++ enumerator)</a>
+</li>
+      <li><a href="reduction.html#_CPPv226MIOPEN_REDUCE_TENSOR_NORM1">MIOPEN_REDUCE_TENSOR_NORM1 (C++ enumerator)</a>
+</li>
+      <li><a href="reduction.html#_CPPv226MIOPEN_REDUCE_TENSOR_NORM2">MIOPEN_REDUCE_TENSOR_NORM2 (C++ enumerator)</a>
 </li>
       <li><a href="dropout.html#_CPPv224MIOPEN_RNG_PSEUDO_XORWOW">MIOPEN_RNG_PSEUDO_XORWOW (C++ enumerator)</a>
 </li>
@@ -773,12 +782,12 @@
 </li>
       <li><a href="dropout.html#_CPPv226miopenGetDropoutDescriptor25miopenDropoutDescriptor_t14miopenHandle_tPfPPvPyPbPbP15miopenRNGType_t">miopenGetDropoutDescriptor (C++ function)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="handle.html#_CPPv219miopenGetKernelTime14miopenHandle_tPf">miopenGetKernelTime (C++ function)</a>
 </li>
       <li><a href="lrn.html#_CPPv222miopenGetLRNDescriptorK21miopenLRNDescriptor_tP15miopenLRNMode_tPjPdPdPd">miopenGetLRNDescriptor (C++ function)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="pooling.html#_CPPv228miopenGetNdPoolingDescriptorK25miopenPoolingDescriptor_tiP19miopenPoolingMode_tPiPiPiPi">miopenGetNdPoolingDescriptor (C++ function)</a>
 </li>
       <li><a href="pooling.html#_CPPv232miopenGetPoolingForwardOutputDimK25miopenPoolingDescriptor_tK24miopenTensorDescriptor_tPiPiPiPi">miopenGetPoolingForwardOutputDim (C++ function)</a>
@@ -1007,6 +1016,8 @@
 </li>
       <li><a href="handle.html#_CPPv219miopenStatusBadParm">miopenStatusBadParm (C++ enumerator)</a>
 </li>
+      <li><a href="handle.html#_CPPv232miopenStatusGpuOperationsSkipped">miopenStatusGpuOperationsSkipped (C++ enumerator)</a>
+</li>
       <li><a href="handle.html#_CPPv225miopenStatusInternalError">miopenStatusInternalError (C++ enumerator)</a>
 </li>
       <li><a href="handle.html#_CPPv224miopenStatusInvalidValue">miopenStatusInvalidValue (C++ enumerator)</a>
@@ -1074,7 +1085,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.9.0',
+            VERSION:'2.11.0',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

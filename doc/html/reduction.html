@@ -57,7 +57,7 @@
             
             
               <div class="version">
-                2.9.0
+                2.11.0
               </div>
             
           
@@ -84,6 +84,8 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/17/2021 [2.11.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/25/2021 [2.10.0]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/01/2020 [ 2.9.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">10/28/2020 [ 2.8.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/18/2020 [ 2.7.0 ]</a></li>
@@ -200,7 +202,6 @@
 <li class="toctree-l1"><a class="reference internal" href="perfdatabase.html">Performance Database</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="perfdatabase.html#auto-tuning-the-kernels">Auto-tuning the kernels.</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="perfdatabase.html#miopen-find-enforce">MIOPEN_FIND_ENFORCE</a></li>
-<li class="toctree-l3"><a class="reference internal" href="perfdatabase.html#miopen-find-enforce-scope">MIOPEN_FIND_ENFORCE_SCOPE</a></li>
 <li class="toctree-l3"><a class="reference internal" href="perfdatabase.html#updating-miopen-and-the-user-db">Updating MIOpen and the User Db</a></li>
 </ul>
 </li>
@@ -526,13 +527,13 @@
 <p><em>Values:</em></p>
 <dl class="enumerator">
 <dt id="_CPPv224MIOPEN_REDUCE_TENSOR_ADD">
-<span class="target" id="group__TensorReduce_1ga70e205d9a10688c29474cd8795521dddae88d3f61f4d036c581d47d2242011edb"></span><code class="descname">MIOPEN_REDUCE_TENSOR_ADD</code> = 0<a class="headerlink" href="#_CPPv224MIOPEN_REDUCE_TENSOR_ADD" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="miopen_8h_1ga70e205d9a10688c29474cd8795521dddae88d3f61f4d036c581d47d2242011edb"></span><code class="descname">MIOPEN_REDUCE_TENSOR_ADD</code> = 0<a class="headerlink" href="#_CPPv224MIOPEN_REDUCE_TENSOR_ADD" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>the operation is adding the values of the reduced elements </p>
 </dd></dl>
 
 <dl class="enumerator">
 <dt id="_CPPv224MIOPEN_REDUCE_TENSOR_MUL">
-<span class="target" id="group__TensorReduce_1ga70e205d9a10688c29474cd8795521ddda509f2659e4d54a99d17844ee8de19130"></span><code class="descname">MIOPEN_REDUCE_TENSOR_MUL</code><p>=</p>
+<span class="target" id="miopen_8h_1ga70e205d9a10688c29474cd8795521ddda509f2659e4d54a99d17844ee8de19130"></span><code class="descname">MIOPEN_REDUCE_TENSOR_MUL</code><p>=</p>
 <p>        1</p>
 <a class="headerlink" href="#_CPPv224MIOPEN_REDUCE_TENSOR_MUL" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>the operation is multiplying the values of the reduced elements </p>
@@ -540,7 +541,7 @@
 
 <dl class="enumerator">
 <dt id="_CPPv224MIOPEN_REDUCE_TENSOR_MIN">
-<span class="target" id="group__TensorReduce_1ga70e205d9a10688c29474cd8795521dddae1af9483b548971223d29c8f12862820"></span><code class="descname">MIOPEN_REDUCE_TENSOR_MIN</code><p>=</p>
+<span class="target" id="miopen_8h_1ga70e205d9a10688c29474cd8795521dddae1af9483b548971223d29c8f12862820"></span><code class="descname">MIOPEN_REDUCE_TENSOR_MIN</code><p>=</p>
 <p>        2</p>
 <a class="headerlink" href="#_CPPv224MIOPEN_REDUCE_TENSOR_MIN" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>the operation is getting the minimum value of the reduced elements </p>
@@ -548,10 +549,40 @@
 
 <dl class="enumerator">
 <dt id="_CPPv224MIOPEN_REDUCE_TENSOR_MAX">
-<span class="target" id="group__TensorReduce_1ga70e205d9a10688c29474cd8795521ddda6c82f5dec443a93777291a68de6709fe"></span><code class="descname">MIOPEN_REDUCE_TENSOR_MAX</code><p>=</p>
+<span class="target" id="miopen_8h_1ga70e205d9a10688c29474cd8795521ddda6c82f5dec443a93777291a68de6709fe"></span><code class="descname">MIOPEN_REDUCE_TENSOR_MAX</code><p>=</p>
 <p>        3</p>
 <a class="headerlink" href="#_CPPv224MIOPEN_REDUCE_TENSOR_MAX" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>the operation is getting the maximum value of the reduced elements </p>
+</dd></dl>
+
+<dl class="enumerator">
+<dt id="_CPPv225MIOPEN_REDUCE_TENSOR_AMAX">
+<span class="target" id="miopen_8h_1ga70e205d9a10688c29474cd8795521dddac956caf0ac6e9ffbf647eca0bb3c13ab"></span><code class="descname">MIOPEN_REDUCE_TENSOR_AMAX</code><p>=</p>
+<p>        4</p>
+<a class="headerlink" href="#_CPPv225MIOPEN_REDUCE_TENSOR_AMAX" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>the operation is getting the maximum absolute value of the reduced elements </p>
+</dd></dl>
+
+<dl class="enumerator">
+<dt id="_CPPv224MIOPEN_REDUCE_TENSOR_AVG">
+<span class="target" id="miopen_8h_1ga70e205d9a10688c29474cd8795521ddda7088afde0cec574d45add46d4f1d5534"></span><code class="descname">MIOPEN_REDUCE_TENSOR_AVG</code><p>=</p>
+<p>        5</p>
+<a class="headerlink" href="#_CPPv224MIOPEN_REDUCE_TENSOR_AVG" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>the operation is getting the averaged value of the reduced elements </p>
+</dd></dl>
+
+<dl class="enumerator">
+<dt id="_CPPv226MIOPEN_REDUCE_TENSOR_NORM1">
+<span class="target" id="miopen_8h_1ga70e205d9a10688c29474cd8795521ddda9df43ac0efb3c7061e2a131c337050b8"></span><code class="descname">MIOPEN_REDUCE_TENSOR_NORM1</code><p>=</p>
+<p>        6</p>
+<a class="headerlink" href="#_CPPv226MIOPEN_REDUCE_TENSOR_NORM1" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>the operation is adding the absolute values of the reduced elements </p>
+</dd></dl>
+
+<dl class="enumerator">
+<dt id="_CPPv226MIOPEN_REDUCE_TENSOR_NORM2">
+<span class="target" id="miopen_8h_1ga70e205d9a10688c29474cd8795521dddae8a5d817789938ae4cf77d0496b7122f"></span><code class="descname">MIOPEN_REDUCE_TENSOR_NORM2</code> = 7<a class="headerlink" href="#_CPPv226MIOPEN_REDUCE_TENSOR_NORM2" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>the operation is getting the square root of the sum of squares of the reduced elements </p>
 </dd></dl>
 
 </dd></dl>
@@ -587,13 +618,13 @@
 <p><em>Values:</em></p>
 <dl class="enumerator">
 <dt id="_CPPv231MIOPEN_REDUCE_TENSOR_NO_INDICES">
-<span class="target" id="group__TensorReduce_1ga4dd527c6b506c34ec06d641551d78b7ca630bd9b0b0f29fdd4acd7f1428c9e112"></span><code class="descname">MIOPEN_REDUCE_TENSOR_NO_INDICES</code> = 0<a class="headerlink" href="#_CPPv231MIOPEN_REDUCE_TENSOR_NO_INDICES" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="miopen_8h_1ga4dd527c6b506c34ec06d641551d78b7ca630bd9b0b0f29fdd4acd7f1428c9e112"></span><code class="descname">MIOPEN_REDUCE_TENSOR_NO_INDICES</code> = 0<a class="headerlink" href="#_CPPv231MIOPEN_REDUCE_TENSOR_NO_INDICES" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Does not compuate indices </p>
 </dd></dl>
 
 <dl class="enumerator">
 <dt id="_CPPv238MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES">
-<span class="target" id="group__TensorReduce_1ga4dd527c6b506c34ec06d641551d78b7ca04e405c32e661195b6af8a3c8d1fdf24"></span><code class="descname">MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES</code> = 1<a class="headerlink" href="#_CPPv238MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="miopen_8h_1ga4dd527c6b506c34ec06d641551d78b7ca04e405c32e661195b6af8a3c8d1fdf24"></span><code class="descname">MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES</code> = 1<a class="headerlink" href="#_CPPv238MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Compute the relative, flatted indices </p>
 </dd></dl>
 
@@ -609,25 +640,25 @@
 <p><em>Values:</em></p>
 <dl class="enumerator">
 <dt id="_CPPv220MIOPEN_32BIT_INDICES">
-<span class="target" id="group__TensorReduce_1ga8c58d2c6bd149d6140ea81e88374d82babe4c1ddd72f1a427a032ed9ccff8a8bb"></span><code class="descname">MIOPEN_32BIT_INDICES</code> = 0<a class="headerlink" href="#_CPPv220MIOPEN_32BIT_INDICES" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="miopen_8h_1ga8c58d2c6bd149d6140ea81e88374d82babe4c1ddd72f1a427a032ed9ccff8a8bb"></span><code class="descname">MIOPEN_32BIT_INDICES</code> = 0<a class="headerlink" href="#_CPPv220MIOPEN_32BIT_INDICES" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>unsigned integer indices </p>
 </dd></dl>
 
 <dl class="enumerator">
 <dt id="_CPPv220MIOPEN_64BIT_INDICES">
-<span class="target" id="group__TensorReduce_1ga8c58d2c6bd149d6140ea81e88374d82bafd7b2202fcf90028f49773fde1b11435"></span><code class="descname">MIOPEN_64BIT_INDICES</code> = 1<a class="headerlink" href="#_CPPv220MIOPEN_64BIT_INDICES" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="miopen_8h_1ga8c58d2c6bd149d6140ea81e88374d82bafd7b2202fcf90028f49773fde1b11435"></span><code class="descname">MIOPEN_64BIT_INDICES</code> = 1<a class="headerlink" href="#_CPPv220MIOPEN_64BIT_INDICES" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>unsigned long indices </p>
 </dd></dl>
 
 <dl class="enumerator">
 <dt id="_CPPv220MIOPEN_16BIT_INDICES">
-<span class="target" id="group__TensorReduce_1ga8c58d2c6bd149d6140ea81e88374d82badf88480d0cc300ddba2b326b78e68d84"></span><code class="descname">MIOPEN_16BIT_INDICES</code> = 2<a class="headerlink" href="#_CPPv220MIOPEN_16BIT_INDICES" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="miopen_8h_1ga8c58d2c6bd149d6140ea81e88374d82badf88480d0cc300ddba2b326b78e68d84"></span><code class="descname">MIOPEN_16BIT_INDICES</code> = 2<a class="headerlink" href="#_CPPv220MIOPEN_16BIT_INDICES" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>unsigned short indices </p>
 </dd></dl>
 
 <dl class="enumerator">
 <dt id="_CPPv219MIOPEN_8BIT_INDICES">
-<span class="target" id="group__TensorReduce_1ga8c58d2c6bd149d6140ea81e88374d82babae5e385da771a86da08f2873630cf33"></span><code class="descname">MIOPEN_8BIT_INDICES</code> = 3<a class="headerlink" href="#_CPPv219MIOPEN_8BIT_INDICES" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="miopen_8h_1ga8c58d2c6bd149d6140ea81e88374d82babae5e385da771a86da08f2873630cf33"></span><code class="descname">MIOPEN_8BIT_INDICES</code> = 3<a class="headerlink" href="#_CPPv219MIOPEN_8BIT_INDICES" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>unsigned char indices </p>
 </dd></dl>
 
@@ -843,7 +874,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.9.0',
+            VERSION:'2.11.0',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

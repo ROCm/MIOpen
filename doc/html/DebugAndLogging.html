@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                2.9.0
+                2.11.0
               </div>
             
           
@@ -85,6 +85,8 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/17/2021 [2.11.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/25/2021 [2.10.0]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/01/2020 [ 2.9.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">10/28/2020 [ 2.8.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/18/2020 [ 2.7.0 ]</a></li>
@@ -201,7 +203,6 @@
 <li class="toctree-l1"><a class="reference internal" href="perfdatabase.html">Performance Database</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="perfdatabase.html#auto-tuning-the-kernels">Auto-tuning the kernels.</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="perfdatabase.html#miopen-find-enforce">MIOPEN_FIND_ENFORCE</a></li>
-<li class="toctree-l3"><a class="reference internal" href="perfdatabase.html#miopen-find-enforce-scope">MIOPEN_FIND_ENFORCE_SCOPE</a></li>
 <li class="toctree-l3"><a class="reference internal" href="perfdatabase.html#updating-miopen-and-the-user-db">Updating MIOpen and the User Db</a></li>
 </ul>
 </li>
@@ -581,7 +582,6 @@
 <li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_GEMM</span></code> - GEMM convolution algorithm.</li>
 <li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_WINOGRAD</span></code> - Winograd convolution algorithm.</li>
 <li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM</span></code> - Implicit GEMM convolution algorithm.</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_SCGEMM</span></code> - Statically Compiled GEMM convolution algorithm.</li>
 </ul>
 </div>
 <div class="section" id="filtering-by-build-method">
@@ -620,7 +620,6 @@
 <li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1</span></code> - <code class="docutils literal"><span class="pre">ConvAsmBwdWrW1x1</span></code>.</li>
 <li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD11X11</span></code> - <code class="docutils literal"><span class="pre">ConvOclDirectFwd11x11</span></code>.</li>
 <li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN</span></code> - <code class="docutils literal"><span class="pre">ConvOclDirectFwdGen</span></code>.</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD3X3</span></code> - <code class="docutils literal"><span class="pre">ConvOclDirectFwd3x3</span></code>.</li>
 <li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD</span></code> - <code class="docutils literal"><span class="pre">ConvOclDirectFwd</span></code>.</li>
 <li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1</span></code> - <code class="docutils literal"><span class="pre">ConvOclDirectFwd</span></code>.</li>
 <li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2</span></code> - <code class="docutils literal"><span class="pre">ConvOclBwdWrW2&lt;n&gt;</span></code> (where n = <code class="docutils literal"><span class="pre">{1,2,4,8,16}</span></code>), and <code class="docutils literal"><span class="pre">ConvOclBwdWrW2NonTunable</span></code>.</li>
@@ -636,7 +635,8 @@
 </ul>
 </li>
 <li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2</span></code> - <code class="docutils literal"><span class="pre">ConvBinWinogradRxSf3x2</span></code>, FP32/FP16 Fwd/Bwd F(3,2) Winograd.</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3</span></code> - <code class="docutils literal"><span class="pre">ConvBinWinogradRxSf2x3</span></code>, FP32/FP16 Fwd/Bwd F(2,3) Winograd.</li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3</span></code> - <code class="docutils literal"><span class="pre">ConvBinWinogradRxSf2x3</span></code>, FP32/FP16 Fwd/Bwd F(2,3) Winograd, serves group convolutions only.</li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1</span></code> - <code class="docutils literal"><span class="pre">ConvBinWinogradRxSf2x3g1</span></code>, FP32/FP16 Fwd/Bwd F(2,3) Winograd, for non-group convolutions.</li>
 <li>Multi-pass Winograd:<ul>
 <li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X2</span></code> - <code class="docutils literal"><span class="pre">ConvWinograd3x3MultipassWrW&lt;3-2&gt;</span></code>, WrW F(3,2), stride 2 only.</li>
 <li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X3</span></code> - <code class="docutils literal"><span class="pre">ConvWinograd3x3MultipassWrW&lt;3-3&gt;</span></code>, WrW F(3,3), stride 2 only.</li>
@@ -667,9 +667,39 @@
 <li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F4X3</span></code> - <code class="docutils literal"><span class="pre">ConvMPBidirectWinograd_xdlops&lt;4-3&gt;</span></code>, FWD/BWD F(4,3)</li>
 <li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F5X3</span></code> - <code class="docutils literal"><span class="pre">ConvMPBidirectWinograd_xdlops&lt;5-3&gt;</span></code>, FWD/BWD F(5,3)</li>
 <li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F6X3</span></code> - <code class="docutils literal"><span class="pre">ConvMPBidirectWinograd_xdlops&lt;6-3&gt;</span></code>, FWD/BWD F(6,3)</li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM</span> <span class="pre">-</span></code>ConvMPBidirectWinograd*`, FWD/BWD FP16 experemental mode. Disabled by default. This mode is experimental. Use it at your own risk.</li>
 </ul>
 </li>
 <li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_FUSED_WINOGRAD</span></code> - Fused FP32 F(3,3) Winograd, variable filter size.</li>
+</ul>
+<p>Implicit GEMM Solutions:</p>
+<ul class="simple">
+<li>ASM Implicit GEMM<ul>
+<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1</span></code> - <code class="docutils literal"><span class="pre">ConvAsmImplicitGemmV4R1DynamicFwd</span></code></li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1_1X1</span></code> - <code class="docutils literal"><span class="pre">ConvAsmImplicitGemmV4R1DynamicFwd_1x1</span></code></li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_V4R1</span></code> - <code class="docutils literal"><span class="pre">ConvAsmImplicitGemmV4R1DynamicBwd</span></code></li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_V4R1</span></code> - <code class="docutils literal"><span class="pre">ConvAsmImplicitGemmV4R1DynamicWrw</span></code></li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS</span></code> - <code class="docutils literal"><span class="pre">ConvAsmImplicitGemmGTCDynamicFwdXdlops</span></code></li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS</span></code> - <code class="docutils literal"><span class="pre">ConvAsmImplicitGemmGTCDynamicBwdXdlops</span></code></li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS</span></code> - <code class="docutils literal"><span class="pre">ConvAsmImplicitGemmGTCDynamicWrwXdlops</span></code></li>
+</ul>
+</li>
+<li>HIP Implicit GEMM<ul>
+<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1</span></code> - <code class="docutils literal"><span class="pre">ConvHipImplicitGemmV4R1Fwd</span></code></li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4</span></code> - <code class="docutils literal"><span class="pre">ConvHipImplicitGemmV4R4Fwd</span></code></li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1</span></code> - <code class="docutils literal"><span class="pre">ConvHipImplicitGemmBwdDataV1R1</span></code></li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1</span></code> - <code class="docutils literal"><span class="pre">ConvHipImplicitGemmBwdDataV4R1</span></code></li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1</span></code> - <code class="docutils literal"><span class="pre">ConvHipImplicitGemmV4R1WrW</span></code></li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4</span></code> - <code class="docutils literal"><span class="pre">ConvHipImplicitGemmV4R4WrW</span></code></li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_XDLOPS</span></code> - <code class="docutils literal"><span class="pre">ConvHipImplicitGemmForwardV4R4Xdlops</span></code></li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R5_XDLOPS</span></code> - <code class="docutils literal"><span class="pre">ConvHipImplicitGemmForwardV4R5Xdlops</span></code></li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1_XDLOPS</span></code> - <code class="docutils literal"><span class="pre">ConvHipImplicitGemmBwdDataV1R1Xdlops</span></code></li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS</span></code> - <code class="docutils literal"><span class="pre">ConvHipImplicitGemmBwdDataV4R1Xdlops</span></code></li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_XDLOPS</span></code> - <code class="docutils literal"><span class="pre">ConvHipImplicitGemmWrwV4R4Xdlops</span></code></li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_PADDED_GEMM_XDLOPS</span></code> - <code class="docutils literal"><span class="pre">ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm</span></code></li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_PADDED_GEMM_XDLOPS</span></code> - <code class="docutils literal"><span class="pre">ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm</span></code></li>
+</ul>
+</li>
 </ul>
 </div>
 </div>
@@ -688,6 +718,7 @@ both MIOpenGEMM and rocBlas depending on the input configuration:</p>
 <li><code class="docutils literal"><span class="pre">MIOPEN_GEMM_ENFORCE_BACKEND=1</span></code>, use rocBLAS if enabled</li>
 <li><code class="docutils literal"><span class="pre">MIOPEN_GEMM_ENFORCE_BACKEND=2</span></code>, use MIOpenGEMM for FP32, use rocBLAS for FP16 if enabled</li>
 <li><code class="docutils literal"><span class="pre">MIOPEN_GEMM_ENFORCE_BACKEND=3</span></code>, no gemm will be called</li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_GEMM_ENFORCE_BACKEND=4</span></code>, use MIOpenTensile for FP32, use rocBLAS for FP16 if enabled</li>
 <li><code class="docutils literal"><span class="pre">MIOPEN_GEMM_ENFORCE_BACKEND=&lt;any</span> <span class="pre">other</span> <span class="pre">value&gt;</span></code>, use default behavior</li>
 </ul>
 <p>To disable using rocBlas entirely, set the configuration flag <code class="docutils literal"><span class="pre">-DMIOPEN_USE_ROCBLAS=Off</span></code> during MIOpen configuration.</p>
@@ -736,10 +767,11 @@ both MIOpenGEMM and rocBlas depending on the input configuration:</p>
 </ul>
 </li>
 <li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER</span></code> - This variable affects only assembly kernels, and only when ROCm supports both CO v2 and CO v3 (like ROCm 2.10). By default, the newer format is used (CO v3). When this variable is <em>enabled</em>, the behavior is reversed.</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_OPENCL_ENFORCE_COV3</span></code> - Enforces Code Object format for OpenCL kernels. Works with HIP backend only (<code class="docutils literal"><span class="pre">cmake</span> <span class="pre">...</span> <span class="pre">-DMIOPEN_BACKEND=HIP...</span></code>).<ul>
+<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION</span></code> - Enforces Code Object format for OpenCL kernels. Works with HIP backend only (<code class="docutils literal"><span class="pre">cmake</span> <span class="pre">...</span> <span class="pre">-DMIOPEN_BACKEND=HIP...</span></code>).<ul>
 <li>Unset - Automatically detect the required CO version. This is the default.</li>
-<li><code class="docutils literal"><span class="pre">0</span></code> - Always build to CO v2.</li>
-<li><code class="docutils literal"><span class="pre">1</span></code> - Always build to CO v3.</li>
+<li><code class="docutils literal"><span class="pre">2</span></code> - Always build to CO v2.</li>
+<li><code class="docutils literal"><span class="pre">3</span></code> - Always build to CO v3.</li>
+<li><code class="docutils literal"><span class="pre">4</span></code> - Always build to CO v4.</li>
 </ul>
 </li>
 <li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_HIP_ENFORCE_COV3</span></code> - Enforces Code Object format for HIP kernels.<ul>
@@ -752,7 +784,8 @@ both MIOpenGEMM and rocBlas depending on the input configuration:</p>
 </div>
 <div class="section" id="winograd-multi-pass-maximum-workspace-throttling">
 <span id="winograd-multi-pass-maximum-workspace-throttling"></span><h3>Winograd Multi-pass Maximum Workspace throttling<a class="headerlink" href="#winograd-multi-pass-maximum-workspace-throttling" title="Permalink to this headline">¶</a></h3>
-<p><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX</span></code></p>
+<p><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX</span></code> - <code class="docutils literal"><span class="pre">ConvWinograd3x3MultipassWrW</span></code>, WrW
+<code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_WORKSPACE_MAX</span></code> - <code class="docutils literal"><span class="pre">ConvMPBidirectWinograd*</span></code>, FWD BWD</p>
 <p>Syntax of value:</p>
 <ul class="simple">
 <li>decimal or hex (with <code class="docutils literal"><span class="pre">0x</span></code> prefix) value that should fit into <code class="docutils literal"><span class="pre">unsigned</span> <span class="pre">long</span></code> (64 bits).</li>
@@ -816,7 +849,7 @@ both MIOpenGEMM and rocBlas depending on the input configuration:</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.9.0',
+            VERSION:'2.11.0',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
