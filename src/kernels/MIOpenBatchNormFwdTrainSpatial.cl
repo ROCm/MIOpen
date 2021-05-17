@@ -32,9 +32,9 @@
 #pragma clang diagnostic ignored "-Wsometimes-uninitialized"
 #endif
 
-/* #ifdef __AMDGCN__
+#if(MIO_BN_GFX1030 == 1 && __AMDGCN__)
 #undef __AMDGCN__
-#endif */
+#endif
 
 #include "batchnorm_functions.h"
 #include "reduction_functions.h"
@@ -265,7 +265,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     nidx                = remkey / MIO_BN_HW;
     hwidx               = remkey - (nidx * MIO_BN_HW);
     index               = nidx * MIO_BN_CHW + chwid + hwidx;
-    if(index < MIO_BN_NCHW)
+    if(index < (MIO_BN_NCHW - 3))
     {
         read4 = *((const global _FLOAT4*)(in + index));
         mean += (_FLOAT_PREC)read4.x;

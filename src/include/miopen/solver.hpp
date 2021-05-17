@@ -33,6 +33,7 @@
 #include <miopen/logger.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/legacy_exhaustive_search.hpp>
+#include <miopen/rocm_features.hpp>
 #include <miopen/type_name.hpp>
 #include <miopen/miopen.h>
 #include <miopen/buffer_info.hpp>
@@ -44,6 +45,15 @@
 #include <algorithm>
 
 namespace miopen {
+
+namespace debug {
+
+/// If set to true, then always enable ConvDirectNaive* solver, regardless of environment value
+/// MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_* that control enable/disable of these solvers.
+/// Currently used during driver using naive kernel as gpu reference.
+extern bool AlwaysEnableConvDirectNaive;
+
+} // namespace debug
 
 struct AnyInvokeParams;
 
@@ -79,8 +89,6 @@ const std::string& SolverDbId(Solver solver)
 /// solver-specific context objects.
 ///
 /// There could be multiple solvers of the same algorithm for a problem config.
-/// For example, ConvAsm3x3U and ConvOclDirectFwd3x3
-/// are able to solve overlapping sets of 3x3 Direct convolution problems.
 template <class Context>
 struct SolverBase
 {
@@ -115,6 +123,14 @@ struct SolverBase
     /// kernel(s) that consist a Solution. These must go into the kernel as a
     /// run-time parameters.
     bool IsDynamic() const { return false; }
+
+    /// [Informative as of Sep 2020] Returns an approximated value of the expected
+    /// WTI or -2.0 when this value can't be computed. Tips:
+    /// * Value 1.0 corresponds to the 100% utilization of HW capabilities as
+    ///   if Direct computational algorithm is used.
+    /// * [Notice] WTI may exceed 1.0 for highly optimized algorithms like Winograd.
+    /// * @see https://github.com/ROCmSoftwarePlatform/MIOpen/issues/410
+    float GetWti(const Context&) const { return -2.0; }
 
     // Returns the workspace size required by the solver for a given ConvolutionContext
     size_t GetWorkspaceSize(const Context&) const { return 0; };
@@ -355,12 +371,6 @@ struct ConvOclDirectFwd11x11 : SolverBase<ConvolutionContext>
 };
 
 struct ConvOclDirectFwdGen : SolverBase<ConvolutionContext>
-{
-    bool IsApplicable(const ConvolutionContext& params) const;
-    ConvSolution GetSolution(const ConvolutionContext& params) const;
-};
-
-struct ConvOclDirectFwd3x3 : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
@@ -704,13 +714,20 @@ struct PerformanceImplicitGemmBwdDataV4R1Xdlops
     int GemmMPerWave;
     int GemmNPerWave;
 
+    // GemmAThreadCopyMoreGemmK is currently a fix value, is untunable
     bool GemmAThreadCopyMoreGemmK;
     bool GemmBThreadCopyMoreGemmKPack;
 
-    PerformanceImplicitGemmBwdDataV4R1Xdlops(int, int, int, int, int, int, bool, bool);
+    bool use_spare_set;
+    PerformanceImplicitGemmBwdDataV4R1Xdlops(int, int, int, int, int, int, bool, bool, bool);
 
     PerformanceImplicitGemmBwdDataV4R1Xdlops();
-    PerformanceImplicitGemmBwdDataV4R1Xdlops(bool) : PerformanceImplicitGemmBwdDataV4R1Xdlops() {}
+    PerformanceImplicitGemmBwdDataV4R1Xdlops(bool spare);
+    PerformanceImplicitGemmBwdDataV4R1Xdlops(
+        int a, int b, int c, int d, int e, int f, bool g, bool h)
+        : PerformanceImplicitGemmBwdDataV4R1Xdlops(a, b, c, d, e, f, g, h, false)
+    {
+    }
 
     bool operator==(const PerformanceImplicitGemmBwdDataV4R1Xdlops& other) const;
 
@@ -945,9 +962,17 @@ struct PerformanceImplicitGemmForwardV4R5Xdlops
     bool GemmBThreadCopyMoreGemmKPack;
     int GemmBThreadDataPerRead_GemmN;
 
-    PerformanceImplicitGemmForwardV4R5Xdlops(int, int, int, int, int, int, bool, bool, int);
+    bool use_spare_set;
+
+    PerformanceImplicitGemmForwardV4R5Xdlops(int, int, int, int, int, int, bool, bool, int, bool);
     PerformanceImplicitGemmForwardV4R5Xdlops();
-    PerformanceImplicitGemmForwardV4R5Xdlops(bool) : PerformanceImplicitGemmForwardV4R5Xdlops() {}
+    PerformanceImplicitGemmForwardV4R5Xdlops(bool spare);
+
+    PerformanceImplicitGemmForwardV4R5Xdlops(
+        int a, int b, int c, int d, int e, int f, bool g, bool h, int i)
+        : PerformanceImplicitGemmForwardV4R5Xdlops(a, b, c, d, e, f, g, h, i, false)
+    {
+    }
 
     template <class Self, class F>
     static void Visit(Self&& self, F f)
@@ -1274,62 +1299,6 @@ struct ConvAsmImplicitGemmV4R1DynamicFwd_1x1 : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
-struct TunableImplicitGemmGTCDynamic_t
-{
-    std::string direction;
-    std::string precision;
-    int nxb;
-    int nxe;
-
-    int gemm_m_per_block;
-    int gemm_n_per_block;
-    int gemm_k_per_block;
-
-    int wave_tile_m;
-    int wave_tile_n;
-    int wave_step_m;
-    int wave_step_n;
-    int wave_repeat_m;
-    int wave_repeat_n;
-
-    int tensor_a_thread_lengths[4];
-    int tensor_a_cluster_lengths[4];
-    int tensor_b_thread_lengths[4];
-    int tensor_b_cluster_lengths[4];
-    int gemm_k_global_split;
-
-    int GetBlockSize()
-    {
-        const auto WaveSize = 64;
-        auto block_size     = (gemm_m_per_block / (wave_tile_m * wave_step_m * wave_repeat_m)) *
-                          (gemm_n_per_block / (wave_tile_n * wave_step_n * wave_repeat_n)) *
-                          WaveSize;
-        return block_size;
-    }
-
-    std::string GetKernelName()
-    {
-        std::ostringstream kernel_name;
-        kernel_name << "igemm_" << direction << "_gtcx_nchw_" << precision << "_bx" << nxb << "_ex"
-                    << nxe << "_bt" << gemm_m_per_block << "x" << gemm_n_per_block << "x"
-                    << gemm_k_per_block << "_wt" << wave_tile_m << "x" << wave_tile_n << "_ws"
-                    << wave_step_m << "x" << wave_step_n << "_wr" << wave_repeat_m << "x"
-                    << wave_repeat_n << "_ta" << tensor_a_thread_lengths[0] << "x"
-                    << tensor_a_thread_lengths[1] << "x" << tensor_a_thread_lengths[2] << "x"
-                    << tensor_a_thread_lengths[3] << "_" << tensor_a_cluster_lengths[0] << "x"
-                    << tensor_a_cluster_lengths[1] << "x" << tensor_a_cluster_lengths[2] << "x"
-                    << tensor_a_cluster_lengths[3] << "_tb" << tensor_b_thread_lengths[0] << "x"
-                    << tensor_b_thread_lengths[1] << "x" << tensor_b_thread_lengths[2] << "x"
-                    << tensor_b_thread_lengths[3] << "_" << tensor_b_cluster_lengths[0] << "x"
-                    << tensor_b_cluster_lengths[1] << "x" << tensor_b_cluster_lengths[2] << "x"
-                    << tensor_b_cluster_lengths[3];
-        if(gemm_k_global_split != 0)
-            kernel_name << "_gkgs";
-
-        return kernel_name.str();
-    }
-};
-
 struct ConvAsmImplicitGemmV4R1DynamicWrw : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& ctx) const;
@@ -1462,6 +1431,7 @@ struct ConvBinWinogradRxSf2x3 : SolverBase<ConvolutionContext>
 
     bool IsApplicable(const ConvolutionContext& params) const;
     bool IsDynamic() const { return true; }
+    float GetWti(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvBinWinogradRxSf2x3& config,
                              bool disableConfigOverrideFromEnv = false) const;
@@ -1470,6 +1440,14 @@ struct ConvBinWinogradRxSf2x3 : SolverBase<ConvolutionContext>
         assert(group_conv != 0);
         return grid_group_size / group_conv;
     }
+};
+
+struct ConvBinWinogradRxSf2x3g1 : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& params) const;
+    bool IsDynamic() const { return true; }
+    float GetWti(const ConvolutionContext& params) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
 struct ConvBinWinogradRxSFused : SolverBase<ConvolutionContext>
@@ -1565,6 +1543,15 @@ struct ConvMPBidirectWinograd_xdlops : SolverBase<ConvolutionContext>
     {
         return ConvHipImplicitGemmForwardV4R4Xdlops{}.GetPerformanceConfig(
             GetTransformedConvContext(ctx));
+    }
+    bool IsThisSolverDynamic() const { return true; }
+
+    bool IsDynamic() const
+    {
+        return ConvHipImplicitGemmForwardV4R4Xdlops{}.IsDynamic() &&
+               ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>{}
+                   .IsDynamic() &&
+               IsThisSolverDynamic();
     }
 
     PerformanceImplicitGemmForwardV4R4Xdlops Search(const ConvolutionContext&,
@@ -1909,6 +1896,13 @@ struct ConvOclBwdWrW1x1 : SolverBase<ConvolutionContext>
     size_t GetWorkspaceSize(const ConvolutionContext& params) const;
 };
 
+struct fft : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+};
+
 /// Partial implementation.
 struct gemm : SolverBase<ConvolutionContext>
 {
@@ -1928,11 +1922,16 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops : Serializable<PerformanceImplicitGe
     int GemmNPerWave;
     int GemmKPack;
     bool GemmAThreadCopyMoreGemmK;
-    bool GemmBThreadCopyMoreGemmKPack;
+    bool GemmBThreadCopyMoreGemmK;
+    bool use_spare_set;
 
-    PerformanceImplicitGemmWrwV4R4Xdlops(int, int, int, int, int, int, bool, bool);
+    PerformanceImplicitGemmWrwV4R4Xdlops(int, int, int, int, int, int, bool, bool, bool);
     PerformanceImplicitGemmWrwV4R4Xdlops();
-    PerformanceImplicitGemmWrwV4R4Xdlops(bool) : PerformanceImplicitGemmWrwV4R4Xdlops() {}
+    PerformanceImplicitGemmWrwV4R4Xdlops(bool spare);
+    PerformanceImplicitGemmWrwV4R4Xdlops(int a, int b, int c, int d, int e, int f, bool g, bool h)
+        : PerformanceImplicitGemmWrwV4R4Xdlops(a, b, c, d, e, f, g, h, false)
+    {
+    }
 
     template <class Self, class F>
     static void Visit(Self&& self, F f)
@@ -1944,7 +1943,7 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops : Serializable<PerformanceImplicitGe
         f(self.GemmNPerWave, "GemmNPerWave");
         f(self.GemmKPack, "GemmKPack");
         f(self.GemmAThreadCopyMoreGemmK, "GemmAThreadCopyMoreGemmK");
-        f(self.GemmBThreadCopyMoreGemmKPack, "GemmBThreadCopyMoreGemmKPack");
+        f(self.GemmBThreadCopyMoreGemmK, "GemmBThreadCopyMoreGemmK");
     }
 
     bool operator==(const PerformanceImplicitGemmWrwV4R4Xdlops& other) const;
@@ -1956,8 +1955,9 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops : Serializable<PerformanceImplicitGe
     bool IsValid(const ConvolutionContext& ctx) const;
     bool IsReallyValid(const ConvolutionContext& ctx) const;
     bool IsFastToBeUsedForTuning(const ConvolutionContext& ctx) const;
-    int CalculateGemmKBlocks(const ConvolutionContext& ctx) const;
 
+    std::tuple<int, int, int, int, int, bool>
+    CalculateGemmSizeAndGemmKBlock(const ConvolutionContext& ctx) const;
     std::tuple<int, bool> CalculateBlockSize() const;
     std::tuple<int, bool> CalculateGridSize(const ConvolutionContext& ctx) const;
     std::tuple<int, int, int, int, int, bool>
@@ -1966,9 +1966,9 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops : Serializable<PerformanceImplicitGe
     CalculateGemmBBlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
     std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
 };
+
 struct ConvHipImplicitGemmWrwV4R4Xdlops : SolverBase<ConvolutionContext>
 {
-    static std::tuple<int, int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
     PerformanceImplicitGemmWrwV4R4Xdlops GetPerformanceConfig(const ConvolutionContext& ctx) const;
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const;
     bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
@@ -1981,6 +1981,119 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops : SolverBase<ConvolutionContext>
     PerformanceImplicitGemmWrwV4R4Xdlops Search(const ConvolutionContext&,
                                                 const AnyInvokeParams& invoke_ctx) const;
 };
+
+struct PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
+    : Serializable<PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm>
+{
+    int GemmMPerBlock;
+    int GemmNPerBlock;
+    int GemmKPerBlock;
+    int GemmMPerWave;
+    int GemmNPerWave;
+    int GemmKPack;
+    int GemmMFactor;
+    int GemmNFactor;
+    int GemmKTotalFactor;
+    bool GemmAThreadCopyMoreGemmK;
+    bool GemmBThreadCopyMoreGemmK;
+
+    PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm(
+        int, int, int, int, int, int, int, int, int, bool, bool);
+    PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm();
+    PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm(bool)
+        : PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm()
+    {
+    }
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.GemmMPerBlock, "GemmMPerBlock");
+        f(self.GemmNPerBlock, "GemmNPerBlock");
+        f(self.GemmKPerBlock, "GemmKPerBlock");
+        f(self.GemmMPerWave, "GemmMPerWave");
+        f(self.GemmNPerWave, "GemmNPerWave");
+        f(self.GemmKPack, "GemmKPack");
+        f(self.GemmMFactor, "GemmMFactor");
+        f(self.GemmNFactor, "GemmNFactor");
+        f(self.GemmKTotalFactor, "GemmKTotalFactor");
+        f(self.GemmAThreadCopyMoreGemmK, "GemmAThreadCopyMoreGemmK");
+        f(self.GemmBThreadCopyMoreGemmK, "GemmBThreadCopyMoreGemmK");
+    }
+
+    bool operator==(const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm& other) const;
+    std::string ToString() const;
+
+    void EuristicInit(const ConvolutionContext& ctx);
+    bool SetNextValue();
+    bool IsValidValue() const;
+    bool IsValid(const ConvolutionContext& ctx) const;
+    bool IsReallyValid(const ConvolutionContext& ctx) const;
+    bool IsFastToBeUsedForTuning(const ConvolutionContext& ctx) const;
+    int CalculateGemmKBlocks(const ConvolutionContext& ctx) const;
+
+    std::tuple<int, int, int, int, int, int, int, int, bool>
+    CalculateGemmSizeAndGemmKBlock(const ConvolutionContext& ctx) const;
+    std::tuple<int, bool> CalculateBlockSize() const;
+    std::tuple<int, bool> CalculateGridSize(const ConvolutionContext& ctx) const;
+    std::tuple<int, int, int, int, int, bool>
+    CalculateGemmABlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
+    std::tuple<int, int, int, int, int, bool>
+    CalculateGemmBBlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
+    std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
+};
+struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm : SolverBase<ConvolutionContext>
+{
+    PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
+    GetPerformanceConfig(const ConvolutionContext& ctx) const;
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                  const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm& c) const;
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm& config,
+                             bool disableConfigOverrideFromEnv = false) const;
+
+    PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
+    Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const;
+};
+
+struct ConvDirectNaiveConvFwd : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    bool IsDynamic() const { return true; }
+#if WORKAROUND_MIOPENGEMM_SINCE_ROCM41
+    /// Use very small fixed value enough to backup GEMM for cases when
+    /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
+    float GetWti(const ConvolutionContext&) const { return 0.01; }
+#endif
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+};
+
+struct ConvDirectNaiveConvBwd : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    bool IsDynamic() const { return true; }
+#if WORKAROUND_MIOPENGEMM_SINCE_ROCM41
+    /// Use very small fixed value enough to backup GEMM for cases when
+    /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
+    float GetWti(const ConvolutionContext&) const { return 0.01; }
+#endif
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+};
+
+struct ConvDirectNaiveConvWrw : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    bool IsDynamic() const { return true; }
+#if WORKAROUND_MIOPENGEMM_SINCE_ROCM41
+    /// Use very small fixed value enough to backup GEMM for cases when
+    /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
+    float GetWti(const ConvolutionContext&) const { return 0.01; }
+#endif
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+};
+
 struct AnySolver;
 
 } // namespace solver

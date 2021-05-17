@@ -65,6 +65,7 @@ std::vector<std::string> HipKernelWarnings()
         "-Wno-float-conversion",
         "-Wno-gnu-anonymous-struct",
         "-Wno-gnu-zero-variadic-macro-arguments",
+        "-Wno-missing-noreturn", // Workaround for HCC
         "-Wno-missing-prototypes",
         "-Wno-nested-anon-types",
         "-Wno-padded",

@@ -36,6 +36,7 @@
 /// \todo Get rid of this during implementation of #1938 (60)
 #include <miopen/convolution.hpp>
 #include <miopen/mlo_internal.hpp>
+#include <miopen/stringutils.hpp>
 
 #define WORKAROUND_SWDEV_253606 1
 #include <chrono>
@@ -290,7 +291,8 @@ void BatchNormForwardTraining(Handle& handle,
                         " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) + " -DMIO_BN_N=" +
                         std::to_string(n) + " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) +
                         " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" +
-                        std::to_string(zlocalsize);
+                        std::to_string(zlocalsize) + " -DMIO_BN_GFX1030=" +
+                        ((handle.GetDeviceName() == "gfx1030") ? "1" : "0");
 
                 if(variant != 4)
                 {
@@ -438,7 +440,8 @@ void BatchNormForwardTraining(Handle& handle,
                     " -DMIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) + " -DMIO_BN_LDSGCN_SIZE=" +
                     std::to_string(ldsgcn) + " -DMIO_BN_VARIANT=" + std::to_string(variant) +
                     " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" +
-                    std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
+                    std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) +
+                    " -DMIO_BN_GFX1030=" + ((handle.GetDeviceName() == "gfx1030") ? "1" : "0");
 
                 MIOPEN_LOG_I2(kernel_name << ":: " << parms);
 
@@ -471,7 +474,7 @@ void BatchNormForwardTraining(Handle& handle,
     {
         xlocalsize            = 1;
         ylocalsize            = 256;
-        size_t segment        = std::ceil(double(in_cstride) / double(ylocalsize));
+        std::size_t segment   = (in_cstride + ylocalsize - 1) / ylocalsize;
         xgridsize             = c;
         ygridsize             = segment * ylocalsize;
         std::string algo_name = "miopenBatchNormForwardTrainingPerActivation";
@@ -557,7 +560,8 @@ void BatchNormForwardTraining(Handle& handle,
                 " -DMIO_BN_LDS_SIZE=" + std::to_string(ylocalsize) + " -DMIO_BN_GRP0=" +
                 std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
                 " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) + " -DMIO_BN_NCHW=" +
-                std::to_string(in_nchw);
+                std::to_string(in_nchw) + " -DMIO_BN_GFX1030=" +
+                ((handle.GetDeviceName() == "gfx1030") ? "1" : "0");
 
             std::string program_name = "MIOpenBatchNormFwdTrainPerAct.cl";
             std::string kernel_name  = "MIOpenBatchNormFwdTrainPerActivation";
@@ -752,7 +756,8 @@ void BatchNormForwardInference(Handle& handle,
                 " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
                 " -DMIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
                 " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" +
-                std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
+                std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) +
+                " -DMIO_BN_GFX1030=" + ((handle.GetDeviceName() == "gfx1030") ? "1" : "0");
 
             std::vector<size_t> vld;
             std::vector<size_t> vgd;
@@ -1047,7 +1052,10 @@ void BatchNormBackward(Handle& handle,
                 std::string parms;
 
                 if((n > 64) && (n % 2 == 0) && (variant == 3) && (bfpmixparm) && (useSaved) &&
-                   ctx.use_asm_kernels && ctx.rmv.IsV2orV3())
+                   ctx.use_asm_kernels && ctx.rmv.IsV2orV3() &&
+                   (StartsWith(handle.GetDeviceName(), "gfx8") ||
+                    (StartsWith(handle.GetDeviceName(), "gfx9") &&
+                     (handle.GetDeviceName() != "gfx90a"))))
                 {
                     kernel_name  = "miopenGcnAsmBNBwdTrainSpatial";
                     program_name = "gcnAsmBNBwdTrainSpatial.s";
@@ -1102,7 +1110,9 @@ void BatchNormBackward(Handle& handle,
                         std::to_string(ldsnogcn) + " -DMIO_BN_LDSGCN_SIZE=" +
                         std::to_string(ldsgcn) + " -DMIO_BN_VARIANT=" + std::to_string(variant) +
                         " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" +
-                        std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
+                        std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" +
+                        std::to_string(zlocalsize) + " -DMIO_BN_GFX1030=" +
+                        ((handle.GetDeviceName() == "gfx1030") ? "1" : "0");
                 }
 
                 MIOPEN_LOG_I2(kernel_name << ":: " << algo_name);
@@ -1216,7 +1226,8 @@ void BatchNormBackward(Handle& handle,
                     " -DMIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) + " -DMIO_BN_LDSGCN_SIZE=" +
                     std::to_string(ldsgcn) + " -DMIO_BN_VARIANT=" + std::to_string(variant) +
                     " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" +
-                    std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
+                    std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) +
+                    " -DMIO_BN_GFX1030=" + ((handle.GetDeviceName() == "gfx1030") ? "1" : "0");
 
                 MIOPEN_LOG_I2(kernel_name << ":: " << parms);
 
@@ -1323,7 +1334,8 @@ void BatchNormBackward(Handle& handle,
                 " -DMIO_BN_NCHW=" + std::to_string(in_nchw) + " -DMIO_BN_NGRPS=" +
                 std::to_string(int(std::ceil(float(ygridsize) / ylocalsize))) + " -DMIO_BN_GRP0=" +
                 std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
-                " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
+                " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) + " -DMIO_BN_GFX1030=" +
+                ((handle.GetDeviceName() == "gfx1030") ? "1" : "0");
 
             if(useSaved)
             {

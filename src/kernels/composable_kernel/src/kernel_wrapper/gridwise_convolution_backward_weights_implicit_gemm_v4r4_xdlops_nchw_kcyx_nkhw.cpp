@@ -58,9 +58,9 @@ extern "C" __global__
     constexpr index_t GemmKPack     = CK_PARAM_TUNABLE_GEMM_KPACK;
 
     // read params: dependent parameters
-    constexpr index_t BlockSize   = CK_PARAM_DEPENDENT_BLOCK_SIZE;
-    constexpr index_t GridSize    = CK_PARAM_DEPENDENT_GRID_SIZE;
-    constexpr index_t GemmKBlocks = CK_PARAM_GEMM_K_BLOCKS;
+    constexpr index_t BlockSize  = CK_PARAM_DEPENDENT_BLOCK_SIZE;
+    constexpr index_t GridSize   = CK_PARAM_DEPENDENT_GRID_SIZE;
+    constexpr index_t GemmKBlock = CK_PARAM_GEMM_K_BLOCK;
 
     // A matrix copy
     constexpr index_t GemmABlockCopyClusterLengths_GemmK =
@@ -175,6 +175,6 @@ extern "C" __global__
             GemmBBlockCopySrcDataPerRead_GemmKPack,
             GemmBBlockCopyDstDataPerWrite_GemmKPack,
             wkgrp_schd_order,
-            GemmKBlocks>{};
+            GemmKBlock>{};
     gridwise_conv.Run(p_in_global, p_out_global, p_wei_global);
 }

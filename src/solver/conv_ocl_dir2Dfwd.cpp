@@ -43,10 +43,16 @@ bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!params.Is2d())
         return false;
+    if(!(params.direction.IsForward() || params.direction.IsBackwardData()))
+        return false;
     if(params.IsAsymmetricPadH() || params.IsAsymmetricPadW())
         return false;
     if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))
         return false;
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
 
     // clang-format off
     // Cases when dy has negative padding are not supported (issue 918)
@@ -472,8 +478,7 @@ ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
     if(result.Succeeded())
     {
         result.construction_params[0].comp_options +=
-            std::string(" -DMLO_CONV_BIAS=") + std::to_string(static_cast<long long>(params.bias)) +
-            params.general_compile_options;
+            std::string(" -DMLO_CONV_BIAS=") + std::to_string(static_cast<long long>(params.bias));
     }
 
     return result;
@@ -484,10 +489,6 @@ ConvOclDirectFwdFused::GetSolution(const ConvolutionContext& params,
                                    const LegacyPerformanceConfig& searched_params) const
 {
     ConvSolution result = BaseGetSolution(params, searched_params);
-    if(result.Succeeded())
-    {
-        result.construction_params[0].comp_options += params.general_compile_options;
-    }
     return result;
 }
 } // namespace solver
