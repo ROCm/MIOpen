@@ -224,12 +224,13 @@ inline int GetDataTypeSize(miopenDataType_t t)
     {
     case miopenHalf: return (2);
     case miopenFloat: return (4);
+    case miopenDouble: return (8);
     case miopenInt8: return (1);
     case miopenInt8x4: return (4);
     case miopenBFloat16: return (2);
     case miopenInt32: return (4);
     default:
-        MIOPEN_THROW("Only float, half, bfloat16, int8, int8x4 data type is supported.");
+        MIOPEN_THROW("Only float, half, double, bfloat16, int8, int8x4 data type is supported.");
         break;
     };
 };
@@ -241,6 +242,7 @@ inline int GetDataTypeId(miopenDataType_t t)
     case miopenHalf: return (static_cast<int>('H'));
     case miopenFloat: return (static_cast<int>('F'));
     case miopenBFloat16: return (static_cast<int>('B'));
+    case miopenDouble: return (static_cast<int>('D'));
     case miopenInt8:
     case miopenInt8x4:
     case miopenInt32: return (static_cast<int>('O'));
@@ -568,6 +570,13 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
 #if WORKAROUND_MIOPEN_ISSUE_557
     if(StartsWith(handle.GetDeviceName(), "gfx10"))
         param += " -DCK_USE_AMD_BUFFER_ADDRESSING=0 ";
+    else if(srcDataType == miopenDouble)
+        // TODO: support from composable kernel utility for using AMD Buffer Addressing for double
+        param += " -DCK_USE_AMD_BUFFER_ADDRESSING=0 ";
+#else
+    if(srcDataType == miopenDouble)
+        // TODO: support from composable kernel utility for using AMD Buffer Addressing for double
+        param += " -DCK_USE_AMD_BUFFER_ADDRESSING=0 ";
 #endif
 
     std::string program_name = "gridwise_generic_reduction.cpp";
@@ -590,8 +599,12 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
     const std::vector<size_t> vgd_1 = {
         static_cast<size_t>(gridSize * blockSize), size_t{1}, size_t{1}};
 
-    float alphaVal = *reinterpret_cast<const float*>(alpha);
-    float betaVal  = *reinterpret_cast<const float*>(beta);
+    float alphaVal = (srcDataType == miopenDouble)
+                         ? static_cast<float>(*reinterpret_cast<const double*>(alpha))
+                         : *reinterpret_cast<const float*>(alpha);
+    float betaVal = (srcDataType == miopenDouble)
+                        ? static_cast<float>(*reinterpret_cast<const double*>(beta))
+                        : *reinterpret_cast<const float*>(beta);
 
     handle.AddKernel(algo_name, network_config, program_name, kernel_name1, vld_1, vgd_1, param)(
         alphaVal, A, betaVal, C, ws_buf1_global, ws_buf2_bytes_offset, indices);
