@@ -27,8 +27,7 @@
 #include <miopen/solver.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
-
-#include "implicitgemm_util.hpp"
+#include <miopen/solver/implicitgemm_util.hpp>
 
 #include <cstddef>
 
@@ -601,6 +600,10 @@ bool ConvHipImplicitGemmV4R4Fwd::IsApplicable(const ConvolutionContext& ctx) con
         return false;
     if(ctx.group_counts != 1)
         return false;
+    if(!ctx.IsLayoutDefault())
+    {
+        return false;
+    }
 
     int gemm_m = 0;
     int gemm_n = 0;

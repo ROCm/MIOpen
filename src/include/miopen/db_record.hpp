@@ -227,7 +227,7 @@ class DbRecord
 
 #if(MIOPEN_SUPPRESS_DB_WARNING==1)
         if(!ok)
-            MIOPEN_LOG_WE(
+            MIOPEN_LOG_IE(
                 "Perf db record is obsolete or corrupt: " << s << ". Performance may degrade.");
 #endif
 

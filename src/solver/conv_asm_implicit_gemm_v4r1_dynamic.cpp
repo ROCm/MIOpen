@@ -28,7 +28,7 @@
 #include <miopen/conv/invokers/impl_gemm_dynamic.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/gcn_asm_utils.hpp>
-#include "implicitgemm_util.hpp"
+#include <miopen/solver/implicitgemm_util.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1_1X1)
@@ -300,6 +300,10 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ConvolutionContext& c
     if(ctx.group_counts != 1)
         return false;
 
+    if(!ctx.IsLayoutDefault())
+    {
+        return false;
+    }
     auto tunables = GetImplicitGemmV4R1DynamicTunables();
     return !std::none_of(
         tunables.begin(), tunables.end(), [&](auto tunable) { return tunable.IsValid(ctx); });
@@ -335,6 +339,10 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsApplicable(const ConvolutionContex
     if((ctx.kernel_size_h != 1) || (ctx.kernel_size_w != 1))
         return false;
 
+    if(!ctx.IsLayoutDefault())
+    {
+        return false;
+    }
     auto tunables = GetImplicitGemmV4R1DynamicTunables();
     return !std::none_of(
         tunables.begin(), tunables.end(), [&](auto tunable) { return tunable.IsValid(ctx); });

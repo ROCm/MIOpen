@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include "conv_direct_naive_conv.hpp"
+#include <miopen/solver/conv_direct_naive_conv.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/env.hpp>
@@ -37,11 +37,7 @@ namespace solver {
 bool ConvDirectNaiveConvWrw::IsApplicable(const ConvolutionContext& ctx) const
 {
     if(!miopen::debug::AlwaysEnableConvDirectNaive &&
-#if WORKAROUND_MIOPENGEMM_ROCM41
        miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_WRW{}))
-#else
-       !miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_WRW{}))
-#endif
         return false;
 
     if(!ctx.IsLayoutDefault())

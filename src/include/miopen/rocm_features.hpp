@@ -39,7 +39,8 @@
 /// To be removed as soon as support for ROCm 3.x is discontinued.
 #define WORKAROUND_MLOPEN_ISSUE_1711 (HIP_PACKAGE_VERSION_FLAT < 4000000000ULL)
 
-/// W/A for MIOpenGEMM issues with ROCm 4.1, most likely related to the
+/// W/A for MIOpenGEMM issues with ROCm 4.1 and newer ROCm
+/// versions. The issue is highly likely related to the
 /// issues in the OpenCL compiler or in MIOpenGEMM itself.
 /// MIOpenGEMM is used only for OCL BE and deprecated.
 /// Related ticket: http://ontrack-internal.amd.com/browse/SWDEV-276757
@@ -60,7 +61,23 @@
 ///   Immediate Mode Fallback when GEMM is disabled.
 /// - Note: When MIOpenGEMM is not in use, Naive Solvers are disabled. This minimizes
 ///   impact of the W/A to the HIP backend.
-#define WORKAROUND_MIOPENGEMM_ROCM41 \
-    (MIOPEN_USE_MIOPENGEMM && HIP_PACKAGE_VERSION_MAJOR == 4 && HIP_PACKAGE_VERSION_MINOR == 1)
+#define WORKAROUND_MIOPENGEMM_SINCE_ROCM41 \
+    (MIOPEN_USE_MIOPENGEMM && (HIP_PACKAGE_VERSION_FLAT >= 4001000000ULL))
+
+#define ROCM_FEATURE_TARGETID_OFF (HIP_PACKAGE_VERSION_FLAT < 4001000000ULL)
+
+/// Return type of llvm.amdgcn.buffer.atomic.fadd.f32 can't be detected.
+/// With COMGR: llvm sends SIGABRT when return type is wrong.
+/// SIGABRT means that llvm instance can't be used anymore, therefore
+/// custom handling of this signal should not be used.
+/// Repetitive use of llvm instance after that would lead to UB.
+/// Without COMGR: at least 3.10 compiler doesn't care of return type of this atomic.
+/// Therefore auto-detection delivers wrong information we should not rely on.
+#define ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT \
+    (HIP_PACKAGE_VERSION_FLAT >= 4001021072ULL)
+
+/// See https://github.com/ROCmSoftwarePlatform/MIOpen/issues/833
+#define ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_FAILS_WITH_COMGR \
+    (HIP_PACKAGE_VERSION_FLAT >= 4001000000ULL)
 
 #endif // GUARD_ROCM_FEATURES_HPP_

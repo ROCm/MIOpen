@@ -28,8 +28,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/hip_build_utils.hpp>
 #include <miopen/generic_search.hpp>
-
-#include "implicitgemm_util.hpp"
+#include <miopen/solver/implicitgemm_util.hpp>
 
 #include <cstddef>
 
@@ -656,6 +655,10 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx)
         return false;
     if(ctx.group_counts != 1)
         return false;
+    if(!ctx.IsLayoutDefault())
+    {
+        return false;
+    }
 #if WORKAROUND_ISSUE_309
     if(miopen::HipCompilerVersion() >= external_tool_version_t{3, 5, 0})
         if(ctx.IsBfp16())
