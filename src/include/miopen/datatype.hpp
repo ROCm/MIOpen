@@ -53,6 +53,9 @@ inline std::string GetDataType(miopenDataType_t type)
     case miopenInt32: { type_str = "int";
     }
     break;
+    case miopenDouble: { type_str = "double";
+    }
+    break;
     }
     return type_str;
 }
@@ -104,6 +107,7 @@ inline std::string GetDataTypeKernelParams(miopenDataType_t type)
     int use_int8x4             = 0;
     int use_int32              = 0;
     int use_bfp16              = 0;
+    int use_fp64               = 0;
     const int use_rne_bfloat16 = MIOPEN_USE_RNE_BFLOAT16;
 
     switch(type)
@@ -114,6 +118,7 @@ inline std::string GetDataTypeKernelParams(miopenDataType_t type)
     case miopenInt8x4: use_int8x4  = 1; break;
     case miopenBFloat16: use_bfp16 = 1; break;
     case miopenInt32: use_int32    = 1; break;
+    case miopenDouble: use_fp64    = 1; break;
     default:
         MIOPEN_THROW("Only float, half, bfloat16, int8, int8x4 data type is supported.");
         break;

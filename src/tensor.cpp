@@ -141,6 +141,7 @@ std::size_t TensorDescriptor::GetNumBytes() const
     case miopenHalf: typesize = 2; break;
     case miopenInt32:
     case miopenFloat: typesize = 4; break;
+    case miopenDouble: typesize = 8; break;
     }
     return typesize * this->GetElementSpace();
 }
