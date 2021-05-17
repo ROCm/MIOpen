@@ -29,11 +29,10 @@ The following conditions must be met for the auto-tune to begin:
 - The passed value of `exhaustiveSearch` parameter is `true`, and
 - Both System and User PerfDb do not yet contain values for the relevant _problem configuration_.
 
-The latter two conditions may be overridden by _enforcing_ the search by means of the following environment variables:
+The latter two conditions may be overridden by _enforcing_ the search by means of the following environment variable:
 - `MIOPEN_FIND_ENFORCE`
-- `MIOPEN_FIND_ENFORCE_SCOPE`
 
-These variables may also be used for _removing_ values from User PerfDb, see below.
+This variable may also be used for _removing_ values from User PerfDb, see below.
 
 ### MIOPEN_FIND_ENFORCE
 
@@ -62,19 +61,6 @@ A combination of SEARCH and DB_UPDATE. MIOpen performs auto-tune (and updates Us
 **DB_CLEAN (5)**
 
 Use with care. MIOpen **removes** optimized values related to given _problem configuration_ from the User PerfDb. Auto-tune is blocked, even if it is explicitly requested. System PerfDb left intact. 
-
-### MIOPEN_FIND_ENFORCE_SCOPE
-
-This variable allows for limiting the scope of `MIOPEN_FIND_ENFORCE`, so that only forward, backward data or backward weights convolutions will be affected. Both symbolic (case-insensitive) and numeric values are supported, as shown below.
-
-**ALL (1)** `MIOPEN_FIND_ENFORCE` affects all convolutions. This is the default.
-		
-**CONV_FWD (2)** `MIOPEN_FIND_ENFORCE` affects only Forward convolutions.
-
-**CONV_BWD (3)** `MIOPEN_FIND_ENFORCE` affects only Backward Data convolutions.
-
-**CONV_WRW (4)** `MIOPEN_FIND_ENFORCE` affects only Backward With Regard to Weights (a.k.a. WRW) convolutions.
-
 
 ### Updating MIOpen and the User Db
 

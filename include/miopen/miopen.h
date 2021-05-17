@@ -37,6 +37,7 @@
 #include <miopen/export.h>
 
 #if MIOPEN_BACKEND_OPENCL
+#define CL_TARGET_OPENCL_VERSION 120
 #if defined(__APPLE__) || defined(__MACOSX)
 #include <OpenCL/cl.h>
 #else
@@ -94,15 +95,16 @@ MIOPEN_DECLARE_OBJECT(miopenHandle);
  * Error codes that are returned by all MIOpen API calls.
 */
 typedef enum {
-    miopenStatusSuccess        = 0, /*!< No errors */
-    miopenStatusNotInitialized = 1, /*!< Data not initialized. */
-    miopenStatusInvalidValue   = 2, /*!< Incorrect variable value. */
-    miopenStatusBadParm        = 3, /*!< Incorrect parameter detected. */
-    miopenStatusAllocFailed    = 4, /*!< Memory allocation error. */
-    miopenStatusInternalError  = 5, /*!< MIOpen failure. */
-    miopenStatusNotImplemented = 6, /*!< Use of unimplemented feature. */
-    miopenStatusUnknownError   = 7, /*!< Unknown error occurred. */
-    miopenStatusUnsupportedOp  = 8, /*!< Unsupported operator for fusion. */
+    miopenStatusSuccess              = 0, /*!< No errors */
+    miopenStatusNotInitialized       = 1, /*!< Data not initialized. */
+    miopenStatusInvalidValue         = 2, /*!< Incorrect variable value. */
+    miopenStatusBadParm              = 3, /*!< Incorrect parameter detected. */
+    miopenStatusAllocFailed          = 4, /*!< Memory allocation error. */
+    miopenStatusInternalError        = 5, /*!< MIOpen failure. */
+    miopenStatusNotImplemented       = 6, /*!< Use of unimplemented feature. */
+    miopenStatusUnknownError         = 7, /*!< Unknown error occurred. */
+    miopenStatusUnsupportedOp        = 8, /*!< Unsupported operator for fusion. */
+    miopenStatusGpuOperationsSkipped = 9, /*!< This is not an error. */
 } miopenStatus_t;
 
 /*! @brief Get character string for an error code.
@@ -458,6 +460,15 @@ typedef enum {
 } miopenSoftmaxMode_t;
 
 /*! @ingroup TensorReduce
+* @brief Version of TensorReduce API. Applications may use it to ensure
+* backward compatibility with older library versions.
+*
+* - 0 or undefined - Initial API. Supported operations: ADD, MIN, MIN, MAX.
+* - 1 - Added AMAX, AVG, NORM1, NORM2 ops.
+*/
+#define MIOPEN_API_VERSION_REDUCE_TENSOR 1
+
+/*! @ingroup TensorReduce
  * @enum miopenReduceTensorOp_t
  * Tensor Reduction operation types
 */
@@ -469,14 +480,14 @@ typedef enum {
         2, /*!< the operation is getting the minimum value of the reduced elements */
     MIOPEN_REDUCE_TENSOR_MAX =
         3, /*!< the operation is getting the maximum value of the reduced elements */
-    // MIOPEN_REDUCE_TENSOR_AMAX =
-    //    4, /*!< the operation is getting the maximum absolute value of the reduced elements */
-    // MIOPEN_REDUCE_TENSOR_AVG =
-    //    5, /*!< the operation is getting the averaged value of the reduced elements */
-    // MIOPEN_REDUCE_TENSOR_NORM1 =
-    //    6, /*!< the operation is adding the absolute values of the reduced elements */
-    // MIOPEN_REDUCE_TENSOR_NORM2 = 7, /*!< the operation is getting the square root of the sum of
-    //                                   squares of the reduced elements */
+    MIOPEN_REDUCE_TENSOR_AMAX =
+        4, /*!< the operation is getting the maximum absolute value of the reduced elements */
+    MIOPEN_REDUCE_TENSOR_AVG =
+        5, /*!< the operation is getting the averaged value of the reduced elements */
+    MIOPEN_REDUCE_TENSOR_NORM1 =
+        6, /*!< the operation is adding the absolute values of the reduced elements */
+    MIOPEN_REDUCE_TENSOR_NORM2 = 7, /*!< the operation is getting the square root of the sum of
+                                       squares of the reduced elements */
     // MIOPEN_REDUCE_TENSOR_MUL_NO_ZEROS =
     //    8, /*!< the operation is same as MUL, but does not have the zero values considered */
 } miopenReduceTensorOp_t;

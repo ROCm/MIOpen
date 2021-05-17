@@ -46,6 +46,8 @@ bool ConvBinWinograd3x3U::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!params.Is2d())
         return false;
+    if(!(params.direction.IsForward() || params.direction.IsBackwardData()))
+        return false;
     if(!(params.rmv.IsV2orV3() && params.use_asm_kernels))
         return false;
 
@@ -57,7 +59,11 @@ bool ConvBinWinograd3x3U::IsApplicable(const ConvolutionContext& params) const
     // and able to correctly run with given parameters.
     const auto device_is_gfx8         = StartsWith(name, "gfx8");
     const auto grid_workgroup_count_x = params.GetStream().GetMaxComputeUnits();
-    assert(params.weights_layout.length() == 0); // weights_layout is not supported yet.
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
+
     // clang-format off
     return params.pad_w == 1
         && params.pad_h == 1

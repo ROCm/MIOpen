@@ -30,6 +30,9 @@
 #include <miopen/exec_utils.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/env.hpp>
+#include <miopen/rocm_features.hpp>
+#include <miopen/solver/implicitgemm_util.hpp>
+#include <miopen/target_properties.hpp>
 #include <boost/optional.hpp>
 #include <sstream>
 #include <string>
@@ -83,36 +86,49 @@ inline const std::string& GetCoV3Option(const bool enable)
 }
 } // namespace
 
-boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
-                                 const std::string& filename,
-                                 std::string src,
-                                 std::string params,
-                                 const std::string& dev_name)
+static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
+                                            const std::string& filename,
+                                            std::string src,
+                                            std::string params,
+                                            const TargetProperties& target,
+                                            const bool testing_mode)
 {
 #ifdef __linux__
-    // write out the include files
-    auto inc_list = GetKernelIncList();
-    auto inc_path = tmp_dir->path;
-    boost::filesystem::create_directories(inc_path);
-    for(auto inc_file : inc_list)
+    // Write out the include files
+    // Let's assume includes are overkill for feature tests & optimize'em out.
+    if(!testing_mode)
     {
-        auto inc_src = GetKernelInc(inc_file);
-        WriteFile(inc_src, inc_path / inc_file);
+        auto inc_list = GetKernelIncList();
+        auto inc_path = tmp_dir->path;
+        boost::filesystem::create_directories(inc_path);
+        for(auto inc_file : inc_list)
+        {
+            auto inc_src = GetKernelInc(inc_file);
+            WriteFile(inc_src, inc_path / inc_file);
+        }
     }
     src += "\nint main() {}\n";
     WriteFile(src, tmp_dir->path / filename);
 
+    // cppcheck-suppress unreadVariable
+    const LcOptionTargetStrings lots(target);
+
     auto env = std::string("");
     if(IsHccCompiler())
     {
-        params += " -amdgpu-target=" + dev_name;
+        params += " -amdgpu-target=" + target.Name();
         params += " " + GetCoV3Option(ProduceCoV3());
     }
     else if(IsHipClangCompiler())
     {
         if(params.find("-std=") == std::string::npos)
             params += " --std=c++11";
-        params += " --cuda-gpu-arch=" + dev_name;
+
+        if(HipCompilerVersion() < external_tool_version_t{4, 1, 0})
+            params += " --cuda-gpu-arch=" + lots.device;
+        else
+            params += " --cuda-gpu-arch=" + lots.device + lots.xnack;
+
         params += " --cuda-device-only";
         params += " -c";
         params += " -O3 ";
@@ -123,7 +139,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     if(IsHccCompiler())
     {
         env += std::string("KMOPTLLC=\"-mattr=+enable-ds128 ");
-        if(miopen::HipCompilerVersion() >= external_tool_version_t{2, 8, 0})
+        if(HipCompilerVersion() >= external_tool_version_t{2, 8, 0})
             env += " --amdgpu-spill-vgpr-to-agpr=0";
         env += '\"';
     }
@@ -154,12 +170,17 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     }
 #endif
 
+    // hip version
+    params +=
+        std::string(" -DHIP_PACKAGE_VERSION_FLAT=") + std::to_string(HIP_PACKAGE_VERSION_FLAT);
+
     params += " ";
     auto bin_file = tmp_dir->path / (filename + ".o");
 
     // compile
+    const std::string redirector = testing_mode ? " 1>/dev/null 2>&1" : "";
     tmp_dir->Execute(env + std::string(" ") + MIOPEN_HIP_COMPILER,
-                     params + filename + " -o " + bin_file.string());
+                     params + filename + " -o " + bin_file.string() + redirector);
     if(!boost::filesystem::exists(bin_file))
         MIOPEN_THROW(filename + " failed to compile");
 #ifdef EXTRACTKERNEL_BIN
@@ -179,18 +200,24 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
 
         return hsaco->path();
     }
-    else
 #endif
-#ifdef MIOPEN_OFFLOADBUNDLER_BIN
-        // clang-format off
+#if defined(MIOPEN_OFFLOADBUNDLER_BIN) && !MIOPEN_BACKEND_HIP
+    // Unbundling is not required for HIP runtime && hip-clang
     if(IsHipClangCompiler())
     {
-        // clang-format on
-
-        // call clang-offload-bundler
         tmp_dir->Execute(MIOPEN_OFFLOADBUNDLER_BIN,
-                         "--type=o --targets=hip-amdgcn-amd-amdhsa-" + dev_name + " --inputs=" +
-                             bin_file.string() + " --outputs=" + bin_file.string() +
+                         "--type=o "
+#if(HIP_PACKAGE_VERSION_FLAT >= 4001021072 && HIP_PACKAGE_VERSION_FLAT < 4002000000) || \
+    HIP_PACKAGE_VERSION_FLAT >= 4002021072
+                         "--targets=hipv4-amdgcn-amd-amdhsa-"
+#else
+                         "--targets=hip-amdgcn-amd-amdhsa-"
+#endif
+                             +
+                             (HipCompilerVersion() < external_tool_version_t{4, 1, 0}
+                                  ? lots.device
+                                  : (std::string{'-'} + lots.device + lots.xnack)) +
+                             " --inputs=" + bin_file.string() + " --outputs=" + bin_file.string() +
                              ".hsaco --unbundle");
 
         auto hsaco =
@@ -214,6 +241,61 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     (void)params;
     MIOPEN_THROW("HIP kernels are only supported in Linux");
 #endif
+}
+
+#ifndef ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
+static bool
+HipBuildTest(const std::string& program_name, std::string params, const TargetProperties& target)
+{
+    boost::optional<miopen::TmpDir> dir(program_name);
+    std::string source = miopen::GetKernelSrc(program_name);
+    try
+    {
+        std::ignore = HipBuildImpl(dir, program_name, source, params, target, true);
+    }
+    catch(...)
+    {
+        return false;
+    }
+    return true;
+}
+
+static bool DetectIfBufferAtomicFaddReturnsFloatImpl(const TargetProperties& target)
+{
+    const std::string program_name("detect_llvm_amdgcn_buffer_atomic_fadd_f32_float.cpp");
+    std::string params;
+
+    if(HipBuildTest(program_name, params, target))
+    {
+        MIOPEN_LOG_NQI("Yes");
+        return true;
+    }
+    MIOPEN_LOG_NQI("No");
+    return false;
+}
+
+static bool DetectIfBufferAtomicFaddReturnsFloat(const TargetProperties& target)
+{
+    static const bool once = DetectIfBufferAtomicFaddReturnsFloatImpl(target);
+    return once;
+}
+#endif
+
+boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
+                                 const std::string& filename,
+                                 std::string src,
+                                 std::string params,
+                                 const TargetProperties& target)
+{
+#ifndef ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
+    if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
+        if(DetectIfBufferAtomicFaddReturnsFloat(target))
+            params += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
+#elif ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
+    if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
+        params += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
+#endif
+    return HipBuildImpl(tmp_dir, filename, src, params, target, false);
 }
 
 void bin_file_to_str(const boost::filesystem::path& file, std::string& buf)
@@ -301,16 +383,16 @@ external_tool_version_t HipCompilerVersion()
     return once;
 }
 
-bool external_tool_version_t::operator>(const external_tool_version_t& rhs) const
+bool operator>(const external_tool_version_t& lhs, const external_tool_version_t& rhs)
 {
-    if(major > rhs.major)
+    if(lhs.major > rhs.major)
         return true;
-    else if(major == rhs.major)
+    else if(lhs.major == rhs.major)
     {
-        if(minor > rhs.minor)
+        if(lhs.minor > rhs.minor)
             return true;
-        else if(minor == rhs.minor)
-            return (patch > rhs.patch);
+        else if(lhs.minor == rhs.minor)
+            return (lhs.patch > rhs.patch);
         else
             return false;
     }
@@ -318,21 +400,18 @@ bool external_tool_version_t::operator>(const external_tool_version_t& rhs) cons
         return false;
 }
 
-bool external_tool_version_t::operator>=(const external_tool_version_t& rhs) const
+bool operator<(const external_tool_version_t& lhs, const external_tool_version_t& rhs)
 {
-    if(major > rhs.major)
-        return true;
-    else if(major == rhs.major)
-    {
-        if(minor > rhs.minor)
-            return true;
-        else if(minor == rhs.minor)
-            return (patch >= rhs.patch);
-        else
-            return false;
-    }
-    else
-        return false;
+    return rhs > lhs;
+}
+bool operator>=(const external_tool_version_t& lhs, const external_tool_version_t& rhs)
+{
+    return !(lhs < rhs);
+}
+
+bool operator<=(const external_tool_version_t& lhs, const external_tool_version_t& rhs)
+{
+    return !(lhs > rhs);
 }
 
 } // namespace miopen

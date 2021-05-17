@@ -134,7 +134,15 @@ struct ProblemDescription
                        const ConvolutionDescriptor& conv_,
                        Direction direction_,
                        int bias_ = 0)
-        : in(in_), weights(weights_), out(out_), conv(conv_), direction(direction_), bias(bias_)
+        : in(in_),
+          weights(weights_),
+          out(out_),
+          conv(conv_),
+          in_layout(ComputeInLayout()),
+          weights_layout(ComputeWeightsLayout()),
+          out_layout(ComputeOutLayout()),
+          direction(direction_),
+          bias(bias_)
     {
     }
 
@@ -163,15 +171,25 @@ struct ProblemDescription
     std::size_t GetInStrideD() const { return GetD5(GetSpatialDims(), in.GetStrides()); }
     std::size_t GetInStrideH() const { return GetH5(GetSpatialDims(), in.GetStrides()); }
     std::size_t GetInStrideW() const { return GetW5(GetSpatialDims(), in.GetStrides()); }
-    std::string GetInLayout() const { return "NCHW"; }
+    std::string GetInLayout() const { return in_layout; }
+    std::string ComputeInLayout() const
+    {
+        if(GetSpatialDims() == 2)
+        {
+            return in.GetLayout("NCHW");
+        }
+        else
+        {
+            return in.GetLayout("NCDHW");
+        }
+    }
     std::size_t GetInElementSize() const { return GetTypeSize(GetInDataType()); }
 
     std::size_t GetInSize() const
     {
         // clang-format off
-        return (GetInLayout() == "NCHW")
-            ? GetInBatchSize() * GetInChannels() * GetInDepth() * GetInHeight() * GetInWidth() * GetInElementSize()
-            : GetInBatchSize() * GetInBatchStride() * GetInChannelStride() * GetInStrideH() * GetInStrideW() * GetInElementSize(); // Todo: GetInStrideD() ?
+        return GetInBatchSize() * GetInChannels() * GetInDepth() * GetInHeight() * 
+            GetInWidth() * GetInElementSize();
         // clang-format on
     }
 
@@ -187,15 +205,25 @@ struct ProblemDescription
     std::size_t GetOutStrideD() const { return GetD5(GetSpatialDims(), out.GetStrides()); }
     std::size_t GetOutStrideH() const { return GetH5(GetSpatialDims(), out.GetStrides()); }
     std::size_t GetOutStrideW() const { return GetW5(GetSpatialDims(), out.GetStrides()); }
-    std::string GetOutLayout() const { return "NCHW"; }
+    std::string GetOutLayout() const { return out_layout; }
+    std::string ComputeOutLayout() const
+    {
+        if(GetSpatialDims() == 2)
+        {
+            return out.GetLayout("NCHW");
+        }
+        else
+        {
+            return out.GetLayout("NCDHW");
+        }
+    }
     std::size_t GetOutElementSize() const { return GetTypeSize(GetOutDataType()); }
 
     std::size_t GetOutSize() const
     {
         // clang-format off
-        return (GetOutLayout() == "NCHW")
-            ? GetOutBatchSize() * GetOutChannels() * GetOutDepth() * GetOutHeight() * GetOutWidth() * GetOutElementSize()
-            : GetOutBatchSize() * GetOutBatchStride() * GetOutChannelStride() * GetOutStrideH() * GetOutStrideW() * GetOutElementSize(); // Todo: GetOutStrideD() ?
+        return GetOutBatchSize() * GetOutChannels() * GetOutDepth() * GetOutHeight() *
+               GetOutWidth() * GetOutElementSize();
         // clang-format on
     }
 
@@ -210,16 +238,25 @@ struct ProblemDescription
     // }
     // std::size_t GetWeightsStrideW() const { return GetW5(GetSpatialDims(), weights.GetStrides());
     // }
-    std::string GetWeightsLayout() const { return ""; }
+    std::string GetWeightsLayout() const { return weights_layout; }
+    std::string ComputeWeightsLayout() const
+    {
+        if(GetSpatialDims() == 2)
+        {
+            return weights.GetLayout("NCHW");
+        }
+        else
+        {
+            return weights.GetLayout("NCDHW");
+        }
+    }
     std::size_t GetWeightsElementSize() const { return GetTypeSize(GetWeightsDataType()); }
 
     std::size_t GetWeightsSize() const
     {
         // clang-format off
-        return GetInChannels() * GetOutChannels() * GetWeightsDepth() * GetWeightsHeight() * GetWeightsWidth() * GetWeightsElementSize();
-        // return (GetWeightsLayout() == "NCHW")
-        //    ? GetWeightsBatchSize() * GetInChannels() * GetOutChannels() * GetWeightsHeight() * GetWeightsWidth() * GetWeightsElementSize()
-        //    : GetWeightsBatchSize() * GetWeightsBatchStride() * GetWeightsChannelStride() * GetWeightsStrideH() * GetWeightsStrideW() * GetWeightsElementSize(); // Todo: GetWeightsStrideD() ?
+        return GetInChannels() * GetOutChannels() * GetWeightsDepth() * GetWeightsHeight() * 
+               GetWeightsWidth() * GetWeightsElementSize();
         // clang-format on
     }
 
@@ -321,6 +358,9 @@ struct ProblemDescription
     TensorDescriptor weights;
     TensorDescriptor out;
     ConvolutionDescriptor conv;
+    std::string in_layout;
+    std::string weights_layout;
+    std::string out_layout;
     Direction direction = Direction::Forward;
     int bias            = 0;
 };

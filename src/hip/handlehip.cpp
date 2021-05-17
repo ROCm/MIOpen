@@ -28,13 +28,15 @@
 #include <miopen/handle.hpp>
 
 #include <miopen/binary_cache.hpp>
-#include <miopen/device_name.hpp>
+#include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/gemm_geometry.hpp>
 #include <miopen/handle_lock.hpp>
 #include <miopen/invoker.hpp>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/rocm_features.hpp>
+#include <miopen/target_properties.hpp>
 #include <miopen/timer.hpp>
 
 #if !MIOPEN_ENABLE_SQLITE_KERN_CACHE
@@ -56,6 +58,8 @@
 #include <thread>
 
 #define MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_30 (MIOPEN_USE_COMGR && BUILD_SHARED_LIBS)
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_CU)
 
 namespace miopen {
 
@@ -180,6 +184,19 @@ struct HandleImpl
             MIOPEN_THROW("Running handle on wrong device");
     }
 
+    std::string get_device_name() const
+    {
+        hipDeviceProp_t props{};
+        hipGetDeviceProperties(&props, device);
+#if ROCM_FEATURE_HIP_GCNARCHNAME_RETURNS_CODENAME
+        const std::string name("gfx" + std::to_string(props.gcnArch));
+#else
+        const std::string name(props.gcnArchName);
+#endif
+        MIOPEN_LOG_NQI("Raw device name: " << name);
+        return name;
+    }
+
     bool enable_profiling  = false;
     StreamPtr stream       = nullptr;
     float profiling_result = 0.0;
@@ -187,6 +204,7 @@ struct HandleImpl
     Allocator allocator{};
     KernelCache cache;
     hipCtx_t ctx;
+    TargetProperties target_properties;
 };
 
 Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
@@ -204,6 +222,7 @@ Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
 #if MIOPEN_USE_ROCBLAS
     rhandle_ = CreateRocblasHandle();
 #endif
+    this->impl->target_properties.Init(this);
     MIOPEN_LOG_NQI(*this);
 }
 
@@ -223,6 +242,7 @@ Handle::Handle() : impl(new HandleImpl())
 #if MIOPEN_USE_ROCBLAS
     rhandle_ = CreateRocblasHandle();
 #endif
+    this->impl->target_properties.Init(this);
     MIOPEN_LOG_NQI(*this);
 }
 
@@ -235,6 +255,8 @@ void Handle::SetStream(miopenAcceleratorQueue_t streamID) const
 #if MIOPEN_USE_ROCBLAS
     rocblas_set_stream(this->rhandle_.get(), this->GetStream());
 #endif
+    this->impl->target_properties.Init(this);
+    MIOPEN_LOG_NQI(*this);
 }
 
 miopenAcceleratorQueue_t Handle::GetStream() const { return impl->stream.get(); }
@@ -367,22 +389,25 @@ Program Handle::LoadProgram(const std::string& program_name,
                             const std::string& kernel_src) const
 {
     this->impl->set_ctx();
-    params += " -mcpu=" + this->GetDeviceName();
-    auto hsaco = miopen::LoadBinary(
-        this->GetDeviceName(), this->GetMaxComputeUnits(), program_name, params, is_kernel_str);
+    params += " -mcpu=" + this->GetTargetProperties().Name();
+    auto hsaco = miopen::LoadBinary(this->GetTargetProperties(),
+                                    this->GetMaxComputeUnits(),
+                                    program_name,
+                                    params,
+                                    is_kernel_str);
     if(hsaco.empty())
     {
         CompileTimer ct;
-        auto p =
-            HIPOCProgram{program_name, params, is_kernel_str, this->GetDeviceName(), kernel_src};
-        ct.Log("Kernel", program_name);
+        auto p = HIPOCProgram{
+            program_name, params, is_kernel_str, this->GetTargetProperties(), kernel_src};
+        ct.Log("Kernel", is_kernel_str ? std::string() : program_name);
 
 // Save to cache
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
         miopen::SaveBinary(p.IsCodeObjectInMemory()
                                ? p.GetCodeObjectBlob()
                                : miopen::LoadFile(p.GetCodeObjectPathname().string()),
-                           this->GetDeviceName(),
+                           this->GetTargetProperties(),
                            this->GetMaxComputeUnits(),
                            program_name,
                            params,
@@ -393,7 +418,7 @@ Program Handle::LoadProgram(const std::string& program_name,
             miopen::WriteFile(p.GetCodeObjectBlob(), path);
         else
             boost::filesystem::copy_file(p.GetCodeObjectPathname(), path);
-        miopen::SaveBinary(path, this->GetDeviceName(), program_name, params, is_kernel_str);
+        miopen::SaveBinary(path, this->GetTargetProperties(), program_name, params, is_kernel_str);
 #endif
 
         return p;
@@ -520,17 +545,13 @@ std::size_t Handle::GetMaxMemoryAllocSize()
     return m_MaxMemoryAllocSizeCached;
 }
 
-std::string Handle::GetDeviceName() const
+std::string Handle::GetDeviceNameImpl() const { return this->impl->get_device_name(); }
+
+std::string Handle::GetDeviceName() const { return this->impl->target_properties.Name(); }
+
+const TargetProperties& Handle::GetTargetProperties() const
 {
-    const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
-    if(arch != nullptr && strlen(arch) > 0)
-    {
-        return arch;
-    }
-    hipDeviceProp_t props{};
-    hipGetDeviceProperties(&props, this->impl->device);
-    std::string n("gfx" + std::to_string(props.gcnArch));
-    return GetDeviceNameFromMap(n);
+    return this->impl->target_properties;
 }
 
 std::ostream& Handle::Print(std::ostream& os) const

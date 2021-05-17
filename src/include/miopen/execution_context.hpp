@@ -127,4 +127,30 @@ struct ExecutionContext
     private:
     Handle* stream = nullptr;
 };
+
+class AutoUseFastDynamicSolutions
+{
+    bool prev_skip_slow_;
+    bool prev_use_dynamic_;
+    ExecutionContext* const ctx;
+
+    public:
+    AutoUseFastDynamicSolutions(ExecutionContext& ctx_) : ctx(&ctx_)
+    {
+        prev_skip_slow_ = ctx->skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage;
+        prev_use_dynamic_ = ctx->use_dynamic_solutions_only;
+
+        ctx->skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage = true;
+        ctx->use_dynamic_solutions_only                                           = true;
+    }
+
+    ~AutoUseFastDynamicSolutions()
+    {
+        ctx->skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage = prev_skip_slow_;
+        ctx->use_dynamic_solutions_only = prev_use_dynamic_;
+    }
+};
+
+bool IsHipKernelsEnabled();
+
 } // namespace miopen

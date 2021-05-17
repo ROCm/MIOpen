@@ -61,6 +61,7 @@ struct FindDbTest : test_driver
 
     FindDbTest()
     {
+        filter.findMode.Set(FindMode::Values::Normal);
         x = {16, 192, 28, 28};
         w = {32, 192, 5, 5};
         y = tensor<float>{filter.GetForwardOutputTensor(x.desc, w.desc)};

@@ -34,6 +34,8 @@
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/rocm_features.hpp>
+#include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/stringutils.hpp>
 
 #include <amd_comgr.h>
@@ -85,13 +87,27 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
     ((MIOPEN_AMD_COMGR_VERSION_MAJOR * 1000 + MIOPEN_AMD_COMGR_VERSION_MINOR) * 1000 + \
      MIOPEN_AMD_COMGR_VERSION_PATCH)
 
-// If HIP runtime provides PCH functionality, and COMGR is able to use it,
-// then enable PCH usage automatically.
-#if defined(__HIP_HAS_GET_PCH) && __HIP_HAS_GET_PCH && COMGR_VERSION >= 1008000
-#define USE_HIP_PCH 1
+#define COMGR_SUPPORTS_PCH (COMGR_VERSION >= 1008000)
+
+#if COMGR_SUPPORTS_PCH
+/// 3.9 reports that HIP PCH is supported, but in fact it is not.
+#define WORKAROUND_SWDEV_257056_PCH_INCORRECTLY_REPORTED 1
+
+#if defined(__HIP_HAS_GET_PCH) && __HIP_HAS_GET_PCH
+#define HIP_SUPPORTS_PCH 1
 #else
-#define USE_HIP_PCH 0
+#define HIP_SUPPORTS_PCH 0
 #endif
+
+#if WORKAROUND_SWDEV_257056_PCH_INCORRECTLY_REPORTED
+#if(HIP_PACKAGE_VERSION_FLAT <= 3009999999)
+#undef HIP_SUPPORTS_PCH
+#define HIP_SUPPORTS_PCH 0
+#endif
+#endif
+#endif // COMGR_SUPPORTS_PCH
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE)
 
 #define COMPILER_LC 1
 
@@ -140,14 +156,6 @@ static auto GetOptionsNoSplit()
     return rv;
 }
 
-static bool IsEnabledFeatureSramEcc(const std::string& device)
-{
-    /// \todo Read actual feature status from runtime.
-    static const auto rv = (device == "gfx906" || device == "gfx908") &&
-                           !miopen::IsEnabled(MIOPEN_DEBUG_SRAM_EDC_DISABLED{});
-    return rv;
-}
-
 namespace gcnasm {
 
 static void RemoveOptionsUnwanted(OptionList& list)
@@ -166,13 +174,13 @@ namespace ocl {
 
 #define OCL_EARLY_INLINE 1
 
-#define OCL_STANDARD 200 // For experiments.
+#define OCL_STANDARD 120 // For experiments.
 
 #if !(OCL_STANDARD == 200 || OCL_STANDARD == 120)
 #error "Wrong OCL_STANDARD"
 #endif
 
-static void AddCompilerOptions(OptionList& list, const std::string& device)
+static void AddCompilerOptions(OptionList& list, const miopen::TargetProperties& target)
 {
     list.push_back("-cl-kernel-arg-info");
 #if 0 // For experimients.
@@ -191,12 +199,16 @@ static void AddCompilerOptions(OptionList& list, const std::string& device)
     list.push_back("-mcumode");          // gfx1000+ WGP mode: always disabled.
     list.push_back("-O3");
 
+#if ROCM_FEATURE_TARGETID_OFF
     // It seems like these options are used only in codegen.
     // However it seems ok to pass these to compiler.
-    if(IsEnabledFeatureSramEcc(device))
+    if(target.Sramecc())
         list.push_back("-msram-ecc");
     else
         list.push_back("-mno-sram-ecc");
+#else
+    std::ignore = target;
+#endif
     list.push_back("-mllvm");
     list.push_back("-amdgpu-internalize-symbols");
 }
@@ -216,6 +228,30 @@ static void RemoveOptionsUnwanted(OptionList& list)
 } // namespace ocl
 
 namespace hip {
+
+#if COMGR_SUPPORTS_PCH
+static bool IsPchEnabled()
+{
+    if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE{}))
+        return true;
+    if(miopen::IsDisabled(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE{}))
+        return false;
+    return HIP_SUPPORTS_PCH;
+}
+#endif
+
+static std::string GetPchEnableStatus()
+{
+#if COMGR_SUPPORTS_PCH
+    auto rv = std::string{IsPchEnabled() ? "1" : "0"};
+    if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE{}) ||
+       miopen::IsDisabled(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE{}))
+        return rv += " (enforced)";
+    return rv;
+#else
+    return "0 (not supported)";
+#endif
+}
 
 static bool IsLinkerOption(const std::string& option)
 {
@@ -267,10 +303,15 @@ static void RemoveLinkOptionsUnwanted(OptionList& list)
 } // namespace hip
 
 /// \todo Get list of supported isa names from comgr and select.
-static std::string GetIsaName(const std::string& device)
+static std::string GetIsaName(const miopen::TargetProperties& target)
 {
-    const char* const ecc_suffix = IsEnabledFeatureSramEcc(device) ? "+sram-ecc" : "";
-    return {"amdgcn-amd-amdhsa--" + device + ecc_suffix};
+#if ROCM_FEATURE_TARGETID_OFF
+    const char* const ecc_suffix = target.Sramecc() ? "+sram-ecc" : "";
+    return {"amdgcn-amd-amdhsa--" + target.Name() + ecc_suffix};
+#else
+    const LcOptionTargetStrings lots(target);
+    return {"amdgcn-amd-amdhsa--" + lots.targetId};
+#endif
 }
 
 } // namespace lc
@@ -372,7 +413,7 @@ static bool PrintVersionImpl()
     (void)amd_comgr_get_version(&major, &minor);
     MIOPEN_LOG_NQI("COMgr v." << major << '.' << minor << '.' << MIOPEN_AMD_COMGR_VERSION_PATCH
                               << ", USE_HIP_PCH: "
-                              << USE_HIP_PCH);
+                              << compiler::lc::hip::GetPchEnableStatus());
     return true;
 }
 
@@ -478,7 +519,7 @@ class Data : ComgrOwner
     {
         ECI_THROW(amd_comgr_set_data(handle, bytes.size(), bytes.data()), bytes.size());
     }
-#if USE_HIP_PCH
+#if COMGR_SUPPORTS_PCH
     void SetFromBuffer(const char* const buffer, const size_t size) const
     {
         ECI_THROW(amd_comgr_set_data(handle, size, buffer), size);
@@ -537,7 +578,7 @@ class Dataset : ComgrOwner
             MIOPEN_LOG_I(text);
         }
     }
-#if USE_HIP_PCH
+#if COMGR_SUPPORTS_PCH
     void AddDataHipPch(const char* const content, const size_t size) const
     {
         const char name[] = "hip.pch";
@@ -650,11 +691,11 @@ static std::string GetLog(const Dataset& dataset, const bool comgr_error_handlin
     return text;
 }
 
-static void SetIsaName(const ActionInfo& action, const std::string& device)
+static void SetIsaName(const ActionInfo& action, const miopen::TargetProperties& target)
 {
     // This can't be implemented in ActionInfo because
     // comgr wrappers should not depend on compiler implementation.
-    const auto isaName = compiler::lc::GetIsaName(device);
+    const auto isaName = compiler::lc::GetIsaName(target);
     MIOPEN_LOG_I2(isaName);
     action.SetIsaName(isaName);
 }
@@ -670,7 +711,7 @@ static std::string GetDebugCompilerOptionsInsert()
 void BuildHip(const std::string& name,
               const std::string& text,
               const std::string& options,
-              const std::string& device,
+              const miopen::TargetProperties& target,
               std::vector<char>& binary)
 {
     PrintVersion();
@@ -688,7 +729,8 @@ void BuildHip(const std::string& name,
         for(const auto& inc : incNames)
             inputs.AddData(inc, miopen::GetKernelInc(inc), AMD_COMGR_DATA_KIND_INCLUDE);
 
-#if USE_HIP_PCH
+#if COMGR_SUPPORTS_PCH
+        if(compiler::lc::hip::IsPchEnabled())
         {
             const char* pch       = nullptr;
             unsigned int pch_size = 0;
@@ -699,7 +741,7 @@ void BuildHip(const std::string& name,
 
         const ActionInfo action;
         action.SetLanguage(AMD_COMGR_LANGUAGE_HIP);
-        SetIsaName(action, device);
+        SetIsaName(action, target);
         action.SetLogging(true);
 
         const Dataset exe;
@@ -707,7 +749,12 @@ void BuildHip(const std::string& name,
         {
             auto raw = options                                 //
                        + " " + GetDebugCompilerOptionsInsert() //
-                       + " " + MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS);
+                       + " " + MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS) +
+                       (" -DHIP_PACKAGE_VERSION_FLAT=") + std::to_string(HIP_PACKAGE_VERSION_FLAT);
+#if ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
+            if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
+                raw += "-DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
+#endif
             auto optCompile = miopen::SplitSpaceSeparated(raw, compiler::lc::GetOptionsNoSplit());
             compiler::lc::hip::RemoveCompilerOptionsUnwanted(optCompile);
             action.SetOptionList(optCompile);
@@ -718,9 +765,17 @@ void BuildHip(const std::string& name,
             auto raw = std::string(" -O3 ")                    // Without this, fails in lld.
                        + options                               //
                        + " " + GetDebugCompilerOptionsInsert() //
-                       + " " + MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS);
-#if USE_HIP_PCH
-            raw += " -nogpuinc -DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS=1";
+                       + " " + MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS) +
+                       (" -DHIP_PACKAGE_VERSION_FLAT=") + std::to_string(HIP_PACKAGE_VERSION_FLAT);
+#if ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
+            if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
+                raw += "-DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
+#endif
+#if COMGR_SUPPORTS_PCH
+            if(compiler::lc::hip::IsPchEnabled())
+            {
+                raw += " -nogpuinc -DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS=1";
+            }
 #endif
             auto optCompile = miopen::SplitSpaceSeparated(raw, compiler::lc::GetOptionsNoSplit());
             auto optLink    = optCompile;
@@ -772,7 +827,7 @@ void BuildHip(const std::string& name,
 void BuildOcl(const std::string& name,
               const std::string& text,
               const std::string& options,
-              const std::string& device,
+              const miopen::TargetProperties& target,
               std::vector<char>& binary)
 {
     PrintVersion(); // Nice to see in the user's logs.
@@ -786,12 +841,12 @@ void BuildOcl(const std::string& name,
 #else
         action.SetLanguage(AMD_COMGR_LANGUAGE_OPENCL_1_2);
 #endif
-        SetIsaName(action, device);
+        SetIsaName(action, target);
         action.SetLogging(true);
 
         auto optCompile = miopen::SplitSpaceSeparated(options);
         compiler::lc::ocl::RemoveOptionsUnwanted(optCompile);
-        compiler::lc::ocl::AddCompilerOptions(optCompile, device);
+        compiler::lc::ocl::AddCompilerOptions(optCompile, target);
         action.SetOptionList(optCompile);
 
         const Dataset addedPch;
@@ -852,7 +907,7 @@ void BuildOcl(const std::string& name,
 void BuildAsm(const std::string& name,
               const std::string& text,
               const std::string& options,
-              const std::string& device,
+              const miopen::TargetProperties& target,
               std::vector<char>& binary)
 {
     PrintVersion();
@@ -862,7 +917,7 @@ void BuildAsm(const std::string& name,
         inputs.AddData(name, text, AMD_COMGR_DATA_KIND_SOURCE);
 
         const ActionInfo action;
-        SetIsaName(action, device);
+        SetIsaName(action, target);
         action.SetLogging(true);
         auto optAsm = miopen::SplitSpaceSeparated(options);
 #if WORKAROUND_SWDEV_255735
