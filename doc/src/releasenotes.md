@@ -1,6 +1,14 @@
 
 ## MIOpen Release notes
 
+### 05/17/2021 [2.11.0]
+
+ - This release contains various bug fixes and performance improvements.
+ 
+ - Updates for Target ID features in ROCm stack
+ - Correctness fix in Batchnorm kernels
+ - Various bug fixes for MIOpenGEMM on the OpenCL backend
+ - Various bug fixes in 3x3 assembly kernels
 
 ### 03/25/2021 [2.10.0]
 
