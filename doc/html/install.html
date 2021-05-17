@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                2.9.0
+                2.11.0
               </div>
             
           
@@ -85,6 +85,8 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/17/2021 [2.11.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/25/2021 [2.10.0]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/01/2020 [ 2.9.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">10/28/2020 [ 2.8.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/18/2020 [ 2.7.0 ]</a></li>
@@ -201,7 +203,6 @@
 <li class="toctree-l1"><a class="reference internal" href="perfdatabase.html">Performance Database</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="perfdatabase.html#auto-tuning-the-kernels">Auto-tuning the kernels.</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="perfdatabase.html#miopen-find-enforce">MIOPEN_FIND_ENFORCE</a></li>
-<li class="toctree-l3"><a class="reference internal" href="perfdatabase.html#miopen-find-enforce-scope">MIOPEN_FIND_ENFORCE_SCOPE</a></li>
 <li class="toctree-l3"><a class="reference internal" href="perfdatabase.html#updating-miopen-and-the-user-db">Updating MIOpen and the User Db</a></li>
 </ul>
 </li>
@@ -538,10 +539,11 @@ The latest released documentation can be read online <a class="reference externa
 <li><a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpenGEMM">MIOpenGEMM</a> to enable various functionalities including transposed and dilated convolutions. This is optional on the HIP backend. Users can enable this library using the cmake configuration flag <code class="docutils literal"><span class="pre">-DMIOPEN_USE_MIOPENGEMM=On</span></code>.</li>
 <li>ROCm cmake modules can be installed from <a class="reference external" href="https://github.com/RadeonOpenCompute/rocm-cmake">here</a></li>
 <li><a class="reference external" href="http://half.sourceforge.net/">Half</a> - IEEE 754-based half-precision floating point library</li>
-<li><a class="reference external" href="http://www.boost.org/">Boost</a> at least version 1.58<ul>
+<li><a class="reference external" href="http://www.boost.org/">Boost</a> at version 1.72 (other versions are not supported)<ul>
 <li>MIOpen uses <code class="docutils literal"><span class="pre">boost-system</span></code> and <code class="docutils literal"><span class="pre">boost-filesystem</span></code> packages to enable persistent <a class="reference external" href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/cache.html">kernel cache</a></li>
 </ul>
 </li>
+<li><a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpenTensile">MIOpenTENSILE</a> Users can enable this library using the cmake configuration flag <code class="docutils literal"><span class="pre">-DMIOPEN_USE_MIOPENTENSILE=On</span></code>.</li>
 <li><a class="reference external" href="https://github.com/ROCmSoftwarePlatform/rocBLAS">rocBlas</a><ul>
 <li>Minimum version branch for pre-ROCm 3.5 <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/rocBLAS/tree/master-rocm-2.10">master-rocm-2.10</a></li>
 <li>Minimum version branch for post-ROCm 3.5 <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/rocBLAS/releases/tag/rocm-3.5.0">master-rocm-3.5</a></li>
@@ -583,7 +585,7 @@ The latest released documentation can be read online <a class="reference externa
 </div>
 <div class="section" id="installing-minimum-dependencies-in-rocm-environment">
 <span id="installing-minimum-dependencies-in-rocm-environment"></span><h2>Installing minimum dependencies in ROCm environment<a class="headerlink" href="#installing-minimum-dependencies-in-rocm-environment" title="Permalink to this headline">¶</a></h2>
-<p>Users who are working in a fully installed and up to date ROCm environment may not wish to additionally install rocm-cmake, clang-ocl, MIOpenGEMM, or rocBLAS. This can be done by simply inserting the command <code class="docutils literal"><span class="pre">--minimum</span></code> into the cmake command as shown below:</p>
+<p>Users who are working in a fully installed and up to date ROCm environment may not wish to additionally install rocm-cmake, clang-ocl, MIOpenGEMM, MIOpenTensile or rocBLAS. This can be done by simply inserting the command <code class="docutils literal"><span class="pre">--minimum</span></code> into the cmake command as shown below:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">cmake</span> <span class="o">-</span><span class="n">P</span> <span class="n">install_deps</span><span class="o">.</span><span class="n">cmake</span> <span class="o">--</span><span class="n">minimum</span> <span class="o">--</span><span class="n">prefix</span> <span class="o">/</span><span class="n">some</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">dir</span>
 </pre></div>
 </div>
@@ -756,7 +758,7 @@ The latest released documentation can be read online <a class="reference externa
 </div>
 <div class="section" id="citing-miopen">
 <span id="citing-miopen"></span><h2>Citing MIOpen<a class="headerlink" href="#citing-miopen" title="Permalink to this headline">¶</a></h2>
-<p>MIOpen's paper can be accessed on arXiv:<a class="reference external" href="https://arxiv.org/abs/1910.00078">MIOpen: An Open Source Library For Deep Learning Primitives</a></p>
+<p>MIOpen's paper is freely available and can be accessed on arXiv:<a class="reference external" href="https://arxiv.org/abs/1910.00078">MIOpen: An Open Source Library For Deep Learning Primitives</a></p>
 <div class="section" id="citation-bibtex">
 <span id="citation-bibtex"></span><h3>Citation BibTeX<a class="headerlink" href="#citation-bibtex" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="nd">@misc</span><span class="p">{</span><span class="n">jeh2019miopen</span><span class="p">,</span>
@@ -815,7 +817,7 @@ The latest released documentation can be read online <a class="reference externa
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.9.0',
+            VERSION:'2.11.0',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

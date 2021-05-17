@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                2.9.0
+                2.11.0
               </div>
             
           
@@ -85,6 +85,8 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/17/2021 [2.11.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/25/2021 [2.10.0]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/01/2020 [ 2.9.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">10/28/2020 [ 2.8.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/18/2020 [ 2.7.0 ]</a></li>
@@ -201,7 +203,6 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Performance Database</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#auto-tuning-the-kernels">Auto-tuning the kernels.</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#miopen-find-enforce">MIOPEN_FIND_ENFORCE</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#miopen-find-enforce-scope">MIOPEN_FIND_ENFORCE_SCOPE</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#updating-miopen-and-the-user-db">Updating MIOpen and the User Db</a></li>
 </ul>
 </li>
@@ -539,12 +540,11 @@
 <li>The passed value of <code class="docutils literal"><span class="pre">exhaustiveSearch</span></code> parameter is <code class="docutils literal"><span class="pre">true</span></code>, and</li>
 <li>Both System and User PerfDb do not yet contain values for the relevant <em>problem configuration</em>.</li>
 </ul>
-<p>The latter two conditions may be overridden by <em>enforcing</em> the search by means of the following environment variables:</p>
+<p>The latter two conditions may be overridden by <em>enforcing</em> the search by means of the following environment variable:</p>
 <ul class="simple">
 <li><code class="docutils literal"><span class="pre">MIOPEN_FIND_ENFORCE</span></code></li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_FIND_ENFORCE_SCOPE</span></code></li>
 </ul>
-<p>These variables may also be used for <em>removing</em> values from User PerfDb, see below.</p>
+<p>This variable may also be used for <em>removing</em> values from User PerfDb, see below.</p>
 <div class="section" id="miopen-find-enforce">
 <span id="miopen-find-enforce"></span><h3>MIOPEN_FIND_ENFORCE<a class="headerlink" href="#miopen-find-enforce" title="Permalink to this headline">¶</a></h3>
 <p>Both symbolic (case-insensitive) and numeric values are supported.</p>
@@ -560,14 +560,6 @@
 <p>A combination of SEARCH and DB_UPDATE. MIOpen performs auto-tune (and updates User PerfDb) on each <code class="docutils literal"><span class="pre">miopenFindConvolution*()</span></code> call. It is not recommended to use this mode except for debugging purposes.</p>
 <p><strong>DB_CLEAN (5)</strong></p>
 <p>Use with care. MIOpen <strong>removes</strong> optimized values related to given <em>problem configuration</em> from the User PerfDb. Auto-tune is blocked, even if it is explicitly requested. System PerfDb left intact.</p>
-</div>
-<div class="section" id="miopen-find-enforce-scope">
-<span id="miopen-find-enforce-scope"></span><h3>MIOPEN_FIND_ENFORCE_SCOPE<a class="headerlink" href="#miopen-find-enforce-scope" title="Permalink to this headline">¶</a></h3>
-<p>This variable allows for limiting the scope of <code class="docutils literal"><span class="pre">MIOPEN_FIND_ENFORCE</span></code>, so that only forward, backward data or backward weights convolutions will be affected. Both symbolic (case-insensitive) and numeric values are supported, as shown below.</p>
-<p><strong>ALL (1)</strong> <code class="docutils literal"><span class="pre">MIOPEN_FIND_ENFORCE</span></code> affects all convolutions. This is the default.</p>
-<p><strong>CONV_FWD (2)</strong> <code class="docutils literal"><span class="pre">MIOPEN_FIND_ENFORCE</span></code> affects only Forward convolutions.</p>
-<p><strong>CONV_BWD (3)</strong> <code class="docutils literal"><span class="pre">MIOPEN_FIND_ENFORCE</span></code> affects only Backward Data convolutions.</p>
-<p><strong>CONV_WRW (4)</strong> <code class="docutils literal"><span class="pre">MIOPEN_FIND_ENFORCE</span></code> affects only Backward With Regard to Weights (a.k.a. WRW) convolutions.</p>
 </div>
 <div class="section" id="updating-miopen-and-the-user-db">
 <span id="updating-miopen-and-the-user-db"></span><h3>Updating MIOpen and the User Db<a class="headerlink" href="#updating-miopen-and-the-user-db" title="Permalink to this headline">¶</a></h3>
@@ -618,7 +610,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.9.0',
+            VERSION:'2.11.0',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

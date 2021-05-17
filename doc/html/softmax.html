@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                2.9.0
+                2.11.0
               </div>
             
           
@@ -85,6 +85,8 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/17/2021 [2.11.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/25/2021 [2.10.0]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/01/2020 [ 2.9.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">10/28/2020 [ 2.8.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/18/2020 [ 2.7.0 ]</a></li>
@@ -201,7 +203,6 @@
 <li class="toctree-l1"><a class="reference internal" href="perfdatabase.html">Performance Database</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="perfdatabase.html#auto-tuning-the-kernels">Auto-tuning the kernels.</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="perfdatabase.html#miopen-find-enforce">MIOPEN_FIND_ENFORCE</a></li>
-<li class="toctree-l3"><a class="reference internal" href="perfdatabase.html#miopen-find-enforce-scope">MIOPEN_FIND_ENFORCE_SCOPE</a></li>
 <li class="toctree-l3"><a class="reference internal" href="perfdatabase.html#updating-miopen-and-the-user-db">Updating MIOpen and the User Db</a></li>
 </ul>
 </li>
@@ -526,19 +527,19 @@
 <p><em>Values:</em></p>
 <dl class="enumerator">
 <dt id="_CPPv219MIOPEN_SOFTMAX_FAST">
-<span class="target" id="group__softmax_1gaf2376aefd82e3d6e08df6da4810ffdfea7d462f643547b89ea8460c3b1d58b8d8"></span><code class="descname">MIOPEN_SOFTMAX_FAST</code> = 0<a class="headerlink" href="#_CPPv219MIOPEN_SOFTMAX_FAST" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="miopen_8h_1gaf2376aefd82e3d6e08df6da4810ffdfea7d462f643547b89ea8460c3b1d58b8d8"></span><code class="descname">MIOPEN_SOFTMAX_FAST</code> = 0<a class="headerlink" href="#_CPPv219MIOPEN_SOFTMAX_FAST" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>straightforward softmax </p>
 </dd></dl>
 
 <dl class="enumerator">
 <dt id="_CPPv223MIOPEN_SOFTMAX_ACCURATE">
-<span class="target" id="group__softmax_1gaf2376aefd82e3d6e08df6da4810ffdfeacd866d881145ad1a323c4a589986cf5e"></span><code class="descname">MIOPEN_SOFTMAX_ACCURATE</code> = 1<a class="headerlink" href="#_CPPv223MIOPEN_SOFTMAX_ACCURATE" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="miopen_8h_1gaf2376aefd82e3d6e08df6da4810ffdfeacd866d881145ad1a323c4a589986cf5e"></span><code class="descname">MIOPEN_SOFTMAX_ACCURATE</code> = 1<a class="headerlink" href="#_CPPv223MIOPEN_SOFTMAX_ACCURATE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>scaled softmax by maximum value in input domain </p>
 </dd></dl>
 
 <dl class="enumerator">
 <dt id="_CPPv218MIOPEN_SOFTMAX_LOG">
-<span class="target" id="group__softmax_1gaf2376aefd82e3d6e08df6da4810ffdfead27f321be1aa13300ebb2d175a3666c5"></span><code class="descname">MIOPEN_SOFTMAX_LOG</code> = 2<a class="headerlink" href="#_CPPv218MIOPEN_SOFTMAX_LOG" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="miopen_8h_1gaf2376aefd82e3d6e08df6da4810ffdfead27f321be1aa13300ebb2d175a3666c5"></span><code class="descname">MIOPEN_SOFTMAX_LOG</code> = 2<a class="headerlink" href="#_CPPv218MIOPEN_SOFTMAX_LOG" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>log softmax </p>
 </dd></dl>
 
@@ -554,13 +555,13 @@
 <p><em>Values:</em></p>
 <dl class="enumerator">
 <dt id="_CPPv228MIOPEN_SOFTMAX_MODE_INSTANCE">
-<span class="target" id="group__softmax_1gaea670eae33cee9aee53d48624cf28d7dabab93ef42b0ec7744b4fb8ab83d700a3"></span><code class="descname">MIOPEN_SOFTMAX_MODE_INSTANCE</code> = 0<a class="headerlink" href="#_CPPv228MIOPEN_SOFTMAX_MODE_INSTANCE" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="miopen_8h_1gaea670eae33cee9aee53d48624cf28d7dabab93ef42b0ec7744b4fb8ab83d700a3"></span><code class="descname">MIOPEN_SOFTMAX_MODE_INSTANCE</code> = 0<a class="headerlink" href="#_CPPv228MIOPEN_SOFTMAX_MODE_INSTANCE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>compute per image (N) across C, H, W </p>
 </dd></dl>
 
 <dl class="enumerator">
 <dt id="_CPPv227MIOPEN_SOFTMAX_MODE_CHANNEL">
-<span class="target" id="group__softmax_1gaea670eae33cee9aee53d48624cf28d7daf5c13b390d4b6132b51976a92f0f3029"></span><code class="descname">MIOPEN_SOFTMAX_MODE_CHANNEL</code><p>=</p>
+<span class="target" id="miopen_8h_1gaea670eae33cee9aee53d48624cf28d7daf5c13b390d4b6132b51976a92f0f3029"></span><code class="descname">MIOPEN_SOFTMAX_MODE_CHANNEL</code><p>=</p>
 <p>        1</p>
 <a class="headerlink" href="#_CPPv227MIOPEN_SOFTMAX_MODE_CHANNEL" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>compute per spatial location (H, W) per image (N) across C </p>
@@ -723,7 +724,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.9.0',
+            VERSION:'2.11.0',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
