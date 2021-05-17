@@ -47,6 +47,8 @@ void MiirGenLaunchParams(const std::string& params, size_t& local_size, size_t& 
 
 bool MiirIsConfigApplicable(const std::string& params);
 
+int MiirGetKernelCount(const std::string& params);
+
 void MiirGenBin(const std::string& params, std::vector<char>& buffer);
 } // namespace miopen
 
