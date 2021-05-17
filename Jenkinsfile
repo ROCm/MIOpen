@@ -546,13 +546,13 @@ pipeline {
                 stage('Fp16 Hip Install All Vega20') {
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Full_test_limit + Fp16_flags, build_install: "true")
+                        buildHipClangJobAndReboot( setup_flags: Full_test_limit + Fp16_flags, build_env: WORKAROUND_iGemm_917, build_install: "true")
                     }
                 }
                 stage('Fp32 Hip All Vega20') {
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Full_test_limit)
+                        buildHipClangJobAndReboot( setup_flags: Full_test_limit, build_env: WORKAROUND_iGemm_917)
                     }
                 }
                 stage('Fp16 Hip All Install gfx908') {
