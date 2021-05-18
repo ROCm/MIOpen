@@ -44,7 +44,8 @@ std::string InsertGToLayout(const std::string& layout, char dim)
 std::string PopulateHandle(const ConvolutionContext& ctx,
                            const std::string& operation,
                            const std::string& kernel_name,
-                           bool isXdlops)
+                           bool is_xdlops,
+                           int kernel_id)
 {
     // Arguments for mlir-miopen-driver.
     // clang-format off
@@ -55,13 +56,14 @@ std::string PopulateHandle(const ConvolutionContext& ctx,
     std::string out_layout = InsertGToLayout(CI::GetOutputLayout(ctx), 'C');
 
     std::string mlir_handle;
-    if (isXdlops)
+    if (is_xdlops)
         mlir_handle += std::string(" --x2 ") + "1";
 
     std::string data_type = ctx.IsFp32() ? "fp32" : "fp16";
 
     mlir_handle +=
         std::string(" --operation ") + operation +
+        std::string(" --kernel_id ") + std::to_string(kernel_id) +
         std::string(" --num_cu ") + std::to_string(ctx.GetStream().GetMaxComputeUnits()) +
         std::string(" --arch ") + ctx.GetStream().GetDeviceName() +
         std::string(" --groupsize ") + std::to_string(CI::GetGroupCountG(ctx)) +
