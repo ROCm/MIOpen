@@ -9,8 +9,19 @@ ARG USE_TARGETID="OFF"
 RUN dpkg --add-architecture i386
 
 # Add rocm repository
-RUN if [ "$USE_TARGETID" = "ON" ] ; then sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/.apt_4.1.1/ xenial main > /etc/apt/sources.list.d/rocm.list'; else sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/.apt_3.7/ xenial main > /etc/apt/sources.list.d/rocm.list'; fi
+
+RUN if [ "$USE_TARGETID" = "ON" ] ; then sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/.apt_4.1.1/ xenial main > /etc/apt/sources.list.d/rocm.list'; else sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/.apt_4.2/ xenial main > /etc/apt/sources.list.d/rocm.list'; fi
 RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu xenial main universe | tee -a /etc/apt/sources.list"
+
+#Add gpg keys
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
+    wget \
+    ca-certificates \
+    curl \
+    libnuma-dev \
+    gnupg
+
+RUN wget -q -O - https://repo.radeon.com/rocm/apt/4.2/rocm.gpg.key | apt-key add -
 
 # Install dependencies
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
@@ -18,10 +29,8 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     build-essential \
     cmake \
     comgr \
-    curl \
     clang-format-3.8 \
     clang-3.8 \
-    clang-tidy-3.8\
     doxygen \
     g++ \
     gdb \
@@ -30,7 +39,6 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     lcov \
     libelf-dev \
     libncurses5-dev \
-    libnuma-dev \
     libpthread-stubs0-dev \
     llvm-amdgpu \
     miopengemm \
@@ -44,7 +52,6 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     python3-distutils \
     python3-venv \
     software-properties-common \
-    wget \
     rocm-dev \
     rocm-device-libs \
     rocm-opencl \
