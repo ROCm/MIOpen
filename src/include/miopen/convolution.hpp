@@ -121,10 +121,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
 
     bool IsWinograd3x3SupportedAndFast(miopen::ConvolutionContext& ctx) const;
 
-    std::size_t BackwardGetValidWorkSpaceSizeGemm(const TensorDescriptor& dyDesc,
-                                                  const TensorDescriptor& wDesc,
-                                                  const TensorDescriptor& dxDesc) const;
-
     std::size_t WrwGetValidWorkSpaceSizeGemm(const TensorDescriptor& dyDesc,
                                              const TensorDescriptor& xDesc,
                                              const TensorDescriptor& dwDesc) const;
@@ -338,8 +334,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                                 const TensorDescriptor& xDesc,
                                                 const TensorDescriptor& dwDesc) const;
 
-    std::size_t BackwardWeightsGetWorkSpaceSizeGEMM(const TensorDescriptor& dyDesc,
-                                                    const TensorDescriptor& dwDesc) const;
+    std::size_t BackwardWeightsGetWorkSpaceSizeGEMM(const miopen::ConvolutionContext& ctx) const;
 
     std::size_t BackwardWeightsGetWorkSpaceSizeDirect(const miopen::ConvolutionContext& ctx) const;
     std::size_t
@@ -361,7 +356,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                      std::size_t workSpaceSize,
                                      bool exhaustiveSearch) const;
 
-    void ConvolutionBackwardWeights(Handle& handle,
+    void ConvolutionBackwardWeights(const Handle& handle,
                                     const void* alpha,
                                     const TensorDescriptor& dyDesc,
                                     ConstData_t dy,
@@ -394,11 +389,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                       const TensorDescriptor& xDesc,
                                       const TensorDescriptor& dwDesc) const;
 
-    void BackwardWeightsGemm(Handle& handle,
-                             const ConvWrwTensors& tensors,
-                             Data_t workSpace,
-                             std::size_t workSpaceSize) const;
-
     template <class TKernels>
     void BackwardWeightsDirect(Handle& handle,
                                const ConvolutionContext& ctx,
@@ -411,22 +401,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                               size_t maxSolutionCount,
                               size_t* solutionCount,
                               miopenConvSolution_t* solutions) const;
-
-    bool IsGemmApplicableBwd(const TensorDescriptor& dyDesc,
-                             const TensorDescriptor& wDesc,
-                             const TensorDescriptor& dxDesc) const;
-
-    bool IsGemmApplicableWrw(const TensorDescriptor& dyDesc,
-                             const TensorDescriptor& xDesc,
-                             const TensorDescriptor& dwDesc) const;
-
-    float ComputeGemmWtiBwd(const TensorDescriptor& dyDesc,
-                            const TensorDescriptor& wDesc,
-                            const TensorDescriptor& dxDesc) const;
-
-    float ComputeGemmWtiWrw(const TensorDescriptor& dyDesc,
-                            const TensorDescriptor& xDesc,
-                            const TensorDescriptor& dwDesc) const;
 
     std::size_t GetSolutionCountFallback(Handle& handle, const ProblemDescription& problem) const;
 };

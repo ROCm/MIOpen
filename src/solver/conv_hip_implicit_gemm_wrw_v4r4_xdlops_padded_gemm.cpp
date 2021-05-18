@@ -35,6 +35,10 @@
 #include <miopen/tensor_ops.hpp>
 #include <miopen/implicitgemm_params.hpp>
 
+/// Fatal compiler errors with ROCm 3.7 on some BF16 configs.
+#define WORKAROUND_MI100_BF16_FATAL_COMPILER_ERRORS \
+    (HIP_PACKAGE_VERSION_FLAT >= 3007000000 && HIP_PACKAGE_VERSION_FLAT <= 3007999999)
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_PADDED_GEMM_XDLOPS)
 
 namespace miopen {
@@ -1130,7 +1134,13 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsApplicable(const Convolutio
         return false;
     }
 
-    // this particular HeuristicInit is so comprehensive, that if it cannot predict a valid
+// this particular HeuristicInit is so comprehensive, that if it cannot predict a valid
+#if WORKAROUND_MI100_BF16_FATAL_COMPILER_ERRORS
+    if(ctx.GetStream().GetDeviceName() == "gfx908" && ctx.IsBfp16())
+        return false;
+#endif
+
+    // this particular EuristicInit is so comprehensive, that if it cannot predict a valid
     // performance config, the problem is probably not applicable
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm config;
     config.HeuristicInit(ctx);
