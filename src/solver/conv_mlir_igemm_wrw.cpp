@@ -99,7 +99,7 @@ bool ConvMlirIgemmWrW::IsApplicable(const ConvolutionContext& ctx) const
         return false;
 
     return MiirIsConfigApplicable(
-        mlir::PopulateHandle(ctx, GetOperation(), GetKernelName(), false));
+        mlir::ConstructBuildOptions(ctx, GetOperation(), GetKernelName(), false));
 #else
     std::ignore = ctx;
     return false;
@@ -115,7 +115,7 @@ ConvSolution ConvMlirIgemmWrW::GetSolution(const ConvolutionContext& ctx) const
     construction_parameters.kernel_name = GetKernelName();
     construction_parameters.kernel_file = construction_parameters.kernel_name + ".mlir";
     construction_parameters.comp_options =
-        mlir::PopulateHandle(ctx, GetOperation(), GetKernelName(), false);
+        mlir::ConstructBuildOptions(ctx, GetOperation(), GetKernelName(), false);
 
     size_t local_size  = 0;
     size_t global_size = 0;

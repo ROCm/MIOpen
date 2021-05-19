@@ -102,7 +102,8 @@ bool ConvMlirIgemmWrWXdlops::IsApplicable(const ConvolutionContext& ctx) const
     if(!IsValidGridGemmXdlops(gemm_m, gemm_n, gemm_k))
         return false;
 
-    return MiirIsConfigApplicable(mlir::PopulateHandle(ctx, GetOperation(), GetKernelName(), true));
+    return MiirIsConfigApplicable(
+        mlir::ConstructBuildOptions(ctx, GetOperation(), GetKernelName(), true));
 #else
     std::ignore = ctx;
     return false;
@@ -118,7 +119,7 @@ ConvSolution ConvMlirIgemmWrWXdlops::GetSolution(const ConvolutionContext& ctx) 
     construction_parameters.kernel_name = GetKernelName();
     construction_parameters.kernel_file = construction_parameters.kernel_name + ".mlir";
     construction_parameters.comp_options =
-        mlir::PopulateHandle(ctx, GetOperation(), GetKernelName(), true);
+        mlir::ConstructBuildOptions(ctx, GetOperation(), GetKernelName(), true);
 
     size_t local_size  = 0;
     size_t global_size = 0;
