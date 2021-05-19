@@ -302,7 +302,7 @@ pipeline {
                     agent{ label rocmnode("vega") }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release')
+                            runDockerJob(flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release')
                         }
                     }
                 }
@@ -310,7 +310,7 @@ pipeline {
                     agent{ label rocmnode("vega") }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', prefixpath: '/opt/rocm')
+                            runDockerJob(flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', prefixpath: '/opt/rocm')
                         }
                     }
                 }
@@ -326,7 +326,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd)
+                            runDockerJob(cmd: cmd)
                         }
                     }
                 }
@@ -334,7 +334,7 @@ pipeline {
                     agent{ label rocmnode("gfx908") }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', flags: '-DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', prefixpath: '/opt/rocm', gpu_arch: "gfx908")
+                            runDockerJob(flags: '-DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', prefixpath: '/opt/rocm', gpu_arch: "gfx908")
                         }
                     }
                 }
@@ -354,7 +354,7 @@ pipeline {
                         """
                     }
                     steps{
-                        buildhipclangjob(compiler: '/opt/rocm/llvm/bin/clang++', env4make: "MIOPEN_LOG_LEVEL=5 MIOPEN_COMPILE_PARALLEL_LEVEL=1", cmd: cmd)
+                        buildhipclangjob(env4make: "MIOPEN_LOG_LEVEL=5 MIOPEN_COMPILE_PARALLEL_LEVEL=1", cmd: cmd)
                     }
                 }
                 stage('Fp32 Hip Debug COMGR') {
@@ -369,7 +369,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd)
+                            runDockerJob(cmd: cmd)
                         }
                     }
                 }
@@ -385,7 +385,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd)
+                            runDockerJob(cmd: cmd)
                         }
                     }
                 }
@@ -401,7 +401,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd)
+                            runDockerJob(cmd: cmd)
                         }
                     }
                 }
@@ -418,7 +418,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd)
+                            runDockerJob(cmd: cmd)
                         }
                     }
                 }
@@ -435,7 +435,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd)
+                            runDockerJob(cmd: cmd)
                         }
                     }
                 }
@@ -456,7 +456,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx900;gfx906")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx900;gfx906")
                         }
                     }
                 }
@@ -472,7 +472,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx900;gfx906")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx900;gfx906")
                         }
                     }
                 }
@@ -488,7 +488,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx908")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908")
                         }
                     }
                 }
@@ -504,7 +504,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx908")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908")
                         }
                     }
                 }
@@ -517,7 +517,7 @@ pipeline {
                     agent{ label rocmnode("vega20") }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', flags: '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', prefixpath: '/opt/rocm')
+                            runDockerJob(flags: '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', prefixpath: '/opt/rocm')
                         }
                     }
                 }
@@ -541,7 +541,7 @@ pipeline {
                     agent{ label rocmnode("vega20") }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', flags: '-DMIOPEN_TEST_BFLOAT16=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', prefixpath: '/opt/rocm')
+                            runDockerJob(flags: '-DMIOPEN_TEST_BFLOAT16=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', prefixpath: '/opt/rocm')
                         }
                     }
                 }
@@ -549,7 +549,7 @@ pipeline {
                     agent{ label rocmnode("gfx908") }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', flags: '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', prefixpath: '/opt/rocm', gpu_arch: "gfx908")
+                            runDockerJob(flags: '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', prefixpath: '/opt/rocm', gpu_arch: "gfx908")
                         }
                     }
                 }
@@ -557,7 +557,7 @@ pipeline {
                     agent{ label rocmnode("gfx908") }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', flags: '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', prefixpath: '/opt/rocm', gpu_arch: "gfx908")
+                            runDockerJob(flags: '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', prefixpath: '/opt/rocm', gpu_arch: "gfx908")
                         }
                     }
                 }
@@ -578,7 +578,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "latest", target_id: "ON")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "latest", target_id: "ON")
                         }
                     }
                 }
@@ -594,7 +594,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "latest", target_id: "ON")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "latest", target_id: "ON")
                         }
                     }
                 }
@@ -610,7 +610,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "latest", target_id: "ON")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "latest", target_id: "ON")
                         }
                     }
                 }
@@ -626,7 +626,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "latest", target_id: "ON")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "latest", target_id: "ON")
                         }
                     }
                 }
@@ -647,7 +647,7 @@ pipeline {
                     agent{ label rocmnode("vega20") }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', flags: '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', prefixpath: '/opt/rocm')
+                            runDockerJob(flags: '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', prefixpath: '/opt/rocm')
                         }
                     }
                 }
@@ -663,7 +663,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx908")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908")
                         }
                     }
                 }
@@ -692,7 +692,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx908")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908")
                         }
                     }
                 }
@@ -708,7 +708,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx908")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908")
                         }
                     }
                 }
@@ -729,7 +729,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd)
+                            runDockerJob(cmd: cmd)
                         }
                     }
                 }
@@ -745,7 +745,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd)
+                            runDockerJob(cmd: cmd)
                         }
                     }
                 }
@@ -766,7 +766,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "default", target_id: "ON")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "default", target_id: "ON")
                         }
                     }
                 }
@@ -782,7 +782,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "default", target_id: "ON")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "default", target_id: "ON")
                         }
                     }
                 }
@@ -798,7 +798,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "default", target_id: "ON")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "default", target_id: "ON")
                         }
                     }
                 }
@@ -814,7 +814,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "default", target_id: "ON")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "default", target_id: "ON")
                         }
                     }
                 }
@@ -830,7 +830,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "default", target_id: "ON")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "default", target_id: "ON")
                         }
                     }
                 }
@@ -846,7 +846,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "default", target_id: "ON")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "default", target_id: "ON")
                         }
                     }
                 }
@@ -862,7 +862,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "default", target_id: "ON")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "default", target_id: "ON")
                         }
                     }
                 }
@@ -878,7 +878,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "default", target_id: "ON")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "default", target_id: "ON")
                         }
                     }
                 }
@@ -899,7 +899,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "latest", target_id: "ON")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "latest", target_id: "ON")
                         }
                     }
                 }
@@ -915,7 +915,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "latest", target_id: "ON")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "latest", target_id: "ON")
                         }
                     }
                 }
@@ -931,7 +931,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "latest", target_id: "ON")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "latest", target_id: "ON")
                         }
                     }
                 }
@@ -947,7 +947,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "latest", target_id: "ON")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx906:xnack-", miotensile_version: "latest", target_id: "ON")
                         }
                     }
                 }
@@ -963,7 +963,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "latest", target_id: "ON")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "latest", target_id: "ON")
                         }
                     }
                 }
@@ -979,7 +979,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "latest", target_id: "ON")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "latest", target_id: "ON")
                         }
                     }
                 }
@@ -995,7 +995,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "latest", target_id: "ON")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "latest", target_id: "ON")
                         }
                     }
                 }
@@ -1011,7 +1011,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "latest", target_id: "ON")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "latest", target_id: "ON")
                         }
                     }
                 }
@@ -1032,7 +1032,7 @@ pipeline {
                     agent{ label rocmnode("nogpu") }
                     steps{
                         script{
-                            runDockerJob(compiler: '/opt/rocm/llvm/bin/clang++', flags: '-DCMAKE_BUILD_TYPE=release', prefixpath: '/opt/rocm', gpu_arch: "gfx900;gfx906;gfx908")
+                            runDockerJob(flags: '-DCMAKE_BUILD_TYPE=release', prefixpath: '/opt/rocm', gpu_arch: "gfx900;gfx906;gfx908")
                         }
                     }
                 }
