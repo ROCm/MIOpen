@@ -101,7 +101,7 @@ bool ConvMlirIgemmBwd::IsApplicable(const ConvolutionContext& ctx) const
         return false;
 
     return MiirIsConfigApplicable(
-        mlir::PopulateHandle(ctx, GetOperation(), GetKernelName(), false));
+        mlir::ConstructBuildOptions(ctx, GetOperation(), GetKernelName(), false));
 #else
     std::ignore = ctx;
     return false;
@@ -112,16 +112,16 @@ ConvSolution ConvMlirIgemmBwd::GetSolution(const ConvolutionContext& ctx) const
 {
 #if MIOPEN_USE_MLIR
     ConvSolution result;
-    int kernel_count =
-        MiirGetKernelCount(mlir::PopulateHandle(ctx, GetOperation(), GetKernelName(), false));
+    int kernel_count = MiirGetKernelCount(
+        mlir::ConstructBuildOptions(ctx, GetOperation(), GetKernelName(), false));
 
-    for(std::size_t kernel_id = 0; kernel_id < kernel_count; ++kernel_id)
+    for(int kernel_id = 0; kernel_id < kernel_count; ++kernel_id)
     {
         KernelInfo construction_parameters;
 
         construction_parameters.kernel_name  = GetKernelName() + std::to_string(kernel_id);
         construction_parameters.kernel_file  = construction_parameters.kernel_name + ".mlir";
-        construction_parameters.comp_options = mlir::PopulateHandle(
+        construction_parameters.comp_options = mlir::ConstructBuildOptions(
             ctx, GetOperation(), construction_parameters.kernel_name, false, kernel_id);
 
         size_t local_size  = 0;

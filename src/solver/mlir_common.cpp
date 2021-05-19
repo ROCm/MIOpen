@@ -41,11 +41,11 @@ std::string InsertGToLayout(const std::string& layout, char dim)
     return layout_with_g.insert(index, 1, 'G');
 }
 
-std::string PopulateHandle(const ConvolutionContext& ctx,
-                           const std::string& operation,
-                           const std::string& kernel_name,
-                           bool is_xdlops,
-                           int kernel_id)
+std::string ConstructBuildOptions(const ConvolutionContext& ctx,
+                                  const std::string& operation,
+                                  const std::string& kernel_name,
+                                  bool is_xdlops,
+                                  int kernel_id)
 {
     // Arguments for mlir-miopen-driver.
     // clang-format off

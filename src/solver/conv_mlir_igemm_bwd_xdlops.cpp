@@ -99,7 +99,8 @@ bool ConvMlirIgemmBwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
     if(!IsValidGridGemmXdlops(gemm_m, gemm_n, gemm_k))
         return false;
 
-    return MiirIsConfigApplicable(mlir::PopulateHandle(ctx, GetOperation(), GetKernelName(), true));
+    return MiirIsConfigApplicable(
+        mlir::ConstructBuildOptions(ctx, GetOperation(), GetKernelName(), true));
 #else
     std::ignore = ctx;
     return false;
@@ -111,16 +112,16 @@ ConvSolution ConvMlirIgemmBwdXdlops::GetSolution(const ConvolutionContext& ctx) 
 #if MIOPEN_USE_MLIR
     ConvSolution result;
     int kernel_count =
-        MiirGetKernelCount(mlir::PopulateHandle(ctx, GetOperation(), GetKernelName(), true));
+        MiirGetKernelCount(mlir::ConstructBuildOptions(ctx, GetOperation(), GetKernelName(), true));
 
-    for(std::size_t kernel_id = 0; kernel_id < kernel_count; ++kernel_id)
+    for(int kernel_id = 0; kernel_id < kernel_count; ++kernel_id)
     {
         KernelInfo construction_parameters;
 
         construction_parameters.kernel_name = GetKernelName() + std::to_string(kernel_id);
         construction_parameters.kernel_file = construction_parameters.kernel_name + ".mlir";
         construction_parameters.comp_options =
-            mlir::PopulateHandle(ctx, GetOperation(), GetKernelName(), true, kernel_id);
+            mlir::ConstructBuildOptions(ctx, GetOperation(), GetKernelName(), true, kernel_id);
 
         size_t local_size  = 0;
         size_t global_size = 0;
