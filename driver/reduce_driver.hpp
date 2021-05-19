@@ -374,8 +374,8 @@ int ReduceDriver<Tgpu, Tref>::RunForwardGPU()
 
     if(this->need_indices)
     {
-        alpha = reduce::convert_type<Tgpu>(1.0f);
-        beta  = reduce::convert_type<Tgpu>(0.0f);
+        alpha = 1.0f;
+        beta  = 0.0f;
     };
 
     bool output_accumulate = !(reduce::float_equal_one(alpha) && reduce::float_equal_zero(beta));
