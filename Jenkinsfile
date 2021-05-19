@@ -134,9 +134,9 @@ def reboot(){
     build job: 'reboot-slaves', propagate: false , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
 }
 
-def runDockerJob(compiler, Map conf){
+def runDockerJob(Map conf, compiler){
     try{
-        buildHipClangJob(compiler, conf)
+        buildHipClangJob(conf, compiler)
     }
     catch(e){
         echo "throwing error exception for the stage"
