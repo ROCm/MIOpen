@@ -178,27 +178,27 @@ pipeline {
     parameters {
         booleanParam(
             name: "STATIC_CHECKS",
-            defaultValue: false,
+            defaultValue: true,
             description: "")
         booleanParam(
             name: "SMOKE_TESTS",
-            defaultValue: false,
+            defaultValue: true,
             description: "")
         booleanParam(
             name: "SMOKE_MLIR",
-            defaultValue: false,
+            defaultValue: true,
             description: "")
         booleanParam(
             name: "SMOKE_MIOPENTENSILE_LATEST",
-            defaultValue: false,
+            defaultValue: true,
             description: "")
         booleanParam(
             name: "FULL_TESTS",
-            defaultValue: false,
+            defaultValue: true,
             description: "")
         booleanParam(
             name: "MIOPENTENSILE",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "MIOPENTENSILE_LATEST",
@@ -206,7 +206,7 @@ pipeline {
             description: "")
         booleanParam(
             name: "PACKAGES",
-            defaultValue: false,
+            defaultValue: true,
             description: "")
     }
     stages{
