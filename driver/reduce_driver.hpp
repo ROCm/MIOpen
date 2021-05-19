@@ -380,21 +380,14 @@ int ReduceDriver<Tgpu, Tref>::RunForwardGPU()
 
     bool output_accumulate = !(reduce::float_equal_one(alpha) && reduce::float_equal_zero(beta));
 
-    double alphaData, betaData;
-
-    void* alphaPara = reinterpret_cast<void*>(&alphaData);
-    void* betaPara  = reinterpret_cast<void*>(&betaData);
-
-    if(std::is_same<Tgpu, double>::value)
-    {
-        *reinterpret_cast<double*>(alphaPara) = static_cast<double>(alpha);
-        *reinterpret_cast<double*>(betaPara)  = static_cast<double>(beta);
-    }
-    else
-    {
-        *reinterpret_cast<float*>(alphaPara) = alpha;
-        *reinterpret_cast<float*>(betaPara)  = beta;
-    };
+    const double alpha64       = alpha;
+    const double beta64        = beta;
+    const void* const alphaPtr = std::is_same<Tgpu, double>::value
+                                     ? reinterpret_cast<const void*>(&alpha64)
+                                     : reinterpret_cast<const void*>(&alpha);
+    const void* const betaPtr = std::is_same<Tgpu, double>::value
+                                    ? reinterpret_cast<const void*>(&beta64)
+                                    : reinterpret_cast<const void*>(&beta);
 
     miopenReduceTensor(GetHandle(),
                        reduceDesc,
@@ -402,10 +395,10 @@ int ReduceDriver<Tgpu, Tref>::RunForwardGPU()
                        this->need_indices ? indices_sizeInBytes : 0,    // indices size in bytes
                        ws_sizeInBytes > 0 ? ws_dev->GetMem() : nullptr, // workspace
                        ws_sizeInBytes,                                  // workspace size in bytes
-                       const_cast<const void*>(alphaPara),
+                       alphaPtr,
                        inputTensor,
                        in_dev->GetMem(),
-                       const_cast<const void*>(betaPara),
+                       betaPtr,
                        outputTensor,
                        out_dev->GetMem());
 
@@ -427,10 +420,10 @@ int ReduceDriver<Tgpu, Tref>::RunForwardGPU()
                            this->need_indices ? indices_sizeInBytes : 0,    // indices size in bytes
                            ws_sizeInBytes > 0 ? ws_dev->GetMem() : nullptr, // workspace
                            ws_sizeInBytes, // workspace size in bytes
-                           const_cast<const void*>(alphaPara),
+                           alphaPtr,
                            inputTensor,
                            in_dev->GetMem(),
-                           const_cast<const void*>(betaPara),
+                           betaPtr,
                            outputTensor,
                            out_dev->GetMem());
     }

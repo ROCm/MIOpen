@@ -347,21 +347,15 @@ struct verify_reduce_with_indices
         std::size_t ws_sizeInBytes      = workspace.desc.GetElementSize() * sizeof(T);
         std::size_t indices_sizeInBytes = indices.desc.GetElementSize() * sizeof(int);
 
-        double alphaData, betaData;
+        const double alpha64 = alpha;
+        const double beta64  = beta;
 
-        void* alphaPara = reinterpret_cast<void*>(&alphaData);
-        void* betaPara  = reinterpret_cast<void*>(&betaData);
-
-        if(std::is_same<T, double>::value)
-        {
-            *reinterpret_cast<double*>(alphaPara) = static_cast<double>(alpha);
-            *reinterpret_cast<double*>(betaPara)  = static_cast<double>(beta);
-        }
-        else
-        {
-            *reinterpret_cast<float*>(alphaPara) = alpha;
-            *reinterpret_cast<float*>(betaPara)  = beta;
-        };
+        const void* const alphaPtr = (std::is_same<T, double>::value)
+                                         ? reinterpret_cast<const void*>(&alpha64)
+                                         : reinterpret_cast<const void*>(&alpha);
+        const void* const betaPtr = (std::is_same<T, double>::value)
+                                        ? reinterpret_cast<const void*>(&beta64)
+                                        : reinterpret_cast<const void*>(&beta);
 
         if(ws_sizeInBytes > 0)
         {
@@ -372,10 +366,10 @@ struct verify_reduce_with_indices
                                 indices_sizeInBytes,
                                 workspace_dev.get(),
                                 ws_sizeInBytes,
-                                const_cast<const void*>(alphaPara),
+                                alphaPtr,
                                 input.desc,
                                 input_dev.get(),
-                                const_cast<const void*>(betaPara),
+                                betaPtr,
                                 output.desc,
                                 output_dev.get());
         }
@@ -386,10 +380,10 @@ struct verify_reduce_with_indices
                                 indices_sizeInBytes,
                                 nullptr,
                                 0,
-                                const_cast<const void*>(alphaPara),
+                                alphaPtr,
                                 input.desc,
                                 input_dev.get(),
-                                const_cast<const void*>(betaPara),
+                                betaPtr,
                                 output.desc,
                                 output_dev.get());
         };
@@ -650,21 +644,15 @@ struct verify_reduce_no_indices
 
         std::size_t ws_sizeInBytes = workspace.desc.GetElementSize() * sizeof(T);
 
-        double alphaData, betaData;
+        const double alpha64 = alpha;
+        const double beta64  = beta;
 
-        void* alphaPara = reinterpret_cast<void*>(&alphaData);
-        void* betaPara  = reinterpret_cast<void*>(&betaData);
-
-        if(std::is_same<T, double>::value)
-        {
-            *reinterpret_cast<double*>(alphaPara) = static_cast<double>(alpha);
-            *reinterpret_cast<double*>(betaPara)  = static_cast<double>(beta);
-        }
-        else
-        {
-            *reinterpret_cast<float*>(alphaPara) = alpha;
-            *reinterpret_cast<float*>(betaPara)  = beta;
-        };
+        const void* const alphaPtr = (std::is_same<T, double>::value)
+                                         ? reinterpret_cast<const void*>(&alpha64)
+                                         : reinterpret_cast<const void*>(&alpha);
+        const void* const betaPtr = (std::is_same<T, double>::value)
+                                        ? reinterpret_cast<const void*>(&beta64)
+                                        : reinterpret_cast<const void*>(&beta);
 
         if(ws_sizeInBytes > 0)
         {
@@ -675,10 +663,10 @@ struct verify_reduce_no_indices
                                 0,
                                 workspace_dev.get(),
                                 ws_sizeInBytes,
-                                static_cast<const void*>(alphaPara),
+                                alphaPtr,
                                 input.desc,
                                 input_dev.get(),
-                                static_cast<const void*>(betaPara),
+                                betaPtr,
                                 output.desc,
                                 output_dev.get());
         }
@@ -689,10 +677,10 @@ struct verify_reduce_no_indices
                                 0,
                                 nullptr,
                                 0,
-                                static_cast<const void*>(alphaPara),
+                                alphaPtr,
                                 input.desc,
                                 input_dev.get(),
-                                static_cast<const void*>(betaPara),
+                                betaPtr,
                                 output.desc,
                                 output_dev.get());
         };

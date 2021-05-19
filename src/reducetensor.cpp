@@ -570,9 +570,13 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
 #if WORKAROUND_MIOPEN_ISSUE_557
     if(StartsWith(handle.GetDeviceName(), "gfx10"))
         param += " -DCK_USE_AMD_BUFFER_ADDRESSING=0 ";
-    else if(srcDataType == miopenDouble)
-        // TODO: support from composable kernel utility for using AMD Buffer Addressing for double
-        param += " -DCK_USE_AMD_BUFFER_ADDRESSING=0 ";
+    else
+    {
+        if(srcDataType == miopenDouble)
+            // TODO: support from composable kernel utility for using AMD Buffer Addressing for
+            // double
+            param += " -DCK_USE_AMD_BUFFER_ADDRESSING=0 ";
+    };
 #else
     if(srcDataType == miopenDouble)
         // TODO: support from composable kernel utility for using AMD Buffer Addressing for double
