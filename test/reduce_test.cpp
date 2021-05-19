@@ -351,11 +351,11 @@ struct verify_reduce_with_indices
         const double beta64  = beta;
 
         const void* const alphaPtr = (std::is_same<T, double>::value)
-                                         ? reinterpret_cast<const void*>(&alpha64)
-                                         : reinterpret_cast<const void*>(&alpha);
+                                         ? static_cast<const void*>(&alpha64)
+                                         : static_cast<const void*>(&alpha);
         const void* const betaPtr = (std::is_same<T, double>::value)
-                                        ? reinterpret_cast<const void*>(&beta64)
-                                        : reinterpret_cast<const void*>(&beta);
+                                        ? static_cast<const void*>(&beta64)
+                                        : static_cast<const void*>(&beta);
 
         if(ws_sizeInBytes > 0)
         {
@@ -648,11 +648,11 @@ struct verify_reduce_no_indices
         const double beta64  = beta;
 
         const void* const alphaPtr = (std::is_same<T, double>::value)
-                                         ? reinterpret_cast<const void*>(&alpha64)
-                                         : reinterpret_cast<const void*>(&alpha);
+                                         ? static_cast<const void*>(&alpha64)
+                                         : static_cast<const void*>(&alpha);
         const void* const betaPtr = (std::is_same<T, double>::value)
-                                        ? reinterpret_cast<const void*>(&beta64)
-                                        : reinterpret_cast<const void*>(&beta);
+                                        ? static_cast<const void*>(&beta64)
+                                        : static_cast<const void*>(&beta);
 
         if(ws_sizeInBytes > 0)
         {
