@@ -297,6 +297,7 @@ miopenStatus_t CallGemmMIOpenTensile(const Handle& handle,
         ptrA            = Data_t(reinterpret_cast<const int8_t*>(A) + a_offset);
         ptrB            = Data_t(reinterpret_cast<const int8_t*>(B) + b_offset);
         ptrC            = Data_t(reinterpret_cast<int32_t*>(C) + c_offset);
+        break;
     case miopenDouble:
         MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported by MIOpenGEMM.");
     }
