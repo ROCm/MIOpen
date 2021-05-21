@@ -78,9 +78,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
     }
 
     const auto ctx = ExecutionContext{&handle};
-
     const auto solvers = solver::SolverContainer<solver::activ::FwdSolver0>{};
-
     const auto slns = solvers.SearchForSolutions(ctx, problem, 1);
 
     if(!slns.empty())

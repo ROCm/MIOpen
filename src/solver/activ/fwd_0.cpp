@@ -157,7 +157,7 @@ ConvSolution FwdSolver0::GetSolution(const ExecutionContext&,
         const auto MAP_RD = read_len / read_unit;
 
         kernel_info.g_wk.push_back(MAP_RD);
-        kernel_info.g_wk.push_back(packed ? height : 1);
+        kernel_info.g_wk.push_back(packed ? 1 : height);
         kernel_info.g_wk.push_back(1);
 
         kernel_info.kernel_file = "MIOpenNeuron.cl";
