@@ -31,6 +31,8 @@
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/conv/asm_implicit_gemm.hpp>
 
+#define WORKAROUND_SWDEV_286774 1
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS)
 
 namespace miopen {
@@ -961,7 +963,11 @@ static std::tuple<bool, // is suitable kernel found
 
 bool ConvAsmImplicitGemmGTCDynamicBwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
+#if WORKAROUND_SWDEV_286774
+    if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS{}))
+#else
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS{}))
+#endif
         return false;
 
     const auto device_name = ctx.GetStream().GetDeviceName();
