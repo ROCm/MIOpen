@@ -963,11 +963,7 @@ static std::tuple<bool, // is suitable kernel found
 
 bool ConvAsmImplicitGemmGTCDynamicBwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
-#if WORKAROUND_SWDEV_286774
-    if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS{}))
-#else
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS{}))
-#endif
         return false;
 
     const auto device_name = ctx.GetStream().GetDeviceName();
@@ -985,6 +981,11 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlops::IsApplicable(const ConvolutionConte
 
     if(!ctx.IsFp32() && !ctx.IsFp16())
         return false;
+
+#if WORKAROUND_SWDEV_286774
+    if(ctx.IsFp16() && !miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS{}))
+        return false;
+#endif
 
     if(!ctx.rmv.IsV3())
         return false;
