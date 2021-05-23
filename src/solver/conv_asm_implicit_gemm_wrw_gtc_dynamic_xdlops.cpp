@@ -34,6 +34,8 @@
 #include <miopen/tensor_ops.hpp>
 #include <miopen/conv/asm_implicit_gemm.hpp>
 
+#define WORKAROUND_ISSUE_946 1
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS)
 
 namespace miopen {
@@ -800,6 +802,11 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlops::IsApplicable(const ConvolutionConte
 
     if(!ctx.IsFp32() && !ctx.IsFp16())
         return false;
+
+#if WORKAROUND_ISSUE_946
+    if(ctx.IsFp16() && !miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS{}))
+        return false;
+#endif
 
     if(!ctx.rmv.IsV3())
         return false;
