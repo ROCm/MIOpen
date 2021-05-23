@@ -228,6 +228,44 @@ set_tests_properties(test_sqlite_perfdb test_perfdb
 # add_sanitize_test(tensor_test.cpp)
 # add_sanitize_test(type_name.cpp)
 
+function(bool_equality_f first_arg sec_arg result)
+    if(${first_arg})
+        if(${sec_arg})
+            set(${result} TRUE PARENT_SCOPE)
+        else()
+            set(${result} FALSE PARENT_SCOPE)
+        endif()
+    elseif(${sec_arg})
+        set(${result} FALSE PARENT_SCOPE)
+    else()
+        set(${result} TRUE PARENT_SCOPE)
+    endif()
+endfunction()
+
+function(bool_and_f first_arg sec_arg result)
+    if(${first_arg} OR ${sec_arg})
+        set(${result} TRUE PARENT_SCOPE)
+    else()
+        set(${result} FALSE PARENT_SCOPE)
+    endif()
+endfunction()
+
+function(bool_or_f first_arg sec_arg result)
+    if(${first_arg} OR ${sec_arg})
+        set(${result} TRUE PARENT_SCOPE)
+    else()
+        set(${result} FALSE PARENT_SCOPE)
+    endif()
+endfunction()
+
+function(bool_not_f first_arg result)
+    if(${first_arg})
+        set(${result} FALSE PARENT_SCOPE)
+    else()
+        set(${result} TRUE PARENT_SCOPE)
+    endif()
+endfunction()
+
 function(add_custom_test NAME)
     set(options SKIP_UNLESS_ALL ALLOW_BFLOAT16 ALLOW_HALF ALLOW_INT8 ALLOW_XDLOPS ALLOW_GEMM_FEATURE)
     set(oneValueArgs)
@@ -237,18 +275,33 @@ function(add_custom_test NAME)
     # Many custom tests do test only FP32 data type and therefore
     # added only if none of MIOPEN_TEST_HALF, MIOPEN_TEST_INT8, MIOPEN_TEST_BFLOAT16
     # are set, except the test is allowed explicitly.
+    set(is_half_check)
+    bool_and_f(${MIOPEN_TEST_HALF} ${PARSE_ALLOW_HALF} half_check)
+    
+    set(is_bfloat16_check)
+    bool_and_f(${MIOPEN_TEST_BFLOAT16} ${PARSE_ALLOW_BFLOAT16} bfloat16_check)
+
+    set(is_int8_check)
+    bool_and_f(${MIOPEN_TEST_INT8} ${PARSE_ALLOW_INT8} int8_check)
+    
+    set(is_miotensile_chech)
+    bool_not_f(${MIOPEN_TEST_MIOTENSILE} is_miotensile_chech)
+    bool_or_f(${is_miotensile_chech} ${PARSE_ALLOW_GEMM_FEATURE} is_miotensile_chech)
+
+    set(is_full_check)
+    bool_not_f(${PARSE_SKIP_UNLESS_ALL} is_full_check)
+    bool_or_f(${is_full_check} ${MIOPEN_TEST_ALL} is_full_check)
+
     # Some tests are xDLOPs specific and should not run on gfx900/906 targets.
-    if((NOT (MIOPEN_TEST_INT8 OR MIOPEN_TEST_BFLOAT16 OR MIOPEN_TEST_HALF OR MIOPEN_TEST_MIOTENSILE OR MIOPEN_TEST_NONXDLOPS))
-    OR (MIOPEN_TEST_BFLOAT16 AND ${PARSE_ALLOW_BFLOAT16} AND (NOT MIOPEN_TEST_MIOTENSILE OR ${PARSE_ALLOW_GEMM_FEATURE}))
-    OR (MIOPEN_TEST_HALF AND ${PARSE_ALLOW_HALF} AND (NOT MIOPEN_TEST_MIOTENSILE OR ${PARSE_ALLOW_GEMM_FEATURE}))
-    OR (MIOPEN_TEST_INT8 AND ${PARSE_ALLOW_INT8} AND (NOT MIOPEN_TEST_MIOTENSILE OR ${PARSE_ALLOW_GEMM_FEATURE}))
-    OR ( (MIOPEN_TEST_XDLOPS EQUAL ${PARSE_ALLOW_XDLOPS}) AND (NOT MIOPEN_TEST_MIOTENSILE OR ${PARSE_ALLOW_GEMM_FEATURE}))
-    OR (MIOPEN_TEST_FLOAT AND (NOT MIOPEN_TEST_MIOTENSILE OR ${PARSE_ALLOW_GEMM_FEATURE})))
-        add_custom_target(${NAME} ${PARSE_UNPARSED_ARGUMENTS})
-        if(NOT PARSE_SKIP_UNLESS_ALL OR MIOPEN_TEST_ALL)
-            add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
-            set_tests_properties(${NAME} PROPERTIES COST 600)
-        endif()
+    set(is_xdlops_eq)
+    bool_equality_f(${MIOPEN_TEST_XDLOPS} ${PARSE_ALLOW_XDLOPS} is_xdlops_eq)
+
+    add_custom_target(${NAME} ${PARSE_UNPARSED_ARGUMENTS})
+    if( is_miotensile_chech AND is_xdlops_eq AND is_full_check
+        AND ( is_half_check OR is_bfloat16_check OR is_int8_check OR MIOPEN_TEST_FLOAT)
+    )
+        add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
+        set_tests_properties(${NAME} PROPERTIES COST 600)
     endif()
 endfunction()
 
