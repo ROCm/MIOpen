@@ -267,7 +267,7 @@ function(bool_not_f first_arg result)
 endfunction()
 
 function(add_custom_test NAME)
-    set(options SKIP_UNLESS_ALL ALLOW_BFLOAT16 ALLOW_HALF ALLOW_INT8 ALLOW_XDLOPS ALLOW_GEMM_FEATURE)
+    set(options SKIP_UNLESS_ALL ALLOW_BFLOAT16 ALLOW_HALF ALLOW_INT8 ALLOW_XDLOPS ALLOW_GEMM_FEATURE PERF_TEST)
     set(oneValueArgs)
     set(multiValueArgs)
     cmake_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
@@ -301,32 +301,10 @@ function(add_custom_test NAME)
         AND ( is_half_check OR is_bfloat16_check OR is_int8_check OR MIOPEN_TEST_FLOAT)
     )
         add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
-        set_tests_properties(${NAME} PROPERTIES COST 600)
-    endif()
-endfunction()
-
-function(add_perf_test NAME)
-    set(options SKIP_UNLESS_ALL ALLOW_BFLOAT16 ALLOW_HALF ALLOW_INT8 ALLOW_XDLOPS ALLOW_GEMM_FEATURE)
-    set(oneValueArgs)
-    set(multiValueArgs)
-    cmake_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
-
-    # Many custom tests do test only FP32 data type and therefore
-    # added only if none of MIOPEN_TEST_HALF, MIOPEN_TEST_INT8, MIOPEN_TEST_BFLOAT16
-    # are set, except the test is allowed explicitly.
-    # Some tests are xDLOPs specific and should not run on gfx900/906 targets.
-    if((NOT (MIOPEN_TEST_INT8 OR MIOPEN_TEST_BFLOAT16 OR MIOPEN_TEST_HALF OR MIOPEN_TEST_MIOTENSILE OR MIOPEN_TEST_NONXDLOPS))
-    OR (MIOPEN_TEST_BFLOAT16 AND ${PARSE_ALLOW_BFLOAT16} AND (NOT MIOPEN_TEST_MIOTENSILE OR ${PARSE_ALLOW_GEMM_FEATURE}))
-    OR (MIOPEN_TEST_HALF AND ${PARSE_ALLOW_HALF} AND (NOT MIOPEN_TEST_MIOTENSILE OR ${PARSE_ALLOW_GEMM_FEATURE}))
-    OR (MIOPEN_TEST_INT8 AND ${PARSE_ALLOW_INT8} AND (NOT MIOPEN_TEST_MIOTENSILE OR ${PARSE_ALLOW_GEMM_FEATURE}))
-    OR ( (MIOPEN_TEST_XDLOPS EQUAL ${PARSE_ALLOW_XDLOPS}) AND (NOT MIOPEN_TEST_MIOTENSILE OR ${PARSE_ALLOW_GEMM_FEATURE}))
-    OR (MIOPEN_TEST_FLOAT AND (NOT MIOPEN_TEST_MIOTENSILE OR ${PARSE_ALLOW_GEMM_FEATURE})))
-        add_custom_target(${NAME} ${PARSE_UNPARSED_ARGUMENTS})
-        if(NOT PARSE_SKIP_UNLESS_ALL OR MIOPEN_TEST_ALL)
-            add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
+        if(PARSE_PERF_TEST)
             set_tests_properties(${NAME} PROPERTIES FAIL_REGULAR_EXPRESSION "(FAILED)|(Perf Db: record not found)")
-            set_tests_properties(${NAME} PROPERTIES COST 600)
         endif()
+        set_tests_properties(${NAME} PROPERTIES COST 600)
     endif()
 endfunction()
 
@@ -340,7 +318,7 @@ if(MIOPEN_EMBED_DB)
     set(MIOPEN_WA_ISSUE_874_F  MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0)
     set(MIOPEN_WA_ISSUE_874_W  MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0)
     set(MIOPEN_WA_ISSUE_874_FW MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0 MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0)
-add_perf_test(test_conv_embed_db
+add_custom_test(test_conv_embed_db PERF_TEST
     COMMAND ${MIOPEN_WA_ISSUE_874_W}  $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
     COMMAND ${MIOPEN_WA_ISSUE_874_F}  $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 1024 14 14 --weights 256 1024 1 1 --pads_strides_dilations 0 0 1 1 1 1
     COMMAND ${MIOPEN_WA_ISSUE_874_W}  $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 1024 14 14 --weights 512 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
