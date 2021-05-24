@@ -40,7 +40,8 @@ boost::filesystem::path HipBuild(boost::optional<miopen::TmpDir>& tmp_dir,
                                  const std::string& filename,
                                  std::string src,
                                  std::string params,
-                                 const TargetProperties& target);
+                                 const TargetProperties& target,
+                                 bool sources_already_reside_on_filesystem = false);
 
 void bin_file_to_str(const boost::filesystem::path& file, std::string& buf);
 
@@ -59,6 +60,44 @@ external_tool_version_t HipCompilerVersion();
 
 bool IsHccCompiler();
 bool IsHipClangCompiler();
+
+class LcOptionTargetStrings
+{
+    public:
+    const std::string& device;
+    const std::string xnack;
+
+    private:
+    const std::string sramecc;
+    const std::string sramecc_reported;
+
+    public:
+    const std::string targetId;
+    LcOptionTargetStrings(const TargetProperties& target)
+        : device(target.Name()),
+          xnack([&]() -> std::string {
+              if(target.Xnack())
+                  return std::string{":xnack"} + (*target.Xnack() ? "+" : "-");
+              return {};
+          }()),
+          sramecc([&]() -> std::string {
+              if(target.Sramecc())
+                  return std::string{":sramecc"} + (*target.Sramecc() ? "+" : "-");
+              return {};
+          }()),
+          sramecc_reported([&]() -> std::string {
+              if(target.SrameccReported())
+                  return std::string{":sramecc"} + (*target.SrameccReported() ? "+" : "-");
+              return {};
+          }()),
+#if MIOPEN_USE_COMGR
+          targetId(device + sramecc_reported + xnack)
+#else
+          targetId(device + sramecc + xnack)
+#endif
+    {
+    }
+};
 
 } // namespace miopen
 

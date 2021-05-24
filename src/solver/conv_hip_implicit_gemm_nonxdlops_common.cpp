@@ -23,11 +23,11 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "miopen/solver.hpp"
-#include "miopen/handle.hpp"
-#include "miopen/stringutils.hpp"
-#include "implicitgemm_util.hpp"
-#include "miopen/implicitgemm_params.hpp"
+#include <miopen/solver.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/stringutils.hpp>
+#include <miopen/solver/implicitgemm_util.hpp>
+#include <miopen/implicitgemm_params.hpp>
 
 #define WORKAROUND_ISSUE_659 1
 
@@ -276,7 +276,7 @@ bool PerformanceImplicitGemmV4R1::IsValid(const ConvolutionContext& ctx) const
     return (InBlockCopySubLengths_E == 1 && InBlockCopySubLengths_B == 1);
 }
 
-void PerformanceImplicitGemm::EuristicInit(const ConvolutionContext& config)
+void PerformanceImplicitGemm::HeuristicInit(const ConvolutionContext& config)
 {
     // default
     {

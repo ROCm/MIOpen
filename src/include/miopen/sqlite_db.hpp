@@ -250,6 +250,7 @@ class SQLiteBase
         if(!sql.Valid())
         {
             dbInvalid = true;
+            filename  = "";
             if(!is_system)
                 MIOPEN_THROW(miopenStatusInternalError, "Cannot open database file:" + filename_);
             else
@@ -352,9 +353,11 @@ Derived& SQLiteBase<Derived>::GetCached(const std::string& path,
                                         const std::string& arch,
                                         const size_t num_cu)
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::mutex mutex;
     std::lock_guard<std::mutex> lock{mutex};
 
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static auto instances = std::map<std::string, Derived>{};
     const auto it         = instances.find(path);
 

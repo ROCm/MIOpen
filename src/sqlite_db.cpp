@@ -93,10 +93,8 @@ class SQLite::impl
             const auto& it_p = miopen_data().find(filepath.filename().string() + ".o");
             if(it_p == miopen_data().end())
             {
-                // Future: Try to load it from the disk system
-                // Also make a config point if Disk I/O is disabled
-                MIOPEN_THROW(miopenStatusInternalError,
-                             "Unknown database: " + filepath.string() + " in internal file cache");
+                MIOPEN_LOG_I("Unknown database: " + filepath.string() + " in internal file cache");
+                return SQLITE_ERROR;
             }
             const auto& p    = it_p->second;
             ptrdiff_t ptr_sz = p.second - p.first;
@@ -171,8 +169,9 @@ class SQLite::impl
 #else
         rc = CreateFileDb(filepath, is_system);
 #endif
-        sqlite3_busy_timeout(ptrDb.get(), MIOPEN_SQL_BUSY_TIMEOUT_MS);
         isValid = (rc == 0);
+        if(isValid)
+            sqlite3_busy_timeout(ptrDb.get(), MIOPEN_SQL_BUSY_TIMEOUT_MS);
     }
 
     sqlite3_ptr ptrDb = nullptr;

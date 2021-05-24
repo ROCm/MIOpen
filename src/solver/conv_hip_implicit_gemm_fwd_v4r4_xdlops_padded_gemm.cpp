@@ -24,12 +24,23 @@
  *
  *******************************************************************************/
 
+#include <miopen/config.h>
 #include <miopen/conv/invokers/impl_gemm.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/hip_build_utils.hpp>
-#include "implicitgemm_util.hpp"
+#include <miopen/solver/implicitgemm_util.hpp>
+
+/// The solver has correctness issues with ROCm 3.7 and 4.0 on MI100 with several configs. The
+/// issues are not reproducible with ROCm no-npi build 6738-STG2 (proposed 4.2 release candidate).
+/// Let's disable these configs for 3.7...4.0.
+#define WORKAROUND_MI100_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_PADDED_GEMM_XDLOPS \
+    (HIP_PACKAGE_VERSION_FLAT >= 3007000000 && HIP_PACKAGE_VERSION_FLAT <= 4000999999)
+
+/// Fatal compiler errors with ROCm 3.7 on some BF16 configs.
+#define WORKAROUND_MI100_BF16_FATAL_COMPILER_ERRORS \
+    (HIP_PACKAGE_VERSION_FLAT >= 3007000000 && HIP_PACKAGE_VERSION_FLAT <= 3007999999)
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_PADDED_GEMM_XDLOPS)
 
@@ -103,8 +114,8 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::SetNextValue()
 {
     do
     {
-        // list performance parameters in reverse order, in order for tuning to iterate over the
-        // range in normal order
+        // List performance parameters in reverse order, in order for tuning to iterate over the
+        // range in normal order.
         if(miopen::IsEnabled(
                MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_FWD_V4R4_XDLOPS_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM{}))
         {
@@ -133,7 +144,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::SetNextValue()
     return true;
 }
 
-void PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::EuristicInit(
+void PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::HeuristicInit(
     const ConvolutionContext& ctx)
 {
     PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm tmp;
@@ -405,8 +416,8 @@ PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmABlockCopyPer
         ClusterLengths_GemmM     = GemmMPerBlock / data_per_thread_copy_gemmm;
         ClusterLengths_GemmKPack = GemmKPack / data_per_thread_copy_gemmkpack;
 
-        // blockwise-copy support that block_size is larger than thread cluster size, which means
-        // some threads may not do threadwise copy
+        // Blockwise-copy support that block_size is larger than thread cluster size, which means
+        // some threads may not do threadwise copy.
         if(block_size < ClusterLengths_GemmK * ClusterLengths_GemmM * ClusterLengths_GemmKPack)
             MIOPEN_THROW("invalid performance parameter");
     }
@@ -551,8 +562,8 @@ PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmBBlockCopyPer
         ClusterLengths_GemmN     = GemmNPerBlock / data_per_thread_copy_gemmn;
         ClusterLengths_GemmKPack = GemmKPack / data_per_thread_copy_gemmkpack;
 
-        // blockwise-copy support that block_size is larger than thread cluster size, which means
-        // some threads may not do threadwise copy
+        // Blockwise-copy support that block_size is larger than thread cluster size, which means
+        // some threads may not do threadwise copy.
         if(block_size < ClusterLengths_GemmK * ClusterLengths_GemmN * ClusterLengths_GemmKPack)
             MIOPEN_THROW("invalid performance parameter");
     }
@@ -595,8 +606,9 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsValidValue() const
     // clang-format on
 }
 
-// Used by EuristicInit() and GenericSearch
-// Only return false if a performance config will violate requirements given by kernel algorithm
+/// Used by HeuristicInit() and GenericSearch. Only return false if a performance config will
+/// violate
+/// requirements given by kernel algorithm.
 bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsReallyValid(
     const ConvolutionContext& ctx) const
 {
@@ -654,9 +666,8 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsReallyValid(
     return (valid and lds_size <= get_lds_max_number_of_byte());
 }
 
-// Used by GenericSearch, not used by EuristicInit
-// Return false if a performance config is known to be sub-optimal, comparing to other performance
-// config inside tuning range
+/// Used by GenericSearch, not used by HeuristicInit. Return false if a performance config is known
+/// to be sub-optimal, comparing to other performance config inside tuning range.
 bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsFastToBeUsedForTuning(
     const ConvolutionContext& ctx) const
 {
@@ -691,7 +702,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsFastToBeUsedForTuni
 
         const auto num_cu = ctx.GetStream().GetMaxComputeUnits();
 
-        // heuristic to exclude performance paramater that result in very large number of blocks
+        // Heuristic to exclude performance parameter that result in very large number of blocks.
         if(grid_size_max_blockwise_gemm > 5 * num_cu)
         {
             if(ratio > 2.81)
@@ -786,7 +797,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsFastToBeUsedForTuni
     }
 
     // GemmKPerBlock*GemmKPack should not be too small, otherwise read performance of A matrix would
-    // be bad
+    // be bad.
     {
         if(ctx.IsFp32())
         {
@@ -804,7 +815,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsFastToBeUsedForTuni
     }
 
     // DstDataPerWrite_GemmKPack should not be too small, otherwise too many ds_write instruction
-    // would cause bad performance
+    // would cause bad performance.
     {
         if(miopen::IsEnabled(
                MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_FWD_V4R4_XDLOPS_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM{}))
@@ -834,17 +845,16 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsFastToBeUsedForTuni
     return true;
 }
 
-// Used by GenericSearch, not used by EuristicInit
-// Return false, if you don't want to this to be included in tuning range used by generic search
-// A performance config may still be valid w.r.t algorithm correctness, even when IsValid() return
-// false
+/// Used by GenericSearch, not used by HeuristicInit. Return false, if you don't want to this to be
+/// included in tuning range used by generic search. A performance config may still be valid w.r.t
+/// algorithm correctness, even when IsValid() returns false.
 bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsValid(
     const ConvolutionContext& ctx) const
 {
     return IsReallyValid(ctx) && IsFastToBeUsedForTuning(ctx);
 }
 
-// Used by GenericSearch, not used by EuristicInit
+// Used by GenericSearch, not used by HeuristicInit
 bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsValidPerformanceConfig(
     const ConvolutionContext& ctx,
     const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm& c) const
@@ -892,7 +902,7 @@ ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::GetPerformanceConfig(
     const ConvolutionContext& ctx) const
 {
     PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm config;
-    config.EuristicInit(ctx);
+    config.HeuristicInit(ctx);
     MIOPEN_LOG_I(config.ToString());
     return config;
 }
@@ -912,7 +922,7 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::GetSolution(
 
     KernelInfo construction_parameters;
 
-    construction_parameters.kernel_file =
+    construction_parameters.kernel_file = //
         "gridwise_convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw_padded_gemm.cpp";
 
     construction_parameters.kernel_name =
@@ -1077,11 +1087,30 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
         if(!IsValidGridGemmXdlops(gemm_m, gemm_n, gemm_k_total))
             return false;
     }
+#if WORKAROUND_MI100_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_PADDED_GEMM_XDLOPS
+    if(ctx.GetStream().GetDeviceName() == "gfx908" && ctx.IsFp32())
+    {
+        if((ctx.n_inputs == 3 && ctx.n_outputs == 1 && ctx.in_width == 227 &&
+            ctx.in_height == 227 && ctx.kernel_size_w == 3 && ctx.kernel_size_h == 3) //
+           ||
+           (ctx.n_inputs == 64 && ctx.n_outputs == 1 && ctx.in_width == 112 &&
+            ctx.in_height == 112 && ctx.kernel_size_w == 3 && ctx.kernel_size_h == 3 &&
+            ctx.kernel_stride_w >= 2 && ctx.kernel_stride_h >= 2 && ctx.kernel_dilation_w >= 3 &&
+            ctx.kernel_dilation_h >= 3))
+        {
+            return false;
+        }
+    }
+#endif
+#if WORKAROUND_MI100_BF16_FATAL_COMPILER_ERRORS
+    if(ctx.GetStream().GetDeviceName() == "gfx908" && ctx.IsBfp16())
+        return false;
+#endif
 
-    // this particular EuristicInit is so comprehensive, that if it cannot predict a valid
+    // this particular HeuristicInit is so comprehensive, that if it cannot predict a valid
     // performance config, the problem is probably not applicable
     PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm config;
-    config.EuristicInit(ctx);
+    config.HeuristicInit(ctx);
 
     return config.IsReallyValid(ctx);
 }
