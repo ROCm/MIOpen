@@ -93,7 +93,7 @@ understand the intent of the added functionality, and will
 maintain or improve the overall quality of the codebase.
 
 Reviewer's task checklist:
-1. Has the PR passed necessary CI?
+1. Has the PR passed [necessary CI](https://github.com/ROCmSoftwarePlatform/MIOpen/pull/932#discussion_r634835432)?
 2. Does the PR consist of a well-organized sequence of small commits, 
 each of which is designed to make one specific feature or fix 
 (and ideally should be able to pass CI testing)?
