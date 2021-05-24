@@ -285,8 +285,8 @@ function(add_custom_test NAME)
     bool_and_f(${MIOPEN_TEST_INT8} ${PARSE_ALLOW_INT8} int8_check)
     
     set(is_miotensile_check)
-    bool_not_f(${MIOPEN_TEST_MIOTENSILE} is_miotensile_chech)
-    bool_or_f(${is_miotensile_chech} ${PARSE_ALLOW_GEMM_FEATURE} is_miotensile_chech)
+    bool_not_f(${MIOPEN_TEST_MIOTENSILE} is_miotensile_check)
+    bool_or_f(${is_miotensile_check} ${PARSE_ALLOW_GEMM_FEATURE} is_miotensile_check)
 
     set(is_full_check)
     bool_not_f(${PARSE_SKIP_UNLESS_ALL} is_full_check)
@@ -297,7 +297,7 @@ function(add_custom_test NAME)
     bool_equality_f(${MIOPEN_TEST_XDLOPS} ${PARSE_ALLOW_XDLOPS} is_xdlops_eq)
 
     add_custom_target(${NAME} ${PARSE_UNPARSED_ARGUMENTS})
-    if( is_miotensile_chech AND is_xdlops_eq AND is_full_check
+    if( is_miotensile_check AND is_xdlops_eq AND is_full_check
         AND ( is_half_check OR is_bfloat16_check OR is_int8_check OR MIOPEN_TEST_FLOAT)
     )
         add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
