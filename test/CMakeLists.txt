@@ -740,7 +740,7 @@ set(DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS
     ${DYNAMIC_IMPLICITGEMM_COMMON}
     MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicWrwXdlops)
 
-if(NOT ((MIOPEN_BACKEND_OPENCL AND NOT MIOPEN_TEST_FLOAT) OR MIOPEN_TEST_GFX908))
+if(NOT (NOT MIOPEN_TEST_FLOAT OR MIOPEN_TEST_GFX908))
 add_custom_test(test_conv_igemm_dynamic_small ALLOW_NONXDLOPS
 COMMAND ${DYNAMIC_IMPLICITGEMM_ENVS}     $<TARGET_FILE:test_conv2d> --verbose --input  16  16 56 56 --weights 64  16 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
 COMMAND ${DYNAMIC_IMPLICITGEMM_ENVS}     $<TARGET_FILE:test_conv2d> --verbose --input  16  64 34 34 --weights 64  64 3 3 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
