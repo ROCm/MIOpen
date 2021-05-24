@@ -34,7 +34,7 @@
 #include <miopen/tensor_ops.hpp>
 #include <miopen/conv/asm_implicit_gemm.hpp>
 
-#define WORKAROUND_ISSUE_946 1
+#define WORKAROUND_ISSUE_946 0
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS)
 
@@ -741,6 +741,13 @@ static inline std::tuple<bool, // is valid
 
             int gemm_k_global_split = if_gemm_k_global_split(
                 ctx, gemm_m_per_block, gemm_n_per_block, gemm_k_per_block, b);
+            
+            // if conv cannot be split, gkgs kernels cannot be used
+            if(gemm_k_global_split != cfg.gemm_k_global_split)
+            {
+                continue;
+            }
+
             int log2_gemm_k_global_splits = 0;
             int grid_size                 = integer_divide_ceil(gemm_m, gemm_m_per_block) *
                             integer_divide_ceil(gemm_n, gemm_n_per_block);
