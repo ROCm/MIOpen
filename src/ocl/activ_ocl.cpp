@@ -69,7 +69,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
     }();
 
     const auto algo = AlgorithmName{"miopenActivationForward"};
-    const auto cfg = problem.MakeNetworkConfig();
+    const auto cfg  = problem.MakeNetworkConfig();
 
     if(const auto invoker = handle.GetInvoker(cfg, boost::none, algo))
     {
@@ -77,9 +77,9 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
         return miopenStatusSuccess;
     }
 
-    const auto ctx = ExecutionContext{&handle};
+    const auto ctx     = ExecutionContext{&handle};
     const auto solvers = solver::SolverContainer<solver::activ::FwdSolver0>{};
-    const auto slns = solvers.SearchForSolutions(ctx, problem, 1);
+    const auto slns    = solvers.SearchForSolutions(ctx, problem, 1);
 
     if(!slns.empty())
     {
