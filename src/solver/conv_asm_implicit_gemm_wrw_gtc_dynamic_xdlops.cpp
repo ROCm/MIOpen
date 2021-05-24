@@ -34,8 +34,6 @@
 #include <miopen/tensor_ops.hpp>
 #include <miopen/conv/asm_implicit_gemm.hpp>
 
-#define WORKAROUND_ISSUE_946 0
-
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS)
 
 namespace miopen {
@@ -741,7 +739,7 @@ static inline std::tuple<bool, // is valid
 
             int gemm_k_global_split = if_gemm_k_global_split(
                 ctx, gemm_m_per_block, gemm_n_per_block, gemm_k_per_block, b);
-            
+
             // if conv cannot be split, gkgs kernels cannot be used
             if(gemm_k_global_split != cfg.gemm_k_global_split)
             {
@@ -809,11 +807,6 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlops::IsApplicable(const ConvolutionConte
 
     if(!ctx.IsFp32() && !ctx.IsFp16())
         return false;
-
-#if WORKAROUND_ISSUE_946
-    if(ctx.IsFp16() && !miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS{}))
-        return false;
-#endif
 
     if(!ctx.rmv.IsV3())
         return false;
