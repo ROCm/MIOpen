@@ -284,7 +284,7 @@ function(add_custom_test NAME)
     set(is_int8_check)
     bool_and_f(${MIOPEN_TEST_INT8} ${PARSE_ALLOW_INT8} int8_check)
     
-    set(is_miotensile_chech)
+    set(is_miotensile_check)
     bool_not_f(${MIOPEN_TEST_MIOTENSILE} is_miotensile_chech)
     bool_or_f(${is_miotensile_chech} ${PARSE_ALLOW_GEMM_FEATURE} is_miotensile_chech)
 
