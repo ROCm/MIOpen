@@ -65,7 +65,7 @@ set(SKIP_TESTS dummy) # dummy is for REMOVE_DUPLICATES
 set(MIOPEN_TEST_FLOAT_ARG)
 
 
-set(MIOPEN_TEST_FLOAT Off)
+set(MIOPEN_TEST_FLOAT FALSE)
 if(MIOPEN_TEST_HALF)
     set(MIOPEN_TEST_FLOAT_ARG --half)
 elseif(MIOPEN_TEST_INT8)
@@ -73,7 +73,7 @@ elseif(MIOPEN_TEST_INT8)
 elseif(MIOPEN_TEST_BFLOAT16)
     set(MIOPEN_TEST_FLOAT_ARG --bfloat16)
 else()
-    set(MIOPEN_TEST_FLOAT On)
+    set(MIOPEN_TEST_FLOAT TRUE)
 endif()
 
 if(NOT MIOPEN_TEST_MIOTENSILE)
@@ -243,7 +243,7 @@ function(bool_equality_f first_arg sec_arg result)
 endfunction()
 
 function(bool_and_f first_arg sec_arg result)
-    if(${first_arg} OR ${sec_arg})
+    if(${first_arg} AND ${sec_arg})
         set(${result} TRUE PARENT_SCOPE)
     else()
         set(${result} FALSE PARENT_SCOPE)
@@ -276,13 +276,13 @@ function(add_custom_test NAME)
     # added only if none of MIOPEN_TEST_HALF, MIOPEN_TEST_INT8, MIOPEN_TEST_BFLOAT16
     # are set, except the test is allowed explicitly.
     set(is_half_check)
-    bool_and_f(${MIOPEN_TEST_HALF} ${PARSE_ALLOW_HALF} half_check)
+    bool_and_f(${MIOPEN_TEST_HALF} ${PARSE_ALLOW_HALF} is_half_check)
     
     set(is_bfloat16_check)
-    bool_and_f(${MIOPEN_TEST_BFLOAT16} ${PARSE_ALLOW_BFLOAT16} bfloat16_check)
+    bool_and_f(${MIOPEN_TEST_BFLOAT16} ${PARSE_ALLOW_BFLOAT16} is_bfloat16_check)
 
     set(is_int8_check)
-    bool_and_f(${MIOPEN_TEST_INT8} ${PARSE_ALLOW_INT8} int8_check)
+    bool_and_f(${MIOPEN_TEST_INT8} ${PARSE_ALLOW_INT8} is_int8_check)
     
     set(is_miotensile_check)
     bool_not_f(${MIOPEN_TEST_MIOTENSILE} is_miotensile_check)
