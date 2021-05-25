@@ -297,14 +297,16 @@ function(add_custom_test NAME)
     bool_equality_f(${MIOPEN_TEST_XDLOPS} ${PARSE_ALLOW_XDLOPS} is_xdlops_eq)
 
     add_custom_target(${NAME} ${PARSE_UNPARSED_ARGUMENTS})
+    add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
     if( is_miotensile_check AND is_xdlops_eq AND is_full_check
         AND ( is_half_check OR is_bfloat16_check OR is_int8_check OR MIOPEN_TEST_FLOAT)
     )
-        add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
         if(PARSE_PERF_TEST)
             set_tests_properties(${NAME} PROPERTIES FAIL_REGULAR_EXPRESSION "(FAILED)|(Perf Db: record not found)")
         endif()
         set_tests_properties(${NAME} PROPERTIES COST 600)
+    else()
+        set_tests_properties(${NAME} PROPERTIES DISABLED On)
     endif()
 endfunction()
 
