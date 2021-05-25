@@ -120,7 +120,7 @@ struct ReductionKernelConfigurator
 
         if(invariantLength == 1)
         {
-            if(toReduceLength <
+            if(toReduceLength <=
                GredBlockWiseUpperReductionLen) // let one block to do this only reduction
                 return (1);
             else
@@ -129,13 +129,13 @@ struct ReductionKernelConfigurator
         }
         else
         {
-            if(toReduceLength <
+            if(toReduceLength <=
                GredDirectThreadWiseUpperReductionLen) // let one thread to do each reduction
                 return ((invariantLength + blockSize_ - 1) / blockSize_);
-            else if(toReduceLength <
+            else if(toReduceLength <=
                     GredDirectWarpWiseUpperReductionLen) // let one warp to do each reduction
                 return ((invariantLength + numWarpsPerBlock - 1) / numWarpsPerBlock);
-            else if(toReduceLength <
+            else if(toReduceLength <=
                     GredBlockWiseUpperReductionLen) // let one block to do each reduction
                 return (invariantLength);
             else
@@ -159,7 +159,7 @@ struct ReductionKernelConfigurator
 
         if(invariantLength == 1)
         {
-            if(toReduceLength <
+            if(toReduceLength <=
                GredBlockWiseUpperReductionLen) // let one block to do this only reduction
                 return (Reduce_BlockWise);
             else // let multiple blocks to do this only reduction
@@ -167,13 +167,13 @@ struct ReductionKernelConfigurator
         }
         else
         {
-            if(toReduceLength <
+            if(toReduceLength <=
                GredDirectThreadWiseUpperReductionLen) // let one thread to do each reduction
                 return (Reduce_DirectThreadWise);
-            else if(toReduceLength <
+            else if(toReduceLength <=
                     GredDirectWarpWiseUpperReductionLen) // let one warp to do each reduction
                 return (Reduce_DirectWarpWise);
-            else if(toReduceLength <
+            else if(toReduceLength <=
                     GredBlockWiseUpperReductionLen) // let one block to do each reduction
                 return (Reduce_BlockWise);
             else
@@ -197,9 +197,9 @@ struct ReductionKernelConfigurator
 
     std::size_t getGridSize_2(std::size_t invariantLength, std::size_t toReduceLength) const
     {
-        if(toReduceLength < warpSize_ / 4) // let one thread to do each reduction
+        if(toReduceLength <= warpSize_ / 4) // let one thread to do each reduction
             return ((invariantLength + blockSize_ - 1) / blockSize_);
-        else if(toReduceLength < blockSize_) // let one warp to do each reduction
+        else if(toReduceLength <= blockSize_) // let one warp to do each reduction
             return ((invariantLength + numWarpsPerBlock - 1) / numWarpsPerBlock);
         else
             return (invariantLength); // let one block to do each reduction
