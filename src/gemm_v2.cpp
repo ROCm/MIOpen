@@ -335,19 +335,16 @@ miopenStatus_t CallGemmMIOpenTensile(const Handle& handle,
                               {mtA_str0, mtA_str1},
                               {mtA_b_n, mtA_b_str},
                               miotsl_in_dtype,
-                              gemm_desc.transA,
                               ptrA};
     miopen_tensile_matrix mtB{{k, n},
                               {mtB_str0, mtB_str1},
                               {mtB_b_n, mtB_b_str},
                               miotsl_in_dtype,
-                              gemm_desc.transB,
                               ptrB};
     miopen_tensile_matrix mtC{{m, n},
                               {mtC_str0, mtC_str1},
                               {mtC_b_n, mtC_b_str},
                               miotsl_out_dtype,
-                              false,
                               ptrC};
 
     miopen_tensile_status mt_status = miopen_tensile_status_no_solution;
