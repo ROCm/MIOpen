@@ -31,6 +31,8 @@
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/conv/asm_implicit_gemm.hpp>
 
+#define WORKAROUND_SWDEV_286774 1
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS)
 
 namespace miopen {
@@ -979,6 +981,11 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlops::IsApplicable(const ConvolutionConte
 
     if(!ctx.IsFp32() && !ctx.IsFp16())
         return false;
+
+#if WORKAROUND_SWDEV_286774
+    if(ctx.IsFp16() && !miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS{}))
+        return false;
+#endif
 
     if(!ctx.rmv.IsV3())
         return false;
