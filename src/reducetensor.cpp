@@ -570,6 +570,8 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
         param += " -DCK_USE_AMD_BUFFER_ADDRESSING=0 ";
 #endif
 
+    std::string param1 = param + " -DCK_PARAM_GRIDSIZE=" + std::to_string(gridSize) + " ";
+
     std::string program_name = "gridwise_generic_reduction.cpp";
     std::string algo_name    = "generic_reduce_tensor";
     std::string network_config;
@@ -593,13 +595,15 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
     float alphaVal = *reinterpret_cast<const float*>(alpha);
     float betaVal  = *reinterpret_cast<const float*>(beta);
 
-    handle.AddKernel(algo_name, network_config, program_name, kernel_name1, vld_1, vgd_1, param)(
+    handle.AddKernel(algo_name, network_config, program_name, kernel_name1, vld_1, vgd_1, param1)(
         alphaVal, A, betaVal, C, ws_buf1_global, ws_buf2_bytes_offset, indices);
 
     if(useTwoCalls)
     {
         int toReduceLength_2 = blkGroupSize;
         int gridSize_2       = configurator.getGridSize_2(invariantLength, toReduceLength_2);
+
+        std::string param2 = param + " -DCK_PARAM_GRIDSIZE=" + std::to_string(gridSize_2) + " ";
 
         // compile option and network config for the second-time call
         const std::vector<size_t> vld_2 = {static_cast<size_t>(blockSize), size_t{1}, size_t{1}};
@@ -610,7 +614,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
         std::string kernel_name2 = "gridwise_generic_reduce_2";
 
         handle.AddKernel(
-            algo_name, network_config, program_name, kernel_name2, vld_2, vgd_2, param)(
+            algo_name, network_config, program_name, kernel_name2, vld_2, vgd_2, param2)(
             alphaVal, A, betaVal, C, ws_buf1_global, ws_buf2_bytes_offset, indices);
     };
 };
