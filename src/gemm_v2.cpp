@@ -331,21 +331,12 @@ miopenStatus_t CallGemmMIOpenTensile(const Handle& handle,
     auto mtC_b_n   = size_t(gemm_desc.batch_count);
     auto mtC_b_str = size_t(gemm_desc.strideC);
 
-    miopen_tensile_matrix mtA{{m, k},
-                              {mtA_str0, mtA_str1},
-                              {mtA_b_n, mtA_b_str},
-                              miotsl_in_dtype,
-                              ptrA};
-    miopen_tensile_matrix mtB{{k, n},
-                              {mtB_str0, mtB_str1},
-                              {mtB_b_n, mtB_b_str},
-                              miotsl_in_dtype,
-                              ptrB};
-    miopen_tensile_matrix mtC{{m, n},
-                              {mtC_str0, mtC_str1},
-                              {mtC_b_n, mtC_b_str},
-                              miotsl_out_dtype,
-                              ptrC};
+    miopen_tensile_matrix mtA{
+        {m, k}, {mtA_str0, mtA_str1}, {mtA_b_n, mtA_b_str}, miotsl_in_dtype, ptrA};
+    miopen_tensile_matrix mtB{
+        {k, n}, {mtB_str0, mtB_str1}, {mtB_b_n, mtB_b_str}, miotsl_in_dtype, ptrB};
+    miopen_tensile_matrix mtC{
+        {m, n}, {mtC_str0, mtC_str1}, {mtC_b_n, mtC_b_str}, miotsl_out_dtype, ptrC};
 
     miopen_tensile_status mt_status = miopen_tensile_status_no_solution;
 #if MIOPEN_BACKEND_HIP
