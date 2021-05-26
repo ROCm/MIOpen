@@ -89,6 +89,8 @@ using srcDataType = typename get_type_from_type_id<static_cast<char>(CK_PARAM_SR
 using dstDataType = typename get_type_from_type_id<static_cast<char>(CK_PARAM_DST_DATATYPE)>::type;
 using compType = typename get_type_from_type_id<static_cast<char>(CK_PARAM_REDUCE_COMPTYPE)>::type;
 
+constexpr index_t gridSize =
+    CK_PARAM_GRIDSIZE; // determined by the invariant length and the reduction method
 constexpr index_t blockSize = CK_PARAM_BLOCKSIZE; // tunable
 constexpr index_t blkGroupSize =
     CK_PARAM_BLKGROUPSIZE; // determined by the problem and the selected BlockSize
@@ -133,6 +135,7 @@ extern "C" __global__ void gridwise_generic_reduce_1(float alpha,
     constexpr auto dstDesc = make_native_tensor_descriptor(dstLengths{}, dstStrides{});
 
     constexpr auto gridwise_reduce = GridwiseReduction<blkGroupSize,
+                                                       gridSize,
                                                        blockSize,
                                                        srcDataType,
                                                        dstDataType,
@@ -177,6 +180,7 @@ extern "C" __global__ void gridwise_generic_reduce_2(float alpha,
     constexpr auto dstDesc = make_native_tensor_descriptor(dstLengths{}, dstStrides{});
 
     constexpr auto gridwise_reduce = GridwiseReduction<blkGroupSize,
+                                                       gridSize,
                                                        blockSize,
                                                        srcDataType,
                                                        dstDataType,
