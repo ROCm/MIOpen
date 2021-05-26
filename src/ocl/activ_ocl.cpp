@@ -68,7 +68,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
         return tmp;
     }();
 
-    const auto algo = AlgorithmName{"miopenActivationForward"};
+    const auto algo           = AlgorithmName{"miopenActivationForward"};
     const auto network_config = problem.MakeNetworkConfig();
 
     if(const auto invoker = handle.GetInvoker(network_config, boost::none, algo))

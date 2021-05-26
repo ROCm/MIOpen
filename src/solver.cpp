@@ -184,16 +184,18 @@ inline bool Register(IdRegistryData& registry, uint64_t value, const std::string
 
     if(registry.value_to_str.find(value) != registry.value_to_str.end())
     {
-        MIOPEN_LOG_E("Registered duplicate ids: ["
-                     << value << "]" << str << " and [" << registry.value_to_str.find(value)->first
-                     << "]" << registry.value_to_str.find(value)->second);
+        MIOPEN_LOG_E("Registered duplicate ids: [" << value << "]" << str << " and ["
+                                                   << registry.value_to_str.find(value)->first
+                                                   << "]"
+                                                   << registry.value_to_str.find(value)->second);
         return false;
     }
 
     if(registry.str_to_value.find(str) != registry.str_to_value.end())
     {
         MIOPEN_LOG_E("Registered duplicate ids: [" << value << "]" << str << " and ["
-                                                   << registry.str_to_value.find(str)->second << "]"
+                                                   << registry.str_to_value.find(str)->second
+                                                   << "]"
                                                    << registry.str_to_value.find(str)->first);
         return false;
     }
