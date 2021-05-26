@@ -69,9 +69,9 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
     }();
 
     const auto algo = AlgorithmName{"miopenActivationForward"};
-    const auto cfg  = problem.MakeNetworkConfig();
+    const auto network_config = problem.MakeNetworkConfig();
 
-    if(const auto invoker = handle.GetInvoker(cfg, boost::none, algo))
+    if(const auto invoker = handle.GetInvoker(network_config, boost::none, algo))
     {
         (*invoker)(handle, invoke_params);
         return miopenStatusSuccess;
@@ -87,7 +87,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
         if(!sln.invoker_factory)
             MIOPEN_THROW("Invoker missing in solver " + sln.solver_id);
         const auto invoker = handle.PrepareInvoker(*sln.invoker_factory, sln.construction_params);
-        handle.RegisterInvoker(invoker, cfg, sln.solver_id, algo);
+        handle.RegisterInvoker(invoker, network_config, sln.solver_id, algo);
         invoker(handle, invoke_params);
         return miopenStatusSuccess;
     }
@@ -99,8 +99,6 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
     double activ_alpha = GetAlpha();
     double activ_beta  = GetBeta();
     double activ_gamma = GetGamma();
-
-    const auto network_config = cfg.ToString();
 
     // short cut for packed tensors and 2D tensors with stride != width
     auto x_lens = xDesc.GetLengths();
