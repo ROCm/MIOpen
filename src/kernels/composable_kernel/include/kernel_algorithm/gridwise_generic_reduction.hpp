@@ -41,6 +41,7 @@
 namespace ck {
 
 template <index_t BlkGroupSize,
+          index_t GridSize,
           index_t BlockSize,
           typename srcDataType,  // the type with which the data of the source tensor are stored
           typename dstDataType,  // the type with which the data of the destintion tensor are stored
@@ -96,26 +97,41 @@ struct GridwiseReduction
             constexpr auto invariantLen = src2dDesc::GetLengths()[0];
             constexpr auto toReduceLen  = src2dDesc::GetLengths()[1];
             constexpr auto copySliceLen = GredThreadBufferLength;
-            constexpr bool need_padding = (toReduceLen % copySliceLen > 0) ? true : false;
-            constexpr auto rPad =
+            constexpr bool src_need_padding =
+                (invariantLen < GridSize * BlockSize || toReduceLen % copySliceLen > 0) ? true
+                                                                                        : false;
+            constexpr auto srcPad1 = GridSize * BlockSize - invariantLen;
+            constexpr auto srcPad2 =
                 ((toReduceLen + copySliceLen - 1) / copySliceLen) * copySliceLen - toReduceLen;
 
             constexpr auto src2dDesc_2 = transform_tensor_descriptor(
                 src2dDesc{},
-                make_tuple(PassThrough<invariantLen>{},
-                           Pad<Sequence<toReduceLen>, Sequence<0>, Sequence<rPad>>{}),
+                make_tuple(Pad<Sequence<invariantLen>, Sequence<0>, Sequence<srcPad1>>{},
+                           Pad<Sequence<toReduceLen>, Sequence<0>, Sequence<srcPad2>>{}),
                 make_tuple(Sequence<0>{}, Sequence<1>{}),
                 make_tuple(Sequence<0>{}, Sequence<1>{}));
 
             using src2dDesc_touse =
-                typename std::conditional<need_padding, decltype(src2dDesc_2), src2dDesc>::type;
+                typename std::conditional<src_need_padding, decltype(src2dDesc_2), src2dDesc>::type;
+
+            constexpr auto dst_need_padding = (invariantLen < GridSize * BlockSize) ? true : false;
+            constexpr auto dstPad           = GridSize * BlockSize - invariantLen;
+
+            constexpr auto dst1dDesc_2 = transform_tensor_descriptor(
+                dst1dDesc{},
+                make_tuple(Pad<Sequence<invariantLen>, Sequence<0>, Sequence<dstPad>>{}),
+                make_tuple(Sequence<0>{}),
+                make_tuple(Sequence<0>{}));
+
+            using dst1dDesc_touse =
+                typename std::conditional<dst_need_padding, decltype(dst1dDesc_2), dst1dDesc>::type;
 
             using gridwise_reduce =
                 GridwiseReduction_xy_to_x_direct_threadwise<BlockSize,
                                                             srcDataType,
                                                             dstDataType,
                                                             src2dDesc_touse,
-                                                            dst1dDesc,
+                                                            dst1dDesc_touse,
                                                             compType,
                                                             op,
                                                             nanPropaOpt,
@@ -159,26 +175,43 @@ struct GridwiseReduction
             constexpr auto invariantLen = src2dDesc::GetLengths()[0];
             constexpr auto toReduceLen  = src2dDesc::GetLengths()[1];
             constexpr auto copySliceLen = warpSize * GredAccessesPerThreadInWarp;
-            constexpr bool need_padding = (toReduceLen % copySliceLen > 0) ? true : false;
-            constexpr auto rPad =
+            constexpr bool src_need_padding =
+                (invariantLen < GridSize * BlockSize / warpSize || toReduceLen % copySliceLen > 0)
+                    ? true
+                    : false;
+            constexpr auto srcPad1 = GridSize * BlockSize / warpSize - invariantLen;
+            constexpr auto srcPad2 =
                 ((toReduceLen + copySliceLen - 1) / copySliceLen) * copySliceLen - toReduceLen;
 
             constexpr auto src2dDesc_2 = transform_tensor_descriptor(
                 src2dDesc{},
-                make_tuple(PassThrough<invariantLen>{},
-                           Pad<Sequence<toReduceLen>, Sequence<0>, Sequence<rPad>>{}),
+                make_tuple(Pad<Sequence<invariantLen>, Sequence<0>, Sequence<srcPad1>>{},
+                           Pad<Sequence<toReduceLen>, Sequence<0>, Sequence<srcPad2>>{}),
                 make_tuple(Sequence<0>{}, Sequence<1>{}),
                 make_tuple(Sequence<0>{}, Sequence<1>{}));
 
             using src2dDesc_touse =
-                typename std::conditional<need_padding, decltype(src2dDesc_2), src2dDesc>::type;
+                typename std::conditional<src_need_padding, decltype(src2dDesc_2), src2dDesc>::type;
+
+            constexpr auto dst_need_padding =
+                (invariantLen < GridSize * BlockSize / warpSize) ? true : false;
+            constexpr auto dstPad = GridSize * BlockSize / warpSize - invariantLen;
+
+            constexpr auto dst1dDesc_2 = transform_tensor_descriptor(
+                dst1dDesc{},
+                make_tuple(Pad<Sequence<invariantLen>, Sequence<0>, Sequence<dstPad>>{}),
+                make_tuple(Sequence<0>{}),
+                make_tuple(Sequence<0>{}));
+
+            using dst1dDesc_touse =
+                typename std::conditional<dst_need_padding, decltype(dst1dDesc_2), dst1dDesc>::type;
 
             using gridwise_reduce = GridwiseReduction_xy_to_x_direct_warpwise<
                 BlockSize,
                 srcDataType,
                 dstDataType,
                 src2dDesc_touse,
-                dst1dDesc,
+                dst1dDesc_touse,
                 compType,
                 op,
                 nanPropaOpt,
@@ -214,22 +247,22 @@ struct GridwiseReduction
         {
             (void)ws_buf1_global; // unused
 
-            constexpr auto invariantLen = src2dDesc::GetLengths()[0];
-            constexpr auto toReduceLen  = src2dDesc::GetLengths()[1];
-            constexpr auto copySliceLen = BlockSize * GredAccessesPerThreadInBlock;
-            constexpr bool need_padding = (toReduceLen % copySliceLen > 0) ? true : false;
-            constexpr auto rPad =
+            constexpr auto invariantLen     = src2dDesc::GetLengths()[0];
+            constexpr auto toReduceLen      = src2dDesc::GetLengths()[1];
+            constexpr auto copySliceLen     = BlockSize * GredAccessesPerThreadInBlock;
+            constexpr bool src_need_padding = (toReduceLen % copySliceLen > 0) ? true : false;
+            constexpr auto srcPad =
                 ((toReduceLen + copySliceLen - 1) / copySliceLen) * copySliceLen - toReduceLen;
 
             constexpr auto src2dDesc_2 = transform_tensor_descriptor(
                 src2dDesc{},
                 make_tuple(PassThrough<invariantLen>{},
-                           Pad<Sequence<toReduceLen>, Sequence<0>, Sequence<rPad>>{}),
+                           Pad<Sequence<toReduceLen>, Sequence<0>, Sequence<srcPad>>{}),
                 make_tuple(Sequence<0>{}, Sequence<1>{}),
                 make_tuple(Sequence<0>{}, Sequence<1>{}));
 
             using src2dDesc_touse =
-                typename std::conditional<need_padding, decltype(src2dDesc_2), src2dDesc>::type;
+                typename std::conditional<src_need_padding, decltype(src2dDesc_2), src2dDesc>::type;
 
             using gridwise_reduce =
                 GridwiseReduction_xy_to_x_blockwise<BlockSize,
@@ -284,14 +317,14 @@ struct GridwiseReduction
                 (((toReduceLen + BlkGroupSize - 1) / BlkGroupSize + copySliceLen - 1) /
                  copySliceLen) *
                 copySliceLen;
-            constexpr bool need_padding =
+            constexpr bool src_need_padding =
                 (toReduceLen < reduceSizePerBlock * BlkGroupSize) ? true : false;
-            constexpr auto rPad = reduceSizePerBlock * BlkGroupSize - toReduceLen;
+            constexpr auto srcPad = reduceSizePerBlock * BlkGroupSize - toReduceLen;
 
             constexpr auto src2dDesc_2 = transform_tensor_descriptor(
                 src2dDesc{},
                 make_tuple(PassThrough<invariantLen>{},
-                           Pad<Sequence<toReduceLen>, Sequence<0>, Sequence<rPad>>{}),
+                           Pad<Sequence<toReduceLen>, Sequence<0>, Sequence<srcPad>>{}),
                 make_tuple(Sequence<0>{}, Sequence<1>{}),
                 make_tuple(Sequence<0>{}, Sequence<1>{}));
 
@@ -299,7 +332,7 @@ struct GridwiseReduction
                 BlockSize,
                 srcDataType,
                 dstDataType,
-                typename std::conditional<need_padding, decltype(src2dDesc_2), src2dDesc>::type,
+                typename std::conditional<src_need_padding, decltype(src2dDesc_2), src2dDesc>::type,
                 dst1dDesc,
                 compType,
                 op,
