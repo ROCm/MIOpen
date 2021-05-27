@@ -871,6 +871,9 @@ struct reduce_driver : test_driver
             return rand_upper * sign_value * rand_ratio;
         };
 
+        // default tolerance (refer to driver.hpp)
+        this->tolerance = 80;
+
         if(reduceOp == MIOPEN_REDUCE_TENSOR_MUL)
             this->tolerance = 80 * 300;
         else if(reduceOp == MIOPEN_REDUCE_TENSOR_NORM1 || reduceOp == MIOPEN_REDUCE_TENSOR_NORM2)
