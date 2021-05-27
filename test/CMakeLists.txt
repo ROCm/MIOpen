@@ -279,12 +279,34 @@ function(option_support_check is_anabled is_disabled default_result result)
     endif()
 endfunction()
 
+# The add_custom_test function contains options to describe the conditions,
+# under which new custom_tests should be run. Options are divided into several types. 
+# The option can be enabled or disabled, if nothing is specified, the default value is taken.
+# You can use any number of options, provided that options do not conflict 
+#   (e.g. "HALF_ENABLE HALF DISABLE" is illegal)
+# 1)First describes supported data type. ( HALF BF16 INT8 FLOAT ...)
+#   The option can be enabled or disabled by using '_ENABLED' and '_DISABLED' suffix.
+#   If nothing is specified, the default value is taken. 
+#       Default: HALF=disabled, BF16=disabled, INT8=disabled, FLOAT=enabled.
+# 2)Second options type describes support GPU types (gfx900, gfx906, gfx908 ...)
+#   The option can be enabled or disabled by using '_ENABLED' and '_DISABLED' suffix.
+#   If nothing is specified, the default value is taken.
+#       Default: (gfx900&gfx906)=VEGA=enabled, GFX908=disabled.
+# 3)Third type describes support for special internal components (MIOTENSILE MLIR ...)
+#   The option can be enabled or disabled by using '_ENABLED' and '_DISABLED' suffix.
+#   If nothing is specified, the default value is taken.
+#       Default: MIOTENSILE=disabled, MLIR=disabled.
+# 4)Fourth type describes testing mode.
+#   By default they are disabled and can be enabled by option name.
+#   SKIP_UNLESS_ALL - this option means that the test is large and should only run if MIOPEN_TEST_ALL=TRUE.
+#   TEST_PERF_DB_RECORD_NOT_FOUND - this option means that test failed if output contains: "Perf Db: record not found"
+#
 
 function(add_custom_test NAME)
     set(options 
-        BF16_ENABLED BF16_DISABLED HALF_ENABLED HALF_DISABLED INT8_ENABLED INT8_DISABLED
+        BF16_ENABLED BF16_DISABLED HALF_ENABLED HALF_DISABLED INT8_ENABLED INT8_DISABLED FLOAT_ENABLED FLOAT_DISABLED
         VEGA_ENABLED VEGA_DISABLED GFX908_ENABLED GFX908_DISABLED
-        MIOTENSILE_ENABLED MIOTENSILE_DISABLED
+        MIOTENSILE_ENABLED MIOTENSILE_DISABLED MLIR_ENABLED MLIR_DISABLED
         SKIP_UNLESS_ALL TEST_PERF_DB_RECORD_NOT_FOUND 
     )
     set(oneValueArgs)
@@ -308,12 +330,24 @@ function(add_custom_test NAME)
     set(INT8_TEST_DEFAULT FALSE)
     option_support_check(${PARSE_INT8_ENABLED} ${PARSE_INT8_DISABLED} ${INT8_TEST_DEFAULT} is_int8_check)
     bool_and_f(${MIOPEN_TEST_INT8} ${is_int8_check} is_int8_check)
+
+    set(is_float_check)
+    set(FLOAT_TEST_DEFAULT TRUE)
+    option_support_check(${PARSE_FLOAT_ENABLED} ${PARSE_FLOAT_DISABLED} ${FLOAT_TEST_DEFAULT} is_float_check)
+    bool_and_f(${MIOPEN_TEST_FLOAT} ${is_float_check} is_float_check)
     
     set(is_miotensile_check)
     set(MIOTENSILE_TEST_DEFAULT FALSE)
     option_support_check(${PARSE_MIOTENSILE_ENABLED} ${PARSE_MIOTENSILE_DISABLED} ${MIOTENSILE_TEST_DEFAULT} is_miotensile_check)
     bool_not_f(${MIOPEN_TEST_MIOTENSILE} NOT_MIOPEN_TEST_MIOTENSILE)
     bool_or_f(${NOT_MIOPEN_TEST_MIOTENSILE} ${is_miotensile_check} is_miotensile_check)
+
+    set(is_mlir_check)
+    set(MLIR_TEST_DEFAULT FALSE)
+    option_support_check(${PARSE_MLIR_ENABLED} ${PARSE_MLIR_DISABLED} ${MLIR_TEST_DEFAULT} is_mlir_check)
+    bool_not_f(${MIOPEN_TEST_MLIR} NOT_MIOPEN_TEST_MLIR)
+    bool_or_f(${NOT_MIOPEN_TEST_MLIR} ${is_mlir_check} is_mlir_check)
+    
 
     # Some tests are xDLOPs specific and should not run on gfx900/906 targets.
     set(is_vega_check)
@@ -334,10 +368,11 @@ function(add_custom_test NAME)
     add_custom_target(${NAME} ${PARSE_UNPARSED_ARGUMENTS})
     add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
     if(  (is_vega_check OR is_gfx908_check)
-     AND (is_miotensile_check AND is_full_check)
-     AND ( is_half_check OR is_bfloat16_check OR is_int8_check OR MIOPEN_TEST_FLOAT)
+     AND is_full_check 
+     AND (is_miotensile_check AND is_mlir_check)
+     AND ( is_half_check OR is_bfloat16_check OR is_int8_check OR is_float_check)
     )
-        if(PARSE_TEST_PERF_DB_RECORD_NOT_FOUND )
+        if(PARSE_TEST_PERF_DB_RECORD_NOT_FOUND)
             set_tests_properties(${NAME} PROPERTIES FAIL_REGULAR_EXPRESSION "(FAILED)|(Perf Db: record not found)")
         endif()
         set_tests_properties(${NAME} PROPERTIES COST 600)
