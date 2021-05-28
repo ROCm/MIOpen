@@ -857,14 +857,10 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
     const auto required_workspace_size = GetWorkspaceSize(ctx);
     result.workspce_sz                 = required_workspace_size;
 
-    if(ctx.IsFp32())
-        kernel.kernel_file = "igemm_wrw_gtc_gfx908.s";
-    else if(ctx.IsFp16())
-    {
-        std::ostringstream kernel_file_name;
-        kernel_file_name << kernel_name << ".s";
-        kernel.kernel_file = kernel_file_name.str();
-    }
+    std::ostringstream kernel_file_name;
+    kernel_file_name << kernel_name << ".s";
+    kernel.kernel_file = kernel_file_name.str();
+
     kernel.kernel_name = kernel_name;
     kernel.g_wk.clear();
     /* Note here, for API like hipHccModuleLaunchKernel(), hipExtModuleLaunchKernel()
