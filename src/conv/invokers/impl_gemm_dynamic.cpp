@@ -416,5 +416,278 @@ MakeImplGemmDynamicBackwardDataInvokerFactory<solver::TunableImplicitGemmGTCDyna
     };
 }
 
+InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
+    const ConvolutionContext& ctx,
+    const solver::PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC& config)
+{
+    const auto& conv_problem = ctx.conv_problem;
+    int hi                   = conv_problem.GetInHeight();
+    int wi                   = conv_problem.GetInWidth();
+    int n                    = conv_problem.GetInBatchSize();
+    int k                    = conv_problem.GetOutChannels();
+    int c                    = conv_problem.GetInChannels();
+    int ho                   = conv_problem.GetOutHeight();
+    int wo                   = conv_problem.GetOutWidth();
+    int stride_h             = conv_problem.GetKernelStrideH();
+    int stride_w             = conv_problem.GetKernelStrideW();
+    int dilation_h           = conv_problem.GetDilationH();
+    int dilation_w           = conv_problem.GetDilationW();
+    int pad_h                = conv_problem.GetPadH();
+    int pad_w                = conv_problem.GetPadW();
+    int y                    = conv_problem.GetWeightsHeight();
+    int x                    = conv_problem.GetWeightsWidth();
+    int group                = conv_problem.GetGroupCount();
+
+    if(config.merge_e)
+    {
+        uint32_t s_move_slice_k_y = (config.gemm_k_per_block / (x * (c / group))) % y;
+        uint32_t s_move_slice_k_x = (config.gemm_k_per_block / (c / group)) % x;
+        uint32_t s_move_slice_k_c = config.gemm_k_per_block % (c / group);
+        y                         = (s_move_slice_k_y << 24) | y;
+        x                         = (s_move_slice_k_x << 24) | x;
+        c                         = (s_move_slice_k_c << 24) | c;
+    }
+
+    uint32_t gemm_m = n * ho * wo;
+    uint32_t gemm_n = k / group;
+    magic_div_u32_t mdiv_0, mdiv_1, mdiv_2, mdiv_3, mdiv_4, mdiv_5;
+    uint32_t shift_pack_0, shift_pack_1, pack0;
+
+    mdiv_0 = magic_div_u32_gen((gemm_n + config.gemm_n_per_block - 1) / config.gemm_n_per_block);
+    mdiv_1 = magic_div_u32_gen(ho * wo);
+    mdiv_2 = magic_div_u32_gen(wo);
+    mdiv_3 = magic_div_u32_gen(((gemm_m + config.gemm_m_per_block - 1) / config.gemm_m_per_block) *
+                               ((gemm_n + config.gemm_n_per_block - 1) / config.gemm_n_per_block));
+
+    shift_pack_0 = magic_div_u32_pack_shift(mdiv_0.shift, mdiv_1.shift, mdiv_2.shift, mdiv_3.shift);
+    if(config.merge_e)
+    {
+        mdiv_4       = magic_div_u32_gen(x * (c / group));
+        mdiv_5       = magic_div_u32_gen(c / group);
+        shift_pack_1 = magic_div_u32_pack_shift(mdiv_4.shift, mdiv_5.shift, 0, 0);
+    }
+
+    bool need_set_zero = config.gemm_k_global_split > 0;
+
+    std::vector<OpKernelArg> opShapeArgs;
+    opShapeArgs.emplace_back(hi);
+    opShapeArgs.emplace_back(wi);
+    opShapeArgs.emplace_back(n);
+    opShapeArgs.emplace_back(k / group);
+    opShapeArgs.emplace_back(c / group);
+    opShapeArgs.emplace_back(ho);
+    opShapeArgs.emplace_back(wo);
+    opShapeArgs.emplace_back(stride_h);
+    opShapeArgs.emplace_back(stride_w);
+    opShapeArgs.emplace_back(dilation_h);
+    opShapeArgs.emplace_back(dilation_w);
+    opShapeArgs.emplace_back(pad_h);
+    opShapeArgs.emplace_back(pad_w);
+    opShapeArgs.emplace_back(y);
+    opShapeArgs.emplace_back(x);
+    opShapeArgs.emplace_back(group);
+    opShapeArgs.emplace_back(mdiv_0.magic);
+    opShapeArgs.emplace_back(mdiv_1.magic);
+    opShapeArgs.emplace_back(mdiv_2.magic);
+    opShapeArgs.emplace_back(mdiv_3.magic);
+    opShapeArgs.emplace_back(mdiv_4.magic);
+    opShapeArgs.emplace_back(mdiv_5.magic);
+    opShapeArgs.emplace_back(shift_pack_0);
+    opShapeArgs.emplace_back(shift_pack_1);
+    opShapeArgs.emplace_back(config.gemm_k_global_split);
+    opShapeArgs.emplace_back(pack0);
+
+    return [opShapeArgs, need_set_zero](const std::vector<Kernel>& kernels) {
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+            decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
+            const auto& tensors     = data_ctx.tensors;
+            const auto ker          = handle.Run(kernels[0]);
+            float elapsed           = 0;
+
+            std::vector<OpKernelArg> opArgs;
+            opArgs.reserve(3 + opShapeArgs.size()); // Avoids vector resize.
+            opArgs.emplace_back(tensors.in);
+            opArgs.emplace_back(tensors.w);
+            opArgs.emplace_back(tensors.out);
+
+            if(need_set_zero)
+            {
+                float zero = 0.f;
+                SetTensor(handle, tensors.outDesc, tensors.out, &zero);
+                if(handle.IsProfilingEnabled())
+                    elapsed += handle.GetKernelTime();
+            }
+
+            std::transform(opShapeArgs.begin(),
+                           opShapeArgs.end(),
+                           std::back_inserter(opArgs),
+                           [](const OpKernelArg& arg) { return arg; });
+
+            ker(opArgs);
+
+            if(handle.IsProfilingEnabled())
+            {
+                elapsed += handle.GetKernelTime();
+                handle.ResetKernelTime();
+                handle.AccumKernelTime(elapsed);
+            }
+        };
+    };
+}
+
+InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
+    const ConvolutionContext& ctx,
+    const solver::PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC& config)
+{
+    const auto& conv_problem = ctx.conv_problem;
+    int hi                   = conv_problem.GetOutHeight();
+    int wi                   = conv_problem.GetOutWidth();
+    int n                    = conv_problem.GetInBatchSize();
+    int k                    = conv_problem.GetInChannels();
+    int c                    = conv_problem.GetOutChannels();
+    int ho                   = conv_problem.GetInHeight();
+    int wo                   = conv_problem.GetInWidth();
+    int stride_h             = conv_problem.GetInHeight() > 1 ? conv_problem.GetKernelStrideH() : 1;
+    int stride_w             = conv_problem.GetInWidth() > 1 ? conv_problem.GetKernelStrideW() : 1;
+    int dilation_h = conv_problem.GetWeightsHeight() > 1 ? conv_problem.GetDilationH() : 1;
+    int dilation_w = conv_problem.GetWeightsWidth() > 1 ? conv_problem.GetDilationW() : 1;
+    int pad_h      = conv_problem.GetPadH();
+    int pad_w      = conv_problem.GetPadW();
+    int y          = conv_problem.GetWeightsHeight();
+    int x          = conv_problem.GetWeightsWidth();
+    int group      = conv_problem.GetGroupCount();
+
+    int gcd_stride_dilation_h = solver::gcd(stride_h, dilation_h);
+    int gcd_stride_dilation_w = solver::gcd(stride_w, dilation_w);
+    int y_tilda               = stride_h / gcd_stride_dilation_h;
+    int x_tilda               = stride_w / gcd_stride_dilation_w;
+
+    // int y_dot = (y + y_tilda - 1) / y_tilda;
+    // int x_dot = (x + x_tilda - 1) / x_tilda;
+
+    int h_tilda = ho + (dilation_h * (y - 1) + stride_h - 1) / stride_h;
+    int w_tilda = wo + (dilation_w * (x - 1) + stride_w - 1) / stride_w;
+
+    int h_tilda_left = std::max(0, pad_h - dilation_h * (y_tilda - 1)) / stride_h;
+    int w_tilda_left = std::max(0, pad_w - dilation_w * (x_tilda - 1)) / stride_w;
+
+    int h_tilda_right = std::min(h_tilda, (pad_h + hi - 1 + stride_h - 1) / stride_h + 1);
+    int w_tilda_right = std::min(w_tilda, (pad_w + wi - 1 + stride_w - 1) / stride_w + 1);
+
+    int h_tilda_slice = h_tilda_right - h_tilda_left;
+    int w_tilda_slice = w_tilda_right - w_tilda_left;
+
+    int num_of_gemms = x_tilda * y_tilda;
+
+    uint32_t gemm_m = n * h_tilda_slice * w_tilda_slice;
+    uint32_t gemm_n = c / group;
+
+    magic_div_u32_t mdiv_x_tilda  = magic_div_u32_gen(x_tilda);
+    magic_div_u32_t mdiv_y_tilda  = magic_div_u32_gen(y_tilda);
+    magic_div_u32_t mdiv_group_mn = magic_div_u32_gen(
+        group * ((gemm_n + config.gemm_n_per_block - 1) / config.gemm_n_per_block) *
+        ((gemm_m + config.gemm_m_per_block - 1) / config.gemm_m_per_block));
+
+    magic_div_u32_t mdiv_0 =
+        magic_div_u32_gen((gemm_n + config.gemm_n_per_block - 1) / config.gemm_n_per_block);
+    magic_div_u32_t mdiv_1 =
+        magic_div_u32_gen(((gemm_n + config.gemm_n_per_block - 1) / config.gemm_n_per_block) *
+                          ((gemm_m + config.gemm_m_per_block - 1) / config.gemm_m_per_block));
+    magic_div_u32_t mdiv_2 = magic_div_u32_gen(config.nxe != 0 ? w_tilda_slice : wi);
+    magic_div_u32_t mdiv_3 = magic_div_u32_gen(h_tilda_slice * w_tilda_slice);
+    uint32_t shift_pack_0 =
+        magic_div_u32_pack_shift(mdiv_0.shift, mdiv_1.shift, mdiv_2.shift, mdiv_3.shift);
+
+    int dtile_iy = num_of_gemms > 1 ? mdiv_x_tilda.magic : 0;
+    int dtile_ix = num_of_gemms > 1 ? mdiv_x_tilda.shift : 0;
+    int dslice_y = num_of_gemms > 1 ? mdiv_y_tilda.magic : y;
+    int dslice_x = num_of_gemms > 1 ? mdiv_y_tilda.shift : x;
+    int dtile_h  = num_of_gemms > 1 ? mdiv_group_mn.magic : h_tilda;
+    int dtile_w  = num_of_gemms > 1 ? mdiv_group_mn.shift : w_tilda;
+
+    bool need_set_zero = false;
+    if(y < stride_h || x < stride_w || dilation_h != 1 || dilation_w != 1)
+        need_set_zero = true;
+    need_set_zero |= config.gemm_k_global_split > 0;
+
+    std::vector<OpKernelArg> opShapeArgs;
+    opShapeArgs.emplace_back(hi);
+    opShapeArgs.emplace_back(wi);
+    opShapeArgs.emplace_back(n);
+    opShapeArgs.emplace_back(k / group);
+    opShapeArgs.emplace_back(c / group);
+    opShapeArgs.emplace_back(ho);
+    opShapeArgs.emplace_back(wo);
+    opShapeArgs.emplace_back(stride_h);
+    opShapeArgs.emplace_back(stride_w);
+    opShapeArgs.emplace_back(dilation_h);
+    opShapeArgs.emplace_back(dilation_w);
+    opShapeArgs.emplace_back(pad_h);
+    opShapeArgs.emplace_back(pad_w);
+    opShapeArgs.emplace_back(y);
+    opShapeArgs.emplace_back(x);
+
+    opShapeArgs.emplace_back(dtile_iy);
+    opShapeArgs.emplace_back(dtile_ix);
+    opShapeArgs.emplace_back(dilation_h / gcd_stride_dilation_h);
+    opShapeArgs.emplace_back(dilation_w / gcd_stride_dilation_w);
+    opShapeArgs.emplace_back(y_tilda);
+    opShapeArgs.emplace_back(x_tilda);
+    opShapeArgs.emplace_back(dtile_h);
+    opShapeArgs.emplace_back(dtile_w);
+    opShapeArgs.emplace_back(dslice_y);
+    opShapeArgs.emplace_back(dslice_x);
+
+    opShapeArgs.emplace_back(h_tilda_slice);
+    opShapeArgs.emplace_back(w_tilda_slice);
+    opShapeArgs.emplace_back(h_tilda_left);
+    opShapeArgs.emplace_back(w_tilda_left);
+    opShapeArgs.emplace_back(group);
+
+    opShapeArgs.emplace_back(mdiv_0.magic);
+    opShapeArgs.emplace_back(mdiv_1.magic);
+    opShapeArgs.emplace_back(mdiv_2.magic);
+    opShapeArgs.emplace_back(mdiv_3.magic);
+    opShapeArgs.emplace_back(shift_pack_0);
+    opShapeArgs.emplace_back(config.gemm_k_global_split);
+
+    return [opShapeArgs, need_set_zero](const std::vector<Kernel>& kernels) {
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+            decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
+            const auto& tensors     = data_ctx.tensors;
+            const auto ker          = handle.Run(kernels[0]);
+            float elapsed           = 0;
+
+            std::vector<OpKernelArg> opArgs;
+            opArgs.reserve(3 + opShapeArgs.size()); // Avoids vector resize.
+            opArgs.emplace_back(tensors.out);
+            opArgs.emplace_back(tensors.w);
+            opArgs.emplace_back(tensors.in);
+
+            if(need_set_zero)
+            {
+                float zero = 0.f;
+                SetTensor(handle, tensors.outDesc, tensors.out, &zero);
+                if(handle.IsProfilingEnabled())
+                    elapsed += handle.GetKernelTime();
+            }
+
+            std::transform(opShapeArgs.begin(),
+                           opShapeArgs.end(),
+                           std::back_inserter(opArgs),
+                           [](const OpKernelArg& arg) { return arg; });
+
+            ker(opArgs);
+
+            if(handle.IsProfilingEnabled())
+            {
+                elapsed += handle.GetKernelTime();
+                handle.ResetKernelTime();
+                handle.AccumKernelTime(elapsed);
+            }
+        };
+    };
+}
+
 } // namespace conv
 } // namespace miopen
