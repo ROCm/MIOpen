@@ -157,7 +157,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
             for(uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
             {
                 _FLOAT_PREC we = CVT_FLOAT2ACCUM(weights[o][c]);
-                _FLOAT* d       = &dat[c][0];
+                _FLOAT* d      = &dat[c][0];
                 for(uint i = 0; i < MLO_READ_UNIT; ++i)
                 {
                     acc[i] += CVT_FLOAT2ACCUM(d[i]) * we;
