@@ -407,7 +407,7 @@ bool PerformanceConfigConvAsm1x1UV2::IsValid(const ConvolutionContext& config) c
     return (c_per_wave % c_mult == 0) && (c_per_last_wave % c_mult == 0);
 }
 
-void PerformanceConfigConvAsm1x1UV2::EuristicInit(const ConvolutionContext& config)
+void PerformanceConfigConvAsm1x1UV2::HeuristicInit(const ConvolutionContext& config)
 {
     int c_check   = config.direction.IsForward() ? config.n_inputs : 0;
     int k_check   = config.direction.IsForward() ? 0 : config.n_inputs;
@@ -461,7 +461,7 @@ PerformanceConfigConvAsm1x1UV2
 ConvAsm1x1UV2::GetPerformanceConfig(const ConvolutionContext& params) const
 {
     PerformanceConfigConvAsm1x1UV2 pp;
-    pp.EuristicInit(params);
+    pp.HeuristicInit(params);
     MIOPEN_LOG_I(pp.ToString());
     return pp;
 }
@@ -480,6 +480,8 @@ bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!params.Is2d())
         return false;
+    if(!(params.direction.IsForward() || params.direction.IsBackwardData()))
+        return false;
     if(params.IsAsymmetricPadH() || params.IsAsymmetricPadW())
         return false;
     if(!params.rmv.IsV2orV3())
@@ -491,8 +493,10 @@ bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& params) const
     {
         return false;
     }
-
-    assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
 
     const auto elements_in_dword = 4 / GetTypeSize(params.in_data_type);
     // clang-format off
@@ -538,7 +542,7 @@ bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& params) const
          && c_k_r_s < std::pow(2, 29); // clang-format on
     if(ok)
     {
-        /// Hotfix for issue 1810 (EuristicInit problem of this solver).
+        /// Hotfix for issue 1810 (HeuristicInit problem of this solver).
         /// Modified copy from PerformanceConfigConvAsm1x1UV2::IsValid()
         /// \todo Refactor this.
         const auto& config = params; // alias

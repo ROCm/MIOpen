@@ -28,6 +28,7 @@
 
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
+#include <miopen/tensor_layout.hpp>
 
 #include <sstream>
 
@@ -59,6 +60,29 @@ std::ostream& operator<<(std::ostream& stream, std::function<void(std::ostream&)
     return stream;
 }
 
+void ProblemDescription::HeuristicUpdateLayouts()
+{
+    const std::string labels = tensor_layout_get_default(in_layout.size());
+
+    static const std::vector<std::string> supported_layouts = {"NCHW", "NHWC", "NCDHW"};
+    for(const std::string& layout : supported_layouts)
+    {
+        // Skip layouts that doesn't match dimension sizes
+        if(layout.size() != labels.size())
+            continue;
+
+        if(in.IsPossibleLayout(labels, layout) && out.IsPossibleLayout(labels, layout) &&
+           weights.IsPossibleLayout(labels, layout))
+        {
+            in_layout      = layout;
+            weights_layout = layout;
+            out_layout     = layout;
+            return;
+        }
+    }
+    // If we did not find consistent layout, leave them as-is
+}
+
 void ProblemDescription::BuildConfKey(std::string& conf_key) const
 {
     std::ostringstream ss;
@@ -70,7 +94,17 @@ void ProblemDescription::BuildConfKey(std::string& conf_key) const
     ss << 'x' << GetOutChannels();
     ss << 'x' << PrintDHW('x', GetSpatialDims(), GetOutDepth(), GetOutHeight(), GetOutWidth());
     ss << 'x' << GetInBatchSize();
-    ss << 'x' << GetInLayout();
+    if((GetInLayout() == "NCHW" && GetWeightsLayout() == "NCHW" && GetOutLayout() == "NCHW") ||
+       (GetInLayout() == "NCDHW" && GetWeightsLayout() == "NCDHW" && GetOutLayout() == "NCDHW"))
+    {
+        ss << 'x' << GetInLayout();
+    }
+    else
+    {
+        ss << 'x' << GetInLayout();
+        ss << 'x' << GetWeightsLayout();
+        ss << 'x' << GetOutLayout();
+    }
     ss << 'x' << EncodeDataTypesForKey(GetInDataType(), GetWeightsDataType(), GetOutDataType());
     ss << 'x' << PrintDHW('x', GetSpatialDims(), GetPadD(), GetPadH(), GetPadW());
     ss << 'x'
@@ -92,7 +126,10 @@ void ProblemDescription::BuildConfKey(std::string& conf_key) const
 void ProblemDescription::Serialize(std::ostream& stream) const
 {
     const auto sep = '-';
+    // Problem description with default layout
     // 576-4-4-1x1-192-4-4-8-1x1-2x2-3x3-0-NCHW-FP32-F
+    // Problem description with non-default layout
+    // 576-4-4-1x1-192-4-4-8-1x1-2x2-3x3-0-NHWC-NCHW-NCHW-FP32-F
     // clang-format off
     stream << GetInChannels();
     stream << sep << PrintDHW(sep, GetSpatialDims(), GetInDepth(), GetInHeight(), GetInWidth());
@@ -104,7 +141,15 @@ void ProblemDescription::Serialize(std::ostream& stream) const
     stream << sep << PrintDHW('x', GetSpatialDims(), GetKernelStrideD(), GetKernelStrideH(), GetKernelStrideW());
     stream << sep << PrintDHW('x', GetSpatialDims(), GetDilationD(), GetDilationH(), GetDilationW());
     stream << sep << GetBias();
-    stream << sep << GetInLayout();
+    if ((GetInLayout() == "NCHW" && GetWeightsLayout() == "NCHW" && GetOutLayout() == "NCHW")
+        || (GetInLayout() == "NCDHW" && GetWeightsLayout() == "NCDHW" && GetOutLayout() == "NCDHW"))
+    {
+        stream << sep << GetInLayout();
+    }else {
+        stream << sep << GetInLayout();
+        stream << sep << GetWeightsLayout();
+        stream << sep << GetOutLayout();
+    }
     stream << sep << EncodeDataTypesForKey(GetInDataType(), GetWeightsDataType(), GetOutDataType());
 
     switch(GetDirection())
@@ -126,6 +171,18 @@ void ProblemDescription::Serialize(std::ostream& stream) const
     if(!optional.str().empty())
     {
         stream << '_' << optional.str();
+    }
+}
+
+bool ProblemDescription::IsLayoutDefault() const
+{
+    if(GetSpatialDims() == 2)
+    {
+        return (in_layout == "NCHW") && (out_layout == "NCHW") && (weights_layout == "NCHW");
+    }
+    else
+    {
+        return (in_layout == "NCDHW") && (out_layout == "NCDHW") && (weights_layout == "NCDHW");
     }
 }
 

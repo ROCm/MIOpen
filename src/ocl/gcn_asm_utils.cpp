@@ -23,19 +23,29 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/gcn_asm_utils.hpp>
+#include <miopen/config.h>
+
+#if MIOPEN_USE_COMGR
+
+bool ValidateGcnAssembler() { return true; }
+
+#else // !MIOPEN_USE_COMGR
+
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
-#include <miopen/config.h>
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
-#include <miopen/gcn_asm_utils.hpp>
 #include <miopen/manage_ptr.hpp>
 #include <miopen/write_file.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/exec_utils.hpp>
+#if WORKAROUND_SWDEV_255735
+#include <miopen/hip_build_utils.hpp>
+#endif
 #include <sstream>
 
 #ifdef __linux__
@@ -58,6 +68,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_EXPERIMENTAL_GCN_ASM_PATH)
 
 static const char option_no_co_v3[] = "-mno-code-object-v3";
 
+static bool GcnAssemblerHasBug34765();
 static bool GcnAssemblerSupportsNoCOv3();
 static std::string CleanupPath(const char* p);
 
@@ -136,7 +147,7 @@ bool ValidateGcnAssemblerImpl()
 
 bool ValidateGcnAssembler()
 {
-    static bool result = ValidateGcnAssemblerImpl();
+    static const bool result = ValidateGcnAssemblerImpl();
     return result;
 }
 
@@ -168,13 +179,20 @@ static std::string CleanupPath(const char* p)
  * Not intended to be used in production code, so error handling is very straghtforward,
  * just catch whatever possible and throw an exception.
  */
-std::string AmdgcnAssemble(const std::string& source, const std::string& params)
+std::string AmdgcnAssemble(const std::string& source,
+                           const std::string& params,
+                           const miopen::TargetProperties& target)
 {
 #ifdef __linux__
     miopen::TempFile outfile("amdgcn-asm-out-XXXXXX");
 
     std::ostringstream options;
     options << " -x assembler -target amdgcn--amdhsa";
+#if WORKAROUND_SWDEV_255735
+    if(miopen::HipCompilerVersion() >= miopen::external_tool_version_t{3, 8, 20403})
+        if(target.Xnack() && !*target.Xnack())
+            options << " -mno-xnack";
+#endif
     /// \todo Hacky way to find out which CO version we need to assemble for.
     if(params.find("ROCM_METADATA_VERSION=5", 0) == std::string::npos) // Assume that !COv3 == COv2.
         if(GcnAssemblerSupportsNoCOv3()) // If assembling for COv2, then disable COv3.
@@ -239,9 +257,11 @@ static void AmdgcnAssembleQuiet(const std::string& source, const std::string& pa
 #ifdef __linux__
     std::stringstream clang_stdout_unused;
     const auto clang_path = GetGcnAssemblerPath();
-    const auto args       = " -x assembler -target amdgcn--amdhsa " + params + " " + source +
-                      " -o /dev/null" + // We do not need output file
-                      " 2>&1";          // Keep console clean from error messages.
+    const auto args       = std::string(" -x assembler -target amdgcn--amdhsa") //
+                      + " " + params                                            //
+                      + " " + source                                            //
+                      + " -o /dev/null" + // We do not need output file
+                      " 2>&1";            // Keep console clean from error messages.
     MIOPEN_LOG_NQI2(clang_path << " " << args);
     const int clang_rc = miopen::exec::Run(clang_path + " " + args, nullptr, &clang_stdout_unused);
     if(clang_rc != 0)
@@ -270,7 +290,7 @@ static bool GcnAssemblerHasBug34765Impl()
     }
 }
 
-bool GcnAssemblerHasBug34765()
+static bool GcnAssemblerHasBug34765()
 {
     const static bool b = GcnAssemblerHasBug34765Impl();
     return b;
@@ -300,24 +320,12 @@ static bool GcnAssemblerSupportsNoCOv3()
     return b;
 }
 
+#endif // !MIOPEN_USE_COMGR
+
 template <>
 void GenerateClangDefsym<const std::string&>(std::ostream& stream,
                                              const std::string& name,
                                              const std::string& value)
 {
     stream << " -Wa,-defsym," << name << "=" << value;
-}
-
-std::string MakeLutKey(
-    int w, int h, int c, int n, int k, int conv_stride_h, int conv_stride_w, int dir, int CUs)
-{
-    std::ostringstream ss;
-    ss << w << ";" << h << ";" << c << ";" << n << ";" << k << ";" << conv_stride_h << ";"
-       << conv_stride_w << ";" << dir << ";" << CUs;
-    return ss.str();
-}
-
-std::string MakeLutKey(int w, int h, int c, int n, int k, int dir, int CUs)
-{
-    return MakeLutKey(w, h, c, n, k, 1, 1, dir, CUs);
 }

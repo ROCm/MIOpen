@@ -27,9 +27,11 @@
 #define GUARD_MIOPEN_TENSOR_DRIVER_HPP
 
 #include <algorithm>
+#include <iterator>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_extra.hpp>
+#include <miopen/tensor_layout.hpp>
 #include <numeric>
 #include <vector>
 
@@ -107,10 +109,38 @@ int SetTensorNd(miopenTensorDescriptor_t t,
     return miopenSetTensorDescriptor(t, data_type, len.size(), len.data(), nullptr);
 }
 
+int SetTensorNd(miopenTensorDescriptor_t t,
+                std::vector<int>& len,
+                const std::string& layout,
+                miopenDataType_t data_type = miopenFloat)
+{
+    if(layout.empty())
+    {
+        return SetTensorNd(t, len, data_type);
+    }
+
+    if(layout.size() != len.size())
+    {
+        MIOPEN_THROW("unmatched layout and dimension size");
+    }
+
+    // Dimension lengths vector 'len' comes with a default layout.
+    std::string len_layout = miopen::tensor_layout_get_default(layout.size());
+    if(len_layout.empty())
+    {
+        return SetTensorNd(t, len, data_type);
+    }
+
+    std::vector<int> strides;
+    miopen::tensor_layout_to_strides(len, len_layout, layout, strides);
+
+    return miopenSetTensorDescriptor(t, data_type, len.size(), len.data(), strides.data());
+}
+
 size_t GetTensorSize(miopenTensorDescriptor_t& tensor)
 {
-    std::vector<int> len = GetTensorLengths(tensor);
-    size_t sz            = std::accumulate(len.begin(), len.end(), 1, std::multiplies<int>());
+    const auto len = GetTensorLengths(tensor);
+    size_t sz      = std::accumulate(len.begin(), len.end(), size_t{1}, std::multiplies<size_t>());
 
     return sz;
 }

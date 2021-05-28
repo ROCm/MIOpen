@@ -41,6 +41,7 @@
 namespace ck {
 
 template <index_t BlkGroupSize,
+          index_t GridSize,
           index_t BlockSize,
           typename srcDataType,  // the type with which the data of the source tensor are stored
           typename dstDataType,  // the type with which the data of the destintion tensor are stored
@@ -68,12 +69,17 @@ struct GridwiseReduction
     static constexpr auto nanPropaOpt      = static_cast<NanPropagation_t>(nanPropaOpt_I);
     static constexpr auto reduceIndicesOpt = static_cast<ReduceTensorIndices_t>(reduceIndicesOpt_I);
 
-    template <ReductionMethod_t impl, index_t callId>
+    // origReduceLen will be used as a divider to average the reduced values
+    static constexpr auto origReduceLen = srcDesc::GetElementSize() / dstDesc::GetElementSize();
+
+    template <ReductionMethod_t impl, bool isFirstCall, bool isLastCall>
     struct GridwiseReduction_2d_wrapper;
 
     // wrapper for switching to the Reduce_DirectThreadWise method
-    template <index_t callId>
-    struct GridwiseReduction_2d_wrapper<ReductionMethod_t::DirectThreadWise, callId>
+    template <bool isFirstCall, bool isLastCall>
+    struct GridwiseReduction_2d_wrapper<ReductionMethod_t::DirectThreadWise,
+                                        isFirstCall,
+                                        isLastCall>
     {
         template <typename src2dDesc, typename dst1dDesc>
         __device__ static void Run(src2dDesc,
@@ -91,44 +97,67 @@ struct GridwiseReduction
             constexpr auto invariantLen = src2dDesc::GetLengths()[0];
             constexpr auto toReduceLen  = src2dDesc::GetLengths()[1];
             constexpr auto copySliceLen = GredThreadBufferLength;
-            constexpr bool need_padding = (toReduceLen % copySliceLen > 0) ? true : false;
-            constexpr auto rPad =
+            constexpr bool src_need_padding =
+                (invariantLen < GridSize * BlockSize || toReduceLen % copySliceLen > 0) ? true
+                                                                                        : false;
+            constexpr auto srcPad1 = GridSize * BlockSize - invariantLen;
+            constexpr auto srcPad2 =
                 ((toReduceLen + copySliceLen - 1) / copySliceLen) * copySliceLen - toReduceLen;
 
             constexpr auto src2dDesc_2 = transform_tensor_descriptor(
                 src2dDesc{},
-                make_tuple(PassThrough<invariantLen>{},
-                           Pad<Sequence<toReduceLen>, Sequence<0>, Sequence<rPad>>{}),
+                make_tuple(Pad<Sequence<invariantLen>, Sequence<0>, Sequence<srcPad1>>{},
+                           Pad<Sequence<toReduceLen>, Sequence<0>, Sequence<srcPad2>>{}),
                 make_tuple(Sequence<0>{}, Sequence<1>{}),
                 make_tuple(Sequence<0>{}, Sequence<1>{}));
 
             using src2dDesc_touse =
-                typename std::conditional<need_padding, decltype(src2dDesc_2), src2dDesc>::type;
+                typename std::conditional<src_need_padding, decltype(src2dDesc_2), src2dDesc>::type;
 
-            using gridwise_reduce = GridwiseReduction_xy_to_x_direct_threadwise<
-                BlockSize,
-                srcDataType,
-                dstDataType,
-                src2dDesc_touse,
-                dst1dDesc,
-                compType,
-                op,
-                nanPropaOpt,
-                reduceIndicesOpt,
-                callId,
-                GredThreadBufferLength>; // the callId indicates the first or second-time reduction
+            constexpr auto dst_need_padding = (invariantLen < GridSize * BlockSize) ? true : false;
+            constexpr auto dstPad           = GridSize * BlockSize - invariantLen;
+
+            constexpr auto dst1dDesc_2 = transform_tensor_descriptor(
+                dst1dDesc{},
+                make_tuple(Pad<Sequence<invariantLen>, Sequence<0>, Sequence<dstPad>>{}),
+                make_tuple(Sequence<0>{}),
+                make_tuple(Sequence<0>{}));
+
+            using dst1dDesc_touse =
+                typename std::conditional<dst_need_padding, decltype(dst1dDesc_2), dst1dDesc>::type;
+
+            using gridwise_reduce =
+                GridwiseReduction_xy_to_x_direct_threadwise<BlockSize,
+                                                            srcDataType,
+                                                            dstDataType,
+                                                            src2dDesc_touse,
+                                                            dst1dDesc_touse,
+                                                            compType,
+                                                            op,
+                                                            nanPropaOpt,
+                                                            reduceIndicesOpt,
+                                                            isFirstCall,
+                                                            isLastCall,
+                                                            origReduceLen,
+                                                            GredThreadBufferLength>; // isFirstCall
+                                                                                     // & isLastCall
+                                                                                     // indicates
+                                                                                     // the first
+                                                                                     // or/and
+                                                                                     // second-time
+                                                                                     // reduction
             gridwise_reduce{}.Run(alpha,
                                   p_src_global,
                                   beta,
                                   p_dst_global,
-                                  ws_buf2_global,
+                                  const_cast<const int* const __restrict__>(ws_buf2_global),
                                   indices_global); // ws_buf2_global will be read at the second-time
         };
     };
 
     // wrapper for switching to the Reduce_DirectWarpdWise method
-    template <index_t callId>
-    struct GridwiseReduction_2d_wrapper<ReductionMethod_t::DirectWarpWise, callId>
+    template <bool isFirstCall, bool isLastCall>
+    struct GridwiseReduction_2d_wrapper<ReductionMethod_t::DirectWarpWise, isFirstCall, isLastCall>
     {
         template <typename src2dDesc, typename dst1dDesc>
         __device__ static void Run(src2dDesc,
@@ -146,45 +175,64 @@ struct GridwiseReduction
             constexpr auto invariantLen = src2dDesc::GetLengths()[0];
             constexpr auto toReduceLen  = src2dDesc::GetLengths()[1];
             constexpr auto copySliceLen = warpSize * GredAccessesPerThreadInWarp;
-            constexpr bool need_padding = (toReduceLen % copySliceLen > 0) ? true : false;
-            constexpr auto rPad =
+            constexpr bool src_need_padding =
+                (invariantLen < GridSize * BlockSize / warpSize || toReduceLen % copySliceLen > 0)
+                    ? true
+                    : false;
+            constexpr auto srcPad1 = GridSize * BlockSize / warpSize - invariantLen;
+            constexpr auto srcPad2 =
                 ((toReduceLen + copySliceLen - 1) / copySliceLen) * copySliceLen - toReduceLen;
 
             constexpr auto src2dDesc_2 = transform_tensor_descriptor(
                 src2dDesc{},
-                make_tuple(PassThrough<invariantLen>{},
-                           Pad<Sequence<toReduceLen>, Sequence<0>, Sequence<rPad>>{}),
+                make_tuple(Pad<Sequence<invariantLen>, Sequence<0>, Sequence<srcPad1>>{},
+                           Pad<Sequence<toReduceLen>, Sequence<0>, Sequence<srcPad2>>{}),
                 make_tuple(Sequence<0>{}, Sequence<1>{}),
                 make_tuple(Sequence<0>{}, Sequence<1>{}));
 
             using src2dDesc_touse =
-                typename std::conditional<need_padding, decltype(src2dDesc_2), src2dDesc>::type;
+                typename std::conditional<src_need_padding, decltype(src2dDesc_2), src2dDesc>::type;
+
+            constexpr auto dst_need_padding =
+                (invariantLen < GridSize * BlockSize / warpSize) ? true : false;
+            constexpr auto dstPad = GridSize * BlockSize / warpSize - invariantLen;
+
+            constexpr auto dst1dDesc_2 = transform_tensor_descriptor(
+                dst1dDesc{},
+                make_tuple(Pad<Sequence<invariantLen>, Sequence<0>, Sequence<dstPad>>{}),
+                make_tuple(Sequence<0>{}),
+                make_tuple(Sequence<0>{}));
+
+            using dst1dDesc_touse =
+                typename std::conditional<dst_need_padding, decltype(dst1dDesc_2), dst1dDesc>::type;
 
             using gridwise_reduce = GridwiseReduction_xy_to_x_direct_warpwise<
                 BlockSize,
                 srcDataType,
                 dstDataType,
                 src2dDesc_touse,
-                dst1dDesc,
+                dst1dDesc_touse,
                 compType,
                 op,
                 nanPropaOpt,
                 reduceIndicesOpt,
-                callId,
-                GredAccessesPerThreadInWarp>; // the callId indicates the first or second-time
-                                              // reduction
+                isFirstCall,
+                isLastCall,
+                origReduceLen,
+                GredAccessesPerThreadInWarp>; // isFirstCall & isLastCall indicates the first or/and
+                                              // second-time reduction
             gridwise_reduce{}.Run(alpha,
                                   p_src_global,
                                   beta,
                                   p_dst_global,
-                                  ws_buf2_global,
+                                  const_cast<const int* const __restrict__>(ws_buf2_global),
                                   indices_global); // ws_buf2_global will be read at the second-time
         };
     };
 
     // wrapper for switching to the Reduce_BlockWise method
-    template <index_t callId>
-    struct GridwiseReduction_2d_wrapper<ReductionMethod_t::BlockWise, callId>
+    template <bool isFirstCall, bool isLastCall>
+    struct GridwiseReduction_2d_wrapper<ReductionMethod_t::BlockWise, isFirstCall, isLastCall>
     {
         template <typename src2dDesc, typename dst1dDesc>
         __device__ static void Run(src2dDesc,
@@ -199,49 +247,54 @@ struct GridwiseReduction
         {
             (void)ws_buf1_global; // unused
 
-            constexpr auto invariantLen = src2dDesc::GetLengths()[0];
-            constexpr auto toReduceLen  = src2dDesc::GetLengths()[1];
-            constexpr auto copySliceLen = BlockSize * GredAccessesPerThreadInBlock;
-            constexpr bool need_padding = (toReduceLen % copySliceLen > 0) ? true : false;
-            constexpr auto rPad =
+            constexpr auto invariantLen     = src2dDesc::GetLengths()[0];
+            constexpr auto toReduceLen      = src2dDesc::GetLengths()[1];
+            constexpr auto copySliceLen     = BlockSize * GredAccessesPerThreadInBlock;
+            constexpr bool src_need_padding = (toReduceLen % copySliceLen > 0) ? true : false;
+            constexpr auto srcPad =
                 ((toReduceLen + copySliceLen - 1) / copySliceLen) * copySliceLen - toReduceLen;
 
             constexpr auto src2dDesc_2 = transform_tensor_descriptor(
                 src2dDesc{},
                 make_tuple(PassThrough<invariantLen>{},
-                           Pad<Sequence<toReduceLen>, Sequence<0>, Sequence<rPad>>{}),
+                           Pad<Sequence<toReduceLen>, Sequence<0>, Sequence<srcPad>>{}),
                 make_tuple(Sequence<0>{}, Sequence<1>{}),
                 make_tuple(Sequence<0>{}, Sequence<1>{}));
 
             using src2dDesc_touse =
-                typename std::conditional<need_padding, decltype(src2dDesc_2), src2dDesc>::type;
+                typename std::conditional<src_need_padding, decltype(src2dDesc_2), src2dDesc>::type;
 
-            using gridwise_reduce = GridwiseReduction_xy_to_x_blockwise<
-                BlockSize,
-                srcDataType,
-                dstDataType,
-                src2dDesc_touse,
-                dst1dDesc,
-                compType,
-                op,
-                nanPropaOpt,
-                reduceIndicesOpt,
-                callId,
-                GredAccessesPerThreadInBlock>; // the callId indicates the first or second-time
-                                               // reduction
-
+            using gridwise_reduce =
+                GridwiseReduction_xy_to_x_blockwise<BlockSize,
+                                                    srcDataType,
+                                                    dstDataType,
+                                                    src2dDesc_touse,
+                                                    dst1dDesc,
+                                                    compType,
+                                                    op,
+                                                    nanPropaOpt,
+                                                    reduceIndicesOpt,
+                                                    isFirstCall,
+                                                    isLastCall,
+                                                    origReduceLen,
+                                                    GredAccessesPerThreadInBlock>; // isFirstCall &
+                                                                                   // isLastCall
+                                                                                   // indicates the
+                                                                                   // first or/and
+                                                                                   // second-time
+                                                                                   // reduction
             gridwise_reduce{}.Run(alpha,
                                   p_src_global,
                                   beta,
                                   p_dst_global,
-                                  ws_buf2_global,
+                                  const_cast<const int* const __restrict__>(ws_buf2_global),
                                   indices_global); // ws_buf2_global will be read at the second-time
         };
     };
 
     // wrapper for switching to the Reduce_MultiBlock method
-    template <index_t callId>
-    struct GridwiseReduction_2d_wrapper<ReductionMethod_t::MultiBlock, callId>
+    template <bool isFirstCall, bool isLastCall>
+    struct GridwiseReduction_2d_wrapper<ReductionMethod_t::MultiBlock, isFirstCall, isLastCall>
     {
         template <typename src2dDesc, typename dst1dDesc>
         __device__ static void Run(src2dDesc,
@@ -264,14 +317,14 @@ struct GridwiseReduction
                 (((toReduceLen + BlkGroupSize - 1) / BlkGroupSize + copySliceLen - 1) /
                  copySliceLen) *
                 copySliceLen;
-            constexpr bool need_padding =
+            constexpr bool src_need_padding =
                 (toReduceLen < reduceSizePerBlock * BlkGroupSize) ? true : false;
-            constexpr auto rPad = reduceSizePerBlock * BlkGroupSize - toReduceLen;
+            constexpr auto srcPad = reduceSizePerBlock * BlkGroupSize - toReduceLen;
 
             constexpr auto src2dDesc_2 = transform_tensor_descriptor(
                 src2dDesc{},
                 make_tuple(PassThrough<invariantLen>{},
-                           Pad<Sequence<toReduceLen>, Sequence<0>, Sequence<rPad>>{}),
+                           Pad<Sequence<toReduceLen>, Sequence<0>, Sequence<srcPad>>{}),
                 make_tuple(Sequence<0>{}, Sequence<1>{}),
                 make_tuple(Sequence<0>{}, Sequence<1>{}));
 
@@ -279,12 +332,13 @@ struct GridwiseReduction
                 BlockSize,
                 srcDataType,
                 dstDataType,
-                typename std::conditional<need_padding, decltype(src2dDesc_2), src2dDesc>::type,
+                typename std::conditional<src_need_padding, decltype(src2dDesc_2), src2dDesc>::type,
                 dst1dDesc,
                 compType,
                 op,
                 nanPropaOpt,
                 reduceIndicesOpt,
+                origReduceLen,
                 BlkGroupSize,
                 GredAccessesPerThreadInBlock>; // MultiBlock case is not used by second-time
                                                // reduction
@@ -360,7 +414,7 @@ struct GridwiseReduction
                 make_tuple(typename arithmetic_sequence_gen<0, dstLengths::Size(), 1>::type{}),
                 make_tuple(Sequence<0>{}));
 
-            using gridwise_2d_reduce = GridwiseReduction_2d_wrapper<reduceImpl, 0>;
+            using gridwise_2d_reduce = GridwiseReduction_2d_wrapper<reduceImpl, true, true>;
 
             gridwise_2d_reduce{}.Run(two_dim_srcDesc,
                                      one_dim_dstDesc,
@@ -394,7 +448,7 @@ struct GridwiseReduction
                 make_tuple(typename arithmetic_sequence_gen<0, dstLengths::Size(), 1>::type{}),
                 make_tuple(Sequence<0>{}));
 
-            using gridwise_2d_reduce = GridwiseReduction_2d_wrapper<reduceImpl, 0>;
+            using gridwise_2d_reduce = GridwiseReduction_2d_wrapper<reduceImpl, true, true>;
 
             gridwise_2d_reduce{}.Run(two_dim_srcDesc,
                                      one_dim_dstDesc,
@@ -443,7 +497,7 @@ struct GridwiseReduction
                 ReduceKernelSimpleConfigurator<BlockSize, warpSize>::GetReductionMethod(
                     Number<invariantLength>{}, Number<toReduceLength>{});
 
-            using gridwise_2d_reduce = GridwiseReduction_2d_wrapper<reduceImpl2, 1>;
+            using gridwise_2d_reduce = GridwiseReduction_2d_wrapper<reduceImpl2, false, true>;
 
             gridwise_2d_reduce{}.Run(
                 workspace_2d_desc,

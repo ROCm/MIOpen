@@ -59,26 +59,26 @@ std::vector<Program> PrecompileKernels(const Handle& h, const std::vector<Kernel
     std::vector<Program> programs(kernels.size());
 
     // clang-format off
-    par_for(kernels.size(),
-            max_threads{Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, 20)},
-            [&](auto i) {
-                const KernelInfo& k = kernels[i];
-                programs[i]         = h.LoadProgram(k.kernel_file, k.comp_options, false, "");
-            });
+    par_for_strided(kernels.size(),
+                    max_threads{Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, 20)},
+                    [&](auto i) {
+                        const KernelInfo& k = kernels[i];
+                        programs[i]         = h.LoadProgram(k.kernel_file, k.comp_options, false, "");
+                    });
     // clang-format on
     ct.Log("PrecompileKernels");
     return programs;
 }
 
-void PrecompileSolutions(const Handle& h, const std::vector<ConvSolution>& sols)
+void PrecompileSolutions(const Handle& h, const std::vector<const ConvSolution*>& sols)
 {
     // Find all kernels that need to be compiled from the solutions
     std::vector<KernelInfo> kernels;
     for(auto&& sol : sols)
     {
-        if(!sol.Succeeded())
+        if(!sol->Succeeded())
             continue;
-        for(auto&& kernel : sol.construction_params)
+        for(auto&& kernel : sol->construction_params)
         {
             if(h.HasProgram(kernel.kernel_file, kernel.comp_options))
                 continue;
@@ -120,10 +120,16 @@ struct SolverRegistrar
 
 static auto& IdRegistry()
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static auto data            = IdRegistryData{};
     static const auto registrar = SolverRegistrar{data};
     (void)registrar; // clang-tidy
     return data;
+}
+
+const std::unordered_map<uint64_t, AnySolver>& GetMapValueToAnySolver()
+{
+    return IdRegistry().value_to_solver;
 }
 
 Id::Id(uint64_t value_) : value(value_)
@@ -155,11 +161,15 @@ AnySolver Id::GetSolver() const
 
 std::string Id::GetAlgo(conv::Direction dir) const
 {
+    return ConvolutionAlgoToDirectionalString(GetAlgo(), dir);
+}
+
+miopenConvAlgorithm_t Id::GetAlgo() const
+{
     const auto it = IdRegistry().value_to_algo.find(value);
     if(it == IdRegistry().value_to_algo.end())
         MIOPEN_THROW(miopenStatusInternalError);
-
-    return ConvolutionAlgoToDirectionalString(it->second, dir);
+    return it->second;
 }
 
 inline bool Register(IdRegistryData& registry,
@@ -213,6 +223,9 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     // intended to reuse an id of a removed solver.
 
     uint64_t id = 0; // 0 is reserved for invalid value.
+
+    // IMPORTANT: New solvers should be added to the end of the function!
+
     RegisterWithSolver(registry, ++id, ConvAsm3x3U{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvAsm1x1U{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvAsm1x1UV2{}, miopenConvolutionAlgoDirect);
@@ -223,7 +236,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
         registry, ++id, ConvAsm7x7c3h224w224k64u2v2p3q3f1{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvOclDirectFwd11x11{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvOclDirectFwdGen{}, miopenConvolutionAlgoDirect);
-    RegisterWithSolver(registry, ++id, ConvOclDirectFwd3x3{}, miopenConvolutionAlgoDirect);
+    ++id; // removed ConvOclDirectFwd3x3
     RegisterWithSolver(registry, ++id, ConvOclDirectFwd{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvOclDirectFwdFused{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvOclDirectFwd1x1{}, miopenConvolutionAlgoDirect);
@@ -251,7 +264,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     // Several ids w/o solver for immediate mode
     Register(registry, ++id, "gemm", miopenConvolutionAlgoGEMM);
-    Register(registry, ++id, "fft", miopenConvolutionAlgoFFT);
+    RegisterWithSolver(registry, ++id, fft{}, miopenConvolutionAlgoFFT);
     RegisterWithSolver(
         registry, ++id, ConvWinograd3x3MultipassWrW<3, 4>{}, miopenConvolutionAlgoWinograd);
     ++id; // Id for ConvSCGemmFGemm.
@@ -282,10 +295,9 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
         registry, ++id, ConvWinograd3x3MultipassWrW<5, 4>{}, miopenConvolutionAlgoWinograd);
 
     ++id; // removed solver ConvHipImplicitGemmV4R4WrWXdlops
-    RegisterWithSolver(
-        registry, ++id, ConvHipImplicitGemmV4R4GenFwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
-    RegisterWithSolver(
-        registry, ++id, ConvHipImplicitGemmV4R4GenWrWXdlops{}, miopenConvolutionAlgoImplicitGEMM);
+    ++id; // removed solver ConvHipImplicitGemmV4R4GenFwdXdlops
+    ++id; // removed solver ConvHipImplicitGemmV4R4GenWrWXdlops
+
     RegisterWithSolver(registry, ++id, ConvBinWinogradRxSf2x3{}, miopenConvolutionAlgoWinograd);
 
     RegisterWithSolver(
@@ -299,15 +311,8 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     RegisterWithSolver(
         registry, ++id, ConvHipImplicitGemmBwdDataV1R1Xdlops{}, miopenConvolutionAlgoImplicitGEMM);
 
-    RegisterWithSolver(registry,
-                       ++id,
-                       ConvHipImplicitGemmV4R4GenXdlopsFwdFp32{},
-                       miopenConvolutionAlgoImplicitGEMM);
-
-    RegisterWithSolver(registry,
-                       ++id,
-                       ConvHipImplicitGemmV4R4GenXdlopsWrWFp32{},
-                       miopenConvolutionAlgoImplicitGEMM);
+    ++id; // removed solver ConvHipImplicitGemmV4R4GenXdlopsFwdFp32
+    ++id; // removed solver ConvHipImplicitGemmV4R4GenXdlopsWrWFp32
 
     RegisterWithSolver(
         registry, ++id, ConvHipImplicitGemmBwdDataV4R1Xdlops{}, miopenConvolutionAlgoImplicitGEMM);
@@ -340,6 +345,79 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
         registry, ++id, ConvMPBidirectWinograd<5, 3>{}, miopenConvolutionAlgoWinograd);
     RegisterWithSolver(
         registry, ++id, ConvMPBidirectWinograd<6, 3>{}, miopenConvolutionAlgoWinograd);
+
+    RegisterWithSolver(registry,
+                       ++id,
+                       ConvAsmImplicitGemmGTCDynamicWrwXdlops{},
+                       miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(
+        registry, ++id, ConvHipImplicitGemmWrwV4R4Xdlops{}, miopenConvolutionAlgoImplicitGEMM);
+
+    RegisterWithSolver(registry,
+                       ++id,
+                       ConvAsmImplicitGemmGTCDynamicFwdXdlops{},
+                       miopenConvolutionAlgoImplicitGEMM);
+
+    RegisterWithSolver(
+        registry, ++id, ConvMPBidirectWinograd_xdlops<2, 3>{}, miopenConvolutionAlgoWinograd);
+    RegisterWithSolver(
+        registry, ++id, ConvMPBidirectWinograd_xdlops<3, 3>{}, miopenConvolutionAlgoWinograd);
+    RegisterWithSolver(
+        registry, ++id, ConvMPBidirectWinograd_xdlops<4, 3>{}, miopenConvolutionAlgoWinograd);
+    RegisterWithSolver(
+        registry, ++id, ConvMPBidirectWinograd_xdlops<5, 3>{}, miopenConvolutionAlgoWinograd);
+    RegisterWithSolver(
+        registry, ++id, ConvMPBidirectWinograd_xdlops<6, 3>{}, miopenConvolutionAlgoWinograd);
+
+    RegisterWithSolver(
+        registry, ++id, ConvHipImplicitGemmForwardV4R5Xdlops{}, miopenConvolutionAlgoImplicitGEMM);
+
+    RegisterWithSolver(registry,
+                       ++id,
+                       ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm{},
+                       miopenConvolutionAlgoImplicitGEMM);
+
+    RegisterWithSolver(registry,
+                       ++id,
+                       ConvAsmImplicitGemmGTCDynamicBwdXdlops{},
+                       miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(registry,
+                       ++id,
+                       ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm{},
+                       miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(registry, ++id, ConvBinWinogradRxSf2x3g1{}, miopenConvolutionAlgoWinograd);
+
+    RegisterWithSolver(registry, ++id, ConvDirectNaiveConvFwd{}, miopenConvolutionAlgoDirect);
+    RegisterWithSolver(registry, ++id, ConvDirectNaiveConvBwd{}, miopenConvolutionAlgoDirect);
+    RegisterWithSolver(registry, ++id, ConvDirectNaiveConvWrw{}, miopenConvolutionAlgoDirect);
+
+    RegisterWithSolver(registry, ++id, GemmFwd1x1_0_1{}, miopenConvolutionAlgoGEMM);
+    RegisterWithSolver(registry, ++id, GemmFwd1x1_0_1_int8{}, miopenConvolutionAlgoGEMM);
+    RegisterWithSolver(registry, ++id, GemmFwd1x1_0_2{}, miopenConvolutionAlgoGEMM);
+    RegisterWithSolver(registry, ++id, GemmFwdRest{}, miopenConvolutionAlgoGEMM);
+
+    RegisterWithSolver(
+        registry, ++id, ConvHipImplicitGemmMlirCppFwd{}, miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(
+        registry, ++id, ConvHipImplicitGemmMlirCppBwd{}, miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(
+        registry, ++id, ConvHipImplicitGemmMlirCppWrW{}, miopenConvolutionAlgoImplicitGEMM);
+
+    RegisterWithSolver(registry, ++id, GemmBwd1x1_stride2{}, miopenConvolutionAlgoGEMM);
+    RegisterWithSolver(registry, ++id, GemmBwd1x1_stride1{}, miopenConvolutionAlgoGEMM);
+    RegisterWithSolver(registry, ++id, GemmBwdRest{}, miopenConvolutionAlgoGEMM);
+
+    RegisterWithSolver(registry, ++id, ConvMlirIgemmFwd{}, miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(registry, ++id, ConvMlirIgemmBwd{}, miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(registry, ++id, ConvMlirIgemmWrW{}, miopenConvolutionAlgoImplicitGEMM);
+
+    RegisterWithSolver(registry, ++id, GemmWrw1x1_stride1{}, miopenConvolutionAlgoGEMM);
+    RegisterWithSolver(registry, ++id, GemmWrwUniversal{}, miopenConvolutionAlgoGEMM);
+
+    RegisterWithSolver(registry, ++id, ConvMlirIgemmFwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(registry, ++id, ConvMlirIgemmBwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(registry, ++id, ConvMlirIgemmWrWXdlops{}, miopenConvolutionAlgoImplicitGEMM);
+    // IMPORTANT: New solvers should be added to the end of the function!
 }
 
 } // namespace solver

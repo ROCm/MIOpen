@@ -116,12 +116,12 @@ inline static bool NextLinear(int& v)
 }
 
 // This range is like regular range [0,4,8...32], but 1 is used instead of 0.
-inline static bool Is_1_4_8_12__32(const int& v)
+inline static bool Is_1_4_8_12__32(const int& v) // NOLINT (bugprone-reserved-identifier)
 {
     return v == 1 || (v % 4 == 0 && IsLinear<1, 8>(v / 4));
 }
 
-inline static bool Next_1_4_8_12__32(int& v)
+inline static bool Next_1_4_8_12__32(int& v) // NOLINT (bugprone-reserved-identifier)
 {
     assert(Is_1_4_8_12__32(v));
     int tmp        = v / 4;
@@ -306,7 +306,7 @@ bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) con
     return (c_per_wave % c_mult == 0) && (c_per_last_wave % c_mult == 0);
 }
 
-void PerformanceConfigConvAsm1x1U::EuristicInit(const ConvolutionContext& config)
+void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& config)
 {
     const auto elements_in_dword = 4 / GetTypeSize(config.in_data_type);
     read_size                    = 4;
@@ -362,7 +362,7 @@ PerformanceConfigConvAsm1x1U
 ConvAsm1x1U::GetPerformanceConfig(const ConvolutionContext& params) const
 {
     PerformanceConfigConvAsm1x1U pp;
-    pp.EuristicInit(params);
+    pp.HeuristicInit(params);
     MIOPEN_LOG_I(pp.ToString());
     return pp;
 }
@@ -381,6 +381,8 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!params.Is2d())
         return false;
+    if(!(params.direction.IsForward() || params.direction.IsBackwardData()))
+        return false;
     if(params.IsAsymmetricPadH() || params.IsAsymmetricPadW())
         return false;
     if(!params.rmv.IsV2orV3())
@@ -389,11 +391,15 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
         return false;
 
     const std::string name = params.GetStream().GetDeviceName();
-    if(name.find("gfx8") == std::string::npos && name.find("gfx9") == std::string::npos)
+    if(name.find("gfx9") == std::string::npos)
     {
         return false;
     }
-    assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
+
     const auto elements_in_dword = 4 / GetTypeSize(params.in_data_type);
     // clang-format off
     const int img_hw = params.out_height * params.out_width;

@@ -91,6 +91,7 @@
 
 default pipe_config, 0
 default use_exec_for_vmem, 1 // todo test and remove
+default swap_filter_layout_KC, 0
 
 .if pipe_config == 0
     r_pipe_depth  = 8
@@ -112,16 +113,25 @@ static_assert( w_pipe_depth % lds_buffers == 0 )
 static_assert( rw_pipe_shift < 30 )
 
 default acc_type, TYPE_FP32
-default buf_type, TYPE_FP32
+default in_type, TYPE_FP32
+default out_type, TYPE_FP32
 
 static_assert(acc_type == TYPE_FP32)
-static_assert(buf_type == TYPE_FP32 || buf_type == TYPE_FP16 || buf_type == TYPE_BFP16) 
-.if(buf_type == TYPE_FP32)
-    elem_size = 4
-.elseif (buf_type == TYPE_FP16 || buf_type == TYPE_BFP16)
-    elem_size = 2
-.endif
-x_elem_size = 4
+static_assert(in_type == TYPE_FP32 || in_type == TYPE_FP16)
+static_assert(out_type == TYPE_FP32 || out_type == TYPE_FP16)
+
+.macro get_type_size d_type, ret_size
+    .if(\d_type == TYPE_FP32)
+        \ret_size = 4
+    .elseif (\d_type == TYPE_FP16 || \d_type == TYPE_BFP16)
+        \ret_size = 2
+    .endif
+.endm
+
+get_type_size in_type, in_elem_size
+get_type_size out_type, out_elem_size
+
+
 lds_elem_size = 4
 
 waves_in_group = 8
@@ -137,33 +147,45 @@ static_assert(xformx_d_size <= 8)
 static_assert(xformy_d_size <= 8)
 static_assert(xformx_f_size == 3)
 static_assert(xformy_f_size == 3)
-static_assert(elem_size == 4 || elem_size == 2)
+static_assert(in_elem_size == 4 || in_elem_size == 2)
+static_assert(out_elem_size == 4 || out_elem_size == 2)
 
 static_assert(fdilation_w == 1)
 static_assert(fdilation_h == 1)
 
 .if xform_filter
+    x_elem_size     = out_elem_size
     in_tile_width   = xformx_f_size
     in_tile_height  = xformy_f_size
     out_tile_width  = xformx_d_size
     out_tile_height = xformy_d_size
     tile_step_x = xformx_f_size
     tile_step_y = xformy_f_size
-    NK = K
-    CK = C
+    .if swap_filter_layout_KC
+        NK = C
+        CK = K
+        x_N_stride = o_N_stride
+        x_C_stride = o_C_stride
+        s_N_stride = d_C_stride
+        s_C_stride = d_N_stride
+    .else
+        NK = K
+        CK = C
+        x_N_stride = o_N_stride
+        x_C_stride = o_C_stride
+        s_N_stride = d_N_stride
+        s_C_stride = d_C_stride
+    .endif
     HR = R
     WS = S
     x_G_stride = o_G_stride // transformed strides
-    x_N_stride = o_N_stride
-    x_C_stride = o_C_stride
     x_H_stride = o_H_stride
     x_W_stride = o_W_stride
     s_G_stride = d_G_stride // standard non-transformed strides
-    s_N_stride = d_N_stride
-    s_C_stride = d_C_stride
     s_H_stride = d_H_stride
     s_W_stride = d_W_stride
 .elseif xform_data
+    x_elem_size     = out_elem_size
     in_tile_width   = xformx_d_size
     in_tile_height  = xformy_d_size
     out_tile_width  = xformx_d_size
@@ -185,6 +207,7 @@ static_assert(fdilation_h == 1)
     s_H_stride = d_H_stride
     s_W_stride = d_W_stride
 .elseif xform_output
+    x_elem_size     = in_elem_size
     in_tile_width   = xformx_d_size
     in_tile_height  = xformy_d_size
     out_tile_width  = xformx_o_size
@@ -287,6 +310,7 @@ gid_x = 2
 .SGPR_ALLOC x_TW_stride
 .SGPR_ALLOC x_TH_stride
 .SGPR_ALLOC addr_step
+.SGPR_RESERVE_VCC
 
 .VGPR_ALLOC_FROM 0
 .VGPR_ALLOC tid
@@ -834,9 +858,9 @@ skip_lds_init:
     s_cmov_b32 s[err], 1
     s_cmp_ge_u32 s[tiles_step], s[u16limit]
     s_cmov_b32 s[err], 1
-    s_cmp_lg_u32 s[d_W_stride], elem_size
+    s_cmp_lg_u32 s[d_W_stride], in_elem_size
     s_cmov_b32 s[err], 1
-    s_cmp_lg_u32 s[o_W_stride], elem_size
+    s_cmp_lg_u32 s[o_W_stride], out_elem_size
     s_cmov_b32 s[err], 1
     s_cmp_eq_u32 s[err], 1
     s_cbranch_scc1 endpgm
@@ -857,11 +881,11 @@ skip_lds_init:
     s_mul_i32 s[stmp], s[stmp], s[G]
     s_mul_i32 s[stmp+1], xformx_d_size * xformy_d_size, s[total_tiles]
     .if xform_output
-        s_mul_i32 s[d_desc+2], elem_size, s[stmp+1]
-        s_mul_i32 s[o_desc+2], elem_size, s[stmp]
+        s_mul_i32 s[d_desc+2], in_elem_size, s[stmp+1]
+        s_mul_i32 s[o_desc+2], out_elem_size, s[stmp]
     .else
-        s_mul_i32 s[d_desc+2], elem_size, s[stmp]
-        s_mul_i32 s[o_desc+2], elem_size, s[stmp+1]
+        s_mul_i32 s[d_desc+2], in_elem_size, s[stmp]
+        s_mul_i32 s[o_desc+2], out_elem_size, s[stmp+1]
     .endif
 
     .GPR_REUSE f_K_stride, neg_pw
@@ -1080,6 +1104,29 @@ skip_lds_init:
         .endr
     .endm
 
+.macro v_cvt dst, src, dst_type, src_type
+    .if \dst_type == \src_type
+        // no op
+    .elseif \dst_type == TYPE_FP32 && \src_type == TYPE_FP16
+        v_cvt_f32_f16 \dst, \src
+    .elseif \dst_type == TYPE_FP32 && \src_type == TYPE_BFP16
+        v_lshlrev_b32 \dst, 16, \src
+    .elseif \dst_type == TYPE_FP16 && \src_type == TYPE_FP32
+        v_cvt_f16_f32 \dst, \src
+    .elseif \dst_type == TYPE_BFP16 && \src_type == TYPE_FP32
+        v_lshrrev_b32 \dst, 16, \src // TODO: add rounding, etc
+    .else
+        assert(0) // unknown type or convertion is not implemented
+    .endif
+.endm
+
+.macro v_cvt_array base_v, n, dst_type, src_type
+    cvt_i = 0 // TODO: switch i to local scope
+    .rept \n
+        v_cvt v[\base_v + cvt_i], v[\base_v + cvt_i], \dst_type, \src_type
+        cvt_i = cvt_i + 1
+    .endr
+.endm
 
 lab_read_wave:
 
@@ -1117,6 +1164,9 @@ r_loop:
 
         // 1rx. xform
         s_wait (r_pipe_depth-1) * loads_per_phase, 0
+
+        v_cvt_array xform_base, loads_per_phase, TYPE_FP32, in_type
+
         winograd_xform xformx_o_size, xformx_f_size, xformx_d_size, fdilation_w, xform_base, vtmp, xform_mirror
 
 
@@ -1158,7 +1208,7 @@ r_loop:
             v_add_u32 v[n8base_addr + i + 1], s[x_TW_stride], v[n8base_addr + i]
             i = i + 1
         .endr
-        vmem_loads load_base, n8base_addr, loads_per_phase, elem_size
+        vmem_loads load_base, n8base_addr, loads_per_phase, in_elem_size
         s_add_u32 s[base_tile], s[tiles_step], s[base_tile]
         v_add_u32 v[n8base_addr], s[addr_step], v[n8base_addr]
 
@@ -1185,15 +1235,14 @@ r_loop:
         unpack_valn8 v[vtmp], v[w_const], \phase, v[n8_w_prev], v[n4hi_w_prev]
         v_cmp_lt_u32 vcc, v[vtmp], s[WS]
         s_wait (r_pipe_depth-1) * loads_per_phase, 0
+
         i = 0
         .rept loads_per_phase
             v_cndmask_b32 v[xform_base + i], 0, v[xform_base + i], vcc
-            .if elem_size == 2
-                // convert data to fp32
-                static_assert(0)
-            .endif
             i = i + 1
         .endr
+        v_cvt_array xform_base, loads_per_phase, TYPE_FP32, in_type
+
         winograd_xform xformy_o_size, xformy_f_size, xformy_d_size, fdilation_h, xform_base, vtmp, xform_mirror
 
 
@@ -1238,7 +1287,7 @@ r_loop:
         .if use_exec_for_vmem
             s_mov_b64 exec, s[tile_w_mask:tile_w_mask+1]
         .endif
-        vmem_loads load_base, vtmp, loads_per_phase, elem_size
+        vmem_loads load_base, vtmp, loads_per_phase, in_elem_size
         .if use_exec_for_vmem
             s_mov_b64 exec, -1
         .endif
@@ -1373,7 +1422,10 @@ w_loop:
         .if use_exec_for_vmem
             s_mov_b64 exec, s[tile_w_mask:tile_w_mask+1]
         .endif
-        vmem_stores store_base, vtmp, stores_per_phase, elem_size
+
+        v_cvt_array store_base, stores_per_phase, out_type, TYPE_FP32
+
+        vmem_stores store_base, vtmp, stores_per_phase, out_elem_size
         .if use_exec_for_vmem
             s_mov_b64 exec, -1
         .endif
@@ -1436,7 +1488,10 @@ w_loop:
         .endr
         v_add_u32 v[x_cur_tile], s[tiles_step], v[x_cur_tile]
         v_add_u32 v[n8base_addr], s[addr_step], v[n8base_addr]
-        vmem_stores store_base, vtmp, stores_per_phase, elem_size
+
+        v_cvt_array store_base, stores_per_phase, out_type, TYPE_FP32
+
+        vmem_stores store_base, vtmp, stores_per_phase, out_elem_size
 
         // 6w. check exit.
         s_add_u32 s[base_tile], s[tiles_step], s[base_tile]

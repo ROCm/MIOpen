@@ -89,8 +89,10 @@ struct OCLKernelInvoke
     SharedKernelPtr kernel = nullptr;
     size_t work_dim        = 0;
     std::array<size_t, 3> global_work_offset = {};
-    std::array<size_t, 3> global_work_dim    = {};
-    std::array<size_t, 3> local_work_dim     = {};
+    // std::array<size_t, 3> global_work_dim    = {};
+    // std::array<size_t, 3> local_work_dim     = {};
+    std::array<size_t, 3> gdims = {};
+    std::array<size_t, 3> ldims = {};
     std::function<void(cl_event&)> callback;
 
     void operator()(std::vector<OpKernelArg> args) const
@@ -153,6 +155,11 @@ class OCLKernel
         {
             std::fill(ldims.begin(), ldims.end(), 0);
         }
+    }
+
+    OCLKernel(SharedProgramPtr p, const std::string& kernel_name)
+        : program(p), kernel(CreateKernel(p.get(), kernel_name))
+    {
     }
 
     OCLKernelInvoke Invoke(cl_command_queue q,

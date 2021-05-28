@@ -61,10 +61,36 @@ struct get_reduce_op<776588> // 'M' * 10000 + 'A' * 100 + 'X'
     static constexpr ReduceTensorOp_t op = ReduceTensorOp_t::MAX;
 };
 
+template <>
+struct get_reduce_op<657788> // 'A' * 10000 + 'M' * 100 + 'X'
+{
+    static constexpr ReduceTensorOp_t op = ReduceTensorOp_t::AMAX;
+};
+
+template <>
+struct get_reduce_op<658671> // 'A' * 10000 + 'V' * 100 + 'G'
+{
+    static constexpr ReduceTensorOp_t op = ReduceTensorOp_t::AVG;
+};
+
+template <>
+struct get_reduce_op<788201> // 'N' * 10000 + 'R' * 100 + '1'
+{
+    static constexpr ReduceTensorOp_t op = ReduceTensorOp_t::NORM1;
+};
+
+template <>
+struct get_reduce_op<788202> // 'N' * 10000 + 'R' * 100 + '2'
+{
+    static constexpr ReduceTensorOp_t op = ReduceTensorOp_t::NORM2;
+};
+
 using srcDataType = typename get_type_from_type_id<static_cast<char>(CK_PARAM_SRC_DATATYPE)>::type;
 using dstDataType = typename get_type_from_type_id<static_cast<char>(CK_PARAM_DST_DATATYPE)>::type;
 using compType = typename get_type_from_type_id<static_cast<char>(CK_PARAM_REDUCE_COMPTYPE)>::type;
 
+constexpr index_t gridSize =
+    CK_PARAM_GRIDSIZE; // determined by the invariant length and the reduction method
 constexpr index_t blockSize = CK_PARAM_BLOCKSIZE; // tunable
 constexpr index_t blkGroupSize =
     CK_PARAM_BLKGROUPSIZE; // determined by the problem and the selected BlockSize
@@ -109,6 +135,7 @@ extern "C" __global__ void gridwise_generic_reduce_1(float alpha,
     constexpr auto dstDesc = make_native_tensor_descriptor(dstLengths{}, dstStrides{});
 
     constexpr auto gridwise_reduce = GridwiseReduction<blkGroupSize,
+                                                       gridSize,
                                                        blockSize,
                                                        srcDataType,
                                                        dstDataType,
@@ -153,6 +180,7 @@ extern "C" __global__ void gridwise_generic_reduce_2(float alpha,
     constexpr auto dstDesc = make_native_tensor_descriptor(dstLengths{}, dstStrides{});
 
     constexpr auto gridwise_reduce = GridwiseReduction<blkGroupSize,
+                                                       gridSize,
                                                        blockSize,
                                                        srcDataType,
                                                        dstDataType,

@@ -8,7 +8,8 @@ namespace fusion {
 bool IsWinograd(const std::vector<solver::AnySolver>& ss)
 {
     assert(ss.size() == 1);
-    return ss[0].GetSolverDbId() == "ConvBinWinogradRxSFused";
+    auto solverId = ss[0].GetSolverDbId();
+    return (solverId == "ConvBinWinogradRxSFused" || solverId == "ConvBinWinogradRxSf2x3g1Fused");
 }
 
 } // namespace fusion
@@ -386,7 +387,8 @@ miopenStatus_t BatchNormBwdTrainFusionOpDescriptor::GetCompileParms(
            " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) + " -DMIO_BN_LDS_SIZE=" +
            std::to_string(ldsnogcn) + " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) +
            " -DMIO_BN_USESAVED=" + std::to_string(static_cast<int>(true)) + " -DMIO_BN_VARIANT=" +
-           std::to_string(variant) + " -DMIO_BN_CBA_WRITE_INTERMEDIATE=" + std::to_string(0);
+           std::to_string(variant) + " -DMIO_BN_CBA_WRITE_INTERMEDIATE=" + std::to_string(0) +
+           " -DMIO_BN_GFX1030=" + ((handle.GetDeviceName() == "gfx1030") ? "1" : "0");
 
     compile_config += add;
     MIOPEN_LOG_I2(add);
@@ -596,7 +598,8 @@ miopenStatus_t BatchNormFwdTrainFusionOpDescriptor::GetCompileParms(
            std::to_string(ldsnogcn) + " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) +
            " -DMIOPEN_READ_UNIT=" + std::to_string(read_unit) + " -DMIOPEN_READ_TYPE=" + READ_TYPE +
            " -DMIO_SAVE_MEAN_VARIANCE=" + (saveBatchStats ? "1" : "0") + " -DMIO_RUNNING_RESULT=" +
-           ((savePopStats) ? "1" : "0") + " -DMIO_BN_VARIANT=" + std::to_string(variant);
+           ((savePopStats) ? "1" : "0") + " -DMIO_BN_VARIANT=" + std::to_string(variant) +
+           " -DMIO_BN_GFX1030=" + ((handle.GetDeviceName() == "gfx1030") ? "1" : "0");
 
     compile_config += add;
     MIOPEN_LOG_I2(add);

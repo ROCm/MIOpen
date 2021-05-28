@@ -50,6 +50,7 @@ struct Id
     std::string ToString() const;
     AnySolver GetSolver() const;
     std::string GetAlgo(conv::Direction dir) const;
+    miopenConvAlgorithm_t GetAlgo() const;
 
     bool IsValid() const { return is_valid; }
     uint64_t Value() const { return value; }
@@ -61,22 +62,12 @@ struct Id
     }
     bool operator!=(const Id& other) const { return !(*this == other); }
 
-    static solver::Id gemm()
-    {
-        static const auto value = solver::Id{"gemm"};
-        return value;
-    }
-
-    static solver::Id fft()
-    {
-        static const auto value = solver::Id{"fft"};
-        return value;
-    }
-
     private:
     uint64_t value = invalid_value;
     bool is_valid  = false;
 };
+
+const std::unordered_map<uint64_t, AnySolver>& GetMapValueToAnySolver();
 
 } // namespace solver
 } // namespace miopen

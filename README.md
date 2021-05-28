@@ -18,8 +18,10 @@ MIOpen supports two programming models -
 * [MIOpenGEMM](https://github.com/ROCmSoftwarePlatform/MIOpenGEMM) to enable various functionalities including transposed and dilated convolutions. This is optional on the HIP backend. Users can enable this library using the cmake configuration flag `-DMIOPEN_USE_MIOPENGEMM=On`.
 * ROCm cmake modules can be installed from [here](https://github.com/RadeonOpenCompute/rocm-cmake)
 * [Half](http://half.sourceforge.net/) - IEEE 754-based half-precision floating point library
-* [Boost](http://www.boost.org/) at least version 1.58
+* [Boost](http://www.boost.org/) at version 1.72 (other versions are not supported)
   * MIOpen uses `boost-system` and `boost-filesystem` packages to enable persistent [kernel cache](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/cache.html)
+* [SQLite3](https://sqlite.org/index.html) for reading and writing performance database
+* [MIOpenTENSILE](https://github.com/ROCmSoftwarePlatform/MIOpenTensile) Users can enable this library using the cmake configuration flag `-DMIOPEN_USE_MIOPENTENSILE=On`.
 * [rocBlas](https://github.com/ROCmSoftwarePlatform/rocBLAS) 
   * Minimum version branch for pre-ROCm 3.5 [master-rocm-2.10](https://github.com/ROCmSoftwarePlatform/rocBLAS/tree/master-rocm-2.10)
   * Minimum version branch for post-ROCm 3.5 [master-rocm-3.5](https://github.com/ROCmSoftwarePlatform/rocBLAS/releases/tag/rocm-3.5.0)
@@ -73,7 +75,7 @@ MIOpen's HIP backend uses [rocBlas](https://github.com/ROCmSoftwarePlatform/rocB
 
 ## Installing minimum dependencies in ROCm environment
 
-Users who are working in a fully installed and up to date ROCm environment may not wish to additionally install rocm-cmake, clang-ocl, MIOpenGEMM, or rocBLAS. This can be done by simply inserting the command `--minimum` into the cmake command as shown below:
+Users who are working in a fully installed and up to date ROCm environment may not wish to additionally install rocm-cmake, clang-ocl, MIOpenGEMM, MIOpenTensile or rocBLAS. This can be done by simply inserting the command `--minimum` into the cmake command as shown below:
 
 ```
 cmake -P install_deps.cmake --minimum --prefix /some/local/dir
@@ -289,7 +291,7 @@ Prebuilt docker images can be found on [ROCm's public docker hub here](https://h
 ## Citing MIOpen
 
 
-MIOpen's paper can be accessed on arXiv:  
+MIOpen's paper is freely available and can be accessed on arXiv:  
 [MIOpen: An Open Source Library For Deep Learning Primitives](https://arxiv.org/abs/1910.00078)
 
 

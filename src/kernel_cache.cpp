@@ -39,6 +39,7 @@
  * limitations under the License.
  * ************************************************************************ */
 
+#include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/logger.hpp>
@@ -47,83 +48,9 @@
 #include <iostream>
 #include <iterator>
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
+
 namespace miopen {
-
-static std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
-{
-    return LogRange(os, v, ",");
-}
-
-static void AddKernelDumpKernelParams(const std::string& program_name,
-                                      const std::string& kernel_name,
-                                      const std::vector<size_t>& vld,
-                                      const std::vector<size_t>& vgd,
-                                      const std::string& params)
-{
-    if(EndsWith(program_name, ".s"))
-        return; // Done use this for asm kernels.
-
-    const char* keys[] = {"MLO_FILTER_SIZE0",
-                          "MLO_FILTER_SIZE1",
-                          "MLO_N_INPUTS",
-                          "MLO_N_OUTPUTS",
-                          "MLO_BATCH_SZ",
-                          "MLO_IN_HEIGHT",
-                          "MLO_IN_WIDTH",
-                          "MLO_OUT_HEIGHT",
-                          "MLO_OUT_WIDTH",
-                          "MLO_FLTR_SZ0",
-                          "MLO_FLTR_SZ1",
-                          "MLO_N_IN_CHNLS",
-                          "MLO_N_OUT_CHNLS"};
-    int value[sizeof(keys) / sizeof(keys[0])] = {0};
-    for(const char* p = params.c_str(); p != nullptr && (p = strstr(p, "-D")) != nullptr;)
-    {
-        p += (p[2] == ' ') ? 3 : 2;
-        const char* q = strstr(p, "=");
-        if(q == nullptr)
-            break;
-        q++;
-        for(unsigned long i = 0; i < sizeof(keys) / sizeof(keys[0]); i++)
-        {
-            if(strncmp(p, keys[i], strlen(keys[i])) == 0)
-            {
-                value[i - ((i >= 9) ? 9 : 0)] = static_cast<int>(strtol(q, nullptr, 10));
-                break;
-            }
-        }
-    }
-    // for(int i = 0; i < sizeof(keys)/sizeof(keys[0]); i++) printf("%s = %d\n", keys[i], value[i]);
-    int msize = value[0] * value[1] * value[2] * value[3];
-    int isize = value[4] * value[2] * value[5] * value[6];
-    int osize = value[4] * value[3] * value[7] * value[8];
-    MIOPEN_LOG_I2("runcl " << program_name << " -k " << kernel_name << " -dumpilisa -r 10"
-                           << " if#"
-                           << isize * 4
-                           << ": if#"
-                           << msize * 4
-                           << ": if#"
-                           << osize * 4
-                           << ": iv#0 "
-                           << vgd
-                           << "/"
-                           << vld
-                           << ' '
-                           << params);
-}
-
-static void ProcessParams(std::string& params)
-{
-    if(params.length() > 0)
-    {
-        // Ensure only one space after the -cl-std.
-        // >1 space can cause an Apple compiler bug. See clSPARSE issue #141.
-        if(params.at(0) != ' ')
-        {
-            params = " " + params;
-        }
-    }
-}
 
 const std::vector<Kernel>& KernelCache::GetKernels(const std::string& algorithm,
                                                    const std::string& network_config)
@@ -170,7 +97,6 @@ bool KernelCache::HasProgram(const std::string& name, const std::string& params)
 
 void KernelCache::AddProgram(Program prog, const std::string& program_name, std::string params)
 {
-    ProcessParams(params);
     program_map[std::make_pair(program_name, params)] = prog;
 }
 
@@ -186,8 +112,6 @@ Kernel KernelCache::AddKernel(const Handle& h,
                               bool is_kernel_miopengemm_str,
                               const std::string& kernel_src)
 {
-    ProcessParams(params);
-
     const std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
     if(!network_config.empty() || !algorithm.empty()) // Don't log only _empty_ keys.
         MIOPEN_LOG_I2("Key: " << key.first << " \"" << key.second << '\"');
@@ -204,21 +128,21 @@ Kernel KernelCache::AddKernel(const Handle& h,
         if(!is_kernel_miopengemm_str) // default value
             is_kernel_miopengemm_str = algorithm.find("ImplicitGEMM") == std::string::npos &&
                                        algorithm.find("GEMM") != std::string::npos;
-
-        if(miopen::IsLogging(miopen::LoggingLevel::Info2))
-        {
-            AddKernelDumpKernelParams(is_kernel_miopengemm_str
-                                          ? std::string("(source provided by miopengemm)")
-                                          : program_name,
-                                      kernel_name,
-                                      vld,
-                                      vgd,
-                                      params);
-        }
         program = h.LoadProgram(program_name, params, is_kernel_miopengemm_str, kernel_src);
         program_map[std::make_pair(program_name, params)] = program;
     }
-    Kernel kernel{program, kernel_name, vld, vgd};
+
+    Kernel kernel{};
+    const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
+    if(arch != nullptr && strlen(arch) > 0)
+    {
+        kernel = Kernel{program, kernel_name};
+    }
+    else
+    {
+        kernel = Kernel{program, kernel_name, vld, vgd};
+    }
+
     if(!network_config.empty() && !algorithm.empty())
     {
         this->AddKernel(key, kernel, cache_index);

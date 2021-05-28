@@ -27,7 +27,6 @@
 #define GUARD_MIOPEN_TIMER_HPP_
 
 #include <miopen/logger.hpp>
-#include <chrono>
 
 namespace miopen {
 

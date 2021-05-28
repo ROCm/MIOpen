@@ -28,9 +28,10 @@
 #include <miopen/conv/invokers/impl_gemm_dynamic.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/gcn_asm_utils.hpp>
-#include <miopen/numeric.hpp>
 #include <algorithm>
-#include "implicitgemm_util.hpp"
+#include <miopen/solver/implicitgemm_util.hpp>
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_V4R1)
 
 namespace miopen {
 namespace solver {
@@ -128,8 +129,14 @@ static inline bool FindImplicitGemmDynamicKernelBwd(const ConvolutionContext& ct
 
 bool ConvAsmImplicitGemmV4R1DynamicBwd::IsApplicable(const ConvolutionContext& ctx) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_V4R1{}))
+        return false;
+
     const auto device_name = ctx.GetStream().GetDeviceName();
     if(!(StartsWith(device_name, "gfx900") || StartsWith(device_name, "gfx906")))
+        return false;
+
+    if(!ctx.use_asm_kernels)
         return false;
 
     if(!ctx.direction.IsBackwardData())
@@ -146,6 +153,11 @@ bool ConvAsmImplicitGemmV4R1DynamicBwd::IsApplicable(const ConvolutionContext& c
 
     if(ctx.group_counts != 1)
         return false;
+
+    if(!ctx.IsLayoutDefault())
+    {
+        return false;
+    }
 
     std::string kernel_name;
     int block_size;
@@ -186,7 +198,7 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicBwd::GetSolution(const ConvolutionCon
 
     kernel.comp_options = options.str();
 
-    result.invoker_factory = conv::MakeImplGemmDynamicBackwardDataInvokerFactory(ctx);
+    result.invoker_factory = conv::MakeImplGemmDynamicBackwardDataInvokerFactory(ctx, int(0));
     result.construction_params.push_back(kernel);
     return result;
 }

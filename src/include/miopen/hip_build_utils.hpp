@@ -26,6 +26,8 @@
 #ifndef MIOPEN_GUARD_MLOPEN_HIP_BUILD_UTILS_HPP
 #define MIOPEN_GUARD_MLOPEN_HIP_BUILD_UTILS_HPP
 
+#include <miopen/config.h>
+#include <miopen/target_properties.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/tmp_dir.hpp>
 #include <miopen/write_file.hpp>
@@ -38,7 +40,8 @@ boost::filesystem::path HipBuild(boost::optional<miopen::TmpDir>& tmp_dir,
                                  const std::string& filename,
                                  std::string src,
                                  std::string params,
-                                 const std::string& dev_name);
+                                 const TargetProperties& target,
+                                 bool sources_already_reside_on_filesystem = false);
 
 void bin_file_to_str(const boost::filesystem::path& file, std::string& buf);
 
@@ -47,14 +50,54 @@ struct external_tool_version_t
     int major = -1;
     int minor = -1;
     int patch = -1;
-    bool operator>(const external_tool_version_t& rhs) const;
-    bool operator>=(const external_tool_version_t& rhs) const;
+    friend bool operator>(const external_tool_version_t& lhs, const external_tool_version_t& rhs);
+    friend bool operator<(const external_tool_version_t& lhs, const external_tool_version_t& rhs);
+    friend bool operator>=(const external_tool_version_t& lhs, const external_tool_version_t& rhs);
+    friend bool operator<=(const external_tool_version_t& lhs, const external_tool_version_t& rhs);
 };
 
 external_tool_version_t HipCompilerVersion();
 
 bool IsHccCompiler();
 bool IsHipClangCompiler();
+
+class LcOptionTargetStrings
+{
+    public:
+    const std::string& device;
+    const std::string xnack;
+
+    private:
+    const std::string sramecc;
+    const std::string sramecc_reported;
+
+    public:
+    const std::string targetId;
+    LcOptionTargetStrings(const TargetProperties& target)
+        : device(target.Name()),
+          xnack([&]() -> std::string {
+              if(target.Xnack())
+                  return std::string{":xnack"} + (*target.Xnack() ? "+" : "-");
+              return {};
+          }()),
+          sramecc([&]() -> std::string {
+              if(target.Sramecc())
+                  return std::string{":sramecc"} + (*target.Sramecc() ? "+" : "-");
+              return {};
+          }()),
+          sramecc_reported([&]() -> std::string {
+              if(target.SrameccReported())
+                  return std::string{":sramecc"} + (*target.SrameccReported() ? "+" : "-");
+              return {};
+          }()),
+#if MIOPEN_USE_COMGR
+          targetId(device + sramecc_reported + xnack)
+#else
+          targetId(device + sramecc + xnack)
+#endif
+    {
+    }
+};
 
 } // namespace miopen
 

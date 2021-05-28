@@ -359,7 +359,7 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config
     return true;
 }
 
-void PerformanceConfigConvAsmBwdWrW1x1::EuristicInit(const ConvolutionContext& config)
+void PerformanceConfigConvAsmBwdWrW1x1::HeuristicInit(const ConvolutionContext& config)
 {
     short_store =
         (config.out_data_type == miopenHalf || config.out_data_type == miopenBFloat16) ? 1 : 0;
@@ -453,7 +453,7 @@ PerformanceConfigConvAsmBwdWrW1x1
 ConvAsmBwdWrW1x1::GetPerformanceConfig(const ConvolutionContext& params) const
 {
     PerformanceConfigConvAsmBwdWrW1x1 pp;
-    pp.EuristicInit(params);
+    pp.HeuristicInit(params);
     MIOPEN_LOG_I(pp.ToString());
     return pp;
 }
@@ -472,6 +472,8 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!params.Is2d())
         return false;
+    if(!params.direction.IsBackwardWrW())
+        return false;
     if(params.IsAsymmetricPadH() || params.IsAsymmetricPadW())
         return false;
     if(!params.rmv.IsV2orV3())
@@ -482,7 +484,11 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
     {
         return false;
     }
-    assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
+
     // clang-format off
     bool ok = (params.pad_w == 0         // -q  pad_w
         && params.pad_h == 0             // -p  pad_h

@@ -56,7 +56,8 @@ struct KernelArgsPair
     static const int second_index = sizeof(T) + padding;
     KernelArgsPair(T x, U y)
     {
-        new(buffer) T(x);
+
+        new(buffer) T(x); // NOLINT (clang-analyzer-cplusplus.PlacementNew)
         new(buffer + second_index) U(y);
     }
     char buffer[second_index + sizeof(U)] = {};
@@ -179,6 +180,7 @@ struct HIPOCKernel
     hipFunction_t fun = nullptr;
 
     HIPOCKernel() {}
+    HIPOCKernel(HIPOCProgram p, const std::string kernel_name) : program(p), name(kernel_name) {}
     HIPOCKernel(HIPOCProgram p,
                 const std::string kernel_name,
                 std::vector<size_t> local_dims,

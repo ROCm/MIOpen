@@ -616,12 +616,6 @@ igemm_v4r1_dynamic_wrw_32x32x4_4x4_2x2x4x2x4x2_4x2x8x1_4x16:
     s_load_dwordx2  s[s_pad_w:s_pad_w+1],       s[s_ka:s_ka+1],     0+k_pad_w
     s_load_dwordx2  s[s_x:s_gemmkgroups],       s[s_ka:s_ka+1],     0+k_x
 
-    ; debug vgpr
-    v_mov_b32 v1, 0
-    v_add_lshl_u32 v[v_end], v0, v1, 2
-    ;v_lshlrev_b32 v[114], 2, v0 ; every thread write one float
-    s_load_dwordx2 s[s_tmp+16:s_tmp+17], s[s_ka:s_ka+1], k_p_out
-
     ; in e_n1_b_n2 cluster_lengths:{4,2,8,1}, sub_lengths:{1,1,1,2}, order:{0,1,3,2}
     v_and_b32 v[v_in_ib], 7, v0 ; v_in_ib=tid%8
     v_lshrrev_b32 v[v_tmp], 3, v0 ; v_tmp=tid/8
@@ -968,6 +962,8 @@ L_igemm_v4r1_dynamic_wrw_32x32x4_4x4_2x2x4x2x4x2_4x2x8x1_4x16_end:
     .amdhsa_next_free_sgpr 58
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
+    //xnack disabled by default for asm kernels
+    .amdhsa_reserve_xnack_mask 0
 .end_amdhsa_kernel
 
 ;----------------------------------------------------------
@@ -1118,12 +1114,6 @@ L_igemm_v4r1_dynamic_wrw_32x32x4_4x4_2x2x4x2x4x2_4x2x8x1_4x16_end:
     s_load_dwordx4  s[s_stride_w:s_stride_w+3], s[s_ka:s_ka+1],     0+k_stride_w
     s_load_dwordx2  s[s_pad_w:s_pad_w+1],       s[s_ka:s_ka+1],     0+k_pad_w
     s_load_dwordx2  s[s_x:s_gemmkgroups],       s[s_ka:s_ka+1],     0+k_x
-
-    ; debug vgpr
-    v_mov_b32 v1, 0
-    v_add_lshl_u32 v[v_end], v0, v1, 2
-    ;v_lshlrev_b32 v[114], 2, v0 ; every thread write one float
-    s_load_dwordx2 s[s_tmp+12:s_tmp+13], s[s_ka:s_ka+1], k_p_out
 
     ; in e_n1_b_n2 cluster_lengths:{16,1,16,1}, sub_lengths:{1,2,1,4}, order:{0,1,3,2}
     v_and_b32 v[v_in_ib], 15, v0 ; in_ib=tid%16
@@ -1327,7 +1317,6 @@ L_igemm_v4r1_dynamic_wrw_32x32x4_4x4_2x2x4x2x4x2_4x2x8x1_4x16_end:
 
     s_waitcnt vmcnt(0)
     .v_wei_sst_e_k_4_2_es512_kv2 v_gld_a, v_sst_a_os
-;s_branch L_debug_code_seg
 
     ; E = C * Y * X
     s_mul_i32 s[s_tmp], s[s_sub_c], s[s_wei_stride_k] ; s_tmp=sub_c*y*x
@@ -1346,16 +1335,12 @@ L_igemm_v4r1_dynamic_wrw_32x32x4_4x4_2x2x4x2x4x2_4x2x8x1_4x16_end:
     .v_in_load_e_n1_b_n2_1_2_1_4 v_gld_b, s_p_buf_in, v_in_os, s_in_stride_n1, s_in_stride_n2, v_flag, s_tmp
     .v_wei_load_e_k_4_2_ev4 v_gld_a, s_p_buf_wei, v_wei_os, s_wei_stride_k, s_tmp
 
-;s_branch L_debug_code_seg
-
 L_igemm_v4r1_dynamic_wrw_128x128x16_8x8_4x4x4x4x4x4_16x1x16x1_4x64_fma_body:
     ; do fma accumulate with unroll 16
     ds_read_b128 v[v_a:v_a+3], v[v_sld_a_os] 
     ds_read_b128 v[v_b:v_b+3], v[v_sld_b_os] 
     ds_read_b128 v[v_b+4:v_b+4+3], v[v_sld_b_os] offset:256
     ds_read_b128 v[v_a+4:v_a+4+3], v[v_sld_a_os] offset:256
-    
-;s_branch L_debug_code_seg
 
     .itr_k = 0
     .rept 15
@@ -1377,7 +1362,6 @@ L_igemm_v4r1_dynamic_wrw_128x128x16_8x8_4x4x4x4x4x4_16x1x16x1_4x64_fma_body:
         .itr_k = .itr_k + 1
     .endr
 
-;s_branch L_debug_code_seg
     ; last unroll
     v_xor_b32 v[v_sld_b_os], 0x4000, v[v_sld_b_os] ; switch double buffer b load
     v_xor_b32 v[v_sld_a_os], 0x4000, v[v_sld_a_os] ; switch double buffer a load
@@ -1410,7 +1394,6 @@ L_igemm_v4r1_dynamic_wrw_128x128x16_8x8_4x4x4x4x4x4_16x1x16x1_4x64_fma_body:
     s_branch L_igemm_v4r1_dynamic_wrw_128x128x16_8x8_4x4x4x4x4x4_16x1x16x1_4x64_fma_body
 L_igemm_v4r1_dynamic_wrw_128x128x16_8x8_4x4x4x4x4x4_16x1x16x1_4x64_fma_finishing:
     s_waitcnt lgkmcnt(4)
-;s_branch L_debug_code_seg
     .v_fma_4x4_s8 v_c+32,v_a+4,v_b
     .v_fma_4x4_s8 v_c+36,v_a+4,v_b+4
 L_igemm_v4r1_dynamic_wrw_128x128x16_8x8_4x4x4x4x4x4_16x1x16x1_4x64_end:
@@ -1458,28 +1441,6 @@ L_igemm_v4r1_dynamic_wrw_128x128x16_8x8_4x4x4x4x4x4_16x1x16x1_4x64_end:
     s_mov_b32 s[s_tmp+3], 0
     .v_out_write_k0_k1_n1_b_n2_2_4_2_1_4 v_c, s_p_buf_out, v_out_os, s_out_stride_k0, s_out_stride_k1, s_out_stride_n1, s_out_stride_n2, s_tmp
     
-    s_branch L_program_end
-    ; debug code to cpy vgpr to host
-L_debug_code_seg:
-    s_waitcnt lgkmcnt(0)
-    s_barrier
-    s_cmp_lg_u32 s[s_bx], 0
-    s_cbranch_scc1  L_program_end
-    ;s_cmp_lg_u32 s[s_wave_id], 0
-    ;s_cbranch_scc1  L_program_end
-    ;v_add_co_u32 v34, vcc, 0, v[v_a0+2]
-    v_mov_b32 v[v_tmp], s[s_tmp]
-
-    v_mov_b32 v[v_tmp+1], 8192
-    v_sub_u32 v[v_sst_a_os], v[v_sst_a_os], v[v_tmp+1]
-    v_lshrrev_b32 v[v_sst_a_os], 2, v[v_sst_a_os]
-
-    global_store_dword v[v_end:v_end+1], v[v_a], s[s_tmp+12:s_tmp+13]
-
-    s_waitcnt vmcnt(0)
-    s_barrier
-
-
 L_program_end:
     s_endpgm
 .rodata
@@ -1493,6 +1454,8 @@ L_program_end:
     .amdhsa_next_free_sgpr 58
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
+    //xnack disabled by default for asm kernels
+    .amdhsa_reserve_xnack_mask 0
 .end_amdhsa_kernel
 
 ;----------------------------------------------------------
@@ -1643,12 +1606,6 @@ L_program_end:
     s_load_dwordx4  s[s_stride_w:s_stride_w+3], s[s_ka:s_ka+1],     0+k_stride_w
     s_load_dwordx2  s[s_pad_w:s_pad_w+1],       s[s_ka:s_ka+1],     0+k_pad_w
     s_load_dwordx2  s[s_x:s_gemmkgroups],       s[s_ka:s_ka+1],     0+k_x
-
-    ; debug vgpr
-    v_mov_b32 v1, 0
-    v_add_lshl_u32 v[v_end], v0, v1, 2
-    ;v_lshlrev_b32 v[114], 2, v0 ; every thread write one float
-    s_load_dwordx2 s[s_tmp+12:s_tmp+13], s[s_ka:s_ka+1], k_p_out
 
     ; in e_n1_b_n2 cluster_lengths:{16,1,16,1}, sub_lengths:{1,2,1,4}, order:{0,1,3,2}
     v_and_b32 v[v_in_ie], 15, v0 ; in_ib=tid%16
@@ -1842,8 +1799,6 @@ L_program_end:
     v_lshlrev_b32 v[v_sst_a_os], 2, v[v_tmp]
     v_add_u32 v[v_sst_a_os], 8192, v[v_sst_a_os]
 
-;s_branch L_debug_code_seg_1
-
     s_mov_b32 s[s_p_buf_out+2], 0xffffffff
     s_mov_b32 s[s_p_buf_out+3], 0x27000
     .v_clear_nc v_c, 64
@@ -1868,12 +1823,8 @@ L_program_end:
     s_waitcnt lgkmcnt(0)
     s_barrier
 
-;s_branch L_debug_code_seg_1
-
     .v_in_load_e_n1_b_n2_1_2_1_4 v_gld_b, s_p_buf_in, v_in_os, s_in_stride_n1, s_in_stride_n2, v_flag, s_tmp
     .v_wei_load_e_k_1_8_ev1 v_gld_a, s_p_buf_wei, v_wei_os, s_wei_stride_k, s_tmp
-
-;s_branch L_debug_code_seg_1
 
 L_igemm_v4r1_dynamic_wrw_128x128x16_8x8_4x4x4x4x4x4_16x1x16x1_16x16_fma_body:
     ; do fma accumulate with unroll 16
@@ -1881,8 +1832,6 @@ L_igemm_v4r1_dynamic_wrw_128x128x16_8x8_4x4x4x4x4x4_16x1x16x1_16x16_fma_body:
     ds_read_b128 v[v_b:v_b+3], v[v_sld_b_os] 
     ds_read_b128 v[v_b+4:v_b+4+3], v[v_sld_b_os] offset:256
     ds_read_b128 v[v_a+4:v_a+4+3], v[v_sld_a_os] offset:256
-
-;s_branch L_debug_code_seg_1
     
     .itr_k = 0
     .rept 15
@@ -1903,8 +1852,6 @@ L_igemm_v4r1_dynamic_wrw_128x128x16_8x8_4x4x4x4x4x4_16x1x16x1_16x16_fma_body:
         ds_read_b128 v[v_a+4:v_a+4+3], v[v_sld_a_os] offset:0+(.itr_k+1)*512+256
         .itr_k = .itr_k + 1
     .endr
-
-;s_branch L_debug_code_seg_1
 
     ; last unroll
     v_xor_b32 v[v_sld_b_os], 0x4000, v[v_sld_b_os] ; switch double buffer b load
@@ -1938,7 +1885,6 @@ L_igemm_v4r1_dynamic_wrw_128x128x16_8x8_4x4x4x4x4x4_16x1x16x1_16x16_fma_body:
     s_branch L_igemm_v4r1_dynamic_wrw_128x128x16_8x8_4x4x4x4x4x4_16x1x16x1_16x16_fma_body
 L_igemm_v4r1_dynamic_wrw_128x128x16_8x8_4x4x4x4x4x4_16x1x16x1_16x16_fma_finishing:
     s_waitcnt lgkmcnt(4)
-;s_branch L_debug_code_seg_1
     .v_fma_4x4_s8 v_c+32,v_a+4,v_b
     .v_fma_4x4_s8 v_c+36,v_a+4,v_b+4
 L_igemm_v4r1_dynamic_wrw_128x128x16_8x8_4x4x4x4x4x4_16x1x16x1_16x16_end:
@@ -1986,28 +1932,6 @@ L_igemm_v4r1_dynamic_wrw_128x128x16_8x8_4x4x4x4x4x4_16x1x16x1_16x16_end:
     s_mov_b32 s[s_tmp+3], 0
     .v_out_write_k0_k1_n1_b_n2_2_4_2_1_4 v_c, s_p_buf_out, v_out_os, s_out_stride_k0, s_out_stride_k1, s_out_stride_n1, s_out_stride_n2, s_tmp
     
-    s_branch L_program_end_1
-    ; debug code to cpy vgpr to host
-L_debug_code_seg_1:
-    s_waitcnt lgkmcnt(0)
-    s_barrier
-    s_cmp_lg_u32 s[s_bx], 0
-    s_cbranch_scc1  L_program_end
-    ;s_cmp_lg_u32 s[s_wave_id], 0
-    ;s_cbranch_scc1  L_program_end
-    ;v_add_co_u32 v34, vcc, 0, v[v_a0+2]
-    v_mov_b32 v[v_tmp], s[s_tmp]
-
-     v_mov_b32 v[v_tmp+1], 8192
-    v_sub_u32 v[v_sst_a_os], v[v_sst_a_os], v[v_tmp+1]
-    v_lshrrev_b32 v[v_sst_a_os], 2, v[v_sst_a_os]
-
-    global_store_dword v[v_end:v_end+1], v[v_wei_os], s[s_tmp+12:s_tmp+13]
-
-    s_waitcnt vmcnt(0)
-    s_barrier
-
-
 L_program_end_1:
     s_endpgm
 .rodata
@@ -2021,6 +1945,8 @@ L_program_end_1:
     .amdhsa_next_free_sgpr 58
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
+    //xnack disabled by default for asm kernels
+    .amdhsa_reserve_xnack_mask 0
 .end_amdhsa_kernel
 
 .amdgpu_metadata

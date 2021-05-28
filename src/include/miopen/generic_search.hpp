@@ -31,6 +31,7 @@
 #include <miopen/logger.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/invoke_params.hpp>
+#include <miopen/env.hpp>
 
 #include <vector>
 #include <cstdlib>
@@ -47,6 +48,8 @@
 
 namespace miopen {
 namespace solver {
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMPILE_ONLY)
 
 /// This STL-like container together with corresponding iterator provide access
 /// to a set of all available performance configs for the given problem config.
@@ -303,13 +306,16 @@ using RunAndMeasure_t =
                                                           std::declval<float&>()));
 
 template <class Solver, class Context>
-auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams& invoke_ctx_)
-    -> decltype(s.GetPerformanceConfig(context))
+auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParams& invoke_ctx_)
+    -> decltype(s.GetPerformanceConfig(context_))
 {
     static_assert(
         !(is_detected<RunAndMeasure_t, Solver, ConstData_t, Data_t>{} ||
           is_detected<RunAndMeasure_t, Solver, Data_t, ConstData_t>{}),
         "RunAndMeasure is obsolete. Solvers should implement auto-tune evaluation in invoker");
+
+    auto context                  = context_;
+    context.is_for_generic_search = true;
 
     using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
     PerformanceConfig best_config;
@@ -335,122 +341,151 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
                                << (useSpare ? " (spare)" : "")
                                << "...");
 
-    bool is_passed   = false; // left false only if all iterations failed.
-    float best_time  = std::numeric_limits<float>::max();
-    size_t n_failed  = 0;
-    size_t n_current = 0;
-    size_t n_best    = 0;
+    bool is_passed  = false; // left false only if all iterations failed.
+    float best_time = std::numeric_limits<float>::max();
+    size_t n_failed = 0;
+    size_t n_best   = 0;
     HeartBeat<PerformanceConfig> heartbeat;
     heartbeat.Start();
 
+// PrecompileKernels call saves to binary_cache, this needs to be escaped if KERN_CACHE is not on.
+#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
+    std::vector<KernelInfo> kernels;
     for(const auto& current_config : all_configs)
     {
-        float elapsed_time = 0.0f;
-        int ret            = 0;
-        MIOPEN_LOG_I2('#' << n_current << '/' << n_failed << '/' << n_runs_total << ' '
-                          << current_config);
-
-        ConvSolution current_solution;
-        Invoker invoker;
-
-        try
+        ConvSolution current_solution = s.GetSolution(context, current_config, true);
+        for(auto&& kernel : current_solution.construction_params)
         {
-            current_solution = s.GetSolution(context, current_config, true);
+            if(profile_h.HasProgram(kernel.kernel_file, kernel.comp_options))
+                continue;
+            kernels.push_back(kernel);
+        }
+    }
+    std::ignore = PrecompileKernels(profile_h, kernels);
+#endif
 
-            if(default_solution.workspce_sz != current_solution.workspce_sz)
+    if(!IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
+    {
+        size_t n_current = 0;
+        for(const auto& current_config : all_configs)
+        {
+            float elapsed_time = 0.0f;
+            int ret            = 0;
+            MIOPEN_LOG_I2('#' << n_current << '/' << n_failed << '/' << n_runs_total << ' '
+                              << current_config);
+
+            ConvSolution current_solution;
+            Invoker invoker;
+
+            try
             {
-                ret = -2;
+                current_solution = s.GetSolution(context, current_config, true);
+                if(default_solution.workspce_sz != current_solution.workspce_sz)
+                {
+                    ret = -2;
+                    MIOPEN_LOG_E('#' << n_current << " (" << n_runs_total << ") "
+                                     << "Workspace size should not depend on PerformanceConfig: "
+                                     << default_solution.workspce_sz
+                                     << " != "
+                                     << current_solution.workspce_sz);
+                }
+
+                invoker = profile_h.PrepareInvoker(*current_solution.invoker_factory,
+                                                   current_solution.construction_params);
+                invoker(profile_h, invoke_ctx);
+                elapsed_time = profile_h.GetKernelTime();
+            }
+            catch(...)
+            {
+                ret = 1;
+            }
+
+            MIOPEN_LOG_T("##"
+                         << "(n_current, n_failed, n_runs_total):  "
+                         << n_current
+                         << '/'
+                         << n_failed
+                         << '/'
+                         << n_runs_total
+                         << " elapsed_time: "
+                         << elapsed_time
+                         << ", best_time: "
+                         << best_time
+                         << ", "
+                         << current_config);
+
+            if(ret == 0)
+            {
+                // Smooth the jitter of measurements:
+                // If the 1st probe is NOT too bad (measured time <= 1.05 * best known time),
+                // then re-run it 4 times more and compute average time,
+                // and decide using average of all 5 attempts vs. the best.
+                if(elapsed_time / best_time < 1.05f)
+                {
+                    MIOPEN_LOG_I2("Finding average for: " << elapsed_time << " / " << best_time
+                                                          << " = "
+                                                          << (elapsed_time / best_time));
+
+                    try
+                    {
+                        for(int i = 0; i < 4; ++i)
+                        {
+                            invoker(profile_h, invoke_ctx);
+                            elapsed_time += profile_h.GetKernelTime();
+                        }
+                    }
+                    catch(...)
+                    {
+                        ret = 1;
+                    }
+
+                    if(ret == 0)
+                    {
+                        is_passed = true;
+                        elapsed_time /= 5;
+                        if(elapsed_time < best_time)
+                        {
+                            MIOPEN_LOG_I('#' << n_current << '/' << n_failed << '/' << n_runs_total
+                                             << ' '
+                                             << elapsed_time
+                                             << " < "
+                                             << best_time
+                                             << ' '
+                                             << current_config);
+                            best_config = current_config;
+                            best_time   = elapsed_time;
+                            n_best      = n_current;
+                        }
+                        else
+                        {
+                            MIOPEN_LOG_I2(
+                                "Average is not better: " << elapsed_time << " >= " << best_time);
+                        }
+                    }
+                }
+            }
+
+            if(ret != 0)
+            {
                 MIOPEN_LOG_E('#' << n_current << " (" << n_runs_total << ") "
-                                 << "Workspace size should not depend on PerformanceConfig: "
-                                 << default_solution.workspce_sz
-                                 << " != "
-                                 << current_solution.workspce_sz);
+                                 << " Failed rc="
+                                 << ret);
+                ++n_failed;
             }
-
-            invoker = profile_h.PrepareInvoker(*current_solution.invoker_factory,
-                                               current_solution.construction_params);
-            invoker(profile_h, invoke_ctx);
-            elapsed_time = profile_h.GetKernelTime();
+            heartbeat.Monitor(ret != 0,
+                              elapsed_time,
+                              n_current,
+                              best_time,
+                              n_failed,
+                              n_runs_total,
+                              current_config);
+            ++n_current;
         }
-        catch(...)
-        {
-            ret = 1;
-        }
-
-        MIOPEN_LOG_T("##"
-                     << "(n_current, n_failed, n_runs_total):  "
-                     << n_current
-                     << '/'
-                     << n_failed
-                     << '/'
-                     << n_runs_total
-                     << " elapsed_time: "
-                     << elapsed_time
-                     << ", best_time: "
-                     << best_time
-                     << ", "
-                     << current_config);
-
-        if(ret == 0)
-        {
-            // Smooth the jitter of measurements:
-            // If the 1st probe is NOT too bad (measured time <= 1.05 * best known time),
-            // then re-run it 4 times more and compute average time,
-            // and decide using average of all 5 attempts vs. the best.
-            if(elapsed_time / best_time < 1.05f)
-            {
-                MIOPEN_LOG_I2("Finding average for: " << elapsed_time << " / " << best_time << " = "
-                                                      << (elapsed_time / best_time));
-
-                try
-                {
-                    for(int i = 0; i < 4; ++i)
-                    {
-                        invoker(profile_h, invoke_ctx);
-                        elapsed_time += profile_h.GetKernelTime();
-                    }
-                }
-                catch(...)
-                {
-                    ret = 1;
-                }
-
-                if(ret == 0)
-                {
-                    is_passed = true;
-                    elapsed_time /= 5;
-                    if(elapsed_time < best_time)
-                    {
-                        MIOPEN_LOG_I('#' << n_current << '/' << n_failed << '/' << n_runs_total
-                                         << ' '
-                                         << elapsed_time
-                                         << " < "
-                                         << best_time
-                                         << ' '
-                                         << current_config);
-                        best_config = current_config;
-                        best_time   = elapsed_time;
-                        n_best      = n_current;
-                    }
-                    else
-                    {
-                        MIOPEN_LOG_I2(
-                            "Average is not better: " << elapsed_time << " >= " << best_time);
-                    }
-                }
-            }
-        }
-
-        if(ret != 0)
-        {
-            MIOPEN_LOG_E('#' << n_current << " (" << n_runs_total << ") "
-                             << " Failed rc="
-                             << ret);
-            ++n_failed;
-        }
-        heartbeat.Monitor(
-            ret != 0, elapsed_time, n_current, best_time, n_failed, n_runs_total, current_config);
-        ++n_current;
+    }
+    else
+    {
+        MIOPEN_THROW(miopenStatusGpuOperationsSkipped,
+                     "Running kernels on GPU is disabled. Search skipped");
     }
 
     MIOPEN_LOG_W("Done: " << n_runs_total << '/' << n_failed << '/' << n_runs_total << ", best #"

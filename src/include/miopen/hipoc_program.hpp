@@ -26,14 +26,15 @@
 #ifndef GUARD_MIOPEN_HIPOC_PROGRAM_HPP
 #define GUARD_MIOPEN_HIPOC_PROGRAM_HPP
 
-#include <hip/hip_runtime_api.h>
+#include <miopen/target_properties.hpp>
 #include <miopen/manage_ptr.hpp>
+#include <miopen/hipoc_program_impl.hpp>
 #include <boost/filesystem/path.hpp>
+#include <hip/hip_runtime_api.h>
 #include <string>
 
 namespace miopen {
 
-using hipModulePtr = MIOPEN_MANAGE_PTR(hipModule_t, hipModuleUnload);
 struct HIPOCProgramImpl;
 struct HIPOCProgram
 {
@@ -47,7 +48,7 @@ struct HIPOCProgram
     HIPOCProgram(const std::string& program_name,
                  std::string params,
                  bool is_kernel_str,
-                 std::string dev_name,
+                 const TargetProperties& target,
                  const std::string& kernel_src);
     HIPOCProgram(const std::string& program_name, const boost::filesystem::path& hsaco);
     HIPOCProgram(const std::string& program_name, const std::string& hsaco);
