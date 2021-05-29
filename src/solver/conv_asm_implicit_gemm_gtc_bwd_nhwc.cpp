@@ -34,6 +34,7 @@
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS_NHWC)
 
 #define BWD_MAX_GEMM_K_SPLITS 8
+// #define DEBUG_IGEMM_ASM_BWD_NHWC_CHECK_VALID_TILE_LIST
 
 namespace miopen {
 namespace solver {
@@ -191,304 +192,6 @@ GetBwdXdlopsNHWCConfigList()
     return kernel_param_list;
 }
 
-void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(const ConvolutionContext& ctx)
-{
-    static const std::vector<std::tuple<int, int, int>> tile_list_fp32 = {
-        std::make_tuple(128, 128, 16),
-        std::make_tuple(128, 128, 8),
-
-        std::make_tuple(128, 64, 16),
-        std::make_tuple(128, 64, 32),
-
-        std::make_tuple(64, 128, 16),
-        std::make_tuple(64, 128, 32),
-
-        std::make_tuple(128, 32, 32),
-        std::make_tuple(128, 32, 16),
-
-        std::make_tuple(256, 64, 16),
-        std::make_tuple(64, 256, 16),
-
-        std::make_tuple(64, 64, 32),
-        std::make_tuple(64, 32, 32),
-        std::make_tuple(64, 32, 16),
-        std::make_tuple(64, 16, 32),
-        std::make_tuple(64, 16, 16),
-        std::make_tuple(32, 64, 32),
-        std::make_tuple(16, 64, 32),
-    };
-
-    static const std::vector<std::tuple<int, int, int>> tile_list_fp16 = {
-        std::make_tuple(128, 128, 32),
-        std::make_tuple(256, 128, 32),
-        std::make_tuple(128, 256, 32),
-
-        std::make_tuple(128, 64, 32),
-        std::make_tuple(64, 128, 32),
-
-        std::make_tuple(256, 64, 32),
-        std::make_tuple(64, 256, 32),
-
-        std::make_tuple(64, 64, 64),
-        std::make_tuple(64, 64, 16),
-
-        std::make_tuple(128, 32, 32),
-        std::make_tuple(32, 128, 32),
-
-        std::make_tuple(256, 32, 32),
-        std::make_tuple(32, 256, 32),
-
-        std::make_tuple(64, 32, 32),
-        std::make_tuple(64, 32, 16),
-
-        std::make_tuple(32, 64, 32),
-        std::make_tuple(32, 64, 16),
-    };
-
-    const auto group      = ctx.group_counts;
-    const auto hi         = ctx.out_height;
-    const auto wi         = ctx.out_width;
-    const auto n          = ctx.batch_sz;
-    const auto k          = ctx.n_inputs;
-    const auto c          = ctx.n_outputs;
-    const auto ho         = ctx.in_height;
-    const auto wo         = ctx.in_width;
-    const auto stride_h   = ctx.in_height > 1 ? ctx.kernel_stride_h : 1;
-    const auto stride_w   = ctx.in_width > 1 ? ctx.kernel_stride_w : 1;
-    const auto dilation_h = ctx.kernel_size_h > 1 ? ctx.kernel_dilation_h : 1;
-    const auto dilation_w = ctx.kernel_size_w > 1 ? ctx.kernel_dilation_w : 1;
-    const auto pad_h      = ctx.pad_h;
-    const auto pad_w      = ctx.pad_w;
-    const auto y          = ctx.kernel_size_h;
-    const auto x          = ctx.kernel_size_w;
-
-    const auto gcd_stride_dilation_h = gcd(stride_h, dilation_h);
-    const auto gcd_stride_dilation_w = gcd(stride_w, dilation_w);
-    const auto y_tilda               = stride_h / gcd_stride_dilation_h;
-    const auto x_tilda               = stride_w / gcd_stride_dilation_w;
-
-    const auto h_tilda = ho + (dilation_h * (y - 1) + stride_h - 1) / stride_h;
-    const auto w_tilda = wo + (dilation_w * (x - 1) + stride_w - 1) / stride_w;
-
-    const auto h_tilda_left = std::max(0, pad_h - dilation_h * (y_tilda - 1)) / stride_h;
-    const auto w_tilda_left = std::max(0, pad_w - dilation_w * (x_tilda - 1)) / stride_w;
-
-    const auto h_tilda_right = std::min(h_tilda, (pad_h + hi - 1 + stride_h - 1) / stride_h + 1);
-    const auto w_tilda_right = std::min(w_tilda, (pad_w + wi - 1 + stride_w - 1) / stride_w + 1);
-
-    const auto h_tilda_slice = h_tilda_right - h_tilda_left;
-    const auto w_tilda_slice = w_tilda_right - w_tilda_left;
-    // const auto num_of_gemm   = y_tilda * x_tilda;
-    const auto gemm_m = c / group;
-    const auto gemm_n = n * h_tilda_slice * w_tilda_slice;
-    const auto gemm_k_even =
-        k / group; // this is not the gemm_k, but in most case we prefer k be evenly divided
-
-    bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
-                     (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);
-
-    int m_per_block, n_per_block, k_per_block;
-
-    std::tie(m_per_block, n_per_block, k_per_block) = HeuristicInitMacroTileNoPadGemmK(
-        gemm_m, gemm_n, gemm_k_even, ctx.IsFp32() ? tile_list_fp32 : tile_list_fp16);
-
-    if(m_per_block == 0 && n_per_block == 0 && k_per_block == 0)
-    {
-        // not found, let's try  gemm_k pad now.
-        auto& config_list     = GetBwdXdlopsNHWCConfigList();
-        size_t min_pad_pixel  = std::numeric_limits<std::size_t>::max();
-        size_t selected_index = 0;
-        for(size_t i = 0; i < config_list.size(); i++)
-        {
-            auto& config = config_list[i];
-            if(!((ctx.IsFp16() && config.precision == "fp16") ||
-                 (ctx.IsFp32() && config.precision == "fp32")))
-                continue;
-            if(config.tensor_a_thread_lengths[1] != 1 || config.tensor_b_thread_lengths[1] != 1)
-                continue;
-
-            size_t cur_pad_pixel =
-                ComputeMatrixPadSize(
-                    gemm_m, config.gemm_m_per_block, gemm_k_even, config.gemm_k_per_block) +
-                ComputeMatrixPadSize(
-                    gemm_n, config.gemm_n_per_block, gemm_k_even, config.gemm_k_per_block) +
-                ComputeMatrixPadSize(
-                    gemm_m, config.gemm_m_per_block, gemm_n, config.gemm_n_per_block);
-            if(cur_pad_pixel < min_pad_pixel)
-            {
-                min_pad_pixel  = cur_pad_pixel;
-                selected_index = i;
-            }
-        }
-        CopyParameters(config_list[selected_index]);
-    }
-    else
-    {
-        auto& config_list = GetBwdXdlopsNHWCConfigList();
-        for(auto& config : config_list)
-        {
-            if(config.gemm_k_global_split)
-                continue; // TODO: find a method to deal with k split
-            if(m_per_block == config.gemm_m_per_block && n_per_block == config.gemm_n_per_block &&
-               k_per_block == config.gemm_k_per_block)
-            {
-                if(unit_conv && config.nxe == 0)
-                {
-                    CopyParameters(config);
-                    return;
-                }
-                else if(!unit_conv && config.nxe != 0)
-                {
-                    CopyParameters(config);
-                    return;
-                }
-                else
-                    continue;
-            }
-        }
-        MIOPEN_LOG_E("can't find a suitable heuristic config");
-        MIOPEN_THROW(miopenStatusInternalError);
-    }
-}
-bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValidValue() const
-{
-    if(IsDefaultConstructed())
-        return true;
-    auto& config_list = GetBwdXdlopsNHWCConfigList();
-    if(index >= config_list.size())
-        return false;
-    return *this == config_list[index];
-}
-bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::SetNextValue()
-{
-    if(use_spare_set)
-    {
-        auto& config_list = GetBwdXdlopsNHWCConfigList();
-        if(IsDefaultConstructed())
-        {
-            index = 0;
-            CopyParameters(config_list[index]);
-            if(gemm_k_global_split == 1)
-                gemm_k_global_split *= 2;
-        }
-        else
-        {
-            if(gemm_k_global_split)
-            {
-                if(NextTwoPower<1, BWD_MAX_GEMM_K_SPLITS>(gemm_k_global_split))
-                    index++;
-                else
-                    return true;
-            }
-            else
-            {
-                index++;
-            }
-            if(index >= config_list.size())
-                return false;
-            CopyParameters(config_list[index]);
-            if(gemm_k_global_split == 1)
-                gemm_k_global_split *= 2;
-        }
-        return true;
-    }
-    else
-    {
-        // always break generic search of main set (no spare), make sure we can use spare set
-        return false;
-    }
-}
-bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(const ConvolutionContext& ctx) const
-{
-    if(IsDefaultConstructed())
-        return false;
-
-    if(!((ctx.IsFp16() && precision == "fp16") || (ctx.IsFp32() && precision == "fp32")))
-        return false;
-
-    const auto group = ctx.group_counts;
-    // const auto hi         = ctx.out_height;
-    // const auto wi         = ctx.out_width;
-    // const auto n          = ctx.batch_sz;
-    const auto k = ctx.n_inputs;
-    const auto c = ctx.n_outputs;
-    // const auto ho         = ctx.in_height;
-    // const auto wo         = ctx.in_width;
-    const auto stride_h   = ctx.in_height > 1 ? ctx.kernel_stride_h : 1;
-    const auto stride_w   = ctx.in_width > 1 ? ctx.kernel_stride_w : 1;
-    const auto dilation_h = ctx.kernel_size_h > 1 ? ctx.kernel_dilation_h : 1;
-    const auto dilation_w = ctx.kernel_size_w > 1 ? ctx.kernel_dilation_w : 1;
-    const auto pad_h      = ctx.pad_h;
-    const auto pad_w      = ctx.pad_w;
-    const auto y          = ctx.kernel_size_h;
-    const auto x          = ctx.kernel_size_w;
-
-    // const auto gcd_stride_dilation_h = gcd(stride_h, dilation_h);
-    // const auto gcd_stride_dilation_w = gcd(stride_w, dilation_w);
-    // onst auto y_tilda               = stride_h / gcd_stride_dilation_h;
-    // const auto x_tilda               = stride_w / gcd_stride_dilation_w;
-
-    // const auto h_tilda = ho + (dilation_h * (y - 1) + stride_h - 1) / stride_h;
-    // const auto w_tilda = wo + (dilation_w * (x - 1) + stride_w - 1) / stride_w;
-
-    // const auto h_tilda_left = std::max(0, pad_h - dilation_h * (y_tilda - 1)) / stride_h;
-    // const auto w_tilda_left = std::max(0, pad_w - dilation_w * (x_tilda - 1)) / stride_w;
-
-    // const auto h_tilda_right = std::min(h_tilda, (pad_h + hi - 1 + stride_h - 1) / stride_h + 1);
-    // const auto w_tilda_right = std::min(w_tilda, (pad_w + wi - 1 + stride_w - 1) / stride_w + 1);
-
-    // const auto h_tilda_slice = h_tilda_right - h_tilda_left;
-    // const auto w_tilda_slice = w_tilda_right - w_tilda_left;
-    // const auto num_of_gemm   = y_tilda * x_tilda;
-    // const auto gemm_m        = c / group;
-    // const auto gemm_n        = n * h_tilda_slice * w_tilda_slice;
-
-    bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
-                     (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);
-
-    if(tensor_a_thread_lengths[1] != 1)
-    {
-        // if both 1, indicate padded c support
-        if(((k >> gemm_k_global_split) / group) % gemm_k_per_block != 0)
-            return false;
-        // also, add this restriction to k
-        if(ctx.IsFp16())
-        {
-            if(gemm_k_global_split)
-            {
-                if((c / group) % 2 != 0)
-                    return false;
-            }
-            else
-            {
-                if((c / group) % gcd(gemm_n_per_block, vector_store == 0 ? 8 : vector_store) != 0)
-                    return false;
-            }
-        }
-    }
-
-    if((nxe == 0) && !unit_conv)
-    {
-        return false;
-    }
-
-    // add more restriction for spare
-    if(use_spare_set)
-    {
-        // non 1x1 kernel can't run 1x1 case
-        if((nxe != 0) && unit_conv)
-            return false;
-
-        if(tensor_a_thread_lengths[1] == 1)
-        {
-            // pad k can't run non-pad k case
-            if(((k >> gemm_k_global_split) / group) % gemm_k_per_block == 0)
-                return false;
-        }
-    }
-    return true;
-}
-
 static std::tuple<std::string, // kernel_name
                   size_t,      // block_size
                   size_t>      // grid_size
@@ -533,8 +236,8 @@ static std::tuple<std::string, // kernel_name
     const auto h_tilda_slice = h_tilda_right - h_tilda_left;
     const auto w_tilda_slice = w_tilda_right - w_tilda_left;
     const auto num_of_gemm   = y_tilda * x_tilda;
-    const auto gemm_m        = c / group;
-    const auto gemm_n        = n * h_tilda_slice * w_tilda_slice;
+    const auto gemm_m        = n * h_tilda_slice * w_tilda_slice;
+    const auto gemm_n        = c / group;
 
     size_t block_size = config.BlockSize();
     size_t grid_size  = group * integer_divide_ceil(gemm_m, config.gemm_m_per_block) *
@@ -544,6 +247,342 @@ static std::tuple<std::string, // kernel_name
         grid_size *= num_of_gemm;
     std::string kernel_name = config.ToKernelName();
     return std::make_tuple(kernel_name, block_size, grid_size);
+}
+
+void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(const ConvolutionContext& ctx)
+{
+    static const std::vector<std::tuple<int, int, int>> tile_list_fp32 = {
+        std::make_tuple(128, 128, 16),
+        std::make_tuple(128, 128, 8),
+        std::make_tuple(128, 64, 16),
+        std::make_tuple(128, 64, 32),
+        std::make_tuple(64, 128, 16),
+        std::make_tuple(128, 32, 32),
+        std::make_tuple(128, 32, 16),
+        std::make_tuple(256, 64, 16),
+        std::make_tuple(64, 256, 16),
+        std::make_tuple(64, 64, 32),
+        std::make_tuple(64, 32, 32),
+        std::make_tuple(64, 32, 16),
+        std::make_tuple(64, 16, 32),
+        std::make_tuple(64, 16, 16),
+        std::make_tuple(32, 64, 32),
+        std::make_tuple(16, 64, 32),
+    };
+
+    static const std::vector<std::tuple<int, int, int>> tile_list_fp16 = {
+        std::make_tuple(128, 128, 32),
+        std::make_tuple(256, 128, 32),
+        std::make_tuple(128, 256, 32),
+        std::make_tuple(128, 64, 32),
+        std::make_tuple(64, 128, 32),
+        std::make_tuple(256, 64, 32),
+        std::make_tuple(64, 256, 32),
+        std::make_tuple(64, 64, 64),
+        std::make_tuple(64, 64, 16),
+        std::make_tuple(256, 32, 32),
+        std::make_tuple(128, 32, 32),
+        std::make_tuple(32, 128, 32),
+        std::make_tuple(64, 32, 32),
+        std::make_tuple(64, 32, 16),
+        std::make_tuple(32, 64, 32),
+    };
+
+#ifdef DEBUG_IGEMM_ASM_BWD_NHWC_CHECK_VALID_TILE_LIST
+    auto& c_list = GetBwdXdlopsNHWCConfigList();
+    for(auto& tile : tile_list_fp16)
+    {
+        int mp, np, kp;
+        std::tie(mp, np, kp) = tile;
+        bool found = false;
+        for(auto& config : c_list)
+        {
+            if(config.precision == "fp32")
+                continue;
+            if(config.gemm_m_per_block == mp && config.gemm_n_per_block == np &&
+               config.gemm_k_per_block == kp)
+            {
+                found = true;
+                break;
+            }
+        }
+        if(!found)
+        {
+            MIOPEN_LOG_E("fp16 list  can't find " << mp << "x" << np << "x" << kp);
+            MIOPEN_THROW(miopenStatusInternalError);
+        }
+    }
+    for(auto& tile : tile_list_fp32)
+    {
+        int mp, np, kp;
+        std::tie(mp, np, kp) = tile;
+        bool found = false;
+        for(auto& config : c_list)
+        {
+            if(config.precision == "fp16")
+                continue;
+            if(config.gemm_m_per_block == mp && config.gemm_n_per_block == np &&
+               config.gemm_k_per_block == kp)
+            {
+                found = true;
+                break;
+            }
+        }
+        if(!found)
+        {
+            MIOPEN_LOG_E("fp32 list  can't find " << mp << "x" << np << "x" << kp);
+            MIOPEN_THROW(miopenStatusInternalError);
+        }
+    }
+#endif
+
+    const auto group      = ctx.group_counts;
+    const auto hi         = ctx.out_height;
+    const auto wi         = ctx.out_width;
+    const auto n          = ctx.batch_sz;
+    const auto k          = ctx.n_inputs;
+    const auto c          = ctx.n_outputs;
+    const auto ho         = ctx.in_height;
+    const auto wo         = ctx.in_width;
+    const auto stride_h   = ctx.in_height > 1 ? ctx.kernel_stride_h : 1;
+    const auto stride_w   = ctx.in_width > 1 ? ctx.kernel_stride_w : 1;
+    const auto dilation_h = ctx.kernel_size_h > 1 ? ctx.kernel_dilation_h : 1;
+    const auto dilation_w = ctx.kernel_size_w > 1 ? ctx.kernel_dilation_w : 1;
+    const auto pad_h      = ctx.pad_h;
+    const auto pad_w      = ctx.pad_w;
+    const auto y          = ctx.kernel_size_h;
+    const auto x          = ctx.kernel_size_w;
+
+    const auto gcd_stride_dilation_h = gcd(stride_h, dilation_h);
+    const auto gcd_stride_dilation_w = gcd(stride_w, dilation_w);
+    const auto y_tilda               = stride_h / gcd_stride_dilation_h;
+    const auto x_tilda               = stride_w / gcd_stride_dilation_w;
+
+    const auto h_tilda = ho + (dilation_h * (y - 1) + stride_h - 1) / stride_h;
+    const auto w_tilda = wo + (dilation_w * (x - 1) + stride_w - 1) / stride_w;
+
+    const auto h_tilda_left = std::max(0, pad_h - dilation_h * (y_tilda - 1)) / stride_h;
+    const auto w_tilda_left = std::max(0, pad_w - dilation_w * (x_tilda - 1)) / stride_w;
+
+    const auto h_tilda_right = std::min(h_tilda, (pad_h + hi - 1 + stride_h - 1) / stride_h + 1);
+    const auto w_tilda_right = std::min(w_tilda, (pad_w + wi - 1 + stride_w - 1) / stride_w + 1);
+
+    const auto h_tilda_slice = h_tilda_right - h_tilda_left;
+    const auto w_tilda_slice = w_tilda_right - w_tilda_left;
+    // const auto num_of_gemm   = y_tilda * x_tilda;
+    const auto gemm_m = n * h_tilda_slice * w_tilda_slice;
+    const auto gemm_n = c / group;
+    const auto gemm_k_even =
+        k / group; // this is not the gemm_k, but in most case we prefer k be evenly divided
+
+    bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
+                     (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);
+    bool not_support_vector_store = ctx.IsFp16() && ((c / group) % 2 != 0);
+    int m_per_block, n_per_block, k_per_block;
+
+    std::tie(m_per_block, n_per_block, k_per_block) = HeuristicInitMacroTileNoPadGemmK(
+        gemm_m, gemm_n, gemm_k_even, ctx.IsFp32() ? tile_list_fp32 : tile_list_fp16);
+
+    MIOPEN_LOG_I("m_per_block:" << m_per_block << ", n_per_block:" << n_per_block
+                                << ", k_per_block:"
+                                << k_per_block);
+
+    if((m_per_block == 0 && n_per_block == 0 && k_per_block == 0) || not_support_vector_store)
+    {
+        // not found, let's try  gemm_k pad now.
+        auto& config_list     = GetBwdXdlopsNHWCConfigList();
+        size_t min_pad_pixel  = std::numeric_limits<std::size_t>::max();
+        size_t selected_index = 0;
+        for(size_t i = 0; i < config_list.size(); i++)
+        {
+            auto& config = config_list[i];
+            if(!((ctx.IsFp16() && config.precision == "fp16") ||
+                 (ctx.IsFp32() && config.precision == "fp32")))
+                continue;
+            if(config.tensor_a_thread_lengths[1] != 1 || config.tensor_b_thread_lengths[1] != 1)
+                continue;
+
+            size_t cur_pad_pixel =
+                ComputeMatrixPadSize(
+                    gemm_m, config.gemm_m_per_block, gemm_k_even, config.gemm_k_per_block) +
+                ComputeMatrixPadSize(
+                    gemm_n, config.gemm_n_per_block, gemm_k_even, config.gemm_k_per_block) +
+                ComputeMatrixPadSize(
+                    gemm_m, config.gemm_m_per_block, gemm_n, config.gemm_n_per_block);
+            if(cur_pad_pixel < min_pad_pixel)
+            {
+                min_pad_pixel  = cur_pad_pixel;
+                selected_index = i;
+            }
+        }
+        CopyParameters(config_list[selected_index]);
+    }
+    else
+    {
+        // found a suitable m/n/k, now let's prepare other parmater and initialize one
+        auto& config_list = GetBwdXdlopsNHWCConfigList();
+        for(auto& config : config_list)
+        {
+            if(!((ctx.IsFp16() && config.precision == "fp16") ||
+                 (ctx.IsFp32() && config.precision == "fp32")))
+                continue;
+
+            if(m_per_block == config.gemm_m_per_block && n_per_block == config.gemm_n_per_block &&
+               k_per_block == config.gemm_k_per_block)
+            {
+                bool need_k_split = false;
+                if(ctx.IsFp16())
+                {
+                    // fp16 have extra limitation on c size, which dicide if need use need_k_split
+                    // or not
+                    if(c % 8 != 0 && c % 2 == 0)
+                    {
+                        need_k_split = true;
+                    }
+                }
+                size_t current_grid_size;
+                std::tie(std::ignore, std::ignore, current_grid_size) =
+                    GetImplicitGemmGtcDynamicBwdXdlopsNHWCKernel(ctx, config);
+                size_t gks = ComputeLog2GemmKGlobalSplitsWith2DMerge(current_grid_size,
+                                                                     1200,
+                                                                     k / group,
+                                                                     1,
+                                                                     config.gemm_k_per_block,
+                                                                     BWD_MAX_GEMM_K_SPLITS);
+                need_k_split |= gks != 0;
+                MIOPEN_LOG_I("into current m_per_block:" << m_per_block << ", n_per_block:"
+                                                         << n_per_block
+                                                         << ", k_per_block:"
+                                                         << k_per_block);
+                if(unit_conv && config.nxe == 0)
+                {
+                    CopyParameters(config);
+                    if(need_k_split)
+                        gemm_k_global_split = static_cast<int>(gks);
+                    return;
+                }
+                else if(!unit_conv && config.nxe != 0)
+                {
+                    CopyParameters(config);
+                    if(need_k_split)
+                        gemm_k_global_split = static_cast<int>(gks);
+                    return;
+                }
+                else
+                    continue;
+            }
+        }
+        MIOPEN_LOG_E("can't find a suitable heuristic config");
+        MIOPEN_THROW(miopenStatusInternalError);
+    }
+}
+bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValidValue() const
+{
+    if(IsDefaultConstructed())
+        return true;
+    auto& config_list = GetBwdXdlopsNHWCConfigList();
+    if(index >= config_list.size())
+        return false;
+    return *this == config_list[index];
+}
+bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::SetNextValue()
+{
+    if(use_spare_set)
+    {
+        auto& config_list = GetBwdXdlopsNHWCConfigList();
+        if(IsDefaultConstructed())
+        {
+            CopyParameters(config_list[index]);
+        }
+        else
+        {
+            if(gemm_k_global_split)
+            {
+                if(NextLinear<1, BWD_MAX_GEMM_K_SPLITS>(gemm_k_global_split))
+                    index++;
+                else
+                    return true;
+            }
+            else
+            {
+                index++;
+            }
+            if(index >= config_list.size())
+                return false;
+            CopyParameters(config_list[index]);
+        }
+        return true;
+    }
+    else
+    {
+        // always break generic search of main set (no spare), make sure we can use spare set
+        return false;
+    }
+}
+bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(const ConvolutionContext& ctx) const
+{
+    if(IsDefaultConstructed())
+        return false;
+
+    if(!((ctx.IsFp16() && precision == "fp16") || (ctx.IsFp32() && precision == "fp32")))
+        return false;
+
+    const auto group      = ctx.group_counts;
+    const auto k          = ctx.n_inputs;
+    const auto c          = ctx.n_outputs;
+    const auto stride_h   = ctx.in_height > 1 ? ctx.kernel_stride_h : 1;
+    const auto stride_w   = ctx.in_width > 1 ? ctx.kernel_stride_w : 1;
+    const auto dilation_h = ctx.kernel_size_h > 1 ? ctx.kernel_dilation_h : 1;
+    const auto dilation_w = ctx.kernel_size_w > 1 ? ctx.kernel_dilation_w : 1;
+    const auto pad_h      = ctx.pad_h;
+    const auto pad_w      = ctx.pad_w;
+    const auto y          = ctx.kernel_size_h;
+    const auto x          = ctx.kernel_size_w;
+
+    bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
+                     (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);
+
+    if(tensor_a_thread_lengths[1] != 1)
+    {
+        // if both 1, indicate padded c support
+        if(((k >> gemm_k_global_split) / group) % gemm_k_per_block != 0)
+            return false;
+        // also, add this restriction to c, for vector write out
+        if(ctx.IsFp16())
+        {
+            if(gemm_k_global_split)
+            {
+                if((c / group) % 2 != 0)
+                    return false;
+            }
+            else
+            {
+                if((c / group) % gcd(gemm_n_per_block, vector_store == 0 ? 8 : vector_store) != 0)
+                    return false;
+            }
+        }
+    }
+
+    if((nxe == 0) && !unit_conv)
+    {
+        return false;
+    }
+
+    // add more restriction for spare
+    if(use_spare_set)
+    {
+        // non 1x1 kernel can't run 1x1 case
+        if((nxe != 0) && unit_conv)
+            return false;
+
+        if(tensor_a_thread_lengths[1] == 1)
+        {
+            // pad k can't run non-pad k case
+            if(((k >> gemm_k_global_split) / group) % gemm_k_per_block == 0)
+                return false;
+        }
+    }
+    return true;
 }
 
 PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC
@@ -595,9 +634,17 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(const ConvolutionC
     if(!ctx.IsLayoutNHWC())
         return false;
 
-    const auto k = ctx.n_inputs;
-    if(k % 4 != 0)
-        return false; // currently this is the only limitation of dimensions, in bwd
+    const auto k     = ctx.n_inputs;
+    const auto c     = ctx.n_outputs;
+    const auto group = ctx.group_counts;
+
+    if((k / group) % 4 != 0)
+        return false; // gemm_k limitation
+    if(ctx.IsFp16())
+    {
+        if((c / group) % 2 != 0)
+            return false; // vector store limitation
+    }
     return true;
 }
 ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(
@@ -632,7 +679,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(
 
     kernel.comp_options = options.str();
 
-    MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
+    MIOPEN_LOG_I2(kernel.kernel_name + ", " + config.ToString());
 
     result.invoker_factory =
         conv::MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(ctx, config);

@@ -438,16 +438,6 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     int x                    = conv_problem.GetWeightsWidth();
     int group                = conv_problem.GetGroupCount();
 
-    if(config.merge_e)
-    {
-        uint32_t s_move_slice_k_y = (config.gemm_k_per_block / (x * (c / group))) % y;
-        uint32_t s_move_slice_k_x = (config.gemm_k_per_block / (c / group)) % x;
-        uint32_t s_move_slice_k_c = config.gemm_k_per_block % (c / group);
-        y                         = (s_move_slice_k_y << 24) | y;
-        x                         = (s_move_slice_k_x << 24) | x;
-        c                         = (s_move_slice_k_c << 24) | c;
-    }
-
     uint32_t gemm_m = n * ho * wo;
     uint32_t gemm_n = k / group;
     magic_div_u32_t mdiv_0, mdiv_1, mdiv_2, mdiv_3, mdiv_4, mdiv_5;
@@ -465,6 +455,16 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
         mdiv_4       = magic_div_u32_gen(x * (c / group));
         mdiv_5       = magic_div_u32_gen(c / group);
         shift_pack_1 = magic_div_u32_pack_shift(mdiv_4.shift, mdiv_5.shift, 0, 0);
+    }
+
+    if(config.merge_e)
+    {
+        uint32_t s_move_slice_k_y = (config.gemm_k_per_block / (x * (c / group))) % y;
+        uint32_t s_move_slice_k_x = (config.gemm_k_per_block / (c / group)) % x;
+        uint32_t s_move_slice_k_c = config.gemm_k_per_block % (c / group);
+        y                         = (s_move_slice_k_y << 24) | y;
+        x                         = (s_move_slice_k_x << 24) | x;
+        c                         = (s_move_slice_k_c << 24) | c;
     }
 
     bool need_set_zero = config.gemm_k_global_split > 0;

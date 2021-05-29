@@ -93,6 +93,36 @@ struct TunableImplicitGemmGTCDynamic_t
     }
 };
 
+// calculate log2_gemm_k_global_splits
+// with assumption that dimension_0, _1 will merge into a single dimension, and do split only along
+// dimension_0
+static inline size_t ComputeLog2GemmKGlobalSplitsWith2DMerge(size_t current_grid_size,
+                                                             size_t max_grid_size,
+                                                             size_t merge_dimension_0,
+                                                             size_t merge_dimensoin_1,
+                                                             size_t gemm_k_per_block,
+                                                             size_t max_log2_splits)
+{
+    size_t log2_gemm_k_global_splits = 0;
+    for(size_t gs = 0; gs < max_log2_splits; gs++)
+    {
+        if((current_grid_size << gs) > max_grid_size)
+            break;
+
+        if((merge_dimension_0 % (1 << gs)) != 0)
+        {
+            break;
+        }
+
+        if((merge_dimension_0 >> gs) * merge_dimensoin_1 % gemm_k_per_block != 0)
+        {
+            break;
+        }
+        log2_gemm_k_global_splits = gs;
+    }
+    return log2_gemm_k_global_splits;
+}
+
 static inline size_t
 ComputeMatrixPadSize(size_t col, size_t col_per_block, size_t row, size_t row_per_block)
 {
@@ -116,13 +146,13 @@ static inline std::tuple<int, int, int> // m_per_block, n_per_block, k_per_block
     // find exact divide
     for(const auto& tile : tile_list)
     {
-        int m, n, k;
-        std::tie(m, n, k) = tile;
-        if(gemm_m % m == 0 && gemm_n % n == 0 && gemm_k % k == 0)
+        int mpb, npb, kpb;
+        std::tie(mpb, npb, kpb) = tile;
+        if(gemm_m % mpb == 0 && gemm_n % npb == 0 && gemm_k % kpb == 0)
         {
-            m_per_block = m;
-            n_per_block = n;
-            k_per_block = k;
+            m_per_block = mpb;
+            n_per_block = npb;
+            k_per_block = kpb;
             found       = true;
             break;
         }
@@ -131,38 +161,38 @@ static inline std::tuple<int, int, int> // m_per_block, n_per_block, k_per_block
     if(!found)
     {
         size_t min_pad_pixel = std::numeric_limits<std::size_t>::max();
-        int gemm_m_pad       = 0;
-        int gemm_n_pad       = 0;
+        int mpb_pad          = 0;
+        int npb_pad          = 0;
         // first try gemm_m, gemm_n padding
         for(const auto& tile : tile_list)
         {
-            int m, n, k;
-            std::tie(m, n, k) = tile;
-            if(gemm_k % k != 0)
+            int mpb, npb, kpb;
+            std::tie(mpb, npb, kpb) = tile;
+            if(gemm_k % kpb != 0)
                 continue;
-            size_t cur_pad_pixel = ComputeMatrixPadSize(gemm_m, m, gemm_k, k) +
-                                   ComputeMatrixPadSize(gemm_n, n, gemm_k, k) +
-                                   ComputeMatrixPadSize(gemm_m, m, gemm_n, n);
-            if(min_pad_pixel < cur_pad_pixel)
+            size_t cur_pad_pixel = ComputeMatrixPadSize(gemm_m, mpb, gemm_k, kpb) +
+                                   ComputeMatrixPadSize(gemm_n, npb, gemm_k, kpb) +
+                                   ComputeMatrixPadSize(gemm_m, mpb, gemm_n, npb);
+            if(cur_pad_pixel < min_pad_pixel)
             {
-                cur_pad_pixel = min_pad_pixel;
-                gemm_m_pad    = m;
-                gemm_n_pad    = n;
+                min_pad_pixel = cur_pad_pixel;
+                mpb_pad       = mpb;
+                npb_pad       = npb;
             }
         }
 
-        // second, we need find the max k_per_block among the same m/n per block
+        // second, we need find the max k_per_block among the same mpb/npb per block
         for(const auto& tile : tile_list)
         {
-            int m, n, k;
-            std::tie(m, n, k) = tile;
-            if(m == gemm_m_pad && n == gemm_n_pad)
+            int mpb, npb, kpb;
+            std::tie(mpb, npb, kpb) = tile;
+            if(mpb == mpb_pad && npb == npb_pad)
             {
-                if(gemm_k % k == 0)
+                if(gemm_k % kpb == 0)
                 {
-                    m_per_block = m;
-                    n_per_block = n;
-                    k_per_block = k;
+                    m_per_block = mpb;
+                    n_per_block = npb;
+                    k_per_block = kpb;
                     found       = true;
                     break;
                 }

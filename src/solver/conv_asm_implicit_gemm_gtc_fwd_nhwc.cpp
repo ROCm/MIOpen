@@ -34,6 +34,7 @@
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC)
 
 #define FWD_MAX_GEMM_K_SPLITS 8
+// #define DEBUG_IGEMM_ASM_FWD_NHWC_CHECK_VALID_TILE_LIST
 
 namespace miopen {
 namespace solver {
@@ -191,24 +192,41 @@ GetFwdXdlopsNHWCConfigList()
     return kernel_param_list;
 }
 
+static std::tuple<std::string, // kernel_name
+                  size_t,      // block_size
+                  size_t>      // grid_size
+    GetImplicitGemmGtcDynamicFwdXdlopsNHWCKernel(
+        const ConvolutionContext& ctx,
+        const PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC& config)
+{
+    const auto& n     = ctx.batch_sz;
+    const auto& k     = ctx.n_outputs;
+    const auto& ho    = ctx.out_height;
+    const auto& wo    = ctx.out_width;
+    const auto& group = ctx.group_counts;
+
+    const auto gemm_m = n * ho * wo;
+    const auto gemm_n = k / group;
+    size_t block_size = config.BlockSize();
+    size_t grid_size  = group * integer_divide_ceil(gemm_m, config.gemm_m_per_block) *
+                       integer_divide_ceil(gemm_n, config.gemm_n_per_block) *
+                       (1 << config.gemm_k_global_split);
+    std::string kernel_name = config.ToKernelName();
+    return std::make_tuple(kernel_name, block_size, grid_size);
+}
+
 void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const ConvolutionContext& ctx)
 {
     static const std::vector<std::tuple<int, int, int>> tile_list_fp32 = {
         std::make_tuple(128, 128, 16),
         std::make_tuple(128, 128, 8),
-
         std::make_tuple(128, 64, 16),
         std::make_tuple(128, 64, 32),
-
         std::make_tuple(64, 128, 16),
-        std::make_tuple(64, 128, 32),
-
         std::make_tuple(128, 32, 32),
         std::make_tuple(128, 32, 16),
-
         std::make_tuple(256, 64, 16),
         std::make_tuple(64, 256, 16),
-
         std::make_tuple(64, 64, 32),
         std::make_tuple(64, 32, 32),
         std::make_tuple(64, 16, 32),
@@ -220,27 +238,67 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
         std::make_tuple(128, 128, 32),
         std::make_tuple(256, 128, 32),
         std::make_tuple(128, 256, 32),
-
         std::make_tuple(128, 64, 32),
-
         std::make_tuple(64, 128, 32),
-
         std::make_tuple(256, 64, 32),
         std::make_tuple(64, 256, 32),
-
         std::make_tuple(64, 64, 64),
         std::make_tuple(64, 64, 16),
-
-        std::make_tuple(128, 32, 32),
-        std::make_tuple(32, 128, 32),
-
         std::make_tuple(256, 32, 32),
         std::make_tuple(32, 256, 32),
-
+        std::make_tuple(128, 32, 32),
+        std::make_tuple(32, 128, 32),
         std::make_tuple(64, 32, 32),
-
         std::make_tuple(32, 64, 32),
     };
+
+#ifdef DEBUG_IGEMM_ASM_FWD_NHWC_CHECK_VALID_TILE_LIST
+    auto& c_list = GetFwdXdlopsNHWCConfigList();
+    for(auto& tile : tile_list_fp16)
+    {
+        int mp, np, kp;
+        std::tie(mp, np, kp) = tile;
+        bool found = false;
+        for(auto& config : c_list)
+        {
+            if(config.precision == "fp32")
+                continue;
+            if(config.gemm_m_per_block == mp && config.gemm_n_per_block == np &&
+               config.gemm_k_per_block == kp)
+            {
+                found = true;
+                break;
+            }
+        }
+        if(!found)
+        {
+            MIOPEN_LOG_E("fp16 list can't find " << mp << "x" << np << "x" << kp);
+            MIOPEN_THROW(miopenStatusInternalError);
+        }
+    }
+    for(auto& tile : tile_list_fp32)
+    {
+        int mp, np, kp;
+        std::tie(mp, np, kp) = tile;
+        bool found = false;
+        for(auto& config : c_list)
+        {
+            if(config.precision == "fp16")
+                continue;
+            if(config.gemm_m_per_block == mp && config.gemm_n_per_block == np &&
+               config.gemm_k_per_block == kp)
+            {
+                found = true;
+                break;
+            }
+        }
+        if(!found)
+        {
+            MIOPEN_LOG_E("fp32 list can't find " << mp << "x" << np << "x" << kp);
+            MIOPEN_THROW(miopenStatusInternalError);
+        }
+    }
+#endif
 
     const auto& n         = ctx.batch_sz;
     const auto& c         = ctx.n_inputs;
@@ -263,11 +321,13 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
 
     bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
                      (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);
+    bool not_support_vector_store = ctx.IsFp16() && ((k / group) % 2 != 0);
     int m_per_block, n_per_block, k_per_block;
 
     std::tie(m_per_block, n_per_block, k_per_block) = HeuristicInitMacroTileNoPadGemmK(
         gemm_m, gemm_n, gemm_k, ctx.IsFp32() ? tile_list_fp32 : tile_list_fp16);
-    if(m_per_block == 0 && n_per_block == 0 && k_per_block == 0)
+
+    if((m_per_block == 0 && n_per_block == 0 && k_per_block == 0) || not_support_vector_store)
     {
         // not found, let's try  gemm_k pad now.
         auto& config_list     = GetFwdXdlopsNHWCConfigList();
@@ -299,22 +359,50 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
     }
     else
     {
+        // found a suitable m/n/k, now let's prepare other parmater and initialize one
         auto& config_list = GetFwdXdlopsNHWCConfigList();
         for(auto& config : config_list)
         {
-            if(config.gemm_k_global_split)
-                continue; // TODO: find a method to deal with k split
+            if(!((ctx.IsFp16() && config.precision == "fp16") ||
+                 (ctx.IsFp32() && config.precision == "fp32")))
+                continue;
+
             if(m_per_block == config.gemm_m_per_block && n_per_block == config.gemm_n_per_block &&
                k_per_block == config.gemm_k_per_block)
             {
+                bool need_k_split = false;
+                if(ctx.IsFp16())
+                {
+                    // fp16 have extra limitation on k size, which dicide if need use need_k_split
+                    // or not
+                    if(k % 8 != 0 && k % 2 == 0)
+                    {
+                        need_k_split = true;
+                    }
+                }
+                size_t current_grid_size;
+                std::tie(std::ignore, std::ignore, current_grid_size) =
+                    GetImplicitGemmGtcDynamicFwdXdlopsNHWCKernel(ctx, config);
+                size_t gks = ComputeLog2GemmKGlobalSplitsWith2DMerge(current_grid_size,
+                                                                     1200,
+                                                                     c / group,
+                                                                     1,
+                                                                     config.gemm_k_per_block,
+                                                                     FWD_MAX_GEMM_K_SPLITS);
+                need_k_split |= gks != 0;
+
                 if(unit_conv && config.nxe == 0)
                 {
                     CopyParameters(config);
+                    if(need_k_split)
+                        gemm_k_global_split = static_cast<int>(gks);
                     return;
                 }
                 else if(!unit_conv && config.nxe != 0)
                 {
                     CopyParameters(config);
+                    if(need_k_split)
+                        gemm_k_global_split = static_cast<int>(gks);
                     return;
                 }
                 else
@@ -333,16 +421,13 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::SetNextValue()
         auto& config_list = GetFwdXdlopsNHWCConfigList();
         if(IsDefaultConstructed())
         {
-            index = 0;
             CopyParameters(config_list[index]);
-            if(gemm_k_global_split == 1)
-                gemm_k_global_split *= 2;
         }
         else
         {
             if(gemm_k_global_split)
             {
-                if(NextTwoPower<1, FWD_MAX_GEMM_K_SPLITS>(gemm_k_global_split))
+                if(NextLinear<1, FWD_MAX_GEMM_K_SPLITS>(gemm_k_global_split))
                     index++;
                 else
                     return true;
@@ -354,8 +439,6 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::SetNextValue()
             if(index >= config_list.size())
                 return false;
             CopyParameters(config_list[index]);
-            if(gemm_k_global_split == 1)
-                gemm_k_global_split *= 2;
         }
         return true;
     }
@@ -413,7 +496,7 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(const Convolution
         // if both 1, indicate padded c support
         if(((c >> gemm_k_global_split) / group) % gemm_k_per_block != 0)
             return false;
-        // also, add this restriction to k
+        // also, add this restriction to k, for vector write out
         if(ctx.IsFp16())
         {
             if(gemm_k_global_split)
@@ -450,29 +533,6 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(const Convolution
     }
 
     return true;
-}
-
-static std::tuple<std::string, // kernel_name
-                  size_t,      // block_size
-                  size_t>      // grid_size
-    GetImplicitGemmGtcDynamicFwdXdlopsNHWCKernel(
-        const ConvolutionContext& ctx,
-        const PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC& config)
-{
-    const auto& n     = ctx.batch_sz;
-    const auto& k     = ctx.n_outputs;
-    const auto& ho    = ctx.out_height;
-    const auto& wo    = ctx.out_width;
-    const auto& group = ctx.group_counts;
-
-    const auto gemm_m = n * ho * wo;
-    const auto gemm_n = k / group;
-    size_t block_size = config.BlockSize();
-    size_t grid_size  = group * integer_divide_ceil(gemm_m, config.gemm_m_per_block) *
-                       integer_divide_ceil(gemm_n, config.gemm_n_per_block) *
-                       (1 << config.gemm_k_global_split);
-    std::string kernel_name = config.ToKernelName();
-    return std::make_tuple(kernel_name, block_size, grid_size);
 }
 
 PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC
@@ -557,7 +617,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
 
     kernel.comp_options = options.str();
 
-    MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
+    MIOPEN_LOG_I2(kernel.kernel_name + ", " + config.ToString());
 
     result.invoker_factory = conv::MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(ctx, config);
     result.construction_params.push_back(kernel);

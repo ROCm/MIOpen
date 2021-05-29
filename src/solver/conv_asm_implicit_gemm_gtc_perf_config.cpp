@@ -168,8 +168,7 @@ operator==(const PerformanceConfigAsmImplicitGemmGTC& other) const
         && std::equal(std::begin(tensor_a_cluster_lengths), std::end(tensor_a_cluster_lengths), std::begin(other.tensor_a_cluster_lengths))
         && std::equal(std::begin(tensor_b_thread_lengths),  std::end(tensor_b_thread_lengths),  std::begin(other.tensor_b_thread_lengths))
         && std::equal(std::begin(tensor_b_cluster_lengths), std::end(tensor_b_cluster_lengths), std::begin(other.tensor_b_cluster_lengths))
-        && use_spare_set == other.use_spare_set
-        && index == other.index;
+        && use_spare_set == other.use_spare_set;
     // clang-format on
 }
 void PerformanceConfigAsmImplicitGemmGTC::CopyParameters(

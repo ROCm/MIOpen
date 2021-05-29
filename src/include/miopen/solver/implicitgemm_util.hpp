@@ -456,6 +456,26 @@ inline static bool PreviousTwoPower(int& v)
     return false;
 }
 
+template <int L, int H>
+inline static bool IsLinear(const int v)
+{
+    static_assert(L <= H, "L <= H");
+    return L <= v && v <= H;
+}
+
+template <int L, int H>
+inline static bool NextLinear(int& v)
+{
+    assert((IsLinear<L, H>(v)));
+    if(H == v)
+    {
+        v = L;
+        return true;
+    }
+    ++v;
+    return false;
+}
+
 template <bool L, bool H>
 inline static bool NextFlag(bool& v)
 {
