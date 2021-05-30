@@ -250,7 +250,6 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
         std::make_tuple(256, 64, 32),
         std::make_tuple(64, 256, 32),
         std::make_tuple(64, 64, 64),
-        std::make_tuple(64, 64, 16),
         std::make_tuple(256, 32, 32),
         std::make_tuple(32, 256, 32),
         std::make_tuple(128, 32, 32),
@@ -271,8 +270,10 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
             if(config.precision == "fp32")
                 continue;
             if(config.gemm_m_per_block == mp && config.gemm_n_per_block == np &&
-               config.gemm_k_per_block == kp)
+               config.gemm_k_per_block == kp &&
+               !(config.tensor_a_thread_lengths[1] == 1 && config.tensor_b_thread_lengths[1] == 1))
             {
+                // pad c configs can't be used in tile list
                 found = true;
                 break;
             }
@@ -293,8 +294,10 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
             if(config.precision == "fp16")
                 continue;
             if(config.gemm_m_per_block == mp && config.gemm_n_per_block == np &&
-               config.gemm_k_per_block == kp)
+               config.gemm_k_per_block == kp &&
+               !(config.tensor_a_thread_lengths[1] == 1 && config.tensor_b_thread_lengths[1] == 1))
             {
+                // pad c configs can't be used in tile list
                 found = true;
                 break;
             }
@@ -346,7 +349,7 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
             if(!((ctx.IsFp16() && config.precision == "fp16") ||
                  (ctx.IsFp32() && config.precision == "fp32")))
                 continue;
-            if(config.tensor_a_thread_lengths[1] != 1 || config.tensor_b_thread_lengths[1] != 1)
+            if(!(config.tensor_a_thread_lengths[1] == 1 && config.tensor_b_thread_lengths[1] == 1))
                 continue;
 
             size_t cur_pad_pixel =
@@ -498,8 +501,11 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(const Convolution
             return false;
     }
 
-    if(tensor_a_thread_lengths[1] != 1 || tensor_b_thread_lengths[1] != 1)
+    if(!(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[1] == 1))
     {
+        // in case k split too large
+        if(gemm_k_global_split && (gemm_k_per_block << gemm_k_global_split) > (k / group))
+            return false;
         // if both 1, indicate padded c support
         if(((c >> gemm_k_global_split) / group) % gemm_k_per_block != 0)
             return false;
@@ -527,16 +533,10 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(const Convolution
     // add more restriction for spare
     if(use_spare_set)
     {
-        // non 1x1 kernel can't run 1x1 case
-        if((nxe != 0) && unit_conv)
+        // non 1x1 kernel(except padding gemm_k) can't run 1x1 case
+        if(unit_conv &&
+           ((nxe != 0) && !(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[1] == 1)))
             return false;
-
-        if(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[1] == 1)
-        {
-            // pad c can't run non-pad c case
-            if(((c >> gemm_k_global_split) / group) % gemm_k_per_block == 0)
-                return false;
-        }
     }
 
     return true;
