@@ -283,7 +283,7 @@ endfunction()
 # under which new custom_tests should be run. Options are divided into several types. 
 # The option can be enabled or disabled, if nothing is specified, the default value is taken.
 # You can use any number of options, provided that options do not conflict 
-#   (e.g. "HALF_ENABLE HALF DISABLE" is illegal)
+#   (e.g. "HALF_ENABLE HALF_DISABLE" is illegal)
 # 1)First describes supported data type. ( HALF BF16 INT8 FLOAT ...)
 #   The option can be enabled or disabled by using '_ENABLED' and '_DISABLED' suffix.
 #   If nothing is specified, the default value is taken. 
@@ -291,7 +291,7 @@ endfunction()
 # 2)Second options type describes support GPU types (gfx900, gfx906, gfx908 ...)
 #   The option can be enabled or disabled by using '_ENABLED' and '_DISABLED' suffix.
 #   If nothing is specified, the default value is taken.
-#       Default: (gfx900&gfx906)=VEGA=enabled, GFX908=disabled.
+#       Default: VEGA=enabled, GFX908=disabled.
 # 3)Third type describes support for special internal components (MIOTENSILE MLIR ...)
 #   The option can be enabled or disabled by using '_ENABLED' and '_DISABLED' suffix.
 #   If nothing is specified, the default value is taken.
