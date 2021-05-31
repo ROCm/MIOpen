@@ -464,6 +464,12 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
         x                         = static_cast<int>((s_move_slice_k_x << 24) | x);
         c                         = static_cast<int>((s_move_slice_k_c << 24) | c);
     }
+    else
+    {
+        mdiv_4       = magic_div_u32_gen(1);
+        mdiv_5       = magic_div_u32_gen(1);
+        shift_pack_1 = 0;
+    }
 
     bool need_set_zero = config.gemm_k_global_split > 0;
 
