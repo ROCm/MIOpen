@@ -44,6 +44,20 @@ option( MIOPEN_TEST_MLIR "Add tests for MLIR -- EXPERIMENTAL" ${MIOPEN_USE_MLIR}
 set(MIOPEN_TEST_FLAGS "" CACHE STRING "")
 set(MIOPEN_TEST_GDB On CACHE BOOL "")
 
+set(MIOPEN_TEST_OPENCL FALSE)
+if(MIOPEN_BACKEND_OPENCL)
+    set(MIOPEN_TEST_OPENCL TRUE)
+endif()
+
+set(MIOPEN_TEST_HIP_NOGPU FALSE)
+if(MIOPEN_MODE_NOGPU)
+    set(MIOPEN_TEST_HIP_NOGPU TRUE)
+endif()
+
+set(MIOPEN_TEST_HIP FALSE)
+if(MIOPEN_BACKEND_HIP AND NOT MIOPEN_TEST_HIP_NOGPU)
+    set(MIOPEN_TEST_HIP TRUE)
+endif()
 
 if(MIOPEN_TEST_DRIVER_ITER_MODE)
     add_definitions(-DMIOPEN_TEST_DRIVER_MODE=2)
@@ -311,7 +325,7 @@ function(add_custom_test NAME)
         VEGA_ENABLED VEGA_DISABLED GFX908_ENABLED GFX908_DISABLED
         MIOTENSILE_ENABLED MIOTENSILE_DISABLED MLIR_ENABLED MLIR_DISABLED
         SKIP_UNLESS_ALL TEST_PERF_DB_RECORD_NOT_FOUND
-        OCL_ENABLED OCL_DISABLED HIP_ENABLED HIP_DISABLED PARSE_HIP_NOGPU_ENABLED PARSE_HIP_NOGPU_DISABLED
+        OCL_ENABLED OCL_DISABLED HIP_ENABLED HIP_DISABLED HIP_NOGPU_ENABLED HIP_NOGPU_DISABLED
     )
     set(oneValueArgs)
     set(multiValueArgs)
@@ -355,20 +369,20 @@ function(add_custom_test NAME)
     set(is_ocl_check)
     set(OCL_TEST_DEFAULT TRUE)
     option_support_check(${PARSE_OCL_ENABLED} ${PARSE_OCL_DISABLED} ${OCL_TEST_DEFAULT} is_ocl_check)
-    bool_not_f(${MIOPEN_BACKEND_OPENCL} NOT_MIOPEN_BACKEND_OPENCL)
-    bool_or_f(${NOT_MIOPEN_BACKEND_OPENCL} ${is_ocl_check} is_ocl_check)
+    bool_not_f(${MIOPEN_TEST_OPENCL} NOT_MIOPEN_TEST_OPENCL)
+    bool_or_f(${NOT_MIOPEN_TEST_OPENCL} ${is_ocl_check} is_ocl_check)
 
     set(is_hip_check)
     set(HIP_TEST_DEFAULT TRUE)
     option_support_check(${PARSE_HIP_ENABLED} ${PARSE_HIP_DISABLED} ${HIP_TEST_DEFAULT} is_hip_check)
-    bool_not_f(${MIOPEN_BACKEND_HIP} NOT_MIOPEN_BACKEND_HIP)
-    bool_or_f(${NOT_MIOPEN_BACKEND_HIP} ${is_hip_check} is_hip_check)
+    bool_not_f(${MIOPEN_TEST_HIP} NOT_MIOPEN_TEST_HIP)
+    bool_or_f(${NOT_MIOPEN_TEST_HIP} ${is_hip_check} is_hip_check)
     
     set(is_hip_nogpu_check)
     set(HIP_NOGPU_TEST_DEFAULT FALSE)
     option_support_check(${PARSE_HIP_NOGPU_ENABLED} ${PARSE_HIP_NOGPU_DISABLED} ${HIP_NOGPU_TEST_DEFAULT} is_hip_nogpu_check)
-    bool_not_f(${MIOPEN_MODE_NOGPU} NOT_MIOPEN_MODE_NOGPU)
-    bool_or_f(${NOT_MIOPEN_MODE_NOGPU} ${is_hip_nogpu_check} is_hip_nogpu_check)
+    bool_not_f(${MIOPEN_TEST_HIP_NOGPU} NOT_MIOPEN_TEST_HIP_NOGPU)
+    bool_or_f(${NOT_MIOPEN_TEST_HIP_NOGPU} ${is_hip_nogpu_check} is_hip_nogpu_check)
 
     # Some tests are xDLOPs specific and should not run on gfx900/906 targets.
     set(is_vega_check)
