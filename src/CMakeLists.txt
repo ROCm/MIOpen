@@ -196,7 +196,6 @@ set( MIOpen_Source
     conv/invokers/gen_x_w_y_pad.cpp
     conv/invokers/ocl_wrw_rdc.cpp
     conv/invokers/impl_gemm.cpp
-    conv/invokers/mlir_impl_gemm.cpp
     conv/invokers/impl_gemm_dynamic.cpp
     invoker_cache.cpp
     tensor.cpp
@@ -221,6 +220,9 @@ set( MIOpen_Source
     solver/conv_mlir_igemm_fwd.cpp
     solver/conv_mlir_igemm_bwd.cpp
     solver/conv_mlir_igemm_wrw.cpp
+    solver/conv_mlir_igemm_fwd_xdlops.cpp
+    solver/conv_mlir_igemm_bwd_xdlops.cpp
+    solver/conv_mlir_igemm_wrw_xdlops.cpp
     solver/conv_ocl_dir2D_bwdWrW_2.cpp
     solver/conv_ocl_dir2D_bwdWrW_53.cpp
     solver/conv_ocl_dir2D_bwdWrW_1x1.cpp
@@ -585,7 +587,11 @@ if(MIOPEN_USE_COMGR)
 endif()
 
 if(MIOPEN_USE_MLIR)
-    list(APPEND MIOpen_Source mlir_build.cpp)
+    list(APPEND MIOpen_Source 
+        mlir_build.cpp 
+        solver/mlir_common.cpp
+        conv/invokers/mlir_impl_gemm.cpp
+        )
 endif()
 
 # build library

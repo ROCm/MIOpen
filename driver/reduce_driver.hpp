@@ -362,10 +362,8 @@ int ReduceDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 template <typename Tgpu, typename Tref>
 int ReduceDriver<Tgpu, Tref>::RunForwardGPU()
 {
-    auto alpha =
-        reduce::convert_type<Tgpu>(static_cast<float>(this->inflags.GetValueDouble("alpha")));
-    auto beta =
-        reduce::convert_type<Tgpu>(static_cast<float>(this->inflags.GetValueDouble("beta")));
+    auto alpha = static_cast<float>(this->inflags.GetValueDouble("alpha"));
+    auto beta  = static_cast<float>(this->inflags.GetValueDouble("beta"));
 
     if(this->need_indices)
     {
@@ -466,8 +464,8 @@ int ReduceDriver<Tgpu, Tref>::VerifyForward()
 
     if(indices_sizeInBytes > 0)
     {
-        alpha = reduce::convert_type<Tgpu>(1.0f);
-        beta  = reduce::convert_type<Tgpu>(0.0f);
+        alpha = 1.0f;
+        beta  = 0.0f;
     };
 
     hostReduction.Run(alpha, in.data(), beta, outhost.data(), outhost_indices.data());
