@@ -50,7 +50,7 @@ message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
 set( MIOpen_SOVERSION 1.0 )
 
 
-function(add_kernels KERNEL_FILES)
+function(add_kernels FILE_NAME VAR_PREFIX KERNEL_FILES)
     set(INIT_KERNELS_LIST)
     set(KERNELS_DECLS)
     foreach(KERNEL_FILE ${KERNEL_FILES})
@@ -62,30 +62,12 @@ function(add_kernels KERNEL_FILES)
         get_filename_component(BASE_NAME ${KERNEL_FILE} NAME_WE)
         string(TOUPPER "${BASE_NAME}" KEY_NAME)
         string(MAKE_C_IDENTIFIER "${KEY_NAME}" VAR_NAME)
-        string(APPEND KERNELS_DECLS "extern const size_t MIOPEN_KERNEL_${VAR_NAME}_SIZE;\n")
-        string(APPEND KERNELS_DECLS "extern const unsigned char MIOPEN_KERNEL_${VAR_NAME}[];\n")
-        list(APPEND INIT_KERNELS_LIST "    { \"${KEY_NAME}\", std::string(reinterpret_cast<const char*>(MIOPEN_KERNEL_${VAR_NAME}), MIOPEN_KERNEL_${VAR_NAME}_SIZE) }")
+        string(APPEND KERNELS_DECLS "extern const size_t ${VAR_PREFIX}${VAR_NAME}_SIZE;\n")
+        string(APPEND KERNELS_DECLS "extern const unsigned char ${VAR_PREFIX}${VAR_NAME}[];\n")
+        list(APPEND INIT_KERNELS_LIST "    { \"${KEY_NAME}\", std::string(reinterpret_cast<const char*>(${VAR_PREFIX}${VAR_NAME}), ${VAR_PREFIX}${VAR_NAME}_SIZE) }")
     endforeach()
     string(REPLACE ";" ",\n" INIT_KERNELS "${INIT_KERNELS_LIST}")
-    configure_file(kernels/kernel.cpp.in ${PROJECT_BINARY_DIR}/kernel.cpp)
-endfunction()
-
-function(add_kernel_includes KERNEL_FILES)
-    set(INIT_KERNELS_LIST)
-    foreach(KERNEL_FILE ${KERNEL_FILES})
-        if("${CMAKE_VERSION}" VERSION_LESS 3.0)
-            configure_file(${KERNEL_FILE} ${KERNEL_FILE}.delete)
-        else()
-            set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${KERNEL_FILE})
-        endif()
-        get_filename_component(BASE_NAME ${KERNEL_FILE} NAME_WE)
-        get_filename_component(FILE_NAME ${KERNEL_FILE} NAME)
-        string(TOUPPER "${BASE_NAME}" KEY_NAME)
-        string(MAKE_C_IDENTIFIER "${KEY_NAME}" VAR_NAME)
-        list(APPEND INIT_KERNELS_LIST "    { \"${FILE_NAME}\", std::string(reinterpret_cast<const char*>(${VAR_NAME}), ${VAR_NAME}_SIZE) }")
-    endforeach()
-    string(REPLACE ";" ",\n" INIT_KERNELS "${INIT_KERNELS_LIST}")
-    configure_file(kernels/kernel_includes.cpp.in ${PROJECT_BINARY_DIR}/kernel_includes.cpp)
+    configure_file(kernels/${FILE_NAME}.in ${PROJECT_BINARY_DIR}/${FILE_NAME})
 endfunction()
 
 set( MIOpen_Source
@@ -459,8 +441,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/xform_bidirect_winograd_filter.s
         kernels/xform_bidirect_winograd_out.s)
 
-    add_kernels("${MIOPEN_KERNELS}")
-    add_kernel_includes("${MIOPEN_KERNEL_INCLUDES}")
+    add_kernels("kernel.cpp" "MIOPEN_KERNEL_" "${MIOPEN_KERNELS}")
+    add_kernels("kernel_includes.cpp" "" "${MIOPEN_KERNEL_INCLUDES}")
     configure_file(db_path.cpp.in ${PROJECT_BINARY_DIR}/db_path.cpp)
     list(APPEND MIOpen_Source
         activ.cpp
@@ -536,7 +518,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     set(KERNELS_SRC_BATCH_FACTOR 50 CACHE STRING "Amount of kernel source files to inline to a single object file.")
     set(KERNELS_BATCH_ID 0)
 
-    function(inline_kernels_src BATCH_FACTOR KERNELS KERNEL_INCLUDES)
+    function(inline_kernels_src BATCH_FACTOR KERNELS KERNEL_INCLUDES ADDITIONAL_OPTIONS)
         set(KERNELS_BATCH)
         set(KERNELS_BATCH_SIZE 0)
         set(PROCESSED 0)
@@ -555,7 +537,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
                     OUTPUT ${KERNEL_SRC_HPP_PATH}
                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                     DEPENDS addkernels ${KERNELS_BATCH} ${KERNEL_INCLUDES}
-                    COMMAND ${WINE_CMD} $<TARGET_FILE:addkernels> -target ${KERNEL_SRC_HPP_PATH} -extern -source ${KERNELS_BATCH}
+                    COMMAND ${WINE_CMD} $<TARGET_FILE:addkernels> -target ${KERNEL_SRC_HPP_PATH} -extern ${ADDITIONAL_OPTIONS} -source ${KERNELS_BATCH}
                     COMMENT "Inlining kernels batch #${KERNELS_BATCH_ID}"
                     )
                 configure_file(kernels/kernels_batch.cpp.in ${KERNEL_SRC_CPP_PATH})
@@ -570,16 +552,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         set(MIOpen_Source ${MIOpen_Source} PARENT_SCOPE)
     endfunction()
 
-    inline_kernels_src(${KERNELS_SRC_BATCH_FACTOR} "${MIOPEN_KERNELS}" "${MIOPEN_KERNEL_INCLUDES}")
-
-    list(APPEND MIOpen_Source ${PROJECT_BINARY_DIR}/include/miopen_kernel_includes.h)
-    add_custom_command(
-        OUTPUT ${PROJECT_BINARY_DIR}/include/miopen_kernel_includes.h
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        DEPENDS addkernels ${MIOPEN_KERNEL_INCLUDES}
-        COMMAND ${WINE_CMD} $<TARGET_FILE:addkernels> -no-recurse -guard GUARD_MIOPEN_KERNEL_INCLUDES_HPP_ -target ${PROJECT_BINARY_DIR}/include/miopen_kernel_includes.h -source ${MIOPEN_KERNEL_INCLUDES}
-        COMMENT "Inlining MIOpen HIP kernel includes"
-        )
+    inline_kernels_src(${KERNELS_SRC_BATCH_FACTOR} "${MIOPEN_KERNELS}" "${MIOPEN_KERNEL_INCLUDES}" "")
+    inline_kernels_src(${KERNELS_SRC_BATCH_FACTOR} "${MIOPEN_KERNEL_INCLUDES}" "" "-no-recurse")
 endif()
 
 if(MIOPEN_USE_COMGR)
@@ -587,8 +561,8 @@ if(MIOPEN_USE_COMGR)
 endif()
 
 if(MIOPEN_USE_MLIR)
-    list(APPEND MIOpen_Source 
-        mlir_build.cpp 
+    list(APPEND MIOpen_Source
+        mlir_build.cpp
         solver/mlir_common.cpp
         conv/invokers/mlir_impl_gemm.cpp
         )
