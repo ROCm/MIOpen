@@ -300,14 +300,18 @@ endfunction()
 #   By default they are disabled and can be enabled by option name.
 #   SKIP_UNLESS_ALL - this option means that the test is large and should only run if MIOPEN_TEST_ALL=TRUE.
 #   TEST_PERF_DB_RECORD_NOT_FOUND - this option means that test failed if output contains: "Perf Db: record not found"
-#
+# 5) Fifth type describes supported backend (OCL, HIP, HIP_NOGPU ...)
+#   The option can be enabled or disabled by using '_ENABLED' and '_DISABLED' suffix.
+#   If nothing is specified, the default value is taken.
+#       Default: OCL=enabled, HIP=enabled, HIP_NOGPU=disabled.
 
 function(add_custom_test NAME)
     set(options 
         BF16_ENABLED BF16_DISABLED HALF_ENABLED HALF_DISABLED INT8_ENABLED INT8_DISABLED FLOAT_ENABLED FLOAT_DISABLED
         VEGA_ENABLED VEGA_DISABLED GFX908_ENABLED GFX908_DISABLED
         MIOTENSILE_ENABLED MIOTENSILE_DISABLED MLIR_ENABLED MLIR_DISABLED
-        SKIP_UNLESS_ALL TEST_PERF_DB_RECORD_NOT_FOUND 
+        SKIP_UNLESS_ALL TEST_PERF_DB_RECORD_NOT_FOUND
+        OCL_ENABLED OCL_DISABLED HIP_ENABLED HIP_DISABLED PARSE_HIP_NOGPU_ENABLED PARSE_HIP_NOGPU_DISABLED
     )
     set(oneValueArgs)
     set(multiValueArgs)
@@ -347,7 +351,24 @@ function(add_custom_test NAME)
     option_support_check(${PARSE_MLIR_ENABLED} ${PARSE_MLIR_DISABLED} ${MLIR_TEST_DEFAULT} is_mlir_check)
     bool_not_f(${MIOPEN_TEST_MLIR} NOT_MIOPEN_TEST_MLIR)
     bool_or_f(${NOT_MIOPEN_TEST_MLIR} ${is_mlir_check} is_mlir_check)
+
+    set(is_ocl_check)
+    set(OCL_TEST_DEFAULT TRUE)
+    option_support_check(${PARSE_OCL_ENABLED} ${PARSE_OCL_DISABLED} ${OCL_TEST_DEFAULT} is_ocl_check)
+    bool_not_f(${MIOPEN_BACKEND_OPENCL} NOT_MIOPEN_BACKEND_OPENCL)
+    bool_or_f(${NOT_MIOPEN_BACKEND_OPENCL} ${is_ocl_check} is_ocl_check)
+
+    set(is_hip_check)
+    set(HIP_TEST_DEFAULT TRUE)
+    option_support_check(${PARSE_HIP_ENABLED} ${PARSE_HIP_DISABLED} ${HIP_TEST_DEFAULT} is_hip_check)
+    bool_not_f(${MIOPEN_BACKEND_HIP} NOT_MIOPEN_BACKEND_HIP)
+    bool_or_f(${NOT_MIOPEN_BACKEND_HIP} ${is_hip_check} is_hip_check)
     
+    set(is_hip_nogpu_check)
+    set(HIP_NOGPU_TEST_DEFAULT FALSE)
+    option_support_check(${PARSE_HIP_NOGPU_ENABLED} ${PARSE_HIP_NOGPU_DISABLED} ${HIP_NOGPU_TEST_DEFAULT} is_hip_nogpu_check)
+    bool_not_f(${MIOPEN_MODE_NOGPU} NOT_MIOPEN_MODE_NOGPU)
+    bool_or_f(${NOT_MIOPEN_MODE_NOGPU} ${is_hip_nogpu_check} is_hip_nogpu_check)
 
     # Some tests are xDLOPs specific and should not run on gfx900/906 targets.
     set(is_vega_check)
@@ -371,6 +392,7 @@ function(add_custom_test NAME)
      AND is_full_check 
      AND (is_miotensile_check AND is_mlir_check)
      AND ( is_half_check OR is_bfloat16_check OR is_int8_check OR is_float_check)
+     AND (is_ocl_check AND is_hip_check AND is_hip_nogpu_check)
     )
         if(PARSE_TEST_PERF_DB_RECORD_NOT_FOUND)
             set_tests_properties(${NAME} PROPERTIES FAIL_REGULAR_EXPRESSION "(FAILED)|(Perf Db: record not found)")
@@ -426,7 +448,7 @@ if(MIOPEN_TEST_MLIR)
     set(IMPLICITGEMM_MLIR_ARGS_B ${IMPLICITGEMM_ARGS} --verbose --disable-forward --disable-backward-weights)
     set(IMPLICITGEMM_MLIR_ARGS_W ${IMPLICITGEMM_ARGS} --verbose --disable-forward --disable-backward-data)
     
-    add_custom_test(test_conv_igemm_mlir  HALF_ENABLED
+    add_custom_test(test_conv_igemm_mlir  HALF_ENABLED MLIR_ENABLED
         COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_F} --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
         COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_F} --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
         COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_F} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1
@@ -456,7 +478,7 @@ if(MIOPEN_TEST_MLIR)
     # However, since it is a smoke target with MIOPEN_TEST_FLOAT, !MIOPEN_TEST_TENSILE, !SKIP_UNLESS_ALL flags
     # It will be picked up by a non-gfx908 target. Therefore the need to add this if condition guard.
     if(MIOPEN_TEST_GFX908)
-        add_custom_test(test_conv_igemm_mlir_xdlops HALF_ENABLED GFX908_ENABLED VEGA_DISABLED
+        add_custom_test(test_conv_igemm_mlir_xdlops HALF_ENABLED GFX908_ENABLED VEGA_DISABLED MLIR_ENABLED
             COMMAND ${IMPLICITGEMM_MLIR_ENV_F_XDLOPS} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_F} --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
             COMMAND ${IMPLICITGEMM_MLIR_ENV_F_XDLOPS} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_F} --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
             COMMAND ${IMPLICITGEMM_MLIR_ENV_F_XDLOPS} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_F} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1
