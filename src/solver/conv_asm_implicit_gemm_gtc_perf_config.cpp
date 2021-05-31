@@ -140,6 +140,7 @@ bool PerformanceConfigAsmImplicitGemmGTC::IsDefaultConstructed() const
         && index == 0;
     // clang-format on
 }
+
 bool PerformanceConfigAsmImplicitGemmGTC::
 operator==(const PerformanceConfigAsmImplicitGemmGTC& other) const
 {
@@ -161,14 +162,14 @@ operator==(const PerformanceConfigAsmImplicitGemmGTC& other) const
         && wave_repeat_n == other.wave_repeat_n
         && multihead == other.multihead
         && vector_store == other.vector_store
-        && gemm_k_global_split == other.gemm_k_global_split
+        && ((gemm_k_global_split == 0 && other.gemm_k_global_split == 0)
+            || (gemm_k_global_split > 0 && other.gemm_k_global_split > 0))
         && merge_e == other.merge_e
         && tensor_a_pass_through == other.tensor_a_pass_through
         && std::equal(std::begin(tensor_a_thread_lengths),  std::end(tensor_a_thread_lengths),  std::begin(other.tensor_a_thread_lengths))
         && std::equal(std::begin(tensor_a_cluster_lengths), std::end(tensor_a_cluster_lengths), std::begin(other.tensor_a_cluster_lengths))
         && std::equal(std::begin(tensor_b_thread_lengths),  std::end(tensor_b_thread_lengths),  std::begin(other.tensor_b_thread_lengths))
-        && std::equal(std::begin(tensor_b_cluster_lengths), std::end(tensor_b_cluster_lengths), std::begin(other.tensor_b_cluster_lengths))
-        && use_spare_set == other.use_spare_set;
+        && std::equal(std::begin(tensor_b_cluster_lengths), std::end(tensor_b_cluster_lengths), std::begin(other.tensor_b_cluster_lengths));
     // clang-format on
 }
 void PerformanceConfigAsmImplicitGemmGTC::CopyParameters(

@@ -2486,6 +2486,7 @@ struct PerformanceConfigAsmImplicitGemmGTC : Serializable<PerformanceConfigAsmIm
     static void Visit(Self&& self, F f)
     {
         f(self.direction, "dir");
+        f(self.tensor_layout, "lyt");
         f(self.precision, "pre");
         f(self.nxb, "nxb");
         f(self.nxe, "nxe");
@@ -2506,8 +2507,6 @@ struct PerformanceConfigAsmImplicitGemmGTC : Serializable<PerformanceConfigAsmIm
         f(self.gemm_k_global_split, "gks");
         f(self.merge_e, "me");
         f(self.tensor_a_pass_through, "pta");
-        // f(self.use_spare_set,   "use_spare_set");
-        // f(self.index,   "index");
 
         f(self.tensor_a_thread_lengths[0], "ta0");
         f(self.tensor_a_thread_lengths[1], "ta1");
@@ -2528,6 +2527,7 @@ struct PerformanceConfigAsmImplicitGemmGTC : Serializable<PerformanceConfigAsmIm
         f(self.tensor_b_cluster_lengths[1], "cb1");
         f(self.tensor_b_cluster_lengths[2], "cb2");
         f(self.tensor_b_cluster_lengths[3], "cb3");
+        f(self.index, "index");
     }
 
     void HeuristicInit(const ConvolutionContext& ctx);
