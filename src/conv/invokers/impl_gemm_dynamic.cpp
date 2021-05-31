@@ -441,7 +441,8 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     uint32_t gemm_m = n * ho * wo;
     uint32_t gemm_n = k / group;
     magic_div_u32_t mdiv_0, mdiv_1, mdiv_2, mdiv_3, mdiv_4, mdiv_5;
-    uint32_t shift_pack_0, shift_pack_1, pack0;
+    uint32_t shift_pack_0, shift_pack_1;
+    uint32_t pack0 = 0;
 
     mdiv_0 = magic_div_u32_gen((gemm_n + config.gemm_n_per_block - 1) / config.gemm_n_per_block);
     mdiv_1 = magic_div_u32_gen(ho * wo);
@@ -450,21 +451,18 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
                                ((gemm_n + config.gemm_n_per_block - 1) / config.gemm_n_per_block));
 
     shift_pack_0 = magic_div_u32_pack_shift(mdiv_0.shift, mdiv_1.shift, mdiv_2.shift, mdiv_3.shift);
-    if(config.merge_e)
+    if(config.merge_e != 0)
     {
         mdiv_4       = magic_div_u32_gen(x * (c / group));
         mdiv_5       = magic_div_u32_gen(c / group);
         shift_pack_1 = magic_div_u32_pack_shift(mdiv_4.shift, mdiv_5.shift, 0, 0);
-    }
 
-    if(config.merge_e)
-    {
         uint32_t s_move_slice_k_y = (config.gemm_k_per_block / (x * (c / group))) % y;
         uint32_t s_move_slice_k_x = (config.gemm_k_per_block / (c / group)) % x;
         uint32_t s_move_slice_k_c = config.gemm_k_per_block % (c / group);
-        y                         = (s_move_slice_k_y << 24) | y;
-        x                         = (s_move_slice_k_x << 24) | x;
-        c                         = (s_move_slice_k_c << 24) | c;
+        y                         = static_cast<int>((s_move_slice_k_y << 24) | y);
+        x                         = static_cast<int>((s_move_slice_k_x << 24) | x);
+        c                         = static_cast<int>((s_move_slice_k_c << 24) | c);
     }
 
     bool need_set_zero = config.gemm_k_global_split > 0;
@@ -598,12 +596,12 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     uint32_t shift_pack_0 =
         magic_div_u32_pack_shift(mdiv_0.shift, mdiv_1.shift, mdiv_2.shift, mdiv_3.shift);
 
-    int dtile_iy = num_of_gemms > 1 ? mdiv_x_tilda.magic : 0;
-    int dtile_ix = num_of_gemms > 1 ? mdiv_x_tilda.shift : 0;
-    int dslice_y = num_of_gemms > 1 ? mdiv_y_tilda.magic : y;
-    int dslice_x = num_of_gemms > 1 ? mdiv_y_tilda.shift : x;
-    int dtile_h  = num_of_gemms > 1 ? mdiv_group_mn.magic : h_tilda;
-    int dtile_w  = num_of_gemms > 1 ? mdiv_group_mn.shift : w_tilda;
+    int dtile_iy = num_of_gemms > 1 ? static_cast<int>(mdiv_x_tilda.magic) : 0;
+    int dtile_ix = num_of_gemms > 1 ? static_cast<int>(mdiv_x_tilda.shift) : 0;
+    int dslice_y = num_of_gemms > 1 ? static_cast<int>(mdiv_y_tilda.magic) : y;
+    int dslice_x = num_of_gemms > 1 ? static_cast<int>(mdiv_y_tilda.shift) : x;
+    int dtile_h  = num_of_gemms > 1 ? static_cast<int>(mdiv_group_mn.magic) : h_tilda;
+    int dtile_w  = num_of_gemms > 1 ? static_cast<int>(mdiv_group_mn.shift) : w_tilda;
 
     bool need_set_zero = false;
     if(y < stride_h || x < stride_w || dilation_h != 1 || dilation_w != 1)

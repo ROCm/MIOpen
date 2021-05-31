@@ -297,13 +297,13 @@ void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(const Convo
     };
 
 #ifdef DEBUG_IGEMM_ASM_BWD_NHWC_CHECK_VALID_TILE_LIST
-    auto& c_list = GetBwdXdlopsNHWCConfigList();
-    for(auto& tile : tile_list_fp16)
+    const auto& c_list = GetBwdXdlopsNHWCConfigList();
+    for(const auto& tile : tile_list_fp16)
     {
         int mp, np, kp;
         std::tie(mp, np, kp) = tile;
         bool found = false;
-        for(auto& config : c_list)
+        for(const auto& config : c_list)
         {
             if(config.precision == "fp32")
                 continue;
@@ -321,12 +321,12 @@ void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(const Convo
             MIOPEN_THROW(miopenStatusInternalError);
         }
     }
-    for(auto& tile : tile_list_fp32)
+    for(const auto& tile : tile_list_fp32)
     {
         int mp, np, kp;
         std::tie(mp, np, kp) = tile;
         bool found = false;
-        for(auto& config : c_list)
+        for(const auto& config : c_list)
         {
             if(config.precision == "fp16")
                 continue;
@@ -400,12 +400,12 @@ void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(const Convo
     if((m_per_block == 0 && n_per_block == 0 && k_per_block == 0) || not_support_vector_store)
     {
         // not found, let's try  gemm_k pad now.
-        auto& config_list     = GetBwdXdlopsNHWCConfigList();
-        size_t min_pad_pixel  = std::numeric_limits<std::size_t>::max();
-        size_t selected_index = 0;
+        const auto& config_list = GetBwdXdlopsNHWCConfigList();
+        size_t min_pad_pixel    = std::numeric_limits<std::size_t>::max();
+        size_t selected_index   = 0;
         for(size_t i = 0; i < config_list.size(); i++)
         {
-            auto& config = config_list[i];
+            const auto& config = config_list[i];
             if(!((ctx.IsFp16() && config.precision == "fp16") ||
                  (ctx.IsFp32() && config.precision == "fp32")))
                 continue;
@@ -430,8 +430,8 @@ void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(const Convo
     else
     {
         // found a suitable m/n/k, now let's prepare other parmater and initialize one
-        auto& config_list = GetBwdXdlopsNHWCConfigList();
-        for(auto& config : config_list)
+        const auto& config_list = GetBwdXdlopsNHWCConfigList();
+        for(const auto& config : config_list)
         {
             if(!((ctx.IsFp16() && config.precision == "fp16") ||
                  (ctx.IsFp32() && config.precision == "fp32")))
@@ -464,14 +464,7 @@ void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(const Convo
                                                          << n_per_block
                                                          << ", k_per_block:"
                                                          << k_per_block);
-                if(unit_conv && config.nxe == 0)
-                {
-                    CopyParameters(config);
-                    if(need_k_split)
-                        gemm_k_global_split = static_cast<int>(gks);
-                    return;
-                }
-                else if(!unit_conv && config.nxe != 0)
+                if((unit_conv && config.nxe == 0) || (!unit_conv && config.nxe != 0))
                 {
                     CopyParameters(config);
                     if(need_k_split)
@@ -490,7 +483,7 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValidValue() const
 {
     if(IsDefaultConstructed())
         return true;
-    auto& config_list = GetBwdXdlopsNHWCConfigList();
+    const auto& config_list = GetBwdXdlopsNHWCConfigList();
     if(index >= config_list.size())
         return false;
     return *this == config_list[index];
@@ -499,14 +492,14 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::SetNextValue()
 {
     if(use_spare_set)
     {
-        auto& config_list = GetBwdXdlopsNHWCConfigList();
+        const auto& config_list = GetBwdXdlopsNHWCConfigList();
         if(IsDefaultConstructed())
         {
             CopyParameters(config_list[index]);
         }
         else
         {
-            if(gemm_k_global_split)
+            if(gemm_k_global_split != 0)
             {
                 if(NextLinear<1, BWD_MAX_GEMM_K_SPLITS>(gemm_k_global_split))
                     index++;
@@ -555,7 +548,7 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(const Convolution
     if(!(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[1] == 1))
     {
         // in case k split too large
-        if(gemm_k_global_split && (gemm_k_per_block << gemm_k_global_split) > (k / group))
+        if(gemm_k_global_split != 0 && (gemm_k_per_block << gemm_k_global_split) > (k / group))
             return false;
         // if both 1, indicate padded c support
         if(((k >> gemm_k_global_split) / group) % gemm_k_per_block != 0)
@@ -563,7 +556,7 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(const Convolution
         // also, add this restriction to c, for vector write out
         if(ctx.IsFp16())
         {
-            if(gemm_k_global_split)
+            if(gemm_k_global_split != 0)
             {
                 if((c / group) % 2 != 0)
                     return false;

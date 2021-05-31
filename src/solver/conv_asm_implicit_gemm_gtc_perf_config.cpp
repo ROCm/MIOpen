@@ -78,14 +78,14 @@ PerformanceConfigAsmImplicitGemmGTC::PerformanceConfigAsmImplicitGemmGTC(
       vector_store(vs),
       gemm_k_global_split(gks),
       merge_e(me),
-      tensor_a_pass_through(pta)
+      tensor_a_pass_through(pta),
+      tensor_a_thread_lengths(ta_t),
+      tensor_a_cluster_lengths(ta_c),
+      tensor_b_thread_lengths(tb_t),
+      tensor_b_cluster_lengths(tb_c),
+      use_spare_set(spare),
+      index(0)
 {
-    std::copy(ta_t.begin(), ta_t.end(), std::begin(tensor_a_thread_lengths));
-    std::copy(ta_c.begin(), ta_c.end(), std::begin(tensor_a_cluster_lengths));
-    std::copy(tb_t.begin(), tb_t.end(), std::begin(tensor_b_thread_lengths));
-    std::copy(tb_c.begin(), tb_c.end(), std::begin(tensor_b_cluster_lengths));
-    use_spare_set = spare;
-    index         = 0;
 }
 
 void PerformanceConfigAsmImplicitGemmGTC::HeuristicInit(const ConvolutionContext& ctx)
@@ -214,7 +214,7 @@ std::string PerformanceConfigAsmImplicitGemmGTC::ToString() const
 {
     std::ostringstream ss;
     ss << ToKernelName();
-    if(gemm_k_global_split)
+    if(gemm_k_global_split != 0)
         ss << "[" << gemm_k_global_split << "]";
     return ss.str();
 }
@@ -236,13 +236,13 @@ std::string PerformanceConfigAsmImplicitGemmGTC::ToKernelName() const
                 << tensor_b_cluster_lengths[0] << "x" << tensor_b_cluster_lengths[1] << "x"
                 << tensor_b_cluster_lengths[2] << "x" << tensor_b_cluster_lengths[3];
 
-    if(tensor_a_pass_through)
+    if(tensor_a_pass_through != 0)
         kernel_name << "_pta";
-    if(multihead)
+    if(multihead != 0)
         kernel_name << "_mh";
-    if(merge_e)
+    if(merge_e != 0)
         kernel_name << "_me";
-    if(vector_store)
+    if(vector_store != 0)
         kernel_name << "_vs" + std::to_string(vector_store);
     if(gemm_k_global_split != 0)
         kernel_name << "_gkgs";

@@ -2392,10 +2392,10 @@ struct PerformanceConfigAsmImplicitGemmGTC : Serializable<PerformanceConfigAsmIm
     int merge_e;
     int tensor_a_pass_through;
 
-    int tensor_a_thread_lengths[4];
-    int tensor_a_cluster_lengths[4];
-    int tensor_b_thread_lengths[4];
-    int tensor_b_cluster_lengths[4];
+    std::vector<int> tensor_a_thread_lengths;
+    std::vector<int> tensor_a_cluster_lengths;
+    std::vector<int> tensor_b_thread_lengths;
+    std::vector<int> tensor_b_cluster_lengths;
 
     bool use_spare_set;
     int index;
