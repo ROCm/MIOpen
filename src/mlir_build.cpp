@@ -148,6 +148,12 @@ void MiirGenLaunchParams(const std::string& params, size_t& local_size, size_t& 
     check_miir_error(status, "miirGetExecutionDims");
 }
 
+bool MiirIsConfigApplicable(const std::string& params)
+{
+    AutoMiirHandle handle(params);
+    return MIIR_SUCCESS == miirLowerTuningParams(handle());
+}
+
 void MiirGenBin(const std::string& params, std::vector<char>& buffer)
 {
     AutoMiirHandle handle(params);
@@ -159,6 +165,15 @@ void MiirGenBin(const std::string& params, std::vector<char>& buffer)
     buffer.resize(size);
     status = miirBufferGet(handle(), buffer.data(), &size);
     check_miir_error(status, "miirBufferGet");
+}
+
+int MiirGetKernelCount(const std::string& params)
+{
+    AutoMiirHandle handle(params);
+    const auto kernel_count = miirGetKernelCount(handle());
+    if(kernel_count < 1)
+        MIOPEN_THROW("miirGetKernelCount invalid count: " + std::to_string(kernel_count));
+    return kernel_count;
 }
 
 } // namespace miopen

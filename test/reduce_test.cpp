@@ -41,10 +41,6 @@
 
 #include "cpu_reduce_util.hpp"
 
-/// Not reproducible with ROCm 4.0 and 4.1.
-#define WORKAROUND_GPU_MEM_ACCESS_FAULT \
-    (HIP_PACKAGE_VERSION_MAJOR == 3 && HIP_PACKAGE_VERSION_MINOR == 7)
-
 template <class T, bool toVerifyData>
 struct verify_reduce_with_indices
 {
@@ -53,8 +49,8 @@ struct verify_reduce_with_indices
     tensor<T> output;
     tensor<T> workspace;
     tensor<int> indices;
-    T alpha;
-    T beta;
+    float alpha;
+    float beta;
 
     miopenReduceTensorOp_t reduceOp;
     miopenDataType_t compTypeVal;
@@ -68,8 +64,8 @@ struct verify_reduce_with_indices
         const tensor<T>& output_,
         const tensor<T>& workspace_,
         const tensor<int>& indices_,
-        T alpha_,
-        T beta_)
+        float alpha_,
+        float beta_)
     {
         reduce    = reduce_;
         input     = input_;
@@ -255,7 +251,7 @@ struct verify_reduce_with_indices
             // scale the prior dst value and add it to the accumulated value
             if(!float_equal_zero(beta))
             {
-                accuVal += convert_type<compType>(output.data[0] * beta);
+                accuVal += convert_type<compType>(output.data[0]) * convert_type<compType>(beta);
             };
 
             // store the reduced value to dst location
@@ -317,7 +313,8 @@ struct verify_reduce_with_indices
 
                 // scale the prior dst value and add it to the accumulated value
                 if(!float_equal_zero(beta))
-                    accuVal += convert_type<compType>(output.data[dst_offset] * beta);
+                    accuVal += convert_type<compType>(output.data[dst_offset]) *
+                               convert_type<compType>(beta);
 
                 // store the reduced value to dst location
                 res.data[dst_offset]         = convert_type<T>(accuVal);
@@ -395,8 +392,8 @@ struct verify_reduce_no_indices
     tensor<T> input;
     tensor<T> output;
     tensor<T> workspace;
-    T alpha;
-    T beta;
+    float alpha;
+    float beta;
 
     miopenReduceTensorOp_t reduceOp;
     miopenDataType_t compTypeVal;
@@ -407,8 +404,8 @@ struct verify_reduce_no_indices
         const tensor<T>& input_,
         const tensor<T>& output_,
         const tensor<T>& workspace_,
-        T alpha_,
-        T beta_)
+        float alpha_,
+        float beta_)
     {
         reduce    = reduce_;
         input     = input_;
@@ -522,8 +519,8 @@ struct verify_reduce_no_indices
                 accuVal *= convert_type<compType>(alpha);
 
             // scale the prior dst value and add it to the accumulated value
-            if(!float_equal_one(beta))
-                accuVal += convert_type<compType>(output.data[0] * beta);
+            if(!float_equal_zero(beta))
+                accuVal += convert_type<compType>(output.data[0]) * convert_type<compType>(beta);
 
             // store the reduced value to dst location
             res.data[0] = convert_type<T>(accuVal);
@@ -581,7 +578,8 @@ struct verify_reduce_no_indices
 
                 // scale the prior dst value and add it to the accumulated value
                 if(!float_equal_zero(beta))
-                    accuVal += convert_type<compType>(output.data[dst_offset] * beta);
+                    accuVal += convert_type<compType>(output.data[dst_offset]) *
+                               convert_type<compType>(beta);
 
                 // store the reduced value to dst location
                 res.data[dst_offset] = convert_type<T>(accuVal);
@@ -711,22 +709,6 @@ struct reduce_driver : test_driver
                 compTypeVal = static_cast<int>(miopenFloat);
         }
 
-#if WORKAROUND_GPU_MEM_ACCESS_FAULT
-        if(std::is_same<T, half_float::half>::value)
-        {
-            if(inLengths == std::vector<std::size_t>{4, 3, 60, 50} &&
-               toReduceDims == std::vector<int>{1, 2, 3} &&
-               ((reduceOp == 1 && compTypeVal == 1 && nanOpt == 1 && indicesOpt == 0) ||
-                (reduceOp == 4 && /*compTypeVal == X && nanOpt == X*/ indicesOpt == 0) ||
-                (reduceOp == 5 && compTypeVal == 1 && /*nanOpt == X &&*/ indicesOpt == 0) ||
-                (reduceOp == 6 && compTypeVal == 1 && /*nanOpt == X &&*/ indicesOpt == 0) ||
-                (reduceOp == 7 && compTypeVal == 1 && /*nanOpt == X &&*/ indicesOpt == 0)))
-            {
-                std::cout << "Workaround: Skipping the test." << std::endl;
-                return;
-            }
-        }
-#endif
         miopen::ReduceTensorDescriptor reduceDesc(
             static_cast<miopenReduceTensorOp_t>(reduceOp),
             static_cast<miopenDataType_t>(compTypeVal),
@@ -838,30 +820,16 @@ struct reduce_driver : test_driver
 
             std::fill(indicesTensor.begin(), indicesTensor.end(), 1);
 
-            verify(verify_reduce_with_indices<T, true>(reduceDesc,
-                                                       inputTensor,
-                                                       outputTensor,
-                                                       workspaceTensor,
-                                                       indicesTensor,
-                                                       convert_type<T>(1.0),
-                                                       convert_type<T>(0.0)));
+            verify(verify_reduce_with_indices<T, true>(
+                reduceDesc, inputTensor, outputTensor, workspaceTensor, indicesTensor, 1.0f, 0.0f));
 
-            verify_equals(verify_reduce_with_indices<T, false>(reduceDesc,
-                                                               inputTensor,
-                                                               outputTensor,
-                                                               workspaceTensor,
-                                                               indicesTensor,
-                                                               convert_type<T>(1.0),
-                                                               convert_type<T>(0.0)));
+            verify_equals(verify_reduce_with_indices<T, false>(
+                reduceDesc, inputTensor, outputTensor, workspaceTensor, indicesTensor, 1.0f, 0.0f));
         }
         else
         {
-            verify(verify_reduce_no_indices<T>(reduceDesc,
-                                               inputTensor,
-                                               outputTensor,
-                                               workspaceTensor,
-                                               convert_type<T>(alpha),
-                                               convert_type<T>(beta)));
+            verify(verify_reduce_no_indices<T>(
+                reduceDesc, inputTensor, outputTensor, workspaceTensor, alpha, beta));
         };
     };
 };
