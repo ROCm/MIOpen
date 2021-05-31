@@ -645,8 +645,12 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(const ConvolutionC
     const auto c     = ctx.n_outputs;
     const auto group = ctx.group_counts;
 
-    if((k / group) % 4 != 0)
-        return false; // gemm_k limitation
+    if(ctx.IsFp32() && (k / group) % 4 != 0)
+        return false; // gemm_k limitation for fp32
+
+    if(ctx.IsFp16() && (k / group) % 16 != 0)
+        return false; // gemm_k limitation for fp16
+
     if(ctx.IsFp16())
     {
         if((c / group) % 2 != 0)
@@ -686,7 +690,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(
 
     kernel.comp_options = options.str();
 
-    MIOPEN_LOG_I2(kernel.kernel_name + ", " + config.ToString());
+    MIOPEN_LOG_I2("ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC: " + config.ToString());
 
     result.invoker_factory =
         conv::MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(ctx, config);

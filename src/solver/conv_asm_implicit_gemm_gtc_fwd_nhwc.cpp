@@ -624,7 +624,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
 
     kernel.comp_options = options.str();
 
-    MIOPEN_LOG_I2(kernel.kernel_name + ", " + config.ToString());
+    MIOPEN_LOG_I2("ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC: " + config.ToString());
 
     result.invoker_factory = conv::MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(ctx, config);
     result.construction_params.push_back(kernel);

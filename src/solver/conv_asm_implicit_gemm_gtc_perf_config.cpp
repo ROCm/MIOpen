@@ -209,29 +209,12 @@ void PerformanceConfigAsmImplicitGemmGTC::CopyParameters(
               std::begin(tensor_b_cluster_lengths));
 }
 
-struct SerializePair
-{
-    template <class Tv, class Tn>
-    void operator()(std::ostream& stream, char& sep, const Tv& value, const Tn name) const
-    {
-        if(sep != 0)
-            stream << sep;
-        stream << name << ":" << value;
-        sep = ',';
-    }
-};
-
 std::string PerformanceConfigAsmImplicitGemmGTC::ToString() const
 {
     std::ostringstream ss;
-    char sep = 0;
-    PerformanceConfigAsmImplicitGemmGTC::Visit(
-        static_cast<const PerformanceConfigAsmImplicitGemmGTC&>(*this),
-        std::bind(SerializePair{},
-                  std::ref(ss),
-                  std::ref(sep),
-                  std::placeholders::_1,
-                  std::placeholders::_2));
+    ss << ToKernelName();
+    if(gemm_k_global_split)
+        ss << "[" << gemm_k_global_split << "]";
     return ss.str();
 }
 std::string PerformanceConfigAsmImplicitGemmGTC::ToKernelName() const
