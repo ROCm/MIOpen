@@ -906,3 +906,12 @@ if(MIOPEN_TEST_CONV)
     COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	1	48	7	7	--weights	1	48	5	5	--pads_strides_dilations	0	0	4	4	1	1
 )
 endif()
+
+# REGRESSION TEST for issue #894
+if(MIOPEN_BACKEND_OPENCL AND MIOPEN_TEST_ALL AND MIOPEN_TEST_HALF)
+    set(CONV_OCL_REGRESSION_TEST_ENV MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvOclDirectFwd1x1)
+
+    add_custom_test(test_miopen_conv_ocl_half_regression SKIP_UNLESS_ALL ALLOW_HALF
+    COMMAND	${CONV_OCL_REGRESSION_TEST_ENV} $<TARGET_FILE:test_conv2d>  --verbose   --half  --cmode conv    --pmode default --group-count   1 --input	1   16	7	7	--weights	16	16	1	1	--pads_strides_dilations	0	0	1	1	1	1
+)
+endif()
