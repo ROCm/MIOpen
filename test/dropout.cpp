@@ -34,6 +34,10 @@
 #define DROPOUT_DEBUG_CTEST 0
 #define DROPOUT_LARGE_CTEST 0
 
+// OpenCL error creating buffer: 0 Invalid Buffer Size
+#define WORKAROUND_MLOPEN_ISSUE_2335 \
+    ((HIP_PACKAGE_VERSION_FLAT < 3007000000ULL) && MIOPEN_BACKEND_OPENCL)
+
 template <class T>
 struct verify_forward_dropout
 {
@@ -257,6 +261,12 @@ struct dropout_driver : test_driver
 
     void run()
     {
+// Workaround for issue #2335.
+// OpenCL error creating buffer: 0 Invalid Buffer Size
+#if WORKAROUND_MLOPEN_ISSUE_2335
+        std::cout << "Skip test for Issue #2335: " << std::endl;
+        return;
+#endif
 
         miopen::DropoutDescriptor DropoutDesc;
         unsigned long max_value  = miopen_type<T>{} == miopenHalf ? 5 : 17;
