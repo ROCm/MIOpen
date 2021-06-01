@@ -80,7 +80,7 @@ RUN cget -p $PREFIX init --cxx /opt/rocm/llvm/bin/clang++ --std=c++14 -DAMDGPU_T
 # Install dependencies
 RUN cget -p $PREFIX install pfultz2/rocm-recipes
 # Install a newer version of cmake for libMLIRMIOpen
-RUN cget -p $PREFIX install kitware/cmake@v3.13.4
+RUN if [ "$USE_TARGETID" = "ON" ] ; then cget -p $PREFIX install kitware/cmake@v3.15.1; else cget -p $PREFIX install kitware/cmake@v3.13.4; fi
 ADD min-requirements.txt /min-requirements.txt
 RUN CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -f /min-requirements.txt
 RUN cget -p $PREFIX install danmar/cppcheck@dd05839a7e63ef04afd34711cb3e1e0ef742882f
