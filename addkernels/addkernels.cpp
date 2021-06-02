@@ -90,7 +90,7 @@ void Bin2Hex(std::istream& source,
 
 void PrintHelp()
 {
-    std::cout << "Usage: bin2hex {<option>}" << std::endl;
+    std::cout << "Usage: addkernels {<option>}" << std::endl;
     std::cout << "Option format: -<option name>[ <option value>]" << std::endl;
     std::cout << std::endl;
     std::cout << "Options:" << std::endl;
@@ -102,6 +102,9 @@ void PrintHelp()
     std::cout << "           -b[uffer] <number>: read buffer size. Default: 512." << std::endl;
     std::cout << "           -g[uard] <string>: guard name. Default: no guard" << std::endl;
     std::cout << "           -n[o-recurse] : dont expand include files recursively. Default: off"
+              << std::endl;
+    std::cout << "           -m[ark-includes] : mark variables that represent include files with "
+                 "'__INC'. Default: off"
               << std::endl;
 }
 
@@ -125,7 +128,8 @@ void Process(const std::string& sourcePath,
              size_t bufferSize,
              size_t lineSize,
              bool recurse,
-             bool as_extern)
+             bool as_extern,
+             bool mark_includes)
 {
     std::string fileName(sourcePath);
     std::string extension, root;
@@ -137,6 +141,8 @@ void Process(const std::string& sourcePath,
     {
         extension = fileName.substr(extPos + 1);
         fileName  = fileName.substr(0, extPos);
+        if(mark_includes)
+            fileName = fileName + "__INC";
     }
 
     if(slashPos != std::string::npos)
@@ -212,6 +218,7 @@ int main(int argsn, char** args)
     std::ostream* target = &std::cout;
     bool recurse         = true;
     bool as_extern       = false;
+    bool mark_includes   = false;
 
     int i = 0;
     while(++i < argsn && **args != '-')
@@ -232,7 +239,7 @@ int main(int argsn, char** args)
 
             while(++i < argsn)
             {
-                Process(args[i], *target, bufferSize, lineSize, recurse, as_extern);
+                Process(args[i], *target, bufferSize, lineSize, recurse, as_extern, mark_includes);
             }
 
             *target << "#endif" << std::endl;
@@ -257,6 +264,8 @@ int main(int argsn, char** args)
             guard = args[++i];
         else if(arg == "n" || arg == "no-recurse")
             recurse = false;
+        else if(arg == "m" || arg == "mark-includes")
+            mark_includes = true;
         else if(arg == "e" || arg == "extern")
             as_extern = true;
         else
