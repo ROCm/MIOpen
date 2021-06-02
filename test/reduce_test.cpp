@@ -41,10 +41,6 @@
 
 #include "cpu_reduce_util.hpp"
 
-/// Not reproducible with ROCm 4.0 and 4.1.
-#define WORKAROUND_GPU_MEM_ACCESS_FAULT \
-    (HIP_PACKAGE_VERSION_MAJOR == 3 && HIP_PACKAGE_VERSION_MINOR == 7)
-
 template <class T, bool toVerifyData>
 struct verify_reduce_with_indices
 {
@@ -713,22 +709,6 @@ struct reduce_driver : test_driver
                 compTypeVal = static_cast<int>(miopenFloat);
         }
 
-#if WORKAROUND_GPU_MEM_ACCESS_FAULT
-        if(std::is_same<T, half_float::half>::value)
-        {
-            if(inLengths == std::vector<std::size_t>{4, 3, 60, 50} &&
-               toReduceDims == std::vector<int>{1, 2, 3} &&
-               ((reduceOp == 1 && compTypeVal == 1 && nanOpt == 1 && indicesOpt == 0) ||
-                (reduceOp == 4 && /*compTypeVal == X && nanOpt == X*/ indicesOpt == 0) ||
-                (reduceOp == 5 && compTypeVal == 1 && /*nanOpt == X &&*/ indicesOpt == 0) ||
-                (reduceOp == 6 && compTypeVal == 1 && /*nanOpt == X &&*/ indicesOpt == 0) ||
-                (reduceOp == 7 && compTypeVal == 1 && /*nanOpt == X &&*/ indicesOpt == 0)))
-            {
-                std::cout << "Workaround: Skipping the test." << std::endl;
-                return;
-            }
-        }
-#endif
         miopen::ReduceTensorDescriptor reduceDesc(
             static_cast<miopenReduceTensorOp_t>(reduceOp),
             static_cast<miopenDataType_t>(compTypeVal),
