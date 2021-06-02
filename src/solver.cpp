@@ -426,7 +426,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     RegisterWithSolver(registry, ++id, ConvMlirIgemmBwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
     RegisterWithSolver(registry, ++id, ConvMlirIgemmWrWXdlops{}, miopenConvolutionAlgoImplicitGEMM);
 
-    Register(registry, ++id, SolverDbId(activ::FwdSolver0{}));
+    Register(registry, ++id, SolverDbId(activ::ActivFwdSolver0{}));
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 

@@ -38,8 +38,7 @@ namespace solver {
 
 namespace activ {
 
-// Todo: rename before merging
-struct FwdSolver0 : public SolverBase<ProblemDescription>
+struct ActivFwdSolver0 : public SolverBase<ProblemDescription>
 {
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::activ::ProblemDescription& problem) const;

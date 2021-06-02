@@ -37,7 +37,7 @@ namespace solver {
 
 namespace activ {
 
-bool FwdSolver0::IsApplicable(const ExecutionContext&,
+bool ActivFwdSolver0::IsApplicable(const ExecutionContext&,
                               const miopen::activ::ProblemDescription& problem) const
 {
     if(problem.GetDirection() != miopen::activ::Direction::Forward)
@@ -87,7 +87,7 @@ bool FwdSolver0::IsApplicable(const ExecutionContext&,
     return x_elem_sz == y_elem_sz && (packed || t2D);
 }
 
-ConvSolution FwdSolver0::GetSolution(const ExecutionContext&,
+ConvSolution ActivFwdSolver0::GetSolution(const ExecutionContext&,
                                      const miopen::activ::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
