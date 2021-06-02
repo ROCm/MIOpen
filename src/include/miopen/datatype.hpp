@@ -132,7 +132,7 @@ inline std::string GetDataTypeKernelParams(miopenDataType_t type)
     ss << " -DMIOPEN_USE_BFP16=" << use_bfp16;
     ss << " -DMIOPEN_USE_INT32=" << use_int32;
     ss << " -DMIOPEN_USE_RNE_BFLOAT16=" << use_rne_bfloat16;
-    if(use_fp64)
+    if(use_fp64 != 0)
         ss << " -DMIOPEN_USE_FP64=" << use_fp64;
     return ss.str();
 }
