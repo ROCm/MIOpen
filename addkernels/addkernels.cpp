@@ -141,8 +141,6 @@ void Process(const std::string& sourcePath,
     {
         extension = fileName.substr(extPos + 1);
         fileName  = fileName.substr(0, extPos);
-        if(mark_includes)
-            fileName = fileName + "__INC";
     }
 
     if(slashPos != std::string::npos)
@@ -193,6 +191,9 @@ void Process(const std::string& sourcePath,
     }
 
     std::transform(variable.begin(), variable.end(), variable.begin(), ::toupper);
+
+    if(mark_includes)
+        variable = variable + "__INC";
 
     if(as_extern && variable.length() != 0)
     {
