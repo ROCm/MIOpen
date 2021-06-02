@@ -519,7 +519,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     set(KERNELS_SRC_BATCH_FACTOR 50 CACHE STRING "Amount of kernel source files to inline to a single object file.")
     set(KERNELS_BATCH_ID 0)
 
-    function(inline_kernels_src BATCH_FACTOR KERNELS KERNEL_INCLUDES EXTRA_OPTION_1 EXTRA_OPTION_2)
+    function(inline_kernels_src BATCH_FACTOR KERNELS KERNEL_INCLUDES EXTRA_OPTIONS)
         set(KERNELS_BATCH)
         set(KERNELS_BATCH_SIZE 0)
         set(PROCESSED 0)
@@ -538,7 +538,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
                     OUTPUT ${KERNEL_SRC_HPP_PATH}
                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                     DEPENDS addkernels ${KERNELS_BATCH} ${KERNEL_INCLUDES}
-                    COMMAND ${WINE_CMD} $<TARGET_FILE:addkernels> -target ${KERNEL_SRC_HPP_PATH} -extern ${EXTRA_OPTION_1} ${EXTRA_OPTION_2} -source ${KERNELS_BATCH}
+                    COMMAND ${WINE_CMD} $<TARGET_FILE:addkernels> -target ${KERNEL_SRC_HPP_PATH} -extern ${EXTRA_OPTIONS} -source ${KERNELS_BATCH}
                     COMMENT "Inlining kernels batch #${KERNELS_BATCH_ID}"
                     )
                 configure_file(kernels/kernels_batch.cpp.in ${KERNEL_SRC_CPP_PATH})
@@ -553,8 +553,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         set(MIOpen_Source ${MIOpen_Source} PARENT_SCOPE)
     endfunction()
 
-    inline_kernels_src(${KERNELS_SRC_BATCH_FACTOR} "${MIOPEN_KERNELS}" "${MIOPEN_KERNEL_INCLUDES}" "" "")
-    inline_kernels_src(${KERNELS_SRC_BATCH_FACTOR} "${MIOPEN_KERNEL_INCLUDES}" "" "-no-recurse" "-mark-includes")
+    inline_kernels_src(${KERNELS_SRC_BATCH_FACTOR} "${MIOPEN_KERNELS}" "${MIOPEN_KERNEL_INCLUDES}" "")
+    inline_kernels_src(${KERNELS_SRC_BATCH_FACTOR} "${MIOPEN_KERNEL_INCLUDES}" "" "-no-recurse;-mark-includes")
 endif()
 
 if(MIOPEN_USE_COMGR)
