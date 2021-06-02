@@ -1115,10 +1115,7 @@ void test_drive_impl_2(std::string program_name, std::vector<std::string> as)
         return;
     }
 
-    if(program_name.find("reduce") != std::string::npos)
-        set_driver_datatype<Driver>(d, arg_map);
-    else
-        throw std::runtime_error("Double is not supported");
+    set_driver_datatype<Driver>(d, arg_map);
 
     std::vector<std::vector<std::string>> configs = build_configs<Driver>(d, arg_map, keywords);
     size_t config_count                           = configs.size();
@@ -1175,10 +1172,7 @@ void test_drive_impl_1(std::string program_name, std::vector<std::string> as)
     }
     else if(arg_map.count("--double") > 0)
     {
-        if(program_name.find("reduce") == std::string::npos)
-            throw std::runtime_error("Double is not supported");
-        else
-            d.type = miopenDouble;
+        d.type = miopenDouble;
     }
     else
     {
