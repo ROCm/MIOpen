@@ -529,8 +529,6 @@ enable_clang_tidy(
         # too many narrowing conversions in our code
         -bugprone-narrowing-conversions
         -cppcoreguidelines-narrowing-conversions
-        #
-        #-concurrency-mt-unsafe
         -altera-struct-pack-align
         -cppcoreguidelines-prefer-member-initializer
 

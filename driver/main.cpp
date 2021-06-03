@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
         miopenGetVersion(&major, &minor, &patch);
         std::cout << "MIOpen (version: " << major << "." << minor << "." << patch << ")"
                   << std::endl;
-        exit(0);
+        exit(0); // NOLINT (concurrency-mt-unsafe)
     }
 
     // show command
@@ -177,7 +177,7 @@ int main(int argc, char* argv[])
     else
     {
         printf("Incorrect BaseArg\n");
-        exit(0);
+        exit(0); // NOLINT (concurrency-mt-unsafe)
     }
 
     drv->AddCmdLineArgs();

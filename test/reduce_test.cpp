@@ -29,6 +29,7 @@
 #include "verify.hpp"
 #include "get_handle.hpp"
 #include "tensor_holder.hpp"
+#include "random.hpp"
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <miopen/stringutils.hpp>
@@ -791,11 +792,11 @@ struct reduce_driver : test_driver
              indicesOpt != MIOPEN_REDUCE_TENSOR_NO_INDICES);
 
         // Special data generation for MIN/MAX/AMAX using a space of limitless number of values.
-        // This method is slower due to the use of rand(), it is usually used for manual testing
+        // This method is slower due to the use of GET_RAND(), it is usually used for manual testing
         auto gen_value_3 = [&](auto... is) {
             auto rand_upper   = tensor_elem_gen_integer{max_value}(is...);
             auto sign_value   = tensor_elem_gen_checkboard_sign{}(is...);
-            double rand_ratio = static_cast<double>(rand() / (static_cast<double>(RAND_MAX)));
+            double rand_ratio = static_cast<double>(GET_RAND() / (static_cast<double>(RAND_MAX)));
 
             return rand_upper * sign_value * rand_ratio;
         };

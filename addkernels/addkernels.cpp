@@ -110,6 +110,7 @@ void PrintHelp()
     std::cout << "Wrong usage: " << error << std::endl;
     std::cout << std::endl;
     PrintHelp();
+    // NOLINTNEXTLINE (concurrency-mt-unsafe)
     std::exit(1);
 }
 
@@ -152,6 +153,7 @@ void Process(const std::string& sourcePath,
     if(!sourceFile.good())
     {
         std::cerr << "File not found: " << sourcePath << std::endl;
+        // NOLINTNEXTLINE (concurrency-mt-unsafe)
         std::exit(1);
     }
 
@@ -180,6 +182,7 @@ void Process(const std::string& sourcePath,
         {
             std::cerr << ex.What() << std::endl;
             std::cerr << ex.GetTrace() << std::endl;
+            // NOLINTNEXTLINE (concurrency-mt-unsafe)
             std::exit(1);
         }
 

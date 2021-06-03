@@ -33,6 +33,7 @@
 #include <set>
 #include <vector>
 #include <cstdlib>
+#include "random.hpp"
 
 #define RNN_MM_TRANSPOSE 1
 #define RNN_MM_USEPARAGEMM 0
@@ -97,7 +98,7 @@ inline std::vector<std::vector<int>> generate_batchSeq(const int batchSize, cons
     {
         if(i > 0)
         {
-            int nvalue = currentval - rand() % modval;
+            int nvalue = currentval - GET_RAND() % modval;
             currentval = (nvalue < 1) ? 1 : nvalue;
             // printf("current value: %d\n", currentval);
         }
