@@ -55,17 +55,7 @@ std::string GetKernelSrc(std::string name)
     {
         start = slash + 1;
     }
-
-    int len = name.size();
-    auto ex = static_cast<int>(name.rfind('.'));
-    if(ex != std::string::npos)
-    {
-        len = ex - start;
-    }
-
-    auto key = name.substr(start, len);
-    // Convert to uppercase
-    std::transform(key.begin(), key.end(), key.begin(), ::toupper);
+    auto key = name.substr(start);
 
     auto it = kernels().find(key);
     if(it == kernels().end())
