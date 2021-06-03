@@ -858,6 +858,13 @@ static std::tuple<bool, // is suitable kernel found
         if(b % cfg.nxb != 0)
             continue;
 
+        // if thread length have multiple value in K direction, then must make sure K is multiply of
+        // gemm_k_per_block
+        if((cfg.tensor_a_thread_lengths[0] != 1 || cfg.tensor_a_thread_lengths[1] != 1 ||
+            cfg.tensor_b_thread_lengths[0] != 1 || cfg.tensor_b_thread_lengths[1] != 1) &&
+           (k % cfg.gemm_k_per_block != 0))
+            continue;
+
         bool gemm_k_valid = true;
         for(int gemm_id = 0; gemm_id < num_of_gemm; gemm_id++)
         {
@@ -927,6 +934,13 @@ static std::tuple<bool, // is suitable kernel found
                 continue;
 
             if(b % cfg.nxb != 0)
+                continue;
+
+            // if thread length have multiple value in K direction, then must make sure K is
+            // multiply of gemm_k_per_block
+            if((cfg.tensor_a_thread_lengths[0] != 1 || cfg.tensor_a_thread_lengths[1] != 1 ||
+                cfg.tensor_b_thread_lengths[0] != 1 || cfg.tensor_b_thread_lengths[1] != 1) &&
+               (k % cfg.gemm_k_per_block != 0))
                 continue;
 
             bool gemm_k_valid = true;

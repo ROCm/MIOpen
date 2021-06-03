@@ -120,7 +120,7 @@ struct ReductionKernelConfigurator
 
         if(invariantLength == 1)
         {
-            if(toReduceLength <
+            if(toReduceLength <=
                GredBlockWiseUpperReductionLen) // let one block to do this only reduction
                 return (1);
             else
@@ -129,13 +129,13 @@ struct ReductionKernelConfigurator
         }
         else
         {
-            if(toReduceLength <
+            if(toReduceLength <=
                GredDirectThreadWiseUpperReductionLen) // let one thread to do each reduction
                 return ((invariantLength + blockSize_ - 1) / blockSize_);
-            else if(toReduceLength <
+            else if(toReduceLength <=
                     GredDirectWarpWiseUpperReductionLen) // let one warp to do each reduction
                 return ((invariantLength + numWarpsPerBlock - 1) / numWarpsPerBlock);
-            else if(toReduceLength <
+            else if(toReduceLength <=
                     GredBlockWiseUpperReductionLen) // let one block to do each reduction
                 return (invariantLength);
             else
@@ -159,7 +159,7 @@ struct ReductionKernelConfigurator
 
         if(invariantLength == 1)
         {
-            if(toReduceLength <
+            if(toReduceLength <=
                GredBlockWiseUpperReductionLen) // let one block to do this only reduction
                 return (Reduce_BlockWise);
             else // let multiple blocks to do this only reduction
@@ -167,13 +167,13 @@ struct ReductionKernelConfigurator
         }
         else
         {
-            if(toReduceLength <
+            if(toReduceLength <=
                GredDirectThreadWiseUpperReductionLen) // let one thread to do each reduction
                 return (Reduce_DirectThreadWise);
-            else if(toReduceLength <
+            else if(toReduceLength <=
                     GredDirectWarpWiseUpperReductionLen) // let one warp to do each reduction
                 return (Reduce_DirectWarpWise);
-            else if(toReduceLength <
+            else if(toReduceLength <=
                     GredBlockWiseUpperReductionLen) // let one block to do each reduction
                 return (Reduce_BlockWise);
             else
@@ -197,9 +197,9 @@ struct ReductionKernelConfigurator
 
     std::size_t getGridSize_2(std::size_t invariantLength, std::size_t toReduceLength) const
     {
-        if(toReduceLength < warpSize_ / 4) // let one thread to do each reduction
+        if(toReduceLength <= warpSize_ / 4) // let one thread to do each reduction
             return ((invariantLength + blockSize_ - 1) / blockSize_);
-        else if(toReduceLength < blockSize_) // let one warp to do each reduction
+        else if(toReduceLength <= blockSize_) // let one warp to do each reduction
             return ((invariantLength + numWarpsPerBlock - 1) / numWarpsPerBlock);
         else
             return (invariantLength); // let one block to do each reduction
@@ -570,6 +570,8 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
         param += " -DCK_USE_AMD_BUFFER_ADDRESSING=0 ";
 #endif
 
+    std::string param1 = param + " -DCK_PARAM_GRIDSIZE=" + std::to_string(gridSize) + " ";
+
     std::string program_name = "gridwise_generic_reduction.cpp";
     std::string algo_name    = "generic_reduce_tensor";
     std::string network_config;
@@ -593,13 +595,15 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
     float alphaVal = *reinterpret_cast<const float*>(alpha);
     float betaVal  = *reinterpret_cast<const float*>(beta);
 
-    handle.AddKernel(algo_name, network_config, program_name, kernel_name1, vld_1, vgd_1, param)(
+    handle.AddKernel(algo_name, network_config, program_name, kernel_name1, vld_1, vgd_1, param1)(
         alphaVal, A, betaVal, C, ws_buf1_global, ws_buf2_bytes_offset, indices);
 
     if(useTwoCalls)
     {
         int toReduceLength_2 = blkGroupSize;
         int gridSize_2       = configurator.getGridSize_2(invariantLength, toReduceLength_2);
+
+        std::string param2 = param + " -DCK_PARAM_GRIDSIZE=" + std::to_string(gridSize_2) + " ";
 
         // compile option and network config for the second-time call
         const std::vector<size_t> vld_2 = {static_cast<size_t>(blockSize), size_t{1}, size_t{1}};
@@ -610,7 +614,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
         std::string kernel_name2 = "gridwise_generic_reduce_2";
 
         handle.AddKernel(
-            algo_name, network_config, program_name, kernel_name2, vld_2, vgd_2, param)(
+            algo_name, network_config, program_name, kernel_name2, vld_2, vgd_2, param2)(
             alphaVal, A, betaVal, C, ws_buf1_global, ws_buf2_bytes_offset, indices);
     };
 };
