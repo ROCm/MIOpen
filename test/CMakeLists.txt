@@ -1052,3 +1052,7 @@ if(MIOPEN_TEST_CONV)
     COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	1	48	7	7	--weights	1	48	5	5	--pads_strides_dilations	0	0	4	4	1	1
 )
 endif()
+
+if(MIOPEN_TEST_FLOAT)
+    add_custom_test(test_reduce_double SKIP_UNLESS_ALL FLOAT_ENABLED COMMAND  $<TARGET_FILE:test_reduce_test> --double --all)
+endif()
