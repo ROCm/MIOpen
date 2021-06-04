@@ -217,7 +217,6 @@ set( LONG_TESTS
     pooling3d.cpp
     soft_max.cpp
     lrn_test.cpp
-    reduce_test.cpp
     )
 
 foreach(TEST ${TESTS})
