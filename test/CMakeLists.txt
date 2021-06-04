@@ -1054,5 +1054,5 @@ if(MIOPEN_TEST_CONV)
 endif()
 
 if(MIOPEN_TEST_FLOAT)
-    add_custom_test(test_reduce_double SKIP_UNLESS_ALL FLOAT_ENABLED COMMAND  $<TARGET_FILE:test_reduce_test> --double --all)
+    add_custom_test(test_reduce_double SKIP_UNLESS_ALL GFX908_ENABLED COMMAND  $<TARGET_FILE:test_reduce_test> --double --all --verbose)
 endif()
