@@ -223,8 +223,6 @@ class ConvDriver : public Driver
 
     bool UseGPUReference();
 
-    bool UseGPUReference();
-
     int FindForward(int& ret_algo_count,
                     int request_algo_count,
                     std::vector<miopenConvAlgoPerf_t>& perf_results,
