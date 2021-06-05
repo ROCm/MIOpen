@@ -3,7 +3,7 @@
 
 #include "config.hpp"
 #include "integral_constant.hpp"
-#include "ck_utils_type.hpp"
+#include "type.hpp"
 
 namespace ck {
 namespace math {
