@@ -28,8 +28,8 @@
 
 #include <cstdlib>
 
-//template <typename T>
-//static T FRAND(void)
+// template <typename T>
+// static T FRAND(void)
 //{
 //    double d = static_cast<double>(rand() / (static_cast<double>(RAND_MAX)));
 //    return static_cast<T>(d);
@@ -40,8 +40,8 @@ static int GET_RAND()
     return rand(); // NOLINT (concurrency-mt-unsafe)
 }
 
-//template <typename T>
-//static T RAN_GEN(T A, T B)
+// template <typename T>
+// static T RAN_GEN(T A, T B)
 //{
 //    T r = (FRAND<T>() * (B - A)) + A;
 //    return r;

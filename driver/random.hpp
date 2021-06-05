@@ -10,10 +10,7 @@ static T FRAND(void)
     return static_cast<T>(d);
 }
 
-static int GET_RAND(void)
-{
-    return rand();
-}
+static int GET_RAND(void) { return rand(); }
 
 template <typename T>
 static T RAN_GEN(T A, T B)
