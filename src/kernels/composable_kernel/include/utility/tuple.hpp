@@ -2,7 +2,7 @@
 #define CK_TUPLE_HPP
 
 #include "integral_constant.hpp"
-#include "ck_utils_type.hpp"
+#include "type_utils.hpp"
 #include "sequence.hpp"
 
 namespace ck {

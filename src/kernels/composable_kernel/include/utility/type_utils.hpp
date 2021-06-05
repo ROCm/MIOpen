@@ -1,5 +1,5 @@
-#ifndef CK_UTILS_TYPE_HPP
-#define CK_UTILS_TYPE_HPP
+#ifndef TYPE_UTILS_HPP
+#define TYPE_UTILS_HPP
 
 #include "integral_constant.hpp"
 
