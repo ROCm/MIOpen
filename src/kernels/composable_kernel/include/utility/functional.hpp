@@ -3,7 +3,7 @@
 
 #include "integral_constant.hpp"
 #include "sequence.hpp"
-#include "type_utils.hpp"
+#include "ck_utils_type.hpp"
 
 namespace ck {
 
