@@ -217,7 +217,6 @@ set( LONG_TESTS
     pooling3d.cpp
     soft_max.cpp
     lrn_test.cpp
-    reduce_test.cpp
     )
 
 foreach(TEST ${TESTS})
@@ -1052,4 +1051,8 @@ if(MIOPEN_TEST_CONV)
     COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	1	32	28	28	--weights	1	32	5	5	--pads_strides_dilations	0	0	4	4	1	1
     COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	1	48	7	7	--weights	1	48	5	5	--pads_strides_dilations	0	0	4	4	1	1
 )
+endif()
+
+if(MIOPEN_TEST_FLOAT)
+    add_custom_test(test_reduce_double SKIP_UNLESS_ALL GFX908_ENABLED COMMAND  $<TARGET_FILE:test_reduce_test> --double --all --verbose)
 endif()
