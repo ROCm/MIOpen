@@ -6,7 +6,7 @@
 #include "integral_constant.hpp"
 #include "number.hpp"
 #include "float_type.hpp"
-#include "type.hpp"
+#include "ck_utils_type.hpp"
 #include "tuple.hpp"
 #include "math.hpp"
 #include "sequence.hpp"
