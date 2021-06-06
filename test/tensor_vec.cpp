@@ -319,6 +319,12 @@ struct tensor_vec_driver : test_driver
             return;
         }
 
+        if(std::is_same<T, double>::value)
+        {
+            std::cout << "VEC2 transpose does not support double type" << std::endl;
+            return;
+        }
+
         if(!(miopen::float_equal(static_cast<const float>(alpha), 1.0) &&
              miopen::float_equal(static_cast<const float>(beta), 0.0)))
             return;
