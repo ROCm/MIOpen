@@ -86,6 +86,11 @@ struct miopen_type<float> : std::integral_constant<miopenDataType_t, miopenFloat
 };
 
 template <>
+struct miopen_type<double> : std::integral_constant<miopenDataType_t, miopenDouble>
+{
+};
+
+template <>
 struct miopen_type<half_float::half> : std::integral_constant<miopenDataType_t, miopenHalf>
 {
 };

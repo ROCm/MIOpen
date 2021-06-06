@@ -308,6 +308,9 @@ bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) con
 
 void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& config)
 {
+    if(config.in_data_type == miopenDouble)
+        MIOPEN_THROW("Double data type is not supported by ConvAsm1x1U");
+
     const auto elements_in_dword = 4 / GetTypeSize(config.in_data_type);
     read_size                    = 4;
     k_mult                       = 16;

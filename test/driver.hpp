@@ -282,6 +282,7 @@ struct test_driver
         case miopenInt8: ss << "--int8 "; break;
         case miopenInt32: ss << "--int32 "; break;
         case miopenFloat: ss << "--float "; break;
+        case miopenDouble: ss << "--double "; break;
         }
         for(auto&& arg : this->arguments)
         {
@@ -308,6 +309,7 @@ struct test_driver
         case miopenInt8: ret.emplace_back("--int8"); break;
         case miopenInt32: ret.emplace_back("--int32"); break;
         case miopenFloat: ret.emplace_back("--float"); break;
+        case miopenDouble: ret.emplace_back("--double"); break;
         }
 
         for(auto&& arg : this->arguments)
@@ -1008,7 +1010,7 @@ void set_driver_datatype(Driver& d,
     }
     else if(arg_map.count("--double") > 0)
     {
-        throw std::runtime_error("Double is not supported");
+        d.type = miopenDouble;
     }
     else
     {
@@ -1114,6 +1116,7 @@ void test_drive_impl_2(std::string program_name, std::vector<std::string> as)
     }
 
     set_driver_datatype<Driver>(d, arg_map);
+
     std::vector<std::vector<std::string>> configs = build_configs<Driver>(d, arg_map, keywords);
     size_t config_count                           = configs.size();
     double running_average                        = 0;
@@ -1169,7 +1172,7 @@ void test_drive_impl_1(std::string program_name, std::vector<std::string> as)
     }
     else if(arg_map.count("--double") > 0)
     {
-        throw std::runtime_error("Double is not supported");
+        d.type = miopenDouble;
     }
     else
     {
@@ -1310,7 +1313,7 @@ void test_drive(int argc, const char* argv[])
         }
         if(arg == "--double")
         {
-            // test_drive_impl<Driver<double>>(argv[0], std::move(as));
+            test_drive_impl<Driver<double>>(argv[0], std::move(as));
             break;
         }
     }
