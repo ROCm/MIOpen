@@ -369,6 +369,8 @@ std::string HIPOCProgram::GetCodeObjectBlob() const
     return {impl->binary.data(), impl->binary.size()};
 }
 
+void HIPOCProgram::DelTemp() const { impl->dir = boost::none; }
+
 bool HIPOCProgram::IsCodeObjectInMemory() const { return !impl->binary.empty(); };
 
 } // namespace miopen
