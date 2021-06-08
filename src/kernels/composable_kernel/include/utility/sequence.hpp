@@ -2,7 +2,7 @@
 #define CK_SEQUENCE_HPP
 
 #include "integral_constant.hpp"
-#include "type.hpp"
+#include "ck_utils_type.hpp"
 #include "functional.hpp"
 #include "math.hpp"
 

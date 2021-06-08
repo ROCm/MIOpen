@@ -20,8 +20,6 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     comgr \
     curl \
     clang-format-3.8 \
-    clang-3.8 \
-    clang-tidy-3.8\
     doxygen \
     g++ \
     gdb \
