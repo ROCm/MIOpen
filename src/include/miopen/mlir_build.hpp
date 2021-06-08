@@ -44,6 +44,12 @@ boost::filesystem::path MiirBuildViaHip(boost::optional<TmpDir>& tmp_dir,
                                         const TargetProperties& target);
 
 void MiirGenLaunchParams(const std::string& params, size_t& local_size, size_t& global_size);
+
+bool MiirIsConfigApplicable(const std::string& params);
+
+int MiirGetKernelCount(const std::string& params);
+
+void MiirGenBin(const std::string& params, std::vector<char>& buffer);
 } // namespace miopen
 
 #endif // MIOPEN_USE_MLIR

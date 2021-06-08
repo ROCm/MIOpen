@@ -38,11 +38,12 @@
 #include <miopen/miopen.h>
 #include <miopen/reduce_common.hpp>
 #include <miopen/tensor.hpp>
-#include <miopen/bfloat16.hpp>
 #include <numeric>
 #include <vector>
 #include <string>
 #include <cassert>
+#include <type_traits>
+#include <half.hpp>
 #include "random.hpp"
 
 #include "miopen_Reduction.hpp"
@@ -58,7 +59,10 @@ class ReduceDriver : public Driver
 
         miopenCreateReduceTensorDescriptor(&reduceDesc);
 
-        data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
+        if(std::is_same<Tgpu, double>::value)
+            data_type = miopenDouble;
+        else
+            data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
     }
 
     int AddCmdLineArgs() override;
@@ -289,6 +293,9 @@ int ReduceDriver<Tgpu, Tref>::SetReduceTensorDescriptorFromCmdLineArgs()
         (reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX ||
          reduceOp == MIOPEN_REDUCE_TENSOR_AMAX);
 
+    if(std::is_same<Tgpu, double>::value)
+        compType = miopenDouble;
+
     return (miopenSetReduceTensorDescriptor(
         reduceDesc, reduceOp, compType, nanOpt, indicesOpt, indicesType));
 }
@@ -362,18 +369,25 @@ int ReduceDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 template <typename Tgpu, typename Tref>
 int ReduceDriver<Tgpu, Tref>::RunForwardGPU()
 {
-    auto alpha =
-        reduce::convert_type<Tgpu>(static_cast<float>(this->inflags.GetValueDouble("alpha")));
-    auto beta =
-        reduce::convert_type<Tgpu>(static_cast<float>(this->inflags.GetValueDouble("beta")));
+    auto alpha = static_cast<float>(this->inflags.GetValueDouble("alpha"));
+    auto beta  = static_cast<float>(this->inflags.GetValueDouble("beta"));
 
     if(this->need_indices)
     {
-        alpha = reduce::convert_type<Tgpu>(1.0f);
-        beta  = reduce::convert_type<Tgpu>(0.0f);
+        alpha = 1.0f;
+        beta  = 0.0f;
     };
 
     bool output_accumulate = !(reduce::float_equal_one(alpha) && reduce::float_equal_zero(beta));
+
+    const double alpha64       = alpha;
+    const double beta64        = beta;
+    const void* const alphaPtr = std::is_same<Tgpu, double>::value
+                                     ? static_cast<const void*>(&alpha64)
+                                     : static_cast<const void*>(&alpha);
+    const void* const betaPtr = std::is_same<Tgpu, double>::value
+                                    ? static_cast<const void*>(&beta64)
+                                    : static_cast<const void*>(&beta);
 
     miopenReduceTensor(GetHandle(),
                        reduceDesc,
@@ -381,10 +395,10 @@ int ReduceDriver<Tgpu, Tref>::RunForwardGPU()
                        this->need_indices ? indices_sizeInBytes : 0,    // indices size in bytes
                        ws_sizeInBytes > 0 ? ws_dev->GetMem() : nullptr, // workspace
                        ws_sizeInBytes,                                  // workspace size in bytes
-                       &alpha,
+                       alphaPtr,
                        inputTensor,
                        in_dev->GetMem(),
-                       &beta,
+                       betaPtr,
                        outputTensor,
                        out_dev->GetMem());
 
@@ -406,10 +420,10 @@ int ReduceDriver<Tgpu, Tref>::RunForwardGPU()
                            this->need_indices ? indices_sizeInBytes : 0,    // indices size in bytes
                            ws_sizeInBytes > 0 ? ws_dev->GetMem() : nullptr, // workspace
                            ws_sizeInBytes, // workspace size in bytes
-                           &alpha,
+                           alphaPtr,
                            inputTensor,
                            in_dev->GetMem(),
-                           &beta,
+                           betaPtr,
                            outputTensor,
                            out_dev->GetMem());
     }
@@ -457,29 +471,32 @@ int ReduceDriver<Tgpu, Tref>::VerifyForward()
                                                   this->dimsInvariant,
                                                   this->dimsToReduce);
 
-    auto alpha =
-        reduce::convert_type<Tgpu>(static_cast<float>(this->inflags.GetValueDouble("alpha")));
-    auto beta =
-        reduce::convert_type<Tgpu>(static_cast<float>(this->inflags.GetValueDouble("beta")));
+    auto alpha = static_cast<float>(this->inflags.GetValueDouble("alpha"));
+    auto beta  = static_cast<float>(this->inflags.GetValueDouble("beta"));
 
     auto reduceOp = static_cast<miopenReduceTensorOp_t>(inflags.GetValueInt("ReduceOp"));
 
     if(indices_sizeInBytes > 0)
     {
-        alpha = reduce::convert_type<Tgpu>(1.0f);
-        beta  = reduce::convert_type<Tgpu>(0.0f);
+        alpha = 1.0f;
+        beta  = 0.0f;
     };
 
     hostReduction.Run(alpha, in.data(), beta, outhost.data(), outhost_indices.data());
 
-    auto error = miopen::rms_range(outhost, out);
-    const double tolerance =
-        std::is_same<Tgpu, float16>::value || reduceOp == MIOPEN_REDUCE_TENSOR_NORM2 ? 2e-3
-                                                                                     : 1.5e-4;
+    auto error       = miopen::rms_range(outhost, out);
+    double tolerance = 1.5e-4;
+
+    if(std::is_same<Tgpu, half_float::half>::value)
+        tolerance *= 4.0;
+
+    if(std::is_same<Tgpu, float>::value && reduceOp == MIOPEN_REDUCE_TENSOR_NORM2)
+        tolerance *= 12.0;
 
     if(error > tolerance)
     {
-        std::cout << "ReduceTensor() Failed: " << error << "\n";
+        std::cout << "ReduceTensor() Failed with error = " << error
+                  << " , tolerance = " << tolerance << "\n";
     }
     else
     {

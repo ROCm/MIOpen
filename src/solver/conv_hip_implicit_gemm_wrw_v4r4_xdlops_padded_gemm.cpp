@@ -35,6 +35,10 @@
 #include <miopen/tensor_ops.hpp>
 #include <miopen/implicitgemm_params.hpp>
 
+/// Fatal compiler errors with ROCm 3.7 on some BF16 configs.
+#define WORKAROUND_MI100_BF16_FATAL_COMPILER_ERRORS \
+    (HIP_PACKAGE_VERSION_FLAT >= 3007000000 && HIP_PACKAGE_VERSION_FLAT <= 3007999999)
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_PADDED_GEMM_XDLOPS)
 
 namespace miopen {
@@ -119,7 +123,7 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::SetNextValue()
     return true;
 }
 
-void PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::EuristicInit(const ConvolutionContext& ctx)
+void PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::HeuristicInit(const ConvolutionContext& ctx)
 {
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm tmp;
     // GemmMFactor GemmNFactor, GemmKTotalFactor are fixed value at this moment.
@@ -561,7 +565,7 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsValidValue() const
     // clang-format on
 }
 
-// Used by EuristicInit() and GenericSearch
+// Used by HeuristicInit() and GenericSearch
 // Only return false if a performance config will violate requirements given by kernel algorithm
 bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsReallyValid(
     const ConvolutionContext& ctx) const
@@ -628,7 +632,7 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsReallyValid(
     return (valid and lds_size <= get_lds_max_number_of_byte());
 }
 
-// Used by GenericSearch, not used by EuristicInit
+// Used by GenericSearch, not used by HeuristicInit
 // Return false if a performance config is known to be sub-optimal, comparing to other performance
 // config inside tuning range
 bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsFastToBeUsedForTuning(
@@ -792,7 +796,7 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsFastToBeUsedForTuning(
     return true;
 }
 
-// Used by GenericSearch, not used by EuristicInit
+// Used by GenericSearch, not used by HeuristicInit
 // Return false, if you don't want to this to be included in tuning range used by generic search
 // A performance config may still be valid w.r.t algorithm correctness, even when IsValid() return
 // false
@@ -801,7 +805,7 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsValid(const Convolution
     return IsReallyValid(ctx) && IsFastToBeUsedForTuning(ctx);
 }
 
-// Used by GenericSearch, not used by EuristicInit
+// Used by GenericSearch, not used by HeuristicInit
 bool ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsValidPerformanceConfig(
     const ConvolutionContext& ctx, const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm& c) const
 {
@@ -910,7 +914,7 @@ ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetPerformanceConfig(
     const ConvolutionContext& ctx) const
 {
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm config;
-    config.EuristicInit(ctx);
+    config.HeuristicInit(ctx);
     MIOPEN_LOG_I(config.ToString());
     return config;
 }
@@ -1130,10 +1134,16 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsApplicable(const Convolutio
         return false;
     }
 
+// this particular HeuristicInit is so comprehensive, that if it cannot predict a valid
+#if WORKAROUND_MI100_BF16_FATAL_COMPILER_ERRORS
+    if(ctx.GetStream().GetDeviceName() == "gfx908" && ctx.IsBfp16())
+        return false;
+#endif
+
     // this particular EuristicInit is so comprehensive, that if it cannot predict a valid
     // performance config, the problem is probably not applicable
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm config;
-    config.EuristicInit(ctx);
+    config.HeuristicInit(ctx);
 
     if(!config.IsReallyValid(ctx))
         return false;

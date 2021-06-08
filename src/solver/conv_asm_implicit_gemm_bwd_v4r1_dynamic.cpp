@@ -28,7 +28,6 @@
 #include <miopen/conv/invokers/impl_gemm_dynamic.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/gcn_asm_utils.hpp>
-#include <miopen/numeric.hpp>
 #include <algorithm>
 #include <miopen/solver/implicitgemm_util.hpp>
 
@@ -199,7 +198,7 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicBwd::GetSolution(const ConvolutionCon
 
     kernel.comp_options = options.str();
 
-    result.invoker_factory = conv::MakeImplGemmDynamicBackwardDataInvokerFactory(ctx);
+    result.invoker_factory = conv::MakeImplGemmDynamicBackwardDataInvokerFactory(ctx, int(0));
     result.construction_params.push_back(kernel);
     return result;
 }
