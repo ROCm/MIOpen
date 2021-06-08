@@ -2807,6 +2807,139 @@ struct ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC : SolverBase<ConvolutionContex
                              bool disableConfigOverrideFromEnv = false) const;
 };
 
+struct PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC : PerformanceConfigAsmImplicitGemmGTC
+{
+    PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC(std::string dir,
+                                                     std::string layout,
+                                                     std::string prec,
+                                                     int b,
+                                                     int e,
+                                                     int mpb,
+                                                     int npb,
+                                                     int kpb,
+                                                     int wtm,
+                                                     int wtn,
+                                                     int wtk,
+                                                     int wsm,
+                                                     int wsn,
+                                                     int wrm,
+                                                     int wrn,
+                                                     int mh,
+                                                     int vs,
+                                                     int gks,
+                                                     int me,
+                                                     int pta,
+                                                     std::initializer_list<int> ta_t,
+                                                     std::initializer_list<int> ta_c,
+                                                     std::initializer_list<int> tb_t,
+                                                     std::initializer_list<int> tb_c,
+                                                     bool spare = false)
+        : PerformanceConfigAsmImplicitGemmGTC(dir,
+                                              layout,
+                                              prec,
+                                              b,
+                                              e,
+                                              mpb,
+                                              npb,
+                                              kpb,
+                                              wtm,
+                                              wtn,
+                                              wtk,
+                                              wsm,
+                                              wsn,
+                                              wrm,
+                                              wrn,
+                                              mh,
+                                              vs,
+                                              gks,
+                                              me,
+                                              pta,
+                                              ta_t,
+                                              ta_c,
+                                              tb_t,
+                                              tb_c,
+                                              spare)
+    {
+    }
+    PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC()
+        : PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC("wrw",
+                                                           "nchw",
+                                                           "fp32",
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           {1, 1, 1, 1},
+                                                           {1, 1, 1, 1},
+                                                           {1, 1, 1, 1},
+                                                           {1, 1, 1, 1},
+                                                           false)
+    {
+    }
+    PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC(bool spare)
+        : PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC("wrw",
+                                                           "nchw",
+                                                           "fp32",
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           {1, 1, 1, 1},
+                                                           {1, 1, 1, 1},
+                                                           {1, 1, 1, 1},
+                                                           {1, 1, 1, 1},
+                                                           spare)
+    {
+    }
+
+    void HeuristicInit(const ConvolutionContext& ctx);
+    bool SetNextValue();
+    bool IsValidValue() const;
+    bool IsValid(const ConvolutionContext& ctx) const;
+};
+
+struct ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC : SolverBase<ConvolutionContext>
+{
+    PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC
+    GetPerformanceConfig(const ConvolutionContext&) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
+                                  const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC&) const;
+    PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC
+    Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const;
+
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    bool IsDynamic() const { return true; }
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC& config,
+                             bool disableConfigOverrideFromEnv = false) const;
+};
+
 struct AnySolver;
 
 } // namespace solver
