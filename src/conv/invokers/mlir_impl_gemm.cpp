@@ -228,13 +228,17 @@ InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
     const auto& conv  = ctx.conv_problem.GetConv();
     const auto& wDesc = ctx.conv_problem.GetWeights();
 
-    const bool isFilter1Padding0Stride1 = [&]() {
-        const auto wei_spatial =
-            boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + conv.GetSpatialDimension());
-        return miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-               miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
-               miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 1; });
-    }();
+    bool every_pixel_is_written = true;
+    for(int i = 0; i < conv.GetSpatialDimension(); ++i)
+    {
+        const auto conv_stride   = conv.GetConvStrides()[i];
+        const auto conv_dilation = conv.GetConvDilations()[i];
+        const auto filter_size   = wDesc.GetLengths()[2 + i];
+
+        // TODO: This can be relaxed.
+        if(!(conv_dilation == 1 && conv_stride <= filter_size))
+            every_pixel_is_written = false;
+    }
 
     return [=](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
@@ -242,20 +246,24 @@ InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
             const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors  = data_ctx.tensors;
 
-            if(!isFilter1Padding0Stride1)
+            if(!every_pixel_is_written)
             {
                 float zero = 0.f;
                 SetTensor(handle, tensors.outDesc, tensors.out, &zero);
+
+                if(handle.IsProfilingEnabled())
+                    elapsed += handle.GetKernelTime();
+            }
+
+            SetMlirConvArgsPtr(tensors.in, tensors.out, tensors.w, args);
+            for(const auto& k : kernels)
+            {
+                handle.Run(k)(args);
+                elapsed += handle.GetKernelTime();
             }
 
             if(handle.IsProfilingEnabled())
-                elapsed += handle.GetKernelTime();
-
-            SetMlirConvArgsPtr(tensors.in, tensors.out, tensors.w, args);
-            handle.Run(kernels[0])(args);
-            if(handle.IsProfilingEnabled())
             {
-                elapsed += handle.GetKernelTime();
                 handle.ResetKernelTime();
                 handle.AccumKernelTime(elapsed);
             }

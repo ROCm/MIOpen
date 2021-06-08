@@ -167,7 +167,8 @@ struct WarpReduce
 {
     using compType = typename opReduce::dataType;
     using binop    = detail::binop_with_nan_check<nanPropaOpt, opReduce, compType>;
-    constexpr static bool have_builtin_shuffle = std::is_same<compType, float>::value;
+    constexpr static bool have_builtin_shuffle =
+        std::is_same<compType, float>::value || std::is_same<compType, double>::value;
 
     // This interface does not accumulate on indices
     __device__ static void Reduce(const DataType* p_thread_buffer, compType& accuData)

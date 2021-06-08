@@ -174,6 +174,10 @@ int main(int argc, char* argv[])
     {
         drv = new ReduceDriver<float16, float>();
     }
+    else if(base_arg == "reducefp64")
+    {
+        drv = new ReduceDriver<double, double>();
+    }
     else
     {
         printf("Incorrect BaseArg\n");
