@@ -40,6 +40,8 @@ option( MIOPEN_TEST_DRIVER_ITER_MODE Off)
 option( MIOPEN_TEST_MIOTENSILE "Test MIOpenTensile path" OFF )
 option( MIOPEN_TEST_MLIR "Add tests for MLIR -- EXPERIMENTAL" ${MIOPEN_USE_MLIR} )
 
+option( WORKAROUND_ISSUE_898 "" ON)
+
 set(MIOPEN_TEST_FLAGS "" CACHE STRING "")
 set(MIOPEN_TEST_GDB On CACHE BOOL "")
 
@@ -138,6 +140,10 @@ function(add_test_command NAME EXE)
         else()
             add_test(NAME ${NAME} COMMAND ${EXE} ${ARGN})
         endif()
+    endif()
+    
+    if(WORKAROUND_ISSUE_898 AND ${TEST_NAME} STREQUAL "test_gpu_reference_kernel")
+        set_property(TEST ${TEST_NAME} PROPERTY ENVIRONMENT MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE=0)
     endif()
 endfunction()
 
