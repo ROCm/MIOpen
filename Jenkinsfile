@@ -248,12 +248,12 @@ pipeline {
                 stage('OpenCL Tidy') {
                     agent{  label rocmnode("nogpu") }
                     environment{
-                        cmd = "cd build; CXX='clang++-3.8' cmake -DMIOPEN_BACKEND=OpenCL -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
+                        cmd = "cd build; cmake -DMIOPEN_BACKEND=OpenCL -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
                     }
                     steps{
                         script{
                             try{
-                                buildHipClangJob('clang++-3.8', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd)
+                                buildHipClangJob('g++', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd)
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
