@@ -1058,8 +1058,6 @@ if(MIOPEN_TEST_FLOAT)
 endif()
 
 # REGRESSION TEST for issue #894
-if(MIOPEN_TEST_HALF)
-    add_custom_test(test_miopen_conv_ocl_half_regression SKIP_UNLESS_ALL ALLOW_HALF
-    COMMAND	MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvOclDirectFwd1x1 $<TARGET_FILE:test_conv2d>  --verbose   --half  --cmode conv    --pmode default --group-count   1 --input	1   16	7	7	--weights	16	16	1	1	--pads_strides_dilations	0	0	1	1	1	1
+add_custom_test(test_miopen_conv_ocl_half_regression SKIP_UNLESS_ALL FLOAT_DISABLED HALF_ENABLED GFX908_ENABLED 
+COMMAND	MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvOclDirectFwd1x1 $<TARGET_FILE:test_conv2d>  --verbose   --half  --cmode conv    --pmode default --group-count   1 --input	1   16	7	7	--weights	16	16	1	1	--pads_strides_dilations	0	0	1	1	1	1
 )
-endif()
