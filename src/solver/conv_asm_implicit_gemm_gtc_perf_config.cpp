@@ -34,7 +34,7 @@ namespace solver {
 PerformanceConfigAsmImplicitGemmGTC::PerformanceConfigAsmImplicitGemmGTC(
     std::string dir,
     std::string layout,
-    std::string prec,
+    miopenDataType_t prec,
     int b,
     int e,
     int mpb,
@@ -115,7 +115,7 @@ bool PerformanceConfigAsmImplicitGemmGTC::IsDefaultConstructed() const
     // clang-format off
     return direction == "fwd"
         && tensor_layout == "nchw"
-        && precision == "fp32"
+        && precision == miopenFloat
         && nxb == 1
         && nxe == 1
         && gemm_m_per_block == 1
@@ -221,7 +221,7 @@ std::string PerformanceConfigAsmImplicitGemmGTC::ToString() const
 std::string PerformanceConfigAsmImplicitGemmGTC::ToKernelName() const
 {
     std::ostringstream kernel_name;
-    std::string kernel_precision = precision;
+    std::string kernel_precision = precision == miopenFloat ? "fp32" : "fp16";
     kernel_name << "igemm_" << direction << "_gtcx_" << tensor_layout << "_" << kernel_precision
                 << "_bx" << nxb << "_ex" << nxe << "_bt" << gemm_m_per_block << "x"
                 << gemm_n_per_block << "x" << gemm_k_per_block << "_wt" << wave_tile_m << "x"
