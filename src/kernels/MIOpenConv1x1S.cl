@@ -31,10 +31,9 @@
 // direct ocl kernels, this kernel needs to retain its older behavior as it is
 // dependent upon tunability which isn't slated for MIOpen 2.0 PR #1725
 #if MIOPEN_USE_FP16 == 1
-#undef _FLOAT_ACCUM
-#define _FLOAT_ACCUM _FLOAT
-#define CVT_FLOAT2ACCUM(x) ((_FLOAT_ACCUM)(x))
-#define CVT_ACCUM2FLOAT(x) ((_FLOAT)(x))
+#define _FLOAT_PREC _FLOAT
+#else
+#define _FLOAT_PREC _FLOAT_ACCUM
 #endif
 
 #define UNUSED __attribute__((__unused__))
@@ -70,14 +69,14 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 #endif
         ;
 
-    _FLOAT_ACCUM accum[MLO_N_LCL_OUT_MAPS][MLO_READ_UNIT] = {{(_FLOAT_ACCUM)0.0f}};
+    _FLOAT_PREC accum[MLO_N_LCL_OUT_MAPS][MLO_READ_UNIT] = {{(_FLOAT_PREC)0.0f}};
     _FLOAT dat[MLO_N_LCL_IN_MAPS][MLO_READ_UNIT];
 
     for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
     {
         for(uint i = 0; i < MLO_READ_UNIT; ++i)
         {
-            accum[o][i] = (_FLOAT_ACCUM)0.0f;
+            accum[o][i] = (_FLOAT_PREC)0.0f;
         }
     }
 
@@ -154,11 +153,11 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
         // convolve
         for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
         {
-            _FLOAT_ACCUM acc[MLO_READ_UNIT] = {(_FLOAT_ACCUM)0.0f};
+            _FLOAT_PREC acc[MLO_READ_UNIT] = {(_FLOAT_PREC)0.0f};
             for(uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
             {
-                _FLOAT_ACCUM we = CVT_FLOAT2ACCUM(weights[o][c]);
-                _FLOAT* d       = &dat[c][0];
+                _FLOAT_PREC we = CVT_FLOAT2ACCUM(weights[o][c]);
+                _FLOAT* d      = &dat[c][0];
                 for(uint i = 0; i < MLO_READ_UNIT; ++i)
                 {
                     acc[i] += CVT_FLOAT2ACCUM(d[i]) * we;
@@ -229,7 +228,7 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
 #endif
         ;
 
-    _FLOAT_ACCUM accum[MLO_N_LCL_OUT_MAPS][MLO_READ_UNIT];
+    _FLOAT_PREC accum[MLO_N_LCL_OUT_MAPS][MLO_READ_UNIT];
     _FLOAT dat[MLO_N_LCL_IN_MAPS][MLO_READ_UNIT];
 
     for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
