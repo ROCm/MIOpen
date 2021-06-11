@@ -456,7 +456,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(cmd: cmd, gpu_arch: "gfx900;gfx906")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx900;gfx906", target_id: "ON")
                         }
                     }
                 }
@@ -472,7 +472,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(cmd: cmd, gpu_arch: "gfx900;gfx906")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx900;gfx906", target_id: "ON")
                         }
                     }
                 }
@@ -488,7 +488,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(cmd: cmd, gpu_arch: "gfx908")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908", target_id: "ON")
                         }
                     }
                 }
@@ -504,7 +504,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(cmd: cmd, gpu_arch: "gfx908")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908", target_id: "ON")
                         }
                     }
                 }
