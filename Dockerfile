@@ -4,15 +4,16 @@ ARG PREFIX=/usr/local
 ARG GPU_ARCH=";"
 ARG MIOTENSILE_VER="default"
 ARG USE_TARGETID="OFF"
+ARG USE_MLIR="OFF"
 
 # Support multiarch
 RUN dpkg --add-architecture i386
 
 # Add rocm repository
 
-RUN if [ "$USE_TARGETID" = "ON" ]; \
-    then export ROCM_APT_VER=.apt_4.1.1;\
-    else export ROCM_APT_VER=.apt_4.2;  \
+RUN if [ "$USE_TARGETID" = "ON" ] || [ "$USE_MLIR" = "ON" ] ; \
+    then export ROCM_APT_VER=.apt_4.2;\
+    else export ROCM_APT_VER=.apt_4.1.1;  \
     fi && \
 echo $ROCM_APT_VER &&\
 sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/$ROCM_APT_VER/ xenial main > /etc/apt/sources.list.d/rocm.list'
@@ -20,9 +21,9 @@ RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu xenial main universe | tee 
 
 #Add gpg keys
 # Install dependencies
-RUN if [ "$USE_TARGETID" = "ON" ]; \
-    then export ROCM_KEY_VER=4.1.1; \
-    else export ROCM_KEY_VER=4.2; \
+RUN if [ "$USE_TARGETID" = "ON" ] || [ "$USE_MLIR" = "ON" ] ; \
+    then export ROCM_KEY_VER=4.2; \
+    else export ROCM_KEY_VER=4.1.1; \
     fi && \
 apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     wget \
@@ -110,7 +111,8 @@ RUN if [ "$USE_TARGETID" = "ON" ] ; then export HIPCC_LINK_FLAGS_APPEND='-O3 -pa
 # install last released miopentensile in default (master), install latest commits when MIOTENSILE_VER="latest" (develop)
 RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."; elif [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@be26d30d3d7509a414134a45f4a6d49e5da250b8; else cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@4bfe00a8de61d12862d9fa803b8ea9a981a50f97; fi
 
-RUN cd ~ && \
+RUN if [ "$USE_MLIR" = "ON" ]; \
+    then cd ~ && \
     export MLIR_COMMIT=bbce2f3216e013efe59d7e9c021b4896f89176b0 && \
     wget https://github.com/ROCmSoftwarePlatform/llvm-project-mlir/archive/$MLIR_COMMIT.tar.gz && \
     tar -xvzf $MLIR_COMMIT.tar.gz && \
@@ -123,4 +125,5 @@ RUN cd ~ && \
       -DLLVM_BUILD_LLVM_DYLIB=OFF \
       -DLLVM_ENABLE_TERMINFO=OFF && \
     make -j$(nproc) libMLIRMIOpen && \
-    cd ~ && rm -rf llvm-project-mlir-$MLIR_COMMIT
+    cd ~ && rm -rf llvm-project-mlir-$MLIR_COMMIT; fi
+
