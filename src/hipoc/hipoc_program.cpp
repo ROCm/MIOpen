@@ -187,16 +187,12 @@ HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name,
 }
 
 HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name, const std::string& blob)
-    : program(program_name)
+    : program(program_name) ///, module(CreateModuleInMem(blob))
 {
-    TmpDir tmp_dir("miopen");
-    auto file_path = tmp_dir.path / boost::filesystem::unique_path("miopen-%%%%-%%%%-%%%%-%%%%");
-    WriteFile(blob, file_path);
-    const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
-    if(arch == nullptr)
-    {
-        this->module = CreateModule(file_path);
-    }
+    if(nullptr ==
+       miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{})) /// \todo Finish off this spaghetti eventually.
+        return;
+    module = CreateModuleInMem(blob);
 }
 
 HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name,
