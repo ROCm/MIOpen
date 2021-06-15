@@ -473,46 +473,59 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
 
     bool need_set_zero = config.gemm_k_global_split > 0;
 
-    std::vector<OpKernelArg> opShapeArgs;
-    opShapeArgs.emplace_back(hi);
-    opShapeArgs.emplace_back(wi);
-    opShapeArgs.emplace_back(n);
-    opShapeArgs.emplace_back(k / group);
-    opShapeArgs.emplace_back(c / group);
-    opShapeArgs.emplace_back(ho);
-    opShapeArgs.emplace_back(wo);
-    opShapeArgs.emplace_back(stride_h);
-    opShapeArgs.emplace_back(stride_w);
-    opShapeArgs.emplace_back(dilation_h);
-    opShapeArgs.emplace_back(dilation_w);
-    opShapeArgs.emplace_back(pad_h);
-    opShapeArgs.emplace_back(pad_w);
-    opShapeArgs.emplace_back(y);
-    opShapeArgs.emplace_back(x);
-    opShapeArgs.emplace_back(group);
-    opShapeArgs.emplace_back(mdiv_0.magic);
-    opShapeArgs.emplace_back(mdiv_1.magic);
-    opShapeArgs.emplace_back(mdiv_2.magic);
-    opShapeArgs.emplace_back(mdiv_3.magic);
-    opShapeArgs.emplace_back(mdiv_4.magic);
-    opShapeArgs.emplace_back(mdiv_5.magic);
-    opShapeArgs.emplace_back(shift_pack_0);
-    opShapeArgs.emplace_back(shift_pack_1);
-    opShapeArgs.emplace_back(config.gemm_k_global_split);
-    opShapeArgs.emplace_back(pack0);
+    std::vector<OpKernelArg> opArgs;
+    opArgs.emplace_back(static_cast<void*>(nullptr)); // placeholder for input ptr
+    opArgs.emplace_back(static_cast<void*>(nullptr)); // placeholder for weight ptr
+    opArgs.emplace_back(static_cast<void*>(nullptr)); // placeholder for output ptr
+    opArgs.emplace_back(hi);
+    opArgs.emplace_back(wi);
+    opArgs.emplace_back(n);
+    opArgs.emplace_back(k / group);
+    opArgs.emplace_back(c / group);
+    opArgs.emplace_back(ho);
+    opArgs.emplace_back(wo);
+    opArgs.emplace_back(stride_h);
+    opArgs.emplace_back(stride_w);
+    opArgs.emplace_back(dilation_h);
+    opArgs.emplace_back(dilation_w);
+    opArgs.emplace_back(pad_h);
+    opArgs.emplace_back(pad_w);
+    opArgs.emplace_back(y);
+    opArgs.emplace_back(x);
+    opArgs.emplace_back(group);
+    opArgs.emplace_back(mdiv_0.magic);
+    opArgs.emplace_back(mdiv_1.magic);
+    opArgs.emplace_back(mdiv_2.magic);
+    opArgs.emplace_back(mdiv_3.magic);
+    opArgs.emplace_back(mdiv_4.magic);
+    opArgs.emplace_back(mdiv_5.magic);
+    opArgs.emplace_back(shift_pack_0);
+    opArgs.emplace_back(shift_pack_1);
+    opArgs.emplace_back(config.gemm_k_global_split);
+    opArgs.emplace_back(pack0);
 
-    return [opShapeArgs, need_set_zero](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+    return [opArgs, need_set_zero](const std::vector<Kernel>& kernels) mutable {
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
             decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors     = data_ctx.tensors;
             const auto ker          = handle.Run(kernels[0]);
             float elapsed           = 0;
 
-            std::vector<OpKernelArg> opArgs;
-            opArgs.reserve(3 + opShapeArgs.size()); // Avoids vector resize.
-            opArgs.emplace_back(tensors.in);
-            opArgs.emplace_back(tensors.w);
-            opArgs.emplace_back(tensors.out);
+#if MIOPEN_BACKEND_OPENCL
+            void* ptr_inp;
+            void* ptr_wei;
+            void* ptr_out;
+            clGetMemObjectInfo(tensors.in, CL_MEM_HOST_PTR, sizeof(ptr_inp), &ptr_inp, nullptr);
+            clGetMemObjectInfo(tensors.w, CL_MEM_HOST_PTR, sizeof(ptr_wei), &ptr_wei, nullptr);
+            clGetMemObjectInfo(tensors.out, CL_MEM_HOST_PTR, sizeof(ptr_out), &ptr_out, nullptr);
+            opArgs[0] = ptr_inp;
+            opArgs[1] = ptr_wei;
+            opArgs[2] = ptr_out;
+#elif MIOPEN_BACKEND_HIP
+            opArgs[0] = const_cast<void*>(tensors.in);
+            opArgs[1] = const_cast<void*>(tensors.w);
+            opArgs[2] = const_cast<void*>(tensors.out);
+#endif
 
             if(need_set_zero)
             {
@@ -521,11 +534,6 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
             }
-
-            std::transform(opShapeArgs.begin(),
-                           opShapeArgs.end(),
-                           std::back_inserter(opArgs),
-                           [](const OpKernelArg& arg) { return arg; });
 
             ker(opArgs);
 
@@ -614,59 +622,72 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
         need_set_zero = true;
     need_set_zero |= config.gemm_k_global_split > 0;
 
-    std::vector<OpKernelArg> opShapeArgs;
-    opShapeArgs.emplace_back(hi);
-    opShapeArgs.emplace_back(wi);
-    opShapeArgs.emplace_back(n);
-    opShapeArgs.emplace_back(k / group);
-    opShapeArgs.emplace_back(c / group);
-    opShapeArgs.emplace_back(ho);
-    opShapeArgs.emplace_back(wo);
-    opShapeArgs.emplace_back(stride_h);
-    opShapeArgs.emplace_back(stride_w);
-    opShapeArgs.emplace_back(dilation_h);
-    opShapeArgs.emplace_back(dilation_w);
-    opShapeArgs.emplace_back(pad_h);
-    opShapeArgs.emplace_back(pad_w);
-    opShapeArgs.emplace_back(y);
-    opShapeArgs.emplace_back(x);
+    std::vector<OpKernelArg> opArgs;
+    opArgs.emplace_back(static_cast<void*>(nullptr)); // placeholder for input ptr
+    opArgs.emplace_back(static_cast<void*>(nullptr)); // placeholder for weight ptr
+    opArgs.emplace_back(static_cast<void*>(nullptr)); // placeholder for output ptr
+    opArgs.emplace_back(hi);
+    opArgs.emplace_back(wi);
+    opArgs.emplace_back(n);
+    opArgs.emplace_back(k / group);
+    opArgs.emplace_back(c / group);
+    opArgs.emplace_back(ho);
+    opArgs.emplace_back(wo);
+    opArgs.emplace_back(stride_h);
+    opArgs.emplace_back(stride_w);
+    opArgs.emplace_back(dilation_h);
+    opArgs.emplace_back(dilation_w);
+    opArgs.emplace_back(pad_h);
+    opArgs.emplace_back(pad_w);
+    opArgs.emplace_back(y);
+    opArgs.emplace_back(x);
 
-    opShapeArgs.emplace_back(dtile_iy);
-    opShapeArgs.emplace_back(dtile_ix);
-    opShapeArgs.emplace_back(dilation_h / gcd_stride_dilation_h);
-    opShapeArgs.emplace_back(dilation_w / gcd_stride_dilation_w);
-    opShapeArgs.emplace_back(y_tilda);
-    opShapeArgs.emplace_back(x_tilda);
-    opShapeArgs.emplace_back(dtile_h);
-    opShapeArgs.emplace_back(dtile_w);
-    opShapeArgs.emplace_back(dslice_y);
-    opShapeArgs.emplace_back(dslice_x);
+    opArgs.emplace_back(dtile_iy);
+    opArgs.emplace_back(dtile_ix);
+    opArgs.emplace_back(dilation_h / gcd_stride_dilation_h);
+    opArgs.emplace_back(dilation_w / gcd_stride_dilation_w);
+    opArgs.emplace_back(y_tilda);
+    opArgs.emplace_back(x_tilda);
+    opArgs.emplace_back(dtile_h);
+    opArgs.emplace_back(dtile_w);
+    opArgs.emplace_back(dslice_y);
+    opArgs.emplace_back(dslice_x);
 
-    opShapeArgs.emplace_back(h_tilda_slice);
-    opShapeArgs.emplace_back(w_tilda_slice);
-    opShapeArgs.emplace_back(h_tilda_left);
-    opShapeArgs.emplace_back(w_tilda_left);
-    opShapeArgs.emplace_back(group);
+    opArgs.emplace_back(h_tilda_slice);
+    opArgs.emplace_back(w_tilda_slice);
+    opArgs.emplace_back(h_tilda_left);
+    opArgs.emplace_back(w_tilda_left);
+    opArgs.emplace_back(group);
 
-    opShapeArgs.emplace_back(mdiv_0.magic);
-    opShapeArgs.emplace_back(mdiv_1.magic);
-    opShapeArgs.emplace_back(mdiv_2.magic);
-    opShapeArgs.emplace_back(mdiv_3.magic);
-    opShapeArgs.emplace_back(shift_pack_0);
-    opShapeArgs.emplace_back(config.gemm_k_global_split);
+    opArgs.emplace_back(mdiv_0.magic);
+    opArgs.emplace_back(mdiv_1.magic);
+    opArgs.emplace_back(mdiv_2.magic);
+    opArgs.emplace_back(mdiv_3.magic);
+    opArgs.emplace_back(shift_pack_0);
+    opArgs.emplace_back(config.gemm_k_global_split);
 
-    return [opShapeArgs, need_set_zero](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+    return [opArgs, need_set_zero](const std::vector<Kernel>& kernels) mutable {
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
             decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors     = data_ctx.tensors;
             const auto ker          = handle.Run(kernels[0]);
             float elapsed           = 0;
 
-            std::vector<OpKernelArg> opArgs;
-            opArgs.reserve(3 + opShapeArgs.size()); // Avoids vector resize.
-            opArgs.emplace_back(tensors.out);
-            opArgs.emplace_back(tensors.w);
-            opArgs.emplace_back(tensors.in);
+#if MIOPEN_BACKEND_OPENCL
+            void* ptr_inp;
+            void* ptr_wei;
+            void* ptr_out;
+            clGetMemObjectInfo(tensors.out, CL_MEM_HOST_PTR, sizeof(ptr_inp), &ptr_inp, nullptr);
+            clGetMemObjectInfo(tensors.w, CL_MEM_HOST_PTR, sizeof(ptr_wei), &ptr_wei, nullptr);
+            clGetMemObjectInfo(tensors.in, CL_MEM_HOST_PTR, sizeof(ptr_out), &ptr_out, nullptr);
+            opArgs[0] = ptr_inp;
+            opArgs[1] = ptr_wei;
+            opArgs[2] = ptr_out;
+#elif MIOPEN_BACKEND_HIP
+            opArgs[0] = const_cast<void*>(tensors.out);
+            opArgs[1] = const_cast<void*>(tensors.w);
+            opArgs[2] = const_cast<void*>(tensors.in);
+#endif
 
             if(need_set_zero)
             {
@@ -675,11 +696,6 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
             }
-
-            std::transform(opShapeArgs.begin(),
-                           opShapeArgs.end(),
-                           std::back_inserter(opArgs),
-                           [](const OpKernelArg& arg) { return arg; });
 
             ker(opArgs);
 
