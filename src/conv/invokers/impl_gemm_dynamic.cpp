@@ -474,9 +474,9 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     bool need_set_zero = config.gemm_k_global_split > 0;
 
     std::vector<OpKernelArg> opArgs;
-    opArgs.emplace_back(static_cast<void*>(nullptr)); // placeholder for input ptr
-    opArgs.emplace_back(static_cast<void*>(nullptr)); // placeholder for weight ptr
-    opArgs.emplace_back(static_cast<void*>(nullptr)); // placeholder for output ptr
+    opArgs.emplace_back(static_cast<const void*>(nullptr)); // placeholder for input ptr
+    opArgs.emplace_back(static_cast<const void*>(nullptr)); // placeholder for weight ptr
+    opArgs.emplace_back(static_cast<void*>(nullptr));       // placeholder for output ptr
     opArgs.emplace_back(hi);
     opArgs.emplace_back(wi);
     opArgs.emplace_back(n);
@@ -522,9 +522,9 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
             opArgs[1] = ptr_wei;
             opArgs[2] = ptr_out;
 #elif MIOPEN_BACKEND_HIP
-            opArgs[0] = const_cast<void*>(tensors.in);
-            opArgs[1] = const_cast<void*>(tensors.w);
-            opArgs[2] = const_cast<void*>(tensors.out);
+            opArgs[0] = static_cast<const void*>(tensors.in);
+            opArgs[1] = static_cast<const void*>(tensors.w);
+            opArgs[2] = static_cast<void*>(tensors.out);
 #endif
 
             if(need_set_zero)
@@ -623,9 +623,9 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     need_set_zero |= config.gemm_k_global_split > 0;
 
     std::vector<OpKernelArg> opArgs;
-    opArgs.emplace_back(static_cast<void*>(nullptr)); // placeholder for input ptr
-    opArgs.emplace_back(static_cast<void*>(nullptr)); // placeholder for weight ptr
-    opArgs.emplace_back(static_cast<void*>(nullptr)); // placeholder for output ptr
+    opArgs.emplace_back(static_cast<void*>(nullptr));       // placeholder for input ptr
+    opArgs.emplace_back(static_cast<const void*>(nullptr)); // placeholder for weight ptr
+    opArgs.emplace_back(static_cast<const void*>(nullptr)); // placeholder for output ptr
     opArgs.emplace_back(hi);
     opArgs.emplace_back(wi);
     opArgs.emplace_back(n);
@@ -684,9 +684,9 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
             opArgs[1] = ptr_wei;
             opArgs[2] = ptr_out;
 #elif MIOPEN_BACKEND_HIP
-            opArgs[0] = const_cast<void*>(tensors.out);
-            opArgs[1] = const_cast<void*>(tensors.w);
-            opArgs[2] = const_cast<void*>(tensors.in);
+            opArgs[0] = static_cast<void*>(tensors.out);
+            opArgs[1] = static_cast<const void*>(tensors.w);
+            opArgs[2] = static_cast<const void*>(tensors.in);
 #endif
 
             if(need_set_zero)
