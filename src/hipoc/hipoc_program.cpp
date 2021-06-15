@@ -180,7 +180,7 @@ HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name,
 HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name, const std::string& blob)
     : program(program_name) ///, module(CreateModuleInMem(blob))
 {
-    if(nullptr ==
+    if(nullptr !=
        miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{})) /// \todo Finish off this spaghetti eventually.
         return;
     module = CreateModuleInMem(blob);
