@@ -220,7 +220,7 @@ pipeline {
     parameters {
         booleanParam(
             name: "DISABLE_ALL_STAGES",
-            defaultValue: true,
+            defaultValue: false,
             description: "Disables each stage in the pipline")
         booleanParam(
             name: "STATIC_CHECKS",
