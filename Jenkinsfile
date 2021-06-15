@@ -534,32 +534,31 @@ pipeline {
         stage("Full Tests II"){
             when { expression { params.FULL_TESTS && !params.DISABLE_ALL_STAGES } }
             environment{
-                WORKAROUND_iGemm_917 = " MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS=0"
                 WORKAROUND_iGemm_936 = " MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0"
             }
             parallel{
                 stage('Fp32 Hip All gfx908') {
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Full_test_limit + gfx908_test, build_env: WORKAROUND_iGemm_917 + WORKAROUND_iGemm_936, gpu_arch: "gfx908")
+                        buildHipClangJobAndReboot(setup_flags: Full_test_limit + gfx908_test, build_env: WORKAROUND_iGemm_936, gpu_arch: "gfx908")
                     }
                 }
                 stage('Fp16 Hip Install All Vega20') {
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Full_test_limit + Fp16_flags, build_env: WORKAROUND_iGemm_917 + WORKAROUND_iGemm_936, build_install: "true")
+                        buildHipClangJobAndReboot( setup_flags: Full_test_limit + Fp16_flags, build_env: WORKAROUND_iGemm_936, build_install: "true")
                     }
                 }
                 stage('Fp32 Hip All Vega20') {
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Full_test_limit, build_env: WORKAROUND_iGemm_917 + WORKAROUND_iGemm_936)
+                        buildHipClangJobAndReboot( setup_flags: Full_test_limit, build_env: WORKAROUND_iGemm_936)
                     }
                 }
                 stage('Fp16 Hip All Install gfx908') {
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Full_test_limit + gfx908_test + Fp16_flags, build_env: WORKAROUND_iGemm_917 + WORKAROUND_iGemm_936, build_install: "true", gpu_arch: "gfx908")
+                        buildHipClangJobAndReboot(setup_flags: Full_test_limit + gfx908_test + Fp16_flags, build_env: WORKAROUND_iGemm_936, build_install: "true", gpu_arch: "gfx908")
                     }
                 }
             }
