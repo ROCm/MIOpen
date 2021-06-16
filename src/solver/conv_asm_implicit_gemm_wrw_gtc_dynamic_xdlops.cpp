@@ -718,15 +718,17 @@ static inline std::tuple<bool, // is valid
             if(cfg.tensor_b_thread_lengths[2] * cfg.tensor_b_cluster_lengths[2] > 1)
             {
 
-                if(c % gemm_n_per_block != 0)
+                if(c % gemm_n_per_block != 0 || gemm_m % gemm_m_per_block != 0)
                 {
                     continue;
                 }
             }
-
-            if(cfg.tensor_a_thread_lengths[2] * cfg.tensor_a_thread_lengths[3] > 1)
-                if(gemm_m % gemm_m_per_block != 0)
-                    continue;
+            else
+            {
+                if(cfg.tensor_a_thread_lengths[2] * cfg.tensor_a_thread_lengths[3] > 1)
+                    if(gemm_m % gemm_m_per_block != 0)
+                        continue;
+            }
 
             if(wo % cfg.tensor_b_thread_lengths[1] != 0)
             {
