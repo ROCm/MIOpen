@@ -574,9 +574,6 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     int y_tilda               = stride_h / gcd_stride_dilation_h;
     int x_tilda               = stride_w / gcd_stride_dilation_w;
 
-    // int y_dot = (y + y_tilda - 1) / y_tilda;
-    // int x_dot = (x + x_tilda - 1) / x_tilda;
-
     int h_tilda = ho + (dilation_h * (y - 1) + stride_h - 1) / stride_h;
     int w_tilda = wo + (dilation_w * (x - 1) + stride_w - 1) / stride_w;
 
