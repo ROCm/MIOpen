@@ -20,8 +20,6 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     comgr \
     curl \
     clang-format-3.8 \
-    clang-3.8 \
-    clang-tidy-3.8\
     doxygen \
     g++ \
     gdb \
@@ -97,7 +95,7 @@ RUN if [ "$USE_TARGETID" = "ON" ] ; then export HIPCC_LINK_FLAGS_APPEND='-O3 -pa
 RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."; elif [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@be26d30d3d7509a414134a45f4a6d49e5da250b8; else cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@4bfe00a8de61d12862d9fa803b8ea9a981a50f97; fi
 
 RUN cd ~ && \
-    export MLIR_COMMIT=3ddffc0056cf5ad7675486428dff13a4e335601d && \
+    export MLIR_COMMIT=bbce2f3216e013efe59d7e9c021b4896f89176b0 && \
     wget https://github.com/ROCmSoftwarePlatform/llvm-project-mlir/archive/$MLIR_COMMIT.tar.gz && \
     tar -xvzf $MLIR_COMMIT.tar.gz && \
     rm -rf $MLIR_COMMIT.tar.gz && \

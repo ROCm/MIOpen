@@ -528,7 +528,7 @@ enable_clang_tidy(
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}
     HEADER_FILTER
-        ".*hpp"
+        "\.hpp$"
     EXTRA_ARGS
         -DMIOPEN_USE_CLANG_TIDY
 

@@ -289,7 +289,7 @@ pipeline {
                 stage('OpenCL Tidy') {
                     agent{  label rocmnode("nogpu") }
                     environment{
-                        setup_cmd = "CXX='clang++-3.8' cmake -DMIOPEN_BACKEND=OpenCL -DBUILD_DEV=On .."
+                        setup_cmd = "cmake -DMIOPEN_BACKEND=OpenCL -DBUILD_DEV=On .."
                         build_cmd = "make -j\$(nproc) -k analyze"
                     }
                     steps{
@@ -503,6 +503,20 @@ pipeline {
                     agent{ label rocmnode("vega") }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: MLIR_flags + Fp16_flags, build_env: extra_log_env, test_flags: ' --verbose ')
+                    }
+                }
+                stage('Fp16 Hip MLIR Xdlops') {
+                    when { expression { params.SMOKE_MLIR && !params.DISABLE_ALL_STAGES } }
+                    agent{ label rocmnode("vega") }
+                    steps{
+                        buildHipClangJobAndReboot(setup_flags: MLIR_flags + Fp16_flags, build_env: extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908")
+                    }
+                }
+                stage('Fp32 Hip MLIR Xdlops') {
+                    when { expression { params.SMOKE_MLIR && !params.DISABLE_ALL_STAGES } }
+                    agent{ label rocmnode("vega") }
+                    steps{
+                        buildHipClangJobAndReboot(setup_flags: MLIR_flags, build_env: extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908")
                     }
                 }
             }
