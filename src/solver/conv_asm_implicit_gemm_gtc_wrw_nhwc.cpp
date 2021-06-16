@@ -33,6 +33,7 @@
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/conv/asm_implicit_gemm.hpp>
+#include <stdio.h>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC)
 
@@ -178,11 +179,11 @@ static std::tuple<std::string, // kernel_name
         const ConvolutionContext& ctx,
         const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC& config)
 {
-    //const auto& n     = ctx.batch_sz;
-    const auto& k     = ctx.n_inputs;
-    const auto& c     = ctx.n_outputs;
-    //const auto& ho    = ctx.in_height;
-    //const auto& wo    = ctx.in_width;
+    // const auto& n     = ctx.batch_sz;
+    const auto& k = ctx.n_inputs;
+    const auto& c = ctx.n_outputs;
+    // const auto& ho    = ctx.in_height;
+    // const auto& wo    = ctx.in_width;
     const auto& y     = ctx.kernel_size_h;
     const auto& x     = ctx.kernel_size_w;
     const auto& group = ctx.group_counts;
@@ -213,27 +214,14 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
     };
 
     static const std::vector<std::tuple<int, int, int>> tile_list_fp16 = {
-        
-        std::make_tuple(256, 128, 16),
-        std::make_tuple(256, 128, 32),
-        std::make_tuple(128, 256, 16),
-        std::make_tuple(128, 256, 32),
-        std::make_tuple(128, 128, 16),
-        std::make_tuple(128, 128, 32),
-        std::make_tuple(256, 64, 16),
-        std::make_tuple(256, 64, 32),
-        std::make_tuple(64, 256, 16),
-        std::make_tuple(64, 256, 32),
-        std::make_tuple(128, 64, 32),
-        std::make_tuple(64, 128, 16),
-        std::make_tuple(64, 128, 32),
-        std::make_tuple(64, 64, 64),
-        std::make_tuple(64, 64, 32),
-        std::make_tuple(256, 32, 32),
-        std::make_tuple(32, 256, 32),
-        std::make_tuple(64, 32, 32),
-        std::make_tuple(32, 64, 32),
-        std::make_tuple(64, 64, 16),
+
+        std::make_tuple(256, 128, 16), std::make_tuple(256, 128, 32), std::make_tuple(128, 256, 16),
+        std::make_tuple(128, 256, 32), std::make_tuple(128, 128, 16), std::make_tuple(128, 128, 32),
+        std::make_tuple(256, 64, 16),  std::make_tuple(256, 64, 32),  std::make_tuple(64, 256, 16),
+        std::make_tuple(64, 256, 32),  std::make_tuple(128, 64, 32),  std::make_tuple(64, 128, 16),
+        std::make_tuple(64, 128, 32),  std::make_tuple(64, 64, 64),   std::make_tuple(64, 64, 32),
+        std::make_tuple(256, 32, 32),  std::make_tuple(32, 256, 32),  std::make_tuple(64, 32, 32),
+        std::make_tuple(32, 64, 32),   std::make_tuple(64, 64, 16),
     };
 
 #ifdef DEBUG_IGEMM_ASM_WRW_NHWC_CHECK_VALID_TILE_LIST
@@ -284,11 +272,11 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
     }
 #endif
 
-    const auto& n         = ctx.batch_sz;
-    const auto& k         = ctx.n_inputs;
-    const auto& c         = ctx.n_outputs;
-    //const auto& ho        = ctx.in_height;
-    //const auto& wo        = ctx.in_width;
+    const auto& n = ctx.batch_sz;
+    const auto& k = ctx.n_inputs;
+    const auto& c = ctx.n_outputs;
+    // const auto& ho        = ctx.in_height;
+    // const auto& wo        = ctx.in_width;
     const auto& y         = ctx.kernel_size_h;
     const auto& x         = ctx.kernel_size_w;
     const auto stride_h   = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
@@ -297,8 +285,8 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
     const auto dilation_w = ctx.kernel_size_w > 1 ? ctx.kernel_dilation_w : 1;
     const auto& pad_h     = ctx.pad_h;
     const auto& pad_w     = ctx.pad_w;
-    //const auto& precision = ctx.IsFp16() ? miopenHalf : miopenFloat;
-    const auto& group     = ctx.group_counts;
+    // const auto& precision = ctx.IsFp16() ? miopenHalf : miopenFloat;
+    const auto& group = ctx.group_counts;
 
     const auto gemm_n  = (c / group) * y * x;
     const auto& gemm_m = k / group;
@@ -325,10 +313,8 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
                 continue;
 
             size_t cur_pad_pixel =
-                ComputeMatrixPadSize(
-                    gemm_m, config.gemm_m_per_block, 0, config.gemm_k_per_block) +
-                ComputeMatrixPadSize(
-                    gemm_n, config.gemm_n_per_block, 0, config.gemm_k_per_block) +
+                ComputeMatrixPadSize(gemm_m, config.gemm_m_per_block, 0, config.gemm_k_per_block) +
+                ComputeMatrixPadSize(gemm_n, config.gemm_n_per_block, 0, config.gemm_k_per_block) +
                 ComputeMatrixPadSize(
                     gemm_m, config.gemm_m_per_block, gemm_n, config.gemm_n_per_block);
             if(cur_pad_pixel < min_pad_pixel)
@@ -342,22 +328,23 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
         std::tie(std::ignore, std::ignore, current_grid_size) =
             GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel(ctx, config_list[selected_index]);
         bool need_k_split = current_grid_size > 600 ? false : true;
-        size_t gks = ComputeLog2GemmKGlobalSplitsWith2DMerge(current_grid_size,
-                                                             1200,
-                                                             n / config_list[selected_index].tensor_b_thread_lengths[1],
-                                                             0,
-                                                             config_list[selected_index].gemm_k_per_block,
-                                                             WRW_MAX_GEMM_K_SPLITS);
+        size_t gks        = ComputeLog2GemmKGlobalSplitsWith2DMerge(
+            current_grid_size,
+            1200,
+            n / config_list[selected_index].tensor_b_thread_lengths[1],
+            0,
+            config_list[selected_index].gemm_k_per_block,
+            WRW_MAX_GEMM_K_SPLITS);
         need_k_split |= gks != 0;
-        
+
         CopyParameters(config_list[selected_index]);
         if(need_k_split)
             gemm_k_global_split = static_cast<int>(gks);
-
     }
     else
     {
-        // std::cout << "m_per_block=" << m_per_block << ", n_per_block=" << n_per_block << ", k_per_block=" << k_per_block << std::endl;
+        // std::cout << "m_per_block=" << m_per_block << ", n_per_block=" << n_per_block << ",
+        // k_per_block=" << k_per_block << std::endl;
         // found a suitable m/n/k, now let's prepare other parmater and initialize one
         const auto& config_list = GetWrwXdlopsNHWCConfigList();
         for(const auto& config : config_list)
@@ -373,12 +360,13 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
                 std::tie(std::ignore, std::ignore, current_grid_size) =
                     GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel(ctx, config);
                 bool need_k_split = current_grid_size > 600 ? false : true;
-                size_t gks = ComputeLog2GemmKGlobalSplitsWith2DMerge(current_grid_size,
-                                                                     1200,
-                                                                     n / config.tensor_b_thread_lengths[1],
-                                                                     0,
-                                                                     config.gemm_k_per_block,
-                                                                     WRW_MAX_GEMM_K_SPLITS);
+                size_t gks =
+                    ComputeLog2GemmKGlobalSplitsWith2DMerge(current_grid_size,
+                                                            1200,
+                                                            n / config.tensor_b_thread_lengths[1],
+                                                            0,
+                                                            config.gemm_k_per_block,
+                                                            WRW_MAX_GEMM_K_SPLITS);
                 need_k_split |= gks != 0;
 
                 // std::cout << "need_k_split:" << need_k_split << std::endl;
@@ -411,6 +399,8 @@ bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::SetNextValue()
         }
         else
         {
+            // std::cout << __FUNCTION__ << std::endl;
+            // std::cout << "gemm_k_global_split:" << gemm_k_global_split << std::endl;
             if(gemm_k_global_split != 0)
             {
                 if(NextLinear<1, WRW_MAX_GEMM_K_SPLITS>(gemm_k_global_split))
@@ -451,11 +441,11 @@ bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::IsValid(const Convolution
     if(!((ctx.IsFp16() && precision == miopenHalf) || (ctx.IsFp32() && precision == miopenFloat)))
         return false;
 
-    //const auto& n         = ctx.batch_sz;
-    //const auto& k         = ctx.n_inputs;
-    const auto& c         = ctx.n_outputs;
-    //const auto& ho        = ctx.in_height;
-    //const auto& wo        = ctx.in_width;
+    const auto& n = ctx.batch_sz;
+    // const auto& k         = ctx.n_inputs;
+    const auto& c = ctx.n_outputs;
+    // const auto& ho        = ctx.in_height;
+    // const auto& wo        = ctx.in_width;
     const auto& y         = ctx.kernel_size_h;
     const auto& x         = ctx.kernel_size_w;
     const auto stride_h   = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
@@ -465,7 +455,7 @@ bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::IsValid(const Convolution
     const auto& pad_h     = ctx.pad_h;
     const auto& pad_w     = ctx.pad_w;
     const auto& precision = ctx.IsFp16() ? miopenHalf : miopenFloat;
-    //const auto& group     = ctx.group_counts;
+    // const auto& group     = ctx.group_counts;
 
     bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
                      (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);
@@ -475,8 +465,17 @@ bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::IsValid(const Convolution
         return false;
     }
 
-    if(precision == miopenHalf){
-        if(c % tensor_b_thread_lengths[3] != 0){
+    // std::cout << __FUNCTION__ << std::endl;
+    // std::cout << "gemm_k_global_split:" << gemm_k_global_split << std::endl;
+
+    if(precision == miopenHalf)
+    {
+        if(c % tensor_b_thread_lengths[3] != 0)
+        {
+            return false;
+        }
+        if(n % (tensor_b_thread_lengths[1] * (1 << gemm_k_global_split)) != 0)
+        {
             return false;
         }
     }
@@ -586,7 +585,8 @@ ComputeDynamicIGemmWrwKernelArgsNHWC(const conv::ProblemDescription& conv_proble
     return opArgs;
 }
 
-size_t ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetWorkspaceSize(const ConvolutionContext& ctx) const
+size_t
+ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetWorkspaceSize(const ConvolutionContext& ctx) const
 {
     if(ctx.IsFp32())
         return 0;
@@ -639,7 +639,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
     kernel.comp_options = options.str();
 
     MIOPEN_LOG_I2("ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC: " + config.ToString());
-    
+
     result.construction_params.push_back(kernel);
 
     const auto& conv_problem = ctx.conv_problem;
@@ -647,9 +647,12 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
 
     int log2_gemm_k_global_splits = config.gemm_k_global_split;
 
-    auto opShapeArgs = ComputeDynamicIGemmWrwKernelArgsNHWC(conv_problem, log2_gemm_k_global_splits);
+    auto opShapeArgs =
+        ComputeDynamicIGemmWrwKernelArgsNHWC(conv_problem, log2_gemm_k_global_splits);
 
-    if(conv_problem.IsFp16() && config.gemm_k_global_split >= 1 && config.tensor_b_thread_lengths[3] == 1){
+    if(conv_problem.IsFp16() && config.gemm_k_global_split >= 1 &&
+       config.tensor_b_thread_lengths[3] == 1)
+    {
         TensorDescriptor workspaceDesc(miopenFloat,
                                        conv_problem.GetWeights().GetLengths(),
                                        conv_problem.GetWeights().GetStrides());
@@ -708,7 +711,8 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
             };
         };
     }
-    else{
+    else
+    {
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
                 decltype(auto) wrw_invoke_params =
@@ -751,4 +755,3 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
 
 } // namespace solver
 } // namespace miopen
-
