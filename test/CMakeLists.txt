@@ -111,18 +111,27 @@ if(NOT MIOPEN_TEST_MIOTENSILE)
     endif()
 else()
 	if(MIOPEN_TEST_HALF)
-	    set(SKIP_ALL_EXCEPT_TESTS test_conv2d test_conv3d test_conv3d_extra test_immed_conv2d test_immed_conv3d test_gru test_rnn_vanilla test_lstm test_gru_extra test_rnn_extra test_lstm_extra )
+	    set(SKIP_ALL_EXCEPT_TESTS test_conv2d test_conv3d test_conv3d_extra test_immed_conv2d
+                test_immed_conv3d test_gru test_rnn_vanilla test_lstm test_gru_extra test_rnn_extra
+                test_lstm_extra )
 	elseif(MIOPEN_TEST_INT8)
 	    set(SKIP_ALL_EXCEPT_TESTS test_conv2d)
 	elseif(MIOPEN_TEST_BFLOAT16)
 	    set(SKIP_ALL_EXCEPT_TESTS test_conv2d test_immed_conv2d)
     else()
-        set(SKIP_ALL_EXCEPT_TESTS test_conv2d test_conv3d test_conv3d_extra test_immed_conv2d test_immed_conv3d test_gru test_rnn_vanilla test_lstm test_gru_extra test_rnn_extra test_lstm_extra )
+        set(SKIP_ALL_EXCEPT_TESTS test_conv2d test_conv3d test_conv3d_extra test_immed_conv2d
+                test_immed_conv3d test_gru test_rnn_vanilla test_lstm test_gru_extra
+                test_rnn_extra test_lstm_extra )
 	endif()
 endif()
 
 if(MIOPEN_TEST_GFX908)
-    list(APPEND SKIP_TESTS test_main test_tensor_scale test_tensor_set test_tensor_transform test_tensor_vec test_w_supertensor test_dropout test_immed_conv3d test_conv3d test_soft_max test_fusion_aux test_activation test_lrn_test test_ctc test_conv2d_bias test_conv3d_bias test_cba_inference test_cbna_inference test_pooling2d test_na_train test_na_inference test_bn_aux)
+    list(APPEND SKIP_TESTS test_main test_tensor_scale test_tensor_set test_tensor_transform
+            test_tensor_vec test_w_supertensor test_dropout test_immed_conv3d test_conv3d
+            test_soft_max test_fusion_aux test_activation test_lrn_test test_ctc test_conv2d_bias
+            test_conv3d_bias test_cba_inference test_cbna_inference test_pooling2d test_na_train
+            test_na_inference test_bn_aux)
+endif()
 # The usage is non-trivial, see function add_test_command.
 if(SKIP_TESTS)
     list(REMOVE_DUPLICATES SKIP_TESTS)
@@ -445,7 +454,7 @@ function(add_custom_test NAME)
         else()
             set_tests_properties(${NAME} PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
         endif()
-        rate_added_test(${NAME}
+        rate_added_test(${NAME})
     else()
         set_tests_properties(${NAME} PROPERTIES DISABLED On)
     endif()
@@ -983,7 +992,7 @@ set(DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS
 
 if(NOT (NOT MIOPEN_TEST_FLOAT OR MIOPEN_TEST_GFX908))
 if(${CODECOV_TEST})
-add_custom_test(test_conv_igemm_dynamic_small
+    add_custom_test(test_conv_igemm_dynamic_small
     COMMAND ${DYNAMIC_IMPLICITGEMM_ENVS}     $<TARGET_FILE:test_conv2d> --verbose --input  32  32 17 17 --weights 32  32 1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-backward-data --disable-backward-weights --disable-validation
     COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  64  64 28 28 --weights 32  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data --disable-validation
     COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  64  64 28 28 --weights 16  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --disable-validation
@@ -1115,7 +1124,7 @@ if(MIOPEN_TEST_DEEPBENCH)
     COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	192	28	28	--weights	32	192	1	1	--pads_strides_dilations	0	0	1	1	1	1
     COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	512	14	14	--weights	48	512	1	1	--pads_strides_dilations	0	0	1	1	1	1
     COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	832	7	7	--weights	128	832	1	1	--pads_strides_dilations	0	0	1	1	1	1
-)
+    )
 endif()
 
 if(MIOPEN_TEST_CONV)
@@ -1160,7 +1169,7 @@ if(MIOPEN_TEST_CONV)
     COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	1	32	16	16	--weights	1	32	5	5	--pads_strides_dilations	0	0	4	4	1	1
     COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	1	32	28	28	--weights	1	32	5	5	--pads_strides_dilations	0	0	4	4	1	1
     COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	1	48	7	7	--weights	1	48	5	5	--pads_strides_dilations	0	0	4	4	1	1
-)
+    )
 endif()
 
 if(MIOPEN_TEST_FLOAT)
@@ -1169,9 +1178,9 @@ endif()
 
 # Add here regression tests that should be run only on Vega10/20 and only with FP16.
 add_custom_test(test_regression_half_vega FLOAT_DISABLED HALF_ENABLED GFX908_DISABLED
-# REGRESSION TEST for issue #894.
-# Can't be enabled for GFX908 due to WORKAROUND_ISSUE_2298
-# Can't be enabled for GFX10 due to WORKAROUND_SWDEV_271887
-COMMAND	MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvOclDirectFwd1x1 $<TARGET_FILE:test_conv2d> --verbose --disable-backward-data --disable-backward-weights --disable-verification-cache
+    # REGRESSION TEST for issue #894.
+    # Can't be enabled for GFX908 due to WORKAROUND_ISSUE_2298
+    # Can't be enabled for GFX10 due to WORKAROUND_SWDEV_271887
+    COMMAND	MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvOclDirectFwd1x1 $<TARGET_FILE:test_conv2d> --verbose --disable-backward-data --disable-backward-weights --disable-verification-cache
     --half --cmode conv --pmode default --group-count 1 --input 1 16 7 7 --weights 16 16 1 1 --pads_strides_dilations 0 0 1 1 1 1
 )
