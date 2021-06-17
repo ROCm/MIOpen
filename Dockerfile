@@ -11,8 +11,10 @@ RUN dpkg --add-architecture i386
 
 # Add rocm repository
 
-RUN if [ "$USE_TARGETID" = "ON" ] || [ "$USE_MLIR" = "ON" ] ; \
-    then export ROCM_APT_VER=.apt_4.1.1;\
+RUN if [ "$USE_TARGETID" = "ON" ] ; \
+        then export ROCM_APT_VER=.apt_4.1.1;\
+    elif [ "$USE_MLIR" = "ON" ] ;
+        then export ROCM_APT_VER=.apt_3.7;\
     else export ROCM_APT_VER=.apt_4.2;  \
     fi && \
 echo $ROCM_APT_VER &&\
@@ -21,8 +23,10 @@ RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu xenial main universe | tee 
 
 #Add gpg keys
 # Install dependencies
-RUN if [ "$USE_TARGETID" = "ON" ] || [ "$USE_MLIR" = "ON" ] ; \
-    then export ROCM_KEY_VER=4.1.1; \
+RUN if [ "$USE_TARGETID" = "ON" ]; \
+        then export ROCM_KEY_VER=4.1.1; \
+    elif [ "$USE_MLIR" = "ON" ] ;
+        then export ROCM_KEY_VER=3.7;\
     else export ROCM_KEY_VER=4.2; \
     fi && \
 apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
