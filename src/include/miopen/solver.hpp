@@ -2863,7 +2863,7 @@ struct PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC : PerformanceConfigAsmIm
     {
     }
     PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC()
-        : PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC("wrw",
+        : PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC("fwd",
                                                            "nchw",
                                                            miopenFloat,
                                                            1,
@@ -2891,7 +2891,7 @@ struct PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC : PerformanceConfigAsmIm
     {
     }
     PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC(bool spare)
-        : PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC("wrw",
+        : PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC("fwd",
                                                            "nchw",
                                                            miopenFloat,
                                                            1,
@@ -2923,6 +2923,7 @@ struct PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC : PerformanceConfigAsmIm
     bool SetNextValue();
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
+    size_t ComputeKernelOccupancy() const;
 };
 
 struct ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC : SolverBase<ConvolutionContext>
