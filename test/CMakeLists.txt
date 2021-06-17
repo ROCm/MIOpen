@@ -535,7 +535,7 @@ set(IMPLICITGEMM_TESTING_ENV
  MIOPEN_DEBUG_CONV_IMPLICIT_GEMM=1
 )
 
-if(WORKAROUND_ISSUE_936)
+if(WORKAROUND_ISSUE_936 AND MIOPEN_TEST_HALF)
     LIST(APPEND IMPLICITGEMM_TESTING_ENV MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0 MIOPEN_FIND_MODE=normal)
     LIST(APPEND IMPLICITGEMM_ARGS --disable-forward --disable-backward-data)
     #Afther fix need to remove '| grep -v "Backward Weights Convolution cannot be executed due to incorrect params"'
