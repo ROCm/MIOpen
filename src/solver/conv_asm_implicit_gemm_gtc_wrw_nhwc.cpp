@@ -440,8 +440,8 @@ bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::SetNextValue()
         }
         else
         {
-            std::cout << __FUNCTION__ << std::endl;
-            std::cout << "gemm_k_global_split:" << gemm_k_global_split << std::endl;
+            // std::cout << __FUNCTION__ << std::endl;
+            // std::cout << "gemm_k_global_split:" << gemm_k_global_split << std::endl;
             if(gemm_k_global_split != 0)
             {
                 if(NextLinear<1, WRW_MAX_GEMM_K_SPLITS>(gemm_k_global_split))
