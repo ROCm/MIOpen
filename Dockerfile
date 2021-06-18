@@ -13,7 +13,7 @@ RUN dpkg --add-architecture i386
 
 RUN if [ "$USE_TARGETID" = "ON" ] ; \
         then export ROCM_APT_VER=.apt_4.1.1;\
-    elif [ "$USE_MLIR" = "ON" ] ;
+    elif [ "$USE_MLIR" = "ON" ] ; \
         then export ROCM_APT_VER=.apt_3.7;\
     else export ROCM_APT_VER=.apt_4.2;  \
     fi && \
@@ -25,7 +25,7 @@ RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu xenial main universe | tee 
 # Install dependencies
 RUN if [ "$USE_TARGETID" = "ON" ]; \
         then export ROCM_KEY_VER=4.1.1; \
-    elif [ "$USE_MLIR" = "ON" ] ;
+    elif [ "$USE_MLIR" = "ON" ] ; \
         then export ROCM_KEY_VER=3.7;\
     else export ROCM_KEY_VER=4.2; \
     fi && \
