@@ -198,7 +198,7 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmBBlockCopyPerformancePara
 
         // calculate threadwise copy size
         int b_data_per_thread_copy =
-            std::max(1, (GemmKPerBlock * GemmMPerBlock * GemmKPACKSize) / BlockSize);
+            std::max(1, (GemmKPerBlock * GemmNPerBlock * GemmKPACKSize) / BlockSize);
 
         if(!(b_data_per_thread_copy > 0))
             MIOPEN_THROW("invalid performance parameter");
