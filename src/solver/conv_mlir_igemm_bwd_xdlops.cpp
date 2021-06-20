@@ -74,7 +74,7 @@ std::string GetOperation() { return "conv2d_bwd_data"; }
 bool ConvMlirIgemmBwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
 #if MIOPEN_USE_MLIR
-    if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD_XDLOPS{}))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD_XDLOPS{}))
         return false;
     if(!ctx.IsLayoutDefault() && !ctx.IsLayoutNHWC())
         return false;
@@ -118,10 +118,10 @@ ConvSolution ConvMlirIgemmBwdXdlops::GetSolution(const ConvolutionContext& ctx) 
     {
         KernelInfo construction_parameters;
 
-        construction_parameters.kernel_name = GetKernelName() + std::to_string(kernel_id);
-        construction_parameters.kernel_file = construction_parameters.kernel_name + ".mlir";
-        construction_parameters.comp_options =
-            mlir::ConstructBuildOptions(ctx, GetOperation(), GetKernelName(), true, kernel_id);
+        construction_parameters.kernel_name  = GetKernelName() + std::to_string(kernel_id);
+        construction_parameters.kernel_file  = construction_parameters.kernel_name + ".mlir";
+        construction_parameters.comp_options = mlir::ConstructBuildOptions(
+            ctx, GetOperation(), construction_parameters.kernel_name, true, kernel_id);
 
         size_t local_size  = 0;
         size_t global_size = 0;
