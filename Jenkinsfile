@@ -183,7 +183,11 @@ pipeline {
             defaultValue: true,
             description: "")
         booleanParam(
-            name: "SMOKE_TESTS",
+            name: "SMOKE_FP32_AUX1",
+            defaultValue: true,
+            description: "")
+        booleanParam(
+            name: "SMOKE_FP16_BF16_INT8",
             defaultValue: true,
             description: "")
         booleanParam(
@@ -280,7 +284,7 @@ pipeline {
             }
         }
         stage("Smoke Fp32"){
-            when { expression { params.SMOKE_TESTS } }
+            when { expression { params.SMOKE_FP32_AUX1 } }
             parallel{
                stage('Fp32 OpenCL Debug') {
                     agent{ label rocmnode("vega") }
@@ -341,7 +345,7 @@ pipeline {
             }
         }
         stage("Smoke Aux 1"){
-            when { expression { params.SMOKE_TESTS } }
+            when { expression { params.SMOKE_FP32_AUX1 } }
             parallel{
                 stage('Fp32 HipNoGPU Debug') {
                     agent{  label rocmnode("nogpu") }
@@ -511,7 +515,7 @@ pipeline {
             }
         }
         stage("Smoke Fp16/Bf16/Int8"){
-            when { expression { params.SMOKE_TESTS } }
+            when { expression { params.SMOKE_FP16_BF16_INT8 } }
             parallel{
                 stage('Fp16 Hip Vega20 /opt/rocm') {
                     agent{ label rocmnode("vega20") }
