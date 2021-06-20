@@ -73,7 +73,7 @@ std::string GetOperation() { return "conv2d_bwd_data"; }
 bool ConvMlirIgemmBwd::IsApplicable(const ConvolutionContext& ctx) const
 {
 #if MIOPEN_USE_MLIR
-    if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD{}))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD{}))
         return false;
     if(!ctx.IsLayoutDefault() && !ctx.IsLayoutNHWC())
         return false;

@@ -101,27 +101,37 @@ void ComputeMlirDimsStrides(const conv::ProblemDescription& conv_problem,
 {
     auto group_count = conv_problem.GetGroupCount();
 
-    // Add a virtual group dimension before input channel.
-    const TensorDescriptor& in = conv_problem.GetIn();
-    in_dims                    = in.GetLengths();
-    in_strides                 = in.GetStrides();
-    InsertGToDimsStrides(in.GetLayout("NCHW"), 'C', group_count, in_dims, in_strides);
+    TensorDescriptor in;
+    if(conv_problem.GetDirection() == conv::Direction::Forward)
+        in = conv_problem.GetIn();
+    else
+        in = conv_problem.GetOut();
+
+    in_dims    = in.GetLengths();
+    in_strides = in.GetStrides();
     PermuteDimsStrides(in_dims, in_strides);
+    // Add a virtual group dimension before input channel.
+    InsertGToDimsStrides(in.GetLayout("NCHW"), 'C', group_count, in_dims, in_strides);
 
     // Add a virtual group dimension before output channel.
     const TensorDescriptor& weights = conv_problem.GetWeights();
     weights_dims                    = weights.GetLengths();
     weights_strides                 = weights.GetStrides();
+    PermuteDimsStrides(weights_dims, weights_strides);
     InsertGToDimsStrides(
         weights.GetLayout("NCHW"), 'N', group_count, weights_dims, weights_strides);
-    PermuteDimsStrides(weights_dims, weights_strides);
 
-    // Add a virtual group dimension before output channel.
-    const TensorDescriptor& out = conv_problem.GetOut();
-    out_dims                    = out.GetLengths();
-    out_strides                 = out.GetStrides();
-    InsertGToDimsStrides(out.GetLayout("NCHW"), 'C', group_count, out_dims, out_strides);
+    TensorDescriptor out;
+    if(conv_problem.GetDirection() == conv::Direction::Forward)
+        out = conv_problem.GetOut();
+    else
+        out = conv_problem.GetIn();
+
+    out_dims    = out.GetLengths();
+    out_strides = out.GetStrides();
     PermuteDimsStrides(out_dims, out_strides);
+    // Add a virtual group dimension before output channel.
+    InsertGToDimsStrides(out.GetLayout("NCHW"), 'C', group_count, out_dims, out_strides);
 }
 
 MlirConvArgs MakeMlirConvArgs(const std::vector<size_t>& in_dims,
@@ -138,11 +148,11 @@ MlirConvArgs MakeMlirConvArgs(const std::vector<size_t>& in_dims,
         std::copy(strides.cbegin(), strides.cend(), &target.strides[0]);
     };
 
-    StridedMemRef5D filter{nullptr, nullptr, 0, {0, 0, 0, 0}, {0, 0, 0, 0}};
+    StridedMemRef5D filter{nullptr, nullptr, 0, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}};
     initDimStrides(weights_dims, weights_strides, filter);
-    StridedMemRef5D input{nullptr, nullptr, 0, {0, 0, 0, 0}, {0, 0, 0, 0}};
+    StridedMemRef5D input{nullptr, nullptr, 0, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}};
     initDimStrides(in_dims, in_strides, input);
-    StridedMemRef5D output{nullptr, nullptr, 0, {0, 0, 0, 0}, {0, 0, 0, 0}};
+    StridedMemRef5D output{nullptr, nullptr, 0, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}};
     initDimStrides(out_dims, out_strides, output);
 
     return {filter, input, output};
@@ -255,7 +265,7 @@ InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
                     elapsed += handle.GetKernelTime();
             }
 
-            SetMlirConvArgsPtr(tensors.in, tensors.out, tensors.w, args);
+            SetMlirConvArgsPtr(tensors.out, tensors.in, tensors.w, args);
             for(const auto& k : kernels)
             {
                 handle.Run(k)(args);
