@@ -206,9 +206,7 @@ ConvSolution ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& param
         kernel_postfix += "_stride1";
     }
 
-    if(params.group_counts != 1 || params.direction.IsBackwardWrW())
-        kernel_postfix += "_group";
-
+    kernel_postfix += "_group";
     kernel.kernel_name = kernel_name + kernel_postfix;
     kernel.kernel_file = kernel_file + kernel_postfix + ".s";
 
