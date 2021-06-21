@@ -106,6 +106,10 @@ bool ConvBinWinogradRxSf3x2::IsApplicable(const ConvolutionContext& params) cons
     if(!params.IsLayoutDefault())
         return false;
 
+    const auto max_cu = params.GetStream().GetMaxHardwareComputeUnits();
+    if(max_cu > MAX_CU_LIMIT)
+        return false;
+
     const auto name = params.GetStream().GetDeviceName();
     if(!(StartsWith(name, "gfx9") || StartsWith(name, "gfx10")) || name == "gfx90a")
         return false;
@@ -153,19 +157,6 @@ bool ConvBinWinogradRxSf3x2::IsApplicable(const ConvolutionContext& params) cons
 /// \todo Consider re-using code from RxS_f2x3.
 ConvSolution ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& params) const
 {
-    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-    static bool IsWarned;
-    if(!IsWarned)
-    {
-        if(params.GetStream().GetMaxHardwareComputeUnits() > MAX_CU_LIMIT)
-            MIOPEN_LOG_WE(SolverDbId(*this) << ": GPU has "
-                                            << params.GetStream().GetMaxHardwareComputeUnits()
-                                            << "CUs, but this solver supports max "
-                                            << MAX_CU_LIMIT
-                                            << "and thus may show sub-optimal performance.");
-        IsWarned = true;
-    }
-
     ConvSolution result;
     KernelInfo kernel;
 
