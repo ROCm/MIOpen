@@ -33,26 +33,116 @@
 #include <miopen/conv/compiled_in_parameters.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
+#include <miopen/generic_search.hpp>
+#include <miopen/sequences.hpp>
 
 #include <boost/any.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS)
 
+#define WINODATA 3
+#define WINOFILTER 2
 #define MAX_CU_LIMIT 512
 
-int GetNGroupParam(const miopen::ConvolutionContext& params)
+static inline size_t Ceil(const size_t v, const size_t m)
 {
-    const auto max_cu   = params.GetStream().GetMaxHardwareComputeUnits();
-    const auto n_groups = (max_cu + params.group_counts - 1) / params.group_counts *
-                          (params.group_counts > 1 ? 4 : 1);
+    assert(m > 0);
+    return (v + m - 1) / m;
+}
 
-    return n_groups;
+static inline size_t RoundUpToMultiple(size_t val, size_t factor)
+{
+    return Ceil(val, factor) * factor;
+}
+
+/// \todo Consider re-using code from RxS_f2x3.
+static inline int GetBestNGroupParam(const int R,
+                                     const int S,
+                                     const int R_stride,
+                                     const int S_stride,
+                                     const int C,
+                                     const int K,
+                                     const int OH,
+                                     const int OW,
+                                     const int pad_H,
+                                     const int pad_W,
+                                     const int N,
+                                     const int idilation_w,
+                                     const int idilation_h,
+                                     const int n_groups,
+                                     const int G)
+{
+    int o_tile     = WINODATA;
+    int f_tile     = WINOFILTER;
+    int r_factor   = f_tile * 2;
+    int s_factor   = r_factor;
+    int c_factor   = 2;
+    int k_factor   = 32;
+    int nwh_factor = 32;
+    int w_factor   = o_tile * idilation_w * S_stride;
+    int h_factor   = o_tile * idilation_h * R_stride;
+
+    if(S_stride == 1 && idilation_w == 1 && S <= f_tile)
+        s_factor = f_tile;
+    if((R_stride == 1 && idilation_h == 1) || (R % (f_tile * 2)) == 1)
+        r_factor = f_tile;
+    if(S_stride == 2 || R_stride == 2 || idilation_w == 2 || idilation_h == 2)
+        c_factor = 1;
+
+    size_t g_s = RoundUpToMultiple(S, s_factor);
+    size_t g_r = RoundUpToMultiple(R, r_factor);
+    size_t g_c = RoundUpToMultiple(C, c_factor);
+    size_t g_k = RoundUpToMultiple(K, k_factor);
+    size_t g_w = OW;
+    size_t g_h = OH;
+
+    if((pad_W % 2 == 0) && (idilation_w > 1 || S_stride > 1))
+        g_w += 1;
+    if((pad_H % 2 == 1) && (idilation_h > 1 || R_stride > 1))
+        g_h += 1;
+
+    g_w            = RoundUpToMultiple(g_w, w_factor);
+    g_h            = RoundUpToMultiple(g_h, h_factor);
+    size_t g_n_w_h = RoundUpToMultiple(g_w * g_h * N, nwh_factor * w_factor * h_factor);
+
+    int best_n_groups_cnt = 1;
+    double min_param      = 0;
+    for(auto i = 1; i < n_groups; ++i)
+    {
+        size_t g_n_w_h_k =
+            RoundUpToMultiple(g_n_w_h * g_k, nwh_factor * w_factor * h_factor * k_factor * i);
+        size_t granulated_mac_count = g_n_w_h_k * g_c * g_s * g_r;
+        size_t n_groups_per_cu      = Ceil(i * G, n_groups);
+        double perf_metric = static_cast<double>(n_groups_per_cu) * granulated_mac_count / i;
+        if(static_cast<double>(granulated_mac_count) / i > 1.0e+7)
+            perf_metric *= (1 + i * 0.003);
+        else
+            perf_metric *= (1 + i * 0.04);
+        if(i == 1)
+            min_param = perf_metric;
+        if(min_param > perf_metric)
+        {
+            best_n_groups_cnt = i;
+            min_param         = perf_metric;
+        }
+    }
+    return best_n_groups_cnt;
 }
 
 namespace miopen {
 namespace solver {
 
 namespace {
+// clang-format off
+auto PerfFieldRules()
+{
+    return seq::MakeRuleSet(
+        std::make_tuple(seq::Span<int, 1, MAX_CU_LIMIT>{}, &PerformanceConfigConvBinWinogradRxSf3x2::n_groups)
+    );
+}
+// clang-format on
+
 /// \todo Consider re-using code from RxS_f2x3.
 inline bool IsShaderContraintsMet(const int R,
                                   const int S,
@@ -75,8 +165,7 @@ inline bool IsShaderContraintsMet(const int R,
             return false;
     }
 
-    const auto n_groups               = GetNGroupParam(params);
-    const auto grid_workgroup_count_x = n_groups * params.group_counts;
+    const auto grid_workgroup_count_x = params.GetStream().GetMaxHardwareComputeUnits();
 
     // clang-format off
     // Check implementation limits.
@@ -101,6 +190,114 @@ inline bool IsShaderContraintsMet(const int R,
 }
 
 } // namespace
+
+PerformanceConfigConvBinWinogradRxSf3x2::PerformanceConfigConvBinWinogradRxSf3x2(int n_groups_)
+    : n_groups(n_groups_)
+{
+}
+
+void PerformanceConfigConvBinWinogradRxSf3x2::HeuristicInit(const ConvolutionContext& config)
+{
+    const auto n_inputs_per_group  = config.n_inputs / config.group_counts,
+               n_outputs_per_group = config.n_outputs / config.group_counts;
+    if(config.group_counts == 1)
+    {
+        n_groups = config.GetStream().GetMaxHardwareComputeUnits();
+        return;
+    }
+
+    if(config.direction.IsBackwardWrW())
+    {
+        n_groups = GetBestNGroupParam(config.in_height,
+                                      config.in_width,
+                                      config.kernel_dilation_h,
+                                      config.kernel_dilation_w,
+                                      config.batch_sz,    // N
+                                      n_inputs_per_group, // K
+                                      config.kernel_size_h,
+                                      config.kernel_size_w,
+                                      config.pad_w,
+                                      config.pad_h,
+                                      n_outputs_per_group, // C
+                                      config.kernel_stride_h,
+                                      config.kernel_stride_w,
+                                      config.GetStream().GetMaxHardwareComputeUnits(),
+                                      config.group_counts);
+    }
+    else
+    {
+        n_groups = GetBestNGroupParam(config.kernel_size_h, // RxS
+                                      config.kernel_size_w,
+                                      config.kernel_stride_h,
+                                      config.kernel_stride_w,
+                                      n_inputs_per_group,  // C
+                                      n_outputs_per_group, // K
+                                      config.out_height,   // OHxOW
+                                      config.out_width,
+                                      config.pad_w,
+                                      config.pad_h,
+                                      config.batch_sz, // N
+                                      config.kernel_dilation_h,
+                                      config.kernel_dilation_w,
+                                      config.GetStream().GetMaxHardwareComputeUnits(),
+                                      config.group_counts);
+    }
+}
+
+bool PerformanceConfigConvBinWinogradRxSf3x2::SetNextValue()
+{
+    return !PerfFieldRules().Next(*this);
+}
+
+bool PerformanceConfigConvBinWinogradRxSf3x2::IsValidValue() const
+{
+    return PerfFieldRules().IsIn(*this);
+}
+
+bool PerformanceConfigConvBinWinogradRxSf3x2::IsValid(const ConvolutionContext& config) const
+{
+    if(config.GetStream().GetMaxHardwareComputeUnits() < n_groups)
+        return false;
+
+    if(!IsValidValue())
+        return false;
+    return true;
+}
+
+inline bool PerformanceConfigConvBinWinogradRxSf3x2::
+operator==(const PerformanceConfigConvBinWinogradRxSf3x2& other) const
+{
+    return n_groups == other.n_groups;
+}
+
+std::string PerformanceConfigConvBinWinogradRxSf3x2::ToString() const
+{
+    std::ostringstream ss;
+    Serialize(ss);
+    return ss.str();
+}
+
+PerformanceConfigConvBinWinogradRxSf3x2
+ConvBinWinogradRxSf3x2::GetPerformanceConfig(const ConvolutionContext& params) const
+{
+    PerformanceConfigConvBinWinogradRxSf3x2 pp;
+    pp.HeuristicInit(params);
+    MIOPEN_LOG_I(pp.ToString());
+    return pp;
+}
+
+bool ConvBinWinogradRxSf3x2::IsValidPerformanceConfig(
+    const ConvolutionContext& problem, const PerformanceConfigConvBinWinogradRxSf3x2& c) const
+{
+    return c.IsValidValue() && c.IsValid(problem);
+}
+
+PerformanceConfigConvBinWinogradRxSf3x2
+ConvBinWinogradRxSf3x2::Search(const ConvolutionContext& context,
+                               const AnyInvokeParams& invoke_ctx) const
+{
+    return GenericSearch(*this, context, invoke_ctx);
+}
 
 bool ConvBinWinogradRxSf3x2::IsApplicable(const ConvolutionContext& params) const
 {
@@ -166,12 +363,41 @@ bool ConvBinWinogradRxSf3x2::IsApplicable(const ConvolutionContext& params) cons
 }
 
 /// \todo Consider re-using code from RxS_f2x3.
-ConvSolution ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& params) const
+ConvSolution
+ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& params,
+                                    const PerformanceConfigConvBinWinogradRxSf3x2& config,
+                                    const bool disableConfigOverrideFromEnv) const
 {
+    const PerformanceConfigConvBinWinogradRxSf3x2* pcfg = &config;
+    PerformanceConfigConvBinWinogradRxSf3x2 fromEnv;
+    if(!disableConfigOverrideFromEnv)
+    {
+        std::string s;
+        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS{});
+        if(p_asciz != nullptr)
+        {
+            s = std::string(p_asciz);
+            if(!s.empty()) // else nothing to parse.
+            {
+                if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(params))
+                {
+                    MIOPEN_LOG_E("MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS: "
+                                 "Bad format or invalid for the problem config: "
+                                 << s);
+                }
+                else
+                {
+                    MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
+                    pcfg = &fromEnv;
+                }
+            }
+        }
+    }
+
     ConvSolution result;
     KernelInfo kernel;
 
-    const auto n_groups = GetNGroupParam(params);
+    const auto n_groups = pcfg->GetNGroups();
     const auto name     = params.GetStream().GetDeviceName();
     const auto is_gfx9  = StartsWith(name, "gfx9");
     size_t wg_size      = is_gfx9 ? 512 : 256;
