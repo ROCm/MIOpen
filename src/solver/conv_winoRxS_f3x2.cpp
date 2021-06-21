@@ -187,7 +187,7 @@ ConvSolution ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& param
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
 
-    std::string kernel_name    = "miopenSp3AsmConv_v21_1_2_f3x2";
+    std::string kernel_name    = "miopenSp3AsmConv_v21_1_2";
     std::string kernel_file    = "Conv_Winograd_v21_1_2_f3x2";
     std::string kernel_postfix = params.IsFp32() ? "_fp32" : "_fp16_dot2_edc";
 
@@ -207,7 +207,7 @@ ConvSolution ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& param
     }
 
     kernel_postfix += "_group";
-    kernel.kernel_name = kernel_name + kernel_postfix;
+    kernel.kernel_name = kernel_name + "_f3x2" + kernel_postfix;
     kernel.kernel_file = kernel_file + kernel_postfix + ".s";
 
     result.construction_params.push_back(kernel);

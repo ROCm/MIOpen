@@ -210,28 +210,20 @@ METADATA_WRAPPER total_sgpr_count,.amdgcn.next_free_vgpr,workgroup_size_x, <\ker
 
 .endm
 
-.macro PROLOG_KERNEL_DESCRIPTOR_WRAPPER machine_version, kernel_name_postfix, kernel_name_prefix
-    .ifnb \kernel_name_prefix
-	PROLOG_KERNEL_DESCRIPTOR miopenSp3AsmConv_v21_1_2_\kernel_name_prefix\()_gfx\machine_version\()_\kernel_name_postfix
-    .else
+.macro PROLOG_KERNEL_DESCRIPTOR_WRAPPER machine_version, kernel_name_postfix
     PROLOG_KERNEL_DESCRIPTOR miopenSp3AsmConv_v21_1_2_gfx\machine_version\()_\kernel_name_postfix
-    .endif
 .endm
 
-.macro EPILOG_KERNEL_DESCRIPTOR_WRAPPER machine_version, kernel_name_postfix, kernel_name_prefix
-    .ifnb \kernel_name_prefix
-	EPILOG_KERNEL_DESCRIPTOR miopenSp3AsmConv_v21_1_2_\kernel_name_prefix\()_gfx\machine_version\()_\kernel_name_postfix
-    .else
+.macro EPILOG_KERNEL_DESCRIPTOR_WRAPPER machine_version, kernel_name_postfix
     EPILOG_KERNEL_DESCRIPTOR miopenSp3AsmConv_v21_1_2_gfx\machine_version\()_\kernel_name_postfix
-    .endif
 .endm
 
-.macro KERNEL_PROLOG kernel_name_postfix, kernel_name_prefix
-	PROLOG_KERNEL_DESCRIPTOR_WRAPPER %.amdgcn.gfx_generation_number, \kernel_name_postfix, \kernel_name_prefix
+.macro KERNEL_PROLOG kernel_name_postfix
+	PROLOG_KERNEL_DESCRIPTOR_WRAPPER %.amdgcn.gfx_generation_number, \kernel_name_postfix
 .endm
 
-.macro KERNEL_EPILOG kernel_name_postfix, kernel_name_prefix
-	EPILOG_KERNEL_DESCRIPTOR_WRAPPER %.amdgcn.gfx_generation_number, \kernel_name_postfix, \kernel_name_prefix
+.macro KERNEL_EPILOG kernel_name_postfix
+	EPILOG_KERNEL_DESCRIPTOR_WRAPPER %.amdgcn.gfx_generation_number, \kernel_name_postfix
 .endm
 
 .if (.amdgcn.gfx_generation_number != 9 && .amdgcn.gfx_generation_number != 10)

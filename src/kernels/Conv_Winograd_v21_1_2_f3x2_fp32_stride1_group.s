@@ -25,7 +25,7 @@
  *******************************************************************************/
 .include "Conv_Winograd_v21_1_2_metadata.inc"
 
-KERNEL_PROLOG fp32_stride1_group, f3x2
+KERNEL_PROLOG f3x2_fp32_stride1_group
 
 .if (.amdgcn.gfx_generation_number == 9)
     .if (.amdgcn.gfx_generation_stepping == 10)
@@ -37,4 +37,4 @@ KERNEL_PROLOG fp32_stride1_group, f3x2
     .include "Conv_Winograd_v21_1_2_f3x2_gfx10_fp32_stride1_group.inc"
 .endif
 
-KERNEL_EPILOG fp32_stride1_group, f3x2
+KERNEL_EPILOG f3x2_fp32_stride1_group
