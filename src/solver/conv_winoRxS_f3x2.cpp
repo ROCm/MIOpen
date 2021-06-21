@@ -40,6 +40,15 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2)
 
 #define MAX_CU_LIMIT 512
 
+int GetNGroupParam(const miopen::ConvolutionContext& params)
+{
+    const auto max_cu   = params.GetStream().GetMaxHardwareComputeUnits();
+    const auto n_groups = (max_cu + params.group_counts - 1) / params.group_counts *
+                          (params.group_counts > 1 ? 4 : 1);
+
+    return n_groups;
+}
+
 namespace miopen {
 namespace solver {
 
@@ -65,7 +74,9 @@ inline bool IsShaderContraintsMet(const int R,
         if(!(0 <= params.GetBackwardPadH() && params.GetBackwardPadH() < std::pow(2, 16)))
             return false;
     }
-    const auto grid_workgroup_count_x = params.GetStream().GetMaxHardwareComputeUnits();
+
+    const auto n_groups               = GetNGroupParam(params);
+    const auto grid_workgroup_count_x = n_groups * params.group_counts;
 
     // clang-format off
     // Check implementation limits.
@@ -160,10 +171,10 @@ ConvSolution ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& param
     ConvSolution result;
     KernelInfo kernel;
 
-    const int n_groups = params.GetStream().GetMaxHardwareComputeUnits();
-    const auto name    = params.GetStream().GetDeviceName();
-    const auto is_gfx9 = StartsWith(name, "gfx9");
-    size_t wg_size     = is_gfx9 ? 512 : 256;
+    const auto n_groups = GetNGroupParam(params);
+    const auto name     = params.GetStream().GetDeviceName();
+    const auto is_gfx9  = StartsWith(name, "gfx9");
+    size_t wg_size      = is_gfx9 ? 512 : 256;
 
     kernel.g_wk.push_back(wg_size * n_groups * params.group_counts);
     kernel.g_wk.push_back(1);
