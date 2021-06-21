@@ -66,10 +66,6 @@ inline bool IsShaderContraintsMet(const int R,
             return false;
     }
     const auto grid_workgroup_count_x = params.GetStream().GetMaxHardwareComputeUnits();
-    if(!params.IsLayoutDefault())
-    {
-        return false;
-    }
 
     // clang-format off
     // Check implementation limits.
@@ -107,6 +103,8 @@ bool ConvBinWinogradRxSf3x2::IsApplicable(const ConvolutionContext& params) cons
         return false;
     if(!params.rmv.IsV3())
         return false;
+    if(!params.IsLayoutDefault())
+        return false;
 
     const auto name = params.GetStream().GetDeviceName();
     if(!(StartsWith(name, "gfx9") || StartsWith(name, "gfx10")) || name == "gfx90a")
@@ -117,8 +115,7 @@ bool ConvBinWinogradRxSf3x2::IsApplicable(const ConvolutionContext& params) cons
         && params.kernel_stride_w == params.kernel_stride_h
         && params.kernel_dilation_w == 1
         && params.kernel_dilation_h == 1
-        && params.bias == 0
-        && params.in_layout == "NCHW"))
+        && params.bias == 0))
         return false;
     // clang-format on
 
