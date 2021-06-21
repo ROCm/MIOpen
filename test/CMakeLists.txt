@@ -41,6 +41,8 @@ option( MIOPEN_TEST_DRIVER_ITER_MODE Off)
 option( MIOPEN_TEST_MIOTENSILE "Test MIOpenTensile path" OFF )
 option( MIOPEN_TEST_MLIR "Add tests for MLIR -- EXPERIMENTAL" ${MIOPEN_USE_MLIR} )
 
+option( WORKAROUND_ISSUE_936 "" ON)
+
 #Run the test suite to a depth limit
 set(MIOPEN_TEST_LIMIT "0" CACHE STRING "")
 set(MIOPEN_TEST_FLAGS "" CACHE STRING "")
@@ -199,6 +201,10 @@ function(add_test_executable TEST_NAME)
 
     if(MIOPEN_TEST_LIMIT GREATER 0)
         set(TEST_COMMAND ${TEST_COMMAND} --limit ${MIOPEN_TEST_LIMIT})
+    endif()
+    
+    if(WORKAROUND_ISSUE_936 AND (${TEST_NAME} MATCHES "test_conv2d" OR ${TEST_NAME} MATCHES "test_immed_conv2d") )
+        set(TEST_COMMAND ${TEST_COMMAND} --tolerance 130) #increased by 1.625 times
     endif()
 
     add_test_command(${TEST_NAME} ${TEST_COMMAND})
