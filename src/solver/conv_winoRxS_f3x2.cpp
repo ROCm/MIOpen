@@ -47,8 +47,6 @@ namespace {
 /// \todo Consider re-using code from RxS_f2x3.
 inline bool IsShaderContraintsMet(const int R,
                                   const int S,
-                                  const int,
-                                  const int,
                                   const int C,
                                   const int K,
                                   const int H,
@@ -131,8 +129,6 @@ bool ConvBinWinogradRxSf3x2::IsApplicable(const ConvolutionContext& params) cons
     {
         return IsShaderContraintsMet(params.in_height,
                                      params.in_width,
-                                     params.kernel_dilation_h,
-                                     params.kernel_dilation_w,
                                      params.batch_sz,    // N
                                      n_inputs_per_group, // K
                                      params.out_height,
@@ -146,8 +142,6 @@ bool ConvBinWinogradRxSf3x2::IsApplicable(const ConvolutionContext& params) cons
     {
         return IsShaderContraintsMet(params.kernel_size_h, // RxS
                                      params.kernel_size_w,
-                                     params.kernel_stride_h,
-                                     params.kernel_stride_w,
                                      n_inputs_per_group,  // C
                                      n_outputs_per_group, // K
                                      params.in_height,    // HxW
