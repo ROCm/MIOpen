@@ -1450,11 +1450,47 @@ struct ConvBinWinogradRxS : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
+struct PerformanceConfigConvBinWinogradRxSf3x2
+    : Serializable<PerformanceConfigConvBinWinogradRxSf3x2>
+{
+    int n_groups;
+    PerformanceConfigConvBinWinogradRxSf3x2(int n_groups_);
+    PerformanceConfigConvBinWinogradRxSf3x2() : PerformanceConfigConvBinWinogradRxSf3x2(-1) {}
+    PerformanceConfigConvBinWinogradRxSf3x2(bool) : PerformanceConfigConvBinWinogradRxSf3x2(1) {}
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.n_groups, "n_groups");
+    }
+    int GetNGroups() const { return n_groups; }
+
+    void HeuristicInit(const ConvolutionContext& config);
+    bool IsValidValue() const;
+    bool SetNextValue();
+    bool IsValid(const ConvolutionContext& config) const;
+    bool operator==(const PerformanceConfigConvBinWinogradRxSf3x2& other) const;
+    std::string ToString() const;
+};
+
 struct ConvBinWinogradRxSf3x2 : SolverBase<ConvolutionContext>
 {
+    PerformanceConfigConvBinWinogradRxSf3x2 GetPerformanceConfig(const ConvolutionContext&) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
+                                  const PerformanceConfigConvBinWinogradRxSf3x2&) const;
+    PerformanceConfigConvBinWinogradRxSf3x2 Search(const ConvolutionContext&,
+                                                   const AnyInvokeParams& invoke_ctx) const;
+
     bool IsApplicable(const ConvolutionContext& params) const;
     bool IsDynamic() const { return true; }
-    ConvSolution GetSolution(const ConvolutionContext& params) const;
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const PerformanceConfigConvBinWinogradRxSf3x2& config,
+                             bool disableConfigOverrideFromEnv = false) const;
+    static size_t GetNGroups(const size_t group_conv, const size_t grid_group_size)
+    {
+        assert(group_conv != 0);
+        return grid_group_size / group_conv;
+    }
 };
 
 struct PerformanceConfigConvBinWinogradRxSf2x3
