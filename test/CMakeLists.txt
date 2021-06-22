@@ -159,7 +159,7 @@ function(add_test_command NAME EXE)
         endif()
     endif()
     
-    if(WORKAROUND_ISSUE_898 AND ${TEST_NAME} STREQUAL "test_gpu_reference_kernel")
+    if(WORKAROUND_ISSUE_898 AND MIOPEN_BACKEND_USE_COMGR)
         set_property(TEST ${TEST_NAME} PROPERTY ENVIRONMENT MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE=0)
     endif()
 endfunction()
@@ -410,6 +410,9 @@ function(add_custom_test NAME)
 
     add_custom_target(${NAME} ${PARSE_UNPARSED_ARGUMENTS})
     add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
+    if(WORKAROUND_ISSUE_898 AND MIOPEN_BACKEND_USE_COMGR)
+        set_property(TEST ${NAME} PROPERTY ENVIRONMENT MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE=0)
+    endif()
     if(  (is_vega_check OR is_gfx908_check)
      AND is_full_check 
      AND (is_miotensile_check AND is_mlir_check)
