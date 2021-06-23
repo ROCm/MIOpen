@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2018 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,15 +23,58 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_GUARD_MLOPEN_EXPANDUSER_HPP
-#define MIOPEN_GUARD_MLOPEN_EXPANDUSER_HPP
+
+#pragma once
+
+#include <miopen/activ.hpp>
+#include <miopen/tensor.hpp>
 
 #include <string>
 
 namespace miopen {
 
-std::string ExpandUser(const std::string& p);
+struct NetworkConfig;
+
+namespace activ {
+
+enum class Direction
+{
+    Forward,
+    Backward,
+};
+
+struct ProblemDescription
+{
+    ProblemDescription(Direction direction_,
+                       const ActivationDescriptor& activ,
+                       const TensorDescriptor& xDesc_,
+                       const TensorDescriptor& yDesc_)
+        : direction(direction_), activDesc(activ), xDesc(xDesc_), yDesc(yDesc_)
+    {
+    }
+
+    Direction GetDirection() const { return direction; }
+    const ActivationDescriptor& GetActivDesc() const { return activDesc; }
+    const TensorDescriptor& GetXDesc() const { return xDesc; }
+    const TensorDescriptor& GetYDesc() const { return yDesc; }
+
+    NetworkConfig MakeNetworkConfig() const;
+
+    void Serialize(std::ostream& stream) const;
+
+    friend std::ostream& operator<<(std::ostream& os, const ProblemDescription& obj)
+    {
+        obj.Serialize(os);
+        return os;
+    }
+
+    private:
+    Direction direction;
+    ActivationDescriptor activDesc;
+    TensorDescriptor xDesc;
+    TensorDescriptor yDesc;
+};
+
+} // namespace activ
 
 } // namespace miopen
-
-#endif

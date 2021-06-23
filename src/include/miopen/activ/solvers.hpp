@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2018 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,15 +23,31 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_GUARD_MLOPEN_EXPANDUSER_HPP
-#define MIOPEN_GUARD_MLOPEN_EXPANDUSER_HPP
 
-#include <string>
+#pragma once
+
+#include <miopen/solver.hpp>
 
 namespace miopen {
 
-std::string ExpandUser(const std::string& p);
+namespace activ {
+struct ProblemDescription;
+} // namespace activ
+
+namespace solver {
+
+namespace activ {
+
+struct ActivFwdSolver0 : public SolverBase<ProblemDescription>
+{
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::activ::ProblemDescription& problem) const;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::activ::ProblemDescription& problem) const;
+};
+
+} // namespace activ
+
+} // namespace solver
 
 } // namespace miopen
-
-#endif

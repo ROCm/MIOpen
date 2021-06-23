@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2018 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,15 +23,30 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_GUARD_MLOPEN_EXPANDUSER_HPP
-#define MIOPEN_GUARD_MLOPEN_EXPANDUSER_HPP
 
-#include <string>
+#pragma once
+
+#include <miopen/invoke_params.hpp>
+#include <miopen/tensor.hpp>
 
 namespace miopen {
+namespace activ {
 
-std::string ExpandUser(const std::string& p);
+struct InvokeParams : public miopen::InvokeParams
+{
+    InvokeParams() = default;
+
+    double alpha = 0;
+    TensorDescriptor x_desc;
+    ConstData_t x = nullptr;
+    double beta   = 0;
+    TensorDescriptor y_desc;
+    Data_t y        = nullptr;
+    double gamma    = 0;
+    size_t x_offset = 0;
+    size_t y_offset = 0;
+};
+
+} // namespace activ
 
 } // namespace miopen
-
-#endif
