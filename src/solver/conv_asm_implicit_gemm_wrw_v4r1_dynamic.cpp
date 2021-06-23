@@ -208,7 +208,7 @@ static inline bool FindImplicitGemmWrwV4R1DynamicKernel(const ConvolutionContext
         grid_size  = (GemmM / GemmMPerBlock) *
                     (GemmN / (GemmNRepeat * GemmNPerThreadSubC * GemmN0YXPerBlock)) * GemmKGroups;
 
-        if((ho * wo) % 4 == 0)
+        if((ho * wo) % 16 == 0)
             kernel_name = "igemm_v4r1_dynamic_wrw_128x128x16_8x8_4x4x4x4x4x4_16x1x16x1_4x64";
         else
             kernel_name = "igemm_v4r1_dynamic_wrw_128x128x16_8x8_4x4x4x4x4x4_16x1x16x1_16x16";
