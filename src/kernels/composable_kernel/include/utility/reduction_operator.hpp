@@ -93,7 +93,7 @@ struct Max
             a = b;
     }
 
-    __device__ inline constexpr void operator()(T& a, T b, volatile bool& changed) const
+    __device__ inline constexpr void operator()(T& a, T b, VOLATILE_WA_274384 bool& changed) const
     {
         if(a < b)
         {
@@ -118,7 +118,7 @@ struct Min
             a = b;
     }
 
-    __device__ inline constexpr void operator()(T& a, T b, volatile bool& changed) const
+    __device__ inline constexpr void operator()(T& a, T b, VOLATILE_WA_274384 bool& changed) const
     {
         if(a > b)
         {
