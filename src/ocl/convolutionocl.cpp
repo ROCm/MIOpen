@@ -958,7 +958,8 @@ static Invoker PrepareInvoker(Handle& handle,
     const auto invoker =
         handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
 
-    handle.RegisterInvoker(invoker, config, solver_id, AlgorithmName(solver_id.GetAlgo(dir)));
+    handle.RegisterInvoker(
+        invoker, config, solver_id.ToString(), AlgorithmName(solver_id.GetAlgo(dir)));
     return invoker; // NOLINT (performance-no-automatic-move)
 }
 
