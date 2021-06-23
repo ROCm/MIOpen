@@ -30,7 +30,7 @@
 
 namespace miopen {
 
-std::string ExpandUser(std::string p);
+std::string ExpandUser(const std::string& p);
 
 } // namespace miopen
 
