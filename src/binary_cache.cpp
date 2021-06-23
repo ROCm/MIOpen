@@ -60,17 +60,15 @@ static boost::filesystem::path ComputeSysCachePath()
 static boost::filesystem::path ComputeUserCachePath()
 {
 #ifdef MIOPEN_CACHE_DIR
-    std::string cache_dir = MIOPEN_CACHE_DIR;
-    std::string version;
-
-    version = std::to_string(MIOPEN_VERSION_MAJOR) + "." + std::to_string(MIOPEN_VERSION_MINOR) +
-              "." + std::to_string(MIOPEN_VERSION_PATCH) + "." +
-              MIOPEN_STRINGIZE(MIOPEN_VERSION_TWEAK);
-    auto p = boost::filesystem::path{miopen::ExpandUser(cache_dir)} / version;
+    const std::string cache_dir = MIOPEN_CACHE_DIR;
+    const std::string version =
+        std::to_string(MIOPEN_VERSION_MAJOR) + "." + std::to_string(MIOPEN_VERSION_MINOR) + "." +
+        std::to_string(MIOPEN_VERSION_PATCH) + "." + MIOPEN_STRINGIZE(MIOPEN_VERSION_TWEAK);
 
     const char* const custom = miopen::GetStringEnv(MIOPEN_CUSTOM_CACHE_DIR{});
-    if(custom != nullptr && strlen(custom) > 0)
-        p = boost::filesystem::path{miopen::ExpandUser(custom)};
+    const auto p             = (custom != nullptr && strlen(custom) > 0)
+                       ? boost::filesystem::path{miopen::ExpandUser(custom)}
+                       : boost::filesystem::path{miopen::ExpandUser(cache_dir)} / version;
 
     if(!boost::filesystem::exists(p) && !MIOPEN_DISABLE_USERDB)
         boost::filesystem::create_directories(p);
