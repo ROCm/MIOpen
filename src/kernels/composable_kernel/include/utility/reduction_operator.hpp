@@ -93,15 +93,13 @@ struct Max
             a = b;
     }
 
-    __device__ inline constexpr void operator()(T& a, T b, bool& changed) const
+    __device__ inline constexpr void operator()(T& a, T b, VOLATILE_WA_274384 bool& changed) const
     {
         if(a < b)
         {
             a       = b;
             changed = true;
         }
-        else
-            changed = false;
     }
 
     static constexpr bool indexable = true;
@@ -120,15 +118,13 @@ struct Min
             a = b;
     }
 
-    __device__ inline constexpr void operator()(T& a, T b, bool& changed) const
+    __device__ inline constexpr void operator()(T& a, T b, VOLATILE_WA_274384 bool& changed) const
     {
         if(a > b)
         {
             a       = b;
             changed = true;
         }
-        else
-            changed = false;
     }
 
     static constexpr bool indexable = true;
