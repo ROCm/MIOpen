@@ -123,7 +123,6 @@ static inline size_t ComputeLog2GemmKGlobalSplitsWith2DMerge(size_t current_grid
     return log2_gemm_k_global_splits;
 }
 
-<<<<<<< HEAD
 // calculate gemm_k_global_splits
 // with assumption that some dimensions will merge into a single dimension
 static inline size_t ComputeGemmKGlobalSplitsWith2DMerge(size_t current_grid_size,
@@ -140,9 +139,6 @@ static inline size_t ComputeGemmKGlobalSplitsWith2DMerge(size_t current_grid_siz
     return gemm_k_global_splits;
 }
 
-
-=======
->>>>>>> develop
 static inline size_t
 ComputeMatrixPadSize(size_t col, size_t col_per_block, size_t row, size_t row_per_block)
 {
