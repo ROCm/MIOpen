@@ -68,12 +68,13 @@ extern "C" {
 * times but better GPU performance.
 */
 typedef enum {
-    miopenConvolutionFindModeNormal        = 1,                         /*!< Normal mode */
-    miopenConvolutionFindModeFast          = 2,                         /*!< Fast mode */
-    miopenConvolutionFindModeHybrid        = 3,                         /*!< Hybrid mode */
-    miopenConvolutionFindModeFastHybrid    = 4,                         /*!< Fast Hybrid mode */
-    miopenConvolutionFindModeDynamicHybrid = 5,                         /*!< Dynamic Hybrid mode */
-    miopenConvolutionFindModeDefault = miopenConvolutionFindModeHybrid, /*!< Default setting */
+    miopenConvolutionFindModeNormal        = 1, /*!< Normal mode */
+    miopenConvolutionFindModeFast          = 2, /*!< Fast mode */
+    miopenConvolutionFindModeHybrid        = 3, /*!< Hybrid mode */
+    miopenConvolutionFindModeFastHybrid    = 4, /*!< Fast Hybrid mode */
+    miopenConvolutionFindModeDynamicHybrid = 5, /*!< Dynamic Hybrid mode */
+    miopenConvolutionFindModeDefault =
+        miopenConvolutionFindModeDynamicHybrid, /*!< Default setting */
 } miopenConvolutionFindMode_t;
 
 /*! @brief Sets the Find Mode attribute in the convolution descriptor.
@@ -82,7 +83,7 @@ typedef enum {
 * miopenFindConvolutionBakwardDataAlgorithm(), miopenFindConvolutionBakwardDataAlgorithm(),
 * invoked with convDesc, will follow the findMode set by this call.
 *
-* Note that the default Find Mode is set by the MIOPEN_FINE_MODE environment variable,
+* Note that the default Find Mode is overriden by the MIOPEN_FIND_MODE environment variable,
 * if it is set. If unset, the default is as specified by miopenConvolutionFindModeDefault.
 *
 * @param convDesc   Convolution layer descriptor (input)

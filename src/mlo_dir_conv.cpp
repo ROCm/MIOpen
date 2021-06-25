@@ -213,6 +213,7 @@ static auto GetImplicitGemmWrWSolvers()
 static auto GetWindogradWrWSolvers()
 {
     return miopen::solver::SolverContainer<miopen::solver::ConvBinWinogradRxS,
+                                           miopen::solver::ConvBinWinogradRxSf3x2,
                                            miopen::solver::ConvBinWinogradRxSf2x3,
                                            miopen::solver::ConvBinWinogradRxSf2x3g1,
                                            miopen::solver::ConvWinograd3x3MultipassWrW<3, 2>,

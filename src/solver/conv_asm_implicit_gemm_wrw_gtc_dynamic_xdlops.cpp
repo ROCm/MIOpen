@@ -445,7 +445,8 @@ static inline int if_gemm_k_global_split(const ConvolutionContext& ctx,
 
 inline std::vector<OpKernelArg>
 ComputeDynamicIGemmWrwKernelArgs(const conv::ProblemDescription& conv_problem,
-                                 const int log2_gemm_k_global_splits)
+                                 const int log2_gemm_k_global_splits,
+                                 const int nxb)
 {
     int hi         = conv_problem.GetOutHeight();
     int wi         = conv_problem.GetOutWidth();
@@ -463,6 +464,9 @@ ComputeDynamicIGemmWrwKernelArgs(const conv::ProblemDescription& conv_problem,
     int y          = conv_problem.GetWeightsHeight();
     int x          = conv_problem.GetWeightsWidth();
     int group      = conv_problem.GetGroupCount();
+
+    int dim_b     = (ho * wo + nxb - 1) / nxb * nxb;
+    int ho_padded = integer_divide_ceil(dim_b, wo);
 
     std::vector<OpKernelArg> opArgs;
     opArgs.emplace_back(hi);
@@ -482,6 +486,7 @@ ComputeDynamicIGemmWrwKernelArgs(const conv::ProblemDescription& conv_problem,
     opArgs.emplace_back(x);
     opArgs.emplace_back(log2_gemm_k_global_splits);
     opArgs.emplace_back(group);
+    opArgs.emplace_back(ho_padded);
 
     return opArgs;
 }
@@ -718,15 +723,17 @@ static inline std::tuple<bool, // is valid
             if(cfg.tensor_b_thread_lengths[2] * cfg.tensor_b_cluster_lengths[2] > 1)
             {
 
-                if(c % gemm_n_per_block != 0)
+                if(c % gemm_n_per_block != 0 || gemm_m % gemm_m_per_block != 0)
                 {
                     continue;
                 }
             }
-
-            if(cfg.tensor_a_thread_lengths[2] * cfg.tensor_a_thread_lengths[3] > 1)
-                if(gemm_m % gemm_m_per_block != 0)
-                    continue;
+            else
+            {
+                if(cfg.tensor_a_thread_lengths[2] * cfg.tensor_a_thread_lengths[3] > 1)
+                    if(gemm_m % gemm_m_per_block != 0)
+                        continue;
+            }
 
             if(wo % cfg.tensor_b_thread_lengths[1] != 0)
             {
@@ -842,6 +849,7 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
     int grid_size;
     int log2_gemm_k_global_splits;
     std::string kernel_name;
+    int nxb;
 
     std::tie(is_valid, kernel_index, block_size, grid_size, log2_gemm_k_global_splits) =
         FindImplicitGemmWrwGTCDynamicXdlopsKernel(ctx);
@@ -850,6 +858,7 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
         MIOPEN_THROW("this kernel should not run with igemm dynamic!");
 
     kernel_name = kernel_configs[kernel_index].GetKernelName();
+    nxb         = kernel_configs[kernel_index].nxb;
 
     // MIOPEN_LOG_I2(kernel_name << " with groups for reduction: "
     //                           << (1 << log2_gemm_k_global_splits));
@@ -890,7 +899,8 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
     const auto& conv_problem = ctx.conv_problem;
     const auto& lowp_quant   = ctx.conv_problem.GetConv().lowp_quant;
 
-    auto opShapeArgs = ComputeDynamicIGemmWrwKernelArgs(conv_problem, log2_gemm_k_global_splits);
+    auto opShapeArgs =
+        ComputeDynamicIGemmWrwKernelArgs(conv_problem, log2_gemm_k_global_splits, nxb);
 
     if(conv_problem.IsFp32())
     {

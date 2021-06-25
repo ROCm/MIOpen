@@ -50,10 +50,12 @@ struct binop_with_nan_check<NanPropagation_t::NOT_PROPAGATE_NAN, opReduce, compT
     };
 
     // The method is called when the opReduce is indexable and the user asked for indices
-    __device__ static inline void
-    calculate(const compType& accuVal, compType currVal, int& accuIndex, int currIndex)
+    __device__ static inline void calculate(const compType& accuVal,
+                                            compType currVal,
+                                            VOLATILE_WA_274384 int& accuIndex,
+                                            int currIndex)
     {
-        bool changed = false;
+        VOLATILE_WA_274384 bool changed = false;
 
         opReduce{}(const_cast<compType&>(accuVal), currVal, changed);
 
@@ -75,7 +77,7 @@ struct binop_with_nan_check<NanPropagation_t::PROPAGATE_NAN, opReduce, compType>
 
     // The method is called when the opReduce is indexable and the user asked for indices
     __device__ static inline void
-    calculate(compType& accuVal, compType currVal, int& accuIndex, int currIndex)
+    calculate(compType& accuVal, compType currVal, VOLATILE_WA_274384 int& accuIndex, int currIndex)
     {
         if(isnan(currVal))
         {
@@ -84,7 +86,7 @@ struct binop_with_nan_check<NanPropagation_t::PROPAGATE_NAN, opReduce, compType>
         }
         else
         {
-            bool changed = false;
+            VOLATILE_WA_274384 bool changed = false;
 
             opReduce{}(accuVal, currVal, changed);
 
@@ -167,7 +169,8 @@ struct WarpReduce
 {
     using compType = typename opReduce::dataType;
     using binop    = detail::binop_with_nan_check<nanPropaOpt, opReduce, compType>;
-    constexpr static bool have_builtin_shuffle = std::is_same<compType, float>::value;
+    constexpr static bool have_builtin_shuffle =
+        std::is_same<compType, float>::value || std::is_same<compType, double>::value;
 
     // This interface does not accumulate on indices
     __device__ static void Reduce(const DataType* p_thread_buffer, compType& accuData)
@@ -526,9 +529,9 @@ struct BlockwiseReduction_2d_block_buffer
                                    compType& accuData,
                                    int& accuIndex)
     {
-        const index_t thread_local_id = get_thread_local_1d_id();
-        compType lAccuData            = opReduce::GetZeroVal();
-        int lAccuIndex                = 0;
+        const index_t thread_local_id     = get_thread_local_1d_id();
+        compType lAccuData                = opReduce::GetZeroVal();
+        VOLATILE_WA_274384 int lAccuIndex = 0;
 
         static_if<blockIsOneRow>{}([&](auto) {
             for(index_t otherDimInd = 0; otherDimInd < toReduceBlocks; otherDimInd++)
