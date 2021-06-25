@@ -820,9 +820,19 @@ struct reduce_driver : test_driver
             max_value =
                 miopen_type<T>{} == miopenHalf ? 13 : miopen_type<T>{} == miopenInt8 ? 127 : 17;
 
+        // default data gneration (used by MIN/MAX)
         auto gen_value = [&](auto... is) {
             return (tensor_elem_gen_integer{max_value}(is...) *
                     tensor_elem_gen_checkboard_sign{}(is...));
+        };
+
+        // data generation used by ADD/AVG, data is distributed around 1.0 rather than 0.0, very low
+        // probability to get a reduced result of zero-value
+        auto gen_value_1 = [&](auto... is) {
+            auto rand_value = tensor_elem_gen_integer{max_value}(is...);
+            auto sign_value = tensor_elem_gen_checkboard_sign{}(is...);
+
+            return (sign_value * rand_value + 1.0);
         };
 
         // Special data generation for MUL, to avoid all-zero and large accumulative error in the
@@ -835,12 +845,7 @@ struct reduce_driver : test_driver
                                     : (rand_value + max_value + 1) / (rand_value + max_value);
         };
 
-        bool need_indices =
-            ((reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX ||
-              reduceOp == MIOPEN_REDUCE_TENSOR_AMAX) &&
-             indicesOpt != MIOPEN_REDUCE_TENSOR_NO_INDICES);
-
-        // Special data generation for MIN/MAX/AMAX using a space of limitless number of values.
+        // Special data generation for NORM1 and NORM2 using a space of limitless number of values.
         // This method is slower due to the use of rand(), it is usually used for manual testing
         auto gen_value_3 = [&](auto... is) {
             auto rand_upper   = tensor_elem_gen_integer{max_value}(is...);
@@ -848,6 +853,14 @@ struct reduce_driver : test_driver
             double rand_ratio = static_cast<double>(rand() / (static_cast<double>(RAND_MAX)));
 
             return rand_upper * sign_value * rand_ratio;
+        };
+
+        // Special data generation for AMAX, no zero value used
+        auto gen_value_4 = [&](auto... is) {
+            auto rand_value = tensor_elem_gen_integer{max_value}(is...);
+            auto sign_value = tensor_elem_gen_checkboard_sign{}(is...);
+
+            return sign_value > 0.0 ? (rand_value + 0.5) : (-1.0 * rand_value - 0.5);
         };
 
         // default tolerance (refer to driver.hpp)
@@ -866,12 +879,27 @@ struct reduce_driver : test_driver
         if(std::is_same<T, half_float::half>::value)
             this->tolerance *= this->tolerance * 10.0;
 
-        auto inputTensor = (reduceOp == MIOPEN_REDUCE_TENSOR_MUL)
-                               ? tensor<T>{this->inLengths}.generate(gen_value_2)
-                               : (need_indices || reduceOp == MIOPEN_REDUCE_TENSOR_NORM1 ||
-                                          reduceOp == MIOPEN_REDUCE_TENSOR_NORM2
-                                      ? tensor<T>{this->inLengths}.generate(gen_value_3)
-                                      : tensor<T>{this->inLengths}.generate(gen_value));
+        tensor<T> inputTensor;
+
+        switch(reduceOp)
+        {
+        case MIOPEN_REDUCE_TENSOR_ADD:
+        case MIOPEN_REDUCE_TENSOR_AVG:
+            inputTensor = tensor<T>{this->inLengths}.generate(gen_value_1);
+            break;
+        case MIOPEN_REDUCE_TENSOR_MUL:
+            inputTensor = tensor<T>{this->inLengths}.generate(gen_value_2);
+            break;
+        case MIOPEN_REDUCE_TENSOR_NORM1:
+        case MIOPEN_REDUCE_TENSOR_NORM2:
+            inputTensor = tensor<T>{this->inLengths}.generate(gen_value_3);
+            break;
+        case MIOPEN_REDUCE_TENSOR_AMAX:
+            inputTensor = tensor<T>{this->inLengths}.generate(gen_value_4);
+            break;
+        default: inputTensor = tensor<T>{this->inLengths}.generate(gen_value);
+        };
+
         auto outputTensor = tensor<T>{outLengths};
 
         std::fill(outputTensor.begin(), outputTensor.end(), convert_type<T>(0.0f));
