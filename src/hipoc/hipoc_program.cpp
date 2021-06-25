@@ -366,7 +366,7 @@ boost::filesystem::path HIPOCProgram::GetCodeObjectPathname() const
 {
     if(!impl->hsaco_file.empty())
     {
-        impl->hsaco_file;
+        return impl->hsaco_file;
     }
     else
     {
