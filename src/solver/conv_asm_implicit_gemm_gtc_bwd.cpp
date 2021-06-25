@@ -872,7 +872,7 @@ static std::tuple<bool, // is suitable kernel found
             int i_x_tilda          = gemm_id % x_tilda;
             int y_dot_slice        = (i_y_tilda + 1) * y_dot <= y ? y_dot : y % y_dot;
             int x_dot_slice        = (i_x_tilda + 1) * x_dot <= x ? x_dot : x % x_dot;
-            int gemm_k             = k / group * y_dot_slice * x_dot_slice;
+            int gemm_k             = k * y_dot_slice * x_dot_slice;
             bool is_gemm_not_empty = gemm_k > 0;
             if(is_gemm_not_empty)
             {

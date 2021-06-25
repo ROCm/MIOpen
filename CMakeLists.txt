@@ -75,7 +75,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 2.12.0)
+rocm_setup_version(VERSION 2.13.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -528,7 +528,7 @@ enable_clang_tidy(
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}
     HEADER_FILTER
-        ".*hpp"
+        "\.hpp$"
     EXTRA_ARGS
         -DMIOPEN_USE_CLANG_TIDY
 
