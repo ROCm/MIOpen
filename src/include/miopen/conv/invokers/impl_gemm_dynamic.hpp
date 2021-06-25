@@ -33,7 +33,7 @@
 #include <miopen/conv/context.hpp>
 #include <miopen/conv/asm_implicit_gemm.hpp>
 #include <miopen/tensor_ops.hpp>
-
+#include <miopen/solver.hpp>
 #include <vector>
 
 namespace miopen {
@@ -279,6 +279,13 @@ template <>
 InvokerFactory
 MakeImplGemmDynamicBackwardDataInvokerFactory<solver::TunableImplicitGemmGTCDynamic_t>(
     const ConvolutionContext& ctx, const solver::TunableImplicitGemmGTCDynamic_t& cfg);
+
+InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
+    const ConvolutionContext& ctx,
+    const solver::PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC& config);
+InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
+    const ConvolutionContext& ctx,
+    const solver::PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC& config);
 
 } // namespace conv
 } // namespace miopen

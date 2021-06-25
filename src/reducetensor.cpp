@@ -593,9 +593,9 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
                      std::to_string(compType) + "IN";
     for(auto dimLen : inDescLengths)
         network_config += std::to_string(dimLen) + "_";
-    network_config += "OUT";
-    for(auto dimLen : outDescLengths)
-        network_config += std::to_string(dimLen) + "_";
+    network_config += "RED";
+    for(auto dim : toReduceDims)
+        network_config += std::to_string(dim) + "_";
     network_config += "BSIZE_" + std::to_string(blockSize);
 
     // kernel for the first call
