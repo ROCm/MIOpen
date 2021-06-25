@@ -115,6 +115,8 @@ set( MIOpen_Source
     execution_context.cpp
     reducetensor.cpp
     reducetensor_api.cpp
+    activ/problem_description.cpp
+    solver/activ/fwd_0.cpp
     include/miopen/buffer_info.hpp
     include/miopen/temp_file.hpp
     include/miopen/bfloat16.hpp
@@ -237,6 +239,9 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops_padded_gemm.cpp
     solver/conv_asm_implicit_gemm_gtc_fwd.cpp
     solver/conv_asm_implicit_gemm_gtc_bwd.cpp
+    solver/conv_asm_implicit_gemm_gtc_perf_config.cpp
+    solver/conv_asm_implicit_gemm_gtc_fwd_nhwc.cpp
+    solver/conv_asm_implicit_gemm_gtc_bwd_nhwc.cpp
     solver/conv_direct_naive_conv_fwd.cpp
     solver/conv_direct_naive_conv_bwd.cpp
     solver/conv_direct_naive_conv_wrw.cpp
@@ -294,6 +299,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv_3x3_wheel_alpha_v9_0_15_gfx9_stride_2_dil.inc
         kernels/conv_3x3_wheel_alpha_v9_0_15_gfx9_stride_2_dec.inc
         kernels/conv_3x3_wheel_alpha_v9_0_15_gfx9.inc
+        kernels/Conv_Winograd_v21_1_2_gfx9_f3x2_fp32_stride1_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx10_f3x2_fp32_stride1_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_fp16_dot2_edc_dilation2.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_fp16_dot2_edc_stride1.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_fp16_dot2_edc_stride2.inc
@@ -420,6 +427,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv_3x3_wheel_alpha_v3_0b.s
         kernels/conv_3x3_wheel_alpha_v9_2_7.s
         kernels/conv_3x3_wheel_alpha_v9_2_7_stride_2_dec.s
+        kernels/Conv_Winograd_v21_1_2_f3x2_fp32_stride1_group.s
         kernels/Conv_Winograd_v21_1_2_fp16_dot2_edc_dilation2.s
         kernels/Conv_Winograd_v21_1_2_fp16_dot2_edc_stride1.s
         kernels/Conv_Winograd_v21_1_2_fp16_dot2_edc_stride2.s
