@@ -754,8 +754,8 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
         TensorDescriptor workspaceDesc(miopenFloat,
                                        conv_problem.GetWeights().GetLengths(),
                                        conv_problem.GetWeights().GetStrides());
-        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-            return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+        result.invoker_factory = [=](const std::vector<Kernel>& kernels) mutable {
+            return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
                 decltype(auto) wrw_invoke_params =
                     primitive_parameters.CastTo<conv::WrWInvokeParams>();
                 const auto& tensors       = wrw_invoke_params.tensors;
@@ -777,11 +777,6 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
                 opArgs[0] = OpKernelArg(tensors.x);
                 opArgs[1] = OpKernelArg(workSpace);
                 opArgs[2] = OpKernelArg(tensors.dy);
-
-                std::transform(opShapeArgs.begin(),
-                               opShapeArgs.end(),
-                               std::back_inserter(opArgs),
-                               [](const OpKernelArg& arg) { return arg; });
 
                 k(opArgs);
                 if(handle.IsProfilingEnabled())
@@ -809,8 +804,8 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
     }
     else
     {
-        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-            return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+        result.invoker_factory = [=](const std::vector<Kernel>& kernels) mutable {
+            return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
                 decltype(auto) wrw_invoke_params =
                     primitive_parameters.CastTo<conv::WrWInvokeParams>();
                 const auto& tensors = wrw_invoke_params.tensors;
@@ -821,11 +816,6 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
                 opArgs[0] = OpKernelArg(tensors.x);
                 opArgs[1] = OpKernelArg(tensors.dw);
                 opArgs[2] = OpKernelArg(tensors.dy);
-
-                std::transform(opShapeArgs.begin(),
-                               opShapeArgs.end(),
-                               std::back_inserter(opArgs),
-                               [](const OpKernelArg& arg) { return arg; });
 
                 SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
                 if(handle.IsProfilingEnabled())
