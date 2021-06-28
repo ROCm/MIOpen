@@ -237,12 +237,11 @@ size_t PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::ComputeKernelOccupancy(
 
     size_t sz_per_element = precision == miopenHalf ? 2 : 1;
 
-    vgpr_usage =
-        tensor_a_thread_lengths[1] * tensor_a_thread_lengths[3] / a_elements_per_vgpr +
-        tensor_b_thread_lengths[1] * tensor_b_thread_lengths[3] / b_elements_per_vgpr +
-        tensor_a_thread_lengths[1] * tensor_a_thread_lengths[3] / sz_per_element +
-        tensor_b_thread_lengths[1] * tensor_b_thread_lengths[3] / sz_per_element +
-        aux_vgpr_usage;
+    vgpr_usage = tensor_a_thread_lengths[1] * tensor_a_thread_lengths[3] / a_elements_per_vgpr +
+                 tensor_b_thread_lengths[1] * tensor_b_thread_lengths[3] / b_elements_per_vgpr +
+                 tensor_a_thread_lengths[1] * tensor_a_thread_lengths[3] / sz_per_element +
+                 tensor_b_thread_lengths[1] * tensor_b_thread_lengths[3] / sz_per_element +
+                 aux_vgpr_usage;
     if(GetTypeSize(precision) == 2)
     {
         if(lds_single >= 32 * 1024 || (lds_single <= 16 * 1024 && lds_single > 8 * 1024 &&
