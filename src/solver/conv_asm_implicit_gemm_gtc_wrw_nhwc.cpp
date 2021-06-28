@@ -703,20 +703,21 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
     std::tie(kernel_name, block_size, grid_size, std::ignore) =
         GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel(ctx, config);
 
-    int gemm_k_global_splits =
+    size_t gemm_k_global_splits =
         config.gemm_k_global_split >= 1
             ? ComputeGemmKGlobalSplitsWith2DMerge(grid_size, config.gemm_k_global_split)
             : 1;
-    int min_n_per_block = config.nxe == 1 ? config.tensor_a_thread_lengths[1] : 1;
-    int nb_per_block =
+    size_t min_n_per_block = config.nxe == 1 ? config.tensor_a_thread_lengths[1] : 1;
+    size_t nb_per_block =
         config.nxe == 1 ? config.tensor_a_cluster_lengths[1] : config.gemm_k_per_block;
 
     if(gemm_k_global_splits == 0)
         gemm_k_global_splits = 1;
 
     // compute workload for 1 workgroup and update gemmk splits (remove the ones compute 0 data)
-    int gemmk = integer_divide_ceil(ctx.batch_sz, min_n_per_block) * ctx.in_height * ctx.in_width;
-    int gemmk_per_wg = integer_divide_ceil(gemmk, gemm_k_global_splits);
+    size_t gemmk =
+        integer_divide_ceil(ctx.batch_sz, min_n_per_block) * ctx.in_height * ctx.in_width;
+    size_t gemmk_per_wg = integer_divide_ceil(gemmk, gemm_k_global_splits);
 
     gemmk_per_wg         = (gemmk_per_wg + nb_per_block - 1) / nb_per_block * nb_per_block;
     gemm_k_global_splits = integer_divide_ceil(gemmk, gemmk_per_wg);
