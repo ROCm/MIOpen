@@ -33,7 +33,6 @@
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/conv/asm_implicit_gemm.hpp>
-#include <stdio.h>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC)
 
@@ -236,11 +235,13 @@ size_t PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::ComputeKernelOccupancy(
         b_elements_per_vgpr = 2;
     }
 
+    size_t sz_per_element = precision == miopenHalf ? 2 : 1;
+
     vgpr_usage =
         tensor_a_thread_lengths[1] * tensor_a_thread_lengths[3] / a_elements_per_vgpr +
-        tensor_b_thread_lengths[1] * tensor_b_thread_lengths[3] / a_elements_per_vgpr +
-        tensor_a_thread_lengths[1] * tensor_a_thread_lengths[3] / (4 / GetTypeSize(precision)) +
-        tensor_b_thread_lengths[1] * tensor_b_thread_lengths[3] / (4 / GetTypeSize(precision)) +
+        tensor_b_thread_lengths[1] * tensor_b_thread_lengths[3] / b_elements_per_vgpr +
+        tensor_a_thread_lengths[1] * tensor_a_thread_lengths[3] / sz_per_element +
+        tensor_b_thread_lengths[1] * tensor_b_thread_lengths[3] / sz_per_element +
         aux_vgpr_usage;
     if(GetTypeSize(precision) == 2)
     {
