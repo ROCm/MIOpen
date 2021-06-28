@@ -436,7 +436,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
                        ++id,
                        ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC{},
                        miopenConvolutionAlgoImplicitGEMM);
-                       
+
     Register(registry, ++id, SolverDbId(activ::ActivFwdSolver1{}));
     // IMPORTANT: New solvers should be added to the end of the function!
 }

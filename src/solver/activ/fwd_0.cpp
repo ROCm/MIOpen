@@ -61,8 +61,8 @@ bool ActivFwdSolver0::IsApplicable(const ExecutionContext&,
 
     const auto x_stride2D = x_strides[x_lens.size() - 2];
     const auto y_stride2D = y_strides[y_lens.size() - 2];
-    const auto x_width2D = x_lens[x_lens.size() - 1];
-    const auto y_width2D = y_lens[y_lens.size() - 1];
+    const auto x_width2D  = x_lens[x_lens.size() - 1];
+    const auto y_width2D  = y_lens[y_lens.size() - 1];
 
     // clang-format off
     return x_lens.size() == y_lens.size()
