@@ -80,19 +80,6 @@ bool ConvMlirIgemmBwd::IsApplicable(const ConvolutionContext& ctx) const
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
 
-    const auto k = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
-    if(k % GetEPackLength(ctx, false) != 0)
-        return false;
-
-    int gemm_m = 0;
-    int gemm_n = 0;
-    int gemm_k = 0;
-
-    std::tie(gemm_m, gemm_n, gemm_k) = CalculateGemmSize(ctx);
-
-    if(!(gemm_m % 32 == 0 && gemm_n % 32 == 0 && gemm_k % 4 == 0))
-        return false;
-
     return MiirIsConfigApplicable(
         mlir::ConstructBuildOptions(ctx, GetOperation(), GetKernelName(), false));
 #else

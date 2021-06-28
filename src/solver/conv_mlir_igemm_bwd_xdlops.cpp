@@ -83,15 +83,6 @@ bool ConvMlirIgemmBwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
 
-    int gemm_m = 0;
-    int gemm_n = 0;
-    int gemm_k = 0;
-
-    std::tie(gemm_m, gemm_n, gemm_k) = CalculateGemmSize(ctx);
-
-    if(!IsValidGridGemmXdlops(gemm_m, gemm_n, gemm_k))
-        return false;
-
     return MiirIsConfigApplicable(
         mlir::ConstructBuildOptions(ctx, GetOperation(), GetKernelName(), true));
 #else
