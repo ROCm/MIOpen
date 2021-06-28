@@ -643,6 +643,9 @@ ComputeDynamicIGemmWrwKernelArgsNHWC(const conv::ProblemDescription& conv_proble
     int group      = conv_problem.GetGroupCount();
 
     std::vector<OpKernelArg> opArgs;
+    opArgs.emplace_back(0); // placeholder
+    opArgs.emplace_back(0); // placeholder
+    opArgs.emplace_back(0); // placeholder
     opArgs.emplace_back(hi);
     opArgs.emplace_back(wi);
     opArgs.emplace_back(n);
@@ -743,7 +746,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
     const auto& conv_problem = ctx.conv_problem;
     const auto& lowp_quant   = ctx.conv_problem.GetConv().lowp_quant;
 
-    auto opShapeArgs =
+    auto opArgs =
         ComputeDynamicIGemmWrwKernelArgsNHWC(conv_problem, gemm_k_global_splits, gemmk_per_wg);
 
     if(conv_problem.IsFp16() && gemm_k_global_splits >= 1 && config.tensor_b_thread_lengths[3] == 1)
@@ -771,11 +774,9 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
 
-                std::vector<OpKernelArg> opArgs;
-                opArgs.reserve(3 + opShapeArgs.size()); // Avoids vector resize.
-                opArgs.emplace_back(tensors.x);
-                opArgs.emplace_back(workSpace);
-                opArgs.emplace_back(tensors.dy);
+                opArgs[0] = OpKernelArg(tensors.x);
+                opArgs[1] = OpKernelArg(workSpace);
+                opArgs[2] = OpKernelArg(tensors.dy);
 
                 std::transform(opShapeArgs.begin(),
                                opShapeArgs.end(),
@@ -817,11 +818,9 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
                 float elapsed       = 0;
                 float zero          = 0.f;
 
-                std::vector<OpKernelArg> opArgs;
-                opArgs.reserve(3 + opShapeArgs.size()); // Avoids vector resize.
-                opArgs.emplace_back(tensors.x);
-                opArgs.emplace_back(tensors.dw);
-                opArgs.emplace_back(tensors.dy);
+                opArgs[0] = OpKernelArg(tensors.x);
+                opArgs[1] = OpKernelArg(tensors.dw);
+                opArgs[2] = OpKernelArg(tensors.dy);
 
                 std::transform(opShapeArgs.begin(),
                                opShapeArgs.end(),
