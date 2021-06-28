@@ -189,13 +189,18 @@ static std::tuple<std::string, // kernel_name
     const auto& x     = ctx.kernel_size_w;
     const auto& group = ctx.group_counts;
 
+    // c need to be carefully padded
+    const auto c_vec_min = config.tensor_b_thread_lengths[3];
+    const auto c_padded  = ((c / group) + c_vec_min - 1) / c_vec_min * c_vec_min;
+    const auto gemm_n = (c_padded * y * x + config.gemm_n_per_block - 1) / config.gemm_n_per_block *
+                        config.gemm_n_per_block;
+
     const auto gemm_m = k / group;
-    const auto gemm_n = (c / group) * y * x;
     size_t block_size = config.BlockSize();
     size_t grid_size  = group * integer_divide_ceil(gemm_m, config.gemm_m_per_block) *
-                        integer_divide_ceil(gemm_n, config.gemm_n_per_block);
+                       integer_divide_ceil(gemm_n, config.gemm_n_per_block);
     std::string kernel_name = config.ToKernelName();
-    size_t occupancy = config.ComputeKernelOccupancy();
+    size_t occupancy        = config.ComputeKernelOccupancy();
     return std::make_tuple(kernel_name, block_size, grid_size, occupancy);
 }
 
@@ -206,47 +211,60 @@ size_t PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::ComputeKernelOccupancy(
     size_t aux_vgpr_usage;
     size_t a_elements_per_vgpr = 1;
     size_t b_elements_per_vgpr = 1;
-    size_t lds_a = gemm_m_per_block * gemm_k_per_block * GetTypeSize(precision);
-    size_t lds_b = gemm_n_per_block * gemm_k_per_block * GetTypeSize(precision);
+    size_t lds_a               = gemm_m_per_block * gemm_k_per_block * GetTypeSize(precision);
+    size_t lds_b               = gemm_n_per_block * gemm_k_per_block * GetTypeSize(precision);
 
     size_t lds_single = lds_a >= lds_b ? lds_a * 2 : lds_b * 2;
     size_t lds_usage;
     size_t occupancy;
 
-    if(nxe == 0){
+    if(nxe == 0)
+    {
         aux_vgpr_usage = 36;
-    }else{
+    }
+    else
+    {
         aux_vgpr_usage = 42;
     }
 
-    if(GetTypeSize(precision) == 2 && tensor_a_thread_lengths[3] > 1){
+    if(GetTypeSize(precision) == 2 && tensor_a_thread_lengths[3] > 1)
+    {
         a_elements_per_vgpr = 2;
     }
-    if(GetTypeSize(precision) == 2 && tensor_b_thread_lengths[3] > 1){
+    if(GetTypeSize(precision) == 2 && tensor_b_thread_lengths[3] > 1)
+    {
         b_elements_per_vgpr = 2;
     }
 
-    vgpr_usage = tensor_a_thread_lengths[1] * tensor_a_thread_lengths[3] / a_elements_per_vgpr + 
-                 tensor_b_thread_lengths[1] * tensor_b_thread_lengths[3] / a_elements_per_vgpr +
-                 tensor_a_thread_lengths[1] * tensor_a_thread_lengths[3] / (4 / GetTypeSize(precision)) + 
-                 tensor_b_thread_lengths[1] * tensor_b_thread_lengths[3] / (4 / GetTypeSize(precision)) + 
-                 aux_vgpr_usage;
-    if(GetTypeSize(precision) == 2){
-        if(lds_single >= 32 * 1024 || (lds_single <= 16 * 1024 && lds_single > 8 * 1024 && acc_usage < 128 && vgpr_usage <= 84)){
+    vgpr_usage =
+        tensor_a_thread_lengths[1] * tensor_a_thread_lengths[3] / a_elements_per_vgpr +
+        tensor_b_thread_lengths[1] * tensor_b_thread_lengths[3] / a_elements_per_vgpr +
+        tensor_a_thread_lengths[1] * tensor_a_thread_lengths[3] / (4 / GetTypeSize(precision)) +
+        tensor_b_thread_lengths[1] * tensor_b_thread_lengths[3] / (4 / GetTypeSize(precision)) +
+        aux_vgpr_usage;
+    if(GetTypeSize(precision) == 2)
+    {
+        if(lds_single >= 32 * 1024 || (lds_single <= 16 * 1024 && lds_single > 8 * 1024 &&
+                                       acc_usage < 128 && vgpr_usage <= 84))
+        {
             lds_usage = lds_single;
-        }else{
+        }
+        else
+        {
             // use lds double buffer
             lds_usage = lds_single * 2;
         }
-    }else{
+    }
+    else
+    {
         lds_usage = lds_single;
     }
 
-    // std::cout << "lds_usage=" << lds_usage << ", acc_usage=" << acc_usage << ", vgpr_usage=" << vgpr_usage << std::endl;
+    // std::cout << "lds_usage=" << lds_usage << ", acc_usage=" << acc_usage << ", vgpr_usage=" <<
+    // vgpr_usage << std::endl;
 
     occupancy = std::min(64 * 1024 / lds_usage, std::min(256 / acc_usage, 256 / vgpr_usage));
     return occupancy;
-
 }
 
 void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const ConvolutionContext& ctx)
@@ -272,7 +290,7 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
         std::make_tuple(64, 256, 32),  std::make_tuple(128, 64, 32),  std::make_tuple(64, 128, 16),
         std::make_tuple(64, 128, 32),  std::make_tuple(64, 64, 64),   std::make_tuple(64, 64, 32),
         std::make_tuple(256, 32, 32),  std::make_tuple(32, 256, 32),  std::make_tuple(64, 32, 32),
-        std::make_tuple(32, 64, 32),   std::make_tuple(64, 64, 16),
+        std::make_tuple(64, 64, 16),
     };
 
 #ifdef DEBUG_IGEMM_ASM_WRW_NHWC_CHECK_VALID_TILE_LIST
@@ -323,7 +341,7 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
     }
 #endif
 
-    //const auto& n = ctx.batch_sz;
+    // const auto& n = ctx.batch_sz;
     const auto& k = ctx.n_inputs;
     const auto& c = ctx.n_outputs;
     // const auto& ho        = ctx.in_height;
@@ -339,7 +357,7 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
     // const auto& precision = ctx.IsFp16() ? miopenHalf : miopenFloat;
     const auto& group = ctx.group_counts;
 
-    const auto gemm_n  = (c / group) * y * x;
+    auto gemm_n        = (c / group) * y * x;
     const auto& gemm_m = k / group;
 
     bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
@@ -362,6 +380,27 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
             if(!((ctx.IsFp16() && config.precision == miopenHalf) ||
                  (ctx.IsFp32() && config.precision == miopenFloat)))
                 continue;
+
+            if(ctx.IsFp16())
+            {
+                if((c / group) % config.tensor_b_thread_lengths[3] != 0)
+                {
+                    continue;
+                }
+                if((k / group) % config.tensor_a_thread_lengths[3] != 0)
+                {
+                    continue;
+                }
+            }
+
+            if(ctx.IsFp32())
+            {
+                // c need to be carefully padded
+                const auto c_vec_min = config.tensor_b_thread_lengths[3];
+                const auto c_padded  = ((c / group) + c_vec_min - 1) / c_vec_min * c_vec_min;
+                gemm_n               = (c_padded * y * x + config.gemm_n_per_block - 1) /
+                         config.gemm_n_per_block * config.gemm_n_per_block;
+            }
 
             size_t cur_pad_pixel =
                 ComputeMatrixPadSize(gemm_m, config.gemm_m_per_block, 0, config.gemm_k_per_block) +
@@ -389,8 +428,6 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
     }
     else
     {
-        // std::cout << "m_per_block=" << m_per_block << ", n_per_block=" << n_per_block << ",
-        // k_per_block=" << k_per_block << std::endl;
         // found a suitable m/n/k, now let's prepare other parmater and initialize one
         const auto& config_list = GetWrwXdlopsNHWCConfigList();
         for(const auto& config : config_list)
@@ -407,7 +444,7 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
                 std::tie(std::ignore, std::ignore, current_grid_size, occupancy) =
                     GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel(ctx, config);
                 bool need_k_split = current_grid_size > 600 ? false : true;
-                size_t gks        = ComputeGemmKGlobalSplitsWith2DMerge(current_grid_size, occupancy);
+                size_t gks = ComputeGemmKGlobalSplitsWith2DMerge(current_grid_size, occupancy);
                 need_k_split |= gks != 0;
 
                 // std::cout << "need_k_split:" << need_k_split << std::endl;
@@ -483,7 +520,7 @@ bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::IsValid(const Convolution
         return false;
 
     // const auto& n = ctx.batch_sz;
-    const auto& k         = ctx.n_inputs;
+    const auto& k = ctx.n_inputs;
     const auto& c = ctx.n_outputs;
     // const auto& ho        = ctx.in_height;
     // const auto& wo        = ctx.in_width;
@@ -663,9 +700,13 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
     std::tie(kernel_name, block_size, grid_size, std::ignore) =
         GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel(ctx, config);
 
-    int gemm_k_global_splits = config.gemm_k_global_split >= 1 ? ComputeGemmKGlobalSplitsWith2DMerge(grid_size, config.gemm_k_global_split) : 1;
+    int gemm_k_global_splits =
+        config.gemm_k_global_split >= 1
+            ? ComputeGemmKGlobalSplitsWith2DMerge(grid_size, config.gemm_k_global_split)
+            : 1;
     int min_n_per_block = config.nxe == 1 ? config.tensor_a_thread_lengths[1] : 1;
-    int nb_per_block = config.nxe == 1 ? config.tensor_a_cluster_lengths[1] : config.gemm_k_per_block;
+    int nb_per_block =
+        config.nxe == 1 ? config.tensor_a_cluster_lengths[1] : config.gemm_k_per_block;
 
     if(gemm_k_global_splits == 0)
         gemm_k_global_splits = 1;
@@ -674,7 +715,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
     int gemmk = integer_divide_ceil(ctx.batch_sz, min_n_per_block) * ctx.in_height * ctx.in_width;
     int gemmk_per_wg = integer_divide_ceil(gemmk, gemm_k_global_splits);
 
-    gemmk_per_wg = (gemmk_per_wg + nb_per_block - 1) / nb_per_block * nb_per_block;
+    gemmk_per_wg         = (gemmk_per_wg + nb_per_block - 1) / nb_per_block * nb_per_block;
     gemm_k_global_splits = integer_divide_ceil(gemmk, gemmk_per_wg);
 
     const auto required_workspace_size = GetWorkspaceSize(ctx);
@@ -705,8 +746,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
     auto opShapeArgs =
         ComputeDynamicIGemmWrwKernelArgsNHWC(conv_problem, gemm_k_global_splits, gemmk_per_wg);
 
-    if(conv_problem.IsFp16() && gemm_k_global_splits >= 1 &&
-       config.tensor_b_thread_lengths[3] == 1)
+    if(conv_problem.IsFp16() && gemm_k_global_splits >= 1 && config.tensor_b_thread_lengths[3] == 1)
     {
         TensorDescriptor workspaceDesc(miopenFloat,
                                        conv_problem.GetWeights().GetLengths(),
