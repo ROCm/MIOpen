@@ -225,14 +225,16 @@ inline void InitRandomly(std::vector<float>& vec, const double offset, const dou
 {
     float* p = vec.data();
     for(unsigned long i = 0; i < vec.size(); ++i)
-        *p++ = static_cast<float>((rand() * (1.0 / RAND_MAX) + offset) * factor);
+        *p++ = static_cast<float>(
+            (rand() * (1.0 / RAND_MAX) + offset) * // NOLINT (concurrency-mt-unsafe)
+            factor);
 }
 
 inline void InitRandomly(std::vector<float>& vec)
 {
     float* p = vec.data();
     for(unsigned long i = 0; i < vec.size(); ++i)
-        *p++ = static_cast<float>(rand() * (1.0 / RAND_MAX));
+        *p++ = static_cast<float>(rand() * (1.0 / RAND_MAX)); // NOLINT (concurrency-mt-unsafe)
 }
 
 inline size_t divide_round_plus_inf(const size_t x, const unsigned y)
