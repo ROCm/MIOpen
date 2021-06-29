@@ -59,13 +59,6 @@ ConvSolution ActivFwdSolver1::GetSolution(const ExecutionContext&,
     const auto& xDesc = problem.GetXDesc();
     const auto& yDesc = problem.GetYDesc();
 
-    // short cut for packed tensors and 2D tensors with stride != width
-    const auto& x_lens = xDesc.GetLengths();
-    const auto& y_lens = yDesc.GetLengths();
-
-    const auto& x_strides = xDesc.GetStrides();
-    const auto& y_strides = yDesc.GetStrides();
-
     int nOut       = 1;
     int cOut       = 1;
     int hOut       = 1;
