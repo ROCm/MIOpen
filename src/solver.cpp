@@ -106,12 +106,18 @@ std::ostream& operator<<(std::ostream& os, const ConvSolution& s)
     return os;
 }
 
+struct IdRegistryEntry
+{
+    std::string str_value;
+    Primitive primitive;
+    miopenConvAlgorithm_t convAlgo;
+};
+
 struct IdRegistryData
 {
-    std::unordered_map<uint64_t, std::string> value_to_str;
+    std::unordered_map<uint64_t, IdRegistryEntry> value_to_entry;
     std::unordered_map<std::string, uint64_t> str_to_value;
     std::unordered_map<uint64_t, AnySolver> value_to_solver;
-    std::unordered_map<uint64_t, miopenConvAlgorithm_t> value_to_algo;
 };
 
 struct SolverRegistrar
@@ -135,7 +141,7 @@ const std::unordered_map<uint64_t, AnySolver>& GetMapValueToAnySolver()
 
 Id::Id(uint64_t value_) : value(value_)
 {
-    is_valid = (IdRegistry().value_to_str.find(value) != IdRegistry().value_to_str.end());
+    is_valid = (IdRegistry().value_to_entry.find(value) != IdRegistry().value_to_entry.end());
 }
 
 Id::Id(const std::string& str) : Id(str.c_str()) {}
@@ -151,7 +157,7 @@ std::string Id::ToString() const
 {
     if(!IsValid())
         return "INVALID_SOLVER_ID_" + std::to_string(value);
-    return IdRegistry().value_to_str[value];
+    return IdRegistry().value_to_entry[value].str_value;
 }
 
 AnySolver Id::GetSolver() const
@@ -165,15 +171,24 @@ std::string Id::GetAlgo(conv::Direction dir) const
     return ConvolutionAlgoToDirectionalString(GetAlgo(), dir);
 }
 
-miopenConvAlgorithm_t Id::GetAlgo() const
+Primitive Id::GetPrimitive() const
 {
-    const auto it = IdRegistry().value_to_algo.find(value);
-    if(it == IdRegistry().value_to_algo.end())
+    const auto it = IdRegistry().value_to_entry.find(value);
+    if(it == IdRegistry().value_to_entry.end())
         MIOPEN_THROW(miopenStatusInternalError);
-    return it->second;
+    return it->second.primitive;
 }
 
-inline bool Register(IdRegistryData& registry, uint64_t value, const std::string& str)
+miopenConvAlgorithm_t Id::GetAlgo() const
+{
+    const auto it = IdRegistry().value_to_entry.find(value);
+    if(it == IdRegistry().value_to_entry.end())
+        MIOPEN_THROW(miopenStatusInternalError);
+    return it->second.convAlgo;
+}
+
+inline bool
+Register(IdRegistryData& registry, uint64_t value, Primitive primitive, const std::string& str)
 {
     if(value == Id::invalid_value)
     {
@@ -182,12 +197,13 @@ inline bool Register(IdRegistryData& registry, uint64_t value, const std::string
         return false;
     }
 
-    if(registry.value_to_str.find(value) != registry.value_to_str.end())
+    if(registry.value_to_entry.find(value) != registry.value_to_entry.end())
     {
-        MIOPEN_LOG_E("Registered duplicate ids: [" << value << "]" << str << " and ["
-                                                   << registry.value_to_str.find(value)->first
-                                                   << "]"
-                                                   << registry.value_to_str.find(value)->second);
+        MIOPEN_LOG_E(
+            "Registered duplicate ids: [" << value << "]" << str << " and ["
+                                          << registry.value_to_entry.find(value)->first
+                                          << "]"
+                                          << registry.value_to_entry.find(value)->second.str_value);
         return false;
     }
 
@@ -200,7 +216,11 @@ inline bool Register(IdRegistryData& registry, uint64_t value, const std::string
         return false;
     }
 
-    registry.value_to_str.emplace(value, str);
+    auto entry      = IdRegistryEntry{};
+    entry.str_value = str;
+    entry.primitive = primitive;
+
+    registry.value_to_entry.emplace(value, std::move(entry));
     registry.str_to_value.emplace(str, value);
     return true;
 }
@@ -210,9 +230,9 @@ inline bool Register(IdRegistryData& registry,
                      const std::string& str,
                      miopenConvAlgorithm_t algo)
 {
-    if(!Register(registry, value, str))
+    if(!Register(registry, value, Primitive::Convolution, str))
         return false;
-    registry.value_to_algo.emplace(value, algo);
+    registry.value_to_entry[value].convAlgo = algo;
     return true;
 }
 
@@ -426,7 +446,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     RegisterWithSolver(registry, ++id, ConvMlirIgemmBwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
     RegisterWithSolver(registry, ++id, ConvMlirIgemmWrWXdlops{}, miopenConvolutionAlgoImplicitGEMM);
 
-    Register(registry, ++id, SolverDbId(activ::ActivFwdSolver0{}));
+    Register(registry, ++id, Primitive::Activation, SolverDbId(activ::ActivFwdSolver0{}));
 
     RegisterWithSolver(registry,
                        ++id,

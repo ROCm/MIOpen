@@ -38,6 +38,12 @@ namespace solver {
 
 struct AnySolver;
 
+enum class Primitive
+{
+    Convolution,
+    Activation,
+};
+
 struct Id
 {
     static constexpr uint64_t invalid_value = 0;
@@ -51,6 +57,7 @@ struct Id
     AnySolver GetSolver() const;
     std::string GetAlgo(conv::Direction dir) const;
     miopenConvAlgorithm_t GetAlgo() const;
+    Primitive GetPrimitive() const;
 
     bool IsValid() const { return is_valid; }
     uint64_t Value() const { return value; }
