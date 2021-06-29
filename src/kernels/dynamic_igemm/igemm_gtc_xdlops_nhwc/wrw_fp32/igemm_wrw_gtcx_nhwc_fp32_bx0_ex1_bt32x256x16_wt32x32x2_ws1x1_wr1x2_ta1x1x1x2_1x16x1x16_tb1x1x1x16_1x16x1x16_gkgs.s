@@ -583,6 +583,7 @@ igemm_wrw_gtcx_nhwc_fp32_bx0_ex1_bt32x256x16_wt32x32x2_ws1x1_wr1x2_ta1x1x1x2_1x1
     ; move slice step for output tensor
     s_lshl_b32 s[s_tmp], s[s_tmp+4], 2
     s_mul_i32 s[s_out_move_step], s[s_k], s[s_tmp]
+    s_mul_i32 s[s_out_move_step], s[s_group], s[s_out_move_step]
 
     s_lshl_b32 s[s_move_slice_n], s[s_move_slice_n], 0
 

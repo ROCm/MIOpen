@@ -533,7 +533,7 @@ bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::IsValid(const Convolution
     const auto& pad_h     = ctx.pad_h;
     const auto& pad_w     = ctx.pad_w;
     const auto& precision = ctx.IsFp16() ? miopenHalf : miopenFloat;
-    // const auto& group     = ctx.group_counts;
+    const auto& group     = ctx.group_counts;
 
     bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
                      (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);
@@ -548,11 +548,11 @@ bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::IsValid(const Convolution
 
     if(precision == miopenHalf)
     {
-        if(c % tensor_b_thread_lengths[3] != 0)
+        if((c / group) % tensor_b_thread_lengths[3] != 0)
         {
             return false;
         }
-        if(k % tensor_a_thread_lengths[3] != 0)
+        if((k / group) % tensor_a_thread_lengths[3] != 0)
         {
             return false;
         }
@@ -649,8 +649,8 @@ ComputeDynamicIGemmWrwKernelArgsNHWC(const conv::ProblemDescription& conv_proble
     opArgs.emplace_back(hi);
     opArgs.emplace_back(wi);
     opArgs.emplace_back(n);
-    opArgs.emplace_back(k);
-    opArgs.emplace_back(c);
+    opArgs.emplace_back(k / group);
+    opArgs.emplace_back(c / group);
     opArgs.emplace_back(ho);
     opArgs.emplace_back(wo);
     opArgs.emplace_back(stride_h);

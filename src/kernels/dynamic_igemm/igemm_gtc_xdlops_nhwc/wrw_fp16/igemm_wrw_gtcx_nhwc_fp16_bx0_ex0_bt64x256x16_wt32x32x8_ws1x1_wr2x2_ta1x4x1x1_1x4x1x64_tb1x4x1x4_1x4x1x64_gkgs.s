@@ -549,8 +549,10 @@ igemm_wrw_gtcx_nhwc_fp16_bx0_ex0_bt64x256x16_wt32x32x8_ws1x1_wr2x2_ta1x4x1x1_1x4
     v_add_u32 v[v_wei_os], v[v_wei_os], v[v_tmp]
     v_lshlrev_b32 v[v_wei_os], 1, v[v_wei_os]
     ; move slice step for output tensor
-    s_lshl_b32 s[s_out_move_step], s[s_k], 5
-    s_lshl_b32 s[s_in_move_step], s[s_c], 5
+    s_mul_i32 s[s_tmp], s[s_k], s[s_group]
+    s_mul_i32 s[s_tmp+1], s[s_c], s[s_group]
+    s_lshl_b32 s[s_out_move_step], s[s_tmp], 5
+    s_lshl_b32 s[s_in_move_step], s[s_tmp+1], 5
     ; move slice stride
     s_lshl_b32 s[s_wei_stride_k], s[s_wei_stride_k], 1
     s_add_i32 s[s_knum], s[s_gemmk_per_wg], 15
