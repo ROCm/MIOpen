@@ -656,7 +656,7 @@ std::size_t ConvolutionDescriptor::GetSolutionCountFallback(Handle& handle,
                                                             const ProblemDescription& problem) const
 {
     size_t n                    = 0;
-    const auto maxSolutionCount = miopen::solver::GetMapValueToAnySolver()
+    const auto maxSolutionCount = solver::GetSolversByPrimitive(solver::Primitive::Convolution)
                                       .size(); // Simple and guarantees to provide enough space.
     GetSolutionsFallback(handle, problem, maxSolutionCount, &n, nullptr);
     if(n > 0)
@@ -770,16 +770,14 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
         return 10.0f / wti; // Assume WTI == 1.0 (100%) is 10 ms.
     };
 
-    const auto& map = miopen::solver::GetMapValueToAnySolver();
-    for(const auto& item : map)
+    for(const auto& solver_id : solver::GetSolversByPrimitive(solver::Primitive::Convolution))
     {
-        const auto solver_id = solver::Id{item.first};
         // solver_id is always valid here, because taken from registry.
         // Validity check is not required.
         const auto algo = solver_id.GetAlgo();
         if(IsAlgorithmDisabled(algo)) // Algos can be disabled globally.
             continue;
-        const auto& s = item.second;
+        const auto& s = solver_id.GetSolver();
         if(!s.IsDynamic()) // Let's allow non-dynamic later, if necessary.
             continue;
         if(!s.IsApplicable(ctx))

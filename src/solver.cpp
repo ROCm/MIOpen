@@ -111,13 +111,14 @@ struct IdRegistryEntry
     std::string str_value;
     Primitive primitive;
     miopenConvAlgorithm_t convAlgo;
+    AnySolver solver;
 };
 
 struct IdRegistryData
 {
     std::unordered_map<uint64_t, IdRegistryEntry> value_to_entry;
     std::unordered_map<std::string, uint64_t> str_to_value;
-    std::unordered_map<uint64_t, AnySolver> value_to_solver;
+    std::unordered_map<Primitive, std::vector<Id>> primitive_to_ids;
 };
 
 struct SolverRegistrar
@@ -134,9 +135,9 @@ static auto& IdRegistry()
     return data;
 }
 
-const std::unordered_map<uint64_t, AnySolver>& GetMapValueToAnySolver()
+const std::vector<Id>& GetSolversByPrimitive(Primitive primitive)
 {
-    return IdRegistry().value_to_solver;
+    return IdRegistry().primitive_to_ids[primitive];
 }
 
 Id::Id(uint64_t value_) : value(value_)
@@ -162,8 +163,8 @@ std::string Id::ToString() const
 
 AnySolver Id::GetSolver() const
 {
-    const auto it = IdRegistry().value_to_solver.find(value);
-    return it != IdRegistry().value_to_solver.end() ? it->second : AnySolver{};
+    const auto it = IdRegistry().value_to_entry.find(value);
+    return it != IdRegistry().value_to_entry.end() ? it->second.solver : AnySolver{};
 }
 
 std::string Id::GetAlgo(conv::Direction dir) const
@@ -222,6 +223,7 @@ Register(IdRegistryData& registry, uint64_t value, Primitive primitive, const st
 
     registry.value_to_entry.emplace(value, std::move(entry));
     registry.str_to_value.emplace(str, value);
+    registry.primitive_to_ids[primitive].emplace_back(value);
     return true;
 }
 
@@ -232,7 +234,7 @@ inline bool Register(IdRegistryData& registry,
 {
     if(!Register(registry, value, Primitive::Convolution, str))
         return false;
-    registry.value_to_entry[value].convAlgo = algo;
+    registry.value_to_entry.at(value).convAlgo = algo;
     return true;
 }
 
@@ -240,8 +242,9 @@ template <class TSolver>
 inline void
 RegisterWithSolver(IdRegistryData& registry, uint64_t value, TSolver, miopenConvAlgorithm_t algo)
 {
-    if(Register(registry, value, SolverDbId(TSolver{}), algo))
-        registry.value_to_solver.emplace(value, TSolver{});
+    if(!Register(registry, value, SolverDbId(TSolver{}), algo))
+        return;
+    registry.value_to_entry.at(value).solver = TSolver{};
 }
 
 inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)

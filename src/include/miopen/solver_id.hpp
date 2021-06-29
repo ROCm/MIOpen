@@ -74,7 +74,7 @@ struct Id
     bool is_valid  = false;
 };
 
-const std::unordered_map<uint64_t, AnySolver>& GetMapValueToAnySolver();
+const std::vector<Id>& GetSolversByPrimitive(Primitive primitive);
 
 } // namespace solver
 } // namespace miopen
