@@ -108,10 +108,10 @@ std::ostream& operator<<(std::ostream& os, const ConvSolution& s)
 
 struct IdRegistryEntry
 {
-    std::string str_value;
-    Primitive primitive;
-    miopenConvAlgorithm_t convAlgo;
-    AnySolver solver;
+    std::string str_value          = "";
+    Primitive primitive            = Primitive::Convolution;
+    miopenConvAlgorithm_t convAlgo = miopenConvolutionAlgoDirect;
+    AnySolver solver               = {};
 };
 
 struct IdRegistryData
