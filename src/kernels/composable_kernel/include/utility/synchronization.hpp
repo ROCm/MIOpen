@@ -5,8 +5,6 @@
 
 namespace ck {
 
-__device__ void __llvm_amdgcn_s_barrier() __asm("llvm.amdgcn.s.barrier");
-
 __device__ void block_sync_lds()
 {
 #if CK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM
@@ -15,11 +13,9 @@ __device__ void block_sync_lds()
     s_barrier \
     " ::);
 #else
-    __llvm_amdgcn_s_barrier();
+    __syncthreads();
 #endif
 }
-
-__device__ void block_sync_lds_vmem() { __llvm_amdgcn_s_barrier(); }
 
 } // namespace ck
 #endif
