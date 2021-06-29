@@ -867,7 +867,7 @@ int ConvDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
            group_count > out_c)
         {
             printf("Invalid group number\n");
-            exit(0);
+            exit(0); // NOLINT (concurrency-mt-unsafe)
         }
     }
 
@@ -883,7 +883,7 @@ int ConvDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
     else
     {
         printf("Incorrect Convolution Mode\n");
-        exit(0);
+        exit(0); // NOLINT (concurrency-mt-unsafe)
     }
 
     // adjust padding based on user-defined padding mode
@@ -1201,7 +1201,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                     /// initialization of input buffers regardless of which kinds of
                     /// convolutions are currently selectedfor testing (see the "-F" option).
                     /// Verification cache would be broken otherwise.
-                    rand();
+                    GET_RAND();
             }
         }
 
@@ -1231,7 +1231,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                     wei.data[i] =
                         static_cast<Tgpu>(Data_scale * 2 * detail::RanGenWeights<float>());
                 else /// \ref move_rand
-                    rand();
+                    GET_RAND();
         }
     }
     else
@@ -1251,7 +1251,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                     in.data[i] =
                         Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
                 else /// \ref move_rand
-                    rand();
+                    GET_RAND();
             }
         }
 
@@ -1262,7 +1262,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                     dout.data[i] =
                         Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
                 else /// \ref move_rand
-                    rand();
+                    GET_RAND();
         }
 
         if(inflags.GetValueInt("bias") != 0)
@@ -1298,7 +1298,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                 if(is_fwd || is_bwd)
                     wei.data[i] = Data_scale * detail::RanGenWeights<Tgpu>();
                 else /// \ref move_rand
-                    rand();
+                    GET_RAND();
         }
     }
 

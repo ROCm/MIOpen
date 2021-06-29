@@ -51,6 +51,7 @@
 #include "network_data.hpp"
 #include "miopen/find_db.hpp"
 #include "cpu_bias.hpp"
+#include "random.hpp"
 
 #define TEST_DIRECT_SUPPORTED_CONFIG_ONLY (!MIOPEN_USE_ROCBLAS && !MIOPEN_USE_MIOPENTENSILE)
 
@@ -146,7 +147,7 @@ struct scalar_gen_random_float
 
     double operator()() const
     {
-        return min_val + (max_val - min_val) * double(std::rand()) / RAND_MAX;
+        return min_val + (max_val - min_val) * double(GET_RAND()) / RAND_MAX;
     }
 };
 
@@ -157,7 +158,7 @@ struct scalar_gen_random_integer
 
     double operator()() const
     {
-        return static_cast<double>(min_val + std::rand() % (max_val - min_val + 1));
+        return static_cast<double>(min_val + GET_RAND() % (max_val - min_val + 1));
     }
 };
 
@@ -366,7 +367,7 @@ struct verify_forward_conv : conv_base<T, Tout>
                 {
                     std::cout << "FAILED: Using immediate mode error in GetSolutionCount."
                               << std::endl;
-                    exit(-1);
+                    exit(-1); // NOLINT (concurrency-mt-unsafe)
                 }
 
                 auto solutions = std::vector<miopenConvSolution_t>(count);
@@ -384,7 +385,7 @@ struct verify_forward_conv : conv_base<T, Tout>
                 {
                     std::cout << "FAILED: Immediate mode has no fallback for this configuration."
                               << " Solution count: " << count << std::endl;
-                    exit(-1);
+                    exit(-1); // NOLINT (concurrency-mt-unsafe)
                 }
                 selected = solutions.front();
 
@@ -442,7 +443,7 @@ struct verify_forward_conv : conv_base<T, Tout>
                 {
                     std::cout << "FAILED: Using immediate mode error in GetSolutionCount."
                               << std::endl;
-                    exit(-1);
+                    exit(-1); // NOLINT (concurrency-mt-unsafe)
                 }
 
                 // std::cout << "Forward Conv solutions available: " << count << std::endl;
@@ -461,7 +462,7 @@ struct verify_forward_conv : conv_base<T, Tout>
                 {
                     std::cout << "FAILED: Immediate mode has no fallback for this configuration."
                               << " Solution count: " << count << std::endl;
-                    exit(-1);
+                    exit(-1); // NOLINT (concurrency-mt-unsafe)
                 }
                 selected = solutions.front();
 
@@ -835,7 +836,7 @@ struct verify_backward_conv : conv_base<T>
                 {
                     std::cout << "FAILED: Using immediate mode error in GetSolutionCount."
                               << std::endl;
-                    exit(-1);
+                    exit(-1); // NOLINT (concurrency-mt-unsafe)
                 }
 
                 // std::cout << "backward transpose Conv solutions available: " << count <<
@@ -855,7 +856,7 @@ struct verify_backward_conv : conv_base<T>
                 {
                     std::cout << "FAILED: Immediate mode has no fallback for this configuration."
                               << " Solution count: " << count << std::endl;
-                    exit(-1);
+                    exit(-1); // NOLINT (concurrency-mt-unsafe)
                 }
                 solutions.resize(count);
                 std::sort(solutions.begin(), solutions.end(), [](const auto& l, const auto& r) {
@@ -914,7 +915,7 @@ struct verify_backward_conv : conv_base<T>
                 {
                     std::cout << "FAILED: Using immediate mode error in GetSolutionCount."
                               << std::endl;
-                    exit(-1);
+                    exit(-1); // NOLINT (concurrency-mt-unsafe)
                 }
 
                 // std::cout << "Backward Conv solutions available: " << count << std::endl;
@@ -933,7 +934,7 @@ struct verify_backward_conv : conv_base<T>
                 {
                     std::cout << "FAILED: Immediate mode has no fallback for this configuration."
                               << " Solution count: " << count << std::endl;
-                    exit(-1);
+                    exit(-1); // NOLINT (concurrency-mt-unsafe)
                 }
                 solutions.resize(count);
                 std::sort(solutions.begin(), solutions.end(), [](const auto& l, const auto& r) {
@@ -1211,7 +1212,7 @@ struct verify_backward_weights_conv : conv_base<T>
             if(count == 0)
             {
                 std::cout << "FAILED: Using immediate mode error in GetSolutionCount." << std::endl;
-                exit(-1);
+                exit(-1); // NOLINT (concurrency-mt-unsafe)
             }
 
             // std::cout << "Backward weights conv solutions available: " << count << std::endl;
@@ -1230,7 +1231,7 @@ struct verify_backward_weights_conv : conv_base<T>
             {
                 std::cout << "FAILED: Immediate mode has no fallback for this configuration."
                           << " Solution count: " << count << std::endl;
-                exit(-1);
+                exit(-1); // NOLINT (concurrency-mt-unsafe)
             }
             solutions.resize(count);
             std::sort(solutions.begin(), solutions.end(), [](const auto& l, const auto& r) {
@@ -1482,7 +1483,7 @@ struct verify_forward_conv_int8 : conv_base<T>
         if(count == 0)
         {
             std::cout << "FAILED: Using immediate mode error in GetSolutionCount." << std::endl;
-            exit(-1);
+            exit(-1); // NOLINT (concurrency-mt-unsafe)
         }
 
         // std::cout << "Forward Conv solutions available: " << count << std::endl;
@@ -1502,7 +1503,7 @@ struct verify_forward_conv_int8 : conv_base<T>
         {
             std::cout << "FAILED: Immediate mode has no fallback for this configuration."
                       << " Solution count: " << count << std::endl;
-            exit(-1);
+            exit(-1); // NOLINT (concurrency-mt-unsafe)
         }
         solutions.resize(count);
         std::sort(solutions.begin(), solutions.end(), [](const auto& l, const auto& r) {

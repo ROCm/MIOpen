@@ -248,7 +248,8 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
     std::vector<Tgpu> bot_sys_buf(bot_sz);
     for(size_t i = 0; i < bot_sz; i++)
     {
-        bot_sys_buf[i] = static_cast<Tgpu>(rand() * (1.0 / RAND_MAX));
+        bot_sys_buf[i] =
+            static_cast<Tgpu>(rand() * (1.0 / RAND_MAX)); // NOLINT (concurrency-mt-unsafe)
     }
     auto bot_ocl_buf = profile_h.Write(bot_sys_buf);
     auto bot_ocl_ptr = bot_ocl_buf.get();
@@ -262,7 +263,8 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
     std::vector<Tgpu> wei_sys_buf(weights_sz);
     for(size_t i = 0; i < weights_sz; i++)
     {
-        wei_sys_buf[i] = static_cast<Tgpu>((rand() * (1.0 / RAND_MAX) - 0.5) * 0.001);
+        wei_sys_buf[i] = static_cast<Tgpu>((rand() * (1.0 / RAND_MAX) - 0.5) *
+                                           0.001); // NOLINT (concurrency-mt-unsafe)
     }
     auto wei_ocl_buf = profile_h.Write(wei_sys_buf);
     auto wei_ocl_ptr = wei_ocl_buf.get();
@@ -275,7 +277,8 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
         bias_sys_buf   = std::vector<Tgpu>(bias_sz);
         for(size_t i = 0; i < bias_sz; i++)
         {
-            bias_sys_buf[i] = static_cast<Tgpu>(rand() * (1.0 / RAND_MAX));
+            bias_sys_buf[i] =
+                static_cast<Tgpu>(rand() * (1.0 / RAND_MAX)); // NOLINT (concurrency-mt-unsafe)
         }
 
         bias_ocl_buf = profile_h.Write(bias_sys_buf);

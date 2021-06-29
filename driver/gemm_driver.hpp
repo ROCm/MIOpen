@@ -37,6 +37,7 @@
 #include <miopen/gemm_v2.hpp>
 #include <numeric>
 #include <vector>
+#include "random.hpp"
 
 #define GEMM_DRIVER_DEBUG 0
 
@@ -240,7 +241,7 @@ int GemmDriver<T>::AllocateBuffersAndCopy()
 #if GEMM_DRIVER_DEBUG
         a[i] = static_cast<double>(i);
 #else
-        a[i]          = static_cast<double>(rand()) * (1.0 / RAND_MAX);
+        a[i]          = static_cast<double>(GET_RAND()) * (1.0 / RAND_MAX);
 #endif
     }
 
@@ -249,7 +250,7 @@ int GemmDriver<T>::AllocateBuffersAndCopy()
 #if GEMM_DRIVER_DEBUG
         b[i] = static_cast<double>(i);
 #else
-        b[i]          = static_cast<double>((rand()) * (1.0 / RAND_MAX) - 0.5) * 0.001;
+        b[i]          = static_cast<double>((GET_RAND()) * (1.0 / RAND_MAX) - 0.5) * 0.001;
 #endif
     }
 #if MIOPEN_BACKEND_OPENCL

@@ -368,6 +368,7 @@ else()
 endif()
 
 if(MIOPEN_USE_COMGR)
+    set(MIOPEN_BACKEND_USE_COMGR 1)
     find_package(amd_comgr REQUIRED CONFIG)
     message(STATUS "Build with comgr ${amd_comgr_VERSION}")
 endif()
@@ -517,6 +518,8 @@ enable_clang_tidy(
         -performance-unnecessary-value-param
         -readability-braces-around-statements
         -readability-else-after-return
+        # we are not ready to use it, but very useful
+        -readability-function-cognitive-complexity
         -readability-isolate-declaration
         -readability-magic-numbers
         -readability-named-parameter
@@ -524,6 +527,11 @@ enable_clang_tidy(
         -readability-convert-member-functions-to-static
         -readability-qualified-auto
         -readability-redundant-string-init
+        # too many narrowing conversions in our code
+        -bugprone-narrowing-conversions
+        -cppcoreguidelines-narrowing-conversions
+        -altera-struct-pack-align
+        -cppcoreguidelines-prefer-member-initializer
 
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}
