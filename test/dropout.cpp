@@ -30,6 +30,7 @@
 #include "tensor_holder.hpp"
 #include "test.hpp"
 #include "verify.hpp"
+#include "random.hpp"
 
 #define DROPOUT_DEBUG_CTEST 0
 #define DROPOUT_LARGE_CTEST 0
@@ -311,7 +312,7 @@ struct dropout_driver : test_driver
             srand(0);
             for(size_t i = 0; i < in.desc.GetElementSize(); i++)
                 reserveSpace[i] =
-                    static_cast<unsigned char>(float(rand()) / float(RAND_MAX) > dropout_rate);
+                    static_cast<unsigned char>(float(GET_RAND()) / float(RAND_MAX) > dropout_rate);
         }
 
         DropoutDesc.dropout          = dropout_rate;

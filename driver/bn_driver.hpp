@@ -335,7 +335,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::SetBNParametersFromCmdLineArgs()
     else
     {
         printf("Incorrect Batch Normalization Mode\n");
-        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
 
     // save off mean and variance?
@@ -350,7 +350,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::SetBNParametersFromCmdLineArgs()
     else
     {
         printf("Incorrect Batch Normalization Save mode\n");
-        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
 
     // keep running mean and variance
@@ -365,21 +365,21 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::SetBNParametersFromCmdLineArgs()
     else
     {
         printf("Incorrect Batch Normalization Running mode\n");
-        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
 
     forw = inflags.GetValueInt("forw");
     if(forw > 2)
     {
         printf("Incorrect Batch Normalization forward mode\n");
-        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
 
     back = inflags.GetValueInt("back");
     if(back > 1)
     {
         printf("Incorrect Batch Normalization backwards propagation mode\n");
-        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
 
     if(back && forw)
@@ -940,7 +940,7 @@ void BatchNormDriver<Tgpu, Tref, Tmix>::runCPUFwdInference(
     {
         printf("Something went wrong.\nBad batch normalization mode in host kernel "
                "selection.\nExiting...\n\n");
-        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
     return;
 }
@@ -994,7 +994,7 @@ void BatchNormDriver<Tgpu, Tref, Tmix>::runCPUFwdTrain(
     {
         printf("Something went wrong.\nBad batch normalization mode in host kernel "
                "selection.\nExiting...\n\n");
-        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
 }
 
@@ -1420,7 +1420,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunBackwardCPU()
     {
         printf("Something went wrong.\nBad batch normalization mode in host kernel "
                "selection.\nExiting...\n\n");
-        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
 
     return miopenStatusSuccess;

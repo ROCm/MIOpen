@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #include "fusionHost.hpp"
+#include "random.hpp"
 #include <miopen/stringutils.hpp>
 
 #define MIO_BN_USE_MIX_PREC 1
@@ -264,14 +265,14 @@ struct na_fusion_driver : test_driver
         for(std::size_t i = 0; i < scale.desc.GetElementSize(); i++)
         {
 
-            scale[i]       = (((rand() % 2) == 1) ? -1 : 1) * 1e-2 * PREC_TYPE(rand() % 100);
-            shift[i]       = (((rand() % 2) == 1) ? -1 : 1) * 1e-2 * PREC_TYPE(rand() % 100);
-            estMean[i]     = (((rand() % 2) == 1) ? -1 : 1) * 1e-2 * PREC_TYPE(rand() % 100);
-            estVariance[i] = (1e-2 * (PREC_TYPE(rand() % 100) + 1));
+            scale[i]   = (((GET_RAND() % 2) == 1) ? -1 : 1) * 1e-2 * PREC_TYPE(GET_RAND() % 100);
+            shift[i]   = (((GET_RAND() % 2) == 1) ? -1 : 1) * 1e-2 * PREC_TYPE(GET_RAND() % 100);
+            estMean[i] = (((GET_RAND() % 2) == 1) ? -1 : 1) * 1e-2 * PREC_TYPE(GET_RAND() % 100);
+            estVariance[i] = (1e-2 * (PREC_TYPE(GET_RAND() % 100) + 1));
         }
         for(std::size_t i = 0; i < input.desc.GetElementSize(); i++)
         {
-            input[i] = 1e-2 * (((rand() % 2) == 1) ? -1 : 1) * T(rand() % 100);
+            input[i] = 1e-2 * (((GET_RAND() % 2) == 1) ? -1 : 1) * T(GET_RAND() % 100);
         }
 
         auto&& handle = get_handle();

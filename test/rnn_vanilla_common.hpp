@@ -34,6 +34,7 @@
 #include "test.hpp"
 #include "verify.hpp"
 #include "rnn_util.hpp"
+#include "random.hpp"
 #include <array>
 #include <cmath>
 #include <ctime>
@@ -2340,7 +2341,7 @@ struct rnn_basic_vanilla_driver : test_driver
 
 #if(MIOPEN_BACKEND_OPENCL == 1)
         if(type == miopenHalf)
-            exit(EXIT_SUCCESS);
+            exit(EXIT_SUCCESS); // NOLINT (concurrency-mt-unsafe)
 #endif
 
         if(batchSeq.empty() || 0 == batchSeq[0])
@@ -2452,7 +2453,7 @@ struct rnn_basic_vanilla_driver : test_driver
         srand(0);
         for(std::size_t i = 0; i < in_sz; i++)
         {
-            input[i] = /*(((rand()%2)==1)?-1:1)**/ 0.001 * float(rand() % 100);
+            input[i] = /*(((GET_RAND()%2)==1)?-1:1)**/ 0.001 * float(GET_RAND() % 100);
         }
 
         std::size_t hx_sz = ((dirMode != 0) ? 2 : 1) * hiddenSize * batchSize * numLayers;
@@ -2476,7 +2477,7 @@ struct rnn_basic_vanilla_driver : test_driver
         std::vector<T> weights(wei_sz);
         for(std::size_t i = 0; i < wei_sz; i++)
         {
-            weights[i] = (((rand() % 2) == 1) ? -1 : 1) * 0.001 * float(rand() % 100);
+            weights[i] = (((GET_RAND() % 2) == 1) ? -1 : 1) * 0.001 * float(GET_RAND() % 100);
         }
 
 #if(MIO_RNN_TEST_DEBUG > 0)
@@ -2499,7 +2500,7 @@ struct rnn_basic_vanilla_driver : test_driver
         {
             for(std::size_t i = 0; i < hx_sz; i++)
             {
-                hx[i] = 0.001 * float(rand() % 100);
+                hx[i] = 0.001 * float(GET_RAND() % 100);
             }
         }
 
@@ -2507,7 +2508,7 @@ struct rnn_basic_vanilla_driver : test_driver
         {
             for(std::size_t i = 0; i < hx_sz; i++)
             {
-                dhyin[i] = 0.001 * float(rand() % 100);
+                dhyin[i] = 0.001 * float(GET_RAND() % 100);
             }
         }
 
@@ -2572,7 +2573,7 @@ struct rnn_basic_vanilla_driver : test_driver
         std::vector<T> dyin(yin.size());
         for(std::size_t i = 0; i < yin.size(); i++)
         {
-            dyin[i] = /*(((rand()%2)==1)?-1:1)**/ 0.001 * float(rand() % 100);
+            dyin[i] = /*(((GET_RAND()%2)==1)?-1:1)**/ 0.001 * float(GET_RAND() % 100);
         }
 #if(MIO_RNN_TEST_DEBUG > 0)
         printf("Running backward data RNN.\n");

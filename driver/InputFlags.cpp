@@ -79,7 +79,7 @@ void InputFlags::AddInputFlag(const std::string& _long_name,
             std::cout << std::setw(37) << " " << *help_next_line << std::endl;
         }
     }
-    exit(0);
+    exit(0); // NOLINT (concurrency-mt-unsafe)
 }
 
 char InputFlags::FindShortName(const std::string& long_name) const
@@ -94,7 +94,7 @@ char InputFlags::FindShortName(const std::string& long_name) const
     if(short_name == '\0')
     {
         std::cout << "Long Name: " << long_name << " Not Found !";
-        exit(0);
+        exit(0); // NOLINT (concurrency-mt-unsafe)
     }
 
     return short_name;
@@ -136,7 +136,7 @@ void InputFlags::Parse(int argc, char* argv[])
             if(MapInputs.find(short_name) == MapInputs.end())
             {
                 std::cout << "Input Flag: " << short_name << " Not Found !";
-                exit(0);
+                exit(0); // NOLINT (concurrency-mt-unsafe)
             }
             if(short_name == 'h')
                 Print();
