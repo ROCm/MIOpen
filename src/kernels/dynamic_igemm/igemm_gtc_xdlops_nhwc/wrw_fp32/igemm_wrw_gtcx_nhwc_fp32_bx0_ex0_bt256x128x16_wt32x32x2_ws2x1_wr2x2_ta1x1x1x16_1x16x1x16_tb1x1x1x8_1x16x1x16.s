@@ -273,12 +273,13 @@
 .set s_sub_n, 63
 .set s_in_stride_move_n, 64
 .set s_out_stride_move_n, 65
-.set s_k_padded, 66
-.set s_c_padded, 67
-.set s_out_move_step, 68
-.set s_in_move_step, 69
-.set s_tmp, 70
-.set s_end, 76
+.set s_dbg, 66
+.set s_k_padded, 70
+.set s_c_padded, 71
+.set s_out_move_step, 72
+.set s_in_move_step, 73
+.set s_tmp, 74
+.set s_end, 80
 
 .set v_c, 0  ; coalescing:32, needed:2, resuable:45
 .set v_a, 2
@@ -312,6 +313,7 @@
 .set v_co_sub_n_index, 62
 .set v_cur_k, 63
 .set v_tmp, 64
+.set v_dbg, 72
 .set v_end, 128
 
 .set a_c, 0
@@ -328,6 +330,11 @@ igemm_wrw_gtcx_nhwc_fp32_bx0_ex0_bt256x128x16_wt32x32x2_ws2x1_wr2x2_ta1x1x1x16_1
     s_load_dwordx16 s[s_hi+0:s_hi+15],        s[s_ka+0:s_ka+1],    0+k_hi
     s_load_dwordx2  s[s_group+0:s_group+1],      s[s_ka+0:s_ka+1],    0+k_group
 
+    ; debug vgpr
+    v_mov_b32 v1, 0
+    v_add_lshl_u32 v[v_dbg], v0, v1, 2
+    s_load_dwordx2 s[s_dbg+0:s_dbg+1], s[s_ka:s_ka+1], k_p_wei
+    s_mov_b32 s[s_dbg+2], s[s_bx]
     ; input, thread(1,nb,1,c): 1x1x1x8, cluster(1,nb,1,ec): 1x16x1x16
     v_mov_b32 v[v_tmp], v0
     v_and_b32 v[v_gtc_iec], 15, v[v_tmp]
@@ -394,7 +401,7 @@ igemm_wrw_gtcx_nhwc_fp32_bx0_ex0_bt256x128x16_wt32x32x2_ws2x1_wr2x2_ta1x1x1x16_1
     ; calculate input offset
     s_lshl_b32 s[s_block_gtc_ig], s[s_block_gtc_ig], 2
     s_mul_i32 s[s_tmp], s[s_block_gtc_ig], s[s_c]
-    ;s_sub_u32 s[s_p_in+2], s[s_p_in+2], s[s_tmp]
+    s_sub_u32 s[s_p_in+2], s[s_p_in+2], s[s_tmp]
     s_add_u32 s[s_p_in], s[s_p_in], s[s_tmp]
 
     v_mul_lo_u32 v[v_tmp], v[v_gtc_inb_a], s[s_in_stride_wi]
@@ -407,7 +414,7 @@ igemm_wrw_gtcx_nhwc_fp32_bx0_ex0_bt256x128x16_wt32x32x2_ws2x1_wr2x2_ta1x1x1x16_1
 
     ; calculate out offset
     s_mul_i32 s[s_tmp], s[s_block_gtc_ig], s[s_k]
-    ;s_sub_u32 s[s_p_out+2], s[s_p_out+2], s[s_tmp]
+    s_sub_u32 s[s_p_out+2], s[s_p_out+2], s[s_tmp]
     s_add_u32 s[s_p_out], s[s_p_out], s[s_tmp]
 
     v_add_u32 v[v_cur_k], s[s_block_gtc_ik], v[v_gtc_ik]
@@ -1919,6 +1926,32 @@ L_igemm_wrw_gtcx_nhwc_fp32_bx0_ex0_bt256x128x16_wt32x32x2_ws2x1_wr2x2_ta1x1x1x16
     s_or_b64 exec, exec, s[s_tmp+4:s_tmp+5]
     s_mov_b64 exec, -1
 
+    s_branch L_igemm_wrw_gtcx_nhwc_fp32_bx0_ex0_bt256x128x16_wt32x32x2_ws2x1_wr2x2_ta1x1x1x16_1x16x1x16_tb1x1x1x8_1x16x1x16_out
+    ; debug code to cpy vgpr to host
+    L_debug_L_igemm_wrw_gtcx_nhwc_fp32_bx0_ex0_bt256x128x16_wt32x32x2_ws2x1_wr2x2_ta1x1x1x16_1x16x1x16_tb1x1x1x8_1x16x1x16_out_1:
+    s_nop 256
+    s_waitcnt lgkmcnt(0)
+    s_waitcnt vmcnt(0)
+    s_barrier
+    s_cmp_lg_u32 s[s_dbg+2], 0
+    s_cbranch_scc1 L_program_end_L_igemm_wrw_gtcx_nhwc_fp32_bx0_ex0_bt256x128x16_wt32x32x2_ws2x1_wr2x2_ta1x1x1x16_1x16x1x16_tb1x1x1x8_1x16x1x16_out_1
+    s_cmp_lg_u32 s[s_bz], 0
+    s_cbranch_scc1 L_program_end_L_igemm_wrw_gtcx_nhwc_fp32_bx0_ex0_bt256x128x16_wt32x32x2_ws2x1_wr2x2_ta1x1x1x16_1x16x1x16_tb1x1x1x8_1x16x1x16_out_1
+    v_mov_b32 v[v_tmp], s[s_in_offset]
+    s_mov_b32 s[s_tmp], 0
+    s_mov_b32 s[s_p_wei], s[s_dbg]
+    s_mov_b32 s[s_p_wei+1], s[s_dbg+1]
+
+    buffer_store_dword v[v_in_os], v[v_dbg], s[s_p_wei+0:s_p_wei+3], s[s_tmp] offen
+    s_waitcnt vmcnt(0)
+    s_barrier
+
+    L_program_end_L_igemm_wrw_gtcx_nhwc_fp32_bx0_ex0_bt256x128x16_wt32x32x2_ws2x1_wr2x2_ta1x1x1x16_1x16x1x16_tb1x1x1x8_1x16x1x16_out_1:
+    s_nop 2
+    s_waitcnt lgkmcnt(0)
+    s_waitcnt vmcnt(0)
+    s_barrier
+
 L_igemm_wrw_gtcx_nhwc_fp32_bx0_ex0_bt256x128x16_wt32x32x2_ws2x1_wr2x2_ta1x1x1x16_1x16x1x16_tb1x1x1x8_1x16x1x16_out:
     s_endpgm
 .rodata
@@ -1931,7 +1964,7 @@ L_igemm_wrw_gtcx_nhwc_fp32_bx0_ex0_bt256x128x16_wt32x32x2_ws2x1_wr2x2_ta1x1x1x16
     .amdhsa_system_sgpr_workgroup_id_z 1
     .amdhsa_system_vgpr_workitem_id 0
     .amdhsa_next_free_vgpr 128
-    .amdhsa_next_free_sgpr 76
+    .amdhsa_next_free_sgpr 80
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
@@ -1942,7 +1975,7 @@ amdhsa.version: [ 1, 0 ]
 amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nhwc_fp32_bx0_ex0_bt256x128x16_wt32x32x2_ws2x1_wr2x2_ta1x1x1x16_1x16x1x16_tb1x1x1x8_1x16x1x16
     .symbol: igemm_wrw_gtcx_nhwc_fp32_bx0_ex0_bt256x128x16_wt32x32x2_ws2x1_wr2x2_ta1x1x1x16_1x16x1x16_tb1x1x1x8_1x16x1x16.kd
-    .sgpr_count: 82
+    .sgpr_count: 86
     .vgpr_count: 128
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
