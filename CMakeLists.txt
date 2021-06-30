@@ -368,7 +368,6 @@ else()
 endif()
 
 if(MIOPEN_USE_COMGR)
-    set(MIOPEN_BACKEND_USE_COMGR 1)
     find_package(amd_comgr REQUIRED CONFIG)
     message(STATUS "Build with comgr ${amd_comgr_VERSION}")
 endif()

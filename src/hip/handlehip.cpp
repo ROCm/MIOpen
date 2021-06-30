@@ -426,7 +426,7 @@ Program Handle::LoadProgram(const std::string& program_name,
             boost::filesystem::copy_file(p.GetCodeObjectPathname(), path);
         miopen::SaveBinary(path, this->GetTargetProperties(), program_name, params, is_kernel_str);
 #endif
-
+        p.FreeCodeObjectFileStorage();
         return p;
     }
     else

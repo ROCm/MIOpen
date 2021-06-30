@@ -349,11 +349,27 @@ HIPOCProgram::HIPOCProgram(const std::string& program_name, const std::string& h
 
 hipModule_t HIPOCProgram::GetModule() const { return impl->module.get(); }
 
-boost::filesystem::path HIPOCProgram::GetCodeObjectPathname() const { return impl->hsaco_file; }
+boost::filesystem::path HIPOCProgram::GetCodeObjectPathname() const
+{
+    if(!impl->hsaco_file.empty())
+    {
+        return impl->hsaco_file;
+    }
+    else
+    {
+        MIOPEN_THROW(miopenStatusInternalError, "Empty code object path.");
+    }
+}
 
 std::string HIPOCProgram::GetCodeObjectBlob() const
 {
     return {impl->binary.data(), impl->binary.size()};
+}
+
+void HIPOCProgram::FreeCodeObjectFileStorage()
+{
+    impl->dir = boost::none;
+    impl->hsaco_file.clear();
 }
 
 bool HIPOCProgram::IsCodeObjectInMemory() const { return !impl->binary.empty(); };
