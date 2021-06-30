@@ -84,6 +84,7 @@ struct ExecutionContext
     inline void SetStream(Handle* stream_) { stream = stream_; }
 
     ExecutionContext() = default;
+    ExecutionContext(Handle* stream_) : stream(stream_) {}
 
     void DetectRocm();
 

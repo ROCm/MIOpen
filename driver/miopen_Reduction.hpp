@@ -90,8 +90,9 @@ class miopenReductionHost
                 RunImpl<Tref>(alpha, in_data, beta, out_data, indices);
             else
                 RunImpl<float16>(alpha, in_data, beta, out_data, indices);
-        };
-
+        }
+        else if(compTypeVal == miopenDouble)
+            RunImpl<double>(alpha, in_data, beta, out_data, indices);
         return;
     };
 

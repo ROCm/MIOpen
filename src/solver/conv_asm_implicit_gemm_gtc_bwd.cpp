@@ -31,8 +31,6 @@
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/conv/asm_implicit_gemm.hpp>
 
-#define WORKAROUND_SWDEV_286774 1
-
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS)
 
 namespace miopen {
@@ -860,6 +858,13 @@ static std::tuple<bool, // is suitable kernel found
         if(b % cfg.nxb != 0)
             continue;
 
+        // if thread length have multiple value in K direction, then must make sure K is multiply of
+        // gemm_k_per_block
+        if((cfg.tensor_a_thread_lengths[0] != 1 || cfg.tensor_a_thread_lengths[1] != 1 ||
+            cfg.tensor_b_thread_lengths[0] != 1 || cfg.tensor_b_thread_lengths[1] != 1) &&
+           (k % cfg.gemm_k_per_block != 0))
+            continue;
+
         bool gemm_k_valid = true;
         for(int gemm_id = 0; gemm_id < num_of_gemm; gemm_id++)
         {
@@ -867,7 +872,7 @@ static std::tuple<bool, // is suitable kernel found
             int i_x_tilda          = gemm_id % x_tilda;
             int y_dot_slice        = (i_y_tilda + 1) * y_dot <= y ? y_dot : y % y_dot;
             int x_dot_slice        = (i_x_tilda + 1) * x_dot <= x ? x_dot : x % x_dot;
-            int gemm_k             = k / group * y_dot_slice * x_dot_slice;
+            int gemm_k             = k * y_dot_slice * x_dot_slice;
             bool is_gemm_not_empty = gemm_k > 0;
             if(is_gemm_not_empty)
             {
@@ -931,6 +936,13 @@ static std::tuple<bool, // is suitable kernel found
             if(b % cfg.nxb != 0)
                 continue;
 
+            // if thread length have multiple value in K direction, then must make sure K is
+            // multiply of gemm_k_per_block
+            if((cfg.tensor_a_thread_lengths[0] != 1 || cfg.tensor_a_thread_lengths[1] != 1 ||
+                cfg.tensor_b_thread_lengths[0] != 1 || cfg.tensor_b_thread_lengths[1] != 1) &&
+               (k % cfg.gemm_k_per_block != 0))
+                continue;
+
             bool gemm_k_valid = true;
             for(int gemm_id = 0; gemm_id < num_of_gemm; gemm_id++)
             {
@@ -981,11 +993,6 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlops::IsApplicable(const ConvolutionConte
 
     if(!ctx.IsFp32() && !ctx.IsFp16())
         return false;
-
-#if WORKAROUND_SWDEV_286774
-    if(ctx.IsFp16() && !miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS{}))
-        return false;
-#endif
 
     if(!ctx.rmv.IsV3())
         return false;
