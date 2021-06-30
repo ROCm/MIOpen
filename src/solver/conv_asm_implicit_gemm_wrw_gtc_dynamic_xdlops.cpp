@@ -488,8 +488,11 @@ ComputeDynamicIGemmWrwKernelArgs(const conv::ProblemDescription& conv_problem,
     opArgs.emplace_back(y);
     opArgs.emplace_back(x);
     opArgs.emplace_back(log2_gemm_k_global_splits);
-    opArgs.emplace_back(group);
-    opArgs.emplace_back(ho_padded);
+    if(conv_problem.IsFp16())
+    {
+        opArgs.emplace_back(group);
+        opArgs.emplace_back(ho_padded);
+    }
 
     return opArgs;
 }
