@@ -295,11 +295,11 @@ pipeline {
                         }
                     }
                 }
-                stage('Fp32 OpenCL') {
-                    agent{ label rocmnode("vega") }
+                stage('Fp32 OpenCL gfx908') {
+                    agent{ label rocmnode("gfx908") }
                     steps{
                         script{
-                            runDockerJob(compiler: 'g++', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release')
+                            runDockerJob(compiler: 'g++', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_TEST_GFX908=On', gpu_arch: "gfx908")
                         }
                     }
                 }
