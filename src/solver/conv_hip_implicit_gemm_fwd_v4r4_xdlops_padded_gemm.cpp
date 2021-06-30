@@ -38,6 +38,10 @@
 #define WORKAROUND_MI100_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_PADDED_GEMM_XDLOPS \
     (HIP_PACKAGE_VERSION_FLAT >= 3007000000 && HIP_PACKAGE_VERSION_FLAT <= 4000999999)
 
+/// Fatal compiler errors with ROCm 3.7 on some BF16 configs.
+#define WORKAROUND_MI100_BF16_FATAL_COMPILER_ERRORS \
+    (HIP_PACKAGE_VERSION_FLAT >= 3007000000 && HIP_PACKAGE_VERSION_FLAT <= 3007999999)
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_PADDED_GEMM_XDLOPS)
 
 /* this fix is for fp16 xdlops vectorizable kernels due to followings, we may revisit this fix after
@@ -1087,7 +1091,7 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
     if(ctx.GetStream().GetDeviceName() == "gfx908" && ctx.IsFp32())
     {
         if((ctx.n_inputs == 3 && ctx.n_outputs == 1 && ctx.in_width == 227 &&
-            ctx.in_height == 277 && ctx.kernel_size_w == 3 && ctx.kernel_size_h == 3) //
+            ctx.in_height == 227 && ctx.kernel_size_w == 3 && ctx.kernel_size_h == 3) //
            ||
            (ctx.n_inputs == 64 && ctx.n_outputs == 1 && ctx.in_width == 112 &&
             ctx.in_height == 112 && ctx.kernel_size_w == 3 && ctx.kernel_size_h == 3 &&
@@ -1097,6 +1101,10 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
             return false;
         }
     }
+#endif
+#if WORKAROUND_MI100_BF16_FATAL_COMPILER_ERRORS
+    if(ctx.GetStream().GetDeviceName() == "gfx908" && ctx.IsBfp16())
+        return false;
 #endif
 
     // this particular HeuristicInit is so comprehensive, that if it cannot predict a valid

@@ -187,7 +187,7 @@ int TensorOpDriver<Tgpu, Tref>::SetTensorOpFromCmdLineArgs()
         else
         {
             Usage();
-            exit(-1);
+            exit(-1); // NOLINT (concurrency-mt-unsafe)
         }
     }
     return miopenStatusSuccess;

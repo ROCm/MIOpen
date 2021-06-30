@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,8 +25,9 @@
  *******************************************************************************/
 
 #include <miopen/solver.hpp>
-#include <miopen/conv_algo_name.hpp>
 
+#include <miopen/activ/solvers.hpp>
+#include <miopen/conv_algo_name.hpp>
 #include <miopen/db.hpp>
 #include <miopen/solver_id.hpp>
 #include <miopen/par_for.hpp>
@@ -172,10 +173,7 @@ miopenConvAlgorithm_t Id::GetAlgo() const
     return it->second;
 }
 
-inline bool Register(IdRegistryData& registry,
-                     uint64_t value,
-                     const std::string& str,
-                     miopenConvAlgorithm_t algo)
+inline bool Register(IdRegistryData& registry, uint64_t value, const std::string& str)
 {
     if(value == Id::invalid_value)
     {
@@ -204,6 +202,16 @@ inline bool Register(IdRegistryData& registry,
 
     registry.value_to_str.emplace(value, str);
     registry.str_to_value.emplace(str, value);
+    return true;
+}
+
+inline bool Register(IdRegistryData& registry,
+                     uint64_t value,
+                     const std::string& str,
+                     miopenConvAlgorithm_t algo)
+{
+    if(!Register(registry, value, str))
+        return false;
     registry.value_to_algo.emplace(value, algo);
     return true;
 }
@@ -407,12 +415,27 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     RegisterWithSolver(registry, ++id, GemmBwd1x1_stride1{}, miopenConvolutionAlgoGEMM);
     RegisterWithSolver(registry, ++id, GemmBwdRest{}, miopenConvolutionAlgoGEMM);
 
-    RegisterWithSolver(
-        registry, ++id, ConvHipImplicitGemmMlirBinFwd{}, miopenConvolutionAlgoImplicitGEMM);
-    RegisterWithSolver(
-        registry, ++id, ConvHipImplicitGemmMlirBinBwd{}, miopenConvolutionAlgoImplicitGEMM);
-    RegisterWithSolver(
-        registry, ++id, ConvHipImplicitGemmMlirBinWrW{}, miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(registry, ++id, ConvMlirIgemmFwd{}, miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(registry, ++id, ConvMlirIgemmBwd{}, miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(registry, ++id, ConvMlirIgemmWrW{}, miopenConvolutionAlgoImplicitGEMM);
+
+    RegisterWithSolver(registry, ++id, GemmWrw1x1_stride1{}, miopenConvolutionAlgoGEMM);
+    RegisterWithSolver(registry, ++id, GemmWrwUniversal{}, miopenConvolutionAlgoGEMM);
+
+    RegisterWithSolver(registry, ++id, ConvMlirIgemmFwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(registry, ++id, ConvMlirIgemmBwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(registry, ++id, ConvMlirIgemmWrWXdlops{}, miopenConvolutionAlgoImplicitGEMM);
+
+    Register(registry, ++id, SolverDbId(activ::ActivFwdSolver0{}));
+
+    RegisterWithSolver(registry,
+                       ++id,
+                       ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC{},
+                       miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(registry,
+                       ++id,
+                       ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC{},
+                       miopenConvolutionAlgoImplicitGEMM);
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 

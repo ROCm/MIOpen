@@ -75,7 +75,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 2.12.0)
+rocm_setup_version(VERSION 2.13.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -517,6 +517,8 @@ enable_clang_tidy(
         -performance-unnecessary-value-param
         -readability-braces-around-statements
         -readability-else-after-return
+        # we are not ready to use it, but very useful
+        -readability-function-cognitive-complexity
         -readability-isolate-declaration
         -readability-magic-numbers
         -readability-named-parameter
@@ -524,11 +526,16 @@ enable_clang_tidy(
         -readability-convert-member-functions-to-static
         -readability-qualified-auto
         -readability-redundant-string-init
+        # too many narrowing conversions in our code
+        -bugprone-narrowing-conversions
+        -cppcoreguidelines-narrowing-conversions
+        -altera-struct-pack-align
+        -cppcoreguidelines-prefer-member-initializer
 
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}
     HEADER_FILTER
-        ".*hpp"
+        "\.hpp$"
     EXTRA_ARGS
         -DMIOPEN_USE_CLANG_TIDY
 

@@ -51,12 +51,13 @@ def cmake_build(compiler, flags, env4make, extradebugflags, prefixpath){
     }
 }
 
-def buildHipClangJob(Map conf, compiler){
+def buildhipclangjob(Map conf){
         show_node_info()
 
         env.HSA_ENABLE_SDMA=0
         env.CODECOV_TOKEN="aec031be-7673-43b5-9840-d8fb71a2354e"
         checkout scm
+        def compiler = conf.get("compiler", "/opt/rocm/llvm/bin/clang++")
         def prefixpath = conf.get("prefixpath", "/usr/local")
         def flags = conf.get("flags", "")
         def env4make = conf.get("env4make", "")
@@ -64,10 +65,11 @@ def buildHipClangJob(Map conf, compiler){
         def cmd = conf.get("cmd", "")
         def gpu_arch = conf.get("gpu_arch", "gfx900;gfx906")
         def target_id = conf.get("target_id", "OFF")
+        def mlir_build = conf.get("mlir_build", "OFF")
         def codecov = conf.get("codecov", false)
         def miotensile_version = conf.get("miotensile_version", "default")
         def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
-        def dockerArgs = "--build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' --build-arg USE_TARGETID='${target_id}' "
+        def dockerArgs = "--build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' --build-arg USE_TARGETID='${target_id}' --build-arg USE_MLIR='${mlir_build}' "
         def extradebugflags = ""
         def variant = env.STAGE_NAME
         if (codecov) {
@@ -134,9 +136,10 @@ def reboot(){
     build job: 'reboot-slaves', propagate: false , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
 }
 
-def tensileStage(cmd, gpu_arch, miotensile_version, target_id){
+def runDockerJob(Map conf){
     try{
-        buildHipClangJob('/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: gpu_arch, miotensile_version: miotensile_version, target_id: target_id)
+        def build_config = conf
+        buildhipclangjob(build_config)
     }
     catch(e){
         echo "throwing error exception for the stage"
@@ -181,7 +184,15 @@ pipeline {
             defaultValue: true,
             description: "")
         booleanParam(
-            name: "SMOKE_TESTS",
+            name: "SMOKE_FP32_AUX1",
+            defaultValue: true,
+            description: "")
+        booleanParam(
+            name: "SMOKE_FP16_BF16_INT8",
+            defaultValue: true,
+            description: "")
+        booleanParam(
+            name: "SMOKE_MLIR",
             defaultValue: true,
             description: "")
         booleanParam(
@@ -217,7 +228,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('clang++', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd)
+                                buildhipclangjob(compiler: 'clang++', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd)
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -230,12 +241,12 @@ pipeline {
                 stage('OpenCL Tidy') {
                     agent{  label rocmnode("nogpu") }
                     environment{
-                        cmd = "cd build; CXX='clang++-3.8' cmake -DMIOPEN_BACKEND=OpenCL -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
+                        cmd = "cd build; cmake -DMIOPEN_BACKEND=OpenCL -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
                     }
                     steps{
                         script{
                             try{
-                                buildHipClangJob('clang++-3.8', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd)
+                                buildhipclangjob(compiler: 'g++', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd)
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -261,7 +272,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                buildHipClangJob('clang++', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd)
+                                buildhipclangjob(compiler: 'clang++', flags: '-DCMAKE_BUILD_TYPE=release', cmd: cmd)
                             }
                             catch(e){
                                 echo "throwing error exception for the stage"
@@ -273,6 +284,25 @@ pipeline {
                 }
             }
         }
+        stage("Smoke Aux 1"){
+            when { expression { params.SMOKE_FP32_AUX1 } }
+            parallel{
+                stage('Fp32 HipNoGPU Debug') {
+                    agent{  label rocmnode("nogpu") }
+                    environment{
+                        cmd = """
+                            ulimit -c unlimited
+                            cd build
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug -DMIOPEN_BACKEND=HIPNOGPU -DMIOPEN_INSTALL_CXX_HEADERS=On ..
+                            make -j\$(nproc)
+                        """
+                    }
+                    steps{
+                        buildhipclangjob(env4make: "MIOPEN_LOG_LEVEL=5 MIOPEN_COMPILE_PARALLEL_LEVEL=1", cmd: cmd)
+                    }
+                }
+            }
+        }
         stage("Packages"){
             when { expression { params.PACKAGES } }
             parallel {
@@ -280,17 +310,7 @@ pipeline {
                     agent{ label rocmnode("nogpu") }
                     steps{
                         script{
-                            try{
-                                buildHipClangJob('g++', flags: '-DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx900;gfx906;gfx908")
-                            }
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
+                            runDockerJob(compiler: 'g++', flags: '-DCMAKE_BUILD_TYPE=release', gpu_arch: "gfx900;gfx906;gfx908")
                         }
                     }
                 }
@@ -298,17 +318,7 @@ pipeline {
                     agent{ label rocmnode("nogpu") }
                     steps{
                         script{
-                            try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DCMAKE_BUILD_TYPE=release', prefixpath: '/opt/rocm', gpu_arch: "gfx900;gfx906;gfx908")
-                            }
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
+                            runDockerJob(flags: '-DCMAKE_BUILD_TYPE=release', prefixpath: '/opt/rocm', gpu_arch: "gfx900;gfx906;gfx908")
                         }
                     }
                 }
