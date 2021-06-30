@@ -778,6 +778,8 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
         if(IsAlgorithmDisabled(algo)) // Algos can be disabled globally.
             continue;
         const auto& s = solver_id.GetSolver();
+        if(s.IsEmpty())
+            continue;
         if(!s.IsDynamic()) // Let's allow non-dynamic later, if necessary.
             continue;
         if(!s.IsApplicable(ctx))
