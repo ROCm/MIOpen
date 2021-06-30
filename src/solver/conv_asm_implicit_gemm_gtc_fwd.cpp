@@ -1395,6 +1395,10 @@ static std::tuple<bool, // is suitable kernel found
             {
                 continue;
             };
+            if((gemm_k % cfg.gemm_k_per_block != 0) && (cfg.tensor_a_thread_lengths[1] > 1))
+            {
+                continue;
+            };
         }
         // Don't have to check, assuming the tunable itself is already valid
         if(cfg.gemm_n_per_block % cfg.nxb != 0)
@@ -1457,6 +1461,10 @@ static std::tuple<bool, // is suitable kernel found
         else
         {
             if((gemm_n_packed % cfg.gemm_n_per_block != 0))
+            {
+                continue;
+            };
+            if((gemm_k % cfg.gemm_k_per_block != 0) && (cfg.tensor_a_thread_lengths[1] > 1))
             {
                 continue;
             };

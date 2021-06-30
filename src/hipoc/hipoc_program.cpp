@@ -58,8 +58,6 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_OPTION)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 
-#define MIOPEN_WORKAROUND_SWDEV_225285 1
-
 #if MIOPEN_USE_COMGR
 #define MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_27 1
 #endif
@@ -164,19 +162,12 @@ static hipModulePtr CreateModule(const boost::filesystem::path& hsaco_file)
 template <typename T> /// intended for std::string and std::vector<char>
 hipModulePtr CreateModuleInMem(const T& blob)
 {
-#if !MIOPEN_WORKAROUND_SWDEV_225285
     hipModule_t raw_m;
     auto status = hipModuleLoadData(&raw_m, reinterpret_cast<const void*>(blob.data()));
     hipModulePtr m{raw_m};
     if(status != hipSuccess)
         MIOPEN_THROW_HIP_STATUS(status, "Failed loading module");
     return m;
-#else
-    TmpDir tmp_dir("miopen");
-    auto file_path = tmp_dir.path / boost::filesystem::unique_path("miopen-%%%%-%%%%-%%%%-%%%%");
-    WriteFile(blob, file_path);
-    return CreateModule(file_path);
-#endif
 }
 
 HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name,
@@ -187,16 +178,12 @@ HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name,
 }
 
 HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name, const std::string& blob)
-    : program(program_name)
+    : program(program_name) ///, module(CreateModuleInMem(blob))
 {
-    TmpDir tmp_dir("miopen");
-    auto file_path = tmp_dir.path / boost::filesystem::unique_path("miopen-%%%%-%%%%-%%%%-%%%%");
-    WriteFile(blob, file_path);
-    const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
-    if(arch == nullptr)
-    {
-        this->module = CreateModule(file_path);
-    }
+    if(nullptr !=
+       miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{})) /// \todo Finish off this spaghetti eventually.
+        return;
+    module = CreateModuleInMem(blob);
 }
 
 HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name,
@@ -325,7 +312,8 @@ void HIPOCProgramImpl::BuildCodeObject(std::string params,
     else if(miopen::EndsWith(filename, ".cl"))
     {
 #if MIOPEN_BUILD_DEV
-        params += " -Werror" + OclKernelWarningsString();
+        params +=
+            " -Werror" + (is_kernel_str ? MiopengemmWarningsString() : OclKernelWarningsString());
 #else
         params += " -Wno-everything";
 #endif
@@ -361,11 +349,27 @@ HIPOCProgram::HIPOCProgram(const std::string& program_name, const std::string& h
 
 hipModule_t HIPOCProgram::GetModule() const { return impl->module.get(); }
 
-boost::filesystem::path HIPOCProgram::GetCodeObjectPathname() const { return impl->hsaco_file; }
+boost::filesystem::path HIPOCProgram::GetCodeObjectPathname() const
+{
+    if(!impl->hsaco_file.empty())
+    {
+        return impl->hsaco_file;
+    }
+    else
+    {
+        MIOPEN_THROW(miopenStatusInternalError, "Empty code object path.");
+    }
+}
 
 std::string HIPOCProgram::GetCodeObjectBlob() const
 {
     return {impl->binary.data(), impl->binary.size()};
+}
+
+void HIPOCProgram::FreeCodeObjectFileStorage()
+{
+    impl->dir = boost::none;
+    impl->hsaco_file.clear();
 }
 
 bool HIPOCProgram::IsCodeObjectInMemory() const { return !impl->binary.empty(); };

@@ -182,6 +182,55 @@ struct SolverContainer
         return ss;
     }
 
+    // Search for all applicable solutions among many solvers
+    template <class Problem, class Solution = miopen::solver::ConvSolution>
+    std::vector<Solution>
+    SearchForSolutions(const ExecutionContext& ctx,
+                       const Problem& problem,
+                       std::size_t limit = std::numeric_limits<std::size_t>::max()) const
+    {
+        std::vector<Solution> ss;
+        std::size_t count    = 0;
+        const auto find_only = GetEnvFindOnlySolver();
+        miopen::each_args(
+            [&](auto solver) {
+                if(count >= limit)
+                    return;
+                if(find_only.IsValid() && find_only != Id{SolverDbId(solver)})
+                { // Do nothing (and keep silence for the sake of Tuna), just skip.
+                }
+                // For better performance, check IsDynamic() first, because
+                // it is much faster than IsApplicable().
+                // else if(problem.use_dynamic_solutions_only && !solver.IsDynamic())
+                //    MIOPEN_LOG_I2(SolverDbId(solver) << ": Skipped (non-dynamic)");
+                else if(!solver.IsApplicable(ctx, problem))
+                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Not applicable");
+                else
+                {
+                    auto s      = solver.GetSolution(ctx, problem);
+                    s.solver_id = SolverDbId(solver);
+                    if(s.Succeeded())
+                    {
+                        ++count;
+                        ss.push_back(s);
+                        MIOPEN_LOG_I2(SolverDbId(solver) << ": Success.");
+                    }
+                    else
+                    {
+                        /// \todo If Solver is applicable it must provide an appropriate Solution.
+                        /// This is not the case for some 20x5 convolutions (and possibly others).
+                        /// Normally we should not get here and message level should be Error.
+                        /// For now, let's use Info (not Warning) level to avoid
+                        /// flooding the console.
+                        MIOPEN_LOG_I(SolverDbId(solver)
+                                     << ": [Warning] Applicable Solver not succeeded.");
+                    }
+                }
+            },
+            Solvers{}...);
+        return ss;
+    }
+
     template <class Context>
     std::vector<std::pair<std::string, size_t>>
     GetWorkspaceSize(const Context& search_params,
@@ -207,6 +256,7 @@ struct SolverContainer
                     ++count;
                     auto sz = solver.GetWorkspaceSize(search_params);
                     res.push_back(std::make_pair(SolverDbId(solver), sz));
+                    MIOPEN_LOG_I2(SolverDbId(solver) << ": " << sz);
                 }
             },
             Solvers{}...);

@@ -51,12 +51,13 @@ def cmake_build(compiler, flags, env4make, extradebugflags, prefixpath){
     }
 }
 
-def buildHipClangJob(Map conf, compiler){
+def buildhipclangjob(Map conf){
         show_node_info()
 
         env.HSA_ENABLE_SDMA=0
         env.CODECOV_TOKEN="aec031be-7673-43b5-9840-d8fb71a2354e"
         checkout scm
+        def compiler = conf.get("compiler", "/opt/rocm/llvm/bin/clang++")
         def prefixpath = conf.get("prefixpath", "/usr/local")
         def flags = conf.get("flags", "")
         def env4make = conf.get("env4make", "")
@@ -64,10 +65,11 @@ def buildHipClangJob(Map conf, compiler){
         def cmd = conf.get("cmd", "")
         def gpu_arch = conf.get("gpu_arch", "gfx900;gfx906")
         def target_id = conf.get("target_id", "OFF")
+        def mlir_build = conf.get("mlir_build", "OFF")
         def codecov = conf.get("codecov", false)
         def miotensile_version = conf.get("miotensile_version", "default")
         def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
-        def dockerArgs = "--build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' --build-arg USE_TARGETID='${target_id}' "
+        def dockerArgs = "--build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' --build-arg USE_TARGETID='${target_id}' --build-arg USE_MLIR='${mlir_build}' "
         def extradebugflags = ""
         def variant = env.STAGE_NAME
         if (codecov) {
@@ -134,9 +136,10 @@ def reboot(){
     build job: 'reboot-slaves', propagate: false , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
 }
 
-def tensileStage(cmd, gpu_arch, miotensile_version, target_id){
+def runDockerJob(Map conf){
     try{
-        buildHipClangJob('/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: gpu_arch, miotensile_version: miotensile_version, target_id: target_id)
+        def build_config = conf
+        buildhipclangjob(build_config)
     }
     catch(e){
         echo "throwing error exception for the stage"
@@ -181,7 +184,15 @@ pipeline {
             defaultValue: true,
             description: "")
         booleanParam(
-            name: "SMOKE_TESTS",
+            name: "SMOKE_FP32_AUX1",
+            defaultValue: true,
+            description: "")
+        booleanParam(
+            name: "SMOKE_FP16_BF16_INT8",
+            defaultValue: true,
+            description: "")
+        booleanParam(
+            name: "SMOKE_MLIR",
             defaultValue: true,
             description: "")
         booleanParam(
@@ -207,46 +218,63 @@ pipeline {
     }
     stages{
         stage("Smoke Fp32"){
-            when { expression { params.SMOKE_TESTS } }
+            when { expression { params.SMOKE_FP32_AUX1 } }
             parallel{
                 stage('Fp32 Hip Debug gfx908 /opt/rocm') {
                     agent{ label rocmnode("gfx908") }
                     steps{
                         script{
-                            try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', prefixpath: '/opt/rocm', gpu_arch: "gfx908")
-                            }
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
+                            runDockerJob(flags: '-DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', prefixpath: '/opt/rocm', gpu_arch: "gfx908")
+                        }
+                    }
+                }
+            }
+        }
+        stage("Smoke MLIR"){
+            when { expression { params.SMOKE_MLIR } }
+            parallel{
+                stage('Fp32 Hip MLIR Xdlops') {
+                    agent{ label rocmnode("gfx908") }
+                    environment{
+                        cmd = """
+                            ulimit -c unlimited
+                            cd build
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_USE_MLIR=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
+                            CTEST_PARALLEL_LEVEL=4 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check
+                        """
+                    }
+                    steps{
+                        script{
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908", mlir_build: "ON")
+                        }
+                    }
+                }
+                stage('Fp16 Hip MLIR Xdlops') {
+                    agent{ label rocmnode("gfx908") }
+                    environment{
+                        cmd = """
+                            ulimit -c unlimited
+                            cd build
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake  -DMIOPEN_TEST_HALF=On -DMIOPEN_USE_MLIR=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
+                            CTEST_PARALLEL_LEVEL=4 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check
+                        """
+                    }
+                    steps{
+                        script{
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908", mlir_build: "ON")
                         }
                     }
                 }
             }
         }
         stage("Smoke Fp16/Bf16/Int8"){
-            when { expression { params.SMOKE_TESTS } }
+            when { expression { params.SMOKE_FP16_BF16_INT8 } }
             parallel{
                 stage('Bf16 Hip Debug gfx908 /opt/rocm') {
                     agent{ label rocmnode("gfx908") }
                     steps{
                         script{
-                            try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', prefixpath: '/opt/rocm', gpu_arch: "gfx908")
-                            }
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
+                            runDockerJob(flags: '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', prefixpath: '/opt/rocm', gpu_arch: "gfx908")
                         }
                     }
                 }
@@ -254,17 +282,7 @@ pipeline {
                     agent{ label rocmnode("gfx908") }
                     steps{
                         script{
-                            try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', flags: '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', prefixpath: '/opt/rocm', gpu_arch: "gfx908")
-                            }
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
+                            runDockerJob(flags: '-DMIOPEN_TEST_HALF=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', prefixpath: '/opt/rocm', gpu_arch: "gfx908")
                         }
                     }
                 }
@@ -285,7 +303,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            tensileStage(cmd, "gfx908:xnack-", "latest", "ON")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "latest", target_id: "ON")
                         }
                     }
                 }
@@ -295,13 +313,13 @@ pipeline {
                         cmd = """
                             ulimit -c unlimited
                             cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF ..
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
                             MIOPEN_DEBUG_HIP_KERNELS=0 MIOPEN_LOG_LEVEL=5 CTEST_PARALLEL_LEVEL=4 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
                         """
                     }
                     steps{
                         script{
-                            tensileStage(cmd, "gfx908:xnack-", "latest", "ON")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "latest", target_id: "ON")
                         }
                     }
                 }
@@ -322,17 +340,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx908")
-                            }
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908")
                         }
                     }
                 }
@@ -353,17 +361,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx908")
-                            }
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908")
                         }
                     }
                 }
@@ -379,17 +377,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            try{
-                                buildHipClangJob('/opt/rocm/llvm/bin/clang++', cmd: cmd, gpu_arch: "gfx908")
-                            }
-                            catch(e){
-                                echo "throwing error exception for the stage"
-                                echo 'Exception occurred: ' + e.toString()
-                                throw e
-                            }
-                            finally{
-                                reboot()
-                            }
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908")
                         }
                     }
                 }
@@ -410,7 +398,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            tensileStage(cmd, "gfx908:xnack-", "default", "ON")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "default", target_id: "ON")
                         }
                     }
                 }
@@ -420,13 +408,13 @@ pipeline {
                         cmd = """
                             ulimit -c unlimited
                             cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_TEST_HALF=On -DMIOPEN_TEST_GFX908=On -DMIOPEN_TEST_ALL=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF ..
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_TEST_HALF=On -DMIOPEN_TEST_GFX908=On -DMIOPEN_TEST_ALL=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
                             MIOPEN_DEBUG_HIP_KERNELS=0 MIOPEN_LOG_LEVEL=5 CTEST_PARALLEL_LEVEL=4 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
                         """
                     }
                     steps{
                         script{
-                            tensileStage(cmd, "gfx908:xnack-", "default", "ON")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "default", target_id: "ON")
                         }
                     }
                 }
@@ -436,13 +424,13 @@ pipeline {
                         cmd = """
                             ulimit -c unlimited
                             cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DMIOPEN_TEST_ALL=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF ..
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DMIOPEN_TEST_ALL=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
                             MIOPEN_DEBUG_HIP_KERNELS=0 MIOPEN_LOG_LEVEL=5 CTEST_PARALLEL_LEVEL=4 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
                         """
                     }
                     steps{
                         script{
-                            tensileStage(cmd, "gfx908:xnack-", "default", "ON")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "default", target_id: "ON")
                         }
                     }
                 }
@@ -452,13 +440,13 @@ pipeline {
                         cmd = """
                             ulimit -c unlimited
                             cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_TEST_INT8=On -DMIOPEN_TEST_GFX908=On -DMIOPEN_TEST_ALL=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF ..
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_TEST_INT8=On -DMIOPEN_TEST_GFX908=On -DMIOPEN_TEST_ALL=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
                             MIOPEN_DEBUG_HIP_KERNELS=0 MIOPEN_LOG_LEVEL=5 CTEST_PARALLEL_LEVEL=4 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
                         """
                     }
                     steps{
                         script{
-                            tensileStage(cmd, "gfx908:xnack-", "default", "ON")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "default", target_id: "ON")
                         }
                     }
                 }
@@ -479,7 +467,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            tensileStage(cmd, "gfx908:xnack-", "latest", "ON")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "latest", target_id: "ON")
                         }
                     }
                 }
@@ -489,13 +477,13 @@ pipeline {
                         cmd = """
                             ulimit -c unlimited
                             cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_TEST_HALF=On -DMIOPEN_TEST_GFX908=On -DMIOPEN_TEST_ALL=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF ..
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_TEST_HALF=On -DMIOPEN_TEST_GFX908=On -DMIOPEN_TEST_ALL=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
                             MIOPEN_DEBUG_HIP_KERNELS=0 MIOPEN_LOG_LEVEL=5 CTEST_PARALLEL_LEVEL=4 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
                         """
                     }
                     steps{
                         script{
-                            tensileStage(cmd, "gfx908:xnack-", "latest", "ON")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "latest", target_id: "ON")
                         }
                     }
                 }
@@ -505,13 +493,13 @@ pipeline {
                         cmd = """
                             ulimit -c unlimited
                             cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DMIOPEN_TEST_ALL=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF ..
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DMIOPEN_TEST_ALL=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
                             MIOPEN_DEBUG_HIP_KERNELS=0 MIOPEN_LOG_LEVEL=5 CTEST_PARALLEL_LEVEL=4 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
                         """
                     }
                     steps{
                         script{
-                            tensileStage(cmd, "gfx908:xnack-", "latest", "ON")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "latest", target_id: "ON")
                         }
                     }
                 }
@@ -521,13 +509,13 @@ pipeline {
                         cmd = """
                             ulimit -c unlimited
                             cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_TEST_INT8=On -DMIOPEN_TEST_GFX908=On -DMIOPEN_TEST_ALL=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF ..
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_TEST_INT8=On -DMIOPEN_TEST_GFX908=On -DMIOPEN_TEST_ALL=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF -DMIOPEN_TEST_FLAGS='--verbose --disable-verification-cache' ..
                             MIOPEN_DEBUG_HIP_KERNELS=0 MIOPEN_LOG_LEVEL=5 CTEST_PARALLEL_LEVEL=4 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
                         """
                     }
                     steps{
                         script{
-                            tensileStage(cmd, "gfx908:xnack-", "latest", "ON")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908:xnack-", miotensile_version: "latest", target_id: "ON")
                         }
                     }
                 }
