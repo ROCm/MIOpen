@@ -145,6 +145,8 @@ Id::Id(uint64_t value_) : value(value_)
     is_valid = (IdRegistry().value_to_entry.find(value) != IdRegistry().value_to_entry.end());
 }
 
+Id::Id(ForceInit, uint64_t value_) : value(value_), is_valid(true) {}
+
 Id::Id(const std::string& str) : Id(str.c_str()) {}
 
 Id::Id(const char* str)
@@ -223,7 +225,7 @@ Register(IdRegistryData& registry, uint64_t value, Primitive primitive, const st
 
     registry.value_to_entry.emplace(value, std::move(entry));
     registry.str_to_value.emplace(str, value);
-    registry.primitive_to_ids[primitive].emplace_back(value);
+    registry.primitive_to_ids[primitive].emplace_back(ForceInit{}, value);
     return true;
 }
 

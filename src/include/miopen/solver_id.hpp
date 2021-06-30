@@ -34,6 +34,11 @@
 #include <unordered_map>
 
 namespace miopen {
+
+struct ForceInit
+{
+};
+
 namespace solver {
 
 struct AnySolver;
@@ -50,6 +55,7 @@ struct Id
 
     Id() = default;
     Id(uint64_t value_);
+    Id(ForceInit, uint64_t value_);
     Id(const std::string& str);
     Id(const char* str);
 
