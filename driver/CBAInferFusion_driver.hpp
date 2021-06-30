@@ -288,7 +288,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
         }
         mdg.WriteToFile("/tmp/mdgraph.dot");
         std::cerr << "Graph written to /tmp/mdgraph.dot" << std::endl;
-        exit(EXIT_SUCCESS); // NOLINT (concurrency-mt-unsafe) // NOLINT (concurrency-mt-unsafe)
+        exit(EXIT_SUCCESS); // NOLINT (concurrency-mt-unsafe)
     }
 
     if(inflags.GetValueInt("time") == 1)
