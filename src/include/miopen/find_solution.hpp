@@ -170,7 +170,11 @@ struct SolverContainer
                     {
                         /// \todo If Solver is applicable it must provide an appropriate Solution.
                         /// This is not the case for some 20x5 convolutions (and possibly others).
-                        MIOPEN_LOG_E(SolverDbId(solver) << ": Applicable Solver not succeeded.");
+                        /// Normally we should not get here and message level should be Error.
+                        /// For now, let's use Info (not Warning) level to avoid
+                        /// flooding the console.
+                        MIOPEN_LOG_I(SolverDbId(solver)
+                                     << ": [Warning] Applicable Solver not succeeded.");
                     }
                 }
             },
@@ -213,8 +217,6 @@ struct SolverContainer
                     }
                     else
                     {
-                        /// \todo If Solver is applicable it must provide an appropriate Solution.
-                        /// This is not the case for some 20x5 convolutions (and possibly others).
                         MIOPEN_LOG_E(SolverDbId(solver) << ": Applicable Solver not succeeded.");
                     }
                 }

@@ -83,11 +83,11 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
     const auto slns = solvers.SearchForSolutions(ctx, problem, 1);
 
     if(slns.empty())
-        MIOPEN_THROW("No solver found for activation forward.");
+        MIOPEN_THROW(miopenStatusNotImplemented, "No solver found for activation forward.");
 
     const auto& sln = slns.front();
     if(!sln.invoker_factory)
-        MIOPEN_THROW("Invoker missing in solver " + sln.solver_id);
+        MIOPEN_THROW(miopenStatusInternalError, "Invoker missing in solver " + sln.solver_id);
     const auto invoker = handle.PrepareInvoker(*sln.invoker_factory, sln.construction_params);
     handle.RegisterInvoker(invoker, network_config, sln.solver_id, algo);
     invoker(handle, invoke_params);

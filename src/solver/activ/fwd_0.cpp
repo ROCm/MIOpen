@@ -120,10 +120,11 @@ ConvSolution ActivFwdSolver0::GetSolution(const ExecutionContext&,
     }
     else
     {
-        MIOPEN_LOG_W("Unsupported data types configuration: "
+        MIOPEN_LOG_E("Unsupported data types configuration: "
                      << miopen::GetDataTypeName(problem.GetXDesc().GetType())
                      << "x"
                      << miopen::GetDataTypeName(problem.GetYDesc().GetType()));
+        return {miopenStatusInternalError};
     }
 
     {

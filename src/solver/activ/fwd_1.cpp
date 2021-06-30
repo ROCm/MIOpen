@@ -101,7 +101,8 @@ ConvSolution ActivFwdSolver1::GetSolution(const ExecutionContext&,
     }
     else
     {
-        MIOPEN_THROW("activation does not support tensor size larger than 4 or smaller than 1");
+        MIOPEN_THROW(miopenStatusNotImplemented,
+                     "activation does not support tensor size larger than 4 or smaller than 1");
     }
 
     int nIn       = 1;
@@ -147,6 +148,7 @@ ConvSolution ActivFwdSolver1::GetSolution(const ExecutionContext&,
     else
     {
         MIOPEN_THROW(
+            miopenStatusNotImplemented,
             "Activation does not support tensor dimension larger than 4 or smaller than 1");
     }
 
@@ -224,10 +226,11 @@ ConvSolution ActivFwdSolver1::GetSolution(const ExecutionContext&,
     }
     else
     {
-        MIOPEN_LOG_W("Unsupported data types configuration: "
+        MIOPEN_LOG_E("Unsupported data types configuration: "
                      << miopen::GetDataTypeName(problem.GetXDesc().GetType())
                      << "x"
                      << miopen::GetDataTypeName(problem.GetYDesc().GetType()));
+        return {miopenStatusNotImplemented};
     }
 
     auto solution = ConvSolution{miopenStatusSuccess};
