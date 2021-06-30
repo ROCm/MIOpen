@@ -35,6 +35,12 @@
 //    return static_cast<T>(d);
 //}
 
+/// Basically, this is a copy of driver/random.hpp. Why:
+/// We want to have the same functionality as implemented in driver/random.hpp,
+/// But we want this functionality to be independent, so changes in tests won't affect the driver
+/// and vice versa. This independency could be important, because, for example, the driver
+/// implements its own cache of verification data and change or GET_RAND() would break it.
+
 static int GET_RAND()
 {
     return rand(); // NOLINT (concurrency-mt-unsafe)
