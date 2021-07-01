@@ -40,6 +40,7 @@
 #include "driver.hpp"
 #include "tensor_holder.hpp"
 #include "cpu_conv.hpp"
+#include "random.hpp"
 
 enum tensor_layout_t
 {
@@ -74,7 +75,7 @@ static int gen_rand_integer()
         std::srand(std::time(nullptr));
         inited = 1;
     }
-    return std::rand();
+    return GET_RAND();
 }
 
 struct gpu_reference_kernel_base
