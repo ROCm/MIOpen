@@ -268,8 +268,8 @@ struct activation_driver : test_driver
         if(!packed)
         {
             const auto dim_lens = input.desc.GetLengths();
-            auto dim_strides     = input.desc.GetStrides();
-            dim_strides[0]       = dim_strides[0] + 1;
+            auto dim_strides    = input.desc.GetStrides();
+            dim_strides[0]      = dim_strides[0] + 1;
 
             input = tensor<T>{dim_lens, dim_strides};
         }
