@@ -217,6 +217,15 @@ size_t PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::ComputeKernelOccupancy(
     size_t lds_usage;
     size_t occupancy;
 
+    const auto lds_size        = 64 * 1024;
+    const auto num_vpgrs       = 256;
+    const auto num_acc         = 256;
+    const auto half_lds_size   = lds_size / 2;
+    const auto quater_lds_size = lds_size / 4;
+    const auto eighth_lds_size = lds_size / 8;
+    const auto half_acc        = num_acc / 2;
+    const auto third_vpgrs     = num_vpgrs / 3;
+
     if(nxe == 0)
     {
         aux_vgpr_usage = 36;
@@ -244,8 +253,9 @@ size_t PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::ComputeKernelOccupancy(
                  aux_vgpr_usage;
     if(GetTypeSize(precision) == 2)
     {
-        if(lds_single >= 32 * 1024 || (lds_single <= 16 * 1024 && lds_single > 8 * 1024 &&
-                                       acc_usage < 128 && vgpr_usage <= 84))
+        if(lds_single >= half_lds_size ||
+           (lds_single <= quater_lds_size && lds_single > eighth_lds_size && acc_usage < half_acc &&
+            vgpr_usage < third_vpgrs))
         {
             lds_usage = lds_single;
         }
@@ -260,9 +270,11 @@ size_t PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::ComputeKernelOccupancy(
         lds_usage = lds_single;
     }
 
-    MIOPEN_LOG_T("lds_usage=" << lds_usage << ", acc_usage=" << acc_usage << ", vgpr_usage=" << vgpr_usage);
+    MIOPEN_LOG_T(
+        "lds_usage=" << lds_usage << ", acc_usage=" << acc_usage << ", vgpr_usage=" << vgpr_usage);
 
-    occupancy = std::min(64 * 1024 / lds_usage, std::min(256 / acc_usage, 256 / vgpr_usage));
+    occupancy =
+        std::min(lds_size / lds_usage, std::min(num_acc / acc_usage, num_vpgrs / vgpr_usage));
     return occupancy;
 }
 
@@ -340,11 +352,8 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
     }
 #endif
 
-    // const auto& n = ctx.batch_sz;
-    const auto& k = ctx.n_inputs;
-    const auto& c = ctx.n_outputs;
-    // const auto& ho        = ctx.in_height;
-    // const auto& wo        = ctx.in_width;
+    const auto& k         = ctx.n_inputs;
+    const auto& c         = ctx.n_outputs;
     const auto& y         = ctx.kernel_size_h;
     const auto& x         = ctx.kernel_size_w;
     const auto stride_h   = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
@@ -353,8 +362,9 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
     const auto dilation_w = ctx.kernel_size_w > 1 ? ctx.kernel_dilation_w : 1;
     const auto& pad_h     = ctx.pad_h;
     const auto& pad_w     = ctx.pad_w;
-    // const auto& precision = ctx.IsFp16() ? miopenHalf : miopenFloat;
-    const auto& group = ctx.group_counts;
+    const auto& group     = ctx.group_counts;
+
+    const auto non_split_gridsize = 600;
 
     auto gemm_n        = (c / group) * y * x;
     const auto& gemm_m = k / group;
@@ -417,8 +427,8 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
         size_t occupancy;
         std::tie(std::ignore, std::ignore, current_grid_size, occupancy) =
             GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel(ctx, config_list[selected_index]);
-        bool need_k_split = current_grid_size <= 600;
-        size_t gks        = ComputeGemmKGlobalSplitsWith2DMerge(current_grid_size, occupancy, NUM_CUS);
+        bool need_k_split = current_grid_size <= non_split_gridsize;
+        size_t gks = ComputeGemmKGlobalSplitsWith2DMerge(current_grid_size, occupancy, NUM_CUS);
         need_k_split |= gks != 0;
 
         CopyParameters(config_list[selected_index]);
@@ -442,12 +452,10 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
                 size_t occupancy;
                 std::tie(std::ignore, std::ignore, current_grid_size, occupancy) =
                     GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel(ctx, config);
-                bool need_k_split = current_grid_size <= 600;
-                size_t gks = ComputeGemmKGlobalSplitsWith2DMerge(current_grid_size, occupancy, NUM_CUS);
+                bool need_k_split = current_grid_size <= non_split_gridsize;
+                size_t gks =
+                    ComputeGemmKGlobalSplitsWith2DMerge(current_grid_size, occupancy, NUM_CUS);
                 need_k_split |= gks != 0;
-
-                // std::cout << "need_k_split:" << need_k_split << std::endl;
-                // std::cout << "gks:" << gks << std::endl;
 
                 if((unit_conv && config.nxe == 0) || (!unit_conv && config.nxe != 0))
                 {
@@ -476,8 +484,6 @@ bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::SetNextValue()
         }
         else
         {
-            // std::cout << __FUNCTION__ << std::endl;
-            // std::cout << "gemm_k_global_split:" << gemm_k_global_split << std::endl;
             if(gemm_k_global_split != 0)
             {
                 if(NextLinear<1, WRW_MAX_GEMM_K_SPLITS>(gemm_k_global_split))
@@ -518,11 +524,8 @@ bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::IsValid(const Convolution
     if(!((ctx.IsFp16() && precision == miopenHalf) || (ctx.IsFp32() && precision == miopenFloat)))
         return false;
 
-    // const auto& n = ctx.batch_sz;
-    const auto& k = ctx.n_inputs;
-    const auto& c = ctx.n_outputs;
-    // const auto& ho        = ctx.in_height;
-    // const auto& wo        = ctx.in_width;
+    const auto& k         = ctx.n_inputs;
+    const auto& c         = ctx.n_outputs;
     const auto& y         = ctx.kernel_size_h;
     const auto& x         = ctx.kernel_size_w;
     const auto stride_h   = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
@@ -541,9 +544,6 @@ bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::IsValid(const Convolution
     {
         return false;
     }
-
-    // std::cout << __FUNCTION__ << std::endl;
-    // std::cout << "gemm_k_global_split:" << gemm_k_global_split << std::endl;
 
     if(precision == miopenHalf)
     {
@@ -688,12 +688,11 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
 ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
     const ConvolutionContext& ctx,
     const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC& config,
-    bool /*disableConfigOverrideFromEnv*/) const
+    bool) const
 {
     ConvSolution result;
     KernelInfo kernel;
     std::ostringstream options;
-    (void)disableConfigOverrideFromEnv;
 
     std::string kernel_name;
     size_t block_size;
