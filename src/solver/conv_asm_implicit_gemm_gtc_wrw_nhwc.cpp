@@ -37,6 +37,7 @@
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC)
 
 #define WRW_MAX_GEMM_K_SPLITS 10
+#define NUM_CUS 120
 //#define DEBUG_IGEMM_ASM_WRW_NHWC_CHECK_VALID_TILE_LIST
 
 namespace miopen {
@@ -419,7 +420,7 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
         std::tie(std::ignore, std::ignore, current_grid_size, occupancy) =
             GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel(ctx, config_list[selected_index]);
         bool need_k_split = current_grid_size <= 600;
-        size_t gks        = ComputeGemmKGlobalSplitsWith2DMerge(current_grid_size, occupancy);
+        size_t gks        = ComputeGemmKGlobalSplitsWith2DMerge(current_grid_size, occupancy, NUM_CUS);
         need_k_split |= gks != 0;
 
         CopyParameters(config_list[selected_index]);
@@ -444,7 +445,7 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
                 std::tie(std::ignore, std::ignore, current_grid_size, occupancy) =
                     GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel(ctx, config);
                 bool need_k_split = current_grid_size <= 600;
-                size_t gks = ComputeGemmKGlobalSplitsWith2DMerge(current_grid_size, occupancy);
+                size_t gks = ComputeGemmKGlobalSplitsWith2DMerge(current_grid_size, occupancy, NUM_CUS);
                 need_k_split |= gks != 0;
 
                 // std::cout << "need_k_split:" << need_k_split << std::endl;
@@ -705,7 +706,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
 
     size_t gemm_k_global_splits =
         config.gemm_k_global_split >= 1
-            ? ComputeGemmKGlobalSplitsWith2DMerge(grid_size, config.gemm_k_global_split)
+            ? ComputeGemmKGlobalSplitsWith2DMerge(grid_size, config.gemm_k_global_split, NUM_CUS)
             : 1;
     size_t min_n_per_block = config.nxe == 1 ? config.tensor_a_thread_lengths[1] : 1;
     size_t nb_per_block =

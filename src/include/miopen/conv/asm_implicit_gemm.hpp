@@ -128,10 +128,10 @@ static inline size_t ComputeLog2GemmKGlobalSplitsWith2DMerge(size_t current_grid
 static inline size_t ComputeGemmKGlobalSplitsWith2DMerge(size_t current_grid_size,
                                                          // size_t merge_dimension,
                                                          // size_t gemm_k_per_block,
-                                                         size_t occupancy)
+                                                         size_t occupancy,
+                                                         size_t num_cus)
 {
-    size_t num_cu               = 120;
-    size_t gemm_k_global_splits = num_cu * occupancy / current_grid_size;
+    size_t gemm_k_global_splits = num_cus * occupancy / current_grid_size;
     // int gemm_k_per_wg = math::integer_divide_ceil(merge_dimension / gemm_k_global_splits);
     // gemm_k_per_wg = (gemm_k_per_wg + gemm_k_per_block - 1) / gemm_k_per_block * gemm_k_per_block;
     // gemm_k_global_splits = math::integer_divide_ceil(merge_dimension / gemm_k_per_wg);
