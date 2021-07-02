@@ -316,7 +316,7 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
             if(config.precision == miopenFloat)
                 continue;
             if(config.gemm_m_per_block == mp && config.gemm_n_per_block == np &&
-               config.gemm_k_per_block == kp &&)
+               config.gemm_k_per_block == kp)
             {
                 found = true;
                 break;
