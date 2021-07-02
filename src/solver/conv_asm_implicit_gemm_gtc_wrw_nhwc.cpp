@@ -688,7 +688,7 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
 ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
     const ConvolutionContext& ctx,
     const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC& config,
-    bool disableConfigOverrideFromEnv) const
+    bool /*disableConfigOverrideFromEnv*/) const
 {
     ConvSolution result;
     KernelInfo kernel;
