@@ -139,6 +139,7 @@ int SetTensorNd(miopenTensorDescriptor_t t,
 
 size_t GetTensorSize(miopenTensorDescriptor_t& tensor)
 {
+    assert(miopen::deref(tensor).IsPacked() && "GetTensorSize should not be used on an unpacked tensor.");
     const auto len = GetTensorLengths(tensor);
     size_t sz      = std::accumulate(len.begin(), len.end(), size_t{1}, std::multiplies<size_t>());
 
