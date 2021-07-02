@@ -38,7 +38,6 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC)
 
 #define WRW_MAX_GEMM_K_SPLITS 10
 #define NUM_CUS 120
-//#define DEBUG_IGEMM_ASM_WRW_NHWC_CHECK_VALID_TILE_LIST
 
 namespace miopen {
 namespace solver {
@@ -261,8 +260,7 @@ size_t PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::ComputeKernelOccupancy(
         lds_usage = lds_single;
     }
 
-    // std::cout << "lds_usage=" << lds_usage << ", acc_usage=" << acc_usage << ", vgpr_usage=" <<
-    // vgpr_usage << std::endl;
+    MIOPEN_LOG_T("lds_usage=" << lds_usage << ", acc_usage=" << acc_usage << ", vgpr_usage=" << vgpr_usage);
 
     occupancy = std::min(64 * 1024 / lds_usage, std::min(256 / acc_usage, 256 / vgpr_usage));
     return occupancy;
@@ -741,7 +739,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
 
     kernel.comp_options = options.str();
 
-    MIOPEN_LOG_I2("ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC: " + config.ToString());
+    MIOPEN_LOG_T("ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC: " + config.ToString());
 
     result.construction_params.push_back(kernel);
 
