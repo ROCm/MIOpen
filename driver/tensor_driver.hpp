@@ -147,16 +147,6 @@ size_t GetTensorSize(miopenTensorDescriptor_t& tensor)
 
 size_t GetTensorSpace(miopenTensorDescriptor_t& tensor)
 {
-    const auto lens    = GetTensorLengths(tensor);
-    const auto strides = GetTensorStrides(tensor);
-    std::vector<std::size_t> maxIndices(lens.size());
-    std::transform(lens.begin(),
-                   lens.end(),
-                   std::vector<std::size_t>(lens.size(), 1).begin(),
-                   maxIndices.begin(),
-                   std::minus<std::size_t>());
-    return std::inner_product(
-               maxIndices.begin(), maxIndices.end(), strides.begin(), std::size_t{0}) +
-           1;
+    return miopen::deref(tensor).GetElementSpace();
 }
 #endif // GUARD_MIOPEN_TENSOR_DRIVER_HPP
