@@ -293,7 +293,7 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
         std::make_tuple(64, 64, 16),
     };
 
-#ifdef DEBUG_IGEMM_ASM_WRW_NHWC_CHECK_VALID_TILE_LIST
+#ifndef NDEBUG
     const auto& c_list = GetWrwXdlopsNHWCConfigList();
     for(const auto& tile : tile_list_fp16)
     {
