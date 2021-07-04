@@ -461,12 +461,6 @@ pipeline {
                 Smoke_targets = "check doc MIOpenDriver"
             }
             parallel{
-                stage('Fp16 Hip Vega20 /opt/rocm') {
-                    agent{ label rocmnode("vega20") }
-                    steps{
-                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, prefixpath: '/opt/rocm', config_targets: Smoke_targets)
-                    }
-                }
                 stage('Fp16 OpenCL Vega20') {
                     when { expression { params.SMOKE_TESTS} }
                     agent{ label rocmnode("vega20") }
@@ -480,10 +474,28 @@ pipeline {
                         buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Int8_flags, config_targets: Smoke_targets)
                     }
                 }
+                stage('Fp16 Hip Vega20 /opt/rocm') {
+                    agent{ label rocmnode("vega20") }
+                    steps{
+                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, prefixpath: '/opt/rocm', config_targets: Smoke_targets)
+                    }
+                }
                 stage('Bf16 Hip Vega20 /opt/rocm') {
                     agent{ label rocmnode("vega20") }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: Bf16_flags, prefixpath: '/opt/rocm', config_targets: Smoke_targets)
+                    }
+                }
+                stage('Fp16 Hip gfx908 /opt/rocm') {
+                    agent{ label rocmnode("gfx908") }
+                    steps{
+                        buildHipClangJobAndReboot( setup_flags: Fp16_flags + gfx908_test, prefixpath: '/opt/rocm', config_targets: Smoke_targets, gpu_arch: "gfx908")
+                    }
+                }
+                stage('Bf16 Hip gfx908 /opt/rocm') {
+                    agent{ label rocmnode("gfx908") }
+                    steps{
+                        buildHipClangJobAndReboot(setup_flags: Bf16_flags + gfx908_test, prefixpath: '/opt/rocm', config_targets: Smoke_targets, gpu_arch: "gfx908")
                     }
                 }
             }
