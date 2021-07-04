@@ -1709,7 +1709,7 @@ struct conv_driver : test_driver
                 return i;
         }
         std::cout << "FAILED: get_spatial_dim() can't calculate dims count." << std::endl;
-        exit(-1);
+        exit(-1); // NOLINT (concurrency-mt-unsafe)
     }
 
     conv_driver()
