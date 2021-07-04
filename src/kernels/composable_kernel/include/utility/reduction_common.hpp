@@ -28,6 +28,14 @@
 
 #include "float_type.hpp"
 
+#define WORKAROUND_SWDEV_274384 (HIP_PACKAGE_VERSION_FLAT >= 4002021203ULL)
+
+#if WORKAROUND_SWDEV_274384
+#define VOLATILE_WA_274384 volatile
+#else
+#define VOLATILE_WA_274384
+#endif
+
 // this enumerate should be synchronized with include/miopen/reduce_common.hpp
 namespace ck {
 enum class ReductionMethod_t

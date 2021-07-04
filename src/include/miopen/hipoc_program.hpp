@@ -52,15 +52,17 @@ struct HIPOCProgram
                  const std::string& kernel_src);
     HIPOCProgram(const std::string& program_name, const boost::filesystem::path& hsaco);
     HIPOCProgram(const std::string& program_name, const std::string& hsaco);
-    std::shared_ptr<const HIPOCProgramImpl> impl;
+    std::shared_ptr<HIPOCProgramImpl> impl;
     hipModule_t GetModule() const;
     /// \return Pathname of CO file, if it resides on the filesystem.
+    /// This function should not be called after FreeCodeObjectFileStorage().
     boost::filesystem::path GetCodeObjectPathname() const;
     /// \return Copy of in-memory CO blob.
     std::string GetCodeObjectBlob() const;
     /// \return True if CO blob resides in-memory.
     /// False if CO resides on filesystem.
     bool IsCodeObjectInMemory() const;
+    void FreeCodeObjectFileStorage();
 };
 } // namespace miopen
 

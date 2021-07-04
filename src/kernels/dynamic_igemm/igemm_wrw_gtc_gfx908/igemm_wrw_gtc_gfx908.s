@@ -228,8 +228,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -259,8 +259,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -290,8 +290,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -321,8 +321,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -352,8 +352,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -383,8 +383,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -414,8 +414,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -445,8 +445,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -476,8 +476,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -507,8 +507,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -538,8 +538,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -569,8 +569,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -600,8 +600,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -631,8 +631,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -662,8 +662,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -693,8 +693,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -724,8 +724,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -755,8 +755,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -786,8 +786,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -817,8 +817,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -848,8 +848,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -879,8 +879,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -910,8 +910,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -941,8 +941,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -972,8 +972,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1003,8 +1003,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1034,8 +1034,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1065,8 +1065,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1096,8 +1096,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1127,8 +1127,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1158,8 +1158,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1189,8 +1189,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1220,8 +1220,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1251,8 +1251,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1282,8 +1282,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1313,8 +1313,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1344,8 +1344,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1375,8 +1375,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1406,8 +1406,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1437,8 +1437,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1468,8 +1468,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1499,8 +1499,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1530,8 +1530,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1561,8 +1561,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1592,8 +1592,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1623,8 +1623,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1654,8 +1654,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1685,8 +1685,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1716,8 +1716,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1747,8 +1747,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1778,8 +1778,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1809,8 +1809,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1840,8 +1840,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1871,8 +1871,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1902,8 +1902,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1933,8 +1933,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1964,8 +1964,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -1995,8 +1995,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -2026,8 +2026,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -2057,8 +2057,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -2088,8 +2088,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -2119,8 +2119,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -2150,8 +2150,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -2181,8 +2181,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -2212,8 +2212,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -2243,8 +2243,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -2274,8 +2274,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -2305,8 +2305,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -2336,8 +2336,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -2367,8 +2367,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -2398,8 +2398,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -2429,8 +2429,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -2460,8 +2460,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -2491,8 +2491,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -2522,8 +2522,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -2553,8 +2553,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -2584,8 +2584,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -2615,8 +2615,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -2646,8 +2646,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -2677,8 +2677,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -2708,8 +2708,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -2739,8 +2739,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -2770,8 +2770,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -2801,8 +2801,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -2832,8 +2832,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -2863,8 +2863,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -2894,8 +2894,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -2925,8 +2925,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -2956,8 +2956,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -2987,8 +2987,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -3018,8 +3018,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -3049,8 +3049,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -3080,8 +3080,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -3111,8 +3111,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -3142,8 +3142,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -3173,8 +3173,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -3204,8 +3204,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [64, 1, 1]
     .max_flat_workgroup_size: 64
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -3235,8 +3235,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [64, 1, 1]
     .max_flat_workgroup_size: 64
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -3266,8 +3266,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -3297,8 +3297,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -3328,8 +3328,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [64, 1, 1]
     .max_flat_workgroup_size: 64
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -3359,8 +3359,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [64, 1, 1]
     .max_flat_workgroup_size: 64
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -3390,8 +3390,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [64, 1, 1]
     .max_flat_workgroup_size: 64
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -3421,8 +3421,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [64, 1, 1]
     .max_flat_workgroup_size: 64
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -3452,8 +3452,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [64, 1, 1]
     .max_flat_workgroup_size: 64
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -3483,8 +3483,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [64, 1, 1]
     .max_flat_workgroup_size: 64
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -3514,8 +3514,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -3545,8 +3545,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -3576,8 +3576,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -3607,8 +3607,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -3638,8 +3638,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [128, 1, 1]
     .max_flat_workgroup_size: 128
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -3669,8 +3669,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [128, 1, 1]
     .max_flat_workgroup_size: 128
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -3700,8 +3700,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [128, 1, 1]
     .max_flat_workgroup_size: 128
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -3731,8 +3731,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [128, 1, 1]
     .max_flat_workgroup_size: 128
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -3762,8 +3762,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [128, 1, 1]
     .max_flat_workgroup_size: 128
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -3793,8 +3793,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [128, 1, 1]
     .max_flat_workgroup_size: 128
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -3824,8 +3824,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [128, 1, 1]
     .max_flat_workgroup_size: 128
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -3855,8 +3855,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [128, 1, 1]
     .max_flat_workgroup_size: 128
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -3886,8 +3886,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [128, 1, 1]
     .max_flat_workgroup_size: 128
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -3917,8 +3917,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [128, 1, 1]
     .max_flat_workgroup_size: 128
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -3948,8 +3948,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [128, 1, 1]
     .max_flat_workgroup_size: 128
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
@@ -3979,8 +3979,8 @@ amdhsa.kernels:
     .reqd_workgroup_size : [128, 1, 1]
     .max_flat_workgroup_size: 128
     .args:
-    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
-    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
