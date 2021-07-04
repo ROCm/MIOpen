@@ -599,6 +599,9 @@ static inline std::tuple<bool, // is valid
                         {
                             for(const auto& nxb : nxb_list)
                             {
+                                if(pack == 0 && nxb != 1){
+                                    continue;
+                                }
                                 const auto b =
                                     pack == 0
                                         ? ho * wo
