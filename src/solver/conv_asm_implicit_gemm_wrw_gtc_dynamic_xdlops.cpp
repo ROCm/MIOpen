@@ -465,8 +465,10 @@ ComputeDynamicIGemmWrwKernelArgs(const conv::ProblemDescription& conv_problem,
     int x          = conv_problem.GetWeightsWidth();
     int group      = conv_problem.GetGroupCount();
 
-    int dim_b     = (ho * wo + nxb - 1) / nxb * nxb;
-    int ho_padded = integer_divide_ceil(dim_b, wo);
+    int dim_b = (ho * wo + nxb - 1) / nxb * nxb;
+
+    // if ho*wo<nxb(equals to dim_b==nxb), ho need to be padded.
+    int ho_padded = dim_b == nxb ? integer_divide_ceil(dim_b, wo) : ho;
 
     std::vector<OpKernelArg> opArgs;
     opArgs.emplace_back(0); // placeholder
@@ -599,7 +601,8 @@ static inline std::tuple<bool, // is valid
                         {
                             for(const auto& nxb : nxb_list)
                             {
-                                if(pack == 0 && nxb != 1){
+                                if(pack == 0 && nxb != 1)
+                                {
                                     continue;
                                 }
                                 const auto b =
