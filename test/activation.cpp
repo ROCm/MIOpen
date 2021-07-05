@@ -178,6 +178,7 @@ struct activation_driver : test_driver
     double gamma     = 3.4;
     std::string mode = "PASTHRU";
     std::unordered_map<std::string, std::function<void()>> lookup;
+    bool packed = true;
 
     template <class A>
     struct callback
@@ -242,6 +243,7 @@ struct activation_driver : test_driver
         add(beta, "beta");
         add(gamma, "gamma");
         add(mode, "mode", generate_data(modes()));
+        add(packed, "packed", generate_data({true, false}));
     }
 
     std::vector<std::string> modes()
@@ -263,6 +265,14 @@ struct activation_driver : test_driver
 
     void run()
     {
+        if(!packed)
+        {
+            const auto dim_lens = input.desc.GetLengths();
+            auto dim_strides    = input.desc.GetStrides();
+            dim_strides[0]      = dim_strides[0] + 1;
+
+            input = tensor<T>{dim_lens, dim_strides};
+        }
 
         std::size_t n, c, h, w;
         std::tie(n, c, h, w) = miopen::tien<4>(input.desc.GetLengths());
