@@ -317,43 +317,29 @@ miopenStatus_t CallGemmMIOpenTensile(const Handle& handle,
         ProfilingRecordStart(handle, start, stop);
 #endif
 
-    auto mtA_len0  = size_t(gemm_desc.transA ? gemm_desc.k : gemm_desc.m);
-    auto mtA_len1  = size_t(gemm_desc.transA ? gemm_desc.m : gemm_desc.k);
+    std::size_t m = gemm_desc.m;
+    std::size_t n = gemm_desc.n;
+    std::size_t k = gemm_desc.k;
+
     auto mtA_str0  = size_t(gemm_desc.transA ? 1 : gemm_desc.lda);
     auto mtA_str1  = size_t(gemm_desc.transA ? gemm_desc.lda : 1);
     auto mtA_b_n   = size_t(gemm_desc.batch_count);
     auto mtA_b_str = size_t(gemm_desc.strideA);
-    auto mtB_len0  = size_t(gemm_desc.transB ? gemm_desc.n : gemm_desc.k);
-    auto mtB_len1  = size_t(gemm_desc.transB ? gemm_desc.k : gemm_desc.n);
     auto mtB_str0  = size_t(gemm_desc.transB ? 1 : gemm_desc.ldb);
     auto mtB_str1  = size_t(gemm_desc.transB ? gemm_desc.ldb : 1);
     auto mtB_b_n   = size_t(gemm_desc.batch_count);
     auto mtB_b_str = size_t(gemm_desc.strideB);
-    auto mtC_len0  = size_t(gemm_desc.m);
-    auto mtC_len1  = size_t(gemm_desc.n);
     auto mtC_str0  = size_t(gemm_desc.ldc);
     auto mtC_str1  = size_t(1);
     auto mtC_b_n   = size_t(gemm_desc.batch_count);
     auto mtC_b_str = size_t(gemm_desc.strideC);
 
-    miopen_tensile_matrix mtA{{mtA_len0, mtA_len1},
-                              {mtA_str0, mtA_str1},
-                              {mtA_b_n, mtA_b_str},
-                              miotsl_in_dtype,
-                              gemm_desc.transA,
-                              ptrA};
-    miopen_tensile_matrix mtB{{mtB_len0, mtB_len1},
-                              {mtB_str0, mtB_str1},
-                              {mtB_b_n, mtB_b_str},
-                              miotsl_in_dtype,
-                              gemm_desc.transB,
-                              ptrB};
-    miopen_tensile_matrix mtC{{mtC_len0, mtC_len1},
-                              {mtC_str0, mtC_str1},
-                              {mtC_b_n, mtC_b_str},
-                              miotsl_out_dtype,
-                              false,
-                              ptrC};
+    miopen_tensile_matrix mtA{
+        {m, k}, {mtA_str0, mtA_str1}, {mtA_b_n, mtA_b_str}, miotsl_in_dtype, ptrA};
+    miopen_tensile_matrix mtB{
+        {k, n}, {mtB_str0, mtB_str1}, {mtB_b_n, mtB_b_str}, miotsl_in_dtype, ptrB};
+    miopen_tensile_matrix mtC{
+        {m, n}, {mtC_str0, mtC_str1}, {mtC_b_n, mtC_b_str}, miotsl_out_dtype, ptrC};
 
     miopen_tensile_status mt_status = miopen_tensile_status_no_solution;
 #if MIOPEN_BACKEND_HIP
