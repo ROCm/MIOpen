@@ -225,19 +225,17 @@ ComputeDynamicIGemmForwardKernelArgs<solver::TunableImplicitGemmGTCDynamic_t>(
     opArgs.emplace_back(pad_w);
     opArgs.emplace_back(y);
     opArgs.emplace_back(x);
-    if(conv_problem.IsFp16())
-    {
-        opArgs.emplace_back(group);
-        opArgs.emplace_back(magic_0);
-        opArgs.emplace_back(magic_1);
-        opArgs.emplace_back(magic_2);
-        opArgs.emplace_back(magic_3);
-        opArgs.emplace_back(magic_4);
-        opArgs.emplace_back(magic_5);
-        opArgs.emplace_back(magic_6);
-        opArgs.emplace_back(shift_pack_0);
-        opArgs.emplace_back(shift_pack_1);
-    }
+    opArgs.emplace_back(group);
+    opArgs.emplace_back(magic_0);
+    opArgs.emplace_back(magic_1);
+    opArgs.emplace_back(magic_2);
+    opArgs.emplace_back(magic_3);
+    opArgs.emplace_back(magic_4);
+    opArgs.emplace_back(magic_5);
+    opArgs.emplace_back(magic_6);
+    opArgs.emplace_back(shift_pack_0);
+    opArgs.emplace_back(shift_pack_1);
+
     opArgs.emplace_back(pack0);
 
     return opArgs;

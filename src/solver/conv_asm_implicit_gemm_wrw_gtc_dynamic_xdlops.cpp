@@ -465,8 +465,10 @@ ComputeDynamicIGemmWrwKernelArgs(const conv::ProblemDescription& conv_problem,
     int x          = conv_problem.GetWeightsWidth();
     int group      = conv_problem.GetGroupCount();
 
-    int dim_b     = (ho * wo + nxb - 1) / nxb * nxb;
-    int ho_padded = integer_divide_ceil(dim_b, wo);
+    int dim_b = (ho * wo + nxb - 1) / nxb * nxb;
+
+    // if ho*wo<nxb(equals to dim_b==nxb), ho need to be padded.
+    int ho_padded = dim_b == nxb ? integer_divide_ceil(dim_b, wo) : ho;
 
     std::vector<OpKernelArg> opArgs;
     opArgs.emplace_back(0); // placeholder
@@ -488,11 +490,8 @@ ComputeDynamicIGemmWrwKernelArgs(const conv::ProblemDescription& conv_problem,
     opArgs.emplace_back(y);
     opArgs.emplace_back(x);
     opArgs.emplace_back(log2_gemm_k_global_splits);
-    if(conv_problem.IsFp16())
-    {
-        opArgs.emplace_back(group);
-        opArgs.emplace_back(ho_padded);
-    }
+    opArgs.emplace_back(group);
+    opArgs.emplace_back(ho_padded);
 
     return opArgs;
 }
@@ -602,6 +601,10 @@ static inline std::tuple<bool, // is valid
                         {
                             for(const auto& nxb : nxb_list)
                             {
+                                if(pack == 0 && nxb != 1)
+                                {
+                                    continue;
+                                }
                                 const auto b =
                                     pack == 0
                                         ? ho * wo
@@ -872,14 +875,10 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
     const auto required_workspace_size = GetWorkspaceSize(ctx);
     result.workspce_sz                 = required_workspace_size;
 
-    if(ctx.IsFp32())
-        kernel.kernel_file = "igemm_wrw_gtc_gfx908.s";
-    else if(ctx.IsFp16())
-    {
-        std::ostringstream kernel_file_name;
-        kernel_file_name << kernel_name << ".s";
-        kernel.kernel_file = kernel_file_name.str();
-    }
+    std::ostringstream kernel_file_name;
+    kernel_file_name << kernel_name << ".s";
+    kernel.kernel_file = kernel_file_name.str();
+
     kernel.kernel_name = kernel_name;
     kernel.g_wk.clear();
     /* Note here, for API like hipHccModuleLaunchKernel(), hipExtModuleLaunchKernel()
