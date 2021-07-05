@@ -113,7 +113,7 @@ RUN pip install -r /doc-requirements.txt
 RUN if [ "$USE_TARGETID" = "ON" ] ; then export HIPCC_LINK_FLAGS_APPEND='-O3 -parallel-jobs=4' && export HIPCC_COMPILE_FLAGS_APPEND='-O3 -Wno-format-nonliteral -parallel-jobs=4' && rm /usr/bin/hipcc; fi
 
 # install last released miopentensile in default (master), install latest commits when MIOTENSILE_VER="latest" (develop)
-RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."; elif [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@4fda8d57c6b088333b0392ba0617b0d6eec5d5b7; else cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@403fc13acb8518c3f82a79dc501b21ef1751e470; fi
+RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."; elif [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@94a9047741d16a8eccd290131b78fb1aa69cdcdf; else cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@94a9047741d16a8eccd290131b78fb1aa69cdcdf; fi
 
 RUN if [ "$USE_MLIR" = "ON" ]; \
     then cd ~ && \
