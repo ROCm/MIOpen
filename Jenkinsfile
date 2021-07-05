@@ -428,6 +428,7 @@ pipeline {
         }
         stage("Smoke MLIR"){
             when { expression { params.SMOKE_MLIR && !params.DISABLE_ALL_STAGES } }
+            environment{ MLIR_flags = "-DMIOPEN_USE_MLIR=On" }
             parallel{
                 stage('Fp32 Hip MLIR') {
                     agent{ label rocmnode("vega") }
@@ -503,7 +504,6 @@ pipeline {
         stage("Smoke MIOpenTensile Latest"){
             environment{
                 Tensile_version = "latest"
-                MLIR_flags = "-DMIOPEN_USE_MLIR=On"
             }
             parallel{
                 stage('Fp16 Hip Tensile-Latest All Vega20') {
