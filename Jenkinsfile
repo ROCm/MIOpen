@@ -65,10 +65,11 @@ def buildhipclangjob(Map conf){
         def cmd = conf.get("cmd", "")
         def gpu_arch = conf.get("gpu_arch", "gfx900;gfx906")
         def target_id = conf.get("target_id", "OFF")
+        def mlir_build = conf.get("mlir_build", "OFF")
         def codecov = conf.get("codecov", false)
         def miotensile_version = conf.get("miotensile_version", "default")
         def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
-        def dockerArgs = "--build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' --build-arg USE_TARGETID='${target_id}' "
+        def dockerArgs = "--build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' --build-arg USE_TARGETID='${target_id}' --build-arg USE_MLIR='${mlir_build}' "
         def extradebugflags = ""
         def variant = env.STAGE_NAME
         if (codecov) {
@@ -294,11 +295,11 @@ pipeline {
                         }
                     }
                 }
-                stage('Fp32 OpenCL') {
-                    agent{ label rocmnode("vega") }
+                stage('Fp32 OpenCL gfx908') {
+                    agent{ label rocmnode("gfx908") }
                     steps{
                         script{
-                            runDockerJob(compiler: 'g++', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release')
+                            runDockerJob(compiler: 'g++', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_TEST_GFX908=On', gpu_arch: "gfx908")
                         }
                     }
                 }
@@ -460,7 +461,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(cmd: cmd, gpu_arch: "gfx900;gfx906")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx900;gfx906", mlir_build: "ON")
                         }
                     }
                 }
@@ -476,7 +477,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(cmd: cmd, gpu_arch: "gfx900;gfx906")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx900;gfx906", mlir_build: "ON")
                         }
                     }
                 }
@@ -492,7 +493,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(cmd: cmd, gpu_arch: "gfx908")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908", mlir_build: "ON")
                         }
                     }
                 }
@@ -508,7 +509,7 @@ pipeline {
                     }
                     steps{
                         script{
-                            runDockerJob(cmd: cmd, gpu_arch: "gfx908")
+                            runDockerJob(cmd: cmd, gpu_arch: "gfx908", mlir_build: "ON")
                         }
                     }
                 }

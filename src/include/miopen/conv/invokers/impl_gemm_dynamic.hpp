@@ -125,6 +125,9 @@ ComputeDynamicIGemmForwardKernelArgs<int>(const ProblemDescription& conv_problem
     int pack0       = cfg;
     // clang-format on
 
+    opArgs.emplace_back(0); // placeholder
+    opArgs.emplace_back(0); // placeholder
+    opArgs.emplace_back(0); // placeholder
     opArgs.emplace_back(hi);
     opArgs.emplace_back(wi);
     opArgs.emplace_back(n);
@@ -204,6 +207,9 @@ ComputeDynamicIGemmForwardKernelArgs<solver::TunableImplicitGemmGTCDynamic_t>(
         magic_div_u32_pack_shift(mdiv_0.shift, mdiv_1.shift, mdiv_2.shift, mdiv_3.shift);
     uint32_t shift_pack_1 = magic_div_u32_pack_shift(mdiv_4.shift, mdiv_5.shift, mdiv_6.shift, 0);
 
+    opArgs.emplace_back(0); // placeholder
+    opArgs.emplace_back(0); // placeholder
+    opArgs.emplace_back(0); // placeholder
     opArgs.emplace_back(hi);
     opArgs.emplace_back(wi);
     opArgs.emplace_back(n);
@@ -219,19 +225,17 @@ ComputeDynamicIGemmForwardKernelArgs<solver::TunableImplicitGemmGTCDynamic_t>(
     opArgs.emplace_back(pad_w);
     opArgs.emplace_back(y);
     opArgs.emplace_back(x);
-    if(conv_problem.IsFp16())
-    {
-        opArgs.emplace_back(group);
-        opArgs.emplace_back(magic_0);
-        opArgs.emplace_back(magic_1);
-        opArgs.emplace_back(magic_2);
-        opArgs.emplace_back(magic_3);
-        opArgs.emplace_back(magic_4);
-        opArgs.emplace_back(magic_5);
-        opArgs.emplace_back(magic_6);
-        opArgs.emplace_back(shift_pack_0);
-        opArgs.emplace_back(shift_pack_1);
-    }
+    opArgs.emplace_back(group);
+    opArgs.emplace_back(magic_0);
+    opArgs.emplace_back(magic_1);
+    opArgs.emplace_back(magic_2);
+    opArgs.emplace_back(magic_3);
+    opArgs.emplace_back(magic_4);
+    opArgs.emplace_back(magic_5);
+    opArgs.emplace_back(magic_6);
+    opArgs.emplace_back(shift_pack_0);
+    opArgs.emplace_back(shift_pack_1);
+
     opArgs.emplace_back(pack0);
 
     return opArgs;
@@ -242,23 +246,16 @@ static inline InvokerFactory MakeImplGemmDynamicForwardInvokerFactory(const Conv
                                                                       const T& cfg)
 {
     const auto& conv_problem = ctx.conv_problem;
-    auto opShapeArgs         = ComputeDynamicIGemmForwardKernelArgs<T>(conv_problem, cfg);
-    return [opShapeArgs](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+    auto opArgs              = ComputeDynamicIGemmForwardKernelArgs<T>(conv_problem, cfg);
+    return [opArgs](const std::vector<Kernel>& kernels) mutable {
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
             decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors     = data_ctx.tensors;
             const auto k            = handle.Run(kernels[0]);
 
-            std::vector<OpKernelArg> opArgs;
-            opArgs.reserve(3 + opShapeArgs.size()); // Avoids vector resize.
-            opArgs.emplace_back(tensors.in);
-            opArgs.emplace_back(tensors.w);
-            opArgs.emplace_back(tensors.out);
-
-            std::transform(opShapeArgs.begin(),
-                           opShapeArgs.end(),
-                           std::back_inserter(opArgs),
-                           [](const OpKernelArg& arg) { return arg; });
+            opArgs[0] = OpKernelArg(tensors.in);
+            opArgs[1] = OpKernelArg(tensors.w);
+            opArgs[2] = OpKernelArg(tensors.out);
 
             k(opArgs);
         };

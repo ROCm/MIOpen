@@ -30,6 +30,7 @@
 
 #include <miopen/md5.hpp>
 #include "test.hpp"
+#include "random.hpp"
 
 #if MIOPEN_ENABLE_SQLITE
 std::string random_string(size_t length)
@@ -39,7 +40,7 @@ std::string random_string(size_t length)
                                "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                                "abcdefghijklmnopqrstuvwxyz";
         const size_t max_index = (sizeof(charset) - 1);
-        return charset[rand() % max_index];
+        return charset[GET_RAND() % max_index];
     };
     std::string str(length, 0);
     std::generate_n(str.begin(), length, randchar);
