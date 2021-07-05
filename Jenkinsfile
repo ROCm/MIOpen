@@ -463,7 +463,6 @@ pipeline {
             }
             parallel{
                 stage('Fp16 OpenCL Vega20') {
-                    when { expression { params.SMOKE_TESTS} }
                     agent{ label rocmnode("vega20") }
                     steps{
                         buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Fp16_flags, config_targets: Smoke_targets)
