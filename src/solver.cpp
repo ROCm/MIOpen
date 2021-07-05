@@ -462,7 +462,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
                        ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC{},
                        miopenConvolutionAlgoImplicitGEMM);
 
-    Register(registry, ++id, SolverDbId(activ::ActivFwdSolver1{}));
+    Register(registry, ++id, Primitive::Activation, SolverDbId(activ::ActivFwdSolver1{}));
     RegisterWithSolver(registry,
                        ++id,
                        ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC{},
