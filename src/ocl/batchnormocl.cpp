@@ -924,7 +924,7 @@ void BatchNormBackward(Handle& handle,
         unsigned int ldsgcn   = 0;
         unsigned int ldsnogcn = 0;
         bool single           = true;
-        unsigned int variant  = 1;
+        int variant           = 1;
 
         //*************************************************************************************************
         // N*H*W < 32M and H*W > 1024, use batchnorm variant#1 implementation which parallelize

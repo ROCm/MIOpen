@@ -1549,14 +1549,10 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlops::GetSolution(const ConvolutionContext& ct
     std::tie(std::ignore, cfg, kernel_name, block_size, grid_size) =
         FindImplicitGemmGtcDynamicFwdKernel(ctx);
 
-    if(ctx.IsFp32())
-        kernel.kernel_file = "igemm_fwd_gtc_gfx908.s";
-    else if(ctx.IsFp16())
-    {
-        std::ostringstream kernel_file_name;
-        kernel_file_name << kernel_name << ".s";
-        kernel.kernel_file = kernel_file_name.str();
-    }
+    std::ostringstream kernel_file_name;
+    kernel_file_name << kernel_name << ".s";
+    kernel.kernel_file = kernel_file_name.str();
+
     kernel.kernel_name = kernel_name;
     kernel.g_wk.clear();
     kernel.g_wk.push_back(grid_size * block_size);
