@@ -333,10 +333,9 @@ pipeline {
                   agent{ label rocmnode("nogpu") }
                   environment{
                       setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On .. "
-                      build_cmd = "make -j\$(nproc) install"
                   }
                   steps{
-                      buildHipClangJobAndReboot(setup_cmd: setup_cmd, build_cmd: build_cmd, execute_cmd: "", no_reboot:true, build_fin: true)
+                      buildHipClangJobAndReboot(setup_cmd: setup_cmd, execute_cmd: "", no_reboot:true, build_fin: true, build_install: "true")
                   }
               }
             }
