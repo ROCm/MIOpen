@@ -428,7 +428,8 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
         std::tie(std::ignore, std::ignore, current_grid_size, occupancy) =
             GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel(ctx, config_list[selected_index]);
         bool need_k_split = current_grid_size <= non_split_gridsize;
-        size_t gks = ComputeGemmKGlobalSplitsWith2DMerge(current_grid_size, occupancy, NUM_CUS);
+        const auto num_cu = ctx.GetStream().GetMaxComputeUnits();
+        size_t gks = ComputeGemmKGlobalSplitsWith2DMerge(current_grid_size, occupancy, num_cu);
         need_k_split |= gks != 0;
 
         CopyParameters(config_list[selected_index]);
