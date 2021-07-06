@@ -303,7 +303,7 @@ bool ConvBinWinogradRxSf3x2::IsApplicable(const ConvolutionContext& params) cons
 {
     if(!params.Is2d())
         return false;
-    if(!params.IsFp32())
+    if(!(params.IsFp32() || params.IsFp16()))
         return false;
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2{}))
         return false;
