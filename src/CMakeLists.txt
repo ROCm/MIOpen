@@ -243,6 +243,7 @@ set( MIOpen_Source
     solver/conv_asm_implicit_gemm_gtc_perf_config.cpp
     solver/conv_asm_implicit_gemm_gtc_fwd_nhwc.cpp
     solver/conv_asm_implicit_gemm_gtc_bwd_nhwc.cpp
+    solver/conv_asm_implicit_gemm_gtc_wrw_nhwc.cpp
     solver/conv_direct_naive_conv_fwd.cpp
     solver/conv_direct_naive_conv_bwd.cpp
     solver/conv_direct_naive_conv_wrw.cpp
