@@ -26,19 +26,31 @@
 
 #include "pooling_common.hpp"
 
-#define TEST_GET_INPUT_TENSOR 1
+#define TEST_GET_INPUT_TENSOR 0
 
 template <class T>
 struct pooling2d_driver : pooling_driver<T>
 {
     std::vector<std::vector<int>> get_2d_pooling_input_shapes()
     {
-        return {{1, 19, 1024, 2048}, {100, 3, 32, 32},   {1, 32, 16, 16},   {5, 32, 8, 8},
-                {2, 1024, 12, 12},   {4, 3, 231, 231},   {8, 3, 227, 227},  {1, 384, 13, 13},
-                {1, 96, 27, 27},     {2, 112, 14, 14},   {2, 160, 7, 7},    {1, 192, 256, 512},
-                {2, 192, 28, 28},    {1, 832, 64, 128},  {1, 256, 56, 56},  {4, 3, 224, 224},
-                {2, 64, 112, 112},   {2, 608, 4, 4},     {1, 2048, 11, 11}, {1, 16, 2048, 2048},
-                {1, 16, 3072, 3072}, {1, 16, 4096, 4096}};
+        return {{1, 19, 1024, 2048},
+                {10, 3, 32, 32},
+                {5, 32, 8, 8},
+                {2, 1024, 12, 12},
+                {4, 3, 231, 231},
+                {8, 3, 227, 227},
+                {1, 384, 13, 13},
+                {1, 96, 27, 27},
+                {2, 160, 7, 7},
+                {1, 192, 256, 512},
+                {2, 192, 28, 28},
+                {1, 832, 64, 128},
+                {1, 256, 56, 56},
+                {4, 3, 224, 224},
+                {2, 64, 112, 112},
+                {2, 608, 4, 4},
+                {1, 2048, 11, 11},
+                {1, 16, 4096, 4096}};
     }
 
     pooling2d_driver() : pooling_driver<T>()
@@ -48,7 +60,8 @@ struct pooling2d_driver : pooling_driver<T>
         std::vector<std::vector<int>> in_dim_vec(in_dim_set.begin(), in_dim_set.end());
         this->add(this->in_shape, "input", this->generate_data(in_dim_vec, {16, 32, 8, 8}));
 #else
-        this->add(this->in_shape, "input", this->generate_data(get_2d_pooling_input_shapes()));
+        this->add(
+            this->in_shape, "input", this->generate_data_limited(get_2d_pooling_input_shapes(), 9));
 #endif
         this->add(this->lens, "lens", this->generate_data({{2, 2}, {3, 3}}));
         this->add(this->strides, "strides", this->generate_data({{2, 2}, {1, 1}}));
