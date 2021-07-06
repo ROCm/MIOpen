@@ -704,7 +704,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
 
     size_t gemm_k_global_splits =
         config.gemm_k_global_split >= 1
-            ? ComputeGemmKGlobalSplitsWith2DMerge(grid_size, config.gemm_k_global_split, NUM_CUS)
+            ? ComputeGemmKGlobalSplitsWith2DMerge(grid_size, config.gemm_k_global_split, ctx.GetStream().GetMaxComputeUnits();)
             : 1;
     size_t min_n_per_block = config.nxe == 1 ? config.tensor_a_thread_lengths[1] : 1;
     size_t nb_per_block =
