@@ -363,7 +363,7 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
     const auto& pad_w     = ctx.pad_w;
     const auto& group     = ctx.group_counts;
 
-    const auto num_cu = ctx.GetStream().GetMaxComputeUnits();
+    const auto num_cu             = ctx.GetStream().GetMaxComputeUnits();
     const auto non_split_gridsize = 600;
 
     auto gemm_n        = (c / group) * y * x;
@@ -703,7 +703,8 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
 
     size_t gemm_k_global_splits =
         config.gemm_k_global_split >= 1
-            ? ComputeGemmKGlobalSplitsWith2DMerge(grid_size, config.gemm_k_global_split, ctx.GetStream().GetMaxComputeUnits())
+            ? ComputeGemmKGlobalSplitsWith2DMerge(
+                  grid_size, config.gemm_k_global_split, ctx.GetStream().GetMaxComputeUnits())
             : 1;
     size_t min_n_per_block = config.nxe == 1 ? config.tensor_a_thread_lengths[1] : 1;
     size_t nb_per_block =
