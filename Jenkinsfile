@@ -113,6 +113,7 @@ def buildHipClangJob(Map conf=[:]){
         def gpu_arch = conf.get("gpu_arch", "gfx900;gfx906")
 
         def miotensile_version = conf.get("miotensile_version", "default")
+        def build_fin = conf.get("build_fin", false)
         def target_id = conf.get("target_id", "OFF")
         def mlir_build = conf.get("mlir_build", "OFF")
         def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
@@ -161,6 +162,10 @@ def buildHipClangJob(Map conf=[:]){
                             curl -s https://codecov.io/bash | bash
                             echo "Uploaded"
                         '''
+                    }
+                    if(build_fin){
+                        git credentialsId
+
                     }
                 }
             }
@@ -317,6 +322,14 @@ pipeline {
                         buildHipClangJobAndReboot(setup_cmd: "", build_cmd: "", execute_cmd: execute_cmd, no_reboot:true)
                     }
                 }
+              stage('Fin Build') {
+                  agent{ label rocmnode("nogpu") }
+                  environment{
+                  }
+                  steps{
+                      buildHipClangJobAndReboot(setup_cmd: "", build_cmd: "", execute_cmd: execute_cmd, no_reboot:true, build_fin: true)
+                  }
+              }
             }
         }
         stage("Smoke Fp32"){
