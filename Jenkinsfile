@@ -164,7 +164,14 @@ def buildHipClangJob(Map conf=[:]){
                         '''
                     }
                     if(build_fin){
-                        git credentialsId
+                        def compiler = conf.get("compiler","/opt/rocm/llvm/bin/clang++")
+                        git credentialsId: '7126e5fe-eb51-4576-b52b-9aaf1de8f0fd' , branch: 'develop', url: 'https://github.com/ROCmSoftwarePlatform/fin.git'
+                        sh '''
+                            mkdir build 
+                            cd build
+                            CXX=$(compiler) cmake .. 
+                            make -j
+                        '''
 
                     }
                 }
@@ -285,49 +292,51 @@ pipeline {
         stage("Static checks"){
             when { expression { params.STATIC_CHECKS && !params.DISABLE_ALL_STAGES } }
             parallel{
-                stage('Hip Tidy') {
-                    agent{  label rocmnode("nogpu") }
-                    environment{
-                        setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DMIOPEN_BACKEND=HIP -DBUILD_DEV=On .. "
-                        build_cmd = "make -j\$(nproc) -k analyze"
-                    }
-                    steps{
-                        buildHipClangJobAndReboot(setup_cmd: setup_cmd, build_cmd: build_cmd, no_reboot:true)
-                    }
-                }
-                stage('OpenCL Tidy') {
-                    agent{  label rocmnode("nogpu") }
-                    environment{
-                        setup_cmd = "cmake -DMIOPEN_BACKEND=OpenCL -DBUILD_DEV=On .."
-                        build_cmd = "make -j\$(nproc) -k analyze"
-                    }
-                    steps{
-                        buildHipClangJobAndReboot(setup_cmd: setup_cmd, build_cmd: build_cmd, no_reboot:true)
-                    }
-                }
-                stage('Clang Format') {
-                    agent{ label rocmnode("nogpu") }
-                    environment{
-                        execute_cmd = "find . -iname \'*.h\' \
-                                -o -iname \'*.hpp\' \
-                                -o -iname \'*.cpp\' \
-                                -o -iname \'*.h.in\' \
-                                -o -iname \'*.hpp.in\' \
-                                -o -iname \'*.cpp.in\' \
-                                -o -iname \'*.cl\' \
-                                | grep -v 'build/' \
-                                | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-3.8 -style=file {} | diff - {}\'"
-                    }
-                    steps{
-                        buildHipClangJobAndReboot(setup_cmd: "", build_cmd: "", execute_cmd: execute_cmd, no_reboot:true)
-                    }
-                }
-              stage('Fin Build') {
+                // stage('Hip Tidy') {
+                //     agent{  label rocmnode("nogpu") }
+                //     environment{
+                //         setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DMIOPEN_BACKEND=HIP -DBUILD_DEV=On .. "
+                //         build_cmd = "make -j\$(nproc) -k analyze"
+                //     }
+                //     steps{
+                //         buildHipClangJobAndReboot(setup_cmd: setup_cmd, build_cmd: build_cmd, no_reboot:true)
+                //     }
+                // }
+                // stage('OpenCL Tidy') {
+                //     agent{  label rocmnode("nogpu") }
+                //     environment{
+                //         setup_cmd = "cmake -DMIOPEN_BACKEND=OpenCL -DBUILD_DEV=On .."
+                //         build_cmd = "make -j\$(nproc) -k analyze"
+                //     }
+                //     steps{
+                //         buildHipClangJobAndReboot(setup_cmd: setup_cmd, build_cmd: build_cmd, no_reboot:true)
+                //     }
+                // }
+                // stage('Clang Format') {
+                //     agent{ label rocmnode("nogpu") }
+                //     environment{
+                //         execute_cmd = "find . -iname \'*.h\' \
+                //                 -o -iname \'*.hpp\' \
+                //                 -o -iname \'*.cpp\' \
+                //                 -o -iname \'*.h.in\' \
+                //                 -o -iname \'*.hpp.in\' \
+                //                 -o -iname \'*.cpp.in\' \
+                //                 -o -iname \'*.cl\' \
+                //                 | grep -v 'build/' \
+                //                 | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-3.8 -style=file {} | diff - {}\'"
+                //     }
+                //     steps{
+                //         buildHipClangJobAndReboot(setup_cmd: "", build_cmd: "", execute_cmd: execute_cmd, no_reboot:true)
+                //     }
+                // }
+              stage('Fin Test') {
                   agent{ label rocmnode("nogpu") }
                   environment{
+                      setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On .. "
+                      build_cmd = "make -j\$(nproc) install"
                   }
                   steps{
-                      buildHipClangJobAndReboot(setup_cmd: "", build_cmd: "", execute_cmd: execute_cmd, no_reboot:true, build_fin: true)
+                      buildHipClangJobAndReboot(setup_cmd: setup_cmd, build_cmd: build_cmd, execute_cmd: "", no_reboot:true, build_fin: true)
                   }
               }
             }
