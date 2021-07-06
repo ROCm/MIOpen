@@ -37,7 +37,6 @@
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC)
 
 #define WRW_MAX_GEMM_K_SPLITS 10
-#define NUM_CUS 120
 
 namespace miopen {
 namespace solver {
@@ -364,6 +363,7 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
     const auto& pad_w     = ctx.pad_w;
     const auto& group     = ctx.group_counts;
 
+    const auto num_cu = ctx.GetStream().GetMaxComputeUnits();
     const auto non_split_gridsize = 600;
 
     auto gemm_n        = (c / group) * y * x;
@@ -428,7 +428,6 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
         std::tie(std::ignore, std::ignore, current_grid_size, occupancy) =
             GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel(ctx, config_list[selected_index]);
         bool need_k_split = current_grid_size <= non_split_gridsize;
-        const auto num_cu = ctx.GetStream().GetMaxComputeUnits();
         size_t gks = ComputeGemmKGlobalSplitsWith2DMerge(current_grid_size, occupancy, num_cu);
         need_k_split |= gks != 0;
 
@@ -704,7 +703,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
 
     size_t gemm_k_global_splits =
         config.gemm_k_global_split >= 1
-            ? ComputeGemmKGlobalSplitsWith2DMerge(grid_size, config.gemm_k_global_split, ctx.GetStream().GetMaxComputeUnits();)
+            ? ComputeGemmKGlobalSplitsWith2DMerge(grid_size, config.gemm_k_global_split, ctx.GetStream().GetMaxComputeUnits())
             : 1;
     size_t min_n_per_block = config.nxe == 1 ? config.tensor_a_thread_lengths[1] : 1;
     size_t nb_per_block =
