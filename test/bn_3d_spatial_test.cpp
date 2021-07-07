@@ -29,6 +29,7 @@
 #include "tensor_holder.hpp"
 #include "test.hpp"
 #include "verify.hpp"
+#include "random.hpp"
 #include <array>
 #include <cmath>
 #include <ctime>
@@ -101,8 +102,8 @@ struct verify_forward_train_3d_bn_spatial
             runVar  = tensor<U>{rs_n_batch, rs_channels, rs_depth, rs_height, rs_width};
             for(std::size_t i = 0; i < runMean.desc.GetElementSize(); i++)
             {
-                runMean[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-3 * U(rand() % 100);
-                runVar[i]  = 1e-3 * U(rand() % 100);
+                runMean[i] = (((GET_RAND() % 2) == 1) ? -1 : 1) * 1e-3 * U(GET_RAND() % 100);
+                runVar[i]  = 1e-3 * U(GET_RAND() % 100);
             }
         }
         auto saveMean   = tensor<U>{rs_n_batch, rs_channels, rs_depth, rs_height, rs_width};
@@ -286,8 +287,8 @@ struct verify_forward_train_3d_bn_spatial
             runVar  = tensor<U>{rs_n_batch, rs_channels, rs_depth, rs_height, rs_width};
             for(std::size_t i = 0; i < runMean.desc.GetElementSize(); i++)
             {
-                runMean[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-3 * U(rand() % 100);
-                runVar[i]  = 1e-3 * U(rand() % 100);
+                runMean[i] = (((GET_RAND() % 2) == 1) ? -1 : 1) * 1e-3 * U(GET_RAND() % 100);
+                runVar[i]  = 1e-3 * U(GET_RAND() % 100);
             }
         }
 
@@ -1232,12 +1233,12 @@ struct batch_norm_3d_spatial_driver : test_driver
             shift = tensor<PREC_TYPE>{ssn, ssc, ssd, ssh, ssw};
             for(std::size_t i = 0; i < scale.desc.GetElementSize(); i++)
             {
-                scale[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * PREC_TYPE(rand() % 100);
-                shift[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * PREC_TYPE(rand() % 100);
+                scale[i] = (((GET_RAND() % 2) == 1) ? -1 : 1) * 1e-4 * PREC_TYPE(GET_RAND() % 100);
+                shift[i] = (((GET_RAND() % 2) == 1) ? -1 : 1) * 1e-4 * PREC_TYPE(GET_RAND() % 100);
             }
             for(std::size_t i = 0; i < input.desc.GetElementSize(); i++)
             {
-                input[i] = (((rand() % 2) == 1) ? -1 : 1) * (1e-5 * T(rand() % 100));
+                input[i] = (((GET_RAND() % 2) == 1) ? -1 : 1) * (1e-5 * T(GET_RAND() % 100));
             }
         }
 
@@ -1436,5 +1437,5 @@ int main(int argc, const char* argv[])
     std::cout << "Wall clock: full SPATIAL test pass time: "
               << std::chrono::duration<double>(t_end - t_start).count() << " seconds." << std::endl;
 #endif
-    exit(0);
+    return 0;
 }

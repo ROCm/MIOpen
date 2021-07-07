@@ -872,7 +872,7 @@ static std::tuple<bool, // is suitable kernel found
             int i_x_tilda          = gemm_id % x_tilda;
             int y_dot_slice        = (i_y_tilda + 1) * y_dot <= y ? y_dot : y % y_dot;
             int x_dot_slice        = (i_x_tilda + 1) * x_dot <= x ? x_dot : x % x_dot;
-            int gemm_k             = k / group * y_dot_slice * x_dot_slice;
+            int gemm_k             = k * y_dot_slice * x_dot_slice;
             bool is_gemm_not_empty = gemm_k > 0;
             if(is_gemm_not_empty)
             {
@@ -1026,11 +1026,8 @@ ConvAsmImplicitGemmGTCDynamicBwdXdlops::GetSolution(const ConvolutionContext& ct
     std::tie(std::ignore, cfg, kernel_name, block_size, grid_size) =
         FindImplicitGemmGtcDynamicBwdKernel(ctx);
 
-    if(ctx.IsFp32())
-        kernel.kernel_file = "igemm_bwd_gtc_gfx908.s";
-    else if(ctx.IsFp16())
-        kernel.kernel_file = kernel_name + ".s";
-    kernel.kernel_name     = kernel_name;
+    kernel.kernel_file = kernel_name + ".s";
+    kernel.kernel_name = kernel_name;
     kernel.g_wk.clear();
     kernel.g_wk.push_back(grid_size * block_size);
     kernel.g_wk.push_back(1);
@@ -1046,9 +1043,7 @@ ConvAsmImplicitGemmGTCDynamicBwdXdlops::GetSolution(const ConvolutionContext& ct
 
     MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
 
-    result.invoker_factory = ctx.IsFp16()
-                                 ? conv::MakeImplGemmDynamicBackwardDataInvokerFactory(ctx, cfg)
-                                 : conv::MakeImplGemmDynamicBackwardDataInvokerFactory(ctx, int(0));
+    result.invoker_factory = conv::MakeImplGemmDynamicBackwardDataInvokerFactory(ctx, cfg);
     result.construction_params.push_back(kernel);
     return result;
 }

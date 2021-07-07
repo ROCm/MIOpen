@@ -426,7 +426,7 @@ Program Handle::LoadProgram(const std::string& program_name,
             boost::filesystem::copy_file(p.GetCodeObjectPathname(), path);
         miopen::SaveBinary(path, this->GetTargetProperties(), program_name, params, is_kernel_str);
 #endif
-
+        p.FreeCodeObjectFileStorage();
         return p;
     }
     else
@@ -503,12 +503,11 @@ std::size_t Handle::GetGlobalMemorySize() const
 
 std::size_t Handle::GetMaxComputeUnits() const
 {
+    const std::size_t num_cu = Value(MIOPEN_DEVICE_CU{});
+    if(num_cu > 0)
+        return num_cu;
+
     int result;
-    const char* const num_cu = miopen::GetStringEnv(MIOPEN_DEVICE_CU{});
-    if(num_cu != nullptr && strlen(num_cu) > 0)
-    {
-        return boost::lexical_cast<std::size_t>(num_cu);
-    }
     auto status =
         hipDeviceGetAttribute(&result, hipDeviceAttributeMultiprocessorCount, this->impl->device);
     if(status != hipSuccess)
