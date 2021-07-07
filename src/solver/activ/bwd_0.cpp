@@ -108,8 +108,138 @@ ConvSolution ActivBwdSolver0::GetSolution(const ExecutionContext&,
 
     auto result = ConvSolution{miopenStatusSuccess};
 
+    const auto& xDesc  = problem.GetXDesc();
+    const auto& yDesc  = problem.GetXDesc();
+    const auto& dxDesc = problem.GetDXDesc();
+    const auto& dyDesc = problem.GetDXDesc();
+
+    const auto& x_lens  = xDesc.GetLengths();
+    const auto& dx_lens = dxDesc.GetLengths();
+
+    const auto dx_width2D = dx_lens[dx_lens.size() - 1];
+    const auto height     = x_lens[x_lens.size() - 2];
+
+    const auto packed =
+        xDesc.IsPacked() && yDesc.IsPacked() && dxDesc.IsPacked() && dyDesc.IsPacked();
+
+    const auto x_elem_sz = xDesc.GetElementSize();
+
+    const auto read_len = (packed) ? x_elem_sz : dx_width2D;
+
+    const auto read_unit = (read_len % 4 == 0) ? 4 : (read_len % 2 == 0) ? 2 : 1;
+    const auto MAP_RD    = read_len / read_unit;
+    const auto READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(read_unit);
+
+    auto compiler_options = KernelBuildParameters{
+        {"LITE"},
+        {"MIOPEN_READ_UNIT", read_unit},
+        {"MIOPEN_READ_TYPE", READ_TYPE},
+        {"MIOPEN_NRN_OP_ID", problem.GetActivDesc().GetMode()},
+    };
+
+    if(xDesc.GetType() == miopenFloat)
+    {
+        compiler_options.Define("MIOPEN_USE_FP16", 0);
+        compiler_options.Define("MIOPEN_USE_FP32", 1);
+    }
+    else if(xDesc.GetType() == miopenHalf)
+    {
+        compiler_options.Define("MIOPEN_USE_FP16", 1);
+        compiler_options.Define("MIOPEN_USE_FP32", 0);
+    }
+
+    auto kernel = KernelInfo{};
+
+    kernel.comp_options = compiler_options.GenerateFor(kbp::OpenCL{});
+    kernel.kernel_file  = "MIOpenNeuron.cl";
+    kernel.kernel_name  = (packed) ? "MIOpenActiveBwdLite"
+                                   : "MIOpenActiveBwd2DLite";
+
+    kernel.l_wk.push_back(256);
+    kernel.l_wk.push_back(1);
+    kernel.l_wk.push_back(1);
+
+    // first dimension looks similar but for the packed it is a full image for the
+    // non-packed 2D it's width
+    kernel.g_wk.push_back(MAP_RD);
+    kernel.g_wk.push_back(packed ? 1 : height);
+    kernel.g_wk.push_back(1);
+
+    result.construction_params.push_back(kernel);
+
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+        const auto kernel_handle = kernels.front();
+
         return [=](const Handle& handle, const AnyInvokeParams& raw_params) {
+            decltype(auto) kernel = handle.Run(kernel_handle);
+            decltype(auto) params = raw_params.CastTo<miopen::activ::BwdInvokeParams>();
+
+            const auto& dx = params.dx;
+            const auto& dy = params.dy;
+            const auto& x  = params.x;
+            const auto& y  = params.y;
+
+            const auto& dxOffset = params.dx;
+            const auto& dyOffset = params.dy;
+            const auto& xOffset  = params.x;
+            const auto& yOffset  = params.y;
+
+            visit_float(params.x_desc.GetType(), [&](auto as_float) {
+                decltype(auto) f_activ_alpha = as_float(params.alpha);
+                decltype(auto) f_activ_beta  = as_float(params.beta);
+                decltype(auto) f_activ_gamma = as_float(params.gamma);
+                decltype(auto) f_diff_scale  = as_float(params.beta * params.gamma);
+
+                if(packed)
+                {
+                    kernel(dx,
+                           dy,
+                           x,
+                           y,
+                           f_diff_scale,
+                           f_activ_gamma,
+                           f_activ_beta,
+                           f_activ_alpha,
+                           static_cast<long long>(dxOffset),
+                           static_cast<long long>(dyOffset),
+                           static_cast<long long>(xOffset),
+                           static_cast<long long>(yOffset));
+                }
+                else
+                {
+                    const auto& x_lens  = params.x_desc.GetLengths();
+                    const auto& y_lens  = params.y_desc.GetLengths();
+                    const auto& dx_lens = params.dx_desc.GetLengths();
+                    const auto& dy_lens = params.dy_desc.GetLengths();
+
+                    const auto& x_strides  = xDesc.GetStrides();
+                    const auto& y_strides  = yDesc.GetStrides();
+                    const auto& dx_strides = dxDesc.GetStrides();
+                    const auto& dy_strides = dyDesc.GetStrides();
+
+                    const auto x_stride2D  = x_strides[x_lens.size() - 2];
+                    const auto y_stride2D  = y_strides[y_lens.size() - 2];
+                    const auto dx_stride2D = dx_strides[dx_lens.size() - 2];
+                    const auto dy_stride2D = dy_strides[dy_lens.size() - 2];
+
+                    kernel(dx,
+                           dy,
+                           x,
+                           y,
+                           f_diff_scale,
+                           f_activ_gamma,
+                           f_activ_beta,
+                           f_activ_alpha,
+                           static_cast<long long>(dxOffset),
+                           static_cast<long long>(dyOffset),
+                           static_cast<long long>(xOffset),
+                           static_cast<long long>(yOffset),
+                           dx_stride2D,
+                           dy_stride2D,
+                           x_stride2D,
+                           y_stride2D);
+                }
+            });
         };
     };
 
