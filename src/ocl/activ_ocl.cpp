@@ -148,9 +148,9 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
         return miopenStatusSuccess;
     }
 
-    const auto ctx = ExecutionContext{&handle};
+    const auto ctx     = ExecutionContext{&handle};
     const auto solvers = solver::SolverContainer<solver::activ::ActivBwdSolver0>{};
-    const auto slns = solvers.SearchForSolutions(ctx, problem, 1);
+    const auto slns    = solvers.SearchForSolutions(ctx, problem, 1);
 
     // Copy from forward, uncomment when whole direction converted.
     // if(slns.empty())
@@ -175,80 +175,6 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
     double activ_beta  = GetBeta();
     double activ_gamma = GetGamma();
 
-    // short cut for packed tensors and 2D tensors with stride != width
-    auto x_lens  = xDesc.GetLengths();
-    auto y_lens  = yDesc.GetLengths();
-    auto dx_lens = dxDesc.GetLengths();
-    auto dy_lens = dyDesc.GetLengths();
-
-    auto x_strides  = xDesc.GetStrides();
-    auto y_strides  = yDesc.GetStrides();
-    auto dx_strides = dxDesc.GetStrides();
-    auto dy_strides = dyDesc.GetStrides();
-
-    auto x_elem_sz  = xDesc.GetElementSize();
-    auto y_elem_sz  = yDesc.GetElementSize();
-    auto dx_elem_sz = dxDesc.GetElementSize();
-    auto dy_elem_sz = dyDesc.GetElementSize();
-
-    auto x_stride2D = static_cast<unsigned int>(
-        (x_lens.size() == 2) ? x_strides[0] : (x_lens.size() == 3)
-                                                  ? x_strides[1]
-                                                  : (x_lens.size() == 4) ? x_strides[2]
-                                                                         : x_strides[3]);
-    auto y_stride2D = static_cast<unsigned int>(
-        (y_lens.size() == 2) ? y_strides[0] : (y_lens.size() == 3)
-                                                  ? y_strides[1]
-                                                  : (y_lens.size() == 4) ? y_strides[2]
-                                                                         : y_strides[3]);
-
-    auto dx_stride2D = static_cast<unsigned int>(
-        (dx_lens.size() == 2) ? dx_strides[0] : (dx_lens.size() == 3)
-                                                    ? dx_strides[1]
-                                                    : (dx_lens.size() == 4) ? dx_strides[2]
-                                                                            : dx_strides[3]);
-    auto dy_stride2D = static_cast<unsigned int>(
-        (dy_lens.size() == 2) ? dy_strides[0] : (dy_lens.size() == 3)
-                                                    ? dy_strides[1]
-                                                    : (dy_lens.size() == 4) ? dy_strides[2]
-                                                                            : dy_strides[3]);
-
-    auto x_width2D =
-        ((x_lens.size() == 2) ? x_lens[1] : (x_lens.size() == 3) ? x_lens[2] : (x_lens.size() == 4)
-                                                                                   ? x_lens[3]
-                                                                                   : x_lens[4]);
-
-    auto y_width2D =
-        ((y_lens.size() == 2) ? y_lens[1] : (y_lens.size() == 3) ? y_lens[2] : (y_lens.size() == 4)
-                                                                                   ? y_lens[3]
-                                                                                   : y_lens[4]);
-
-    auto dx_width2D =
-        ((dx_lens.size() == 2) ? dx_lens[1] : (dx_lens.size() == 3)
-                                                  ? dx_lens[2]
-                                                  : (dx_lens.size() == 4) ? dx_lens[3]
-                                                                          : dx_lens[4]);
-
-    auto dy_width2D =
-        ((dy_lens.size() == 2) ? dy_lens[1] : (dy_lens.size() == 3)
-                                                  ? dy_lens[2]
-                                                  : (dy_lens.size() == 4) ? dy_lens[3]
-                                                                          : dy_lens[4]);
-
-    bool t2D = (x_lens.size() == y_lens.size() && dx_lens.size() == dy_lens.size() &&
-                x_lens.size() == dx_lens.size() &&
-                ((x_width2D != x_stride2D) || (y_width2D != y_stride2D) ||
-                 (dx_width2D != dx_stride2D) || (dy_width2D != dy_stride2D)) &&
-                (x_lens.size() == 2 || (x_lens.size() == 3 && x_lens[0] == 1 && y_lens[0] == 1 &&
-                                        dx_lens[0] == 1 && dy_lens[0] == 1) ||
-                 (x_lens.size() == 4 && x_lens[0] == 1 && x_lens[1] == 1 && y_lens[0] == 1 &&
-                  y_lens[1] == 1 && dy_lens[0] == 1 && dy_lens[1] == 1 && dx_lens[0] == 1 &&
-                  dx_lens[1] == 1) ||
-                 (x_lens.size() == 5 && x_lens[0] == 1 && x_lens[1] == 1 && x_lens[2] == 1 &&
-                  y_lens[0] == 1 && y_lens[1] == 1 && y_lens[2] == 1 && dy_lens[0] == 1 &&
-                  dy_lens[1] == 1 && dy_lens[2] == 1 && dx_lens[0] == 1 && dx_lens[1] == 1 &&
-                  dx_lens[2] == 1)));
-    bool packed = xDesc.IsPacked() && yDesc.IsPacked() && dxDesc.IsPacked() && dyDesc.IsPacked();
     visit_float(xDesc.GetType(), [&](auto as_float) {
 
         construct_params.setStream(&handle);
@@ -295,8 +221,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
         }
         else
         {
-            MIOPEN_THROW(
-                "activation does not support tensor size larger than 3 or smaller than 1");
+            MIOPEN_THROW("activation does not support tensor size larger than 3 or smaller than 1");
         }
 
         construct_params.setTopDfDescFromMLDesc(dyDesc);
@@ -312,9 +237,8 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
 
         if(yDesc.GetSize() == 4)
         {
-            std::tie(nOut, cOut, hOut, wOut) = tien<4>(yDesc.GetLengths());
-            std::tie(nOutStride, cOutStride, hOutStride, wOutStride) =
-                tien<4>(yDesc.GetStrides());
+            std::tie(nOut, cOut, hOut, wOut)                         = tien<4>(yDesc.GetLengths());
+            std::tie(nOutStride, cOutStride, hOutStride, wOutStride) = tien<4>(yDesc.GetStrides());
         }
         else if(yDesc.GetSize() < 4 && yDesc.GetSize() > 0)
         {
@@ -345,7 +269,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
         else
         {
             MIOPEN_THROW("Activation does not support tensor dimensions larger than 3 or "
-                            "smaller than 1");
+                         "smaller than 1");
         }
 
         construct_params.setTopDescFromMLDesc(yDesc);
@@ -361,9 +285,8 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
 
         if(dxDesc.GetSize() == 4)
         {
-            std::tie(ndIn, cdIn, hdIn, wdIn) = tien<4>(dxDesc.GetLengths());
-            std::tie(ndInStride, cdInStride, hdInStride, wdInStride) =
-                tien<4>(dxDesc.GetStrides());
+            std::tie(ndIn, cdIn, hdIn, wdIn)                         = tien<4>(dxDesc.GetLengths());
+            std::tie(ndInStride, cdInStride, hdInStride, wdInStride) = tien<4>(dxDesc.GetStrides());
         }
         else if(dxDesc.GetSize() < 4 && dxDesc.GetSize() > 0)
         {
@@ -394,7 +317,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
         else
         {
             MIOPEN_THROW("Activation does not support tensor dimensions larger than 3 or "
-                            "smaller than 1");
+                         "smaller than 1");
         }
 
         construct_params.setBotDfDescFromMLDesc(dxDesc);
@@ -442,7 +365,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
         else
         {
             MIOPEN_THROW("Activation does not support tensor dimensions larger than 3 or "
-                            "smaller than 1");
+                         "smaller than 1");
         }
 
         construct_params.setBotDescFromMLDesc(xDesc);
@@ -453,10 +376,9 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
 
         mloConstruct(construct_params);
 
-        std::string program_name = construct_params.getKernelFile(); // CL kernel filename
-        std::string kernel_name  = construct_params.getKernelName(); // kernel name
-        std::string compiler_options =
-            construct_params.getCompilerOptions(); // kernel parameters
+        std::string program_name     = construct_params.getKernelFile();      // CL kernel filename
+        std::string kernel_name      = construct_params.getKernelName();      // kernel name
+        std::string compiler_options = construct_params.getCompilerOptions(); // kernel parameters
 
         const std::vector<size_t>& vld = construct_params.getLocalWkSize();
         const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
@@ -472,47 +394,44 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
             " -DMIOPEN_N_IN_STRIDE=" + std::to_string(nInStride) + " -DMIOPEN_C_IN_STRIDE=" +
             std::to_string(cInStride) + " -DMIOPEN_H_IN_STRIDE=" + std::to_string(hInStride) +
             " -DMIOPEN_W_IN_STRIDE=" + std::to_string(wInStride) + " -DMIOPEN_N_OUT=" +
-            std::to_string(nOut) + " -DMIOPEN_C_OUT=" + std::to_string(cOut) +
-            " -DMIOPEN_H_OUT=" + std::to_string(hOut) + " -DMIOPEN_W_OUT=" +
-            std::to_string(wOut) + " -DMIOPEN_N_OUT_STRIDE=" + std::to_string(nOutStride) +
-            " -DMIOPEN_C_OUT_STRIDE=" + std::to_string(cOutStride) + " -DMIOPEN_H_OUT_STRIDE=" +
-            std::to_string(hOutStride) + " -DMIOPEN_W_OUT_STRIDE=" +
-            std::to_string(wOutStride) + " -DMIOPEN_N_DIN=" + std::to_string(ndIn) +
-            " -DMIOPEN_C_DIN=" + std::to_string(cdIn) + " -DMIOPEN_H_DIN=" +
+            std::to_string(nOut) + " -DMIOPEN_C_OUT=" + std::to_string(cOut) + " -DMIOPEN_H_OUT=" +
+            std::to_string(hOut) + " -DMIOPEN_W_OUT=" + std::to_string(wOut) +
+            " -DMIOPEN_N_OUT_STRIDE=" + std::to_string(nOutStride) + " -DMIOPEN_C_OUT_STRIDE=" +
+            std::to_string(cOutStride) + " -DMIOPEN_H_OUT_STRIDE=" + std::to_string(hOutStride) +
+            " -DMIOPEN_W_OUT_STRIDE=" + std::to_string(wOutStride) + " -DMIOPEN_N_DIN=" +
+            std::to_string(ndIn) + " -DMIOPEN_C_DIN=" + std::to_string(cdIn) + " -DMIOPEN_H_DIN=" +
             std::to_string(hdIn) + " -DMIOPEN_W_DIN=" + std::to_string(wdIn) +
             " -DMIOPEN_N_DIN_STRIDE=" + std::to_string(ndInStride) + " -DMIOPEN_C_DIN_STRIDE=" +
-            std::to_string(cdInStride) + " -DMIOPEN_H_DIN_STRIDE=" +
-            std::to_string(hdInStride) + " -DMIOPEN_W_DIN_STRIDE=" +
-            std::to_string(wdInStride) + " -DMIOPEN_N_DOUT=" + std::to_string(ndOut) +
-            " -DMIOPEN_C_DOUT=" + std::to_string(cdOut) + " -DMIOPEN_H_DOUT=" +
-            std::to_string(hdOut) + " -DMIOPEN_W_DOUT=" + std::to_string(wdOut) +
-            " -DMIOPEN_N_DOUT_STRIDE=" + std::to_string(ndOutStride) +
-            " -DMIOPEN_C_DOUT_STRIDE=" + std::to_string(cdOutStride) +
-            " -DMIOPEN_H_DOUT_STRIDE=" + std::to_string(hdOutStride) +
-            " -DMIOPEN_W_DOUT_STRIDE=" + std::to_string(wdOutStride) +
-            " -DMIOPEN_IN_BLOCK_SZ=" + std::to_string(cIn * hIn * wIn) +
-            " -DMIOPEN_OUT_BLOCK_SZ=" + std::to_string(cOut * hOut * wOut) +
-            " -DMIOPEN_DIN_BLOCK_SZ=" + std::to_string(cdIn * hdIn * wdIn) +
-            " -DMIOPEN_DOUT_BLOCK_SZ=" + std::to_string(cdOut * hdOut * wdOut);
+            std::to_string(cdInStride) + " -DMIOPEN_H_DIN_STRIDE=" + std::to_string(hdInStride) +
+            " -DMIOPEN_W_DIN_STRIDE=" + std::to_string(wdInStride) + " -DMIOPEN_N_DOUT=" +
+            std::to_string(ndOut) + " -DMIOPEN_C_DOUT=" + std::to_string(cdOut) +
+            " -DMIOPEN_H_DOUT=" + std::to_string(hdOut) + " -DMIOPEN_W_DOUT=" +
+            std::to_string(wdOut) + " -DMIOPEN_N_DOUT_STRIDE=" + std::to_string(ndOutStride) +
+            " -DMIOPEN_C_DOUT_STRIDE=" + std::to_string(cdOutStride) + " -DMIOPEN_H_DOUT_STRIDE=" +
+            std::to_string(hdOutStride) + " -DMIOPEN_W_DOUT_STRIDE=" + std::to_string(wdOutStride) +
+            " -DMIOPEN_IN_BLOCK_SZ=" + std::to_string(cIn * hIn * wIn) + " -DMIOPEN_OUT_BLOCK_SZ=" +
+            std::to_string(cOut * hOut * wOut) + " -DMIOPEN_DIN_BLOCK_SZ=" +
+            std::to_string(cdIn * hdIn * wdIn) + " -DMIOPEN_DOUT_BLOCK_SZ=" +
+            std::to_string(cdOut * hdOut * wdOut);
 
         handle.AddKernel("miopenActivationBackward",
-                            network_config,
-                            program_name,
-                            kernel_name,
-                            vld,
-                            vgd,
-                            compiler_options)(dx,
-                                            dy,
-                                            x,
-                                            y,
-                                            as_float(f_diff_scale),
-                                            as_float(f_activ_gamma),
-                                            as_float(f_activ_beta),
-                                            as_float(f_activ_alpha),
-                                            static_cast<long long>(dxOffset),
-                                            static_cast<long long>(dyOffset),
-                                            static_cast<long long>(xOffset),
-                                            static_cast<long long>(yOffset));
+                         network_config,
+                         program_name,
+                         kernel_name,
+                         vld,
+                         vgd,
+                         compiler_options)(dx,
+                                           dy,
+                                           x,
+                                           y,
+                                           as_float(f_diff_scale),
+                                           as_float(f_activ_gamma),
+                                           as_float(f_activ_beta),
+                                           as_float(f_activ_alpha),
+                                           static_cast<long long>(dxOffset),
+                                           static_cast<long long>(dyOffset),
+                                           static_cast<long long>(xOffset),
+                                           static_cast<long long>(yOffset));
     });
     return (status);
 }

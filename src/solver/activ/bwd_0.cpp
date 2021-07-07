@@ -45,8 +45,8 @@ bool ActivBwdSolver0::IsApplicable(const ExecutionContext&,
     if(problem.GetDirection() != miopen::activ::Direction::Backward)
         return false;
 
-    const auto& xDesc = problem.GetXDesc();
-    const auto& yDesc = problem.GetXDesc();
+    const auto& xDesc  = problem.GetXDesc();
+    const auto& yDesc  = problem.GetXDesc();
     const auto& dxDesc = problem.GetDXDesc();
     const auto& dyDesc = problem.GetDXDesc();
 
@@ -71,13 +71,13 @@ bool ActivBwdSolver0::IsApplicable(const ExecutionContext&,
     const auto& dx_strides = dxDesc.GetStrides();
     const auto& dy_strides = dyDesc.GetStrides();
 
-    const auto x_stride2D = x_strides[x_lens.size() - 2];
-    const auto y_stride2D = y_strides[y_lens.size() - 2];
+    const auto x_stride2D  = x_strides[x_lens.size() - 2];
+    const auto y_stride2D  = y_strides[y_lens.size() - 2];
     const auto dx_stride2D = dx_strides[dx_lens.size() - 2];
     const auto dy_stride2D = dy_strides[dy_lens.size() - 2];
 
-    const auto x_width2D = x_lens[x_lens.size() - 1];
-    const auto y_width2D = y_lens[y_lens.size() - 1];
+    const auto x_width2D  = x_lens[x_lens.size() - 1];
+    const auto y_width2D  = y_lens[y_lens.size() - 1];
     const auto dx_width2D = dx_lens[dx_lens.size() - 1];
     const auto dy_width2D = dy_lens[dy_lens.size() - 1];
 
@@ -152,8 +152,7 @@ ConvSolution ActivBwdSolver0::GetSolution(const ExecutionContext&,
 
     kernel.comp_options = compiler_options.GenerateFor(kbp::OpenCL{});
     kernel.kernel_file  = "MIOpenNeuron.cl";
-    kernel.kernel_name  = (packed) ? "MIOpenActiveBwdLite"
-                                   : "MIOpenActiveBwd2DLite";
+    kernel.kernel_name  = (packed) ? "MIOpenActiveBwdLite" : "MIOpenActiveBwd2DLite";
 
     kernel.l_wk.push_back(256);
     kernel.l_wk.push_back(1);
@@ -179,10 +178,10 @@ ConvSolution ActivBwdSolver0::GetSolution(const ExecutionContext&,
             const auto& x  = params.x;
             const auto& y  = params.y;
 
-            const auto& dxOffset = params.dx;
-            const auto& dyOffset = params.dy;
-            const auto& xOffset  = params.x;
-            const auto& yOffset  = params.y;
+            const auto& dxOffset = params.dx_offset;
+            const auto& dyOffset = params.dy_offset;
+            const auto& xOffset  = params.x_offset;
+            const auto& yOffset  = params.y_offset;
 
             visit_float(params.x_desc.GetType(), [&](auto as_float) {
                 decltype(auto) f_activ_alpha = as_float(params.alpha);
