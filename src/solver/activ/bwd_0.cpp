@@ -45,8 +45,60 @@ bool ActivBwdSolver0::IsApplicable(const ExecutionContext&,
     if(problem.GetDirection() != miopen::activ::Direction::Backward)
         return false;
 
-    MIOPEN_THROW("Not implemented");
-    return false;
+    const auto xDesc = problem.GetXDesc();
+    const auto yDesc = problem.GetXDesc();
+    const auto dxDesc = problem.GetDXDesc();
+    const auto dyDesc = problem.GetDXDesc();
+
+    const auto x_elem_sz  = xDesc.GetElementSize();
+    const auto y_elem_sz  = yDesc.GetElementSize();
+    const auto dx_elem_sz = dxDesc.GetElementSize();
+    const auto dy_elem_sz = dyDesc.GetElementSize();
+
+    if(!(x_elem_sz == y_elem_sz && dx_elem_sz == dy_elem_sz && x_elem_sz == dx_elem_sz))
+        return false;
+
+    if(xDesc.IsPacked() && yDesc.IsPacked() && dxDesc.IsPacked() && dyDesc.IsPacked())
+        return true;
+
+    const auto x_lens  = xDesc.GetLengths();
+    const auto y_lens  = yDesc.GetLengths();
+    const auto dx_lens = dxDesc.GetLengths();
+    const auto dy_lens = dyDesc.GetLengths();
+
+    const auto x_strides  = xDesc.GetStrides();
+    const auto y_strides  = yDesc.GetStrides();
+    const auto dx_strides = dxDesc.GetStrides();
+    const auto dy_strides = dyDesc.GetStrides();
+
+    const auto x_stride2D = x_strides[x_lens.size() - 2];
+    const auto y_stride2D = y_strides[y_lens.size() - 2];
+    const auto dx_stride2D = dx_strides[dx_lens.size() - 2];
+    const auto dy_stride2D = dy_strides[dy_lens.size() - 2];
+
+    const auto x_width2D = x_lens[x_lens.size() - 1];
+    const auto y_width2D = y_lens[y_lens.size() - 1];
+    const auto dx_width2D = dx_lens[dx_lens.size() - 1];
+    const auto dy_width2D = dy_lens[dy_lens.size() - 1];
+
+    // clang-format off
+    return x_lens.size() == y_lens.size() && dx_lens.size() == dy_lens.size() && x_lens.size() == dx_lens.size()
+        && ((x_width2D != x_stride2D) || (y_width2D != y_stride2D)
+            || (dx_width2D != dx_stride2D) || (dy_width2D != dy_stride2D))
+        && (x_lens.size() == 2
+            || (x_lens.size() == 3
+                && x_lens[0] == 1 && y_lens[0] == 1 && dx_lens[0] == 1 && dy_lens[0] == 1)
+            || (x_lens.size() == 4
+                && x_lens[0] == 1 && x_lens[1] == 1
+                && y_lens[0] == 1 && y_lens[1] == 1
+                && dy_lens[0] == 1 && dy_lens[1] == 1
+                && dx_lens[0] == 1 && dx_lens[1] == 1)
+            || (x_lens.size() == 5
+                && x_lens[0] == 1 && x_lens[1] == 1 && x_lens[2] == 1
+                && y_lens[0] == 1 && y_lens[1] == 1 && y_lens[2] == 1
+                && dy_lens[0] == 1 && dy_lens[1] == 1 && dy_lens[2] == 1
+                && dx_lens[0] == 1 && dx_lens[1] == 1 && dx_lens[2] == 1));
+    // clang-format on
 }
 
 ConvSolution ActivBwdSolver0::GetSolution(const ExecutionContext&,
