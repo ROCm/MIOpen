@@ -45,11 +45,31 @@ enum class Direction
 
 struct ProblemDescription
 {
-    ProblemDescription(Direction direction_,
-                       const ActivationDescriptor& activ,
+    // Forward constructor
+    ProblemDescription(const ActivationDescriptor& activ,
                        const TensorDescriptor& xDesc_,
                        const TensorDescriptor& yDesc_)
-        : direction(direction_), activDesc(activ), xDesc(xDesc_), yDesc(yDesc_)
+        : direction(Direction::Forward),
+          activDesc(activ),
+          xDesc(xDesc_),
+          yDesc(yDesc_),
+          dxDesc(),
+          dyDesc()
+    {
+    }
+
+    // Backward constructor
+    ProblemDescription(const ActivationDescriptor& activ,
+                       const TensorDescriptor& xDesc_,
+                       const TensorDescriptor& yDesc_,
+                       const TensorDescriptor& dxDesc_,
+                       const TensorDescriptor& dyDesc_)
+        : direction(Direction::Backward),
+          activDesc(activ),
+          xDesc(xDesc_),
+          yDesc(yDesc_),
+          dxDesc(dxDesc_),
+          dyDesc(dyDesc_)
     {
     }
 
@@ -57,6 +77,8 @@ struct ProblemDescription
     const ActivationDescriptor& GetActivDesc() const { return activDesc; }
     const TensorDescriptor& GetXDesc() const { return xDesc; }
     const TensorDescriptor& GetYDesc() const { return yDesc; }
+    const TensorDescriptor& GetDXDesc() const { return xDesc; }
+    const TensorDescriptor& GetDYDesc() const { return yDesc; }
 
     NetworkConfig MakeNetworkConfig() const;
 
@@ -73,6 +95,8 @@ struct ProblemDescription
     ActivationDescriptor activDesc;
     TensorDescriptor xDesc;
     TensorDescriptor yDesc;
+    TensorDescriptor dxDesc;
+    TensorDescriptor dyDesc;
 };
 
 } // namespace activ
