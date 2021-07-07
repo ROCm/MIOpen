@@ -51,7 +51,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
 
-    const auto problem = activ::ProblemDescription{activ::Direction::Forward, *this, xDesc, yDesc};
+    const auto problem = activ::ProblemDescription{*this, xDesc, yDesc};
 
     const auto invoke_params = [&]() {
         auto tmp     = activ::InvokeParams{};
