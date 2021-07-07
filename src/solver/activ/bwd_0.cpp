@@ -45,10 +45,10 @@ bool ActivBwdSolver0::IsApplicable(const ExecutionContext&,
     if(problem.GetDirection() != miopen::activ::Direction::Backward)
         return false;
 
-    const auto xDesc = problem.GetXDesc();
-    const auto yDesc = problem.GetXDesc();
-    const auto dxDesc = problem.GetDXDesc();
-    const auto dyDesc = problem.GetDXDesc();
+    const auto& xDesc = problem.GetXDesc();
+    const auto& yDesc = problem.GetXDesc();
+    const auto& dxDesc = problem.GetDXDesc();
+    const auto& dyDesc = problem.GetDXDesc();
 
     const auto x_elem_sz  = xDesc.GetElementSize();
     const auto y_elem_sz  = yDesc.GetElementSize();
@@ -61,15 +61,15 @@ bool ActivBwdSolver0::IsApplicable(const ExecutionContext&,
     if(xDesc.IsPacked() && yDesc.IsPacked() && dxDesc.IsPacked() && dyDesc.IsPacked())
         return true;
 
-    const auto x_lens  = xDesc.GetLengths();
-    const auto y_lens  = yDesc.GetLengths();
-    const auto dx_lens = dxDesc.GetLengths();
-    const auto dy_lens = dyDesc.GetLengths();
+    const auto& x_lens  = xDesc.GetLengths();
+    const auto& y_lens  = yDesc.GetLengths();
+    const auto& dx_lens = dxDesc.GetLengths();
+    const auto& dy_lens = dyDesc.GetLengths();
 
-    const auto x_strides  = xDesc.GetStrides();
-    const auto y_strides  = yDesc.GetStrides();
-    const auto dx_strides = dxDesc.GetStrides();
-    const auto dy_strides = dyDesc.GetStrides();
+    const auto& x_strides  = xDesc.GetStrides();
+    const auto& y_strides  = yDesc.GetStrides();
+    const auto& dx_strides = dxDesc.GetStrides();
+    const auto& dy_strides = dyDesc.GetStrides();
 
     const auto x_stride2D = x_strides[x_lens.size() - 2];
     const auto y_stride2D = y_strides[y_lens.size() - 2];
