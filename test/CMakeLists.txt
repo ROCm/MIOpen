@@ -895,13 +895,9 @@ set(DYNAMIC_IMPLICITGEMM_WRW_ENVS
 set(DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS
     ${DYNAMIC_IMPLICITGEMM_COMMON}
     MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicBwdXdlops)
-
 set(DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS
     ${DYNAMIC_IMPLICITGEMM_COMMON}
     MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicWrwXdlops)
-
-set(CK_IMPLICITGEMM_COMMON
-    MIOPEN_FIND_MODE=normal)
 
 if(NOT (NOT MIOPEN_TEST_FLOAT OR MIOPEN_TEST_GFX908))
 add_custom_test(test_conv_igemm_dynamic_small
@@ -991,7 +987,7 @@ COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> --ver
 )
 add_custom_test(test_regression_half_mi100 SKIP_UNLESS_ALL FLOAT_DISABLED HALF_ENABLED GFX908_ENABLED VEGA_DISABLED
 # Regression test for SWDEV-291202
-COMMAND ${DYNAMIC_IMPLICITGEMM_COMMON} MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmBwdDataV4R1Xdlops $<TARGET_FILE:test_conv2d> --half --verbose --input  128  24 14 14 --weights 64  24 5 5 --pads_strides_dilations 2 2 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmBwdDataV4R1Xdlops $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  128  24 14 14 --weights 64  24 5 5 --pads_strides_dilations 2 2 1 1 1 1 --disable-forward --disable-backward-weights
 )
 endif()
 
