@@ -196,8 +196,8 @@ template <typename Tgpu, typename Tref>
 int ActivationDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
 
-    size_t in_sz  = GetTensorSize(inputTensor);
-    size_t out_sz = GetTensorSize(outputTensor);
+    size_t in_sz  = GetTensorSpace(inputTensor);
+    size_t out_sz = GetTensorSpace(outputTensor);
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
 

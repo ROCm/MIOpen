@@ -4,21 +4,43 @@ ARG PREFIX=/usr/local
 ARG GPU_ARCH=";"
 ARG MIOTENSILE_VER="default"
 ARG USE_TARGETID="OFF"
+ARG USE_MLIR="OFF"
 
 # Support multiarch
 RUN dpkg --add-architecture i386
 
 # Add rocm repository
-RUN if [ "$USE_TARGETID" = "ON" ] ; then sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/.apt_4.1.1/ xenial main > /etc/apt/sources.list.d/rocm.list'; else sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/.apt_3.7/ xenial main > /etc/apt/sources.list.d/rocm.list'; fi
+
+RUN if [ "$USE_TARGETID" = "ON" ] ; \
+        then export ROCM_APT_VER=.apt_4.1.1;\
+    elif [ "$USE_MLIR" = "ON" ] ; \
+        then export ROCM_APT_VER=.apt_3.7;\
+    else export ROCM_APT_VER=.apt_4.2;  \
+    fi && \
+echo $ROCM_APT_VER &&\
+sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/$ROCM_APT_VER/ xenial main > /etc/apt/sources.list.d/rocm.list'
 RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu xenial main universe | tee -a /etc/apt/sources.list"
 
+#Add gpg keys
 # Install dependencies
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
+RUN if [ "$USE_TARGETID" = "ON" ]; \
+        then export ROCM_KEY_VER=4.1.1; \
+    elif [ "$USE_MLIR" = "ON" ] ; \
+        then export ROCM_KEY_VER=3.7;\
+    else export ROCM_KEY_VER=4.2; \
+    fi && \
+apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
+    wget \
+    ca-certificates \
+    curl \
+    libnuma-dev \
+    gnupg && \
+wget -q -O - https://repo.radeon.com/rocm/apt/$ROCM_KEY_VER/rocm.gpg.key | apt-key add - && \
+apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     apt-utils \
     build-essential \
     cmake \
     comgr \
-    curl \
     clang-format-3.8 \
     doxygen \
     g++ \
@@ -28,7 +50,6 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     lcov \
     libelf-dev \
     libncurses5-dev \
-    libnuma-dev \
     libpthread-stubs0-dev \
     llvm-amdgpu \
     miopengemm \
@@ -42,7 +63,6 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     python3-distutils \
     python3-venv \
     software-properties-common \
-    wget \
     rocm-dev \
     rocm-device-libs \
     rocm-opencl \
@@ -93,9 +113,10 @@ RUN pip install -r /doc-requirements.txt
 RUN if [ "$USE_TARGETID" = "ON" ] ; then export HIPCC_LINK_FLAGS_APPEND='-O3 -parallel-jobs=4' && export HIPCC_COMPILE_FLAGS_APPEND='-O3 -Wno-format-nonliteral -parallel-jobs=4' && rm /usr/bin/hipcc; fi
 
 # install last released miopentensile in default (master), install latest commits when MIOTENSILE_VER="latest" (develop)
-RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."; elif [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@4fda8d57c6b088333b0392ba0617b0d6eec5d5b7; else cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@403fc13acb8518c3f82a79dc501b21ef1751e470; fi
+RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."; elif [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@94a9047741d16a8eccd290131b78fb1aa69cdcdf; else cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@94a9047741d16a8eccd290131b78fb1aa69cdcdf; fi
 
-RUN cd ~ && \
+RUN if [ "$USE_MLIR" = "ON" ]; \
+    then cd ~ && \
     export MLIR_COMMIT=44abc4783fe2f6b4415871f7c44aa52ab89bccab && \
     wget https://github.com/ROCmSoftwarePlatform/llvm-project-mlir/archive/$MLIR_COMMIT.tar.gz && \
     tar -xvzf $MLIR_COMMIT.tar.gz && \
@@ -104,4 +125,4 @@ RUN cd ~ && \
     $PREFIX/bin/cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_FAT_LIBMLIRMIOPEN=1 && \
     make -j$(nproc) libMLIRMIOpen && \
     $PREFIX/bin/cmake --install . --component libMLIRMIOpen --prefix /opt/rocm && \
-    cd ~ && rm -rf llvm-project-mlir-$MLIR_COMMIT
+    cd ~ && rm -rf llvm-project-mlir-$MLIR_COMMIT; fi

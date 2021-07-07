@@ -445,7 +445,8 @@ static inline int if_gemm_k_global_split(const ConvolutionContext& ctx,
 
 inline std::vector<OpKernelArg>
 ComputeDynamicIGemmWrwKernelArgs(const conv::ProblemDescription& conv_problem,
-                                 const int log2_gemm_k_global_splits)
+                                 const int log2_gemm_k_global_splits,
+                                 const int nxb)
 {
     int hi         = conv_problem.GetOutHeight();
     int wi         = conv_problem.GetOutWidth();
@@ -464,7 +465,15 @@ ComputeDynamicIGemmWrwKernelArgs(const conv::ProblemDescription& conv_problem,
     int x          = conv_problem.GetWeightsWidth();
     int group      = conv_problem.GetGroupCount();
 
+    int dim_b = (ho * wo + nxb - 1) / nxb * nxb;
+
+    // if ho*wo<nxb(equals to dim_b==nxb), ho need to be padded.
+    int ho_padded = dim_b == nxb ? integer_divide_ceil(dim_b, wo) : ho;
+
     std::vector<OpKernelArg> opArgs;
+    opArgs.emplace_back(0); // placeholder
+    opArgs.emplace_back(0); // placeholder
+    opArgs.emplace_back(0); // placeholder
     opArgs.emplace_back(hi);
     opArgs.emplace_back(wi);
     opArgs.emplace_back(n);
@@ -482,6 +491,7 @@ ComputeDynamicIGemmWrwKernelArgs(const conv::ProblemDescription& conv_problem,
     opArgs.emplace_back(x);
     opArgs.emplace_back(log2_gemm_k_global_splits);
     opArgs.emplace_back(group);
+    opArgs.emplace_back(ho_padded);
 
     return opArgs;
 }
@@ -591,6 +601,10 @@ static inline std::tuple<bool, // is valid
                         {
                             for(const auto& nxb : nxb_list)
                             {
+                                if(pack == 0 && nxb != 1)
+                                {
+                                    continue;
+                                }
                                 const auto b =
                                     pack == 0
                                         ? ho * wo
@@ -844,6 +858,7 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
     int grid_size;
     int log2_gemm_k_global_splits;
     std::string kernel_name;
+    int nxb;
 
     std::tie(is_valid, kernel_index, block_size, grid_size, log2_gemm_k_global_splits) =
         FindImplicitGemmWrwGTCDynamicXdlopsKernel(ctx);
@@ -852,6 +867,7 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
         MIOPEN_THROW("this kernel should not run with igemm dynamic!");
 
     kernel_name = kernel_configs[kernel_index].GetKernelName();
+    nxb         = kernel_configs[kernel_index].nxb;
 
     // MIOPEN_LOG_I2(kernel_name << " with groups for reduction: "
     //                           << (1 << log2_gemm_k_global_splits));
@@ -859,14 +875,10 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
     const auto required_workspace_size = GetWorkspaceSize(ctx);
     result.workspce_sz                 = required_workspace_size;
 
-    if(ctx.IsFp32())
-        kernel.kernel_file = "igemm_wrw_gtc_gfx908.s";
-    else if(ctx.IsFp16())
-    {
-        std::ostringstream kernel_file_name;
-        kernel_file_name << kernel_name << ".s";
-        kernel.kernel_file = kernel_file_name.str();
-    }
+    std::ostringstream kernel_file_name;
+    kernel_file_name << kernel_name << ".s";
+    kernel.kernel_file = kernel_file_name.str();
+
     kernel.kernel_name = kernel_name;
     kernel.g_wk.clear();
     /* Note here, for API like hipHccModuleLaunchKernel(), hipExtModuleLaunchKernel()
@@ -892,12 +904,12 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
     const auto& conv_problem = ctx.conv_problem;
     const auto& lowp_quant   = ctx.conv_problem.GetConv().lowp_quant;
 
-    auto opShapeArgs = ComputeDynamicIGemmWrwKernelArgs(conv_problem, log2_gemm_k_global_splits);
+    auto opArgs = ComputeDynamicIGemmWrwKernelArgs(conv_problem, log2_gemm_k_global_splits, nxb);
 
     if(conv_problem.IsFp32())
     {
-        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-            return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+        result.invoker_factory = [=](const std::vector<Kernel>& kernels) mutable {
+            return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
                 decltype(auto) wrw_invoke_params =
                     primitive_parameters.CastTo<conv::WrWInvokeParams>();
                 const auto& tensors = wrw_invoke_params.tensors;
@@ -905,16 +917,9 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
                 float elapsed       = 0;
                 float zero          = 0.f;
 
-                std::vector<OpKernelArg> opArgs;
-                opArgs.reserve(3 + opShapeArgs.size()); // Avoids vector resize.
-                opArgs.emplace_back(tensors.x);
-                opArgs.emplace_back(tensors.dw);
-                opArgs.emplace_back(tensors.dy);
-
-                std::transform(opShapeArgs.begin(),
-                               opShapeArgs.end(),
-                               std::back_inserter(opArgs),
-                               [](const OpKernelArg& arg) { return arg; });
+                opArgs[0] = OpKernelArg(tensors.x);
+                opArgs[1] = OpKernelArg(tensors.dw);
+                opArgs[2] = OpKernelArg(tensors.dy);
 
                 SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
                 if(handle.IsProfilingEnabled())
@@ -937,8 +942,8 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
         TensorDescriptor workspaceDesc(miopenFloat,
                                        conv_problem.GetWeights().GetLengths(),
                                        conv_problem.GetWeights().GetStrides());
-        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-            return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+        result.invoker_factory = [=](const std::vector<Kernel>& kernels) mutable {
+            return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
                 decltype(auto) wrw_invoke_params =
                     primitive_parameters.CastTo<conv::WrWInvokeParams>();
                 const auto& tensors       = wrw_invoke_params.tensors;
@@ -957,16 +962,9 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
 
-                std::vector<OpKernelArg> opArgs;
-                opArgs.reserve(3 + opShapeArgs.size()); // Avoids vector resize.
-                opArgs.emplace_back(tensors.x);
-                opArgs.emplace_back(workSpace);
-                opArgs.emplace_back(tensors.dy);
-
-                std::transform(opShapeArgs.begin(),
-                               opShapeArgs.end(),
-                               std::back_inserter(opArgs),
-                               [](const OpKernelArg& arg) { return arg; });
+                opArgs[0] = OpKernelArg(tensors.x);
+                opArgs[1] = OpKernelArg(workSpace);
+                opArgs[2] = OpKernelArg(tensors.dy);
 
                 k(opArgs);
                 if(handle.IsProfilingEnabled())
@@ -994,23 +992,16 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
     }
     else
     {
-        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-            return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+        result.invoker_factory = [=](const std::vector<Kernel>& kernels) mutable {
+            return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
                 decltype(auto) wrw_invoke_params =
                     primitive_parameters.CastTo<conv::WrWInvokeParams>();
                 const auto& tensors = wrw_invoke_params.tensors;
                 const auto k        = handle.Run(kernels[0]);
 
-                std::vector<OpKernelArg> opArgs;
-                opArgs.reserve(3 + opShapeArgs.size()); // Avoids vector resize.
-                opArgs.emplace_back(tensors.x);
-                opArgs.emplace_back(tensors.dw);
-                opArgs.emplace_back(tensors.dy);
-
-                std::transform(opShapeArgs.begin(),
-                               opShapeArgs.end(),
-                               std::back_inserter(opArgs),
-                               [](const OpKernelArg& arg) { return arg; });
+                opArgs[0] = OpKernelArg(tensors.x);
+                opArgs[1] = OpKernelArg(tensors.dw);
+                opArgs[2] = OpKernelArg(tensors.dy);
 
                 k(opArgs);
             };

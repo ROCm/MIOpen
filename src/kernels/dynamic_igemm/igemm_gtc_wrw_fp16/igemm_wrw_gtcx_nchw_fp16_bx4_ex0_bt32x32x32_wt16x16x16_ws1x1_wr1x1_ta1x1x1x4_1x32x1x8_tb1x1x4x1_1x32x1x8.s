@@ -238,33 +238,34 @@
 .set s_x, 30
 .set s_gemmk_split, 31
 .set s_group, 32
-.set s_out_stride_k, 33
+.set s_ho_padded, 33
+.set s_out_stride_k, 34
 .set s_hoxwo, 31
-.set s_out_stride_n, 34
-.set s_in_stride_c0, 35
-.set s_in_stride_c, 36
-.set s_in_stride_n, 37
-.set s_wei_stride_c, 38
-.set s_wei_stride_k, 39
-.set s_out_stride_n_n1, 40
-.set s_in_stride_n_n1, 41
-.set s_move_slice_n_n1, 42
-.set s_move_slice_n_dsho, 43
-.set s_move_slice_n_dswo, 44
-.set s_block_gtc_ik, 45
-.set s_block_gtc_ic0, 46
-.set s_block_gtc_ic1e, 47
-.set s_block_gtc_in, 48
-.set s_block_gtc_ig, 49
+.set s_out_stride_n, 35
+.set s_in_stride_c0, 36
+.set s_in_stride_c, 37
+.set s_in_stride_n, 38
+.set s_wei_stride_c, 39
+.set s_wei_stride_k, 40
+.set s_out_stride_n_n1, 41
+.set s_in_stride_n_n1, 42
+.set s_move_slice_n_n1, 43
+.set s_move_slice_n_dsho, 44
+.set s_move_slice_n_dswo, 45
+.set s_block_gtc_ik, 46
+.set s_block_gtc_ic0, 47
+.set s_block_gtc_ic1e, 48
+.set s_block_gtc_in, 49
+.set s_block_gtc_ig, 50
 .set s_knum, 1
 .set s_gemm_k_num_n1, 0
 .set s_kitr, 3
-.set s_in_offset, 50
-.set s_out_offset, 52
-.set s_sub_n, 54
-.set s_k_padded, 55
-.set s_tmp, 56
-.set s_end, 62
+.set s_in_offset, 51
+.set s_out_offset, 53
+.set s_sub_n, 55
+.set s_k_padded, 56
+.set s_tmp, 58
+.set s_end, 64
 
 .set v_c, 0  ; coalescing:4, needed:0, resuable:28
 .set v_a, 0
@@ -328,7 +329,7 @@ igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x32x32_wt16x16x16_ws1x1_wr1x1_ta1x1x1x4_1x3
     s_load_dwordx2  s[s_p_wei+0:s_p_wei+1],      s[s_ka+0:s_ka+1],    0+k_p_wei
     s_load_dwordx2  s[s_p_out+0:s_p_out+1],      s[s_ka+0:s_ka+1],    0+k_p_out
     s_load_dwordx16 s[s_hi+0:s_hi+15],        s[s_ka+0:s_ka+1],    0+k_hi
-    s_load_dword s[s_group],         s[s_ka+0:s_ka+1],    0+k_group
+    s_load_dwordx2  s[s_group+0:s_group+1],      s[s_ka+0:s_ka+1],    0+k_group
 
     ; input, thread(n0,n1b,c0,c1e): 1x1x4x1, cluster(n0,n1b,c0,c1e): 1x32x1x8
     v_mov_b32 v[v_tmp], v0
@@ -787,7 +788,7 @@ L_igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x32x32_wt16x16x16_ws1x1_wr1x1_ta1x1x1x4_1
     .amdhsa_system_sgpr_workgroup_id_x 1
     .amdhsa_system_vgpr_workitem_id 0
     .amdhsa_next_free_vgpr 62
-    .amdhsa_next_free_sgpr 62
+    .amdhsa_next_free_sgpr 64
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
@@ -798,7 +799,7 @@ amdhsa.version: [ 1, 0 ]
 amdhsa.kernels:
   - .name: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x32x32_wt16x16x16_ws1x1_wr1x1_ta1x1x1x4_1x32x1x8_tb1x1x4x1_1x32x1x8
     .symbol: igemm_wrw_gtcx_nchw_fp16_bx4_ex0_bt32x32x32_wt16x16x16_ws1x1_wr1x1_ta1x1x1x4_1x32x1x8_tb1x1x4x1_1x32x1x8.kd
-    .sgpr_count: 68
+    .sgpr_count: 70
     .vgpr_count: 62
     .kernarg_segment_align: 8
     .kernarg_segment_size: 96
