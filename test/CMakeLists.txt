@@ -33,8 +33,6 @@ option( MIOPEN_TEST_ALL "Run the full test suite" OFF )
 option( MIOPEN_TEST_HALF "Test in half mode" OFF )
 option( MIOPEN_TEST_INT8 "Test in int8 mode" OFF )
 option( MIOPEN_TEST_BFLOAT16 "Test in bfloat16 mode" OFF )
-option( MIOPEN_TEST_GFX908 "Test arch gfx908 mode" OFF )
-option( MIOPEN_TEST_VEGA "Test arch VEGA (gfx900, gfx906)" ON )
 option( MIOPEN_TEST_CONV Off)
 option( MIOPEN_TEST_DEEPBENCH Off)
 option( MIOPEN_TEST_DRIVER_ITER_MODE Off)
@@ -43,6 +41,49 @@ option( MIOPEN_TEST_MLIR "Add tests for MLIR -- EXPERIMENTAL" ${MIOPEN_USE_MLIR}
 
 option( WORKAROUND_ISSUE_898 "" ON)
 option( WORKAROUND_ISSUE_936 "" ON)
+
+# Detect GPU type for testing
+set(MIOPEN_TEST_GFX908_DEFAULT Off)
+set(MIOPEN_TEST_VEGA_DEFAULT Off)
+find_program(ROCMINFO
+    NAMES rocminfo
+    PATHS
+        ${ROCM_ROOT}
+        /opt/rocm
+    PATH_SUFFIXES
+        /bin
+    NO_DEFAULT_PATH
+)
+message(STATUS "rocminfo utility: ${ROCMINFO}")
+if(ROCMINFO)
+    execute_process (
+        COMMAND ${ROCMINFO}
+        COMMAND grep -i -E "(gfx900)|(gfx906)"
+        RESULT_VARIABLE ROCMINFO_VEGA
+        OUTPUT_QUIET
+    )
+    execute_process (
+        COMMAND ${ROCMINFO}
+        #
+        # gfx90a bringup is not complete yet.
+        # Let's use gfx908 tests for gfx90a for now.
+        #
+        COMMAND grep -i -E "(gfx908)|(gfx90a)"
+        RESULT_VARIABLE ROCMINFO_GFX908
+        OUTPUT_QUIET
+    )
+    if(ROCMINFO_VEGA STREQUAL "0")
+        set(MIOPEN_TEST_VEGA_DEFAULT On)
+    elseif(ROCMINFO_GFX908 STREQUAL "0")
+        set(MIOPEN_TEST_GFX908_DEFAULT On)
+    else()
+        message(WARNING "TESTING IS NOT SUPPORTED FOR THE DETECTED GPU")
+    endif()
+else()
+    message(WARNING "GPU DETECTION FAILED, SO AUTOMATIC TESTING MAY FAIL. Manually set respective MIOPEN_TEST_GFX* CMake variable to specify the target GPU for testing.")
+endif()
+option( MIOPEN_TEST_GFX908 "Test arch gfx908 mode" ${MIOPEN_TEST_GFX908_DEFAULT} )
+option( MIOPEN_TEST_VEGA "Test arch VEGA (gfx900, gfx906)" ${MIOPEN_TEST_VEGA_DEFAULT} )
 
 #Run the test suite to a depth limit
 set(MIOPEN_TEST_LIMIT "0" CACHE STRING "")
@@ -198,7 +239,7 @@ function(add_test_executable TEST_NAME)
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
         set_target_properties(${TEST_NAME} PROPERTIES COMPILE_FLAGS -pthread LINK_FLAGS -pthread)
     endif()
-    
+
     if(MIOPEN_TEST_ALL)
         set(TEST_COMMAND ${TEST_NAME} ${MIOPEN_TEST_FLOAT_ARG} --all ${MIOPEN_TEST_FLAGS_ARGS})
     else()
@@ -208,7 +249,7 @@ function(add_test_executable TEST_NAME)
     if(MIOPEN_TEST_LIMIT GREATER 0)
         set(TEST_COMMAND ${TEST_COMMAND} --limit ${MIOPEN_TEST_LIMIT})
     endif()
-    
+
     if(WORKAROUND_ISSUE_936 AND (${TEST_NAME} MATCHES "test_conv2d" OR ${TEST_NAME} MATCHES "test_immed_conv2d") )
         set(TEST_COMMAND ${TEST_COMMAND} --tolerance 130) #increased by 1.625 times
     endif()
@@ -488,7 +529,7 @@ if(${CODECOV_TEST})
     add_custom_test(test_pooling2d_codecov
         COMMAND $<TARGET_FILE:test_pooling2d> ${MIOPEN_TEST_FLOAT_ARG} --input 1, 192, 28, 28 --lens 2 2 --strides 2 2 --pads 0 0 ${MIOPEN_TEST_FLAGS_ARGS}
     )
-    
+
 endif()
 
 
@@ -1198,8 +1239,8 @@ set(DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS
 set(ARGS_NHWC_WRW
     --disable-forward
     --disable-backward-data
-    --in_layout NHWC 
-    --fil_layout NHWC 
+    --in_layout NHWC
+    --fil_layout NHWC
     --out_layout NHWC)
 
 add_custom_test(test_conv_igemm_dynamic_xdlops_nhwc_wrw SKIP_UNLESS_ALL HALF_ENABLED GFX908_ENABLED VEGA_DISABLED
