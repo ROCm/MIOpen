@@ -33,6 +33,8 @@ option( MIOPEN_TEST_ALL "Run the full test suite" OFF )
 option( MIOPEN_TEST_HALF "Test in half mode" OFF )
 option( MIOPEN_TEST_INT8 "Test in int8 mode" OFF )
 option( MIOPEN_TEST_BFLOAT16 "Test in bfloat16 mode" OFF )
+option( MIOPEN_TEST_GFX908 "Test arch gfx908 mode" OFF )
+option( MIOPEN_TEST_VEGA "Test arch VEGA (gfx900, gfx906)" OFF )
 option( MIOPEN_TEST_CONV Off)
 option( MIOPEN_TEST_DEEPBENCH Off)
 option( MIOPEN_TEST_DRIVER_ITER_MODE Off)
@@ -43,47 +45,47 @@ option( WORKAROUND_ISSUE_898 "" ON)
 option( WORKAROUND_ISSUE_936 "" ON)
 
 # Detect GPU type for testing
-set(MIOPEN_TEST_GFX908_DEFAULT Off)
-set(MIOPEN_TEST_VEGA_DEFAULT Off)
-find_program(ROCMINFO
-    NAMES rocminfo
-    PATHS
-        ${ROCM_ROOT}
-        /opt/rocm
-    PATH_SUFFIXES
-        /bin
-    NO_DEFAULT_PATH
-)
-message(STATUS "rocminfo utility: ${ROCMINFO}")
-if(ROCMINFO)
-    execute_process (
-        COMMAND ${ROCMINFO}
-        COMMAND grep -i -E "(gfx900)|(gfx906)"
-        RESULT_VARIABLE ROCMINFO_VEGA
-        OUTPUT_QUIET
+if(NOT (MIOPEN_TEST_VEGA OR MIOPEN_TEST_GFX908))
+    find_program(ROCMINFO
+        NAMES rocminfo
+        PATHS
+            ${ROCM_ROOT}
+            /opt/rocm
+        PATH_SUFFIXES
+            /bin
+        NO_DEFAULT_PATH
     )
-    execute_process (
-        COMMAND ${ROCMINFO}
-        #
-        # gfx90a bringup is not complete yet.
-        # Let's use gfx908 tests for gfx90a for now.
-        #
-        COMMAND grep -i -E "(gfx908)|(gfx90a)"
-        RESULT_VARIABLE ROCMINFO_GFX908
-        OUTPUT_QUIET
-    )
-    if(ROCMINFO_VEGA STREQUAL "0")
-        set(MIOPEN_TEST_VEGA_DEFAULT On)
-    elseif(ROCMINFO_GFX908 STREQUAL "0")
-        set(MIOPEN_TEST_GFX908_DEFAULT On)
+    message(STATUS "rocminfo utility: ${ROCMINFO}")
+    if(ROCMINFO)
+        execute_process (
+            COMMAND ${ROCMINFO}
+            COMMAND grep -i -E "(gfx900)|(gfx906)"
+            RESULT_VARIABLE ROCMINFO_VEGA
+            OUTPUT_QUIET
+        )
+        execute_process (
+            COMMAND ${ROCMINFO}
+            #
+            # gfx90a bringup is not complete yet.
+            # Let's use gfx908 tests for gfx90a for now.
+            #
+            COMMAND grep -i -E "(gfx908)|(gfx90a)"
+            RESULT_VARIABLE ROCMINFO_GFX908
+            OUTPUT_QUIET
+        )
+        if(ROCMINFO_VEGA STREQUAL "0")
+            set(MIOPEN_TEST_VEGA ON)
+        elseif(ROCMINFO_GFX908 STREQUAL "0")
+            set(MIOPEN_TEST_GFX908 ON)
+        else()
+            message(WARNING "TESTING IS NOT SUPPORTED FOR THE DETECTED GPU")
+        endif()
     else()
-        message(WARNING "TESTING IS NOT SUPPORTED FOR THE DETECTED GPU")
+        message(WARNING "GPU DETECTION FAILED, SO AUTOMATIC TESTING MAY FAIL. Manually set respective MIOPEN_TEST_GFX* CMake variable to specify the target GPU for testing.")
     endif()
-else()
-    message(WARNING "GPU DETECTION FAILED, SO AUTOMATIC TESTING MAY FAIL. Manually set respective MIOPEN_TEST_GFX* CMake variable to specify the target GPU for testing.")
 endif()
-option( MIOPEN_TEST_GFX908 "Test arch gfx908 mode" ${MIOPEN_TEST_GFX908_DEFAULT} )
-option( MIOPEN_TEST_VEGA "Test arch VEGA (gfx900, gfx906)" ${MIOPEN_TEST_VEGA_DEFAULT} )
+message(STATUS "MIOPEN_TEST_VEGA ${MIOPEN_TEST_VEGA}")
+message(STATUS "MIOPEN_TEST_GFX908 ${MIOPEN_TEST_GFX908}")
 
 #Run the test suite to a depth limit
 set(MIOPEN_TEST_LIMIT "0" CACHE STRING "")
