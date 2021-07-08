@@ -24,9 +24,11 @@
  *
  *******************************************************************************/
 
+#include "miopen/miopen.h"
 #include <miopen/errors.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/solver/mlir_common.hpp>
+#include <string>
 
 namespace miopen {
 namespace solver {
@@ -41,6 +43,30 @@ std::string InsertGToLayout(const std::string& layout, char dim)
     return layout_with_g.insert(index, 1, 'G');
 }
 
+const char* DTypeName(miopenDataType_t ty) {
+    switch (ty) {
+    case miopenHalf:
+        return "fp16";
+    case miopenFloat:
+        return "fp32";
+    case miopenDouble:
+        return "fp64";
+    case miopenBFloat16:
+        return "bf16";
+    case miopenInt32:
+        return "i32";
+    case miopenInt8:
+        return "i8";
+    case miopenInt8x4:
+        return "i8x4";
+    }
+    assert(false); // All cases should be covered before here
+}
+
+/* Construct the options string passed to MLIR to cause it
+to generate a given convolution.
+
+Returns an empty string on unsupported convolutions */
 std::string ConstructBuildOptions(const ConvolutionContext& ctx,
                                   const std::string& operation,
                                   const std::string& kernel_name,
@@ -56,10 +82,13 @@ std::string ConstructBuildOptions(const ConvolutionContext& ctx,
     std::string out_layout = InsertGToLayout(CI::GetOutputLayout(ctx), 'C');
 
     std::string mlir_handle;
-    if (is_xdlops)
-        mlir_handle += std::string(" --x2 ") + "1";
+    if (!ctx.Is2d()) {
+        // Future: Remove this once MLIr supports 3D convolutions
+        return mlir_handle;
+    }
 
-    std::string data_type = ctx.IsFp32() ? "fp32" : "fp16";
+    if (is_xdlops)
+        mlir_handle += std::string(" --x2 1");
 
     mlir_handle +=
         std::string(" --operation ") + operation +
@@ -68,11 +97,11 @@ std::string ConstructBuildOptions(const ConvolutionContext& ctx,
         std::string(" --arch ") + ctx.GetStream().GetDeviceName() +
         std::string(" --groupsize ") + std::to_string(CI::GetGroupCountG(ctx)) +
         std::string(" --fil_layout ") + fil_layout +
-        std::string(" --fil_type ") + data_type +
+        std::string(" --fil_type ") + DTypeName(ctx.weights_data_type) +
         std::string(" --in_layout ") + in_layout +
-        std::string(" --in_type ") + data_type +
+        std::string(" --in_type ") + DTypeName(CI::GetInputDataType(ctx)) +
         std::string(" --out_layout ") + out_layout +
-        std::string(" --out_type ") + data_type +
+        std::string(" --out_type ") + DTypeName(CI::GetOutputDataType(ctx)) +
         std::string(" --batchsize ") + std::to_string(CI::GetBatchN(ctx)) +
         std::string(" --in_channels ") + std::to_string(CI::GetInputChannelC(ctx)) +
         std::string(" --out_channels ") + std::to_string(CI::GetOutputChannelK(ctx)) +

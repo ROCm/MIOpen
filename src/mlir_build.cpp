@@ -150,6 +150,9 @@ void MiirGenLaunchParams(const std::string& params, size_t& local_size, size_t& 
 
 bool MiirIsConfigApplicable(const std::string& params)
 {
+    if (params.empty()) {
+        return false;
+    }
     AutoMiirHandle handle(params);
     return MIIR_SUCCESS == miirLowerTuningParams(handle());
 }
