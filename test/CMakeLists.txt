@@ -49,11 +49,10 @@ if(NOT (MIOPEN_TEST_VEGA OR MIOPEN_TEST_GFX908))
     find_program(ROCMINFO
         NAMES rocminfo
         PATHS
-            ${ROCM_ROOT}
             /opt/rocm
+            ${CMAKE_INSTALL_PREFIX}
         PATH_SUFFIXES
             /bin
-        NO_DEFAULT_PATH
     )
     message(STATUS "rocminfo utility: ${ROCMINFO}")
     if(ROCMINFO)
