@@ -58,19 +58,11 @@ if(NOT (MIOPEN_TEST_VEGA OR MIOPEN_TEST_GFX908))
     if(ROCMINFO)
         execute_process (
             COMMAND ${ROCMINFO}
-            COMMAND grep -i -E "(gfx900)|(gfx906)"
-            RESULT_VARIABLE ROCMINFO_VEGA
-            OUTPUT_QUIET
+            OUTPUT_VARIABLE ROCMINFO_OUTPUT
         )
-        execute_process (
-            COMMAND ${ROCMINFO}
-            COMMAND grep -i gfx908
-            RESULT_VARIABLE ROCMINFO_GFX908
-            OUTPUT_QUIET
-        )
-        if(ROCMINFO_VEGA STREQUAL "0")
+        if(ROCMINFO_OUTPUT MATCHES "gfx900|gfx906")
             set(MIOPEN_TEST_VEGA ON)
-        elseif(ROCMINFO_GFX908 STREQUAL "0")
+        elseif(ROCMINFO_OUTPUT MATCHES "gfx908")
             set(MIOPEN_TEST_GFX908 ON)
         else()
             message(WARNING "TESTING IS NOT SUPPORTED FOR THE DETECTED GPU")
