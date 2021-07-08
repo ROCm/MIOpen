@@ -52,9 +52,7 @@ struct ProblemDescription
         : direction(Direction::Forward),
           activDesc(activ),
           xDesc(xDesc_),
-          yDesc(yDesc_),
-          dxDesc(),
-          dyDesc()
+          yDesc(yDesc_)
     {
     }
 
