@@ -65,11 +65,7 @@ if(NOT (MIOPEN_TEST_VEGA OR MIOPEN_TEST_GFX908))
         )
         execute_process (
             COMMAND ${ROCMINFO}
-            #
-            # gfx90a bringup is not complete yet.
-            # Let's use gfx908 tests for gfx90a for now.
-            #
-            COMMAND grep -i -E "(gfx908)|(gfx90a)"
+            COMMAND grep -i gfx908
             RESULT_VARIABLE ROCMINFO_GFX908
             OUTPUT_QUIET
         )
