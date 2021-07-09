@@ -217,11 +217,13 @@ struct ConvolutionContextInterpreter
             return c.in_width;
     }
 
-    static auto GetOutputDataType(const ConvolutionContext& c) {
+    static auto GetOutputDataType(const ConvolutionContext& c)
+    {
         return c.direction.IsForward() ? c.out_data_type : c.in_data_type;
     }
 
-    static auto GetInputDataType(const ConvolutionContext& c) {
+    static auto GetInputDataType(const ConvolutionContext& c)
+    {
         return c.direction.IsForward() ? c.in_data_type : c.out_data_type;
     }
 

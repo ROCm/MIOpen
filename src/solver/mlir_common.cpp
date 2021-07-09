@@ -43,30 +43,23 @@ std::string InsertGToLayout(const std::string& layout, char dim)
     return layout_with_g.insert(index, 1, 'G');
 }
 
-const char* DTypeName(miopenDataType_t ty) {
-    switch (ty) {
-    case miopenHalf:
-        return "fp16";
-    case miopenFloat:
-        return "fp32";
-    case miopenDouble:
-        return "fp64";
-    case miopenBFloat16:
-        return "bf16";
-    case miopenInt32:
-        return "i32";
-    case miopenInt8:
-        return "i8";
-    case miopenInt8x4:
-        return "i8x4";
+const char* DTypeName(miopenDataType_t ty)
+{
+    switch(ty)
+    {
+    case miopenHalf: return "fp16";
+    case miopenFloat: return "fp32";
+    case miopenDouble: return "fp64";
+    case miopenBFloat16: return "bf16";
+    case miopenInt32: return "i32";
+    case miopenInt8: return "i8";
+    case miopenInt8x4: return "i8x4";
     }
     assert(false); // All cases should be covered before here
 }
 
 /* Construct the options string passed to MLIR to cause it
-to generate a given convolution.
-
-Returns an empty string on unsupported convolutions */
+to generate a given convolution.*/
 std::string ConstructBuildOptions(const ConvolutionContext& ctx,
                                   const std::string& operation,
                                   const std::string& kernel_name,
@@ -82,10 +75,6 @@ std::string ConstructBuildOptions(const ConvolutionContext& ctx,
     std::string out_layout = InsertGToLayout(CI::GetOutputLayout(ctx), 'C');
 
     std::string mlir_handle;
-    if (!ctx.Is2d()) {
-        // Future: Remove this once MLIr supports 3D convolutions
-        return mlir_handle;
-    }
 
     if (is_xdlops)
         mlir_handle += std::string(" --x2 1");
