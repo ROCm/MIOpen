@@ -67,6 +67,7 @@ endif()
 # Detect GPU type for testing.
 # For HIP_NOGPU backend, GPU detection is not required and should be disabled.
 # Also we do not detect GPU when target GPU for testing is specified explicitly.
+set(MIOPEN_TEST_GPU_DETECTION_FAILED FALSE)
 if(NOT (MIOPEN_TEST_VEGA OR MIOPEN_TEST_GFX908 OR MIOPEN_TEST_HIP_NOGPU))
     find_program(ROCMINFO
         NAMES rocminfo
@@ -84,17 +85,19 @@ if(NOT (MIOPEN_TEST_VEGA OR MIOPEN_TEST_GFX908 OR MIOPEN_TEST_HIP_NOGPU))
             RESULT_VARIABLE ROCMINFO_EXIT_STATUS
         )
         if(NOT ROCMINFO_EXIT_STATUS EQUAL 0)
-            message(FATAL_ERROR "ROCMINFO FAILED, GPU TYPE UNKNOWN. Manually set respective MIOPEN_TEST_GFX* CMake variable to specify target GPU for testing.")
-        endif()
-        if(ROCMINFO_OUTPUT MATCHES "gfx900|gfx906")
+            message(WARNING "ROCMINFO FAILED, GPU TYPE UNKNOWN. Manually set respective MIOPEN_TEST_GFX* CMake variable to specify target GPU for testing.")
+            set(MIOPEN_TEST_GPU_DETECTION_FAILED TRUE)
+        elseif(ROCMINFO_OUTPUT MATCHES "gfx900|gfx906")
             set(MIOPEN_TEST_VEGA ON)
         elseif(ROCMINFO_OUTPUT MATCHES "gfx908")
             set(MIOPEN_TEST_GFX908 ON)
         else()
             message(WARNING "TESTING IS NOT SUPPORTED FOR THE DETECTED GPU")
+            set(MIOPEN_TEST_GPU_DETECTION_FAILED TRUE)
         endif()
     else()
-        message(FATAL_ERROR "ROCMINFO NOT FOUND, GPU TYPE UNKNOWN. Manually set respective MIOPEN_TEST_GFX* CMake variable to specify target GPU for testing.")
+        message(WARNING "ROCMINFO NOT FOUND, GPU TYPE UNKNOWN. Manually set respective MIOPEN_TEST_GFX* CMake variable to specify target GPU for testing.")
+        set(MIOPEN_TEST_GPU_DETECTION_FAILED TRUE)
     endif()
 endif()
 message(STATUS "MIOPEN_TEST_VEGA ${MIOPEN_TEST_VEGA}")
@@ -109,6 +112,11 @@ endif()
 find_package(Threads REQUIRED)
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C ${CMAKE_CFG_INTDIR})
 add_custom_target(tests)
+
+if(MIOPEN_TEST_GPU_DETECTION_FAILED)
+    add_custom_target(gpu_detection_check COMMAND echo "*** FATAL: GPU DETECTION FAILED DURING CMAKE PHASE, CHECK CMAKE WARNINGS ***" COMMAND exit 1)
+    add_dependencies(check gpu_detection_check)
+endif()
 
 set(MIOPEN_TEST_FLOAT_ARG)
 set(MIOPEN_TEST_FLOAT FALSE)
