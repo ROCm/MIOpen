@@ -44,37 +44,7 @@ option( MIOPEN_TEST_MLIR "Add tests for MLIR -- EXPERIMENTAL" ${MIOPEN_USE_MLIR}
 option( WORKAROUND_ISSUE_898 "" ON)
 option( WORKAROUND_ISSUE_936 "" ON)
 
-# Detect GPU type for testing
-if(NOT (MIOPEN_TEST_VEGA OR MIOPEN_TEST_GFX908))
-    find_program(ROCMINFO
-        NAMES rocminfo
-        PATHS
-            /opt/rocm
-            ${CMAKE_INSTALL_PREFIX}
-        PATH_SUFFIXES
-            /bin
-    )
-    message(STATUS "rocminfo utility: ${ROCMINFO}")
-    if(ROCMINFO)
-        execute_process (
-            COMMAND ${ROCMINFO}
-            OUTPUT_VARIABLE ROCMINFO_OUTPUT
-        )
-        if(ROCMINFO_OUTPUT MATCHES "gfx900|gfx906")
-            set(MIOPEN_TEST_VEGA ON)
-        elseif(ROCMINFO_OUTPUT MATCHES "gfx908")
-            set(MIOPEN_TEST_GFX908 ON)
-        else()
-            message(WARNING "TESTING IS NOT SUPPORTED FOR THE DETECTED GPU")
-        endif()
-    else()
-        message(WARNING "GPU DETECTION FAILED, SO AUTOMATIC TESTING MAY FAIL. Manually set respective MIOPEN_TEST_GFX* CMake variable to specify the target GPU for testing.")
-    endif()
-endif()
-message(STATUS "MIOPEN_TEST_VEGA ${MIOPEN_TEST_VEGA}")
-message(STATUS "MIOPEN_TEST_GFX908 ${MIOPEN_TEST_GFX908}")
-
-#Run the test suite to a depth limit
+# Run the test suite to a depth limit
 set(MIOPEN_TEST_LIMIT "0" CACHE STRING "")
 set(MIOPEN_TEST_FLAGS "" CACHE STRING "")
 set(MIOPEN_TEST_GDB On CACHE BOOL "")
@@ -94,6 +64,42 @@ if(MIOPEN_BACKEND_HIP AND NOT MIOPEN_TEST_HIP_NOGPU)
     set(MIOPEN_TEST_HIP TRUE)
 endif()
 
+# Detect GPU type for testing.
+# For HIP_NOGPU backend, GPU detection is not required and should be disabled.
+# Also we do not detect GPU when target GPU for testing is specified explicitly.
+if(NOT (MIOPEN_TEST_VEGA OR MIOPEN_TEST_GFX908 OR MIOPEN_TEST_HIP_NOGPU))
+    find_program(ROCMINFO
+        NAMES rocminfo
+        PATHS
+            /opt/rocm
+            ${CMAKE_INSTALL_PREFIX}
+        PATH_SUFFIXES
+            /bin
+    )
+    message(STATUS "rocminfo utility: ${ROCMINFO}")
+    if(ROCMINFO)
+        execute_process (
+            COMMAND ${ROCMINFO}_
+            OUTPUT_VARIABLE ROCMINFO_OUTPUT
+            RESULT_VARIABLE ROCMINFO_EXIT_STATUS
+        )
+        if(NOT ROCMINFO_EXIT_STATUS EQUAL 0)
+            message(FATAL_ERROR "ROCMINFO FAILED, GPU TYPE UNKNOWN. Manually set respective MIOPEN_TEST_GFX* CMake variable to specify target GPU for testing.")
+        endif()
+        if(ROCMINFO_OUTPUT MATCHES "gfx900|gfx906")
+            set(MIOPEN_TEST_VEGA ON)
+        elseif(ROCMINFO_OUTPUT MATCHES "gfx908")
+            set(MIOPEN_TEST_GFX908 ON)
+        else()
+            message(WARNING "TESTING IS NOT SUPPORTED FOR THE DETECTED GPU")
+        endif()
+    else()
+        message(FATAL_ERROR "ROCMINFO NOT FOUND, GPU TYPE UNKNOWN. Manually set respective MIOPEN_TEST_GFX* CMake variable to specify target GPU for testing.")
+    endif()
+endif()
+message(STATUS "MIOPEN_TEST_VEGA ${MIOPEN_TEST_VEGA}")
+message(STATUS "MIOPEN_TEST_GFX908 ${MIOPEN_TEST_GFX908}")
+
 if(MIOPEN_TEST_DRIVER_ITER_MODE)
     add_definitions(-DMIOPEN_TEST_DRIVER_MODE=2)
 else()
@@ -104,13 +110,7 @@ find_package(Threads REQUIRED)
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C ${CMAKE_CFG_INTDIR})
 add_custom_target(tests)
 
-if(MIOPEN_TEST_GFX908)
-    set(MIOPEN_TEST_VEGA FALSE)
-endif()
-
 set(MIOPEN_TEST_FLOAT_ARG)
-
-
 set(MIOPEN_TEST_FLOAT FALSE)
 if(MIOPEN_TEST_HALF)
     set(MIOPEN_TEST_FLOAT_ARG --half)
@@ -122,7 +122,6 @@ else()
     set(MIOPEN_TEST_FLOAT_ARG --float)
     set(MIOPEN_TEST_FLOAT TRUE)
 endif()
-
 
 if(NOT MIOPEN_TEST_MIOTENSILE)
 	if(MIOPEN_TEST_HALF)
@@ -175,8 +174,6 @@ if(SKIP_ALL_EXCEPT_TESTS)
 endif()
 message(STATUS "SKIP_TESTS: ${SKIP_TESTS}")
 message(STATUS "SKIP_ALL_EXCEPT_TESTS: ${SKIP_ALL_EXCEPT_TESTS}")
-
-
 
 
 function(add_test_command NAME EXE)
