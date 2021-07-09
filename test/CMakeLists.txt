@@ -79,7 +79,7 @@ if(NOT (MIOPEN_TEST_VEGA OR MIOPEN_TEST_GFX908 OR MIOPEN_TEST_HIP_NOGPU))
     message(STATUS "rocminfo utility: ${ROCMINFO}")
     if(ROCMINFO)
         execute_process (
-            COMMAND ${ROCMINFO}_
+            COMMAND ${ROCMINFO}
             OUTPUT_VARIABLE ROCMINFO_OUTPUT
             RESULT_VARIABLE ROCMINFO_EXIT_STATUS
         )
