@@ -441,16 +441,16 @@ pipeline {
                         buildHipClangJobAndReboot(setup_flags: MLIR_flags + Fp16_flags, build_env: extra_log_env, test_flags: ' --verbose ', mlir_build: "ON")
                     }
                 }
-                stage('Fp16 Hip MLIR Xdlops') {
+                stage('Fp16 Hip MLIR gfx908') {
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: MLIR_flags + Fp16_flags + gfx908_test, build_env: extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908", mlir_build: "ON")
+                        buildHipClangJobAndReboot(setup_flags: MLIR_flags + Fp16_flags, build_env: extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908", mlir_build: "ON")
                     }
                 }
-                stage('Fp32 Hip MLIR Xdlops') {
+                stage('Fp32 Hip MLIR gfx908') {
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: MLIR_flags + gfx908_test, build_env: extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908", mlir_build: "ON")
+                        buildHipClangJobAndReboot(setup_flags: MLIR_flags, build_env: extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908", mlir_build: "ON")
                     }
                 }
             }
