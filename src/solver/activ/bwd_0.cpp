@@ -146,23 +146,25 @@ ConvSolution ActivBwdSolver0::GetSolution(const ExecutionContext&,
         compiler_options.Define("MIOPEN_USE_FP32", 0);
     }
 
-    auto kernel = KernelInfo{};
+    {
+        auto kernel = KernelInfo{};
 
-    kernel.comp_options = compiler_options.GenerateFor(kbp::OpenCL{});
-    kernel.kernel_file  = "MIOpenNeuron.cl";
-    kernel.kernel_name  = (packed) ? "MIOpenActiveBwdLite" : "MIOpenActiveBwd2DLite";
+        kernel.comp_options = compiler_options.GenerateFor(kbp::OpenCL{});
+        kernel.kernel_file  = "MIOpenNeuron.cl";
+        kernel.kernel_name  = (packed) ? "MIOpenActiveBwdLite" : "MIOpenActiveBwd2DLite";
 
-    kernel.l_wk.push_back(256);
-    kernel.l_wk.push_back(1);
-    kernel.l_wk.push_back(1);
+        kernel.l_wk.push_back(256);
+        kernel.l_wk.push_back(1);
+        kernel.l_wk.push_back(1);
 
-    // first dimension looks similar but for the packed it is a full image for the
-    // non-packed 2D it's width
-    kernel.g_wk.push_back(MAP_RD);
-    kernel.g_wk.push_back(packed ? 1 : height);
-    kernel.g_wk.push_back(1);
+        // first dimension looks similar but for the packed it is a full image for the
+        // non-packed 2D it's width
+        kernel.g_wk.push_back(MAP_RD);
+        kernel.g_wk.push_back(packed ? 1 : height);
+        kernel.g_wk.push_back(1);
 
-    result.construction_params.push_back(kernel);
+        result.construction_params.push_back(kernel);
+    }
 
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         const auto kernel_handle = kernels.front();
@@ -204,20 +206,20 @@ ConvSolution ActivBwdSolver0::GetSolution(const ExecutionContext&,
                 }
                 else
                 {
-                    const auto& x_lens  = params.x_desc.GetLengths();
-                    const auto& y_lens  = params.y_desc.GetLengths();
-                    const auto& dx_lens = params.dx_desc.GetLengths();
-                    const auto& dy_lens = params.dy_desc.GetLengths();
+                    const auto& x_lens_  = params.x_desc.GetLengths();
+                    const auto& y_lens_  = params.y_desc.GetLengths();
+                    const auto& dx_lens_ = params.dx_desc.GetLengths();
+                    const auto& dy_lens_ = params.dy_desc.GetLengths();
 
-                    const auto& x_strides  = xDesc.GetStrides();
-                    const auto& y_strides  = yDesc.GetStrides();
-                    const auto& dx_strides = dxDesc.GetStrides();
-                    const auto& dy_strides = dyDesc.GetStrides();
+                    const auto& x_strides_  = params.x_desc.GetStrides();
+                    const auto& y_strides_  = params.y_desc.GetStrides();
+                    const auto& dx_strides_ = params.dx_desc.GetStrides();
+                    const auto& dy_strides_ = params.dy_desc.GetStrides();
 
-                    const auto x_stride2D  = x_strides[x_lens.size() - 2];
-                    const auto y_stride2D  = y_strides[y_lens.size() - 2];
-                    const auto dx_stride2D = dx_strides[dx_lens.size() - 2];
-                    const auto dy_stride2D = dy_strides[dy_lens.size() - 2];
+                    const auto x_stride2D_  = x_strides_[x_lens_.size() - 2];
+                    const auto y_stride2D_  = y_strides_[y_lens_.size() - 2];
+                    const auto dx_stride2D_ = dx_strides_[dx_lens_.size() - 2];
+                    const auto dy_stride2D_ = dy_strides_[dy_lens_.size() - 2];
 
                     kernel(dx,
                            dy,
@@ -231,10 +233,10 @@ ConvSolution ActivBwdSolver0::GetSolution(const ExecutionContext&,
                            static_cast<long long>(dyOffset),
                            static_cast<long long>(xOffset),
                            static_cast<long long>(yOffset),
-                           dx_stride2D,
-                           dy_stride2D,
-                           x_stride2D,
-                           y_stride2D);
+                           dx_stride2D_,
+                           dy_stride2D_,
+                           x_stride2D_,
+                           y_stride2D_);
                 }
             });
         };
