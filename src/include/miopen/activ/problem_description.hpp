@@ -49,10 +49,7 @@ struct ProblemDescription
     ProblemDescription(const ActivationDescriptor& activ,
                        const TensorDescriptor& xDesc_,
                        const TensorDescriptor& yDesc_)
-        : direction(Direction::Forward),
-          activDesc(activ),
-          xDesc(xDesc_),
-          yDesc(yDesc_)
+        : direction(Direction::Forward), activDesc(activ), xDesc(xDesc_), yDesc(yDesc_)
     {
     }
 
