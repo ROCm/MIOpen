@@ -104,8 +104,6 @@ bool ActivBwdSolver0::IsApplicable(const ExecutionContext&,
 ConvSolution ActivBwdSolver0::GetSolution(const ExecutionContext&,
                                           const miopen::activ::ProblemDescription& problem) const
 {
-    MIOPEN_THROW("Not implemented");
-
     auto result = ConvSolution{miopenStatusSuccess};
 
     const auto& xDesc  = problem.GetXDesc();
