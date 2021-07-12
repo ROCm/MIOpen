@@ -48,6 +48,7 @@ namespace miopen {
  */
 inline bool IsEnvvarValueDisabled(const char* name)
 {
+    // NOLINTNEXTLINE (concurrency-mt-unsafe)
     const auto value_env_p = std::getenv(name);
     return value_env_p != nullptr &&
            (std::strcmp(value_env_p, "disable") == 0 || std::strcmp(value_env_p, "disabled") == 0 ||
@@ -57,6 +58,7 @@ inline bool IsEnvvarValueDisabled(const char* name)
 
 inline bool IsEnvvarValueEnabled(const char* name)
 {
+    // NOLINTNEXTLINE (concurrency-mt-unsafe)
     const auto value_env_p = std::getenv(name);
     return value_env_p != nullptr &&
            (std::strcmp(value_env_p, "enable") == 0 || std::strcmp(value_env_p, "enabled") == 0 ||
@@ -68,6 +70,7 @@ inline bool IsEnvvarValueEnabled(const char* name)
 // Supports hexadecimal with leading 0x or decimal
 inline unsigned long int EnvvarValue(const char* name, unsigned long int fallback = 0)
 {
+    // NOLINTNEXTLINE (concurrency-mt-unsafe)
     const auto value_env_p = std::getenv(name);
     if(value_env_p == nullptr)
     {
@@ -81,6 +84,7 @@ inline unsigned long int EnvvarValue(const char* name, unsigned long int fallbac
 
 inline std::vector<std::string> GetEnv(const char* name)
 {
+    // NOLINTNEXTLINE (concurrency-mt-unsafe)
     const auto p = std::getenv(name);
     if(p == nullptr)
         return {};

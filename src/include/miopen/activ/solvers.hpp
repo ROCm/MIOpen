@@ -46,6 +46,14 @@ struct ActivFwdSolver0 : public SolverBase<ProblemDescription>
                              const miopen::activ::ProblemDescription& problem) const;
 };
 
+struct ActivFwdSolver1 : public SolverBase<ProblemDescription>
+{
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::activ::ProblemDescription& problem) const;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::activ::ProblemDescription& problem) const;
+};
+
 } // namespace activ
 
 } // namespace solver
