@@ -60,8 +60,12 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     std::ostringstream ss;
 
     ss << "activ-";
+
     if(direction == Direction::Backward)
         ss << "bwd-";
+    else
+        ss << "fwd-";
+
     ss << ((packed) ? "11" : "10"); // + lite bit
     ss << xDesc.GetType();
     ss << activDesc.GetMode();
