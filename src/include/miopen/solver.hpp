@@ -2575,7 +2575,7 @@ struct PerformanceConfigAsmImplicitGemmGTC : Serializable<PerformanceConfigAsmIm
     bool operator==(const PerformanceConfigAsmImplicitGemmGTC& other) const;
     void CopyParameters(const PerformanceConfigAsmImplicitGemmGTC& other);
     std::string ToString() const;
-    std::string ToKernelName() const;
+    std::string ToKernelName(const ConvolutionContext& ctx) const;
     int BlockSize() const;
 };
 

@@ -254,7 +254,7 @@ static std::tuple<std::string, // kernel_name
                        (1 << config.gemm_k_global_split);
     if(config.multihead != 0)
         grid_size *= num_of_gemm;
-    std::string kernel_name = config.ToKernelName();
+    std::string kernel_name = config.ToKernelName(ctx);
     return std::make_tuple(kernel_name, block_size, grid_size);
 }
 
