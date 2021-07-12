@@ -233,10 +233,10 @@ ConvSolution ActivBwdSolver0::GetSolution(const ExecutionContext&,
                            static_cast<long long>(dyOffset),
                            static_cast<long long>(xOffset),
                            static_cast<long long>(yOffset),
-                           dx_stride2D_,
-                           dy_stride2D_,
-                           x_stride2D_,
-                           y_stride2D_);
+                           static_cast<unsigned int>(dx_stride2D_),
+                           static_cast<unsigned int>(dy_stride2D_),
+                           static_cast<unsigned int>(x_stride2D_),
+                           static_cast<unsigned int>(y_stride2D_));
                 }
             });
         };
