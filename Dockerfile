@@ -69,7 +69,8 @@ apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unau
     rocm-opencl-dev \
     rocm-cmake \
     rocblas \
-    zlib1g-dev && \
+    zlib1g-dev \
+    kmod && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
