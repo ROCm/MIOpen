@@ -93,7 +93,7 @@ void PerformanceConfigAsmImplicitGemmGTC::HeuristicInit(const ConvolutionContext
     // need override in child struct
     (void)ctx;
 }
-bool PerformanceConfigAsmImplicitGemmGTC::SetNextValue()
+bool PerformanceConfigAsmImplicitGemmGTC::SetNextValue(const ConvolutionContext& /*config*/)
 {
     // need override in child struct
     return false;
