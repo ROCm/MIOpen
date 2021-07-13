@@ -337,7 +337,7 @@ pipeline {
                       build_cmd = "make -j\$(nproc) install"
                   }
                   steps{
-                      buildHipClangJobAndReboot(setup_cmd: setup_cmd, execute_cmd: "", no_reboot:true, build_fin: true, prefixpath: "/opt/rocm")
+                      buildHipClangJobAndReboot(setup_cmd: setup_cmd, execute_cmd: "", no_reboot:true, build_fin: true, prefixpath: "/opt/rocm", build_cmd: build_cmd)
                   }
               }
             }
