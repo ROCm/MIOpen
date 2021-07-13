@@ -2567,10 +2567,12 @@ struct PerformanceConfigAsmImplicitGemmGTC : Serializable<PerformanceConfigAsmIm
         f(self.index, "index");
     }
 
-    void HeuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue(const ConvolutionContext& config);
-    bool IsValidValue() const;
-    bool IsValid(const ConvolutionContext& ctx) const;
+    // Chilrden must provide support for ComputedContainer.
+    void HeuristicInit(const ConvolutionContext&) = delete;
+    bool SetNextValue(const ConvolutionContext&)  = delete;
+    bool IsValidValue() const                     = delete;
+    bool IsValid(const ConvolutionContext&) const = delete;
+
     bool IsDefaultConstructed() const;
     bool operator==(const PerformanceConfigAsmImplicitGemmGTC& other) const;
     void CopyParameters(const PerformanceConfigAsmImplicitGemmGTC& other);
