@@ -167,6 +167,7 @@ def buildHipClangJob(Map conf=[:]){
                         def compiler = conf.get("compiler","/opt/rocm/llvm/bin/clang++")
                         git credentialsId: '7126e5fe-eb51-4576-b52b-9aaf1de8f0fd' , branch: 'develop', url: 'https://github.com/ROCmSoftwarePlatform/fin.git'
                         sh '''
+                            cmake -P install_deps.cmake
                             mkdir build 
                             cd build
                             CXX=$(compiler) cmake .. 
