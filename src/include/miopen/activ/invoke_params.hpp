@@ -47,6 +47,27 @@ struct InvokeParams : public miopen::InvokeParams
     size_t y_offset = 0;
 };
 
+struct BwdInvokeParams : public miopen::InvokeParams
+{
+    BwdInvokeParams() = default;
+
+    double alpha = 0;
+    double beta  = 0;
+    double gamma = 0;
+    TensorDescriptor x_desc;
+    TensorDescriptor y_desc;
+    TensorDescriptor dx_desc;
+    TensorDescriptor dy_desc;
+    ConstData_t x    = nullptr;
+    ConstData_t y    = nullptr;
+    Data_t dx        = nullptr;
+    ConstData_t dy   = nullptr;
+    size_t x_offset  = 0;
+    size_t y_offset  = 0;
+    size_t dx_offset = 0;
+    size_t dy_offset = 0;
+};
+
 } // namespace activ
 
 } // namespace miopen
