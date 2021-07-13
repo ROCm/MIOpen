@@ -57,7 +57,7 @@ const char* DTypeName(miopenDataType_t ty)
     case miopenInt8: return "i8";
     case miopenInt8x4: return "i8x4";
     }
-    MIOPEN_THROW("Internal error: value outside of datatype enum");
+    MIOPEN_THROW(miopenStatusInternalError, "Value outside of datatype enum");
 }
 
 /* Construct the options string passed to MLIR to cause it
