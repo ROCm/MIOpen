@@ -244,7 +244,7 @@ void PerformanceConfigConvBinWinogradRxSf3x2::HeuristicInit(const ConvolutionCon
     }
 }
 
-bool PerformanceConfigConvBinWinogradRxSf3x2::SetNextValue()
+bool PerformanceConfigConvBinWinogradRxSf3x2::SetNextValue(const ConvolutionContext& /*config*/)
 {
     return !PerfFieldRules().Next(*this);
 }
