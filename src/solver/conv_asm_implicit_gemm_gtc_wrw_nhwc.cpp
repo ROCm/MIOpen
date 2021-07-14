@@ -596,7 +596,6 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(const ConvolutionC
         return false;
 
     const auto device_name = ctx.GetStream().GetDeviceName();
-    std::cout << __LINE__ << ": " << device_name << std::endl;
     if((device_name != "gfx908") && (device_name != "gfx90a"))
         return false;
 
