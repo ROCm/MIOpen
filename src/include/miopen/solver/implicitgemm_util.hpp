@@ -217,6 +217,16 @@ struct ConvolutionContextInterpreter
             return c.in_width;
     }
 
+    static auto GetOutputDataType(const ConvolutionContext& c)
+    {
+        return c.direction.IsForward() ? c.out_data_type : c.in_data_type;
+    }
+
+    static auto GetInputDataType(const ConvolutionContext& c)
+    {
+        return c.direction.IsForward() ? c.in_data_type : c.out_data_type;
+    }
+
     static auto GetFilterDepthZ(const ConvolutionContext& c) { return c.kernel_size_d; }
 
     static auto GetFilterLayout(const ConvolutionContext& c) { return c.weights_layout; }
