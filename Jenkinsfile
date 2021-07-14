@@ -133,7 +133,11 @@ def buildhipclangjob(Map conf){
 }
 
 def reboot(){
-    build job: 'reboot-slaves', propagate: false , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+    //build job: 'reboot-slaves', propagate: false , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
+    sh  '''
+	echo "disabled reboot on MI200"
+	'''
+    
 }
 
 def runDockerJob(Map conf){
