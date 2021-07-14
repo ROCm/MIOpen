@@ -850,7 +850,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
 
         conv_v->solver = solver::ConvOclDirectFwdFused{};
 
-        std::vector<size_t> lens = {1, 3, 5, 7, 9, 11};
+        std::vector<size_t> lens = {3, 5, 7, 9, 11};
         for(auto len : lens)
         {
             FusionMDGraph_Edge_Map map_conv_bias;
