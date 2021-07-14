@@ -473,7 +473,8 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
     }
 }
 
-bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::SetNextValue()
+bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::SetNextValue(
+    const ConvolutionContext& /*config*/)
 {
     if(use_spare_set)
     {

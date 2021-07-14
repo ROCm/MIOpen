@@ -488,7 +488,8 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValidValue() const
         return false;
     return *this == config_list[index];
 }
-bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::SetNextValue()
+bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::SetNextValue(
+    const ConvolutionContext& /*config*/)
 {
     if(use_spare_set)
     {
