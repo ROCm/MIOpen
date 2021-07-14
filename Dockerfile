@@ -35,6 +35,7 @@ apt-get update  --allow-insecure-repositories && DEBIAN_FRONTEND=noninteractive 
     ca-certificates \
     curl \
     libnuma-dev \
+    rock-dkms \
     gnupg && \
 #wget -q -O - https://repo.radeon.com/rocm/apt/$ROCM_KEY_VER/rocm.gpg.key | apt-key add - && \
 apt-get update  --allow-insecure-repositories && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
