@@ -119,6 +119,7 @@ set( MIOpen_Source
     solver/activ/fwd_0.cpp
     solver/activ/fwd_1.cpp
     solver/activ/bwd_0.cpp
+    solver/activ/bwd_1.cpp
     include/miopen/buffer_info.hpp
     include/miopen/temp_file.hpp
     include/miopen/bfloat16.hpp
