@@ -471,6 +471,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
                        miopenConvolutionAlgoImplicitGEMM);
 
     Register(registry, ++id, Primitive::Activation, SolverDbId(activ::ActivBwdSolver0{}));
+    Register(registry, ++id, Primitive::Activation, SolverDbId(activ::ActivBwdSolver1{}));
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }
