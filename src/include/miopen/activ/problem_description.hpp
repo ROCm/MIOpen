@@ -72,8 +72,20 @@ struct ProblemDescription
     const ActivationDescriptor& GetActivDesc() const { return activDesc; }
     const TensorDescriptor& GetXDesc() const { return xDesc; }
     const TensorDescriptor& GetYDesc() const { return yDesc; }
-    const TensorDescriptor& GetDXDesc() const { return xDesc; }
-    const TensorDescriptor& GetDYDesc() const { return yDesc; }
+
+    const TensorDescriptor& GetDXDesc() const
+    {
+        if(direction == Direction::Forward)
+            MIOPEN_THROW(miopenStatusInternalError, "Invalid operation.");
+        return xDesc;
+    }
+
+    const TensorDescriptor& GetDYDesc() const
+    {
+        if(direction == Direction::Forward)
+            MIOPEN_THROW(miopenStatusInternalError, "Invalid operation.");
+        return yDesc;
+    }
 
     NetworkConfig MakeNetworkConfig() const;
 
