@@ -223,9 +223,9 @@ std::string PerformanceConfigAsmImplicitGemmGTC::ToKernelName(const ConvolutionC
 {
     std::ostringstream kernel_name;
     std::string kernel_precision = precision == miopenFloat ? "fp32" : "fp16";
-    const auto device_name = ctx.GetStream().GetDeviceName();
-    std::string kernel_arch = device_name == "gfx908" ? "_gtcx_" : "_gtcx2_";
-    kernel_name << "igemm_" << direction << kernel_arch << tensor_layout << "_" << kernel_precision
+    const auto device_name       = ctx.GetStream().GetDeviceName();
+    std::string gtc_str          = device_name == "gfx908" ? "_gtcx_" : "_gtcx2_";
+    kernel_name << "igemm_" << direction << gtc_str << tensor_layout << "_" << kernel_precision
                 << "_bx" << nxb << "_ex" << nxe << "_bt" << gemm_m_per_block << "x"
                 << gemm_n_per_block << "x" << gemm_k_per_block << "_wt" << wave_tile_m << "x"
                 << wave_tile_n << "x" << wave_tile_k << "_ws" << wave_step_m << "x" << wave_step_n
