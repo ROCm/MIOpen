@@ -208,7 +208,7 @@ def buildHipClangJobAndReboot(Map conf=[:]){
 ///   * "All" corresponds to "cmake -DMIOPEN_TEST_ALL=On".
 ///   * "Smoke" (-DMIOPEN_TEST_ALL=Off) is the default and usually not specified.
 ///   * "Codecov" is optional code coverage analysis.
-/// Target := { gfx908 | Vega20 | Vega10 | Vega* }
+/// Target := { gfx908 | Vega20 | Vega10 | Vega* | gfx1030 }
 ///   * "Vega" (gfx906 or gfx900) is the default and usually not specified.
 
 
@@ -344,6 +344,12 @@ pipeline {
                 }
                 stage('Fp32 Hip Debug') {
                     agent{ label rocmnode("vega") }
+                    steps{
+                        buildHipClangJobAndReboot(build_type: 'debug', config_targets: Smoke_targets)
+                    }
+                }
+                stage('Fp32 Hip Debug gfx1030') {
+                    agent{ label rocmnode("navi21") }
                     steps{
                         buildHipClangJobAndReboot(build_type: 'debug', config_targets: Smoke_targets)
                     }
@@ -581,6 +587,12 @@ pipeline {
                     agent{ label rocmnode("vega20") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Full_test_limit, build_env: WORKAROUND_iGemm_936)
+                    }
+                }
+                stage('Fp32 Hip All gfx1030') {
+                    agent{ label rocmnode("navi21") }
+                    steps{
+                        buildHipClangJobAndReboot( setup_flags: Full_test_limit)
                     }
                 }
                 stage('Fp16 Hip All Install gfx908') {
