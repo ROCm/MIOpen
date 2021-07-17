@@ -32,7 +32,7 @@
 #endif
 
 #if(MIO_BN_GFX1030 == 1 && __AMDGCN__)
-#undef __AMDGCN__
+#define MIOPEN_USE_AMDGCN 0
 #endif
 
 #include "batchnorm_functions.h"
@@ -167,7 +167,7 @@ MIOpenBatchNormActivBwdSpatial(const __global _FLOAT* __restrict x_in,
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 
-#ifndef __AMDGCN__
+#if MIOPEN_USE_AMDGCN == 0
     local _FLOAT_ACCUM lcl_data_x2[MIO_BN_LDS_SIZE];
     local _FLOAT_ACCUM lcl_data_y2[MIO_BN_LDS_SIZE];
     lds_reduce2(&ds, &db, (_FLOAT_ACCUM)1.0, lcl_data_x2, lcl_data_y2, lid);
@@ -416,7 +416,7 @@ MIOpenBatchNormActivBwdSpatial(const __global _FLOAT* __restrict x_in,
 #endif
     barrier(CLK_GLOBAL_MEM_FENCE);
 
-#ifndef __AMDGCN__
+#if MIOPEN_USE_AMDGCN == 0
     local _FLOAT_ACCUM lcl_data_x2[MIO_BN_LDS_SIZE];
     local _FLOAT_ACCUM lcl_data_y2[MIO_BN_LDS_SIZE];
     lds_reduce2(&ds, &db, (_FLOAT_ACCUM)1.0, lcl_data_x2, lcl_data_y2, lid);
@@ -610,7 +610,7 @@ MIOpenBatchNormActivBwdSpatial(const __global _FLOAT* __restrict x_in,
 
     barrier(CLK_LOCAL_MEM_FENCE);
 
-#ifndef __AMDGCN__
+#if MIOPEN_USE_AMDGCN == 0
     local _FLOAT_ACCUM lcl_data_x2[MIO_BN_LDS_SIZE];
     local _FLOAT_ACCUM lcl_data_y2[MIO_BN_LDS_SIZE];
     lds_reduce2(&ds, &db, (_FLOAT_ACCUM)1.0, lcl_data_x2, lcl_data_y2, lid);

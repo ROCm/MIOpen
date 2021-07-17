@@ -34,7 +34,7 @@
 #endif
 
 #if(MIO_BN_GFX1030 == 1 && __AMDGCN__)
-#undef __AMDGCN__
+#define MIOPEN_USE_AMDGCN 0
 #endif
 
 #include "batchnorm_functions.h"

@@ -33,7 +33,7 @@
 #endif
 
 #if(MIO_BN_GFX1030 == 1 && __AMDGCN__)
-#undef __AMDGCN__
+#define MIOPEN_USE_AMDGCN 0
 #endif
 
 #include "batchnorm_functions.h"
@@ -127,7 +127,7 @@ MIOpenBatchNormActivFwdTrainSpatial(float INHW,
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 
-#ifndef __AMDGCN__
+#if MIOPEN_USE_AMDGCN == 0
     local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDS_SIZE];
     local _FLOAT_ACCUM lcl_data_y[MIO_BN_LDS_SIZE];
     lds_reduce2(&mean, &variance, (_FLOAT_ACCUM)INHW, lcl_data_x, lcl_data_y, lid);
@@ -325,7 +325,7 @@ MIOpenBatchNormActivFwdTrainSpatial(
     barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
 
 // REDUCE MEAN AND VARIANCE -----------------------
-#ifndef __AMDGCN__
+#if MIOPEN_USE_AMDGCN == 0
     local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDS_SIZE];
     local _FLOAT_ACCUM lcl_data_y[MIO_BN_LDS_SIZE];
     lds_reduce2(&mean, &variance, (_FLOAT_ACCUM)INHW, lcl_data_x, lcl_data_y, lid);
@@ -503,7 +503,7 @@ MIOpenBatchNormActivFwdTrainSpatial(
     }
     barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
 
-#ifndef __AMDGCN__
+#if MIOPEN_USE_AMDGCN == 0
 #if MIOPEN_USE_FP16 == 1
     local float lcl_data[MIO_BN_LDS_SIZE];
     lcl_data[lid] = (float)mean;
