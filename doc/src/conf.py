@@ -44,7 +44,6 @@
 import os
 import sys
 import re
-import itertools
 sys.path.insert(0, os.path.abspath('.'))
 import recommonmark
 from recommonmark.parser import CommonMarkParser
@@ -98,7 +97,7 @@ author = u'Advanced Micro Devices, Inc'
 # built documents.
 #
 # The short X.Y version.
-version_line = next(itertools.ifilter(lambda x:'rocm_setup_version' in x, open('../../CMakeLists.txt').readlines()))
+version_line = next(filter(lambda x:'rocm_setup_version' in x, open('../../CMakeLists.txt').readlines()))
 version = re.findall('[0-9.]+', version_line)[0]
 # The full version, including alpha/beta/rc tags.
 release = version
