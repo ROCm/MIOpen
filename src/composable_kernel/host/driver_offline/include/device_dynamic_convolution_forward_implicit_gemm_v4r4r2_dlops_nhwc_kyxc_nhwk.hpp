@@ -2,7 +2,7 @@
 #include "device.hpp"
 #include "host_tensor.hpp"
 #include "transform_forward_convolution_into_gemm_v4r4r4_nhwc_kyxc_nhwk.hpp"
-#include "driver_dynamic_gemm_v1r3.hpp"
+#include "driver_dynamic_gemm_dlops_v1r3.hpp"
 
 template <typename TInWei,
           typename TAcc,
@@ -14,7 +14,7 @@ template <typename TInWei,
           typename ConvDilations,
           typename InLeftPads,
           typename InRightPads>
-void device_dynamic_convolution_forward_implicit_gemm_v4r4r2_nhwc_kyxc_nhwk(
+void device_dynamic_convolution_forward_implicit_gemm_v4r4r2_dlops_nhwc_kyxc_nhwk(
     const InLengths& in_n_hi_wi_c_lengths,
     const WeiLengths& wei_k_y_x_c_lengths,
     const OutLengths& out_n_ho_wo_k_lengths,
@@ -211,7 +211,7 @@ void device_dynamic_convolution_forward_implicit_gemm_v4r4r2_nhwc_kyxc_nhwk(
 
     for(index_t i = 0; i < 5; ++i)
     {
-        float ave_time = driver_dynamic_gemm_v1r3<
+        float ave_time = driver_dynamic_gemm_dlops_v1r3<
             BlockSize,
             TInWei,
             TAcc,

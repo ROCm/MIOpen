@@ -14,8 +14,8 @@
 #include "device_tensor.hpp"
 #include "handle.hpp"
 #include "hipCheck.hpp"
-#include "online_device_dynamic_convolution_forward_implicit_gemm_v4r4_nchw_kcyx_nkhw.hpp"
-#include "online_device_dynamic_convolution_forward_implicit_gemm_v6r1_nchw_kcyx_nkhw.hpp"
+#include "online_device_dynamic_convolution_forward_implicit_gemm_v4r4_dlops_nchw_kcyx_nkhw.hpp"
+#include "online_device_dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw.hpp"
 #include "online_device_dynamic_convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw.hpp"
 #include "online_device_dynamic_convolution_forward_implicit_gemm_v4r4_xdlops_nhwc_kyxc_nhwk.hpp"
 
@@ -225,25 +225,25 @@ int main(int argc, char* argv[])
 
         const auto tmp = f_make_for_device_nchw();
 
-        tunable_dyn_conv_fwd_v4r4_nchw_kcyx_nkhw* tunable =
-            &default_tunable_dyn_conv_fwd_v4r4_nchw_kcyx_nkhw;
+        tunable_dyn_conv_fwd_v4r4_dlops_nchw_kcyx_nkhw* tunable =
+            &default_tunable_dyn_conv_fwd_v4r4_dlops_nchw_kcyx_nkhw;
 
-        online_device_dynamic_convolution_forward_implicit_gemm_v4r4_nchw_kcyx_nkhw<in_data_t,
-                                                                                    acc_data_t,
-                                                                                    out_data_t>(
-            handle,
-            tmp[I0],
-            tmp[I1],
-            tmp[I2],
-            conv_strides,
-            conv_dilations,
-            in_left_pads,
-            in_right_pads,
-            in,
-            wei,
-            out_device,
-            tunable,
-            nrepeat);
+        online_device_dynamic_convolution_forward_implicit_gemm_v4r4_dlops_nchw_kcyx_nkhw<
+            in_data_t,
+            acc_data_t,
+            out_data_t>(handle,
+                        tmp[I0],
+                        tmp[I1],
+                        tmp[I2],
+                        conv_strides,
+                        conv_dilations,
+                        in_left_pads,
+                        in_right_pads,
+                        in,
+                        wei,
+                        out_device,
+                        tunable,
+                        nrepeat);
     }
 #endif
 
@@ -257,24 +257,24 @@ int main(int argc, char* argv[])
 
         const auto tmp = f_make_for_device_nchw();
 
-        const auto tunable = tunable_dyn_conv_fwd_v6r1_nchw_kcyx_nkhw{};
+        const auto tunable = tunable_dyn_conv_fwd_v6r1_dlops_nchw_kcyx_nkhw{};
 
-        online_device_dynamic_convolution_forward_implicit_gemm_v6r1_nchw_kcyx_nkhw<in_data_t,
-                                                                                    acc_data_t,
-                                                                                    out_data_t>(
-            handle,
-            tmp[I0],
-            tmp[I1],
-            tmp[I2],
-            conv_strides,
-            conv_dilations,
-            in_left_pads,
-            in_right_pads,
-            in,
-            wei,
-            out_device,
-            tunable,
-            nrepeat);
+        online_device_dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw<
+            in_data_t,
+            acc_data_t,
+            out_data_t>(handle,
+                        tmp[I0],
+                        tmp[I1],
+                        tmp[I2],
+                        conv_strides,
+                        conv_dilations,
+                        in_left_pads,
+                        in_right_pads,
+                        in,
+                        wei,
+                        out_device,
+                        tunable,
+                        nrepeat);
     }
 #endif
 

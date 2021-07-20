@@ -1,10 +1,10 @@
-#ifndef CK_BLOCKWISE_GEMM_V2R3_HPP
-#define CK_BLOCKWISE_GEMM_V2R3_HPP
+#ifndef CK_BLOCKWISE_GEMM_DLOPS_V2R3_HPP
+#define CK_BLOCKWISE_GEMM_DLOPS_V2R3_HPP
 
 #include "common_header.hpp"
 #include "tensor_adaptor.hpp"
 #include "threadwise_dynamic_tensor_slice_transfer_v2.hpp"
-#include "threadwise_contraction.hpp"
+#include "threadwise_contraction_dlops.hpp"
 
 namespace ck {
 
@@ -40,7 +40,7 @@ template <index_t BlockSize,
           typename std::enable_if<ABlockDesc_BK0_BM_BK1::IsKnownAtCompileTime() &&
                                       BBlockDesc_BK0_BN_BK1::IsKnownAtCompileTime(),
                                   bool>::type = false>
-struct BlockwiseGemm_A_BK0_BM_BK1_B_BK0_BN_BK1_C_BM0_BM1_BN0_BN1_pipeline_BM0_2_BN0_2
+struct BlockwiseGemmDlops_A_BK0_BM_BK1_B_BK0_BN_BK1_C_BM0_BM1_BN0_BN1_pipeline_BM0_2_BN0_2
 {
     using AIndex = MultiIndex<3>;
     using BIndex = MultiIndex<3>;
@@ -149,7 +149,7 @@ struct BlockwiseGemm_A_BK0_BM_BK1_B_BK0_BN_BK1_C_BM0_BM1_BN0_BN1_pipeline_BM0_2_
         MakeBBlockDescriptor_BK0_BN0_BN1_BK1(BBlockDesc_BK0_BN_BK1{});
 
     public:
-    __device__ BlockwiseGemm_A_BK0_BM_BK1_B_BK0_BN_BK1_C_BM0_BM1_BN0_BN1_pipeline_BM0_2_BN0_2()
+    __device__ BlockwiseGemmDlops_A_BK0_BM_BK1_B_BK0_BN_BK1_C_BM0_BM1_BN0_BN1_pipeline_BM0_2_BN0_2()
         : c_thread_origin_data_idx_{CalculateCThreadOriginOnBlock_BM0_BM1_BN0_BN1(
               get_thread_local_1d_id())},
           a_thread_copy_{
@@ -222,7 +222,7 @@ struct BlockwiseGemm_A_BK0_BM_BK1_B_BK0_BN_BK1_C_BM0_BM1_BN0_BN1_pipeline_BM0_2_
             b_thread_desc_bk0_bn0_bn1_bk1_.GetElementSpaceSize());
 
         constexpr auto threadwise_contraction =
-            ThreadwiseContraction_A_TK0_TM0_TM1_TK1_B_TK0_TN0_TN1_TK1_C_TM0_TM1_TN0_TN1<
+            ThreadwiseContractionDlops_A_TK0_TM0_TM1_TK1_B_TK0_TN0_TN1_TK1_C_TM0_TM1_TN0_TN1<
                 FloatA,
                 FloatB,
                 FloatC,

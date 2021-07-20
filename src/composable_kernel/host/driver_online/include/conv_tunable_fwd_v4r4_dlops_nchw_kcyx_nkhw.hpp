@@ -1,7 +1,7 @@
-#ifndef CONV_TUNABLE_FWD_V4R4_NCHW_KCYX_NKHW_HPP
-#define CONV_TUNABLE_FWD_V4R4_NCHW_KCYX_NKHW_HPP
+#ifndef CONV_TUNABLE_FWD_V4R4_DLOPS_NCHW_KCYX_NKHW_HPP
+#define CONV_TUNABLE_FWD_V4R4_DLOPS_NCHW_KCYX_NKHW_HPP
 
-struct tunable_dyn_conv_fwd_v4r4_nchw_kcyx_nkhw
+struct tunable_dyn_conv_fwd_v4r4_dlops_nchw_kcyx_nkhw
 {
     int32_t BlockSize;
 
@@ -41,10 +41,11 @@ struct tunable_dyn_conv_fwd_v4r4_nchw_kcyx_nkhw
     int32_t CThreadTransferDstScalarPerVector;
 };
 
-static tunable_dyn_conv_fwd_v4r4_nchw_kcyx_nkhw default_tunable_dyn_conv_fwd_v4r4_nchw_kcyx_nkhw = {
-    256,       128,       128, 8, 4,         4,           1,
-    8,         8,         2,   2, {4, 1, 1}, {2, 1, 128}, {2, 1, 0},
-    {2, 1, 0}, 0,         4,   1, false,     {4, 1, 1},   {2, 1, 128},
-    {0, 1, 2}, {0, 1, 2}, 2,   1, 1,         false,       {3, 4, 5, 0, 1, 2},
-    5,         1};
+static tunable_dyn_conv_fwd_v4r4_dlops_nchw_kcyx_nkhw
+    default_tunable_dyn_conv_fwd_v4r4_dlops_nchw_kcyx_nkhw = {
+        256,       128,       128, 8, 4,         4,           1,
+        8,         8,         2,   2, {4, 1, 1}, {2, 1, 128}, {2, 1, 0},
+        {2, 1, 0}, 0,         4,   1, false,     {4, 1, 1},   {2, 1, 128},
+        {0, 1, 2}, {0, 1, 2}, 2,   1, 1,         false,       {3, 4, 5, 0, 1, 2},
+        5,         1};
 #endif

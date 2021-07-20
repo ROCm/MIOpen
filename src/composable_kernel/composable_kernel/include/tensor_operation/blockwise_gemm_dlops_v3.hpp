@@ -1,8 +1,8 @@
-#ifndef CK_BLOCKWISE_GEMM_V3_HPP
-#define CK_BLOCKWISE_GEMM_V3_HPP
+#ifndef CK_BLOCKWISE_GEMM_DLOPS_V3_HPP
+#define CK_BLOCKWISE_GEMM_DLOPS_V3_HPP
 
 #include "common_header.hpp"
-#include "threadwise_gemm_v3.hpp"
+#include "threadwise_gemm_dlops_v3.hpp"
 
 namespace ck {
 
@@ -19,7 +19,7 @@ template <index_t BlockSize,
           index_t EPerThreadLoop,
           index_t ThreadGemmADataPerRead_K,
           index_t ThreadGemmBDataPerRead_W>
-struct BlockwiseGemm_km_kn_m0m1n0n1_v3
+struct BlockwiseGemmDlops_km_kn_m0m1n0n1_v3
 {
     struct MatrixIndex
     {
@@ -51,7 +51,7 @@ struct BlockwiseGemm_km_kn_m0m1n0n1_v3
                                                 ThreadGemmADataPerRead_K,
                                                 1>;
 
-    __device__ BlockwiseGemm_km_kn_m0m1n0n1_v3()
+    __device__ BlockwiseGemmDlops_km_kn_m0m1n0n1_v3()
         : c_thread_begin_mtx_idx_{GetBeginOfThreadMatrixC(get_thread_local_1d_id())},
           a_thread_copy_{make_tuple(0, c_thread_begin_mtx_idx_.k * KPerThread)}
     {
@@ -140,14 +140,14 @@ struct BlockwiseGemm_km_kn_m0m1n0n1_v3
         // thread A buffer for GEMM
         StaticBuffer<AddressSpace::Vgpr, FloatA, a_thread_mtx_.GetElementSpaceSize()> a_thread_buf;
 
-        constexpr auto threadwise_gemm = ThreadwiseGemm_km_kn_mn_v3<FloatA,
-                                                                    FloatB,
-                                                                    FloatC,
-                                                                    decltype(a_thread_mtx_),
-                                                                    decltype(b_thread_mtx_),
-                                                                    decltype(c_thread_mtx_),
-                                                                    HoPerThreadSubC,
-                                                                    WoPerThreadSubC>{};
+        constexpr auto threadwise_gemm = ThreadwiseGemmDlops_km_kn_mn_v3<FloatA,
+                                                                         FloatB,
+                                                                         FloatC,
+                                                                         decltype(a_thread_mtx_),
+                                                                         decltype(b_thread_mtx_),
+                                                                         decltype(c_thread_mtx_),
+                                                                         HoPerThreadSubC,
+                                                                         WoPerThreadSubC>{};
 
         static_for<0, EPerBlock, EPerThreadLoop>{}([&](auto e_begin) {
             static_for<0, KPerThread, KPerThreadSubC>{}([&](auto k_begin) {

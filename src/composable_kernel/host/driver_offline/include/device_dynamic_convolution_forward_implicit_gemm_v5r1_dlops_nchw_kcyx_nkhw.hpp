@@ -1,8 +1,8 @@
 #include <unistd.h>
 #include "device.hpp"
 #include "host_tensor.hpp"
-#include "driver_dynamic_convolution_forward_implicit_gemm_v5r1_nchw_kcyx_nkhw.hpp"
-#include "driver_dynamic_convolution_forward_implicit_gemm_v5r1_nchw_kcyx_nkhw_outpad.hpp"
+#include "driver_dynamic_convolution_forward_implicit_gemm_v5r1_dlops_nchw_kcyx_nkhw.hpp"
+#include "driver_dynamic_convolution_forward_implicit_gemm_v5r1_dlops_nchw_kcyx_nkhw_outpad.hpp"
 
 template <typename TInWei,
           ck::index_t InWeiVectorSize,
@@ -15,7 +15,7 @@ template <typename TInWei,
           typename ConvDilations,
           typename InLeftPads,
           typename InRightPads>
-void device_dynamic_convolution_forward_implicit_gemm_v5r1_nchw_kcyx_nkhw(
+void device_dynamic_convolution_forward_implicit_gemm_v5r1_dlops_nchw_kcyx_nkhw(
     const InLengths& in_n_c_hi_wi_lengths,
     const WeiLengths& wei_k_c_y_x_lengths,
     const OutLengths& out_n_k_ho_wo_lengths,
@@ -145,9 +145,9 @@ void device_dynamic_convolution_forward_implicit_gemm_v5r1_nchw_kcyx_nkhw(
 
     constexpr auto conv_driver =
 #if 0
-        DriverDynamicConvolutionForwardImplicitGemm_v5r1_nchw_kcyx_nkhw_pad
+        DriverDynamicConvolutionForwardImplicitGemmDlops_v5r1_nchw_kcyx_nkhw_pad
 #else
-        DriverDynamicConvolutionForwardImplicitGemm_v5r1_nchw_kcyx_nkhw_outpad
+        DriverDynamicConvolutionForwardImplicitGemmDlops_v5r1_nchw_kcyx_nkhw_outpad
 #endif
         <BlockSize,
          typename vector_type<TInWei, InWeiVectorSize>::type,

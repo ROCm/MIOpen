@@ -1,10 +1,10 @@
-#ifndef CK_DRIVER_DYNAMIC_CONTRACTION_V1R2_HPP
-#define CK_DRIVER_DYNAMIC_CONTRACTION_V1R2_HPP
+#ifndef CK_DRIVER_DYNAMIC_CONTRACTION_DLOPS_V1R2_HPP
+#define CK_DRIVER_DYNAMIC_CONTRACTION_DLOPS_V1R2_HPP
 
 #include "common_header.hpp"
 #include "dynamic_tensor_descriptor.hpp"
 #include "dynamic_tensor_descriptor_helper.hpp"
-#include "gridwise_dynamic_contraction_v1r2.hpp"
+#include "gridwise_dynamic_contraction_dlops_v1r2.hpp"
 
 namespace ck {
 
@@ -49,18 +49,18 @@ template <index_t BlockSize,
           typename AGridMoveSliceWindowIteratorHacks,
           typename BGridMoveSliceWindowIteratorHacks>
 __host__ float
-driver_dynamic_contraction_v1r2(const FloatAB* p_a_grid,
-                                const FloatAB* p_b_grid,
-                                FloatC* p_c_grid,
-                                const AGridDesc_GK0_GM0_GM1_GK1& a_grid_desc_gk0_gm0_gm1_gk1,
-                                const BGridDesc_GK0_GN0_GN1_GK1& b_grid_desc_gk0_gn0_gn1_gk1,
-                                const CGridDesc_GM0_GM1_GN0_GN1& c_grid_desc_gm0_gm1_gn0_gn1,
-                                AGridIteratorHacks,
-                                BGridIteratorHacks,
-                                CGridIteratorHacks,
-                                AGridMoveSliceWindowIteratorHacks,
-                                BGridMoveSliceWindowIteratorHacks,
-                                index_t nrepeat)
+driver_dynamic_contraction_dlops_v1r2(const FloatAB* p_a_grid,
+                                      const FloatAB* p_b_grid,
+                                      FloatC* p_c_grid,
+                                      const AGridDesc_GK0_GM0_GM1_GK1& a_grid_desc_gk0_gm0_gm1_gk1,
+                                      const BGridDesc_GK0_GN0_GN1_GK1& b_grid_desc_gk0_gn0_gn1_gk1,
+                                      const CGridDesc_GM0_GM1_GN0_GN1& c_grid_desc_gm0_gm1_gn0_gn1,
+                                      AGridIteratorHacks,
+                                      BGridIteratorHacks,
+                                      CGridIteratorHacks,
+                                      AGridMoveSliceWindowIteratorHacks,
+                                      BGridMoveSliceWindowIteratorHacks,
+                                      index_t nrepeat)
 
 {
     constexpr auto I0 = Number<0>{};
@@ -72,7 +72,7 @@ driver_dynamic_contraction_v1r2(const FloatAB* p_a_grid,
 
     // GEMM
     using GridwiseContraction =
-        GridwiseDynamicContraction_A_GK0_GM0_GM1_GK1_B_GK0_GN0_GN1_GK1_C_GM0_GM1_GN0_GN1<
+        GridwiseDynamicContractionDlops_A_GK0_GM0_GM1_GK1_B_GK0_GN0_GN1_GK1_C_GM0_GM1_GN0_GN1<
             BlockSize,
             FloatAB,
             FloatAcc,
@@ -182,7 +182,7 @@ driver_dynamic_contraction_v1r2(const FloatAB* p_a_grid,
 
     if(has_main_k_block_loop && has_double_tail_k_block_loop)
     {
-        const auto kernel = kernel_dynamic_contraction_v1r2<
+        const auto kernel = kernel_dynamic_contraction_dlops_v1r2<
             GridwiseContraction,
             FloatAB,
             FloatC,
@@ -209,7 +209,7 @@ driver_dynamic_contraction_v1r2(const FloatAB* p_a_grid,
     }
     else if(has_main_k_block_loop && !has_double_tail_k_block_loop)
     {
-        const auto kernel = kernel_dynamic_contraction_v1r2<
+        const auto kernel = kernel_dynamic_contraction_dlops_v1r2<
             GridwiseContraction,
             FloatAB,
             FloatC,
@@ -236,7 +236,7 @@ driver_dynamic_contraction_v1r2(const FloatAB* p_a_grid,
     }
     else if(!has_main_k_block_loop && has_double_tail_k_block_loop)
     {
-        const auto kernel = kernel_dynamic_contraction_v1r2<
+        const auto kernel = kernel_dynamic_contraction_dlops_v1r2<
             GridwiseContraction,
             FloatAB,
             FloatC,
@@ -263,7 +263,7 @@ driver_dynamic_contraction_v1r2(const FloatAB* p_a_grid,
     }
     else
     {
-        const auto kernel = kernel_dynamic_contraction_v1r2<
+        const auto kernel = kernel_dynamic_contraction_dlops_v1r2<
             GridwiseContraction,
             FloatAB,
             FloatC,

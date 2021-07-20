@@ -1,5 +1,5 @@
-#ifndef CK_THREADWISE_GEMM_V3_HPP
-#define CK_THREADWISE_GEMM_V3_HPP
+#ifndef CK_THREADWISE_GEMM_DLOPS_V3_HPP
+#define CK_THREADWISE_GEMM_DLOPS_V3_HPP
 
 #include "common_header.hpp"
 #include "math.hpp"
@@ -22,7 +22,7 @@ template <typename FloatA,
           typename std::enable_if<ADesc::IsKnownAtCompileTime() && BDesc::IsKnownAtCompileTime() &&
                                       CDesc::IsKnownAtCompileTime(),
                                   bool>::type = false>
-struct ThreadwiseGemm_km_kn_mn_v3
+struct ThreadwiseGemmDlops_km_kn_mn_v3
 {
     template <typename ABuffer,
               typename AOriginIdx,

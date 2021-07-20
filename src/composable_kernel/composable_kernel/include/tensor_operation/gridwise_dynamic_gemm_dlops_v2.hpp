@@ -7,7 +7,7 @@
 #include "dynamic_tensor_descriptor_helper.hpp"
 #include "blockwise_dynamic_tensor_slice_transfer.hpp"
 #include "threadwise_dynamic_tensor_slice_transfer.hpp"
-#include "blockwise_gemm_v3.hpp"
+#include "blockwise_gemm_dlops_v3.hpp"
 
 namespace ck {
 
@@ -47,7 +47,7 @@ template <index_t BlockSize,
           typename CGlobalIteratorHacks,
           typename AGlobalMoveSliceWindowIteratorHacks,
           typename BGlobalMoveSliceWindowIteratorHacks>
-struct GridwiseDynamicGemm_km_kn_mn_v3
+struct GridwiseDynamicGemmDlops_km_kn_mn_v3
 {
     __host__ __device__ static constexpr index_t GetSharedMemoryNumberOfByte()
     {
@@ -100,7 +100,7 @@ struct GridwiseDynamicGemm_km_kn_mn_v3
         const auto Ho = b_e_n_ho_wo_global_desc.GetLength(I2);
         const auto Wo = b_e_n_ho_wo_global_desc.GetLength(I3);
 
-        // divide block work by [M, N]
+// divide block work by [M, N]
 #if 0
         const auto k_block_work_num   = K / Number<KPerBlock>{};
         const auto ho_block_work_num  = Ho / Number<HoPerBlock>{};
@@ -152,19 +152,20 @@ struct GridwiseDynamicGemm_km_kn_mn_v3
             make_dynamic_naive_tensor_descriptor_packed_v2(make_tuple(
                 Number<KPerThread>{}, Number<1>{}, Number<HoPerThread>{}, Number<WoPerThread>{}));
 
-        auto blockwise_gemm = BlockwiseGemm_km_kn_m0m1n0n1_v3<BlockSize,
-                                                              FloatAB,
-                                                              FloatAB,
-                                                              FloatAcc,
-                                                              decltype(a_e_k_block_desc),
-                                                              decltype(b_e_n_ho_wo_block_desc),
-                                                              decltype(c_k_n_ho_wo_thread_desc),
-                                                              KPerThread,
-                                                              HoPerThread,
-                                                              WoPerThread,
-                                                              EPerThread,
-                                                              ABlockTransferSrcScalarPerVector,
-                                                              ABlockTransferDstScalarPerVector_K>{};
+        auto blockwise_gemm =
+            BlockwiseGemmDlops_km_kn_m0m1n0n1_v3<BlockSize,
+                                                 FloatAB,
+                                                 FloatAB,
+                                                 FloatAcc,
+                                                 decltype(a_e_k_block_desc),
+                                                 decltype(b_e_n_ho_wo_block_desc),
+                                                 decltype(c_k_n_ho_wo_thread_desc),
+                                                 KPerThread,
+                                                 HoPerThread,
+                                                 WoPerThread,
+                                                 EPerThread,
+                                                 ABlockTransferSrcScalarPerVector,
+                                                 ABlockTransferDstScalarPerVector_K>{};
 
         auto c_thread_mtx_index = blockwise_gemm.GetBeginOfThreadMatrixC(get_thread_local_1d_id());
 

@@ -1,11 +1,11 @@
-#ifndef CK_GRIDWISE_DYNAMIC_CONTRACTION_V1R2_HPP
-#define CK_GRIDWISE_DYNAMIC_CONTRACTION_V1R2_HPP
+#ifndef CK_GRIDWISE_DYNAMIC_CONTRACTION_DLOPS_V1R2_HPP
+#define CK_GRIDWISE_DYNAMIC_CONTRACTION_DLOPS_V1R2_HPP
 
 #include "common_header.hpp"
 #include "dynamic_multi_index_transform_helper.hpp"
 #include "dynamic_tensor_descriptor.hpp"
 #include "dynamic_tensor_descriptor_helper.hpp"
-#include "blockwise_gemm_v2r3.hpp"
+#include "blockwise_gemm_dlops_v2r3.hpp"
 #include "blockwise_dynamic_tensor_slice_transfer_v2.hpp"
 #include "threadwise_dynamic_tensor_slice_transfer.hpp"
 #include "threadwise_dynamic_tensor_slice_set.hpp"
@@ -25,7 +25,7 @@ __global__ void
 #if CK_USE_LAUNCH_BOUNDS
     __launch_bounds__(CK_MAX_THREAD_PER_BLOCK, CK_MIN_BLOCK_PER_CU)
 #endif
-        kernel_dynamic_contraction_v1r2(
+        kernel_dynamic_contraction_dlops_v1r2(
             const FloatAB* __restrict__ p_a_grid,
             const FloatAB* __restrict__ p_b_grid,
             FloatC* __restrict__ p_c_grid,
@@ -91,7 +91,7 @@ template <index_t BlockSize,
           typename CGridIteratorHacks,
           typename AGridMoveSliceWindowIteratorHacks,
           typename BGridMoveSliceWindowIteratorHacks>
-struct GridwiseDynamicContraction_A_GK0_GM0_GM1_GK1_B_GK0_GN0_GN1_GK1_C_GM0_GM1_GN0_GN1
+struct GridwiseDynamicContractionDlops_A_GK0_GM0_GM1_GK1_B_GK0_GN0_GN1_GK1_C_GM0_GM1_GN0_GN1
 {
     static constexpr auto I0 = Number<0>{};
     static constexpr auto I1 = Number<1>{};
@@ -439,7 +439,7 @@ struct GridwiseDynamicContraction_A_GK0_GM0_GM1_GK1_B_GK0_GN0_GN1_GK1_C_GM0_GM1_
         //     c_mtx[GM1PerBlockGM11, GN1PerBlockGN11] is distributed among threads, and saved in
         //       register
         const auto blockwise_gemm =
-            BlockwiseGemm_A_BK0_BM_BK1_B_BK0_BN_BK1_C_BM0_BM1_BN0_BN1_pipeline_BM0_2_BN0_2<
+            BlockwiseGemmDlops_A_BK0_BM_BK1_B_BK0_BN_BK1_C_BM0_BM1_BN0_BN1_pipeline_BM0_2_BN0_2<
                 BlockSize,
                 FloatAB,
                 FloatAB,

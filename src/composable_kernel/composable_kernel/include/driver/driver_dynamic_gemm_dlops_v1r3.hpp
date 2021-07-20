@@ -1,10 +1,10 @@
-#ifndef CK_DRIVER_DYNAMIC_GEMM_v1r3
-#define CK_DRIVER_DYNAMIC_GEMM_v1r3
+#ifndef CK_DRIVER_DYNAMIC_GEMM_DLOPS_V1R3
+#define CK_DRIVER_DYNAMIC_GEMM_DLOPS_V1R3
 
 #include "common_header.hpp"
 #include "dynamic_tensor_descriptor.hpp"
 #include "dynamic_tensor_descriptor_helper.hpp"
-#include "gridwise_dynamic_gemm_v1r3.hpp"
+#include "gridwise_dynamic_gemm_dlops_v1r3.hpp"
 
 namespace ck {
 
@@ -48,18 +48,18 @@ template <index_t BlockSize,
           typename CGridIteratorHacks,
           typename AGridMoveSliceWindowIteratorHacks,
           typename BGridMoveSliceWindowIteratorHacks>
-__host__ float driver_dynamic_gemm_v1r3(const FloatAB* p_a_grid,
-                                        const FloatAB* p_b_grid,
-                                        FloatC* p_c_grid,
-                                        const AK0MK1GridDesc& a_k0_m_k1_grid_desc,
-                                        const BK0NK1GridDesc& b_k0_n_k1_grid_desc,
-                                        const CMNGridDesc& c_m_n_grid_desc,
-                                        AGridIteratorHacks,
-                                        BGridIteratorHacks,
-                                        CGridIteratorHacks,
-                                        AGridMoveSliceWindowIteratorHacks,
-                                        BGridMoveSliceWindowIteratorHacks,
-                                        index_t nrepeat)
+__host__ float driver_dynamic_gemm_dlops_v1r3(const FloatAB* p_a_grid,
+                                              const FloatAB* p_b_grid,
+                                              FloatC* p_c_grid,
+                                              const AK0MK1GridDesc& a_k0_m_k1_grid_desc,
+                                              const BK0NK1GridDesc& b_k0_n_k1_grid_desc,
+                                              const CMNGridDesc& c_m_n_grid_desc,
+                                              AGridIteratorHacks,
+                                              BGridIteratorHacks,
+                                              CGridIteratorHacks,
+                                              AGridMoveSliceWindowIteratorHacks,
+                                              BGridMoveSliceWindowIteratorHacks,
+                                              index_t nrepeat)
 
 {
     constexpr auto I0 = Number<0>{};
@@ -71,46 +71,46 @@ __host__ float driver_dynamic_gemm_v1r3(const FloatAB* p_a_grid,
 
     // GEMM
     using GridwiseGemm =
-        GridwiseDynamicGemm_km_kn_mn_v1r3<BlockSize,
-                                          FloatAB,
-                                          FloatAcc,
-                                          FloatC,
-                                          CGlobalMemoryDataOperation,
-                                          AK0MK1GridDesc,
-                                          BK0NK1GridDesc,
-                                          CMNGridDesc,
-                                          MPerBlock,
-                                          NPerBlock,
-                                          KPerBlock,
-                                          M1PerThread,
-                                          N1PerThread,
-                                          KPerThread,
-                                          M1N1ThreadClusterM10,
-                                          M1N1ThreadClusterN10,
-                                          M1N1ThreadClusterM11,
-                                          M1N1ThreadClusterN11,
-                                          ABlockTransferThreadSliceLengths_K0_M0_M1_K1,
-                                          ABlockTransferThreadClusterLengths_K0_M0_M1_K1,
-                                          ABlockTransferThreadClusterArrangeOrder,
-                                          ABlockTransferSrcAccessOrder,
-                                          ABlockTransferSrcVectorTensorLengths_K0_M0_M1_K1,
-                                          ABlockTransferSrcVectorTensorContiguousDimOrder,
-                                          ABlockTransferDstVectorTensorLengths_K0_M0_M1_K1,
-                                          BBlockTransferThreadSliceLengths_K0_N0_N1_K1,
-                                          BBlockTransferThreadClusterLengths_K0_N0_N1_K1,
-                                          BBlockTransferThreadClusterArrangeOrder,
-                                          BBlockTransferSrcAccessOrder,
-                                          BBlockTransferSrcVectorTensorLengths_K0_N0_N1_K1,
-                                          BBlockTransferSrcVectorTensorContiguousDimOrder,
-                                          BBlockTransferDstVectorTensorLengths_K0_N0_N1_K1,
-                                          CThreadTransferSrcDstAccessOrder,
-                                          CThreadTransferSrcDstVectorDim,
-                                          CThreadTransferDstScalarPerVector,
-                                          AGridIteratorHacks,
-                                          BGridIteratorHacks,
-                                          CGridIteratorHacks,
-                                          AGridMoveSliceWindowIteratorHacks,
-                                          BGridMoveSliceWindowIteratorHacks>;
+        GridwiseDynamicGemmDlops_km_kn_mn_v1r3<BlockSize,
+                                               FloatAB,
+                                               FloatAcc,
+                                               FloatC,
+                                               CGlobalMemoryDataOperation,
+                                               AK0MK1GridDesc,
+                                               BK0NK1GridDesc,
+                                               CMNGridDesc,
+                                               MPerBlock,
+                                               NPerBlock,
+                                               KPerBlock,
+                                               M1PerThread,
+                                               N1PerThread,
+                                               KPerThread,
+                                               M1N1ThreadClusterM10,
+                                               M1N1ThreadClusterN10,
+                                               M1N1ThreadClusterM11,
+                                               M1N1ThreadClusterN11,
+                                               ABlockTransferThreadSliceLengths_K0_M0_M1_K1,
+                                               ABlockTransferThreadClusterLengths_K0_M0_M1_K1,
+                                               ABlockTransferThreadClusterArrangeOrder,
+                                               ABlockTransferSrcAccessOrder,
+                                               ABlockTransferSrcVectorTensorLengths_K0_M0_M1_K1,
+                                               ABlockTransferSrcVectorTensorContiguousDimOrder,
+                                               ABlockTransferDstVectorTensorLengths_K0_M0_M1_K1,
+                                               BBlockTransferThreadSliceLengths_K0_N0_N1_K1,
+                                               BBlockTransferThreadClusterLengths_K0_N0_N1_K1,
+                                               BBlockTransferThreadClusterArrangeOrder,
+                                               BBlockTransferSrcAccessOrder,
+                                               BBlockTransferSrcVectorTensorLengths_K0_N0_N1_K1,
+                                               BBlockTransferSrcVectorTensorContiguousDimOrder,
+                                               BBlockTransferDstVectorTensorLengths_K0_N0_N1_K1,
+                                               CThreadTransferSrcDstAccessOrder,
+                                               CThreadTransferSrcDstVectorDim,
+                                               CThreadTransferDstScalarPerVector,
+                                               AGridIteratorHacks,
+                                               BGridIteratorHacks,
+                                               CGridIteratorHacks,
+                                               AGridMoveSliceWindowIteratorHacks,
+                                               BGridMoveSliceWindowIteratorHacks>;
 
     const auto M  = a_k0_m_k1_grid_desc.GetLength(I1);
     const auto N  = b_k0_n_k1_grid_desc.GetLength(I1);
@@ -118,7 +118,8 @@ __host__ float driver_dynamic_gemm_v1r3(const FloatAB* p_a_grid,
 
     if(!GridwiseGemm::CheckValidity(a_k0_m_k1_grid_desc, b_k0_n_k1_grid_desc, c_m_n_grid_desc))
     {
-        throw std::runtime_error("wrong! GridwiseDynamicGemm_km_kn_mn_v1r3 has invalid setting");
+        throw std::runtime_error(
+            "wrong! GridwiseDynamicGemmDlops_km_kn_mn_v1r3 has invalid setting");
     }
 
     const auto a_k0_m0_m1_k1_grid_desc =
@@ -173,15 +174,15 @@ __host__ float driver_dynamic_gemm_v1r3(const FloatAB* p_a_grid,
     if(has_main_k_block_loop && has_double_tail_k_block_loop)
     {
         const auto kernel =
-            kernel_dynamic_gemm_v1r3<GridwiseGemm,
-                                     FloatAB,
-                                     FloatC,
-                                     remove_reference_t<AK0M0M1K1GridDesc>,
-                                     remove_reference_t<BK0N0N1K1GridDesc>,
-                                     remove_reference_t<CM0M10M11N0N10N11GridDesc>,
-                                     remove_reference_t<CBlockIdToM0N0BlockClusterAdaptor>,
-                                     true,
-                                     true>;
+            kernel_dynamic_gemm_dlops_v1r3<GridwiseGemm,
+                                           FloatAB,
+                                           FloatC,
+                                           remove_reference_t<AK0M0M1K1GridDesc>,
+                                           remove_reference_t<BK0N0N1K1GridDesc>,
+                                           remove_reference_t<CM0M10M11N0N10N11GridDesc>,
+                                           remove_reference_t<CBlockIdToM0N0BlockClusterAdaptor>,
+                                           true,
+                                           true>;
 
         ave_time = launch_and_time_kernel(kernel,
                                           nrepeat,
@@ -200,15 +201,15 @@ __host__ float driver_dynamic_gemm_v1r3(const FloatAB* p_a_grid,
     else if(has_main_k_block_loop && !has_double_tail_k_block_loop)
     {
         const auto kernel =
-            kernel_dynamic_gemm_v1r3<GridwiseGemm,
-                                     FloatAB,
-                                     FloatC,
-                                     remove_reference_t<AK0M0M1K1GridDesc>,
-                                     remove_reference_t<BK0N0N1K1GridDesc>,
-                                     remove_reference_t<CM0M10M11N0N10N11GridDesc>,
-                                     remove_reference_t<CBlockIdToM0N0BlockClusterAdaptor>,
-                                     true,
-                                     false>;
+            kernel_dynamic_gemm_dlops_v1r3<GridwiseGemm,
+                                           FloatAB,
+                                           FloatC,
+                                           remove_reference_t<AK0M0M1K1GridDesc>,
+                                           remove_reference_t<BK0N0N1K1GridDesc>,
+                                           remove_reference_t<CM0M10M11N0N10N11GridDesc>,
+                                           remove_reference_t<CBlockIdToM0N0BlockClusterAdaptor>,
+                                           true,
+                                           false>;
 
         ave_time = launch_and_time_kernel(kernel,
                                           nrepeat,
@@ -227,15 +228,15 @@ __host__ float driver_dynamic_gemm_v1r3(const FloatAB* p_a_grid,
     else if(!has_main_k_block_loop && has_double_tail_k_block_loop)
     {
         const auto kernel =
-            kernel_dynamic_gemm_v1r3<GridwiseGemm,
-                                     FloatAB,
-                                     FloatC,
-                                     remove_reference_t<AK0M0M1K1GridDesc>,
-                                     remove_reference_t<BK0N0N1K1GridDesc>,
-                                     remove_reference_t<CM0M10M11N0N10N11GridDesc>,
-                                     remove_reference_t<CBlockIdToM0N0BlockClusterAdaptor>,
-                                     false,
-                                     true>;
+            kernel_dynamic_gemm_dlops_v1r3<GridwiseGemm,
+                                           FloatAB,
+                                           FloatC,
+                                           remove_reference_t<AK0M0M1K1GridDesc>,
+                                           remove_reference_t<BK0N0N1K1GridDesc>,
+                                           remove_reference_t<CM0M10M11N0N10N11GridDesc>,
+                                           remove_reference_t<CBlockIdToM0N0BlockClusterAdaptor>,
+                                           false,
+                                           true>;
 
         ave_time = launch_and_time_kernel(kernel,
                                           nrepeat,
@@ -254,15 +255,15 @@ __host__ float driver_dynamic_gemm_v1r3(const FloatAB* p_a_grid,
     else
     {
         const auto kernel =
-            kernel_dynamic_gemm_v1r3<GridwiseGemm,
-                                     FloatAB,
-                                     FloatC,
-                                     remove_reference_t<AK0M0M1K1GridDesc>,
-                                     remove_reference_t<BK0N0N1K1GridDesc>,
-                                     remove_reference_t<CM0M10M11N0N10N11GridDesc>,
-                                     remove_reference_t<CBlockIdToM0N0BlockClusterAdaptor>,
-                                     false,
-                                     false>;
+            kernel_dynamic_gemm_dlops_v1r3<GridwiseGemm,
+                                           FloatAB,
+                                           FloatC,
+                                           remove_reference_t<AK0M0M1K1GridDesc>,
+                                           remove_reference_t<BK0N0N1K1GridDesc>,
+                                           remove_reference_t<CM0M10M11N0N10N11GridDesc>,
+                                           remove_reference_t<CBlockIdToM0N0BlockClusterAdaptor>,
+                                           false,
+                                           false>;
 
         ave_time = launch_and_time_kernel(kernel,
                                           nrepeat,
@@ -298,15 +299,15 @@ __host__ float driver_dynamic_gemm_v1r3(const FloatAB* p_a_grid,
     if(has_main_k_block_loop && has_double_tail_k_block_loop)
     {
         const auto kernel =
-            kernel_dynamic_gemm_v1r3<GridwiseGemm,
-                                     FloatAB,
-                                     FloatC,
-                                     remove_reference_t<AK0M0M1K1GridDesc>,
-                                     remove_reference_t<BK0N0N1K1GridDesc>,
-                                     remove_reference_t<CM0M10M11N0N10N11GridDesc>,
-                                     remove_reference_t<CBlockIdToM0N0BlockClusterAdaptor>,
-                                     true,
-                                     true>;
+            kernel_dynamic_gemm_dlops_v1r3<GridwiseGemm,
+                                           FloatAB,
+                                           FloatC,
+                                           remove_reference_t<AK0M0M1K1GridDesc>,
+                                           remove_reference_t<BK0N0N1K1GridDesc>,
+                                           remove_reference_t<CM0M10M11N0N10N11GridDesc>,
+                                           remove_reference_t<CBlockIdToM0N0BlockClusterAdaptor>,
+                                           true,
+                                           true>;
 
         ave_time = launch_and_time_kernel(
             kernel,
@@ -326,15 +327,15 @@ __host__ float driver_dynamic_gemm_v1r3(const FloatAB* p_a_grid,
     else if(has_main_k_block_loop && !has_double_tail_k_block_loop)
     {
         const auto kernel =
-            kernel_dynamic_gemm_v1r3<GridwiseGemm,
-                                     FloatAB,
-                                     FloatC,
-                                     remove_reference_t<AK0M0M1K1GridDesc>,
-                                     remove_reference_t<BK0N0N1K1GridDesc>,
-                                     remove_reference_t<CM0M10M11N0N10N11GridDesc>,
-                                     remove_reference_t<CBlockIdToM0N0BlockClusterAdaptor>,
-                                     true,
-                                     false>;
+            kernel_dynamic_gemm_dlops_v1r3<GridwiseGemm,
+                                           FloatAB,
+                                           FloatC,
+                                           remove_reference_t<AK0M0M1K1GridDesc>,
+                                           remove_reference_t<BK0N0N1K1GridDesc>,
+                                           remove_reference_t<CM0M10M11N0N10N11GridDesc>,
+                                           remove_reference_t<CBlockIdToM0N0BlockClusterAdaptor>,
+                                           true,
+                                           false>;
 
         ave_time = launch_and_time_kernel(
             kernel,
@@ -354,15 +355,15 @@ __host__ float driver_dynamic_gemm_v1r3(const FloatAB* p_a_grid,
     else if(!has_main_k_block_loop && has_double_tail_k_block_loop)
     {
         const auto kernel =
-            kernel_dynamic_gemm_v1r3<GridwiseGemm,
-                                     FloatAB,
-                                     FloatC,
-                                     remove_reference_t<AK0M0M1K1GridDesc>,
-                                     remove_reference_t<BK0N0N1K1GridDesc>,
-                                     remove_reference_t<CM0M10M11N0N10N11GridDesc>,
-                                     remove_reference_t<CBlockIdToM0N0BlockClusterAdaptor>,
-                                     false,
-                                     true>;
+            kernel_dynamic_gemm_dlops_v1r3<GridwiseGemm,
+                                           FloatAB,
+                                           FloatC,
+                                           remove_reference_t<AK0M0M1K1GridDesc>,
+                                           remove_reference_t<BK0N0N1K1GridDesc>,
+                                           remove_reference_t<CM0M10M11N0N10N11GridDesc>,
+                                           remove_reference_t<CBlockIdToM0N0BlockClusterAdaptor>,
+                                           false,
+                                           true>;
 
         ave_time = launch_and_time_kernel(
             kernel,
@@ -382,15 +383,15 @@ __host__ float driver_dynamic_gemm_v1r3(const FloatAB* p_a_grid,
     else
     {
         const auto kernel =
-            kernel_dynamic_gemm_v1r3<GridwiseGemm,
-                                     FloatAB,
-                                     FloatC,
-                                     remove_reference_t<AK0M0M1K1GridDesc>,
-                                     remove_reference_t<BK0N0N1K1GridDesc>,
-                                     remove_reference_t<CM0M10M11N0N10N11GridDesc>,
-                                     remove_reference_t<CBlockIdToM0N0BlockClusterAdaptor>,
-                                     false,
-                                     false>;
+            kernel_dynamic_gemm_dlops_v1r3<GridwiseGemm,
+                                           FloatAB,
+                                           FloatC,
+                                           remove_reference_t<AK0M0M1K1GridDesc>,
+                                           remove_reference_t<BK0N0N1K1GridDesc>,
+                                           remove_reference_t<CM0M10M11N0N10N11GridDesc>,
+                                           remove_reference_t<CBlockIdToM0N0BlockClusterAdaptor>,
+                                           false,
+                                           false>;
 
         ave_time = launch_and_time_kernel(
             kernel,

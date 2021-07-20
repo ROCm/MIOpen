@@ -2,7 +2,7 @@
 #include "type_helper.hpp"
 #include "dynamic_tensor_descriptor.hpp"
 #include "dynamic_tensor_descriptor_helper.hpp"
-#include "gridwise_dynamic_contraction_v1r2.hpp"
+#include "gridwise_dynamic_contraction_dlops_v1r2.hpp"
 #include "transform_forward_convolution_into_gemm_v6r1_nchw_kcyx_nkhw.hpp"
 
 using namespace ck;
@@ -58,7 +58,8 @@ constexpr index_t CThreadTransferDstScalarPerVector = CK_PARAM_CThreadTransferDs
 constexpr bool HasMainKBlockLoop       = static_cast<bool>(CK_PARAM_HAS_MAIN_KBLOCK_LOOP);
 constexpr bool HasDoubleTailKBlockLoop = static_cast<bool>(CK_PARAM_HAS_DOUBLE_TAIL_KBLOCK_LOOP);
 
-extern "C" __global__ void dynamic_convolution_forward_implicit_gemm_v6r1_nchw_kcyx_nkhw_prepare(
+extern "C" __global__ void
+dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw_prepare(
     index_t N,
     index_t C,
     index_t Hi,
@@ -160,7 +161,7 @@ extern "C" __global__ void dynamic_convolution_forward_implicit_gemm_v6r1_nchw_k
         Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 2, 0, 0, 0, 0, 0>;
 
     using GridwiseContraction =
-        GridwiseDynamicContraction_A_GK0_GM0_GM1_GK1_B_GK0_GN0_GN1_GK1_C_GM0_GM1_GN0_GN1<
+        GridwiseDynamicContractionDlops_A_GK0_GM0_GM1_GK1_B_GK0_GN0_GN1_GK1_C_GM0_GM1_GN0_GN1<
             BlockSize,
             FloatAB,
             FloatAcc,
@@ -231,7 +232,7 @@ extern "C" __global__ void
 #if CK_USE_LAUNCH_BOUNDS
     __launch_bounds__(CK_MAX_THREAD_PER_BLOCK, CK_MIN_BLOCK_PER_CU)
 #endif
-        dynamic_convolution_forward_implicit_gemm_v6r1_nchw_kcyx_nkhw(
+        dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw(
             const FloatAB* __restrict__ p_a_grid,
             const FloatAB* __restrict__ p_b_grid,
             FloatC* __restrict__ p_c_grid,
@@ -316,7 +317,7 @@ extern "C" __global__ void
         Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 2, 0, 0, 0, 0, 0>;
 
     using GridwiseContraction =
-        GridwiseDynamicContraction_A_GK0_GM0_GM1_GK1_B_GK0_GN0_GN1_GK1_C_GM0_GM1_GN0_GN1<
+        GridwiseDynamicContractionDlops_A_GK0_GM0_GM1_GK1_B_GK0_GN0_GN1_GK1_C_GM0_GM1_GN0_GN1<
             BlockSize,
             FloatAB,
             FloatAcc,
