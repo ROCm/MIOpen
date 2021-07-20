@@ -318,15 +318,7 @@ void online_device_dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcy
 
     // these are workspace buffers that should be expressed to the user by the corresponding
     // workspace API
-    DeviceMem workspace_buf(4096);
-
-    void* a_grid_desc_gk0_gm0_gm10_gm11_gk1_dev_buf = workspace_buf.GetDeviceBuffer();
-    void* b_grid_desc_gk0_gn0_gn10_gn11_gk1_dev_buf =
-        static_cast<void*>(static_cast<unsigned char*>(workspace_buf.GetDeviceBuffer()) + 1024);
-    void* c_grid_desc_gm10_bm0_bm1_gn10_bn0_bn1_dev_buf =
-        static_cast<void*>(static_cast<unsigned char*>(workspace_buf.GetDeviceBuffer()) + 2048);
-    void* c_grid_block_cluster_blockid_to_gm10_gn10_dev_buf =
-        static_cast<void*>(static_cast<unsigned char*>(workspace_buf.GetDeviceBuffer()) + 3072);
+    DeviceMem workspace_dev_buf(4096);
 
     const std::vector<size_t> vld  = {static_cast<size_t>(tunable.BlockSize), 1, 1};
     const std::vector<size_t> vgd1 = {static_cast<size_t>(tunable.BlockSize), 1, 1};
@@ -376,11 +368,8 @@ void online_device_dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcy
             in_left_pads[I1],
             in_right_pads[I0],
             in_right_pads[I1],
-            a_grid_desc_gk0_gm0_gm10_gm11_gk1_dev_buf,
-            b_grid_desc_gk0_gn0_gn10_gn11_gk1_dev_buf,
-            c_grid_desc_gm10_bm0_bm1_gn10_bn0_bn1_dev_buf,
-            c_grid_block_cluster_blockid_to_gm10_gn10_dev_buf);
-        timer2.End();
+            (void*)(workspace_dev_buf.GetDeviceBuffer()));
+        timer1.End();
 
         kernel_name = "dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw";
         auto network_config_2 = network_config + "_2";
@@ -390,10 +379,7 @@ void online_device_dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcy
             reinterpret_cast<const TInWei*>(wei_k_c_y_x_dev_buf.GetDeviceBuffer()),
             reinterpret_cast<const TInWei*>(in_n_c_hi_wi_dev_buf.GetDeviceBuffer()),
             reinterpret_cast<TOut*>(out_n_k_ho_wo_dev_buf.GetDeviceBuffer()),
-            (const void*)(a_grid_desc_gk0_gm0_gm10_gm11_gk1_dev_buf),
-            (const void*)(b_grid_desc_gk0_gn0_gn10_gn11_gk1_dev_buf),
-            (const void*)(c_grid_desc_gm10_bm0_bm1_gn10_bn0_bn1_dev_buf),
-            (const void*)(c_grid_block_cluster_blockid_to_gm10_gn10_dev_buf));
+            (const void*)(workspace_dev_buf.GetDeviceBuffer()));
         timer2.End();
 
         kernel1_times.push_back(timer1.GetElapsedTime());

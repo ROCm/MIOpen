@@ -59,26 +59,22 @@ constexpr bool HasMainKBlockLoop       = static_cast<bool>(CK_PARAM_HAS_MAIN_KBL
 constexpr bool HasDoubleTailKBlockLoop = static_cast<bool>(CK_PARAM_HAS_DOUBLE_TAIL_KBLOCK_LOOP);
 
 extern "C" __global__ void
-dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw_prepare(
-    index_t N,
-    index_t C,
-    index_t Hi,
-    index_t Wi,
-    index_t K,
-    index_t Y,
-    index_t X,
-    index_t ConvStrideH,
-    index_t ConvStrideW,
-    index_t ConvDilationH,
-    index_t ConvDilationW,
-    index_t InLeftPadH,
-    index_t InLeftPadW,
-    index_t InRightPadH,
-    index_t InRightPadW,
-    void* p_a_grid_desc_gk0_gm0_gm10_gm11_gk1,
-    void* p_b_grid_desc_gk0_gn0_gn10_gn11_gk1,
-    void* p_c_grid_desc_gm10_bm0_bm1_gn10_bn0_bn1,
-    void* p_c_grid_block_cluster_blockid_to_gm10_gn10)
+dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw_prepare(index_t N,
+                                                                            index_t C,
+                                                                            index_t Hi,
+                                                                            index_t Wi,
+                                                                            index_t K,
+                                                                            index_t Y,
+                                                                            index_t X,
+                                                                            index_t ConvStrideH,
+                                                                            index_t ConvStrideW,
+                                                                            index_t ConvDilationH,
+                                                                            index_t ConvDilationW,
+                                                                            index_t InLeftPadH,
+                                                                            index_t InLeftPadW,
+                                                                            index_t InRightPadH,
+                                                                            index_t InRightPadW,
+                                                                            void* p_desc_tuple)
 {
     constexpr auto I0 = Number<0>{};
     constexpr auto I1 = Number<1>{};
@@ -203,28 +199,19 @@ dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw_prepare(
             AGridMoveSliceWindowIteratorHacks,
             BGridMoveSliceWindowIteratorHacks>;
 
-    auto a_grid_desc_gk0_gm0_gm10_gm11_gk1 =
-        GridwiseContraction::MakeAGridDescriptor_GK0_GM0_GM10_GM11_GK1(a_grid_desc_gk0_gm0_gm1_gk1);
-    auto b_grid_desc_gk0_gn0_gn10_gn11_gk1 =
-        GridwiseContraction::MakeBGridDescriptor_GK0_GN0_GN10_GN11_GK1(b_grid_desc_gk0_gn0_gn1_gk1);
-    auto c_grid_desc_gm10_bm0_bm1_gn10_bn0_bn1 =
-        GridwiseContraction::MakeCGridDescriptor_GM10_BM0_BM1_GN10_BN0_BN1(
-            c_grid_desc_gm0_gm1_gn0_gn1);
-    auto c_grid_block_cluster_blockid_to_gm10_gn10 =
-        GridwiseContraction::MakeCGridBlockCluster_BlockId_To_GM10_GN10(
-            c_grid_desc_gm0_gm1_gn0_gn1);
-
-    if(hipThreadIdx_x == 0)
+    if(get_block_1d_id() == 0 && get_thread_local_1d_id() == 0)
     {
-        *static_cast<decltype(a_grid_desc_gk0_gm0_gm10_gm11_gk1)*>(
-            p_a_grid_desc_gk0_gm0_gm10_gm11_gk1) = a_grid_desc_gk0_gm0_gm10_gm11_gk1;
-        *static_cast<decltype(b_grid_desc_gk0_gn0_gn10_gn11_gk1)*>(
-            p_b_grid_desc_gk0_gn0_gn10_gn11_gk1) = b_grid_desc_gk0_gn0_gn10_gn11_gk1;
-        *static_cast<decltype(c_grid_desc_gm10_bm0_bm1_gn10_bn0_bn1)*>(
-            p_c_grid_desc_gm10_bm0_bm1_gn10_bn0_bn1) = c_grid_desc_gm10_bm0_bm1_gn10_bn0_bn1;
-        *static_cast<decltype(c_grid_block_cluster_blockid_to_gm10_gn10)*>(
-            p_c_grid_block_cluster_blockid_to_gm10_gn10) =
-            c_grid_block_cluster_blockid_to_gm10_gn10;
+        auto desc_tuple =
+            make_tuple(GridwiseContraction::MakeAGridDescriptor_GK0_GM0_GM10_GM11_GK1(
+                           a_grid_desc_gk0_gm0_gm1_gk1),
+                       GridwiseContraction::MakeBGridDescriptor_GK0_GN0_GN10_GN11_GK1(
+                           b_grid_desc_gk0_gn0_gn1_gk1),
+                       GridwiseContraction::MakeCGridDescriptor_GM10_BM0_BM1_GN10_BN0_BN1(
+                           c_grid_desc_gm0_gm1_gn0_gn1),
+                       GridwiseContraction::MakeCGridBlockCluster_BlockId_To_GM10_GN10(
+                           c_grid_desc_gm0_gm1_gn0_gn1));
+
+        *static_cast<decltype(desc_tuple)*>(p_desc_tuple) = desc_tuple;
     };
 };
 
@@ -236,14 +223,12 @@ extern "C" __global__ void
             const FloatAB* __restrict__ p_a_grid,
             const FloatAB* __restrict__ p_b_grid,
             FloatC* __restrict__ p_c_grid,
-            const void __CONSTANT__* p_a_grid_desc_gk0_gm0_gm10_gm11_gk1,
-            const void __CONSTANT__* p_b_grid_desc_gk0_gn0_gn10_gn11_gk1,
-            const void __CONSTANT__* p_c_grid_desc_gm10_bm0_bm1_gn10_bn0_bn1,
-            const void __CONSTANT__* p_c_grid_block_cluster_blockid_to_gm10_gn10)
+            const void __CONSTANT__* p_desc_tuple)
 {
     constexpr auto I0 = Number<0>{};
     constexpr auto I1 = Number<1>{};
     constexpr auto I2 = Number<2>{};
+    constexpr auto I3 = Number<3>{};
 
     constexpr auto in_n_c_hi_wi_desc =
         make_dynamic_naive_tensor_descriptor_packed_v2(make_tuple(256, 256, 28, 28));
@@ -372,18 +357,17 @@ extern "C" __global__ void
         decltype(GridwiseContraction::MakeCGridBlockCluster_BlockId_To_GM10_GN10(
             c_grid_desc_gm0_gm1_gn0_gn1));
 
-    const auto a_grid_desc_gk0_gm0_gm10_gm11_gk1 =
-        *reinterpret_cast<const AGridDesc_GK0_GM0_GM10_GM11_GK1*>(
-            (const void*)p_a_grid_desc_gk0_gm0_gm10_gm11_gk1);
-    const auto b_grid_desc_gk0_gn0_gn10_gn11_gk1 =
-        *reinterpret_cast<const BGridDesc_GK0_GN0_GN10_GN11_GK1*>(
-            (const void*)p_b_grid_desc_gk0_gn0_gn10_gn11_gk1);
-    const auto c_grid_desc_gm10_bm0_bm1_gn10_bn0_bn1 =
-        *reinterpret_cast<const CGridDesc_GM10_BM0_BM1_GN10_BN0_BN1*>(
-            (const void*)p_c_grid_desc_gm10_bm0_bm1_gn10_bn0_bn1);
-    const auto c_grid_block_cluster_blockid_to_gm10_gn10 =
-        *reinterpret_cast<const CGridBlockCluster_BlockId_To_GM10_GN10*>(
-            (const void*)p_c_grid_block_cluster_blockid_to_gm10_gn10);
+    using DescTuple = decltype(make_tuple(AGridDesc_GK0_GM0_GM10_GM11_GK1{},
+                                          BGridDesc_GK0_GN0_GN10_GN11_GK1{},
+                                          CGridDesc_GM10_BM0_BM1_GN10_BN0_BN1{},
+                                          CGridBlockCluster_BlockId_To_GM10_GN10{}));
+
+    const auto desc_tuple = *reinterpret_cast<const DescTuple*>((const void*)p_desc_tuple);
+
+    const auto a_grid_desc_gk0_gm0_gm10_gm11_gk1         = desc_tuple[I0];
+    const auto b_grid_desc_gk0_gn0_gn10_gn11_gk1         = desc_tuple[I1];
+    const auto c_grid_desc_gm10_bm0_bm1_gn10_bn0_bn1     = desc_tuple[I2];
+    const auto c_grid_block_cluster_blockid_to_gm10_gn10 = desc_tuple[I3];
 
     constexpr index_t shared_block_size =
         GridwiseContraction::GetSharedMemoryNumberOfByte() / sizeof(FloatAB);
