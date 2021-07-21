@@ -119,6 +119,11 @@ def buildHipClangJob(Map conf=[:]){
         def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
         def dockerArgs = "--build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' --build-arg USE_TARGETID='${target_id}' --build-arg USE_MLIR='${mlir_build}' "
 
+        if(build_fin)
+        {
+            dockerArgs = dockerArgs + " --build-arg USE_FIN='ON' "
+        }
+
         def variant = env.STAGE_NAME
 
         def codecov = conf.get("codecov", false)
@@ -162,18 +167,6 @@ def buildHipClangJob(Map conf=[:]){
                             curl -s https://codecov.io/bash | bash
                             echo "Uploaded"
                         '''
-                    }
-                    if(build_fin){
-                        def compiler = conf.get("compiler","/opt/rocm/llvm/bin/clang++")
-                        git credentialsId: '7126e5fe-eb51-4576-b52b-9aaf1de8f0fd' , branch: 'develop', url: 'https://github.com/ROCmSoftwarePlatform/fin.git'
-                        sh '''
-                            cmake -P install_deps.cmake
-                            mkdir build 
-                            cd build
-                            CXX=$(compiler) cmake .. 
-                            make -j
-                        '''
-
                     }
                 }
             }
@@ -333,11 +326,11 @@ pipeline {
               stage('Fin Test') {
                   agent{ label rocmnode("nogpu") }
                   environment{
-                      setup_cmd = "cmake -P ../fin/install_deps.cmake && CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DCMAKE_PREFIX_PATH=/opt/rocm -DMIOPEN_ENABLE_FIN=ON .. "
+                      setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON .. "
                       build_cmd = "make -j\$(nproc) "
                   }
                   steps{
-                      buildHipClangJobAndReboot(setup_cmd: setup_cmd, execute_cmd: "", no_reboot:true, build_fin: true, prefixpath: "/opt/rocm", build_cmd: build_cmd)
+                      buildHipClangJobAndReboot(setup_cmd: setup_cmd, execute_cmd: "", no_reboot:true, build_cmd: build_cmd)
                   }
               }
             }
