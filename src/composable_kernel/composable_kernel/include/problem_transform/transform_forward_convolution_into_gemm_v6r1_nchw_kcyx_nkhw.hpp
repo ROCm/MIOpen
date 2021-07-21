@@ -7,9 +7,12 @@
 
 namespace ck {
 
-// GemmM = K
-// GemmN = N * Ho * Wo
-// GemmK = C * Y * X
+// GemmM0 = 1
+// GemmM1 = K
+// GemmN0 = N0
+// GemmN1 = (N / N0) * Ho * Wo
+// GemmK0 = (C / C0) * Y * X
+// GemmK1 = C0
 template <typename... Wei,
           typename... In,
           typename... Out,

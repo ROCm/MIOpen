@@ -299,11 +299,11 @@ void online_device_dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcy
 
     const auto GM1 = c_grid_desc_gm0_gm1_gn0_gn1.GetLength(I1);
     const auto GN1 = c_grid_desc_gm0_gm1_gn0_gn1.GetLength(I3);
-    const auto GK  = a_grid_desc_gk0_gm0_gm1_gk1.GetLength(I0);
+    const auto GK0 = a_grid_desc_gk0_gm0_gm1_gk1.GetLength(I0);
 
     const index_t grid_size = (GM1 / tunable.GM1PerBlockGM11) * (GN1 / tunable.GN1PerBlockGN11);
-    const bool hasMainKBlockLoop = ((GK + tunable.GK0PerBlock) / (2 * tunable.GK0PerBlock) > 1);
-    const bool hasDoubleTailKBlockLoop = ((GK / tunable.GK0PerBlock) % 2 == 0);
+    const bool hasMainKBlockLoop = ((GK0 + tunable.GK0PerBlock) / (2 * tunable.GK0PerBlock) > 1);
+    const bool hasDoubleTailKBlockLoop = ((GK0 / tunable.GK0PerBlock) % 2 == 0);
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
