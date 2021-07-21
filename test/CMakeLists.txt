@@ -45,7 +45,8 @@ option( WORKAROUND_ISSUE_898 "" ON)
 option( WORKAROUND_ISSUE_936 "" ON)
 
 # Run the test suite to a depth limit
-set(MIOPEN_TEST_LIMIT "0" CACHE STRING "")
+#limit greater than 2 leads to prolonged testing more than 5hrs per stage.
+set(MIOPEN_TEST_LIMIT "2" CACHE STRING "")
 set(MIOPEN_TEST_FLAGS "" CACHE STRING "")
 set(MIOPEN_TEST_GDB On CACHE BOOL "")
 
