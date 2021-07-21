@@ -8,7 +8,7 @@
 #include "bfloat16_dev.hpp"
 
 // address space for kernel parameter
-#define __CONSTANT__ __attribute__((address_space(4)))
+#define CONSTANT __attribute__((address_space(4)))
 
 // device backend
 #define CK_DEVICE_BACKEND_AMD 1

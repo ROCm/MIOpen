@@ -223,7 +223,7 @@ extern "C" __global__ void
             const FloatAB* __restrict__ p_a_grid,
             const FloatAB* __restrict__ p_b_grid,
             FloatC* __restrict__ p_c_grid,
-            const void __CONSTANT__* p_desc_tuple)
+            const void CONSTANT* p_desc_tuple)
 {
     constexpr auto I0 = Number<0>{};
     constexpr auto I1 = Number<1>{};

@@ -61,10 +61,10 @@ __global__ void
         kernel_dynamic_gemm_xdlops_v2r3(const FloatAB* __restrict__ p_a_grid,
                                         const FloatAB* __restrict__ p_b_grid,
                                         FloatC* __restrict__ p_c_grid,
-                                        const void __CONSTANT__* p_a_k0_m_k1_grid_desc,
-                                        const void __CONSTANT__* p_b_k0_n_k1_grid_desc,
-                                        const void __CONSTANT__* p_c_m0_m1_m2_n_grid_desc,
-                                        const void __CONSTANT__* p_c_block_cluster_adaptor)
+                                        const void CONSTANT* p_a_k0_m_k1_grid_desc,
+                                        const void CONSTANT* p_b_k0_n_k1_grid_desc,
+                                        const void CONSTANT* p_c_m0_m1_m2_n_grid_desc,
+                                        const void CONSTANT* p_c_block_cluster_adaptor)
 {
     constexpr index_t shared_block_size =
         GridwiseGemm::GetSharedMemoryNumberOfByte() / sizeof(FloatAB);

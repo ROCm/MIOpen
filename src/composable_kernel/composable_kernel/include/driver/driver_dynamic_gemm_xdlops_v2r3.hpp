@@ -176,20 +176,20 @@ __host__ float driver_dynamic_gemm_xdlops_v2r3(const FloatAB* p_a_grid,
     c_m0_m1_m2_n_grid_desc_dev_buf.ToDevice(&c_m0_m1_m2_n_grid_desc);
     c_block_cluster_adaptor_dev_buf.ToDevice(&c_block_cluster_adaptor);
 
-    float ave_time = launch_and_time_kernel(
-        kernel,
-        nrepeat,
-        dim3(grid_size),
-        dim3(BlockSize),
-        0,
-        0,
-        p_a_grid,
-        p_b_grid,
-        p_c_grid,
-        (void __CONSTANT__*)a_k0_m_k1_grid_desc_dev_buf.GetDeviceBuffer(),
-        (void __CONSTANT__*)b_k0_n_k1_grid_desc_dev_buf.GetDeviceBuffer(),
-        (void __CONSTANT__*)c_m0_m1_m2_n_grid_desc_dev_buf.GetDeviceBuffer(),
-        (void __CONSTANT__*)c_block_cluster_adaptor_dev_buf.GetDeviceBuffer());
+    float ave_time =
+        launch_and_time_kernel(kernel,
+                               nrepeat,
+                               dim3(grid_size),
+                               dim3(BlockSize),
+                               0,
+                               0,
+                               p_a_grid,
+                               p_b_grid,
+                               p_c_grid,
+                               (void CONSTANT*)a_k0_m_k1_grid_desc_dev_buf.GetDeviceBuffer(),
+                               (void CONSTANT*)b_k0_n_k1_grid_desc_dev_buf.GetDeviceBuffer(),
+                               (void CONSTANT*)c_m0_m1_m2_n_grid_desc_dev_buf.GetDeviceBuffer(),
+                               (void CONSTANT*)c_block_cluster_adaptor_dev_buf.GetDeviceBuffer());
 #endif
     return ave_time;
 }

@@ -52,8 +52,8 @@ __global__ void
                       integral_constant<bool, HasDoubleTailKBlockLoop>{});
 }
 #elif CK_EXPERIMENTAL_PASS_TENSOR_DESCRIPTOR_BY_VOID_POINTER
-// pass tensor descriptor by __CONSTANT__ void pointer
-// __CONSTANT__ is needed to inform compiler void pointers in the kernel signature are pointing to
+// pass tensor descriptor by CONSTANT void pointer
+// CONSTANT is needed to inform compiler void pointers in the kernel signature are pointing to
 // non-modifiable parameter address space, so compiler can enable corresponding optimization
 template <typename GridwiseGemm,
           typename FloatAB,
@@ -72,12 +72,12 @@ __global__ void
             const FloatAB* __restrict__ p_a_grid,
             const FloatAB* __restrict__ p_b_grid,
             FloatC* __restrict__ p_c_grid,
-            const void __CONSTANT__* p_a_k0_m0_m1_k1_grid_desc,
-            const void __CONSTANT__* p_b_k0_n0_n1_k1_grid_desc,
-            const void __CONSTANT__* p_c_m0_m10_m11_n0_n10_n11_grid_desc,
-            const void __CONSTANT__* p_c_blockid_to_m0_n0_block_cluster_adaptor)
+            const void CONSTANT* p_a_k0_m0_m1_k1_grid_desc,
+            const void CONSTANT* p_b_k0_n0_n1_k1_grid_desc,
+            const void CONSTANT* p_c_m0_m10_m11_n0_n10_n11_grid_desc,
+            const void CONSTANT* p_c_blockid_to_m0_n0_block_cluster_adaptor)
 {
-    // first cast void __CONSTANT__ void* to void*
+    // first cast void CONSTANT void* to void*
     // second cast void* to Desc*
     // the copy constructor of tensor descriptor doesn't take address_space(4)
     const auto a_k0_m0_m1_k1_grid_desc =
