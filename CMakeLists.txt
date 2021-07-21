@@ -67,6 +67,7 @@ set(MIOPEN_LOG_FUNC_TIME_ENABLE Off CACHE BOOL "")
 set(MIOPEN_ENABLE_SQLITE_BACKOFF On CACHE BOOL "")
 
 option( BUILD_DEV "Build for development only" OFF)
+option(MIOPEN_ENABLE_FIN "Enable the fin driver for MIOpen"  OFF)
 
 
 # Strip symbols for release
@@ -600,3 +601,6 @@ endif()
 add_subdirectory(test)
 add_subdirectory(speedtests)
 add_subdirectory(utils)
+if(MIOPEN_ENABLE_FIN)
+add_subdirectory(fin)
+endif()
