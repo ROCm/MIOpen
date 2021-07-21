@@ -59,8 +59,7 @@ PerformanceConvCkIgemmFwdV6r1DlopsNchw::PerformanceConvCkIgemmFwdV6r1DlopsNchw(
     std::initializer_list<int> a18,
     std::initializer_list<int> a19,
     std::initializer_list<int> a20,
-    int a21
-    )
+    int a21)
     : BlockSize{a0},
       GN0{a1},
       GK1{a2},
@@ -112,7 +111,7 @@ PerformanceConvCkIgemmFwdV6r1DlopsNchw::CalculateGridSize(const ConvolutionConte
     const int GM1 = K;
 
     // GN0 is tunable
-    const int GN1 =  N1 * Ho * Wo;
+    const int GN1 = N1 * Ho * Wo;
 
     // GK1 is tuanble
     const int GK0 = C1 * Y * X;
@@ -150,83 +149,11 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx) co
     return true;
 }
 
-ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx,
-                                                      const bool disableConfigOverrideFromEnv) const
+static std::string
+get_definition_string_from_tunable(const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config)
 {
-    ConvSolution result;
-    KernelInfo construction_parameters;
-
-    // default config
-    PerformanceConvCkIgemmFwdV6r1DlopsNchw config;
-
-    assert(config.IsValid(ctx));
-
-    const int N             = ConvolutionContextInterpreter::GetBatchN(ctx);
-    const int K             = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
-    const int C             = ConvolutionContextInterpreter::GetInputChannelC(ctx);
-    const int Y             = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-    const int X             = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
-    const int Hi            = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
-    const int Wi            = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
-    const int Ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
-    const int Wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
-    const int ConvStrideH   = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
-    const int ConvStrideW   = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
-    const int ConvDilationH = ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx);
-    const int ConvDilationW = ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx);
-    const int InLeftPadH    = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
-    const int InLeftPadW    = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
-    const int InRightPadH   = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
-    const int InRightPadW   = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
-
-    const int N0 = config.GN0;
-    const int N1 = N / N0;
-
-    const int C0 = config.GK1;
-    const int C1 = C / C0;
-
-    const int GM0 = 1;
-    const int GM1 = K;
-
-    // GN0 is tunable
-    const int GN1 =  N1 * Ho * Wo;
-
-    // GK1 is tuanble
-    const int GK0 = C1 * Y * X;
-
-    const int GM11 = config.GM1PerBlockGM11;
-    const int GN11 = config.GN1PerBlockGN11;
-
-    const int GM10 = GM1 / GM11;
-    const int GN10 = GN1 / GN11;
-
-    const int grid_size = GM10 * GN10;
-
-    construction_parameters.l_wk.push_back(config.BlockSize);
-    construction_parameters.l_wk.push_back(1);
-    construction_parameters.l_wk.push_back(1);
-
-    construction_parameters.g_wk.push_back(config.BlockSize * grid_size);
-    construction_parameters.g_wk.push_back(1);
-    construction_parameters.g_wk.push_back(1);
-
-    construction_parameters.kernel_file =
-        "dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw.cpp";
-
-    construction_parameters.kernel_name =
-        "dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw_prepare";
-
-    const bool hasMainKBlockLoop = ((GK0 + config.GK0PerBlock) / (2 * config.GK0PerBlock) > 1);
-    const bool hasDoubleTailKBlockLoop = ((GK0 / config.GK0PerBlock) % 2 == 0);
-
     // clang-format off
-    construction_parameters.comp_options =
-        " -DCK_PARAM_IN_WEI_DATATYPE=" + 
-            std::string("70") + 
-        " -DCK_PARAM_ACC_DATATYPE=" + 
-            std::string("70") + 
-        " -DCK_PARAM_OUT_DATATYPE=" + 
-            std::string("70") + 
+    return
         " -DCK_PARAM_BlockSize=" +
             std::to_string(config.BlockSize) +
         " -DCK_PARAM_GN0=" +
@@ -302,21 +229,138 @@ ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& 
             std::to_string(config.BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[3]) + "," +
             std::to_string(config.BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[4]) +
         " -DCK_PARAM_CThreadTransferDstScalarPerVector=" +
-            std::to_string(config.CThreadTransferDstScalarPerVector) +
-        " -DCK_PARAM_HAS_MAIN_KBLOCK_LOOP=" + 
-            std::to_string(hasMainKBlockLoop) +
-        " -DCK_PARAM_HAS_DOUBLE_TAIL_KBLOCK_LOOP=" + 
-            std::to_string(hasDoubleTailKBlockLoop) +
-        get_ck_common_compiler_flag(ctx) +
-        ctx.general_compile_options;
+            std::to_string(config.CThreadTransferDstScalarPerVector);
     // clang-format on
+}
 
-    result.construction_params.push_back(construction_parameters);
+ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx,
+                                                      const bool disableConfigOverrideFromEnv) const
+{
+    ConvSolution sol;
+    KernelInfo kernel0_info, kernel1_info;
+
+    // default config
+    PerformanceConvCkIgemmFwdV6r1DlopsNchw config;
+
+    const int N             = ConvolutionContextInterpreter::GetBatchN(ctx);
+    const int K             = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
+    const int C             = ConvolutionContextInterpreter::GetInputChannelC(ctx);
+    const int Y             = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+    const int X             = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+    const int Hi            = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
+    const int Wi            = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
+    const int Ho            = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
+    const int Wo            = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
+    const int ConvStrideH   = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
+    const int ConvStrideW   = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
+    const int ConvDilationH = ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx);
+    const int ConvDilationW = ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx);
+    const int InLeftPadH    = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
+    const int InLeftPadW    = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
+    const int InRightPadH   = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
+    const int InRightPadW   = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
+
+    const int N0 = config.GN0;
+    const int N1 = N / N0;
+
+    const int C0 = config.GK1;
+    const int C1 = C / C0;
+
+    const int GM0 = 1;
+    const int GM1 = K;
+
+    // GN0 is tunable
+    const int GN1 = N1 * Ho * Wo;
+
+    // GK1 is tuanble
+    const int GK0 = C1 * Y * X;
+
+    const int GM11 = config.GM1PerBlockGM11;
+    const int GN11 = config.GN1PerBlockGN11;
+
+    const int GM10 = GM1 / GM11;
+    const int GN10 = GN1 / GN11;
+
+    const bool hasMainKBlockLoop = ((GK0 + config.GK0PerBlock) / (2 * config.GK0PerBlock) > 1);
+    const bool hasDoubleTailKBlockLoop = ((GK0 / config.GK0PerBlock) % 2 == 0);
+
+    // kernel0: prepare
+    {
+        kernel0_info.kernel_file =
+            "dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw.cpp";
+
+        kernel0_info.kernel_name =
+            "dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw_prepare";
+
+        kernel0_info.l_wk.push_back(1);
+        kernel0_info.l_wk.push_back(1);
+        kernel0_info.l_wk.push_back(1);
+
+        kernel0_info.g_wk.push_back(1);
+        kernel0_info.g_wk.push_back(1);
+        kernel0_info.g_wk.push_back(1);
+
+        // clang-format off
+        kernel0_info.comp_options =
+            get_definition_string_from_tunable(config) + 
+            " -DCK_PARAM_IN_WEI_DATATYPE=" + 
+                std::string("70") + 
+            " -DCK_PARAM_ACC_DATATYPE=" + 
+                std::string("70") +
+            " -DCK_PARAM_OUT_DATATYPE=" + 
+                std::string("70") + 
+            " -DCK_PARAM_HAS_MAIN_KBLOCK_LOOP=" +
+                std::to_string(hasMainKBlockLoop) + 
+            " -DCK_PARAM_HAS_DOUBLE_TAIL_KBLOCK_LOOP=" +
+                std::to_string(hasDoubleTailKBlockLoop) + 
+            get_ck_common_compiler_flag(ctx) +
+            ctx.general_compile_options;
+        // clang-format on
+    }
+
+    // kernel1: compute
+    {
+        kernel1_info.kernel_file =
+            "dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw.cpp";
+
+        kernel1_info.kernel_name =
+            "dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw";
+
+        const int grid_size = GM10 * GN10;
+
+        kernel1_info.l_wk.push_back(config.BlockSize);
+        kernel1_info.l_wk.push_back(1);
+        kernel1_info.l_wk.push_back(1);
+
+        kernel1_info.g_wk.push_back(config.BlockSize * grid_size);
+        kernel1_info.g_wk.push_back(1);
+        kernel1_info.g_wk.push_back(1);
+
+        // clang-format off
+        kernel1_info.comp_options =
+            get_definition_string_from_tunable(config) + 
+            " -DCK_PARAM_IN_WEI_DATATYPE=" + 
+                std::string("70") + 
+            " -DCK_PARAM_ACC_DATATYPE=" + 
+                std::string("70") +
+            " -DCK_PARAM_OUT_DATATYPE=" + 
+                std::string("70") + 
+            " -DCK_PARAM_HAS_MAIN_KBLOCK_LOOP=" +
+                std::to_string(hasMainKBlockLoop) + 
+            " -DCK_PARAM_HAS_DOUBLE_TAIL_KBLOCK_LOOP=" +
+                std::to_string(hasDoubleTailKBlockLoop) + 
+            get_ck_common_compiler_flag(ctx) +
+            ctx.general_compile_options;
+        // clang-format on
+    }
+
+    sol.construction_params.push_back(kernel0_info);
+    sol.construction_params.push_back(kernel1_info);
 
     // workspace is used to save transformed tensor descriptors
-    result.workspce_sz = std::size_t(4096L);
+    sol.workspce_sz = GetWorkspaceSize(ctx);
 
-    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+    sol.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
             const auto& data_ctx = primitive_params.CastTo<conv::DataInvokeParams>();
             const auto& tensors  = data_ctx.tensors;
@@ -324,6 +368,8 @@ ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& 
             auto kernel1         = handle.Run(kernels[1]);
 
             float elapsed = 0;
+
+            // kernel for transforming tensor descriptors
             kernel0(N,
                     C,
                     Hi,
@@ -346,6 +392,7 @@ ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& 
                 elapsed += handle.GetKernelTime();
             }
 
+            // kernel for computatition
             kernel1(tensors.w, tensors.in, tensors.out, data_ctx.workSpace);
 
             if(handle.IsProfilingEnabled())
@@ -357,7 +404,12 @@ ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& 
         };
     };
 
-    return result;
+    return sol;
+}
+
+std::size_t ConvCkIgemmFwdV6r1DlopsNchw::GetWorkspaceSize(const ConvolutionContext& ctx) const
+{
+    return 4096L;
 }
 
 } // namespace solver
