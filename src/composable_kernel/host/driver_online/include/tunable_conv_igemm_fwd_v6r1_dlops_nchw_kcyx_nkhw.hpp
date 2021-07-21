@@ -1,7 +1,7 @@
-#ifndef CONV_TUNABLE_FWD_V6R1_DLOPS_NCHW_KCYX_NKHW_HPP
-#define CONV_TUNABLE_FWD_V6R1_DLOPS_NCHW_KCYX_NKHW_HPP
+#ifndef TUNABLE_CONV_IGEMM_FWD_V6R1_DLOPS_NCHW_KCYX_NKHW_HPP
+#define TUNABLE_CONV_IGEMM_FWD_V6R1_DLOPS_NCHW_KCYX_NKHW_HPP
 
-struct tunable_dyn_conv_fwd_v6r1_dlops_nchw_kcyx_nkhw
+struct tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw
 {
     int32_t BlockSize = 256;
 

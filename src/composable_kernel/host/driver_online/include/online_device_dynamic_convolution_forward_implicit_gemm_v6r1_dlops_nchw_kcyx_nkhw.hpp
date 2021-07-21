@@ -5,9 +5,9 @@
 #include "dynamic_tensor_descriptor.hpp"
 #include "dynamic_tensor_descriptor_helper.hpp"
 #include "transform_forward_convolution_into_gemm_v6r1_nchw_kcyx_nkhw.hpp"
-#include "conv_tunable_fwd_v6r1_dlops_nchw_kcyx_nkhw.hpp"
+#include "tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw.hpp"
 
-namespace detail_dyn_conv_fwd_v6r1_nchw_kcyx_nkhw {
+namespace detail_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw {
 
 template <typename TInWei, typename TAcc, typename TOut>
 static std::string get_network_config_string_from_types()
@@ -22,7 +22,7 @@ static std::string get_network_config_string_from_types()
 };
 
 static std::string get_network_config_string_from_tunable(
-    const tunable_dyn_conv_fwd_v6r1_dlops_nchw_kcyx_nkhw& tunable)
+    const tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw& tunable)
 {
     std::string out("TUN_");
 
@@ -130,7 +130,7 @@ static std::string get_definition_string_from_types()
 };
 
 static std::string
-get_definition_string_from_tunable(const tunable_dyn_conv_fwd_v6r1_dlops_nchw_kcyx_nkhw& tunable)
+get_definition_string_from_tunable(const tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw& tunable)
 {
     std::string out;
 
@@ -236,7 +236,7 @@ get_definition_string_from_tunable(const tunable_dyn_conv_fwd_v6r1_dlops_nchw_kc
     return (out);
 };
 
-} // namespace detail_dyn_conv_fwd_v6r1_nchw_kcyx_nkhw
+} // namespace detail_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw
 
 template <typename TInWei,
           typename TAcc,
@@ -260,11 +260,11 @@ void online_device_dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcy
     const Tensor<TInWei>& in_n_c_hi_wi,
     const Tensor<TInWei>& wei_k_c_y_x,
     Tensor<TOut>& out_n_k_ho_wo,
-    const tunable_dyn_conv_fwd_v6r1_dlops_nchw_kcyx_nkhw& tunable,
+    const tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw& tunable,
     ck::index_t nrepeat)
 {
     using namespace ck;
-    using namespace detail_dyn_conv_fwd_v6r1_nchw_kcyx_nkhw;
+    using namespace detail_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw;
     using size_t = std::size_t;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////
