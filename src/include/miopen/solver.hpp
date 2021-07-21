@@ -2134,6 +2134,7 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
     CalculateGemmBBlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
     std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
 };
+
 struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm : SolverBase<ConvolutionContext>
 {
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
@@ -2148,6 +2149,97 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm : SolverBase<ConvolutionCont
 
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
     Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const;
+};
+
+struct PerformanceConvCkIgemmFwdV6r1DlopsNchw : Serializable<PerformanceConvCkIgemmFwdV6r1DlopsNchw>
+{
+    int BlockSize;
+
+    int GN0;
+    int GK1;
+
+    int GM1PerBlockGM11;
+    int GN1PerBlockGN11;
+    int GK0PerBlock;
+
+    int BM1PerThreadBM11;
+    int BN1PerThreadBN11;
+    int BK0PerThread;
+
+    int BM10BN10ThreadClusterBM100;
+    int BM10BN10ThreadClusterBN100;
+    int BM10BN10ThreadClusterBM101;
+    int BM10BN10ThreadClusterBN101;
+
+    std::vector<int> ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1;
+    std::vector<int> ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1;
+    std::vector<int> ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1;
+    std::vector<int> ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1;
+
+    std::vector<int> BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1;
+    std::vector<int> BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1;
+    std::vector<int> BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1;
+    std::vector<int> BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1;
+
+    int CThreadTransferDstScalarPerVector;
+
+    PerformanceConvCkIgemmFwdV6r1DlopsNchw(int,
+                                           int,
+                                           int,
+                                           int,
+                                           int,
+                                           int,
+                                           int,
+                                           int,
+                                           int,
+                                           int,
+                                           int,
+                                           int,
+                                           int,
+                                           std::initializer_list<int>,
+                                           std::initializer_list<int>,
+                                           std::initializer_list<int>,
+                                           std::initializer_list<int>,
+                                           std::initializer_list<int>,
+                                           std::initializer_list<int>,
+                                           std::initializer_list<int>,
+                                           std::initializer_list<int>,
+                                           int);
+
+    PerformanceConvCkIgemmFwdV6r1DlopsNchw()
+        : PerformanceConvCkIgemmFwdV6r1DlopsNchw(256,
+                                                 4,
+                                                 1,
+                                                 128,
+                                                 32,
+                                                 8,
+                                                 4,
+                                                 4,
+                                                 1,
+                                                 2,
+                                                 2,
+                                                 8,
+                                                 8,
+                                                 {4, 1, 1, 1, 1},
+                                                 {2, 1, 1, 128, 1},
+                                                 {4, 1, 1, 1, 1},
+                                                 {1, 1, 1, 1, 1},
+                                                 {1, 4, 1, 1, 1},
+                                                 {8, 1, 1, 32, 1},
+                                                 {1, 1, 1, 1, 1},
+                                                 {1, 1, 1, 1, 1},
+                                                 1)
+    {
+    }
+
+    std::tuple<int, bool> CalculateGridSize(const ConvolutionContext& ctx) const;
+};
+
+struct ConvCkIgemmFwdV6r1DlopsNchw : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             bool disableConfigOverrideFromEnv = false) const;
 };
 
 struct ConvDirectNaiveConvFwd : SolverBase<ConvolutionContext>

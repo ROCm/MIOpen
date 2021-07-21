@@ -178,7 +178,9 @@ ClProgramPtr LoadProgram(cl_context ctx,
     {
         boost::optional<miopen::TmpDir> dir(program_name);
 #if MIOPEN_BUILD_DEV
+#if 0 // debug
         params += " -Werror";
+#endif
 #ifdef __linux__
         params += HipKernelWarningsString();
 #endif

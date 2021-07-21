@@ -304,7 +304,11 @@ void HIPOCProgramImpl::BuildCodeObject(std::string params,
     if(miopen::EndsWith(filename, ".cpp"))
     {
 #if MIOPEN_BUILD_DEV
+#if 0 // debug
         params += " -Werror" + HipKernelWarningsString();
+#else
+        params += HipKernelWarningsString();
+#endif
 #else
         params += " -Wno-everything";
 #endif
