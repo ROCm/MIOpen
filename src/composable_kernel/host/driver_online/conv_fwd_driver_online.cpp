@@ -257,37 +257,7 @@ int main(int argc, char* argv[])
 
         const auto tmp = f_make_for_device_nchw();
 
-        auto tunable = tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw{};
-
-#if 1
-        tunable.BlockSize = 256;
-
-        tunable.GN0 = 8;
-        tunable.GK1 = 1;
-
-        tunable.GM1PerBlockGM11 = 128;
-        tunable.GN1PerBlockGN11 = 16;
-        tunable.GK0PerBlock     = 16;
-
-        tunable.BM1PerThreadBM11 = 4;
-        tunable.BN1PerThreadBN11 = 4;
-        tunable.BK0PerThread     = 1;
-
-        tunable.BM10BN10ThreadClusterBM100 = 2;
-        tunable.BM10BN10ThreadClusterBN100 = 2;
-        tunable.BM10BN10ThreadClusterBM101 = 8;
-        tunable.BM10BN10ThreadClusterBN101 = 8;
-
-        tunable.ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1     = {8, 1, 1, 1, 1};
-        tunable.ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1   = {2, 1, 1, 128, 1};
-        tunable.ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1 = {4, 1, 1, 1, 1};
-        tunable.ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1 = {1, 1, 1, 1, 1};
-
-        tunable.BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1     = {1, 8, 1, 1, 1};
-        tunable.BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1   = {16, 1, 1, 16, 1};
-        tunable.BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1 = {1, 1, 1, 1, 1};
-        tunable.BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1 = {1, 1, 1, 1, 1};
-#endif
+        const auto tunable = tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw{};
 
         online_device_dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw<
             in_data_t,
