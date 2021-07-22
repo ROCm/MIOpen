@@ -34,7 +34,7 @@ option( MIOPEN_TEST_HALF "Test in half mode" OFF )
 option( MIOPEN_TEST_INT8 "Test in int8 mode" OFF )
 option( MIOPEN_TEST_BFLOAT16 "Test in bfloat16 mode" OFF )
 option( MIOPEN_TEST_GFX908 "Test arch gfx908 mode" OFF )
-option( MIOPEN_TEST_VEGA "Test arch VEGA (gfx900, gfx906)" ON )
+option( MIOPEN_TEST_VEGA "Test arch VEGA (gfx900, gfx906)" OFF )
 option( MIOPEN_TEST_CONV Off)
 option( MIOPEN_TEST_DEEPBENCH Off)
 option( MIOPEN_TEST_DRIVER_ITER_MODE Off)
@@ -44,7 +44,7 @@ option( MIOPEN_TEST_MLIR "Add tests for MLIR -- EXPERIMENTAL" ${MIOPEN_USE_MLIR}
 option( WORKAROUND_ISSUE_898 "" ON)
 option( WORKAROUND_ISSUE_936 "" ON)
 
-#Run the test suite to a depth limit
+# Run the test suite to a depth limit
 set(MIOPEN_TEST_LIMIT "0" CACHE STRING "")
 set(MIOPEN_TEST_FLAGS "" CACHE STRING "")
 set(MIOPEN_TEST_GDB On CACHE BOOL "")
@@ -64,6 +64,45 @@ if(MIOPEN_BACKEND_HIP AND NOT MIOPEN_TEST_HIP_NOGPU)
     set(MIOPEN_TEST_HIP TRUE)
 endif()
 
+# Detect GPU type for testing.
+# For HIP_NOGPU backend, GPU detection is not required and should be disabled.
+# Also we do not detect GPU when target GPU for testing is specified explicitly.
+set(MIOPEN_TEST_GPU_DETECTION_FAILED FALSE)
+if(NOT (MIOPEN_TEST_VEGA OR MIOPEN_TEST_GFX908 OR MIOPEN_TEST_HIP_NOGPU))
+    find_program(ROCMINFO
+        NAMES rocminfo
+        PATHS
+            /opt/rocm
+            ${CMAKE_INSTALL_PREFIX}
+        PATH_SUFFIXES
+            /bin
+    )
+    message(STATUS "rocminfo utility: ${ROCMINFO}")
+    if(ROCMINFO)
+        execute_process (
+            COMMAND ${ROCMINFO}
+            OUTPUT_VARIABLE ROCMINFO_OUTPUT
+            RESULT_VARIABLE ROCMINFO_EXIT_STATUS
+        )
+        if(NOT ROCMINFO_EXIT_STATUS EQUAL 0)
+            message(WARNING "ROCMINFO FAILED, GPU TYPE UNKNOWN. Manually set respective MIOPEN_TEST_GFX* CMake variable to specify target GPU for testing.")
+            set(MIOPEN_TEST_GPU_DETECTION_FAILED TRUE)
+        elseif(ROCMINFO_OUTPUT MATCHES "gfx900|gfx906")
+            set(MIOPEN_TEST_VEGA ON)
+        elseif(ROCMINFO_OUTPUT MATCHES "gfx908")
+            set(MIOPEN_TEST_GFX908 ON)
+        else()
+            message(WARNING "TESTING IS NOT SUPPORTED FOR THE DETECTED GPU")
+            set(MIOPEN_TEST_GPU_DETECTION_FAILED TRUE)
+        endif()
+    else()
+        message(WARNING "ROCMINFO NOT FOUND, GPU TYPE UNKNOWN. Manually set respective MIOPEN_TEST_GFX* CMake variable to specify target GPU for testing.")
+        set(MIOPEN_TEST_GPU_DETECTION_FAILED TRUE)
+    endif()
+endif()
+message(STATUS "MIOPEN_TEST_VEGA ${MIOPEN_TEST_VEGA}")
+message(STATUS "MIOPEN_TEST_GFX908 ${MIOPEN_TEST_GFX908}")
+
 if(MIOPEN_TEST_DRIVER_ITER_MODE)
     add_definitions(-DMIOPEN_TEST_DRIVER_MODE=2)
 else()
@@ -74,13 +113,12 @@ find_package(Threads REQUIRED)
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C ${CMAKE_CFG_INTDIR})
 add_custom_target(tests)
 
-if(MIOPEN_TEST_GFX908)
-    set(MIOPEN_TEST_VEGA FALSE)
+if(MIOPEN_TEST_GPU_DETECTION_FAILED)
+    add_custom_target(gpu_detection_check COMMAND echo "*** FATAL: GPU DETECTION FAILED DURING CMAKE PHASE, CHECK CMAKE WARNINGS ***" COMMAND exit 1)
+    add_dependencies(check gpu_detection_check)
 endif()
 
 set(MIOPEN_TEST_FLOAT_ARG)
-
-
 set(MIOPEN_TEST_FLOAT FALSE)
 if(MIOPEN_TEST_HALF)
     set(MIOPEN_TEST_FLOAT_ARG --half)
@@ -92,7 +130,6 @@ else()
     set(MIOPEN_TEST_FLOAT_ARG --float)
     set(MIOPEN_TEST_FLOAT TRUE)
 endif()
-
 
 if(NOT MIOPEN_TEST_MIOTENSILE)
 	if(MIOPEN_TEST_HALF)
@@ -147,8 +184,6 @@ message(STATUS "SKIP_TESTS: ${SKIP_TESTS}")
 message(STATUS "SKIP_ALL_EXCEPT_TESTS: ${SKIP_ALL_EXCEPT_TESTS}")
 
 
-
-
 function(add_test_command NAME EXE)
     # Restrict the use of SKIP_ALL_EXCEPT_TESTS list in the Int8, BF16 and MIOpenTensile tests
     if( (NOT (NAME IN_LIST SKIP_ALL_EXCEPT_TESTS) AND SKIP_ALL_EXCEPT_TESTS)
@@ -198,7 +233,7 @@ function(add_test_executable TEST_NAME)
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
         set_target_properties(${TEST_NAME} PROPERTIES COMPILE_FLAGS -pthread LINK_FLAGS -pthread)
     endif()
-    
+
     if(MIOPEN_TEST_ALL)
         set(TEST_COMMAND ${TEST_NAME} ${MIOPEN_TEST_FLOAT_ARG} --all ${MIOPEN_TEST_FLAGS_ARGS})
     else()
@@ -208,7 +243,7 @@ function(add_test_executable TEST_NAME)
     if(MIOPEN_TEST_LIMIT GREATER 0)
         set(TEST_COMMAND ${TEST_COMMAND} --limit ${MIOPEN_TEST_LIMIT})
     endif()
-    
+
     if(WORKAROUND_ISSUE_936 AND (${TEST_NAME} MATCHES "test_conv2d" OR ${TEST_NAME} MATCHES "test_immed_conv2d") )
         set(TEST_COMMAND ${TEST_COMMAND} --tolerance 130) #increased by 1.625 times
     endif()
@@ -488,7 +523,7 @@ if(${CODECOV_TEST})
     add_custom_test(test_pooling2d_codecov
         COMMAND $<TARGET_FILE:test_pooling2d> ${MIOPEN_TEST_FLOAT_ARG} --input 1, 192, 28, 28 --lens 2 2 --strides 2 2 --pads 0 0 ${MIOPEN_TEST_FLAGS_ARGS}
     )
-    
+
 endif()
 
 
@@ -1036,7 +1071,6 @@ set(DYNAMIC_IMPLICITGEMM_WRW_ENVS
 set(DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS
     ${DYNAMIC_IMPLICITGEMM_COMMON}
     MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicBwdXdlops)
-
 set(DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS
     ${DYNAMIC_IMPLICITGEMM_COMMON}
     MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicWrwXdlops)
@@ -1190,6 +1224,49 @@ COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> 
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 73 73 --weights  64  32 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  16 25 25 --weights  64  16 3 3 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+)
+
+set(DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS
+    ${DYNAMIC_IMPLICITGEMM_COMMON}
+    MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC)
+
+set(ARGS_NHWC_WRW
+    --disable-forward
+    --disable-backward-data
+    --in_layout NHWC
+    --fil_layout NHWC
+    --out_layout NHWC)
+
+add_custom_test(test_conv_igemm_dynamic_xdlops_nhwc_wrw SKIP_UNLESS_ALL HALF_ENABLED GFX908_ENABLED VEGA_DISABLED
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2 256 40 52 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 32 28 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128 14 14 --weights  64 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-forward ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 7 1 --pads_strides_dilations 3 0 1 1 1 1 --disable-forward ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   4 128 28 28 --weights 128 128 2 2 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128  8  8 --weights 192 128 3 1 --pads_strides_dilations 1 0 1 1 1 1 --disable-forward ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 192 17 17 --weights 160 192 3 3 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 73 73 --weights  64  32 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  16 25 25 --weights  64  16 3 3 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward ${ARGS_NHWC_WRW}
+
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  4 32 79 141 --weights 64 32 5 10 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward ${ARGS_NHWC_WRW}
+
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 7 7 --weights 1024  256  7 7 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 1 1 --weights 1024  256  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward ${ARGS_NHWC_WRW}
+
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 3 32 32 --weights 1 3 11 11 --pads_strides_dilations 1 1 2 2 2 1 --disable-forward ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 3 224 224 --weights 1 3 3 3 --pads_strides_dilations 0 0 1 1 2 2 --disable-forward ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 1 8 8 --weights 1 1 2 2 --pads_strides_dilations 0 0 1 1 2 2 --disable-forward ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 128 56 56 --weights 1 128 5 5 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward ${ARGS_NHWC_WRW}
+
+)
+add_custom_test(test_regression_half_mi100 SKIP_UNLESS_ALL FLOAT_DISABLED HALF_ENABLED GFX908_ENABLED VEGA_DISABLED
+# Regression test for SWDEV-291202
+COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmBwdDataV4R1Xdlops $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  128  24 14 14 --weights 64  24 5 5 --pads_strides_dilations 2 2 1 1 1 1 --disable-forward --disable-backward-weights
 )
 
 if(MIOPEN_TEST_DEEPBENCH)
