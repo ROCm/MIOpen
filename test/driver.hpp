@@ -484,15 +484,18 @@ struct test_driver
     generate_data_limited(std::vector<T> dims, int limit_multiplier, T single)
     {
         return {[=]() -> std::vector<T> {
-            if(limit_set > 0)
+            if(full_set)
             {
-                auto endpoint =
-                    std::min(static_cast<int>(dims.size()), limit_set * limit_multiplier);
-                std::vector<T> subvec(dims.cbegin(), dims.cbegin() + endpoint);
-                return subvec;
+                if(limit_set > 0)
+                {
+                    auto endpoint =
+                        std::min(static_cast<int>(dims.size()), limit_set * limit_multiplier);
+                    std::vector<T> subvec(dims.cbegin(), dims.cbegin() + endpoint);
+                    return subvec;
+                }
+                else 
+                    return dims;
             }
-            else if(full_set)
-                return dims;
             else
                 return {single};
         }};
@@ -526,15 +529,18 @@ struct test_driver
     generate_data_t<std::vector<T>> generate_data_limited(std::vector<T> dims, int limit_multiplier)
     {
         return {[=]() -> std::vector<T> {
-            if(limit_set > 0)
+            if(full_set)
             {
-                auto endpoint =
-                    std::min(static_cast<int>(dims.size()), limit_set * limit_multiplier);
-                std::vector<T> subvec(dims.cbegin(), dims.cbegin() + endpoint);
-                return subvec;
+                if(limit_set > 0)
+                {
+                    auto endpoint =
+                        std::min(static_cast<int>(dims.size()), limit_set * limit_multiplier);
+                    std::vector<T> subvec(dims.cbegin(), dims.cbegin() + endpoint);
+                    return subvec;
+                }
+                else 
+                    return dims;
             }
-            else if(full_set)
-                return dims;
             else
                 return {dims.front()};
         }};
