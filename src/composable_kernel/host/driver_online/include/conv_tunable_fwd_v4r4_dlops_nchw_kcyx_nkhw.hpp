@@ -3,42 +3,42 @@
 
 struct tunable_dyn_conv_fwd_v4r4_dlops_nchw_kcyx_nkhw
 {
-    int32_t BlockSize;
+    int BlockSize;
 
-    int32_t MPerBlock;
-    int32_t NPerBlock;
-    int32_t KPerBlock;
+    int MPerBlock;
+    int NPerBlock;
+    int KPerBlock;
 
-    int32_t M1PerThread;
-    int32_t N1PerThread;
-    int32_t KPerThread;
+    int M1PerThread;
+    int N1PerThread;
+    int KPerThread;
 
-    int32_t M1N1ThreadClusterM10;
-    int32_t M1N1ThreadClusterN10;
-    int32_t M1N1ThreadClusterM11;
-    int32_t M1N1ThreadClusterN11;
+    int M1N1ThreadClusterM10;
+    int M1N1ThreadClusterN10;
+    int M1N1ThreadClusterM11;
+    int M1N1ThreadClusterN11;
 
-    std::array<int32_t, 3> ABlockTransferThreadSliceLengths_K_M0_M1;
-    std::array<int32_t, 3> ABlockTransferThreadClusterLengths_K_M0_M1;
-    std::array<int32_t, 3> ABlockTransferThreadClusterArrangeOrder;
-    std::array<int32_t, 3> ABlockTransferSrcAccessOrder;
-    int32_t ABlockTransferSrcVectorDim;
-    int32_t ABlockTransferSrcScalarPerVector;
-    int32_t ABlockTransferDstScalarPerVector_M1;
+    std::array<int, 3> ABlockTransferThreadSliceLengths_K_M0_M1;
+    std::array<int, 3> ABlockTransferThreadClusterLengths_K_M0_M1;
+    std::array<int, 3> ABlockTransferThreadClusterArrangeOrder;
+    std::array<int, 3> ABlockTransferSrcAccessOrder;
+    int ABlockTransferSrcVectorDim;
+    int ABlockTransferSrcScalarPerVector;
+    int ABlockTransferDstScalarPerVector_M1;
     bool AThreadTransferSrcResetCoordinateAfterRun;
 
-    std::array<int32_t, 3> BBlockTransferThreadSliceLengths_K_N0_N1;
-    std::array<int32_t, 3> BBlockTransferThreadClusterLengths_K_N0_N1;
-    std::array<int32_t, 3> BBlockTransferThreadClusterArrangeOrder;
-    std::array<int32_t, 3> BBlockTransferSrcAccessOrder;
-    int32_t BBlockTransferSrcVectorDim;
-    int32_t BBlockTransferSrcScalarPerVector;
-    int32_t BBlockTransferDstScalarPerVector_N1;
+    std::array<int, 3> BBlockTransferThreadSliceLengths_K_N0_N1;
+    std::array<int, 3> BBlockTransferThreadClusterLengths_K_N0_N1;
+    std::array<int, 3> BBlockTransferThreadClusterArrangeOrder;
+    std::array<int, 3> BBlockTransferSrcAccessOrder;
+    int BBlockTransferSrcVectorDim;
+    int BBlockTransferSrcScalarPerVector;
+    int BBlockTransferDstScalarPerVector_N1;
     bool BThreadTransferSrcResetCoordinateAfterRun;
 
-    std::array<int32_t, 6> CThreadTransferSrcDstAccessOrder;
-    int32_t CThreadTransferSrcDstVectorDim;
-    int32_t CThreadTransferDstScalarPerVector;
+    std::array<int, 6> CThreadTransferSrcDstAccessOrder;
+    int CThreadTransferSrcDstVectorDim;
+    int CThreadTransferDstScalarPerVector;
 };
 
 static tunable_dyn_conv_fwd_v4r4_dlops_nchw_kcyx_nkhw
