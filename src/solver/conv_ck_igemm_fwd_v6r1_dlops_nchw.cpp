@@ -242,6 +242,36 @@ ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& 
     // default config
     PerformanceConvCkIgemmFwdV6r1DlopsNchw config;
 
+#if 0
+    config.BlockSize = 256;
+
+    config.GN0 = 8;
+    config.GK1 = 1;
+
+    config.GM1PerBlockGM11 = 128;
+    config.GN1PerBlockGN11 = 16;
+    config.GK0PerBlock     = 16;
+
+    config.BM1PerThreadBM11 = 4;
+    config.BN1PerThreadBN11 = 4;
+    config.BK0PerThread     = 1;
+
+    config.BM10BN10ThreadClusterBM100 = 2;
+    config.BM10BN10ThreadClusterBN100 = 2;
+    config.BM10BN10ThreadClusterBM101 = 8;
+    config.BM10BN10ThreadClusterBN101 = 8;
+
+    config.ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1     = {8, 1, 1,  1, 1};
+    config.ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1   = {2, 1, 1,128, 1};
+    config.ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1 = {4, 1, 1,  1, 1};
+    config.ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1 = {1, 1, 1,  1, 1};
+
+    config.BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1     = { 1, 8, 1,  1, 1};
+    config.BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1   = {16, 1, 1, 16, 1};
+    config.BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1 = { 1, 1, 1,  1, 1};
+    config.BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1 = { 1, 1, 1,  1, 1};
+#endif
+
     const int N             = ConvolutionContextInterpreter::GetBatchN(ctx);
     const int K             = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
     const int C             = ConvolutionContextInterpreter::GetInputChannelC(ctx);
