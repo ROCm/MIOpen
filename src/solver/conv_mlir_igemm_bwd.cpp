@@ -75,16 +75,9 @@ bool ConvMlirIgemmBwd::IsApplicable(const ConvolutionContext& ctx) const
 #if MIOPEN_USE_MLIR
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD{}))
         return false;
-    if(!ctx.IsLayoutDefault() && !ctx.IsLayoutNHWC())
-        return false;
-    // Future: MLIR will support 3d convolution
-    if(!ctx.Is2d())
-        return false;
-    if(!ctx.IsFp32() && !ctx.IsFp16())
+    if(!ctx.direction.IsBackwardData())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
-        return false;
-    if(!ctx.direction.IsBackwardData())
         return false;
 
     const auto k = ConvolutionContextInterpreter::GetOutputChannelK(ctx);

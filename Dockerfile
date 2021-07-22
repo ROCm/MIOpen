@@ -69,7 +69,8 @@ apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unau
     rocm-opencl-dev \
     rocm-cmake \
     rocblas \
-    zlib1g-dev && \
+    zlib1g-dev \
+    kmod && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -119,7 +120,7 @@ RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."
 
 RUN if [ "$USE_MLIR" = "ON" ]; \
     then cd ~ && \
-    export MLIR_COMMIT=44abc4783fe2f6b4415871f7c44aa52ab89bccab && \
+    export MLIR_COMMIT=950823986052e4750468e4e3a9641d0ce7be74a4 && \
     wget https://github.com/ROCmSoftwarePlatform/llvm-project-mlir/archive/$MLIR_COMMIT.tar.gz && \
     tar -xvzf $MLIR_COMMIT.tar.gz && \
     rm -rf $MLIR_COMMIT.tar.gz && \
