@@ -102,7 +102,8 @@ RUN cget -p $PREFIX install kitware/cmake@v3.15.1
 
 ADD min-requirements.txt /min-requirements.txt
 RUN CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -f /min-requirements.txt
-RUN cget -p $PREFIX install -f fin/requirements.txt
+ADD fin/requirements.txt /fin_requirements.txt
+RUN cget -p $PREFIX install -f /fin_requirements.txt
 RUN cget -p $PREFIX install danmar/cppcheck@dd05839a7e63ef04afd34711cb3e1e0ef742882f
 
 # Install doc requirements
