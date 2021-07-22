@@ -142,7 +142,7 @@ inline static bool Inc_1_2_4(int& v)
 
 inline static bool Is_1_2_4(const int& v) { return v == 1 || v == 2 || v == 4; }
 
-bool PerformanceConfigConvAsmBwdWrW1x1::SetNextValue()
+bool PerformanceConfigConvAsmBwdWrW1x1::SetNextValue(const ConvolutionContext& /*config*/)
 {
     // Increment with wrap-around:
     // select fast or full method
