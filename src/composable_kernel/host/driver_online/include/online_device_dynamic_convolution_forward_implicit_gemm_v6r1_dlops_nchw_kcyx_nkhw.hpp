@@ -64,6 +64,8 @@ void online_device_dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcy
     using namespace detail_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw;
     using size_t = std::size_t;
 
+    std::cout << __func__ << std::endl;
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // The follow codes are only used for computing the grid_size, hasMainKBlockLoop,
     // hasDoubleTailKBlockLoop

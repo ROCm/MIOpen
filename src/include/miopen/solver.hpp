@@ -2180,17 +2180,14 @@ struct ConvCkIgemmFwdV6r1DlopsNchw : SolverBase<ConvolutionContext>
     bool IsApplicable(const ConvolutionContext&) const;
     std::size_t GetWorkspaceSize(const ConvolutionContext&) const;
     bool IsDynamic() const { return true; }
-    PerformanceConvCkIgemmFwdV6r1DlopsNchw GetPerformanceConfig(ConvolutionContext&) const;
-    PerformanceConvCkIgemmFwdV6r1DlopsNchw Search(ConvolutionContext&);
-    bool IsValidPerformanceConfig(ConvolutionContext&,
-                                  PerformanceConvCkIgemmFwdV6r1DlopsNchw&) const;
-#if 1
+    PerformanceConvCkIgemmFwdV6r1DlopsNchw GetPerformanceConfig(const ConvolutionContext&) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
+                                  const PerformanceConvCkIgemmFwdV6r1DlopsNchw&) const;
+    PerformanceConvCkIgemmFwdV6r1DlopsNchw Search(const ConvolutionContext&,
+                                                  const AnyInvokeParams&) const;
     ConvSolution GetSolution(const ConvolutionContext&,
-                             PerformanceConvCkIgemmFwdV6r1DlopsNchw,
+                             const PerformanceConvCkIgemmFwdV6r1DlopsNchw,
                              bool disableConfigOverrideFromEnv = false) const;
-#else
-    ConvSolution GetSolution(const ConvolutionContext&) const;
-#endif
 };
 
 struct ConvDirectNaiveConvFwd : SolverBase<ConvolutionContext>

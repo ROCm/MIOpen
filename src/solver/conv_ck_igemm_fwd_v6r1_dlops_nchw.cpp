@@ -50,7 +50,7 @@ bool PerformanceConvCkIgemmFwdV6r1DlopsNchw::SetNextValue(const ConvolutionConte
 {
     if(compile_param_list_id <
        ck::kernel_compile_parameter::compile_param_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw
-           .size())
+           .size() - 1)
     {
         compile_param_list_id++;
         return true;
@@ -90,28 +90,23 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx) co
 }
 
 PerformanceConvCkIgemmFwdV6r1DlopsNchw
-ConvCkIgemmFwdV6r1DlopsNchw::GetPerformanceConfig(ConvolutionContext&) const
+ConvCkIgemmFwdV6r1DlopsNchw::GetPerformanceConfig(const ConvolutionContext&) const
 {
     // TODO
     return PerformanceConvCkIgemmFwdV6r1DlopsNchw(0);
 }
 
 bool ConvCkIgemmFwdV6r1DlopsNchw::IsValidPerformanceConfig(
-    ConvolutionContext&, PerformanceConvCkIgemmFwdV6r1DlopsNchw&) const
+    const ConvolutionContext&, const PerformanceConvCkIgemmFwdV6r1DlopsNchw&) const
 {
     // TODO
     return true;
 }
 
-#if 1
 ConvSolution
 ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx,
-                                         PerformanceConvCkIgemmFwdV6r1DlopsNchw config,
+                                         const PerformanceConvCkIgemmFwdV6r1DlopsNchw config,
                                          bool disableConfigOverrideFromEnv) const
-#else
-ConvSolution
-ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx) const
-#endif
 {
     ConvSolution sol;
     KernelInfo kernel0_info, kernel1_info;
@@ -133,10 +128,6 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx) const
     const int InLeftPadW    = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
     const int InRightPadH   = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
     const int InRightPadW   = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
-
-#if 0
-    auto config = PerformanceConvCkIgemmFwdV6r1DlopsNchw(0);
-#endif
 
     const auto compile_param = get_compile_param_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw(config);
 
@@ -291,6 +282,13 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx) const
 std::size_t ConvCkIgemmFwdV6r1DlopsNchw::GetWorkspaceSize(const ConvolutionContext& ctx) const
 {
     return 4096L;
+}
+
+PerformanceConvCkIgemmFwdV6r1DlopsNchw
+ConvCkIgemmFwdV6r1DlopsNchw::Search(const ConvolutionContext& ctx,
+                                    const AnyInvokeParams& invoke_ctx) const
+{
+    return GenericSearch(*this, ctx, invoke_ctx);
 }
 
 } // namespace solver
