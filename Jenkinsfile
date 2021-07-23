@@ -348,10 +348,10 @@ pipeline {
 //                        buildHipClangJobAndReboot(build_type: 'debug', config_targets: Smoke_targets)
 //                    }
 //                }
-                stage('Fp32 Hip Debug gfx1030') {
+                stage('Fp32 OpenCL Debug gfx1030') {
                     agent{ label rocmnode("navi21") }
                     steps{
-                        buildHipClangJobAndReboot(build_type: 'debug', config_targets: Smoke_targets, build_env: extra_log_env, gpu_arch: "gfx1030")
+                        buildHipClangJobAndReboot(compiler: 'g++', build_type: 'debug', config_targets: Smoke_targets, build_env: extra_log_env, gpu_arch: "gfx1030")
                     }
                 }
 //                stage('Fp32 Hip Debug gfx908 /opt/rocm') {
@@ -589,10 +589,10 @@ pipeline {
 //                        buildHipClangJobAndReboot( setup_flags: Full_test_limit, build_env: WORKAROUND_iGemm_936)
 //                    }
 //                }
-                stage('Fp32 Hip All gfx1030') {
+                stage('Fp32 OpenCL All gfx1030') {
                     agent{ label rocmnode("navi21") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Full_test_limit, build_env: extra_log_env, gpu_arch: "gfx1030")
+                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test_limit, gpu_arch: "gfx1030")
                     }
                 }
 //                stage('Fp16 Hip All Install gfx908') {
