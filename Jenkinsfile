@@ -1,5 +1,5 @@
 def rocmnode(name) {
-    return 'rocmtest-trial && miopen && ' + name
+    return 'rocmtest-trial-A && miopen && ' + name
 }
 
 def show_node_info() {
