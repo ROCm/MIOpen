@@ -44,6 +44,8 @@ option( MIOPEN_TEST_MLIR "Add tests for MLIR -- EXPERIMENTAL" ${MIOPEN_USE_MLIR}
 
 option( WORKAROUND_ISSUE_898 "" ON)
 option( WORKAROUND_ISSUE_936 "" ON)
+option( WORKAROUND_ISSUE_1053 "" ON)
+option( WORKAROUND_ISSUE_1054 "" ON)
 
 # Run the test suite to a depth limit
 set(MIOPEN_TEST_LIMIT "0" CACHE STRING "")
@@ -179,11 +181,12 @@ if(MIOPEN_TEST_GFX908)
 endif()
 
 if(MIOPEN_TEST_GFX1030)
-#    list(APPEND SKIP_TESTS test_tensor_scale test_tensor_set test_tensor_transform
-#            test_tensor_vec test_w_supertensor test_dropout test_immed_conv3d test_conv3d
-#            test_soft_max test_fusion_aux test_activation test_lrn_test test_ctc test_conv2d_bias
-#            test_conv3d_bias test_cba_inference test_cbna_inference test_pooling2d test_na_train
-#            test_na_inference test_bn_aux)
+    if(WORKAROUND_ISSUE_1053 AND MIOPEN_TEST_ALL)
+        list(APPEND SKIP_TESTS test_lrn_test)
+    endif()
+    if(WORKAROUND_ISSUE_1054 AND MIOPEN_TEST_ALL)
+        list(APPEND SKIP_TESTS test_conv_igemm_dynamic)
+    endif()
 endif()
 
 # The usage is non-trivial, see function add_test_command.
