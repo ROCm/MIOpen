@@ -2161,6 +2161,12 @@ struct PerformanceConvCkIgemmFwdV6r1DlopsNchw : Serializable<PerformanceConvCkIg
 
     PerformanceConvCkIgemmFwdV6r1DlopsNchw(bool) : PerformanceConvCkIgemmFwdV6r1DlopsNchw(0) {}
 
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.compile_param_list_id, "compile_param_list_id");
+    }
+
     bool SetNextValue(const ConvolutionContext&);
     bool IsValid(const ConvolutionContext&) const;
     bool operator==(const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config) const

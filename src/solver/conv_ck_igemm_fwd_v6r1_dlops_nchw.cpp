@@ -107,7 +107,7 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsValidPerformanceConfig(
 ConvSolution
 ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx,
                                          PerformanceConvCkIgemmFwdV6r1DlopsNchw config,
-                                         bool disableConfigOverrideFromEnv) const;
+                                         bool disableConfigOverrideFromEnv) const
 #else
 ConvSolution
 ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx) const
