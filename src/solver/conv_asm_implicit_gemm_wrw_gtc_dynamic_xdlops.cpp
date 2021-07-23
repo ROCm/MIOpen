@@ -730,7 +730,7 @@ static inline std::tuple<bool, // is valid
                 continue;
             }
             // do not need to check gemm_n when n_c0 == 1; n_c0 = t_c0 * c_c0
-            if(cfg.tensor_b_thread_lengths[2] * cfg.tensor_b_cluster_lengths[2] > 1)
+            if(cfg.tensor_b_thread_lengths[2] * cfg.tensor_b_cluster_lengths[3] > 1)
             {
 
                 if(c % gemm_n_per_block != 0 || gemm_m % gemm_m_per_block != 0)
