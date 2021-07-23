@@ -88,27 +88,6 @@ PerformanceConfigAsmImplicitGemmGTC::PerformanceConfigAsmImplicitGemmGTC(
 {
 }
 
-void PerformanceConfigAsmImplicitGemmGTC::HeuristicInit(const ConvolutionContext& ctx)
-{
-    // need override in child struct
-    (void)ctx;
-}
-bool PerformanceConfigAsmImplicitGemmGTC::SetNextValue()
-{
-    // need override in child struct
-    return false;
-}
-bool PerformanceConfigAsmImplicitGemmGTC::IsValidValue() const
-{
-    // need override in child struct
-    return false;
-}
-bool PerformanceConfigAsmImplicitGemmGTC::IsValid(const ConvolutionContext& ctx) const
-{
-    // need override in child struct
-    (void)ctx;
-    return false;
-}
 bool PerformanceConfigAsmImplicitGemmGTC::IsDefaultConstructed() const
 {
     int default_lengths[4] = {1, 1, 1, 1};

@@ -146,7 +146,7 @@ inline static bool Next_1_4(int& v)
     return false;
 }
 
-bool PerformanceConfigConvAsm1x1U::SetNextValue()
+bool PerformanceConfigConvAsm1x1U::SetNextValue(const ConvolutionContext& /*config*/)
 {
     // Increment with wrap-around:
     do

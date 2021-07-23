@@ -34,7 +34,7 @@ option( MIOPEN_TEST_HALF "Test in half mode" OFF )
 option( MIOPEN_TEST_INT8 "Test in int8 mode" OFF )
 option( MIOPEN_TEST_BFLOAT16 "Test in bfloat16 mode" OFF )
 option( MIOPEN_TEST_GFX908 "Test arch gfx908 mode" OFF )
-option( MIOPEN_TEST_VEGA "Test arch VEGA (gfx900, gfx906)" ON )
+option( MIOPEN_TEST_VEGA "Test arch VEGA (gfx900, gfx906)" OFF )
 option( MIOPEN_TEST_CONV Off)
 option( MIOPEN_TEST_DEEPBENCH Off)
 option( MIOPEN_TEST_DRIVER_ITER_MODE Off)
@@ -44,8 +44,9 @@ option( MIOPEN_TEST_MLIR "Add tests for MLIR -- EXPERIMENTAL" ${MIOPEN_USE_MLIR}
 option( WORKAROUND_ISSUE_898 "" ON)
 option( WORKAROUND_ISSUE_936 "" ON)
 
-#Run the test suite to a depth limit
-set(MIOPEN_TEST_LIMIT "0" CACHE STRING "")
+# Run the test suite to a depth limit
+#limit greater than 2 leads to prolonged testing more than 5hrs per stage.
+set(MIOPEN_TEST_LIMIT "2" CACHE STRING "")
 set(MIOPEN_TEST_FLAGS "" CACHE STRING "")
 set(MIOPEN_TEST_GDB On CACHE BOOL "")
 
@@ -64,6 +65,45 @@ if(MIOPEN_BACKEND_HIP AND NOT MIOPEN_TEST_HIP_NOGPU)
     set(MIOPEN_TEST_HIP TRUE)
 endif()
 
+# Detect GPU type for testing.
+# For HIP_NOGPU backend, GPU detection is not required and should be disabled.
+# Also we do not detect GPU when target GPU for testing is specified explicitly.
+set(MIOPEN_TEST_GPU_DETECTION_FAILED FALSE)
+if(NOT (MIOPEN_TEST_VEGA OR MIOPEN_TEST_GFX908 OR MIOPEN_TEST_HIP_NOGPU))
+    find_program(ROCMINFO
+        NAMES rocminfo
+        PATHS
+            /opt/rocm
+            ${CMAKE_INSTALL_PREFIX}
+        PATH_SUFFIXES
+            /bin
+    )
+    message(STATUS "rocminfo utility: ${ROCMINFO}")
+    if(ROCMINFO)
+        execute_process (
+            COMMAND ${ROCMINFO}
+            OUTPUT_VARIABLE ROCMINFO_OUTPUT
+            RESULT_VARIABLE ROCMINFO_EXIT_STATUS
+        )
+        if(NOT ROCMINFO_EXIT_STATUS EQUAL 0)
+            message(WARNING "ROCMINFO FAILED, GPU TYPE UNKNOWN. Manually set respective MIOPEN_TEST_GFX* CMake variable to specify target GPU for testing.")
+            set(MIOPEN_TEST_GPU_DETECTION_FAILED TRUE)
+        elseif(ROCMINFO_OUTPUT MATCHES "gfx900|gfx906")
+            set(MIOPEN_TEST_VEGA ON)
+        elseif(ROCMINFO_OUTPUT MATCHES "gfx908")
+            set(MIOPEN_TEST_GFX908 ON)
+        else()
+            message(WARNING "TESTING IS NOT SUPPORTED FOR THE DETECTED GPU")
+            set(MIOPEN_TEST_GPU_DETECTION_FAILED TRUE)
+        endif()
+    else()
+        message(WARNING "ROCMINFO NOT FOUND, GPU TYPE UNKNOWN. Manually set respective MIOPEN_TEST_GFX* CMake variable to specify target GPU for testing.")
+        set(MIOPEN_TEST_GPU_DETECTION_FAILED TRUE)
+    endif()
+endif()
+message(STATUS "MIOPEN_TEST_VEGA ${MIOPEN_TEST_VEGA}")
+message(STATUS "MIOPEN_TEST_GFX908 ${MIOPEN_TEST_GFX908}")
+
 if(MIOPEN_TEST_DRIVER_ITER_MODE)
     add_definitions(-DMIOPEN_TEST_DRIVER_MODE=2)
 else()
@@ -74,13 +114,12 @@ find_package(Threads REQUIRED)
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C ${CMAKE_CFG_INTDIR})
 add_custom_target(tests)
 
-if(MIOPEN_TEST_GFX908)
-    set(MIOPEN_TEST_VEGA FALSE)
+if(MIOPEN_TEST_GPU_DETECTION_FAILED)
+    add_custom_target(gpu_detection_check COMMAND echo "*** FATAL: GPU DETECTION FAILED DURING CMAKE PHASE, CHECK CMAKE WARNINGS ***" COMMAND exit 1)
+    add_dependencies(check gpu_detection_check)
 endif()
 
 set(MIOPEN_TEST_FLOAT_ARG)
-
-
 set(MIOPEN_TEST_FLOAT FALSE)
 if(MIOPEN_TEST_HALF)
     set(MIOPEN_TEST_FLOAT_ARG --half)
@@ -92,7 +131,6 @@ else()
     set(MIOPEN_TEST_FLOAT_ARG --float)
     set(MIOPEN_TEST_FLOAT TRUE)
 endif()
-
 
 if(NOT MIOPEN_TEST_MIOTENSILE)
 	if(MIOPEN_TEST_HALF)
@@ -147,8 +185,6 @@ message(STATUS "SKIP_TESTS: ${SKIP_TESTS}")
 message(STATUS "SKIP_ALL_EXCEPT_TESTS: ${SKIP_ALL_EXCEPT_TESTS}")
 
 
-
-
 function(add_test_command NAME EXE)
     # Restrict the use of SKIP_ALL_EXCEPT_TESTS list in the Int8, BF16 and MIOpenTensile tests
     if( (NOT (NAME IN_LIST SKIP_ALL_EXCEPT_TESTS) AND SKIP_ALL_EXCEPT_TESTS)
@@ -198,17 +234,17 @@ function(add_test_executable TEST_NAME)
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
         set_target_properties(${TEST_NAME} PROPERTIES COMPILE_FLAGS -pthread LINK_FLAGS -pthread)
     endif()
-    
-    if(MIOPEN_TEST_ALL)
-        set(TEST_COMMAND ${TEST_NAME} ${MIOPEN_TEST_FLOAT_ARG} --all ${MIOPEN_TEST_FLAGS_ARGS})
-    else()
-        set(TEST_COMMAND ${TEST_NAME} ${MIOPEN_TEST_FLOAT_ARG} ${MIOPEN_TEST_FLAGS_ARGS})
-    endif()
 
-    if(MIOPEN_TEST_LIMIT GREATER 0)
-        set(TEST_COMMAND ${TEST_COMMAND} --limit ${MIOPEN_TEST_LIMIT})
+    set(TEST_COMMAND ${TEST_NAME} ${MIOPEN_TEST_FLOAT_ARG})
+    if(MIOPEN_TEST_ALL)
+        set(TEST_COMMAND ${TEST_COMMAND} --all)
+        if(MIOPEN_TEST_LIMIT GREATER 0)
+            set(TEST_COMMAND ${TEST_COMMAND} --limit ${MIOPEN_TEST_LIMIT})
+        endif()
     endif()
-    
+    set(TEST_COMMAND ${TEST_COMMAND} ${MIOPEN_TEST_FLAGS_ARGS})
+
+
     if(WORKAROUND_ISSUE_936 AND (${TEST_NAME} MATCHES "test_conv2d" OR ${TEST_NAME} MATCHES "test_immed_conv2d") )
         set(TEST_COMMAND ${TEST_COMMAND} --tolerance 130) #increased by 1.625 times
     endif()
@@ -488,7 +524,7 @@ if(${CODECOV_TEST})
     add_custom_test(test_pooling2d_codecov
         COMMAND $<TARGET_FILE:test_pooling2d> ${MIOPEN_TEST_FLOAT_ARG} --input 1, 192, 28, 28 --lens 2 2 --strides 2 2 --pads 0 0 ${MIOPEN_TEST_FLAGS_ARGS}
     )
-    
+
 endif()
 
 
@@ -1198,8 +1234,8 @@ set(DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS
 set(ARGS_NHWC_WRW
     --disable-forward
     --disable-backward-data
-    --in_layout NHWC 
-    --fil_layout NHWC 
+    --in_layout NHWC
+    --fil_layout NHWC
     --out_layout NHWC)
 
 add_custom_test(test_conv_igemm_dynamic_xdlops_nhwc_wrw SKIP_UNLESS_ALL HALF_ENABLED GFX908_ENABLED VEGA_DISABLED
