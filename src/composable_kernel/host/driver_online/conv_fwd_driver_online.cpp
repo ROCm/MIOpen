@@ -257,7 +257,8 @@ int main(int argc, char* argv[])
 
         const auto tmp = f_make_for_device_nchw();
 
-        const auto tunable = tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw{};
+        const auto tunable =
+            ck::kernel_compile_parameter::CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw{};
 
         online_device_dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw<
             in_data_t,

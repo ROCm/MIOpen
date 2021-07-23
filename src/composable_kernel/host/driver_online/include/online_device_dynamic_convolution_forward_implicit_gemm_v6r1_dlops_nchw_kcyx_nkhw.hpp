@@ -5,7 +5,7 @@
 #include "dynamic_tensor_descriptor.hpp"
 #include "dynamic_tensor_descriptor_helper.hpp"
 #include "transform_forward_convolution_into_gemm_v6r1_nchw_kcyx_nkhw.hpp"
-#include "tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw.hpp"
+#include "compile_param_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw.hpp"
 
 namespace detail_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw {
 
@@ -21,102 +21,6 @@ static std::string get_network_config_string_from_types()
     return (out);
 };
 
-static std::string get_network_config_string_from_tunable(
-    const tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw& tunable)
-{
-    std::string out("TUN_");
-
-    out += std::to_string(tunable.BlockSize) + "_";
-
-    out += std::to_string(tunable.GN0) + "x" + std::to_string(tunable.GK1) + "_";
-
-    out += std::to_string(tunable.GM1PerBlockGM11) + "x" + std::to_string(tunable.GN1PerBlockGN11) +
-           "x" + std::to_string(tunable.GK0PerBlock) + "_";
-
-    out += std::to_string(tunable.BM1PerThreadBM11) + "x" +
-           std::to_string(tunable.BN1PerThreadBN11) + "x" + std::to_string(tunable.BK0PerThread) +
-           "_";
-
-    out += std::to_string(tunable.BM10BN10ThreadClusterBM100) + "x" +
-           std::to_string(tunable.BM10BN10ThreadClusterBN100) + "x" +
-           std::to_string(tunable.BM10BN10ThreadClusterBM101) + "x" +
-           std::to_string(tunable.BM10BN10ThreadClusterBN101) + "_";
-
-    out += std::to_string(tunable.ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1[0]) + "x" +
-           std::to_string(tunable.ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1[1]) + "x" +
-           std::to_string(tunable.ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1[2]) + "x" +
-           std::to_string(tunable.ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1[3]) + "x" +
-           std::to_string(tunable.ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1[4]) + "_";
-
-    out +=
-        std::to_string(tunable.ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[0]) + "x" +
-        std::to_string(tunable.ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[1]) + "x" +
-        std::to_string(tunable.ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[2]) + "x" +
-        std::to_string(tunable.ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[3]) + "x" +
-        std::to_string(tunable.ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[4]) + "_";
-
-    out += std::to_string(tunable.ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[0]) +
-           "x" +
-           std::to_string(tunable.ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[1]) +
-           "x" +
-           std::to_string(tunable.ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[2]) +
-           "x" +
-           std::to_string(tunable.ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[3]) +
-           "x" +
-           std::to_string(tunable.ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[4]) +
-           "_";
-
-    out += std::to_string(tunable.ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[0]) +
-           "x" +
-           std::to_string(tunable.ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[1]) +
-           "x" +
-           std::to_string(tunable.ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[2]) +
-           "x" +
-           std::to_string(tunable.ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[3]) +
-           "x" +
-           std::to_string(tunable.ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[4]) +
-           "_";
-
-    out += std::to_string(tunable.BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1[0]) + "x" +
-           std::to_string(tunable.BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1[1]) + "x" +
-           std::to_string(tunable.BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1[2]) + "x" +
-           std::to_string(tunable.BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1[3]) + "x" +
-           std::to_string(tunable.BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1[4]) + "_";
-
-    out +=
-        std::to_string(tunable.BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[0]) + "x" +
-        std::to_string(tunable.BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[1]) + "x" +
-        std::to_string(tunable.BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[2]) + "x" +
-        std::to_string(tunable.BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[3]) + "x" +
-        std::to_string(tunable.BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[4]) + "_";
-
-    out += std::to_string(tunable.BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[0]) +
-           "x" +
-           std::to_string(tunable.BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[1]) +
-           "x" +
-           std::to_string(tunable.BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[2]) +
-           "x" +
-           std::to_string(tunable.BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[3]) +
-           "x" +
-           std::to_string(tunable.BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[4]) +
-           "_";
-
-    out += std::to_string(tunable.BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[0]) +
-           "x" +
-           std::to_string(tunable.BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[1]) +
-           "x" +
-           std::to_string(tunable.BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[2]) +
-           "x" +
-           std::to_string(tunable.BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[3]) +
-           "x" +
-           std::to_string(tunable.BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[4]) +
-           "_";
-
-    out += std::to_string(tunable.CThreadTransferDstScalarPerVector);
-
-    return (out);
-};
-
 template <typename TInWei, typename TAcc, typename TOut>
 static std::string get_definition_string_from_types()
 {
@@ -125,113 +29,6 @@ static std::string get_definition_string_from_types()
     out += " -DCK_PARAM_IN_WEI_DATATYPE=" + std::to_string(Driver::get_typeid_from_type<TInWei>()) +
            " -DCK_PARAM_ACC_DATATYPE=" + std::to_string(Driver::get_typeid_from_type<TAcc>()) +
            " -DCK_PARAM_OUT_DATATYPE=" + std::to_string(Driver::get_typeid_from_type<TOut>());
-
-    return (out);
-};
-
-static std::string
-get_definition_string_from_tunable(const tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw& tunable)
-{
-    std::string out;
-
-    out += " -DCK_PARAM_BlockSize=" + std::to_string(tunable.BlockSize);
-
-    out += " -DCK_PARAM_GN0=" + std::to_string(tunable.GN0);
-    out += " -DCK_PARAM_GK1=" + std::to_string(tunable.GK1);
-
-    out += " -DCK_PARAM_GM1PerBlockGM11=" + std::to_string(tunable.GM1PerBlockGM11) +
-           " -DCK_PARAM_GN1PerBlockGN11=" + std::to_string(tunable.GN1PerBlockGN11) +
-           " -DCK_PARAM_GK0PerBlock=" + std::to_string(tunable.GK0PerBlock);
-
-    out += " -DCK_PARAM_BM1PerThreadBM11=" + std::to_string(tunable.BM1PerThreadBM11) +
-           " -DCK_PARAM_BN1PerThreadBN11=" + std::to_string(tunable.BN1PerThreadBN11) +
-           " -DCK_PARAM_BK0PerThread=" + std::to_string(tunable.BK0PerThread);
-
-    out += " -DCK_PARAM_BM10BN10ThreadClusterBM100=" +
-           std::to_string(tunable.BM10BN10ThreadClusterBM100) +
-           " -DCK_PARAM_BM10BN10ThreadClusterBN100=" +
-           std::to_string(tunable.BM10BN10ThreadClusterBN100) +
-           " -DCK_PARAM_BM10BN10ThreadClusterBM101=" +
-           std::to_string(tunable.BM10BN10ThreadClusterBM101) +
-           " -DCK_PARAM_BM10BN10ThreadClusterBN101=" +
-           std::to_string(tunable.BM10BN10ThreadClusterBN101);
-
-    out += " -DCK_PARAM_ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1=" +
-           std::to_string(tunable.ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1[0]) + "," +
-           std::to_string(tunable.ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1[1]) + "," +
-           std::to_string(tunable.ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1[2]) + "," +
-           std::to_string(tunable.ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1[3]) + "," +
-           std::to_string(tunable.ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1[4]);
-
-    out +=
-        " -DCK_PARAM_ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1=" +
-        std::to_string(tunable.ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[0]) + "," +
-        std::to_string(tunable.ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[1]) + "," +
-        std::to_string(tunable.ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[2]) + "," +
-        std::to_string(tunable.ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[3]) + "," +
-        std::to_string(tunable.ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[4]);
-
-    out += " -DCK_PARAM_ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1=" +
-           std::to_string(tunable.ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[0]) +
-           "," +
-           std::to_string(tunable.ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[1]) +
-           "," +
-           std::to_string(tunable.ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[2]) +
-           "," +
-           std::to_string(tunable.ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[3]) +
-           "," +
-           std::to_string(tunable.ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[4]);
-
-    out += " -DCK_PARAM_ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1=" +
-           std::to_string(tunable.ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[0]) +
-           "," +
-           std::to_string(tunable.ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[1]) +
-           "," +
-           std::to_string(tunable.ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[2]) +
-           "," +
-           std::to_string(tunable.ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[3]) +
-           "," +
-           std::to_string(tunable.ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[4]);
-
-    out += " -DCK_PARAM_BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1=" +
-           std::to_string(tunable.BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1[0]) + "," +
-           std::to_string(tunable.BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1[1]) + "," +
-           std::to_string(tunable.BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1[2]) + "," +
-           std::to_string(tunable.BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1[3]) + "," +
-           std::to_string(tunable.BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1[4]);
-
-    out +=
-        " -DCK_PARAM_BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1=" +
-        std::to_string(tunable.BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[0]) + "," +
-        std::to_string(tunable.BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[1]) + "," +
-        std::to_string(tunable.BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[2]) + "," +
-        std::to_string(tunable.BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[3]) + "," +
-        std::to_string(tunable.BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[4]);
-
-    out += " -DCK_PARAM_BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1=" +
-           std::to_string(tunable.BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[0]) +
-           "," +
-           std::to_string(tunable.BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[1]) +
-           "," +
-           std::to_string(tunable.BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[2]) +
-           "," +
-           std::to_string(tunable.BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[3]) +
-           "," +
-           std::to_string(tunable.BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[4]);
-
-    out += " -DCK_PARAM_BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1=" +
-           std::to_string(tunable.BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[0]) +
-           "," +
-           std::to_string(tunable.BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[1]) +
-           "," +
-           std::to_string(tunable.BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[2]) +
-           "," +
-           std::to_string(tunable.BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[3]) +
-           "," +
-           std::to_string(tunable.BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[4]);
-
-    out += " -DCK_PARAM_CThreadTransferDstScalarPerVector=" +
-           std::to_string(tunable.CThreadTransferDstScalarPerVector);
 
     return (out);
 };
@@ -260,7 +57,7 @@ void online_device_dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcy
     const Tensor<TInWei>& in_n_c_hi_wi,
     const Tensor<TInWei>& wei_k_c_y_x,
     Tensor<TOut>& out_n_k_ho_wo,
-    const tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw& tunable,
+    const ck::kernel_compile_parameter::CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw& tunable,
     ck::index_t nrepeat)
 {
     using namespace ck;
@@ -334,11 +131,11 @@ void online_device_dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcy
     param += get_definition_string_from_types<TInWei, TAcc, TOut>() +
              " -DCK_PARAM_HAS_MAIN_KBLOCK_LOOP=" + std::to_string(hasMainKBlockLoop) +
              " -DCK_PARAM_HAS_DOUBLE_TAIL_KBLOCK_LOOP=" + std::to_string(hasDoubleTailKBlockLoop) +
-             get_definition_string_from_tunable(tunable);
+             tunable.GetCompileParameterString();
 
     network_config = get_network_config_string_from_types<TInWei, TAcc, TOut>() + "_" +
                      std::to_string(hasDoubleTailKBlockLoop) + "_" +
-                     get_network_config_string_from_tunable(tunable);
+                     tunable.GetCompileParameterString();
 
     std::vector<float> kernel1_times;
     std::vector<float> kernel2_times;
