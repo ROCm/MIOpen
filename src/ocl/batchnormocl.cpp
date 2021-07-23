@@ -976,8 +976,8 @@ void BatchNormBackward(Handle& handle,
                 }
                 else
                 {
-                    xlocalsize = 512;
-                    xgridsize  = 512 * c;
+                    xlocalsize = 256;
+                    xgridsize  = 256 * c;
                 }
                 ldsgcn   = xlocalsize / 64;
                 ldsnogcn = xlocalsize;
