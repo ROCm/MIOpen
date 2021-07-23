@@ -103,7 +103,7 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsValidPerformanceConfig(
     return true;
 }
 
-#if 0
+#if 1
 ConvSolution
 ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx,
                                          PerformanceConvCkIgemmFwdV6r1DlopsNchw config,
@@ -134,7 +134,7 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx) const
     const int InRightPadH   = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
     const int InRightPadW   = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
 
-#if 1
+#if 0
     auto config = PerformanceConvCkIgemmFwdV6r1DlopsNchw(0);
 #endif
 
