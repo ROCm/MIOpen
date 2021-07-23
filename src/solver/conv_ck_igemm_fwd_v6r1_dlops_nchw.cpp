@@ -32,99 +32,39 @@
 
 #include <cstddef>
 
+#include "../composable_kernel/host/driver_online/include/compile_param_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw.hpp"
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW)
 
 namespace miopen {
 namespace solver {
 
-PerformanceConvCkIgemmFwdV6r1DlopsNchw::PerformanceConvCkIgemmFwdV6r1DlopsNchw(
-    int a0,
-    int a1,
-    int a2,
-    int a3,
-    int a4,
-    int a5,
-    int a6,
-    int a7,
-    int a8,
-    int a9,
-    int a10,
-    int a11,
-    int a12,
-    std::initializer_list<int> a13,
-    std::initializer_list<int> a14,
-    std::initializer_list<int> a15,
-    std::initializer_list<int> a16,
-    std::initializer_list<int> a17,
-    std::initializer_list<int> a18,
-    std::initializer_list<int> a19,
-    std::initializer_list<int> a20,
-    int a21)
-    : BlockSize{a0},
-      GN0{a1},
-      GK1{a2},
-      GM1PerBlockGM11{a3},
-      GN1PerBlockGN11{a4},
-      GK0PerBlock{a5},
-      BM1PerThreadBM11{a6},
-      BN1PerThreadBN11{a7},
-      BK0PerThread{a8},
-      BM10BN10ThreadClusterBM100{a9},
-      BM10BN10ThreadClusterBN100{a10},
-      BM10BN10ThreadClusterBM101{a11},
-      BM10BN10ThreadClusterBN101{a12},
-      ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1{a13},
-      ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1{a14},
-      ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1{a15},
-      ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1{a16},
-      BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1{a17},
-      BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1{a18},
-      BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1{a19},
-      BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1{a20},
-      CThreadTransferDstScalarPerVector{a21}
+static inline auto get_compile_param_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw(
+    const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config)
 {
+    return ck::kernel_compile_parameter::compile_param_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw
+        [config.compile_param_list_id];
 }
 
-std::tuple<int, bool>
-PerformanceConvCkIgemmFwdV6r1DlopsNchw::CalculateGridSize(const ConvolutionContext& ctx) const
+bool PerformanceConvCkIgemmFwdV6r1DlopsNchw::SetNextValue(const ConvolutionContext& ctx)
 {
-    int GridSize = 0;
+    if(compile_param_list_id <
+       ck::kernel_compile_parameter::compile_param_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw
+           .size())
+    {
+        compile_param_list_id++;
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
 
-    const int N  = ConvolutionContextInterpreter::GetBatchN(ctx);
-    const int K  = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
-    const int C  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
-    const int Ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
-    const int Wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
-    const int Y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-    const int X  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
-
-    if(!(N % GN0 == 0 && C % GK1 == 0))
-        return std::make_tuple(0, false);
-
-    const int N0 = GN0;
-    const int N1 = N / N0;
-
-    const int C0 = GK1;
-    const int C1 = C / C0;
-
-    const int GM0 = 1;
-    const int GM1 = K;
-
-    // GN0 is tunable
-    const int GN1 = N1 * Ho * Wo;
-
-    // GK1 is tuanble
-    const int GK0 = C1 * Y * X;
-
-    const int GM11 = GM1PerBlockGM11;
-    const int GN11 = GN1PerBlockGN11;
-
-    const int GM10 = GM1 / GM11;
-    const int GN10 = GN1 / GN11;
-
-    GridSize = GM10 * GN10;
-
-    return std::make_tuple(GridSize, true);
+bool PerformanceConvCkIgemmFwdV6r1DlopsNchw::IsValid(const ConvolutionContext& ctx) const
+{
+    // TODO
+    return true;
 }
 
 bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx) const
@@ -149,128 +89,26 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx) co
     return true;
 }
 
-static std::string
-get_definition_string_from_tunable(const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config)
+PerformanceConvCkIgemmFwdV6r1DlopsNchw
+ConvCkIgemmFwdV6r1DlopsNchw::GetPerformanceConfig(ConvolutionContext&) const
 {
-    // clang-format off
-    return
-        " -DCK_PARAM_BlockSize=" +
-            std::to_string(config.BlockSize) +
-        " -DCK_PARAM_GN0=" +
-            std::to_string(config.GN0) +
-        " -DCK_PARAM_GK1=" +
-            std::to_string(config.GK1) +
-        " -DCK_PARAM_GM1PerBlockGM11=" +
-            std::to_string(config.GM1PerBlockGM11) +
-        " -DCK_PARAM_GN1PerBlockGN11=" +
-            std::to_string(config.GN1PerBlockGN11) +
-        " -DCK_PARAM_GK0PerBlock=" + 
-            std::to_string(config.GK0PerBlock) +
-        " -DCK_PARAM_BM1PerThreadBM11=" +
-            std::to_string(config.BM1PerThreadBM11) +
-        " -DCK_PARAM_BN1PerThreadBN11=" +
-            std::to_string(config.BN1PerThreadBN11) +
-        " -DCK_PARAM_BK0PerThread=" +
-            std::to_string(config.BK0PerThread) +
-        " -DCK_PARAM_BM10BN10ThreadClusterBM100=" +
-            std::to_string(config.BM10BN10ThreadClusterBM100) +
-        " -DCK_PARAM_BM10BN10ThreadClusterBN100=" +
-            std::to_string(config.BM10BN10ThreadClusterBN100) +
-        " -DCK_PARAM_BM10BN10ThreadClusterBM101=" +
-            std::to_string(config.BM10BN10ThreadClusterBM101) +
-        " -DCK_PARAM_BM10BN10ThreadClusterBN101=" +
-            std::to_string(config.BM10BN10ThreadClusterBN101) +
-        " -DCK_PARAM_ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1=" +
-            std::to_string(config.ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1[0]) + "," +
-            std::to_string(config.ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1[1]) + "," +
-            std::to_string(config.ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1[2]) + "," +
-            std::to_string(config.ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1[3]) + "," +
-            std::to_string(config.ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1[4]) +
-        " -DCK_PARAM_ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1=" +
-            std::to_string(config.ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[0]) + "," +
-            std::to_string(config.ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[1]) + "," +
-            std::to_string(config.ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[2]) + "," +
-            std::to_string(config.ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[3]) + "," +
-            std::to_string(config.ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[4]) +
-        " -DCK_PARAM_ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1=" +
-            std::to_string(config.ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[0]) +  "," +
-            std::to_string(config.ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[1]) + "," +
-            std::to_string(config.ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[2]) + "," +
-            std::to_string(config.ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[3]) + "," +
-            std::to_string(config.ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[4]) +
-        " -DCK_PARAM_ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1=" +
-            std::to_string(config.ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[0]) + "," +
-            std::to_string(config.ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[1]) + "," +
-            std::to_string(config.ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[2]) + "," +
-            std::to_string(config.ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[3]) + "," +
-            std::to_string(config.ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[4]) +
-        " -DCK_PARAM_BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1=" +
-            std::to_string(config.BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1[0]) + "," +
-            std::to_string(config.BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1[1]) + "," +
-            std::to_string(config.BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1[2]) + "," +
-            std::to_string(config.BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1[3]) + "," +
-            std::to_string(config.BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1[4]) +
-        " -DCK_PARAM_BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1=" +
-            std::to_string(config.BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[0]) + "," +
-            std::to_string(config.BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[1]) + "," +
-            std::to_string(config.BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[2]) + "," +
-            std::to_string(config.BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[3]) + "," +
-            std::to_string(config.BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[4]) +
-        " -DCK_PARAM_BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1=" +
-            std::to_string(config.BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[0]) + "," +
-            std::to_string(config.BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[1]) + "," +
-            std::to_string(config.BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[2]) + "," +
-            std::to_string(config.BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[3]) + "," +
-            std::to_string(config.BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[4]) +
-        " -DCK_PARAM_BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1=" +
-            std::to_string(config.BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[0]) + "," +
-            std::to_string(config.BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[1]) + "," +
-            std::to_string(config.BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[2]) + "," +
-            std::to_string(config.BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[3]) + "," +
-            std::to_string(config.BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[4]) +
-        " -DCK_PARAM_CThreadTransferDstScalarPerVector=" +
-            std::to_string(config.CThreadTransferDstScalarPerVector);
-    // clang-format on
+    // TODO
+    return PerformanceConvCkIgemmFwdV6r1DlopsNchw(0);
 }
 
-ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx,
-                                                      const bool disableConfigOverrideFromEnv) const
+bool ConvCkIgemmFwdV6r1DlopsNchw::IsValidPerformanceConfig(
+    ConvolutionContext&, PerformanceConvCkIgemmFwdV6r1DlopsNchw&) const
+{
+    // TODO
+    return true;
+}
+
+ConvSolution
+ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx,
+                                         PerformanceConvCkIgemmFwdV6r1DlopsNchw config) const
 {
     ConvSolution sol;
     KernelInfo kernel0_info, kernel1_info;
-
-    // default config
-    PerformanceConvCkIgemmFwdV6r1DlopsNchw config;
-
-#if 0
-    config.BlockSize = 256;
-
-    config.GN0 = 8;
-    config.GK1 = 1;
-
-    config.GM1PerBlockGM11 = 128;
-    config.GN1PerBlockGN11 = 16;
-    config.GK0PerBlock     = 16;
-
-    config.BM1PerThreadBM11 = 4;
-    config.BN1PerThreadBN11 = 4;
-    config.BK0PerThread     = 1;
-
-    config.BM10BN10ThreadClusterBM100 = 2;
-    config.BM10BN10ThreadClusterBN100 = 2;
-    config.BM10BN10ThreadClusterBM101 = 8;
-    config.BM10BN10ThreadClusterBN101 = 8;
-
-    config.ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1     = {8, 1, 1,  1, 1};
-    config.ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1   = {2, 1, 1,128, 1};
-    config.ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1 = {4, 1, 1,  1, 1};
-    config.ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1 = {1, 1, 1,  1, 1};
-
-    config.BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1     = { 1, 8, 1,  1, 1};
-    config.BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1   = {16, 1, 1, 16, 1};
-    config.BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1 = { 1, 1, 1,  1, 1};
-    config.BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1 = { 1, 1, 1,  1, 1};
-#endif
 
     const int N             = ConvolutionContextInterpreter::GetBatchN(ctx);
     const int K             = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
@@ -290,10 +128,12 @@ ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& 
     const int InRightPadH   = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
     const int InRightPadW   = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
 
-    const int N0 = config.GN0;
+    const auto compile_param = get_compile_param_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw(config);
+
+    const int N0 = compile_param.GN0;
     const int N1 = N / N0;
 
-    const int C0 = config.GK1;
+    const int C0 = compile_param.GK1;
     const int C1 = C / C0;
 
     const int GM0 = 1;
@@ -305,14 +145,15 @@ ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& 
     // GK1 is tuanble
     const int GK0 = C1 * Y * X;
 
-    const int GM11 = config.GM1PerBlockGM11;
-    const int GN11 = config.GN1PerBlockGN11;
+    const int GM11 = compile_param.GM1PerBlockGM11;
+    const int GN11 = compile_param.GN1PerBlockGN11;
 
     const int GM10 = GM1 / GM11;
     const int GN10 = GN1 / GN11;
 
-    const bool hasMainKBlockLoop = ((GK0 + config.GK0PerBlock) / (2 * config.GK0PerBlock) > 1);
-    const bool hasDoubleTailKBlockLoop = ((GK0 / config.GK0PerBlock) % 2 == 0);
+    const bool hasMainKBlockLoop =
+        ((GK0 + compile_param.GK0PerBlock) / (2 * compile_param.GK0PerBlock) > 1);
+    const bool hasDoubleTailKBlockLoop = ((GK0 / compile_param.GK0PerBlock) % 2 == 0);
 
     // kernel0: prepare
     {
@@ -332,7 +173,7 @@ ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& 
 
         // clang-format off
         kernel0_info.comp_options =
-            get_definition_string_from_tunable(config) + 
+            compile_param.GetCompileParameterString() +
             " -DCK_PARAM_IN_WEI_DATATYPE=" + 
                 std::string("70") + 
             " -DCK_PARAM_ACC_DATATYPE=" + 
@@ -358,17 +199,17 @@ ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& 
 
         const int grid_size = GM10 * GN10;
 
-        kernel1_info.l_wk.push_back(config.BlockSize);
+        kernel1_info.l_wk.push_back(compile_param.BlockSize);
         kernel1_info.l_wk.push_back(1);
         kernel1_info.l_wk.push_back(1);
 
-        kernel1_info.g_wk.push_back(config.BlockSize * grid_size);
+        kernel1_info.g_wk.push_back(compile_param.BlockSize * grid_size);
         kernel1_info.g_wk.push_back(1);
         kernel1_info.g_wk.push_back(1);
 
         // clang-format off
         kernel1_info.comp_options =
-            get_definition_string_from_tunable(config) + 
+            compile_param.GetCompileParameterString() +
             " -DCK_PARAM_IN_WEI_DATATYPE=" + 
                 std::string("70") + 
             " -DCK_PARAM_ACC_DATATYPE=" + 
