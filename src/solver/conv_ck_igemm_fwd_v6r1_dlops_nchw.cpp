@@ -103,9 +103,15 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsValidPerformanceConfig(
     return true;
 }
 
+#if 0
 ConvSolution
 ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx,
-                                         PerformanceConvCkIgemmFwdV6r1DlopsNchw config) const
+                                         PerformanceConvCkIgemmFwdV6r1DlopsNchw config,
+                                         bool disableConfigOverrideFromEnv) const;
+#else
+ConvSolution
+ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx) const
+#endif
 {
     ConvSolution sol;
     KernelInfo kernel0_info, kernel1_info;
@@ -127,6 +133,10 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx,
     const int InLeftPadW    = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
     const int InRightPadH   = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
     const int InRightPadW   = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
+
+#if 1
+    auto config = PerformanceConvCkIgemmFwdV6r1DlopsNchw(0);
+#endif
 
     const auto compile_param = get_compile_param_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw(config);
 

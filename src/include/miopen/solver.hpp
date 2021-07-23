@@ -2178,8 +2178,13 @@ struct ConvCkIgemmFwdV6r1DlopsNchw : SolverBase<ConvolutionContext>
     PerformanceConvCkIgemmFwdV6r1DlopsNchw Search(ConvolutionContext&);
     bool IsValidPerformanceConfig(ConvolutionContext&,
                                   PerformanceConvCkIgemmFwdV6r1DlopsNchw&) const;
+#if 0
     ConvSolution GetSolution(const ConvolutionContext&,
-                             PerformanceConvCkIgemmFwdV6r1DlopsNchw) const;
+                             PerformanceConvCkIgemmFwdV6r1DlopsNchw,
+                             bool disableConfigOverrideFromEnv = false) const;
+#else
+    ConvSolution GetSolution(const ConvolutionContext&) const;
+#endif
 };
 
 struct ConvDirectNaiveConvFwd : SolverBase<ConvolutionContext>
