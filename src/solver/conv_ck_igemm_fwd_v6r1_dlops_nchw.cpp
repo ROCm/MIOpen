@@ -165,8 +165,6 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx,
 
         kernel0_info.comp_options = ck_compile_param.GetCompileParameterString() +
                                     get_ck_common_compiler_flag(ctx) + ctx.general_compile_options;
-
-        sol.construction_params.push_back(kernel0_info);
     }
 
     // kernel1: compute
@@ -188,9 +186,10 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx,
 
         kernel1_info.comp_options = ck_compile_param.GetCompileParameterString() +
                                     get_ck_common_compiler_flag(ctx) + ctx.general_compile_options;
-
-        sol.construction_params.push_back(kernel1_info);
     }
+
+    sol.construction_params.push_back(kernel0_info);
+    sol.construction_params.push_back(kernel1_info);
 
     // workspace is used to save transformed tensor descriptors
     sol.workspce_sz = GetWorkspaceSize(ctx);

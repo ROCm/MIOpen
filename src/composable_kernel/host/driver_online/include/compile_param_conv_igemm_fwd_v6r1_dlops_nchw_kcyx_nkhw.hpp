@@ -181,34 +181,42 @@ const static std::vector<CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw>
 // TODO make this common interface and write specs for it
 struct ConvIgemmFwdV6r1DlopsNchwKcyxNkhw
 {
-    // TODO
-    static bool IsApplicable(const ConvolutionProblemDescriptor& conv_problem_desc) { return true; }
+    static bool IsApplicable(const ConvolutionProblemDescriptor& conv_problem_desc)
+    {
+        for(auto compile_param : compile_param_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw)
+        {
+            if(IsValidCompileParameter(conv_problem_desc, compile_param))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     // TODO
     static bool
     IsValidCompileParameter(const ConvolutionProblemDescriptor& conv_problem_desc,
                             const CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw& compile_param)
     {
+        const int C = conv_problem_desc.C;
+        const int Y = conv_problem_desc.Y;
+        const int X = conv_problem_desc.X;
+
+        const int C0 = compile_param.GK1;
+        const int C1 = C / C0;
+
+        const int GK0 = C1 * Y * X;
+
+        const bool has_main_k_block_loop =
+            ((GK0 + compile_param.GK0PerBlock) / (2 * compile_param.GK0PerBlock) > 1);
+
+        const bool has_double_tail_k_block_loop = ((GK0 / compile_param.GK0PerBlock) % 2 == 0);
+
+        if(!(has_main_k_block_loop == compile_param.HasMainKBlockLoop &&
+             has_double_tail_k_block_loop == compile_param.HasDoubleTailKBlockLoop))
         {
-            const int C = conv_problem_desc.C;
-            const int Y = conv_problem_desc.Y;
-            const int X = conv_problem_desc.X;
-
-            const int C0 = compile_param.GK1;
-            const int C1 = C / C0;
-
-            const int GK0 = C1 * Y * X;
-
-            const bool has_main_k_block_loop =
-                ((GK0 + compile_param.GK0PerBlock) / (2 * compile_param.GK0PerBlock) > 1);
-
-            const bool has_double_tail_k_block_loop = ((GK0 / compile_param.GK0PerBlock) % 2 == 0);
-
-            if(!(has_main_k_block_loop == compile_param.HasMainKBlockLoop &&
-                 has_double_tail_k_block_loop == compile_param.HasDoubleTailKBlockLoop))
-            {
-                return false;
-            }
+            return false;
         }
 
         return true;
@@ -216,11 +224,8 @@ struct ConvIgemmFwdV6r1DlopsNchwKcyxNkhw
 
     static auto GetDefaultCompileParameter(const ConvolutionProblemDescriptor& conv_problem_desc)
     {
-        for(int i = 0; i < compile_param_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw.size(); ++i)
+        for(auto compile_param : compile_param_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw)
         {
-            const auto compile_param =
-                compile_param_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw[i];
-
             if(IsValidCompileParameter(conv_problem_desc, compile_param))
             {
                 return std::make_tuple(true, compile_param);
@@ -254,7 +259,6 @@ struct ConvIgemmFwdV6r1DlopsNchwKcyxNkhw
         const int GM0 = 1;
         const int GM1 = K;
 
-        // GN0 is tunable
         const int GN1 = N1 * Ho * Wo;
 
         const int GM11 = compile_param.GM1PerBlockGM11;
