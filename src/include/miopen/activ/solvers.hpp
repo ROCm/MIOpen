@@ -97,6 +97,24 @@ struct ActivBwdSolver0 : public SolverBase<OldStyleProblemDescription>
                              const miopen::activ::ProblemDescription& problem) const;
 };
 
+struct ActivBwdSolver1 : public SolverBase<OldStyleProblemDescription>
+{
+    inline bool IsApplicable(const OldStyleProblemDescription& problem) const
+    {
+        return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
+    }
+
+    inline ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
+    {
+        return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
+    }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::activ::ProblemDescription& problem) const;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::activ::ProblemDescription& problem) const;
+};
+
 } // namespace activ
 
 } // namespace solver

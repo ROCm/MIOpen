@@ -1443,7 +1443,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyBackward()
     dbias_dev->FromGPU(GetStream(), dbias.data());
 #if(MIO_BN_DEBUG == 1)
     const Tref tolerance =
-        static_cast<Tref>(1000 * ((sizeof(Tgpu) == 4) ? ERRTOL_FP32 : ERRTOL_FP16));
+        static_cast<Tref>(1000 * (sizeof(Tgpu) == 4) ? ERRTOL_FP32 : ERRTOL_FP16);
     Tref diff = static_cast<Tref>(0.0);
 #endif
     maxval          = static_cast<Tref>(0.0);

@@ -63,7 +63,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMPILE_ONLY)
 ///     Constructs an instance with invalid value.
 /// - (ctor)(bool)
 ///     Constructs an instance with minimal value.
-/// - SetNextValue()
+/// - SetNextValue(const Context& c)
 ///     Advances instance value to the next available value and returns true.
 ///     If max value reached, returns false.
 /// - IsValid(const Context& c) const
@@ -86,7 +86,7 @@ class ComputedIterator : public std::iterator<std::input_iterator_tag, Performan
         {
             do
             {
-                if(!v.SetNextValue())
+                if(!v.SetNextValue(*p))
                 { // Wraparound, end reached. Iterator is useless from now.
                     p = nullptr;
                     break;

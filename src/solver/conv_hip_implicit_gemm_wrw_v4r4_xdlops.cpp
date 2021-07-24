@@ -90,7 +90,7 @@ operator==(const PerformanceImplicitGemmWrwV4R4Xdlops& other) const
     // clang-format on
 }
 
-bool PerformanceImplicitGemmWrwV4R4Xdlops::SetNextValue()
+bool PerformanceImplicitGemmWrwV4R4Xdlops::SetNextValue(const ConvolutionContext& /*config*/)
 {
     do
     {
