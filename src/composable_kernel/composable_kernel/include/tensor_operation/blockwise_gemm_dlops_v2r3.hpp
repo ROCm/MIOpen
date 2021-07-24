@@ -21,6 +21,7 @@ namespace ck {
 //     1. CThreadDesc_BM0_BM11_BN0_BN11 is known at compile-time
 //     2. CThreadBuffer is StaticBuffer
 // Also assume:
+//   BM10BN10ThreadClusterBM10Xs::Size() = BM10BN10ThreadClusterBN10Xs::Size() == 2
 //   BM0 = BN0 = 2. It will do 2x2 pipelined read and fma (ABBA optimization)
 template <index_t BlockSize,
           typename FloatA,
@@ -31,10 +32,10 @@ template <index_t BlockSize,
           index_t BM1PerThreadBM11,
           index_t BN1PerThreadBN11,
           index_t BK0PerThread,
-          index_t BM10BN10ThreadClusterBM100,
-          index_t BM10BN10ThreadClusterBN100,
-          index_t BM10BN10ThreadClusterBM101,
-          index_t BM10BN10ThreadClusterBN101,
+          typename BM10BN10ThreadClusterBM10Xs, // Sequence<BM10BN10ThreadClusterBM100,
+                                                //          BM10BN10ThreadClusterBM101, ...>
+          typename BM10BN10ThreadClusterBN10Xs, // Sequence<BM10BN10ThreadClusterBN100,
+                                                //          BM10BN10ThreadClusterBN101, ...>
           index_t AThreadCopyScalarPerVector_BM11,
           index_t BThreadCopyScalarPerVector_BN11,
           typename std::enable_if<ABlockDesc_BK0_BM_BK1::IsKnownAtCompileTime() &&
@@ -56,19 +57,17 @@ struct BlockwiseGemmDlops_A_BK0_BM_BK1_B_BK0_BN_BK1_C_BM0_BM1_BN0_BN1_pipeline_B
     static constexpr index_t BM  = ABlockDesc_BK0_BM_BK1{}.GetLength(I1);
     static constexpr index_t BN  = BBlockDesc_BK0_BN_BK1{}.GetLength(I1);
 
-    static constexpr index_t BM100 = BM10BN10ThreadClusterBM100;
-    static constexpr index_t BN100 = BM10BN10ThreadClusterBN100;
+    static constexpr index_t BM100 = BM10BN10ThreadClusterBM10Xs{}[I0];
+    static constexpr index_t BN100 = BM10BN10ThreadClusterBN10Xs{}[I0];
 
-    static constexpr index_t BM101 = BM10BN10ThreadClusterBM101;
-    static constexpr index_t BN101 = BM10BN10ThreadClusterBN101;
+    static constexpr index_t BM101 = BM10BN10ThreadClusterBM10Xs{}[I1];
+    static constexpr index_t BN101 = BM10BN10ThreadClusterBN10Xs{}[I1];
 
     static constexpr index_t BM11 = BM1PerThreadBM11;
     static constexpr index_t BN11 = BN1PerThreadBN11;
 
-    static constexpr index_t BM1 =
-        BM10BN10ThreadClusterBM100 * BM10BN10ThreadClusterBM101 * BM1PerThreadBM11;
-    static constexpr index_t BN1 =
-        BM10BN10ThreadClusterBN100 * BM10BN10ThreadClusterBN101 * BN1PerThreadBN11;
+    static constexpr index_t BM1 = BM100 * BM101 * BM11;
+    static constexpr index_t BN1 = BN100 * BN101 * BN11;
 
     static constexpr index_t BM0 = BM / BM1;
     static constexpr index_t BN0 = BN / BN1;
@@ -169,6 +168,11 @@ struct BlockwiseGemmDlops_A_BK0_BM_BK1_B_BK0_BN_BK1_C_BM0_BM1_BN0_BN1_pipeline_B
         static_assert(ABlockDesc_BK0_BM_BK1{}.GetLength(I0) ==
                           BBlockDesc_BK0_BN_BK1{}.GetLength(I0),
                       "wrong! K dimension not consistent");
+
+        // TODO remove this restriction
+        static_assert(BM10BN10ThreadClusterBM10Xs::Size() == 2 &&
+                          BM10BN10ThreadClusterBN10Xs::Size() == 2,
+                      "wrong!");
 
         // TODO: remove this restriction
         static_assert(BM0 == 2 && BN0 == 2, "wrong");

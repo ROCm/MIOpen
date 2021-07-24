@@ -56,7 +56,7 @@ void device_dynamic_convolution_forward_implicit_gemm_v4r4r2_dlops_nhwc_kyxc_nhw
     const auto out_n_ho_wo_k_desc =
         make_dynamic_naive_tensor_descriptor_packed_v2(out_n_ho_wo_k_lengths);
 
-#if 0
+#if 1
     // [M, N, K0, K1] = [128, 128, 8, 1] for fp32
     // cdata = 64, BlockSize = 256
     constexpr index_t BlockSize = 256;
@@ -70,10 +70,8 @@ void device_dynamic_convolution_forward_implicit_gemm_v4r4r2_dlops_nhwc_kyxc_nhw
     constexpr index_t GemmN1PerThreadN111 = 4;
     constexpr index_t GemmKPerThread      = 1;
 
-    constexpr index_t GemmM11N11ThreadClusterM1100 = 8;
-    constexpr index_t GemmM11N11ThreadClusterN1100 = 8;
-    constexpr index_t GemmM11N11ThreadClusterM1101 = 2;
-    constexpr index_t GemmM11N11ThreadClusterN1101 = 2;
+    using GemmM11N11ThreadClusterM110Xs = Sequence<8, 2>;
+    using GemmM11N11ThreadClusterN110Xs = Sequence<8, 2>;
 
     using GemmABlockTransferThreadSliceLengths_K0_M0_M1_K1   = Sequence<4, 1, 1, 1>;
     using GemmABlockTransferThreadClusterLengths_K0_M0_M1_K1 = Sequence<2, 1, 128, 1>;
@@ -102,10 +100,8 @@ void device_dynamic_convolution_forward_implicit_gemm_v4r4r2_dlops_nhwc_kyxc_nhw
     constexpr index_t GemmN1PerThreadN111 = 4;
     constexpr index_t GemmKPerThread      = 1;
 
-    constexpr index_t GemmM11N11ThreadClusterM1100 = 8;
-    constexpr index_t GemmM11N11ThreadClusterN1100 = 8;
-    constexpr index_t GemmM11N11ThreadClusterM1101 = 2;
-    constexpr index_t GemmM11N11ThreadClusterN1101 = 2;
+    using GemmM11N11ThreadClusterM110Xs = Sequence<8, 2>;
+    using GemmM11N11ThreadClusterN110Xs = Sequence<8, 2>;
 
     using GemmABlockTransferThreadSliceLengths_K0_M0_M1_K1   = Sequence<4, 1, 1, 2>;
     using GemmABlockTransferThreadClusterLengths_K0_M0_M1_K1 = Sequence<2, 1, 128, 1>;
@@ -134,10 +130,8 @@ void device_dynamic_convolution_forward_implicit_gemm_v4r4r2_dlops_nhwc_kyxc_nhw
     constexpr index_t GemmN1PerThreadN111 = 4;
     constexpr index_t GemmKPerThread      = 1;
 
-    constexpr index_t GemmM11N11ThreadClusterM1100 = 8;
-    constexpr index_t GemmM11N11ThreadClusterN1100 = 8;
-    constexpr index_t GemmM11N11ThreadClusterM1101 = 2;
-    constexpr index_t GemmM11N11ThreadClusterN1101 = 2;
+    using GemmM11N11ThreadClusterM110Xs = Sequence<8, 2>;
+    using GemmM11N11ThreadClusterN110Xs = Sequence<8, 2>;
 
     using GemmABlockTransferThreadSliceLengths_K0_M0_M1_K1   = Sequence<4, 1, 1, 4>;
     using GemmABlockTransferThreadClusterLengths_K0_M0_M1_K1 = Sequence<2, 1, 128, 1>;
@@ -226,10 +220,8 @@ void device_dynamic_convolution_forward_implicit_gemm_v4r4r2_dlops_nhwc_kyxc_nhw
             GemmM1PerThreadM111,
             GemmN1PerThreadN111,
             GemmKPerThread,
-            GemmM11N11ThreadClusterM1100,
-            GemmM11N11ThreadClusterN1100,
-            GemmM11N11ThreadClusterM1101,
-            GemmM11N11ThreadClusterN1101,
+            GemmM11N11ThreadClusterM110Xs,
+            GemmM11N11ThreadClusterN110Xs,
             GemmABlockTransferThreadSliceLengths_K0_M0_M1_K1,
             GemmABlockTransferThreadClusterLengths_K0_M0_M1_K1,
             Sequence<1, 2, 0, 3>, // ABlockTransferThreadClusterArrangeOrder

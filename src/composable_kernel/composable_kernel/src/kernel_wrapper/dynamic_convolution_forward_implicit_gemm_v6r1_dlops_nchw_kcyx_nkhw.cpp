@@ -24,10 +24,8 @@ constexpr index_t BM1PerThreadBM11 = CK_PARAM_BM1PerThreadBM11;
 constexpr index_t BN1PerThreadBN11 = CK_PARAM_BN1PerThreadBN11;
 constexpr index_t BK0PerThread     = CK_PARAM_BK0PerThread;
 
-constexpr index_t BM10BN10ThreadClusterBM100 = CK_PARAM_BM10BN10ThreadClusterBM100;
-constexpr index_t BM10BN10ThreadClusterBN100 = CK_PARAM_BM10BN10ThreadClusterBN100;
-constexpr index_t BM10BN10ThreadClusterBM101 = CK_PARAM_BM10BN10ThreadClusterBM101;
-constexpr index_t BM10BN10ThreadClusterBN101 = CK_PARAM_BM10BN10ThreadClusterBN101;
+using BM10BN10ThreadClusterBM10Xs = Sequence<CK_PARAM_BM10BN10ThreadClusterBM10Xs>;
+using BM10BN10ThreadClusterBN10Xs = Sequence<CK_PARAM_BM10BN10ThreadClusterBN10Xs>;
 
 using ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1 =
     Sequence<CK_PARAM_ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1>;
@@ -174,10 +172,8 @@ dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw_prepare(inde
             BM1PerThreadBM11,
             BN1PerThreadBN11,
             BK0PerThread,
-            BM10BN10ThreadClusterBM100,
-            BM10BN10ThreadClusterBN100,
-            BM10BN10ThreadClusterBM101,
-            BM10BN10ThreadClusterBN101,
+            BM10BN10ThreadClusterBM10Xs,
+            BM10BN10ThreadClusterBN10Xs,
             ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1,
             ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1,
             ABlockTransferThreadClusterArrangeOrder,
@@ -319,10 +315,8 @@ extern "C" __global__ void
             BM1PerThreadBM11,
             BN1PerThreadBN11,
             BK0PerThread,
-            BM10BN10ThreadClusterBM100,
-            BM10BN10ThreadClusterBN100,
-            BM10BN10ThreadClusterBM101,
-            BM10BN10ThreadClusterBN101,
+            BM10BN10ThreadClusterBM10Xs,
+            BM10BN10ThreadClusterBN10Xs,
             ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1,
             ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1,
             ABlockTransferThreadClusterArrangeOrder,

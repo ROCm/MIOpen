@@ -70,7 +70,7 @@ static inline auto get_ck_compile_param_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw
         [config.ck_compile_param_list_id];
 }
 
-bool PerformanceConvCkIgemmFwdV6r1DlopsNchw::SetNextValue(const ConvolutionContext& ctx)
+bool PerformanceConvCkIgemmFwdV6r1DlopsNchw::SetNextValue(const ConvolutionContext&)
 {
     if(ck_compile_param_list_id <
        ck_driver::compile_param_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw.size() - 1)
@@ -138,10 +138,8 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsValidPerformanceConfig(
         get_ck_compile_param_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw(config));
 }
 
-ConvSolution
-ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx,
-                                         const PerformanceConvCkIgemmFwdV6r1DlopsNchw config,
-                                         bool disableConfigOverrideFromEnv) const
+ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(
+    const ConvolutionContext& ctx, const PerformanceConvCkIgemmFwdV6r1DlopsNchw config, bool) const
 {
     ConvSolution sol;
     KernelInfo kernel0_info, kernel1_info;
@@ -205,21 +203,21 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx,
             float elapsed = 0;
 
             // kernel for transforming tensor descriptors
-            kernel0(ConvolutionContextInterpreter::GetBatchN(ctx),
-                    ConvolutionContextInterpreter::GetInputChannelC(ctx),
-                    ConvolutionContextInterpreter::GetInputHeightHi(ctx),
-                    ConvolutionContextInterpreter::GetInputWidthWi(ctx),
-                    ConvolutionContextInterpreter::GetOutputChannelK(ctx),
-                    ConvolutionContextInterpreter::GetFilterHeightY(ctx),
-                    ConvolutionContextInterpreter::GetFilterWidthX(ctx),
-                    ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx),
-                    ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx),
-                    ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx),
-                    ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx),
-                    ConvolutionContextInterpreter::GetInputLeftPadH(ctx),
-                    ConvolutionContextInterpreter::GetInputLeftPadW(ctx),
-                    ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx),
-                    ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx),
+            kernel0(ck_conv_problem_desc.N,
+                    ck_conv_problem_desc.C,
+                    ck_conv_problem_desc.Hi,
+                    ck_conv_problem_desc.Wi,
+                    ck_conv_problem_desc.K,
+                    ck_conv_problem_desc.Y,
+                    ck_conv_problem_desc.X,
+                    ck_conv_problem_desc.ConvStrideH,
+                    ck_conv_problem_desc.ConvStrideW,
+                    ck_conv_problem_desc.ConvDilationH,
+                    ck_conv_problem_desc.ConvDilationW,
+                    ck_conv_problem_desc.InLeftPadH,
+                    ck_conv_problem_desc.InLeftPadW,
+                    ck_conv_problem_desc.InRightPadH,
+                    ck_conv_problem_desc.InRightPadW,
                     data_ctx.workSpace);
 
             if(handle.IsProfilingEnabled())
@@ -242,7 +240,7 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx,
     return sol;
 }
 
-std::size_t ConvCkIgemmFwdV6r1DlopsNchw::GetWorkspaceSize(const ConvolutionContext& ctx) const
+std::size_t ConvCkIgemmFwdV6r1DlopsNchw::GetWorkspaceSize(const ConvolutionContext&) const
 {
     // workspace is used for save transformed tensor descritpors created by prepare kernel
     return 4096L;

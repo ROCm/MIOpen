@@ -123,10 +123,8 @@ template <index_t BlockSize,
           index_t M1PerThreadM111,
           index_t N1PerThreadN111,
           index_t KPerThread,
-          index_t M11N11ThreadClusterM1100,
-          index_t M11N11ThreadClusterN1100,
-          index_t M11N11ThreadClusterM1101,
-          index_t M11N11ThreadClusterN1101,
+          typename M11N11ThreadClusterM110Xs,
+          typename M11N11ThreadClusterN110Xs,
           typename ABlockTransferThreadSliceLengths_K0_M0_M1_K1,
           typename ABlockTransferThreadClusterLengths_K0_M0_M1_K1,
           typename ABlockTransferThreadClusterArrangeOrder,
@@ -277,9 +275,11 @@ struct GridwiseDynamicGemmDlops_km_kn_mn_v1r3
         const auto N0 = N / N1;
 
         constexpr auto M11 =
-            Number<M11N11ThreadClusterM1100 * M11N11ThreadClusterM1101 * M1PerThreadM111>{};
+            Number<container_reduce(M11N11ThreadClusterM110Xs{}, math::multiplies_v2{}, I1) *
+                   M1PerThreadM111>{};
         constexpr auto N11 =
-            Number<M11N11ThreadClusterN1100 * M11N11ThreadClusterN1101 * N1PerThreadN111>{};
+            Number<container_reduce(M11N11ThreadClusterN110Xs{}, math::multiplies_v2{}, I1) *
+                   N1PerThreadN111>{};
 
         constexpr auto M10 = M1 / M11;
         constexpr auto N10 = N1 / N11;
@@ -445,15 +445,13 @@ struct GridwiseDynamicGemmDlops_km_kn_mn_v1r3
                 M1PerThreadM111,
                 N1PerThreadN111,
                 KPerThread,
-                M11N11ThreadClusterM1100,
-                M11N11ThreadClusterN1100,
-                M11N11ThreadClusterM1101,
-                M11N11ThreadClusterN1101,
+                M11N11ThreadClusterM110Xs,
+                M11N11ThreadClusterN110Xs,
                 M1PerThreadM111,
                 N1PerThreadN111>{};
 
         constexpr auto c_m10_m11_n10_n11_thread_tensor_lengths =
-            decltype(blockwise_gemm)::GetCM0M1N0N1ThreadTensorLengths();
+            decltype(blockwise_gemm)::GetCThreadTensorLengths_BM0_BM1_BN0_BN1();
 
         constexpr auto c_m10_m11_n10_n11_thread_desc =
             make_dynamic_naive_tensor_descriptor_packed_v2(
@@ -610,10 +608,12 @@ struct GridwiseDynamicGemmDlops_km_kn_mn_v1r3
 
         // output: register to global memory
         {
-            constexpr index_t M11 =
-                M1PerThreadM111 * M11N11ThreadClusterM1100 * M11N11ThreadClusterM1101;
-            constexpr index_t N11 =
-                N1PerThreadN111 * M11N11ThreadClusterN1100 * M11N11ThreadClusterN1101;
+            constexpr auto M11 =
+                Number<container_reduce(M11N11ThreadClusterM110Xs{}, math::multiplies_v2{}, I1) *
+                       M1PerThreadM111>{};
+            constexpr auto N11 =
+                Number<container_reduce(M11N11ThreadClusterN110Xs{}, math::multiplies_v2{}, I1) *
+                       N1PerThreadN111>{};
 
             constexpr index_t M10 = MPerBlockM1 / M11;
             constexpr index_t N10 = NPerBlockN1 / N11;
@@ -631,7 +631,8 @@ struct GridwiseDynamicGemmDlops_km_kn_mn_v1r3
                                Number<c_m10_m11_n10_n11_thread_tensor_lengths[I3]>{}));
 
             const auto c_m10_m11_n10_n11_thread_origin_idx_on_block =
-                blockwise_gemm.CalculateCM0M1N0N1ThreadOriginOnBlock(get_thread_local_1d_id());
+                blockwise_gemm.CalculateCThreadOriginOnBlock_BM0_BM1_BN0_BN1(
+                    get_thread_local_1d_id());
 
             ThreadwiseDynamicTensorSliceTransfer_v1r3<
                 FloatAcc,

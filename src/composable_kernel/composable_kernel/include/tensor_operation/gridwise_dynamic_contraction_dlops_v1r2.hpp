@@ -65,10 +65,8 @@ template <index_t BlockSize,
           index_t BM1PerThreadBM11,
           index_t BN1PerThreadBN11,
           index_t BK0PerThread,
-          index_t BM10BN10ThreadClusterBM100,
-          index_t BM10BN10ThreadClusterBN100,
-          index_t BM10BN10ThreadClusterBM101,
-          index_t BM10BN10ThreadClusterBN101,
+          typename BM10BN10ThreadClusterBM10Xs,
+          typename BM10BN10ThreadClusterBN10Xs,
           typename ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1,
           typename ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1,
           typename ABlockTransferThreadClusterArrangeOrder,
@@ -252,9 +250,11 @@ struct GridwiseDynamicContractionDlops_A_GK0_GM0_GM1_GK1_B_GK0_GN0_GN1_GK1_C_GM0
         constexpr auto BN = GN0 * GN11;
 
         constexpr auto BM1 =
-            Number<BM10BN10ThreadClusterBM100 * BM10BN10ThreadClusterBM101 * BM1PerThreadBM11>{};
+            Number<container_reduce(BM10BN10ThreadClusterBM10Xs{}, math::multiplies_v2{}, I1) *
+                   BM1PerThreadBM11>{};
         constexpr auto BN1 =
-            Number<BM10BN10ThreadClusterBN100 * BM10BN10ThreadClusterBN101 * BN1PerThreadBN11>{};
+            Number<container_reduce(BM10BN10ThreadClusterBN10Xs{}, math::multiplies_v2{}, I1) *
+                   BN1PerThreadBN11>{};
 
         constexpr auto BM0 = BM / BM1;
         constexpr auto BN0 = BN / BN1;
@@ -449,10 +449,8 @@ struct GridwiseDynamicContractionDlops_A_GK0_GM0_GM1_GK1_B_GK0_GN0_GN1_GK1_C_GM0
                 BM1PerThreadBM11,
                 BN1PerThreadBN11,
                 BK0PerThread,
-                BM10BN10ThreadClusterBM100,
-                BM10BN10ThreadClusterBN100,
-                BM10BN10ThreadClusterBM101,
-                BM10BN10ThreadClusterBN101,
+                BM10BN10ThreadClusterBM10Xs,
+                BM10BN10ThreadClusterBN10Xs,
                 BM1PerThreadBM11,
                 BN1PerThreadBN11>{};
 
