@@ -45,15 +45,6 @@ void online_device_dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcy
     constexpr auto I2 = Number<2>{};
     constexpr auto I3 = Number<3>{};
 
-    // these buffers are usually provided by the user application
-    DeviceMem in_n_c_hi_wi_dev_buf(sizeof(TInWei) * in_n_c_hi_wi.mDesc.GetElementSpace());
-    DeviceMem wei_k_c_y_x_dev_buf(sizeof(TInWei) * wei_k_c_y_x.mDesc.GetElementSpace());
-    DeviceMem out_n_k_ho_wo_dev_buf(sizeof(TOut) * out_n_k_ho_wo.mDesc.GetElementSpace());
-
-    in_n_c_hi_wi_dev_buf.ToDevice(in_n_c_hi_wi.mData.data());
-    wei_k_c_y_x_dev_buf.ToDevice(wei_k_c_y_x.mData.data());
-    out_n_k_ho_wo_dev_buf.ToDevice(out_n_k_ho_wo.mData.data());
-
     ConvolutionProblemDescriptor conv_problem_desc{in_n_c_hi_wi_lengths[I0],
                                                    out_n_k_ho_wo_lengths[I1],
                                                    in_n_c_hi_wi_lengths[I1],
@@ -71,6 +62,21 @@ void online_device_dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcy
                                                    in_left_pads[I1],
                                                    in_right_pads[I0],
                                                    in_right_pads[I1]};
+
+    if(!ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::IsValidCompileParameter(conv_problem_desc,
+                                                                   compile_param))
+    {
+        throw std::runtime_error("wrong! IsValidCompileParameter fail");
+    }
+
+    // these buffers are usually provided by the user application
+    DeviceMem in_n_c_hi_wi_dev_buf(sizeof(TInWei) * in_n_c_hi_wi.mDesc.GetElementSpace());
+    DeviceMem wei_k_c_y_x_dev_buf(sizeof(TInWei) * wei_k_c_y_x.mDesc.GetElementSpace());
+    DeviceMem out_n_k_ho_wo_dev_buf(sizeof(TOut) * out_n_k_ho_wo.mDesc.GetElementSpace());
+
+    in_n_c_hi_wi_dev_buf.ToDevice(in_n_c_hi_wi.mData.data());
+    wei_k_c_y_x_dev_buf.ToDevice(wei_k_c_y_x.mData.data());
+    out_n_k_ho_wo_dev_buf.ToDevice(out_n_k_ho_wo.mData.data());
 
     // these are workspace buffers that should be expressed to the user by the corresponding
     // workspace API
