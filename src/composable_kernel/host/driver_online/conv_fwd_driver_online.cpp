@@ -257,8 +257,34 @@ int main(int argc, char* argv[])
 
         const auto tmp = f_make_for_device_nchw();
 
-        const auto tunable =
-            ck::kernel_compile_parameter::CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw{};
+        const ck::CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw compile_param = {
+            70,
+            70,
+            70,
+            256,
+            8,
+            1,
+            128,
+            16,
+            16,
+            4,
+            4,
+            1,
+            2,
+            2,
+            8,
+            8,
+            {8, 1, 1, 1, 1},
+            {2, 1, 1, 128, 1},
+            {4, 1, 1, 1, 1},
+            {1, 1, 1, 1, 1},
+            {1, 8, 1, 1, 1},
+            {16, 1, 1, 16, 1},
+            {1, 1, 1, 1, 1},
+            {1, 1, 1, 1, 1},
+            4,
+            true,
+            true};
 
         online_device_dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw<
             in_data_t,
@@ -274,7 +300,7 @@ int main(int argc, char* argv[])
                         in,
                         wei,
                         out_device,
-                        tunable,
+                        compile_param,
                         nrepeat);
     }
 #endif

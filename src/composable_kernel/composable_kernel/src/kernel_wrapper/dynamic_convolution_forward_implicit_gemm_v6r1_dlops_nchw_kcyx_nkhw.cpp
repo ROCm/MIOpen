@@ -7,21 +7,23 @@
 
 using namespace ck;
 
-using FloatAB  = typename get_type_from_type_id<static_cast<char>(CK_PARAM_IN_WEI_DATATYPE)>::type;
+using FloatAB  = typename get_type_from_type_id<static_cast<char>(CK_PARAM_A_B_DATATYPE)>::type;
 using FloatAcc = typename get_type_from_type_id<static_cast<char>(CK_PARAM_ACC_DATATYPE)>::type;
-using FloatC   = typename get_type_from_type_id<static_cast<char>(CK_PARAM_OUT_DATATYPE)>::type;
+using FloatC   = typename get_type_from_type_id<static_cast<char>(CK_PARAM_C_DATATYPE)>::type;
 
 constexpr index_t BlockSize = CK_PARAM_BlockSize;
 
 constexpr auto GN0 = Number<CK_PARAM_GN0>{};
 constexpr auto GK1 = Number<CK_PARAM_GK1>{};
 
-constexpr index_t GM1PerBlockGM11            = CK_PARAM_GM1PerBlockGM11;
-constexpr index_t GN1PerBlockGN11            = CK_PARAM_GN1PerBlockGN11;
-constexpr index_t GK0PerBlock                = CK_PARAM_GK0PerBlock;
-constexpr index_t BM1PerThreadBM11           = CK_PARAM_BM1PerThreadBM11;
-constexpr index_t BN1PerThreadBN11           = CK_PARAM_BN1PerThreadBN11;
-constexpr index_t BK0PerThread               = CK_PARAM_BK0PerThread;
+constexpr index_t GM1PerBlockGM11 = CK_PARAM_GM1PerBlockGM11;
+constexpr index_t GN1PerBlockGN11 = CK_PARAM_GN1PerBlockGN11;
+constexpr index_t GK0PerBlock     = CK_PARAM_GK0PerBlock;
+
+constexpr index_t BM1PerThreadBM11 = CK_PARAM_BM1PerThreadBM11;
+constexpr index_t BN1PerThreadBN11 = CK_PARAM_BN1PerThreadBN11;
+constexpr index_t BK0PerThread     = CK_PARAM_BK0PerThread;
+
 constexpr index_t BM10BN10ThreadClusterBM100 = CK_PARAM_BM10BN10ThreadClusterBM100;
 constexpr index_t BM10BN10ThreadClusterBN100 = CK_PARAM_BM10BN10ThreadClusterBN100;
 constexpr index_t BM10BN10ThreadClusterBM101 = CK_PARAM_BM10BN10ThreadClusterBM101;
