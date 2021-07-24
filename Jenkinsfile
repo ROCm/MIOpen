@@ -590,7 +590,7 @@ pipeline {
                 stage('Fp32 OpenCL All gfx1030') {
                     agent{ label rocmnode("navi21") }
                     steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', build_env: extra_log_env, gpu_arch: "gfx1030")
+                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, build_env: extra_log_env, gpu_arch: "gfx1030")
                     }
                 }
                 stage('Fp16 Hip All Install gfx908') {
