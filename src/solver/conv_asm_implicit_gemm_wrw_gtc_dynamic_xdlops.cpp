@@ -468,7 +468,8 @@ ComputeDynamicIGemmWrwKernelArgs(const conv::ProblemDescription& conv_problem,
 
     int dim_b = (ho * wo + nxb - 1) / nxb * nxb;
 
-    // if ho*wo<nxb(equals to dim_b==nxb), ho need to be padded.
+    // if ho*wo<nxb(equals to dim_b<=gemm_k_per_block), ho need to be padded.
+    // int ho_padded = dim_b == nxb ? integer_divide_ceil(dim_b, wo) : ho;
     int ho_padded = dim_b <= gemm_k_per_block ? integer_divide_ceil(dim_b, wo) : ho;
 
     std::vector<OpKernelArg> opArgs;
