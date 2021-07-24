@@ -34,9 +34,9 @@ struct DriverDynamicConvolutionForwardImplicitGemmDlops_v5r1_nchw_kcyx_nkhw_outp
               typename ConvDilations,
               typename InLeftPads,
               typename InRightPads>
-    __host__ void Run(const DynamicTensorDescriptor<Wei...>& wei_k_c_y_x_global_desc,
-                      const DynamicTensorDescriptor<In...>& in_n_c_hi_wi_global_desc,
-                      const DynamicTensorDescriptor<Out...>& out_n_k0_ho_wo_k1_global_desc,
+    __host__ void Run(const ck::DynamicTensorDescriptor<Wei...>& wei_k_c_y_x_global_desc,
+                      const ck::DynamicTensorDescriptor<In...>& in_n_c_hi_wi_global_desc,
+                      const ck::DynamicTensorDescriptor<Out...>& out_n_k0_ho_wo_k1_global_desc,
                       const ConvStrides& conv_strides,
                       const ConvDilations& conv_dilations,
                       const InLeftPads& in_left_pads,
