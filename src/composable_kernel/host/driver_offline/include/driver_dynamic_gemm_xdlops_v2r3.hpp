@@ -1,48 +1,46 @@
-#ifndef CK_DRIVER_DYNAMIC_GEMM_XDLOPS_V2R3
-#define CK_DRIVER_DYNAMIC_GEMM_XDLOPS_V2R3
+#ifndef DRIVER_DYNAMIC_GEMM_XDLOPS_V2R3
+#define DRIVER_DYNAMIC_GEMM_XDLOPS_V2R3
 
 #include "common_header.hpp"
 #include "dynamic_tensor_descriptor.hpp"
 #include "dynamic_tensor_descriptor_helper.hpp"
 #include "gridwise_dynamic_gemm_xdlops_v2r3.hpp"
 
-namespace ck {
-
-template <index_t BlockSize,
+template <ck::index_t BlockSize,
           typename FloatAB,
           typename FloatAcc,
           typename FloatC,
-          InMemoryDataOperation CGlobalMemoryDataOperation,
+          ck::InMemoryDataOperation CGlobalMemoryDataOperation,
           typename AK0MK1GridDesc,
           typename BK0NK1GridDesc,
           typename CMNGridDesc,
-          index_t MPerBlock,
-          index_t NPerBlock,
-          index_t KPerBlock,
-          index_t MPerWave,
-          index_t NPerWave,
-          index_t K1,
-          index_t MRepeat,
-          index_t NRepeat,
+          ck::index_t MPerBlock,
+          ck::index_t NPerBlock,
+          ck::index_t KPerBlock,
+          ck::index_t MPerWave,
+          ck::index_t NPerWave,
+          ck::index_t K1,
+          ck::index_t MRepeat,
+          ck::index_t NRepeat,
           typename ABlockTransferThreadSliceLengths_K0_M_K1,
           typename ABlockTransferThreadClusterLengths_K0_M_K1,
           typename ABlockTransferThreadClusterArrangeOrder,
           typename ABlockTransferSrcAccessOrder,
-          index_t ABlockTransferSrcVectorDim,
-          index_t ABlockTransferSrcScalarPerVector,
-          index_t ABlockTransferDstScalarPerVector_K1,
+          ck::index_t ABlockTransferSrcVectorDim,
+          ck::index_t ABlockTransferSrcScalarPerVector,
+          ck::index_t ABlockTransferDstScalarPerVector_K1,
           bool AThreadTransferSrcResetCoordinateAfterRun,
           typename BBlockTransferThreadSliceLengths_K0_N_K1,
           typename BBlockTransferThreadClusterLengths_K0_N_K1,
           typename BBlockTransferThreadClusterArrangeOrder,
           typename BBlockTransferSrcAccessOrder,
-          index_t BBlockTransferSrcVectorDim,
-          index_t BBlockTransferSrcScalarPerVector,
-          index_t BBlockTransferDstScalarPerVector_K1,
+          ck::index_t BBlockTransferSrcVectorDim,
+          ck::index_t BBlockTransferSrcScalarPerVector,
+          ck::index_t BBlockTransferDstScalarPerVector_K1,
           bool BThreadTransferSrcResetCoordinateAfterRun,
           typename CThreadTransferSrcDstAccessOrder,
-          index_t CThreadTransferSrcDstVectorDim,
-          index_t CThreadTransferDstScalarPerVector,
+          ck::index_t CThreadTransferSrcDstVectorDim,
+          ck::index_t CThreadTransferDstScalarPerVector,
           typename AGridIteratorHacks,
           typename BGridIteratorHacks,
           typename CGridIteratorHacks,
@@ -60,7 +58,7 @@ __host__ float driver_dynamic_gemm_xdlops_v2r3(const FloatAB* p_a_grid,
                                                CGridIteratorHacks,
                                                AGridMoveSliceWindowIteratorHacks,
                                                BGridMoveSliceWindowIteratorHacks,
-                                               index_t nrepeat)
+                                               ck::index_t nrepeat)
 
 {
     constexpr auto I0 = Number<0>{};

@@ -1,31 +1,29 @@
-#ifndef CK_DRIVER_DYNAMIC_CONTRACTION_DLOPS_V1R2_HPP
-#define CK_DRIVER_DYNAMIC_CONTRACTION_DLOPS_V1R2_HPP
+#ifndef DRIVER_DYNAMIC_CONTRACTION_DLOPS_V1R2_HPP
+#define DRIVER_DYNAMIC_CONTRACTION_DLOPS_V1R2_HPP
 
 #include "common_header.hpp"
 #include "dynamic_tensor_descriptor.hpp"
 #include "dynamic_tensor_descriptor_helper.hpp"
 #include "gridwise_dynamic_contraction_dlops_v1r2.hpp"
 
-namespace ck {
-
-template <index_t BlockSize,
+template <ck::index_t BlockSize,
           typename FloatAB,
           typename FloatAcc,
           typename FloatC,
-          InMemoryDataOperation CGlobalMemoryDataOperation,
+          ck::InMemoryDataOperation CGlobalMemoryDataOperation,
           typename AGridDesc_GK0_GM0_GM1_GK1,
           typename BGridDesc_GK0_GN0_GN1_GK1,
           typename CGridDesc_GM0_GM1_GN0_GN1,
-          index_t GM1PerBlockGM11,
-          index_t GN1PerBlockGN11,
-          index_t GK0PerBlock,
-          index_t BM1PerThreadBM11,
-          index_t BN1PerThreadBN11,
-          index_t BK0PerThread,
-          index_t BM10BN10ThreadClusterBM100,
-          index_t BM10BN10ThreadClusterBN100,
-          index_t BM10BN10ThreadClusterBM101,
-          index_t BM10BN10ThreadClusterBN101,
+          ck::index_t GM1PerBlockGM11,
+          ck::index_t GN1PerBlockGN11,
+          ck::index_t GK0PerBlock,
+          ck::index_t BM1PerThreadBM11,
+          ck::index_t BN1PerThreadBN11,
+          ck::index_t BK0PerThread,
+          ck::index_t BM10BN10ThreadClusterBM100,
+          ck::index_t BM10BN10ThreadClusterBN100,
+          ck::index_t BM10BN10ThreadClusterBM101,
+          ck::index_t BM10BN10ThreadClusterBN101,
           typename ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1,
           typename ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1,
           typename ABlockTransferThreadClusterArrangeOrder,
@@ -41,8 +39,8 @@ template <index_t BlockSize,
           typename BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1,
           typename BBlockTransferSrcVectorTensorContiguousDimOrder,
           typename CThreadTransferSrcDstAccessOrder,
-          index_t CThreadTransferSrcDstVectorDim,
-          index_t CThreadTransferDstScalarPerVector,
+          ck::index_t CThreadTransferSrcDstVectorDim,
+          ck::index_t CThreadTransferDstScalarPerVector,
           typename AGridIteratorHacks,
           typename BGridIteratorHacks,
           typename CGridIteratorHacks,
@@ -60,9 +58,11 @@ driver_dynamic_contraction_dlops_v1r2(const FloatAB* p_a_grid,
                                       CGridIteratorHacks,
                                       AGridMoveSliceWindowIteratorHacks,
                                       BGridMoveSliceWindowIteratorHacks,
-                                      index_t nrepeat)
+                                      ck::index_t nrepeat)
 
 {
+    using namespace ck;
+
     constexpr auto I0 = Number<0>{};
     constexpr auto I1 = Number<1>{};
     constexpr auto I2 = Number<2>{};
@@ -291,6 +291,4 @@ driver_dynamic_contraction_dlops_v1r2(const FloatAB* p_a_grid,
 
     return ave_time;
 }
-
-} // namespace ck
 #endif

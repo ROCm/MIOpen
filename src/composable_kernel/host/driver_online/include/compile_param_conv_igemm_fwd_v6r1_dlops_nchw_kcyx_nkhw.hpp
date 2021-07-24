@@ -1,7 +1,7 @@
 #ifndef COMPILE_PARAMETER_CONV_IGEMM_FWD_V6R1_DLOPS_NCHW_KCYX_NKHW_HPP
 #define COMPILE_PARAMETER_CONV_IGEMM_FWD_V6R1_DLOPS_NCHW_KCYX_NKHW_HPP
 
-namespace ck {
+namespace ck_driver {
 
 struct CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw
 {
@@ -277,5 +277,5 @@ struct ConvIgemmFwdV6r1DlopsNchwKcyxNkhw
     }
 };
 
-} // namespace ck
+} // namespace ck_driver
 #endif

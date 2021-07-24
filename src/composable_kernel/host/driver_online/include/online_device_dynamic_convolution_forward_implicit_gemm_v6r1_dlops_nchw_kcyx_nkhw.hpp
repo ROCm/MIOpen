@@ -1,3 +1,4 @@
+#pragma once
 #include "device.hpp"
 #include "host_tensor.hpp"
 #include "handle.hpp"
@@ -30,10 +31,11 @@ void online_device_dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcy
     const Tensor<TInWei>& in_n_c_hi_wi,
     const Tensor<TInWei>& wei_k_c_y_x,
     Tensor<TOut>& out_n_k_ho_wo,
-    const ck::CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw& compile_param,
+    const ck_driver::CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw& compile_param,
     ck::index_t nrepeat)
 {
     using namespace ck;
+    using namespace ck_driver;
     using size_t = std::size_t;
 
     std::cout << __func__ << std::endl;
@@ -52,27 +54,23 @@ void online_device_dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcy
     wei_k_c_y_x_dev_buf.ToDevice(wei_k_c_y_x.mData.data());
     out_n_k_ho_wo_dev_buf.ToDevice(out_n_k_ho_wo.mData.data());
 
-    ConvolutionProblemDescriptor conv_problem_desc;
-
-    {
-        conv_problem_desc.N             = in_n_c_hi_wi_lengths[I0];
-        conv_problem_desc.K             = out_n_k_ho_wo_lengths[I1];
-        conv_problem_desc.C             = in_n_c_hi_wi_lengths[I1];
-        conv_problem_desc.Y             = wei_k_c_y_x_lengths[I2];
-        conv_problem_desc.X             = wei_k_c_y_x_lengths[I3];
-        conv_problem_desc.Hi            = in_n_c_hi_wi_lengths[I2];
-        conv_problem_desc.Wi            = in_n_c_hi_wi_lengths[I3];
-        conv_problem_desc.Ho            = out_n_k_ho_wo_lengths[I2];
-        conv_problem_desc.Wo            = out_n_k_ho_wo_lengths[I3];
-        conv_problem_desc.ConvStrideH   = conv_strides[I0];
-        conv_problem_desc.ConvStrideW   = conv_strides[I1];
-        conv_problem_desc.ConvDilationH = conv_dilations[I0];
-        conv_problem_desc.ConvDilationW = conv_dilations[I1];
-        conv_problem_desc.InLeftPadH    = in_left_pads[I0];
-        conv_problem_desc.InLeftPadW    = in_left_pads[I1];
-        conv_problem_desc.InRightPadH   = in_right_pads[I0];
-        conv_problem_desc.InRightPadW   = in_right_pads[I1];
-    }
+    ConvolutionProblemDescriptor conv_problem_desc{in_n_c_hi_wi_lengths[I0],
+                                                   out_n_k_ho_wo_lengths[I1],
+                                                   in_n_c_hi_wi_lengths[I1],
+                                                   wei_k_c_y_x_lengths[I2],
+                                                   wei_k_c_y_x_lengths[I3],
+                                                   in_n_c_hi_wi_lengths[I2],
+                                                   in_n_c_hi_wi_lengths[I3],
+                                                   out_n_k_ho_wo_lengths[I2],
+                                                   out_n_k_ho_wo_lengths[I3],
+                                                   conv_strides[I0],
+                                                   conv_strides[I1],
+                                                   conv_dilations[I0],
+                                                   conv_dilations[I1],
+                                                   in_left_pads[I0],
+                                                   in_left_pads[I1],
+                                                   in_right_pads[I0],
+                                                   in_right_pads[I1]};
 
     // these are workspace buffers that should be expressed to the user by the corresponding
     // workspace API
@@ -83,7 +81,7 @@ void online_device_dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcy
         ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetBlockSize(conv_problem_desc, compile_param));
 
     const auto grid_size = std::size_t(
-        ck::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetGridSize(conv_problem_desc, compile_param));
+        ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetGridSize(conv_problem_desc, compile_param));
 
     const std::vector<size_t> vld1 = {1, 1, 1};
     const std::vector<size_t> vgd1 = {1, 1, 1};
@@ -159,17 +157,7 @@ void online_device_dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcy
         auto ave_time1 = Driver::get_effective_average(kernel1_times);
         auto ave_time2 = Driver::get_effective_average(kernel2_times);
 
-        const auto N = in_n_c_hi_wi_lengths[I0];
-        const auto C = in_n_c_hi_wi_lengths[I1];
-
-        const auto K  = out_n_k_ho_wo_lengths[I1];
-        const auto Ho = out_n_k_ho_wo_lengths[I2];
-        const auto Wo = out_n_k_ho_wo_lengths[I3];
-
-        const auto Y = wei_k_c_y_x_lengths[I2];
-        const auto X = wei_k_c_y_x_lengths[I3];
-
-        float perf = (float)(std::size_t(2) * N * K * Ho * Wo * C * Y * X) /
+        float perf = (float)(conv_problem_desc.CalculateFlop()) /
                      (std::size_t(1000) * 1000 * 1000) / (ave_time1 + ave_time2);
 
         std::cout << "Average time : " << ave_time1 + ave_time2 << " ms(" << ave_time1 << ", "

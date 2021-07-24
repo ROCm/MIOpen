@@ -257,7 +257,7 @@ int main(int argc, char* argv[])
 
         const auto tmp = f_make_for_device_nchw();
 
-        const ck::CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw compile_param = {
+        const ck_driver::CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw compile_param = {
             70,
             70,
             70,

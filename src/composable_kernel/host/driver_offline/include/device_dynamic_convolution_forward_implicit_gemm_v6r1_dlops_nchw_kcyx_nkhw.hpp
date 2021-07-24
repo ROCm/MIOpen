@@ -1,3 +1,4 @@
+#pragma once
 #include <unistd.h>
 #include "device.hpp"
 #include "host_tensor.hpp"

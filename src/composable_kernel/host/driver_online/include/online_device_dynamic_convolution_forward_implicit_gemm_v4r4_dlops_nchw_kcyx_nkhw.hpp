@@ -1,3 +1,4 @@
+#pragma once
 #include "device.hpp"
 #include "host_tensor.hpp"
 #include "handle.hpp"

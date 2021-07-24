@@ -177,5 +177,8 @@ enum InMemoryDataOperation
 // index type
 using index_t = int32_t;
 
+// size type
+using size_t = uint64_t;
+
 } // namespace ck
 #endif

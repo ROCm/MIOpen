@@ -43,40 +43,37 @@ namespace solver {
 // TODO: move this to common header
 static inline auto get_ck_convolution_problem_descriptor(const ConvolutionContext& ctx)
 {
-    auto tmp = ck::ConvolutionProblemDescriptor{};
-
-    tmp.N             = ConvolutionContextInterpreter::GetBatchN(ctx);
-    tmp.K             = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
-    tmp.C             = ConvolutionContextInterpreter::GetInputChannelC(ctx);
-    tmp.Y             = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-    tmp.X             = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
-    tmp.Hi            = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
-    tmp.Wi            = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
-    tmp.Ho            = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
-    tmp.Wo            = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
-    tmp.ConvStrideH   = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
-    tmp.ConvStrideW   = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
-    tmp.ConvDilationH = ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx);
-    tmp.ConvDilationW = ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx);
-    tmp.InLeftPadH    = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
-    tmp.InLeftPadW    = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
-    tmp.InRightPadH   = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
-    tmp.InRightPadW   = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
-
-    return tmp;
+    return ck_driver::ConvolutionProblemDescriptor{
+        ConvolutionContextInterpreter::GetBatchN(ctx),
+        ConvolutionContextInterpreter::GetOutputChannelK(ctx),
+        ConvolutionContextInterpreter::GetInputChannelC(ctx),
+        ConvolutionContextInterpreter::GetFilterHeightY(ctx),
+        ConvolutionContextInterpreter::GetFilterWidthX(ctx),
+        ConvolutionContextInterpreter::GetInputHeightHi(ctx),
+        ConvolutionContextInterpreter::GetInputWidthWi(ctx),
+        ConvolutionContextInterpreter::GetOutputHeightHo(ctx),
+        ConvolutionContextInterpreter::GetOutputWidthWo(ctx),
+        ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx),
+        ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx),
+        ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx),
+        ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx),
+        ConvolutionContextInterpreter::GetInputLeftPadH(ctx),
+        ConvolutionContextInterpreter::GetInputLeftPadW(ctx),
+        ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx),
+        ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx)};
 }
 
 static inline auto get_ck_compile_param_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw(
     const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config)
 {
-    return ck::compile_param_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw
+    return ck_driver::compile_param_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw
         [config.ck_compile_param_list_id];
 }
 
 bool PerformanceConvCkIgemmFwdV6r1DlopsNchw::SetNextValue(const ConvolutionContext& ctx)
 {
     if(ck_compile_param_list_id <
-       ck::compile_param_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw.size() - 1)
+       ck_driver::compile_param_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw.size() - 1)
     {
         ck_compile_param_list_id++;
         return true;
@@ -89,7 +86,7 @@ bool PerformanceConvCkIgemmFwdV6r1DlopsNchw::SetNextValue(const ConvolutionConte
 
 bool PerformanceConvCkIgemmFwdV6r1DlopsNchw::IsValid(const ConvolutionContext& ctx) const
 {
-    return ck::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::IsValidCompileParameter(
+    return ck_driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::IsValidCompileParameter(
         get_ck_convolution_problem_descriptor(ctx),
         get_ck_compile_param_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw(*this));
 }
@@ -113,14 +110,16 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx) co
     if(ctx.group_counts != 1)
         return false;
 
-    return ck::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::IsApplicable(
+    return ck_driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::IsApplicable(
         get_ck_convolution_problem_descriptor(ctx));
 }
 
 PerformanceConvCkIgemmFwdV6r1DlopsNchw
 ConvCkIgemmFwdV6r1DlopsNchw::GetPerformanceConfig(const ConvolutionContext& ctx) const
 {
-    for(int i = 0; i < ck::compile_param_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw.size(); ++i)
+    for(int i = 0;
+        i < ck_driver::compile_param_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw.size();
+        ++i)
     {
         if(IsValidPerformanceConfig(ctx, i))
         {
@@ -134,7 +133,7 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetPerformanceConfig(const ConvolutionContext& ctx)
 bool ConvCkIgemmFwdV6r1DlopsNchw::IsValidPerformanceConfig(
     const ConvolutionContext& ctx, const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config) const
 {
-    return ck::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::IsValidCompileParameter(
+    return ck_driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::IsValidCompileParameter(
         get_ck_convolution_problem_descriptor(ctx),
         get_ck_compile_param_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw(config));
 }
@@ -175,11 +174,13 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx,
         kernel1_info.kernel_name =
             "dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw";
 
-        const auto block_size = std::size_t(ck::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetBlockSize(
-            ck_conv_problem_desc, ck_compile_param));
+        const auto block_size =
+            std::size_t(ck_driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetBlockSize(
+                ck_conv_problem_desc, ck_compile_param));
 
-        const auto grid_size = std::size_t(ck::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetGridSize(
-            ck_conv_problem_desc, ck_compile_param));
+        const auto grid_size =
+            std::size_t(ck_driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetGridSize(
+                ck_conv_problem_desc, ck_compile_param));
 
         kernel1_info.l_wk = {block_size, 1, 1};
         kernel1_info.g_wk = {block_size * grid_size, 1, 1};

@@ -1,50 +1,48 @@
-#ifndef CK_DRIVER_DYNAMIC_GEMM_DLOPS_V1R2
-#define CK_DRIVER_DYNAMIC_GEMM_DLOPS_V1R2
+#ifndef DRIVER_DYNAMIC_GEMM_DLOPS_V1R2
+#define DRIVER_DYNAMIC_GEMM_DLOPS_V1R2
 
 #include "common_header.hpp"
 #include "dynamic_tensor_descriptor.hpp"
 #include "dynamic_tensor_descriptor_helper.hpp"
 #include "gridwise_dynamic_gemm_dlops_v1r2.hpp"
 
-namespace ck {
-
-template <index_t BlockSize,
+template <ck::index_t BlockSize,
           typename FloatAB,
           typename FloatAcc,
           typename FloatC,
-          InMemoryDataOperation CGlobalMemoryDataOperation,
+          ck::InMemoryDataOperation CGlobalMemoryDataOperation,
           typename AKMGridDesc,
           typename BKNGridDesc,
           typename CMNGridDesc,
-          index_t MPerBlock,
-          index_t NPerBlock,
-          index_t KPerBlock,
-          index_t M1PerThread,
-          index_t N1PerThread,
-          index_t KPerThread,
-          index_t M1N1ThreadClusterM10,
-          index_t M1N1ThreadClusterN10,
-          index_t M1N1ThreadClusterM11,
-          index_t M1N1ThreadClusterN11,
+          ck::index_t MPerBlock,
+          ck::index_t NPerBlock,
+          ck::index_t KPerBlock,
+          ck::index_t M1PerThread,
+          ck::index_t N1PerThread,
+          ck::index_t KPerThread,
+          ck::index_t M1N1ThreadClusterM10,
+          ck::index_t M1N1ThreadClusterN10,
+          ck::index_t M1N1ThreadClusterM11,
+          ck::index_t M1N1ThreadClusterN11,
           typename ABlockTransferThreadSliceLengths_K_M0_M1,
           typename ABlockTransferThreadClusterLengths_K_M0_M1,
           typename ABlockTransferThreadClusterArrangeOrder,
           typename ABlockTransferSrcAccessOrder,
-          index_t ABlockTransferSrcVectorDim,
-          index_t ABlockTransferSrcScalarPerVector,
-          index_t ABlockTransferDstScalarPerVector_M1,
+          ck::index_t ABlockTransferSrcVectorDim,
+          ck::index_t ABlockTransferSrcScalarPerVector,
+          ck::index_t ABlockTransferDstScalarPerVector_M1,
           bool AThreadTransferSrcResetCoordinateAfterRun,
           typename BBlockTransferThreadSliceLengths_K_N0_N1,
           typename BBlockTransferThreadClusterLengths_K_N0_N1,
           typename BBlockTransferThreadClusterArrangeOrder,
           typename BBlockTransferSrcAccessOrder,
-          index_t BBlockTransferSrcVectorDim,
-          index_t BBlockTransferSrcScalarPerVector,
-          index_t BBlockTransferDstScalarPerVector_N1,
+          ck::index_t BBlockTransferSrcVectorDim,
+          ck::index_t BBlockTransferSrcScalarPerVector,
+          ck::index_t BBlockTransferDstScalarPerVector_N1,
           bool BThreadTransferSrcResetCoordinateAfterRun,
           typename CThreadTransferSrcDstAccessOrder,
-          index_t CThreadTransferSrcDstVectorDim,
-          index_t CThreadTransferDstScalarPerVector,
+          ck::index_t CThreadTransferSrcDstVectorDim,
+          ck::index_t CThreadTransferDstScalarPerVector,
           typename AGridIteratorHacks,
           typename BGridIteratorHacks,
           typename CGridIteratorHacks,
@@ -61,9 +59,11 @@ __host__ float driver_dynamic_gemm_dlops_v1r2(const FloatAB* p_a_grid,
                                               CGridIteratorHacks,
                                               AGridMoveSliceWindowIteratorHacks,
                                               BGridMoveSliceWindowIteratorHacks,
-                                              index_t nrepeat)
+                                              ck::index_t nrepeat)
 
 {
+    using namespace ck;
+
     constexpr auto I0 = Number<0>{};
     constexpr auto I1 = Number<1>{};
     constexpr auto I2 = Number<2>{};
@@ -412,6 +412,4 @@ __host__ float driver_dynamic_gemm_dlops_v1r2(const FloatAB* p_a_grid,
     return ave_time;
 #endif
 }
-
-} // namespace ck
 #endif
