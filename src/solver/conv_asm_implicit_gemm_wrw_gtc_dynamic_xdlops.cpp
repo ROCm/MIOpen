@@ -873,6 +873,9 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
     nxb              = kernel_configs[kernel_index].nxb;
     gemm_k_per_block = kernel_configs[kernel_index].gemm_k_per_block;
 
+    std::cout << kernel_name << " with groups for reduction: "
+                               << (1 << log2_gemm_k_global_splits) << std::endl;
+
     // MIOPEN_LOG_I2(kernel_name << " with groups for reduction: "
     //                           << (1 << log2_gemm_k_global_splits));
 
