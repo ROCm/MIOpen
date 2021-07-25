@@ -411,8 +411,11 @@ struct ConvIgemmFwdV6r1DlopsNchwKcyxNkhw
 
         // check C threadwise copy
         {
-            // check slice length vs Dst vector length: {BN11} (or {BN1}) is Dst vector dim
-            if(!(BN11 % compile_param.CThreadTransferDstScalarPerVector == 0))
+            // {BN11} or {BN} or {BN1} or {GN11} is Dst vector dim
+            const int dst_vector_len_gn11 = compile_param.CThreadTransferDstScalarPerVector;
+
+            // check slice length vs Dst vector length:
+            if(!(BN11 % dst_vector_len_gn11 == 0 && GN11 % dst_vector_len_gn11 == 0))
                 return false;
 
             // check Dst memory layout related vectorization:
