@@ -2153,9 +2153,9 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm : SolverBase<ConvolutionCont
 
 struct PerformanceConvCkIgemmFwdV6r1DlopsNchw : Serializable<PerformanceConvCkIgemmFwdV6r1DlopsNchw>
 {
-    int ck_compile_param_list_id;
+    int ck_tunable_list_id;
 
-    PerformanceConvCkIgemmFwdV6r1DlopsNchw(int a) : ck_compile_param_list_id(a) {}
+    PerformanceConvCkIgemmFwdV6r1DlopsNchw(int a) : ck_tunable_list_id(a) {}
 
     PerformanceConvCkIgemmFwdV6r1DlopsNchw() : PerformanceConvCkIgemmFwdV6r1DlopsNchw(-1) {}
 
@@ -2164,14 +2164,14 @@ struct PerformanceConvCkIgemmFwdV6r1DlopsNchw : Serializable<PerformanceConvCkIg
     template <class Self, class F>
     static void Visit(Self&& self, F f)
     {
-        f(self.ck_compile_param_list_id, "ck_compile_param_list_id");
+        f(self.ck_tunable_list_id, "ck_tunable_list_id");
     }
 
     bool SetNextValue(const ConvolutionContext&);
     bool IsValid(const ConvolutionContext&) const;
     bool operator==(const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config) const
     {
-        return ck_compile_param_list_id == config.ck_compile_param_list_id;
+        return ck_tunable_list_id == config.ck_tunable_list_id;
     }
 };
 

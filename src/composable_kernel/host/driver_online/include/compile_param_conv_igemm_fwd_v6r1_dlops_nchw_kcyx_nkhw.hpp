@@ -1,9 +1,47 @@
-#ifndef COMPILE_PARAMETER_CONV_IGEMM_FWD_V6R1_DLOPS_NCHW_KCYX_NKHW_HPP
-#define COMPILE_PARAMETER_CONV_IGEMM_FWD_V6R1_DLOPS_NCHW_KCYX_NKHW_HPP
+#ifndef CONV_IGEMM_FWD_V6R1_DLOPS_NCHW_KCYX_NKHW_HPP
+#define CONV_IGEMM_FWD_V6R1_DLOPS_NCHW_KCYX_NKHW_HPP
 
 #include <numeric>
 
 namespace ck_driver {
+
+// TODO move this to common header
+// greatest common divisor, aka highest common factor
+int gcd(int x, int y)
+{
+    if(x < 0)
+    {
+        return gcd(-x, y);
+    }
+    else if(y < 0)
+    {
+        return gcd(x, -y);
+    }
+    else if(x == y || x == 0)
+    {
+        return y;
+    }
+    else if(y == 0)
+    {
+        return x;
+    }
+    else if(x > y)
+    {
+        return gcd(x % y, y);
+    }
+    else
+    {
+        return gcd(x, y % x);
+    }
+}
+
+template <typename X,
+          typename... Ys,
+          typename std::enable_if<sizeof...(Ys) >= 2, bool>::type = false>
+int gcd(X x, Ys... ys)
+{
+    return gcd(x, gcd(ys...));
+}
 
 struct CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw
 {
@@ -126,70 +164,184 @@ struct CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw
                 std::to_string(BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[4]) +
             " -DCK_PARAM_CThreadTransferDstScalarPerVector=" +
                 std::to_string(CThreadTransferDstScalarPerVector) +
-            " -DCK_PARAM_HAS_MAIN_KBLOCK_LOOP=" +
+            " -DCK_PARAM_HasMainKBlockLoop=" +
                 std::to_string(HasMainKBlockLoop) + 
-            " -DCK_PARAM_HAS_DOUBLE_TAIL_KBLOCK_LOOP=" +
+            " -DCK_PARAM_HasDoubleTailKBlockLoop=" +
                 std::to_string(HasDoubleTailKBlockLoop);
         // clang-format on
     }
 };
 
+struct TunableConvIgemmFwdV6r1DlopsNchwKcyxNkhw
+{
+    int BlockSize;
+
+    int GN0;
+    int GK1;
+
+    int GM1PerBlockGM11;
+    int GN1PerBlockGN11;
+    int GK0PerBlock;
+
+    int BM1PerThreadBM11;
+    int BN1PerThreadBN11;
+    int BK0PerThread;
+
+    std::array<int, 2> BM10BN10ThreadClusterBM10Xs;
+    std::array<int, 2> BM10BN10ThreadClusterBN10Xs;
+
+    std::array<int, 5> ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1;
+    std::array<int, 5> ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1;
+    std::array<int, 5> ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1;
+    std::array<int, 5> ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1;
+
+    std::array<int, 5> BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1;
+    std::array<int, 5> BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1;
+    std::array<int, 5> BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1;
+    std::array<int, 5> BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1;
+};
+
 // TODO
-const static std::vector<CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw>
-    compile_param_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw{
+const static std::vector<TunableConvIgemmFwdV6r1DlopsNchwKcyxNkhw>
+    tunable_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw{
         // clang-format off
-        {70, 70, 70, 256, 1, 1, 128, 128,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {4, 1, 1, 1, 1}, { 2, 1, 1, 128, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, 1, true, true},
-        {70, 70, 70, 256, 2, 1, 128,  64,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {2, 2, 1, 1, 1}, { 4, 1, 1,  64, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, 1, true, true},
-        {70, 70, 70, 256, 4, 1, 128,  32,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 4, 1, 1, 1}, { 8, 1, 1,  32, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, 1, true, true},
-        {70, 70, 70, 256, 8, 1, 128,  16, 16, 4, 4, 1, {8, 2}, {8, 2}, {8, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 8, 1, 1, 1}, {16, 1, 1,  16, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, 1, true, true},
-        {70, 70, 70, 256, 1, 1, 128, 128,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {4, 1, 1, 1, 1}, { 2, 1, 1, 128, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, 4, true, true},
-        {70, 70, 70, 256, 2, 1, 128,  64,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {2, 2, 1, 1, 1}, { 4, 1, 1,  64, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, 4, true, true},
-        {70, 70, 70, 256, 4, 1, 128,  32,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 4, 1, 1, 1}, { 8, 1, 1,  32, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, 4, true, true},
-        {70, 70, 70, 256, 8, 1, 128,  16, 16, 4, 4, 1, {8, 2}, {8, 2}, {8, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 8, 1, 1, 1}, {16, 1, 1,  16, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, 4, true, true},
+        {256, 1, 1, 128, 128,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 4, 1}, { 8, 1, 1,  32, 1}, {1, 1, 1, 4, 1}, {1, 1, 1, 4, 1}},
+        {256, 1, 1, 128, 128,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 4, 1}, { 8, 1, 1,  32, 1}, {1, 1, 1, 2, 1}, {1, 1, 1, 4, 1}},
+        {256, 1, 1, 128, 128,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 4, 1}, { 8, 1, 1,  32, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 4, 1}},
 
-        {70, 70, 70, 256, 1, 1, 128, 128,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {4, 1, 1, 1, 1}, { 2, 1, 1, 128, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, 1, true, false},
-        {70, 70, 70, 256, 2, 1, 128,  64,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {2, 2, 1, 1, 1}, { 4, 1, 1,  64, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, 1, true, false},
-        {70, 70, 70, 256, 4, 1, 128,  32,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 4, 1, 1, 1}, { 8, 1, 1,  32, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, 1, true, false},
-        {70, 70, 70, 256, 8, 1, 128,  16, 16, 4, 4, 1, {8, 2}, {8, 2}, {8, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 8, 1, 1, 1}, {16, 1, 1,  16, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, 1, true, false},
-        {70, 70, 70, 256, 1, 1, 128, 128,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {4, 1, 1, 1, 1}, { 2, 1, 1, 128, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, 4, true, false},
-        {70, 70, 70, 256, 2, 1, 128,  64,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {2, 2, 1, 1, 1}, { 4, 1, 1,  64, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, 4, true, false},
-        {70, 70, 70, 256, 4, 1, 128,  32,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 4, 1, 1, 1}, { 8, 1, 1,  32, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, 4, true, false},
-        {70, 70, 70, 256, 8, 1, 128,  16, 16, 4, 4, 1, {8, 2}, {8, 2}, {8, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 8, 1, 1, 1}, {16, 1, 1,  16, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, 4, true, false},
+        {256, 1, 1, 128, 128,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {4, 1, 1, 1, 1}, { 2, 1, 1, 128, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}},
+        {256, 2, 1, 128,  64,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {2, 2, 1, 1, 1}, { 4, 1, 1,  64, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}},
+        {256, 4, 1, 128,  32,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 4, 1, 1, 1}, { 8, 1, 1,  32, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}},
+        {256, 8, 1, 128,  16, 16, 4, 4, 1, {8, 2}, {8, 2}, {8, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 8, 1, 1, 1}, {16, 1, 1,  16, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}},
 
-        {70, 70, 70, 256, 1, 1, 128, 128,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {4, 1, 1, 1, 1}, { 2, 1, 1, 128, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, 1, false, true},
-        {70, 70, 70, 256, 2, 1, 128,  64,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {2, 2, 1, 1, 1}, { 4, 1, 1,  64, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, 1, false, true},
-        {70, 70, 70, 256, 4, 1, 128,  32,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 4, 1, 1, 1}, { 8, 1, 1,  32, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, 1, false, true},
-        {70, 70, 70, 256, 8, 1, 128,  16, 16, 4, 4, 1, {8, 2}, {8, 2}, {8, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 8, 1, 1, 1}, {16, 1, 1,  16, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, 1, false, true},
-        {70, 70, 70, 256, 1, 1, 128, 128,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {4, 1, 1, 1, 1}, { 2, 1, 1, 128, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, 4, false, true},
-        {70, 70, 70, 256, 2, 1, 128,  64,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {2, 2, 1, 1, 1}, { 4, 1, 1,  64, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, 4, false, true},
-        {70, 70, 70, 256, 4, 1, 128,  32,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 4, 1, 1, 1}, { 8, 1, 1,  32, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, 4, false, true},
-        {70, 70, 70, 256, 8, 1, 128,  16, 16, 4, 4, 1, {8, 2}, {8, 2}, {8, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 8, 1, 1, 1}, {16, 1, 1,  16, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, 4, false, true},
-
-        {70, 70, 70, 256, 1, 1, 128, 128,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {4, 1, 1, 1, 1}, { 2, 1, 1, 128, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, 1, false, false},
-        {70, 70, 70, 256, 2, 1, 128,  64,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {2, 2, 1, 1, 1}, { 4, 1, 1,  64, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, 1, false, false},
-        {70, 70, 70, 256, 4, 1, 128,  32,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 4, 1, 1, 1}, { 8, 1, 1,  32, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, 1, false, false},
-        {70, 70, 70, 256, 8, 1, 128,  16, 16, 4, 4, 1, {8, 2}, {8, 2}, {8, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 8, 1, 1, 1}, {16, 1, 1,  16, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, 1, false, false},
-        {70, 70, 70, 256, 1, 1, 128, 128,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {4, 1, 1, 1, 1}, { 2, 1, 1, 128, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, 4, false, false},
-        {70, 70, 70, 256, 2, 1, 128,  64,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {2, 2, 1, 1, 1}, { 4, 1, 1,  64, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, 4, false, false},
-        {70, 70, 70, 256, 4, 1, 128,  32,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 4, 1, 1, 1}, { 8, 1, 1,  32, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, 4, false, false},
-        {70, 70, 70, 256, 8, 1, 128,  16, 16, 4, 4, 1, {8, 2}, {8, 2}, {8, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 8, 1, 1, 1}, {16, 1, 1,  16, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, 4, false, false}
+        {128, 1, 1,  64, 128,  8, 4, 4, 1, {4, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1,  64, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {8, 1, 1, 1, 1}, { 1, 1, 1, 128, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}}
         // clang-format on
     };
 
 // TODO make this common interface and write specs for it
 struct ConvIgemmFwdV6r1DlopsNchwKcyxNkhw
 {
-    static bool IsApplicable(const ConvolutionProblemDescriptor& conv_problem_desc)
+    static auto
+    CalculateCompileParameterBasedOnTunable(const ConvolutionProblemDescriptor& conv_problem_desc,
+                                            const TunableConvIgemmFwdV6r1DlopsNchwKcyxNkhw& tunable)
     {
-        for(auto compile_param : compile_param_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw)
+        const int C  = conv_problem_desc.C;
+        const int Y  = conv_problem_desc.Y;
+        const int X  = conv_problem_desc.X;
+        const int Ho = conv_problem_desc.Ho;
+        const int Wo = conv_problem_desc.Wo;
+
+        const int ABDatatype  = 70;
+        const int AccDatatype = 70;
+        const int CDatatype   = 70;
+
+        const int BlockSize = tunable.BlockSize;
+
+        const int GN0 = tunable.GN0;
+        const int GK1 = tunable.GK1;
+
+        const int GM11        = tunable.GM1PerBlockGM11;
+        const int GN11        = tunable.GN1PerBlockGN11;
+        const int GK0PerBlock = tunable.GK0PerBlock;
+
+        const int BM11         = tunable.BM1PerThreadBM11;
+        const int BN11         = tunable.BN1PerThreadBN11;
+        const int BK0PerThread = tunable.BK0PerThread;
+
+        const auto BM10BN10ThreadClusterBM10Xs = tunable.BM10BN10ThreadClusterBM10Xs;
+        const auto BM10BN10ThreadClusterBN10Xs = tunable.BM10BN10ThreadClusterBN10Xs;
+
+        const auto ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1 =
+            tunable.ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1;
+        const auto ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1 =
+            tunable.ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1;
+        const auto ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1 =
+            tunable.ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1;
+        const auto ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1 =
+            tunable.ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1;
+
+        const auto BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1 =
+            tunable.BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1;
+        const auto BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1 =
+            tunable.BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1;
+        const auto BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1 =
+            tunable.BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1;
+        const auto BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1 =
+            tunable.BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1;
+
+        // C threadwise copy: {BN11} or {BN} or {BN1} or {GN11} is Dst vector dim
+        const int CThreadTransferDstScalarPerVector = gcd(4, GN11, BN11, Ho * Wo);
+
+        const int C0 = GK1;
+
+        if(!(C % C0 == 0))
+            return std::make_tuple(CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw{}, false);
+
+        const int C1 = C / C0;
+
+        const int GK0 = C1 * Y * X;
+
+        if(!(GK0 % GK0PerBlock == 0))
+            return std::make_tuple(CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw{}, false);
+
+        const bool HasMainKBlockLoop = ((GK0 + GK0PerBlock) / (2 * GK0PerBlock) > 1);
+
+        const bool HasDoubleTailKBlockLoop = ((GK0 / GK0PerBlock) % 2 == 0);
+
+        return std::make_tuple(
+            CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw{
+                ABDatatype,
+                AccDatatype,
+                CDatatype,
+                BlockSize,
+                GN0,
+                GK1,
+                GM11,
+                GN11,
+                GK0PerBlock,
+                BM11,
+                BN11,
+                BK0PerThread,
+                BM10BN10ThreadClusterBM10Xs,
+                BM10BN10ThreadClusterBN10Xs,
+                ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1,
+                ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1,
+                ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1,
+                ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1,
+                BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1,
+                BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1,
+                BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1,
+                BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1,
+                CThreadTransferDstScalarPerVector,
+                HasMainKBlockLoop,
+                HasDoubleTailKBlockLoop},
+            true);
+    }
+
+    static auto GetDefaultCompileParameter(const ConvolutionProblemDescriptor& conv_problem_desc)
+    {
+        for(const auto& tunable : tunable_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw)
         {
-            if(IsValidCompileParameter(conv_problem_desc, compile_param))
-            {
-                return true;
-            }
+            CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw compile_param;
+            bool found = false;
+
+            std::tie(compile_param, found) =
+                CalculateCompileParameterBasedOnTunable(conv_problem_desc, tunable);
+
+            if(found && IsValidCompileParameter(conv_problem_desc, compile_param))
+                return std::make_tuple(compile_param, true);
         }
 
-        return false;
+        return std::make_tuple(CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw{}, false);
+    }
+
+    static bool IsApplicable(const ConvolutionProblemDescriptor& conv_problem_desc)
+    {
+        bool found = false;
+
+        std::tie(std::ignore, found) = GetDefaultCompileParameter(conv_problem_desc);
+
+        return found;
     }
 
     static bool
@@ -201,8 +353,6 @@ struct ConvIgemmFwdV6r1DlopsNchwKcyxNkhw
         const int C  = conv_problem_desc.C;
         const int Y  = conv_problem_desc.Y;
         const int X  = conv_problem_desc.X;
-        const int Hi = conv_problem_desc.Hi;
-        const int Wi = conv_problem_desc.Wi;
         const int Ho = conv_problem_desc.Ho;
         const int Wo = conv_problem_desc.Wo;
 
@@ -346,8 +496,16 @@ struct ConvIgemmFwdV6r1DlopsNchwKcyxNkhw
                 return false;
 
             // check Src tensor layout related vectorization
-            if(conv_problem_desc.ConvDilationW == 1 && conv_problem_desc.InLeftPadW == 0 &&
+            if(Y == 1 && X == 1 && conv_problem_desc.ConvStrideH == 1 &&
+               conv_problem_desc.ConvStrideW == 1 && conv_problem_desc.InLeftPadH == 0 &&
+               conv_problem_desc.InLeftPadW == 0 && conv_problem_desc.InRightPadH == 0 &&
                conv_problem_desc.InRightPadW == 0)
+            {
+                if(!((Ho * Wo) % src_vector_lengths[3] == 0))
+                    return false;
+            }
+            else if(conv_problem_desc.ConvStrideW == 1 && conv_problem_desc.InLeftPadW == 0 &&
+                    conv_problem_desc.InRightPadW == 0)
             {
                 if(!(Wo % src_vector_lengths[3] == 0))
                     return false;
@@ -426,19 +584,6 @@ struct ConvIgemmFwdV6r1DlopsNchwKcyxNkhw
         return true;
     };
 
-    static auto GetDefaultCompileParameter(const ConvolutionProblemDescriptor& conv_problem_desc)
-    {
-        for(auto compile_param : compile_param_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw)
-        {
-            if(IsValidCompileParameter(conv_problem_desc, compile_param))
-            {
-                return std::make_tuple(true, compile_param);
-            }
-        }
-
-        return std::make_tuple(false, CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw{});
-    }
-
     static int GetBlockSize(const ConvolutionProblemDescriptor&,
                             const CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw& compile_param)
     {
@@ -449,7 +594,6 @@ struct ConvIgemmFwdV6r1DlopsNchwKcyxNkhw
                            const CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw& compile_param)
     {
         const int N  = conv_problem_desc.N;
-        const int C  = conv_problem_desc.C;
         const int K  = conv_problem_desc.K;
         const int Ho = conv_problem_desc.Ho;
         const int Wo = conv_problem_desc.Wo;
@@ -457,12 +601,7 @@ struct ConvIgemmFwdV6r1DlopsNchwKcyxNkhw
         const int N0 = compile_param.GN0;
         const int N1 = N / N0;
 
-        const int C0 = compile_param.GK1;
-        const int C1 = C / C0;
-
-        const int GM0 = 1;
         const int GM1 = K;
-
         const int GN1 = N1 * Ho * Wo;
 
         const int GM11 = compile_param.GM1PerBlockGM11;

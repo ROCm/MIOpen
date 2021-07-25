@@ -150,7 +150,15 @@ __host__ __device__ constexpr auto min(X x, Ys... ys)
 // greatest common divisor, aka highest common factor
 __host__ __device__ constexpr index_t gcd(index_t x, index_t y)
 {
-    if(x == y || x == 0)
+    if(x < 0)
+    {
+        return gcd(-x, y);
+    }
+    else if(y < 0)
+    {
+        return gcd(x, -y);
+    }
+    else if(x == y || x == 0)
     {
         return y;
     }
@@ -160,11 +168,11 @@ __host__ __device__ constexpr index_t gcd(index_t x, index_t y)
     }
     else if(x > y)
     {
-        return gcd(x - y, y);
+        return gcd(x % y, y);
     }
     else
     {
-        return gcd(x, y - x);
+        return gcd(x, y % x);
     }
 }
 
@@ -181,7 +189,7 @@ template <typename X,
           typename std::enable_if<sizeof...(Ys) >= 2, bool>::type = false>
 __host__ __device__ constexpr auto gcd(X x, Ys... ys)
 {
-    return gcd(x, ys...);
+    return gcd(x, gcd(ys...));
 }
 
 // least common multiple

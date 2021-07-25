@@ -55,8 +55,8 @@ using CThreadTransferSrcDstAccessOrder              = Sequence<3, 4, 5, 0, 1, 2>
 constexpr index_t CThreadTransferSrcDstVectorDim    = 5;
 constexpr index_t CThreadTransferDstScalarPerVector = CK_PARAM_CThreadTransferDstScalarPerVector;
 
-constexpr bool HasMainKBlockLoop       = static_cast<bool>(CK_PARAM_HAS_MAIN_KBLOCK_LOOP);
-constexpr bool HasDoubleTailKBlockLoop = static_cast<bool>(CK_PARAM_HAS_DOUBLE_TAIL_KBLOCK_LOOP);
+constexpr bool HasMainKBlockLoop       = static_cast<bool>(CK_PARAM_HasMainKBlockLoop);
+constexpr bool HasDoubleTailKBlockLoop = static_cast<bool>(CK_PARAM_HasDoubleTailKBlockLoop);
 
 extern "C" __global__ void
 dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw_prepare(index_t N,
