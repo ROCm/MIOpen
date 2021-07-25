@@ -33,7 +33,7 @@
 #include <cstddef>
 
 #include "../composable_kernel/host/driver_online/include/convolution_problem_descriptor.hpp"
-#include "../composable_kernel/host/driver_online/include/compile_param_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw.hpp"
+#include "../composable_kernel/host/driver_online/include/conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw.hpp"
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW)
 
@@ -169,8 +169,8 @@ ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(
         kernel0_info.l_wk = {1, 1, 1};
         kernel0_info.g_wk = {1, 1, 1};
 
-        kernel0_info.comp_options = ck_compile_param.GetCompileParameterString() +
-                                    get_ck_common_compiler_flag(ctx);
+        kernel0_info.comp_options =
+            ck_compile_param.GetCompileParameterString() + get_ck_common_compiler_flag(ctx);
     }
 
     // kernel1: compute
@@ -192,8 +192,8 @@ ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(
         kernel1_info.l_wk = {block_size, 1, 1};
         kernel1_info.g_wk = {block_size * grid_size, 1, 1};
 
-        kernel1_info.comp_options = ck_compile_param.GetCompileParameterString() +
-                                    get_ck_common_compiler_flag(ctx);
+        kernel1_info.comp_options =
+            ck_compile_param.GetCompileParameterString() + get_ck_common_compiler_flag(ctx);
     }
 
     sol.construction_params.push_back(kernel0_info);

@@ -89,7 +89,7 @@ int main(int argc, char* argv[])
     const index_t Ho = (Hi + in_left_pad_h + in_right_pad_h - YEff) / conv_stride_h + 1;
     const index_t Wo = (Wi + in_left_pad_w + in_right_pad_w - XEff) / conv_stride_w + 1;
 
-#if 1
+#if 0
     using in_data_t  = float;
     using acc_data_t = float;
     using out_data_t = float;

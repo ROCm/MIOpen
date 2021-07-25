@@ -7,7 +7,7 @@
 #include "dynamic_tensor_descriptor.hpp"
 #include "dynamic_tensor_descriptor_helper.hpp"
 #include "transform_forward_convolution_into_gemm_v6r1_nchw_kcyx_nkhw.hpp"
-#include "compile_param_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw.hpp"
+#include "conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw.hpp"
 
 template <typename TInWei,
           typename TAcc,
