@@ -72,7 +72,6 @@ void online_device_dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcy
         throw std::runtime_error("wrong! IsValidCompileParameter fail");
     }
 
-    // these buffers are usually provided by the user application
     DeviceMem in_n_c_hi_wi_dev_buf(sizeof(TInWei) * in_n_c_hi_wi.mDesc.GetElementSpace());
     DeviceMem wei_k_c_y_x_dev_buf(sizeof(TInWei) * wei_k_c_y_x.mDesc.GetElementSpace());
     DeviceMem out_n_k_ho_wo_dev_buf(sizeof(TOut) * out_n_k_ho_wo.mDesc.GetElementSpace());
@@ -81,8 +80,7 @@ void online_device_dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcy
     wei_k_c_y_x_dev_buf.ToDevice(wei_k_c_y_x.mData.data());
     out_n_k_ho_wo_dev_buf.ToDevice(out_n_k_ho_wo.mData.data());
 
-    // these are workspace buffers that should be expressed to the user by the corresponding
-    // workspace API
+    // workspace is used for save transformed tensor descritpors created by prepare kernel
     DeviceMem workspace_dev_buf(
         ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetWorkSpaceSize(conv_problem_desc, compile_param));
 

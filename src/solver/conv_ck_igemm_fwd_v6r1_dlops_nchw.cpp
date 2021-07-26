@@ -152,7 +152,7 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetPerformanceConfig(const ConvolutionContext& ctx)
         }
     }
 
-    MIOPEN_LOG_E("cannot find a valid tuning parameter");
+    MIOPEN_LOG_E("cannot find a valid performance config");
 }
 
 bool ConvCkIgemmFwdV6r1DlopsNchw::IsValidPerformanceConfig(
@@ -266,10 +266,10 @@ ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(
     return sol;
 }
 
-std::size_t ConvCkIgemmFwdV6r1DlopsNchw::GetWorkspaceSize(const ConvolutionContext&) const
+std::size_t ConvCkIgemmFwdV6r1DlopsNchw::GetWorkspaceSize(const ConvolutionContext& ctx) const
 {
-    // workspace is used for save transformed tensor descritpors created by prepare kernel
-    return 4096L;
+    return ck_driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetMaxWorkSpaceSize(
+        get_ck_convolution_problem_descriptor(ctx));
 }
 
 PerformanceConvCkIgemmFwdV6r1DlopsNchw

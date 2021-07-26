@@ -10,9 +10,6 @@
 // address space for kernel parameter
 #define CONSTANT __attribute__((address_space(4)))
 
-// device backend
-#define CK_DEVICE_BACKEND_AMD 1
-
 // GPU ID
 #if 0
 #define CK_AMD_GPU_GFX906 1
@@ -50,10 +47,6 @@
 #define CK_USE_AMD_INLINE_ASM 1
 #endif
 
-#ifndef CK_THREADWISE_GEMM_USE_AMD_INLINE_ASM
-#define CK_THREADWISE_GEMM_USE_AMD_INLINE_ASM 1
-#endif
-
 // AMD DLOPS
 #ifndef CK_USE_AMD_DLOP
 #define CK_USE_AMD_DLOP 1
@@ -78,14 +71,6 @@
 #define CK_USE_AMD_XDLOPS 0
 #endif
 
-#ifndef CK_USE_AMD_XDLOPS_INLINE_ASM
-#define CK_USE_AMD_XDLOPS_INLINE_ASM 0
-#endif
-
-#ifndef CK_USE_AMD_XDLOPS_EMULATE
-#define CK_USE_AMD_XDLOPS_EMULATE 0 // For internal debug purposes
-#endif
-
 // block synchronization only s_wait lgkmcnt(0), not vmcnt(0)
 #ifndef CK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM
 #define CK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM 1
@@ -104,18 +89,6 @@
 #define CK_EXPERIMENTAL_USE_BUFFER_ATOMIC_OOB_CHECK_OFFSET_TRICK 1
 #endif
 
-#ifndef CK_EXPERIMENTAL_BLOCKWISE_GEMM_USE_PIPELINE
-#define CK_EXPERIMENTAL_BLOCKWISE_GEMM_USE_PIPELINE 1
-#endif
-
-#ifndef CK_EXPERIMENTAL_IMPLICIT_GEMM_BACKWARD_DATA_V4R1_OUTPUT_SKIP_OUT_OF_BOUND_CHECK
-#define CK_EXPERIMENTAL_IMPLICIT_GEMM_BACKWARD_DATA_V4R1_OUTPUT_SKIP_OUT_OF_BOUND_CHECK 0
-#endif
-
-#ifndef CK_EXPERIMENTAL_IMPLICIT_GEMM_BACKWARD_DATA_V4R1_INPUT_SKIP_OUT_OF_BOUND_CHECK
-#define CK_EXPERIMENTAL_IMPLICIT_GEMM_BACKWARD_DATA_V4R1_INPUT_SKIP_OUT_OF_BOUND_CHECK 0
-#endif
-
 // pass tensor descriptor by value or void*
 #define CK_EXPERIMENTAL_PASS_TENSOR_DESCRIPTOR_BY_VALUE 0
 #define CK_EXPERIMENTAL_PASS_TENSOR_DESCRIPTOR_BY_VOID_POINTER 1
@@ -129,17 +102,6 @@
 // TODO: separate index calculation into "compile-time", "global", "block", "wave", "thread"
 #ifndef CK_HACK_DYNAMIC_MERGE_CALCULATE_IDX_DIFF_LOW_CONST_USE_AMD_GCN_READ_FIRST_LANE
 #define CK_HACK_DYNAMIC_MERGE_CALCULATE_IDX_DIFF_LOW_CONST_USE_AMD_GCN_READ_FIRST_LANE 0
-#endif
-
-// workaround: put all workaround here
-// workaround for unnecessary VGPR <--> AGPR data movement when using mfma LLVM intrinsic
-#ifndef CK_WORKAROUND_SWDEV_229564
-#define CK_WORKAROUND_SWDEV_229564 1
-#endif
-
-// workaround for accvgpr over-allocation
-#ifndef CK_WORKAROUND_SWDEV_241664
-#define CK_WORKAROUND_SWDEV_241664 1
 #endif
 
 // workaround for compiler crash when compiling recursive lambda

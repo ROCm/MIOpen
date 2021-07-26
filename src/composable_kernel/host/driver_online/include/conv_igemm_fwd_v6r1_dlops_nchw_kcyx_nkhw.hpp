@@ -663,8 +663,11 @@ struct ConvIgemmFwdV6r1DlopsNchwKcyxNkhw
     static std::size_t GetWorkSpaceSize(const ConvolutionProblemDescriptor&,
                                         const CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw&)
     {
+        // workspace is used for save transformed tensor descritpors created by prepare kernel
         return 4096L;
     }
+
+    static std::size_t GetMaxWorkSpaceSize(const ConvolutionProblemDescriptor&) { return 4096L; }
 
     static auto GetTunableList()
     {
