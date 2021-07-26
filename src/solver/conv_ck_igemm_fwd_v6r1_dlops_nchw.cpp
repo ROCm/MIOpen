@@ -30,55 +30,15 @@
 #include <miopen/solver.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
-#include <miopen/solver/implicitgemm_util.hpp>
-
+#include <miopen/solver/ck_util.hpp>
 #include <cstddef>
 
-#include "../composable_kernel/composable_kernel/include/utility/data_type_enum.hpp"
-#include "../composable_kernel/host/driver_online/include/convolution_problem_descriptor.hpp"
 #include "../composable_kernel/host/driver_online/include/conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw.hpp"
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW)
 
 namespace miopen {
 namespace solver {
-
-// TODO: move this to common header
-static inline auto get_ck_convolution_problem_descriptor(const ConvolutionContext& ctx)
-{
-    ck::DataTypeEnum_t ck_datatype;
-
-    if(ctx.IsFp32())
-        ck_datatype = ck::DataTypeEnum_t::Float;
-    else if(ctx.IsFp16())
-        ck_datatype = ck::DataTypeEnum_t::Half;
-    else if(ctx.IsBfp16())
-        ck_datatype = ck::DataTypeEnum_t::BFloat16;
-    else
-        ck_datatype = ck::DataTypeEnum_t::Unknown;
-
-    return ck_driver::ConvolutionProblemDescriptor{
-        ConvolutionContextInterpreter::GetBatchN(ctx),
-        ConvolutionContextInterpreter::GetOutputChannelK(ctx),
-        ConvolutionContextInterpreter::GetInputChannelC(ctx),
-        ConvolutionContextInterpreter::GetFilterHeightY(ctx),
-        ConvolutionContextInterpreter::GetFilterWidthX(ctx),
-        ConvolutionContextInterpreter::GetInputHeightHi(ctx),
-        ConvolutionContextInterpreter::GetInputWidthWi(ctx),
-        ConvolutionContextInterpreter::GetOutputHeightHo(ctx),
-        ConvolutionContextInterpreter::GetOutputWidthWo(ctx),
-        ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx),
-        ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx),
-        ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx),
-        ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx),
-        ConvolutionContextInterpreter::GetInputLeftPadH(ctx),
-        ConvolutionContextInterpreter::GetInputLeftPadW(ctx),
-        ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx),
-        ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx),
-        ck_datatype,
-        ck_datatype,
-        ck_datatype};
-}
 
 static inline auto get_ck_tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw(
     const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config)
@@ -124,9 +84,9 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx) co
         return false;
     if(!ctx.use_hip_kernels)
         return false;
-    if(!ctx.IsLayoutDefault())
+    if(!is_composable_kernel_supported_hardware(ctx))
         return false;
-    if(!IsComposableKernelSupportedHardware(ctx))
+    if(!ctx.IsLayoutDefault())
         return false;
     if(!ctx.direction.IsForward())
         return false;
