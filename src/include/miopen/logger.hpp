@@ -363,7 +363,7 @@ class LogScopeTime
     std::chrono::time_point<std::chrono::high_resolution_clock> m_beg;
 };
 
-#define MIOPEN_LOG_SCOPE_TIME const miopen::LogScopeTime miopen_timer(MIOPEN_GET_FN_NAME)
+#define MIOPEN_LOG_SCOPE_TIME const miopen::LogScopeTime miopen_timer(MIOPEN_GET_FN_NAME())
 #else
 #define MIOPEN_LOG_SCOPE_TIME
 #endif
