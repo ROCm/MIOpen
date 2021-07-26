@@ -26,6 +26,8 @@
 
 #include <miopen/miopen.h>
 #include <miopen/errors.hpp>
+#include <miopen/hip_build_utils.hpp>
+#include <miopen/rocm_features.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/solver/mlir_common.hpp>
 
