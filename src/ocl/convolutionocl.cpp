@@ -160,6 +160,8 @@ ConvolutionDescriptor::FindDataGemmSolutions(const ConvolutionContext& ctx,
         return {};
     }
 #else
+    std::ignore = ctx;
+    std::ignore = invoke_ctx;
     return {};
 #endif
 }
