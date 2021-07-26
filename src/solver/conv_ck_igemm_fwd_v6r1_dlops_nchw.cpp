@@ -25,8 +25,6 @@
  *******************************************************************************/
 #include <miopen/conv/invokers/impl_gemm.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
-#include <miopen/conv/context.hpp>
-#include <miopen/conv/problem_description.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
