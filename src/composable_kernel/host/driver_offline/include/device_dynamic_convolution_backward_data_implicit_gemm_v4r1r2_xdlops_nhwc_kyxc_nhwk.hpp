@@ -236,7 +236,7 @@ void device_dynamic_convolution_backward_data_implicit_gemm_v4r1r2_xdlops_nhwc_k
             TInWei,
             TAcc,
             TOut,
-            InMemoryDataOperation::Set,
+            InMemoryDataOperationEnum_t::Set,
             decltype(out_gemmk0_gemmm_gemmk1_grid_desc),
             decltype(wei_gemmk0_gemmn_gemmk1_grid_desc),
             decltype(in_gemmm_gemmn_grid_desc),

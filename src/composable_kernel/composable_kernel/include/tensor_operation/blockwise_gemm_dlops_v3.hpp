@@ -138,7 +138,8 @@ struct BlockwiseGemmDlops_km_kn_m0m1n0n1_v3
         static_assert(WPerThread % WoPerThreadSubC == 0, "");
 
         // thread A buffer for GEMM
-        StaticBuffer<AddressSpace::Vgpr, FloatA, a_thread_mtx_.GetElementSpaceSize()> a_thread_buf;
+        StaticBuffer<AddressSpaceEnum_t::Vgpr, FloatA, a_thread_mtx_.GetElementSpaceSize()>
+            a_thread_buf;
 
         constexpr auto threadwise_gemm = ThreadwiseGemmDlops_km_kn_mn_v3<FloatA,
                                                                          FloatB,

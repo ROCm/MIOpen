@@ -220,7 +220,7 @@ void device_dynamic_convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw
          TInWei,
          TAcc,
          TOut,
-         InMemoryDataOperation::Set,
+         InMemoryDataOperationEnum_t::Set,
          decltype(descs[I0]),
          decltype(descs[I1]),
          decltype(descs[I2]),

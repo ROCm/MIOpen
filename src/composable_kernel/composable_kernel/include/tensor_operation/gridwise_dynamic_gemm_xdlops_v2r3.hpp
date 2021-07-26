@@ -95,7 +95,7 @@ template <index_t BlockSize,
           typename FloatAB,
           typename FloatAcc,
           typename FloatC,
-          InMemoryDataOperation CGlobalMemoryDataOperation,
+          InMemoryDataOperationEnum_t CGlobalMemoryDataOperation,
           typename AK0MK1GridDesc,
           typename BK0NK1GridDesc,
           typename CMNGridDesc,
@@ -274,11 +274,11 @@ struct GridwiseDynamicGemm_k0mk1_k0nk1_mn_xdlops_v2r3
         constexpr auto I2 = Number<2>{};
         constexpr auto I3 = Number<3>{};
 
-        const auto a_grid_buf = make_dynamic_buffer<AddressSpace::Global>(
+        const auto a_grid_buf = make_dynamic_buffer<AddressSpaceEnum_t::Global>(
             p_a_grid, a_k0_m_k1_grid_desc.GetElementSpaceSize());
-        const auto b_grid_buf = make_dynamic_buffer<AddressSpace::Global>(
+        const auto b_grid_buf = make_dynamic_buffer<AddressSpaceEnum_t::Global>(
             p_b_grid, b_k0_n_k1_grid_desc.GetElementSpaceSize());
-        auto c_grid_buf = make_dynamic_buffer<AddressSpace::Global>(
+        auto c_grid_buf = make_dynamic_buffer<AddressSpaceEnum_t::Global>(
             p_c_grid, c_m0_m1_m2_n_grid_desc.GetElementSpaceSize());
 
         const auto K0 = a_k0_m_k1_grid_desc.GetLength(I0);
@@ -312,7 +312,7 @@ struct GridwiseDynamicGemm_k0mk1_k0nk1_mn_xdlops_v2r3
         // A matrix blockwise copy
         auto a_blockwise_copy =
             BlockwiseDynamicTensorSliceTransfer_v4<BlockSize,
-                                                   InMemoryDataOperation::Set,
+                                                   InMemoryDataOperationEnum_t::Set,
                                                    Sequence<KPerBlock, MPerBlock, K1>,
                                                    ABlockTransferThreadSliceLengths_K0_M_K1,
                                                    ABlockTransferThreadClusterLengths_K0_M_K1,
@@ -339,7 +339,7 @@ struct GridwiseDynamicGemm_k0mk1_k0nk1_mn_xdlops_v2r3
         // B matrix blockwise copy
         auto b_blockwise_copy =
             BlockwiseDynamicTensorSliceTransfer_v4<BlockSize,
-                                                   InMemoryDataOperation::Set,
+                                                   InMemoryDataOperationEnum_t::Set,
                                                    Sequence<KPerBlock, NPerBlock, K1>,
                                                    BBlockTransferThreadSliceLengths_K0_N_K1,
                                                    BBlockTransferThreadClusterLengths_K0_N_K1,
@@ -413,7 +413,7 @@ struct GridwiseDynamicGemm_k0mk1_k0nk1_mn_xdlops_v2r3
         constexpr auto c_mr_nr_blk_desc = make_dynamic_naive_tensor_descriptor_packed_v2(
             make_tuple(Number<MRepeat>{}, Number<NRepeat>{}));
 
-        StaticBuffer<AddressSpace::Vgpr,
+        StaticBuffer<AddressSpaceEnum_t::Vgpr,
                      vector_type<FloatAcc, BlkSize>,
                      c_mr_nr_blk_desc.GetElementSpaceSize()>
             c_thread_buf;
@@ -442,9 +442,9 @@ struct GridwiseDynamicGemm_k0mk1_k0nk1_mn_xdlops_v2r3
         constexpr auto b_k0_n_k1_grid_move_slice_window_iterator_hack =
             BGridMoveSliceWindowIteratorHacks{};
 
-        auto a_block_buf = make_dynamic_buffer<AddressSpace::Lds>(
+        auto a_block_buf = make_dynamic_buffer<AddressSpaceEnum_t::Lds>(
             p_a_block, a_k0_m_k1_block_desc.GetElementSpaceSize());
-        auto b_block_buf = make_dynamic_buffer<AddressSpace::Lds>(
+        auto b_block_buf = make_dynamic_buffer<AddressSpaceEnum_t::Lds>(
             p_b_block, b_k0_n_k1_block_desc.GetElementSpaceSize());
 
         // preload data into LDS
@@ -515,7 +515,7 @@ struct GridwiseDynamicGemm_k0mk1_k0nk1_mn_xdlops_v2r3
                                                                           Number<M2>{},
                                                                           Number<1>{}));
 
-            StaticBuffer<AddressSpace::Vgpr, FloatC, c_m0_m1_m2_n_thread_desc.GetElementSpaceSize()>
+            StaticBuffer<AddressSpaceEnum_t::Vgpr, FloatC, c_m0_m1_m2_n_thread_desc.GetElementSpaceSize()>
                 c_blk_buf_;
 
             static_for<0, MRepeat, 1>{}([&](auto mr_i) {
@@ -585,7 +585,7 @@ struct GridwiseDynamicGemm_k0mk1_k0nk1_mn_xdlops_v2r3
                 make_dynamic_naive_tensor_descriptor_packed_v2(make_tuple(
                     I1, I1, I1, I1, Number<M0>{}, Number<1>{}, Number<M2>{}, Number<1>{}));
 
-            StaticBuffer<AddressSpace::Vgpr, FloatC, BlkSize> c_blk_buf_;
+            StaticBuffer<AddressSpaceEnum_t::Vgpr, FloatC, BlkSize> c_blk_buf_;
 
             // calculate origin of thread output tensor on global memory
             //     blockwise GEMM c matrix starting index

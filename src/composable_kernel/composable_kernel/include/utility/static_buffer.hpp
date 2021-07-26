@@ -5,7 +5,7 @@
 
 namespace ck {
 
-template <AddressSpace BufferAddressSpace, typename T, index_t N>
+template <AddressSpaceEnum_t BufferAddressSpace, typename T, index_t N>
 struct StaticBuffer : public StaticallyIndexedArray<T, N>
 {
     using type = T;
@@ -13,7 +13,7 @@ struct StaticBuffer : public StaticallyIndexedArray<T, N>
 
     __host__ __device__ constexpr StaticBuffer() : base{} {}
 
-    __host__ __device__ static constexpr AddressSpace GetAddressSpace()
+    __host__ __device__ static constexpr AddressSpaceEnum_t GetAddressSpace()
     {
         return BufferAddressSpace;
     }
@@ -23,7 +23,9 @@ struct StaticBuffer : public StaticallyIndexedArray<T, N>
     __host__ __device__ static constexpr bool IsDynamicBuffer() { return false; }
 };
 
-template <AddressSpace BufferAddressSpace = AddressSpace::Generic, typename T, index_t N>
+template <AddressSpaceEnum_t BufferAddressSpace = AddressSpaceEnum_t::Generic,
+          typename T,
+          index_t N>
 __host__ __device__ constexpr auto make_static_buffer(Number<N>)
 {
     return StaticBuffer<BufferAddressSpace, T, N>{};

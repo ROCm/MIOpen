@@ -45,9 +45,9 @@ int gcd(X x, Ys... ys)
 
 struct CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw
 {
-    int ABDatatype;
-    int AccDatatype;
-    int CDatatype;
+    int ABDataTypeEnum;
+    int AccDataTypeEnum;
+    int CDataTypeEnum;
 
     int BlockSize;
 
@@ -84,12 +84,12 @@ struct CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw
     {
         // clang-format off
         return
-            " -DCK_PARAM_A_B_DATATYPE=" + 
-                std::to_string(ABDatatype) + 
-            " -DCK_PARAM_ACC_DATATYPE=" + 
-                std::to_string(AccDatatype) +
-            " -DCK_PARAM_C_DATATYPE=" + 
-                std::to_string(CDatatype) + 
+            " -DCK_PARAM_ABDataTypeEnum=" + 
+                std::to_string(ABDataTypeEnum) + 
+            " -DCK_PARAM_AccDataTypeEnum=" + 
+                std::to_string(AccDataTypeEnum) +
+            " -DCK_PARAM_CDataTypeEnum=" + 
+                std::to_string(CDataTypeEnum) + 
             " -DCK_PARAM_BlockSize=" +
                 std::to_string(BlockSize) +
             " -DCK_PARAM_GN0=" +
@@ -174,6 +174,9 @@ struct CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw
 
 struct TunableConvIgemmFwdV6r1DlopsNchwKcyxNkhw
 {
+    ck::DataTypeEnum_t ABDataTypeEnum;
+    ck::DataTypeEnum_t CDataTypeEnum;
+
     int BlockSize;
 
     int GN0;
@@ -201,25 +204,31 @@ struct TunableConvIgemmFwdV6r1DlopsNchwKcyxNkhw
     std::array<int, 5> BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1;
 };
 
-// TODO
-const static std::vector<TunableConvIgemmFwdV6r1DlopsNchwKcyxNkhw>
-    tunable_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw{
+inline static auto generate_tunable_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw()
+{
+    constexpr auto f32 = ck::DataTypeEnum_t::Float;
+    constexpr auto f16 = ck::DataTypeEnum_t::Half;
+    constexpr auto i8  = ck::DataTypeEnum_t::Int8;
+    constexpr auto i32 = ck::DataTypeEnum_t::Int32;
+
+    return std::vector<TunableConvIgemmFwdV6r1DlopsNchwKcyxNkhw>{
         // clang-format off
-        {256, 1, 1, 128, 128, 16, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 2, 1}, {4, 1, 1,  64, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {2, 1, 1, 4, 1}, { 8, 1, 1,  32, 1}, {1, 1, 1, 4, 1}, {1, 1, 1, 4, 1}},
+        {f32, f32, 256, 1, 1, 128, 128, 16, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 2, 1}, {4, 1, 1,  64, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {2, 1, 1, 4, 1}, { 8, 1, 1,  32, 1}, {1, 1, 1, 4, 1}, {1, 1, 1, 4, 1}},
 
-        {256, 1, 1, 128, 128,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 4, 1}, { 8, 1, 1,  32, 1}, {1, 1, 1, 4, 1}, {1, 1, 1, 4, 1}},
-        {256, 1, 1, 128, 128,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 4, 1}, { 8, 1, 1,  32, 1}, {1, 1, 1, 2, 1}, {1, 1, 1, 4, 1}},
-        {256, 1, 1, 128, 128,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 4, 1}, { 8, 1, 1,  32, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 4, 1}},
+        {f32, f32, 256, 1, 1, 128, 128,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 4, 1}, { 8, 1, 1,  32, 1}, {1, 1, 1, 4, 1}, {1, 1, 1, 4, 1}},
+        {f32, f32, 256, 1, 1, 128, 128,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 4, 1}, { 8, 1, 1,  32, 1}, {1, 1, 1, 2, 1}, {1, 1, 1, 4, 1}},
+        {f32, f32, 256, 1, 1, 128, 128,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 4, 1}, { 8, 1, 1,  32, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 4, 1}},
 
-        {256, 1, 1, 128, 128,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {4, 1, 1, 1, 1}, { 2, 1, 1, 128, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}},
-        {256, 2, 1, 128,  64,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {2, 2, 1, 1, 1}, { 4, 1, 1,  64, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}},
-        {256, 4, 1, 128,  32,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 4, 1, 1, 1}, { 8, 1, 1,  32, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}},
+        {f32, f32, 256, 1, 1, 128, 128,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {4, 1, 1, 1, 1}, { 2, 1, 1, 128, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}},
+        {f32, f32, 256, 2, 1, 128,  64,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {2, 2, 1, 1, 1}, { 4, 1, 1,  64, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}},
+        {f32, f32, 256, 4, 1, 128,  32,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 4, 1, 1, 1}, { 8, 1, 1,  32, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}},
 
-        {256, 8, 1, 128,  16, 16, 4, 4, 1, {8, 2}, {8, 2}, {8, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 8, 1, 1, 1}, {16, 1, 1,  16, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}},
+        {f32, f32, 256, 8, 1, 128,  16, 16, 4, 4, 1, {8, 2}, {8, 2}, {8, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 8, 1, 1, 1}, {16, 1, 1,  16, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}},
 
-        {128, 1, 1,  64, 128,  8, 4, 4, 1, {4, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1,  64, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {8, 1, 1, 1, 1}, { 1, 1, 1, 128, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}}
+        {f32, f32, 128, 1, 1,  64, 128,  8, 4, 4, 1, {4, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1,  64, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {8, 1, 1, 1, 1}, { 1, 1, 1, 128, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}}
         // clang-format on
     };
+}
 
 // TODO make this common interface and write specs for it
 struct ConvIgemmFwdV6r1DlopsNchwKcyxNkhw
@@ -228,15 +237,29 @@ struct ConvIgemmFwdV6r1DlopsNchwKcyxNkhw
     CalculateCompileParameterBasedOnTunable(const ConvolutionProblemDescriptor& conv_problem_desc,
                                             const TunableConvIgemmFwdV6r1DlopsNchwKcyxNkhw& tunable)
     {
+        using namespace ck;
+
         const int C  = conv_problem_desc.C;
         const int Y  = conv_problem_desc.Y;
         const int X  = conv_problem_desc.X;
         const int Ho = conv_problem_desc.Ho;
         const int Wo = conv_problem_desc.Wo;
 
-        const int ABDatatype  = 70;
-        const int AccDatatype = 70;
-        const int CDatatype   = 70;
+        if(!(conv_problem_desc.InDataTypeEnum == conv_problem_desc.WeiDataTypeEnum))
+            return std::make_tuple(CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw{}, false);
+
+        const auto ABDataTypeEnum = conv_problem_desc.InDataTypeEnum;
+        const auto CDataTypeEnum  = conv_problem_desc.OutDataTypeEnum;
+
+        DataTypeEnum_t AccDataTypeEnum;
+
+        switch(ABDataTypeEnum)
+        {
+        case DataTypeEnum_t::Float:
+        case DataTypeEnum_t::Half: AccDataTypeEnum = DataTypeEnum_t::Float; break;
+        case DataTypeEnum_t::Int8: AccDataTypeEnum = DataTypeEnum_t::Int32; break;
+        default: return std::make_tuple(CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw{}, false);
+        }
 
         const int BlockSize = tunable.BlockSize;
 
@@ -293,9 +316,9 @@ struct ConvIgemmFwdV6r1DlopsNchwKcyxNkhw
 
         return std::make_tuple(
             CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw{
-                ABDatatype,
-                AccDatatype,
-                CDatatype,
+                ABDataTypeEnum,
+                AccDataTypeEnum,
+                CDataTypeEnum,
                 BlockSize,
                 GN0,
                 GK1,
@@ -323,7 +346,7 @@ struct ConvIgemmFwdV6r1DlopsNchwKcyxNkhw
 
     static auto GetDefaultCompileParameter(const ConvolutionProblemDescriptor& conv_problem_desc)
     {
-        for(const auto& tunable : tunable_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw)
+        for(const auto& tunable : generate_tunable_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw())
         {
             CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw compile_param;
             bool found = false;
@@ -351,6 +374,8 @@ struct ConvIgemmFwdV6r1DlopsNchwKcyxNkhw
     IsValidCompileParameter(const ConvolutionProblemDescriptor& conv_problem_desc,
                             const CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw& compile_param)
     {
+        using namespace ck;
+
         const int N  = conv_problem_desc.N;
         const int K  = conv_problem_desc.K;
         const int C  = conv_problem_desc.C;
@@ -384,6 +409,25 @@ struct ConvIgemmFwdV6r1DlopsNchwKcyxNkhw
         const int GM1 = K;
         const int GN1 = N1 * Ho * Wo;
         const int GK0 = C1 * Y * X;
+
+        // check data type
+        {
+            if(!(conv_problem_desc.InDataTypeEnum == conv_problem_desc.WeiDataTypeEnum &&
+                 conv_problem_desc.InDataTypeEnum == compile_param.ABDataTypeEnum))
+                return false;
+
+            if(compile_param.ABDataTypeEnum == DataTypeEnum_t::Float ||
+               compile_param.ABDataTypeEnum == DataTypeEnum_t::Half)
+            {
+                if(!(compile_param.AccDataTypeEnum == DataTypeEnum_t::Float))
+                    return false;
+            }
+            else if(compile_param.ABDataTypeEnum == DataTypeEnum_t::Int8)
+            {
+                if(!(compile_param.AccDataTypeEnum == DataTypeEnum_t::Int32))
+                    return false;
+            }
+        }
 
         // check gridwise contraction
         {
@@ -620,6 +664,11 @@ struct ConvIgemmFwdV6r1DlopsNchwKcyxNkhw
                                         const CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw&)
     {
         return 4096L;
+    }
+
+    static auto GetTunableList()
+    {
+        return generate_tunable_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw();
     }
 };
 

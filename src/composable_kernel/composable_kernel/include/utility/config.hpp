@@ -159,7 +159,7 @@
 
 namespace ck {
 
-enum AddressSpace
+enum AddressSpaceEnum_t
 {
     Generic,
     Global,
@@ -168,7 +168,7 @@ enum AddressSpace
     Vgpr
 };
 
-enum InMemoryDataOperation
+enum InMemoryDataOperationEnum_t
 {
     Set,
     AtomicAdd
@@ -176,9 +176,6 @@ enum InMemoryDataOperation
 
 // index type
 using index_t = int32_t;
-
-// size type
-using size_t = uint64_t;
 
 } // namespace ck
 #endif

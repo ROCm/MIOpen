@@ -1,5 +1,4 @@
 #include "common_header.hpp"
-#include "type_helper.hpp"
 #include "dynamic_tensor_descriptor.hpp"
 #include "dynamic_tensor_descriptor_helper.hpp"
 #include "gridwise_dynamic_contraction_dlops_v1r2.hpp"
@@ -7,9 +6,13 @@
 
 using namespace ck;
 
-using FloatAB  = typename get_type_from_type_id<static_cast<char>(CK_PARAM_A_B_DATATYPE)>::type;
-using FloatAcc = typename get_type_from_type_id<static_cast<char>(CK_PARAM_ACC_DATATYPE)>::type;
-using FloatC   = typename get_type_from_type_id<static_cast<char>(CK_PARAM_C_DATATYPE)>::type;
+constexpr DataTypeEnum_t ABDataTypeEnum  = static_cast<DataTypeEnum_t>(CK_PARAM_ABDataTypeEnum);
+constexpr DataTypeEnum_t AccDataTypeEnum = static_cast<DataTypeEnum_t>(CK_PARAM_AccDataTypeEnum);
+constexpr DataTypeEnum_t CDataTypeEnum   = static_cast<DataTypeEnum_t>(CK_PARAM_CDataTypeEnum);
+
+using FloatAB  = typename get_datatype_from_enum<ABDataTypeEnum>::type;
+using FloatAcc = typename get_datatype_from_enum<AccDataTypeEnum>::type;
+using FloatC   = typename get_datatype_from_enum<CDataTypeEnum>::type;
 
 constexpr index_t BlockSize = CK_PARAM_BlockSize;
 
@@ -162,7 +165,7 @@ dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw_prepare(inde
             FloatAB,
             FloatAcc,
             FloatC,
-            InMemoryDataOperation::Set,
+            InMemoryDataOperationEnum_t::Set,
             AGridDesc_GK0_GM0_GM1_GK1,
             BGridDesc_GK0_GN0_GN1_GK1,
             CGridDesc_GM0_GM1_GN0_GN1,
@@ -305,7 +308,7 @@ extern "C" __global__ void
             FloatAB,
             FloatAcc,
             FloatC,
-            InMemoryDataOperation::Set,
+            InMemoryDataOperationEnum_t::Set,
             AGridDesc_GK0_GM0_GM1_GK1,
             BGridDesc_GK0_GN0_GN1_GK1,
             CGridDesc_GM0_GM1_GN0_GN1,

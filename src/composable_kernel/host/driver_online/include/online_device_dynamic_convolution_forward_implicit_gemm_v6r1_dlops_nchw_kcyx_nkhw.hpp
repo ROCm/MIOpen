@@ -61,7 +61,10 @@ void online_device_dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcy
                                                    in_left_pads[I0],
                                                    in_left_pads[I1],
                                                    in_right_pads[I0],
-                                                   in_right_pads[I1]};
+                                                   in_right_pads[I1],
+                                                   get_datatype_enum_from_type<TInWei>::value,
+                                                   get_datatype_enum_from_type<TInWei>::value,
+                                                   get_datatype_enum_from_type<TOut>::value};
 
     if(!ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::IsValidCompileParameter(conv_problem_desc,
                                                                    compile_param))
@@ -160,8 +163,8 @@ void online_device_dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcy
     }
 
     {
-        auto ave_time1 = Driver::get_effective_average(kernel1_times);
-        auto ave_time2 = Driver::get_effective_average(kernel2_times);
+        auto ave_time1 = get_effective_average(kernel1_times);
+        auto ave_time2 = get_effective_average(kernel2_times);
 
         float perf = (float)(conv_problem_desc.CalculateFlop()) /
                      (std::size_t(1000) * 1000 * 1000) / (ave_time1 + ave_time2);

@@ -138,10 +138,10 @@ struct BlockwiseGemmXdlops_km_kn_m0m1m2n_v1
                         const BBlockBuffer& b_block_buf,
                         CThreadBuffer& c_thread_buf) const
     {
-        auto a_thread_buf =
-            make_static_buffer<AddressSpace::Vgpr, FloatAB>(a_thread_desc_.GetElementSpaceSize());
-        auto b_thread_buf =
-            make_static_buffer<AddressSpace::Vgpr, FloatAB>(b_thread_desc_.GetElementSpaceSize());
+        auto a_thread_buf = make_static_buffer<AddressSpaceEnum_t::Vgpr, FloatAB>(
+            a_thread_desc_.GetElementSpaceSize());
+        auto b_thread_buf = make_static_buffer<AddressSpaceEnum_t::Vgpr, FloatAB>(
+            b_thread_desc_.GetElementSpaceSize());
 
         constexpr index_t KPerBlock = ABlockDesc{}.GetLength(I0);
 
@@ -358,10 +358,10 @@ struct BlockwiseGemmXdlops_km_kn_m0m1m2n_v1_2x2pipeline
                         const BBlockBuffer& b_block_buf,
                         CThreadBuffer& c_thread_buf) const
     {
-        auto a_thread_buf =
-            make_static_buffer<AddressSpace::Vgpr, FloatAB>(a_thread_desc_.GetElementSpaceSize());
-        auto b_thread_buf =
-            make_static_buffer<AddressSpace::Vgpr, FloatAB>(b_thread_desc_.GetElementSpaceSize());
+        auto a_thread_buf = make_static_buffer<AddressSpaceEnum_t::Vgpr, FloatAB>(
+            a_thread_desc_.GetElementSpaceSize());
+        auto b_thread_buf = make_static_buffer<AddressSpaceEnum_t::Vgpr, FloatAB>(
+            b_thread_desc_.GetElementSpaceSize());
 
         constexpr index_t KPerBlock = ABlockDesc{}.GetLength(I0);
 

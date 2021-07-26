@@ -5,7 +5,7 @@ namespace ck {
 
 #include "amd_buffer_addressing_v2.hpp"
 
-template <AddressSpace BufferAddressSpace, typename T, typename ElementSpaceSize>
+template <AddressSpaceEnum_t BufferAddressSpace, typename T, typename ElementSpaceSize>
 struct DynamicBuffer
 {
     using type = T;
@@ -18,7 +18,7 @@ struct DynamicBuffer
     {
     }
 
-    __host__ __device__ static constexpr AddressSpace GetAddressSpace()
+    __host__ __device__ static constexpr AddressSpaceEnum_t GetAddressSpace()
     {
         return BufferAddressSpace;
     }
@@ -46,7 +46,7 @@ struct DynamicBuffer
 
         constexpr index_t t_per_x = scalar_per_x_vector / scalar_per_t_vector;
 
-        if constexpr(GetAddressSpace() == AddressSpace::Global)
+        if constexpr(GetAddressSpace() == AddressSpaceEnum_t::Global)
         {
 #if CK_USE_AMD_BUFFER_ADDRESSING
             return amd_buffer_load_v2<remove_cv_t<remove_reference_t<T>>, t_per_x>(
@@ -80,7 +80,7 @@ struct DynamicBuffer
 
         constexpr index_t t_per_x = scalar_per_x_vector / scalar_per_t_vector;
 
-        if constexpr(GetAddressSpace() == AddressSpace::Global)
+        if constexpr(GetAddressSpace() == AddressSpaceEnum_t::Global)
         {
 #if CK_USE_AMD_BUFFER_ADDRESSING
             amd_buffer_store_v2<remove_cv_t<remove_reference_t<T>>, t_per_x>(
@@ -92,7 +92,7 @@ struct DynamicBuffer
             }
 #endif
         }
-        else if constexpr(GetAddressSpace() == AddressSpace::Lds)
+        else if constexpr(GetAddressSpace() == AddressSpaceEnum_t::Lds)
         {
             if(is_valid_offset)
             {
@@ -196,7 +196,7 @@ struct DynamicBuffer
     __host__ __device__ static constexpr bool IsDynamicBuffer() { return true; }
 };
 
-template <AddressSpace BufferAddressSpace = AddressSpace::Generic,
+template <AddressSpaceEnum_t BufferAddressSpace = AddressSpaceEnum_t::Generic,
           typename T,
           typename ElementSpaceSize>
 __host__ __device__ constexpr auto make_dynamic_buffer(T* p, ElementSpaceSize element_space_size)

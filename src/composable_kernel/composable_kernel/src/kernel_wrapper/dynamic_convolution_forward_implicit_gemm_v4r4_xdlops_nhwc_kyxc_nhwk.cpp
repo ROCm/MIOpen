@@ -1,5 +1,4 @@
 #include "common_header.hpp"
-#include "type_helper.hpp"
 #include "dynamic_tensor_descriptor.hpp"
 #include "dynamic_tensor_descriptor_helper.hpp"
 #include "gridwise_dynamic_gemm_xdlops_v2r3.hpp"
@@ -7,9 +6,13 @@
 
 using namespace ck;
 
-using FloatAB  = typename get_type_from_type_id<static_cast<char>(CK_PARAM_IN_WEI_DATATYPE)>::type;
-using FloatC   = typename get_type_from_type_id<static_cast<char>(CK_PARAM_OUT_DATATYPE)>::type;
-using FloatAcc = typename get_type_from_type_id<static_cast<char>(CK_PARAM_CONV_COMPTYPE)>::type;
+constexpr DataTypeEnum_t ABDataTypeEnum  = static_cast<DataTypeEnum_t>(CK_PARAM_ABDataTypeEnum);
+constexpr DataTypeEnum_t AccDataTypeEnum = static_cast<DataTypeEnum_t>(CK_PARAM_AccDataTypeEnum);
+constexpr DataTypeEnum_t CDataTypeEnum   = static_cast<DataTypeEnum_t>(CK_PARAM_CDataTypeEnum);
+
+using FloatAB  = typename get_datatype_from_enum<ABDataTypeEnum>::type;
+using FloatAcc = typename get_datatype_from_enum<AccDataTypeEnum>::type;
+using FloatC   = typename get_datatype_from_enum<CDataTypeEnum>::type;
 
 constexpr index_t BlockSize = CK_PARAM_BlockSize;
 
@@ -149,7 +152,7 @@ dynamic_convolution_forward_implicit_gemm_v4r4_xdlops_nhwc_kyxc_nhwk_prepare(
                                                        FloatAB,
                                                        FloatAcc,
                                                        FloatC,
-                                                       InMemoryDataOperation::Set,
+                                                       InMemoryDataOperationEnum_t::Set,
                                                        AK0MK1GridDesc,
                                                        BK0NK1GridDesc,
                                                        CMNGridDesc,
@@ -287,7 +290,7 @@ extern "C" __global__ void
                                                        FloatAB,
                                                        FloatAcc,
                                                        FloatC,
-                                                       InMemoryDataOperation::Set,
+                                                       InMemoryDataOperationEnum_t::Set,
                                                        AK0MK1GridDesc,
                                                        BK0NK1GridDesc,
                                                        CMNGridDesc,

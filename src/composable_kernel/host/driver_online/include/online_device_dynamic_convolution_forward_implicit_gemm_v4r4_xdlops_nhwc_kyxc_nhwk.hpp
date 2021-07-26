@@ -12,11 +12,13 @@ namespace detail_dyn_conv_fwd_v4r4_xdlops_nhwc_kyxc_nhwk {
 template <typename TInWei, typename TAcc, typename TOut>
 static std::string get_network_config_string_from_types()
 {
+    using namespace ck;
+
     std::string out;
 
-    out += static_cast<char>(Driver::get_typeid_from_type<TInWei>()) +
-           static_cast<char>(Driver::get_typeid_from_type<TAcc>()) +
-           static_cast<char>(Driver::get_typeid_from_type<TOut>());
+    out += std::to_string(get_datatype_enum_from_type<TInWei>::value) + "_" +
+           std::to_string(get_datatype_enum_from_type<TAcc>::value) + "_" +
+           std::to_string(get_datatype_enum_from_type<TOut>::value);
 
     return (out);
 };
@@ -94,11 +96,14 @@ get_network_config_string_from_tunable(const tunable_dyn_conv_fwd_v4r4_xdlops_nh
 template <typename TInWei, typename TAcc, typename TOut>
 static std::string get_definition_string_from_types()
 {
+    using namespace ck;
+
     std::string out;
 
-    out += " -DCK_PARAM_IN_WEI_DATATYPE=" + std::to_string(Driver::get_typeid_from_type<TInWei>()) +
-           " -DCK_PARAM_CONV_COMPTYPE=" + std::to_string(Driver::get_typeid_from_type<TAcc>()) +
-           " -DCK_PARAM_OUT_DATATYPE=" + std::to_string(Driver::get_typeid_from_type<TOut>());
+    out +=
+        " -DCK_PARAM_ABDataTypeEnum=" + std::to_string(get_datatype_enum_from_type<TInWei>::value) +
+        " -DCK_PARAM_AccDataTypeEnum=" + std::to_string(get_datatype_enum_from_type<TAcc>::value) +
+        " -DCK_PARAM_CDataTypeEnum=" + std::to_string(get_datatype_enum_from_type<TOut>::value);
 
     return (out);
 };

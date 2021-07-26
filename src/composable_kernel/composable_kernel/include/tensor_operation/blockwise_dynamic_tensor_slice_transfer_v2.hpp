@@ -14,7 +14,7 @@ namespace ck {
 // 2. ThreadwiseDynamicTensorSliceTransfer_v3 does not keep reference to tensor descriptor
 // 3. ThreadwiseDynamicTensorSliceTransfer_v3::Run() does not construct new tensor coordinate
 template <index_t BlockSize,
-          InMemoryDataOperation DstInMemOp,
+          InMemoryDataOperationEnum_t DstInMemOp,
           typename BlockSliceLengths,
           typename ThreadSliceLengths,
           typename ThreadClusterLengths,

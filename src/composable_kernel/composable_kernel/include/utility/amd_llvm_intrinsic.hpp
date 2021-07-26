@@ -1,7 +1,7 @@
 #ifndef CK_AMD_LLVM_INTRINSIC_HPP
 #define CK_AMD_LLVM_INTRINSIC_HPP
 
-#include "float_type.hpp"
+#include "data_type.hpp"
 
 namespace ck {
 

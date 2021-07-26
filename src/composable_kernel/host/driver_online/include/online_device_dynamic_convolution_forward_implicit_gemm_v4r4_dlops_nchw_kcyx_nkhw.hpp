@@ -13,11 +13,13 @@ namespace detail_dyn_conv_fwd_v4r4_nchw_kcyx_nkhw {
 template <typename TInWei, typename TAcc, typename TOut>
 static std::string get_network_config_string_from_types()
 {
+    using namespace ck;
+
     std::string out;
 
-    out += static_cast<char>(Driver::get_typeid_from_type<TInWei>()) +
-           static_cast<char>(Driver::get_typeid_from_type<TAcc>()) +
-           static_cast<char>(Driver::get_typeid_from_type<TOut>());
+    out += std::to_string(get_datatype_enum_from_type<TInWei>::value) + "_" +
+           std::to_string(get_datatype_enum_from_type<TAcc>::value) + "_" +
+           std::to_string(get_datatype_enum_from_type<TOut>::value);
 
     return (out);
 };
@@ -96,11 +98,14 @@ get_network_config_string_from_tunable(const tunable_dyn_conv_fwd_v4r4_dlops_nch
 template <typename TInWei, typename TAcc, typename TOut>
 static std::string get_definition_string_from_types()
 {
+    using namespace ck;
+
     std::string out;
 
-    out += " -DCK_PARAM_IN_WEI_DATATYPE=" + std::to_string(Driver::get_typeid_from_type<TInWei>()) +
-           " -DCK_PARAM_CONV_COMPTYPE=" + std::to_string(Driver::get_typeid_from_type<TAcc>()) +
-           " -DCK_PARAM_OUT_DATATYPE=" + std::to_string(Driver::get_typeid_from_type<TOut>());
+    out +=
+        " -DCK_PARAM_ABDataTypeEnum=" + std::to_string(get_datatype_enum_from_type<TInWei>::value) +
+        " -DCK_PARAM_AccDataTypeEnum=" + std::to_string(get_datatype_enum_from_type<TAcc>::value) +
+        " -DCK_PARAM_CDataTypeEnum=" + std::to_string(get_datatype_enum_from_type<TOut>::value);
 
     return (out);
 };
@@ -226,6 +231,7 @@ void online_device_dynamic_convolution_forward_implicit_gemm_v4r4_dlops_nchw_kcy
     ck::index_t nrepeat)
 {
     using namespace ck;
+    using namespace ck_driver;
     using namespace detail_dyn_conv_fwd_v4r4_nchw_kcyx_nkhw;
     using size_t = std::size_t;
 
@@ -358,8 +364,8 @@ void online_device_dynamic_convolution_forward_implicit_gemm_v4r4_dlops_nchw_kcy
     }
 
     {
-        auto ave_time1 = Driver::get_effective_average(kernel1_times);
-        auto ave_time2 = Driver::get_effective_average(kernel2_times);
+        auto ave_time1 = get_effective_average(kernel1_times);
+        auto ave_time2 = get_effective_average(kernel2_times);
 
         const auto N = in_n_c_hi_wi_lengths[I0];
         const auto C = in_n_c_hi_wi_lengths[I1];

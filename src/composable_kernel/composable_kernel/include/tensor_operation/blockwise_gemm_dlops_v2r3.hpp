@@ -220,9 +220,9 @@ struct BlockwiseGemmDlops_A_BK0_BM_BK1_B_BK0_BN_BK1_C_BM0_BM1_BN0_BN1_pipeline_B
                           CThreadDesc_BM0_BM11_BN0_BN11{}.GetLength(I2) == BN0,
                       "wrong");
 
-        auto a_thread_buf = make_static_buffer<AddressSpace::Vgpr, FloatA>(
+        auto a_thread_buf = make_static_buffer<AddressSpaceEnum_t::Vgpr, FloatA>(
             a_thread_desc_bk0_bm0_bm1_bk1_.GetElementSpaceSize());
-        auto b_thread_buf = make_static_buffer<AddressSpace::Vgpr, FloatB>(
+        auto b_thread_buf = make_static_buffer<AddressSpaceEnum_t::Vgpr, FloatB>(
             b_thread_desc_bk0_bn0_bn1_bk1_.GetElementSpaceSize());
 
         constexpr auto threadwise_contraction =

@@ -25,6 +25,8 @@
  *******************************************************************************/
 #include <miopen/conv/invokers/impl_gemm.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
+#include <miopen/conv/context.hpp>
+#include <miopen/conv/problem_description.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
@@ -32,6 +34,7 @@
 
 #include <cstddef>
 
+#include "../composable_kernel/composable_kernel/include/utility/data_type_enum.hpp"
 #include "../composable_kernel/host/driver_online/include/convolution_problem_descriptor.hpp"
 #include "../composable_kernel/host/driver_online/include/conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw.hpp"
 
@@ -43,6 +46,17 @@ namespace solver {
 // TODO: move this to common header
 static inline auto get_ck_convolution_problem_descriptor(const ConvolutionContext& ctx)
 {
+    ck::DataTypeEnum_t ck_datatype;
+
+    if(ctx.IsFp32())
+        ck_datatype = ck::DataTypeEnum_t::Float;
+    else if(ctx.IsFp16())
+        ck_datatype = ck::DataTypeEnum_t::Half;
+    else if(ctx.IsBfp16())
+        ck_datatype = ck::DataTypeEnum_t::BFloat16;
+    else
+        ck_datatype = ck::DataTypeEnum_t::Unknown;
+
     return ck_driver::ConvolutionProblemDescriptor{
         ConvolutionContextInterpreter::GetBatchN(ctx),
         ConvolutionContextInterpreter::GetOutputChannelK(ctx),
@@ -60,20 +74,23 @@ static inline auto get_ck_convolution_problem_descriptor(const ConvolutionContex
         ConvolutionContextInterpreter::GetInputLeftPadH(ctx),
         ConvolutionContextInterpreter::GetInputLeftPadW(ctx),
         ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx),
-        ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx)};
+        ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx),
+        ck_datatype,
+        ck_datatype,
+        ck_datatype};
 }
 
 static inline auto get_ck_tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw(
     const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config)
 {
-    return ck_driver::tunable_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw
-        [config.ck_tunable_list_id];
+    return ck_driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetTunableList()[config
+                                                                              .ck_tunable_list_id];
 }
 
 bool PerformanceConvCkIgemmFwdV6r1DlopsNchw::SetNextValue(const ConvolutionContext&)
 {
     if(ck_tunable_list_id <
-       ck_driver::tunable_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw.size() - 1)
+       ck_driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetTunableList().size() - 1)
     {
         ck_tunable_list_id++;
         return true;
@@ -127,7 +144,7 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx) co
 PerformanceConvCkIgemmFwdV6r1DlopsNchw
 ConvCkIgemmFwdV6r1DlopsNchw::GetPerformanceConfig(const ConvolutionContext& ctx) const
 {
-    for(int i = 0; i < ck_driver::tunable_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw.size(); ++i)
+    for(int i = 0; i < ck_driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetTunableList().size(); ++i)
     {
         if(IsValidPerformanceConfig(ctx, i))
         {

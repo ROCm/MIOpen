@@ -186,7 +186,7 @@ struct DriverDynamicConvolutionForwardImplicitGemmDlops_v5r1_nchw_kcyx_nkhw_outp
             FloatAB,
             FloatAcc,
             FloatC,
-            InMemoryDataOperation::Set,
+            InMemoryDataOperationEnum_t::Set,
             decltype(wei_e_k_global_desc),
             decltype(in_e_n_ho_wo_global_desc),
             decltype(out_k_n_hop_wop_global_desc),

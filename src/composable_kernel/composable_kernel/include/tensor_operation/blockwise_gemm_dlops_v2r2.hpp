@@ -207,9 +207,9 @@ struct BlockwiseGemmDlops_km_kn_m0m1n0n1_v2r2_pipeline_2x2
                           CM0M1N0N1ThreadDesc{}.GetLength(I2) == N0,
                       "wrong");
 
-        auto a_thread_buf = make_static_buffer<AddressSpace::Vgpr, FloatA>(
+        auto a_thread_buf = make_static_buffer<AddressSpaceEnum_t::Vgpr, FloatA>(
             a_k_m0_m1_thread_desc_.GetElementSpaceSize());
-        auto b_thread_buf = make_static_buffer<AddressSpace::Vgpr, FloatB>(
+        auto b_thread_buf = make_static_buffer<AddressSpaceEnum_t::Vgpr, FloatB>(
             b_k_n0_n1_thread_desc_.GetElementSpaceSize());
 
         constexpr auto threadwise_gemm =

@@ -185,7 +185,7 @@ void device_dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw(
             TInWei,
             TAcc,
             TOut,
-            InMemoryDataOperation::Set,
+            InMemoryDataOperationEnum_t::Set,
             decltype(wei_grid_desc_gk0_gm0_gm1_gk1),
             decltype(in_grid_desc_gk0_gn0_gn1_gk1),
             decltype(out_grid_desc_gm0_gm1_gn0_gn1),

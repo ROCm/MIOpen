@@ -54,7 +54,7 @@ template <typename SrcData,
           typename DimAccessOrder,
           index_t DstVectorDim,
           index_t DstScalarPerVector,
-          InMemoryDataOperation DstInMemOp,
+          InMemoryDataOperationEnum_t DstInMemOp,
           index_t DstScalarStrideInVector,
           bool DstResetCoordinateAfterRun,
           typename std::enable_if<SrcDesc::IsKnownAtCompileTime(), bool>::type = false>
@@ -682,7 +682,7 @@ struct ThreadwiseDynamicTensorSliceTransfer_v2
 //   3. src_slice_origin and dst_slice_origin are not known at compile-time,
 //   4. Use thread buffer
 template <typename SliceLengths,
-          InMemoryDataOperation DstInMemOp,
+          InMemoryDataOperationEnum_t DstInMemOp,
           typename SrcData,
           typename DstData,
           typename SrcDesc,
@@ -739,8 +739,8 @@ struct ThreadwiseDynamicTensorSliceTransfer_v3
                             const SrcBuffer& src_buf,
                             const SrcIteratorHacks& src_iterator_hacks)
     {
-        static_assert(SrcBuffer::GetAddressSpace() == AddressSpace::Global or
-                          SrcBuffer::GetAddressSpace() == AddressSpace::Lds,
+        static_assert(SrcBuffer::GetAddressSpace() == AddressSpaceEnum_t::Global or
+                          SrcBuffer::GetAddressSpace() == AddressSpaceEnum_t::Lds,
                       "wrong!");
 
         static_assert(is_same<remove_cv_t<remove_reference_t<typename SrcBuffer::type>>,
@@ -900,8 +900,8 @@ struct ThreadwiseDynamicTensorSliceTransfer_v3
                              DstBuffer& dst_buf,
                              const DstIteratorHacks& dst_iterator_hacks)
     {
-        static_assert(DstBuffer::GetAddressSpace() == AddressSpace::Global or
-                          DstBuffer::GetAddressSpace() == AddressSpace::Lds,
+        static_assert(DstBuffer::GetAddressSpace() == AddressSpaceEnum_t::Global or
+                          DstBuffer::GetAddressSpace() == AddressSpaceEnum_t::Lds,
                       "wrong!");
 
         static_assert(is_same<remove_cv_t<remove_reference_t<typename DstBuffer::type>>,
@@ -1270,7 +1270,7 @@ struct ThreadwiseDynamicTensorSliceTransfer_v3
 
     static constexpr auto buffer_size_ = buffer_desc_.GetElementSpaceSize();
 
-    StaticBuffer<AddressSpace::Vgpr, SrcData, buffer_size_> buffer_;
+    StaticBuffer<AddressSpaceEnum_t::Vgpr, SrcData, buffer_size_> buffer_;
 
     SrcCoord src_coord_;
     DstCoord dst_coord_;

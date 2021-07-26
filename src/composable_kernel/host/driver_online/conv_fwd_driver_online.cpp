@@ -35,6 +35,7 @@ enum ConvForwardAlgo
 int main(int argc, char* argv[])
 {
     using namespace ck;
+    using namespace ck_driver;
     using size_t = std::size_t;
 
     hipStream_t stream;
@@ -89,7 +90,7 @@ int main(int argc, char* argv[])
     const index_t Ho = (Hi + in_left_pad_h + in_right_pad_h - YEff) / conv_stride_h + 1;
     const index_t Wo = (Wi + in_left_pad_w + in_right_pad_w - XEff) / conv_stride_w + 1;
 
-#if 0
+#if 1
     using in_data_t  = float;
     using acc_data_t = float;
     using out_data_t = float;
@@ -257,32 +258,61 @@ int main(int argc, char* argv[])
 
         const auto tmp = f_make_for_device_nchw();
 
-        const ck_driver::CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw compile_param = {
-            70,
-            70,
-            70,
+#if 1
+        const CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw compile_param = {
+            get_datatype_enum_from_type<in_data_t>::value,
+            get_datatype_enum_from_type<acc_data_t>::value,
+            get_datatype_enum_from_type<out_data_t>::value,
             256,
-            8,
+            4,
             1,
             128,
-            16,
-            16,
+            32,
+            8,
             4,
             4,
             1,
             {8, 2},
             {8, 2},
-            {8, 1, 1, 1, 1},
+            {4, 1, 1, 1, 1},
             {2, 1, 1, 128, 1},
             {4, 1, 1, 1, 1},
             {1, 1, 1, 1, 1},
-            {1, 8, 1, 1, 1},
-            {16, 1, 1, 16, 1},
+            {1, 4, 1, 1, 1},
+            {8, 1, 1, 32, 1},
             {1, 1, 1, 1, 1},
             {1, 1, 1, 1, 1},
             4,
             true,
             true};
+#else
+        const CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw compile_param = {
+            get_datatype_enum_from_type<in_data_t>::value,
+            get_datatype_enum_from_type<acc_data_t>::value,
+            get_datatype_enum_from_type<out_data_t>::value,
+            256,
+            4,
+            2,
+            128,
+            32,
+            8,
+            4,
+            4,
+            1,
+            {8, 2},
+            {8, 2},
+            {4, 1, 1, 1, 2},
+            {2, 1, 1, 128, 1},
+            {4, 1, 1, 1, 1},
+            {1, 1, 1, 1, 1},
+            {1, 4, 1, 1, 2},
+            {8, 1, 1, 32, 1},
+            {1, 1, 1, 1, 1},
+            {1, 1, 1, 1, 1},
+            4,
+            true,
+            true};
+#endif
 
         online_device_dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw<
             in_data_t,
@@ -382,10 +412,10 @@ int main(int argc, char* argv[])
 
         if(do_log)
         {
-            LogRange(std::cout << "in : ", in.mData, ",") << std::endl;
-            LogRange(std::cout << "wei: ", wei.mData, ",") << std::endl;
-            LogRange(std::cout << "out_host  : ", out_host.mData, ",") << std::endl;
-            LogRange(std::cout << "out_device: ", out_device.mData, ",") << std::endl;
+            LogRangeAsType<float>(std::cout << "in : ", in.mData, ",") << std::endl;
+            LogRangeAsType<float>(std::cout << "wei: ", wei.mData, ",") << std::endl;
+            LogRangeAsType<float>(std::cout << "out_host  : ", out_host.mData, ",") << std::endl;
+            LogRangeAsType<float>(std::cout << "out_device: ", out_device.mData, ",") << std::endl;
         }
     }
 
