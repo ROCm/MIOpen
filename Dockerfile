@@ -4,6 +4,7 @@ ARG PREFIX=/usr/local
 ARG GPU_ARCH=";"
 ARG MIOTENSILE_VER="default"
 ARG USE_TARGETID="OFF"
+ARG USE_MLIR="OFF"
 
 # Support multiarch
 RUN dpkg --add-architecture i386
@@ -12,6 +13,8 @@ RUN dpkg --add-architecture i386
 
 RUN if [ "$USE_TARGETID" = "ON" ] ; \
         then export ROCM_APT_VER=.apt_4.1.1;\
+    elif [ "$USE_MLIR" = "ON" ] ; \
+        then export ROCM_APT_VER=.apt_3.7;\
     else export ROCM_APT_VER=.apt_4.2;  \
     fi && \
 echo $ROCM_APT_VER &&\
@@ -22,6 +25,8 @@ RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu xenial main universe | tee 
 # Install dependencies
 RUN if [ "$USE_TARGETID" = "ON" ]; \
         then export ROCM_KEY_VER=4.1.1; \
+    elif [ "$USE_MLIR" = "ON" ] ; \
+        then export ROCM_KEY_VER=3.7;\
     else export ROCM_KEY_VER=4.2; \
     fi && \
 apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
@@ -111,13 +116,14 @@ RUN if [ "$USE_TARGETID" = "ON" ] ; then export HIPCC_LINK_FLAGS_APPEND='-O3 -pa
 # install last released miopentensile in default (master), install latest commits when MIOTENSILE_VER="latest" (develop)
 RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."; elif [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@94a9047741d16a8eccd290131b78fb1aa69cdcdf; else cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@94a9047741d16a8eccd290131b78fb1aa69cdcdf; fi
 
-RUN cd ~ && \
-export MLIR_COMMIT=7416cfaee140068921b64996ba945ce615c36f44 && \
-wget https://github.com/ROCmSoftwarePlatform/llvm-project-mlir/archive/$MLIR_COMMIT.tar.gz && \
-tar -xvzf $MLIR_COMMIT.tar.gz && \
-rm -rf $MLIR_COMMIT.tar.gz && \
-cd llvm-project-mlir-$MLIR_COMMIT && mkdir -p build && cd build && \
-$PREFIX/bin/cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_FAT_LIBMLIRMIOPEN=1 && \
-make -j$(nproc) libMLIRMIOpen && \
-$PREFIX/bin/cmake --install . --component libMLIRMIOpen --prefix /opt/rocm && \
-cd ~ && rm -rf llvm-project-mlir-$MLIR_COMMIT
+RUN if [ "$USE_MLIR" = "ON" ]; \
+    then cd ~ && \
+    export MLIR_COMMIT=950823986052e4750468e4e3a9641d0ce7be74a4 && \
+    wget https://github.com/ROCmSoftwarePlatform/llvm-project-mlir/archive/$MLIR_COMMIT.tar.gz && \
+    tar -xvzf $MLIR_COMMIT.tar.gz && \
+    rm -rf $MLIR_COMMIT.tar.gz && \
+    cd llvm-project-mlir-$MLIR_COMMIT && mkdir -p build && cd build && \
+    $PREFIX/bin/cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_FAT_LIBMLIRMIOPEN=1 && \
+    make -j$(nproc) libMLIRMIOpen && \
+    $PREFIX/bin/cmake --install . --component libMLIRMIOpen --prefix /opt/rocm && \
+    cd ~ && rm -rf llvm-project-mlir-$MLIR_COMMIT; fi
