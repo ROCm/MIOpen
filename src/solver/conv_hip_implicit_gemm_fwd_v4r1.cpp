@@ -236,16 +236,16 @@ ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& c
 
     if(group_counts > 1)
     {
-        construction_parameters.kernel_file =
-            "gridwise_convolution_implicit_gemm_v4r1_gnchw_gkcyx_gnkhw_lds_double_buffer.cpp";
+        construction_parameters.kernel_file = "static_kernel_gridwise_convolution_implicit_gemm_"
+                                              "v4r1_gnchw_gkcyx_gnkhw_lds_double_buffer.cpp";
 
         construction_parameters.kernel_name =
             "gridwise_convolution_implicit_gemm_v4r1_gnchw_gkcyx_gnkhw_lds_double_buffer";
     }
     else
     {
-        construction_parameters.kernel_file =
-            "gridwise_convolution_implicit_gemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer.cpp";
+        construction_parameters.kernel_file = "static_kernel_gridwise_convolution_implicit_gemm_"
+                                              "v4r1_nchw_kcyx_nkhw_lds_double_buffer.cpp";
 
         construction_parameters.kernel_name =
             "gridwise_convolution_implicit_gemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer";
@@ -439,16 +439,16 @@ ConvSolution ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& c
 
     if(ctx.group_counts > 1)
     {
-        construction_parameters.kernel_file =
-            "gridwise_convolution_implicit_gemm_v4r1_gnchw_gkcyx_gnkhw_lds_double_buffer.cpp";
+        construction_parameters.kernel_file = "static_kernel_gridwise_convolution_implicit_gemm_"
+                                              "v4r1_gnchw_gkcyx_gnkhw_lds_double_buffer.cpp";
 
         construction_parameters.kernel_name =
             "gridwise_convolution_implicit_gemm_v4r1_gnchw_gkcyx_gnkhw_lds_double_buffer";
     }
     else
     {
-        construction_parameters.kernel_file =
-            "gridwise_convolution_implicit_gemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer.cpp";
+        construction_parameters.kernel_file = "static_kernel_gridwise_convolution_implicit_gemm_"
+                                              "v4r1_nchw_kcyx_nkhw_lds_double_buffer.cpp";
 
         construction_parameters.kernel_name =
             "gridwise_convolution_implicit_gemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer";

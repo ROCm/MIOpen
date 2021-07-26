@@ -659,16 +659,16 @@ ConvSolution ConvHipImplicitGemmV4R4WrW::GetSolution(const ConvolutionContext& c
 
     if(ctx.Is3d())
     {
-        construction_parameters.kernel_file =
-            "gridwise_convolution_backward_weights_implicit_gemm_v4r4_ncdhw_kczyx_nkdhw.cpp";
+        construction_parameters.kernel_file = "static_kernel_gridwise_convolution_backward_weights_"
+                                              "implicit_gemm_v4r4_ncdhw_kczyx_nkdhw.cpp";
 
         construction_parameters.kernel_name =
             "gridwise_convolution_backward_weights_implicit_gemm_v4r4_ncdhw_kczyx_nkdhw";
     }
     else
     {
-        construction_parameters.kernel_file =
-            "gridwise_convolution_backward_weights_implicit_gemm_v4r4_nchw_kcyx_nkhw.cpp";
+        construction_parameters.kernel_file = "static_kernel_gridwise_convolution_backward_weights_"
+                                              "implicit_gemm_v4r4_nchw_kcyx_nkhw.cpp";
 
         construction_parameters.kernel_name =
             "gridwise_convolution_backward_weights_implicit_gemm_v4r4_nchw_kcyx_nkhw";

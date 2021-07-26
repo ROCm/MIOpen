@@ -910,8 +910,9 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
             construction_parameters.g_wk.push_back(1);
             construction_parameters.g_wk.push_back(1);
 
-            construction_parameters.kernel_file =
-                "gridwise_convolution_backward_data_implicit_gemm_v4r1_xdlops_nchw_kcyx_nkhw.cpp";
+            construction_parameters.kernel_file = "static_kernel_gridwise_convolution_backward_"
+                                                  "data_implicit_gemm_v4r1_xdlops_nchw_kcyx_nkhw."
+                                                  "cpp";
 
             construction_parameters.kernel_name =
                 "gridwise_convolution_backward_data_implicit_gemm_v4r1_xdlops_nchw_kcyx_nkhw";

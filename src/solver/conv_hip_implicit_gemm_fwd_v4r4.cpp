@@ -656,7 +656,7 @@ ConvSolution ConvHipImplicitGemmV4R4Fwd::GetSolution(const ConvolutionContext& c
     if(ctx.Is3d())
     {
         construction_parameters.kernel_file =
-            "gridwise_convolution_implicit_gemm_v4r4_ncdhw_kczyx_nkdhw.cpp";
+            "static_kernel_gridwise_convolution_implicit_gemm_v4r4_ncdhw_kczyx_nkdhw.cpp";
 
         construction_parameters.kernel_name =
             "gridwise_convolution_implicit_gemm_v4r4_ncdhw_kczyx_nkdhw";
@@ -664,7 +664,7 @@ ConvSolution ConvHipImplicitGemmV4R4Fwd::GetSolution(const ConvolutionContext& c
     else
     {
         construction_parameters.kernel_file =
-            "gridwise_convolution_implicit_gemm_v4r4_nchw_kcyx_nkhw.cpp";
+            "static_kernel_gridwise_convolution_implicit_gemm_v4r4_nchw_kcyx_nkhw.cpp";
 
         construction_parameters.kernel_name =
             "gridwise_convolution_implicit_gemm_v4r4_nchw_kcyx_nkhw";
