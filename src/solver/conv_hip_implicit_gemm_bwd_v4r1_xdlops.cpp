@@ -993,7 +993,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
                 std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + std::to_string(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}) ? 1 : 0) +
                 std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}) ? '1' : '0') +
                 std::string(" -DCK_PARAM_GEMM_ID=") + std::to_string(gemm_id) +
-                get_ck_common_compiler_flag(ctx) +
+                get_static_ck_common_compiler_flag(ctx) +
                 ctx.general_compile_options;
 
                 construction_parameters.comp_options +=
