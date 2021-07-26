@@ -364,8 +364,14 @@ void online_device_dynamic_convolution_forward_implicit_gemm_v4r4_dlops_nchw_kcy
     }
 
     {
-        auto ave_time1 = get_effective_average(kernel1_times);
-        auto ave_time2 = get_effective_average(kernel2_times);
+        auto ave_time1 =
+            std::accumulate(
+                std::next(kernel1_times.begin()), kernel1_times.end(), 0., std::plus<float>{}) /
+            (nrepeat - 1);
+        auto ave_time2 =
+            std::accumulate(
+                std::next(kernel2_times.begin()), kernel2_times.end(), 0., std::plus<float>{}) /
+            (nrepeat - 1);
 
         const auto N = in_n_c_hi_wi_lengths[I0];
         const auto C = in_n_c_hi_wi_lengths[I1];

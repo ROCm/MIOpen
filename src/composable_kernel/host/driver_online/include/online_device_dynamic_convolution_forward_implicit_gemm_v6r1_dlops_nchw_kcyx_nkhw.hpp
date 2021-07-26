@@ -163,8 +163,14 @@ void online_device_dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcy
     }
 
     {
-        auto ave_time1 = get_effective_average(kernel1_times);
-        auto ave_time2 = get_effective_average(kernel2_times);
+        auto ave_time1 =
+            std::accumulate(
+                std::next(kernel1_times.begin()), kernel1_times.end(), 0., std::plus<float>{}) /
+            (nrepeat - 1);
+        auto ave_time2 =
+            std::accumulate(
+                std::next(kernel2_times.begin()), kernel2_times.end(), 0., std::plus<float>{}) /
+            (nrepeat - 1);
 
         float perf = (float)(conv_problem_desc.CalculateFlop()) /
                      (std::size_t(1000) * 1000 * 1000) / (ave_time1 + ave_time2);

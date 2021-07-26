@@ -307,15 +307,16 @@ void online_device_dynamic_convolution_forward_implicit_gemm_v4r4_xdlops_nhwc_ky
     std::vector<float> kernel1_times;
     std::vector<float> kernel2_times;
 
-    KernelTimer timer1, timer2;
-    std::string kernel_name;
-
-    kernel_name = "dynamic_convolution_forward_implicit_gemm_v4r4_xdlops_nhwc_kyxc_nhwk_prepare";
-    auto network_config_1 = network_config + "_1";
-
-    timer1.Start();
     for(index_t i = 0; i < nrepeat; ++i)
     {
+        KernelTimer timer1, timer2;
+        std::string kernel_name;
+
+        kernel_name =
+            "dynamic_convolution_forward_implicit_gemm_v4r4_xdlops_nhwc_kyxc_nhwk_prepare";
+        auto network_config_1 = network_config + "_1";
+
+        timer1.Start();
         handle->AddKernel(algo_name, network_config_1, program_name, kernel_name, vld, vgd1, param)(
             static_cast<index_t>(in_n_hi_wi_c_lengths[I0]),
             static_cast<index_t>(in_n_hi_wi_c_lengths[I1]),
@@ -336,15 +337,12 @@ void online_device_dynamic_convolution_forward_implicit_gemm_v4r4_xdlops_nhwc_ky
             b_k0_n_k1_grid_desc_dev_buf,
             c_m0_m1_m2_n_grid_desc_dev_buf,
             c_blockid_to_m0_n0_block_cluster_adaptor_dev_buf);
-    }
-    timer1.End();
+        timer1.End();
 
-    kernel_name           = "dynamic_convolution_forward_implicit_gemm_v4r4_xdlops_nhwc_kyxc_nhwk";
-    auto network_config_2 = network_config + "_2";
+        kernel_name = "dynamic_convolution_forward_implicit_gemm_v4r4_xdlops_nhwc_kyxc_nhwk";
+        auto network_config_2 = network_config + "_2";
 
-    timer2.Start();
-    for(index_t i = 0; i < nrepeat; ++i)
-    {
+        timer2.Start();
         handle->AddKernel(algo_name, network_config_2, program_name, kernel_name, vld, vgd2, param)(
             reinterpret_cast<const TInWei*>(in_n_hi_wi_c_dev_buf.GetDeviceBuffer()),
             reinterpret_cast<const TInWei*>(wei_k_y_x_c_dev_buf.GetDeviceBuffer()),
@@ -353,12 +351,21 @@ void online_device_dynamic_convolution_forward_implicit_gemm_v4r4_xdlops_nhwc_ky
             (const void*)(b_k0_n_k1_grid_desc_dev_buf),
             (const void*)(c_m0_m1_m2_n_grid_desc_dev_buf),
             (const void*)(c_blockid_to_m0_n0_block_cluster_adaptor_dev_buf));
+        timer2.End();
+
+        kernel1_times.push_back(timer1.GetElapsedTime());
+        kernel2_times.push_back(timer2.GetElapsedTime());
     }
-    timer2.End();
 
     {
-        auto ave_time1 = timer1.GetElapsedTime() / nrepeat;
-        auto ave_time2 = timer2.GetElapsedTime() / nrepeat;
+        auto ave_time1 =
+            std::accumulate(
+                std::next(kernel1_times.begin()), kernel1_times.end(), 0., std::plus<float>{}) /
+            (nrepeat - 1);
+        auto ave_time2 =
+            std::accumulate(
+                std::next(kernel2_times.begin()), kernel2_times.end(), 0., std::plus<float>{}) /
+            (nrepeat - 1);
 
         const auto N = in_n_hi_wi_c_lengths[I0];
         const auto C = in_n_hi_wi_c_lengths[I3];
