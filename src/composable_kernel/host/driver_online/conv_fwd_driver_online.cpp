@@ -94,7 +94,7 @@ int main(int argc, char* argv[])
     using in_data_t  = float;
     using acc_data_t = float;
     using out_data_t = float;
-#elif 1
+#elif 0
     using in_data_t  = half_t;
     using acc_data_t = float;
     using out_data_t = half_t;
@@ -285,7 +285,7 @@ int main(int argc, char* argv[])
             4,
             true,
             true};
-#else
+#elif 0
         const CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw compile_param = {
             get_datatype_enum_from_type<in_data_t>::value,
             get_datatype_enum_from_type<acc_data_t>::value,
@@ -306,6 +306,33 @@ int main(int argc, char* argv[])
             {4, 1, 1, 1, 1},
             {1, 1, 1, 1, 1},
             {1, 4, 1, 1, 2},
+            {8, 1, 1, 32, 1},
+            {1, 1, 1, 1, 1},
+            {1, 1, 1, 1, 1},
+            4,
+            true,
+            true};
+#elif 1
+        const CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw compile_param = {
+            get_datatype_enum_from_type<in_data_t>::value,
+            get_datatype_enum_from_type<acc_data_t>::value,
+            get_datatype_enum_from_type<out_data_t>::value,
+            256,
+            4,
+            4,
+            128,
+            32,
+            8,
+            4,
+            4,
+            1,
+            {8, 2},
+            {8, 2},
+            {4, 1, 1, 1, 4},
+            {2, 1, 1, 128, 1},
+            {4, 1, 1, 1, 1},
+            {1, 1, 1, 1, 1},
+            {1, 4, 1, 1, 4},
             {8, 1, 1, 32, 1},
             {1, 1, 1, 1, 1},
             {1, 1, 1, 1, 1},
@@ -410,6 +437,7 @@ int main(int argc, char* argv[])
 
         check_error(out_host, out_device);
 
+#if 0
         if(do_log)
         {
             LogRangeAsType<float>(std::cout << "in : ", in.mData, ",") << std::endl;
@@ -417,6 +445,7 @@ int main(int argc, char* argv[])
             LogRangeAsType<float>(std::cout << "out_host  : ", out_host.mData, ",") << std::endl;
             LogRangeAsType<float>(std::cout << "out_device: ", out_device.mData, ",") << std::endl;
         }
+#endif
     }
 
     delete handle;

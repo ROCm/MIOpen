@@ -45,7 +45,7 @@ struct get_datatype_enum_from_type;
 template <>
 struct get_datatype_enum_from_type<int8_t>
 {
-    DataTypeEnum_t value = DataTypeEnum_t::Int8;
+    static constexpr DataTypeEnum_t value = DataTypeEnum_t::Int8;
 };
 
 template <>

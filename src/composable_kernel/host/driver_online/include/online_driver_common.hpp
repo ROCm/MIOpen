@@ -4,7 +4,7 @@
 namespace ck_driver {
 
 // greatest common divisor, aka highest common factor
-int gcd(int x, int y)
+inline int gcd(int x, int y)
 {
     if(x < 0)
     {
