@@ -63,15 +63,32 @@ static inline auto get_ck_common_compiler_flag(const ConvolutionContext& ctx)
 {
     auto compiler_flag = std::string(" --std=c++17");
 
-    // atomic-fadd
+    // GPU target
+    std::string gpu_target;
+
+    if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx803"))
+        compiler_flag += std::string(" -DCK_AMD_GPU_GFX803");
+    else if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx900"))
+        compiler_flag += std::string(" -DCK_AMD_GPU_GFX900");
+    else if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx906"))
+        compiler_flag += std::string(" -DCK_AMD_GPU_GFX906");
+    else if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx908"))
+        compiler_flag += std::string(" -DCK_AMD_GPU_GFX908");
+    else if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx90a"))
+        compiler_flag += std::string(" -DCK_AMD_GPU_GFX90A");
+    else if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx1030"))
+        compiler_flag += std::string(" -DCK_AMD_GPU_GFX1030");
+
+    // buffer atomic-fadd
     compiler_flag += std::string(" -DCK_USE_AMD_BUFFER_ATOMIC_FADD=") +
                      (support_amd_buffer_atomic_fadd(ctx.GetStream().GetDeviceName()) ? '1' : '0');
 
+    // sync LDS
     compiler_flag +=
         std::string(" -DCK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM=") +
         (miopen::IsDisabled(MIOPEN_DEBUG_CK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM{}) ? '0' : '1');
 
-    // enable or disable buffer load/store
+    // buffer addressing
     compiler_flag += std::string(" -DCK_USE_AMD_BUFFER_ADDRESSING=") +
                      (miopen::IsDisabled(MIOPEN_DEBUG_CK_USE_AMD_BUFFER_ADDRESSING{}) ? '0' : '1');
 

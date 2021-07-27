@@ -10,13 +10,11 @@
 // address space for kernel parameter
 #define CONSTANT __attribute__((address_space(4)))
 
-// GPU ID
-#if 0
-#define CK_AMD_GPU_GFX906 1
-#elif 1
-#define CK_AMD_GPU_GFX908 1
-#elif 0
-#define CK_AMD_GPU_GFX1030 1
+// GPU target
+// should enable one and only one GPU target
+#if !(defined(CK_AMD_GPU_GFX803) || defined(CK_AMD_GPU_GFX900) || defined(CK_AMD_GPU_GFX906) || \
+      defined(CK_AMD_GPU_GFX908) || defined(CK_AMD_GPU_GFX90A) || defined(CK_AMD_GPU_GFX1030))
+#error Need to define a single GPU target
 #endif
 
 // HIP version
@@ -33,7 +31,8 @@
 #endif
 
 // buffer resourse
-#if defined(CK_AMD_GPU_GFX906) || defined(CK_AMD_GPU_GFX908)
+#if defined(CK_AMD_GPU_GFX803) || defined(CK_AMD_GPU_GFX900) || defined(CK_AMD_GPU_GFX906) || \
+    defined(CK_AMD_GPU_GFX908) || defined(CK_AMD_GPU_GFX90A)
 #define CK_BUFFER_RESOURCE_3RD_DWORD 0x00020000
 #elif defined(CK_AMD_GPU_GFX1030)
 #define CK_BUFFER_RESOURCE_3RD_DWORD 0x31014000

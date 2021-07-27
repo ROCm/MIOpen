@@ -6,20 +6,15 @@ rm -rf CMakeFiles
 MY_PROJECT_SOURCE=../../../
 MY_PROJECT_INSTALL=../install.dir
 
-cmake                                                                                                                              \
--D CMAKE_INSTALL_PREFIX=${MY_PROJECT_INSTALL}                                                                                      \
--D CMAKE_BUILD_TYPE=Release                                                                                                        \
--D CMAKE_CXX_FLAGS="-O3 --amdgpu-target=gfx908 -mllvm --amdgpu-spill-vgpr-to-agpr=0 -gline-tables-only -save-temps=$PWD"           \
--D CMAKE_CXX_COMPILER=/opt/rocm/bin/hipcc                                                                                          \
--D CMAKE_PREFIX_PATH=/opt/rocm                                                                                                     \
--D CMAKE_VERBOSE_MAKEFILE:BOOL=ON                                                                                                  \
+cmake                                                                                                                                          \
+-D CMAKE_INSTALL_PREFIX=${MY_PROJECT_INSTALL}                                                                                                  \
+-D CMAKE_BUILD_TYPE=Release                                                                                                                    \
+-D CMAKE_CXX_FLAGS="-DCK_AMD_GPU_GFX906 -O3 --amdgpu-target=gfx906 -mllvm --amdgpu-spill-vgpr-to-agpr=0 -gline-tables-only -save-temps=$PWD"   \
+-D HIP_ONLINE_COMPILER_FLAGS="-DCK_AMD_GPU_GFX906"                                                                                             \
+-D CMAKE_CXX_COMPILER=/opt/rocm/bin/hipcc                                                                                                      \
+-D CMAKE_PREFIX_PATH=/opt/rocm                                                                                                                 \
+-D CMAKE_VERBOSE_MAKEFILE:BOOL=ON                                                                                                              \
 ${MY_PROJECT_SOURCE}
-
-#-D CMAKE_CXX_FLAGS="-O3 --amdgpu-target=gfx906 -mllvm --amdgpu-spill-vgpr-to-agpr=0"                                               \
-#-D CMAKE_CXX_FLAGS="-O3 --amdgpu-target=gfx906 -mllvm --amdgpu-spill-vgpr-to-agpr=0 -save-temps=$CWD"                              \
-#-D CMAKE_CXX_FLAGS="-O3 --amdgpu-target=gfx906 -mllvm --amdgpu-enable-global-sgpr-addr -mllvm --amdgpu-spill-vgpr-to-agpr=0"       \
-#-D CMAKE_CXX_FLAGS="-O3 --amdgpu-target=gfx906 -mllvm --amdgpu-enable-global-sgpr-addr -mllvm --amdgpu-spill-vgpr-to-agpr=0 -save-temps=$CWD"       \
-#-D CMAKE_CXX_FLAGS="-O3 --amdgpu-target=gfx906 -mllvm --amdgpu-enable-global-sgpr-addr -mllvm --amdgpu-spill-vgpr-to-agpr=0 -v -gline-tables-only -save-temps=$CWD"       \
 
 #CXX_FLAG_TMP=-Weverything
 #            -Wno-c++98-compat \
