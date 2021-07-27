@@ -1,4 +1,0 @@
-add_subdirectory(host_tensor)
-add_subdirectory(online_compilation)
-add_subdirectory(driver_offline)
-add_subdirectory(driver_online)
