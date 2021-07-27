@@ -213,7 +213,7 @@ dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw_prepare(inde
                            c_grid_desc_gm0_gm1_gn0_gn1));
 
         *static_cast<decltype(desc_tuple)*>(p_desc_tuple) = desc_tuple;
-    };
+    }
 };
 
 extern "C" __global__ void
@@ -361,7 +361,7 @@ extern "C" __global__ void
                                           CGridDesc_GM10_BM0_BM1_GN10_BN0_BN1{},
                                           CGridBlockCluster_BlockId_To_GM10_GN10{}));
 
-    const auto desc_tuple = *reinterpret_cast<const DescTuple*>((const void*)p_desc_tuple);
+    const auto desc_tuple = *reinterpret_cast<const DescTuple*>((const void*)(p_desc_tuple));
 
     const auto a_grid_desc_gk0_gm0_gm10_gm11_gk1         = desc_tuple[I0];
     const auto b_grid_desc_gk0_gn0_gn10_gn11_gk1         = desc_tuple[I1];

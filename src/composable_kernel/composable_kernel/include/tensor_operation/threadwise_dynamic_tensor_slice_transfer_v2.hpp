@@ -140,9 +140,9 @@ struct ThreadwiseDynamicTensorSliceTransfer_v3r1
         static_ford<decltype(ordered_src_access_lengths)>{}([&](auto ordered_src_access_idx) {
             // judge move forward or move backward
             constexpr auto forward_sweep = [&]() {
-                StaticallyIndexedArray<bool, nDim> forward_sweep;
+                StaticallyIndexedArray<bool, nDim> forward_sweep_;
 
-                forward_sweep(I0) = true;
+                forward_sweep_(I0) = true;
 
                 static_for<1, nDim, 1>{}([&](auto i) {
                     index_t tmp = ordered_src_access_idx[I0];
@@ -151,10 +151,10 @@ struct ThreadwiseDynamicTensorSliceTransfer_v3r1
                         tmp = tmp * ordered_src_access_lengths[j] + ordered_src_access_idx[j];
                     });
 
-                    forward_sweep(i) = tmp % 2 == 0;
+                    forward_sweep_(i) = tmp % 2 == 0;
                 });
 
-                return forward_sweep;
+                return forward_sweep_;
             }();
 
             // calculate src data index
@@ -167,11 +167,8 @@ struct ThreadwiseDynamicTensorSliceTransfer_v3r1
                                                             ordered_src_access_idx[i];
                 });
 
-                auto src_data_idx =
-                    container_reorder_given_old2new(ordered_idx, src_dim_access_order) *
-                    src_vector_tensor_lengths;
-
-                return src_data_idx;
+                return container_reorder_given_old2new(ordered_idx, src_dim_access_order) *
+                       src_vector_tensor_lengths;
             }();
 
             vector_type_maker_t<SrcData, src_vector_desc.GetElementSpaceSize()> src_vector;
@@ -201,18 +198,18 @@ struct ThreadwiseDynamicTensorSliceTransfer_v3r1
 
             constexpr auto move_on_dim = [&]() constexpr
             {
-                StaticallyIndexedArray<bool, nDim> move_on_dim;
+                StaticallyIndexedArray<bool, nDim> move_on_dim_;
 
                 static_for<0, nDim, 1>{}([&](auto i) {
-                    move_on_dim(i) = ordered_src_access_idx[i] < ordered_src_access_lengths[i] - 1;
+                    move_on_dim_(i) = ordered_src_access_idx[i] < ordered_src_access_lengths[i] - 1;
 
                     static_for<i + 1, nDim, 1>{}([&](auto j) {
-                        move_on_dim(i) &=
+                        move_on_dim_(i) &=
                             ordered_src_access_idx[j] == ordered_src_access_lengths[j] - 1;
                     });
                 });
 
-                return move_on_dim;
+                return move_on_dim_;
             }
             ();
 
@@ -316,9 +313,9 @@ struct ThreadwiseDynamicTensorSliceTransfer_v3r1
         static_ford<decltype(ordered_dst_access_lengths)>{}([&](auto ordered_dst_access_idx) {
             // judge move forward or move backward
             constexpr auto forward_sweep = [&]() {
-                StaticallyIndexedArray<bool, nDim> forward_sweep;
+                StaticallyIndexedArray<bool, nDim> forward_sweep_;
 
-                forward_sweep(I0) = true;
+                forward_sweep_(I0) = true;
 
                 static_for<1, nDim, 1>{}([&](auto i) {
                     index_t tmp = ordered_dst_access_idx[I0];
@@ -327,10 +324,10 @@ struct ThreadwiseDynamicTensorSliceTransfer_v3r1
                         tmp = tmp * ordered_dst_access_lengths[j] + ordered_dst_access_idx[j];
                     });
 
-                    forward_sweep(i) = tmp % 2 == 0;
+                    forward_sweep_(i) = tmp % 2 == 0;
                 });
 
-                return forward_sweep;
+                return forward_sweep_;
             }();
 
             // calculate dst data index
@@ -343,11 +340,8 @@ struct ThreadwiseDynamicTensorSliceTransfer_v3r1
                                                             ordered_dst_access_idx[i];
                 });
 
-                auto dst_data_idx =
-                    container_reorder_given_old2new(ordered_idx, dst_dim_access_order) *
-                    dst_vector_tensor_lengths;
-
-                return dst_data_idx;
+                return container_reorder_given_old2new(ordered_idx, dst_dim_access_order) *
+                       dst_vector_tensor_lengths;
             }();
 
             vector_type_maker_t<DstData, dst_vector_desc.GetElementSpaceSize()> dst_vector;
@@ -379,18 +373,18 @@ struct ThreadwiseDynamicTensorSliceTransfer_v3r1
 
             constexpr auto move_on_dim = [&]() constexpr
             {
-                StaticallyIndexedArray<bool, nDim> move_on_dim;
+                StaticallyIndexedArray<bool, nDim> move_on_dim_;
 
                 static_for<0, nDim, 1>{}([&](auto i) {
-                    move_on_dim(i) = ordered_dst_access_idx[i] < ordered_dst_access_lengths[i] - 1;
+                    move_on_dim_(i) = ordered_dst_access_idx[i] < ordered_dst_access_lengths[i] - 1;
 
                     static_for<i + 1, nDim, 1>{}([&](auto j) {
-                        move_on_dim(i) &=
+                        move_on_dim_(i) &=
                             ordered_dst_access_idx[j] == ordered_dst_access_lengths[j] - 1;
                     });
                 });
 
-                return move_on_dim;
+                return move_on_dim_;
             }
             ();
 
@@ -463,9 +457,9 @@ struct ThreadwiseDynamicTensorSliceTransfer_v3r1
 
         // judge move forward or move backward during the last iteration
         constexpr auto forward_sweep = [&]() {
-            StaticallyIndexedArray<bool, nDim> forward_sweep;
+            StaticallyIndexedArray<bool, nDim> forward_sweep_;
 
-            forward_sweep(I0) = true;
+            forward_sweep_(I0) = true;
 
             static_for<1, nDim, 1>{}([&](auto i) {
                 index_t tmp = ordered_src_access_lengths[I0] - 1;
@@ -474,10 +468,10 @@ struct ThreadwiseDynamicTensorSliceTransfer_v3r1
                     tmp = tmp * ordered_src_access_lengths[j] + ordered_src_access_lengths[j] - 1;
                 });
 
-                forward_sweep(i) = tmp % 2 == 0;
+                forward_sweep_(i) = tmp % 2 == 0;
             });
 
-            return forward_sweep;
+            return forward_sweep_;
         }();
 
         // calculate src data index after last iteration in RunRead(), if it has not being reset by
@@ -489,19 +483,17 @@ struct ThreadwiseDynamicTensorSliceTransfer_v3r1
                 ordered_idx(i) = forward_sweep[i] ? ordered_src_access_lengths[i] - 1 : 0;
             });
 
-            auto src_data_idx = container_reorder_given_old2new(ordered_idx, src_dim_access_order) *
-                                src_vector_tensor_lengths;
-
-            return src_data_idx;
+            return container_reorder_given_old2new(ordered_idx, src_dim_access_order) *
+                   src_vector_tensor_lengths;
         }();
 
         //
         constexpr auto reset_src_data_step = [&]() {
-            Index reset_src_data_step;
+            Index reset_src_data_step_;
 
-            static_for<0, nDim, 1>{}([&](auto i) { reset_src_data_step(i) = -src_data_idx[i]; });
+            static_for<0, nDim, 1>{}([&](auto i) { reset_src_data_step_(i) = -src_data_idx[i]; });
 
-            return reset_src_data_step;
+            return reset_src_data_step_;
         }();
 
         return reset_src_data_step;
@@ -520,9 +512,9 @@ struct ThreadwiseDynamicTensorSliceTransfer_v3r1
 
         // judge move forward or move backward during the last iteration
         constexpr auto forward_sweep = [&]() {
-            StaticallyIndexedArray<bool, nDim> forward_sweep;
+            StaticallyIndexedArray<bool, nDim> forward_sweep_;
 
-            forward_sweep(I0) = true;
+            forward_sweep_(I0) = true;
 
             static_for<1, nDim, 1>{}([&](auto i) {
                 index_t tmp = ordered_dst_access_lengths[I0] - 1;
@@ -531,10 +523,10 @@ struct ThreadwiseDynamicTensorSliceTransfer_v3r1
                     tmp = tmp * ordered_dst_access_lengths[j] + ordered_dst_access_lengths[j] - 1;
                 });
 
-                forward_sweep(i) = tmp % 2 == 0;
+                forward_sweep_(i) = tmp % 2 == 0;
             });
 
-            return forward_sweep;
+            return forward_sweep_;
         }();
 
         // calculate dst data index after last iteration in RunWrite(), if it has not being reset by
@@ -546,19 +538,17 @@ struct ThreadwiseDynamicTensorSliceTransfer_v3r1
                 ordered_idx(i) = forward_sweep[i] ? ordered_dst_access_lengths[i] - 1 : 0;
             });
 
-            auto dst_data_idx = container_reorder_given_old2new(ordered_idx, dst_dim_access_order) *
-                                dst_vector_tensor_lengths;
-
-            return dst_data_idx;
+            return container_reorder_given_old2new(ordered_idx, dst_dim_access_order) *
+                   dst_vector_tensor_lengths;
         }();
 
         //
         constexpr auto reset_dst_data_step = [&]() {
-            Index reset_dst_data_step;
+            Index reset_dst_data_step_;
 
-            static_for<0, nDim, 1>{}([&](auto i) { reset_dst_data_step(i) = -dst_data_idx[i]; });
+            static_for<0, nDim, 1>{}([&](auto i) { reset_dst_data_step_(i) = -dst_data_idx[i]; });
 
-            return reset_dst_data_step;
+            return reset_dst_data_step_;
         }();
 
         return reset_dst_data_step;

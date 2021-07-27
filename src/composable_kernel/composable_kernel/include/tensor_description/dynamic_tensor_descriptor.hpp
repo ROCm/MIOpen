@@ -317,7 +317,7 @@ transform_dynamic_tensor_descriptor(const OldTensorDescriptor& old_tensor_desc,
                                                 NewUpperDimensionNewVisibleIdss{});
 
         static_assert(is_valid_sequence_map<decltype(all_old_top_ids)>::value &&
-                          is_valid_sequence_map<decltype(all_old_top_ids)>::value,
+                          is_valid_sequence_map<decltype(all_new_top_ids)>::value,
                       "wrong!");
     }
 
@@ -395,7 +395,6 @@ __host__ __device__ constexpr auto make_dynamic_tensor_coordinate(const TensorDe
 
     constexpr index_t ntransform   = TensorDesc::GetNumOfTransform();
     constexpr index_t ndim_hidden  = TensorDesc::GetNumOfHiddenDimension();
-    constexpr index_t ndim_visible = TensorDesc::GetNumOfVisibleDimension();
     constexpr auto visible_dim_ids = TensorDesc::GetVisibleDimensionIds();
 
     MultiIndex<ndim_hidden> idx_hidden;
@@ -491,11 +490,8 @@ template <typename TensorDesc, typename TensorCoord, typename TensorCoordIterato
 __host__ __device__ constexpr void move_dynamic_tensor_coordinate(
     const TensorDesc& tensor_desc, TensorCoord& coord, const TensorCoordIterator& coord_iterator)
 {
-    constexpr index_t ndim_hidden  = TensorDesc::GetNumOfHiddenDimension();
-    constexpr index_t ndim_visible = TensorDesc::GetNumOfVisibleDimension();
-    constexpr index_t ntransform   = TensorDesc::GetNumOfTransform();
-
-    using HiddenIndex = MultiIndex<ndim_hidden>;
+    constexpr index_t ndim_hidden = TensorDesc::GetNumOfHiddenDimension();
+    constexpr index_t ntransform  = TensorDesc::GetNumOfTransform();
 
     // this is what needs to be calculated
     auto idx_diff_hidden = make_zero_multi_index<ndim_hidden>();

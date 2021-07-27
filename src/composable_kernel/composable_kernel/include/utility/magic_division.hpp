@@ -127,7 +127,8 @@ struct MagicDivision
     DoMagicDivision(int32_t dividend_i32, uint32_t multiplier, uint32_t shift)
     {
         uint32_t dividend_u32 = as_type<uint32_t>(dividend_i32);
-        uint32_t tmp          = ((uint64_t)dividend_u32 * (uint64_t)multiplier) >> 32;
+        uint32_t tmp =
+            (static_cast<uint64_t>(dividend_u32) * static_cast<uint64_t>(multiplier)) >> 32;
         return (tmp + dividend_u32) >> shift;
     }
 #else

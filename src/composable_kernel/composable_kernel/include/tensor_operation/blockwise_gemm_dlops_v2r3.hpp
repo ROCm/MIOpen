@@ -199,14 +199,14 @@ struct BlockwiseGemmDlops_A_BK0_BM_BK1_B_BK0_BN_BK1_C_BM0_BM1_BN0_BN1_pipeline_B
 
         constexpr auto adaptor = chain_tensor_adaptors(adaptor0, adaptor1);
 
-        return adaptor.CalculateBottomIndex(make_multi_index(get_thread_local_1d_id(), 0, 0, 0, 0));
+        return adaptor.CalculateBottomIndex(make_multi_index(thread_id, 0, 0, 0, 0));
     }
 
     template <typename CThreadDesc_BM0_BM11_BN0_BN11,
               typename ABlockBuffer,
               typename BBlockBuffer,
               typename CThreadBuffer>
-    __device__ void Run(const CThreadDesc_BM0_BM11_BN0_BN11& c_m0_m1_n0_n1_thread_desc,
+    __device__ void Run(const CThreadDesc_BM0_BM11_BN0_BN11&,
                         const ABlockBuffer& a_block_buf,
                         const BBlockBuffer& b_block_buf,
                         CThreadBuffer& c_thread_buf) const

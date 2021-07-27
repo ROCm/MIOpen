@@ -32,7 +32,7 @@ struct DynamicBuffer
                   is_same<typename scalar_type<remove_cv_t<remove_reference_t<X>>>::type,
                           typename scalar_type<remove_cv_t<remove_reference_t<T>>>::type>::value,
                   bool>::type = false>
-    __host__ __device__ constexpr const auto Get(index_t i, bool is_valid_offset) const
+    __host__ __device__ constexpr auto Get(index_t i, bool is_valid_offset) const
     {
         // X contains multiple T
         constexpr index_t scalar_per_t_vector =

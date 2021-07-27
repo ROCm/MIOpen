@@ -183,7 +183,7 @@ struct BlockwiseGemmDlops_km_kn_m0m1n0n1_v2r2_pipeline_2x2
 
         constexpr auto adaptor = chain_tensor_adaptors(adaptor0, adaptor1);
 
-        return adaptor.CalculateBottomIndex(make_multi_index(get_thread_local_1d_id(), 0, 0, 0, 0));
+        return adaptor.CalculateBottomIndex(make_multi_index(thread_id, 0, 0, 0, 0));
     }
 
     __host__ __device__ static constexpr index_t GetABlockAlignment() { return M1PerThreadM11; }

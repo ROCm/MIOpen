@@ -236,15 +236,15 @@ __host__ __device__ constexpr auto chain_tensor_adaptors(const TensorAdaptor0& a
 
     // shift
     constexpr index_t adaptor0_max_hidden_id = [&]() {
-        index_t adaptor0_max_hidden_id = NumericLimits<index_t>::Min();
+        index_t adaptor0_max_hidden_id_ = NumericLimits<index_t>::Min();
 
         static_for<0, TensorAdaptor0::GetNumOfTransform(), 1>{}([&](auto itran) {
             constexpr index_t ndim_low =
                 TensorAdaptor0{}.GetTransforms()[itran].GetNumOfLowerDimension();
 
             static_for<0, ndim_low, 1>{}([&](auto idim_low) {
-                adaptor0_max_hidden_id =
-                    math::max(adaptor0_max_hidden_id,
+                adaptor0_max_hidden_id_ =
+                    math::max(adaptor0_max_hidden_id_,
                               TensorAdaptor0::GetLowerDimensionHiddenIdss()[itran][idim_low].value);
             });
 
@@ -252,17 +252,17 @@ __host__ __device__ constexpr auto chain_tensor_adaptors(const TensorAdaptor0& a
                 TensorAdaptor0{}.GetTransforms()[itran].GetNumOfUpperDimension();
 
             static_for<0, ndim_up, 1>{}([&](auto idim_up) {
-                adaptor0_max_hidden_id =
-                    math::max(adaptor0_max_hidden_id,
+                adaptor0_max_hidden_id_ =
+                    math::max(adaptor0_max_hidden_id_,
                               TensorAdaptor0::GetUpperDimensionHiddenIdss()[itran][idim_up].value);
             });
         });
 
-        return adaptor0_max_hidden_id;
+        return adaptor0_max_hidden_id_;
     }();
 
     constexpr index_t adaptor1_min_hidden_id = [&]() {
-        index_t adaptor1_min_hidden_id = NumericLimits<index_t>::Max();
+        index_t adaptor1_min_hidden_id_ = NumericLimits<index_t>::Max();
 
         static_for<0, TensorAdaptor1::GetNumOfTransform(), 1>{}([&](auto itran) {
             constexpr index_t ndim_low =
@@ -285,7 +285,7 @@ __host__ __device__ constexpr auto chain_tensor_adaptors(const TensorAdaptor0& a
 
                 if(!is_bottom_dim)
                 {
-                    adaptor1_min_hidden_id = math::min(adaptor1_min_hidden_id, low_dim_hidden_id);
+                    adaptor1_min_hidden_id_ = math::min(adaptor1_min_hidden_id_, low_dim_hidden_id);
                 }
             });
 
@@ -294,13 +294,13 @@ __host__ __device__ constexpr auto chain_tensor_adaptors(const TensorAdaptor0& a
 
             // get the min of all upper dimensions
             static_for<0, ndim_up, 1>{}([&](auto idim_up) {
-                adaptor1_min_hidden_id =
-                    math::min(adaptor1_min_hidden_id,
+                adaptor1_min_hidden_id_ =
+                    math::min(adaptor1_min_hidden_id_,
                               TensorAdaptor1::GetUpperDimensionHiddenIdss()[itran][idim_up].value);
             });
         });
 
-        return adaptor1_min_hidden_id;
+        return adaptor1_min_hidden_id_;
     }();
 
     constexpr index_t adaptor1_hidden_id_shift =
@@ -321,11 +321,11 @@ __host__ __device__ constexpr auto chain_tensor_adaptors(const TensorAdaptor0& a
             // sequence in, sequence out
             constexpr auto low_dim_hidden_ids_1_mod = [&]() constexpr
             {
-                auto low_dim_hidden_ids_1_mod = to_multi_index(low_dim_hidden_ids_1);
+                auto low_dim_hidden_ids_1_mod_ = to_multi_index(low_dim_hidden_ids_1);
 
                 // shift hidden id so every dim id is unique
                 static_for<0, ndim_low_1, 1>{}([&](auto idim_low_1) {
-                    low_dim_hidden_ids_1_mod(idim_low_1) += adaptor1_hidden_id_shift;
+                    low_dim_hidden_ids_1_mod_(idim_low_1) += adaptor1_hidden_id_shift;
                 });
 
                 // match hidden id
@@ -335,13 +335,13 @@ __host__ __device__ constexpr auto chain_tensor_adaptors(const TensorAdaptor0& a
                         if constexpr(low_dim_hidden_ids_1[idim_low_1] ==
                                      TensorAdaptor1::GetBottomDimensionHiddenIds()[idim_bottom_1])
                         {
-                            low_dim_hidden_ids_1_mod(idim_low_1) =
+                            low_dim_hidden_ids_1_mod_(idim_low_1) =
                                 TensorAdaptor0::GetTopDimensionHiddenIds()[idim_bottom_1];
                         }
                     });
                 });
 
-                return low_dim_hidden_ids_1_mod;
+                return low_dim_hidden_ids_1_mod_;
             }
             ();
 
@@ -367,14 +367,14 @@ __host__ __device__ constexpr auto chain_tensor_adaptors(const TensorAdaptor0& a
             // sequence in, constexpr tuple out
             constexpr auto up_dim_hidden_ids_1_mod = [&]() constexpr
             {
-                auto up_dim_hidden_ids_1_mod = to_multi_index(up_dim_hidden_ids_1);
+                auto up_dim_hidden_ids_1_mod_ = to_multi_index(up_dim_hidden_ids_1);
 
                 // shift hidden id
                 static_for<0, ndim_up_1, 1>{}([&](auto idim_up_1) {
-                    up_dim_hidden_ids_1_mod(idim_up_1) += adaptor1_hidden_id_shift;
+                    up_dim_hidden_ids_1_mod_(idim_up_1) += adaptor1_hidden_id_shift;
                 });
 
-                return up_dim_hidden_ids_1_mod;
+                return up_dim_hidden_ids_1_mod_;
             }
             ();
 

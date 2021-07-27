@@ -46,7 +46,7 @@ struct DynamicPassThrough
     __host__ __device__ static void UpdateLowerIndex(LowIdxDiff& idx_diff_low,
                                                      const UpIdxDiff& idx_diff_up,
                                                      LowIdx& idx_low,
-                                                     const UpIdx& idx_up_new,
+                                                     const UpIdx&,
                                                      Number<Hack>)
     {
         static_assert(LowIdxDiff::Size() == 1 && UpIdxDiff::Size() == 1 && LowIdx::Size() == 1 &&
@@ -136,7 +136,7 @@ struct DynamicPad
     __host__ __device__ static void UpdateLowerIndex(LowIdxDiff& idx_diff_low,
                                                      const UpIdxDiff& idx_diff_up,
                                                      LowIdx& idx_low,
-                                                     const UpIdx& idx_up_new,
+                                                     const UpIdx&,
                                                      Number<Hack>)
     {
         static_assert(LowIdxDiff::Size() == 1 && UpIdxDiff::Size() == 1 && LowIdx::Size() == 1 &&
@@ -227,7 +227,7 @@ struct DynamicLeftPad
     __host__ __device__ static void UpdateLowerIndex(LowIdxDiff& idx_diff_low,
                                                      const UpIdxDiff& idx_diff_up,
                                                      LowIdx& idx_low,
-                                                     const UpIdx& idx_up_new,
+                                                     const UpIdx&,
                                                      Number<Hack>)
     {
         static_assert(LowIdxDiff::Size() == 1 && UpIdxDiff::Size() == 1 && LowIdx::Size() == 1 &&
@@ -318,7 +318,7 @@ struct DynamicRightPad
     __host__ __device__ static void UpdateLowerIndex(LowIdxDiff& idx_diff_low,
                                                      const UpIdxDiff& idx_diff_up,
                                                      LowIdx& idx_low,
-                                                     const UpIdx& idx_up_new,
+                                                     const UpIdx&,
                                                      Number<Hack>)
     {
         static_assert(LowIdxDiff::Size() == 1 && UpIdxDiff::Size() == 1 && LowIdx::Size() == 1 &&
@@ -420,7 +420,7 @@ struct DynamicEmbed
     __host__ __device__ void UpdateLowerIndex(LowIdxDiff& idx_diff_low,
                                               const UpIdxDiff& idx_diff_up,
                                               LowIdx& idx_low,
-                                              const UpIdx& idx_up_new,
+                                              const UpIdx&,
                                               Number<Hack>) const
     {
         static_assert(LowIdxDiff::Size() == 1 && UpIdxDiff::Size() == NDimUp &&
@@ -1096,7 +1096,7 @@ struct DynamicMerge_v2_magic_division
               typename UpIdx,
               index_t Hack>
     __host__ __device__ void UpdateLowerIndex(LowIdxDiff& idx_diff_low,
-                                              const UpIdxDiff& idx_diff_up,
+                                              const UpIdxDiff&,
                                               LowIdx& idx_low,
                                               const UpIdx& idx_up_new,
                                               Number<Hack>) const
@@ -1254,7 +1254,7 @@ struct DynamicMerge_v2r2_magic_division
               typename UpIdx,
               index_t Hack>
     __host__ __device__ void UpdateLowerIndex(LowIdxDiff& idx_diff_low,
-                                              const UpIdxDiff& idx_diff_up,
+                                              const UpIdxDiff&,
                                               LowIdx& idx_low,
                                               const UpIdx& idx_up_new,
                                               Number<Hack>) const
@@ -1383,7 +1383,7 @@ struct DynamicUnMerge
     __host__ __device__ void UpdateLowerIndex(LowIdxDiff& idx_diff_low,
                                               const UpIdxDiff& idx_diff_up,
                                               LowIdx& idx_low,
-                                              const UpIdx& idx_up_new,
+                                              const UpIdx&,
                                               Number<Hack>) const
     {
         CalculateLowerIndex(idx_diff_low, idx_diff_up);
@@ -1597,7 +1597,7 @@ struct DynamicVectorize
     __host__ __device__ void UpdateLowerIndex(LowIdxDiff& idx_diff_low,
                                               const UpIdxDiff& idx_diff_up,
                                               LowIdx& idx_low,
-                                              const UpIdx& idx_up_new,
+                                              const UpIdx&,
                                               Number<Hack>) const
     {
         static_assert(LowIdxDiff::Size() == 1 && UpIdxDiff::Size() == 1 && LowIdx::Size() == 1 &&
@@ -1654,7 +1654,7 @@ struct DynamicSlice
 
     __host__ __device__ constexpr DynamicSlice() = default;
 
-    __host__ __device__ constexpr DynamicSlice(const LowLength& low_length,
+    __host__ __device__ constexpr DynamicSlice(const LowLength&,
                                                const SliceBegin& slice_begin,
                                                const SliceEnd& slice_end)
         : up_lengths_{make_tuple(slice_end - slice_begin)},
@@ -1687,7 +1687,7 @@ struct DynamicSlice
     __host__ __device__ static void UpdateLowerIndex(LowIdxDiff& idx_diff_low,
                                                      const UpIdxDiff& idx_diff_up,
                                                      LowIdx& idx_low,
-                                                     const UpIdx& idx_up_new,
+                                                     const UpIdx&,
                                                      Number<Hack>)
     {
         static_assert(LowIdxDiff::Size() == 1 && UpIdxDiff::Size() == 1 && LowIdx::Size() == 1 &&
@@ -1709,8 +1709,7 @@ struct DynamicSlice
     }
 
     template <typename UpIdx>
-    __host__ __device__ constexpr bool
-    IsValidUpperIndexMappedToValidLowerIndex(const UpIdx& idx_up) const
+    __host__ __device__ constexpr bool IsValidUpperIndexMappedToValidLowerIndex(const UpIdx&) const
     {
         return true;
     }
