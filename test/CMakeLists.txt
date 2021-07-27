@@ -167,9 +167,6 @@ else()
 	endif()
 endif()
 
-if(MIOPEN_TEST_GFX908)
-    list(APPEND SKIP_TESTS test_pooling2d test_activation test_soft_max)
-endif()
 
 # The usage is non-trivial, see function add_test_command.
 if(SKIP_TESTS)
