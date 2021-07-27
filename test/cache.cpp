@@ -110,20 +110,21 @@ void check_kern_db()
 
     {
         miopen::TempFile temp_file("tmp-kerndb");
-        miopen::KernDb err_db(std::string(temp_file),
-                              false,
-                              "gfx906",
-                              60,
-                              [](std::string str, bool* success) {
-                                  std::ignore = str;
-                                  *success    = false;
-                                  return "";
-                              },
-                              [](std::string str, unsigned int sz) -> std::string {
-                                  std::ignore = str;
-                                  std::ignore = sz;
-                                  throw;
-                              }); // error compressing
+        miopen::KernDb err_db(
+            std::string(temp_file),
+            false,
+            "gfx906",
+            60,
+            [](std::string str, bool* success) {
+                std::ignore = str;
+                *success    = false;
+                return "";
+            },
+            [](std::string str, unsigned int sz) -> std::string {
+                std::ignore = str;
+                std::ignore = sz;
+                throw;
+            }); // error compressing
         // Even if compression fails, it should still work
         CHECK(err_db.StoreRecordUnsafe(cfg0));
         // In which case decompresion should not be called

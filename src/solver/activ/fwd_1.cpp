@@ -88,13 +88,13 @@ ConvSolution ActivFwdSolver1::GetSolution(const ExecutionContext&,
         case 2:
             std::tie(hOut, wOut)             = tien<2>(yDesc.GetLengths());
             std::tie(hOutStride, wOutStride) = tien<2>(yDesc.GetStrides());
-            nOutStride = hOut * hOutStride;
-            cOutStride = hOut * hOutStride;
+            nOutStride                       = hOut * hOutStride;
+            cOutStride                       = hOut * hOutStride;
             break;
         case 3:
             std::tie(cOut, hOut, wOut)                   = tien<3>(yDesc.GetLengths());
             std::tie(cOutStride, hOutStride, wOutStride) = tien<3>(yDesc.GetStrides());
-            nOutStride = cOut * cOutStride;
+            nOutStride                                   = cOut * cOutStride;
             break;
         default: assert(false);
         }
@@ -134,13 +134,13 @@ ConvSolution ActivFwdSolver1::GetSolution(const ExecutionContext&,
         case 2:
             std::tie(hIn, wIn)             = tien<2>(xDesc.GetLengths());
             std::tie(hInStride, wInStride) = tien<2>(xDesc.GetStrides());
-            nInStride = hIn * hInStride;
-            cInStride = hIn * hInStride;
+            nInStride                      = hIn * hInStride;
+            cInStride                      = hIn * hInStride;
             break;
         case 3:
             std::tie(cIn, hIn, wIn)                   = tien<3>(xDesc.GetLengths());
             std::tie(cInStride, hInStride, wInStride) = tien<3>(xDesc.GetStrides());
-            nInStride = cIn * cInStride;
+            nInStride                                 = cIn * cInStride;
             break;
         default: assert(false);
         }
@@ -227,8 +227,7 @@ ConvSolution ActivFwdSolver1::GetSolution(const ExecutionContext&,
     else
     {
         MIOPEN_LOG_E("Unsupported data types configuration: "
-                     << miopen::GetDataTypeName(problem.GetXDesc().GetType())
-                     << "x"
+                     << miopen::GetDataTypeName(problem.GetXDesc().GetType()) << "x"
                      << miopen::GetDataTypeName(problem.GetYDesc().GetType()));
         return {miopenStatusNotImplemented};
     }

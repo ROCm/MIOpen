@@ -360,8 +360,8 @@ template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(
     const ConvolutionContext& params) const
 {
-// HIP backend required for sending ptr (buffer + offset)
-// ROCBLAS for GEMM step
+    // HIP backend required for sending ptr (buffer + offset)
+    // ROCBLAS for GEMM step
 
 #if(MIOPEN_BACKEND_HIP && (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE))
     static const int wino_data_tile   = std::max(WinoDataH, WinoDataW);

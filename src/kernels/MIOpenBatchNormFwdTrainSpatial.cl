@@ -67,7 +67,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                                __global _FLOAT_PREC* __restrict resultSaveMean,
                                __global _FLOAT_PREC* __restrict resultSaveInvVariance
 #endif
-                               )
+)
 {
 
     // SPATIAL
@@ -214,7 +214,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                                __global _FLOAT_PREC* __restrict resultSaveMean,
                                __global _FLOAT_PREC* __restrict resultSaveInvVariance
 #endif
-                               )
+)
 {
 
     // SPATIAL
@@ -476,7 +476,7 @@ MIOpenBatchNormFwdTrainSpatialFinalMeanVariance(
     ,
     __global _FLOAT* __restrict resultSaveInvVariance
 #endif
-    )
+)
 {
     _FLOAT variance             = (_FLOAT)0.;
     _FLOAT invVariance          = (_FLOAT)0.;
@@ -611,7 +611,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                                __global _FLOAT_PREC* __restrict resultSaveMean,
                                __global _FLOAT_PREC* __restrict resultSaveInvVariance
 #endif
-                               )
+)
 {
 
     // SPATIAL

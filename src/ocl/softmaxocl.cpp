@@ -157,9 +157,9 @@ miopenStatus_t SoftmaxForward(const Handle& handle,
             std::string kernel_name  = "SoftmaxForward";
 
             // compile parameters
-            std::string parms = "-DNUM_BATCH=" + std::to_string(num_batch) + " -DMIOPEN_USE_FP16=" +
-                                std::to_string(static_cast<int>(usefp16)) + " -DMIOPEN_USE_FP32=" +
-                                std::to_string(static_cast<int>(usefp32));
+            std::string parms = "-DNUM_BATCH=" + std::to_string(num_batch) +
+                                " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(usefp16)) +
+                                " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(usefp32));
 
             if(algorithm == MIOPEN_SOFTMAX_LOG)
                 parms += " -DUSE_SOFTMAX_LOG=1";
@@ -258,11 +258,11 @@ miopenStatus_t SoftmaxForward(const Handle& handle,
         {
             std::string program_name = "MIOpenSoftmax.cl";
             std::string kernel_name  = "SoftmaxForward";
-            std::string parms = "-DNUM_BATCH=" + std::to_string(num_batch) + " -DBATCH_SIZE=" +
-                                std::to_string(batch_size) + " -DU_BATCH_SIZE=" +
-                                std::to_string(u_batch_size) + " -DMIOPEN_USE_FP16=" +
-                                std::to_string(static_cast<int>(usefp16)) + " -DMIOPEN_USE_FP32=" +
-                                std::to_string(static_cast<int>(usefp32));
+            std::string parms        = "-DNUM_BATCH=" + std::to_string(num_batch) +
+                                " -DBATCH_SIZE=" + std::to_string(batch_size) +
+                                " -DU_BATCH_SIZE=" + std::to_string(u_batch_size) +
+                                " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(usefp16)) +
+                                " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(usefp32));
 
             if(algorithm == MIOPEN_SOFTMAX_LOG)
                 parms += " -DUSE_SOFTMAX_LOG=1";
@@ -439,9 +439,9 @@ miopenStatus_t SoftmaxBackward(const Handle& handle,
         {
             std::string program_name = "MIOpenSoftmax.cl";
             std::string kernel_name  = "SoftmaxBackward";
-            std::string parms = "-DNUM_BATCH=" + std::to_string(num_batch) + " -DMIOPEN_USE_FP16=" +
-                                std::to_string(static_cast<int>(usefp16)) + " -DMIOPEN_USE_FP32=" +
-                                std::to_string(static_cast<int>(usefp32));
+            std::string parms        = "-DNUM_BATCH=" + std::to_string(num_batch) +
+                                " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(usefp16)) +
+                                " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(usefp32));
 
             if(algorithm == MIOPEN_SOFTMAX_LOG)
                 parms += " -DUSE_SOFTMAX_LOG=1";
@@ -548,11 +548,11 @@ miopenStatus_t SoftmaxBackward(const Handle& handle,
         {
             std::string program_name = "MIOpenSoftmax.cl";
             std::string kernel_name  = "SoftmaxBackward";
-            std::string parms = "-DNUM_BATCH=" + std::to_string(num_batch) + " -DBATCH_SIZE=" +
-                                std::to_string(batch_size) + " -DU_BATCH_SIZE=" +
-                                std::to_string(u_batch_size) + " -DMIOPEN_USE_FP16=" +
-                                std::to_string(static_cast<int>(usefp16)) + " -DMIOPEN_USE_FP32=" +
-                                std::to_string(static_cast<int>(usefp32));
+            std::string parms        = "-DNUM_BATCH=" + std::to_string(num_batch) +
+                                " -DBATCH_SIZE=" + std::to_string(batch_size) +
+                                " -DU_BATCH_SIZE=" + std::to_string(u_batch_size) +
+                                " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(usefp16)) +
+                                " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(usefp32));
 
             if(algorithm == MIOPEN_SOFTMAX_LOG)
                 parms += " -DUSE_SOFTMAX_LOG=1";

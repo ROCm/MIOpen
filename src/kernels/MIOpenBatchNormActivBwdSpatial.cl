@@ -69,7 +69,7 @@ MIOpenBatchNormActivBwdSpatial(const __global _FLOAT* __restrict x_in,
                                __global _FLOAT* __restrict bn_out_dev,
                                __global _FLOAT* __restrict bn_dyin_dev
 #endif
-                               )
+)
 {
 
     // SPATIAL
@@ -245,7 +245,7 @@ MIOpenBatchNormActivBwdSpatial(const __global _FLOAT* __restrict x_in,
                                __global _FLOAT* __restrict bn_out_dev,
                                __global _FLOAT* __restrict bn_dyin_dev
 #endif
-                               )
+)
 {
 
     // SPATIAL
@@ -532,7 +532,7 @@ MIOpenBatchNormActivBwdSpatial(const __global _FLOAT* __restrict x_in,
                                __global _FLOAT* __restrict bn_out_dev,
                                __global _FLOAT* __restrict bn_dyin_dev
 #endif
-                               )
+)
 {
     unsigned int lid        = get_local_id(0);
     unsigned int grpid      = get_group_id(0);

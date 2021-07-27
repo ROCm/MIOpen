@@ -53,13 +53,11 @@ static std::string DimToFormattedString(const size_t* dims, size_t count)
 void OCLKernelInvoke::run() const
 {
 #ifndef NDEBUG
-    MIOPEN_LOG_I2("kernel_name = " << GetName() << ", work_dim = " << work_dim
-                                   << ", global_work_offset = "
-                                   << DimToFormattedString(global_work_offset.data(), work_dim)
-                                   << ", global_work_dim = "
-                                   << DimToFormattedString(gdims.data(), work_dim)
-                                   << ", local_work_dim = "
-                                   << DimToFormattedString(ldims.data(), work_dim));
+    MIOPEN_LOG_I2("kernel_name = "
+                  << GetName() << ", work_dim = " << work_dim << ", global_work_offset = "
+                  << DimToFormattedString(global_work_offset.data(), work_dim)
+                  << ", global_work_dim = " << DimToFormattedString(gdims.data(), work_dim)
+                  << ", local_work_dim = " << DimToFormattedString(ldims.data(), work_dim));
 #endif // !NDEBUG
 
     MIOPEN_HANDLE_LOCK

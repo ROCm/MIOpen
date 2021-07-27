@@ -120,8 +120,8 @@ bool PerformanceConfigAsmImplicitGemmGTC::IsDefaultConstructed() const
     // clang-format on
 }
 
-bool PerformanceConfigAsmImplicitGemmGTC::
-operator==(const PerformanceConfigAsmImplicitGemmGTC& other) const
+bool PerformanceConfigAsmImplicitGemmGTC::operator==(
+    const PerformanceConfigAsmImplicitGemmGTC& other) const
 {
     // clang-format off
     return direction == other.direction

@@ -47,13 +47,17 @@ static std::string get_pooling_index_type_name(miopenIndexType_t index_type)
 {
     switch(index_type)
     {
-    case miopenIndexUint8: { return "uchar";
+    case miopenIndexUint8: {
+        return "uchar";
     }
-    case miopenIndexUint16: { return "ushort";
+    case miopenIndexUint16: {
+        return "ushort";
     }
-    case miopenIndexUint32: { return "uint";
+    case miopenIndexUint32: {
+        return "uint";
     }
-    case miopenIndexUint64: { return "ulong";
+    case miopenIndexUint64: {
+        return "ulong";
     }
     }
 
@@ -64,13 +68,17 @@ static std::string get_pooling_index_type_max_name(miopenIndexType_t index_type)
 {
     switch(index_type)
     {
-    case miopenIndexUint8: { return "UCHAR_MAX";
+    case miopenIndexUint8: {
+        return "UCHAR_MAX";
     }
-    case miopenIndexUint16: { return "USHRT_MAX";
+    case miopenIndexUint16: {
+        return "USHRT_MAX";
     }
-    case miopenIndexUint32: { return "UINT_MAX";
+    case miopenIndexUint32: {
+        return "UINT_MAX";
     }
-    case miopenIndexUint64: { return "ULONG_MAX";
+    case miopenIndexUint64: {
+        return "ULONG_MAX";
     }
     }
 

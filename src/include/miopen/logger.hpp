@@ -332,15 +332,16 @@ std::string LoggingParseFunction(const char* func, const char* pretty_func);
 // Warnings in installable builds, errors otherwise.
 #define MIOPEN_LOG_WE(...) MIOPEN_LOG(LogWELevel, __VA_ARGS__)
 
-#define MIOPEN_LOG_DRIVER_CMD(...)                                                      \
-    do                                                                                  \
-    {                                                                                   \
-        std::ostringstream miopen_driver_cmd_ss;                                        \
-        miopen_driver_cmd_ss << miopen::LoggingPrefix() << "Command"                    \
-                             << " [" << miopen::LoggingParseFunction(                   \
-                                            __func__, __PRETTY_FUNCTION__) /* NOLINT */ \
-                             << "] ./bin/MIOpenDriver " << __VA_ARGS__ << std::endl;    \
-        std::cerr << miopen_driver_cmd_ss.str();                                        \
+#define MIOPEN_LOG_DRIVER_CMD(...)                                                             \
+    do                                                                                         \
+    {                                                                                          \
+        std::ostringstream miopen_driver_cmd_ss;                                               \
+        miopen_driver_cmd_ss << miopen::LoggingPrefix() << "Command"                           \
+                             << " ["                                                           \
+                             << miopen::LoggingParseFunction(__func__,                         \
+                                                             __PRETTY_FUNCTION__) /* NOLINT */ \
+                             << "] ./bin/MIOpenDriver " << __VA_ARGS__ << std::endl;           \
+        std::cerr << miopen_driver_cmd_ss.str();                                               \
     } while(false)
 
 #if MIOPEN_LOG_FUNC_TIME_ENABLE

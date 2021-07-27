@@ -432,7 +432,6 @@ extern "C" miopenStatus_t miopenExecuteFusionPlan(const miopenHandle_t handle,
 {
     MIOPEN_LOG_FUNCTION(handle, fusePlanDesc, inputDesc, input, outputDesc, output, args);
     return miopen::try_([&] {
-
         miopen::deref(fusePlanDesc)
             .Execute(miopen::deref(handle),
                      miopen::deref(inputDesc),
