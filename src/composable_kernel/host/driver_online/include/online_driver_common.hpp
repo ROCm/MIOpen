@@ -35,7 +35,7 @@ inline int gcd(int x, int y)
 template <typename X,
           typename... Ys,
           typename std::enable_if<sizeof...(Ys) >= 2, bool>::type = false>
-int gcd(X x, Ys... ys)
+auto gcd(X x, Ys... ys)
 {
     return gcd(x, gcd(ys...));
 }

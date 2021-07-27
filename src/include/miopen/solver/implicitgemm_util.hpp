@@ -606,6 +606,77 @@ static inline bool IsComposableKernelSupportedHardware(const ConvolutionContext&
            StartsWith(c.GetStream().GetDeviceName(), "gfx1030");
 }
 
+// greatest common divisor, aka highest common factor
+template <typename T>
+T gcd(T x, T y)
+{
+    assert(!(x == 0 && y == 0));
+
+    if(x < 0 || y < 0)
+    {
+        return gcd(abs(x), abs(y));
+    }
+    else if(x == y || x == 0)
+    {
+        return y;
+    }
+    else if(y == 0)
+    {
+        return x;
+    }
+    else if(x > y)
+    {
+        return gcd(x % y, y);
+    }
+    else
+    {
+        return gcd(x, y % x);
+    }
+}
+
+template <typename T, typename... Ys>
+T gcd(T x, Ys... ys)
+{
+    return gcd(x, gcd(ys...));
+}
+
+// least common multiple
+template <typename T>
+T lcm(T x, T y)
+{
+    if(x == 0 || y == 0)
+    {
+        return 0;
+    }
+    else
+    {
+        return (x * y) / gcd(x, y);
+    }
+}
+
+template <typename T, typename... Ys>
+T lcm(T x, Ys... ys)
+{
+    return lcm(x, lcm(ys...));
+}
+
+template <typename T>
+T integer_divide_ceil(T x, T y)
+{
+    if(y == 0)
+    {
+        MIOPEN_THROW("divisor should not be 0");
+    }
+
+    return (x + y - 1) / y;
+}
+
+template <typename T>
+T integer_least_multiple(T x, T y)
+{
+    return y * integer_divide_ceil(x, y);
+}
+
 } // namespace solver
 } // namespace miopen
 
