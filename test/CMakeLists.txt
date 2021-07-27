@@ -181,11 +181,9 @@ if(MIOPEN_TEST_GFX908)
 endif()
 
 if(MIOPEN_TEST_GFX1030)
-#    list(APPEND SKIP_TESTS test_tensor_scale test_tensor_set test_tensor_transform
-#            test_tensor_vec test_w_supertensor test_dropout test_immed_conv3d test_conv3d
-#            test_soft_max test_fusion_aux test_activation test_lrn_test test_ctc test_conv2d_bias
-#            test_conv3d_bias test_cba_inference test_cbna_inference test_pooling2d test_na_train
-#            test_na_inference test_bn_aux)
+    if(WORKAROUND_ISSUE_1053 AND MIOPEN_TEST_ALL)
+        list(APPEND SKIP_TESTS test_lrn_test)
+    endif()
 endif()
 
 # The usage is non-trivial, see function add_test_command.
@@ -1123,7 +1121,7 @@ else()
     )
 endif() #if CODECOV_TEST
 
-add_custom_test(test_conv_igemm_dynamic SKIP_UNLESS_ALL GFX1030_ENABLED
+add_custom_test(test_conv_igemm_dynamic SKIP_UNLESS_ALL
 COMMAND ${DYNAMIC_IMPLICITGEMM_ENVS}     $<TARGET_FILE:test_conv2d> --verbose --input  64   64 56 56 --weights 256  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
 COMMAND ${DYNAMIC_IMPLICITGEMM_ENVS}     $<TARGET_FILE:test_conv2d> --verbose --input  64  256 34 34 --weights 256  256 3 3 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
 COMMAND ${DYNAMIC_IMPLICITGEMM_ENVS}     $<TARGET_FILE:test_conv2d> --verbose --input 128  128 35 35 --weights 128  128 3 3 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
