@@ -361,7 +361,13 @@ extern "C" __global__ void
                                           CGridDesc_GM10_BM0_BM1_GN10_BN0_BN1{},
                                           CGridBlockCluster_BlockId_To_GM10_GN10{}));
 
-    const auto desc_tuple = *reinterpret_cast<const DescTuple*>((const void*)(p_desc_tuple));
+    const auto desc_tuple = *reinterpret_cast<const DescTuple*>(
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wold-style-cast"
+        // TODO: how to cast?
+        (const void*)p_desc_tuple
+#pragma clang diagnostic pop
+    );
 
     const auto a_grid_desc_gk0_gm0_gm10_gm11_gk1         = desc_tuple[I0];
     const auto b_grid_desc_gk0_gn0_gn10_gn11_gk1         = desc_tuple[I1];
