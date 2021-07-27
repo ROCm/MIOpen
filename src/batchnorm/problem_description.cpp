@@ -92,7 +92,7 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
         else
 #endif
 
-        // clang-format off
+            // clang-format off
         if((in_nhw < 33554432 && in_cstride > 1024) ||
             ((n >= 256) && (in_cstride > 60) && bfpmixparm) ||
             ((in_cstride > 512) && bfpmixparm))
@@ -118,14 +118,14 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
 
         if((n > 768) && (in_cstride > 150) && bfp32parm)
         {
-            variant      = 2;
-            xlocalsize   = 1;
-            ylocalsize   = 1024;
+            variant            = 2;
+            xlocalsize         = 1;
+            ylocalsize         = 1024;
             const auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
-            xgridsize    = c;
-            ygridsize    = segment * ylocalsize;
-            single       = false;
-            ldsgcn       = ylocalsize / 64;
+            xgridsize          = c;
+            ygridsize          = segment * ylocalsize;
+            single             = false;
+            ldsgcn             = ylocalsize / 64;
         }
 
         ss << "variant" << variant;
@@ -159,11 +159,11 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     }
     else
     {
-        xlocalsize          = 1;
-        ylocalsize          = 256;
+        xlocalsize                = 1;
+        ylocalsize                = 256;
         const std::size_t segment = (in_cstride + ylocalsize - 1) / ylocalsize;
-        xgridsize           = c;
-        ygridsize           = segment * ylocalsize;
+        xgridsize                 = c;
+        ygridsize                 = segment * ylocalsize;
 
         ss << "fp16" << static_cast<int>(bfp16parm);
         ss << "fp32" << static_cast<int>(bfp32parm);

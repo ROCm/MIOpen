@@ -98,7 +98,8 @@ BnFwdTrainingPASingle::GetSolution(const ExecutionContext& context,
     bool bfp16parm  = false;
     bool bfp32parm  = true;
 
-    if(problem.GetXDesc().GetType() == miopenHalf && problem.GetBnScaleBiasMeanVarDesc().GetType() == miopenHalf)
+    if(problem.GetXDesc().GetType() == miopenHalf &&
+       problem.GetBnScaleBiasMeanVarDesc().GetType() == miopenHalf)
     {
         bfp16parm = true;
         bfp32parm = false;
@@ -202,7 +203,7 @@ BnFwdTrainingPASingle::GetSolution(const ExecutionContext& context,
             {"MIO_BN_GFX1030", ((handle.GetDeviceName() == "gfx1030") ? "1" : "0")},
         };
 
-        if (variant != 4)
+        if(variant != 4)
         {
             build_params.Define("MIO_BN_C", c);
             build_params.Define("MIO_BN_NW", in_cstride);
@@ -367,8 +368,7 @@ BnFwdTrainingPASingle::GetSolution(const ExecutionContext& context,
     {
         if(vn4)
         {
-            result.invoker_factory =
-                [=](const std::vector<Kernel>& kernels) {
+            result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
                 return [=](const Handle& handle, const AnyInvokeParams& raw_params) {
                     decltype(auto) kernel = handle.Run(kernels.front());
                     decltype(auto) params = raw_params.CastTo<miopen::batchnorm::InvokeParams>();

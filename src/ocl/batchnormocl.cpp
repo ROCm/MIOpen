@@ -111,7 +111,7 @@ void BatchNormForwardTraining(Handle& handle,
         miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, bnBias);
     }
 
-    const auto resultsave = resultSaveMean != nullptr && resultSaveInvVariance != nullptr;
+    const auto resultsave    = resultSaveMean != nullptr && resultSaveInvVariance != nullptr;
     const auto resultrunning = resultRunningMean != nullptr && resultRunningVariance != nullptr;
 
     const auto problem = batchnorm::ProblemDescription{batchnorm::Direction::ForwardTraining,
@@ -124,8 +124,9 @@ void BatchNormForwardTraining(Handle& handle,
                                                        resultsave,
                                                        resultrunning};
 
-    const auto algo = bn_mode == miopenBNSpatial ? AlgorithmName{"miopenBatchNormForwardTrainingSpatial"}
-                                                 : AlgorithmName{"miopenBatchNormForwardTrainingPerActivation"};
+    const auto algo = bn_mode == miopenBNSpatial
+                          ? AlgorithmName{"miopenBatchNormForwardTrainingSpatial"}
+                          : AlgorithmName{"miopenBatchNormForwardTrainingPerActivation"};
     const auto network_config = problem.MakeNetworkConfig();
 
     {
