@@ -44,6 +44,7 @@ option( MIOPEN_TEST_MLIR "Add tests for MLIR -- EXPERIMENTAL" ${MIOPEN_USE_MLIR}
 option( WORKAROUND_ISSUE_898 "" ON)
 option( WORKAROUND_ISSUE_936 "" ON)
 option( WORKAROUND_ISSUE_1064 "" ON)
+option( WORKAROUND_ISSUE_1063 "" ON)
 
 # Run the test suite to a depth limit
 #limit greater than 2 leads to prolonged testing more than 5hrs per stage.
@@ -663,8 +664,8 @@ if(WORKAROUND_ISSUE_936 AND MIOPEN_TEST_HALF)
     LIST(APPEND IMPLICITGEMM_ARGS --disable-forward --disable-backward-data)
     #Afther fix need to remove '| grep -v "cannot be executed due to incorrect params"'
 endif()
-
-add_custom_test(test_conv_for_implicit_gemm SKIP_UNLESS_ALL BF16_ENABLED HALF_ENABLED GFX908_DISABLED
+if(not (MIOPEN_TEST_GFX908 AND WORKAROUND_ISSUE_1063))
+add_custom_test(test_conv_for_implicit_gemm SKIP_UNLESS_ALL BF16_ENABLED HALF_ENABLED
 COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose   --input 64  16  28  28  --weights 192 16  3 3 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
 COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose   --input 64  16  14  14  --weights 160 16  3 3 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
 COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose   --input 64  16   7   7  --weights 128 16  3 3 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
@@ -747,6 +748,7 @@ COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_AR
 COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose   --input 64	 32	14 14 --weights   192  32   3	3   --pads_strides_dilations	2   2	2   2	1   1         | grep -v "cannot be executed due to incorrect params"
 COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose   --input 64	 32	7 7   --weights   192  32   3	3   --pads_strides_dilations	2   2	2   2	1   1         | grep -v "cannot be executed due to incorrect params"
 )
+endif() # not (MIOPEN_TEST_GFX908 AND WORKAROUND_ISSUE_1063)
 
 add_custom_test(test_conv_group SKIP_UNLESS_ALL  MIOTENSILE_ENABLED
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	128	56	56	--weights	256	4	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32
