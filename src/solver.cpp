@@ -296,8 +296,10 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     ++id; // removed solver ConvHipImplicitGemmV4WrW
 
     // Several ids w/o solver for immediate mode
-    Register(registry, ++id, "gemm", miopenConvolutionAlgoGEMM);
+    ++id; // old gemm pseudo-solverid
+
     RegisterWithSolver(registry, ++id, fft{}, miopenConvolutionAlgoFFT);
+
     RegisterWithSolver(
         registry, ++id, ConvWinograd3x3MultipassWrW<3, 4>{}, miopenConvolutionAlgoWinograd);
     ++id; // Id for ConvSCGemmFGemm.
@@ -463,6 +465,14 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
                        miopenConvolutionAlgoImplicitGEMM);
 
     Register(registry, ++id, Primitive::Activation, SolverDbId(activ::ActivFwdSolver1{}));
+    RegisterWithSolver(registry,
+                       ++id,
+                       ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC{},
+                       miopenConvolutionAlgoImplicitGEMM);
+
+    Register(registry, ++id, Primitive::Activation, SolverDbId(activ::ActivBwdSolver0{}));
+    Register(registry, ++id, Primitive::Activation, SolverDbId(activ::ActivBwdSolver1{}));
+
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 

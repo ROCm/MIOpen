@@ -150,9 +150,9 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     set(MIOPEN_BACKEND_OPENCL 1)
     find_package( OpenCL REQUIRED )
     find_program(MIOPEN_HIP_COMPILER hcc
-            PATH_SUFFIXES bin
-            PATHS 
-	        /opt/rocm
+        PATH_SUFFIXES bin
+        PATHS
+            /opt/rocm
     )
     set(MIOPEN_USE_MIOPENGEMM ON CACHE BOOL "")
     if(MIOPEN_HIP_COMPILER)
@@ -160,9 +160,9 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     else()
         find_program(MIOPEN_HIP_COMPILER clang++
             PATH_SUFFIXES bin
-	        PATHS 
-		    /opt/rocm/llvm
-		    ${CMAKE_INSTALL_PREFIX}/llvm
+            PATHS
+                /opt/rocm/llvm
+                ${CMAKE_INSTALL_PREFIX}/llvm
         )
         if(MIOPEN_HIP_COMPILER)
             message("hip compiler: ${MIOPEN_HIP_COMPILER}")
@@ -193,6 +193,8 @@ target_flags(HIP_COMPILER_FLAGS hip::device)
 # Remove cuda arch flags
 string(REGEX REPLACE --cuda-gpu-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
 string(REGEX REPLACE --offload-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
+string(REPLACE "$<LINK_LANGUAGE:CXX>" "1" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
+string(REPLACE "SHELL:" "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
 
 # Override HIP version in config.h, if necessary.
 # The variables set by find_package() can't be overwritten,
@@ -231,10 +233,9 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
 
     find_program(HIP_OC_COMPILER clang-ocl
         PATH_SUFFIXES bin
-        PATHS 
-	    /opt/rocm
-	    ${CMAKE_INSTALL_PREFIX}
-
+        PATHS
+            /opt/rocm
+            ${CMAKE_INSTALL_PREFIX}
     )
     if(HIP_OC_COMPILER)
         message(STATUS "hip compiler: ${HIP_OC_COMPILER}")
@@ -282,9 +283,9 @@ message( STATUS "${MIOPEN_BACKEND} backend selected." )
 if(MIOPEN_HIP_COMPILER MATCHES ".*clang\\+\\+$")
     find_program(MIOPEN_OFFLOADBUNDLER_BIN clang-offload-bundler
         PATH_SUFFIXES bin
-        PATHS 
-	    /opt/rocm/llvm
-	    ${CMAKE_INSTALL_PREFIX}/llvm
+        PATHS
+            /opt/rocm/llvm
+            ${CMAKE_INSTALL_PREFIX}/llvm
     )
 endif()
 if(MIOPEN_OFFLOADBUNDLER_BIN)
@@ -300,10 +301,9 @@ else()
             /opt/rocm/hip
             /opt/rocm/hcc
             /opt/rocm
-	        ${CMAKE_INSTALL_PREFIX}/hip
+            ${CMAKE_INSTALL_PREFIX}/hip
             ${CMAKE_INSTALL_PREFIX}/hcc
             ${CMAKE_INSTALL_PREFIX}
-
     )
     if(EXTRACTKERNEL_BIN)
         message(STATUS "extractkernel found: ${EXTRACTKERNEL_BIN}")
@@ -340,7 +340,6 @@ find_program(MIOPEN_AMDGCN_ASSEMBLER
         /opencl/bin/x86_64
         /opencl/bin
         /bin
-    NO_DEFAULT_PATH
 )
 message(STATUS "AMDGCN assembler: ${MIOPEN_AMDGCN_ASSEMBLER}")
 
