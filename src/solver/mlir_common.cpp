@@ -26,6 +26,8 @@
 
 #include <miopen/miopen.h>
 #include <miopen/errors.hpp>
+#include <miopen/hip_build_utils.hpp>
+#include <miopen/rocm_features.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/solver/mlir_common.hpp>
 
@@ -60,6 +62,17 @@ const char* DTypeName(miopenDataType_t ty)
     MIOPEN_THROW(miopenStatusInternalError, "Value outside of datatype enum");
 }
 
+static std::string GetIsaName(const miopen::TargetProperties& target)
+{
+#if ROCM_FEATURE_TARGETID_OFF
+    const char* const ecc_suffix = (target.Sramecc() && *target.Sramecc()) ? ":sramecc+" : "";
+    return {"amdgcn-amd-amdhsa:" + target.Name() + ecc_suffix};
+#else
+    const LcOptionTargetStrings lots(target);
+    return "amdgcn-amd-amdhsa:" + lots.targetId;
+#endif
+}
+
 /* Construct the options string passed to MLIR to cause it
 to generate a given convolution.*/
 std::string ConstructBuildOptions(const ConvolutionContext& ctx,
@@ -87,7 +100,7 @@ std::string ConstructBuildOptions(const ConvolutionContext& ctx,
         << " --operation " << operation
         << " --kernel_id " << kernel_id
         << " --num_cu " << ctx.GetStream().GetMaxComputeUnits()
-        << " --arch " << ctx.GetStream().GetDeviceName()
+        << " --arch " << GetIsaName(ctx.GetStream().GetTargetProperties())
         << " --groupsize " << CI::GetGroupCountG(ctx)
         << " --fil_layout " << fil_layout
         << " --fil_type " << DTypeName(ctx.weights_data_type)
