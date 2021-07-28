@@ -97,8 +97,11 @@ author = u'Advanced Micro Devices, Inc'
 # built documents.
 #
 # The short X.Y version.
-version_line = next(filter(lambda x:'rocm_setup_version' in x, open('../../CMakeLists.txt').readlines()))
-version = re.findall('[0-9.]+', version_line)[0]
+with open('../../CMakeLists.txt') as file:
+    for line in file:
+        if 'rocm_setup_version' in line:
+            version = re.findall('[0-9.]+', line)[0]
+            break
 # The full version, including alpha/beta/rc tags.
 release = version
 
