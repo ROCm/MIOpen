@@ -107,7 +107,7 @@ RUN cget -p $PREFIX install danmar/cppcheck@dd05839a7e63ef04afd34711cb3e1e0ef742
 
 # Install doc requirements
 ADD doc/requirements.txt /doc-requirements.txt
-RUN pip install -r /doc-requirements.txt
+RUN pip3 install -r /doc-requirements.txt
 
 # Use parallel job to accelerate tensile build
 # Workaround for Tensile with TargetID feature
