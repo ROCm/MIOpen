@@ -32,8 +32,10 @@
 #pragma clang diagnostic ignored "-Wsometimes-uninitialized"
 #endif
 
-#if(MIO_BN_GFX1030 == 1 && __AMDGCN__)
-#undef __AMDGCN__
+#define MIOPEN_USE_AMDGCN 0
+#if defined(__AMDGCN__) && MIO_BN_GFX1030 != 1
+#undef MIOPEN_USE_AMDGCN
+#define MIOPEN_USE_AMDGCN 1
 #endif
 
 #include "batchnorm_functions.h"
@@ -127,7 +129,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
         variance = mad(batchvalues[MIO_BN_NLOOPM], batchvalues[MIO_BN_NLOOPM], variance);
     }
 
-#ifndef __AMDGCN__
+#if !MIOPEN_USE_AMDGCN
     local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDS_SIZE];
     local _FLOAT_ACCUM lcl_data_y[MIO_BN_LDS_SIZE];
     lds_reduce2(&mean, &variance, (_FLOAT_ACCUM)INHW, lcl_data_x, lcl_data_y, lid);
@@ -184,7 +186,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 
-#ifndef __AMDGCN__
+#if !MIOPEN_USE_AMDGCN
     local _FLOAT_ACCUM lcl_data_x2[MIO_BN_LDS_SIZE];
     local _FLOAT_ACCUM lcl_data_y2[MIO_BN_LDS_SIZE];
     lds_reduce2(&ds, &db, (_FLOAT_ACCUM)1.0, lcl_data_x2, lcl_data_y2, lid);
@@ -369,7 +371,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 
     barrier(CLK_LOCAL_MEM_FENCE);
 // REDUCE MEAN AND VARIANCE -----------------------
-#ifndef __AMDGCN__
+#if !MIOPEN_USE_AMDGCN
     local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDS_SIZE];
     local _FLOAT_ACCUM lcl_data_y[MIO_BN_LDS_SIZE];
     lds_reduce2(&mean, &variance, (_FLOAT_ACCUM)INHW, lcl_data_x, lcl_data_y, lid);
@@ -450,7 +452,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #endif
     barrier(CLK_GLOBAL_MEM_FENCE);
 
-#ifndef __AMDGCN__
+#if !MIOPEN_USE_AMDGCN
     local _FLOAT_ACCUM lcl_data_x2[MIO_BN_LDS_SIZE];
     local _FLOAT_ACCUM lcl_data_y2[MIO_BN_LDS_SIZE];
     lds_reduce2(&ds, &db, (_FLOAT_ACCUM)1.0, lcl_data_x2, lcl_data_y2, lid);
@@ -595,7 +597,7 @@ MIOpenBatchNormBwdSpatialFinalMeanVariance(__global _FLOAT* __restrict meanvarbu
         }
     }
 
-#ifndef __AMDGCN__
+#if !MIOPEN_USE_AMDGCN
     local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDS_SIZE];
     local _FLOAT_ACCUM lcl_data_y[MIO_BN_LDS_SIZE];
     lds_reduce2(&mean, &variance, (_FLOAT_ACCUM)INHW, lcl_data_x, lcl_data_y, lid);
@@ -650,7 +652,7 @@ MIOpenBatchNormBwdSpatialMeanVariance(const __global _FLOAT* __restrict in,
         }
     }
 
-#ifndef __AMDGCN__
+#if !MIOPEN_USE_AMDGCN
     local _FLOAT_ACCUM lcl_data_x[MIO_BN_NGRPS];
     local _FLOAT_ACCUM lcl_data_y[MIO_BN_NGRPS];
     lds_reduce2(&mean, &variance, (_FLOAT_ACCUM)1.0, lcl_data_x, lcl_data_y, ylid);
@@ -729,7 +731,7 @@ MIOpenBatchNormBwdSpatialDScaleDBias(const __global _FLOAT* x_in,
     }
 
 // REDUCE over DS and DB
-#ifndef __AMDGCN__
+#if !MIOPEN_USE_AMDGCN
     local _FLOAT_ACCUM lcl_data_x2[MIO_BN_LDS_SIZE];
     local _FLOAT_ACCUM lcl_data_y2[MIO_BN_LDS_SIZE];
     lds_reduce2(&dscale, &dbias, (_FLOAT_ACCUM)1.0, lcl_data_x2, lcl_data_y2, ylid);
@@ -777,7 +779,7 @@ MIOpenBatchNormBwdSpatialFinalDScaleDBias(__global _FLOAT* buff,
         }
     }
 
-#ifndef __AMDGCN__
+#if !MIOPEN_USE_AMDGCN
     local _FLOAT_ACCUM lcl_data_x2[MIO_BN_NGRPS];
     local _FLOAT_ACCUM lcl_data_y2[MIO_BN_NGRPS];
     lds_reduce2(&ds, &db, (_FLOAT_ACCUM)1.0, lcl_data_x2, lcl_data_y2, lid);
@@ -953,7 +955,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     }
 
 // REDUCE MEAN AND VARIANCE -----------------------
-#ifndef __AMDGCN__
+#if !MIOPEN_USE_AMDGCN
     local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDS_SIZE];
     local _FLOAT_ACCUM lcl_data_y[MIO_BN_LDS_SIZE];
     lds_reduce2(&mean, &variance, (_FLOAT_ACCUM)INHW, lcl_data_x, lcl_data_y, lid);
@@ -1004,7 +1006,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 
-#ifndef __AMDGCN__
+#if !MIOPEN_USE_AMDGCN
     local _FLOAT_ACCUM lcl_data_x2[MIO_BN_LDS_SIZE];
     local _FLOAT_ACCUM lcl_data_y2[MIO_BN_LDS_SIZE];
     lds_reduce2(&ds, &db, (_FLOAT_ACCUM)1.0, lcl_data_x2, lcl_data_y2, lid);
