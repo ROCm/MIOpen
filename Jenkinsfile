@@ -208,7 +208,7 @@ def buildHipClangJobAndReboot(Map conf=[:]){
 ///   * "All" corresponds to "cmake -DMIOPEN_TEST_ALL=On".
 ///   * "Smoke" (-DMIOPEN_TEST_ALL=Off) is the default and usually not specified.
 ///   * "Codecov" is optional code coverage analysis.
-/// Target := { gfx908 | Vega20 | Vega10 | Vega* }
+/// Target := { gfx908 | Vega20 | Vega10 | Vega* | gfx1030 }
 ///   * "Vega" (gfx906 or gfx900) is the default and usually not specified.
 
 
@@ -344,6 +344,12 @@ pipeline {
                     agent{ label rocmnode("vega") }
                     steps{
                         buildHipClangJobAndReboot(build_type: 'debug', config_targets: Smoke_targets)
+                    }
+                }
+                stage('Fp32 OpenCL Debug gfx1030') {
+                    agent{ label rocmnode("navi21") }
+                    steps{
+                        buildHipClangJobAndReboot(compiler: 'g++', build_type: 'debug', config_targets: Smoke_targets, build_env: extra_log_env, gpu_arch: "gfx1030")
                     }
                 }
                 stage('Fp32 Hip Debug gfx908 /opt/rocm') {
@@ -579,6 +585,12 @@ pipeline {
                     agent{ label rocmnode("vega20") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Full_test, build_env: WORKAROUND_iGemm_936)
+                    }
+                }
+                stage('Fp32 OpenCL All gfx1030') {
+                    agent{ label rocmnode("navi21") }
+                    steps{
+                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, build_env: extra_log_env, gpu_arch: "gfx1030")
                     }
                 }
                 stage('Fp16 Hip All Install gfx908') {
