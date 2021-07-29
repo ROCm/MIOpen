@@ -1,28 +1,28 @@
 /*******************************************************************************
-*
-* MIT License
-*
-* Copyright (c) 2019 Advanced Micro Devices, Inc.
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*******************************************************************************/
+ *
+ * MIT License
+ *
+ * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 
 #pragma once
 
@@ -95,12 +95,57 @@ struct ExecutionContext
         // clang-format off
         filename << GetStream().GetDbBasename();
 #if MIOPEN_ENABLE_SQLITE
-        filename << ".db";
+        const std::string ext = ".db";
 #else
-        filename << ".cd.pdb.txt";
+        const std::string ext = ".cd.pdb.txt";
 #endif
+        filename << ext;
         // clang-format on
-        return (pdb_path / filename.str()).string();
+        if(boost::filesystem::exists(pdb_path / filename.str()))
+        {
+            MIOPEN_LOG_I("Found exact database file");
+            return (pdb_path / filename.str()).string();
+        }
+        else
+        {
+            MIOPEN_LOG_I("Unable to find exact database file");
+            const auto db_id        = GetStream().GetTargetProperties().DbId();
+            const int real_cu_count = GetStream().GetMaxComputeUnits();
+            namespace fs            = boost::filesystem;
+            if(fs::exists(pdb_path) && fs::is_directory(pdb_path))
+            {
+                MIOPEN_LOG_I("Iterating over directory " << pdb_path.string());
+                int closest_cu = std::numeric_limits<int>::max();
+                fs::path best_path;
+                for(auto const& entry : fs::recursive_directory_iterator(pdb_path))
+                {
+                    const auto filepath = entry.path();
+                    const auto fname    = filepath.stem().string();
+                    if(fs::is_regular_file(entry) && filepath.extension() == ext &&
+                       fname.rfind(db_id, 0) == 0) // starts with db_id
+                    {
+                        MIOPEN_LOG_I("Checking entry: " << fname);
+                        const auto pos = fname.find('_');
+                        int cur_count  = -1;
+                        if(pos != std::string::npos)
+                            cur_count = std::stoi(fname.substr(pos + 1));
+                        else
+                            cur_count = std::stoi(fname.substr(db_id.length()), nullptr, 16);
+                        if(abs(cur_count - real_cu_count) < (closest_cu))
+                        {
+                            best_path  = filepath;
+                            closest_cu = abs(cur_count - real_cu_count);
+                        }
+                    }
+                }
+                return best_path.string();
+            }
+            else
+            {
+                MIOPEN_LOG_I("Database directory does not exist");
+            }
+        }
+        return {};
     }
 
     std::string GetUserPerfDbPath() const

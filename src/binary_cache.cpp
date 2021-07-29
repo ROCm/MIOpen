@@ -124,6 +124,7 @@ KDb GetDb(const TargetProperties& target, size_t num_cu)
 #if !MIOPEN_EMBED_DB
     if(!boost::filesystem::exists(sys_path))
         sys_path = boost::filesystem::path{};
+#endif
     return {sys_path.string(), user_path.string()};
 }
 #endif
