@@ -48,7 +48,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 #endif
               __global _FLOAT* __restrict out_ptr,
               UNUSED _FLOAT dummy_val // nothing
-              )
+)
 {
     _FLOAT weights[MLO_N_LCL_OUT_MAPS][MLO_N_LCL_IN_MAPS];
 
@@ -91,7 +91,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 #else
                                                  MLO_WEI_BSTRIDE
 #endif
-        )
+    )
     {
         // read weights
 
@@ -104,7 +104,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 #else
                                                 MLO_WEI_CHANNEL_STRIDE
 #endif
-            )
+        )
         {
             __constant _FLOAT* w2 = w1;
             for(uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c,
@@ -114,7 +114,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 #else
                                                    MLO_WEI_BSTRIDE
 #endif
-                )
+            )
             {
 
                 weights[o][c] = *w2;
@@ -192,7 +192,7 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
 #endif
                   __global _FLOAT* __restrict out_ptr,
                   UNUSED _FLOAT dummy_val // nothing
-                  )
+)
 {
 
     _FLOAT weights[MLO_N_LCL_OUT_MAPS][MLO_N_LCL_IN_MAPS];

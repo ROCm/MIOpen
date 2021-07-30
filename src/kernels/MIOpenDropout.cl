@@ -187,8 +187,8 @@ void mat_pow(uint* matrixP, const uint* matrix, unsigned long long power)
 
 void xorwow_skipahead(unsigned long long skp,
                       prngStates* state,
-                      constant uint skipahead_mat[XORWOW_PRECALC_MATRICES_NUM]
-                                                 [XORWOW_PRECALC_MATRICES_SZ])
+                      constant uint
+                          skipahead_mat[XORWOW_PRECALC_MATRICES_NUM][XORWOW_PRECALC_MATRICES_SZ])
 {
     uint xor_vec[XORWOW_DIM];
     uint* p = &(state->x);
@@ -200,10 +200,9 @@ void xorwow_skipahead(unsigned long long skp,
     uint mat_idx = 0;
     while(skp
 #if(XORWOW_PRECALC_MATRICES_NUM * XORWOW_JUMP_LOG2) < 64
-          &&
-          mat_idx < XORWOW_PRECALC_MATRICES_NUM
+          && mat_idx < XORWOW_PRECALC_MATRICES_NUM
 #endif
-          )
+    )
     {
         uint mat[XORWOW_PRECALC_MATRICES_SZ];
         copy_const_arr(mat, skipahead_mat[mat_idx], XORWOW_PRECALC_MATRICES_SZ);

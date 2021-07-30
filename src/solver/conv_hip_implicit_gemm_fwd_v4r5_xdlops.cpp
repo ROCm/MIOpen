@@ -102,8 +102,8 @@ PerformanceImplicitGemmForwardV4R5Xdlops::PerformanceImplicitGemmForwardV4R5Xdlo
 {
 }
 
-bool PerformanceImplicitGemmForwardV4R5Xdlops::
-operator==(const PerformanceImplicitGemmForwardV4R5Xdlops& other) const
+bool PerformanceImplicitGemmForwardV4R5Xdlops::operator==(
+    const PerformanceImplicitGemmForwardV4R5Xdlops& other) const
 {
     // clang-format off
     return GemmMPerBlock == other.GemmMPerBlock
@@ -666,7 +666,7 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsReallyValid(const ConvolutionCo
     }
 
     // check LDS allocation
-    std::size_t lds_size = 0;
+    std::size_t lds_size      = 0;
     std::tie(lds_size, valid) = CalculateLdsNumberOfByte(ctx);
 
     return (valid and lds_size <= get_lds_max_number_of_byte());
@@ -836,7 +836,7 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsFastToBeUsedForTuning(
                          std::ignore,
                          SrcDataPerRead_B,
                          DstDataPerWrite_GemmKPack,
-                         valid) = CalculateGemmBBlockCopyPerformanceParameters(ctx);
+                         valid)               = CalculateGemmBBlockCopyPerformanceParameters(ctx);
                 if(valid)
                 {
                     if((SrcDataPerRead_B > 1) &&

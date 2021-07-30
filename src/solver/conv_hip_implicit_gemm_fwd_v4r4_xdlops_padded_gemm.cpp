@@ -91,8 +91,8 @@ PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::
 {
 }
 
-bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::
-operator==(const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm& other) const
+bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::operator==(
+    const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm& other) const
 {
     // clang-format off
     return GemmMPerBlock == other.GemmMPerBlock
@@ -661,7 +661,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsReallyValid(
     }
 
     // check LDS allocation
-    std::size_t lds_size = 0;
+    std::size_t lds_size      = 0;
     std::tie(lds_size, valid) = CalculateLdsNumberOfByte(ctx);
 
     return (valid and lds_size <= get_lds_max_number_of_byte());
@@ -831,7 +831,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsFastToBeUsedForTuni
                          std::ignore,
                          SrcDataPerRead_GemmN,
                          DstDataPerWrite_GemmKPack,
-                         valid) = CalculateGemmBBlockCopyPerformanceParameters(ctx);
+                         valid)               = CalculateGemmBBlockCopyPerformanceParameters(ctx);
                 if(valid)
                 {
                     if((SrcDataPerRead_GemmN > 1) &&
@@ -1094,11 +1094,10 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
     {
         if((ctx.n_inputs == 3 && ctx.n_outputs == 1 && ctx.in_width == 227 &&
             ctx.in_height == 227 && ctx.kernel_size_w == 3 && ctx.kernel_size_h == 3) //
-           ||
-           (ctx.n_inputs == 64 && ctx.n_outputs == 1 && ctx.in_width == 112 &&
-            ctx.in_height == 112 && ctx.kernel_size_w == 3 && ctx.kernel_size_h == 3 &&
-            ctx.kernel_stride_w >= 2 && ctx.kernel_stride_h >= 2 && ctx.kernel_dilation_w >= 3 &&
-            ctx.kernel_dilation_h >= 3))
+           || (ctx.n_inputs == 64 && ctx.n_outputs == 1 && ctx.in_width == 112 &&
+               ctx.in_height == 112 && ctx.kernel_size_w == 3 && ctx.kernel_size_h == 3 &&
+               ctx.kernel_stride_w >= 2 && ctx.kernel_stride_h >= 2 && ctx.kernel_dilation_w >= 3 &&
+               ctx.kernel_dilation_h >= 3))
         {
             return false;
         }

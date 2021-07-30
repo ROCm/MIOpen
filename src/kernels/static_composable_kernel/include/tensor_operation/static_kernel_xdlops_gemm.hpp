@@ -15,13 +15,13 @@ enum struct mfma_instr
     mfma_f32_4x4x1xf32,
     mfma_f32_32x32x2xf32, // k reduction
     mfma_f32_16x16x4xf32, // k reduction
-    // fp16
+                          // fp16
     mfma_f32_32x32x4f16,
     mfma_f32_16x16x4f16,
     mfma_f32_4x4x4f16,
     mfma_f32_32x32x8f16,  // k reduction
     mfma_f32_16x16x16f16, // k reduction
-    // bfp16
+                          // bfp16
     mfma_f32_32x32x2bf16,
     mfma_f32_16x16x2bf16,
     mfma_f32_4x4x2bf16,
@@ -635,10 +635,8 @@ struct XdlopsGemm_t
                     }
                 }
             }
-
         }).Else([&](auto) {
             static_if<IsABroadcast>{}([&](auto) {
-
                 for(index_t m_i = 0; m_i < MRepeats; ++m_i)
                 {
                     for(index_t n_i = 0; n_i < NRepeats; ++n_i)
@@ -674,7 +672,6 @@ struct XdlopsGemm_t
                         }
                     }
                 }
-
             }).Else([&](auto) {
                 // BBroadcast
                 for(index_t k = 0; k < K; ++k)
@@ -749,17 +746,14 @@ struct XdlopsGemm_t
         const index_t laneId = get_thread_local_1d_id() % mfma_type.wave_size;
 
         static_if<!IsKReduction>{}([&](auto) {
-
             for(index_t m_i = 0; m_i < MRepeats; ++m_i)
-                for(index_t k_i               = 0; k_i < KPerThread; ++k_i)
+                for(index_t k_i = 0; k_i < KPerThread; ++k_i)
                     a[k_i + m_i * KPerThread] = p_a_wave[k_i * M + laneId + MPerXdlops * m_i];
 
             for(index_t n_i = 0; n_i < NRepeats; ++n_i)
-                for(index_t k_i               = 0; k_i < KPerThread; ++k_i)
+                for(index_t k_i = 0; k_i < KPerThread; ++k_i)
                     b[k_i + n_i * KPerThread] = p_b_wave[k_i * N + laneId + NPerXdlops * n_i];
-
         }).Else([&](auto) {
-
             const index_t blk_id = laneId / mfma_type.num_threads_blk;
             const index_t blk_td = laneId % mfma_type.num_threads_blk;
 
@@ -768,7 +762,6 @@ struct XdlopsGemm_t
                 a[k_i] = p_a_wave[(k_i * mfma_type.num_input_blks + blk_id) * M + blk_td];
                 b[k_i] = p_b_wave[(k_i * mfma_type.num_input_blks + blk_id) * N + blk_td];
             }
-
         });
 
 #if CK_WORKAROUND_SWDEV_229564

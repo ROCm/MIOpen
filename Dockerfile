@@ -43,7 +43,7 @@ apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unau
     build-essential \
     cmake \
     comgr \
-    clang-format-3.8 \
+    clang-format-10 \
     doxygen \
     g++ \
     gdb \

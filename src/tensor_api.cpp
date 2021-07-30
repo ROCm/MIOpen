@@ -62,7 +62,7 @@ extern "C" miopenStatus_t miopenGet4dTensorDescriptor(miopenTensorDescriptor_t t
 
     MIOPEN_LOG_FUNCTION(tensorDesc, dataType, n, c, h, w, nStride, cStride, hStride, wStride);
     return miopen::try_([&] {
-        miopen::deref(dataType) = miopen::deref(tensorDesc).GetType();
+        miopen::deref(dataType)       = miopen::deref(tensorDesc).GetType();
         miopen::tie_deref(n, c, h, w) = miopen::tien<4>(miopen::deref(tensorDesc).GetLengths());
         miopen::tie_deref(nStride, cStride, hStride, wStride) =
             miopen::tien<4>(miopen::deref(tensorDesc).GetStrides());
