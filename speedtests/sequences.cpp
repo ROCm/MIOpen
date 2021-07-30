@@ -177,7 +177,7 @@ struct BoostSequence
     constexpr const_iterator end() const { return arr.end(); }
 
     private:
-    static constexpr std::size_t count = sizeof...(values);
+    static constexpr std::size_t count                         = sizeof...(values);
     static constexpr std::array<int, BoostSequence::count> arr = {{values...}};
 };
 
@@ -393,8 +393,7 @@ struct SpeedTestDriver : public test_driver
         switch(instance)
         {
         case Instances::PerCall: TestCore(rule_getter); break;
-        case Instances::Single:
-        {
+        case Instances::Single: {
             const auto inst = rule_getter();
             TestCore([&inst]() -> const auto& { return inst; });
             break;

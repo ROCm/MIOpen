@@ -464,5 +464,5 @@ struct intrin_mfma_f32_4x4x2bf16<8, 64>
         return reg_c;
     }
 };
-}
+} // namespace ck
 #endif

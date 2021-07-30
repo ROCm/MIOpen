@@ -125,7 +125,6 @@ void ReadonlyRamDb::ParseAndLoadDb(std::istream& input_stream,
 void ReadonlyRamDb::Prefetch(const std::string& path, bool warn_if_unreadable)
 {
     Measure("Prefetch", [this, &path, warn_if_unreadable]() {
-
         constexpr bool isEmbedded = MIOPEN_EMBED_DB;
         if(!testing_find_db_path_override() && isEmbedded)
         {
@@ -148,7 +147,6 @@ void ReadonlyRamDb::Prefetch(const std::string& path, bool warn_if_unreadable)
             auto input_stream = std::ifstream{path};
             ParseAndLoadDb(input_stream, path, warn_if_unreadable);
         }
-
     });
 }
 } // namespace miopen

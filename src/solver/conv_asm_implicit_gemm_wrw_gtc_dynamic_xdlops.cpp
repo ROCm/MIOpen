@@ -532,7 +532,7 @@ static inline std::tuple<bool, // is valid
                          int,  // block_size
                          int,  // grid_size
                          int>  // gemm_k_split
-    FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
+FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
 {
     const auto& n         = ctx.batch_sz;
     const auto& k         = ctx.n_inputs;
@@ -886,9 +886,9 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
     kernel.kernel_name = kernel_name;
     kernel.g_wk.clear();
     /* Note here, for API like hipHccModuleLaunchKernel(), hipExtModuleLaunchKernel()
-    * grid dims is in unit of work item.
-    * But for api like hipModuleLaunchKernel(), grid dim is in unit of block.
-    */
+     * grid dims is in unit of work item.
+     * But for api like hipModuleLaunchKernel(), grid dim is in unit of block.
+     */
     kernel.g_wk.push_back(grid_size * block_size);
     kernel.g_wk.push_back(1);
     kernel.g_wk.push_back(1);

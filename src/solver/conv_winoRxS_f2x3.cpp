@@ -278,8 +278,8 @@ bool PerformanceConfigConvBinWinogradRxSf2x3::IsValid(const ConvolutionContext& 
     return true;
 }
 
-inline bool PerformanceConfigConvBinWinogradRxSf2x3::
-operator==(const PerformanceConfigConvBinWinogradRxSf2x3& other) const
+inline bool PerformanceConfigConvBinWinogradRxSf2x3::operator==(
+    const PerformanceConfigConvBinWinogradRxSf2x3& other) const
 {
     return n_groups == other.n_groups;
 }
@@ -524,11 +524,10 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
     if(!IsWarned)
     {
         if(params.GetStream().GetMaxHardwareComputeUnits() > MAX_CU_LIMIT)
-            MIOPEN_LOG_WE(SolverDbId(*this) << ": GPU has "
-                                            << params.GetStream().GetMaxHardwareComputeUnits()
-                                            << "CUs, but this solver supports max "
-                                            << MAX_CU_LIMIT
-                                            << "and thus may show sub-optimal performance.");
+            MIOPEN_LOG_WE(SolverDbId(*this)
+                          << ": GPU has " << params.GetStream().GetMaxHardwareComputeUnits()
+                          << "CUs, but this solver supports max " << MAX_CU_LIMIT
+                          << "and thus may show sub-optimal performance.");
         IsWarned = true;
     }
 

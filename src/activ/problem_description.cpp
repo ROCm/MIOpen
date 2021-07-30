@@ -41,14 +41,14 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     const auto x_elem_sz = xDesc.GetElementSize();
 
     const auto x_width2D =
-        ((x_lens.size() == 2) ? x_lens[1] : (x_lens.size() == 3) ? x_lens[2] : (x_lens.size() == 4)
-                                                                                   ? x_lens[3]
-                                                                                   : x_lens[4]);
+        ((x_lens.size() == 2)
+             ? x_lens[1]
+             : (x_lens.size() == 3) ? x_lens[2] : (x_lens.size() == 4) ? x_lens[3] : x_lens[4]);
 
     const auto height =
-        (x_lens.size() == 2) ? x_lens[0] : (x_lens.size() == 3) ? x_lens[1] : (x_lens.size() == 4)
-                                                                                  ? x_lens[2]
-                                                                                  : x_lens[3];
+        (x_lens.size() == 2)
+            ? x_lens[0]
+            : (x_lens.size() == 3) ? x_lens[1] : (x_lens.size() == 4) ? x_lens[2] : x_lens[3];
 
     const auto packed = xDesc.IsPacked() && yDesc.IsPacked();
 

@@ -63,7 +63,7 @@ MIOpenBatchNormActivBwdPerActivation(const __global _FLOAT* __restrict x_in,
                                      __global _FLOAT* __restrict bn_out_dev,
                                      __global _FLOAT* __restrict bn_dyin_dev
 #endif
-                                     )
+)
 {
 
     int xgid    = get_global_id(0);

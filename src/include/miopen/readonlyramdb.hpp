@@ -61,10 +61,8 @@ class ReadonlyRamDb
 
         if(!record.ParseContents(it->second.content))
         {
-            MIOPEN_LOG_E("Error parsing payload under the key: " << problem << " form file "
-                                                                 << db_path
-                                                                 << "#"
-                                                                 << it->second.line);
+            MIOPEN_LOG_E("Error parsing payload under the key: "
+                         << problem << " form file " << db_path << "#" << it->second.line);
             MIOPEN_LOG_E("Contents: " << it->second.content);
             return boost::none;
         }

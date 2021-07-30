@@ -289,7 +289,7 @@ int mloConvForwarDirectOnHost(
     const _T*
         weights_ptr, // weights n output channels x n input channels x filter size_y x filter size_x
     const _T* bias_ptr = NULL // bias, NULL if no bias
-    )
+)
 {
     int ret                   = 0;
     const _T* run_bot_ptr     = bot_ptr;
@@ -386,7 +386,7 @@ int mloBackwardMMOnHost(int kernel_size_h,
                         int /*bot_df_channel_stride*/,
                         int /*bot_df_stride*/
 
-                        )
+)
 {
 
     int col_we_df_width     = top_width * top_height;
@@ -465,7 +465,7 @@ int mloBackwardDirectOnHost(
                        // x width (scaled) x height (scaled)
     const _T*
         weights_ptr // weights n output channels x n input channels x filter size_y x filter size_x
-    )
+)
 {
     int ret                   = 0;
     _T* run_bot_ptr           = bot_ptr;
@@ -564,7 +564,7 @@ void mloPrepad(int o,
                _T* new_bot_ptr,
                const _T* bot_ptr // input "tensor" - batch x channels (input images, feature maps,
                                  // slices) x width x height
-               )
+)
 {
     int src_j   = j - pad_h;
     int src_i   = i - pad_w;
@@ -600,7 +600,7 @@ int mloDirectSPHostPrepad(_T padding_value, // padding value
                           _T* new_bot_ptr,
                           const _T* bot_ptr // input "tensor" - batch x channels (input images,
                                             // feature maps, slices) x width x height
-                          )
+)
 {
     int ret = 0;
     for(int o = 0; o < n_batchs; ++o)
@@ -746,7 +746,7 @@ int mloDirectSPConvHost5x5(int MLO_GRP_SZ1,
                                         // feature maps, slices) x width (scaled) x height (scaled)
                            const _T* /*bias_ptr = NULL*/ // bias, NULL if no bias
 
-                           )
+)
 {
     int j_loops =
         (MLO_TOP_HEIGHT + MLO_GRP_SZ1 * MLO_OUT_TILE1 - 1) / (MLO_GRP_SZ1 * MLO_OUT_TILE1);
@@ -954,7 +954,7 @@ int mloDirectSPHost(
                  // width (scaled) x height (scaled)
     const _T* bias_ptr = NULL // bias, NULL if no bias
 
-    )
+)
 {
     int ret = 0;
     if(do_input_copy)
@@ -977,7 +977,7 @@ int mloDirectSPHost(
                                   new_bot_ptr,
                                   bot_ptr // input "tensor" - batch x channels (input images,
                                           // feature maps, slices) x width x height
-                                  );
+        );
     }
 
     mloDirectSPHostIntlWeights<_T>(forward,       // forwad = 1, backward = 0
@@ -1044,7 +1044,7 @@ bool mloVerify(int spatial_dim,
                bool get_error_pos
                //	int dir,
                //	std::string name
-               )
+)
 
 {
 

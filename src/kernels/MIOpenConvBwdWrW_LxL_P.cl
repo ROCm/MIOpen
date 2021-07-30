@@ -492,8 +492,8 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 
                 barrier(CLK_LOCAL_MEM_FENCE);
 
-// process
-// algorithm
+                // process
+                // algorithm
 
 #if 1
                 //				if (w_blk_idx < MLO_MAX_WEI_BLK_LOOP)
@@ -655,8 +655,9 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 
         for(uint o = 0;
             w_blk_idx <
-                MLO_MAX_WEI_BLK_LOOP /* && lcl_id < MLO_OUT_WEI_SCAN_BLK * MLO_MAX_WEI_BLK_LOOP * MLO_WEI_BLK_SZ0 * MLO_WEI_WKITEM*/ &&
-            o < MLO_N_LCL_OUT_MAPS;
+                MLO_MAX_WEI_BLK_LOOP /* && lcl_id < MLO_OUT_WEI_SCAN_BLK * MLO_MAX_WEI_BLK_LOOP *
+                                        MLO_WEI_BLK_SZ0 * MLO_WEI_WKITEM*/
+            && o < MLO_N_LCL_OUT_MAPS;
             ++o)
         {
             uint w = 0;

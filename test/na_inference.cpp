@@ -235,7 +235,7 @@ struct na_fusion_driver : test_driver
 
         int input_c, input_h, input_w;
         std::tie(std::ignore, input_c, input_h, input_w) = miopen::tien<4>(input.desc.GetLengths());
-        ptr_activdesc = GetManagedActivDesc();
+        ptr_activdesc                                    = GetManagedActivDesc();
         miopenSetActivationDescriptor(ptr_activdesc.get(), activ_mode, alpha, beta, gamma);
 
         if(batchnormMode == 1)

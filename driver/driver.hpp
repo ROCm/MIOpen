@@ -189,15 +189,15 @@ class Driver
     virtual ~Driver() { miopenDestroy(handle); }
 
     // TODO: add timing APIs
-    virtual int AddCmdLineArgs() = 0;
+    virtual int AddCmdLineArgs()                         = 0;
     virtual int ParseCmdLineArgs(int argc, char* argv[]) = 0;
-    virtual InputFlags& GetInputFlags()  = 0;
-    virtual int GetandSetData()          = 0;
-    virtual int AllocateBuffersAndCopy() = 0;
-    virtual int RunForwardGPU()          = 0;
-    virtual int VerifyForward()          = 0;
-    virtual int RunBackwardGPU()         = 0;
-    virtual int VerifyBackward()         = 0;
+    virtual InputFlags& GetInputFlags()                  = 0;
+    virtual int GetandSetData()                          = 0;
+    virtual int AllocateBuffersAndCopy()                 = 0;
+    virtual int RunForwardGPU()                          = 0;
+    virtual int VerifyForward()                          = 0;
+    virtual int RunBackwardGPU()                         = 0;
+    virtual int VerifyBackward()                         = 0;
 
     protected:
     template <typename Tgpu>

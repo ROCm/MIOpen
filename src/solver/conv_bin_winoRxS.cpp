@@ -457,22 +457,9 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle, const AnyInvokeParams& ctx) {
                 MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
-                                    << " n_groups="
-                                    << n_groups_
-                                    << " flags="
-                                    << flags
-                                    << " R="
-                                    << R
-                                    << " S="
-                                    << S
-                                    << " pad_H="
-                                    << pad_H
-                                    << " pad_W="
-                                    << pad_W
-                                    << " out_H="
-                                    << out_H
-                                    << " out_W="
-                                    << out_W);
+                                    << " n_groups=" << n_groups_ << " flags=" << flags << " R=" << R
+                                    << " S=" << S << " pad_H=" << pad_H << " pad_W=" << pad_W
+                                    << " out_H=" << out_H << " out_W=" << out_W);
 
                 decltype(auto) k       = handle.Run(kernels[0]);
                 decltype(auto) fwd_ctx = ctx.CastTo<conv::DataInvokeParams>();

@@ -265,7 +265,6 @@ struct conv_forward : output_tensor_fixture
         miopenConvAlgoPerf_t perf;
 
         std::thread([&] {
-
             STATUS(miopenFindConvolutionForwardAlgorithm(
                 handle,
                 inputTensor,
@@ -295,7 +294,6 @@ struct conv_forward : output_tensor_fixture
                                             out_dev,
                                             fwd_workspace_dev,
                                             sz_fwd_workspace));
-
         }).join();
 
         float time;
