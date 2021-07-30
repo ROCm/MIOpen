@@ -2404,8 +2404,7 @@ unsigned int gamma(unsigned int arg)
        0.0114684895434781459556 }; double t = arg + 4.65, s = p[0]; for(unsigned int i=0; i<5; ++i)
                                 s += p[i+1] / (arg+i);
                         return std::log(s) + (arg-0.5)*std::log(t) - t;
-*/ static const f31 pi(0xC90FDAA2, 1),
-        lbe(0xB8AA3B29, 0);
+*/ static const f31 pi(0xC90FDAA2, 1), lbe(0xB8AA3B29, 0);
     unsigned int abs = arg & 0x7FFF, sign = arg & 0x8000;
     bool bsign = sign != 0;
     f31 z(abs), x = sign ? (z + f31(0x80000000, 0)) : z, t = x + f31(0x94CCCCCD, 2),

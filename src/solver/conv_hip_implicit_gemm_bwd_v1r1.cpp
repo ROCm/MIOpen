@@ -716,9 +716,11 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1::GetSolution(
     construction_parameters.g_wk.push_back(1);
     construction_parameters.g_wk.push_back(1);
 
-    construction_parameters.kernel_file =
-        ctx.Is3d() ? "gridwise_convolution_backward_data_implicit_gemm_v1r1_ncdhw_kczyx_nkdhw.cpp"
-                   : "gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw.cpp";
+    construction_parameters.kernel_file = ctx.Is3d()
+                                              ? "static_kernel_gridwise_convolution_backward_data_"
+                                                "implicit_gemm_v1r1_ncdhw_kczyx_nkdhw.cpp"
+                                              : "static_kernel_gridwise_convolution_backward_data_"
+                                                "implicit_gemm_v1r1_nchw_kcyx_nkhw.cpp";
 
     construction_parameters.kernel_name =
         ctx.Is3d() ? "gridwise_convolution_backward_data_implicit_gemm_v1r1_ncdhw_kczyx_nkdhw"
@@ -819,7 +821,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1::GetSolution(
         std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size) +
         std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
-        get_ck_common_compiler_flag(ctx) +
+        get_static_ck_common_compiler_flag(ctx) +
         ctx.general_compile_options;
     // clang-format on
     if(ctx.Is3d())

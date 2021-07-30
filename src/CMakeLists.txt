@@ -233,13 +233,14 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_bwd_v1r1.cpp
     solver/conv_hip_implicit_gemm_bwd_v4r1.cpp
     solver/conv_hip_implicit_gemm_bwd_v4r1_xdlops.cpp
+    solver/conv_hip_implicit_gemm_bwd_v1r1_xdlops.cpp
+    solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops.cpp
+    solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops_padded_gemm.cpp
+    solver/conv_ck_igemm_fwd_v6r1_dlops_nchw.cpp
     solver/conv_asm_implicit_gemm_v4r1_dynamic.cpp
     solver/conv_asm_implicit_gemm_wrw_v4r1_dynamic.cpp
     solver/conv_asm_implicit_gemm_wrw_gtc_dynamic_xdlops.cpp
-    solver/conv_hip_implicit_gemm_bwd_v1r1_xdlops.cpp
     solver/conv_asm_implicit_gemm_bwd_v4r1_dynamic.cpp
-    solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops.cpp
-    solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops_padded_gemm.cpp
     solver/conv_asm_implicit_gemm_gtc_fwd.cpp
     solver/conv_asm_implicit_gemm_gtc_bwd.cpp
     solver/conv_asm_implicit_gemm_gtc_perf_config.cpp
@@ -262,8 +263,10 @@ if(MIOPEN_ENABLE_SQLITE AND MIOPEN_ENABLE_SQLITE_KERN_CACHE)
 endif()
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
-    file(GLOB_RECURSE COMPOSABLE_KERNEL_INCLUDE "kernels/composable_kernel/include/*/*.hpp")
-    file(GLOB_RECURSE COMPOSABLE_KERNEL_SOURCE "kernels/composable_kernel/src/*/*.cpp")
+    file(GLOB_RECURSE STATIC_COMPOSABLE_KERNEL_INCLUDE "kernels/static_composable_kernel/include/*/*.hpp")
+    file(GLOB_RECURSE STATIC_COMPOSABLE_KERNEL_SOURCE "kernels/static_composable_kernel/src/*/*.cpp")
+    file(GLOB_RECURSE COMPOSABLE_KERNEL_INCLUDE "composable_kernel/composable_kernel/include/*/*.hpp")
+    file(GLOB_RECURSE COMPOSABLE_KERNEL_SOURCE "composable_kernel/composable_kernel/src/*/*.cpp")
     file(GLOB_RECURSE COMPOSABLE_KERNEL_DYNAMIC_ASM_SOURCE "kernels/dynamic_igemm/*.s")
     file(GLOB_RECURSE COMPOSABLE_KERNEL_DYNAMIC_ASM_INCLUDE "kernels/dynamic_igemm/*.inc")
     file(GLOB_RECURSE COMPOSABLE_KERNEL_DYNAMIC_CPP_SOURCE "kernels/dynamic_igemm/*.cpp")
@@ -271,6 +274,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     file(GLOB_RECURSE GPU_REFERENCE_KERNEL_ASM "kernels/gpu_reference_kernel/*.s")
 
     set(MIOPEN_KERNEL_INCLUDES
+        ${STATIC_COMPOSABLE_KERNEL_INCLUDE}
         ${COMPOSABLE_KERNEL_INCLUDE}
         ${COMPOSABLE_KERNEL_DYNAMIC_ASM_INCLUDE}
         include/miopen/implicitgemm_params.hpp
@@ -354,6 +358,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         )
 
     set(MIOPEN_KERNELS
+        ${STATIC_COMPOSABLE_KERNEL_SOURCE}
         ${COMPOSABLE_KERNEL_SOURCE}
         ${COMPOSABLE_KERNEL_DYNAMIC_ASM_SOURCE}
         ${COMPOSABLE_KERNEL_DYNAMIC_CPP_SOURCE}
