@@ -45,21 +45,24 @@ import os
 import sys
 import re
 sys.path.insert(0, os.path.abspath('.'))
-import recommonmark
-from recommonmark.parser import CommonMarkParser
-from recommonmark.transform import AutoStructify
 
 
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
 #
-# needs_sphinx = '1.0'
+# MyST-Parser requires Sphinx 2.1 or newer
+needs_sphinx = '2.1'
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['breathe','sphinx.ext.mathjax','sphinx.ext.viewcode']
+extensions = [
+    'breathe',
+    'sphinx.ext.mathjax',
+    'sphinx.ext.viewcode',
+    'myst_parser',
+]
 
 # doxygen_xml_output = ""
 # breathe_projects = { "miopen": doxygen_xml_output }
@@ -68,21 +71,10 @@ extensions = ['breathe','sphinx.ext.mathjax','sphinx.ext.viewcode']
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
-# -- Source parser for markdown -------------------------------------------
-
-source_parsers = {
-    '.md': CommonMarkParser
-}
-
-#source_parsers = {
-#   '.md': 'recommonmark.parser.CommonMarkParser',
-#}
-
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
 source_suffix = ['.rst', '.md']
-#source_suffix = '.rst'
 
 # The master toctree document.
 master_doc = 'index'
@@ -211,13 +203,3 @@ texinfo_documents = [
 
 primary_domain = 'cpp'
 cpp_id_attributes = ['MIOPEN_EXPORT']
-
-
-# At top on conf.py (with other import statements)
-# At the bottom of conf.py
-def setup(app):
-    app.add_config_value('recommonmark_config', {
-            'url_resolver': lambda url: github_doc_root + url,
-            'auto_toc_tree_section': 'Contents',
-            }, True)
-    app.add_transform(AutoStructify)
