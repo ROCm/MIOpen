@@ -129,10 +129,22 @@
 #define MIO_BN_MAXN 65
 #endif
 
+// TODO: Spaghetti code!!!
+// MIOPEN_USE_AMDGCN may be defined before this header.
+#ifndef MIOPEN_USE_AMDGCN
+#if defined(__AMDGCN__) && !(defined(MIO_BN_GFX1030) && MIO_BN_GFX1030 == 1)
+#define MIOPEN_USE_AMDGCN 1
+#else
+#define MIOPEN_USE_AMDGCN 0
+#endif
+#endif
+// MIOPEN_USE_AMDGCN is guaranteed to be defined at this point.
+
 #ifndef MIO_BN_NODPP
 #define MIO_BN_NODPP 0
 #elif(MIO_BN_NODPP == 1 && MIO_BN_VARIANT != 0)
-#undef __AMDGCN__
+#undef MIOPEN_USE_AMDGCN
+#define MIOPEN_USE_AMDGCN 0
 #endif
 
 #ifndef MIO_SAVE_MEAN_VARIANCE
