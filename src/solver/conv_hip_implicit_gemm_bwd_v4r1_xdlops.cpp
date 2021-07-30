@@ -396,7 +396,7 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsReallyValid(const ConvolutionCo
     if(!valid)
         return false;
 
-    std::size_t lds_size = 0;
+    std::size_t lds_size      = 0;
     std::tie(lds_size, valid) = CalculateLdsNumberOfByte(ctx);
 
     return (valid and lds_size <= 64 * 1024);
@@ -540,8 +540,8 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::PerformanceImplicitGemmBwdDataV4R1Xdlo
 {
 }
 
-bool PerformanceImplicitGemmBwdDataV4R1Xdlops::
-operator==(const PerformanceImplicitGemmBwdDataV4R1Xdlops& other) const
+bool PerformanceImplicitGemmBwdDataV4R1Xdlops::operator==(
+    const PerformanceImplicitGemmBwdDataV4R1Xdlops& other) const
 {
     // clang-format off
     return GemmNPerBlock == other.GemmNPerBlock

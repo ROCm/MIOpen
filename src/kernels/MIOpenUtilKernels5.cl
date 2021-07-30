@@ -125,7 +125,7 @@ static inline void load_data(const uint in_off,
     }
 #else
 
-    *((WRITE_TYPE*)in_buf)           = *((const global WRITE_TYPE*)(in + in_off));
+    *((WRITE_TYPE*)in_buf) = *((const global WRITE_TYPE*)(in + in_off));
 
 #endif
 }

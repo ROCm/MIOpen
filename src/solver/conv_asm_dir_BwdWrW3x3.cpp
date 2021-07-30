@@ -111,8 +111,8 @@ PerformanceConfigAsmDirect3x3WrW::PerformanceConfigAsmDirect3x3WrW(
 {
 }
 
-inline bool PerformanceConfigAsmDirect3x3WrW::
-operator==(const PerformanceConfigAsmDirect3x3WrW& other) const
+inline bool
+PerformanceConfigAsmDirect3x3WrW::operator==(const PerformanceConfigAsmDirect3x3WrW& other) const
 {
     // clang-format off
     return limit_wave_cnt == other.limit_wave_cnt

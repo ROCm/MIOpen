@@ -192,8 +192,7 @@ boost::optional<DbRecord> PlainTextDb::FindRecordUnsafe(const std::string& key,
         if(contents.empty())
         {
             MIOPEN_LOG_E("None contents under the key: " << current_key << " form file " << filename
-                                                         << "#"
-                                                         << n_line);
+                                                         << "#" << n_line);
             continue;
         }
         MIOPEN_LOG_I2("Contents found: " << contents);
@@ -204,9 +203,7 @@ boost::optional<DbRecord> PlainTextDb::FindRecordUnsafe(const std::string& key,
         if(!is_parse_ok)
         {
             MIOPEN_LOG_E("Error parsing payload under the key: " << current_key << " form file "
-                                                                 << filename
-                                                                 << "#"
-                                                                 << n_line);
+                                                                 << filename << "#" << n_line);
             MIOPEN_LOG_E("Contents: " << contents);
         }
         // A record with matching key have been found.

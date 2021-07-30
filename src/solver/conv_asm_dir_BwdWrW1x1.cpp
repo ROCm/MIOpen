@@ -274,8 +274,8 @@ PerformanceConfigConvAsmBwdWrW1x1::PerformanceConfigConvAsmBwdWrW1x1(int chunk_s
 {
 }
 
-inline bool PerformanceConfigConvAsmBwdWrW1x1::
-operator==(const PerformanceConfigConvAsmBwdWrW1x1& other) const
+inline bool
+PerformanceConfigConvAsmBwdWrW1x1::operator==(const PerformanceConfigConvAsmBwdWrW1x1& other) const
 {
     // clang-format off
     return chunk_size == other.chunk_size
@@ -560,9 +560,9 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     {
         // subsampled input, in_height equals to image size after downsampling
         int in_batch_stride = params.in_stride * params.in_height * params.n_outputs;
-        int write_unit      = (params.in_width % 4 == 0) ? 4 : (params.in_width % 3 == 0)
-                                                              ? 3
-                                                              : (params.in_width % 2 == 0) ? 2 : 1;
+        int write_unit      = (params.in_width % 4 == 0)
+                             ? 4
+                             : (params.in_width % 3 == 0) ? 3 : (params.in_width % 2 == 0) ? 2 : 1;
         int n_grp0_size0 = 256;
 
         const auto subsample_kernel_compilation_options =

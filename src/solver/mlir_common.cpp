@@ -84,7 +84,7 @@ std::string ConstructBuildOptions(const ConvolutionContext& ctx,
     // Arguments for mlir-miopen-driver.
     using CI = ConvolutionContextInterpreter;
 
-    std::string in_layout = InsertGToLayout(CI::GetInputLayout(ctx), 'C');
+    std::string in_layout  = InsertGToLayout(CI::GetInputLayout(ctx), 'C');
     std::string fil_layout = InsertGToLayout(CI::GetFilterLayout(ctx), 'N');
     std::string out_layout = InsertGToLayout(CI::GetOutputLayout(ctx), 'C');
 

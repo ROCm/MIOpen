@@ -784,7 +784,7 @@ static std::tuple<bool, // is suitable kernel found
                   std::string, // kernel_name
                   int,         // block_size
                   int>         // grid_size
-    FindImplicitGemmGtcDynamicBwdKernel(const ConvolutionContext& ctx)
+FindImplicitGemmGtcDynamicBwdKernel(const ConvolutionContext& ctx)
 {
     auto tunables = GetImplicitGemmGtcDynamicBwdTunablesList(ctx);
 

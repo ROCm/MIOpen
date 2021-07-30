@@ -64,7 +64,7 @@ void RunBackwardWeightsCPUVerify(std::vector<_Tcheck>& dwei_host,
                                  const int dilation_h,
                                  const int dilation_w
                                  //	, miopenConvolutionMode_t mode
-                                 )
+)
 {
     assert(in_wstride == 1);
     assert(wei_wstride == 1);

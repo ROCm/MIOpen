@@ -43,33 +43,27 @@ void visit_tensor_size(std::size_t n, F f)
 {
     switch(n)
     {
-    case 0:
-    {
+    case 0: {
         f(std::integral_constant<std::size_t, 0>{});
         break;
     }
-    case 1:
-    {
+    case 1: {
         f(std::integral_constant<std::size_t, 1>{});
         break;
     }
-    case 2:
-    {
+    case 2: {
         f(std::integral_constant<std::size_t, 2>{});
         break;
     }
-    case 3:
-    {
+    case 3: {
         f(std::integral_constant<std::size_t, 3>{});
         break;
     }
-    case 4:
-    {
+    case 4: {
         f(std::integral_constant<std::size_t, 4>{});
         break;
     }
-    case 5:
-    {
+    case 5: {
         f(std::integral_constant<std::size_t, 5>{});
         break;
     }
@@ -343,7 +337,7 @@ tensor<T> make_tensor(const std::vector<std::size_t>& dims)
 
     tmpDims.resize(dims.size());
 
-    for(int i      = 0; i < tmpDims.size(); i++)
+    for(int i = 0; i < tmpDims.size(); i++)
         tmpDims[i] = static_cast<int>(dims[i]);
 
     return tensor<T>{miopen::TensorDescriptor{
