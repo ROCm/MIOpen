@@ -174,9 +174,8 @@ static std::tuple<std::string, // kernel_name
                   size_t,      // block_size
                   size_t,      // grid_size
                   size_t>      // occupancy
-    GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel(
-        const ConvolutionContext& ctx,
-        const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC& config)
+GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel(
+    const ConvolutionContext& ctx, const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC& config)
 {
     // const auto& n     = ctx.batch_sz;
     const auto& k = ctx.n_inputs;
@@ -269,8 +268,8 @@ size_t PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::ComputeKernelOccupancy(
         lds_usage = lds_single;
     }
 
-    MIOPEN_LOG_T(
-        "lds_usage=" << lds_usage << ", acc_usage=" << acc_usage << ", vgpr_usage=" << vgpr_usage);
+    MIOPEN_LOG_T("lds_usage=" << lds_usage << ", acc_usage=" << acc_usage
+                              << ", vgpr_usage=" << vgpr_usage);
 
     occupancy =
         std::min(lds_size / lds_usage, std::min(num_acc / acc_usage, num_vpgrs / vgpr_usage));
@@ -309,7 +308,7 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
     {
         int mp, np, kp;
         std::tie(mp, np, kp) = tile;
-        bool found = false;
+        bool found           = false;
         for(const auto& config : c_list)
         {
             if(config.precision == miopenFloat)
@@ -331,7 +330,7 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
     {
         int mp, np, kp;
         std::tie(mp, np, kp) = tile;
-        bool found = false;
+        bool found           = false;
         for(const auto& config : c_list)
         {
             if(config.precision == miopenHalf)

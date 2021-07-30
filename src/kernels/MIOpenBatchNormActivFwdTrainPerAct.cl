@@ -61,7 +61,7 @@ __kernel void MIOpenBatchNormActivFwdTrainPerActivation(
     __global _FLOAT_PREC* __restrict savedMean         /*output only*/
 
 #endif
-    )
+)
 {
 
     // PER ACTIVATION

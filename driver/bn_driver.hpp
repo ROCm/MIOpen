@@ -877,7 +877,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunForwardGPU()
                    iters - 1);
         int in_n, in_c, in_h, in_w;
         std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(miopen::deref(inputTensor).GetLengths());
-        size_t M      = in_n * in_c * in_h * in_w;
+        size_t M                         = in_n * in_c * in_h * in_w;
         size_t dataSz = (M + 2 * in_c) * miopen::GetTypeSize(miopen::deref(inputTensor).GetType());
         float rdCnt   = -1.0;
         float wrCnt   = 1.0;
@@ -1399,7 +1399,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunBackwardCPU()
     else if(bn_mode == miopenBNSpatial)
     {                                               // 1xCx1x1
         miopenBNBwdSpatialRunHost<Tgpu, Tref, Tmix>(/* alphaDiff, betaDiff, alphaParam, betaParam,
-                                                       */
+                                                     */
                                                     batch_sz,
                                                     channels,
                                                     (isDepthSpecified ? depth : 1),

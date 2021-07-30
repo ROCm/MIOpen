@@ -144,7 +144,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     {
         variance = 0;
     }
-    invVariance            = rsqrt(variance + epsilon);
+    invVariance = rsqrt(variance + epsilon);
 #endif // end -- Recalc mean and variance
     //-------------------------------------------
 
@@ -491,12 +491,12 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
         for(unsigned int j = 0; j < MIO_MAX_READ; j++)
 #endif
         {
-            unsigned int l = k + j;
-            nidx           = l / MIO_BN_HW;
-            hwidx          = l - (nidx * MIO_BN_HW);
-            index          = nidx * MIO_BN_CHW + chwid + hwidx;
-            dyvalue        = (_FLOAT_PREC)(*(dy_in + index));
-            xhat = ((_FLOAT_PREC)(*(x_in + index)) - mean) * invVariance;
+            unsigned int l  = k + j;
+            nidx            = l / MIO_BN_HW;
+            hwidx           = l - (nidx * MIO_BN_HW);
+            index           = nidx * MIO_BN_CHW + chwid + hwidx;
+            dyvalue         = (_FLOAT_PREC)(*(dy_in + index));
+            xhat            = ((_FLOAT_PREC)(*(x_in + index)) - mean) * invVariance;
 #if MIOPEN_USE_FP16 == 1
             float temp_tmp1 = mad((float)NHW, (float)dyvalue, -temp_db);
             float temp_tmp2 = -((float)xhat) * temp_ds;
@@ -681,7 +681,7 @@ MIOpenBatchNormBwdSpatialDScaleDBias(const __global _FLOAT* x_in,
                                      const __global _FLOAT* savedMean,
                                      const __global _FLOAT* savedInvVariance
 #endif
-                                     )
+)
 {
 
     unsigned int xgid    = get_global_id(0);
@@ -995,7 +995,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #else  // maxn
             db += (_FLOAT_PREC)(*(dy_in + index));
             _FLOAT_PREC xhat = (((_FLOAT_PREC)(*(x_in + index)) - mean) * invVariance);
-            ds = mad(xhat, (_FLOAT_PREC)(*(dy_in + index)), ds);
+            ds               = mad(xhat, (_FLOAT_PREC)(*(dy_in + index)), ds);
 #endif
         }
     }

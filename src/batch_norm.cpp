@@ -289,7 +289,6 @@ void bnFwdTrainSelectSingleEmpty(const Handle& handle,
 
     bool vn4 = (variant != 4);
     visit_float(dtype, [&](auto as_float) {
-
         if(resultsave && resultrunning)
         {
             if(vn4)

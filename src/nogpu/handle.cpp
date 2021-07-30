@@ -171,7 +171,7 @@ Program Handle::LoadProgram(const std::string& program_name,
         params += " -mcpu=" + this->GetTargetProperties().Name();
     }
 
-    auto hsaco = miopen::LoadBinary(this->GetTargetProperties(),
+    auto hsaco       = miopen::LoadBinary(this->GetTargetProperties(),
                                     this->GetMaxComputeUnits(),
                                     program_name,
                                     params,

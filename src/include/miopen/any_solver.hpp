@@ -91,11 +91,11 @@ struct AnySolver
         using ptr = std::shared_ptr<const AnySolver_base>;
 
         virtual ~AnySolver_base(){};
-        virtual bool IsApplicable(const ConvolutionContext& ctx) const = 0;
-        virtual bool IsDynamic() const                                 = 0;
-        virtual float GetWti(const ConvolutionContext& ctx) const      = 0;
-        virtual const std::type_info& Type() const                     = 0;
-        virtual std::string GetSolverDbId() const                      = 0;
+        virtual bool IsApplicable(const ConvolutionContext& ctx) const                     = 0;
+        virtual bool IsDynamic() const                                                     = 0;
+        virtual float GetWti(const ConvolutionContext& ctx) const                          = 0;
+        virtual const std::type_info& Type() const                                         = 0;
+        virtual std::string GetSolverDbId() const                                          = 0;
         virtual ConvSolution FindSolution(const ConvolutionContext& ctx,
                                           Db& db,
                                           const miopen::AnyInvokeParams& invoke_ctx) const = 0;

@@ -247,7 +247,7 @@ Depending on your setup `sudo` may be required for the pip install.
 All the code is formatted using clang-format. To format a file, use:
 
 ```
-clang-format-3.8 -style=file -i <path-to-source-file>
+clang-format-10 -style=file -i <path-to-source-file>
 ```
 
 Also, githooks can be installed to format the code per-commit:

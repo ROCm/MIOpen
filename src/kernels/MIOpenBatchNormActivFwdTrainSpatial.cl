@@ -77,7 +77,7 @@ MIOpenBatchNormActivFwdTrainSpatial(float INHW,
                                     __global _FLOAT_PREC* __restrict savedMean
 #endif
 
-                                    )
+)
 {
 
     // SPATIAL
@@ -233,7 +233,7 @@ MIOpenBatchNormActivFwdTrainSpatial(
     __global _FLOAT_PREC* __restrict savedMean
 #endif
 
-    )
+)
 {
 
     // SPATIAL
@@ -458,7 +458,7 @@ MIOpenBatchNormActivFwdTrainSpatial(
     __global _FLOAT_PREC* __restrict savedMean
 #endif
 
-    )
+)
 {
     // SPATIAL
     _FLOAT_PREC mean        = (_FLOAT)0.;

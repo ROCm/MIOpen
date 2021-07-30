@@ -556,8 +556,7 @@ float Im2ColGPU(
 {
     switch(spatial_dim)
     {
-    case 2:
-    {
+    case 2: {
         return Im2d2ColGPU(handle,
                            im,
                            im_offset,
@@ -577,8 +576,7 @@ float Im2ColGPU(
                            col,
                            type);
     }
-    case 3:
-    {
+    case 3: {
         return Im3d2ColGPU(handle,
                            im,
                            im_offset,
@@ -604,7 +602,8 @@ float Im2ColGPU(
                            col,
                            type);
     }
-    default: { MIOPEN_THROW("unsupported convolution dimension");
+    default: {
+        MIOPEN_THROW("unsupported convolution dimension");
     }
     }
 }
@@ -626,8 +625,7 @@ float Col2ImGPU(
 {
     switch(spatial_dim)
     {
-    case 2:
-    {
+    case 2: {
         return Col2Im2dGPU(handle,
                            col,
                            out_spatial[0],
@@ -647,8 +645,7 @@ float Col2ImGPU(
                            im_offset,
                            type);
     }
-    case 3:
-    {
+    case 3: {
         return Col2Im3dGPU(handle,
                            col,
                            out_spatial[0],
@@ -674,7 +671,8 @@ float Col2ImGPU(
                            im_offset,
                            type);
     }
-    default: { MIOPEN_THROW("unsupported convolution dimension");
+    default: {
+        MIOPEN_THROW("unsupported convolution dimension");
     }
     }
 

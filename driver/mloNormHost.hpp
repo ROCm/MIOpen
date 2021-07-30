@@ -383,10 +383,11 @@ int mloLRNBackwardRunHost(int norm_region,
                                                       (head - pre_pad) * scale_channel_stride +
                                                       j * scale_stride + i]),
                                         negative_beta) -
-                                ratio_dta_bwd * static_cast<_Tcheck>(
-                                                    bot_ptr[b * bot_batch_stride +
-                                                            (head - pre_pad) * bot_channel_stride +
-                                                            j * bot_stride + i]) *
+                                ratio_dta_bwd *
+                                    static_cast<_Tcheck>(
+                                        bot_ptr[b * bot_batch_stride +
+                                                (head - pre_pad) * bot_channel_stride +
+                                                j * bot_stride + i]) *
                                     accum_ratio;
                         }
                         ++head;
@@ -441,10 +442,11 @@ int mloLRNBackwardRunHost(int norm_region,
                                                       (head - pre_pad) * scale_channel_stride +
                                                       j * scale_stride + i]),
                                         negative_beta) -
-                                ratio_dta_bwd * static_cast<_Tcheck>(
-                                                    bot_ptr[b * bot_batch_stride +
-                                                            (head - pre_pad) * bot_channel_stride +
-                                                            j * bot_stride + i]) *
+                                ratio_dta_bwd *
+                                    static_cast<_Tcheck>(
+                                        bot_ptr[b * bot_batch_stride +
+                                                (head - pre_pad) * bot_channel_stride +
+                                                j * bot_stride + i]) *
                                     accum_ratio;
                         }
 
@@ -485,10 +487,11 @@ int mloLRNBackwardRunHost(int norm_region,
                                                       (head - pre_pad) * scale_channel_stride +
                                                       j * scale_stride + i]),
                                         negative_beta) -
-                                ratio_dta_bwd * static_cast<_Tcheck>(
-                                                    bot_ptr[b * bot_batch_stride +
-                                                            (head - pre_pad) * bot_channel_stride +
-                                                            j * bot_stride + i]) *
+                                ratio_dta_bwd *
+                                    static_cast<_Tcheck>(
+                                        bot_ptr[b * bot_batch_stride +
+                                                (head - pre_pad) * bot_channel_stride +
+                                                j * bot_stride + i]) *
                                     accum_ratio;
                         }
 

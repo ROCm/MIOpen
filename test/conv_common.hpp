@@ -1750,22 +1750,20 @@ struct conv_driver : test_driver
         }
         else if(spatial_dim == 2)
         {
-            input = tensor<T>{
-                batch_size,
-                input_channels,
-                spatial_dim_elements.at(0),
-                spatial_dim_elements.at(
-                    1)}.generate(tensor_elem_gen_integer{17});
+            input = tensor<T>{batch_size,
+                              input_channels,
+                              spatial_dim_elements.at(0),
+                              spatial_dim_elements.at(1)}
+                        .generate(tensor_elem_gen_integer{17});
         }
         else if(spatial_dim == 3)
         {
-            input = tensor<T>{
-                batch_size,
-                input_channels,
-                spatial_dim_elements.at(0),
-                spatial_dim_elements.at(1),
-                spatial_dim_elements.at(
-                    2)}.generate(tensor_elem_gen_integer{17});
+            input = tensor<T>{batch_size,
+                              input_channels,
+                              spatial_dim_elements.at(0),
+                              spatial_dim_elements.at(1),
+                              spatial_dim_elements.at(2)}
+                        .generate(tensor_elem_gen_integer{17});
         }
 
         if(!weight_tensor_dims.empty())
@@ -1775,22 +1773,20 @@ struct conv_driver : test_driver
         }
         else if(spatial_dim == 2)
         {
-            weights = tensor<T>{
-                output_channels,
-                input_channels / filter.group_count,
-                filter_dims.at(0),
-                filter_dims.at(
-                    1)}.generate(tensor_elem_gen_integer{17});
+            weights = tensor<T>{output_channels,
+                                input_channels / filter.group_count,
+                                filter_dims.at(0),
+                                filter_dims.at(1)}
+                          .generate(tensor_elem_gen_integer{17});
         }
         else if(spatial_dim == 3)
         {
-            weights = tensor<T>{
-                output_channels,
-                input_channels / filter.group_count,
-                filter_dims.at(0),
-                filter_dims.at(1),
-                filter_dims.at(
-                    2)}.generate(tensor_elem_gen_integer{17});
+            weights = tensor<T>{output_channels,
+                                input_channels / filter.group_count,
+                                filter_dims.at(0),
+                                filter_dims.at(1),
+                                filter_dims.at(2)}
+                          .generate(tensor_elem_gen_integer{17});
         }
 
         if(input.desc.GetSize() != in_layout.size() ||
