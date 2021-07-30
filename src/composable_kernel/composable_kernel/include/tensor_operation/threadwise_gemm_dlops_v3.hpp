@@ -136,7 +136,6 @@ struct ThreadwiseGemmDlops_km_kn_mn_v3
                 {
                     static_for<0, H, 1>{}([&](auto h) {
                         static_for<0, W, 1>{}([&](auto w) {
-
                             constexpr index_t b_offset =
                                 BDesc{}.CalculateOffset(b_origin_idx + make_tuple(e, 0, h, w));
 

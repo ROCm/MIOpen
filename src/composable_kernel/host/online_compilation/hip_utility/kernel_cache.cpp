@@ -145,9 +145,7 @@ void KernelCache::ClearKernels(const std::string& algorithm, const std::string& 
     }
     const std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
     auto&& v                                      = this->kernel_map[key];
-    if(!v.empty())
-    {
-    }
+    if(!v.empty()) {}
     v.clear();
 }
 

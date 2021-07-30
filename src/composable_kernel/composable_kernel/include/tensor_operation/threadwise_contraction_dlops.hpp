@@ -87,7 +87,6 @@ struct ThreadwiseGemmDlops_km0m1_kn0n1_m0m1n0n1
                 static_for<0, TM1, 1>{}([&](auto tm1) {
                     static_for<0, TN0, 1>{}([&](auto tn0) {
                         static_for<0, TN1, 1>{}([&](auto tn1) {
-
                             constexpr index_t a_offset =
                                 AThreadDesc_TK0_TM0_TM1_TK1{}.CalculateOffset(
                                     a_origin_idx + make_multi_index(tk, tm0, tm1));
@@ -192,7 +191,6 @@ struct ThreadwiseContractionDlops_A_TK0_TM0_TM1_TK1_B_TK0_TN0_TN1_TK1_C_TM0_TM1_
                 static_for<0, TM1, 1>{}([&](auto tm1) {
                     static_for<0, TN0, 1>{}([&](auto tn0) {
                         static_for<0, TN1, 1>{}([&](auto tn1) {
-
                             vector_type<FloatA, TK1> a_vec;
                             vector_type<FloatB, TK1> b_vec;
 

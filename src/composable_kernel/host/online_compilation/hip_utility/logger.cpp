@@ -40,4 +40,4 @@ ostream& fdt_log(LogLevel level, const char* header, const char* content)
 ostream& fdt_log() { return (cerr); };
 
 void fdt_log_flush() { cerr << endl; }
-};
+}; // namespace olCompile

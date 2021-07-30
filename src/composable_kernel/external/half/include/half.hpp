@@ -2399,11 +2399,11 @@ unsigned int erf(unsigned int arg)
 template <std::float_round_style R, bool L>
 unsigned int gamma(unsigned int arg)
 {
-    /*			static const double p[] ={ 2.50662827563479526904, 225.525584619175212544, -268.295973841304927459, 80.9030806934622512966, -5.00757863970517583837, 0.0114684895434781459556 };
-			double t = arg + 4.65, s = p[0];
-			for(unsigned int i=0; i<5; ++i)
-				s += p[i+1] / (arg+i);
-			return std::log(s) + (arg-0.5)*std::log(t) - t;
+    /*			static const double p[] ={ 2.50662827563479526904, 225.525584619175212544,
+       -268.295973841304927459, 80.9030806934622512966, -5.00757863970517583837,
+       0.0114684895434781459556 }; double t = arg + 4.65, s = p[0]; for(unsigned int i=0; i<5; ++i)
+                                s += p[i+1] / (arg+i);
+                        return std::log(s) + (arg-0.5)*std::log(t) - t;
 */ static const f31 pi(0xC90FDAA2, 1),
         lbe(0xB8AA3B29, 0);
     unsigned int abs = arg & 0x7FFF, sign = arg & 0x8000;
@@ -2506,7 +2506,7 @@ unsigned int gamma(unsigned int arg)
 
 template <typename, typename, std::float_round_style>
 struct half_caster;
-}
+} // namespace detail
 
 /// Half-precision floating-point type.
 /// This class implements an IEEE-conformant half-precision floating-point type with the usual

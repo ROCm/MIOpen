@@ -4,7 +4,8 @@
 namespace ck {
 
 // this enumerate should be synchronized with include/miopen.h
-typedef enum {
+typedef enum
+{
     Half     = 0,
     Float    = 1,
     Int32    = 2,

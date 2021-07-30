@@ -106,13 +106,13 @@ struct TensorAdaptor
 
     __host__ __device__ static constexpr index_t GetNumOfHiddenDimension()
     {
-        constexpr auto all_low_dim_ids =
-            unpack([](auto&&... xs) constexpr { return merge_sequences(xs...); },
-                   LowerDimensionHiddenIdss{});
+        constexpr auto all_low_dim_ids = unpack(
+            [](auto&&... xs) constexpr { return merge_sequences(xs...); },
+            LowerDimensionHiddenIdss{});
 
-        constexpr auto all_up_dim_ids =
-            unpack([](auto&&... xs) constexpr { return merge_sequences(xs...); },
-                   UpperDimensionHiddenIdss{});
+        constexpr auto all_up_dim_ids = unpack(
+            [](auto&&... xs) constexpr { return merge_sequences(xs...); },
+            UpperDimensionHiddenIdss{});
 
         constexpr auto all_dim_ids = merge_sequences(all_low_dim_ids, all_up_dim_ids);
 
@@ -418,13 +418,11 @@ __host__ __device__ constexpr auto make_single_stage_tensor_adaptor(const Transf
                   "wrong!");
 
     // sanity check on LowerDimensionOldTopIdss and UpperDimensionNewTopIdss
-    constexpr auto all_low_dim_old_top_ids =
-        unpack([](auto&&... xs) constexpr { return merge_sequences(xs...); },
-               LowerDimensionOldTopIdss{});
+    constexpr auto all_low_dim_old_top_ids = unpack(
+        [](auto&&... xs) constexpr { return merge_sequences(xs...); }, LowerDimensionOldTopIdss{});
 
-    constexpr auto all_up_dim_new_top_ids =
-        unpack([](auto&&... xs) constexpr { return merge_sequences(xs...); },
-               UpperDimensionNewTopIdss{});
+    constexpr auto all_up_dim_new_top_ids = unpack(
+        [](auto&&... xs) constexpr { return merge_sequences(xs...); }, UpperDimensionNewTopIdss{});
 
     static_assert(is_valid_sequence_map<decltype(all_low_dim_old_top_ids)>::value &&
                       is_valid_sequence_map<decltype(all_up_dim_new_top_ids)>::value,

@@ -152,7 +152,6 @@ struct BlockwiseGemmDlops_km_kn_m0m1n0n1_v3
 
         static_for<0, EPerBlock, EPerThreadLoop>{}([&](auto e_begin) {
             static_for<0, KPerThread, KPerThreadSubC>{}([&](auto k_begin) {
-
                 a_thread_copy_.Run(a_block_mtx,
                                    make_tuple(e_begin, k_begin),
                                    a_block_buf,
