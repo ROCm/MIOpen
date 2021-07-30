@@ -103,18 +103,18 @@ struct ExecutionContext
         // clang-format on
         if(boost::filesystem::exists(pdb_path / filename.str()))
         {
-            MIOPEN_LOG_I("Found exact database file");
+            MIOPEN_LOG_I("Found exact perf database file");
             return (pdb_path / filename.str()).string();
         }
         else
         {
-            MIOPEN_LOG_I("Unable to find exact database file");
+            MIOPEN_LOG_I("Unable to find exact perf database file");
             const auto db_id        = GetStream().GetTargetProperties().DbId();
             const int real_cu_count = GetStream().GetMaxComputeUnits();
             namespace fs            = boost::filesystem;
             if(fs::exists(pdb_path) && fs::is_directory(pdb_path))
             {
-                MIOPEN_LOG_I("Iterating over directory " << pdb_path.string());
+                MIOPEN_LOG_I("Iterating over perf db directory " << pdb_path.string());
                 int closest_cu = std::numeric_limits<int>::max();
                 fs::path best_path;
                 for(auto const& entry : fs::recursive_directory_iterator(pdb_path))
@@ -124,7 +124,7 @@ struct ExecutionContext
                     if(fs::is_regular_file(entry) && filepath.extension() == ext &&
                        fname.rfind(db_id, 0) == 0) // starts with db_id
                     {
-                        MIOPEN_LOG_I("Checking entry: " << fname);
+                        MIOPEN_LOG_I("Checking perf db file: " << fname);
                         const auto pos = fname.find('_');
                         int cur_count  = -1;
                         if(pos != std::string::npos)

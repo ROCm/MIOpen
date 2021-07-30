@@ -31,6 +31,7 @@
 #include <miopen/logger.hpp>
 #include <miopen/perf_field.hpp>
 
+#include <boost/filesystem.hpp>
 #include <string>
 #include <vector>
 
@@ -49,12 +50,72 @@ template <class TDb>
 std::string FindDbRecord_t<TDb>::GetInstalledPath(Handle& handle)
 {
 #if !MIOPEN_DISABLE_SYSDB
-    return GetSystemDbPath() + "/" + handle.GetDbBasename() + "." + GetSystemFindDbSuffix() +
-           ".fdb.txt";
+    namespace fs          = boost::filesystem;
+    const std::string ext = ".fdb.txt";
+    const auto root_path  = fs::path(GetSystemDbPath());
+    const auto base_name  = handle.GetDbBasename();
+    const auto suffix     = GetSystemFindDbSuffix();
+    const auto file_path  = root_path / (base_name + "." + suffix + ext);
+    if(boost::filesystem::exists(file_path))
+    {
+        MIOPEN_LOG_I("Found exact find database file");
+        return file_path.string();
+    }
+    else
+    {
+        MIOPEN_LOG_I("Unable to find exact find database file");
+        if(fs::exists(root_path) && fs::is_directory(root_path))
+        {
+            MIOPEN_LOG_I("Iterating over find db directory " << root_path.string());
+            std::vector<fs::path> all_files;
+            for(const auto& kinder : fs::recursive_directory_iterator(root_path))
+            {
+                const auto filepath = kinder.path();
+                const auto fname    = filepath.string();
+                if(fs::is_regular_file(kinder) && EndsWith(fname, ".fdb.txt"))
+                    all_files.push_back(filepath);
+            }
+
+            const auto db_id        = handle.GetTargetProperties().DbId();
+            const int real_cu_count = handle.GetMaxComputeUnits();
+            int closest_cu          = std::numeric_limits<int>::max();
+            fs::path best_path;
+            for(const auto& entry : all_files)
+            {
+                const auto fname = entry.stem().string();
+                MIOPEN_LOG_I("Checking find db file: " << fname);
+                // Check for alternate back end same ASIC
+                if(fname.rfind(base_name, 0) == 0)
+                {
+                    return entry.string();
+                }
+                // Check for alternate ASIC any back end
+                if(fname.rfind(db_id, 0) == 0)
+                {
+                    const auto pos = fname.find('_');
+                    int cur_count  = -1;
+                    if(pos != std::string::npos)
+                        cur_count = std::stoi(fname.substr(pos + 1));
+                    else
+                        cur_count = std::stoi(fname.substr(db_id.length()), nullptr, 16);
+                    if(abs(cur_count - real_cu_count) < (closest_cu))
+                    {
+                        best_path  = entry;
+                        closest_cu = abs(cur_count - real_cu_count);
+                    }
+                }
+            }
+            return best_path.string();
+        }
+        else
+        {
+            MIOPEN_LOG_I("Database directory does not exist");
+        }
+    }
 #else
     (void)(handle);
-    return "";
 #endif
+    return "";
 }
 
 template <class TDb>
@@ -145,23 +206,19 @@ void FindDbRecord_t<TDb>::LogFindDbItem(const std::pair<std::string, FindDbData>
 {
     const auto log_level = log_as_error ? LoggingLevel::Error : LoggingLevel::Info2;
 
-    MIOPEN_LOG(
-        log_level,
-        "Kernel cache entry not found for solver <" << pair.first << "::" << pair.second.solver_id
-                                                    << "> at network config: "
-                                                    << content->GetKey()
-                                                    << " and kernel cache key: "
-                                                    << pair.second.kcache_key.algorithm_name
-                                                    << ", "
-                                                    << pair.second.kcache_key.network_config);
+    MIOPEN_LOG(log_level,
+               "Kernel cache entry not found for solver <"
+                   << pair.first << "::" << pair.second.solver_id
+                   << "> at network config: " << content->GetKey()
+                   << " and kernel cache key: " << pair.second.kcache_key.algorithm_name << ", "
+                   << pair.second.kcache_key.network_config);
 
     for(const auto& pair2 : content->As<FindDbData>())
         MIOPEN_LOG(log_level,
-                   "Find-db record content: <" << pair2.first << "::" << pair2.second.solver_id
-                                               << "> at network config: "
-                                               << pair2.second.kcache_key.network_config
-                                               << " and algorithm name: "
-                                               << pair2.second.kcache_key.algorithm_name);
+                   "Find-db record content: <"
+                       << pair2.first << "::" << pair2.second.solver_id
+                       << "> at network config: " << pair2.second.kcache_key.network_config
+                       << " and algorithm name: " << pair2.second.kcache_key.algorithm_name);
 }
 
 template <class TDb>
