@@ -195,47 +195,57 @@ struct activation_driver : test_driver
     activation_driver()
     {
         disabled_cache = true;
-        add_mode(miopenActivationPASTHRU,
-                 [=](double x) { return x; },
-                 [=](double dy, double, double) { return dy; });
-        add_mode(miopenActivationLOGISTIC,
-                 [=](double x) { return 1 / (1 + std::exp(-x)); },
-                 [=](double dy, double, double y) { return dy * y * (1 - y); });
-        add_mode(miopenActivationTANH,
-                 // y = beta * tanh(alpha * x)
-                 [=](double x) { return beta * std::tanh(alpha * x); },
-                 [=](double dy, double, double y) { return dy * alpha * (beta - y * y / beta); });
-        add_mode(miopenActivationRELU,
-                 [=](double x) { return (x > 0) ? x : 0; },
-                 [=](double dy, double x, double) { return (x > 0) ? dy : 0; });
-        add_mode(miopenActivationSOFTRELU,
-                 [=](double x) { return std::log1p(std::exp(x)); },
-                 [=](double dy, double x, double) {
-                     static const double threshold = 50.;
-                     double expval                 = std::exp(std::min(x, threshold));
-                     return dy * expval / (expval + 1.0);
-                 });
-        add_mode(miopenActivationABS,
-                 [=](double x) { return std::abs(x); },
-                 [=](double dy, double x, double) { return dy * ((x > 0) ? 1 : -1); });
-        add_mode(miopenActivationPOWER,
-                 [=](double x) {
-                     double v = alpha + beta * x;
-                     return v <= std::numeric_limits<double>::epsilon() ? 0 : pow(v, gamma);
-                 },
-                 [=](double, double x, double y) {
-                     auto v = alpha + beta * x;
-                     return v <= std::numeric_limits<double>::epsilon() ? 0 : gamma * beta * y / v;
-                 });
-        add_mode(miopenActivationCLIPPEDRELU,
-                 [=](double x) { return std::min(alpha, std::max(double(0), x)); },
-                 [=](double dy, double x, double) { return (x > 0 && x <= alpha) ? dy : 0; });
-        add_mode(miopenActivationLEAKYRELU,
-                 [=](double x) { return (x > 0) ? x : x * alpha; },
-                 [=](double dy, double x, double) { return dy * ((x > 0) ? 1 : alpha); });
-        add_mode(miopenActivationELU,
-                 [=](double x) { return (x > 0) ? x : alpha * std::expm1(x); },
-                 [=](double dy, double x, double y) { return dy * ((x > 0) ? 1 : y + alpha); });
+        add_mode(
+            miopenActivationPASTHRU,
+            [=](double x) { return x; },
+            [=](double dy, double, double) { return dy; });
+        add_mode(
+            miopenActivationLOGISTIC,
+            [=](double x) { return 1 / (1 + std::exp(-x)); },
+            [=](double dy, double, double y) { return dy * y * (1 - y); });
+        add_mode(
+            miopenActivationTANH,
+            // y = beta * tanh(alpha * x)
+            [=](double x) { return beta * std::tanh(alpha * x); },
+            [=](double dy, double, double y) { return dy * alpha * (beta - y * y / beta); });
+        add_mode(
+            miopenActivationRELU,
+            [=](double x) { return (x > 0) ? x : 0; },
+            [=](double dy, double x, double) { return (x > 0) ? dy : 0; });
+        add_mode(
+            miopenActivationSOFTRELU,
+            [=](double x) { return std::log1p(std::exp(x)); },
+            [=](double dy, double x, double) {
+                static const double threshold = 50.;
+                double expval                 = std::exp(std::min(x, threshold));
+                return dy * expval / (expval + 1.0);
+            });
+        add_mode(
+            miopenActivationABS,
+            [=](double x) { return std::abs(x); },
+            [=](double dy, double x, double) { return dy * ((x > 0) ? 1 : -1); });
+        add_mode(
+            miopenActivationPOWER,
+            [=](double x) {
+                double v = alpha + beta * x;
+                return v <= std::numeric_limits<double>::epsilon() ? 0 : pow(v, gamma);
+            },
+            [=](double, double x, double y) {
+                auto v = alpha + beta * x;
+                return v <= std::numeric_limits<double>::epsilon() ? 0 : gamma * beta * y / v;
+            });
+        add_mode(
+            miopenActivationCLIPPEDRELU,
+            [=](double x) { return std::min(alpha, std::max(double(0), x)); },
+            [=](double dy, double x, double) { return (x > 0 && x <= alpha) ? dy : 0; });
+        add_mode(
+            miopenActivationLEAKYRELU,
+            [=](double x) { return (x > 0) ? x : x * alpha; },
+            [=](double dy, double x, double) { return dy * ((x > 0) ? 1 : alpha); });
+        add_mode(
+            miopenActivationELU,
+            [=](double x) { return (x > 0) ? x : alpha * std::expm1(x); },
+            [=](double dy, double x, double y) { return dy * ((x > 0) ? 1 : y + alpha); });
         add(input,
             "input",
             get_input_tensor(tensor_elem_gen_integer{miopen_type<T>{} == miopenHalf ? 5 : 17}));
@@ -276,8 +286,8 @@ struct activation_driver : test_driver
 
         std::size_t n, c, h, w;
         std::tie(n, c, h, w) = miopen::tien<4>(input.desc.GetLengths());
-        size_t total_mem  = 4 * input.desc.GetNumBytes(); // estimate based on backward pass
-        size_t device_mem = get_handle().GetGlobalMemorySize();
+        size_t total_mem     = 4 * input.desc.GetNumBytes(); // estimate based on backward pass
+        size_t device_mem    = get_handle().GetGlobalMemorySize();
         if(total_mem >= device_mem)
         {
             show_command();

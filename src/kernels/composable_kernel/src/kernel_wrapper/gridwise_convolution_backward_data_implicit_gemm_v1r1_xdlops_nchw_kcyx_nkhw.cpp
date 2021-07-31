@@ -181,7 +181,6 @@ extern "C" __global__
                 GemmBBlockCopyDstDataPerWrite_GemmKPACK,
                 wkgrp_schd_order>{};
         gridwise_conv_bwd_data.Run(p_in_global, p_wei_global, p_out_global);
-
     }).Else([&](auto) {
         constexpr auto gridwise_conv_bwd_data =
             GridwiseConvolutionBackwardDataImplicitGemm_v1r1_xdlops_gnchw_gkcyx_gnkhw<

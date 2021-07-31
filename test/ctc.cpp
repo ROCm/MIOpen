@@ -79,11 +79,11 @@ void subvec_logsoftmax_cpu(Tgpu* in, Tref* out, size_t in_offset, size_t out_off
     for(size_t i = 1; i < length; i++)
         max_val = std::max(*(itr_in + i), max_val);
 
-    for(size_t i       = 0; i < length; i++)
+    for(size_t i = 0; i < length; i++)
         *(itr_out + i) = Tref(*(itr_in + i) - max_val);
 
     Tref sum = logsumexp_cpu(itr_out, length);
-    for(size_t i       = 0; i < length; i++)
+    for(size_t i = 0; i < length; i++)
         *(itr_out + i) = std::max(*(itr_out + i) - sum, Tref(NEGATIVE_CUTOFF_VAL));
 }
 
@@ -104,10 +104,10 @@ void ctc_alpha_cpu(std::vector<int>& probsDesc,
     int probs_stride[]  = {probsDesc[3], probsDesc[4], probsDesc[5]};
     int label_prime_len = 2 * label_length + 1;
 
-    for(int i                  = 0; i < label_length; i++)
+    for(int i = 0; i < label_length; i++)
         label_prime[2 * i + 1] = label[i];
     blank_lb = blank_lb < 0 ? 0 : (blank_lb >= class_sz ? class_sz - 1 : blank_lb);
-    for(int i              = 0; i <= label_length; i++)
+    for(int i = 0; i <= label_length; i++)
         label_prime[2 * i] = blank_lb;
 
     int aidx0 = (label_length + label_repeat - input_length) < 0 ? 0 : 1;
@@ -125,7 +125,7 @@ void ctc_alpha_cpu(std::vector<int>& probsDesc,
             int lb_cur = label_prime[i];
             int lb_pre = -1;
             if(i >= 2)
-                lb_pre      = label_prime[i - 2];
+                lb_pre = label_prime[i - 2];
             size_t pidx     = j * probs_stride[0] + batch_id * probs_stride[1] + lb_cur;
             size_t aidx_ts  = j * label_prime_len + i;
             size_t aidx_t1s = (j - 1) * label_prime_len + i;
@@ -133,11 +133,11 @@ void ctc_alpha_cpu(std::vector<int>& probsDesc,
             T alpha_t1s2 = 0;
             if(aidx_t1s >= 2)
                 alpha_t1s2 = alpha[aidx_t1s - 2];
-            T alpha_t1s1   = 0;
+            T alpha_t1s1 = 0;
             if(aidx_t1s >= 1)
                 alpha_t1s1 = alpha[aidx_t1s - 1];
-            T alpha_t1s    = alpha[aidx_t1s];
-            T alpha_ts     = i == 0 ? alpha_t1s : logaddexp_cpu(&alpha_t1s, &alpha_t1s1);
+            T alpha_t1s = alpha[aidx_t1s];
+            T alpha_ts  = i == 0 ? alpha_t1s : logaddexp_cpu(&alpha_t1s, &alpha_t1s1);
             if(i >= 2)
                 if(lb_cur != blank_lb && lb_cur != lb_pre)
                     alpha_ts = logaddexp_cpu(&alpha_ts, &alpha_t1s2);
@@ -610,10 +610,10 @@ struct verify_ctcloss
         auto losses_T = tensor<T>{losses.data.size()};
         auto grads_T  = tensor<T>{grads.data.size()};
 
-        for(size_t i         = 0; i < losses.data.size(); i++)
+        for(size_t i = 0; i < losses.data.size(); i++)
             losses_T.data[i] = T(losses_cpu.data[i]);
 
-        for(size_t i        = 0; i < grads.data.size(); i++)
+        for(size_t i = 0; i < grads.data.size(); i++)
             grads_T.data[i] = T(grads_cpu.data[i]);
 
         auto retSet = std::make_tuple(losses_T, grads_T);
@@ -719,10 +719,10 @@ struct ctc_driver : test_driver
         std::vector<int> inputLengths(batchSize, inputLen);
         std::vector<int> labelLengths(batchSize, labelLen);
 
-        for(int i           = 0; i < batchSize; i++)
+        for(int i = 0; i < batchSize; i++)
             inputLengths[i] = GET_RAND() % inputLen + 1;
 
-        for(int i           = 0; i < batchSize; i++)
+        for(int i = 0; i < batchSize; i++)
             labelLengths[i] = GET_RAND() % labelLen + 1;
 
         for(int i = 0; i < batchSize; i++)

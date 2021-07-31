@@ -225,8 +225,8 @@ PerformanceConfigConvAsm1x1U::PerformanceConfigConvAsm1x1U(int read_size_,
 {
 }
 
-inline bool PerformanceConfigConvAsm1x1U::
-operator==(const PerformanceConfigConvAsm1x1U& other) const
+inline bool
+PerformanceConfigConvAsm1x1U::operator==(const PerformanceConfigConvAsm1x1U& other) const
 {
     // clang-format off
     return read_size == other.read_size
@@ -496,9 +496,9 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
         int in_batch_stride = AsmImgWidth(params) * AsmImgHeight(params) *
                               (UseSubsample(params) ? params.n_inputs : params.n_outputs);
         int write_unit =
-            (AsmImgWidth(params) % 4 == 0) ? 4 : (AsmImgWidth(params) % 3 == 0)
-                                                     ? 3
-                                                     : (AsmImgWidth(params) % 2 == 0) ? 2 : 1;
+            (AsmImgWidth(params) % 4 == 0)
+                ? 4
+                : (AsmImgWidth(params) % 3 == 0) ? 3 : (AsmImgWidth(params) % 2 == 0) ? 2 : 1;
 
         int n_grp0_size0 = 256;
 

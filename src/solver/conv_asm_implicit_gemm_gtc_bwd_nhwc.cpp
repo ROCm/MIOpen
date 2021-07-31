@@ -204,9 +204,8 @@ GetBwdXdlopsNHWCConfigList()
 static std::tuple<std::string, // kernel_name
                   size_t,      // block_size
                   size_t>      // grid_size
-    GetImplicitGemmGtcDynamicBwdXdlopsNHWCKernel(
-        const ConvolutionContext& ctx,
-        const PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC& config)
+GetImplicitGemmGtcDynamicBwdXdlopsNHWCKernel(
+    const ConvolutionContext& ctx, const PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC& config)
 {
     const auto group = ctx.group_counts;
     const auto hi    = ctx.out_height;
@@ -302,7 +301,7 @@ void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(const Convo
     {
         int mp, np, kp;
         std::tie(mp, np, kp) = tile;
-        bool found = false;
+        bool found           = false;
         for(const auto& config : c_list)
         {
             if(config.precision == miopenFloat)
@@ -325,7 +324,7 @@ void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(const Convo
     {
         int mp, np, kp;
         std::tie(mp, np, kp) = tile;
-        bool found = false;
+        bool found           = false;
         for(const auto& config : c_list)
         {
             if(config.precision == miopenHalf)
@@ -394,8 +393,7 @@ void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(const Convo
         gemm_m, gemm_n, gemm_k_even, ctx.IsFp32() ? tile_list_fp32 : tile_list_fp16);
 
     MIOPEN_LOG_I("m_per_block:" << m_per_block << ", n_per_block:" << n_per_block
-                                << ", k_per_block:"
-                                << k_per_block);
+                                << ", k_per_block:" << k_per_block);
 
     if((m_per_block == 0 && n_per_block == 0 && k_per_block == 0) || not_support_vector_store)
     {
@@ -460,10 +458,9 @@ void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(const Convo
                                                                      config.gemm_k_per_block,
                                                                      BWD_MAX_GEMM_K_SPLITS);
                 need_k_split |= gks != 0;
-                MIOPEN_LOG_I("into current m_per_block:" << m_per_block << ", n_per_block:"
-                                                         << n_per_block
-                                                         << ", k_per_block:"
-                                                         << k_per_block);
+                MIOPEN_LOG_I("into current m_per_block:" << m_per_block
+                                                         << ", n_per_block:" << n_per_block
+                                                         << ", k_per_block:" << k_per_block);
                 if((unit_conv && config.nxe == 0) || (!unit_conv && config.nxe != 0))
                 {
                     CopyParameters(config);

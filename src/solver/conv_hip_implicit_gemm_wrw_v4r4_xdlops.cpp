@@ -74,8 +74,8 @@ PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops(
 {
 }
 
-bool PerformanceImplicitGemmWrwV4R4Xdlops::
-operator==(const PerformanceImplicitGemmWrwV4R4Xdlops& other) const
+bool PerformanceImplicitGemmWrwV4R4Xdlops::operator==(
+    const PerformanceImplicitGemmWrwV4R4Xdlops& other) const
 {
     // clang-format off
     return GemmMPerBlock == other.GemmMPerBlock
@@ -679,7 +679,7 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::IsReallyValid(const ConvolutionContex
     }
 
     // check LDS allocation
-    std::size_t lds_size = 0;
+    std::size_t lds_size      = 0;
     std::tie(lds_size, valid) = CalculateLdsNumberOfByte(ctx);
 
     return (valid and lds_size <= get_lds_max_number_of_byte());
@@ -882,8 +882,8 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
     construction_parameters.kernel_name =
         "gridwise_convolution_backward_weights_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw";
 
-    int grid_size  = 0;
-    int block_size = 0;
+    int grid_size                     = 0;
+    int block_size                    = 0;
     std::tie(grid_size, std::ignore)  = config.CalculateGridSize(ctx);
     std::tie(block_size, std::ignore) = config.CalculateBlockSize();
 

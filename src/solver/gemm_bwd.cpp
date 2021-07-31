@@ -102,7 +102,7 @@ bool GemmBwdBase::IsApplicable(const ExecutionContext&,
            !(IsAnyBufferBF16(dxDesc, dyDesc, wDesc) && !IsBf16Supported) &&
            !(IsAnyBufferFp16(dxDesc, dyDesc, wDesc) && !IsFp16Supported);
 #else
-    std::ignore                             = problem;
+    std::ignore = problem;
     return false;
 #endif
 }
@@ -121,7 +121,7 @@ float GemmBwdBase::GetWti(const ExecutionContext&, const conv::ProblemDescriptio
     int n_Col2ImGPU            = 0;
 
     std::size_t in_n, in_c;
-    std::tie(in_n, in_c) = tie_pick<0, 1>()(dxDesc.GetLengths());
+    std::tie(in_n, in_c)    = tie_pick<0, 1>()(dxDesc.GetLengths());
     std::size_t spatial_dim = conv.GetSpatialDimension();
     auto wei_spatial        = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
 
@@ -176,10 +176,11 @@ size_t GemmBwd1x1_stride2::GetWorkspaceSize(const ExecutionContext& context,
     const auto out_spatial =
         boost::adaptors::slice(dyDesc.GetLengths(), 2, 2 + conv.GetSpatialDimension());
 
-    const auto dx_t_size = in_n * in_c * std::accumulate(out_spatial.begin(),
-                                                         out_spatial.end(),
-                                                         std::size_t(1),
-                                                         std::multiplies<std::size_t>()) *
+    const auto dx_t_size = in_n * in_c *
+                           std::accumulate(out_spatial.begin(),
+                                           out_spatial.end(),
+                                           std::size_t(1),
+                                           std::multiplies<std::size_t>()) *
                            GetTypeSize(dxDesc.GetType());
 
     const auto dy_t_size  = dyDesc.GetElementSize() * GetTypeSize(dyDesc.GetType());
@@ -553,10 +554,11 @@ size_t GemmBwdRest::GetWorkspaceSize(const ExecutionContext& context,
 
     const auto wei_c = wDesc.GetLengths()[1];
 
-    const auto gemm_size = wei_c * std::accumulate(wei_spatial.begin(),
-                                                   wei_spatial.end(),
-                                                   std::size_t(1),
-                                                   std::multiplies<std::size_t>()) *
+    const auto gemm_size = wei_c *
+                           std::accumulate(wei_spatial.begin(),
+                                           wei_spatial.end(),
+                                           std::size_t(1),
+                                           std::multiplies<std::size_t>()) *
                            std::accumulate(out_spatial.begin(),
                                            out_spatial.end(),
                                            std::size_t(1),
