@@ -581,5 +581,5 @@ __device__ void gcnasm_mfma_f32_4x4x2bf16<8, 64>(const ushort2_t* reg_a, const u
     MFMA_F32_4x4x2BF16(4, reg_a[0], reg_b[0], 4, 1, 0)
 }
 // clang-format on
-}
+} // namespace ck
 #endif

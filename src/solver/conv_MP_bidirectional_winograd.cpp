@@ -451,7 +451,6 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
 #endif
 
         gemm_conv_factory = [=](const std::vector<Kernel>&) {
-
             return [=](const Handle& handle, const AnyInvokeParams& ctx) {
 #if MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE
                 const auto& data_ctx = ctx.CastTo<conv::DataInvokeParams>();
@@ -473,12 +472,10 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
                 MIOPEN_THROW(miopenStatusBadParm, "ConvMPBidirectWinograd is not supported ");
 #endif
             };
-
         };
     }
 
     return [=](const std::vector<Kernel>& kernels) {
-
         const std::vector<Kernel> transform_kernels =
             std::vector<Kernel>{kernels[0], kernels[1], kernels[2]};
 

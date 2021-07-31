@@ -198,21 +198,19 @@ struct tree_visit
         switch(op_res.op)
         {
         // Arith ops
-        case OpAdd: r.res    = lhs_res.res + rhs_res.res; break;
-        case OpSub: r.res    = lhs_res.res - rhs_res.res; break;
-        case OpMul: r.res    = lhs_res.res * rhs_res.res; break;
-        case OpDiv: r.res    = lhs_res.res / rhs_res.res; break;
+        case OpAdd: r.res = lhs_res.res + rhs_res.res; break;
+        case OpSub: r.res = lhs_res.res - rhs_res.res; break;
+        case OpMul: r.res = lhs_res.res * rhs_res.res; break;
+        case OpDiv: r.res = lhs_res.res / rhs_res.res; break;
         case OpModulo: r.res = lhs_res.res % rhs_res.res; break;
-        case OpPow: r.res    = static_cast<int>(std::pow(lhs_res.res, rhs_res.res)); break;
-        case OpCeil:
-        {
+        case OpPow: r.res = static_cast<int>(std::pow(lhs_res.res, rhs_res.res)); break;
+        case OpCeil: {
             int vv = lhs_res.res;
             int mm = rhs_res.res;
             r.res  = (vv % mm != 0) ? (vv / mm + 1) * mm : vv;
             break;
         }
-        case OpAssign:
-        {
+        case OpAssign: {
             int val = 0;
             if(var_lookup(lhs_res.sym, val))
                 MIOPEN_THROW("Invalid variable assignment: " + lhs_res.sym);

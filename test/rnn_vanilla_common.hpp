@@ -763,9 +763,10 @@ void RNNBwdDataCPUVerify(bool use_dropout,
                 }
             }
 
-            wei_shift = li == 0 ? (in_h * hy_stride) : (bi * (in_h + hy_h) * hy_h +
-                                                        (li - 1) * bi * (bi * hy_h + hy_h) * hy_h +
-                                                        bi * hy_h * hy_stride);
+            wei_shift = li == 0
+                            ? (in_h * hy_stride)
+                            : (bi * (in_h + hy_h) * hy_h +
+                               (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_stride);
 
             RNN_mm_cpu<T>(&wkspace[hid_shift + bacc * hy_stride],
                           hy_h,
@@ -1045,9 +1046,10 @@ void RNNBwdWeightCPUVerify(bool use_dropout,
             int wei_shift;
             int pretime_shift;
 
-            wei_shift = li == 0 ? (in_h * hy_stride) : (bi * (in_h + hy_h) * hy_h +
-                                                        (li - 1) * bi * (bi * hy_h + hy_h) * hy_h +
-                                                        bi * hy_h * hy_stride);
+            wei_shift = li == 0
+                            ? (in_h * hy_stride)
+                            : (bi * (in_h + hy_h) * hy_h +
+                               (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_stride);
 
             // between time
             if(ti == 0)
