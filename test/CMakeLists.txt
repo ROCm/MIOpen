@@ -1380,7 +1380,7 @@ if(MIOPEN_TEST_FLOAT)
 endif()
 
 # Add here regression tests that should be run only on Vega10/20 and only with FP16.
-add_custom_test(test_regression_half_vega FLOAT_DISABLED HALF_ENABLED GFX908_DISABLED
+add_custom_test(test_regression_half_vega FLOAT_DISABLED HALF_ENABLED GFX908_ENABLED
 # REGRESSION TEST for issue #894.
 # Can't be enabled for GFX10 due to WORKAROUND_SWDEV_271887
 COMMAND	MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvOclDirectFwd1x1 $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --disable-backward-data --disable-backward-weights --disable-verification-cache
