@@ -442,9 +442,9 @@ int ReduceDriver<Tgpu, Tref>::RunForwardGPU()
 
         STOP_TIME
         if(WALL_CLOCK)
-            printf("Wall-clock Time Forward LRN Elapsed: %f ms\n",
+            printf("Wall-clock Time Reduction Elapsed: %f ms\n",
                    t.gettime_ms() / inflags.GetValueInt("iter"));
-        printf("GPU Kernel Time Forward LRN Elapsed: %f ms\n", time);
+        printf("GPU Kernel Time Reduction Elapsed: %f ms\n", time);
     }
 
     return miopenStatusSuccess;
