@@ -90,8 +90,6 @@ ConvSolution
 BnFwdTrainingPASingle::GetSolution(const ExecutionContext& context,
                                    const miopen::batchnorm::ProblemDescription& problem) const
 {
-    auto result = ConvSolution{miopenStatusSuccess};
-
     const auto& handle = context.GetStream();
 
     bool bfpmixparm = false;
@@ -181,6 +179,8 @@ BnFwdTrainingPASingle::GetSolution(const ExecutionContext& context,
         ldsnogcn     = ylocalsize;
     }
 
+    auto result = ConvSolution{miopenStatusSuccess};
+
     {
         auto kernel = KernelInfo{};
 
@@ -220,22 +220,27 @@ BnFwdTrainingPASingle::GetSolution(const ExecutionContext& context,
         kernel.g_wk.push_back(xgridsize);
         kernel.g_wk.push_back(ygridsize);
         kernel.g_wk.push_back(zgridsize);
+
+        result.construction_params.push_back(kernel);
     }
 
-    const auto resultsave    = problem.GetResultSave();
-    const auto resultrunning = problem.GetResultRunning();
     const auto dtype         = problem.GetBnScaleBiasMeanVarDesc().GetType();
     const auto vn4           = (variant != 4);
 
-    if(resultsave && resultrunning)
-    {
-        if(vn4)
-        {
-            result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-                return [=](const Handle& handle, const AnyInvokeParams& raw_params) {
-                    decltype(auto) kernel = handle.Run(kernels.front());
-                    decltype(auto) params = raw_params.CastTo<miopen::batchnorm::InvokeParams>();
-                    visit_float(dtype, [&](auto as_float) {
+    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+        return [=](const Handle& handle, const AnyInvokeParams& raw_params) {
+            decltype(auto) kernel = handle.Run(kernels.front());
+            decltype(auto) params = raw_params.CastTo<miopen::batchnorm::InvokeParams>();
+            const auto resultsave =
+                params.resultSaveMean != nullptr && params.resultSaveInvVariance != nullptr;
+            const auto resultrunning =
+                params.resultRunningMean != nullptr && params.resultRunningVariance != nullptr;
+
+            visit_float(dtype, [&](auto as_float) {
+                if(resultsave && resultrunning)
+                {
+                    if(vn4)
+                    {
                         kernel(params.x,
                                params.y,
                                params.bnScale,
@@ -247,17 +252,9 @@ BnFwdTrainingPASingle::GetSolution(const ExecutionContext& context,
                                params.epsilon,
                                params.resultSaveMean,
                                params.resultSaveInvVariance);
-                    });
-                };
-            };
-        }
-        else
-        {
-            result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-                return [=](const Handle& handle, const AnyInvokeParams& raw_params) {
-                    decltype(auto) kernel = handle.Run(kernels.front());
-                    decltype(auto) params = raw_params.CastTo<miopen::batchnorm::InvokeParams>();
-                    visit_float(dtype, [&](auto as_float) {
+                    }
+                    else
+                    {
                         kernel(params.x,
                                params.y,
                                params.bnScale,
@@ -271,20 +268,12 @@ BnFwdTrainingPASingle::GetSolution(const ExecutionContext& context,
                                params.resultSaveInvVariance,
                                in_cstride,
                                in_nstride);
-                    });
-                };
-            };
-        }
-    }
-    else if(resultsave)
-    {
-        if(vn4)
-        {
-            result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-                return [=](const Handle& handle, const AnyInvokeParams& raw_params) {
-                    decltype(auto) kernel = handle.Run(kernels.front());
-                    decltype(auto) params = raw_params.CastTo<miopen::batchnorm::InvokeParams>();
-                    visit_float(dtype, [&](auto as_float) {
+                    }
+                }
+                else if(resultsave)
+                {
+                    if(vn4)
+                    {
                         kernel(params.x,
                                params.y,
                                params.bnScale,
@@ -293,17 +282,9 @@ BnFwdTrainingPASingle::GetSolution(const ExecutionContext& context,
                                params.epsilon,
                                params.resultSaveMean,
                                params.resultSaveInvVariance);
-                    });
-                };
-            };
-        }
-        else
-        {
-            result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-                return [=](const Handle& handle, const AnyInvokeParams& raw_params) {
-                    decltype(auto) kernel = handle.Run(kernels.front());
-                    decltype(auto) params = raw_params.CastTo<miopen::batchnorm::InvokeParams>();
-                    visit_float(dtype, [&](auto as_float) {
+                    }
+                    else
+                    {
                         kernel(params.x,
                                params.y,
                                params.bnScale,
@@ -314,20 +295,12 @@ BnFwdTrainingPASingle::GetSolution(const ExecutionContext& context,
                                params.resultSaveInvVariance,
                                in_cstride,
                                in_nstride);
-                    });
-                };
-            };
-        }
-    }
-    else if(resultrunning)
-    {
-        if(vn4)
-        {
-            result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-                return [=](const Handle& handle, const AnyInvokeParams& raw_params) {
-                    decltype(auto) kernel = handle.Run(kernels.front());
-                    decltype(auto) params = raw_params.CastTo<miopen::batchnorm::InvokeParams>();
-                    visit_float(dtype, [&](auto as_float) {
+                    }
+                }
+                else if(resultrunning)
+                {
+                    if(vn4)
+                    {
                         kernel(params.x,
                                params.y,
                                params.bnScale,
@@ -337,17 +310,9 @@ BnFwdTrainingPASingle::GetSolution(const ExecutionContext& context,
                                params.resultRunningMean,
                                params.resultRunningVariance,
                                params.epsilon);
-                    });
-                };
-            };
-        }
-        else
-        {
-            result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-                return [=](const Handle& handle, const AnyInvokeParams& raw_params) {
-                    decltype(auto) kernel = handle.Run(kernels.front());
-                    decltype(auto) params = raw_params.CastTo<miopen::batchnorm::InvokeParams>();
-                    visit_float(dtype, [&](auto as_float) {
+                    }
+                    else
+                    {
                         kernel(params.x,
                                params.y,
                                params.bnScale,
@@ -359,50 +324,34 @@ BnFwdTrainingPASingle::GetSolution(const ExecutionContext& context,
                                params.epsilon,
                                in_cstride,
                                in_nstride);
-                    });
-                };
-            };
-        }
-    }
-    else
-    {
-        if(vn4)
-        {
-            result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-                return [=](const Handle& handle, const AnyInvokeParams& raw_params) {
-                    decltype(auto) kernel = handle.Run(kernels.front());
-                    decltype(auto) params = raw_params.CastTo<miopen::batchnorm::InvokeParams>();
-                    visit_float(dtype, [&](auto as_float) {
+                    }
+                }
+                else
+                {
+                    if(vn4)
+                    {
                         kernel(params.x,
-                               params.y,
-                               params.bnScale,
-                               params.bnBias,
-                               as_float(inhw),
-                               params.epsilon);
-                    });
-                };
-            };
-        }
-        else
-        {
-            result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-                return [=](const Handle& handle, const AnyInvokeParams& raw_params) {
-                    decltype(auto) kernel = handle.Run(kernels.front());
-                    decltype(auto) params = raw_params.CastTo<miopen::batchnorm::InvokeParams>();
-                    visit_float(dtype, [&](auto as_float) {
+                                params.y,
+                                params.bnScale,
+                                params.bnBias,
+                                as_float(inhw),
+                                params.epsilon);
+                    }
+                    else
+                    {
                         kernel(params.x,
-                               params.y,
-                               params.bnScale,
-                               params.bnBias,
-                               as_float(inhw),
-                               params.epsilon,
-                               in_cstride,
-                               in_nstride);
-                    });
-                };
-            };
-        }
-    }
+                                params.y,
+                                params.bnScale,
+                                params.bnBias,
+                                as_float(inhw),
+                                params.epsilon,
+                                in_cstride,
+                                in_nstride);
+                    }
+                }
+            });
+        };
+    };
 
     return result;
 }
