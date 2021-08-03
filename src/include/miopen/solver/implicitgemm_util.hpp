@@ -1,5 +1,31 @@
-#ifndef CK_IMPLICITGEMM_UTIL_HPP_
-#define CK_IMPLICITGEMM_UTIL_HPP_
+/*******************************************************************************
+ *
+ * MIT License
+ *
+ * Copyright (c) 2021 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
+
+#ifndef GUARD_IMPLICITGEMM_UTIL_HPP_
+#define GUARD_IMPLICITGEMM_UTIL_HPP_
 
 #include <miopen/env.hpp>
 #include <miopen/hip_build_utils.hpp>
@@ -37,7 +63,11 @@ T gcd(T x, T y)
 {
     assert(!(x == 0 && y == 0));
 
-    if(x == y || x == 0)
+    if(x < 0 || y < 0)
+    {
+        return gcd(abs(x), abs(y));
+    }
+    else if(x == y || x == 0)
     {
         return y;
     }
@@ -47,11 +77,11 @@ T gcd(T x, T y)
     }
     else if(x > y)
     {
-        return gcd(x - y, y);
+        return gcd(x % y, y);
     }
     else
     {
-        return gcd(x, y - x);
+        return gcd(x, y % x);
     }
 }
 
@@ -446,7 +476,9 @@ static inline bool IsXdlopsSupport(const ConvolutionContext& c)
     // disable xdlops kernels by default due to possible failures:
     // 1) inline asm may crash
     // 2) llvm intrin may has incorrect results
-    return StartsWith(c.GetStream().GetDeviceName(), "gfx908") &&
+    bool is_xdlops_supported = StartsWith(c.GetStream().GetDeviceName(), "gfx908") ||
+                               StartsWith(c.GetStream().GetDeviceName(), "gfx90a");
+    return is_xdlops_supported &&
 #if WORKAROUND_SWDEV_200782
            /// \todo Remove workaround when we drop suport of HCC older than 2.10.19392.
            ((miopen::HipCompilerVersion() >= external_tool_version_t{2, 10, 19392})
@@ -656,7 +688,7 @@ template <class PerformanceImplicitGemm_t>
 inline static auto GetPerformanceConfigBase(const ConvolutionContext& ctx)
 {
     PerformanceImplicitGemm_t pp;
-    pp.EuristicInit(ctx);
+    pp.HeuristicInit(ctx);
     MIOPEN_LOG_I(pp.ToString());
     return pp;
 }
@@ -708,12 +740,7 @@ static inline bool use_amd_inline_asm(const ConvolutionContext& ctx)
 
 static inline bool support_amd_buffer_atomic_fadd(const std::string& device_name)
 {
-#if MIOPEN_USE_COMGR && ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_FAILS_WITH_COMGR
-    (void)device_name;
-    return false;
-#else
     return StartsWith(device_name, "gfx908");
-#endif
 }
 
 static inline bool is_use_amd_buffer_load_store(const ConvolutionContext& ctx)
@@ -844,6 +871,7 @@ static inline bool IsComposableKernelSupportedHardware(const ConvolutionContext&
            StartsWith(c.GetStream().GetDeviceName(), "gfx900") ||
            StartsWith(c.GetStream().GetDeviceName(), "gfx906") ||
            StartsWith(c.GetStream().GetDeviceName(), "gfx908") ||
+           StartsWith(c.GetStream().GetDeviceName(), "gfx90a") ||
            StartsWith(c.GetStream().GetDeviceName(), "gfx1030");
 }
 

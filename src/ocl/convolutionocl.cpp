@@ -38,7 +38,6 @@
 #include <miopen/float_equal.hpp>
 #include <miopen/invoker.hpp>
 #include <miopen/kernel.hpp>
-#include <miopen/rocm_features.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/tensor.hpp>
@@ -51,19 +50,10 @@
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
 
-#if MIOPEN_USE_GEMM
-#include <miopen/gemm_v2.hpp>
-#endif
-
 #include <cassert>
 #include <type_traits>
 
 #include <boost/range/adaptors.hpp>
-
-/// MIOpenGEMM issues with ROCm 3.7, most likely related to the
-/// issues in the OpenCL compiler. Not reproducible in ROCm 4.0.
-#define WORKAROUND_MIOPENGEMM_ROCM37 \
-    (MIOPEN_USE_MIOPENGEMM && HIP_PACKAGE_VERSION_MAJOR == 3 && HIP_PACKAGE_VERSION_MINOR == 7)
 
 namespace miopen {
 
@@ -76,23 +66,6 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_FFT)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMMED_FALLBACK)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMPILE_ONLY)
-
-#if MIOPEN_USE_GEMM
-#ifdef CPPCHECK
-// Keep the value unknown in cppcheck since this can differ between opencl and hip
-static bool IsUseRocBlas;
-#else
-static const bool IsUseRocBlas = (MIOPEN_USE_ROCBLAS == 1);
-#endif
-
-static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
-                                   const TensorDescriptor& yDesc,
-                                   const TensorDescriptor& wDesc)
-{
-    return xDesc.GetType() == miopenBFloat16 || yDesc.GetType() == miopenBFloat16 ||
-           wDesc.GetType() == miopenBFloat16;
-}
-#endif
 
 size_t GetKernelGlobalWorkDim(const KernelInvoke& kernel, int dim) { return kernel.gdims[dim]; }
 
@@ -168,6 +141,27 @@ ConvolutionDescriptor::FindWinogradSolutions(const ConvolutionContext& ctx,
         MIOPEN_LOG_WE(ex.what());
         return {};
     }
+}
+
+std::vector<miopen::solver::ConvSolution>
+ConvolutionDescriptor::FindDataGemmSolutions(const ConvolutionContext& ctx,
+                                             const AnyInvokeParams& invoke_ctx) const
+{
+#if MIOPEN_USE_GEMM
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
+        return {};
+    try
+    {
+        return FindAllGemmSolutions(ctx, invoke_ctx);
+    }
+    catch(miopen::Exception& ex)
+    {
+        MIOPEN_LOG_WE(ex.what());
+        return {};
+    }
+#else
+    return {};
+#endif
 }
 
 std::vector<miopen::solver::ConvSolution>
@@ -312,15 +306,22 @@ static void EvaluateInvokers(Handle& handle,
             MIOPEN_THROW("Invoker is not provided by solver " + sol.solver_id);
 
         const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
-        invoker(handle, invoke_ctx);
-        const auto elapsed = handle.GetKernelTime();
-
-        MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ") << best);
-        if(elapsed < best)
+        try
         {
-            best         = elapsed;
-            selected     = sol;
-            best_invoker = invoker;
+            invoker(handle, invoke_ctx);
+            const auto elapsed = handle.GetKernelTime();
+
+            MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ") << best);
+            if(elapsed < best)
+            {
+                best         = elapsed;
+                selected     = sol;
+                best_invoker = invoker;
+            }
+        }
+        catch(const miopen::Exception& ex)
+        {
+            MIOPEN_LOG_E(ex.what());
         }
     }
 
@@ -335,6 +336,15 @@ static void EvaluateInvokers(Handle& handle,
                                     selected.workspce_sz,
                                     FindDbKCacheKey::MakeUnused(algorithm_name)});
     }
+}
+
+static inline void AppendPointersToElements(const std::vector<miopen::solver::ConvSolution>& from,
+                                            std::vector<const miopen::solver::ConvSolution*>& to)
+{
+    std::transform(from.begin(),
+                   from.end(),
+                   std::back_inserter(to),
+                   [](const miopen::solver::ConvSolution& s) { return &s; });
 }
 
 static void DirConvFindCore(Handle& handle,
@@ -355,389 +365,75 @@ static void DirConvFindCore(Handle& handle,
     AutoEnableProfiling enableProfiling{handle};
     ValidateGroupCount(xDesc, wDesc, conv);
 
-#if MIOPEN_USE_GEMM
-    const std::size_t spatial_dim = conv.GetSpatialDimension();
-    const auto in_spatial         = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
-    const auto wei_spatial        = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
-    const auto out_spatial        = boost::adaptors::slice(yDesc.GetLengths(), 2, 2 + spatial_dim);
-
-    if(!use_winograd_only && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) &&
-       !(IsAnyBufferBF16(xDesc, yDesc, wDesc) && !IsUseRocBlas)
-#if WORKAROUND_MIOPENGEMM_SINCE_ROCM41
-       &&
-       !(miopen::any_of(in_spatial, [](auto v) { return v >= 161; }) &&
-         miopen::any_of(wei_spatial, [](auto v) { return v >= 7; }))
-#endif
-           )
-    { // GEMM algo
-        std::size_t in_n, in_c;
-        std::tie(in_n, in_c) = tie_pick<0, 1>()(xDesc.GetLengths());
-        std::size_t wei_k = wDesc.GetLengths()[0];
-
-        float time_gemm           = 0;
-        const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
-        // Use transpose path 1x1, stride=2
-        if(conv.GetSpatialDimension() == 2 &&
-           miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-           miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
-           miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; }))
-        {
-            size_t workspace_req = conv.ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc);
-            if(workSpace != nullptr && workSpaceSize >= workspace_req)
-            {
-                if(conv.group_count > 1)
-                {
-                    MIOPEN_LOG_FUNCTION("groupconv, 1x1 u2xv2");
-                }
-                else
-                {
-                    MIOPEN_LOG_FUNCTION("convolution, 1x1 u2xv2");
-                }
-
-                // y = CNHW2NCHW(w * NCHW2CNHW(x))
-                transpose_NCHW2CNHW(handle,
-                                    in_n,
-                                    in_c,
-                                    in_spatial[0],
-                                    in_spatial[1],
-                                    out_spatial[0],
-                                    out_spatial[1],
-                                    x,
-                                    workSpace,
-                                    0,
-                                    0,
-                                    conv.GetConvStrides()[0],
-                                    conv.GetConvStrides()[1],
-                                    xDesc.GetType());
-                time_gemm = handle.GetKernelTime();
-
-                std::size_t out_spatial_size = std::accumulate(out_spatial.begin(),
-                                                               out_spatial.end(),
-                                                               std::size_t(1),
-                                                               std::multiplies<std::size_t>());
-
-                std::size_t x_t_size = in_n * in_c * out_spatial_size;
-
-                std::size_t wksp_offset = 0;
-                if(wDesc.GetType() == miopenInt8)
-                {
-                    wksp_offset = x_t_size;
-                    transpose_packed_MN2NM(handle,
-                                           in_c,
-                                           static_cast<int>(in_n * out_spatial_size),
-                                           0,
-                                           wksp_offset,
-                                           workSpace,
-                                           workSpace,
-                                           xDesc.GetType());
-
-                    time_gemm += handle.GetKernelTime();
-
-                    x_t_size *= 2;
-                }
-                if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
-                   (yDesc.GetType() == miopenInt32 || yDesc.GetType() == miopenFloat))
-                    x_t_size /= 4;
-
-                FindDbKCacheKey kcache_key;
-
-                GemmDescriptor gemm_desc =
-                    conv.group_count > 1 ? CreateGemmDescriptorGroupConvCNHWFwd(
-                                               wDesc, xDesc, yDesc, conv.group_count)
-                                         : CreateGemmDescriptorConvCNHWFwd(wDesc, xDesc, yDesc);
-
-                miopenStatus_t gemm_status =
-                    CallGemmTimeMeasure(handle,
-                                        gemm_desc,
-                                        w,
-                                        0,
-                                        workSpace,
-                                        wksp_offset,
-                                        workSpace,
-                                        x_t_size,
-                                        &kcache_key,
-                                        time_precision,
-                                        conv.group_count > 1 ? callGemmStridedBatched : callGemm);
-
-                time_gemm += handle.GetKernelTime();
-
-                transpose_CNHW2NCHW(handle,
-                                    in_n,
-                                    wei_k,
-                                    out_spatial[0],
-                                    out_spatial[1],
-                                    out_spatial[0],
-                                    out_spatial[1],
-                                    workSpace,
-                                    y,
-                                    x_t_size,
-                                    0,
-                                    1,
-                                    1,
-                                    yDesc.GetType());
-                time_gemm += handle.GetKernelTime();
-
-                if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
-                   yDesc.GetType() != miopenInt32)
-                {
-                    TensorDescriptor ygemmDesc(miopenInt32, yDesc.GetLengths(), yDesc.GetStrides());
-
-                    CastTensor(handle, &conv.lowp_quant, ygemmDesc, y, yDesc, y, 0, 0);
-                    time_gemm += handle.GetKernelTime();
-                }
-
-                if(gemm_status == miopenStatusSuccess)
-                    record.SetValues(
-                        "miopenConvolutionFwdAlgoGEMM",
-                        FindDbData{
-                            "gemm", time_gemm, workspace_req, kcache_key}); // Todo: gemm solver id?
-            }
-        }
-        // 1x1_stride=1 with GEMM and zero workspace
-        else if(miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-                miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
-                miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 1; }))
-        {
-            if(conv.group_count > 1)
-            {
-                MIOPEN_LOG_FUNCTION("groupconv, 1x1");
-            }
-            else
-            {
-                MIOPEN_LOG_FUNCTION("convolution, 1x1");
-            }
-
-            // y = w * x
-            FindDbKCacheKey kcache_key;
-            miopenStatus_t gemm_status = miopenStatusNotInitialized;
-            size_t workspace_req       = 0;
-            if(wDesc.GetType() == miopenInt8)
-            {
-                workspace_req            = conv.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc);
-                GemmDescriptor gemm_desc = CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
-
-                std::size_t out_offset      = 0;
-                std::size_t in_offset       = 0;
-                std::size_t in_spatial_size = std::accumulate(in_spatial.begin(),
-                                                              in_spatial.end(),
-                                                              std::size_t(1),
-                                                              std::multiplies<std::size_t>());
-                transpose_packed_MN2NM(
-                    handle, in_c, in_spatial_size, in_offset, 0, x, workSpace, xDesc.GetType());
-
-                time_gemm += (in_n * handle.GetKernelTime());
-
-                gemm_status = CallGemmTimeMeasure(handle,
-                                                  gemm_desc,
-                                                  w,
-                                                  0,
-                                                  workSpace,
-                                                  0,
-                                                  y,
-                                                  out_offset,
-                                                  &kcache_key,
-                                                  time_precision,
-                                                  callGemm);
-
-                time_gemm += (in_n * handle.GetKernelTime());
-            }
-            else
-            {
-                GemmDescriptor gemm_desc =
-                    conv.group_count > 1
-                        ? CreateGemmDescriptorGroupConvFwd(wDesc, xDesc, yDesc, conv.group_count)
-                        : CreateGemmStridedBatchedDescriptorConv1x1Fwd(wDesc, xDesc, yDesc);
-
-                gemm_status = CallGemmTimeMeasure(handle,
-                                                  gemm_desc,
-                                                  w,
-                                                  0,
-                                                  x,
-                                                  0,
-                                                  y,
-                                                  0,
-                                                  &kcache_key,
-                                                  time_precision,
-                                                  callGemmStridedBatched);
-
-                time_gemm = handle.GetKernelTime();
-                if(conv.group_count > 1)
-                    time_gemm *= in_n;
-            }
-
-            if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
-               yDesc.GetType() != miopenInt32)
-            {
-                TensorDescriptor ygemmDesc(miopenInt32, yDesc.GetLengths(), yDesc.GetStrides());
-
-                CastTensor(handle, &conv.lowp_quant, ygemmDesc, y, yDesc, y, 0, 0);
-                time_gemm += handle.GetKernelTime();
-            }
-
-            if(gemm_status == miopenStatusSuccess)
-                record.SetValues(
-                    "miopenConvolutionFwdAlgoGEMM",
-                    FindDbData{
-                        "gemm", time_gemm, workspace_req, kcache_key}); // Todo: gemm solver id?
-        }
-        // if not 1x1
-        else if(workSpace != nullptr &&
-                workSpaceSize >= (conv.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc))
-#if WORKAROUND_MIOPENGEMM_ROCM37
-                &&
-                !(conv.GetSpatialDimension() == 2 && conv.group_count == 4 && in_c == 4 &&
-                  in_spatial[0] == 161 && in_spatial[1] == 700 && wDesc.GetLengths()[0] == 32 &&
-                  wDesc.GetLengths()[1] == 1 && wei_spatial[0] == 5 && wei_spatial[1] == 20 &&
-                  miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
-                  miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; }) &&
-                  miopen::all_of(conv.GetConvDilations(), [](auto v) { return v == 1; }))
-#endif
-                    )
-        {
-            if(conv.group_count > 1)
-            {
-                MIOPEN_LOG_FUNCTION("groupconv, non 1x1");
-            }
-            else
-            {
-                MIOPEN_LOG_FUNCTION("convolution, non 1x1");
-            }
-
-            // y = w * Im2Col(x)
-            float time_im2col = 0;
-            int in_offset     = 0;
-            time_im2col       = Im2ColGPU(handle,
-                                    conv.GetSpatialDimension(),
-                                    x,
-                                    in_offset,
-                                    in_c,
-                                    in_spatial,
-                                    wei_spatial,
-                                    out_spatial,
-                                    conv.GetConvPads(),
-                                    conv.GetConvStrides(),
-                                    conv.GetConvDilations(),
-                                    workSpace,
-                                    xDesc.GetType());
-
-            std::size_t wksp_offset = 0;
-            if(wDesc.GetType() == miopenInt8)
-            {
-                std::size_t wei_spatial_size = std::accumulate(wei_spatial.begin(),
-                                                               wei_spatial.end(),
-                                                               std::size_t(1),
-                                                               std::multiplies<std::size_t>());
-
-                std::size_t out_spatial_size = std::accumulate(out_spatial.begin(),
-                                                               out_spatial.end(),
-                                                               std::size_t(1),
-                                                               std::multiplies<std::size_t>());
-
-                wksp_offset = in_c * wei_spatial_size * out_spatial_size;
-
-                transpose_packed_MN2NM(handle,
-                                       static_cast<int>(in_c * wei_spatial_size),
-                                       out_spatial_size,
-                                       0,
-                                       wksp_offset,
-                                       workSpace,
-                                       workSpace,
-                                       xDesc.GetType());
-                time_gemm += (in_n * handle.GetKernelTime());
-            }
-
-            FindDbKCacheKey kcache_key;
-
-            GemmDescriptor gemm_desc =
-                conv.group_count > 1
-                    ? CreateGemmDescriptorGroupConvFwd(wDesc, xDesc, yDesc, conv.group_count)
-                    : CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
-
-            miopenStatus_t gemm_status = CallGemmTimeMeasure(
-                handle,
-                gemm_desc,
-                w,
-                0,
-                workSpace,
-                wksp_offset,
-                y,
-                0,
-                &kcache_key,
-                time_precision,
-                conv.group_count > 1 ? callGemmStridedBatched : callGemm,
-                (conv.group_count > 1 || wDesc.GetType() == miopenInt8 ||
-                 wDesc.GetType() == miopenInt8x4 || wDesc.GetType() == miopenBFloat16)
-                    ? GemmBackend_t::miopentensile
-                    : GemmBackend_t::miopengemm);
-
-            time_gemm += (in_n * (time_im2col + handle.GetKernelTime()));
-
-            if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
-               yDesc.GetType() != miopenInt32)
-            {
-                TensorDescriptor ygemmDesc(miopenInt32, yDesc.GetLengths(), yDesc.GetStrides());
-
-                CastTensor(handle, &conv.lowp_quant, ygemmDesc, y, yDesc, y, 0, 0);
-                time_gemm += handle.GetKernelTime();
-            }
-
-            if(gemm_status == miopenStatusSuccess)
-                record.SetValues("miopenConvolutionFwdAlgoGEMM",
-                                 FindDbData{"gemm",
-                                            time_gemm,
-                                            (conv.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc)),
-                                            kcache_key}); // Todo: gemm solver id?
-        }
-    }
-#endif
-
     const auto network_config = ctx.BuildConfKey();
-    const auto invoke_ctx =
-        conv::DataInvokeParams{{xDesc, x, wDesc, w, yDesc, y}, workSpace, workSpaceSize};
+    const auto invoke_ctx     = conv::DataInvokeParams{
+        InvokeType::Evaluate, {xDesc, x, wDesc, w, yDesc, y}, workSpace, workSpaceSize};
 
-    // Winograd algo
+    // Find solutions
+    const auto winograd = !use_winograd_only ? conv.FindWinogradSolutions(ctx, invoke_ctx) : [&]() {
+        AutoUseFastDynamicSolutions tmp{ctx};
+        return conv.FindWinogradSolutions(ctx, invoke_ctx);
+    }();
+    ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
+    bufs.SetFwd(x, w, y);
+    const auto gemm = !use_winograd_only ? conv.FindDataGemmSolutions(ctx, invoke_ctx)
+                                         : std::vector<miopen::solver::ConvSolution>{};
+    const auto direct =
+        !use_winograd_only
+            ? conv.FindDataDirectSolutions(
+                  handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx)
+            : std::vector<miopen::solver::ConvSolution>{};
+    const auto igemm =
+        !use_winograd_only
+            ? conv.FindDataImplicitGemmSolutions(
+                  handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx)
+            : std::vector<miopen::solver::ConvSolution>{};
+    const auto fft = !use_winograd_only ? conv.FindFftSolutions(ctx, invoke_ctx)
+                                        : std::vector<miopen::solver::ConvSolution>{};
+
+    // Precompile
     {
-        const auto all = !use_winograd_only ? conv.FindWinogradSolutions(ctx, invoke_ctx) : [&]() {
-            AutoUseFastDynamicSolutions tmp{ctx};
-            return conv.FindWinogradSolutions(ctx, invoke_ctx);
-        }();
+        std::vector<const miopen::solver::ConvSolution*> all;
+        all.reserve(gemm.size() + winograd.size() + direct.size() + igemm.size() + fft.size());
+        AppendPointersToElements(gemm, all);
+        AppendPointersToElements(winograd, all);
+        AppendPointersToElements(direct, all);
+        AppendPointersToElements(igemm, all);
+        AppendPointersToElements(fft, all);
         PrecompileSolutions(handle, all);
-        const auto algorithm_name = AlgorithmName{"miopenConvolutionFwdAlgoWinograd"};
-        EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
     }
 
-    // Direct algo
-    if(!use_winograd_only)
-    {
-        ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
-        bufs.SetFwd(x, w, y);
-        const auto all = conv.FindDataDirectSolutions(
-            handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx);
-        PrecompileSolutions(handle, all);
-        const auto algorithm_name = AlgorithmName{"miopenConvolutionFwdAlgoDirect"};
-        EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
-    }
-
-    // Implicit GEMM algo
-    if(!use_winograd_only)
-    {
-        ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
-        bufs.SetFwd(x, w, y);
-        const auto all = conv.FindDataImplicitGemmSolutions(
-            handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx);
-        PrecompileSolutions(handle, all);
-        const auto algorithm_name = AlgorithmName{"miopenConvolutionFwdAlgoImplicitGEMM"};
-        EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
-    }
-
-    // FFT algo
-    if(!use_winograd_only)
-    {
-        const auto all            = conv.FindFftSolutions(ctx, invoke_ctx);
-        const auto algorithm_name = AlgorithmName{"miopenConvolutionFwdAlgoFFT"};
-        PrecompileSolutions(handle, all);
-        EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
-    }
+    // Evaluate Invokers
+    EvaluateInvokers(handle,
+                     gemm,
+                     AlgorithmName{"miopenConvolutionFwdAlgoGEMM"},
+                     network_config,
+                     invoke_ctx,
+                     record);
+    EvaluateInvokers(handle,
+                     winograd,
+                     AlgorithmName{"miopenConvolutionFwdAlgoWinograd"},
+                     network_config,
+                     invoke_ctx,
+                     record);
+    EvaluateInvokers(handle,
+                     direct,
+                     AlgorithmName{"miopenConvolutionFwdAlgoDirect"},
+                     network_config,
+                     invoke_ctx,
+                     record);
+    EvaluateInvokers(handle,
+                     igemm,
+                     AlgorithmName{"miopenConvolutionFwdAlgoImplicitGEMM"},
+                     network_config,
+                     invoke_ctx,
+                     record);
+    EvaluateInvokers(handle,
+                     fft,
+                     AlgorithmName{"miopenConvolutionFwdAlgoFFT"},
+                     network_config,
+                     invoke_ctx,
+                     record);
 }
 
 void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
@@ -942,497 +638,9 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             return;
         }
 
-        switch(algo)
-        {
-        case miopenConvolutionFwdAlgoDirect:
-        case miopenConvolutionFwdAlgoWinograd:
-        case miopenConvolutionFwdAlgoFFT:
-        case miopenConvolutionFwdAlgoImplicitGEMM:
-            MIOPEN_THROW("No invoker was registered for convolution forward. Was find executed?");
-
-        case miopenConvolutionFwdAlgoGEMM:
-            ConvFwdGemm(handle, tensors, workSpace, workSpaceSize);
-            break;
-        }
+        MIOPEN_THROW("No invoker was registered for convolution forward. Was find executed?");
     });
 }
-
-void ConvolutionDescriptor::ConvFwdGemm(Handle& handle,
-                                        const ConvFwdTensors& tensors,
-                                        Data_t workSpace,
-                                        std::size_t workSpaceSize) const
-{
-#if MIOPEN_USE_GEMM
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
-    {
-        MIOPEN_THROW("GEMM convolution is disabled");
-    }
-    if(IsAnyBufferBF16(tensors.xDesc, tensors.yDesc, tensors.wDesc) && !IsUseRocBlas)
-    {
-        MIOPEN_THROW("GEMM convolution is unsupported");
-    }
-
-    std::size_t in_n, in_c;
-    std::tie(in_n, in_c) = tie_pick<0, 1>()(tensors.xDesc.GetLengths());
-
-    std::size_t wei_k = tensors.wDesc.GetLengths()[0];
-
-    std::size_t spatial_dim = GetSpatialDimension();
-
-    auto in_spatial  = boost::adaptors::slice(tensors.xDesc.GetLengths(), 2, 2 + spatial_dim);
-    auto wei_spatial = boost::adaptors::slice(tensors.wDesc.GetLengths(), 2, 2 + spatial_dim);
-    auto out_spatial = boost::adaptors::slice(tensors.yDesc.GetLengths(), 2, 2 + spatial_dim);
-
-    // Use transpose path for 1x1, stride=2
-    if(GetSpatialDimension() == 2 && miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-       miopen::all_of(GetConvPads(), [](auto v) { return v == 0; }) &&
-       miopen::all_of(GetConvStrides(), [](auto v) { return v == 2; }))
-    {
-        if(group_count > 1)
-        {
-            MIOPEN_LOG_FUNCTION("groupconv, 1x1 u2xv2");
-        }
-        else
-        {
-            MIOPEN_LOG_FUNCTION("convolution, 1x1 u2xv2");
-        }
-
-        assert(workSpace != nullptr &&
-               workSpaceSize >= ForwardGetWorkSpaceSizeGEMMTranspose(tensors.xDesc, tensors.yDesc));
-
-        float t1 = 0;
-        transpose_NCHW2CNHW(handle,
-                            in_n,
-                            in_c,
-                            in_spatial[0],
-                            in_spatial[1],
-                            out_spatial[0],
-                            out_spatial[1],
-                            tensors.x,
-                            workSpace,
-                            0,
-                            0,
-                            GetConvStrides()[0],
-                            GetConvStrides()[1],
-                            tensors.xDesc.GetType());
-        if(handle.IsProfilingEnabled())
-            t1 = handle.GetKernelTime();
-
-        std::size_t out_spatial_size = std::accumulate(
-            out_spatial.begin(), out_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
-
-        std::size_t x_t_size = in_n * in_c * out_spatial_size;
-
-        std::size_t wksp_offset = 0;
-        if(tensors.wDesc.GetType() == miopenInt8)
-        {
-            wksp_offset = x_t_size;
-
-            transpose_packed_MN2NM(handle,
-                                   in_c,
-                                   static_cast<int>(in_n * out_spatial_size),
-                                   0,
-                                   wksp_offset,
-                                   workSpace,
-                                   workSpace,
-                                   tensors.xDesc.GetType());
-            if(handle.IsProfilingEnabled())
-                t1 += handle.GetKernelTime();
-
-            x_t_size *= 2;
-        }
-
-        if(tensors.wDesc.GetType() == miopenInt8 || tensors.wDesc.GetType() == miopenInt8x4)
-        {
-            const auto xts = GetTypeSize(tensors.xDesc.GetType());
-            if(xts > 0)
-            {
-                const auto yts_div_xts = GetTypeSize(tensors.yDesc.GetType()) / xts;
-                if(yts_div_xts > 0)
-                    x_t_size /= yts_div_xts;
-            }
-        }
-
-        if(group_count > 1)
-        {
-            GemmDescriptor gemm_desc = CreateGemmDescriptorGroupConvCNHWFwd(
-                tensors.wDesc, tensors.xDesc, tensors.yDesc, group_count);
-
-            CallGemmStridedBatched(
-                handle, gemm_desc, tensors.w, 0, workSpace, 0, workSpace, x_t_size, nullptr);
-        }
-        else
-        {
-            // tensors.y = CNHW2NCHW(tensors.w * NCHW2CNHW(tensors.x))
-            GemmDescriptor gemm_desc =
-                CreateGemmDescriptorConvCNHWFwd(tensors.wDesc, tensors.xDesc, tensors.yDesc);
-
-            // tensors.y = CNHW2NCHW(tensors.w * NCHW2CNHW(tensors.x))
-            CallGemm(handle,
-                     gemm_desc,
-                     tensors.w,
-                     0,
-                     workSpace,
-                     wksp_offset,
-                     workSpace,
-                     x_t_size,
-                     nullptr);
-        }
-        if(handle.IsProfilingEnabled())
-            t1 += handle.GetKernelTime();
-
-        transpose_CNHW2NCHW(handle,
-                            in_n,
-                            wei_k,
-                            out_spatial[0],
-                            out_spatial[1],
-                            out_spatial[0],
-                            out_spatial[1],
-                            workSpace,
-                            tensors.y,
-                            x_t_size,
-                            0,
-                            1,
-                            1,
-                            tensors.yDesc.GetType());
-        if(handle.IsProfilingEnabled())
-            t1 += handle.GetKernelTime();
-
-        if((tensors.wDesc.GetType() == miopenInt8 || tensors.wDesc.GetType() == miopenInt8x4) &&
-           tensors.yDesc.GetType() != miopenInt32)
-        {
-            TensorDescriptor ygemmDesc(
-                miopenInt32, tensors.yDesc.GetLengths(), tensors.yDesc.GetStrides());
-
-            CastTensor(handle, &lowp_quant, ygemmDesc, tensors.y, tensors.yDesc, tensors.y, 0, 0);
-            if(handle.IsProfilingEnabled())
-                t1 += handle.GetKernelTime();
-        }
-
-        if(handle.IsProfilingEnabled())
-        {
-            handle.ResetKernelTime();
-            handle.AccumKernelTime(t1);
-        }
-    }
-    else if(miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-            miopen::all_of(GetConvPads(), [](auto v) { return v == 0; }) &&
-            miopen::all_of(GetConvStrides(), [](auto v) { return v == 1; }))
-    {
-        if(group_count > 1)
-        {
-            MIOPEN_LOG_FUNCTION("groupconv, 1x1");
-
-            GemmDescriptor gemm_desc = CreateGemmDescriptorGroupConvFwd(
-                tensors.wDesc, tensors.xDesc, tensors.yDesc, group_count);
-            float time_0 = 0;
-
-            std::size_t out_spatial_size = std::accumulate(out_spatial.begin(),
-                                                           out_spatial.end(),
-                                                           std::size_t(1),
-                                                           std::multiplies<std::size_t>());
-
-            std::size_t in_spatial_size = std::accumulate(in_spatial.begin(),
-                                                          in_spatial.end(),
-                                                          std::size_t(1),
-                                                          std::multiplies<std::size_t>());
-
-            for(std::size_t i = 0; i < in_n; i++)
-            {
-                std::size_t out_offset = i * wei_k * out_spatial_size;
-
-                std::size_t in_offset = i * in_c * in_spatial_size;
-
-                CallGemmStridedBatched(handle,
-                                       gemm_desc,
-                                       tensors.w,
-                                       0,
-                                       tensors.x,
-                                       in_offset,
-                                       tensors.y,
-                                       out_offset,
-                                       nullptr);
-                if(handle.IsProfilingEnabled())
-                {
-                    if(i == in_n - 1)
-                        handle.AccumKernelTime(time_0);
-                    time_0 += handle.GetKernelTime();
-                }
-            }
-        }
-        else
-        {
-            MIOPEN_LOG_FUNCTION("convolution, 1x1");
-            float time_0 = 0;
-            float t1     = 0;
-
-            if(tensors.wDesc.GetType() == miopenInt8)
-            {
-                GemmDescriptor gemm_desc =
-                    CreateGemmDescriptorConvFwd(tensors.wDesc, tensors.xDesc, tensors.yDesc);
-
-                std::size_t out_spatial_size = std::accumulate(out_spatial.begin(),
-                                                               out_spatial.end(),
-                                                               std::size_t(1),
-                                                               std::multiplies<std::size_t>());
-
-                std::size_t in_spatial_size = std::accumulate(in_spatial.begin(),
-                                                              in_spatial.end(),
-                                                              std::size_t(1),
-                                                              std::multiplies<std::size_t>());
-
-                for(std::size_t i = 0; i < in_n; i++)
-                {
-                    std::size_t out_offset = i * wei_k * out_spatial_size;
-
-                    std::size_t in_offset = i * in_c * in_spatial_size;
-
-                    transpose_packed_MN2NM(handle,
-                                           in_c,
-                                           in_spatial_size,
-                                           in_offset,
-                                           0,
-                                           tensors.x,
-                                           workSpace,
-                                           tensors.xDesc.GetType());
-                    if(handle.IsProfilingEnabled())
-                        t1 += handle.GetKernelTime();
-
-                    CallGemm(handle,
-                             gemm_desc,
-                             tensors.w,
-                             0,
-                             workSpace,
-                             0,
-                             tensors.y,
-                             out_offset,
-                             nullptr);
-                    if(handle.IsProfilingEnabled())
-                        time_0 += handle.GetKernelTime();
-                }
-            }
-            else
-            {
-                // tensors.y = tensors.w * tensors.x
-                GemmDescriptor gemm_desc = CreateGemmStridedBatchedDescriptorConv1x1Fwd(
-                    tensors.wDesc, tensors.xDesc, tensors.yDesc);
-
-                // tensors.y = tensors.w * tensors.x
-                CallGemmStridedBatched(
-                    handle, gemm_desc, tensors.w, 0, tensors.x, 0, tensors.y, 0, nullptr);
-                if(handle.IsProfilingEnabled())
-                    time_0 += handle.GetKernelTime();
-            }
-
-            if((tensors.wDesc.GetType() == miopenInt8 || tensors.wDesc.GetType() == miopenInt8x4) &&
-               tensors.yDesc.GetType() != miopenInt32)
-            {
-                TensorDescriptor ygemmDesc(
-                    miopenInt32, tensors.yDesc.GetLengths(), tensors.yDesc.GetStrides());
-
-                CastTensor(
-                    handle, &lowp_quant, ygemmDesc, tensors.y, tensors.yDesc, tensors.y, 0, 0);
-                if(handle.IsProfilingEnabled())
-                    handle.AccumKernelTime(t1 + time_0);
-            }
-        }
-    }
-    // if not 1x1
-    else
-    {
-        if(group_count > 1)
-        {
-            MIOPEN_LOG_FUNCTION("groupconv, non 1x1");
-        }
-        else
-        {
-            MIOPEN_LOG_FUNCTION("convolution, non 1x1");
-        }
-        assert(workSpace != nullptr &&
-               workSpaceSize >= (ForwardGetWorkSpaceSizeGEMM(tensors.wDesc, tensors.yDesc)));
-
-        // tensors.y = tensors.w * Im2Col(tensors.x)
-        GemmDescriptor gemm_desc{};
-        if(group_count > 1)
-            gemm_desc = CreateGemmDescriptorGroupConvFwd(
-                tensors.wDesc, tensors.xDesc, tensors.yDesc, group_count);
-        else
-            gemm_desc = CreateGemmDescriptorConvFwd(tensors.wDesc, tensors.xDesc, tensors.yDesc);
-
-        std::size_t out_spatial_size = std::accumulate(
-            out_spatial.begin(), out_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
-
-        std::size_t in_spatial_size = std::accumulate(
-            in_spatial.begin(), in_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
-
-        float time_0 = 0;
-        float t1     = 0;
-        for(std::size_t i = 0; i < in_n; i++)
-        {
-            std::size_t out_offset = i * wei_k * out_spatial_size;
-
-            std::size_t in_offset = i * in_c * in_spatial_size;
-
-            Im2ColGPU(handle,
-                      GetSpatialDimension(),
-                      tensors.x,
-                      in_offset,
-                      in_c,
-                      in_spatial,
-                      wei_spatial,
-                      out_spatial,
-                      GetConvPads(),
-                      GetConvStrides(),
-                      GetConvDilations(),
-                      workSpace,
-                      tensors.xDesc.GetType());
-
-            if(handle.IsProfilingEnabled())
-                t1 = handle.GetKernelTime();
-
-            std::size_t wksp_offset = 0;
-            if(tensors.wDesc.GetType() == miopenInt8)
-            {
-                std::size_t wei_spatial_size = std::accumulate(wei_spatial.begin(),
-                                                               wei_spatial.end(),
-                                                               std::size_t(1),
-                                                               std::multiplies<std::size_t>());
-
-                wksp_offset = in_c * wei_spatial_size * out_spatial_size;
-
-                transpose_packed_MN2NM(handle,
-                                       static_cast<int>(in_c * wei_spatial_size),
-                                       out_spatial_size,
-                                       0,
-                                       wksp_offset,
-                                       workSpace,
-                                       workSpace,
-                                       tensors.xDesc.GetType());
-
-                if(handle.IsProfilingEnabled())
-                    t1 += handle.GetKernelTime();
-            }
-
-            // tensors.y = tensors.w * Im2Col(tensors.x)
-            if(group_count > 1)
-                CallGemmStridedBatched(
-                    handle, gemm_desc, tensors.w, 0, workSpace, 0, tensors.y, out_offset, nullptr);
-            else
-                CallGemm(handle,
-                         gemm_desc,
-                         tensors.w,
-                         0,
-                         workSpace,
-                         wksp_offset,
-                         tensors.y,
-                         out_offset,
-                         nullptr,
-                         (tensors.wDesc.GetType() == miopenInt8 ||
-                          tensors.wDesc.GetType() == miopenInt8x4)
-                             ? GemmBackend_t::miopentensile
-                             : GemmBackend_t::miopengemm);
-
-            // Update times for both the kernels
-            if(handle.IsProfilingEnabled())
-            {
-                if(i == in_n - 1)
-                {
-                    handle.AccumKernelTime(t1 + time_0);
-                    time_0 = handle.GetKernelTime();
-                }
-                else
-                {
-                    handle.AccumKernelTime(t1);
-                    time_0 += handle.GetKernelTime();
-                }
-            }
-        }
-
-        if((tensors.wDesc.GetType() == miopenInt8 || tensors.wDesc.GetType() == miopenInt8x4) &&
-           tensors.yDesc.GetType() != miopenInt32)
-        {
-            TensorDescriptor ygemmDesc(
-                miopenInt32, tensors.yDesc.GetLengths(), tensors.yDesc.GetStrides());
-
-            CastTensor(handle, &lowp_quant, ygemmDesc, tensors.y, tensors.yDesc, tensors.y, 0, 0);
-            if(handle.IsProfilingEnabled())
-                handle.AccumKernelTime(time_0);
-        }
-    }
-#ifdef NDEBUG
-    (void)workSpaceSize;
-#endif
-#else
-    (void)handle;
-    (void)tensors;
-    (void)workSpace;
-    (void)workSpaceSize;
-    MIOPEN_THROW("GEMM is not supported");
-#endif
-}
-
-bool ConvolutionDescriptor::IsGemmApplicableWrw(const TensorDescriptor& dyDesc,
-                                                const TensorDescriptor& xDesc,
-                                                const TensorDescriptor& dwDesc) const
-{
-#if MIOPEN_USE_GEMM
-    if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) &&
-       !(IsAnyBufferBF16(xDesc, dyDesc, dwDesc) && !IsUseRocBlas))
-    {
-        const std::size_t spatial_dim = GetSpatialDimension();
-        const auto wei_spatial = boost::adaptors::slice(dwDesc.GetLengths(), 2, 2 + spatial_dim);
-
-        // if not 1x1
-        if((miopen::any_of(wei_spatial, [](auto v) { return v != 1; }) ||
-            miopen::any_of(GetConvPads(), [](auto v) { return v != 0; }) ||
-            miopen::any_of(GetConvStrides(), [](auto v) { return v != 1; })))
-            return true;
-
-        if(miopen::any_of(wei_spatial, [](auto v) { return v == 1; }) &&
-           miopen::any_of(GetConvPads(), [](auto v) { return v == 0; }) &&
-           miopen::any_of(GetConvStrides(), [](auto v) { return v == 1; }))
-            return true;
-
-        return false;
-    }
-#else
-    std::ignore = dyDesc;
-    std::ignore = xDesc;
-    std::ignore = dwDesc;
-#endif
-    return false;
-}
-
-bool ConvolutionDescriptor::IsGemmApplicableFwd(const TensorDescriptor& wDesc,
-                                                const TensorDescriptor& xDesc,
-                                                const TensorDescriptor& yDesc) const
-{
-#if MIOPEN_USE_GEMM
-    return !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) &&
-           !(IsAnyBufferBF16(xDesc, yDesc, wDesc) && !IsUseRocBlas);
-#else
-    std::ignore = wDesc;
-    std::ignore = xDesc;
-    std::ignore = yDesc;
-    return false;
-#endif
-}
-
-bool ConvolutionDescriptor::IsGemmApplicableBwd(const TensorDescriptor& dyDesc,
-                                                const TensorDescriptor& wDesc,
-                                                const TensorDescriptor& dxDesc) const
-{
-#if MIOPEN_USE_GEMM
-    return !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) &&
-           !(IsAnyBufferBF16(dxDesc, dyDesc, wDesc) && !IsUseRocBlas);
-#else
-    std::ignore = dyDesc;
-    std::ignore = wDesc;
-    std::ignore = dxDesc;
-    return false;
-#endif
-}
-
 static std::size_t GetSolutionCount(Handle& handle, const ProblemDescription& problem)
 {
     const FindDbRecord fdb_record{handle, problem};
@@ -1486,7 +694,7 @@ static inline bool IsAlgorithmDisabled(const miopenConvAlgorithm_t algo)
     switch(algo)
     { // clang-format off
     case miopenConvolutionAlgoGEMM:
-        return miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) || !MIOPEN_USE_GEMM;
+        return !MIOPEN_USE_GEMM || miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{});
     case miopenConvolutionAlgoDirect:
         return miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{});
     case miopenConvolutionAlgoFFT:
@@ -1526,196 +734,6 @@ struct SolutionSortWrapper : miopenConvSolution_t
     }
 };
 
-static double
-SlowdownFactor(int n_oper, const double oper_factor, const double multiple_oper_factor)
-{
-    if(n_oper > 0)
-    {
-        auto rv = oper_factor;
-        if(n_oper > 1)
-            rv *= multiple_oper_factor;
-        return rv;
-    }
-    else
-        return 1.0;
-}
-
-float ConvolutionDescriptor::ComputeGemmWtiFwd(const TensorDescriptor& wDesc,
-                                               const TensorDescriptor& xDesc,
-                                               const TensorDescriptor& yDesc) const
-
-{
-    int n_transpose_NCHW2CNHW    = 0;
-    int n_transpose_CNHW2NCHW    = 0;
-    int n_gemm_strided_batched   = 1; // not strided-batched by default
-    int n_gemm_runs              = 1;
-    int n_transpose_packed_MN2NM = 0;
-    int n_CastTensor             = 0;
-    int n_Im2ColGPU              = 0;
-
-    std::size_t in_n, in_c;
-    std::tie(in_n, in_c) = tie_pick<0, 1>()(xDesc.GetLengths());
-    std::size_t spatial_dim = GetSpatialDimension();
-    auto wei_spatial        = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
-
-#if WORKAROUND_MIOPENGEMM_SINCE_ROCM41
-    const auto in_spatial = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
-    if(miopen::any_of(in_spatial, [](auto v) { return v >= 161; }) &&
-       miopen::any_of(wei_spatial, [](auto v) { return v >= 7; }))
-        return -2.0;
-#endif
-
-    // Use transpose path 1x1, stride=2
-    if(GetSpatialDimension() == 2 && miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-       miopen::all_of(GetConvPads(), [](auto v) { return v == 0; }) &&
-       miopen::all_of(GetConvStrides(), [](auto v) { return v == 2; }))
-    {
-        n_transpose_NCHW2CNHW = 1;
-        if(wDesc.GetType() == miopenInt8)
-            n_transpose_packed_MN2NM = 1;
-        n_gemm_strided_batched       = group_count;
-        n_transpose_CNHW2NCHW        = 1;
-        if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
-           yDesc.GetType() != miopenInt32)
-            n_CastTensor = 1;
-    }
-    // 1x1_stride=1 with GEMM and zero workspace
-    else if(miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-            miopen::all_of(GetConvPads(), [](auto v) { return v == 0; }) &&
-            miopen::all_of(GetConvStrides(), [](auto v) { return v == 1; }))
-    {
-
-        if(wDesc.GetType() == miopenInt8)
-        {
-            n_transpose_packed_MN2NM = in_n;
-            n_gemm_runs              = in_n;
-        }
-        else
-        {
-            n_gemm_strided_batched = group_count;
-            n_gemm_runs            = in_n;
-        }
-        if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
-           yDesc.GetType() != miopenInt32)
-            n_CastTensor = 1;
-    }
-    else // not 1x1
-    {
-        n_Im2ColGPU = in_n;
-        if(wDesc.GetType() == miopenInt8)
-            n_transpose_packed_MN2NM = in_n;
-        n_gemm_strided_batched       = group_count;
-        n_gemm_runs                  = in_n;
-        if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
-           yDesc.GetType() != miopenInt32)
-            n_CastTensor = 1;
-    }
-
-    auto wti = 1.0;
-    wti *= SlowdownFactor(n_transpose_NCHW2CNHW, 0.7, 0.9);
-    wti *= SlowdownFactor(n_transpose_CNHW2NCHW, 0.7, 0.9);
-    wti *= SlowdownFactor(n_gemm_runs, 0.9, 0.9);
-    wti *= SlowdownFactor(n_gemm_strided_batched, 1.0, 0.95);
-    wti *= SlowdownFactor(n_transpose_packed_MN2NM, 0.7, 0.9);
-    wti *= SlowdownFactor(n_CastTensor, 0.95, 0.9);
-    wti *= SlowdownFactor(n_Im2ColGPU, 0.4, 0.8);
-    return wti;
-}
-
-float ConvolutionDescriptor::ComputeGemmWtiBwd(const TensorDescriptor& dyDesc,
-                                               const TensorDescriptor& wDesc,
-                                               const TensorDescriptor& dxDesc) const
-{
-    std::ignore = dyDesc;
-
-    int n_SetTensor            = 0;
-    int n_transpose_NCHW2CNHW  = 0;
-    int n_transpose_CNHW2NCHW  = 0;
-    int n_gemm_strided_batched = 1; // not strided-batched by default
-    int n_gemm_runs            = 1;
-    int n_Col2ImGPU            = 0;
-
-    std::size_t in_n, in_c;
-    std::tie(in_n, in_c) = tie_pick<0, 1>()(dxDesc.GetLengths());
-    std::size_t spatial_dim = GetSpatialDimension();
-    auto wei_spatial        = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
-
-    // 1x1 does not require col2im
-    if(GetSpatialDimension() == 2 && miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-       miopen::all_of(GetConvPads(), [](auto v) { return v == 0; }) &&
-       miopen::all_of(GetConvStrides(), [](auto v) { return v == 2; }))
-    {
-        n_SetTensor            = 1;
-        n_transpose_NCHW2CNHW  = 1;
-        n_gemm_strided_batched = group_count;
-        n_transpose_CNHW2NCHW  = 1;
-    }
-    // 1x1_stride=1 convolutions use GEMM and zero workspace
-    else if(miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-            miopen::all_of(GetConvPads(), [](auto v) { return v == 0; }) &&
-            miopen::all_of(GetConvStrides(), [](auto v) { return v == 1; }))
-    {
-        n_gemm_strided_batched = in_n;
-    }
-    // if not 1x1
-    else
-    {
-        n_gemm_strided_batched = group_count;
-        n_gemm_runs            = in_n;
-        n_Col2ImGPU            = in_n;
-    }
-
-    auto wti = 1.0;
-    wti *= SlowdownFactor(n_SetTensor, 0.95, 0.99);
-    wti *= SlowdownFactor(n_transpose_NCHW2CNHW, 0.7, 0.9);
-    wti *= SlowdownFactor(n_transpose_CNHW2NCHW, 0.7, 0.9);
-    wti *= SlowdownFactor(n_gemm_runs, 0.9, 0.9);
-    wti *= SlowdownFactor(n_gemm_strided_batched, 1.0, 0.95);
-    wti *= SlowdownFactor(n_Col2ImGPU, 0.4, 0.8);
-    return wti;
-}
-
-float ConvolutionDescriptor::ComputeGemmWtiWrw(const TensorDescriptor& dyDesc,
-                                               const TensorDescriptor& xDesc,
-                                               const TensorDescriptor& dwDesc) const
-{
-    std::ignore = dyDesc;
-
-    int n_gemm_strided_batched           = 1; // not strided-batched by default
-    int n_gemm_strided_batched_sequental = 1; // not strided-batched-sequental by default
-    int n_gemm_runs                      = 1;
-    int n_Im2ColGPU                      = 0;
-
-    std::size_t in_n, in_c;
-    std::tie(in_n, in_c) = tie_pick<0, 1>()(xDesc.GetLengths());
-    auto wei_spatial = boost::adaptors::slice(dwDesc.GetLengths(), 2, 2 + GetSpatialDimension());
-
-    // if not 1x1
-    if((miopen::any_of(wei_spatial, [](auto v) { return v != 1; }) ||
-        miopen::any_of(GetConvPads(), [](auto v) { return v != 0; }) ||
-        miopen::any_of(GetConvStrides(), [](auto v) { return v != 1; })))
-    {
-        n_Im2ColGPU            = in_n;
-        n_gemm_strided_batched = group_count;
-        n_gemm_runs            = in_n;
-    }
-    // 1x1 does not require im2col or workspace
-    else if(miopen::any_of(wei_spatial, [](auto v) { return v == 1; }) &&
-            miopen::any_of(GetConvPads(), [](auto v) { return v == 0; }) &&
-            miopen::any_of(GetConvStrides(), [](auto v) { return v == 1; }))
-    {
-        n_gemm_strided_batched_sequental = group_count;
-        n_gemm_runs                      = in_n;
-    }
-
-    auto wti = 0.7; // Memory overhead for WrW is bigger then for Fwd/Bwd.
-    wti *= SlowdownFactor(n_gemm_runs, 0.9, 0.9);
-    wti *= SlowdownFactor(n_gemm_strided_batched, 1.0, 0.95);
-    wti *= SlowdownFactor(n_gemm_strided_batched_sequental, 1.0, 0.9);
-    wti *= SlowdownFactor(n_Im2ColGPU, 0.4, 0.8);
-    return wti;
-}
-
 void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
                                                  const ProblemDescription& problem,
                                                  const size_t maxSolutionCount,
@@ -1733,8 +751,6 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
     /// single conv::ProblemDescription type.
     const auto& inDesc = problem.direction.IsForward() ? problem.conv_problem.GetIn()
                                                        : problem.conv_problem.GetOut();
-    const auto& outDesc = problem.direction.IsForward() ? problem.conv_problem.GetOut()
-                                                        : problem.conv_problem.GetIn();
     const auto& weightsDesc = problem.conv_problem.GetWeights();
     // This check is needed on fallback path only.
     // On regular path (find-db hit) this was checked during Find().
@@ -1769,54 +785,12 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
         if(!s.IsApplicable(ctx))
             continue;
 
-        // gemm can appear here only after actual (non-dummy) GEMM Solver is implemented.
-        if(solver_id == solver::Id::gemm())
-            MIOPEN_LOG_W("GEMM solver is ready, rework this function");
-
         const auto wti = s.GetWti(ctx);
         MIOPEN_LOG_I2(solver_id.ToString() << " Estimated WTI = " << wti);
         if(wti < 0.0f) // Skip unknown WTIs.
             continue;
 
         interim.emplace_back(wti2time(wti), s.GetWorkspaceSize(ctx), solver_id.Value(), algo);
-    }
-
-    /// Separate path for GEMM algo, intermediate implementation.
-    /// \todo Remove when GEMM Solver(s) ready.
-    if(problem.direction.IsForward())
-    {
-        if(IsGemmApplicableFwd(weightsDesc, inDesc, outDesc))
-        {
-            interim.emplace_back(
-                wti2time(ComputeGemmWtiFwd(weightsDesc, inDesc, outDesc)),
-                ForwardGetValidWorkSpaceSizeGemm(handle, weightsDesc, inDesc, outDesc),
-                solver::Id::gemm().Value(),
-                miopenConvolutionAlgoGEMM);
-        }
-    }
-    else if(problem.direction.IsBackwardData())
-    {
-        if(IsGemmApplicableBwd(outDesc, weightsDesc, inDesc))
-        {
-            interim.emplace_back(wti2time(ComputeGemmWtiBwd(outDesc, weightsDesc, inDesc)),
-                                 BackwardGetValidWorkSpaceSizeGemm(outDesc, weightsDesc, inDesc),
-                                 solver::Id::gemm().Value(),
-                                 miopenConvolutionAlgoGEMM);
-        }
-    }
-    else if(problem.direction.IsBackwardWrW())
-    {
-        if(IsGemmApplicableWrw(outDesc, inDesc, weightsDesc))
-        {
-            interim.emplace_back(wti2time(ComputeGemmWtiWrw(outDesc, inDesc, weightsDesc)),
-                                 WrwGetValidWorkSpaceSizeGemm(outDesc, inDesc, weightsDesc),
-                                 solver::Id::gemm().Value(),
-                                 miopenConvolutionAlgoGEMM);
-        }
-    }
-    else
-    {
-        MIOPEN_THROW("Unknown direction");
     }
 
     MIOPEN_LOG_I2("maxSolutionCount = " << maxSolutionCount << ", available = " << interim.size());
@@ -1884,13 +858,9 @@ void GetSolutions(Handle& handle,
             MIOPEN_LOG_I("[Warning] incorrect solver_id: " << pair.second.solver_id);
             continue;
         }
-        // gemm is always applicable.
-        // It can be disabled/enabled at algorithm level.
-        if(solver_id != solver::Id::gemm())
-            if(!solver_id.GetSolver().IsApplicable(ctx))
-                continue;
 
-        interim.emplace_back(pair.second.time, pair.second.workspace, solver_id.Value(), algo);
+        if(solver_id.GetSolver().IsApplicable(ctx))
+            interim.emplace_back(pair.second.time, pair.second.workspace, solver_id.Value(), algo);
     }
     std::sort(begin(interim), end(interim));
 
@@ -1924,7 +894,9 @@ void ConvolutionDescriptor::GetForwardSolutions(Handle& handle,
     if(solutions == nullptr)
         MIOPEN_THROW(miopenStatusBadParm, "solutions cannot be nullptr");
 
-    const auto problem = ProblemDescription{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
+    auto problem = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
+    problem.SetStream(&handle);
+
     GetSolutions(
         handle, problem, maxSolutionCount, solutionCount, solutions, StringToConvolutionFwdAlgo);
 
@@ -1933,7 +905,6 @@ void ConvolutionDescriptor::GetForwardSolutions(Handle& handle,
     if(*solutionCount == 0)
         GetSolutionsFallback(handle, problem, maxSolutionCount, solutionCount, solutions);
 }
-
 std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(Handle& handle,
                                                                    const TensorDescriptor& wDesc,
                                                                    const TensorDescriptor& xDesc,
@@ -1943,20 +914,15 @@ std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(Handle& handl
     MIOPEN_LOG_I("solver_id = " << solver_id.ToString());
     if(!solver_id.IsValid())
         MIOPEN_THROW(miopenStatusBadParm, "invalid solution id = " + solver_id.ToString());
-
-    if(solver_id == solver::Id::gemm())
-        return ForwardGetValidWorkSpaceSizeGemm(handle, wDesc, xDesc, yDesc);
-
     auto sol = solver_id.GetSolver();
     auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
     ctx.SetStream(&handle);
     ctx.DetectRocm();
     if(sol.IsApplicable(ctx))
         return sol.GetWorkspaceSize(ctx);
-    else
-        MIOPEN_THROW(miopenStatusBadParm,
-                     "The supplied solution id: " + solver_id.ToString() +
-                         " is not applicable to the current problem");
+    MIOPEN_THROW(miopenStatusBadParm,
+                 "The supplied solution id: " + solver_id.ToString() +
+                     " is not applicable to the current problem");
 }
 
 // Todo: remove when all immediate mode calls will support invokers
@@ -1993,7 +959,7 @@ static Invoker PrepareInvoker(Handle& handle,
         handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
 
     handle.RegisterInvoker(invoker, config, solver_id, AlgorithmName(solver_id.GetAlgo(dir)));
-    return invoker;
+    return invoker; // NOLINT (performance-no-automatic-move)
 }
 
 static Invoker LoadOrPrepareInvoker(Handle& handle,
@@ -2025,13 +991,6 @@ static void CompileSolution(Handle& handle,
     if(CheckInvokerSupport(solver_id, dir))
     {
         LoadOrPrepareInvoker(handle, ctx, solver_id, dir);
-        return;
-    }
-
-    // Todo: remove when all finds will use invokers.
-    if(solver_id == solver::Id::gemm())
-    {
-        // Todo: gemm precompilation?
         return;
     }
 
@@ -2092,24 +1051,15 @@ void ConvolutionDescriptor::ConvolutionForwardImmediate(Handle& handle,
         auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
         ctx.SetStream(&handle);
 
-        if(CheckInvokerSupport(solver_id, conv::Direction::Forward))
+        if(!CheckInvokerSupport(solver_id, conv::Direction::Forward))
         {
-            const auto invoker =
-                LoadOrPrepareInvoker(handle, ctx, solver_id, conv::Direction::Forward);
-            const auto invoke_ctx = conv::DataInvokeParams{tensors, workSpace, workSpaceSize};
-            invoker(handle, invoke_ctx);
-            return;
+            const auto algo_name = solver_id.GetAlgo(conv::Direction::Forward);
+            MIOPEN_THROW("Conv forward algorithm " + algo_name + " must implement invokers.");
         }
 
-        // Todo: remove when all algorithms would support invokers
-        if(solver_id == solver::Id::gemm())
-        {
-            ConvFwdGemm(handle, tensors, workSpace, workSpaceSize);
-            return;
-        }
-
-        const auto algo_name = solver_id.GetAlgo(conv::Direction::Forward);
-        MIOPEN_THROW("Invalid algorithm: " + algo_name);
+        const auto invoker = LoadOrPrepareInvoker(handle, ctx, solver_id, conv::Direction::Forward);
+        const auto invoke_ctx = conv::DataInvokeParams{tensors, workSpace, workSpaceSize};
+        invoker(handle, invoke_ctx);
     });
 }
 
@@ -2144,6 +1094,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     *returnedAlgoCount = 0;
 
     AutoEnableProfiling enableProfiling{handle};
+    ValidateGroupCount(dxDesc, wDesc, *this);
 
     const ProblemDescription problem(dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData);
     std::vector<PerfField> perf_db;
@@ -2179,273 +1130,79 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         perf_db = UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
             const auto network_config = problem.BuildConfKey();
             const auto invoke_ctx     = conv::DataInvokeParams{
-                {dyDesc, dy, wDesc, w, dxDesc, dx}, workSpace, workSpaceSize};
+                InvokeType::Evaluate, {dyDesc, dy, wDesc, w, dxDesc, dx}, workSpace, workSpaceSize};
 
             ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
                 findMode.IsFastHybrid(ctx);
             ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
 
-            // Winograd algo
+            // Find solutions
+            const auto winograd =
+                !use_winograd_only ? FindWinogradSolutions(ctx, invoke_ctx) : [&]() {
+                    AutoUseFastDynamicSolutions tmp{ctx};
+                    return FindWinogradSolutions(ctx, invoke_ctx);
+                }();
+            ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
+            bufs.SetBwd(dx, w, dy);
+            const auto gemm = !use_winograd_only ? FindDataGemmSolutions(ctx, invoke_ctx)
+                                                 : std::vector<miopen::solver::ConvSolution>{};
+            const auto direct =
+                !use_winograd_only
+                    ? FindDataDirectSolutions(
+                          handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, bufs, invoke_ctx)
+                    : std::vector<miopen::solver::ConvSolution>{};
+            const auto igemm =
+                !use_winograd_only
+                    ? FindDataImplicitGemmSolutions(
+                          handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, bufs, invoke_ctx)
+                    : std::vector<miopen::solver::ConvSolution>{};
+            const auto fft = !use_winograd_only ? FindFftSolutions(ctx, invoke_ctx)
+                                                : std::vector<miopen::solver::ConvSolution>{};
+
+            // Precompile
             {
-                const auto all =
-                    !use_winograd_only ? FindWinogradSolutions(ctx, invoke_ctx) : [&]() {
-                        AutoUseFastDynamicSolutions tmp{ctx};
-                        return FindWinogradSolutions(ctx, invoke_ctx);
-                    }();
-                const auto algorithm_name = AlgorithmName{"miopenConvolutionBwdDataAlgoWinograd"};
+                std::vector<const miopen::solver::ConvSolution*> all;
+                all.reserve(gemm.size() + winograd.size() + direct.size() + igemm.size() +
+                            fft.size());
+                AppendPointersToElements(gemm, all);
+                AppendPointersToElements(winograd, all);
+                AppendPointersToElements(direct, all);
+                AppendPointersToElements(igemm, all);
+                AppendPointersToElements(fft, all);
                 PrecompileSolutions(handle, all);
-                EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
             }
 
-            // Direct algo
-            if(!use_winograd_only)
-            {
-                ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
-                bufs.SetBwd(dx, w, dy);
-                const auto all = FindDataDirectSolutions(
-                    handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, bufs, invoke_ctx);
-                const auto algorithm_name = AlgorithmName{"miopenConvolutionBwdDataAlgoDirect"};
-                PrecompileSolutions(handle, all);
-                EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
-            }
-
-            // Implicit GEMM algo
-            if(!use_winograd_only)
-            {
-                ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
-                bufs.SetBwd(dx, w, dy);
-                const auto all = this->FindDataImplicitGemmSolutions(
-                    handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, bufs, invoke_ctx);
-                PrecompileSolutions(handle, all);
-                const auto algorithm_name =
-                    AlgorithmName{"miopenConvolutionBwdDataAlgoImplicitGEMM"};
-                EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
-            }
-
-            if(!use_winograd_only)
-            {
-                // FFT algo
-                const auto all            = FindFftSolutions(ctx, invoke_ctx);
-                const auto algorithm_name = AlgorithmName{"miopenConvolutionBwdDataAlgoFFT"};
-                PrecompileSolutions(handle, all);
-                EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
-            }
-
-#if MIOPEN_USE_GEMM
-            if(!use_winograd_only && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) &&
-               !(IsAnyBufferBF16(dxDesc, dyDesc, wDesc) && !IsUseRocBlas))
-            { // GEMM based
-                ValidateGroupCount(dxDesc, wDesc, *this);
-
-                const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
-
-                std::size_t in_n, in_c;
-                std::tie(in_n, in_c) = tie_pick<0, 1>()(dxDesc.GetLengths());
-
-                std::size_t wei_k = wDesc.GetLengths()[0];
-
-                std::size_t spatial_dim = GetSpatialDimension();
-
-                auto in_spatial  = boost::adaptors::slice(dxDesc.GetLengths(), 2, 2 + spatial_dim);
-                auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
-                auto out_spatial = boost::adaptors::slice(dyDesc.GetLengths(), 2, 2 + spatial_dim);
-
-                // 1x1 does not require col2im
-                if(GetSpatialDimension() == 2 &&
-                   miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-                   miopen::all_of(GetConvPads(), [](auto v) { return v == 0; }) &&
-                   miopen::all_of(GetConvStrides(), [](auto v) { return v == 2; }) &&
-                   workSpace != nullptr &&
-                   workSpaceSize >= BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc))
-                {
-                    if(group_count > 1)
-                    {
-                        MIOPEN_LOG_FUNCTION("groupconv, 1x1 u2xv2");
-                    }
-                    else
-                    {
-                        MIOPEN_LOG_FUNCTION("convolution, 1x1 u2xv2");
-                    }
-                    float time_gemm = 0;
-
-                    // Initialization required for upsampling in bwd direction
-                    float zero = 0.f;
-                    SetTensor(handle, dxDesc, dx, &zero);
-                    time_gemm = handle.GetKernelTime();
-
-                    // dx = CNHW2NCHW(transpose(w) * NCHW2CNHW(dy))
-                    transpose_NCHW2CNHW(handle,
-                                        in_n,
-                                        wei_k,
-                                        out_spatial[0],
-                                        out_spatial[1],
-                                        out_spatial[0],
-                                        out_spatial[1],
-                                        dy,
-                                        workSpace,
-                                        0,
-                                        0,
-                                        1,
-                                        1,
-                                        dyDesc.GetType());
-                    time_gemm += handle.GetKernelTime();
-
-                    GemmDescriptor gemm_desc =
-                        group_count > 1
-                            ? CreateGemmDescriptorGroupConvCNHWBwdData(
-                                  wDesc, dyDesc, dxDesc, group_count)
-                            : CreateGemmDescriptorConvCNHWBwdData(wDesc, dyDesc, dxDesc);
-
-                    auto kcache_key = FindDbKCacheKey{};
-
-                    miopenStatus_t gemm_status =
-                        CallGemmTimeMeasure(handle,
-                                            gemm_desc,
-                                            w,
-                                            0,
-                                            workSpace,
-                                            0,
-                                            workSpace,
-                                            dyDesc.GetElementSize(),
-                                            &kcache_key,
-                                            time_precision,
-                                            group_count > 1 ? callGemmStridedBatched : callGemm);
-
-                    time_gemm += handle.GetKernelTime();
-
-                    transpose_CNHW2NCHW(handle,
-                                        in_n,
-                                        in_c,
-                                        out_spatial[0],
-                                        out_spatial[1],
-                                        in_spatial[0],
-                                        in_spatial[1],
-                                        workSpace,
-                                        dx,
-                                        dyDesc.GetElementSize(),
-                                        0,
-                                        GetConvStrides()[0],
-                                        GetConvStrides()[1],
-                                        dyDesc.GetType());
-                    time_gemm += handle.GetKernelTime();
-
-                    if(gemm_status == miopenStatusSuccess)
-                        record.SetValues(
-                            "miopenConvolutionBwdDataAlgoGEMM",
-                            FindDbData{"gemm",
-                                       time_gemm,
-                                       BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc),
-                                       kcache_key});
-                }
-                // 1x1_stride=1 convolutions use GEMM and zero workspace
-                else if(miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-                        miopen::all_of(GetConvPads(), [](auto v) { return v == 0; }) &&
-                        miopen::all_of(GetConvStrides(), [](auto v) { return v == 1; }))
-                {
-                    if(group_count > 1)
-                    {
-                        MIOPEN_LOG_FUNCTION("groupconv, 1x1");
-                    }
-                    else
-                    {
-                        MIOPEN_LOG_FUNCTION("convolution, 1x1");
-                    }
-                    // dx = transpose(w) * dy
-                    GemmDescriptor gemm_desc =
-                        group_count > 1 ? CreateGemmDescriptorGroupConvBwdData(
-                                              wDesc, dyDesc, dxDesc, group_count)
-                                        : CreateGemmStridedBatchedDescriptorConv1x1BwdData(
-                                              wDesc, dyDesc, dxDesc);
-
-                    auto kcache_key = FindDbKCacheKey{};
-
-                    miopenStatus_t gemm_status = CallGemmTimeMeasure(handle,
-                                                                     gemm_desc,
-                                                                     w,
-                                                                     0,
-                                                                     dy,
-                                                                     0,
-                                                                     dx,
-                                                                     0,
-                                                                     &kcache_key,
-                                                                     time_precision,
-                                                                     callGemmStridedBatched);
-
-                    float time_gemm = handle.GetKernelTime();
-                    if(group_count > 1)
-                        time_gemm *= in_n;
-
-                    if(gemm_status == miopenStatusSuccess)
-                        record.SetValues("miopenConvolutionBwdDataAlgoGEMM",
-                                         FindDbData{
-                                             "gemm", time_gemm, 0, kcache_key,
-                                         });
-                }
-                // if not 1x1
-                else if(workSpace != nullptr &&
-                        workSpaceSize >= (BackwardDataGetWorkSpaceSizeGEMM(wDesc, dyDesc)))
-                {
-                    if(group_count > 1)
-                    {
-                        MIOPEN_LOG_FUNCTION("groupconv, non 1x1");
-                    }
-                    else
-                    {
-                        MIOPEN_LOG_FUNCTION("convolution, non 1x1");
-                    }
-                    float time_col2im = 0;
-                    int in_offset     = 0;
-
-                    // dx = transpose(w) * dy
-                    GemmDescriptor gemm_desc =
-                        group_count > 1 ? CreateGemmDescriptorGroupConvBwdData(
-                                              wDesc, dyDesc, dxDesc, group_count)
-                                        : CreateGemmDescriptorConvBwdData(wDesc, dyDesc, dxDesc);
-
-                    auto kcache_key = FindDbKCacheKey{};
-
-                    miopenStatus_t gemm_status = CallGemmTimeMeasure(
-                        handle,
-                        gemm_desc,
-                        w,
-                        0,
-                        dy,
-                        0,
-                        workSpace,
-                        0,
-                        &kcache_key,
-                        time_precision,
-                        group_count > 1 ? callGemmStridedBatched : callGemm,
-                        group_count > 1 ? GemmBackend_t::miopentensile : GemmBackend_t::miopengemm);
-
-                    float time_gemm = in_n * handle.GetKernelTime();
-                    time_col2im     = Col2ImGPU(handle,
-                                            GetSpatialDimension(),
-                                            workSpace,
-                                            out_spatial,
-                                            wei_spatial,
-                                            GetConvPads(),
-                                            GetConvStrides(),
-                                            GetConvDilations(),
-                                            in_c,
-                                            in_spatial,
-                                            dx,
-                                            in_offset,
-                                            dyDesc.GetType());
-
-                    time_gemm += in_n * time_col2im;
-
-                    if(gemm_status == miopenStatusSuccess)
-                        record.SetValues("miopenConvolutionBwdDataAlgoGEMM",
-                                         FindDbData{
-                                             "gemm",
-                                             time_gemm,
-                                             BackwardDataGetWorkSpaceSizeGEMM(wDesc, dyDesc),
-                                             kcache_key,
-                                         });
-                }
-            }
-#endif
+            // Evaluate Invokers
+            EvaluateInvokers(handle,
+                             gemm,
+                             AlgorithmName{"miopenConvolutionBwdDataAlgoGEMM"},
+                             network_config,
+                             invoke_ctx,
+                             record);
+            EvaluateInvokers(handle,
+                             winograd,
+                             AlgorithmName{"miopenConvolutionBwdDataAlgoWinograd"},
+                             network_config,
+                             invoke_ctx,
+                             record);
+            EvaluateInvokers(handle,
+                             direct,
+                             AlgorithmName{"miopenConvolutionBwdDataAlgoDirect"},
+                             network_config,
+                             invoke_ctx,
+                             record);
+            EvaluateInvokers(handle,
+                             igemm,
+                             AlgorithmName{"miopenConvolutionBwdDataAlgoImplicitGEMM"},
+                             network_config,
+                             invoke_ctx,
+                             record);
+            EvaluateInvokers(handle,
+                             fft,
+                             AlgorithmName{"miopenConvolutionBwdDataAlgoFFT"},
+                             network_config,
+                             invoke_ctx,
+                             record);
         });
     }
 
@@ -2535,306 +1292,12 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         const auto network_config = ctx.BuildConfKey();
         const auto& invoker       = handle.GetInvoker(network_config, {}, algorithm_name);
 
-        if(invoker)
-        {
-            const auto& invoke_ctx = conv::DataInvokeParams{tensors, workSpace, workSpaceSize};
-            (*invoker)(handle, invoke_ctx);
-            return;
-        }
-
-        switch(algo)
-        {
-        case miopenConvolutionBwdDataAlgoDirect:
-        case miopenConvolutionBwdDataAlgoWinograd:
-        case miopenConvolutionBwdDataAlgoFFT:
-        case miopenConvolutionBwdDataAlgoImplicitGEMM:
+        if(!invoker)
             MIOPEN_THROW("No invoker was registered for convolution backward. Was find executed?");
 
-        case miopenConvolutionBwdDataAlgoGEMM:
-            ConvBwdGemm(handle, tensors, workSpace, workSpaceSize);
-            break;
-
-        case miopenTransposeBwdDataAlgoGEMM: break;
-        }
+        const auto& invoke_ctx = conv::DataInvokeParams{tensors, workSpace, workSpaceSize};
+        (*invoker)(handle, invoke_ctx);
     });
-}
-void ConvolutionDescriptor::ConvBwdGemm(Handle& handle,
-                                        const ConvBwdTensors& tensors,
-                                        Data_t workSpace,
-                                        std::size_t workSpaceSize) const
-{
-#if MIOPEN_USE_GEMM
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
-    {
-        MIOPEN_THROW("GEMM convolution is disabled");
-    }
-    if(IsAnyBufferBF16(tensors.dxDesc, tensors.dyDesc, tensors.wDesc) && !IsUseRocBlas)
-    {
-        MIOPEN_THROW("GEMM convolution is unsupported");
-    }
-
-    std::size_t in_n, in_c;
-    std::tie(in_n, in_c) = tie_pick<0, 1>()(tensors.dxDesc.GetLengths());
-
-    std::size_t wei_k = tensors.wDesc.GetLengths()[0];
-
-    std::size_t spatial_dim = GetSpatialDimension();
-
-    auto in_spatial  = boost::adaptors::slice(tensors.dxDesc.GetLengths(), 2, 2 + spatial_dim);
-    auto wei_spatial = boost::adaptors::slice(tensors.wDesc.GetLengths(), 2, 2 + spatial_dim);
-    auto out_spatial = boost::adaptors::slice(tensors.dyDesc.GetLengths(), 2, 2 + spatial_dim);
-
-    if(GetSpatialDimension() == 2 && miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-       miopen::all_of(GetConvPads(), [](auto v) { return v == 0; }) &&
-       miopen::all_of(GetConvStrides(), [](auto v) { return v == 2; }))
-    {
-        if(group_count > 1)
-        {
-            MIOPEN_LOG_FUNCTION("groupconv, 1x1, u2xv2");
-        }
-        else
-        {
-            MIOPEN_LOG_FUNCTION("convolution, 1x1, u2xv2");
-        }
-
-        float t1 = 0;
-        // Initialization required for upsampling in bwd direction
-        float zero = 0.f;
-        SetTensor(handle, tensors.dxDesc, tensors.dx, &zero);
-        if(handle.IsProfilingEnabled())
-            t1 = handle.GetKernelTime();
-
-        assert(workSpace != nullptr &&
-               workSpaceSize >=
-                   BackwardDataGetWorkSpaceSizeGEMMTranspose(tensors.dyDesc, tensors.dxDesc));
-
-        transpose_NCHW2CNHW(handle,
-                            in_n,
-                            wei_k,
-                            out_spatial[0],
-                            out_spatial[1],
-                            out_spatial[0],
-                            out_spatial[1],
-                            tensors.dy,
-                            workSpace,
-                            0,
-                            0,
-                            1,
-                            1,
-                            tensors.dyDesc.GetType());
-        if(handle.IsProfilingEnabled())
-            t1 += handle.GetKernelTime();
-
-        if(group_count > 1)
-        {
-            GemmDescriptor gemm_desc = CreateGemmDescriptorGroupConvCNHWBwdData(
-                tensors.wDesc, tensors.dyDesc, tensors.dxDesc, group_count);
-
-            CallGemmStridedBatched(handle,
-                                   gemm_desc,
-                                   tensors.w,
-                                   0,
-                                   workSpace,
-                                   0,
-                                   workSpace,
-                                   tensors.dyDesc.GetElementSize(),
-                                   nullptr);
-        }
-        else
-        {
-            // tensors.dx = CNHW2NCHW(transpose(tensors.w) * NCHW2CNHW(tensors.dy))
-            GemmDescriptor gemm_desc =
-                CreateGemmDescriptorConvCNHWBwdData(tensors.wDesc, tensors.dyDesc, tensors.dxDesc);
-
-            // tensors.dx = CNHW2NCHW(transpose(tensors.w) * NCHW2CNHW(tensors.dy))
-            CallGemm(handle,
-                     gemm_desc,
-                     tensors.w,
-                     0,
-                     workSpace,
-                     0,
-                     workSpace,
-                     tensors.dyDesc.GetElementSize(),
-                     nullptr);
-        }
-        if(handle.IsProfilingEnabled())
-            t1 += handle.GetKernelTime();
-
-        transpose_CNHW2NCHW(handle,
-                            in_n,
-                            in_c,
-                            out_spatial[0],
-                            out_spatial[1],
-                            in_spatial[0],
-                            in_spatial[1],
-                            workSpace,
-                            tensors.dx,
-                            tensors.dyDesc.GetElementSize(),
-                            0,
-                            GetConvStrides()[0],
-                            GetConvStrides()[1],
-                            tensors.dyDesc.GetType());
-        if(handle.IsProfilingEnabled())
-            t1 += handle.GetKernelTime();
-
-        if(handle.IsProfilingEnabled())
-        {
-            handle.ResetKernelTime();
-            handle.AccumKernelTime(t1);
-        }
-    }
-    // 1x1_stride=1 convolutions use GEMM and zero workspace
-    else if(miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-            miopen::all_of(GetConvPads(), [](auto v) { return v == 0; }) &&
-            miopen::all_of(GetConvStrides(), [](auto v) { return v == 1; }))
-    {
-        if(group_count > 1)
-        {
-            MIOPEN_LOG_FUNCTION("groupconv, 1x1");
-
-            GemmDescriptor gemm_desc = CreateGemmDescriptorGroupConvBwdData(
-                tensors.wDesc, tensors.dyDesc, tensors.dxDesc, group_count);
-
-            float time_0 = 0;
-            for(std::size_t i = 0; i < in_n; i++)
-            {
-                std::size_t out_spatial_size = std::accumulate(out_spatial.begin(),
-                                                               out_spatial.end(),
-                                                               std::size_t(1),
-                                                               std::multiplies<std::size_t>());
-
-                std::size_t in_spatial_size = std::accumulate(in_spatial.begin(),
-                                                              in_spatial.end(),
-                                                              std::size_t(1),
-                                                              std::multiplies<std::size_t>());
-
-                std::size_t out_offset = i * wei_k * out_spatial_size;
-
-                std::size_t in_offset = i * in_c * in_spatial_size;
-
-                CallGemmStridedBatched(handle,
-                                       gemm_desc,
-                                       tensors.w,
-                                       0,
-                                       tensors.dy,
-                                       out_offset,
-                                       tensors.dx,
-                                       in_offset,
-                                       nullptr);
-
-                if(handle.IsProfilingEnabled())
-                {
-                    if(i == in_n - 1)
-                        handle.AccumKernelTime(time_0);
-                    time_0 += handle.GetKernelTime();
-                }
-            }
-        }
-        else
-        {
-            MIOPEN_LOG_FUNCTION("convolution, 1x1");
-
-            // tensors.dx = transpose(tensors.w) * tensors.dy
-            GemmDescriptor gemm_desc = CreateGemmStridedBatchedDescriptorConv1x1BwdData(
-                tensors.wDesc, tensors.dyDesc, tensors.dxDesc);
-
-            // tensors.dx = transpose(tensors.w) * tensors.dy
-            CallGemmStridedBatched(
-                handle, gemm_desc, tensors.w, 0, tensors.dy, 0, tensors.dx, 0, nullptr);
-        }
-    }
-    // if not 1x1
-    else
-    {
-        if(group_count > 1)
-        {
-            MIOPEN_LOG_FUNCTION("groupconv, non 1x1");
-        }
-        else
-        {
-            MIOPEN_LOG_FUNCTION("convolution, non 1x1");
-        }
-        assert(workSpace != nullptr &&
-               workSpaceSize >= (BackwardDataGetWorkSpaceSizeGEMM(tensors.wDesc, tensors.dyDesc)));
-
-        // tensors.dx = transpose(tensors.w) * tensors.dy
-        GemmDescriptor gemm_desc{};
-        if(group_count > 1)
-            gemm_desc = CreateGemmDescriptorGroupConvBwdData(
-                tensors.wDesc, tensors.dyDesc, tensors.dxDesc, group_count);
-        else
-            gemm_desc =
-                CreateGemmDescriptorConvBwdData(tensors.wDesc, tensors.dyDesc, tensors.dxDesc);
-
-        handle.ResetKernelTime();
-
-        std::size_t out_spatial_size = std::accumulate(
-            out_spatial.begin(), out_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
-
-        std::size_t in_spatial_size = std::accumulate(
-            in_spatial.begin(), in_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
-
-        float time_0 = 0;
-        float t1     = 0;
-        for(std::size_t i = 0; i < in_n; i++)
-        {
-            std::size_t out_offset = i * wei_k * out_spatial_size;
-            std::size_t in_offset  = i * in_c * in_spatial_size;
-
-            // tensors.dx = transpose(tensors.w) * tensors.dy
-            if(group_count > 1)
-                CallGemmStridedBatched(
-                    handle, gemm_desc, tensors.w, 0, tensors.dy, out_offset, workSpace, 0, nullptr);
-            else
-                CallGemm(handle,
-                         gemm_desc,
-                         tensors.w,
-                         0,
-                         tensors.dy,
-                         out_offset,
-                         workSpace,
-                         0,
-                         nullptr,
-                         GemmBackend_t::miopengemm);
-
-            if(handle.IsProfilingEnabled())
-                t1 = handle.GetKernelTime();
-
-            Col2ImGPU(handle,
-                      GetSpatialDimension(),
-                      workSpace,
-                      out_spatial,
-                      wei_spatial,
-                      GetConvPads(),
-                      GetConvStrides(),
-                      GetConvDilations(),
-                      in_c,
-                      in_spatial,
-                      tensors.dx,
-                      in_offset,
-                      tensors.dyDesc.GetType());
-
-            // Update times for both the kernels
-            if(handle.IsProfilingEnabled())
-            {
-                if(i == in_n - 1)
-                    handle.AccumKernelTime(t1 + time_0);
-                else
-                    handle.AccumKernelTime(t1);
-                time_0 += handle.GetKernelTime();
-            }
-        }
-    }
-#ifdef NDEBUG
-    std::ignore = workSpaceSize;
-#endif
-#else
-    std::ignore = handle;
-    std::ignore = tensors;
-    std::ignore = workSpace;
-    std::ignore = workSpaceSize;
-    MIOPEN_THROW("GEMM is not supported");
-#endif
 }
 std::size_t ConvolutionDescriptor::GetBackwardSolutionCount(Handle& handle,
                                                             const TensorDescriptor& dyDesc,
@@ -2906,9 +1369,6 @@ std::size_t ConvolutionDescriptor::GetBackwardSolutionWorkspaceSize(Handle& hand
     if(!solver_id.IsValid())
         MIOPEN_THROW(miopenStatusBadParm, "invalid solution id = " + solver_id.ToString());
 
-    if(solver_id == solver::Id::gemm())
-        return BackwardGetValidWorkSpaceSizeGemm(dyDesc, wDesc, dxDesc);
-
     auto sol = solver_id.GetSolver();
     auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
     ctx.SetStream(&handle);
@@ -2951,23 +1411,16 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
         auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
         ctx.SetStream(&handle);
 
-        if(CheckInvokerSupport(solver_id, conv::Direction::BackwardData))
+        if(!CheckInvokerSupport(solver_id, conv::Direction::BackwardData))
         {
-            const auto invoker =
-                LoadOrPrepareInvoker(handle, ctx, solver_id, conv::Direction::BackwardData);
-            const auto invoke_ctx = conv::DataInvokeParams{tensors, workSpace, workSpaceSize};
-            invoker(handle, invoke_ctx);
-            return;
+            const auto algo_name = solver_id.GetAlgo(conv::Direction::BackwardData);
+            MIOPEN_THROW("Conv backward algorithm " + algo_name + " must implement invokers.");
         }
 
-        if(solver_id == solver::Id::gemm())
-        {
-            ConvBwdGemm(handle, tensors, workSpace, workSpaceSize);
-            return;
-        }
-
-        const auto algo_name = solver_id.GetAlgo(conv::Direction::BackwardData);
-        MIOPEN_THROW("Invalid algorithm: " + algo_name);
+        const auto invoker =
+            LoadOrPrepareInvoker(handle, ctx, solver_id, conv::Direction::BackwardData);
+        const auto invoke_ctx = conv::DataInvokeParams{tensors, workSpace, workSpaceSize};
+        invoker(handle, invoke_ctx);
     });
 }
 
@@ -3031,137 +1484,6 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     else
     {
         perf_db = UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
-#if MIOPEN_USE_GEMM
-            if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) &&
-               !(IsAnyBufferBF16(xDesc, dyDesc, dwDesc) && !IsUseRocBlas))
-            {
-                const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
-
-                ValidateGroupCount(xDesc, dwDesc, *this);
-
-                std::size_t in_n, in_c;
-                std::tie(in_n, in_c) = tie_pick<0, 1>()(xDesc.GetLengths());
-
-                auto in_spatial =
-                    boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + GetSpatialDimension());
-                auto wei_spatial =
-                    boost::adaptors::slice(dwDesc.GetLengths(), 2, 2 + GetSpatialDimension());
-                auto out_spatial =
-                    boost::adaptors::slice(dyDesc.GetLengths(), 2, 2 + GetSpatialDimension());
-
-                size_t workspace_req = BackwardWeightsGetWorkSpaceSizeGEMM(dyDesc, dwDesc);
-
-                float time_gemm = 0;
-
-                // if not 1x1
-                if((miopen::any_of(wei_spatial, [](auto v) { return v != 1; }) ||
-                    miopen::any_of(GetConvPads(), [](auto v) { return v != 0; }) ||
-                    miopen::any_of(GetConvStrides(), [](auto v) { return v != 1; })) &&
-                   (workSpace != nullptr && workSpaceSize >= workspace_req))
-                {
-                    if(group_count > 1)
-                    {
-                        MIOPEN_LOG_FUNCTION("groupconv, non 1x1");
-                    }
-                    else
-                    {
-                        MIOPEN_LOG_FUNCTION("convolution, non 1x1");
-                    }
-                    float time_im2col = 0;
-                    int in_offset     = 0;
-                    time_im2col       = Im2ColGPU(handle,
-                                            GetSpatialDimension(),
-                                            x,
-                                            in_offset,
-                                            in_c,
-                                            in_spatial,
-                                            wei_spatial,
-                                            out_spatial,
-                                            GetConvPads(),
-                                            GetConvStrides(),
-                                            GetConvDilations(),
-                                            workSpace,
-                                            dyDesc.GetType());
-
-                    // dw = dy * transpose(Im2Col(x))
-                    GemmDescriptor gemm_desc =
-                        group_count > 1 ? CreateGemmDescriptorGroupConvBwdWeight(
-                                              dyDesc, xDesc, dwDesc, group_count)
-                                        : CreateGemmDescriptorConvBwdWeight(dyDesc, xDesc, dwDesc);
-
-                    auto kcache_key = FindDbKCacheKey{};
-
-                    miopenStatus_t gemm_status = CallGemmTimeMeasure(
-                        handle,
-                        gemm_desc,
-                        dy,
-                        0,
-                        workSpace,
-                        0,
-                        dw,
-                        0,
-                        &kcache_key,
-                        time_precision,
-                        group_count > 1 ? callGemmStridedBatched : callGemm,
-                        group_count > 1 ? GemmBackend_t::miopentensile : GemmBackend_t::miopengemm);
-
-                    time_gemm = in_n * (time_im2col + handle.GetKernelTime());
-
-                    if(gemm_status == miopenStatusSuccess)
-                        record.SetValues("miopenConvolutionBwdWeightsAlgoGEMM",
-                                         FindDbData{
-                                             "gemm", time_gemm, workspace_req, kcache_key,
-                                         });
-                }
-                // 1x1 does not require im2col or workspace
-                else if(miopen::any_of(wei_spatial, [](auto v) { return v == 1; }) &&
-                        miopen::any_of(GetConvPads(), [](auto v) { return v == 0; }) &&
-                        miopen::any_of(GetConvStrides(), [](auto v) { return v == 1; }))
-                {
-                    if(group_count > 1)
-                    {
-                        MIOPEN_LOG_FUNCTION("groupconv, 1x1");
-                    }
-                    else
-                    {
-                        MIOPEN_LOG_FUNCTION("convolution, 1x1");
-                    }
-
-                    // dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
-                    GemmDescriptor gemm_desc =
-                        group_count > 1 ? CreateGemmDescriptorGroupConvBwdWeight(
-                                              dyDesc, xDesc, dwDesc, group_count)
-                                        : CreateGemmStridedBatchedDescriptorConv1x1BwdWeight(
-                                              dyDesc, xDesc, dwDesc);
-
-                    auto kcache_key = FindDbKCacheKey{};
-
-                    miopenStatus_t gemm_status = CallGemmTimeMeasure(
-                        handle,
-                        gemm_desc,
-                        dy,
-                        0,
-                        x,
-                        0,
-                        dw,
-                        0,
-                        &kcache_key,
-                        time_precision,
-                        group_count > 1 ? callGemmStridedBatched : callGemmStridedBatchedSequential,
-                        group_count > 1 ? GemmBackend_t::miopentensile : GemmBackend_t::miopengemm);
-
-                    time_gemm = handle.GetKernelTime();
-                    if(group_count > 1)
-                        time_gemm *= in_n;
-
-                    if(gemm_status == miopenStatusSuccess)
-                        record.SetValues("miopenConvolutionBwdWeightsAlgoGEMM",
-                                         FindDbData{
-                                             "gemm", time_gemm, 0, kcache_key,
-                                         });
-                }
-            }
-#endif
             ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
             bufs.SetWrW(x, dw, dy);
             ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
@@ -3173,38 +1495,59 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             ctx.SetupFloats();
             ctx.DetectRocm();
             const auto network_config = ctx.BuildConfKey();
-            const auto invoke_ctx =
-                conv::WrWInvokeParams{{dyDesc, dy, xDesc, x, dwDesc, dw}, workSpace, workSpaceSize};
-            // direct convolution
-            if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
+            const auto invoke_ctx     = conv::WrWInvokeParams{
+                InvokeType::Evaluate, {dyDesc, dy, xDesc, x, dwDesc, dw}, workSpace, workSpaceSize};
+
+            // Find solutions
+            const auto gemm = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{})
+                                  ? FindAllGemmSolutions(ctx, invoke_ctx)
+                                  : std::vector<miopen::solver::ConvSolution>{};
+            const auto direct = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{})
+                                    ? FindAllBwdWrW2DSolutions(ctx, invoke_ctx)
+                                    : std::vector<miopen::solver::ConvSolution>{};
+            const auto winograd = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{})
+                                      ? FindWinogradWrWAllSolutions(ctx, invoke_ctx)
+                                      : std::vector<miopen::solver::ConvSolution>{};
+            const auto implictgemm = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{})
+                                         ? FindImplicitGemmWrWAllSolutions(ctx, invoke_ctx)
+                                         : std::vector<miopen::solver::ConvSolution>{};
+
+            // Precompile Solutions
             {
-                const auto all            = FindAllBwdWrW2DSolutions(ctx, invoke_ctx);
-                const auto algorithm_name = AlgorithmName{"miopenConvolutionBwdWeightsAlgoDirect"};
-                EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
+                std::vector<const miopen::solver::ConvSolution*> all;
+                all.reserve(gemm.size() + direct.size() + winograd.size() + implictgemm.size());
+                AppendPointersToElements(gemm, all);
+                AppendPointersToElements(direct, all);
+                AppendPointersToElements(winograd, all);
+                AppendPointersToElements(implictgemm, all);
+                PrecompileSolutions(handle, all);
             }
 
-            try
-            {
-                const auto all = miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{})
-                                     ? std::vector<miopen::solver::ConvSolution>()
-                                     : FindWinogradWrWAllSolutions(ctx, invoke_ctx);
-                const auto algorithm_name =
-                    AlgorithmName{"miopenConvolutionBwdWeightsAlgoWinograd"};
-                EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
-            }
-            catch(const miopen::Exception& ex)
-            {
-                MIOPEN_LOG_WE("Find Winograd WrW failed:" << ex.what());
-            }
-
-            // Implicit GEMM
-            if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{}))
-            {
-                const auto all = FindImplicitGemmWrWAllSolutions(ctx, invoke_ctx);
-                const auto algorithm_name =
-                    AlgorithmName{"miopenConvolutionBwdWeightsAlgoImplicitGEMM"};
-                EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
-            }
+            // Evaluate Invokers
+            EvaluateInvokers(handle,
+                             gemm,
+                             AlgorithmName{"miopenConvolutionBwdWeightsAlgoGEMM"},
+                             network_config,
+                             invoke_ctx,
+                             record);
+            EvaluateInvokers(handle,
+                             direct,
+                             AlgorithmName{"miopenConvolutionBwdWeightsAlgoDirect"},
+                             network_config,
+                             invoke_ctx,
+                             record);
+            EvaluateInvokers(handle,
+                             winograd,
+                             AlgorithmName{"miopenConvolutionBwdWeightsAlgoWinograd"},
+                             network_config,
+                             invoke_ctx,
+                             record);
+            EvaluateInvokers(handle,
+                             implictgemm,
+                             AlgorithmName{"miopenConvolutionBwdWeightsAlgoImplicitGEMM"},
+                             network_config,
+                             invoke_ctx,
+                             record);
         });
     }
 
@@ -3257,7 +1600,7 @@ static void ConvWrwCheckNumerics(const Handle& handle,
 }
 
 // BackwardWeightsAlgorithm()
-void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
+void ConvolutionDescriptor::ConvolutionBackwardWeights(const Handle& handle,
                                                        const void* alpha,
                                                        const TensorDescriptor& dyDesc,
                                                        ConstData_t dy,
@@ -3281,12 +1624,6 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
     ConvWrwCheckNumerics(handle, tensors, beta, [&]() {
         ValidateGroupCount(xDesc, dwDesc, *this);
 
-        if(algo == miopenConvolutionBwdWeightsAlgoGEMM)
-        {
-            BackwardWeightsGemm(handle, tensors, workSpace, workSpaceSize);
-            return;
-        }
-
         decltype(auto) direction      = conv::Direction::BackwardWeights;
         decltype(auto) algorithm_name = AlgorithmName{ConvolutionAlgoToDirectionalString(
             static_cast<miopenConvAlgorithm_t>(algo), direction)};
@@ -3302,207 +1639,6 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
     });
 }
 
-void ConvolutionDescriptor::BackwardWeightsGemm(Handle& handle,
-                                                const ConvWrwTensors& tensors,
-                                                Data_t workSpace,
-                                                std::size_t workSpaceSize) const
-{
-#if MIOPEN_USE_GEMM
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
-    {
-        MIOPEN_THROW("GEMM convolution is disabled");
-    }
-    if(IsAnyBufferBF16(tensors.xDesc, tensors.dyDesc, tensors.dwDesc) && !IsUseRocBlas)
-    {
-        MIOPEN_THROW("GEMM convolution is unsupported");
-    }
-
-    std::size_t in_n, in_c;
-    std::tie(in_n, in_c) = tie_pick<0, 1>()(tensors.xDesc.GetLengths());
-
-    std::size_t wei_k = tensors.dwDesc.GetLengths()[0];
-
-    auto in_spatial =
-        boost::adaptors::slice(tensors.xDesc.GetLengths(), 2, 2 + GetSpatialDimension());
-    auto wei_spatial =
-        boost::adaptors::slice(tensors.dwDesc.GetLengths(), 2, 2 + GetSpatialDimension());
-    auto out_spatial =
-        boost::adaptors::slice(tensors.dyDesc.GetLengths(), 2, 2 + GetSpatialDimension());
-
-    // Zeroing out the output buffer
-    float zero = 0.0f;
-    SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
-
-    handle.ResetKernelTime();
-    float time_0 = 0;
-    if((miopen::any_of(wei_spatial, [](auto v) { return v != 1; }) ||
-        miopen::any_of(GetConvPads(), [](auto v) { return v != 0; }) ||
-        miopen::any_of(GetConvStrides(), [](auto v) { return v != 1; })))
-    {
-        if(group_count > 1)
-        {
-            MIOPEN_LOG_FUNCTION("groupconv, non 1x1");
-        }
-        else
-        {
-            MIOPEN_LOG_FUNCTION("convolution, non 1x1");
-        }
-        assert(workSpace != nullptr &&
-               workSpaceSize >=
-                   (BackwardWeightsGetWorkSpaceSizeGEMM(tensors.dyDesc, tensors.dwDesc)));
-
-        std::size_t out_spatial_size = std::accumulate(
-            out_spatial.begin(), out_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
-
-        std::size_t in_spatial_size = std::accumulate(
-            in_spatial.begin(), in_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
-
-        float t1 = 0;
-
-        for(std::size_t i = 0; i < in_n; i++)
-        {
-            std::size_t out_offset = i * wei_k * out_spatial_size;
-
-            std::size_t in_offset = i * in_c * in_spatial_size;
-
-            Im2ColGPU(handle,
-                      GetSpatialDimension(),
-                      tensors.x,
-                      in_offset,
-                      in_c,
-                      in_spatial,
-                      wei_spatial,
-                      out_spatial,
-                      GetConvPads(),
-                      GetConvStrides(),
-                      GetConvDilations(),
-                      workSpace,
-                      tensors.dyDesc.GetType());
-
-            if(handle.IsProfilingEnabled())
-                t1 = handle.GetKernelTime();
-
-            if(group_count > 1)
-            {
-                GemmDescriptor gemm_desc = CreateGemmDescriptorGroupConvBwdWeight(
-                    tensors.dyDesc, tensors.xDesc, tensors.dwDesc, group_count);
-                CallGemmStridedBatched(handle,
-                                       gemm_desc,
-                                       tensors.dy,
-                                       out_offset,
-                                       workSpace,
-                                       0,
-                                       tensors.dw,
-                                       0,
-                                       nullptr);
-            }
-            else
-            {
-                // tensors.dw = tensors.dy * transpose(Im2Col(tensors.x))
-                GemmDescriptor gemm_desc = CreateGemmDescriptorConvBwdWeight(
-                    tensors.dyDesc, tensors.xDesc, tensors.dwDesc);
-
-                // dw = dy * transpose(Im2Col(x))
-                CallGemm(handle,
-                         gemm_desc,
-                         tensors.dy,
-                         out_offset,
-                         workSpace,
-                         0,
-                         tensors.dw,
-                         0,
-                         nullptr,
-                         GemmBackend_t::miopengemm);
-            }
-            // Update times for both the kernels
-            if(handle.IsProfilingEnabled())
-            {
-                if(i == in_n - 1)
-                    handle.AccumKernelTime(t1 + time_0);
-                else
-                    handle.AccumKernelTime(t1);
-                time_0 += handle.GetKernelTime();
-            }
-        }
-    }
-    else if(miopen::any_of(wei_spatial, [](auto v) { return v == 1; }) &&
-            miopen::any_of(GetConvPads(), [](auto v) { return v == 0; }) &&
-            miopen::any_of(GetConvStrides(), [](auto v) { return v == 1; }))
-    {
-        if(group_count > 1)
-        {
-            MIOPEN_LOG_FUNCTION("groupconv, 1x1");
-
-            GemmDescriptor gemm_desc = CreateGemmDescriptorGroupConvBwdWeight(
-                tensors.dyDesc, tensors.xDesc, tensors.dwDesc, group_count);
-
-            std::size_t out_spatial_size = std::accumulate(out_spatial.begin(),
-                                                           out_spatial.end(),
-                                                           std::size_t(1),
-                                                           std::multiplies<std::size_t>());
-
-            std::size_t in_spatial_size = std::accumulate(in_spatial.begin(),
-                                                          in_spatial.end(),
-                                                          std::size_t(1),
-                                                          std::multiplies<std::size_t>());
-
-            for(std::size_t i = 0; i < in_n; i++)
-            {
-                std::size_t out_offset = i * wei_k * out_spatial_size;
-
-                std::size_t in_offset = i * in_c * in_spatial_size;
-
-                CallGemmStridedBatched(handle,
-                                       gemm_desc,
-                                       tensors.dy,
-                                       out_offset,
-                                       tensors.x,
-                                       in_offset,
-                                       tensors.dw,
-                                       0,
-                                       nullptr);
-
-                if(handle.IsProfilingEnabled())
-                {
-                    if(i == in_n - 1)
-                        handle.AccumKernelTime(time_0);
-                    time_0 += handle.GetKernelTime();
-                }
-            }
-        }
-        else
-        {
-            MIOPEN_LOG_FUNCTION("convolution, 1x1");
-
-            // dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
-            GemmDescriptor gemm_desc = CreateGemmStridedBatchedDescriptorConv1x1BwdWeight(
-                tensors.dyDesc, tensors.xDesc, tensors.dwDesc);
-
-            // dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
-            CallGemmStridedBatchedSequential(handle,
-                                             gemm_desc,
-                                             tensors.dy,
-                                             0,
-                                             tensors.x,
-                                             0,
-                                             tensors.dw,
-                                             0,
-                                             nullptr,
-                                             GemmBackend_t::miopengemm);
-        }
-    }
-
-#ifdef NDEBUG
-    std::ignore = workSpaceSize;
-#endif
-#else
-    std::ignore = handle;
-    std::ignore = tensors;
-    std::ignore = workSpace;
-    std::ignore = workSpaceSize;
-    MIOPEN_THROW("GEMM is not supported");
-#endif
-}
 ProblemDescription ConvolutionDescriptor::MakeWrwProblem(const TensorDescriptor& dyDesc,
                                                          const TensorDescriptor& xDesc,
                                                          const TensorDescriptor& dwDesc) const
@@ -3578,9 +1714,6 @@ std::size_t ConvolutionDescriptor::GetWrwSolutionWorkspaceSize(Handle& handle,
     if(!solver_id.IsValid())
         MIOPEN_THROW(miopenStatusBadParm, "invalid solution id = " + solver_id.ToString());
 
-    if(solver_id == solver::Id::gemm())
-        return WrwGetValidWorkSpaceSizeGemm(dyDesc, xDesc, dwDesc);
-
     auto sol = solver_id.GetSolver();
     auto problem =
         ProblemDescription{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
@@ -3620,12 +1753,6 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
         auto ctx =
             ConvolutionContext{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
         ctx.SetStream(&handle);
-
-        if(solver_id == solver::Id::gemm())
-        {
-            BackwardWeightsGemm(handle, tensors, workSpace, workSpaceSize);
-            return;
-        }
 
         if(!CheckInvokerSupport(solver_id, conv::Direction::BackwardWeights))
         {

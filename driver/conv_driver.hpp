@@ -223,8 +223,6 @@ class ConvDriver : public Driver
 
     bool UseGPUReference();
 
-    bool UseGPUReference();
-
     int FindForward(int& ret_algo_count,
                     int request_algo_count,
                     std::vector<miopenConvAlgoPerf_t>& perf_results,
@@ -441,6 +439,18 @@ int ConvDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
 
+    // try to set a default layout value for 3d conv if not specified from cmd line
+    int spatial_dim = inflags.GetValueInt("spatial_dim");
+
+    const std::string default_layout = (spatial_dim == 2) ? "NCHW" : "NCDHW";
+
+    if(inflags.GetValueStr("in_layout").empty())
+        inflags.SetValue("in_layout", default_layout);
+    if(inflags.GetValueStr("fil_layout").empty())
+        inflags.SetValue("fil_layout", default_layout);
+    if(inflags.GetValueStr("out_layout").empty())
+        inflags.SetValue("out_layout", default_layout);
+
     num_iterations = inflags.GetValueInt("iter");
     if(num_iterations < 1)
     {
@@ -569,9 +579,21 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
 template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
-    inflags.AddInputFlag("in_layout", 'I', "NCHW", "Input Layout (Default=NCHW)", "string");
-    inflags.AddInputFlag("out_layout", 'O', "NCHW", "Output Layout (Default=NCHW)", "string");
-    inflags.AddInputFlag("fil_layout", 'f', "NCHW", "Input Layout (Default=NCHW)", "string");
+    inflags.AddInputFlag("in_layout",
+                         'I',
+                         "",
+                         "Input Layout (Default=NCHW for 2d conv, NCDHW for 3d conv)",
+                         "string");
+    inflags.AddInputFlag("out_layout",
+                         'O',
+                         "",
+                         "Output Layout (Default=NCHW for 2d conv, NCDHW for 3d conv)",
+                         "string");
+    inflags.AddInputFlag("fil_layout",
+                         'f',
+                         "",
+                         "Filter Layout (Default=NCHW for 2d conv, NCDHW for 3d conv)",
+                         "string");
     inflags.AddInputFlag(
         "spatial_dim", '_', "2", "convolution spatial dimension (Default-2)", "int");
     inflags.AddInputFlag("forw",
@@ -1021,9 +1043,12 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                 break;
             }
 
-            warmup_in  = tensor<warmup_Tgpu>(miopen::deref(warmupInputTensor).GetLengths());
-            warmup_wei = tensor<warmup_Tgpu>(miopen::deref(warmupWeightTensor).GetLengths());
-            warmup_out = tensor<warmup_Tgpu>(miopen::deref(warmupOutputTensor).GetLengths());
+            warmup_in = tensor<warmup_Tgpu>(miopen::deref(warmupInputTensor).GetLengths(),
+                                            miopen::deref(warmupInputTensor).GetStrides());
+            warmup_wei = tensor<warmup_Tgpu>(miopen::deref(warmupWeightTensor).GetLengths(),
+                                             miopen::deref(warmupWeightTensor).GetStrides());
+            warmup_out = tensor<warmup_Tgpu>(miopen::deref(warmupOutputTensor).GetLengths(),
+                                             miopen::deref(warmupOutputTensor).GetStrides());
 
             warmup_in_dev =
                 std::unique_ptr<GPUMem>(new GPUMem(ctx, warmup_in_sz, sizeof(warmup_Tgpu)));
@@ -1107,13 +1132,17 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     }
 
     if(is_fwd || is_wrw)
-        in = tensor<Tgpu>(miopen::deref(inputTensor).GetLengths());
+        in = tensor<Tgpu>(miopen::deref(inputTensor).GetLengths(),
+                          miopen::deref(inputTensor).GetStrides());
     if(is_fwd || is_bwd)
-        wei = tensor<Tgpu>(miopen::deref(weightTensor).GetLengths());
+        wei = tensor<Tgpu>(miopen::deref(weightTensor).GetLengths(),
+                           miopen::deref(weightTensor).GetStrides());
     if(is_fwd)
-        out = tensor<Tgpu>(miopen::deref(outputTensor).GetLengths());
+        out = tensor<Tgpu>(miopen::deref(outputTensor).GetLengths(),
+                           miopen::deref(outputTensor).GetStrides());
     if(is_bwd || is_wrw)
-        dout = tensor<Tgpu>(miopen::deref(outputTensor).GetLengths());
+        dout = tensor<Tgpu>(miopen::deref(outputTensor).GetLengths(),
+                            miopen::deref(outputTensor).GetStrides());
 
     if(is_bwd)
         din = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
@@ -1129,9 +1158,12 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             new GPUMem(ctx, GetTensorSize(weightTensor_vect4), sizeof(Tgpu)));
     }
 
-    outhost   = tensor<Tref>(miopen::deref(outputTensor).GetLengths());
-    din_host  = tensor<Tref>(miopen::deref(inputTensor).GetLengths());
-    dwei_host = tensor<Tref>(miopen::deref(weightTensor).GetLengths());
+    outhost = tensor<Tref>(miopen::deref(outputTensor).GetLengths(),
+                           miopen::deref(outputTensor).GetStrides());
+    din_host = tensor<Tref>(miopen::deref(inputTensor).GetLengths(),
+                            miopen::deref(inputTensor).GetStrides());
+    dwei_host = tensor<Tref>(miopen::deref(weightTensor).GetLengths(),
+                             miopen::deref(weightTensor).GetStrides());
 
     std::string inFileName   = inflags.GetValueStr("in_data");
     std::string weiFileName  = inflags.GetValueStr("weights");
@@ -1238,9 +1270,11 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             size_t b_sz = GetTensorSize(biasTensor);
             b_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, b_sz, sizeof(Tgpu)));
             db_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, b_sz, sizeof(Tgpu)));
-            b           = tensor<Tgpu>(miopen::deref(biasTensor).GetLengths());
-            db          = std::vector<Tgpu>(b_sz, static_cast<Tgpu>(0));
-            db_host     = tensor<Tref>(miopen::deref(biasTensor).GetLengths());
+            b           = tensor<Tgpu>(miopen::deref(biasTensor).GetLengths(),
+                             miopen::deref(biasTensor).GetStrides());
+            db      = std::vector<Tgpu>(b_sz, static_cast<Tgpu>(0));
+            db_host = tensor<Tref>(miopen::deref(biasTensor).GetLengths(),
+                                   miopen::deref(biasTensor).GetStrides());
             for(int i = 0; i < b_sz; i++)
             {
                 b.data[i] = static_cast<Tgpu>(i % 8) +
@@ -2044,7 +2078,8 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPUReference()
         out_dev->FromGPU(GetStream(), outhost.data.data());
     else
     {
-        auto out_tmp = tensor<Tgpu>(miopen::deref(outputTensor).GetLengths());
+        auto out_tmp = tensor<Tgpu>(miopen::deref(outputTensor).GetLengths(),
+                                    miopen::deref(outputTensor).GetStrides());
         out_dev->FromGPU(GetStream(), out_tmp.data.data());
         for(int i = 0; i < out_tmp.data.size(); i++)
         {
@@ -2960,7 +2995,8 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWeightsGPUReference()
         dwei_dev->FromGPU(GetStream(), dwei_host.data.data());
     else
     {
-        auto dwei_tmp = tensor<Tgpu>(miopen::deref(weightTensor).GetLengths());
+        auto dwei_tmp = tensor<Tgpu>(miopen::deref(weightTensor).GetLengths(),
+                                     miopen::deref(weightTensor).GetStrides());
         dwei_dev->FromGPU(GetStream(), dwei_tmp.data.data());
         for(int i = 0; i < dwei_tmp.data.size(); i++)
         {
@@ -3008,7 +3044,8 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGPUReference()
         din_dev->FromGPU(GetStream(), din_host.data.data());
     else
     {
-        auto din_tmp = tensor<Tgpu>(miopen::deref(inputTensor).GetLengths());
+        auto din_tmp = tensor<Tgpu>(miopen::deref(inputTensor).GetLengths(),
+                                    miopen::deref(inputTensor).GetStrides());
         din_dev->FromGPU(GetStream(), din_tmp.data.data());
         for(int i = 0; i < din_tmp.data.size(); i++)
         {

@@ -36,6 +36,7 @@
 #include <miopen/kernel_cache.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/rocm_features.hpp>
+#include <miopen/stringutils.hpp>
 #include <miopen/target_properties.hpp>
 #include <miopen/timer.hpp>
 
@@ -194,7 +195,7 @@ struct HandleImpl
         const std::string name(props.gcnArchName);
 #endif
         MIOPEN_LOG_NQI("Raw device name: " << name);
-        return name;
+        return name; // NOLINT (performance-no-automatic-move)
     }
 
     bool enable_profiling  = false;
@@ -389,7 +390,12 @@ Program Handle::LoadProgram(const std::string& program_name,
                             const std::string& kernel_src) const
 {
     this->impl->set_ctx();
-    params += " -mcpu=" + this->GetTargetProperties().Name();
+
+    if((!miopen::EndsWith(program_name, ".mlir-cpp")) && (!miopen::EndsWith(program_name, ".mlir")))
+    {
+        params += " -mcpu=" + this->GetTargetProperties().Name();
+    }
+
     auto hsaco = miopen::LoadBinary(this->GetTargetProperties(),
                                     this->GetMaxComputeUnits(),
                                     program_name,

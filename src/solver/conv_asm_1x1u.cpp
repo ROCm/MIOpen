@@ -116,12 +116,12 @@ inline static bool NextLinear(int& v)
 }
 
 // This range is like regular range [0,4,8...32], but 1 is used instead of 0.
-inline static bool Is_1_4_8_12__32(const int& v)
+inline static bool Is_1_4_8_12__32(const int& v) // NOLINT (bugprone-reserved-identifier)
 {
     return v == 1 || (v % 4 == 0 && IsLinear<1, 8>(v / 4));
 }
 
-inline static bool Next_1_4_8_12__32(int& v)
+inline static bool Next_1_4_8_12__32(int& v) // NOLINT (bugprone-reserved-identifier)
 {
     assert(Is_1_4_8_12__32(v));
     int tmp        = v / 4;
@@ -306,7 +306,7 @@ bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) con
     return (c_per_wave % c_mult == 0) && (c_per_last_wave % c_mult == 0);
 }
 
-void PerformanceConfigConvAsm1x1U::EuristicInit(const ConvolutionContext& config)
+void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& config)
 {
     const auto elements_in_dword = 4 / GetTypeSize(config.in_data_type);
     read_size                    = 4;
@@ -362,7 +362,7 @@ PerformanceConfigConvAsm1x1U
 ConvAsm1x1U::GetPerformanceConfig(const ConvolutionContext& params) const
 {
     PerformanceConfigConvAsm1x1U pp;
-    pp.EuristicInit(params);
+    pp.HeuristicInit(params);
     MIOPEN_LOG_I(pp.ToString());
     return pp;
 }

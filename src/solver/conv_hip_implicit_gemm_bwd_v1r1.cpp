@@ -509,7 +509,7 @@ bool PerformanceImplicitGemmBwdDataV1R1::IsValid(const ConvolutionContext& ctx) 
     return (valid and lds_size <= get_lds_max_number_of_byte());
 }
 
-void PerformanceImplicitGemmBwdDataV1R1::EuristicInit(const ConvolutionContext& ctx)
+void PerformanceImplicitGemmBwdDataV1R1::HeuristicInit(const ConvolutionContext& ctx)
 {
     PerformanceImplicitGemmBwdDataV1R1 config;
 
@@ -640,11 +640,13 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx)
         return false;
     if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
         return false;
+    if(!ctx.use_hip_kernels)
+        return false;
+    if(!ctx.IsLayoutDefault())
+        return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
     if(!ctx.direction.IsBackwardData())
-        return false;
-    if(!ctx.use_hip_kernels)
         return false;
     if(!ctx.Is2d() && !(ctx.Is3d() && ctx.IsFp32()))
         return false;
@@ -655,10 +657,6 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx)
         return false;
     if(ctx.group_counts != 1)
         return false;
-    if(!ctx.IsLayoutDefault())
-    {
-        return false;
-    }
 #if WORKAROUND_ISSUE_309
     if(miopen::HipCompilerVersion() >= external_tool_version_t{3, 5, 0})
         if(ctx.IsBfp16())

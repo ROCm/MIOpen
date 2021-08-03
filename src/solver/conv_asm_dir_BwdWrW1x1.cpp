@@ -359,7 +359,7 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config
     return true;
 }
 
-void PerformanceConfigConvAsmBwdWrW1x1::EuristicInit(const ConvolutionContext& config)
+void PerformanceConfigConvAsmBwdWrW1x1::HeuristicInit(const ConvolutionContext& config)
 {
     short_store =
         (config.out_data_type == miopenHalf || config.out_data_type == miopenBFloat16) ? 1 : 0;
@@ -453,7 +453,7 @@ PerformanceConfigConvAsmBwdWrW1x1
 ConvAsmBwdWrW1x1::GetPerformanceConfig(const ConvolutionContext& params) const
 {
     PerformanceConfigConvAsmBwdWrW1x1 pp;
-    pp.EuristicInit(params);
+    pp.HeuristicInit(params);
     MIOPEN_LOG_I(pp.ToString());
     return pp;
 }

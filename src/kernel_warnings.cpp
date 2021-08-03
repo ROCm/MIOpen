@@ -32,27 +32,32 @@
 
 namespace miopen {
 
-std::vector<std::string> OclKernelWarnings()
+static std::vector<std::string> OclKernelWarnings(const bool is_miopengemm)
 {
-    return {
+    std::vector<std::string> rv = {
         "-Weverything",
-        "-Wno-shorten-64-to-32",
-        "-Wno-unused-macros",
-        "-Wno-unused-function",
-        "-Wno-sign-compare",
-        "-Wno-reserved-id-macro",
-        "-Wno-sign-conversion",
-        "-Wno-missing-prototypes",
-        "-Wno-cast-qual",
         "-Wno-cast-align",
+        "-Wno-cast-qual",
         "-Wno-conversion",
         "-Wno-double-promotion",
         "-Wno-float-equal",
-        "-Wno-pass-failed", // Disable "loop not unrolled" warnings. See #1735.
+        "-Wno-missing-prototypes",
+        "-Wno-pass-failed",            // Disable "loop not unrolled" warnings. See #1735.
+        "-Wno-pedantic-core-features", // Cases like "#pragma OPENCL EXTENSION cl_khr_fp64 : enable"
+        "-Wno-reserved-id-macro",
+        "-Wno-shorten-64-to-32",
+        "-Wno-sign-compare",
+        "-Wno-sign-conversion",
+        "-Wno-unused-function",
+        "-Wno-unused-macros",
     };
+    // W/A for SWDEV-270602. We'll remove this when we stop using MIOpenGEMM (deprecated).
+    if(is_miopengemm)
+        rv.emplace_back("-Wno-tautological-unsigned-zero-compare");
+    return rv;
 }
 
-std::vector<std::string> HipKernelWarnings()
+static std::vector<std::string> HipKernelWarnings()
 {
     return {
         "-Weverything",
@@ -81,10 +86,22 @@ std::vector<std::string> HipKernelWarnings()
     };
 }
 
-std::string MakeKernelWarningsString(const std::vector<std::string>& kernel_warnings,
-                                     const std::string& prefix)
+static std::string MakeKernelWarningsString(const std::vector<std::string>& kernel_warnings,
+                                            const std::string& prefix)
 {
     return prefix + JoinStrings(kernel_warnings, prefix);
+}
+
+const std::string& MiopengemmWarningsString()
+{
+#if MIOPEN_BACKEND_OPENCL
+    std::string prefix = " -Wf,";
+#else
+    std::string prefix = " ";
+#endif
+
+    static const std::string result = MakeKernelWarningsString(OclKernelWarnings(true), prefix);
+    return result;
 }
 
 const std::string& OclKernelWarningsString()
@@ -95,7 +112,7 @@ const std::string& OclKernelWarningsString()
     std::string prefix = " ";
 #endif
 
-    static const std::string result = MakeKernelWarningsString(OclKernelWarnings(), prefix);
+    static const std::string result = MakeKernelWarningsString(OclKernelWarnings(false), prefix);
     return result;
 }
 

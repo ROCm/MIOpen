@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,17 +23,26 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "miopen_kernels.h"
 #include <algorithm>
 #include <map>
 #include <miopen/kernel.hpp>
 #include <miopen/stringutils.hpp>
 
+#ifndef MIOPEN_USE_CLANG_TIDY // Huge generated source
+// clang-format off
+${KERNELS_DECLS}
+// clang-format on
+#endif
+
 namespace miopen {
 
 const std::map<std::string, std::string>& kernels()
 {
-    static const std::map<std::string, std::string> data{${INIT_KERNELS}};
+    static const std::map<std::string, std::string> data{
+#ifndef MIOPEN_USE_CLANG_TIDY // Huge generated source
+        ${INIT_KERNELS}
+#endif
+    };
     return data;
 }
 
@@ -46,17 +55,7 @@ std::string GetKernelSrc(std::string name)
     {
         start = slash + 1;
     }
-
-    int len = name.size();
-    auto ex = static_cast<int>(name.rfind('.'));
-    if(ex != std::string::npos)
-    {
-        len = ex - start;
-    }
-
-    auto key = name.substr(start, len);
-    // Convert to uppercase
-    std::transform(key.begin(), key.end(), key.begin(), ::toupper);
+    auto key = name.substr(start);
 
     auto it = kernels().find(key);
     if(it == kernels().end())

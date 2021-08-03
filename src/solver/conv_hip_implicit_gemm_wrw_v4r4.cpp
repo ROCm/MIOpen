@@ -480,7 +480,7 @@ bool PerformanceImplicitGemmV4R4WrW::IsValid(const ConvolutionContext& ctx) cons
     return (valid and lds_size <= get_lds_max_number_of_byte());
 }
 
-void PerformanceImplicitGemmV4R4WrW::EuristicInit(const ConvolutionContext& ctx)
+void PerformanceImplicitGemmV4R4WrW::HeuristicInit(const ConvolutionContext& ctx)
 {
     PerformanceImplicitGemmV4R4WrW config;
 
@@ -592,11 +592,13 @@ bool ConvHipImplicitGemmV4R4WrW::IsApplicable(const ConvolutionContext& ctx) con
         return false;
     if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
         return false;
+    if(!ctx.use_hip_kernels)
+        return false;
+    if(!ctx.IsLayoutDefault())
+        return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
     if(!ctx.direction.IsBackwardWrW())
-        return false;
-    if(!ctx.use_hip_kernels)
         return false;
     if(!ctx.Is2d() && !ctx.Is3d())
         return false;
@@ -604,10 +606,6 @@ bool ConvHipImplicitGemmV4R4WrW::IsApplicable(const ConvolutionContext& ctx) con
         return false;
     if(ctx.group_counts != 1)
         return false;
-    if(!ctx.IsLayoutDefault())
-    {
-        return false;
-    }
 
     int gemm_m = 0;
     int gemm_n = 0;

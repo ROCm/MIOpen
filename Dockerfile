@@ -1,53 +1,55 @@
 FROM ubuntu:18.04
 
 ARG PREFIX=/usr/local
-ARG GPU_ARCH="all"
+ARG GPU_ARCH=";"
+ARG MIOTENSILE_VER="default"
+ARG USE_TARGETID="OFF"
 
 # Support multiarch
 RUN dpkg --add-architecture i386
 
 # Add rocm repository
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y curl apt-utils wget && apt-get install -y gnupg2
-RUN curl https://raw.githubusercontent.com/RadeonOpenCompute/ROCm-docker/master/add-rocm.sh | bash
-
-# Install dependencies required to build hcc
-# Ubuntu csomic contains llvm-7 required to build Tensile
+RUN if [ "$USE_TARGETID" = "ON" ] ; then sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/.apt_4.1.1/ xenial main > /etc/apt/sources.list.d/rocm.list'; else sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/.apt_3.7/ xenial main > /etc/apt/sources.list.d/rocm.list'; fi
 RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu xenial main universe | tee -a /etc/apt/sources.list"
+
+# Install dependencies
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     apt-utils \
     build-essential \
-    clang-3.8 \
-    clang-format-3.8 \
-    clang-tidy-3.8 \
     cmake \
     comgr \
     curl \
+    clang-format-3.8 \
     doxygen \
-    g++-5-multilib \
+    g++ \
+    gdb \
     git \
-    hsa-rocr-dev \
-    hsakmt-roct-dev \
+    hip-rocclr \
     lcov \
     libelf-dev \
-    libfile-which-perl \
     libncurses5-dev \
-    libpthread-stubs0-dev \
     libnuma-dev \
-    libunwind-dev \
-    nsis \
-    python \
-    python-dev \
-    python-pip \
-    software-properties-common \
-    libboost-all-dev \
-    llvm-7 \
+    libpthread-stubs0-dev \
+    llvm-amdgpu \
+    miopengemm \
     pkg-config \
+    python \
     python3 \
+    python-dev \
+    python3-dev \
+    python-pip \
+    python3-pip \
     python3-distutils \
     python3-venv \
-    python3-pip \
+    software-properties-common \
+    wget \
+    rocm-dev \
+    rocm-device-libs \
     rocm-opencl \
-    rocm-opencl-dev && \
+    rocm-opencl-dev \
+    rocm-cmake \
+    rocblas \
+    zlib1g-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -64,32 +66,45 @@ RUN dpkg -i dumb-init_*.deb && rm dumb-init_*.deb
 # Install cget
 RUN pip3 install cget
 
-# Install rclone
-RUN pip install https://github.com/pfultz2/rclone/archive/master.tar.gz
-
 # Add symlink to /opt/rocm
 RUN [ -d /opt/rocm ] || ln -sd $(realpath /opt/rocm-*) /opt/rocm
-
-# Install hcc from ROCm 3.0
-RUN rclone -b roc-3.0.x -c 286651a04d9c3a8e3052dd84b1822985498cd27d https://github.com/RadeonOpenCompute/hcc.git /hcc
-RUN LDFLAGS=-fuse-ld=gold cget -p $PREFIX install hcc,/hcc  && rm -rf /hcc
 
 # Make sure /opt/rcom is in the paths
 ENV PATH="/opt/rocm:${PATH}"
 
-# Build using hcc
-RUN if [ "$GPU_ARCH" = "all" ] ; then cget -p $PREFIX init --cxx $PREFIX/bin/hcc --std=c++14 -DTensile_ARCHITECTURE="all" -DAMDGPU_TARGETS="gfx900;gfx906;gfx908"; else cget -p $PREFIX init --cxx $PREFIX/bin/hcc --std=c++14 -DTensile_ARCHITECTURE=${GPU_ARCH} -DAMDGPU_TARGETS=${GPU_ARCH}; fi
+# Build using hip-clang
+RUN cget -p $PREFIX init --cxx /opt/rocm/llvm/bin/clang++ --std=c++14 -DAMDGPU_TARGETS=${GPU_ARCH}
 
 # Install dependencies
-ADD dev-requirements.txt /dev-requirements.txt
-ADD requirements.txt /requirements.txt
+RUN cget -p $PREFIX install pfultz2/rocm-recipes
+# Install a newer version of cmake for libMLIRMIOpen
+RUN cget -p $PREFIX install kitware/cmake@v3.13.4
 ADD min-requirements.txt /min-requirements.txt
-RUN locale
-RUN export HIPCC_LINK_FLAGS_APPEND='-O3 -parallel-jobs=4' && \
-    export HIPCC_COMPILE_FLAGS_APPEND='-O3 -Wno-format-nonliteral -parallel-jobs=4' && \
-    CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -f /dev-requirements.txt
+RUN CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -f /min-requirements.txt
+RUN cget -p $PREFIX install danmar/cppcheck@dd05839a7e63ef04afd34711cb3e1e0ef742882f
 
 # Install doc requirements
 ADD doc/requirements.txt /doc-requirements.txt
 RUN pip install -r /doc-requirements.txt
 
+# Use parallel job to accelerate tensile build
+# Workaround for Tensile with TargetID feature
+RUN if [ "$USE_TARGETID" = "ON" ] ; then export HIPCC_LINK_FLAGS_APPEND='-O3 -parallel-jobs=4' && export HIPCC_COMPILE_FLAGS_APPEND='-O3 -Wno-format-nonliteral -parallel-jobs=4' && rm /usr/bin/hipcc; fi
+
+# install last released miopentensile in default (master), install latest commits when MIOTENSILE_VER="latest" (develop)
+RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."; elif [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@be26d30d3d7509a414134a45f4a6d49e5da250b8; else cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@4bfe00a8de61d12862d9fa803b8ea9a981a50f97; fi
+
+RUN cd ~ && \
+    export MLIR_COMMIT=3ddffc0056cf5ad7675486428dff13a4e335601d && \
+    wget https://github.com/ROCmSoftwarePlatform/llvm-project-mlir/archive/$MLIR_COMMIT.tar.gz && \
+    tar -xvzf $MLIR_COMMIT.tar.gz && \
+    rm -rf $MLIR_COMMIT.tar.gz && \
+    cd llvm-project-mlir-$MLIR_COMMIT && mkdir -p build && cd build && \
+    $PREFIX/bin/cmake -G "Unix Makefiles" ../llvm \
+      -DLLVM_ENABLE_PROJECTS="mlir;lld" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DBUILD_SHARED_LIBS=OFF \
+      -DLLVM_BUILD_LLVM_DYLIB=OFF \
+      -DLLVM_ENABLE_TERMINFO=OFF && \
+    make -j$(nproc) libMLIRMIOpen && \
+    cd ~ && rm -rf llvm-project-mlir-$MLIR_COMMIT

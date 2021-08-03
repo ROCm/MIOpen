@@ -59,26 +59,26 @@ std::vector<Program> PrecompileKernels(const Handle& h, const std::vector<Kernel
     std::vector<Program> programs(kernels.size());
 
     // clang-format off
-    par_for(kernels.size(),
-            max_threads{Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, 20)},
-            [&](auto i) {
-                const KernelInfo& k = kernels[i];
-                programs[i]         = h.LoadProgram(k.kernel_file, k.comp_options, false, "");
-            });
+    par_for_strided(kernels.size(),
+                    max_threads{Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, 20)},
+                    [&](auto i) {
+                        const KernelInfo& k = kernels[i];
+                        programs[i]         = h.LoadProgram(k.kernel_file, k.comp_options, false, "");
+                    });
     // clang-format on
     ct.Log("PrecompileKernels");
     return programs;
 }
 
-void PrecompileSolutions(const Handle& h, const std::vector<ConvSolution>& sols)
+void PrecompileSolutions(const Handle& h, const std::vector<const ConvSolution*>& sols)
 {
     // Find all kernels that need to be compiled from the solutions
     std::vector<KernelInfo> kernels;
     for(auto&& sol : sols)
     {
-        if(!sol.Succeeded())
+        if(!sol->Succeeded())
             continue;
-        for(auto&& kernel : sol.construction_params)
+        for(auto&& kernel : sol->construction_params)
         {
             if(h.HasProgram(kernel.kernel_file, kernel.comp_options))
                 continue;
@@ -120,6 +120,7 @@ struct SolverRegistrar
 
 static auto& IdRegistry()
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static auto data            = IdRegistryData{};
     static const auto registrar = SolverRegistrar{data};
     (void)registrar; // clang-tidy
@@ -222,6 +223,9 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     // intended to reuse an id of a removed solver.
 
     uint64_t id = 0; // 0 is reserved for invalid value.
+
+    // IMPORTANT: New solvers should be added to the end of the function!
+
     RegisterWithSolver(registry, ++id, ConvAsm3x3U{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvAsm1x1U{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvAsm1x1UV2{}, miopenConvolutionAlgoDirect);
@@ -386,6 +390,34 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     RegisterWithSolver(registry, ++id, ConvDirectNaiveConvFwd{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvDirectNaiveConvBwd{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvDirectNaiveConvWrw{}, miopenConvolutionAlgoDirect);
+
+    RegisterWithSolver(registry, ++id, GemmFwd1x1_0_1{}, miopenConvolutionAlgoGEMM);
+    RegisterWithSolver(registry, ++id, GemmFwd1x1_0_1_int8{}, miopenConvolutionAlgoGEMM);
+    RegisterWithSolver(registry, ++id, GemmFwd1x1_0_2{}, miopenConvolutionAlgoGEMM);
+    RegisterWithSolver(registry, ++id, GemmFwdRest{}, miopenConvolutionAlgoGEMM);
+
+    RegisterWithSolver(
+        registry, ++id, ConvHipImplicitGemmMlirCppFwd{}, miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(
+        registry, ++id, ConvHipImplicitGemmMlirCppBwd{}, miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(
+        registry, ++id, ConvHipImplicitGemmMlirCppWrW{}, miopenConvolutionAlgoImplicitGEMM);
+
+    RegisterWithSolver(registry, ++id, GemmBwd1x1_stride2{}, miopenConvolutionAlgoGEMM);
+    RegisterWithSolver(registry, ++id, GemmBwd1x1_stride1{}, miopenConvolutionAlgoGEMM);
+    RegisterWithSolver(registry, ++id, GemmBwdRest{}, miopenConvolutionAlgoGEMM);
+
+    RegisterWithSolver(registry, ++id, ConvMlirIgemmFwd{}, miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(registry, ++id, ConvMlirIgemmBwd{}, miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(registry, ++id, ConvMlirIgemmWrW{}, miopenConvolutionAlgoImplicitGEMM);
+
+    RegisterWithSolver(registry, ++id, GemmWrw1x1_stride1{}, miopenConvolutionAlgoGEMM);
+    RegisterWithSolver(registry, ++id, GemmWrwUniversal{}, miopenConvolutionAlgoGEMM);
+
+    RegisterWithSolver(registry, ++id, ConvMlirIgemmFwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(registry, ++id, ConvMlirIgemmBwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(registry, ++id, ConvMlirIgemmWrWXdlops{}, miopenConvolutionAlgoImplicitGEMM);
+    // IMPORTANT: New solvers should be added to the end of the function!
 }
 
 } // namespace solver

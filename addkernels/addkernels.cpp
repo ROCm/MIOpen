@@ -46,6 +46,8 @@ void Bin2Hex(std::istream& source,
 
     if(variable.length() != 0)
     {
+        target << "extern const size_t " << variable << "_SIZE;" << std::endl;
+        target << "extern const unsigned char " << variable << "[];" << std::endl;
         target << "const size_t " << variable << "_SIZE = " << std::setbase(10) << sourceSize << ";"
                << std::endl;
         target << "const unsigned char " << variable << "[] = {" << std::endl;
@@ -78,7 +80,7 @@ void Bin2Hex(std::istream& source,
     }
 
     if(nullTerminate)
-        target << "0x00,";
+        target << "0x00," << std::endl;
 
     if(variable.length() != 0)
     {
@@ -88,7 +90,7 @@ void Bin2Hex(std::istream& source,
 
 void PrintHelp()
 {
-    std::cout << "Usage: bin2hex {<option>}" << std::endl;
+    std::cout << "Usage: addkernels {<option>}" << std::endl;
     std::cout << "Option format: -<option name>[ <option value>]" << std::endl;
     std::cout << std::endl;
     std::cout << "Options:" << std::endl;
@@ -100,6 +102,9 @@ void PrintHelp()
     std::cout << "           -b[uffer] <number>: read buffer size. Default: 512." << std::endl;
     std::cout << "           -g[uard] <string>: guard name. Default: no guard" << std::endl;
     std::cout << "           -n[o-recurse] : dont expand include files recursively. Default: off"
+              << std::endl;
+    std::cout << "           -m[ark-includes] : mark variables that represent include files with "
+                 "'__INC'. Default: off"
               << std::endl;
 }
 
@@ -122,7 +127,9 @@ void Process(const std::string& sourcePath,
              std::ostream& target,
              size_t bufferSize,
              size_t lineSize,
-             bool recurse)
+             bool recurse,
+             bool as_extern,
+             bool mark_includes)
 {
     std::string fileName(sourcePath);
     std::string extension, root;
@@ -184,6 +191,15 @@ void Process(const std::string& sourcePath,
     }
 
     std::transform(variable.begin(), variable.end(), variable.begin(), ::toupper);
+
+    if(mark_includes)
+        variable = variable + "__INC";
+
+    if(as_extern && variable.length() != 0)
+    {
+        variable = "MIOPEN_KERNEL_" + variable;
+    }
+
     Bin2Hex(*source, target, variable, true, bufferSize, lineSize);
 }
 
@@ -202,6 +218,8 @@ int main(int argsn, char** args)
     std::ofstream targetFile;
     std::ostream* target = &std::cout;
     bool recurse         = true;
+    bool as_extern       = false;
+    bool mark_includes   = false;
 
     int i = 0;
     while(++i < argsn && **args != '-')
@@ -215,13 +233,17 @@ int main(int argsn, char** args)
             {
                 *target << "#ifndef " << guard << std::endl;
                 *target << "#define " << guard << std::endl;
-                *target << "#include <stddef.h>" << std::endl;
             }
+
+            *target << "#ifndef MIOPEN_USE_CLANG_TIDY" << std::endl;
+            *target << "#include <cstddef>" << std::endl;
 
             while(++i < argsn)
             {
-                Process(args[i], *target, bufferSize, lineSize, recurse);
+                Process(args[i], *target, bufferSize, lineSize, recurse, as_extern, mark_includes);
             }
+
+            *target << "#endif" << std::endl;
 
             if(guard.length() > 0)
             {
@@ -243,6 +265,10 @@ int main(int argsn, char** args)
             guard = args[++i];
         else if(arg == "n" || arg == "no-recurse")
             recurse = false;
+        else if(arg == "m" || arg == "mark-includes")
+            mark_includes = true;
+        else if(arg == "e" || arg == "extern")
+            as_extern = true;
         else
             UnknownArgument(arg);
     }
