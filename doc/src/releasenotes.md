@@ -1,6 +1,17 @@
 
 ## MIOpen Release notes
 
+### 08/03/2021 [2.12.0]
+
+ - This release includes support for Navi21 and various other bug fixes and performance improvements
+
+ - MIOpen now supports Navi21!! (via MIOpen PRs 973, 780, 764, 740, 739, 677, 660, 653, 493, 498)
+ - Fixed a correctness issue with ImplicitGemm algorithm 
+ - Updated the performance data for new kernel versions
+ - Improved MIOpen build time by splitting large kernel header files
+ - Fixed an issue in reduction kernels for padded tensors
+ - Various other bug fixes and performance improvements
+
 ### 05/17/2021 [2.11.0]
 
  - This release contains various bug fixes and performance improvements.
