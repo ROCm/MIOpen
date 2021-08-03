@@ -46,8 +46,6 @@ bool BnFwdTrainingPASingle::IsApplicable(const ExecutionContext&,
        problem.GetMode() != miopenBNSpatial)
         return false;
 
-    bool single = true;
-
     int n, c, h, w;
     std::tie(n, c, h, w) = tien<4>(problem.GetXDesc().GetLengths());
 
@@ -69,21 +67,22 @@ bool BnFwdTrainingPASingle::IsApplicable(const ExecutionContext&,
         bfp32parm  = false;
     }
 
-    if((WORKAROUND_SWDEV_253606 == 0 && n < 3) || (in_nhw < 33554432 && in_cstride > 1024) ||
-       ((n >= 256) && (in_cstride > 60) && bfpmixparm) || ((in_cstride > 512) && bfpmixparm) ||
-       in_cstride <= 512)
+    // clang-format off
+    if(!((WORKAROUND_SWDEV_253606 == 0 && n < 3) ||
+         (bfpmixparm && in_cstride > 512) ||
+         (bfpmixparm && in_cstride > 60 && n >= 256) ||
+         (in_cstride > 1024 && in_nhw < 33554432)
+        ))
+        return false;
+    // clang-format on
+
+    if((n > 768) && (in_cstride > 150) && bfp32parm)
     {
-        if((n > 768) && (in_cstride > 150) && bfp32parm)
-        {
-            single = false;
-        }
-    }
-    else
-    {
-        single = false;
+        return false;
     }
 
-    return single;
+    return true;
+
 }
 
 ConvSolution
