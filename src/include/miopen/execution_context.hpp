@@ -119,8 +119,8 @@ struct ExecutionContext
                 fs::path best_path;
                 for(auto const& entry : fs::recursive_directory_iterator(pdb_path))
                 {
-                    const auto filepath = entry.path();
-                    const auto fname    = filepath.stem().string();
+                    const auto& filepath = entry.path();
+                    const auto fname     = filepath.stem().string();
                     if(fs::is_regular_file(entry) && filepath.extension() == ext &&
                        fname.rfind(db_id, 0) == 0) // starts with db_id
                     {
