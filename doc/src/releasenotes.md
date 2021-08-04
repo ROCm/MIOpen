@@ -1,6 +1,36 @@
 
 ## MIOpen Release notes
 
+### 08/03/2021 [2.12.0]
+
+ - This release includes support for Navi21 and various other bug fixes and performance improvements
+
+ - MIOpen now supports Navi21!! (via MIOpen PRs 973, 780, 764, 740, 739, 677, 660, 653, 493, 498)
+ - Fixed a correctness issue with ImplicitGemm algorithm 
+ - Updated the performance data for new kernel versions
+ - Improved MIOpen build time by splitting large kernel header files
+ - Fixed an issue in reduction kernels for padded tensors
+ - Various other bug fixes and performance improvements
+
+### 05/17/2021 [2.11.0]
+
+ - This release contains various bug fixes and performance improvements.
+ 
+ - Updates for Target ID features in ROCm stack
+ - Correctness fix in Batchnorm kernels
+ - Various bug fixes for MIOpenGEMM on the OpenCL backend
+ - Various bug fixes in 3x3 assembly kernels
+
+### 03/25/2021 [2.10.0]
+
+ - This release contains new reduction operations, Winograd algorithm performance improvements as well as bug fixes. Various host side performance improvements have been added as well.
+
+ - Added a GPU reference kernel implementation for faster testing.
+ - Add TargetID support for new AMD GPU architectures.
+ - Implementation of four additional generic tensor reduction operations (AVG, AMAX, NORM1, NORM2).
+ - Fixed a bug where Batchnorm would give incorrect results when the product of image height and image width is not a factor of four.
+ - Various host side improvements for better find and tuning performance.
+ - Added support for AMD Code Object V4.
 
 ### 12/01/2020 [ 2.9.0 ]
 
