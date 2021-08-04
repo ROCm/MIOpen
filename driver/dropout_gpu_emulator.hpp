@@ -48,10 +48,10 @@
 
 float uniform_distribution_emu(size_t v) { return ROCRAND_2POW32_INV + (v * ROCRAND_2POW32_INV); }
 
-void xorwow_skipahead_emu(unsigned long long skp,
-                          prngStates* state,
-                          const unsigned int skipahead_mat[XORWOW_PRECALC_MATRICES_NUM]
-                                                          [XORWOW_PRECALC_MATRICES_SZ])
+void xorwow_skipahead_emu(
+    unsigned long long skp,
+    prngStates* state,
+    const unsigned int skipahead_mat[XORWOW_PRECALC_MATRICES_NUM][XORWOW_PRECALC_MATRICES_SZ])
 {
     unsigned int xor_vec[XORWOW_DIM];
     unsigned int* p = &(state->x);
@@ -60,10 +60,9 @@ void xorwow_skipahead_emu(unsigned long long skp,
     unsigned int mat_idx = 0;
     while(bool(skp)
 #if(XORWOW_PRECALC_MATRICES_NUM * XORWOW_JUMP_LOG2) < 64
-          &&
-          mat_idx < XORWOW_PRECALC_MATRICES_NUM
+          && mat_idx < XORWOW_PRECALC_MATRICES_NUM
 #endif
-          )
+    )
     {
         for(unsigned int i = 0; i < static_cast<unsigned int>(skp & XORWOW_JUMP_LOG2_MASK); i++)
         {

@@ -127,7 +127,7 @@ PoolingDescriptor::GetForwardOutputDim(const TensorDescriptor& xDesc) const
     std::tie(stride_h, stride_w) = miopen::tien<2>(GetStrides());
     std::tie(pad_h, pad_w)       = miopen::tien<2>(GetPads());
     std::tie(window_h, window_w) = miopen::tien<2>(GetLengths());
-    miopenPaddingMode_t _pMode = GetPaddingMode();
+    miopenPaddingMode_t _pMode   = GetPaddingMode();
 
     assert(stride_h > 0);
     assert(stride_w > 0);

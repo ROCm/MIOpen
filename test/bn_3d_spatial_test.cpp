@@ -462,7 +462,7 @@ struct verify_forward_infer_3d_bn_spatial_recalc
                                           didx,
                                           row,
                                           column); // using saved values from output tensor
-                            inhat = elemStd * invVar;
+                            inhat   = elemStd * invVar;
                             // #5 Gamma and Beta adjust // y_i = gamma*x_hat + beta
                             out(bidx, cidx, didx, row, column) =
                                 scale(0, cidx, 0, 0, 0) * inhat + shift(0, cidx, 0, 0, 0);
@@ -1360,8 +1360,8 @@ struct batch_norm_3d_spatial_driver : test_driver
 
         auto debugvals = verify(verify_backward_3d_bn_spatial_use_saved<T>{
             input, dy_input, scale, savedMean, savedInvVar});
-        auto gpuout = std::get<0>(debugvals.second);
-        auto cpuout = std::get<0>(debugvals.first);
+        auto gpuout    = std::get<0>(debugvals.second);
+        auto cpuout    = std::get<0>(debugvals.first);
 
         double maxdiff = 0.;
         int mn         = 0;

@@ -88,7 +88,7 @@ bool GemmFwdBase::IsApplicable(const ExecutionContext&,
            !(IsAnyBufferBF16(xDesc, yDesc, wDesc) && !IsBf16Supported) &&
            !(IsAnyBufferFp16(xDesc, yDesc, wDesc) && !IsFp16Supported);
 #else
-    std::ignore                             = problem;
+    std::ignore = problem;
     return false;
 #endif
 };
@@ -123,7 +123,7 @@ float GemmFwdBase::GetWti(const ExecutionContext&, const conv::ProblemDescriptio
     int n_Im2ColGPU              = 0;
 
     std::size_t in_n, in_c;
-    std::tie(in_n, in_c) = tie_pick<0, 1>()(xDesc.GetLengths());
+    std::tie(in_n, in_c)    = tie_pick<0, 1>()(xDesc.GetLengths());
     std::size_t spatial_dim = conv.GetSpatialDimension();
     auto wei_spatial        = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
 
@@ -136,8 +136,8 @@ float GemmFwdBase::GetWti(const ExecutionContext&, const conv::ProblemDescriptio
         n_transpose_NCHW2CNHW = 1;
         if(wDesc.GetType() == miopenInt8)
             n_transpose_packed_MN2NM = 1;
-        n_gemm_strided_batched       = conv.group_count;
-        n_transpose_CNHW2NCHW        = 1;
+        n_gemm_strided_batched = conv.group_count;
+        n_transpose_CNHW2NCHW  = 1;
         if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
            yDesc.GetType() != miopenInt32)
             n_CastTensor = 1;
@@ -167,8 +167,8 @@ float GemmFwdBase::GetWti(const ExecutionContext&, const conv::ProblemDescriptio
         n_Im2ColGPU = in_n;
         if(wDesc.GetType() == miopenInt8)
             n_transpose_packed_MN2NM = in_n;
-        n_gemm_strided_batched       = conv.group_count;
-        n_gemm_runs                  = in_n;
+        n_gemm_strided_batched = conv.group_count;
+        n_gemm_runs            = in_n;
         if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
            yDesc.GetType() != miopenInt32)
             n_CastTensor = 1;
@@ -464,10 +464,11 @@ size_t GemmFwd1x1_0_1_int8::GetWorkspaceSize(const ExecutionContext& context,
     const auto out_spatial = boost::adaptors::slice(yDesc.GetLengths(), 2, 2 + spatial_dim);
     const auto wei_c       = wDesc.GetLengths()[1];
 
-    const auto ws_size = wei_c * std::accumulate(wei_spatial.begin(),
-                                                 wei_spatial.end(),
-                                                 std::size_t(1),
-                                                 std::multiplies<std::size_t>()) *
+    const auto ws_size = wei_c *
+                         std::accumulate(wei_spatial.begin(),
+                                         wei_spatial.end(),
+                                         std::size_t(1),
+                                         std::multiplies<std::size_t>()) *
                          std::accumulate(out_spatial.begin(),
                                          out_spatial.end(),
                                          std::size_t(1),
@@ -867,10 +868,11 @@ size_t GemmFwdRest::GetWorkspaceSize(const ExecutionContext& context,
     const auto out_spatial = boost::adaptors::slice(yDesc.GetLengths(), 2, 2 + spatial_dim);
     const auto wei_c       = wDesc.GetLengths()[1];
 
-    const auto workspace_size = wei_c * std::accumulate(wei_spatial.begin(),
-                                                        wei_spatial.end(),
-                                                        std::size_t(1),
-                                                        std::multiplies<std::size_t>()) *
+    const auto workspace_size = wei_c *
+                                std::accumulate(wei_spatial.begin(),
+                                                wei_spatial.end(),
+                                                std::size_t(1),
+                                                std::multiplies<std::size_t>()) *
                                 std::accumulate(out_spatial.begin(),
                                                 out_spatial.end(),
                                                 std::size_t(1),
