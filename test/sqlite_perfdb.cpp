@@ -379,7 +379,7 @@ class DbFindTest : public DbTest
             // clang-formagt off
             "INSERT OR IGNORE INTO perf_db(config, solver, params) "
             "VALUES( " +
-            id + ", '" + id0() + "', '" + ss.str() + ");");
+            id + ", '" + id0() + "', '" + ss.str() + "');");
         // clang-fromat on
 
         auto sol_res = db_inst.FindRecord(p);
