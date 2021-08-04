@@ -410,8 +410,8 @@ struct JoinIterator : public SequenceIteratorBase<typename TFirst::ValueType>
         }
 
         private:
-        TCur cur   = {};
-        TNext next = {};
+        TCur cur                    = {};
+        TNext next                  = {};
         Next<TNext, TRest_...> rest = {};
     };
 
@@ -496,7 +496,7 @@ struct Join
         return true;
     }
 
-    TFirst first = {};
+    TFirst first                 = {};
     Find<TFirst, TRest...> find_ = {};
 };
 

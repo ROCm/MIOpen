@@ -531,8 +531,7 @@ struct pooling_driver : test_driver
         int spt_dim  = in_shape.size() - 2;
         switch(idx_typ)
         {
-        case miopenIndexUint8:
-        {
+        case miopenIndexUint8: {
             // index size too small for 3D image
             if(spt_dim == 3 || (spt_dim == 2 && wsidx == 1))
             {
@@ -540,8 +539,7 @@ struct pooling_driver : test_driver
             }
             break;
         }
-        case miopenIndexUint16:
-        {
+        case miopenIndexUint16: {
             // index size too small for 3D image
             if(spt_dim == 3 || (spt_dim == 2 && wsidx == 1))
             {
@@ -557,8 +555,7 @@ struct pooling_driver : test_driver
             ++num_uint16_case;
             break;
         }
-        case miopenIndexUint32:
-        {
+        case miopenIndexUint32: {
             // test_pooling_test --all only test 5 uint32 cases
             if(wsidx == 0)
             {
@@ -578,8 +575,7 @@ struct pooling_driver : test_driver
             idx_sz = sizeof(uint32_t);
             break;
         }
-        case miopenIndexUint64:
-        {
+        case miopenIndexUint64: {
             if(wsidx == 0)
             {
                 if(num_uint64_case > 5 || spt_dim == 3)
@@ -694,8 +690,7 @@ struct pooling_driver : test_driver
         {
             switch(filter.GetIndexType())
             {
-            case miopenIndexUint8:
-            {
+            case miopenIndexUint8: {
                 if(spt_dim == 3)
                 {
                     run_impl<uint8_t, 3>();
@@ -706,8 +701,7 @@ struct pooling_driver : test_driver
                 }
                 break;
             }
-            case miopenIndexUint16:
-            {
+            case miopenIndexUint16: {
                 if(spt_dim == 3)
                 {
                     run_impl<uint16_t, 3>();
@@ -718,8 +712,7 @@ struct pooling_driver : test_driver
                 }
                 break;
             }
-            case miopenIndexUint32:
-            {
+            case miopenIndexUint32: {
                 if(spt_dim == 3)
                 {
                     run_impl<uint32_t, 3>();
@@ -730,8 +723,7 @@ struct pooling_driver : test_driver
                 }
                 break;
             }
-            case miopenIndexUint64:
-            {
+            case miopenIndexUint64: {
                 if(spt_dim == 3)
                 {
                     run_impl<uint64_t, 3>();

@@ -245,7 +245,8 @@ class DbTest
     static const std::array<std::pair<std::string, SolverData>, 2>& common_data()
     {
         static const std::array<std::pair<std::string, SolverData>, 2> data{{
-            {id1(), value1()}, {id0(), value0()},
+            {id1(), value1()},
+            {id0(), value0()},
         }};
 
         return data;
@@ -345,7 +346,7 @@ class SchemaTest : public DbTest
                 "WHERE type='table' "
                 "AND name = 'config';"
             // clang-format on
-            );
+        );
         EXPECT(res.size() == 1);
         res = db_inst.sql.Exec(
             // clang-format off
@@ -354,7 +355,7 @@ class SchemaTest : public DbTest
                 "WHERE type='table' "
                 "AND name = 'perf_db';"
             // clang-format on
-            );
+        );
         EXPECT(res.size() == 1);
         // TODO: check for indices
     }
@@ -491,7 +492,9 @@ class DbParallelTest : public DbTest
         }
 
         const std::array<std::pair<std::string, SolverData>, 3> data{{
-            {id0(), value0()}, {id1(), value1()}, {id2(), value2()},
+            {id0(), value0()},
+            {id1(), value1()},
+            {id2(), value2()},
         }};
         EXPECT(db.Update(p, id1(), value1()));
         EXPECT(db.Update(p, id2(), value2()));
@@ -711,7 +714,7 @@ class DBMultiThreadedTestWork
         // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
         static std::vector<SolverData> data(common_part_size, SolverData::NoInit{});
 
-        for(auto i  = 0u; i < common_part_size; i++)
+        for(auto i = 0u; i < common_part_size; i++)
             data[i] = SolverData::Seeded<common_part_seed>();
 
         return data;
@@ -995,7 +998,8 @@ class DbMultiFileReadTest : public DbMultiFileTest
         RawWrite(user_db_path, key(), single_item_data());
 
         static const std::array<std::pair<std::string, SolverData>, 2> merged_data{{
-            {id1(), value1()}, {id0(), value2()},
+            {id1(), value1()},
+            {id0(), value2()},
         }};
 
         MultiFileDb<SQLitePerfDb, SQLitePerfDb, merge_records> db(
