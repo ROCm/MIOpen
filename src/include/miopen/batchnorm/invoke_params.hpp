@@ -36,14 +36,14 @@ struct InvokeParams : public miopen::InvokeParams
 {
     InvokeParams() = default;
 
-    ConstData_t x       = nullptr;
-    Data_t y            = nullptr;
-    ConstData_t bnScale = nullptr;
-    ConstData_t bnBias  = nullptr;
-    double expAvgFactor;
+    ConstData_t x                = nullptr;
+    Data_t y                     = nullptr;
+    ConstData_t bnScale          = nullptr;
+    ConstData_t bnBias           = nullptr;
+    double expAvgFactor          = 0;
     Data_t resultRunningMean     = nullptr;
     Data_t resultRunningVariance = nullptr;
-    double epsilon;
+    double epsilon               = 0;
     Data_t resultSaveMean        = nullptr;
     Data_t resultSaveInvVariance = nullptr;
 };

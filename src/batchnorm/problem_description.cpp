@@ -55,9 +55,6 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     size_t xgridsize = c * xlocalsize;
     size_t ygridsize = 1;
 
-    std::vector<size_t> vld;
-    std::vector<size_t> vgd;
-
     bool bfpmixparm = false;
     bool bfp16parm  = false;
     bool bfp32parm  = true;
@@ -74,10 +71,9 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
 
     if(bn_mode == miopenBNSpatial)
     {
-        bool single           = true;
-        int variant           = 1;
-        unsigned int ldsgcn   = xlocalsize / 64;
-        std::string algo_name = "miopenBatchNormForwardTrainingSpatial";
+        bool single         = true;
+        int variant         = 1;
+        unsigned int ldsgcn = xlocalsize / 64;
 
 #if(WORKAROUND_SWDEV_253606 == 0)
         if(n < 3)
