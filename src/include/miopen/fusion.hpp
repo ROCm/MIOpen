@@ -73,10 +73,10 @@ struct FusionOpDescriptor : miopenFusionOpDescriptor
                                            FusionKernelSourceType source,
                                            const std::vector<solver::AnySolver>& solvers);
     friend std::ostream& operator<<(std::ostream& stream, const FusionOpDescriptor& x);
-    virtual miopenFusionOp_t kind() const = 0;
+    virtual miopenFusionOp_t kind() const                                    = 0;
     virtual std::vector<std::pair<std::string, OpKernelArg>> GetArgs() const = 0;
-    virtual std::string GetArgKey(const std::string& k) const = 0;
-    virtual OpKernelArg GetOpAttr(const std::string& k) const = 0;
+    virtual std::string GetArgKey(const std::string& k) const                = 0;
+    virtual OpKernelArg GetOpAttr(const std::string& k) const                = 0;
     virtual bool GetOpAttr(const std::string& /*sym*/, int& /*val*/) const { return false; };
     virtual std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name);
     virtual std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name);

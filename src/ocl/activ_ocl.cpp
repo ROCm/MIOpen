@@ -153,7 +153,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
     const auto slns    = solvers.SearchForSolutions(ctx, problem, 1);
 
     if(slns.empty())
-       MIOPEN_THROW(miopenStatusNotImplemented, "No solver found for activation forward.");
+        MIOPEN_THROW(miopenStatusNotImplemented, "No solver found for activation forward.");
 
     const auto& sln = slns.front();
     if(!sln.invoker_factory)
