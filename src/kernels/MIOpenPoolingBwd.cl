@@ -308,16 +308,14 @@ mloPoolingMaxBwd(const __global _FLOAT* top_df,
             // find and sum up all tops that have been influenced by particular bot
             res[k][l] = 0;
 
-            for(int th = tt_y;
-                th <
-                tt_y + (MLO_POOLING_KERNEL_SZ1 + MLO_POOLING_STRIDE1 - 1) / MLO_POOLING_STRIDE1;
+            for(int th = tt_y; th < tt_y + (MLO_POOLING_KERNEL_SZ1 + MLO_POOLING_STRIDE1 - 1) /
+                                               MLO_POOLING_STRIDE1;
                 ++th)
             {
                 __attribute__((opencl_unroll_hint(2))) for(int tw = lt_x;
-                                                           tw < lt_x +
-                                                                    (MLO_POOLING_KERNEL_SZ0 +
-                                                                     MLO_POOLING_STRIDE0 - 1) /
-                                                                        MLO_POOLING_STRIDE0;
+                                                           tw < lt_x + (MLO_POOLING_KERNEL_SZ0 +
+                                                                        MLO_POOLING_STRIDE0 - 1) /
+                                                                           MLO_POOLING_STRIDE0;
                                                            ++tw)
                 {
                     int lcl_th = th - top_y;

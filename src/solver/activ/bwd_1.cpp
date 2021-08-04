@@ -92,13 +92,13 @@ ConvSolution ActivBwdSolver1::GetSolution(const ExecutionContext&,
         case 2:
             std::tie(hdOut, wdOut)             = tien<2>(dyDesc.GetLengths());
             std::tie(hdOutStride, wdOutStride) = tien<2>(dyDesc.GetStrides());
-            ndOutStride = hdOut * hdOutStride;
-            cdOutStride = hdOut * hdOutStride;
+            ndOutStride                        = hdOut * hdOutStride;
+            cdOutStride                        = hdOut * hdOutStride;
             break;
         case 3:
             std::tie(cdOut, hdOut, wdOut)                   = tien<3>(dyDesc.GetLengths());
             std::tie(cdOutStride, hdOutStride, wdOutStride) = tien<3>(dyDesc.GetStrides());
-            ndOutStride = cdOut * cdOutStride;
+            ndOutStride                                     = cdOut * cdOutStride;
             break;
         default: assert(false);
         }
@@ -137,13 +137,13 @@ ConvSolution ActivBwdSolver1::GetSolution(const ExecutionContext&,
         case 2:
             std::tie(hOut, wOut)             = tien<2>(yDesc.GetLengths());
             std::tie(hOutStride, wOutStride) = tien<2>(yDesc.GetStrides());
-            nOutStride = hOut * hOutStride;
-            cOutStride = hOut * hOutStride;
+            nOutStride                       = hOut * hOutStride;
+            cOutStride                       = hOut * hOutStride;
             break;
         case 3:
             std::tie(cOut, hOut, wOut)                   = tien<3>(yDesc.GetLengths());
             std::tie(cOutStride, hOutStride, wOutStride) = tien<3>(yDesc.GetStrides());
-            nOutStride = cOut * cOutStride;
+            nOutStride                                   = cOut * cOutStride;
             break;
         default: assert(false);
         }
@@ -183,13 +183,13 @@ ConvSolution ActivBwdSolver1::GetSolution(const ExecutionContext&,
         case 2:
             std::tie(hdIn, wdIn)             = tien<2>(dxDesc.GetLengths());
             std::tie(hdInStride, wdInStride) = tien<2>(dxDesc.GetStrides());
-            ndInStride = hdIn * hdInStride;
-            cdInStride = hdIn * hdInStride;
+            ndInStride                       = hdIn * hdInStride;
+            cdInStride                       = hdIn * hdInStride;
             break;
         case 3:
             std::tie(cdIn, hdIn, wdIn)                   = tien<3>(dxDesc.GetLengths());
             std::tie(cdInStride, hdInStride, wdInStride) = tien<3>(dxDesc.GetStrides());
-            ndInStride = cdIn * cdInStride;
+            ndInStride                                   = cdIn * cdInStride;
             break;
         default: assert(false);
         }
@@ -229,13 +229,13 @@ ConvSolution ActivBwdSolver1::GetSolution(const ExecutionContext&,
         case 2:
             std::tie(hIn, wIn)             = tien<2>(xDesc.GetLengths());
             std::tie(hInStride, wInStride) = tien<2>(xDesc.GetStrides());
-            nInStride = hIn * hInStride;
-            cInStride = hIn * hInStride;
+            nInStride                      = hIn * hInStride;
+            cInStride                      = hIn * hInStride;
             break;
         case 3:
             std::tie(cIn, hIn, wIn)                   = tien<3>(xDesc.GetLengths());
             std::tie(cInStride, hInStride, wInStride) = tien<3>(xDesc.GetStrides());
-            nInStride = cIn * cInStride;
+            nInStride                                 = cIn * cInStride;
             break;
         default: assert(false);
         }
@@ -321,8 +321,7 @@ ConvSolution ActivBwdSolver1::GetSolution(const ExecutionContext&,
     else
     {
         MIOPEN_LOG_E("Unsupported data types configuration: "
-                     << miopen::GetDataTypeName(problem.GetXDesc().GetType())
-                     << "x"
+                     << miopen::GetDataTypeName(problem.GetXDesc().GetType()) << "x"
                      << miopen::GetDataTypeName(problem.GetYDesc().GetType()));
         return {miopenStatusNotImplemented};
     }

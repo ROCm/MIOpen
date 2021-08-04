@@ -202,19 +202,17 @@ Register(IdRegistryData& registry, uint64_t value, Primitive primitive, const st
 
     if(registry.value_to_entry.find(value) != registry.value_to_entry.end())
     {
-        MIOPEN_LOG_E(
-            "Registered duplicate ids: [" << value << "]" << str << " and ["
-                                          << registry.value_to_entry.find(value)->first
-                                          << "]"
-                                          << registry.value_to_entry.find(value)->second.str_value);
+        MIOPEN_LOG_E("Registered duplicate ids: ["
+                     << value << "]" << str << " and ["
+                     << registry.value_to_entry.find(value)->first << "]"
+                     << registry.value_to_entry.find(value)->second.str_value);
         return false;
     }
 
     if(registry.str_to_value.find(str) != registry.str_to_value.end())
     {
         MIOPEN_LOG_E("Registered duplicate ids: [" << value << "]" << str << " and ["
-                                                   << registry.str_to_value.find(str)->second
-                                                   << "]"
+                                                   << registry.str_to_value.find(str)->second << "]"
                                                    << registry.str_to_value.find(str)->first);
         return false;
     }

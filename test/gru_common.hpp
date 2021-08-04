@@ -2686,9 +2686,7 @@ struct verify_backward_data_gru
         switch(badtensor)
         {
         case(0): std::cout << "Output dx failed verification." << std::endl; break;
-        case(1):
-            std::cout << "Hidden state dhx tensor failed verification." << std::endl;
-            break;
+        case(1): std::cout << "Hidden state dhx tensor failed verification." << std::endl; break;
         // case(2): std::cout << "Reserved space tensor failed verification." << std::endl; break;
         case(2): std::cout << "Workspace space tensor failed verification." << std::endl; break;
         default: break;

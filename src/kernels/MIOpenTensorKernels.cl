@@ -302,8 +302,9 @@ __kernel void OpTensorLeadingOnesGeneric(global MIOPEN_TYPE* a,
                                       : ((bitmap & (1 << 2)) ? (lid / c_w) : ((lid / c_c) % c_h));
             o_w = (bitmap & (1 << 0))
                       ? o_w
-                      : ((bitmap & (1 << 1)) ? lid : ((bitmap & (1 << 2)) ? (lid % c_w)
-                                                                          : ((lid / c_c) / c_h)));
+                      : ((bitmap & (1 << 1))
+                             ? lid
+                             : ((bitmap & (1 << 2)) ? (lid % c_w) : ((lid / c_c) / c_h)));
             int aindex = o_n * a_nstride + o_c * a_cstride + o_h * a_hstride + o_w;
             int cindex = o_n * c_nstride + o_c * c_cstride + o_h * c_hstride + o_w;
             c_off[cindex] =

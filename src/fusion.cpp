@@ -575,7 +575,7 @@ miopenStatus_t BatchNormFwdTrainFusionOpDescriptor::SetArgs(OperatorArgs& args,
     auto epsilon_any          = OpKernelArg(static_cast<double>(epsilon));
     int n, c, h, w;
     std::tie(n, c, h, w) = tien<4>(input_desc.GetLengths());
-    auto nhw = static_cast<float>(n * h * w);
+    auto nhw             = static_cast<float>(n * h * w);
 
     auto inhw_any = static_cast<float>(1.0f / nhw);
 
@@ -667,7 +667,7 @@ OpKernelArg BatchNormBwdTrainFusionOpDescriptor::GetOpAttr(const std::string& k)
     {
         int n, h, w;
         std::tie(n, std::ignore, h, w) = tien<4>(input_desc.GetLengths());
-        auto nhw = static_cast<float>(n * h * w);
+        auto nhw                       = static_cast<float>(n * h * w);
         return OpKernelArg(static_cast<float>(1.0f / nhw));
     }
     else
@@ -1282,8 +1282,7 @@ std::vector<Exec_arg_t> FusionPlanDescriptor::CalcArgOrder(const Handle& handle)
                 arg_keys.emplace_back(
                     "reserved_output_tensor_ptr", Output_Ptr, sizeof(ConstData_t));
                 break;
-            case DevAttribute:
-            {
+            case DevAttribute: {
                 auto dev_attr = GetDevAttribute(arg.key, handle);
                 arg_keys.emplace_back(arg.key, Default, dev_attr.size(), dev_attr);
             }
@@ -1344,8 +1343,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(const Handle& handle,
         case Output_Ptr: args.emplace_back(OpKernelArg(output)); break;
         case Padding: args.emplace_back(OpKernelArg(0, arg.size)); break;
         case Scalar:
-        case Pointer:
-        {
+        case Pointer: {
             auto it = op_args.args_map.find(arg.key);
             if(it != op_args.args_map.end())
             {

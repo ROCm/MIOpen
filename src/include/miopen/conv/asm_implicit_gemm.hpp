@@ -151,10 +151,10 @@ ComputeMatrixPadSize(size_t col, size_t col_per_block, size_t row, size_t row_pe
 }
 
 static inline std::tuple<int, int, int> // m_per_block, n_per_block, k_per_block
-    HeuristicInitMacroTileNoPadGemmK(size_t gemm_m,
-                                     size_t gemm_n,
-                                     size_t gemm_k,
-                                     const std::vector<std::tuple<int, int, int>>& tile_list)
+HeuristicInitMacroTileNoPadGemmK(size_t gemm_m,
+                                 size_t gemm_n,
+                                 size_t gemm_k,
+                                 const std::vector<std::tuple<int, int, int>>& tile_list)
 {
     int m_per_block, n_per_block, k_per_block;
     bool found = false;

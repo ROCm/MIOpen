@@ -38,27 +38,6 @@ namespace solver {
 
 namespace {
 #if MIOPEN_USE_MLIR
-std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx)
-{
-    const size_t g  = ConvolutionContextInterpreter::GetGroupCountG(ctx);
-    const size_t n  = ConvolutionContextInterpreter::GetBatchN(ctx);
-    const size_t k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
-    const size_t c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
-    const size_t ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
-    const size_t wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
-    const size_t y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-    const size_t x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
-
-    const auto k_per_group = k / g;
-    const auto c_per_group = c / g;
-
-    const auto gemm_m       = c_per_group * y * x;
-    const auto gemm_n       = n * ho * wo;
-    const auto gemm_k_total = k_per_group;
-
-    return std::make_tuple(gemm_m, gemm_n, gemm_k_total);
-}
-
 std::string GetKernelName()
 {
     std::string version   = "_v4r1";
@@ -78,19 +57,6 @@ bool ConvMlirIgemmBwd::IsApplicable(const ConvolutionContext& ctx) const
     if(!ctx.direction.IsBackwardData())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
-        return false;
-
-    const auto k = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
-    if(k % GetEPackLength(ctx, false) != 0)
-        return false;
-
-    int gemm_m = 0;
-    int gemm_n = 0;
-    int gemm_k = 0;
-
-    std::tie(gemm_m, gemm_n, gemm_k) = CalculateGemmSize(ctx);
-
-    if(!(gemm_m % 32 == 0 && gemm_n % 32 == 0 && gemm_k % 4 == 0))
         return false;
 
     return MiirIsConfigApplicable(

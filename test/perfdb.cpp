@@ -177,7 +177,8 @@ class DbTest
     static const std::array<std::pair<const std::string, TestData>, 2>& common_data()
     {
         static const std::array<std::pair<const std::string, TestData>, 2> data{{
-            {id1(), value1()}, {id0(), value0()},
+            {id1(), value1()},
+            {id0(), value0()},
         }};
 
         return data;
@@ -526,7 +527,9 @@ class DbParallelTest : public DbTest
         }
 
         const std::array<std::pair<const std::string, TestData>, 3> data{{
-            {id0(), value0()}, {id1(), value1()}, {id2(), value2()},
+            {id0(), value0()},
+            {id1(), value1()},
+            {id2(), value2()},
         }};
 
         ValidateSingleEntry(key(), data, PlainTextDb(temp_file));
@@ -745,7 +748,7 @@ class DBMultiThreadedTestWork
         // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
         static std::vector<TestData> data(common_part_size, TestData{TestData::NoInit{}});
 
-        for(auto i  = 0u; i < common_part_size; i++)
+        for(auto i = 0u; i < common_part_size; i++)
             data[i] = TestData::Seeded<common_part_seed>();
 
         return data;
@@ -1032,7 +1035,8 @@ class DbMultiFileReadTest : public DbMultiFileTest
         RawWrite(user_db_path, key(), single_item_data());
 
         static const std::array<std::pair<const std::string, TestData>, 2> merged_data{{
-            {id1(), value1()}, {id0(), value2()},
+            {id1(), value1()},
+            {id0(), value2()},
         }};
 
         MultiFileDb<PlainTextDb, PlainTextDb, merge_records> db(temp_file, user_db_path);

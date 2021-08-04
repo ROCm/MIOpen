@@ -61,8 +61,8 @@ const std::vector<Kernel>& KernelCache::GetKernels(const std::string& algorithm,
     const auto it = kernel_map.find(key);
     if(it != kernel_map.end())
     {
-        MIOPEN_LOG_I2(it->second.size() << " kernels for key: " << key.first << " \"" << key.second
-                                        << '\"');
+        MIOPEN_LOG_I2(it->second.size()
+                      << " kernels for key: " << key.first << " \"" << key.second << '\"');
         return it->second;
     }
 
@@ -167,7 +167,7 @@ void KernelCache::ClearKernels(const std::string& algorithm, const std::string& 
         MIOPEN_THROW("Network config or algorithm empty.");
     }
     const std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
-    auto&& v = this->kernel_map[key];
+    auto&& v                                      = this->kernel_map[key];
     if(!v.empty())
     {
         MIOPEN_LOG_I2(v.size() << " kernels for key: " << key.first << " \"" << key.second << '\"');

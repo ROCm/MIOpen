@@ -139,7 +139,7 @@ GetConsistentFlattenedTensorDescriptors(const TDescriptors&... real_descriptor_p
         },
         NTensorConstant);
 
-    for(std::size_t itensor            = 1; itensor < NTensor; ++itensor)
+    for(std::size_t itensor = 1; itensor < NTensor; ++itensor)
         array_of_flat_lengths[itensor] = array_of_flat_lengths[0];
 
     return create_tuple<NTensor>([&](auto itensor) {

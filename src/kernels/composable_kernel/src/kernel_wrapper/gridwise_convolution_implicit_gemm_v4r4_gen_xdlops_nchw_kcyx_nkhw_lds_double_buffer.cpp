@@ -83,9 +83,9 @@ extern "C" __global__
     constexpr auto wei_kcyx_desc = make_native_tensor_descriptor_packed(Sequence<K, C, Y, X>{});
     constexpr auto out_nkhw_desc = make_native_tensor_descriptor_packed(Sequence<N, K, Ho, Wo>{});
 
-    constexpr auto dir  = ImplicitGemmDirection::ForwardData;
-    using ConvStrides   = Sequence<ConvStrideH, ConvStrideW>;
-    using ConvDilations = Sequence<ConvDilationH, ConvDilationW>;
+    constexpr auto dir          = ImplicitGemmDirection::ForwardData;
+    using ConvStrides           = Sequence<ConvStrideH, ConvStrideW>;
+    using ConvDilations         = Sequence<ConvDilationH, ConvDilationW>;
 #endif // CK_PARAM_PROBLEM_DIRECTION == 2
 
     constexpr index_t GemmBBlockCopyClusterLengths_GemmK =
