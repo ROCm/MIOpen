@@ -101,13 +101,22 @@ int main(int argc, char* argv[], char* envp[])
 
     // The JSON is a list of commands, so we iterate over the list and then
     // process each map
-    std::ifstream i(input_filename.string());
+    std::ifstream input_file(input_filename.string());
+    if(!input_file)
+    {
+
+        throw std::runtime_error("Error loading json file: " + input_filename.string());
+    }
     // TODO: fix the output writing so that interim results are not lost if one of
     // the iterations crash
-    std::ofstream o(output_filename.string());
+    std::ofstream output_file(output_filename.string());
+    if(!output_file)
+    {
+        throw std::runtime_error("Error opening json file: " + output_filename.string());
+    }
     json j; //  = json::parse(cmd);
-    i >> j;
-    i.close();
+    input_file >> j;
+    input_file.close();
     json final_output;
     // Get the process env
     std::vector<std::string> jenv;
@@ -120,22 +129,22 @@ int main(int argc, char* argv[], char* envp[])
     // process through the jobs
     for(auto& it : j)
     {
-        auto command = it;
-        fin::Fin* f  = nullptr;
+        auto command                = it;
+        std::unique_ptr<fin::Fin> f = nullptr;
         // TODO : Move this to a factory function
         if(command.contains("config"))
         {
             if(command["config"]["cmd"] == "conv")
             {
-                f = new fin::ConvFin<float, float>(command);
+                f = std::make_unique<fin::ConvFin<float, float>>(command);
             }
             else if(command["config"]["cmd"] == "convfp16")
             {
-                f = new fin::ConvFin<float16, float>(command);
+                f = std::make_unique<fin::ConvFin<float16, float>>(command);
             }
             else if(command["config"]["cmd"] == "convbfp16")
             {
-                f = new fin::ConvFin<bfloat16, float>(command);
+                f = std::make_unique<fin::ConvFin<bfloat16, float>>(command);
             }
             else
             {
@@ -145,7 +154,7 @@ int main(int argc, char* argv[], char* envp[])
         }
         else
         {
-            f = new fin::ConvFin<float, float>();
+            f = std::make_unique<fin::ConvFin<float, float>>();
         }
 
         for(auto& step_it : command["steps"])
@@ -159,8 +168,8 @@ int main(int argc, char* argv[], char* envp[])
         f->output["input"]          = command;
         final_output.push_back(f->output);
     }
-    o << std::setw(4) << final_output << std::endl;
-    o.flush();
-    o.close();
+    output_file << std::setw(4) << final_output << std::endl;
+    output_file.flush();
+    output_file.close();
     return 0;
 }
