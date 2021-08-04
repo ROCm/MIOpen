@@ -164,6 +164,6 @@ struct less
 };
 
 } // namespace math
-} // namspace ck
+} // namespace ck
 
 #endif

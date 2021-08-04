@@ -48,19 +48,19 @@ namespace miopen {
 namespace solver {
 
 /*
-* select default configuration if a known configuration has not been found.
-*/
+ * select default configuration if a known configuration has not been found.
+ */
 LegacyPerformanceConfig
 ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig(const ConvolutionContext& params) const
 {
     //
     LegacyPerformanceConfig result{};
-    result.in_tile0 = (params.in_width <= 8) ? 8 : (params.in_width <= 16)
-                                                       ? 16
-                                                       : 32; // size of input data per ALU plane
-    result.in_tile1 = (params.in_height <= 8) ? 8 : (params.in_height <= 16)
-                                                        ? 16
-                                                        : 32; // size of input data per ALU plane
+    result.in_tile0 = (params.in_width <= 8)
+                          ? 8
+                          : (params.in_width <= 16) ? 16 : 32; // size of input data per ALU plane
+    result.in_tile1 = (params.in_height <= 8)
+                          ? 8
+                          : (params.in_height <= 16) ? 16 : 32; // size of input data per ALU plane
 
     result.out_pix_tile0 =
         std::max(params.kernel_stride_w,
@@ -126,8 +126,8 @@ ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig(const ConvolutionCo
 }
 
 /*
-* Measure the current configuration performance.
-*/
+ * Measure the current configuration performance.
+ */
 template <typename Tgpu, class... Solvers>
 static int MeasurePerfConfig(const Handle& handle,
                              ConstData_t bot_ocl_buf,
@@ -468,38 +468,25 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
                         }
 
                         is_passed = true;
-                        MIOPEN_LOG_T("##(n_current, n_failed, n_runs_total): " << run_counter
-                                                                               << " / "
-                                                                               << failed_counter
-                                                                               << " / "
-                                                                               << total_runs
-                                                                               << " elapsed_time: "
-                                                                               << processing_time
-                                                                               << " best_time: "
-                                                                               << processing_time
-                                                                               << ", "
-                                                                               << result);
+                        MIOPEN_LOG_T("##(n_current, n_failed, n_runs_total): "
+                                     << run_counter << " / " << failed_counter << " / "
+                                     << total_runs << " elapsed_time: " << processing_time
+                                     << " best_time: " << processing_time << ", " << result);
 
                         if(processing_time < min_proc_time)
                         {
                             MIOPEN_LOG_I('#' << run_counter << ' ' << processing_time << " < "
-                                             << min_proc_time
-                                             << ' '
-                                             << result);
+                                             << min_proc_time << ' ' << result);
                             min_proc_time = processing_time;
                             candidate     = result;
                         }
 
                         if(run_counter % report_inteval == 0)
                         {
-                            MIOPEN_LOG_W("Runs left: " << runs_left << ", "
-                                                       << "min time so far: "
-                                                       << min_proc_time
-                                                       << ", "
-                                                       << "curr time: "
-                                                       << processing_time
-                                                       << ' '
-                                                       << result);
+                            MIOPEN_LOG_W("Runs left: "
+                                         << runs_left << ", "
+                                         << "min time so far: " << min_proc_time << ", "
+                                         << "curr time: " << processing_time << ' ' << result);
                         }
                         run_counter++;
                     }
@@ -624,25 +611,16 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
                                     }
 
                                     is_passed = true;
-                                    MIOPEN_LOG_T("##(n_current, n_failed, n_runs_total): "
-                                                 << run_counter
-                                                 << " / "
-                                                 << failed_counter
-                                                 << " / "
-                                                 << total_runs
-                                                 << " elapsed_time: "
-                                                 << processing_time
-                                                 << " best_time: "
-                                                 << processing_time
-                                                 << ", "
-                                                 << result);
+                                    MIOPEN_LOG_T(
+                                        "##(n_current, n_failed, n_runs_total): "
+                                        << run_counter << " / " << failed_counter << " / "
+                                        << total_runs << " elapsed_time: " << processing_time
+                                        << " best_time: " << processing_time << ", " << result);
 
                                     if(processing_time < min_proc_time)
                                     {
                                         MIOPEN_LOG_I('#' << run_counter << ' ' << processing_time
-                                                         << " < "
-                                                         << min_proc_time
-                                                         << ' '
+                                                         << " < " << min_proc_time << ' '
                                                          << result);
                                         min_proc_time = processing_time;
                                         candidate     = result;
@@ -650,14 +628,11 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
 
                                     if(run_counter % report_inteval == 0)
                                     {
-                                        MIOPEN_LOG_W("Runs left: " << runs_left << ", "
-                                                                   << "min time so far: "
-                                                                   << min_proc_time
-                                                                   << ", "
-                                                                   << "curr time: "
-                                                                   << processing_time
-                                                                   << ' '
-                                                                   << result);
+                                        MIOPEN_LOG_W("Runs left: "
+                                                     << runs_left << ", "
+                                                     << "min time so far: " << min_proc_time << ", "
+                                                     << "curr time: " << processing_time << ' '
+                                                     << result);
                                     }
                                     run_counter++;
                                 }
@@ -701,9 +676,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
         {
             is_passed = true;
             MIOPEN_LOG_W("Default run, min time so far: " << min_proc_time << ", default time: "
-                                                          << default_time
-                                                          << ' '
-                                                          << default_config);
+                                                          << default_time << ' ' << default_config);
             if(min_proc_time > default_time)
             {
                 MIOPEN_LOG_W("* * * Default time < min time, using default config * * *");

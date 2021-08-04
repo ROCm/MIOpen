@@ -68,7 +68,8 @@
 #define CBA_DEBUG_VALUES 0
 
 //"Fusion mode (cbna = 0, cna = 1, na = 2, cn = 3, cba = 4, ca = 5, cb = 6) (Default=cbna)",
-typedef enum {
+typedef enum
+{
     miopen_fusion_cbna = 0,
     miopen_fusion_cna  = 1,
     miopen_fusion_na   = 2,
@@ -540,7 +541,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::createSaveBuffers()
     cl_context ctx;
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #elif MIOPEN_BACKEND_HIP
-    int status                 = 0;
+    int status   = 0;
 #endif
 
     if(status != CL_SUCCESS)
@@ -558,8 +559,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::createRunningBuffers()
     cl_context ctx;
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #elif MIOPEN_BACKEND_HIP
-    int status                 = 0;
-    uint32_t ctx               = 0;
+    int status   = 0;
+    uint32_t ctx = 0;
 #endif
 
     if(useBatchNorm)
@@ -612,8 +613,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     cl_context ctx;
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #elif MIOPEN_BACKEND_HIP
-    int status                 = 0;
-    uint32_t ctx               = 0;
+    int status   = 0;
+    uint32_t ctx = 0;
 #endif
 
     size_t in_sz  = GetTensorSize(inputTensor);
@@ -672,8 +673,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                            // static_cast<Tgpu>(1.0))); // 1.0;
             bias[i] = 10.;
 #else
-            scale[i]           = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-            bias[i]            = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            scale[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            bias[i]  = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
 #endif
         }
         status |= scale_dev->ToGPU(q, scale.data());

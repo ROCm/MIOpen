@@ -415,8 +415,7 @@ static bool PrintVersionImpl()
     std::size_t minor = 0;
     (void)amd_comgr_get_version(&major, &minor);
     MIOPEN_LOG_NQI("COMgr v." << major << '.' << minor << '.' << MIOPEN_AMD_COMGR_VERSION_PATCH
-                              << ", USE_HIP_PCH: "
-                              << compiler::lc::hip::GetPchEnableStatus());
+                              << ", USE_HIP_PCH: " << compiler::lc::hip::GetPchEnableStatus());
     return true;
 }
 
@@ -589,8 +588,8 @@ class Dataset : ComgrOwner
         const char name[] = "hip.pch";
         const Data d(AMD_COMGR_DATA_KIND_PRECOMPILED_HEADER);
         if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES{}))
-            MIOPEN_LOG_I(
-                name << ' ' << size << " bytes,  ptr = " << static_cast<const void*>(content));
+            MIOPEN_LOG_I(name << ' ' << size
+                              << " bytes,  ptr = " << static_cast<const void*>(content));
         d.SetName(name);
         d.SetFromBuffer(content, size);
         AddData(d);

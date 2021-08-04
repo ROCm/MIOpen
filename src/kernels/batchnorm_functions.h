@@ -129,10 +129,22 @@
 #define MIO_BN_MAXN 65
 #endif
 
+// TODO: Spaghetti code!!!
+// MIOPEN_USE_AMDGCN may be defined before this header.
+#ifndef MIOPEN_USE_AMDGCN
+#if defined(__AMDGCN__) && !(defined(MIO_BN_GFX1030) && MIO_BN_GFX1030 == 1)
+#define MIOPEN_USE_AMDGCN 1
+#else
+#define MIOPEN_USE_AMDGCN 0
+#endif
+#endif
+// MIOPEN_USE_AMDGCN is guaranteed to be defined at this point.
+
 #ifndef MIO_BN_NODPP
 #define MIO_BN_NODPP 0
 #elif(MIO_BN_NODPP == 1 && MIO_BN_VARIANT != 0)
-#undef __AMDGCN__
+#undef MIOPEN_USE_AMDGCN
+#define MIOPEN_USE_AMDGCN 0
 #endif
 
 #ifndef MIO_SAVE_MEAN_VARIANCE
@@ -163,8 +175,9 @@ static inline void running_stash(global _FLOAT_PREC* resultRunningMean,
     resultRunningMean[channel] =
         (_FLOAT_PREC)mad(mean, (_FLOAT_ACCUM)expAvgFactor, pvt_newRunMean); // newMean*factor + tmp
     const _FLOAT_ACCUM adjust = (_FLOAT_ACCUM)(
-        (MIO_BN_NHW == 1) ? variance : variance * ((_FLOAT_ACCUM)MIO_BN_NHW /
-                                                   ((_FLOAT_ACCUM)MIO_BN_NHW - (_FLOAT_ACCUM)1.0)));
+        (MIO_BN_NHW == 1) ? variance
+                          : variance * ((_FLOAT_ACCUM)MIO_BN_NHW /
+                                        ((_FLOAT_ACCUM)MIO_BN_NHW - (_FLOAT_ACCUM)1.0)));
     resultRunningVariance[channel] = (_FLOAT_PREC)(
         (1 - (_FLOAT_ACCUM)expAvgFactor) * (_FLOAT_ACCUM)(*(resultRunningVariance + channel)) +
         (_FLOAT_ACCUM)expAvgFactor * adjust);

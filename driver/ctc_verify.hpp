@@ -79,7 +79,7 @@ void subvec_logsoftmax(std::vector<Tgpu>& in,
         sub_in[i] -= max_val;
 
     Tgpu sum = logsumexp(sub_in);
-    for(int i          = 0; i < length; i++)
+    for(int i = 0; i < length; i++)
         *(itr_out + i) = std::max(Tref(sub_in[i] - sum), Tref(NEGATIVE_CUTOFF_VAL));
 }
 
@@ -100,7 +100,7 @@ std::vector<T> ctc_forward_log(std::vector<T>& probs_logits,
     int label_prime_len = 2 * label.size() + 1;
     blank_lb            = blank_lb < 0 ? 0 : (blank_lb >= class_sz ? class_sz - 1 : blank_lb);
     std::vector<int> label_prime(label_prime_len, blank_lb);
-    for(int i                  = 0; i < label.size(); i++)
+    for(int i = 0; i < label.size(); i++)
         label_prime[2 * i + 1] = label[i];
 
     std::vector<T> alpha(input_length * label_prime_len, T(NEGATIVE_CUTOFF_VAL));
@@ -149,7 +149,7 @@ std::vector<T> ctc_backward_log(std::vector<T>& probs_logits,
     int label_prime_len = 2 * label.size() + 1;
     blank_lb            = blank_lb < 0 ? 0 : (blank_lb >= class_sz ? class_sz - 1 : blank_lb);
     std::vector<int> label_prime(label_prime_len, blank_lb);
-    for(int i                  = 0; i < label.size(); i++)
+    for(int i = 0; i < label.size(); i++)
         label_prime[2 * i + 1] = label[i];
 
     std::vector<T> beta(input_length * label_prime_len, T(NEGATIVE_CUTOFF_VAL));
@@ -206,7 +206,7 @@ void ctc_gradient_log(std::vector<int>& label,
     int label_prime_len = 2 * label.size() + 1;
     blank_lb            = blank_lb < 0 ? 0 : (blank_lb >= class_sz ? class_sz - 1 : blank_lb);
     std::vector<int> label_prime(label_prime_len, blank_lb);
-    for(int i                  = 0; i < label.size(); i++)
+    for(int i = 0; i < label.size(); i++)
         label_prime[2 * i + 1] = label[i];
 
     std::vector<T> alpha_log = ctc_forward_log(probs_logits,
@@ -219,7 +219,7 @@ void ctc_gradient_log(std::vector<int>& label,
                                                pstr2,
                                                batch_id,
                                                blank_lb);
-    std::vector<T> beta_log = ctc_backward_log(probs_logits,
+    std::vector<T> beta_log  = ctc_backward_log(probs_logits,
                                                label,
                                                input_length,
                                                batch_size,
@@ -281,7 +281,7 @@ void ctc_softmaxlayer_gradient_log(std::vector<int>& label,
     int label_prime_len = 2 * label.size() + 1;
     blank_lb            = blank_lb < 0 ? 0 : (blank_lb >= class_sz ? class_sz - 1 : blank_lb);
     std::vector<int> label_prime(label_prime_len, blank_lb);
-    for(int i                  = 0; i < label.size(); i++)
+    for(int i = 0; i < label.size(); i++)
         label_prime[2 * i + 1] = label[i];
 
     std::vector<T> alpha_log = ctc_forward_log(probs_logits,
@@ -294,7 +294,7 @@ void ctc_softmaxlayer_gradient_log(std::vector<int>& label,
                                                pstr2,
                                                batch_id,
                                                blank_lb);
-    std::vector<T> beta_log = ctc_backward_log(probs_logits,
+    std::vector<T> beta_log  = ctc_backward_log(probs_logits,
                                                label,
                                                input_length,
                                                batch_size,
@@ -377,7 +377,7 @@ void RunCTCLossCPUVerify(const int num_class,
     std::vector<Tref> beta_loss(batch_size, 0);
     if(verify_path == 1)
     {
-        std::vector<int> probsDesc = {max_time_step,
+        std::vector<int> probsDesc     = {max_time_step,
                                       batch_size,
                                       class_sz,
                                       int(probsStride[0]),
@@ -415,7 +415,7 @@ void RunCTCLossCPUVerify(const int num_class,
         auto probs_logits_use = is_softmax_applied ? probs_logits : probs;
 
         std::vector<int> label_offsets(batch_size, 0);
-        for(int j            = 1; j < batch_size; j++)
+        for(int j = 1; j < batch_size; j++)
             label_offsets[j] = label_offsets[j - 1] + labelLengths[j - 1];
 
         for(int j = 0; j < batch_size; j++)

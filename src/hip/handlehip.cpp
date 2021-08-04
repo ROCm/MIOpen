@@ -235,7 +235,7 @@ Handle::Handle() : impl(new HandleImpl())
     this->impl->stream = impl->create_stream();
 #else
     this->impl->device = get_device_id();
-    this->impl->ctx    = get_ctx();
+    this->impl->ctx = get_ctx();
     this->impl->stream = HandleImpl::reference_stream(nullptr);
 #endif
     this->SetAllocator(nullptr, nullptr, nullptr);
@@ -419,7 +419,7 @@ Program Handle::LoadProgram(const std::string& program_name,
                            params,
                            is_kernel_str);
 #else
-        auto path      = miopen::GetCachePath(false) / boost::filesystem::unique_path();
+        auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path();
         if(p.IsCodeObjectInMemory())
             miopen::WriteFile(p.GetCodeObjectBlob(), path);
         else

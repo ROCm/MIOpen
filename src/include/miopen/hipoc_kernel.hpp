@@ -119,8 +119,8 @@ struct KernelArgs
 
 struct HIPOCKernelInvoke
 {
-    hipStream_t stream = nullptr;
-    hipFunction_t fun  = nullptr;
+    hipStream_t stream          = nullptr;
+    hipFunction_t fun           = nullptr;
     std::array<size_t, 3> ldims = {};
     std::array<size_t, 3> gdims = {};
     std::string name;

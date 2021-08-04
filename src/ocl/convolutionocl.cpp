@@ -286,18 +286,14 @@ static void EvaluateInvokers(Handle& handle,
             {
                 MIOPEN_LOG_I("Warning: skipping solver <" << sol.solver_id
                                                           << "> due to no workspace provided ("
-                                                          << sol.workspce_sz
-                                                          << " required)");
+                                                          << sol.workspce_sz << " required)");
                 continue;
             }
             if(invoke_ctx.workSpaceSize < sol.workspce_sz)
             {
-                MIOPEN_LOG_I("Warning: skipping solver <" << sol.solver_id
-                                                          << "> due to insufficient workspace ("
-                                                          << invoke_ctx.workSpaceSize
-                                                          << " < "
-                                                          << sol.workspce_sz
-                                                          << ")");
+                MIOPEN_LOG_I("Warning: skipping solver <"
+                             << sol.solver_id << "> due to insufficient workspace ("
+                             << invoke_ctx.workSpaceSize << " < " << sol.workspce_sz << ")");
                 continue;
             }
         }
@@ -328,8 +324,8 @@ static void EvaluateInvokers(Handle& handle,
     if(selected.Succeeded())
     {
         handle.RegisterInvoker(best_invoker, network_config, selected.solver_id, algorithm_name);
-        MIOPEN_LOG_I(
-            "Selected: " << selected << ": " << best << ", workspce_sz = " << selected.workspce_sz);
+        MIOPEN_LOG_I("Selected: " << selected << ": " << best
+                                  << ", workspce_sz = " << selected.workspce_sz);
         record.SetValues(algorithm_name,
                          FindDbData{selected.solver_id,
                                     best,
@@ -538,8 +534,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     }
 
     MIOPEN_LOG_I("FW Chosen Algorithm: " << perf_db[0].solver_id << " , " << perf_db[0].workspace
-                                         << ", "
-                                         << perf_db[0].time);
+                                         << ", " << perf_db[0].time);
 }
 
 void ValidateConvTensors(const ConvTensors& tensors)
@@ -796,10 +791,8 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
     MIOPEN_LOG_I2("maxSolutionCount = " << maxSolutionCount << ", available = " << interim.size());
     for(const auto& s : interim)
         MIOPEN_LOG_I2("id: " << s.solution_id << " algo: " << s.algorithm << ", time: " << s.time
-                             << " ms, ws: "
-                             << s.workspace_size
-                             << ", name: "
-                             << miopen::solver::Id(s.solution_id).ToString());
+                             << " ms, ws: " << s.workspace_size
+                             << ", name: " << miopen::solver::Id(s.solution_id).ToString());
     // Dual purpose variable:
     // * Used as index for writing into output array (solutions).
     // * Counts the number of entries written, yielding value for solutionsCount.
@@ -1231,8 +1224,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     }
 
     MIOPEN_LOG_I("BWD Chosen Algorithm: " << perf_db[0].solver_id << " , " << perf_db[0].workspace
-                                          << ", "
-                                          << perf_db[0].time);
+                                          << ", " << perf_db[0].time);
 }
 static void ConvBwdCheckNumerics(const Handle& handle,
                                  const ConvBwdTensors& tensors,
@@ -1575,8 +1567,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         perfResults[i].memory           = perf_db[i].workspace;
     }
     MIOPEN_LOG_I("BWrW Chosen Algorithm: " << perf_db[0].solver_id << " , " << perf_db[0].workspace
-                                           << ", "
-                                           << perf_db[0].time);
+                                           << ", " << perf_db[0].time);
 }
 
 static void ConvWrwCheckNumerics(const Handle& handle,
@@ -1797,9 +1788,9 @@ void ConvolutionBackwardBias(const Handle& handle,
     std::size_t out_n, out_k, stride_n, stride_k;
     std::tie(out_n, out_k)       = tie_pick<0, 1>()(dyDesc.GetLengths());
     std::tie(stride_n, stride_k) = tie_pick<0, 1>()(dyDesc.GetStrides());
-    std::string algo_name    = "miopenConvolutionBwdBias";
-    std::string program_name = "MIOpenConvBwdBias.cl";
-    std::string kernel_name  = "MIOpenConvBwdB";
+    std::string algo_name        = "miopenConvolutionBwdBias";
+    std::string program_name     = "MIOpenConvBwdBias.cl";
+    std::string kernel_name      = "MIOpenConvBwdB";
     std::string network_config =
         "convbwdbias-" +
         std::string(dyDesc.GetType() == miopenFloat
@@ -1813,7 +1804,7 @@ void ConvolutionBackwardBias(const Handle& handle,
     std::size_t lcl_grp_size1 = 1;
     std::size_t local_mem_sz  = 256;
 
-    std::size_t map_size = std::accumulate(dyDesc.GetLengths().begin() + 2,
+    std::size_t map_size         = std::accumulate(dyDesc.GetLengths().begin() + 2,
                                            dyDesc.GetLengths().end(),
                                            std::size_t(1),
                                            std::multiplies<std::size_t>());

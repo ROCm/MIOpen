@@ -140,10 +140,10 @@ static GemmBackend_t enforce_gemm_backend(miopenDataType_t data_type,
     // enforce backend based on env variable
     switch(Value(MIOPEN_GEMM_ENFORCE_BACKEND{}))
     {
-    case 1: gemm_backend_env  = GemmBackend_t::rocblas; break;
-    case 2: gemm_backend_env  = GemmBackend_t::miopengemm; break;
-    case 3: gemm_backend_env  = GemmBackend_t::nogemmbackend; break;
-    case 4: gemm_backend_env  = GemmBackend_t::miopentensile; break;
+    case 1: gemm_backend_env = GemmBackend_t::rocblas; break;
+    case 2: gemm_backend_env = GemmBackend_t::miopengemm; break;
+    case 3: gemm_backend_env = GemmBackend_t::nogemmbackend; break;
+    case 4: gemm_backend_env = GemmBackend_t::miopentensile; break;
     default: gemm_backend_env = gemm_backend_preferred;
     }
 
@@ -210,8 +210,7 @@ miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
 {
     switch(call_gemm_type)
     {
-    case callGemm:
-    {
+    case callGemm: {
         if(time_precision)
         {
             // rocBLAS need a warm-up call for accurate timing
@@ -222,8 +221,7 @@ miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
         return CallGemm(
             handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, kcache_key, gemm_backend);
     }
-    case callGemmStridedBatched:
-    {
+    case callGemmStridedBatched: {
         if(time_precision)
         {
             // rocBLAS need extra warm-up call for accurate timing
@@ -234,8 +232,7 @@ miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
         return CallGemmStridedBatched(
             handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, kcache_key, gemm_backend);
     }
-    case callGemmStridedBatchedSequential:
-    {
+    case callGemmStridedBatchedSequential: {
         if(time_precision)
         {
             // rocBLAS need a warm-up call for accurate timing
@@ -420,8 +417,7 @@ miopenStatus_t CallGemm(const Handle& handle,
         switch(gemm_desc.dataType)
         {
         case miopenInt8x4:
-        case miopenInt8:
-        {
+        case miopenInt8: {
             assert(gemm_desc.k % 4 == 0);
 
             auto alpha = int(gemm_desc.alpha);
@@ -456,12 +452,11 @@ miopenStatus_t CallGemm(const Handle& handle,
 #else
                 0
 #endif
-                );
+            );
         }
         break;
         case miopenInt32: break;
-        case miopenHalf:
-        {
+        case miopenHalf: {
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -493,8 +488,7 @@ miopenStatus_t CallGemm(const Handle& handle,
         }
         break;
 
-        case miopenBFloat16:
-        {
+        case miopenBFloat16: {
 
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
@@ -527,8 +521,7 @@ miopenStatus_t CallGemm(const Handle& handle,
         }
         break;
 
-        case miopenFloat:
-        {
+        case miopenFloat: {
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -560,8 +553,7 @@ miopenStatus_t CallGemm(const Handle& handle,
         }
         break;
 
-        case miopenDouble:
-        {
+        case miopenDouble: {
             MIOPEN_THROW(miopenStatusBadParm,
                          "miopenDouble data type not supported by MIOpenGEMM.");
         };
@@ -725,8 +717,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
         switch(gemm_desc.dataType)
         {
         case miopenInt8x4:
-        case miopenInt8:
-        {
+        case miopenInt8: {
             assert(gemm_desc.k % 4 == 0);
 
             auto alpha = int(gemm_desc.alpha);
@@ -766,12 +757,11 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
 #else
                 0
 #endif
-                );
+            );
         }
         break;
         case miopenInt32: break;
-        case miopenHalf:
-        {
+        case miopenHalf: {
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -808,8 +798,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
         }
         break;
 
-        case miopenBFloat16:
-        {
+        case miopenBFloat16: {
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -846,8 +835,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
         }
         break;
 
-        case miopenFloat:
-        {
+        case miopenFloat: {
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -884,8 +872,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
         }
         break;
 
-        case miopenDouble:
-        {
+        case miopenDouble: {
             MIOPEN_THROW(miopenStatusBadParm,
                          "miopenDouble data type not supported by MIOpenGEMM.");
         }
@@ -976,8 +963,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
         switch(gemm_desc.dataType)
         {
         case miopenInt8x4:
-        case miopenInt8:
-        {
+        case miopenInt8: {
             assert(gemm_desc.k % 4 == 0);
 
             auto alpha = int(gemm_desc.alpha);
@@ -1014,13 +1000,12 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
 #else
                     0
 #endif
-                    );
+                );
             }
         }
         break;
         case miopenInt32: break;
-        case miopenHalf:
-        {
+        case miopenHalf: {
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -1055,8 +1040,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
         }
         break;
 
-        case miopenBFloat16:
-        {
+        case miopenBFloat16: {
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -1091,8 +1075,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
         }
         break;
 
-        case miopenFloat:
-        {
+        case miopenFloat: {
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -1127,8 +1110,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
         }
         break;
 
-        case miopenDouble:
-        {
+        case miopenDouble: {
             MIOPEN_THROW(miopenStatusBadParm,
                          "miopenDouble data type not supported by MIOpenGEMM.");
         }

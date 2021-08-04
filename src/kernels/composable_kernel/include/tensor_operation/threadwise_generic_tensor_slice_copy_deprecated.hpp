@@ -98,7 +98,6 @@ struct ThreadwiseGenericTensorSliceCopy_v1r2_deprecated
 
         ford<decltype(long_vector_access_lengths), DimAccessOrder>{}(
             [&](auto long_vector_access_id) {
-
                 // data id w.r.t slicing-window
                 auto long_vector_data_begin_id = long_vector_access_id;
                 long_vector_data_begin_id(vector_access_dim) =
@@ -294,7 +293,6 @@ struct ThreadwiseGenericTensorSliceCopy_v2r1_deprecated
 
             ford<decltype(src_merged_dim_access_lengths), SrcDimAccessOrder>{}(
                 [&](auto src_merged_dim_access_id) {
-
                     auto src_merged_dim_data_id = src_merged_dim_access_id;
                     src_merged_dim_data_id(src_vector_access_dim) =
                         src_merged_dim_access_id[src_vector_access_dim] * src_data_per_access;
@@ -303,38 +301,38 @@ struct ThreadwiseGenericTensorSliceCopy_v2r1_deprecated
                     const index_t src_merged_offset =
                         (mSrcSliceOrigin + src_merged_dim_data_id).GetOffset();
 
-                    ford<decltype(src_normal_dim_access_lengths), SrcDimAccessOrder>{}([&](
-                        auto src_normal_dim_access_id) {
+                    ford<decltype(src_normal_dim_access_lengths), SrcDimAccessOrder>{}(
+                        [&](auto src_normal_dim_access_id) {
+                            auto src_normal_dim_data_id = src_normal_dim_access_id;
+                            src_normal_dim_data_id(src_vector_access_dim) =
+                                src_normal_dim_access_id[src_vector_access_dim] *
+                                src_data_per_access;
 
-                        auto src_normal_dim_data_id = src_normal_dim_access_id;
-                        src_normal_dim_data_id(src_vector_access_dim) =
-                            src_normal_dim_access_id[src_vector_access_dim] * src_data_per_access;
+                            // offset w.r.t. normal dimension is known at compile-time
+                            const index_t src_normal_offset =
+                                SrcDesc::GetOffsetFromMultiIndex(src_normal_dim_data_id);
 
-                        // offset w.r.t. normal dimension is known at compile-time
-                        const index_t src_normal_offset =
-                            SrcDesc::GetOffsetFromMultiIndex(src_normal_dim_data_id);
+                            SrcData p_src_vector_data[SrcDataPerAccess];
 
-                        SrcData p_src_vector_data[SrcDataPerAccess];
+                            transfer_data<SrcData,
+                                          SrcDataPerAccess,
+                                          SrcAddressSpace,
+                                          AddressSpace::Vgpr,
+                                          InMemoryDataOperation::Set>(
+                                p_src, src_normal_offset + src_merged_offset, p_src_vector_data, 0);
 
-                        transfer_data<SrcData,
-                                      SrcDataPerAccess,
-                                      SrcAddressSpace,
-                                      AddressSpace::Vgpr,
-                                      InMemoryDataOperation::Set>(
-                            p_src, src_normal_offset + src_merged_offset, p_src_vector_data, 0);
+                            // unpack vector into buffer
+                            for(index_t i = 0; i < SrcDataPerAccess; ++i)
+                            {
+                                auto scalar_id                   = make_zero_array<index_t, nDim>();
+                                scalar_id(src_vector_access_dim) = i;
 
-                        // unpack vector into buffer
-                        for(index_t i = 0; i < SrcDataPerAccess; ++i)
-                        {
-                            auto scalar_id                   = make_zero_array<index_t, nDim>();
-                            scalar_id(src_vector_access_dim) = i;
+                                const index_t buffer_offset = buffer_desc.GetOffsetFromMultiIndex(
+                                    src_merged_dim_data_id + src_normal_dim_data_id + scalar_id);
 
-                            const index_t buffer_offset = buffer_desc.GetOffsetFromMultiIndex(
-                                src_merged_dim_data_id + src_normal_dim_data_id + scalar_id);
-
-                            p_src_buffer[buffer_offset] = p_src_vector_data[i];
-                        }
-                    });
+                                p_src_buffer[buffer_offset] = p_src_vector_data[i];
+                            }
+                        });
                 });
         }
 
@@ -366,7 +364,6 @@ struct ThreadwiseGenericTensorSliceCopy_v2r1_deprecated
 
             ford<decltype(dst_merged_dim_access_lengths), DstDimAccessOrder>{}(
                 [&](auto dst_merged_dim_access_id) {
-
                     auto dst_merged_dim_data_id = dst_merged_dim_access_id;
                     dst_merged_dim_data_id(dst_vector_access_dim) =
                         dst_merged_dim_access_id[dst_vector_access_dim] * dst_data_per_access;
@@ -375,38 +372,38 @@ struct ThreadwiseGenericTensorSliceCopy_v2r1_deprecated
                     const index_t dst_merged_offset =
                         (mDstSliceOrigin + dst_merged_dim_data_id).GetOffset();
 
-                    ford<decltype(dst_normal_dim_access_lengths), DstDimAccessOrder>{}([&](
-                        auto dst_normal_dim_access_id) {
+                    ford<decltype(dst_normal_dim_access_lengths), DstDimAccessOrder>{}(
+                        [&](auto dst_normal_dim_access_id) {
+                            auto dst_normal_dim_data_id = dst_normal_dim_access_id;
+                            dst_normal_dim_data_id(dst_vector_access_dim) =
+                                dst_normal_dim_access_id[dst_vector_access_dim] *
+                                dst_data_per_access;
 
-                        auto dst_normal_dim_data_id = dst_normal_dim_access_id;
-                        dst_normal_dim_data_id(dst_vector_access_dim) =
-                            dst_normal_dim_access_id[dst_vector_access_dim] * dst_data_per_access;
+                            DstData p_dst_vector_data[DstDataPerAccess];
 
-                        DstData p_dst_vector_data[DstDataPerAccess];
+                            // pack vector from buffer
+                            for(index_t i = 0; i < DstDataPerAccess; ++i)
+                            {
+                                auto scalar_id                   = make_zero_array<index_t, nDim>();
+                                scalar_id(dst_vector_access_dim) = i;
 
-                        // pack vector from buffer
-                        for(index_t i = 0; i < DstDataPerAccess; ++i)
-                        {
-                            auto scalar_id                   = make_zero_array<index_t, nDim>();
-                            scalar_id(dst_vector_access_dim) = i;
+                                const index_t buffer_offset = buffer_desc.GetOffsetFromMultiIndex(
+                                    dst_merged_dim_data_id + dst_normal_dim_data_id + scalar_id);
 
-                            const index_t buffer_offset = buffer_desc.GetOffsetFromMultiIndex(
-                                dst_merged_dim_data_id + dst_normal_dim_data_id + scalar_id);
+                                p_dst_vector_data[i] = p_dst_buffer[buffer_offset];
+                            }
 
-                            p_dst_vector_data[i] = p_dst_buffer[buffer_offset];
-                        }
+                            // offset w.r.t. normal dimension is known at compile-time
+                            const index_t dst_normal_offset =
+                                DstDesc::GetOffsetFromMultiIndex(dst_normal_dim_data_id);
 
-                        // offset w.r.t. normal dimension is known at compile-time
-                        const index_t dst_normal_offset =
-                            DstDesc::GetOffsetFromMultiIndex(dst_normal_dim_data_id);
-
-                        transfer_data<DstData,
-                                      DstDataPerAccess,
-                                      AddressSpace::Vgpr,
-                                      DstAddressSpace,
-                                      InMemoryDataOperation::Set>(
-                            p_dst_vector_data, 0, p_dst, dst_normal_offset + dst_merged_offset);
-                    });
+                            transfer_data<DstData,
+                                          DstDataPerAccess,
+                                          AddressSpace::Vgpr,
+                                          DstAddressSpace,
+                                          InMemoryDataOperation::Set>(
+                                p_dst_vector_data, 0, p_dst, dst_normal_offset + dst_merged_offset);
+                        });
                 });
         }
     }
