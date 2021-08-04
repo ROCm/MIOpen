@@ -5,6 +5,7 @@ ARG GPU_ARCH=";"
 ARG MIOTENSILE_VER="default"
 ARG USE_TARGETID="OFF"
 ARG USE_MLIR="OFF"
+ARG USE_FIN="OFF"
 
 # Support multiarch
 RUN dpkg --add-architecture i386
@@ -103,7 +104,7 @@ RUN cget -p $PREFIX install kitware/cmake@v3.15.1
 
 ADD min-requirements.txt /min-requirements.txt
 RUN CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -f /min-requirements.txt
-RUN cget -p $PREFIX install nlohmann/json@350ff4f7ced7c4117eae2fb93df02823c8021fcb
+RUN if [ "$USE_FIN" = "ON" ]; then cget -p $PREFIX install nlohmann/json@350ff4f7ced7c4117eae2fb93df02823c8021fcb; fi
 RUN cget -p $PREFIX install danmar/cppcheck@dd05839a7e63ef04afd34711cb3e1e0ef742882f
 
 # Install doc requirements
