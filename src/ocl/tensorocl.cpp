@@ -194,7 +194,6 @@ void OpTensor3d(const Handle& handle,
     size_t glb_sz2        = local_threads2 * grp_sz2;
 
     visit_float(bTensorDesc.GetType(), [&](auto as_float) {
-
         auto miopen_alpha0 = as_float(*(static_cast<const float*>(alpha0)));
         auto miopen_alpha1 = as_float(*(static_cast<const float*>(alpha1)));
         auto miopen_beta   = as_float(*(static_cast<const float*>(beta)));
@@ -543,7 +542,6 @@ void OpTensor4d(const Handle& handle,
         std::to_string(local_threads);
 
     visit_float(bTensorDesc.GetType(), [&](auto as_float) {
-
         auto miopen_alpha0 = as_float(*(static_cast<const float*>(alpha0)));
         auto miopen_alpha1 = as_float(*(static_cast<const float*>(alpha1)));
         auto miopen_beta   = as_float(*(static_cast<const float*>(beta)));
@@ -1011,7 +1009,6 @@ void OpTensorOther(const Handle& handle,
                       std::to_string(global_threads) + "-" + std::to_string(local_threads);
 
     visit_float(bTensorDesc.GetType(), [&](auto as_float) {
-
         auto miopen_alpha0 = as_float(*(static_cast<const float*>(alpha0)));
         auto miopen_alpha1 = as_float(*(static_cast<const float*>(alpha1)));
         auto miopen_beta   = as_float(*(static_cast<const float*>(beta)));
@@ -1221,7 +1218,6 @@ void OpTensorOther(const Handle& handle,
                                     long(Coffset),
                                     int(num_wg_orig));
         }
-
     });
 }
 
@@ -1468,8 +1464,7 @@ void SetTensor(const Handle& handle,
 
     switch(yDim_flat)
     {
-    case 1:
-    {
+    case 1: {
         visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
@@ -1480,8 +1475,7 @@ void SetTensor(const Handle& handle,
 
         break;
     }
-    case 2:
-    {
+    case 2: {
         visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
@@ -1494,8 +1488,7 @@ void SetTensor(const Handle& handle,
 
         break;
     }
-    case 3:
-    {
+    case 3: {
         visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
@@ -1510,8 +1503,7 @@ void SetTensor(const Handle& handle,
 
         break;
     }
-    case 4:
-    {
+    case 4: {
         visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
@@ -1528,8 +1520,7 @@ void SetTensor(const Handle& handle,
 
         break;
     }
-    case 5:
-    {
+    case 5: {
         visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
@@ -1634,8 +1625,7 @@ void ScaleTensor(const Handle& handle,
 
     switch(yDim_flat)
     {
-    case 1:
-    {
+    case 1: {
         visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
@@ -1646,8 +1636,7 @@ void ScaleTensor(const Handle& handle,
 
         break;
     }
-    case 2:
-    {
+    case 2: {
         visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
@@ -1660,8 +1649,7 @@ void ScaleTensor(const Handle& handle,
 
         break;
     }
-    case 3:
-    {
+    case 3: {
         visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
@@ -1676,8 +1664,7 @@ void ScaleTensor(const Handle& handle,
 
         break;
     }
-    case 4:
-    {
+    case 4: {
         visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
@@ -1694,8 +1681,7 @@ void ScaleTensor(const Handle& handle,
 
         break;
     }
-    case 5:
-    {
+    case 5: {
         visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
@@ -1815,8 +1801,7 @@ void CopyTensor(const Handle& handle,
 
         switch(srcDim_flat)
         {
-        case 1:
-        {
+        case 1: {
             kernel(src,
                    srcOffset,
                    int(srcDesc_flat.GetStrides()[0]),
@@ -1827,8 +1812,7 @@ void CopyTensor(const Handle& handle,
 
             break;
         }
-        case 2:
-        {
+        case 2: {
             kernel(src,
                    srcOffset,
                    int(srcDesc_flat.GetStrides()[0]),
@@ -1842,8 +1826,7 @@ void CopyTensor(const Handle& handle,
 
             break;
         }
-        case 3:
-        {
+        case 3: {
             kernel(src,
                    srcOffset,
                    int(srcDesc_flat.GetStrides()[0]),
@@ -1860,8 +1843,7 @@ void CopyTensor(const Handle& handle,
 
             break;
         }
-        case 4:
-        {
+        case 4: {
             kernel(src,
                    srcOffset,
                    int(srcDesc_flat.GetStrides()[0]),
@@ -1881,8 +1863,7 @@ void CopyTensor(const Handle& handle,
 
             break;
         }
-        case 5:
-        {
+        case 5: {
             kernel(src,
                    srcOffset,
                    int(srcDesc_flat.GetStrides()[0]),
@@ -2044,8 +2025,7 @@ void CastTensor(const Handle& handle,
 
         switch(srcDim_flat)
         {
-        case 1:
-        {
+        case 1: {
             kernel(src,
                    miopen_alpha,
                    srcOffset,
@@ -2057,8 +2037,7 @@ void CastTensor(const Handle& handle,
 
             break;
         }
-        case 2:
-        {
+        case 2: {
             kernel(src,
                    miopen_alpha,
                    srcOffset,
@@ -2073,8 +2052,7 @@ void CastTensor(const Handle& handle,
 
             break;
         }
-        case 3:
-        {
+        case 3: {
             kernel(src,
                    miopen_alpha,
                    srcOffset,
@@ -2092,8 +2070,7 @@ void CastTensor(const Handle& handle,
 
             break;
         }
-        case 4:
-        {
+        case 4: {
             kernel(src,
                    miopen_alpha,
                    srcOffset,
@@ -2114,8 +2091,7 @@ void CastTensor(const Handle& handle,
 
             break;
         }
-        case 5:
-        {
+        case 5: {
             kernel(src,
                    miopen_alpha,
                    srcOffset,
@@ -2351,8 +2327,7 @@ void TransformTensor(const Handle& handle,
 
         switch(yDim_flat)
         {
-        case 1:
-        {
+        case 1: {
             visit_float(dataTypey, [&](auto as_float) {
                 kernel(x,
                        *as_float(alpha),
@@ -2367,8 +2342,7 @@ void TransformTensor(const Handle& handle,
 
             break;
         }
-        case 2:
-        {
+        case 2: {
             visit_float(dataTypey, [&](auto as_float) {
                 kernel(x,
                        *as_float(alpha),
@@ -2386,8 +2360,7 @@ void TransformTensor(const Handle& handle,
 
             break;
         }
-        case 3:
-        {
+        case 3: {
             visit_float(dataTypey, [&](auto as_float) {
                 kernel(x,
                        *as_float(alpha),
@@ -2408,8 +2381,7 @@ void TransformTensor(const Handle& handle,
 
             break;
         }
-        case 4:
-        {
+        case 4: {
             visit_float(dataTypey, [&](auto as_float) {
                 kernel(x,
                        *as_float(alpha),
@@ -2433,8 +2405,7 @@ void TransformTensor(const Handle& handle,
 
             break;
         }
-        case 5:
-        {
+        case 5: {
             visit_float(dataTypey, [&](auto as_float) {
                 kernel(x,
                        *as_float(alpha),

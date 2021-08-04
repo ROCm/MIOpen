@@ -121,7 +121,7 @@ struct verify_reduce_with_indices
 
             auto& result_dataT = std::get<0>(results);
 
-            for(size_t i                 = 0; i < result_dataT.data.size(); i++)
+            for(size_t i = 0; i < result_dataT.data.size(); i++)
                 result_dataFloat.data[i] = convert_type<float>(result_dataT.data[i]);
 
             return (result_dataFloat);
@@ -134,7 +134,7 @@ struct verify_reduce_with_indices
 
             auto& result_indices = std::get<1>(results);
 
-            for(size_t i                    = 0; i < result_indices.data.size(); i++)
+            for(size_t i = 0; i < result_indices.data.size(); i++)
                 result_indicesFloat.data[i] = static_cast<float>(result_indices.data[i]);
 
             return (result_indicesFloat);
@@ -157,7 +157,7 @@ struct verify_reduce_with_indices
 
             tensor<T>& result_dataT = std::get<0>(results);
 
-            for(size_t i                 = 0; i < result_dataT.data.size(); i++)
+            for(size_t i = 0; i < result_dataT.data.size(); i++)
                 result_dataFloat.data[i] = convert_type<float>(result_dataT.data[i]);
 
             return (result_dataFloat);
@@ -170,7 +170,7 @@ struct verify_reduce_with_indices
 
             tensor<int>& result_indices = std::get<1>(results);
 
-            for(size_t i                    = 0; i < result_indices.data.size(); i++)
+            for(size_t i = 0; i < result_indices.data.size(); i++)
                 result_indicesFloat.data[i] = static_cast<float>(result_indices.data[i]);
 
             return (result_indicesFloat);
@@ -180,15 +180,15 @@ struct verify_reduce_with_indices
     template <typename compType>
     std::tuple<tensor<T>, tensor<int>> cpuImpl() const
     {
-        using reduce::ReduceOpFn2;
-        using reduce::PreUnaryOpFn;
-        using reduce::PosUnaryOpFn;
-        using reduce::ReduceOpZeroVal;
-        using reduce::float_equal_one;
-        using reduce::float_equal_zero;
-        using reduce::convert_type;
         using reduce::binop_with_nan_check;
         using reduce::binop_with_nan_check2;
+        using reduce::convert_type;
+        using reduce::float_equal_one;
+        using reduce::float_equal_zero;
+        using reduce::PosUnaryOpFn;
+        using reduce::PreUnaryOpFn;
+        using reduce::ReduceOpFn2;
+        using reduce::ReduceOpZeroVal;
 
         auto inLengths  = input.desc.GetLengths();
         auto outLengths = output.desc.GetLengths();
@@ -212,11 +212,11 @@ struct verify_reduce_with_indices
                 toReduceDims.push_back(i);
 
         invariantLengths.resize(invariantDims.size());
-        for(int i               = 0; i < invariantDims.size(); i++)
+        for(int i = 0; i < invariantDims.size(); i++)
             invariantLengths[i] = inLengths[invariantDims[i]];
 
         toReduceLengths.resize(toReduceDims.size());
-        for(int i              = 0; i < toReduceDims.size(); i++)
+        for(int i = 0; i < toReduceDims.size(); i++)
             toReduceLengths[i] = inLengths[toReduceDims[i]];
 
         bool reduceAllDims = invariantDims.empty();
@@ -284,13 +284,13 @@ struct verify_reduce_with_indices
 
                 std::fill(dst_index.begin(), dst_index.end(), 0);
 
-                for(int k                       = 0; k < invariantDims.size(); k++)
+                for(int k = 0; k < invariantDims.size(); k++)
                     dst_index[invariantDims[k]] = index_1[k];
 
                 auto dst_offset = get_offset_from_index(outStrides, dst_index);
 
                 // generate the part of the index belonging to the invariant dims
-                for(int k                       = 0; k < invariantDims.size(); k++)
+                for(int k = 0; k < invariantDims.size(); k++)
                     src_index[invariantDims[k]] = index_1[k];
 
                 compType accuVal = ReduceOpZeroVal<compType>(reduceOp);
@@ -300,7 +300,7 @@ struct verify_reduce_with_indices
                 for(const auto& index_2 : indexes_2)
                 {
                     // generate the part of the index belonging to the toReduce dims
-                    for(int k                      = 0; k < toReduceDims.size(); k++)
+                    for(int k = 0; k < toReduceDims.size(); k++)
                         src_index[toReduceDims[k]] = index_2[k];
 
                     auto src_offset = get_offset_from_index(inStrides, src_index);
@@ -465,7 +465,7 @@ struct verify_reduce_no_indices
         const auto dimLengths = output.desc.GetLengths();
         auto result_dataFloat = make_tensor<float>(dimLengths);
 
-        for(size_t i                 = 0; i < result.data.size(); i++)
+        for(size_t i = 0; i < result.data.size(); i++)
             result_dataFloat.data[i] = convert_type<float>(result.data[i]);
 
         return (result_dataFloat);
@@ -474,15 +474,15 @@ struct verify_reduce_no_indices
     template <typename compType>
     tensor<T> cpuImpl() const
     {
-        using reduce::ReduceOpFn;
-        using reduce::PreUnaryOpFn;
-        using reduce::PosUnaryOpFn;
-        using reduce::ReduceOpZeroVal;
-        using reduce::float_equal_one;
-        using reduce::float_equal_zero;
-        using reduce::convert_type;
         using reduce::binop_with_nan_check;
         using reduce::binop_with_nan_check2;
+        using reduce::convert_type;
+        using reduce::float_equal_one;
+        using reduce::float_equal_zero;
+        using reduce::PosUnaryOpFn;
+        using reduce::PreUnaryOpFn;
+        using reduce::ReduceOpFn;
+        using reduce::ReduceOpZeroVal;
 
         auto inLengths  = input.desc.GetLengths();
         auto outLengths = output.desc.GetLengths();
@@ -505,11 +505,11 @@ struct verify_reduce_no_indices
                 toReduceDims.push_back(i);
 
         invariantLengths.resize(invariantDims.size());
-        for(int i               = 0; i < invariantDims.size(); i++)
+        for(int i = 0; i < invariantDims.size(); i++)
             invariantLengths[i] = inLengths[invariantDims[i]];
 
         toReduceLengths.resize(toReduceDims.size());
-        for(int i              = 0; i < toReduceDims.size(); i++)
+        for(int i = 0; i < toReduceDims.size(); i++)
             toReduceLengths[i] = inLengths[toReduceDims[i]];
 
         bool reduceAllDims = invariantDims.empty();
@@ -573,13 +573,13 @@ struct verify_reduce_no_indices
 
                 std::fill(dst_index.begin(), dst_index.end(), 0);
 
-                for(int k                       = 0; k < invariantDims.size(); k++)
+                for(int k = 0; k < invariantDims.size(); k++)
                     dst_index[invariantDims[k]] = index_1[k];
 
                 auto dst_offset = get_offset_from_index(outStrides, dst_index);
 
                 // generate the part of the index belonging to the invariant dims
-                for(int k                       = 0; k < invariantDims.size(); k++)
+                for(int k = 0; k < invariantDims.size(); k++)
                     src_index[invariantDims[k]] = index_1[k];
 
                 compType accuVal = ReduceOpZeroVal<compType>(reduceOp);
@@ -588,7 +588,7 @@ struct verify_reduce_no_indices
                 for(const auto& index_2 : indexes_2)
                 {
                     // generate the part of the index belonging to the toReduce dims
-                    for(int k                      = 0; k < toReduceDims.size(); k++)
+                    for(int k = 0; k < toReduceDims.size(); k++)
                         src_index[toReduceDims[k]] = index_2[k];
 
                     auto src_offset = get_offset_from_index(inStrides, src_index);
@@ -628,7 +628,7 @@ struct verify_reduce_no_indices
         const auto dimLengths = output.desc.GetLengths();
         auto result_dataFloat = make_tensor<float>(dimLengths);
 
-        for(size_t i                 = 0; i < result.data.size(); i++)
+        for(size_t i = 0; i < result.data.size(); i++)
             result_dataFloat.data[i] = convert_type<float>(result.data[i]);
 
         return (result_dataFloat);

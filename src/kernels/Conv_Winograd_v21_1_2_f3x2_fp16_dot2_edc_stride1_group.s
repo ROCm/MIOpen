@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,20 +23,18 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+.include "Conv_Winograd_v21_1_2_metadata.inc"
 
-#pragma once
+KERNEL_PROLOG f3x2_fp16_dot2_edc_stride1_group
 
-#include <miopen/kernel.hpp>
+.if (.amdgcn.gfx_generation_number == 9)
+    .if (.amdgcn.gfx_generation_stepping == 10)
+        .error "gfx90a is not supported yet"
+    .else
+        .include "Conv_Winograd_v21_1_2_gfx9_f3x2_fp16_dot2_edc_stride1_group.inc"
+    .endif
+.elseif (.amdgcn.gfx_generation_number == 10)
+    .include "Conv_Winograd_v21_1_2_gfx10_f3x2_fp16_dot2_edc_stride1_group.inc"
+.endif
 
-#include <functional>
-#include <vector>
-
-namespace miopen {
-
-struct Handle;
-struct AnyInvokeParams;
-
-using Invoker = std::function<void(const Handle&, const AnyInvokeParams& primitive_parameters)>;
-using InvokerFactory = std::function<Invoker(const std::vector<Kernel>&)>;
-
-} // namespace miopen
+KERNEL_EPILOG f3x2_fp16_dot2_edc_stride1_group

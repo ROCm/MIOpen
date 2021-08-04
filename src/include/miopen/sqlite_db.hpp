@@ -1,28 +1,28 @@
 /*******************************************************************************
-*
-* MIT License
-*
-* Copyright (c) 2019 Advanced Micro Devices, Inc.
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*******************************************************************************/
+ *
+ * MIT License
+ *
+ * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 #pragma once
 
 #include <miopen/config.h>
@@ -218,8 +218,7 @@ class SQLiteBase
         : filename(filename_), arch(arch_), num_cu(num_cu_)
     {
         MIOPEN_LOG_I2("Initializing " << (InMemDb ? "In Memory " : "")
-                                      << (is_system ? "system" : "user")
-                                      << " database file "
+                                      << (is_system ? "system" : "user") << " database file "
                                       << filename);
 
         if(filename.empty())
@@ -383,8 +382,8 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
         std::string clause;
         std::vector<std::string> vals;
         std::tie(clause, vals) = prob_desc.InsertQuery();
-        auto stmt = SQLite::Statement{sql, clause, vals};
-        auto rc   = stmt.Step(sql);
+        auto stmt              = SQLite::Statement{sql, clause, vals};
+        auto rc                = stmt.Step(sql);
         if(rc != SQLITE_DONE)
             MIOPEN_THROW(miopenStatusInternalError,
                          "Failed to insert config: " + sql.ErrorMessage());
@@ -492,8 +491,8 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
             std::string clause;
             std::vector<std::string> vals;
             std::tie(clause, vals) = problem_config.InsertQuery();
-            auto stmt = SQLite::Statement{sql, clause, vals};
-            auto rc   = stmt.Step(sql);
+            auto stmt              = SQLite::Statement{sql, clause, vals};
+            auto rc                = stmt.Step(sql);
             if(rc != SQLITE_DONE)
                 MIOPEN_THROW(miopenStatusInternalError,
                              "Failed to insert config: " + sql.ErrorMessage());

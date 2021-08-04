@@ -493,7 +493,7 @@ struct test_driver
                     std::vector<T> subvec(dims.cbegin(), dims.cbegin() + endpoint);
                     return subvec;
                 }
-                else 
+                else
                     return dims;
             }
             else
@@ -538,7 +538,7 @@ struct test_driver
                     std::vector<T> subvec(dims.cbegin(), dims.cbegin() + endpoint);
                     return subvec;
                 }
-                else 
+                else
                     return dims;
             }
             else

@@ -184,10 +184,9 @@ struct TensorDescriptor : miopenTensorDescriptor
     {
         std::vector<std::int64_t> result(lens.size());
         std::iota(result.begin(), result.end(), 0);
-        std::stable_sort(
-            result.begin(),
-            result.end(),
-            by(std::greater<>{}, [&](auto x) { return std::make_tuple(strides[x], lens[x]); }));
+        std::stable_sort(result.begin(), result.end(), by(std::greater<>{}, [&](auto x) {
+                             return std::make_tuple(strides[x], lens[x]);
+                         }));
         return result;
     }
 

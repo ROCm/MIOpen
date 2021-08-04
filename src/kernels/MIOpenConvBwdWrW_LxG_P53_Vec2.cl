@@ -164,8 +164,8 @@ void readInput(uint lcl_id,
         uint c_scan = iDiv_legacy(t_p4, (MLO_N_IN_HORIZ_READS));
         uint c_pix4 = iMod(t_p4, c_scan, (MLO_N_IN_HORIZ_READS));
 #else
-        uint c_scan               = t_p4 / (MLO_N_IN_HORIZ_READS);
-        uint c_pix4               = t_p4 & (MLO_N_IN_HORIZ_READS - 1);
+        uint c_scan = t_p4 / (MLO_N_IN_HORIZ_READS);
+        uint c_pix4 = t_p4 & (MLO_N_IN_HORIZ_READS - 1);
 #endif
 
         //		if (c < MLO_N_INPUTS)
@@ -339,7 +339,7 @@ void spanReadingOutput(int spn,
             top_dat[pvt_off + i] =
                 (_FLOAT2)(top_df_pX[i], (IsLast) ? (_FLOAT)0 : top_df_pY[i]) * (_FLOAT2)(mask);
 #else
-            top_dat[pvt_off + i]  = (_FLOAT2)(top_df_pX[i], top_df_pY[i]) * (_FLOAT2)(mask);
+            top_dat[pvt_off + i] = (_FLOAT2)(top_df_pX[i], top_df_pY[i]) * (_FLOAT2)(mask);
 #endif
 #if DBG_OUT_OF_RNGE
             if(top_df_off + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
@@ -440,8 +440,8 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
     uint o   = iDiv_legacy(lcl_id, MLO_N_SPANS_PER_SCAN);
     uint spn = iMod(lcl_id, o, MLO_N_SPANS_PER_SCAN);
 #else
-    uint o                       = lcl_id / MLO_N_SPANS_PER_SCAN;
-    uint spn                     = lcl_id & (MLO_N_SPANS_PER_SCAN - 1);
+    uint o = lcl_id / MLO_N_SPANS_PER_SCAN;
+    uint spn = lcl_id & (MLO_N_SPANS_PER_SCAN - 1);
 #endif
     //	bool scan_lead = (o*MLO_N_SPANS_PER_SCAN == lcl_id);
 
@@ -457,10 +457,10 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 
     __private _FLOAT2 top_dat[MLO_TOP_DAT_SZ] = {MLO_TOP_DAT_SZ * ((_FLOAT2)(0))};
 
-//	for (uint i = 0; i < MLO_TOP_DAT_SZ; ++i)
-//	{
-//		top_dat[i] = (_FLOAT2)(0);
-//	}
+    //	for (uint i = 0; i < MLO_TOP_DAT_SZ; ++i)
+    //	{
+    //		top_dat[i] = (_FLOAT2)(0);
+    //	}
 
 #define MLO_ACCUM_SZ (MLO_N_LCL_OUT_MAPS * MLO_N_LCL_IN_MAPS * MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0)
 
@@ -558,8 +558,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 #endif
         for(; sc < MLO_IN_EXTENT1
 #if MLO_IN_N_VERT_LOOPS == 1
-                       -
-                       MLO_FILTER_PAD1
+                       - MLO_FILTER_PAD1
 #endif
             ;
             ++sc, gbl_out_scan_off += MLO_OUT_STRIDE, sc_lcl_off += MLO_IN_LCL_WIDTH)
@@ -653,8 +652,8 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
             ++i_loop, gbl_in_scan_off += (uint2)(MLO_IN_STRIDE * MLO_IN_EXTENT1))
         {
             barrier(CLK_LOCAL_MEM_FENCE);
-// read 1 scan line less
-// padding processing takes care of the bottom border.
+            // read 1 scan line less
+            // padding processing takes care of the bottom border.
 
 #define MLO_LAST_VERT_READS (MLO_IN_HEIGHT - MLO_IN_EXTENT1 * (MLO_IN_N_VERT_LOOPS - 1))
 
@@ -791,11 +790,10 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                                   i]
                             .x
 #if MLO_N_BATCH_LOOPS != 1
-                        +
-                        pvt_accum[(k * MLO_N_LCL_IN_MAPS + c) * MLO_FILTER_SIZE1 *
-                                      MLO_FILTER_SIZE0 +
-                                  i]
-                            .y
+                        + pvt_accum[(k * MLO_N_LCL_IN_MAPS + c) * MLO_FILTER_SIZE1 *
+                                        MLO_FILTER_SIZE0 +
+                                    i]
+                              .y
 #endif
                         ;
                 }
@@ -817,8 +815,8 @@ MIOpenCvBwdWrW_rdc(const __global _FLOAT* __restrict weight_df_tmp,
     uint wei_blk_idx = iDiv_legacy(wei_idx0, MLO_WEI_CHANNEL_STRIDE);
     uint wei_idx     = iMod(wei_idx0, wei_blk_idx, MLO_WEI_CHANNEL_STRIDE);
 #else
-    uint wei_blk_idx             = wei_idx0 / MLO_WEI_CHANNEL_STRIDE;
-    uint wei_idx                 = wei_idx0 & (MLO_WEI_CHANNEL_STRIDE - 1);
+    uint wei_blk_idx = wei_idx0 / MLO_WEI_CHANNEL_STRIDE;
+    uint wei_idx = wei_idx0 & (MLO_WEI_CHANNEL_STRIDE - 1);
 #endif
 
     _FLOAT pvt_accum_wei[MLO_UT_READ_UNIT] = {(_FLOAT)0};

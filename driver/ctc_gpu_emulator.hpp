@@ -71,11 +71,11 @@ void subvec_logsoftmax_gpu(Tgpu* in, Tref* out, size_t in_offset, size_t out_off
     for(int i = 1; i < length; i++)
         max_val = std::max(*(itr_in + i), max_val);
 
-    for(int i          = 0; i < length; i++)
+    for(int i = 0; i < length; i++)
         *(itr_out + i) = Tref(*(itr_in + i) - max_val);
 
     Tref sum = logsumexp_gpu(itr_out, length);
-    for(int i          = 0; i < length; i++)
+    for(int i = 0; i < length; i++)
         *(itr_out + i) = std::max(*(itr_out + i) - sum, Tref(NEGATIVE_CUTOFF_VAL));
 }
 
@@ -96,10 +96,10 @@ void ctc_alpha_gpu(std::vector<int>& probsDesc,
     int probs_stride[]  = {probsDesc[3], probsDesc[4], probsDesc[5]};
     int label_prime_len = 2 * label_length + 1;
 
-    for(int i                  = 0; i < label_length; i++)
+    for(int i = 0; i < label_length; i++)
         label_prime[2 * i + 1] = label[i];
     blank_lb = blank_lb < 0 ? 0 : (blank_lb >= class_sz ? class_sz - 1 : blank_lb);
-    for(int i              = 0; i <= label_length; i++)
+    for(int i = 0; i <= label_length; i++)
         label_prime[2 * i] = blank_lb;
 
     int aidx0 = (label_length + label_repeat - input_length) < 0 ? 0 : 1;

@@ -129,9 +129,7 @@ class SQLite::impl
                 sqlite3_close(ptr_tmp);
                 MIOPEN_THROW(miopenStatusInternalError);
             }
-            for(rc = sqlite3_step(stmt); rc == SQLITE_ROW; rc = sqlite3_step(stmt))
-            {
-            }
+            for(rc = sqlite3_step(stmt); rc == SQLITE_ROW; rc = sqlite3_step(stmt)) {}
             if(rc == SQLITE_DONE)
                 rc = 0;
 
@@ -182,7 +180,7 @@ static int find_callback(void* _res, int argc, char** argv, char** azColName)
 {
     SQLite::result_type* res = static_cast<SQLite::result_type*>(_res);
     std::unordered_map<std::string, std::string> record;
-    for(auto i               = 0; i < argc; i++)
+    for(auto i = 0; i < argc; i++)
         record[azColName[i]] = (argv[i] != nullptr) ? argv[i] : "NULL";
     if(res != nullptr)
         res->push_back(record);

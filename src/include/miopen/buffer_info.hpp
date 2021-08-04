@@ -209,8 +209,7 @@ struct WinogradBufferInfo
 
         switch(xform_t)
         {
-        case ConvWinoXformType::N_GXhXw_C_Th_Tw:
-        {
+        case ConvWinoXformType::N_GXhXw_C_Th_Tw: {
             const int wino_g = g * wino_xtile[0] * wino_xtile[1];
             switch(buff_type)
             {
@@ -248,8 +247,7 @@ struct WinogradBufferInfo
             }
             break;
         }
-        case ConvWinoXformType::N_1_CThTw_Xh_Xw:
-        {
+        case ConvWinoXformType::N_1_CThTw_Xh_Xw: {
             const int wino_c = c * wino_filter.wino_tiles_HW[0] * wino_filter.wino_tiles_HW[1];
             switch(buff_type)
             {

@@ -11,11 +11,13 @@ ARG USE_FIN="OFF"
 RUN dpkg --add-architecture i386
 
 # Add rocm repository
+# Note: The ROCm version with $USE_MLIR should keep in sync with default ROCm version
+# unless MLIR library is incompatible with current ROCm.
 
 RUN if [ "$USE_TARGETID" = "ON" ] ; \
         then export ROCM_APT_VER=.apt_4.1.1;\
     elif [ "$USE_MLIR" = "ON" ] ; \
-        then export ROCM_APT_VER=.apt_3.7;\
+        then export ROCM_APT_VER=.apt_4.2;\
     else export ROCM_APT_VER=.apt_4.2;  \
     fi && \
 echo $ROCM_APT_VER &&\
@@ -24,25 +26,19 @@ RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu xenial main universe | tee 
 
 #Add gpg keys
 # Install dependencies
-RUN if [ "$USE_TARGETID" = "ON" ]; \
-        then export ROCM_KEY_VER=4.1.1; \
-    elif [ "$USE_MLIR" = "ON" ] ; \
-        then export ROCM_KEY_VER=3.7;\
-    else export ROCM_KEY_VER=4.2; \
-    fi && \
-apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     wget \
     ca-certificates \
     curl \
     libnuma-dev \
     gnupg && \
-wget -q -O - https://repo.radeon.com/rocm/apt/$ROCM_KEY_VER/rocm.gpg.key | apt-key add - && \
+wget -q -O - https://repo.radeon.com/rocm/rocm.gpg.key | apt-key add - && \
 apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     apt-utils \
     build-essential \
     cmake \
     comgr \
-    clang-format-3.8 \
+    clang-format-10 \
     doxygen \
     g++ \
     gdb \
@@ -120,7 +116,7 @@ RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."
 
 RUN if [ "$USE_MLIR" = "ON" ]; \
     then cd ~ && \
-    export MLIR_COMMIT=950823986052e4750468e4e3a9641d0ce7be74a4 && \
+    export MLIR_COMMIT=7416cfaee140068921b64996ba945ce615c36f44 && \
     wget https://github.com/ROCmSoftwarePlatform/llvm-project-mlir/archive/$MLIR_COMMIT.tar.gz && \
     tar -xvzf $MLIR_COMMIT.tar.gz && \
     rm -rf $MLIR_COMMIT.tar.gz && \
