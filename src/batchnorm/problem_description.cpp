@@ -182,6 +182,6 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     return NetworkConfig{ss.str()};
 }
 
-} // namespace activ
+} // namespace batchnorm
 
 } // namespace miopen

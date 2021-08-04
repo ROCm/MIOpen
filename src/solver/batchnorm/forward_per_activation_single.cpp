@@ -82,7 +82,6 @@ bool BnFwdTrainingPASingle::IsApplicable(const ExecutionContext&,
     }
 
     return true;
-
 }
 
 ConvSolution
@@ -223,8 +222,8 @@ BnFwdTrainingPASingle::GetSolution(const ExecutionContext& context,
         result.construction_params.push_back(kernel);
     }
 
-    const auto dtype         = problem.GetBnScaleBiasMeanVarDesc().GetType();
-    const auto vn4           = (variant != 4);
+    const auto dtype = problem.GetBnScaleBiasMeanVarDesc().GetType();
+    const auto vn4   = (variant != 4);
 
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& raw_params) {
@@ -330,22 +329,22 @@ BnFwdTrainingPASingle::GetSolution(const ExecutionContext& context,
                     if(vn4)
                     {
                         kernel(params.x,
-                                params.y,
-                                params.bnScale,
-                                params.bnBias,
-                                as_float(inhw),
-                                params.epsilon);
+                               params.y,
+                               params.bnScale,
+                               params.bnBias,
+                               as_float(inhw),
+                               params.epsilon);
                     }
                     else
                     {
                         kernel(params.x,
-                                params.y,
-                                params.bnScale,
-                                params.bnBias,
-                                as_float(inhw),
-                                params.epsilon,
-                                in_cstride,
-                                in_nstride);
+                               params.y,
+                               params.bnScale,
+                               params.bnBias,
+                               as_float(inhw),
+                               params.epsilon,
+                               in_cstride,
+                               in_nstride);
                     }
                 }
             });
@@ -355,7 +354,7 @@ BnFwdTrainingPASingle::GetSolution(const ExecutionContext& context,
     return result;
 }
 
-} // namespace activ
+} // namespace batchnorm
 
 } // namespace solver
 

@@ -72,7 +72,7 @@ bool GemmWrwBase::IsApplicable(const ExecutionContext&,
            !(IsAnyBufferBF16(xDesc, dyDesc, dwDesc) && !IsBF16PathValid) &&
            !(IsAnyBufferFp16(xDesc, dyDesc, dwDesc) && !IsFp16Supported);
 #else
-    std::ignore                   = problem;
+    std::ignore = problem;
     return false;
 #endif
 }
