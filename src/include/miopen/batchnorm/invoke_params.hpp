@@ -36,16 +36,16 @@ struct InvokeParams : public miopen::InvokeParams
 {
     InvokeParams() = default;
 
-    ConstData_t x;
-    Data_t y;
-    ConstData_t bnScale;
-    ConstData_t bnBias;
+    ConstData_t x       = nullptr;
+    Data_t y            = nullptr;
+    ConstData_t bnScale = nullptr;
+    ConstData_t bnBias  = nullptr;
     double expAvgFactor;
-    Data_t resultRunningMean;
-    Data_t resultRunningVariance;
+    Data_t resultRunningMean     = nullptr;
+    Data_t resultRunningVariance = nullptr;
     double epsilon;
-    Data_t resultSaveMean;
-    Data_t resultSaveInvVariance;
+    Data_t resultSaveMean        = nullptr;
+    Data_t resultSaveInvVariance = nullptr;
 };
 
 } // namespace batchnorm

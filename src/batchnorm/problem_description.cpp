@@ -175,7 +175,7 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
         ss << "rr" << static_cast<int>(resultrunning);
         ss << "segment" << segment;
         ss << "n" << n;
-        ss << "c" + c;
+        ss << "c" << c;
         ss << "hw" << in_cstride;
     }
 
