@@ -395,11 +395,10 @@ void miopen::ConvolutionContext::SetupFloats()
     }
     else
     {
-        MIOPEN_LOG_W(
-            "Unsupported data types configuration: " << miopen::GetDataTypeName(in_data_type) << "x"
-                                                     << miopen::GetDataTypeName(weights_data_type)
-                                                     << "x"
-                                                     << miopen::GetDataTypeName(out_data_type));
+        MIOPEN_LOG_W("Unsupported data types configuration: "
+                     << miopen::GetDataTypeName(in_data_type) << "x"
+                     << miopen::GetDataTypeName(weights_data_type) << "x"
+                     << miopen::GetDataTypeName(out_data_type));
     }
 }
 
@@ -416,8 +415,7 @@ void mlo_construct_activ_lrn_pooling_common::setupFloats()
     else
     {
         MIOPEN_LOG_W("Unsupported data types configuration: "
-                     << miopen::GetDataTypeName(_search_params.in_data_type)
-                     << "x"
+                     << miopen::GetDataTypeName(_search_params.in_data_type) << "x"
                      << miopen::GetDataTypeName(_search_params.out_data_type));
     }
 }

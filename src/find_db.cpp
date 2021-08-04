@@ -145,23 +145,19 @@ void FindDbRecord_t<TDb>::LogFindDbItem(const std::pair<std::string, FindDbData>
 {
     const auto log_level = log_as_error ? LoggingLevel::Error : LoggingLevel::Info2;
 
-    MIOPEN_LOG(
-        log_level,
-        "Kernel cache entry not found for solver <" << pair.first << "::" << pair.second.solver_id
-                                                    << "> at network config: "
-                                                    << content->GetKey()
-                                                    << " and kernel cache key: "
-                                                    << pair.second.kcache_key.algorithm_name
-                                                    << ", "
-                                                    << pair.second.kcache_key.network_config);
+    MIOPEN_LOG(log_level,
+               "Kernel cache entry not found for solver <"
+                   << pair.first << "::" << pair.second.solver_id
+                   << "> at network config: " << content->GetKey()
+                   << " and kernel cache key: " << pair.second.kcache_key.algorithm_name << ", "
+                   << pair.second.kcache_key.network_config);
 
     for(const auto& pair2 : content->As<FindDbData>())
         MIOPEN_LOG(log_level,
-                   "Find-db record content: <" << pair2.first << "::" << pair2.second.solver_id
-                                               << "> at network config: "
-                                               << pair2.second.kcache_key.network_config
-                                               << " and algorithm name: "
-                                               << pair2.second.kcache_key.algorithm_name);
+                   "Find-db record content: <"
+                       << pair2.first << "::" << pair2.second.solver_id
+                       << "> at network config: " << pair2.second.kcache_key.network_config
+                       << " and algorithm name: " << pair2.second.kcache_key.algorithm_name);
 }
 
 template <class TDb>

@@ -370,14 +370,17 @@ void BatchNormForwardTraining(Handle& handle,
                     " -DMIO_SAVE_MEAN_VARIANCE=" + std::to_string(static_cast<int>(resultsave)) +
                     " -DMIO_RUNNING_RESULT=" + std::to_string(static_cast<int>(resultrunning)) +
                     " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) +
-                    " -DMIO_BN_HW=" + std::to_string(in_cstride) + " -DMIO_BN_NHW=" +
-                    std::to_string(in_nhw) + " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
+                    " -DMIO_BN_HW=" + std::to_string(in_cstride) +
+                    " -DMIO_BN_NHW=" + std::to_string(in_nhw) +
+                    " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
                     " -DMIO_BN_NCHW=" + std::to_string(in_nchw) + " -DMIO_BN_NGRPS=" +
                     std::to_string(int(std::ceil(float(ygridsize) / ylocalsize))) +
-                    " -DMIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) + " -DMIO_BN_LDSGCN_SIZE=" +
-                    std::to_string(ldsgcn) + " -DMIO_BN_VARIANT=" + std::to_string(variant) +
-                    " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" +
-                    std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) +
+                    " -DMIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) +
+                    " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) +
+                    " -DMIO_BN_VARIANT=" + std::to_string(variant) +
+                    " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) +
+                    " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
+                    " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) +
                     " -DMIO_BN_GFX1030=" + ((handle.GetDeviceName() == "gfx1030") ? "1" : "0");
 
                 MIOPEN_LOG_I2(kernel_name << ":: " << parms);
@@ -484,13 +487,15 @@ void BatchNormForwardTraining(Handle& handle,
                 " -DMIO_SAVE_MEAN_VARIANCE=" + std::to_string(static_cast<int>(resultsave)) +
                 " -DMIO_RUNNING_RESULT=" + std::to_string(static_cast<int>(resultrunning)) +
                 " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) +
-                " -DMIO_BN_HW=" + std::to_string(in_cstride) + " -DMIO_BN_NHW=" +
-                std::to_string(in_nhw) + " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
-                " -DMIO_BN_LDS_SIZE=" + std::to_string(ylocalsize) + " -DMIO_BN_GRP0=" +
-                std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
-                " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) + " -DMIO_BN_NCHW=" +
-                std::to_string(in_nchw) + " -DMIO_BN_GFX1030=" +
-                ((handle.GetDeviceName() == "gfx1030") ? "1" : "0");
+                " -DMIO_BN_HW=" + std::to_string(in_cstride) +
+                " -DMIO_BN_NHW=" + std::to_string(in_nhw) +
+                " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
+                " -DMIO_BN_LDS_SIZE=" + std::to_string(ylocalsize) +
+                " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) +
+                " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
+                " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) +
+                " -DMIO_BN_NCHW=" + std::to_string(in_nchw) +
+                " -DMIO_BN_GFX1030=" + ((handle.GetDeviceName() == "gfx1030") ? "1" : "0");
 
             std::string program_name = "MIOpenBatchNormFwdTrainPerAct.cl";
             std::string kernel_name  = "MIOpenBatchNormFwdTrainPerActivation";
@@ -684,8 +689,9 @@ void BatchNormForwardInference(Handle& handle,
                 " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
                 " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
                 " -DMIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
-                " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" +
-                std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) +
+                " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) +
+                " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
+                " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) +
                 " -DMIO_BN_GFX1030=" + ((handle.GetDeviceName() == "gfx1030") ? "1" : "0");
 
             std::vector<size_t> vld;
@@ -905,8 +911,8 @@ void BatchNormBackward(Handle& handle,
                 }
                 else
                 {
-                    xlocalsize = 512;
-                    xgridsize  = 512 * c;
+                    xlocalsize = 256;
+                    xgridsize  = 256 * c;
                 }
                 ldsgcn   = xlocalsize / 64;
                 ldsnogcn = xlocalsize;
@@ -1033,15 +1039,17 @@ void BatchNormBackward(Handle& handle,
                         " -DMIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
                         " -DMIO_BN_USESAVED=" + std::to_string(static_cast<int>(useSaved)) +
                         " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) +
-                        " -DMIO_BN_HW=" + std::to_string(in_cstride) + " -DMIO_BN_NHW=" +
-                        std::to_string(in_nhw) + " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
-                        " -DMIO_BN_NCHW=" + std::to_string(in_nchw) + " -DMIO_BN_LDS_SIZE=" +
-                        std::to_string(ldsnogcn) + " -DMIO_BN_LDSGCN_SIZE=" +
-                        std::to_string(ldsgcn) + " -DMIO_BN_VARIANT=" + std::to_string(variant) +
-                        " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" +
-                        std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" +
-                        std::to_string(zlocalsize) + " -DMIO_BN_GFX1030=" +
-                        ((handle.GetDeviceName() == "gfx1030") ? "1" : "0");
+                        " -DMIO_BN_HW=" + std::to_string(in_cstride) +
+                        " -DMIO_BN_NHW=" + std::to_string(in_nhw) +
+                        " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
+                        " -DMIO_BN_NCHW=" + std::to_string(in_nchw) +
+                        " -DMIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) +
+                        " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) +
+                        " -DMIO_BN_VARIANT=" + std::to_string(variant) +
+                        " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) +
+                        " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
+                        " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) +
+                        " -DMIO_BN_GFX1030=" + ((handle.GetDeviceName() == "gfx1030") ? "1" : "0");
                 }
 
                 MIOPEN_LOG_I2(kernel_name << ":: " << algo_name);
@@ -1148,14 +1156,17 @@ void BatchNormBackward(Handle& handle,
                     " -DMIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
                     " -DMIO_BN_USESAVED=" + std::to_string(static_cast<int>(useSaved)) +
                     " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) +
-                    " -DMIO_BN_HW=" + std::to_string(in_cstride) + " -DMIO_BN_NHW=" +
-                    std::to_string(in_nhw) + " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
+                    " -DMIO_BN_HW=" + std::to_string(in_cstride) +
+                    " -DMIO_BN_NHW=" + std::to_string(in_nhw) +
+                    " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
                     " -DMIO_BN_NCHW=" + std::to_string(in_nchw) + " -DMIO_BN_NGRPS=" +
                     std::to_string(int(std::ceil(float(ygridsize) / ylocalsize))) +
-                    " -DMIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) + " -DMIO_BN_LDSGCN_SIZE=" +
-                    std::to_string(ldsgcn) + " -DMIO_BN_VARIANT=" + std::to_string(variant) +
-                    " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" +
-                    std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) +
+                    " -DMIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) +
+                    " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) +
+                    " -DMIO_BN_VARIANT=" + std::to_string(variant) +
+                    " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) +
+                    " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
+                    " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) +
                     " -DMIO_BN_GFX1030=" + ((handle.GetDeviceName() == "gfx1030") ? "1" : "0");
 
                 MIOPEN_LOG_I2(kernel_name << ":: " << parms);
@@ -1258,13 +1269,15 @@ void BatchNormBackward(Handle& handle,
                 " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
                 " -DMIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
                 " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) +
-                " -DMIO_BN_HW=" + std::to_string(in_cstride) + " -DMIO_BN_NHW=" +
-                std::to_string(in_nhw) + " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
-                " -DMIO_BN_NCHW=" + std::to_string(in_nchw) + " -DMIO_BN_NGRPS=" +
-                std::to_string(int(std::ceil(float(ygridsize) / ylocalsize))) + " -DMIO_BN_GRP0=" +
-                std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
-                " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) + " -DMIO_BN_GFX1030=" +
-                ((handle.GetDeviceName() == "gfx1030") ? "1" : "0");
+                " -DMIO_BN_HW=" + std::to_string(in_cstride) +
+                " -DMIO_BN_NHW=" + std::to_string(in_nhw) +
+                " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
+                " -DMIO_BN_NCHW=" + std::to_string(in_nchw) +
+                " -DMIO_BN_NGRPS=" + std::to_string(int(std::ceil(float(ygridsize) / ylocalsize))) +
+                " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) +
+                " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
+                " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) +
+                " -DMIO_BN_GFX1030=" + ((handle.GetDeviceName() == "gfx1030") ? "1" : "0");
 
             if(useSaved)
             {

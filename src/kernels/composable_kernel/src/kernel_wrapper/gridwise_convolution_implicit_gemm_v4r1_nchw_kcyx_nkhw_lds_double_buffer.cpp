@@ -121,7 +121,7 @@ extern "C" __global__
     constexpr index_t GemmDataPerReadA = GemmMPerThreadSubC;
     constexpr index_t GemmDataPerReadB = GemmNPerThreadSubC;
 
-    using InBlockCopySubLengths_E_N1_B_N2 = Sequence<InBlockCopySubLengths_E,
+    using InBlockCopySubLengths_E_N1_B_N2     = Sequence<InBlockCopySubLengths_E,
                                                      InBlockCopySubLengths_N1,
                                                      InBlockCopySubLengths_B,
                                                      InBlockCopySubLengths_N2>;
@@ -154,7 +154,7 @@ extern "C" __global__
     constexpr index_t GemmDataPerReadA = 1;
     constexpr index_t GemmDataPerReadB = 1;
 
-    using InBlockCopySubLengths_E_N1_B_N2_EPack = Sequence<InBlockCopySubLengths_E,
+    using InBlockCopySubLengths_E_N1_B_N2_EPack     = Sequence<InBlockCopySubLengths_E,
                                                            InBlockCopySubLengths_N1,
                                                            InBlockCopySubLengths_B,
                                                            InBlockCopySubLengths_N2,

@@ -239,9 +239,8 @@ bool TunableImplicitGemmV4R1Dynamic::IsValid(const ConvolutionContext& ctx) cons
     if(block_size < 64 || block_size > 512)
         return false;
 
-    if(block_size !=
-       InBlockCopyClusterLengths_E * InBlockCopyClusterLengths_N1 * InBlockCopyClusterLengths_B *
-           InBlockCopyClusterLengths_N2)
+    if(block_size != InBlockCopyClusterLengths_E * InBlockCopyClusterLengths_N1 *
+                         InBlockCopyClusterLengths_B * InBlockCopyClusterLengths_N2)
         return false;
 
     if(block_size != WeiBlockCopyClusterLengths_K * WeiBlockCopyClusterLengths_E)
@@ -367,9 +366,9 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     kernel.kernel_name = kernel_name;
     kernel.g_wk.clear();
     /* Note here, for API like hipHccModuleLaunchKernel(), hipExtModuleLaunchKernel()
-    * grid dims is in unit of work item.
-    * But for api like hipModuleLaunchKernel(), grid dim is in unit of block.
-    */
+     * grid dims is in unit of work item.
+     * But for api like hipModuleLaunchKernel(), grid dim is in unit of block.
+     */
     kernel.g_wk.push_back(grid_size * block_size);
     kernel.g_wk.push_back(1);
     kernel.g_wk.push_back(1);

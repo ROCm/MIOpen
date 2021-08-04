@@ -284,7 +284,7 @@ void FusionMDGraph::InitBNFwd(FusionMDGraph& g)
     empty_map["constraints"] = {"weight === 0"};
     // Batch Norm + Activation Fwd Training
     {
-        auto bn_v = std::make_shared<MDGraph_vertex>(miopenFusionOpBatchNormFwdTrain,
+        auto bn_v          = std::make_shared<MDGraph_vertex>(miopenFusionOpBatchNormFwdTrain,
                                                      "MIOpenBatchNormActivFwdTrainPerAct.cl",
                                                      "MIOpenBatchNormActivFwdTrainPerActivation",
                                                      "MIOpenBatchNormActivFwdTrainPerActivation");
@@ -303,7 +303,7 @@ void FusionMDGraph::InitBNFwd(FusionMDGraph& g)
     }
 
     {
-        auto bn_v = std::make_shared<MDGraph_vertex>(miopenFusionOpBatchNormFwdTrain,
+        auto bn_v          = std::make_shared<MDGraph_vertex>(miopenFusionOpBatchNormFwdTrain,
                                                      "MIOpenBatchNormActivFwdTrainSpatial.cl",
                                                      "MIOpenBatchNormActivFwdTrainSpatial",
                                                      "MIOpenBatchNormActivFwdTrainSpatial");
@@ -311,7 +311,7 @@ void FusionMDGraph::InitBNFwd(FusionMDGraph& g)
         FusionMDGraph_Edge_Map edg_spatial;
         edg_spatial["constraints"] = {"weight === 0", "bn_mode == miopenBNSpatial"};
         g.AddEdge(nullptr, bn_v, edg_spatial);
-        auto activ_v = std::make_shared<MDGraph_vertex>(miopenFusionOpActivForward,
+        auto activ_v          = std::make_shared<MDGraph_vertex>(miopenFusionOpActivForward,
                                                         "MIOpenBatchNormActivFwdTrainSpatial.cl",
                                                         "MIOpenBatchNormActivFwdTrainSpatial",
                                                         "MIOpenBatchNormActivFwdTrainSpatial");
@@ -374,7 +374,7 @@ void FusionMDGraph::InitBNBwd(FusionMDGraph& g)
     empty_map["constraints"] = {"weight === 0"};
     // Batch Norm + Activation Backwards Training
     {
-        auto bn_v = std::make_shared<MDGraph_vertex>(miopenFusionOpBatchNormBwdTrain,
+        auto bn_v          = std::make_shared<MDGraph_vertex>(miopenFusionOpBatchNormBwdTrain,
                                                      "MIOpenBatchNormActivBwdPerAct.cl",
                                                      "MIOpenBatchNormActivBwdPerActivation",
                                                      "MIOpenBatchNormActivBwdPerActivation");
@@ -383,7 +383,7 @@ void FusionMDGraph::InitBNBwd(FusionMDGraph& g)
         edg_activ["constraints"] = {"weight === 0", "bn_mode == miopenBNPerActivation"};
 
         g.AddEdge(nullptr, bn_v, edg_activ);
-        auto activ_v = std::make_shared<MDGraph_vertex>(miopenFusionOpActivBackward,
+        auto activ_v          = std::make_shared<MDGraph_vertex>(miopenFusionOpActivBackward,
                                                         "MIOpenBatchNormActivBwdPerAct.cl",
                                                         "MIOpenBatchNormActivBwdPerActivation",
                                                         "MIOpenBatchNormActivBwdPerActivation");
@@ -392,7 +392,7 @@ void FusionMDGraph::InitBNBwd(FusionMDGraph& g)
     }
 
     {
-        auto bn_v = std::make_shared<MDGraph_vertex>(miopenFusionOpBatchNormBwdTrain,
+        auto bn_v          = std::make_shared<MDGraph_vertex>(miopenFusionOpBatchNormBwdTrain,
                                                      "MIOpenBatchNormActivBwdSpatial.cl",
                                                      "MIOpenBatchNormActivBwdSpatial",
                                                      "MIOpenBatchNormActivBwdSpatial");
@@ -400,7 +400,7 @@ void FusionMDGraph::InitBNBwd(FusionMDGraph& g)
         FusionMDGraph_Edge_Map edg_spatial;
         edg_spatial["constraints"] = {"weight === 0", "bn_mode == miopenBNSpatial"};
         g.AddEdge(nullptr, bn_v, edg_spatial);
-        auto activ_v = std::make_shared<MDGraph_vertex>(miopenFusionOpActivBackward,
+        auto activ_v          = std::make_shared<MDGraph_vertex>(miopenFusionOpActivBackward,
                                                         "MIOpenBatchNormActivBwdSpatial.cl",
                                                         "MIOpenBatchNormActivBwdSpatial",
                                                         "MIOpenBatchNormActivBwdSpatial");
@@ -735,20 +735,20 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         {
             const std::vector<std::string> supported_arch = {
                 "gfx803", "gfx900", "gfx906", "gfx908"};
-            auto conv_v = std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward,
+            auto conv_v            = std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward,
                                                            "conv1x1u_bias_activ.s",
                                                            "miopenGcnAsmConv1x1U",
                                                            "miopenConvolutionDirectBiasActivAsm");
             conv_v->solver         = solver::ConvBiasActivAsm1x1U{};
             conv_v->supported_arch = supported_arch;
 
-            auto bias_v = std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward,
+            auto bias_v            = std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward,
                                                            "conv1x1u_bias_activ.s",
                                                            "miopenGcnAsmConv1x1U",
                                                            "miopenConvolutionDirectBiasActivAsm");
             bias_v->supported_arch = supported_arch;
 
-            auto activ_v = std::make_shared<MDGraph_vertex>(miopenFusionOpActivForward,
+            auto activ_v            = std::make_shared<MDGraph_vertex>(miopenFusionOpActivForward,
                                                             "conv1x1u_bias_activ.s",
                                                             "miopenGcnAsmConv1x1U",
                                                             "miopenConvolutionDirectBiasActivAsm",
@@ -786,20 +786,20 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         // half precision
         {
             const std::vector<std::string> supported_arch = {"gfx900", "gfx906", "gfx908"};
-            auto conv_v = std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward,
+            auto conv_v            = std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward,
                                                            "conv1x1u_bias_activ.s",
                                                            "miopenGcnAsmConv1x1U",
                                                            "miopenConvolutionDirectBiasActivAsm");
             conv_v->solver         = solver::ConvBiasActivAsm1x1U{};
             conv_v->supported_arch = supported_arch;
 
-            auto bias_v = std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward,
+            auto bias_v            = std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward,
                                                            "conv1x1u_bias_activ.s",
                                                            "miopenGcnAsmConv1x1U",
                                                            "miopenConvolutionDirectBiasActivAsm");
             bias_v->supported_arch = supported_arch;
 
-            auto activ_v = std::make_shared<MDGraph_vertex>(miopenFusionOpActivForward,
+            auto activ_v            = std::make_shared<MDGraph_vertex>(miopenFusionOpActivForward,
                                                             "conv1x1u_bias_activ.s",
                                                             "miopenGcnAsmConv1x1U",
                                                             "miopenConvolutionDirectBiasActivAsm",
@@ -951,7 +951,8 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
 
                 FusionMDGraph_Edge_Map edg_spatial;
                 edg_spatial["constraints"] = {
-                    "weight === 0", "bn_mode == miopenBNSpatial",
+                    "weight === 0",
+                    "bn_mode == miopenBNSpatial",
                 };
 
                 g.AddEdge(bias_v, bn_v, edg_spatial);
