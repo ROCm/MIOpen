@@ -391,7 +391,8 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
         std::to_string(static_cast<long long>(params.in_batch_stride)) +
         std::string(" -DMLO_IN_CHANNEL_STRIDE=") +
         std::to_string(static_cast<long long>(params.in_channel_stride)) +
-        std::string(" -DMLO_IN_STRIDE=") + std::to_string(static_cast<long long>(params.in_stride))
+        std::string(" -DMLO_IN_STRIDE=") +
+        std::to_string(static_cast<long long>(params.in_stride))
         // algorithm parameters
         + std::string(" -DMLO_IN_TILE0=") +
         std::to_string(static_cast<long long>(result.in_tile0)) // size of input data per ALU plane

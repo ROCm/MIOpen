@@ -68,7 +68,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 #endif
               __global _FLOAT* __restrict out_ptr,
               UNUSED _FLOAT dummy_val // nothing
-              )
+)
 {
 
     _FLOAT2 weights[MLO_N_LCL_OUT_MAPS][MLO_N_LCL_IN_MAPS];
@@ -116,7 +116,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 #else
                    (uint2)(MLO_WEI_BSTRIDE)
 #endif
-            )
+    )
     {
         // read weights
 
@@ -129,7 +129,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 #else
                                                                (uint2)(MLO_WEI_CHANNEL_STRIDE)
 #endif
-                )
+        )
         {
             uint c;
             uint2 wei_off2;
@@ -140,7 +140,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 #else
                                                                    (uint2)(MLO_WEI_BSTRIDE)
 #endif
-                    )
+            )
             {
 #if MLO_CLOOP0 % 2 == 0
                 weights[o][c] = (_FLOAT2)(wei_ptr[wei_off2.x], wei_ptr[wei_off2.y]);
@@ -224,7 +224,7 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
 #endif
                   __global _FLOAT* __restrict out_ptr,
                   UNUSED _FLOAT dummy_val // nothing
-                  )
+)
 {
 
     _FLOAT weights[MLO_N_LCL_OUT_MAPS][MLO_N_LCL_IN_MAPS];
@@ -240,8 +240,8 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
     uint pos_in_y = pos_out_y * MLO_FILTER_STRIDE1;
     uint pos_in_x = pos_out_x * MLO_FILTER_STRIDE0;
 #else
-    uint pos_in_y               = pos_out_y; /// MLO_FILTER_STRIDE1;   - divided already
-    uint pos_in_x               = pos_out_x; // MLO_FILTER_STRIDE0;  - divided already
+    uint pos_in_y = pos_out_y; /// MLO_FILTER_STRIDE1;   - divided already
+    uint pos_in_x = pos_out_x; // MLO_FILTER_STRIDE0;  - divided already
 #endif
 
     uint out_grp_block = get_group_id(1); // block of outputs for the entire group

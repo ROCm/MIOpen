@@ -170,7 +170,7 @@ __kernel void SubTensorOpWithCastTensor2d(const global _FLOAT_SRC* __restrict sr
             temp_src *= alpha;
             *(dst + dindex + dstOffset) = float_to_bfloat16(temp_src);
 #else
-            bool over_flow          = (alpha * ((float)temp_src)) >= ((float)MAX_VAL);
+            bool over_flow = (alpha * ((float)temp_src)) >= ((float)MAX_VAL);
             *(dst + dindex + dstOffset) =
                 (_FLOAT_DST)(over_flow ? MAX_VAL : alpha * ((float)temp_src));
 #endif

@@ -469,7 +469,7 @@ bool PerformanceImplicitGemmV4R4Fwd::IsValid(const ConvolutionContext& ctx) cons
         return false;
 
     // check LDS allocation
-    std::size_t lds_size = 0;
+    std::size_t lds_size      = 0;
     std::tie(lds_size, valid) = CalculateLdsNumberOfByte(ctx);
 
     return (valid and lds_size <= get_lds_max_number_of_byte());

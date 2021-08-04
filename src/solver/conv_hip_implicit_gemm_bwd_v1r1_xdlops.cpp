@@ -62,8 +62,8 @@ PerformanceImplicitGemmBwdV1R1Xdlops::PerformanceImplicitGemmBwdV1R1Xdlops(
 {
 }
 
-bool PerformanceImplicitGemmBwdV1R1Xdlops::
-operator==(const PerformanceImplicitGemmBwdV1R1Xdlops& other) const
+bool PerformanceImplicitGemmBwdV1R1Xdlops::operator==(
+    const PerformanceImplicitGemmBwdV1R1Xdlops& other) const
 {
     // clang-format off
     return GemmMPerBlock == other.GemmMPerBlock
@@ -515,7 +515,7 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::IsReallyValid(const ConvolutionContex
     }
 
     // check LDS allocation
-    std::size_t lds_size = 0;
+    std::size_t lds_size      = 0;
     std::tie(lds_size, valid) = CalculateLdsNumberOfByte(ctx);
 
     return (valid and lds_size <= get_lds_max_number_of_byte());

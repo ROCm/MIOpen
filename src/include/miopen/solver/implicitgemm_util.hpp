@@ -610,7 +610,7 @@ static inline bool IsValidBlockwiseGemmXdlops(const ConvolutionContext& ctx,
 
     if(!std::any_of(validWaveGemmSize.cbegin(),
                     validWaveGemmSize.cend(),
-                    [ GemmMPerWave, GemmNPerWave, GemmKPerBlock ](const auto it) noexcept->bool {
+                    [GemmMPerWave, GemmNPerWave, GemmKPerBlock](const auto it) noexcept -> bool {
                         int validMPerWave, validNPerWave, validKPerWave;
                         std::tie(validMPerWave, validNPerWave, validKPerWave) = it;
                         return (GemmMPerWave == validMPerWave) && (GemmNPerWave == validNPerWave) &&

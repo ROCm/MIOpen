@@ -147,7 +147,7 @@ struct ThreadReduce
     // Set the elements in the per-thread buffer to a specific value
     __device__ static void set_buffer_value(DataType* p_thread_buffer, DataType value)
     {
-        for(index_t i          = 0; i < ThreadBufferLen; i++)
+        for(index_t i = 0; i < ThreadBufferLen; i++)
             p_thread_buffer[i] = value;
     };
 
@@ -438,7 +438,7 @@ struct WarpReduce
 
     __device__ static void set_buffer_value(DataType* p_thread_buffer, DataType value)
     {
-        for(index_t i          = 0; i < ThreadBufferLen; i++)
+        for(index_t i = 0; i < ThreadBufferLen; i++)
             p_thread_buffer[i] = value;
 
         __all(1);

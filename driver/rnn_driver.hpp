@@ -364,7 +364,7 @@ std::vector<int> RNNDriver<Tgpu, Tref>::GetWeightTensorLengthsFromCmdLine()
     int wei_bi = 1;
     if((inflags.GetValueInt("bidirection")) == 1)
         wei_bi = 2;
-    wei_oh     = wei_hh * wei_bi;
+    wei_oh = wei_hh * wei_bi;
 
     int wei_sc = 1;
     if((inflags.GetValueStr("mode")) == "lstm")
@@ -563,7 +563,7 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #elif MIOPEN_BACKEND_HIP
-    uint32_t ctx     = 0;
+    uint32_t ctx = 0;
 #endif
 
     in_dev           = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
@@ -619,10 +619,11 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     int layer = inflags.GetValueInt("num_layer");
     int bidir = inflags.GetValueInt("bidirection");
 
-    reserveSpace_sz = 2 * (inflags.GetValueStr("mode") == "lstm"
-                               ? 6
-                               : (inflags.GetValueStr("mode") == "gru" ? 4 : 1)) *
-                      layer * inputBatchLenSum * hid_h * (bidir + 1);
+    reserveSpace_sz =
+        2 *
+        (inflags.GetValueStr("mode") == "lstm" ? 6
+                                               : (inflags.GetValueStr("mode") == "gru" ? 4 : 1)) *
+        layer * inputBatchLenSum * hid_h * (bidir + 1);
     if(inflags.GetValueInt("use_dropout"))
     {
         reserveSpace_sz += (layer - 1) * inputBatchLenSum * hid_h * (bidir + 1);
