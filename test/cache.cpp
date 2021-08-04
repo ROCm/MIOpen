@@ -113,8 +113,6 @@ void check_kern_db()
         miopen::KernDb err_db(
             std::string(temp_file),
             false,
-            "gfx906",
-            60,
             [](std::string str, bool* success) {
                 std::ignore = str;
                 *success    = false;
