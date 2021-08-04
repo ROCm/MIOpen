@@ -158,12 +158,9 @@ int mlo_construct_norm::mloConstructFwd()
         const std::string name = _search_params.GetStream().GetDeviceName();
         if(name.find("gfx9") != std::string::npos) // Any gfx9 device.
         {
-            MIOPEN_LOG_I("Workaround for #1057: " << name << ',' << miopen::GetDataTypeName(
-                                                                        _search_params.in_data_type)
-                                                  << ','
-                                                  << MAP_SZ4
-                                                  << ','
-                                                  << read_unit);
+            MIOPEN_LOG_I("Workaround for #1057: "
+                         << name << ',' << miopen::GetDataTypeName(_search_params.in_data_type)
+                         << ',' << MAP_SZ4 << ',' << read_unit);
             MAP_SZ4 *= read_unit;
             read_unit = 1;
         }
@@ -187,8 +184,9 @@ int mlo_construct_norm::mloConstructFwd()
     // currently always 1
     int DIVBY4 =
         (MAP_SZ4 * read_unit == _search_params.in_width * _search_params.in_height) ? 1 : 0;
-    int C1x1_PIXLEFT = (DIVBY4 == 1) ? 0 : _search_params.in_width * _search_params.in_height -
-                                               (MAP_SZ4 - 1) * read_unit;
+    int C1x1_PIXLEFT = (DIVBY4 == 1) ? 0
+                                     : _search_params.in_width * _search_params.in_height -
+                                           (MAP_SZ4 - 1) * read_unit;
 
     std::string READ_TYPE =
         (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(static_cast<long long>(read_unit));

@@ -705,16 +705,15 @@ struct XdlopsGemmAsm_t
                       "KReduction does not support xdlops repeats");
 
         static_if<!IsKReduction()>{}([&](auto) {
-
             constexpr index_t AStride = K * nxdlops;
             constexpr index_t BStride = K * nxdlops;
 
             for(index_t m_i = 0; m_i < MRepeats; ++m_i)
-                for(index_t k_i      = 0; k_i < K; ++k_i)
+                for(index_t k_i = 0; k_i < K; ++k_i)
                     a[k_i + m_i * K] = p_a_wave[k_i * M + laneId + MPerXdlops * m_i];
 
             for(index_t n_i = 0; n_i < NRepeats; ++n_i)
-                for(index_t k_i      = 0; k_i < K; ++k_i)
+                for(index_t k_i = 0; k_i < K; ++k_i)
                     b[k_i + n_i * K] = p_b_wave[k_i * N + laneId + NPerXdlops * n_i];
 
             // get pointer of registers
@@ -731,9 +730,7 @@ struct XdlopsGemmAsm_t
                         &pa[(k_i * nxdlops + i) * mfma_type.k_base],
                         &pb[(k_i * nxdlops + i) * mfma_type.k_base]);
             }
-
         }).Else([&](auto) {
-
             const index_t blk_id = laneId / mfma_type.num_threads_blk;
             const index_t blk_td = laneId % mfma_type.num_threads_blk;
 
@@ -758,7 +755,6 @@ struct XdlopsGemmAsm_t
                         &pa[(k_i * nxdlops + i) * mfma_type.k_base],
                         &pb[(k_i * nxdlops + i) * mfma_type.k_base]);
             }
-
         });
     }
 
