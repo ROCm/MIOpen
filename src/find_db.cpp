@@ -89,7 +89,7 @@ std::string FindDbRecord_t<TDb>::GetInstalledPath(Handle& handle)
                 {
                     return entry.string();
                 }
-                if(db_id == "" || !miopen::StartsWith(db_id, "gfx") || real_cu_count == 0)
+                if(db_id.empty() || !miopen::StartsWith(db_id, "gfx") || real_cu_count == 0)
                     return "";
                 // Check for alternate ASIC any back end
                 if(fname.rfind(db_id, 0) == 0)
