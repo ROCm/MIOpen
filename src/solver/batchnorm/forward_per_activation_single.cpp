@@ -227,8 +227,8 @@ BnFwdTrainingPASingle::GetSolution(const ExecutionContext& context,
     const auto vn4   = (variant != 4);
 
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& handle, const AnyInvokeParams& raw_params) {
-            decltype(auto) kernel = handle.Run(kernels.front());
+        return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+            decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::batchnorm::InvokeParams>();
             const auto resultsave =
                 params.resultSaveMean != nullptr && params.resultSaveInvVariance != nullptr;
