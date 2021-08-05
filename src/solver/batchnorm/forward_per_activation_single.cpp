@@ -121,11 +121,9 @@ BnFwdTrainingPASingle::GetSolution(const ExecutionContext& context,
         xlocalsize = 256;
 
     size_t ylocalsize = 1;
-    size_t zlocalsize = 1;
 
     size_t xgridsize = c * xlocalsize;
     size_t ygridsize = 1;
-    size_t zgridsize = 1;
 
     int variant           = 1;
     unsigned int ldsnogcn = xlocalsize;
@@ -180,6 +178,9 @@ BnFwdTrainingPASingle::GetSolution(const ExecutionContext& context,
     auto result = ConvSolution{miopenStatusSuccess};
 
     {
+        size_t zlocalsize = 1;
+        size_t zgridsize  = 1;
+
         auto kernel = KernelInfo{};
 
         kernel.kernel_name = "MIOpenBatchNormFwdTrainSpatial";
