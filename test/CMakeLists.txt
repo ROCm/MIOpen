@@ -72,6 +72,7 @@ endif()
 # For HIP_NOGPU backend, GPU detection is not required and should be disabled.
 # Also we do not detect GPU when target GPU for testing is specified explicitly.
 set(MIOPEN_TEST_GPU_DETECTION_FAILED FALSE)
+set(MIOPEN_NO_GPU FALSE)
 if(NOT (MIOPEN_TEST_VEGA OR MIOPEN_TEST_GFX908 OR MIOPEN_TEST_GFX1030 OR MIOPEN_TEST_HIP_NOGPU))
     find_program(ROCMINFO
         NAMES rocminfo
@@ -88,7 +89,10 @@ if(NOT (MIOPEN_TEST_VEGA OR MIOPEN_TEST_GFX908 OR MIOPEN_TEST_GFX1030 OR MIOPEN_
             OUTPUT_VARIABLE ROCMINFO_OUTPUT
             RESULT_VARIABLE ROCMINFO_EXIT_STATUS
         )
-        if(NOT ROCMINFO_EXIT_STATUS EQUAL 0)
+        if(ROCMINFO_OUTPUT MATCHES "no GPU devices")
+            message(WARNING "ROCk module is NOT loaded, possibly no GPU devices")
+            set(MIOPEN_NO_GPU ON)         
+        elseif (NOT ROCMINFO_EXIT_STATUS EQUAL 0)
             message(WARNING "ROCMINFO FAILED, GPU TYPE UNKNOWN. Manually set respective MIOPEN_TEST_GFX* CMake variable to specify target GPU for testing.")
             set(MIOPEN_TEST_GPU_DETECTION_FAILED TRUE)
         elseif(ROCMINFO_OUTPUT MATCHES "gfx1030")
@@ -120,7 +124,7 @@ find_package(Threads REQUIRED)
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C ${CMAKE_CFG_INTDIR})
 add_custom_target(tests)
 
-if(MIOPEN_TEST_GPU_DETECTION_FAILED)
+if(MIOPEN_TEST_GPU_DETECTION_FAILED AND NOT (MIOPEN_NO_GPU))
     add_custom_target(gpu_detection_check COMMAND echo "*** FATAL: GPU DETECTION FAILED DURING CMAKE PHASE, CHECK CMAKE WARNINGS ***" COMMAND exit 1)
     add_dependencies(check gpu_detection_check)
 endif()
@@ -161,7 +165,7 @@ else()
 	if(MIOPEN_TEST_HALF)
 	    set(SKIP_ALL_EXCEPT_TESTS test_conv2d test_conv3d test_conv3d_extra test_immed_conv2d
                 test_immed_conv3d test_gru test_rnn_vanilla test_lstm test_gru_extra test_rnn_extra
-                test_lstm_extra )
+                test_lstm_extra)
 	elseif(MIOPEN_TEST_INT8)
 	    set(SKIP_ALL_EXCEPT_TESTS test_conv2d)
 	elseif(MIOPEN_TEST_BFLOAT16)
@@ -169,8 +173,14 @@ else()
     else()
         set(SKIP_ALL_EXCEPT_TESTS test_conv2d test_conv3d test_conv3d_extra test_immed_conv2d
                 test_immed_conv3d test_gru test_rnn_vanilla test_lstm test_gru_extra
-                test_rnn_extra test_lstm_extra )
+                test_rnn_extra test_lstm_extra)
 	endif()
+endif()
+
+if (MIOPEN_NO_GPU)
+    set(SKIP_ALL_EXCEPT_TESTS test_include_inliner test_kernel_build_params test_lstm test_lstm_dropout 
+            test_test_errors test_type_name test_tensor_test test_sqlite_perfdb test_sequences
+            test_pooling3d test_perfdb)
 endif()
 
 if(MIOPEN_TEST_GFX908)
