@@ -126,6 +126,7 @@ BnFwdTrainingPASingle::GetSolution(const ExecutionContext& context,
     size_t ygridsize = 1;
 
     int variant           = 1;
+    unsigned int ldsgcn   = xlocalsize / 64;
     unsigned int ldsnogcn = xlocalsize;
 
 #if(WORKAROUND_SWDEV_253606 == 0)
@@ -136,6 +137,7 @@ BnFwdTrainingPASingle::GetSolution(const ExecutionContext& context,
         xgridsize  = c * xlocalsize;
         ylocalsize = 1;
         ygridsize  = 1;
+        ldsgcn     = xlocalsize / 64;
         ldsnogcn   = xlocalsize;
     }
     else
@@ -160,6 +162,7 @@ BnFwdTrainingPASingle::GetSolution(const ExecutionContext& context,
         auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
         xgridsize    = c;
         ygridsize    = segment * ylocalsize;
+        ldsgcn       = ylocalsize / 64;
         ldsnogcn     = ylocalsize;
     }
     // clang-format on
@@ -172,6 +175,7 @@ BnFwdTrainingPASingle::GetSolution(const ExecutionContext& context,
         auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
         xgridsize    = c;
         ygridsize    = segment * ylocalsize;
+        ldsgcn       = ylocalsize / 64;
         ldsnogcn     = ylocalsize;
     }
 
@@ -190,11 +194,11 @@ BnFwdTrainingPASingle::GetSolution(const ExecutionContext& context,
             {"MIOPEN_USE_FP16", static_cast<int>(bfp16parm)},
             {"MIOPEN_USE_FP32", static_cast<int>(bfp32parm)},
             {"MIOPEN_USE_FPMIX", static_cast<int>(bfpmixparm)},
-            {"MIOPEN_NRN_OP_ID", static_cast<int>(bfpmixparm)},
             {"MIO_SAVE_MEAN_VARIANCE", static_cast<int>(problem.GetResultSave())},
             {"MIO_RUNNING_RESULT", static_cast<int>(problem.GetResultRunning())},
             {"MIO_BN_VARIANT", variant},
             {"MIO_BN_LDS_SIZE", ldsnogcn},
+            {"MIO_BN_LDSGCN_SIZE", std::to_string(ldsgcn)},
             {"MIO_BN_N", n},
             {"MIO_BN_GRP0", xlocalsize},
             {"MIO_BN_GRP1", ylocalsize},
@@ -205,8 +209,9 @@ BnFwdTrainingPASingle::GetSolution(const ExecutionContext& context,
         if(variant != 4)
         {
             build_params.Define("MIO_BN_C", c);
-            build_params.Define("MIO_BN_NW", in_cstride);
+            build_params.Define("MIO_BN_HW", in_cstride);
             build_params.Define("MIO_BN_NHW", in_nhw);
+            build_params.Define("MIO_BN_CHW", in_nstride);
             build_params.Define("MIO_BN_NCHW", in_nchw);
         }
 
