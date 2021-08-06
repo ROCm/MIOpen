@@ -127,12 +127,23 @@ struct ExecutionContext
                         MIOPEN_LOG_I("Checking perf db file: " << fname);
                         const auto pos = fname.find('_');
                         int cur_count  = -1;
-                        if(pos != std::string::npos)
-                            cur_count = std::stoi(fname.substr(pos + 1));
-                        else
-                            cur_count = std::stoi(fname.substr(db_id.length()), nullptr, 16);
+                        try
+                        {
+                            if(pos != std::string::npos)
+                                cur_count = std::stoi(fname.substr(pos + 1));
+                            else
+                                cur_count = std::stoi(fname.substr(db_id.length()), nullptr, 16);
+                        }
+                        catch(const std::exception& e)
+                        {
+                            MIOPEN_LOG_I2("Unable to infer CU count for file: " << fname << " : "
+                                                                                << e.what());
+                            continue;
+                        }
+
                         if(abs(cur_count - real_cu_count) < (closest_cu))
                         {
+                            MIOPEN_LOG_I2("Updating best candidate to: " << filepath.string());
                             best_path  = filepath;
                             closest_cu = abs(cur_count - real_cu_count);
                         }
