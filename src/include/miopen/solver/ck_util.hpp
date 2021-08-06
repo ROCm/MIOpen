@@ -34,7 +34,7 @@
 #include <algorithm>
 
 #include "../composable_kernel/composable_kernel/include/utility/data_type_enum.hpp"
-#include "../composable_kernel/host/driver_online/include/convolution_problem_descriptor.hpp"
+#include "../composable_kernel/host/solver/include/convolution_problem_descriptor.hpp"
 #include "../composable_kernel/host/driver_online/include/online_driver_common.hpp"
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM)
