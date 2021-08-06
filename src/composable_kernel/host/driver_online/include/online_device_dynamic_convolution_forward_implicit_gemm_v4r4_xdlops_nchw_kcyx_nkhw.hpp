@@ -227,7 +227,7 @@ void online_device_dynamic_convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kc
     ck::index_t nrepeat)
 {
     using namespace ck;
-    using namespace ck_driver;
+    using namespace ck::driver;
     using namespace detail_dyn_conv_fwd_v4r4_xdlops_nchw_kcyx_nkhw;
     using size_t = std::size_t;
 

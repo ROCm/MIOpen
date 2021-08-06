@@ -1,7 +1,8 @@
 #ifndef CONVOLUTION_PROBLEM_DESCRIPTOR
 #define CONVOLUTION_PROBLEM_DESCRIPTOR
 
-namespace ck_driver {
+namespace ck {
+namespace driver {
 
 struct ConvolutionProblemDescriptor
 {
@@ -75,5 +76,6 @@ struct ConvolutionProblemDescriptor
     std::size_t CalculateFlop() const { return 2L * N * K * C * Y * X * Ho * Wo; }
 };
 
-} // namespace ck_driver
+} // namespace driver
+} // namespace ck
 #endif

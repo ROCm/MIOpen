@@ -3,7 +3,8 @@
 
 #include <numeric>
 
-namespace ck_driver {
+namespace ck {
+namespace driver {
 
 struct CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw
 {
@@ -669,5 +670,6 @@ struct ConvIgemmFwdV6r1DlopsNchwKcyxNkhw
     }
 };
 
-} // namespace ck_driver
+} // namespace driver
+} // namespace ck
 #endif

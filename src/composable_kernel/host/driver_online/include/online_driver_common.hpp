@@ -1,7 +1,8 @@
 #ifndef ONLINE_DRIVER_COMMON_HPP
 #define ONLINE_DRIVER_COMMON_HPP
 
-namespace ck_driver {
+namespace ck {
+namespace driver {
 
 inline auto get_ck_hip_online_compile_common_flag()
 {
@@ -47,5 +48,6 @@ auto gcd(X x, Ys... ys)
     return gcd(x, gcd(ys...));
 }
 
-} // namespace ck_driver
+} // namespace driver
+} // namespace ck
 #endif

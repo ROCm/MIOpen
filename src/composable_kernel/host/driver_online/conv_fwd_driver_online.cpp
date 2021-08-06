@@ -35,7 +35,7 @@ enum ConvForwardAlgo
 int main(int argc, char* argv[])
 {
     using namespace ck;
-    using namespace ck_driver;
+    using namespace ck::driver;
     using size_t = std::size_t;
 
     hipStream_t stream;

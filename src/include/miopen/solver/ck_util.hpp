@@ -312,7 +312,7 @@ static inline auto get_ck_convolution_problem_descriptor(const ConvolutionContex
     else
         ck_datatype = ck::DataTypeEnum_t::Unknown;
 
-    return ck_driver::ConvolutionProblemDescriptor{
+    return ck::driver::ConvolutionProblemDescriptor{
         ConvolutionContextInterpreter::GetBatchN(ctx),
         ConvolutionContextInterpreter::GetOutputChannelK(ctx),
         ConvolutionContextInterpreter::GetInputChannelC(ctx),
