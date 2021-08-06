@@ -1,6 +1,7 @@
 include_directories(BEFORE
     include
     ${PROJECT_SOURCE_DIR}/host/host_tensor/include
+    ${PROJECT_SOURCE_DIR}/host/solver/include
     ${PROJECT_SOURCE_DIR}/composable_kernel/include
     ${PROJECT_SOURCE_DIR}/composable_kernel/include/utility
     ${PROJECT_SOURCE_DIR}/composable_kernel/include/tensor_description

@@ -39,11 +39,11 @@ int main(int argc, char* argv[])
     using size_t = std::size_t;
 
     hipStream_t stream;
-    olCompile::Handle* handle;
+    online_compile::Handle* handle;
 
     MY_HIP_CHECK(hipStreamCreate(&stream));
 
-    handle = new olCompile::Handle(stream);
+    handle = new online_compile::Handle(stream);
 
     constexpr auto I0 = Number<0>{};
     constexpr auto I1 = Number<1>{};
