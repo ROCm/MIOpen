@@ -3,6 +3,13 @@
 
 namespace ck_driver {
 
+inline auto get_ck_hip_online_compile_common_flag()
+{
+    std::string param = " -std=c++17";
+
+    return param;
+}
+
 // greatest common divisor, aka highest common factor
 inline int gcd(int x, int y)
 {

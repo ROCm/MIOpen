@@ -216,7 +216,7 @@ template <typename TInWei,
           typename InLeftPads,
           typename InRightPads>
 void online_device_dynamic_convolution_forward_implicit_gemm_v4r4_dlops_nchw_kcyx_nkhw(
-    olCompile::Handle* handle,
+    online_compile::Handle* handle,
     const InLengths& in_n_c_hi_wi_lengths,
     const WeiLengths& wei_k_c_y_x_lengths,
     const OutLengths& out_n_k_ho_wo_lengths,
