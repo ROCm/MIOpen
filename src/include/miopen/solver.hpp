@@ -2186,7 +2186,7 @@ struct ConvCkIgemmFwdV6r1DlopsNchw : SolverBase<ConvolutionContext>
     PerformanceConvCkIgemmFwdV6r1DlopsNchw Search(const ConvolutionContext&,
                                                   const AnyInvokeParams&) const;
     ConvSolution GetSolution(const ConvolutionContext&,
-                             const PerformanceConvCkIgemmFwdV6r1DlopsNchw,
+                             const PerformanceConvCkIgemmFwdV6r1DlopsNchw&,
                              bool disableConfigOverrideFromEnv = false) const;
 };
 

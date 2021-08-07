@@ -123,7 +123,7 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsValidPerformanceConfig(
 }
 
 ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(
-    const ConvolutionContext& ctx, const PerformanceConvCkIgemmFwdV6r1DlopsNchw config, bool) const
+    const ConvolutionContext& ctx, const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config, bool) const
 {
     ConvSolution sol;
     KernelInfo kernel0_info, kernel1_info;
