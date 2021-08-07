@@ -28,7 +28,7 @@
 #include <miopen/solver.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
-#include <miopen/solver/ck_util.hpp>
+#include <miopen/solver/ck_utility_common.hpp>
 #include <cstddef>
 
 #include "../composable_kernel/host/solver/include/conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw.hpp"
@@ -37,6 +37,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW)
 
 namespace miopen {
 namespace solver {
+namespace ck_utility {
 
 static inline auto get_ck_tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw(
     const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config)
@@ -44,6 +45,8 @@ static inline auto get_ck_tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw(
     return ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetTunableList()[config
                                                                                .ck_tunable_list_id];
 }
+
+} // namespace ck_utility
 
 bool PerformanceConvCkIgemmFwdV6r1DlopsNchw::SetNextValue(const ConvolutionContext&)
 {
@@ -66,14 +69,14 @@ bool PerformanceConvCkIgemmFwdV6r1DlopsNchw::IsValid(const ConvolutionContext& c
 
     std::tie(compile_param, found) =
         ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::CalculateCompileParameterBasedOnTunable(
-            get_ck_convolution_problem_descriptor(ctx),
-            get_ck_tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw(*this));
+            ck_utility::get_ck_convolution_problem_descriptor(ctx),
+            ck_utility::get_ck_tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw(*this));
 
     if(!found)
         return false;
 
     return ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::IsValidCompileParameter(
-        get_ck_convolution_problem_descriptor(ctx), compile_param);
+        ck_utility::get_ck_convolution_problem_descriptor(ctx), compile_param);
 }
 
 bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx) const
@@ -82,7 +85,7 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx) co
         return false;
     if(!ctx.use_hip_kernels)
         return false;
-    if(!is_composable_kernel_supported_hardware(ctx))
+    if(!ck_utility::is_ck_supported_hardware(ctx))
         return false;
     if(!ctx.IsLayoutDefault())
         return false;
@@ -96,7 +99,7 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx) co
         return false;
 
     return ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::IsApplicable(
-        get_ck_convolution_problem_descriptor(ctx));
+        ck_utility::get_ck_convolution_problem_descriptor(ctx));
 }
 
 PerformanceConvCkIgemmFwdV6r1DlopsNchw
@@ -125,13 +128,14 @@ ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(
     ConvSolution sol;
     KernelInfo kernel0_info, kernel1_info;
 
-    const auto ck_conv_problem_desc = get_ck_convolution_problem_descriptor(ctx);
+    const auto ck_conv_problem_desc = ck_utility::get_ck_convolution_problem_descriptor(ctx);
 
     auto ck_compile_param = ck::driver::CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw{};
 
     std::tie(ck_compile_param, std::ignore) =
         ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::CalculateCompileParameterBasedOnTunable(
-            ck_conv_problem_desc, get_ck_tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw(config));
+            ck_conv_problem_desc,
+            ck_utility::get_ck_tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw(config));
 
     // kernel0: prepare
     {
@@ -144,8 +148,8 @@ ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(
         kernel0_info.l_wk = {1, 1, 1};
         kernel0_info.g_wk = {1, 1, 1};
 
-        kernel0_info.comp_options =
-            ck_compile_param.GetCompileParameterString() + get_ck_common_compiler_flag(ctx);
+        kernel0_info.comp_options = ck_compile_param.GetCompileParameterString() +
+                                    ck_utility::get_ck_common_compiler_flag(ctx);
     }
 
     // kernel1: compute
@@ -167,8 +171,8 @@ ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(
         kernel1_info.l_wk = {block_size, 1, 1};
         kernel1_info.g_wk = {block_size * grid_size, 1, 1};
 
-        kernel1_info.comp_options =
-            ck_compile_param.GetCompileParameterString() + get_ck_common_compiler_flag(ctx);
+        kernel1_info.comp_options = ck_compile_param.GetCompileParameterString() +
+                                    ck_utility::get_ck_common_compiler_flag(ctx);
     }
 
     sol.construction_params.push_back(kernel0_info);
@@ -209,7 +213,7 @@ ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(
                 elapsed += handle.GetKernelTime();
             }
 
-            // kernel for computatition
+            // kernel for computation
             kernel1(tensors.w, tensors.in, tensors.out, data_ctx.workSpace);
 
             if(handle.IsProfilingEnabled())
@@ -227,7 +231,7 @@ ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(
 std::size_t ConvCkIgemmFwdV6r1DlopsNchw::GetWorkspaceSize(const ConvolutionContext& ctx) const
 {
     return ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetMaxWorkSpaceSize(
-        get_ck_convolution_problem_descriptor(ctx));
+        ck_utility::get_ck_convolution_problem_descriptor(ctx));
 }
 
 PerformanceConvCkIgemmFwdV6r1DlopsNchw

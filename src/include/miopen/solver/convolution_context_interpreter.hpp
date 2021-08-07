@@ -24,80 +24,22 @@
  *
  *******************************************************************************/
 
-#ifndef GUARD_CK_UTIL_HPP_
-#define GUARD_CK_UTIL_HPP_
+#ifndef GUARD_CONVOLUTION_CONTEXT_INTERPRETER_HPP_
+#define GUARD_CONVOLUTION_CONTEXT_INTERPRETER_HPP_
 
 #include <miopen/env.hpp>
-#include <miopen/hip_build_utils.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/rocm_features.hpp>
 #include <algorithm>
 
-#include "../composable_kernel/composable_kernel/include/utility/data_type_enum.hpp"
-#include "../composable_kernel/host/solver/include/convolution_problem_descriptor.hpp"
-#include "../composable_kernel/host/solver/include/solver_common.hpp"
-
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CK_USE_AMD_BUFFER_ADDRESSING)
-
 namespace miopen {
 namespace solver {
 
-static inline bool is_composable_kernel_supported_hardware(const ConvolutionContext& c)
-{
-    return (StartsWith(c.GetStream().GetDeviceName(), "gfx803") &&
-            c.GetStream().GetMaxComputeUnits() == 64) ||
-           StartsWith(c.GetStream().GetDeviceName(), "gfx900") ||
-           StartsWith(c.GetStream().GetDeviceName(), "gfx906") ||
-           StartsWith(c.GetStream().GetDeviceName(), "gfx908") ||
-           StartsWith(c.GetStream().GetDeviceName(), "gfx90a") ||
-           StartsWith(c.GetStream().GetDeviceName(), "gfx1030");
-}
-
-static inline bool support_amd_buffer_atomic_fadd(const std::string& device_name)
-{
-    return StartsWith(device_name, "gfx908");
-}
-
-static inline auto get_ck_common_compiler_flag(const ConvolutionContext& ctx)
-{
-    auto compiler_flag = std::string(" --std=c++17");
-
-    // GPU target
-    std::string gpu_target;
-
-    if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx803"))
-        compiler_flag += std::string(" -DCK_AMD_GPU_GFX803");
-    else if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx900"))
-        compiler_flag += std::string(" -DCK_AMD_GPU_GFX900");
-    else if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx906"))
-        compiler_flag += std::string(" -DCK_AMD_GPU_GFX906");
-    else if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx908"))
-        compiler_flag += std::string(" -DCK_AMD_GPU_GFX908");
-    else if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx90a"))
-        compiler_flag += std::string(" -DCK_AMD_GPU_GFX90A");
-    else if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx1030"))
-        compiler_flag += std::string(" -DCK_AMD_GPU_GFX1030");
-
-    // buffer atomic-fadd
-    compiler_flag += std::string(" -DCK_USE_AMD_BUFFER_ATOMIC_FADD=") +
-                     (support_amd_buffer_atomic_fadd(ctx.GetStream().GetDeviceName()) ? '1' : '0');
-
-    // sync LDS
-    compiler_flag +=
-        std::string(" -DCK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM=") +
-        (miopen::IsDisabled(MIOPEN_DEBUG_CK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM{}) ? '0' : '1');
-
-    // buffer addressing
-    compiler_flag += std::string(" -DCK_USE_AMD_BUFFER_ADDRESSING=") +
-                     (miopen::IsDisabled(MIOPEN_DEBUG_CK_USE_AMD_BUFFER_ADDRESSING{}) ? '0' : '1');
-
-    return compiler_flag;
-}
-
 // 1. get the original dimension of conv problem
-//    (undo the dimeniosn swapping happened inside ConvolutionContext)
-// 2. adjust right padding size to align with the way implicit GEMM deal with padding
+//    (undo the dimeniosn swapping and tensor swapping happened inside ConvolutionContext)
+// 2. adjust right padding size so that filter will not move out-of-bound
+// 3. adjust stride to 1 if output image size is 1
+// 4. adjust dilation to 1 if filter size is 1
 struct ConvolutionContextInterpreter
 {
     static auto GetGroupCountG(const ConvolutionContext& c) { return c.group_counts; }
@@ -244,7 +186,7 @@ struct ConvolutionContextInterpreter
 
     static auto GetInputLeftPadW(const ConvolutionContext& c) { return c.pad_w; }
 
-    // adjust right padding size to align with the way implicit GEMM deal with padding
+    // adjust right padding size so that filter will not move out-of-bound
     static auto GetAdjustedInputRightPadD(const ConvolutionContext& c)
     {
         int di              = GetInputDepthDi(c);
@@ -262,7 +204,7 @@ struct ConvolutionContextInterpreter
         return in_right_pad_d;
     }
 
-    // adjust right padding size to align with the way implicit GEMM deal with padding
+    // adjust right padding size so that filter will not move out-of-bound
     static auto GetAdjustedInputRightPadH(const ConvolutionContext& c)
     {
         int hi              = GetInputHeightHi(c);
@@ -280,7 +222,7 @@ struct ConvolutionContextInterpreter
         return in_right_pad_h;
     }
 
-    // adjust right padding size to align with the way implicit GEMM deal with padding
+    // adjust right padding size so that filter will not move out-of-bound
     static auto GetAdjustedInputRightPadW(const ConvolutionContext& c)
     {
         int wi              = GetInputWidthWi(c);
@@ -298,42 +240,6 @@ struct ConvolutionContextInterpreter
         return in_right_pad_w;
     }
 };
-
-static inline auto get_ck_convolution_problem_descriptor(const ConvolutionContext& ctx)
-{
-    ck::DataTypeEnum_t ck_datatype;
-
-    if(ctx.IsFp32())
-        ck_datatype = ck::DataTypeEnum_t::Float;
-    else if(ctx.IsFp16())
-        ck_datatype = ck::DataTypeEnum_t::Half;
-    else if(ctx.IsBfp16())
-        ck_datatype = ck::DataTypeEnum_t::BFloat16;
-    else
-        ck_datatype = ck::DataTypeEnum_t::Unknown;
-
-    return ck::driver::ConvolutionProblemDescriptor{
-        ConvolutionContextInterpreter::GetBatchN(ctx),
-        ConvolutionContextInterpreter::GetOutputChannelK(ctx),
-        ConvolutionContextInterpreter::GetInputChannelC(ctx),
-        ConvolutionContextInterpreter::GetFilterHeightY(ctx),
-        ConvolutionContextInterpreter::GetFilterWidthX(ctx),
-        ConvolutionContextInterpreter::GetInputHeightHi(ctx),
-        ConvolutionContextInterpreter::GetInputWidthWi(ctx),
-        ConvolutionContextInterpreter::GetOutputHeightHo(ctx),
-        ConvolutionContextInterpreter::GetOutputWidthWo(ctx),
-        ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx),
-        ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx),
-        ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx),
-        ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx),
-        ConvolutionContextInterpreter::GetInputLeftPadH(ctx),
-        ConvolutionContextInterpreter::GetInputLeftPadW(ctx),
-        ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx),
-        ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx),
-        ck_datatype,
-        ck_datatype,
-        ck_datatype};
-}
 
 } // namespace solver
 } // namespace miopen
