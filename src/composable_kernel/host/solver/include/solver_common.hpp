@@ -1,15 +1,8 @@
-#ifndef ONLINE_DRIVER_COMMON_HPP
-#define ONLINE_DRIVER_COMMON_HPP
+#ifndef CK_SOLVER_COMMON_HPP
+#define CK_SOLVER_COMMON_HPP
 
 namespace ck {
 namespace driver {
-
-inline auto get_ck_hip_online_compile_common_flag()
-{
-    std::string param = " -std=c++17";
-
-    return param;
-}
 
 // greatest common divisor, aka highest common factor
 inline int gcd(int x, int y)

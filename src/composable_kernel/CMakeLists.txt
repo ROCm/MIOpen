@@ -1,10 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(modular_convolution)
+project(composable_kernel)
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
-
-include(TargetFlags)
-include(AddKernels)
 
 ## C++
 enable_language(CXX)
