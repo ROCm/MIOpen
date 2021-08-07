@@ -46,29 +46,29 @@ int main(int argc, char* argv[])
         exit(1);
     }
 
-    const ConvTensorLayout layout   = static_cast<ConvTensorLayout>(atoi(argv[1]));
-    const ConvBackwardDataAlgo algo = static_cast<ConvBackwardDataAlgo>(atoi(argv[2]));
-    const bool do_verification      = atoi(argv[3]);
-    const int init_method           = atoi(argv[4]);
-    const bool do_log               = atoi(argv[5]);
-    const int nrepeat               = atoi(argv[6]);
+    const ConvTensorLayout layout   = static_cast<ConvTensorLayout>(std::stoi(argv[1]));
+    const ConvBackwardDataAlgo algo = static_cast<ConvBackwardDataAlgo>(std::stoi(argv[2]));
+    const bool do_verification      = std::stoi(argv[3]);
+    const int init_method           = std::stoi(argv[4]);
+    const bool do_log               = std::stoi(argv[5]);
+    const int nrepeat               = std::stoi(argv[6]);
 
-    const index_t N  = atoi(argv[7]);
-    const index_t K  = atoi(argv[8]);
-    const index_t C  = atoi(argv[9]);
-    const index_t Y  = atoi(argv[10]);
-    const index_t X  = atoi(argv[11]);
-    const index_t Hi = atoi(argv[12]);
-    const index_t Wi = atoi(argv[13]);
+    const index_t N  = std::stoi(argv[7]);
+    const index_t K  = std::stoi(argv[8]);
+    const index_t C  = std::stoi(argv[9]);
+    const index_t Y  = std::stoi(argv[10]);
+    const index_t X  = std::stoi(argv[11]);
+    const index_t Hi = std::stoi(argv[12]);
+    const index_t Wi = std::stoi(argv[13]);
 
-    const index_t conv_stride_h   = atoi(argv[14]);
-    const index_t conv_stride_w   = atoi(argv[15]);
-    const index_t conv_dilation_h = atoi(argv[16]);
-    const index_t conv_dilation_w = atoi(argv[17]);
-    const index_t in_left_pad_h   = atoi(argv[18]);
-    const index_t in_left_pad_w   = atoi(argv[19]);
-    const index_t in_right_pad_h  = atoi(argv[20]);
-    const index_t in_right_pad_w  = atoi(argv[21]);
+    const index_t conv_stride_h   = std::stoi(argv[14]);
+    const index_t conv_stride_w   = std::stoi(argv[15]);
+    const index_t conv_dilation_h = std::stoi(argv[16]);
+    const index_t conv_dilation_w = std::stoi(argv[17]);
+    const index_t in_left_pad_h   = std::stoi(argv[18]);
+    const index_t in_left_pad_w   = std::stoi(argv[19]);
+    const index_t in_right_pad_h  = std::stoi(argv[20]);
+    const index_t in_right_pad_w  = std::stoi(argv[21]);
 
     const index_t YEff = (Y - 1) * conv_dilation_h + 1;
     const index_t XEff = (X - 1) * conv_dilation_w + 1;
@@ -83,12 +83,12 @@ int main(int argc, char* argv[])
         exit(1);
     }
 
-    const ConvTensorLayout layout   = static_cast<ConvTensorLayout>(atoi(argv[1]));
-    const ConvBackwardDataAlgo algo = static_cast<ConvBackwardDataAlgo>(atoi(argv[2]));
-    const bool do_verification      = atoi(argv[3]);
-    const int init_method           = atoi(argv[4]);
-    const bool do_log               = atoi(argv[5]);
-    const int nrepeat               = atoi(argv[6]);
+    const ConvTensorLayout layout   = static_cast<ConvTensorLayout>(std::stoi(argv[1]));
+    const ConvBackwardDataAlgo algo = static_cast<ConvBackwardDataAlgo>(std::stoi(argv[2]));
+    const bool do_verification      = std::stoi(argv[3]);
+    const int init_method           = std::stoi(argv[4]);
+    const bool do_log               = std::stoi(argv[5]);
+    const int nrepeat               = std::stoi(argv[6]);
 
     constexpr index_t N  = 128;
     constexpr index_t C  = 192;
