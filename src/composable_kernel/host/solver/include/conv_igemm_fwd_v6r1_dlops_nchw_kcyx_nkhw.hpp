@@ -103,7 +103,7 @@ struct CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw
     ck::DataTypeEnum_t AccDataTypeEnum = ck::DataTypeEnum_t::Unknown;
     ck::DataTypeEnum_t CDataTypeEnum   = ck::DataTypeEnum_t::Unknown;
 
-    int BlockSize = 1;
+    int BlockSize = -1;
 
     int GN0 = -1;
     int GK1 = -1;
