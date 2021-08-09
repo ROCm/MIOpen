@@ -203,9 +203,6 @@ struct GridwiseDynamicGemm_k0mk1_k0nk1_mn_xdlops_v2r3
     __host__ __device__ static constexpr auto
     MakeCM0M1M2NGridDescriptor(const CMNGridDesc& c_m_n_grid_desc)
     {
-        const auto M = c_m_n_grid_desc.GetLength(I0);
-        const auto N = c_m_n_grid_desc.GetLength(I1);
-
         constexpr auto xdlops_gemm = XdlopsGemm<FloatAB, MPerWave, NPerWave, K1>{};
 
         constexpr auto CLayout = xdlops_gemm.GetCLayout();
@@ -217,7 +214,6 @@ struct GridwiseDynamicGemm_k0mk1_k0nk1_mn_xdlops_v2r3
         constexpr index_t MWaves = MPerBlock / (MPerWave * MRepeat);
         constexpr index_t NWaves = NPerBlock / (NPerWave * NRepeat);
 
-        constexpr auto N0 = Number<CLayout.N1()>{};
         constexpr auto N1 = Number<CLayout.N0()>{};
 
         const auto c_m0_m1_m2_n_grid_desc = transform_dynamic_tensor_descriptor(
@@ -277,8 +273,6 @@ struct GridwiseDynamicGemm_k0mk1_k0nk1_mn_xdlops_v2r3
             p_c_grid, c_m0_m1_m2_n_grid_desc.GetElementSpaceSize());
 
         const auto K0 = a_k0_m_k1_grid_desc.GetLength(I0);
-        const auto M  = a_k0_m_k1_grid_desc.GetLength(I1);
-        const auto N  = b_k0_n_k1_grid_desc.GetLength(I1);
 
         // divide block work by [M, N]
         const auto block_work_idx =

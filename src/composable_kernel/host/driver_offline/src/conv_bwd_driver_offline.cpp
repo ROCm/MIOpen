@@ -277,8 +277,6 @@ int main(int argc, char* argv[])
                           in_right_pads_dev);
     };
 
-    const auto nhwc_desc = f_make_for_device_nhwc();
-
 #if USE_CONV_BWD_V4R1_XDL_NHWC
     if(algo == ConvBackwardDataAlgo::V4R1XDLNHWC)
     {

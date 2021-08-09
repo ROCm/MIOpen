@@ -38,6 +38,10 @@ link_libraries(${OpenMP_pthread_LIBRARY})
 find_package(HIP REQUIRED)
 message(STATUS "Build with HIP ${hip_VERSION}")
 
+## half
+#find_path(HALF_INCLUDE_DIR half.hpp)
+#message("HALF_INCLUDE_DIR: ${HALF_INCLUDE_DIR}")
+
 ## tidy
 include(EnableCompilerWarnings)
 set(MIOPEN_TIDY_ERRORS ERRORS * -readability-inconsistent-declaration-parameter-name)
