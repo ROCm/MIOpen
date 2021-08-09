@@ -67,6 +67,7 @@ set(MIOPEN_LOG_FUNC_TIME_ENABLE Off CACHE BOOL "")
 set(MIOPEN_ENABLE_SQLITE_BACKOFF On CACHE BOOL "")
 
 option( BUILD_DEV "Build for development only" OFF)
+option(MIOPEN_ENABLE_FIN "Enable the fin driver for MIOpen"  OFF)
 
 
 # Strip symbols for release
@@ -75,7 +76,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 2.13.0)
+rocm_setup_version(VERSION 2.14.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -599,3 +600,6 @@ endif()
 add_subdirectory(test)
 add_subdirectory(speedtests)
 add_subdirectory(utils)
+if(MIOPEN_ENABLE_FIN)
+add_subdirectory(fin)
+endif()
