@@ -90,6 +90,7 @@ struct ExecutionContext
 
     std::string GetPerfDbPath() const
     {
+        static const auto result = [&] {
         boost::filesystem::path pdb_path(GetSystemDbPath());
         std::ostringstream filename;
         // clang-format off
@@ -156,7 +157,9 @@ struct ExecutionContext
                 MIOPEN_LOG_I("Database directory does not exist");
             }
         }
-        return {};
+        return std::string();
+        }();
+        return result;
     }
 
     std::string GetUserPerfDbPath() const
