@@ -3,7 +3,7 @@
 
 namespace ck {
 
-#include "amd_buffer_addressing_v2.hpp"
+#include "amd_buffer_addressing.hpp"
 
 template <AddressSpaceEnum_t BufferAddressSpace, typename T, typename ElementSpaceSize>
 struct DynamicBuffer

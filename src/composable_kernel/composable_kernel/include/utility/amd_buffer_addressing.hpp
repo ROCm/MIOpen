@@ -1,12 +1,12 @@
-#ifndef CK_AMD_BUFFER_ADDRESSING_V2_HPP
-#define CK_AMD_BUFFER_ADDRESSING_V2_HPP
+#ifndef CK_AMD_BUFFER_ADDRESSING_HPP
+#define CK_AMD_BUFFER_ADDRESSING_HPP
 
 #include "data_type.hpp"
 
 namespace ck {
 
 template <typename T>
-union BufferResource_v2
+union BufferResource
 {
     // 128 bit SGPRs to supply buffer resource in buffer instructions
     // https://rocm-documentation.readthedocs.io/en/latest/GCN_ISA_Manuals/testdocbook.html#vector-memory-buffer-instructions
@@ -19,7 +19,7 @@ union BufferResource_v2
 template <typename T>
 __device__ int32x4_t make_wave_buffer_resource(T* p_wave, index_t data_space_size)
 {
-    BufferResource_v2<T> wave_buffer_resource;
+    BufferResource<T> wave_buffer_resource;
 
     // wavewise base address (64 bit)
     wave_buffer_resource.address(Number<0>{}) = const_cast<remove_cv_t<T>*>(p_wave);

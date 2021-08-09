@@ -80,16 +80,16 @@ __global__ void
     // first cast void CONSTANT void* to void*
     // second cast void* to Desc*
     // the copy constructor of tensor descriptor doesn't take address_space(4)
-    const auto a_k_m0_m1_grid_desc =
-        *reinterpret_cast<const AKM0M1GridDesc*>((const void*)p_a_k_m0_m1_grid_desc);
-    const auto b_k_n0_n1_grid_desc =
-        *reinterpret_cast<const BKN0N1GridDesc*>((const void*)p_b_k_n0_n1_grid_desc);
+    const auto a_k_m0_m1_grid_desc = *reinterpret_cast<const AKM0M1GridDesc*>(
+        cast_pointer_to_generic_address_space(p_a_k_m0_m1_grid_desc));
+    const auto b_k_n0_n1_grid_desc = *reinterpret_cast<const BKN0N1GridDesc*>(
+        cast_pointer_to_generic_address_space(p_b_k_n0_n1_grid_desc));
     const auto c_m0_m10_m11_n0_n10_n11_grid_desc =
         *reinterpret_cast<const CM0M10M11N0N10N11GridDesc*>(
-            (const void*)p_c_m0_m10_m11_n0_n10_n11_grid_desc);
+            cast_pointer_to_generic_address_space(p_c_m0_m10_m11_n0_n10_n11_grid_desc));
     const auto c_blockid_to_m0_n0_block_cluster_adaptor =
         *reinterpret_cast<const CBlockIdToM0N0BlockClusterAdaptor*>(
-            (const void*)p_c_blockid_to_m0_n0_block_cluster_adaptor);
+            cast_pointer_to_generic_address_space(p_c_blockid_to_m0_n0_block_cluster_adaptor));
 
     constexpr index_t shared_block_size =
         GridwiseGemm::GetSharedMemoryNumberOfByte() / sizeof(FloatAB);

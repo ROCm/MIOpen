@@ -23,9 +23,10 @@
 #include "tuple.hpp"
 #include "tuple_helper.hpp"
 #include "type.hpp"
-#include "utility.hpp"
 #include "magic_division.hpp"
-#include "amd_buffer_addressing_v2.hpp"
+#include "utility.hpp"
+#include "amd_address_space.hpp"
+#include "amd_buffer_addressing.hpp"
 #include "static_buffer.hpp"
 #include "dynamic_buffer.hpp"
 

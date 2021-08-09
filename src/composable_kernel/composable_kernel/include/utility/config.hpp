@@ -7,7 +7,7 @@
 #endif
 #include "bfloat16_dev.hpp"
 
-// address space for kernel parameter
+// "Constant" address space for kernel parameter
 #define CONSTANT __attribute__((address_space(4)))
 
 // GPU target
@@ -119,15 +119,6 @@
 #endif
 
 namespace ck {
-
-enum AddressSpaceEnum_t
-{
-    Generic,
-    Global,
-    Lds,
-    Sgpr,
-    Vgpr
-};
 
 enum InMemoryDataOperationEnum_t
 {

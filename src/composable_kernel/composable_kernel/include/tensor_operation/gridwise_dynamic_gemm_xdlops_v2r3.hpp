@@ -69,14 +69,14 @@ __global__ void
     constexpr index_t shared_block_size =
         GridwiseGemm::GetSharedMemoryNumberOfByte() / sizeof(FloatAB);
 
-    const auto a_k0_m_k1_grid_desc =
-        *reinterpret_cast<const AK0MK1GridDesc*>((const void*)p_a_k0_m_k1_grid_desc);
-    const auto b_k0_n_k1_grid_desc =
-        *reinterpret_cast<const BK0NK1GridDesc*>((const void*)p_b_k0_n_k1_grid_desc);
-    const auto c_m0_m1_m2_n_grid_desc =
-        *reinterpret_cast<const CM0M1M2NGridDesc*>((const void*)p_c_m0_m1_m2_n_grid_desc);
-    const auto c_block_cluster_adaptor =
-        *reinterpret_cast<const CBlockClusterAdaptor*>((const void*)p_c_block_cluster_adaptor);
+    const auto a_k0_m_k1_grid_desc = *reinterpret_cast<const AK0MK1GridDesc*>(
+        cast_pointer_to_generic_address_space(p_a_k0_m_k1_grid_desc));
+    const auto b_k0_n_k1_grid_desc = *reinterpret_cast<const BK0NK1GridDesc*>(
+        cast_pointer_to_generic_address_space(p_b_k0_n_k1_grid_desc));
+    const auto c_m0_m1_m2_n_grid_desc = *reinterpret_cast<const CM0M1M2NGridDesc*>(
+        cast_pointer_to_generic_address_space(p_c_m0_m1_m2_n_grid_desc));
+    const auto c_block_cluster_adaptor = *reinterpret_cast<const CBlockClusterAdaptor*>(
+        cast_pointer_to_generic_address_space(p_c_block_cluster_adaptor));
 
     __shared__ FloatAB p_shared_block[shared_block_size];
 
