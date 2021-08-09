@@ -562,11 +562,11 @@ enable_cppcheck(
         *:*src/sqlite/*.cpp
         *:*.cl
         *:*src/kernels/*.h
-        knownConditionTrueFalse:*src/kernels/composable_kernel/*/*
-        redundantAssignment:*src/kernels/composable_kernel/*/*
-        unreadVariable:*src/kernels/composable_kernel/*/*
-        unusedScopedObject:*src/kernels/composable_kernel/*/*
-        wrongPrintfScanfArgNum:*src/kernels/composable_kernel/*/*
+        knownConditionTrueFalse:*src/kernels/static_composable_kernel/*/*
+        redundantAssignment:*src/kernels/static_composable_kernel/*/*
+        unreadVariable:*src/kernels/static_composable_kernel/*/*
+        unusedScopedObject:*src/kernels/static_composable_kernel/*/*
+        wrongPrintfScanfArgNum:*src/kernels/static_composable_kernel/*/*
         unmatchedSuppression
     FORCE
     SOURCES

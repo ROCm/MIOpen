@@ -66,9 +66,6 @@ __host__ float driver_dynamic_gemm_xdlops_v2r3(const FloatAB* p_a_grid,
     constexpr auto I0 = Number<0>{};
     constexpr auto I1 = Number<1>{};
     constexpr auto I2 = Number<2>{};
-    constexpr auto I3 = Number<3>{};
-    constexpr auto I4 = Number<4>{};
-    constexpr auto I5 = Number<5>{};
 
     using GridwiseGemm =
         GridwiseDynamicGemm_k0mk1_k0nk1_mn_xdlops_v2r3<BlockSize,

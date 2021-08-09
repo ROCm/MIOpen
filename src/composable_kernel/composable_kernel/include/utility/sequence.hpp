@@ -685,8 +685,6 @@ __host__ __device__ constexpr auto operator+(Number<Y>, Sequence<Xs...>)
 template <index_t Y, index_t... Xs>
 __host__ __device__ constexpr auto operator-(Number<Y>, Sequence<Xs...>)
 {
-    constexpr auto seq_x = Sequence<Xs...>{};
-
     return Sequence<(Y - Xs)...>{};
 }
 

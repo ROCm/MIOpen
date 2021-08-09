@@ -35,11 +35,6 @@ void device_dynamic_convolution_forward_implicit_gemm_v4r4r2_xdlops_nhwc_kyxc_nh
     constexpr auto I1 = Number<1>{};
     constexpr auto I2 = Number<2>{};
     constexpr auto I3 = Number<3>{};
-    constexpr auto I4 = Number<4>{};
-    constexpr auto I5 = Number<5>{};
-    constexpr auto I6 = Number<6>{};
-    constexpr auto I7 = Number<7>{};
-    constexpr auto I8 = Number<8>{};
 
     DeviceMem in_n_hi_wi_c_device_buf(sizeof(TInWei) * in_n_hi_wi_c.mDesc.GetElementSpace());
     DeviceMem wei_k_y_x_c_device_buf(sizeof(TInWei) * wei_k_y_x_c.mDesc.GetElementSpace());
@@ -217,9 +212,6 @@ void device_dynamic_convolution_forward_implicit_gemm_v4r4r2_xdlops_nhwc_kyxc_nh
             const auto N = out_n_ho_wo_k_lengths[I0];
             const auto K = out_n_ho_wo_k_lengths[I3];
             const auto C = wei_k_y_x_c_lengths[I3];
-
-            const auto Hi = in_n_hi_wi_c_lengths[I1];
-            const auto Wi = in_n_hi_wi_c_lengths[I2];
 
             const auto Ho = out_n_ho_wo_k_lengths[I1];
             const auto Wo = out_n_ho_wo_k_lengths[I2];

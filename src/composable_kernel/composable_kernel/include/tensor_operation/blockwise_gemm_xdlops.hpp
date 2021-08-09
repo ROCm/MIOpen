@@ -52,7 +52,6 @@ struct BlockwiseGemmXdlops_km_kn_m0m1m2n_v1
         const index_t waveId    = thread_id / WaveSize;
         const index_t laneId    = thread_id % WaveSize;
         const index_t waveId_m  = waveId / NWaves;
-        const index_t waveId_n  = waveId % NWaves;
 
         if constexpr(xdlops_gemm.IsKReduction)
         {
@@ -73,7 +72,6 @@ struct BlockwiseGemmXdlops_km_kn_m0m1m2n_v1
         const index_t thread_id = get_thread_local_1d_id();
         const index_t waveId    = thread_id / WaveSize;
         const index_t laneId    = thread_id % WaveSize;
-        const index_t waveId_m  = waveId / NWaves;
         const index_t waveId_n  = waveId % NWaves;
 
         if constexpr(xdlops_gemm.IsKReduction)
@@ -293,7 +291,6 @@ struct BlockwiseGemmXdlops_km_kn_m0m1m2n_v1_2x2pipeline
         const index_t thread_id = get_thread_local_1d_id();
         const index_t waveId    = thread_id / WaveSize;
         const index_t laneId    = thread_id % WaveSize;
-        const index_t waveId_m  = waveId / NWaves;
         const index_t waveId_n  = waveId % NWaves;
 
         if constexpr(xdlops_gemm.IsKReduction)

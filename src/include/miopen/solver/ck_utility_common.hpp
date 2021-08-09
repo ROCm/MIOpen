@@ -66,19 +66,19 @@ static inline auto get_ck_common_compiler_flag(const ConvolutionContext& ctx)
     auto compiler_flag = std::string(" --std=c++17");
 
     // GPU target
-    std::string gpu_target;
+    std::string gpu_target = ctx.GetStream().GetDeviceName();
 
-    if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx803"))
+    if(StartsWith(gpu_target, "gfx803"))
         compiler_flag += std::string(" -DCK_AMD_GPU_GFX803");
-    else if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx900"))
+    else if(StartsWith(gpu_target, "gfx900"))
         compiler_flag += std::string(" -DCK_AMD_GPU_GFX900");
-    else if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx906"))
+    else if(StartsWith(gpu_target, "gfx906"))
         compiler_flag += std::string(" -DCK_AMD_GPU_GFX906");
-    else if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx908"))
+    else if(StartsWith(gpu_target, "gfx908"))
         compiler_flag += std::string(" -DCK_AMD_GPU_GFX908");
-    else if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx90a"))
+    else if(StartsWith(gpu_target, "gfx90a"))
         compiler_flag += std::string(" -DCK_AMD_GPU_GFX90A");
-    else if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx1030"))
+    else if(StartsWith(gpu_target, "gfx1030"))
         compiler_flag += std::string(" -DCK_AMD_GPU_GFX1030");
 
     // buffer atomic-fadd

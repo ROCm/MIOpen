@@ -126,9 +126,6 @@ transform_forward_convolution_into_gemm_v4r4_nchw_kcyx_nkhw_no_pad(
     const auto C = in_n_c_hi_wi_global_desc.GetLength(I1);
     const auto K = out_n_k_ho_wo_global_desc.GetLength(I1);
 
-    const auto Hi = in_n_c_hi_wi_global_desc.GetLength(I2);
-    const auto Wi = in_n_c_hi_wi_global_desc.GetLength(I3);
-
     const auto Ho = out_n_k_ho_wo_global_desc.GetLength(I2);
     const auto Wo = out_n_k_ho_wo_global_desc.GetLength(I3);
 
@@ -208,9 +205,6 @@ __host__ __device__ constexpr auto transform_forward_convolution_into_gemm_v4r4_
     const auto N = in_n_c_hi_wi_global_desc.GetLength(I0);
     const auto C = in_n_c_hi_wi_global_desc.GetLength(I1);
     const auto K = out_n_k_ho_wo_global_desc.GetLength(I1);
-
-    const auto Hi = in_n_c_hi_wi_global_desc.GetLength(I2);
-    const auto Wi = in_n_c_hi_wi_global_desc.GetLength(I3);
 
     const auto Ho = out_n_k_ho_wo_global_desc.GetLength(I2);
     const auto Wo = out_n_k_ho_wo_global_desc.GetLength(I3);

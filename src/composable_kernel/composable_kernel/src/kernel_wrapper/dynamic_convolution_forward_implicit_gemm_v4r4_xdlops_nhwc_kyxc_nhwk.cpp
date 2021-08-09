@@ -225,7 +225,6 @@ extern "C" __global__ void
     constexpr auto I0 = Number<0>{};
     constexpr auto I1 = Number<1>{};
     constexpr auto I2 = Number<2>{};
-    constexpr auto I3 = Number<3>{};
 
     constexpr auto in_n_hi_wi_c_desc =
         make_dynamic_naive_tensor_descriptor_packed_v2(make_tuple(256, 28, 28, 256));

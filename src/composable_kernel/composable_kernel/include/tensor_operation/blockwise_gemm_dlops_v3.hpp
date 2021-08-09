@@ -69,7 +69,6 @@ struct BlockwiseGemmDlops_km_kn_m0m1n0n1_v3
                       "wrong! K dimension not consistent\n");
 
         constexpr index_t K = BlockMatrixA{}.GetLength(I1); // A is transposed
-        constexpr index_t N = BlockMatrixB{}.GetLength(I1);
         constexpr index_t H = BlockMatrixB{}.GetLength(I2);
         constexpr index_t W = BlockMatrixB{}.GetLength(I3);
 
