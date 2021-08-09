@@ -142,10 +142,8 @@ int main(int argc, char* argv[])
 
     std::vector<std::size_t> in_lengths_host(4), wei_lengths_host(4), out_lengths_host(4);
 
-    switch(layout)
+    if(layout == ConvTensorLayout::NCHW)
     {
-    case ConvTensorLayout::NCHW:
-        // NCHW
         in_lengths_host[0]  = static_cast<std::size_t>(N);
         in_lengths_host[1]  = static_cast<std::size_t>(C);
         in_lengths_host[2]  = static_cast<std::size_t>(Hi);
@@ -158,9 +156,9 @@ int main(int argc, char* argv[])
         out_lengths_host[1] = static_cast<std::size_t>(K);
         out_lengths_host[2] = static_cast<std::size_t>(Ho);
         out_lengths_host[3] = static_cast<std::size_t>(Wo);
-        break;
-    case ConvTensorLayout::NHWC:
-        // NHWC
+    }
+    else if(layout == ConvTensorLayout::NHWC)
+    {
         in_lengths_host[0]  = static_cast<std::size_t>(N);
         in_lengths_host[1]  = static_cast<std::size_t>(Hi);
         in_lengths_host[2]  = static_cast<std::size_t>(Wi);
@@ -173,8 +171,10 @@ int main(int argc, char* argv[])
         out_lengths_host[1] = static_cast<std::size_t>(Ho);
         out_lengths_host[2] = static_cast<std::size_t>(Wo);
         out_lengths_host[3] = static_cast<std::size_t>(K);
-        break;
-    default: throw std::runtime_error("wrong! not implemented");
+    }
+    else
+    {
+        std::runtime_error("wrong! not implemented");
     }
 
     Tensor<in_data_t> in(in_lengths_host);
