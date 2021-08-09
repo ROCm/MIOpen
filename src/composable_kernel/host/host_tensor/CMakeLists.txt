@@ -10,7 +10,7 @@ set(HOST_TENSOR_SOURCE
 ## the library target
 add_library(host_tensor SHARED ${HOST_TENSOR_SOURCE}) 
 
-#target_include_directories(host_tensor SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
+target_include_directories(host_tensor SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
 
 target_link_libraries(host_tensor PRIVATE hip::device)
 target_link_libraries(host_tensor INTERFACE hip::host)

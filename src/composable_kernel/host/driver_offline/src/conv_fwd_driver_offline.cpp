@@ -20,11 +20,11 @@
 #include "device_dynamic_convolution_forward_implicit_gemm_v4r4r4_xdlops_nhwc_kyxc_nhwk.hpp"
 
 #define USE_DYNAMIC_MODE 1
-#define USE_CONV_FWD_V4R4_NCHW 0
-#define USE_CONV_FWD_V4R4R2_NHWC 0
-#define USE_CONV_FWD_V6R1_NCHW 0
+#define USE_CONV_FWD_V4R4_NCHW 1
+#define USE_CONV_FWD_V4R4R2_NHWC 1
+#define USE_CONV_FWD_V6R1_NCHW 1
 #define USE_CONV_FWD_V5R1_NCHW 0
-#define USE_CONV_FWD_V4R4R2_XDL_NCHW 0
+#define USE_CONV_FWD_V4R4R2_XDL_NCHW 1
 #define USE_CONV_FWD_V4R4R4_XDL_NHWC 1
 
 enum ConvForwardAlgo

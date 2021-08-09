@@ -40,7 +40,7 @@ message(STATUS "Build with HIP ${hip_VERSION}")
 
 ## half
 #find_path(HALF_INCLUDE_DIR half.hpp)
-#message("HALF_INCLUDE_DIR: ${HALF_INCLUDE_DIR}")
+message("HALF_INCLUDE_DIR: ${HALF_INCLUDE_DIR}")
 
 ## tidy
 include(EnableCompilerWarnings)

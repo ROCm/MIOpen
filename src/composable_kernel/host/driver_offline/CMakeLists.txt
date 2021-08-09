@@ -9,7 +9,6 @@ include_directories(BEFORE
     ${PROJECT_SOURCE_DIR}/composable_kernel/include/problem_transform
     ${PROJECT_SOURCE_DIR}/composable_kernel/include/driver
     ${PROJECT_SOURCE_DIR}/external/rocm/include
-    ${PROJECT_SOURCE_DIR}/external/half/include
 )
 
 set(CONV_FWD_DRIVER_OFFLINE_SOURCE src/conv_fwd_driver_offline.cpp)
