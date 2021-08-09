@@ -90,9 +90,10 @@ struct ExecutionContext
 
     std::string GetPerfDbPath() const
     {
-        boost::filesystem::path pdb_path(GetSystemDbPath());
-        std::ostringstream filename;
-        // clang-format off
+        static const auto result = [&] {
+            boost::filesystem::path pdb_path(GetSystemDbPath());
+            std::ostringstream filename;
+            // clang-format off
         filename << GetStream().GetDbBasename();
 #if MIOPEN_ENABLE_SQLITE
         const std::string ext = ".db";
@@ -100,63 +101,66 @@ struct ExecutionContext
         const std::string ext = ".cd.pdb.txt";
 #endif
         filename << ext;
-        // clang-format on
-        if(boost::filesystem::exists(pdb_path / filename.str()))
-        {
-            MIOPEN_LOG_I("Found exact perf database file");
-            return (pdb_path / filename.str()).string();
-        }
-        else
-        {
-            MIOPEN_LOG_I("Unable to find exact perf database file");
-            const auto db_id        = GetStream().GetTargetProperties().DbId();
-            const int real_cu_count = GetStream().GetMaxComputeUnits();
-            namespace fs            = boost::filesystem;
-            if(fs::exists(pdb_path) && fs::is_directory(pdb_path))
+            // clang-format on
+            if(boost::filesystem::exists(pdb_path / filename.str()))
             {
-                MIOPEN_LOG_I("Iterating over perf db directory " << pdb_path.string());
-                int closest_cu = std::numeric_limits<int>::max();
-                fs::path best_path;
-                for(auto const& entry : fs::recursive_directory_iterator(pdb_path))
-                {
-                    const auto& filepath = entry.path();
-                    const auto fname     = filepath.stem().string();
-                    if(fs::is_regular_file(entry) && filepath.extension() == ext &&
-                       fname.rfind(db_id, 0) == 0) // starts with db_id
-                    {
-                        MIOPEN_LOG_I("Checking perf db file: " << fname);
-                        const auto pos = fname.find('_');
-                        int cur_count  = -1;
-                        try
-                        {
-                            if(pos != std::string::npos)
-                                cur_count = std::stoi(fname.substr(pos + 1));
-                            else
-                                cur_count = std::stoi(fname.substr(db_id.length()), nullptr, 16);
-                        }
-                        catch(const std::exception& e)
-                        {
-                            MIOPEN_LOG_I2("Unable to infer CU count for file: " << fname << " : "
-                                                                                << e.what());
-                            continue;
-                        }
-
-                        if(abs(cur_count - real_cu_count) < (closest_cu))
-                        {
-                            MIOPEN_LOG_I2("Updating best candidate to: " << filepath.string());
-                            best_path  = filepath;
-                            closest_cu = abs(cur_count - real_cu_count);
-                        }
-                    }
-                }
-                return best_path.string();
+                MIOPEN_LOG_I("Found exact perf database file");
+                return (pdb_path / filename.str()).string();
             }
             else
             {
-                MIOPEN_LOG_I("Database directory does not exist");
+                MIOPEN_LOG_I("Unable to find exact perf database file");
+                const auto db_id        = GetStream().GetTargetProperties().DbId();
+                const int real_cu_count = GetStream().GetMaxComputeUnits();
+                namespace fs            = boost::filesystem;
+                if(fs::exists(pdb_path) && fs::is_directory(pdb_path))
+                {
+                    MIOPEN_LOG_I("Iterating over perf db directory " << pdb_path.string());
+                    int closest_cu = std::numeric_limits<int>::max();
+                    fs::path best_path;
+                    for(auto const& entry : fs::recursive_directory_iterator(pdb_path))
+                    {
+                        const auto& filepath = entry.path();
+                        const auto fname     = filepath.stem().string();
+                        if(fs::is_regular_file(entry) && filepath.extension() == ext &&
+                           fname.rfind(db_id, 0) == 0) // starts with db_id
+                        {
+                            MIOPEN_LOG_I("Checking perf db file: " << fname);
+                            const auto pos = fname.find('_');
+                            int cur_count  = -1;
+                            try
+                            {
+                                if(pos != std::string::npos)
+                                    cur_count = std::stoi(fname.substr(pos + 1));
+                                else
+                                    cur_count =
+                                        std::stoi(fname.substr(db_id.length()), nullptr, 16);
+                            }
+                            catch(const std::exception& e)
+                            {
+                                MIOPEN_LOG_I2("Unable to infer CU count for file: "
+                                              << fname << " : " << e.what());
+                                continue;
+                            }
+
+                            if(abs(cur_count - real_cu_count) < (closest_cu))
+                            {
+                                MIOPEN_LOG_I2("Updating best candidate to: " << filepath.string());
+                                best_path  = filepath;
+                                closest_cu = abs(cur_count - real_cu_count);
+                            }
+                        }
+                    }
+                    return best_path.string();
+                }
+                else
+                {
+                    MIOPEN_LOG_I("Database directory does not exist");
+                }
             }
-        }
-        return {};
+            return std::string();
+        }();
+        return result;
     }
 
     std::string GetUserPerfDbPath() const
