@@ -142,12 +142,11 @@ enable_clang_tidy(
         -cppcoreguidelines-prefer-member-initializer
 
         ${MIOPEN_TIDY_CHECKS}
-    ${MIOPEN_TIDY_ERRORS}
+        ${MIOPEN_TIDY_ERRORS}
     HEADER_FILTER
         "\.hpp$"
     EXTRA_ARGS
         -DMIOPEN_USE_CLANG_TIDY
-
 )
 
 include(CppCheck)

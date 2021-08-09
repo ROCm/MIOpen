@@ -467,7 +467,6 @@ int main(int argc, char* argv[])
 
         check_error(out_host, out_device);
 
-#if 0
         if(do_log)
         {
             LogRangeAsType<float>(std::cout << "in : ", in.mData, ",") << std::endl;
@@ -475,6 +474,5 @@ int main(int argc, char* argv[])
             LogRangeAsType<float>(std::cout << "out_host  : ", out_host.mData, ",") << std::endl;
             LogRangeAsType<float>(std::cout << "out_device: ", out_device.mData, ",") << std::endl;
         }
-#endif
     }
 }

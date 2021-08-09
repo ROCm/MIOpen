@@ -14,15 +14,13 @@ void host_direct_convolution(const Tensor<TIn>& in,
                              const ConvStrides& conv_strides,
                              const ConvDilations& conv_dilations,
                              const InLeftPads& in_left_pads,
-                             const InRightPads& in_right_pads,
+                             const InRightPads&,
                              const ConvTensorLayout layout = ConvTensorLayout::NCHW)
 {
     using namespace ck;
 
     constexpr auto I0 = Number<0>{};
     constexpr auto I1 = Number<1>{};
-    constexpr auto I2 = Number<2>{};
-    constexpr auto I3 = Number<3>{};
 
     auto f_nchw = [&](auto n, auto k, auto ho, auto wo) {
         double v = 0;
@@ -68,23 +66,25 @@ void host_direct_convolution(const Tensor<TIn>& in,
         out(n, ho, wo, k) = v;
     };
 
-    switch(layout)
+    if(layout == ConvTensorLayout::NCHW)
     {
-    case ConvTensorLayout::NCHW:
         make_ParallelTensorFunctor(f_nchw,
                                    out.mDesc.GetLengths()[0],
                                    out.mDesc.GetLengths()[1],
                                    out.mDesc.GetLengths()[2],
                                    out.mDesc.GetLengths()[3])(std::thread::hardware_concurrency());
-        break;
-    case ConvTensorLayout::NHWC:
+    }
+    else if(layout == ConvTensorLayout::NHWC)
+    {
         make_ParallelTensorFunctor(f_nhwc,
                                    out.mDesc.GetLengths()[0],
                                    out.mDesc.GetLengths()[1],
                                    out.mDesc.GetLengths()[2],
                                    out.mDesc.GetLengths()[3])(std::thread::hardware_concurrency());
-        break;
-    default: throw std::runtime_error("wrong! not supported layout");
+    }
+    else
+    {
+        throw std::runtime_error("wrong! not supported layout");
     }
 }
 
@@ -100,17 +100,15 @@ void host_winograd_3x3_convolution(const Tensor<TIn>& in_nchw,
     constexpr std::size_t HoPerTile = 2;
     constexpr std::size_t WoPerTile = 2;
 
-    std::size_t N  = in_nchw.mDesc.GetLengths()[0];
-    std::size_t C  = in_nchw.mDesc.GetLengths()[1];
-    std::size_t HI = in_nchw.mDesc.GetLengths()[2];
-    std::size_t WI = in_nchw.mDesc.GetLengths()[3];
+    std::size_t N = in_nchw.mDesc.GetLengths()[0];
+    std::size_t C = in_nchw.mDesc.GetLengths()[1];
 
     std::size_t K = wei_kcyx.mDesc.GetLengths()[0];
     std::size_t Y = wei_kcyx.mDesc.GetLengths()[2];
     std::size_t X = wei_kcyx.mDesc.GetLengths()[3];
 
-    std::size_t HO = out_nkhw.mDesc.GetLengths()[2];
-    std::size_t WO = out_nkhw.mDesc.GetLengths()[3];
+    std::size_t Ho = out_nkhw.mDesc.GetLengths()[2];
+    std::size_t Wo = out_nkhw.mDesc.GetLengths()[3];
 
     index_t h_pad_low = InLeftPads{}.Get(Number<0>{});
     index_t w_pad_low = InLeftPads{}.Get(Number<1>{});
@@ -118,8 +116,8 @@ void host_winograd_3x3_convolution(const Tensor<TIn>& in_nchw,
     std::size_t HiPerTile = HoPerTile + Y - 1;
     std::size_t WiPerTile = WoPerTile + X - 1;
 
-    std::size_t HTile = (HO + HoPerTile - 1) / HoPerTile;
-    std::size_t WTile = (WO + WoPerTile - 1) / WoPerTile;
+    std::size_t HTile = (Ho + HoPerTile - 1) / HoPerTile;
+    std::size_t WTile = (Wo + WoPerTile - 1) / WoPerTile;
 
     Tensor<double> in_hold({N, C, HTile, WTile, HiPerTile, WiPerTile});
     Tensor<double> in_transform({N, C, HTile, WTile, HiPerTile, WiPerTile});

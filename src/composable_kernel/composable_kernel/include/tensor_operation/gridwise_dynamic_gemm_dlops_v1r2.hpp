@@ -619,17 +619,6 @@ struct GridwiseDynamicGemmDlops_km_kn_mn_v1r2
 
         // output: register to global memory
         {
-            constexpr index_t M11 =
-                M1PerThreadM111 * M11N11ThreadClusterM1100 * M11N11ThreadClusterM1101;
-            constexpr index_t N11 =
-                N1PerThreadN111 * M11N11ThreadClusterN1100 * M11N11ThreadClusterN1101;
-
-            constexpr index_t M10 = MPerBlockM1 / M11;
-            constexpr index_t N10 = NPerBlockN1 / N11;
-
-            constexpr index_t M111 = M1PerThreadM111;
-            constexpr index_t N111 = N1PerThreadN111;
-
             constexpr auto c_m0_m10_m11_n0_n10_n11_thread_desc =
                 make_dynamic_naive_tensor_descriptor_packed_v2(
                     make_tuple(I1,

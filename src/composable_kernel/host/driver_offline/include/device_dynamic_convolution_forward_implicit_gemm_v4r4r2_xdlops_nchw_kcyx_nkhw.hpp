@@ -34,12 +34,6 @@ void device_dynamic_convolution_forward_implicit_gemm_v4r4r2_xdlops_nchw_kcyx_nk
     constexpr auto I0 = Number<0>{};
     constexpr auto I1 = Number<1>{};
     constexpr auto I2 = Number<2>{};
-    constexpr auto I3 = Number<3>{};
-    constexpr auto I4 = Number<4>{};
-    constexpr auto I5 = Number<5>{};
-    constexpr auto I6 = Number<6>{};
-    constexpr auto I7 = Number<7>{};
-    constexpr auto I8 = Number<8>{};
 
     DeviceMem in_n_c_hi_wi_device_buf(sizeof(TInWei) * in_n_c_hi_wi.mDesc.GetElementSpace());
     DeviceMem wei_k_c_y_x_device_buf(sizeof(TInWei) * wei_k_c_y_x.mDesc.GetElementSpace());
@@ -194,8 +188,8 @@ void device_dynamic_convolution_forward_implicit_gemm_v4r4r2_xdlops_nchw_kcyx_nk
                    in_gemmk0_gemmn_gemmk1_grid_move_slice_window_iterator_hacks,
                    nrepeat);
 
-        float perf = (float)calculate_convolution_flops(
-                         in_n_c_hi_wi_desc, wei_k_c_y_x_desc, out_n_k_ho_wo_desc) /
+        float perf = static_cast<float>(calculate_convolution_flops(
+                         in_n_c_hi_wi_desc, wei_k_c_y_x_desc, out_n_k_ho_wo_desc)) /
                      (std::size_t(1000) * 1000 * 1000) / ave_time;
 
         std::cout << "Average time : " << ave_time << " ms, " << perf << " TFlop/s" << std::endl;

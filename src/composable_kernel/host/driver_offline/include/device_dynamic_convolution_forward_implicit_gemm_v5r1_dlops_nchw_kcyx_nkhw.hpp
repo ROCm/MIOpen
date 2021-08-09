@@ -26,7 +26,7 @@ void device_dynamic_convolution_forward_implicit_gemm_v5r1_dlops_nchw_kcyx_nkhw(
     const Tensor<TInWei>& in_n_c_hi_wi,
     const Tensor<TInWei>& wei_k_c_y_x,
     Tensor<TOut>& out_n_k_ho_wo,
-    ck::index_t nrepeat)
+    ck::index_t /* nrepeat */)
 {
     using namespace ck;
 

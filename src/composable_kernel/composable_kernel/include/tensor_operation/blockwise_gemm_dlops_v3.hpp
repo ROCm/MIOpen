@@ -120,9 +120,6 @@ struct BlockwiseGemmDlops_km_kn_m0m1n0n1_v3
                       "wrong! inconsistent type");
 
         constexpr auto I0 = Number<0>{};
-        constexpr auto I1 = Number<1>{};
-        constexpr auto I2 = Number<2>{};
-        constexpr auto I3 = Number<3>{};
 
         constexpr auto a_block_mtx = BlockMatrixA{};
 

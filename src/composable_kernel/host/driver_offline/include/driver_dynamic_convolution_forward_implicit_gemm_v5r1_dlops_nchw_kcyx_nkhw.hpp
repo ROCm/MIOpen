@@ -338,10 +338,11 @@ struct DriverDynamicConvolutionForwardImplicitGemmDlops_v5r1_nchw_kcyx_nkhw_pad
 
             float ave_time = timer.GetElapsedTime() / nrepeat;
 
-            float perf = (float)calculate_convolution_flops(in_n_c_hi_wi_global_desc,
-                                                            wei_k_c_y_x_global_desc,
-                                                            out_n_k0_ho_wo_k1_global_desc) /
-                         (std::size_t(1000) * 1000 * 1000) / ave_time;
+            float perf =
+                static_cast<float>(calculate_convolution_flops(in_n_c_hi_wi_global_desc,
+                                                               wei_k_c_y_x_global_desc,
+                                                               out_n_k0_ho_wo_k1_global_desc)) /
+                (std::size_t(1000) * 1000 * 1000) / ave_time;
 
             std::cout << "Average time : " << ave_time << " ms, " << perf << " TFlop/s"
                       << std::endl;

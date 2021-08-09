@@ -62,7 +62,7 @@ constexpr auto get_convolution_output_default_4d_tensor_descriptor(
 
 template <class InDesc, class WeiDesc, class OutDesc>
 constexpr std::size_t
-calculate_convolution_flops(const InDesc& in_desc, const WeiDesc& wei_desc, const OutDesc& out_desc)
+calculate_convolution_flops(const InDesc&, const WeiDesc& wei_desc, const OutDesc& out_desc)
 {
     using namespace ck;
 

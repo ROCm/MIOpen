@@ -71,7 +71,7 @@ struct BlockwiseGemmDlops_km_kn_m0m1n0n1_v2r2_pipeline_2x2
     static constexpr index_t N0 = N / N1;
 
     __host__ __device__ static constexpr auto
-    MakeAKM0M1BlockDescriptor(const AKMBlockDesc& a_k_m_block_desc)
+    MakeAKM0M1BlockDescriptor(const AKMBlockDesc& /* a_k_m_block_desc */)
     {
         const auto a_k_m0_m1_block_desc = transform_dynamic_tensor_descriptor(
             AKMBlockDesc{},
@@ -84,7 +84,7 @@ struct BlockwiseGemmDlops_km_kn_m0m1n0n1_v2r2_pipeline_2x2
     }
 
     __host__ __device__ static constexpr auto
-    MakeBKN0N1BlockDescriptor(const BKNBlockDesc& b_k_n_block_desc)
+    MakeBKN0N1BlockDescriptor(const BKNBlockDesc& /* b_k_n_block_desc */)
     {
         const auto b_k_n0_n1_block_desc = transform_dynamic_tensor_descriptor(
             BKNBlockDesc{},
@@ -194,7 +194,7 @@ struct BlockwiseGemmDlops_km_kn_m0m1n0n1_v2r2_pipeline_2x2
               typename ABlockBuffer,
               typename BBlockBuffer,
               typename CThreadBuffer>
-    __device__ void Run(const CM0M1N0N1ThreadDesc& c_m0_m1_n0_n1_thread_desc,
+    __device__ void Run(const CM0M1N0N1ThreadDesc& /* c_m0_m1_n0_n1_thread_desc */,
                         const ABlockBuffer& a_block_buf,
                         const BBlockBuffer& b_block_buf,
                         CThreadBuffer& c_thread_buf) const

@@ -232,8 +232,8 @@ void device_dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw(
             in_grid_move_slice_window_iterator_hacks,
             nrepeat);
 
-        float perf = (float)calculate_convolution_flops(
-                         in_desc_n_c_hi_wi, wei_desc_k_c_y_x, out_desc_n_k_ho_wo) /
+        float perf = static_cast<float>(calculate_convolution_flops(
+                         in_desc_n_c_hi_wi, wei_desc_k_c_y_x, out_desc_n_k_ho_wo)) /
                      (std::size_t(1000) * 1000 * 1000) / ave_time;
 
         std::cout << "Average time : " << ave_time << " ms, " << perf << " TFlop/s" << std::endl;

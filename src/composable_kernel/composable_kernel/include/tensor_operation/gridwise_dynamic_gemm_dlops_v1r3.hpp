@@ -191,12 +191,12 @@ struct GridwiseDynamicGemmDlops_km_kn_mn_v1r3
         const auto M  = a_k0_m_k1_grid_desc.GetLength(I1);
         const auto N  = b_k0_n_k1_grid_desc.GetLength(I1);
         const auto K0 = a_k0_m_k1_grid_desc.GetLength(I0);
-        const auto K1 = a_k0_m_k1_grid_desc.GetLength(I2);
 
         // TODO: also check validity of all components (blockwise-copy, threadwise-copy, etc)
 
         return (M == c_m_n_grid_desc.GetLength(I0) && N == c_m_n_grid_desc.GetLength(I1) &&
                 K0 == b_k0_n_k1_grid_desc.GetLength(I0) &&
+                K1 == a_k0_m_k1_grid_desc.GetLength(I2) &&
                 K1 == b_k0_n_k1_grid_desc.GetLength(I2)) &&
                (M % MPerBlockM1 == 0 && N % NPerBlockN1 == 0 && K0 % KPerBlock == 0);
     }
@@ -608,19 +608,6 @@ struct GridwiseDynamicGemmDlops_km_kn_mn_v1r3
 
         // output: register to global memory
         {
-            constexpr auto M11 =
-                Number<container_reduce(M11N11ThreadClusterM110Xs{}, math::multiplies_v2{}, I1) *
-                       M1PerThreadM111>{};
-            constexpr auto N11 =
-                Number<container_reduce(M11N11ThreadClusterN110Xs{}, math::multiplies_v2{}, I1) *
-                       N1PerThreadN111>{};
-
-            constexpr index_t M10 = MPerBlockM1 / M11;
-            constexpr index_t N10 = NPerBlockN1 / N11;
-
-            constexpr index_t M111 = M1PerThreadM111;
-            constexpr index_t N111 = N1PerThreadN111;
-
             constexpr auto c_m0_m10_m11_n0_n10_n11_thread_desc =
                 make_dynamic_naive_tensor_descriptor_packed_v2(
                     make_tuple(I1,

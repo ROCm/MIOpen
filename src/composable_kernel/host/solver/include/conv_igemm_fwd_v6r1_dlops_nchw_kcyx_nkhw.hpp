@@ -99,40 +99,48 @@ struct CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw
         // clang-format on
     }
 
-    ck::DataTypeEnum_t ABDataTypeEnum;
-    ck::DataTypeEnum_t AccDataTypeEnum;
-    ck::DataTypeEnum_t CDataTypeEnum;
+    ck::DataTypeEnum_t ABDataTypeEnum  = ck::DataTypeEnum_t::Unknown;
+    ck::DataTypeEnum_t AccDataTypeEnum = ck::DataTypeEnum_t::Unknown;
+    ck::DataTypeEnum_t CDataTypeEnum   = ck::DataTypeEnum_t::Unknown;
 
-    int BlockSize;
+    int BlockSize = 1;
 
-    int GN0;
-    int GK1;
+    int GN0 = -1;
+    int GK1 = -1;
 
-    int GM1PerBlockGM11;
-    int GN1PerBlockGN11;
-    int GK0PerBlock;
+    int GM1PerBlockGM11 = -1;
+    int GN1PerBlockGN11 = -1;
+    int GK0PerBlock     = -1;
 
-    int BM1PerThreadBM11;
-    int BN1PerThreadBN11;
-    int BK0PerThread;
+    int BM1PerThreadBM11 = -1;
+    int BN1PerThreadBN11 = -1;
+    int BK0PerThread     = -1;
 
-    std::array<int, 2> BM10BN10ThreadClusterBM10Xs;
-    std::array<int, 2> BM10BN10ThreadClusterBN10Xs;
+    std::array<int, 2> BM10BN10ThreadClusterBM10Xs = {-1, -1};
+    std::array<int, 2> BM10BN10ThreadClusterBN10Xs = {-1, -1};
 
-    std::array<int, 5> ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1;
-    std::array<int, 5> ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1;
-    std::array<int, 5> ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1;
-    std::array<int, 5> ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1;
+    std::array<int, 5> ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1 = {
+        -1, -1, -1, -1, -1};
+    std::array<int, 5> ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1 = {
+        -1, -1, -1, -1, -1};
+    std::array<int, 5> ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1 = {
+        -1, -1, -1, -1, -1};
+    std::array<int, 5> ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1 = {
+        -1, -1, -1, -1, -1};
 
-    std::array<int, 5> BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1;
-    std::array<int, 5> BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1;
-    std::array<int, 5> BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1;
-    std::array<int, 5> BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1;
+    std::array<int, 5> BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1 = {
+        -1, -1, -1, -1, -1};
+    std::array<int, 5> BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1 = {
+        -1, -1, -1, -1, -1};
+    std::array<int, 5> BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1 = {
+        -1, -1, -1, -1, -1};
+    std::array<int, 5> BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1 = {
+        -1, -1, -1, -1, -1};
 
-    int CThreadTransferDstScalarPerVector;
+    int CThreadTransferDstScalarPerVector = -1;
 
-    bool HasMainKBlockLoop;
-    bool HasDoubleTailKBlockLoop;
+    bool HasMainKBlockLoop       = false;
+    bool HasDoubleTailKBlockLoop = false;
 };
 
 struct TunableConvIgemmFwdV6r1DlopsNchwKcyxNkhw

@@ -102,7 +102,6 @@ struct GridwiseDynamicGemmDlops_km_kn_mn_v3
 
 // divide block work by [M, N]
 #if 0
-        const auto k_block_work_num   = K / Number<KPerBlock>{};
         const auto ho_block_work_num  = Ho / Number<HoPerBlock>{};
         const auto wo_block_work_num  = Wo / Number<WoPerBlock>{};
         const auto hwo_block_work_num = ho_block_work_num * wo_block_work_num;
@@ -114,7 +113,6 @@ struct GridwiseDynamicGemmDlops_km_kn_mn_v3
         const index_t wo_block_work_id = hwo_block_work_id - ho_block_work_id * wo_block_work_num;
 #else
         // Hack: this force result into SGPR
-        const index_t k_block_work_num   = __builtin_amdgcn_readfirstlane(K / KPerBlock);
         const index_t ho_block_work_num  = __builtin_amdgcn_readfirstlane(Ho / HoPerBlock);
         const index_t wo_block_work_num  = __builtin_amdgcn_readfirstlane(Wo / WoPerBlock);
         const index_t hwo_block_work_num = ho_block_work_num * wo_block_work_num;
