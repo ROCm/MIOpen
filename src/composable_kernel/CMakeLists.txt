@@ -169,28 +169,30 @@ enable_cppcheck(
         unusedPrivateFunction
         unusedStructMember
         # Ignore initializer lists in the tests
-        useInitializationList:*test/*.cpp
-        *:*src/sqlite/*.cpp
-        *:*.cl
-        *:*src/kernels/*.h
-        knownConditionTrueFalse:*src/kernels/composable_kernel/*/*
-        redundantAssignment:*src/kernels/composable_kernel/*/*
-        unreadVariable:*src/kernels/composable_kernel/*/*
-        unusedScopedObject:*src/kernels/composable_kernel/*/*
-        wrongPrintfScanfArgNum:*src/kernels/composable_kernel/*/*
+       #useInitializationList:*test/*.cpp
+       #*:*src/sqlite/*.cpp
+       #*:*.cl
+       #*:*src/kernels/*.h
+       #knownConditionTrueFalse:*src/kernels/composable_kernel/*/*
+       #redundantAssignment:*src/kernels/composable_kernel/*/*
+       #unreadVariable:*src/kernels/composable_kernel/*/*
+       #unusedScopedObject:*src/kernels/composable_kernel/*/*
+       #wrongPrintfScanfArgNum:*src/kernels/composable_kernel/*/*
         unmatchedSuppression
     FORCE
     SOURCES
         host/host_tensor/src
-        host/driver_offline
-        composable_kernel/src
+        host/driver_offline/src
+        composable_kernel/src/kernel_wrapper
     INCLUDE
+        host/host_tensor/include
+        host/solver/include
+        host/driver_offline/include
+        composable_kernel/include/*
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_BINARY_DIR}/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/include
     DEFINE
         CPPCHECK=1
-        MIOPEN_USE_MIOPENGEMM=1
         __linux__=1
 )
 

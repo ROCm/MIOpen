@@ -577,7 +577,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
 
     std::string param1 = param + " -DCK_PARAM_GRIDSIZE=" + std::to_string(gridSize) + " ";
 
-    std::string program_name = "gridwise_generic_reduction.cpp";
+    std::string program_name = "static_kernel_gridwise_generic_reduction.cpp";
     std::string algo_name    = "generic_reduce_tensor";
     std::string network_config;
 

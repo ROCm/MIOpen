@@ -109,11 +109,13 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetPerformanceConfig(const ConvolutionContext& ctx)
     {
         if(IsValidPerformanceConfig(ctx, i))
         {
-            return PerformanceConvCkIgemmFwdV6r1DlopsNchw(i);
+            return {i};
         }
     }
 
     MIOPEN_LOG_E("cannot find a valid performance config");
+
+    return {-1};
 }
 
 bool ConvCkIgemmFwdV6r1DlopsNchw::IsValidPerformanceConfig(
