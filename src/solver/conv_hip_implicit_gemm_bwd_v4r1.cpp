@@ -848,20 +848,23 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1::GetSolution(
 
             if(ctx.Is3d())
             {
-                construction_parameters.kernel_file = "static_kernel_gridwise_convolution_backward_"
-                                                      "data_implicit_gemm_v4r1_ncdhw_kczyx_nkdhw."
-                                                      "cpp";
+                // clang-format off
+                construction_parameters.kernel_file =
+                    "static_kernel_gridwise_convolution_backward_data_implicit_gemm_v4r1_ncdhw_kczyx_nkdhw.cpp";
 
                 construction_parameters.kernel_name =
                     "gridwise_convolution_backward_data_implicit_gemm_v4r1_ncdhw_kczyx_nkdhw";
+                // clang-format on
             }
             else
             {
-                construction_parameters.kernel_file = "static_kernel_gridwise_convolution_backward_"
-                                                      "data_implicit_gemm_v4r1_nchw_kcyx_nkhw.cpp";
+                // clang-format off
+                construction_parameters.kernel_file =
+                    "static_kernel_gridwise_convolution_backward_data_implicit_gemm_v4r1_nchw_kcyx_nkhw.cpp";
 
                 construction_parameters.kernel_name =
                     "gridwise_convolution_backward_data_implicit_gemm_v4r1_nchw_kcyx_nkhw";
+                // clang-format on
             }
 
             int GemmMLevel0Cluster                    = 0;

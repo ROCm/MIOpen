@@ -716,11 +716,11 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1::GetSolution(
     construction_parameters.g_wk.push_back(1);
     construction_parameters.g_wk.push_back(1);
 
+    // clang-format off
     construction_parameters.kernel_file = ctx.Is3d()
-                                              ? "static_kernel_gridwise_convolution_backward_data_"
-                                                "implicit_gemm_v1r1_ncdhw_kczyx_nkdhw.cpp"
-                                              : "static_kernel_gridwise_convolution_backward_data_"
-                                                "implicit_gemm_v1r1_nchw_kcyx_nkhw.cpp";
+                                              ? "static_kernel_gridwise_convolution_backward_data_implicit_gemm_v1r1_ncdhw_kczyx_nkdhw.cpp"
+                                              : "static_kernel_gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw.cpp";
+    // clang-format on
 
     construction_parameters.kernel_name =
         ctx.Is3d() ? "gridwise_convolution_backward_data_implicit_gemm_v1r1_ncdhw_kczyx_nkdhw"

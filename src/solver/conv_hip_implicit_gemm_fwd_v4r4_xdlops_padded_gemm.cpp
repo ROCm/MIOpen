@@ -923,12 +923,13 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::GetSolution(
 
     KernelInfo construction_parameters;
 
-    construction_parameters.kernel_file = //
-        "static_kernel_gridwise_convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw_"
-        "padded_gemm.cpp";
+    // clang-format off
+    construction_parameters.kernel_file =
+        "static_kernel_gridwise_convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw_padded_gemm.cpp";
 
     construction_parameters.kernel_name =
         "gridwise_convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw_padded_gemm";
+    // clang-format on
 
     int grid_size  = 0;
     int block_size = 0;

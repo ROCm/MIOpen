@@ -115,15 +115,13 @@ int main(int argc, char* argv[])
 #endif
 
 #if 0
-    constexpr index_t in_vector_size = 1;
     using in_data_t                  = float;
     using acc_data_t                 = float;
     using out_data_t                 = float;
 #elif 1
-    constexpr index_t in_vector_size = 1;
-    using in_data_t                  = half_t;
-    using acc_data_t                 = float;
-    using out_data_t                 = half_t;
+    using in_data_t  = half_t;
+    using acc_data_t = float;
+    using out_data_t = half_t;
 #endif
 
     std::vector<std::size_t> in_lengths_host(4), wei_lengths_host(4), out_lengths_host(4);
@@ -212,38 +210,6 @@ int main(int argc, char* argv[])
         };
         wei.GenerateTensorValue(gen_wei, num_thread);
     }
-
-    auto f_make_for_device_nchw = [&]() {
-#if USE_DYNAMIC_MODE
-        const auto in_lengths_dev     = make_tuple(N, C, Hi, Wi);
-        const auto wei_lengths_dev    = make_tuple(K, C, Y, X);
-        const auto out_lengths_dev    = make_tuple(N, K, Ho, Wo);
-        const auto conv_strides_dev   = make_tuple(conv_stride_h, conv_stride_w);
-        const auto conv_dilations_dev = make_tuple(conv_dilation_h, conv_dilation_w);
-        const auto in_left_pads_dev   = make_tuple(in_left_pad_h, in_left_pad_w);
-        const auto in_right_pads_dev  = make_tuple(in_right_pad_h, in_right_pad_w);
-#else
-        const auto in_lengths_dev =
-            make_tuple(Number<N>{}, Number<C>{}, Number<Hi>{}, Number<Wi>{});
-        const auto wei_lengths_dev = make_tuple(Number<K>{}, Number<C>{}, Number<Y>{}, Number<X>{});
-        const auto out_lengths_dev =
-            make_tuple(Number<N>{}, Number<K>{}, Number<Ho>{}, Number<Wo>{});
-        const auto conv_strides_dev = make_tuple(Number<conv_stride_h>{}, Number<conv_stride_w>{});
-        const auto conv_dilations_dev =
-            make_tuple(Number<conv_dilation_h>{}, Number<conv_dilation_w>{});
-        const auto in_left_pads_dev = make_tuple(Number<in_left_pad_h>{}, Number<in_left_pad_w>{});
-        const auto in_right_pads_dev =
-            make_tuple(Number<in_right_pad_h>{}, Number<in_right_pad_w>{});
-#endif
-
-        return make_tuple(in_lengths_dev,
-                          wei_lengths_dev,
-                          out_lengths_dev,
-                          conv_strides_dev,
-                          conv_dilations_dev,
-                          in_left_pads_dev,
-                          in_right_pads_dev);
-    };
 
     auto f_make_for_device_nhwc = [&]() {
 #if USE_DYNAMIC_MODE

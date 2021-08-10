@@ -812,10 +812,13 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(
 
     KernelInfo construction_parameters;
 
-    construction_parameters.kernel_file = "static_kernel_gridwise_convolution_backward_data_"
-                                          "implicit_gemm_v1r1_xdlops_nchw_kcyx_nkhw.cpp";
+    // clang-format off
+    construction_parameters.kernel_file =
+        "static_kernel_gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_nchw_kcyx_nkhw.cpp";
+
     construction_parameters.kernel_name =
         "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_nchw_kcyx_nkhw";
+    // clang-format on
 
     result.workspce_sz = GetWorkspaceSize(ctx);
 

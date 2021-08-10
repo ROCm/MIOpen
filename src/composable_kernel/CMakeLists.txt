@@ -42,6 +42,12 @@ message(STATUS "Build with HIP ${hip_VERSION}")
 #find_path(HALF_INCLUDE_DIR half.hpp)
 message("HALF_INCLUDE_DIR: ${HALF_INCLUDE_DIR}")
 
+# CMAKE_CXX_FLAGS
+if(BUILD_DEV)
+    string(APPEND CMAKE_CXX_FLAGS " -Werror -Weverything")
+endif()
+message("CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
+
 ## tidy
 include(EnableCompilerWarnings)
 set(MIOPEN_TIDY_ERRORS ERRORS * -readability-inconsistent-declaration-parameter-name)
@@ -50,7 +56,6 @@ if(CMAKE_CXX_COMPILER MATCHES ".*hcc" OR CMAKE_CXX_COMPILER MATCHES ".*clang\\+\
 # Enable tidy on hip
 elseif(MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
     set(MIOPEN_TIDY_ERRORS ALL)
-
 endif()
 
 include(ClangTidy)
