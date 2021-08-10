@@ -571,7 +571,9 @@ enable_cppcheck(
         knownConditionTrueFalse:*src/composable_kernel/composable_kernel/*/*
         identicalConditionAfterEarlyExit:*src/composable_kernel/composable_kernel/*/*
         duplicateExpression:*src/composable_kernel/composable_kernel/*/*
+        multiCondition:*src/composable_kernel/composable_kernel/*/*
         unreadVariable:*src/composable_kernel/composable_kernel/*/*
+        unreadVariable:*src/composable_kernel/host/*/*
         unreadVariable:*src/composable_kernel/external/*/*
         unmatchedSuppression
     FORCE
