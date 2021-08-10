@@ -59,6 +59,7 @@ static std::vector<std::string> OclKernelWarnings(const bool is_miopengemm)
 
 static std::vector<std::string> HipKernelWarnings()
 {
+#if 0
     return {
         "-Weverything",
         "-Wno-c++98-compat",
@@ -84,6 +85,16 @@ static std::vector<std::string> HipKernelWarnings()
         "-Wno-disabled-macro-expansion",
         "-Wno-undefined-reinterpret-cast",
     };
+#else
+    return {
+        "-Weverything",
+        "-Wno-c++98-compat",
+        "-Wno-c++98-compat-pedantic",
+        "-Wno-missing-prototypes",
+        "-Wno-padded",
+        "-Wno-sign-conversion",
+    };
+#endif
 }
 
 static std::string MakeKernelWarningsString(const std::vector<std::string>& kernel_warnings,

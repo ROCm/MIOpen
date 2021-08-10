@@ -306,7 +306,8 @@ void HIPOCProgramImpl::BuildCodeObject(std::string params,
 #if MIOPEN_BUILD_DEV
         params += " -Werror" + HipKernelWarningsString();
 #else
-        params += " -Wno-everything";
+        params += " -Werror" + HipKernelWarningsString();
+        // params += " -Wno-everything";
 #endif
     }
     else if(miopen::EndsWith(filename, ".cl"))

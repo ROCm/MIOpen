@@ -24,8 +24,8 @@
  *
  *******************************************************************************/
 
-#ifndef GUARD_CK_UTIL_HPP_
-#define GUARD_CK_UTIL_HPP_
+#ifndef GUARD_CK_UTILITY_COMMON_HPP_
+#define GUARD_CK_UTILITY_COMMON_HPP_
 
 #include <miopen/env.hpp>
 #include <miopen/hip_build_utils.hpp>

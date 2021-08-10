@@ -1,5 +1,5 @@
-#ifndef CK_DATA_TYPE_HELPER_HPP
-#define CK_DATA_TYPE_HELPER_HPP
+#ifndef CK_DATA_TYPE_ENUM_HELPER_HPP
+#define CK_DATA_TYPE_ENUM_HELPER_HPP
 
 #include "data_type.hpp"
 #include "data_type_enum.hpp"

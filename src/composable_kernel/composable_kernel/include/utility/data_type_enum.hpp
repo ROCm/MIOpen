@@ -3,8 +3,8 @@
 
 namespace ck {
 
-// this enumerate should be synchronized with include/miopen.h
-using DataTypeEnum_t = enum {
+enum DataTypeEnum_t
+{
     Half     = 0,
     Float    = 1,
     Int32    = 2,
