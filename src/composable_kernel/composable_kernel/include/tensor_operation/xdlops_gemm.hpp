@@ -350,8 +350,8 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x2bf16>
               class FloatC>
     __device__ FloatC run(const FloatA* a, const FloatB* b, FloatC reg_c) const
     {
-        const auto p_a = reinterpret_cast<const ushort2_t*>(a);
-        const auto p_b = reinterpret_cast<const ushort2_t*>(b);
+        const auto p_a = c_style_pointer_cast<const ushort2_t*>(a);
+        const auto p_b = c_style_pointer_cast<const ushort2_t*>(b);
 
         return intrin_mfma_f32_32x32x2bf16<MPerXdlops, NPerXdlops, AStride, BStride>::run(
             p_a, p_b, reg_c);
@@ -384,8 +384,8 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x4bf16>
               class FloatC>
     __device__ FloatC run(const FloatA* a, const FloatB* b, FloatC reg_c) const
     {
-        const auto p_a = reinterpret_cast<const ushort2_t*>(a);
-        const auto p_b = reinterpret_cast<const ushort2_t*>(b);
+        const auto p_a = c_style_pointer_cast<const ushort2_t*>(a);
+        const auto p_b = c_style_pointer_cast<const ushort2_t*>(b);
 
         return intrin_mfma_f32_32x32x4bf16(p_a, p_b, reg_c);
     }
@@ -417,8 +417,8 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x8bf16>
               class FloatC>
     __device__ FloatC run(const FloatA* a, const FloatB* b, FloatC reg_c) const
     {
-        const auto p_a = reinterpret_cast<const ushort2_t*>(a);
-        const auto p_b = reinterpret_cast<const ushort2_t*>(b);
+        const auto p_a = c_style_pointer_cast<const ushort2_t*>(a);
+        const auto p_b = c_style_pointer_cast<const ushort2_t*>(b);
 
         return intrin_mfma_f32_16x16x8bf16(p_a, p_b, reg_c);
     }
@@ -450,8 +450,8 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x2bf16>
               class FloatC>
     __device__ FloatC run(const FloatA* a, const FloatB* b, FloatC reg_c) const
     {
-        const auto p_a = reinterpret_cast<const ushort2_t*>(a);
-        const auto p_b = reinterpret_cast<const ushort2_t*>(b);
+        const auto p_a = c_style_pointer_cast<const ushort2_t*>(a);
+        const auto p_b = c_style_pointer_cast<const ushort2_t*>(b);
 
         return intrin_mfma_f32_16x16x2bf16<MPerXdlops, NPerXdlops>(p_a, p_b, reg_c);
     }
@@ -483,8 +483,8 @@ struct mfma_info<mfma_instr::mfma_f32_4x4x2bf16>
               class FloatC>
     __device__ FloatC run(const FloatA* a, const FloatB* b, FloatC reg_c) const
     {
-        const auto p_a = reinterpret_cast<const ushort2_t*>(a);
-        const auto p_b = reinterpret_cast<const ushort2_t*>(b);
+        const auto p_a = c_style_pointer_cast<const ushort2_t*>(a);
+        const auto p_b = c_style_pointer_cast<const ushort2_t*>(b);
 
         return intrin_mfma_f32_4x4x2bf16<MPerXdlops, NPerXdlops>::run(p_a, p_b, reg_c);
     }

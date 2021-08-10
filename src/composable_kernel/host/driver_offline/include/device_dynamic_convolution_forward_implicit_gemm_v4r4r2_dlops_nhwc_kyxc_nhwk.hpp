@@ -51,7 +51,7 @@ void device_dynamic_convolution_forward_implicit_gemm_v4r4r2_dlops_nhwc_kyxc_nhw
     const auto out_n_ho_wo_k_desc =
         make_dynamic_naive_tensor_descriptor_packed_v2(out_n_ho_wo_k_lengths);
 
-#if 1
+#if 0
     // [M, N, K0, K1] = [128, 128, 8, 1] for fp32
     // cdata = 64, BlockSize = 256
     constexpr index_t BlockSize = 256;
@@ -81,7 +81,7 @@ void device_dynamic_convolution_forward_implicit_gemm_v4r4r2_dlops_nhwc_kyxc_nhw
     using GemmBBlockTransferDstVectorTensorLengths_K0_N0_N1_K1 = Sequence<1, 1, 1, 1>;
 
     constexpr index_t GemmCThreadTransferDstScalarPerVector_N11 = 4;
-#elif 1
+#elif 0
     // [M, N, K0, K1] = [128, 128, 8, 2] for fp16
     // cdata = 64, BlockSize = 256
     constexpr index_t BlockSize = 256;

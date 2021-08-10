@@ -2,6 +2,7 @@
 #define CK_AMD_INLINE_ASM_HPP
 
 #include "data_type.hpp"
+#include "c_style_pointer_cast.hpp"
 
 namespace ck {
 
@@ -53,9 +54,9 @@ __device__ void
 amd_assembly_outer_product_1x2(half4_t a, half4_t b0, half4_t b1, float& c0, float& c1)
 {
     // TODO remove pointer casting
-    const half2_t* p_a_half2  = reinterpret_cast<const half2_t*>(&a);
-    const half2_t* p_b0_half2 = reinterpret_cast<const half2_t*>(&b0);
-    const half2_t* p_b1_half2 = reinterpret_cast<const half2_t*>(&b1);
+    const half2_t* p_a_half2  = c_style_pointer_cast<const half2_t*>(&a);
+    const half2_t* p_b0_half2 = c_style_pointer_cast<const half2_t*>(&b0);
+    const half2_t* p_b1_half2 = c_style_pointer_cast<const half2_t*>(&b1);
 
     // do dot2 two times
     asm volatile("\n \
@@ -114,11 +115,11 @@ __device__ void amd_assembly_outer_product_1x4(half4_t a,
                                                float& c3)
 {
     // TODO remove pointer casting
-    const half2_t* p_a_half2  = reinterpret_cast<const half2_t*>(&a);
-    const half2_t* p_b0_half2 = reinterpret_cast<const half2_t*>(&b0);
-    const half2_t* p_b1_half2 = reinterpret_cast<const half2_t*>(&b1);
-    const half2_t* p_b2_half2 = reinterpret_cast<const half2_t*>(&b2);
-    const half2_t* p_b3_half2 = reinterpret_cast<const half2_t*>(&b3);
+    const half2_t* p_a_half2  = c_style_pointer_cast<const half2_t*>(&a);
+    const half2_t* p_b0_half2 = c_style_pointer_cast<const half2_t*>(&b0);
+    const half2_t* p_b1_half2 = c_style_pointer_cast<const half2_t*>(&b1);
+    const half2_t* p_b2_half2 = c_style_pointer_cast<const half2_t*>(&b2);
+    const half2_t* p_b3_half2 = c_style_pointer_cast<const half2_t*>(&b3);
 
     // do dot2 two times
     asm volatile("\n \
@@ -160,11 +161,11 @@ __device__ void amd_assembly_outer_product_1x4(half8_t a,
 {
 
     // TODO remove pointer casting
-    const half4_t* p_a_half4  = reinterpret_cast<const half4_t*>(&a);
-    const half4_t* p_b0_half4 = reinterpret_cast<const half4_t*>(&b0);
-    const half4_t* p_b1_half4 = reinterpret_cast<const half4_t*>(&b1);
-    const half4_t* p_b2_half4 = reinterpret_cast<const half4_t*>(&b2);
-    const half4_t* p_b3_half4 = reinterpret_cast<const half4_t*>(&b3);
+    const half4_t* p_a_half4  = c_style_pointer_cast<const half4_t*>(&a);
+    const half4_t* p_b0_half4 = c_style_pointer_cast<const half4_t*>(&b0);
+    const half4_t* p_b1_half4 = c_style_pointer_cast<const half4_t*>(&b1);
+    const half4_t* p_b2_half4 = c_style_pointer_cast<const half4_t*>(&b2);
+    const half4_t* p_b3_half4 = c_style_pointer_cast<const half4_t*>(&b3);
 
     amd_assembly_outer_product_1x4(
         p_a_half4[0], p_b0_half4[0], p_b1_half4[0], p_b2_half4[0], p_b3_half4[0], c0, c1, c2, c3);
@@ -184,11 +185,11 @@ __device__ void amd_assembly_outer_product_1x4(half16_t a,
                                                float& c3)
 {
     // TODO remove pointer casting
-    const half8_t* p_a_half8  = reinterpret_cast<const half8_t*>(&a);
-    const half8_t* p_b0_half8 = reinterpret_cast<const half8_t*>(&b0);
-    const half8_t* p_b1_half8 = reinterpret_cast<const half8_t*>(&b1);
-    const half8_t* p_b2_half8 = reinterpret_cast<const half8_t*>(&b2);
-    const half8_t* p_b3_half8 = reinterpret_cast<const half8_t*>(&b3);
+    const half8_t* p_a_half8  = c_style_pointer_cast<const half8_t*>(&a);
+    const half8_t* p_b0_half8 = c_style_pointer_cast<const half8_t*>(&b0);
+    const half8_t* p_b1_half8 = c_style_pointer_cast<const half8_t*>(&b1);
+    const half8_t* p_b2_half8 = c_style_pointer_cast<const half8_t*>(&b2);
+    const half8_t* p_b3_half8 = c_style_pointer_cast<const half8_t*>(&b3);
 
     amd_assembly_outer_product_1x4(
         p_a_half8[0], p_b0_half8[0], p_b1_half8[0], p_b2_half8[0], p_b3_half8[0], c0, c1, c2, c3);
