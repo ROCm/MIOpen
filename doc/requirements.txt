@@ -23,8 +23,9 @@
 # SOFTWARE.
 # 
 ################################################################################
-sphinx==1.6.2
-breathe==4.9.1
-#git+https://github.com/arximboldi/breathe@fix-node-parent
-sphinx_rtd_theme==0.4.0
-recommonmark==0.4.0
+# Python 3.6+ required
+sphinx==4.1.2
+breathe==4.30.0
+docutils<0.17 # sphinx-rtd-theme 0.5.2 requires docutils<0.17
+sphinx_rtd_theme==0.5.2
+myst-parser==0.15.1
