@@ -569,6 +569,9 @@ enable_cppcheck(
         unusedScopedObject:*src/kernels/static_composable_kernel/*/*
         wrongPrintfScanfArgNum:*src/kernels/static_composable_kernel/*/*
         knownConditionTrueFalse:*src/composable_kernel/composable_kernel/*/*
+        identicalConditionAfterEarlyExit:*src/composable_kernel/composable_kernel/*/*
+        duplicateExpression:*src/composable_kernel/composable_kernel/*/*
+        unreadVariable:*src/composable_kernel/composable_kernel/*/*
         unreadVariable:*src/composable_kernel/external/*/*
         unmatchedSuppression
     FORCE
