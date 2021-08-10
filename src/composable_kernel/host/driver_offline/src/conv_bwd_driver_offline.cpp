@@ -12,10 +12,10 @@
 #include "conv_common.hpp"
 #include "host_conv_bwd_data.hpp"
 #include "device_tensor.hpp"
-#include "device_dynamic_convolution_backward_data_implicit_gemm_v4r1_xdlops_nhwc_kyxc_nhwk.hpp"
-#include "device_dynamic_convolution_backward_data_implicit_gemm_v4r1r2_xdlops_nhwc_kyxc_nhwk.hpp"
+#include "device_convolution_backward_data_implicit_gemm_v4r1_xdlops_nhwc_kyxc_nhwk.hpp"
+#include "device_convolution_backward_data_implicit_gemm_v4r1r2_xdlops_nhwc_kyxc_nhwk.hpp"
 
-#define USE_DYNAMIC_MODE 1
+#define USE_MODE 1
 #define USE_CONV_BWD_V4R1_XDL_NHWC 1
 #define USE_CONV_BWD_V4R1R2_XDL_NHWC 1
 
@@ -37,7 +37,7 @@ int main(int argc, char* argv[])
     constexpr auto I5 = Number<5>{};
     constexpr auto I6 = Number<6>{};
 
-#if USE_DYNAMIC_MODE
+#if USE_MODE
     // dynamic mode
     if(argc != 22)
     {
@@ -212,7 +212,7 @@ int main(int argc, char* argv[])
     }
 
     auto f_make_for_device_nhwc = [&]() {
-#if USE_DYNAMIC_MODE
+#if USE_MODE
         const auto in_lengths_dev     = make_tuple(N, Hi, Wi, C);
         const auto wei_lengths_dev    = make_tuple(K, Y, X, C);
         const auto out_lengths_dev    = make_tuple(N, Ho, Wo, K);
@@ -253,20 +253,20 @@ int main(int argc, char* argv[])
 
         const auto tmp = f_make_for_device_nhwc();
 
-        device_dynamic_convolution_backward_data_implicit_gemm_v4r1_xdlops_nhwc_kyxc_nhwk<
-            in_data_t,
-            acc_data_t,
-            out_data_t>(tmp[I0],
-                        tmp[I1],
-                        tmp[I2],
-                        tmp[I3],
-                        tmp[I4],
-                        tmp[I5],
-                        tmp[I6],
-                        in_device,
-                        wei,
-                        out,
-                        nrepeat);
+        device_convolution_backward_data_implicit_gemm_v4r1_xdlops_nhwc_kyxc_nhwk<in_data_t,
+                                                                                  acc_data_t,
+                                                                                  out_data_t>(
+            tmp[I0],
+            tmp[I1],
+            tmp[I2],
+            tmp[I3],
+            tmp[I4],
+            tmp[I5],
+            tmp[I6],
+            in_device,
+            wei,
+            out,
+            nrepeat);
     }
 #endif
 
@@ -280,20 +280,20 @@ int main(int argc, char* argv[])
 
         const auto tmp = f_make_for_device_nhwc();
 
-        device_dynamic_convolution_backward_data_implicit_gemm_v4r1r2_xdlops_nhwc_kyxc_nhwk<
-            in_data_t,
-            acc_data_t,
-            out_data_t>(tmp[I0],
-                        tmp[I1],
-                        tmp[I2],
-                        tmp[I3],
-                        tmp[I4],
-                        tmp[I5],
-                        tmp[I6],
-                        in_device,
-                        wei,
-                        out,
-                        nrepeat);
+        device_convolution_backward_data_implicit_gemm_v4r1r2_xdlops_nhwc_kyxc_nhwk<in_data_t,
+                                                                                    acc_data_t,
+                                                                                    out_data_t>(
+            tmp[I0],
+            tmp[I1],
+            tmp[I2],
+            tmp[I3],
+            tmp[I4],
+            tmp[I5],
+            tmp[I6],
+            in_device,
+            wei,
+            out,
+            nrepeat);
     }
 #endif
 

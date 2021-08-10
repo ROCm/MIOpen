@@ -2,8 +2,8 @@
 #define CK_TENSOR_ADAPTOR_HPP
 
 #include "common_header.hpp"
-#include "dynamic_tensor_descriptor.hpp"
-#include "dynamic_tensor_descriptor_helper.hpp"
+#include "tensor_descriptor.hpp"
+#include "tensor_descriptor_helper.hpp"
 
 namespace ck {
 

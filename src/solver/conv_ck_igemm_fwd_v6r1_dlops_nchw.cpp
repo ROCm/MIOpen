@@ -142,10 +142,10 @@ ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(
     // kernel0: prepare
     {
         kernel0_info.kernel_file =
-            "dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw.cpp";
+            "convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw.cpp";
 
         kernel0_info.kernel_name =
-            "dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw_prepare";
+            "convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw_prepare";
 
         kernel0_info.l_wk = {1, 1, 1};
         kernel0_info.g_wk = {1, 1, 1};
@@ -157,10 +157,9 @@ ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(
     // kernel1: compute
     {
         kernel1_info.kernel_file =
-            "dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw.cpp";
+            "convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw.cpp";
 
-        kernel1_info.kernel_name =
-            "dynamic_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw";
+        kernel1_info.kernel_name = "convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw";
 
         const auto block_size =
             std::size_t(ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetBlockSize(

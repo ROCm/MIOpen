@@ -2,8 +2,8 @@
 #define CK_TRANSFORM_FORWARD_CONVOLUTION_INTO_GEMM_V4R4_NHWC_KYXC_NHWK_HPP
 
 #include "common_header.hpp"
-#include "dynamic_tensor_descriptor.hpp"
-#include "dynamic_tensor_descriptor_helper.hpp"
+#include "tensor_descriptor.hpp"
+#include "tensor_descriptor_helper.hpp"
 
 namespace ck {
 
@@ -18,9 +18,9 @@ template <typename... Wei,
           typename InLeftPads,
           typename InRightPads>
 __host__ __device__ constexpr auto transform_forward_convolution_into_gemm_v4r4_nhwc_kyxc_nhwk_pad(
-    const DynamicTensorDescriptor<Wei...>& wei_k_y_x_c_grid_desc,
-    const DynamicTensorDescriptor<In...>& in_n_hi_wi_c_grid_desc,
-    const DynamicTensorDescriptor<Out...>& out_n_ho_wo_k_grid_desc,
+    const TensorDescriptor<Wei...>& wei_k_y_x_c_grid_desc,
+    const TensorDescriptor<In...>& in_n_hi_wi_c_grid_desc,
+    const TensorDescriptor<Out...>& out_n_ho_wo_k_grid_desc,
     const ConvStrides& conv_strides,
     const ConvDilations& conv_dilations,
     const InLeftPads& in_left_pads,
@@ -57,14 +57,14 @@ __host__ __device__ constexpr auto transform_forward_convolution_into_gemm_v4r4_
     const auto InRightPadW = in_right_pads[I1];
 
     // weight tensor
-    const auto wei_gemmk_gemmm_grid_desc = transform_dynamic_tensor_descriptor(
-        make_dynamic_naive_tensor_descriptor_packed_v2(make_tuple(K, Y * X * C)),
+    const auto wei_gemmk_gemmm_grid_desc = transform_tensor_descriptor(
+        make_naive_tensor_descriptor_packed(make_tuple(K, Y * X * C)),
         make_tuple(make_pass_through_transform(K), make_pass_through_transform(Y * X * C)),
         make_tuple(Sequence<0>{}, Sequence<1>{}),
         make_tuple(Sequence<1>{}, Sequence<0>{}));
 
     // input tensor
-    const auto in_n_hip_wip_c_grid_desc = transform_dynamic_tensor_descriptor(
+    const auto in_n_hip_wip_c_grid_desc = transform_tensor_descriptor(
         in_n_hi_wi_c_grid_desc,
         make_tuple(make_pass_through_transform(N),
                    make_pad_transform(Hi, InLeftPadH, InRightPadH),
@@ -73,7 +73,7 @@ __host__ __device__ constexpr auto transform_forward_convolution_into_gemm_v4r4_
         make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
         make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}));
 
-    const auto in_n_y_ho_x_wo_c_grid_desc = transform_dynamic_tensor_descriptor(
+    const auto in_n_y_ho_x_wo_c_grid_desc = transform_tensor_descriptor(
         in_n_hip_wip_c_grid_desc,
         make_tuple(make_pass_through_transform(N),
                    make_embed_transform(make_tuple(Y, Ho), make_tuple(ConvDilationH, ConvStrideH)),
@@ -83,15 +83,15 @@ __host__ __device__ constexpr auto transform_forward_convolution_into_gemm_v4r4_
         make_tuple(Sequence<0>{}, Sequence<1, 2>{}, Sequence<3, 4>{}, Sequence<5>{}));
 
     const auto in_gemmk_gemmn_grid_desc =
-        transform_dynamic_tensor_descriptor(in_n_y_ho_x_wo_c_grid_desc,
-                                            make_tuple(make_merge_transform(make_tuple(Y, X, C)),
-                                                       make_merge_transform(make_tuple(N, Ho, Wo))),
-                                            make_tuple(Sequence<1, 3, 5>{}, Sequence<0, 2, 4>{}),
-                                            make_tuple(Sequence<0>{}, Sequence<1>{}));
+        transform_tensor_descriptor(in_n_y_ho_x_wo_c_grid_desc,
+                                    make_tuple(make_merge_transform(make_tuple(Y, X, C)),
+                                               make_merge_transform(make_tuple(N, Ho, Wo))),
+                                    make_tuple(Sequence<1, 3, 5>{}, Sequence<0, 2, 4>{}),
+                                    make_tuple(Sequence<0>{}, Sequence<1>{}));
 
     // output tensor
-    const auto out_gemmm_gemmn_grid_desc = transform_dynamic_tensor_descriptor(
-        make_dynamic_naive_tensor_descriptor_packed_v2(make_tuple(N * Ho * Wo, K)),
+    const auto out_gemmm_gemmn_grid_desc = transform_tensor_descriptor(
+        make_naive_tensor_descriptor_packed(make_tuple(N * Ho * Wo, K)),
         make_tuple(make_pass_through_transform(N * Ho * Wo), make_pass_through_transform(K)),
         make_tuple(Sequence<0>{}, Sequence<1>{}),
         make_tuple(Sequence<1>{}, Sequence<0>{}));
@@ -108,9 +108,9 @@ template <typename... Wei,
           typename InLeftPads,
           typename InRightPads>
 __host__ __device__ constexpr auto transform_forward_convolution_into_gemm_v4r4_nhwc_kyxc_nhwk_1x1(
-    const DynamicTensorDescriptor<Wei...>& wei_k_y_x_c_grid_desc,
-    const DynamicTensorDescriptor<In...>& in_n_hi_wi_c_grid_desc,
-    const DynamicTensorDescriptor<Out...>& out_n_ho_wo_k_grid_desc,
+    const TensorDescriptor<Wei...>& wei_k_y_x_c_grid_desc,
+    const TensorDescriptor<In...>& in_n_hi_wi_c_grid_desc,
+    const TensorDescriptor<Out...>& out_n_ho_wo_k_grid_desc,
     const ConvStrides& conv_strides,
     const ConvDilations& conv_dilations,
     const InLeftPads& in_left_pads,
@@ -148,22 +148,22 @@ __host__ __device__ constexpr auto transform_forward_convolution_into_gemm_v4r4_
            InRightPadW == 0);
 
     // weight tensor
-    const auto wei_gemmk_gemmm_grid_desc = transform_dynamic_tensor_descriptor(
-        make_dynamic_naive_tensor_descriptor_packed_v2(make_tuple(K, C)),
+    const auto wei_gemmk_gemmm_grid_desc = transform_tensor_descriptor(
+        make_naive_tensor_descriptor_packed(make_tuple(K, C)),
         make_tuple(make_pass_through_transform(K), make_pass_through_transform(C)),
         make_tuple(Sequence<0>{}, Sequence<1>{}),
         make_tuple(Sequence<1>{}, Sequence<0>{}));
 
     // input tensor
-    const auto in_gemmk_gemmn_grid_desc = transform_dynamic_tensor_descriptor(
-        make_dynamic_naive_tensor_descriptor_packed_v2(make_tuple(N * Ho * Wo, C)),
+    const auto in_gemmk_gemmn_grid_desc = transform_tensor_descriptor(
+        make_naive_tensor_descriptor_packed(make_tuple(N * Ho * Wo, C)),
         make_tuple(make_pass_through_transform(N * Ho * Wo), make_pass_through_transform(C)),
         make_tuple(Sequence<0>{}, Sequence<1>{}),
         make_tuple(Sequence<1>{}, Sequence<0>{}));
 
     // output tensor
-    const auto out_gemmm_gemmn_grid_desc = transform_dynamic_tensor_descriptor(
-        make_dynamic_naive_tensor_descriptor_packed_v2(make_tuple(N * Ho * Wo, K)),
+    const auto out_gemmm_gemmn_grid_desc = transform_tensor_descriptor(
+        make_naive_tensor_descriptor_packed(make_tuple(N * Ho * Wo, K)),
         make_tuple(make_pass_through_transform(N * Ho * Wo), make_pass_through_transform(K)),
         make_tuple(Sequence<0>{}, Sequence<1>{}),
         make_tuple(Sequence<1>{}, Sequence<0>{}));

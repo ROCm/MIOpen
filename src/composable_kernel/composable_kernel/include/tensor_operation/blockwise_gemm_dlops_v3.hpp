@@ -31,25 +31,24 @@ struct BlockwiseGemmDlops_km_kn_m0m1n0n1_v3
     // HACK: fix this @Jing Zhang
     static constexpr index_t KPerThreadSubC = 4;
 
-    static constexpr auto a_thread_mtx_ = make_dynamic_naive_tensor_descriptor_packed_v2(
+    static constexpr auto a_thread_mtx_ = make_naive_tensor_descriptor_packed(
         make_tuple(Number<EPerThreadLoop>{}, Number<KPerThreadSubC>{}));
 
-    static constexpr auto b_thread_mtx_ = make_dynamic_naive_tensor_descriptor_packed_v2(make_tuple(
+    static constexpr auto b_thread_mtx_ = make_naive_tensor_descriptor_packed(make_tuple(
         Number<EPerThreadLoop>{}, Number<1>{}, Number<HPerThread>{}, Number<WPerThread>{}));
 
-    static constexpr auto c_thread_mtx_ = make_dynamic_naive_tensor_descriptor_packed_v2(make_tuple(
+    static constexpr auto c_thread_mtx_ = make_naive_tensor_descriptor_packed(make_tuple(
         Number<KPerThreadSubC>{}, Number<1>{}, Number<HPerThread>{}, Number<WPerThread>{}));
 
-    using AThreadCopy =
-        ThreadwiseDynamicTensorSliceTransfer_v4<FloatA,
-                                                FloatA,
-                                                BlockMatrixA,
-                                                decltype(a_thread_mtx_),
-                                                Sequence<EPerThreadLoop, KPerThreadSubC>,
-                                                Sequence<0, 1>,
-                                                1,
-                                                ThreadGemmADataPerRead_K,
-                                                1>;
+    using AThreadCopy = ThreadwiseTensorSliceTransfer_v4<FloatA,
+                                                         FloatA,
+                                                         BlockMatrixA,
+                                                         decltype(a_thread_mtx_),
+                                                         Sequence<EPerThreadLoop, KPerThreadSubC>,
+                                                         Sequence<0, 1>,
+                                                         1,
+                                                         ThreadGemmADataPerRead_K,
+                                                         1>;
 
     __device__ BlockwiseGemmDlops_km_kn_m0m1n0n1_v3()
         : c_thread_begin_mtx_idx_{GetBeginOfThreadMatrixC(get_thread_local_1d_id())},

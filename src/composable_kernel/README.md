@@ -78,7 +78,7 @@ InLeftPads size 2, {1, 1, }
 InRightPads size 2, {1, 1, }
 ConvStrides size 2, {2, 2, }
 ConvDilations size 2, {1, 1, }
-device_dynamic_convolution_forward_implicit_gemm_v4r4r2_xdlops_nchw_kcyx_nkhw
+device_convolution_forward_implicit_gemm_v4r4r2_xdlops_nchw_kcyx_nkhw
 a_k0_m_k1_grid_desc{216, 256, 8}
 b_k0_n_k1_grid_desc{216, 165888, 8}
 c_m_n_grid_desc{ 256, 165888}
@@ -100,7 +100,7 @@ InLeftPads size 2, {1, 1, }
 InRightPads size 2, {1, 1, }
 ConvStrides size 2, {1, 1, }
 ConvDilations size 2, {1, 1, }
-device_dynamic_convolution_forward_implicit_gemm_v4r4r2_xdlops_nchw_kcyx_nkhw
+device_convolution_forward_implicit_gemm_v4r4r2_xdlops_nchw_kcyx_nkhw
 a_k0_m_k1_grid_desc{288, 1024, 8}
 b_k0_n_k1_grid_desc{288, 50176, 8}
 c_m_n_grid_desc{ 1024, 50176}
@@ -122,7 +122,7 @@ InLeftPads size 2, {1, 1, }
 InRightPads size 2, {1, 1, }
 ConvStrides size 2, {2, 2, }
 ConvDilations size 2, {1, 1, }
-device_dynamic_convolution_forward_implicit_gemm_v4r4r4_xdlops_nhwc_kyxc_nhwk
+device_convolution_forward_implicit_gemm_v4r4r4_xdlops_nhwc_kyxc_nhwk
 a_k0_m_k1_grid_desc{216, 165888, 8}
 b_k0_n_k1_grid_desc{216, 256, 8}
 c_m_n_grid_desc{ 165888, 256}
@@ -144,7 +144,7 @@ InLeftPads size 2, {1, 1, }
 InRightPads size 2, {1, 1, }
 ConvStrides size 2, {1, 1, }
 ConvDilations size 2, {1, 1, }
-device_dynamic_convolution_forward_implicit_gemm_v4r4r4_xdlops_nhwc_kyxc_nhwk
+device_convolution_forward_implicit_gemm_v4r4r4_xdlops_nhwc_kyxc_nhwk
 a_k0_m_k1_grid_desc{288, 50176, 8}
 b_k0_n_k1_grid_desc{288, 1024, 8}
 c_m_n_grid_desc{ 50176, 1024}
@@ -166,7 +166,7 @@ InLeftPads size 2, {1, 1, }
 InRightPads size 2, {1, 1, }
 ConvStrides size 2, {1, 1, }
 ConvDilations size 2, {1, 1, }
-device_dynamic_convolution_backward_data_implicit_gemm_v4r1r2_xdlops_nhwc_kyxc_nhwk
+device_convolution_backward_data_implicit_gemm_v4r1r2_xdlops_nhwc_kyxc_nhwk
 a_k0_m_k1_grid_desc{288, 50176, 8}
 b_k0_n_k1_grid_desc{288, 1024, 8}
 c_m_n_grid_desc{ 50176, 1024}

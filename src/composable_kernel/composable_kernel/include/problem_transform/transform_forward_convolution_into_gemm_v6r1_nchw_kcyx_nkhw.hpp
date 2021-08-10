@@ -2,8 +2,8 @@
 #define CK_TRANSFORM_FORWARD_CONVOLUTION_INTO_CONTRACTION_V6R1_NCHW_KCYX_NKHW_HPP
 
 #include "common_header.hpp"
-#include "dynamic_tensor_descriptor.hpp"
-#include "dynamic_tensor_descriptor_helper.hpp"
+#include "tensor_descriptor.hpp"
+#include "tensor_descriptor_helper.hpp"
 
 namespace ck {
 
@@ -24,9 +24,9 @@ template <typename... Wei,
           typename C0Type>
 __host__ __device__ constexpr auto
 transform_forward_convolution_into_contraction_v6r1_nchw_kcyx_nkhw_pad(
-    const DynamicTensorDescriptor<Wei...>& wei_k_c_y_x_grid_desc,
-    const DynamicTensorDescriptor<In...>& in_n_c_hi_wi_grid_desc,
-    const DynamicTensorDescriptor<Out...>& out_n_k_ho_wo_grid_desc,
+    const TensorDescriptor<Wei...>& wei_k_c_y_x_grid_desc,
+    const TensorDescriptor<In...>& in_n_c_hi_wi_grid_desc,
+    const TensorDescriptor<Out...>& out_n_k_ho_wo_grid_desc,
     const ConvStrides& conv_strides,
     const ConvDilations& conv_dilations,
     const InLeftPads& in_left_pads,
@@ -68,15 +68,15 @@ transform_forward_convolution_into_contraction_v6r1_nchw_kcyx_nkhw_pad(
     const auto C1 = C / C0;
 
     // weight tensor
-    const auto wei_gk0_gm0_gm1_gk1_grid_desc = transform_dynamic_tensor_descriptor(
-        make_dynamic_naive_tensor_descriptor_packed_v2(make_tuple(K, C * Y * X)),
-        make_tuple(make_unmerge_transform(make_tuple(I1, K)),
-                   make_unmerge_transform(make_tuple(C0, C1 * Y * X))),
-        make_tuple(Sequence<0>{}, Sequence<1>{}),
-        make_tuple(Sequence<1, 2>{}, Sequence<3, 0>{}));
+    const auto wei_gk0_gm0_gm1_gk1_grid_desc =
+        transform_tensor_descriptor(make_naive_tensor_descriptor_packed(make_tuple(K, C * Y * X)),
+                                    make_tuple(make_unmerge_transform(make_tuple(I1, K)),
+                                               make_unmerge_transform(make_tuple(C0, C1 * Y * X))),
+                                    make_tuple(Sequence<0>{}, Sequence<1>{}),
+                                    make_tuple(Sequence<1, 2>{}, Sequence<3, 0>{}));
 
     // input tensor
-    const auto in_n_c_hip_wip_grid_desc = transform_dynamic_tensor_descriptor(
+    const auto in_n_c_hip_wip_grid_desc = transform_tensor_descriptor(
         in_n_c_hi_wi_grid_desc,
         make_tuple(make_pass_through_transform(N),
                    make_pass_through_transform(C),
@@ -85,7 +85,7 @@ transform_forward_convolution_into_contraction_v6r1_nchw_kcyx_nkhw_pad(
         make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
         make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}));
 
-    const auto in_n0_n1_c0_c1_y_ho_x_wo_grid_desc = transform_dynamic_tensor_descriptor(
+    const auto in_n0_n1_c0_c1_y_ho_x_wo_grid_desc = transform_tensor_descriptor(
         in_n_c_hip_wip_grid_desc,
         make_tuple(make_unmerge_transform(make_tuple(N0, N1)),
                    make_unmerge_transform(make_tuple(C0, C1)),
@@ -94,7 +94,7 @@ transform_forward_convolution_into_contraction_v6r1_nchw_kcyx_nkhw_pad(
         make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
         make_tuple(Sequence<0, 1>{}, Sequence<2, 3>{}, Sequence<4, 5>{}, Sequence<6, 7>{}));
 
-    const auto in_gk0_gn0_gn1_gk1_grid_desc = transform_dynamic_tensor_descriptor(
+    const auto in_gk0_gn0_gn1_gk1_grid_desc = transform_tensor_descriptor(
         in_n0_n1_c0_c1_y_ho_x_wo_grid_desc,
         make_tuple(make_merge_transform(make_tuple(C1, Y, X)),
                    make_pass_through_transform(N0),
@@ -105,17 +105,17 @@ transform_forward_convolution_into_contraction_v6r1_nchw_kcyx_nkhw_pad(
 
     // output tensor
     const auto out_n_k_howo_grid_desc =
-        make_dynamic_naive_tensor_descriptor_packed_v2(make_tuple(N, K, Ho * Wo));
+        make_naive_tensor_descriptor_packed(make_tuple(N, K, Ho * Wo));
 
-    const auto out_n0_n1_1_k_howo_grid_desc = transform_dynamic_tensor_descriptor(
-        out_n_k_howo_grid_desc,
-        make_tuple(make_unmerge_transform(make_tuple(N0, N1)),
-                   make_unmerge_transform(make_tuple(I1, K)),
-                   make_pass_through_transform(Ho * Wo)),
-        make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
-        make_tuple(Sequence<0, 1>{}, Sequence<2, 3>{}, Sequence<4>{}));
+    const auto out_n0_n1_1_k_howo_grid_desc =
+        transform_tensor_descriptor(out_n_k_howo_grid_desc,
+                                    make_tuple(make_unmerge_transform(make_tuple(N0, N1)),
+                                               make_unmerge_transform(make_tuple(I1, K)),
+                                               make_pass_through_transform(Ho * Wo)),
+                                    make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
+                                    make_tuple(Sequence<0, 1>{}, Sequence<2, 3>{}, Sequence<4>{}));
 
-    const auto out_gm0_gm1_gn0_gn1_grid_desc = transform_dynamic_tensor_descriptor(
+    const auto out_gm0_gm1_gn0_gn1_grid_desc = transform_tensor_descriptor(
         out_n0_n1_1_k_howo_grid_desc,
         make_tuple(make_pass_through_transform(I1),
                    make_pass_through_transform(K),

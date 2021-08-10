@@ -3,7 +3,7 @@
 
 #include "common_header.hpp"
 #include "tensor_adaptor.hpp"
-#include "threadwise_dynamic_tensor_slice_transfer_v2.hpp"
+#include "threadwise_tensor_slice_transfer_v2.hpp"
 #include "threadwise_contraction_dlops.hpp"
 
 namespace ck {
@@ -75,7 +75,7 @@ struct BlockwiseGemmDlops_A_BK0_BM_BK1_B_BK0_BN_BK1_C_BM0_BM1_BN0_BN1_pipeline_B
     __host__ __device__ static constexpr auto
     MakeABlockDescriptor_BK0_BM0_BM1_BK1(const ABlockDesc_BK0_BM_BK1& a_block_desc_bk0_bm_bk1)
     {
-        const auto a_block_bk0_bm0_bm1_bk1 = transform_dynamic_tensor_descriptor(
+        const auto a_block_bk0_bm0_bm1_bk1 = transform_tensor_descriptor(
             a_block_desc_bk0_bm_bk1,
             make_tuple(make_pass_through_transform(Number<BK0>{}),
                        make_unmerge_transform(make_tuple(Number<BM0>{}, Number<BM1>{})),
@@ -89,7 +89,7 @@ struct BlockwiseGemmDlops_A_BK0_BM_BK1_B_BK0_BN_BK1_C_BM0_BM1_BN0_BN1_pipeline_B
     __host__ __device__ static constexpr auto
     MakeBBlockDescriptor_BK0_BN0_BN1_BK1(const BBlockDesc_BK0_BN_BK1& b_block_desc_bk0_bn_bk1)
     {
-        const auto b_block_desc_bk0_bn0_bn1_bk1 = transform_dynamic_tensor_descriptor(
+        const auto b_block_desc_bk0_bn0_bn1_bk1 = transform_tensor_descriptor(
             b_block_desc_bk0_bn_bk1,
             make_tuple(make_pass_through_transform(Number<BK0>{}),
                        make_unmerge_transform(make_tuple(Number<BN0>{}, Number<BN1>{})),
@@ -372,15 +372,15 @@ struct BlockwiseGemmDlops_A_BK0_BM_BK1_B_BK0_BN_BK1_C_BM0_BM1_BN0_BN1_pipeline_B
     private:
     // A[BK0, BM0, BM1, BK1]
     static constexpr auto a_thread_desc_bk0_bm0_bm1_bk1_ =
-        make_dynamic_naive_tensor_descriptor_packed_v2(make_tuple(
+        make_naive_tensor_descriptor_packed(make_tuple(
             Number<BK0PerThread>{}, Number<BM0>{}, Number<BM1PerThreadBM11>{}, Number<BK1>{}));
 
     // B[BK0, BN0, BN1, BK1]
     static constexpr auto b_thread_desc_bk0_bn0_bn1_bk1_ =
-        make_dynamic_naive_tensor_descriptor_packed_v2(make_tuple(
+        make_naive_tensor_descriptor_packed(make_tuple(
             Number<BK0PerThread>{}, Number<BN0>{}, Number<BN1PerThreadBN11>{}, Number<BK1>{}));
 
-    using AThreadCopy = ThreadwiseDynamicTensorSliceTransfer_v4r1<
+    using AThreadCopy = ThreadwiseTensorSliceTransfer_v4r1<
         FloatA,
         FloatA,
         decltype(a_block_desc_bk0_bm0_bm1_bk1_),
@@ -390,7 +390,7 @@ struct BlockwiseGemmDlops_A_BK0_BM_BK1_B_BK0_BN_BK1_C_BM0_BM1_BN0_BN1_pipeline_B
         Sequence<1, 1, BM1PerThreadBM11, BK1>,            // SrcVectorTensorLengths
         Sequence<0, 1, 2, 3>>;                            // SrcVectorTensorContiguousDimOrder
 
-    using BThreadCopy = ThreadwiseDynamicTensorSliceTransfer_v4r1<
+    using BThreadCopy = ThreadwiseTensorSliceTransfer_v4r1<
         FloatB,
         FloatB,
         decltype(b_block_desc_bk0_bn0_bn1_bk1_),

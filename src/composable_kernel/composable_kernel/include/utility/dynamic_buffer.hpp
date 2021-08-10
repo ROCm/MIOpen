@@ -1,5 +1,5 @@
-#ifndef CK_DYNAMIC_BUFFER_HPP
-#define CK_DYNAMIC_BUFFER_HPP
+#ifndef CK_BUFFER_HPP
+#define CK_BUFFER_HPP
 
 #include "amd_buffer_addressing.hpp"
 #include "c_style_pointer_cast.hpp"

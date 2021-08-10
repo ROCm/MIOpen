@@ -99,8 +99,8 @@
 // hack for forcing register to keep idx_diff_low_const in SGPR. idx_diff_low_const must be
 // thread-invariant, otherwise it's a bug
 // TODO: separate index calculation into "compile-time", "global", "block", "wave", "thread"
-#ifndef CK_HACK_DYNAMIC_MERGE_CALCULATE_IDX_DIFF_LOW_CONST_USE_AMD_GCN_READ_FIRST_LANE
-#define CK_HACK_DYNAMIC_MERGE_CALCULATE_IDX_DIFF_LOW_CONST_USE_AMD_GCN_READ_FIRST_LANE 0
+#ifndef CK_HACK_MERGE_CALCULATE_IDX_DIFF_LOW_CONST_USE_AMD_GCN_READ_FIRST_LANE
+#define CK_HACK_MERGE_CALCULATE_IDX_DIFF_LOW_CONST_USE_AMD_GCN_READ_FIRST_LANE 0
 #endif
 
 // workaround for compiler crash when compiling recursive lambda

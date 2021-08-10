@@ -3,7 +3,7 @@
 
 #include "common_header.hpp"
 #include "tensor_adaptor.hpp"
-#include "threadwise_dynamic_tensor_slice_transfer.hpp"
+#include "threadwise_tensor_slice_transfer.hpp"
 #include "threadwise_contraction_dlops.hpp"
 
 namespace ck {
@@ -73,7 +73,7 @@ struct BlockwiseGemmDlops_km_kn_m0m1n0n1_v2r2_pipeline_2x2
     __host__ __device__ static constexpr auto
     MakeAKM0M1BlockDescriptor(const AKMBlockDesc& /* a_k_m_block_desc */)
     {
-        const auto a_k_m0_m1_block_desc = transform_dynamic_tensor_descriptor(
+        const auto a_k_m0_m1_block_desc = transform_tensor_descriptor(
             AKMBlockDesc{},
             make_tuple(make_pass_through_transform(Number<K>{}),
                        make_unmerge_transform(make_tuple(Number<M0>{}, Number<M1>{}))),
@@ -86,7 +86,7 @@ struct BlockwiseGemmDlops_km_kn_m0m1n0n1_v2r2_pipeline_2x2
     __host__ __device__ static constexpr auto
     MakeBKN0N1BlockDescriptor(const BKNBlockDesc& /* b_k_n_block_desc */)
     {
-        const auto b_k_n0_n1_block_desc = transform_dynamic_tensor_descriptor(
+        const auto b_k_n0_n1_block_desc = transform_tensor_descriptor(
             BKNBlockDesc{},
             make_tuple(make_pass_through_transform(Number<K>{}),
                        make_unmerge_transform(make_tuple(Number<N0>{}, Number<N1>{}))),
@@ -357,34 +357,32 @@ struct BlockwiseGemmDlops_km_kn_m0m1n0n1_v2r2_pipeline_2x2
 
     private:
     // A[K, M0, M1]
-    static constexpr auto a_k_m0_m1_thread_desc_ = make_dynamic_naive_tensor_descriptor_packed_v2(
+    static constexpr auto a_k_m0_m1_thread_desc_ = make_naive_tensor_descriptor_packed(
         make_tuple(Number<KPerThread>{}, Number<M0>{}, Number<M1PerThreadM11>{}));
 
     // B[K, N0, N1]
-    static constexpr auto b_k_n0_n1_thread_desc_ = make_dynamic_naive_tensor_descriptor_packed_v2(
+    static constexpr auto b_k_n0_n1_thread_desc_ = make_naive_tensor_descriptor_packed(
         make_tuple(Number<KPerThread>{}, Number<N0>{}, Number<N1PerThreadN11>{}));
 
-    using AThreadCopy =
-        ThreadwiseDynamicTensorSliceTransfer_v4<FloatA,
-                                                FloatA,
-                                                decltype(a_k_m0_m1_block_desc_),
-                                                decltype(a_k_m0_m1_thread_desc_),
-                                                Sequence<KPerThread, 1, M1PerThreadM11>,
-                                                Sequence<0, 1, 2>,
-                                                2,
-                                                AThreadCopyScalarPerVector_M11,
-                                                1>;
+    using AThreadCopy = ThreadwiseTensorSliceTransfer_v4<FloatA,
+                                                         FloatA,
+                                                         decltype(a_k_m0_m1_block_desc_),
+                                                         decltype(a_k_m0_m1_thread_desc_),
+                                                         Sequence<KPerThread, 1, M1PerThreadM11>,
+                                                         Sequence<0, 1, 2>,
+                                                         2,
+                                                         AThreadCopyScalarPerVector_M11,
+                                                         1>;
 
-    using BThreadCopy =
-        ThreadwiseDynamicTensorSliceTransfer_v4<FloatB,
-                                                FloatB,
-                                                decltype(b_k_n0_n1_block_desc_),
-                                                decltype(b_k_n0_n1_thread_desc_),
-                                                Sequence<KPerThread, 1, N1PerThreadN11>,
-                                                Sequence<0, 1, 2>,
-                                                2,
-                                                BThreadCopyScalarPerVector_N11,
-                                                1>;
+    using BThreadCopy = ThreadwiseTensorSliceTransfer_v4<FloatB,
+                                                         FloatB,
+                                                         decltype(b_k_n0_n1_block_desc_),
+                                                         decltype(b_k_n0_n1_thread_desc_),
+                                                         Sequence<KPerThread, 1, N1PerThreadN11>,
+                                                         Sequence<0, 1, 2>,
+                                                         2,
+                                                         BThreadCopyScalarPerVector_N11,
+                                                         1>;
 
     CIndex c_thread_origin_data_idx_;
 
