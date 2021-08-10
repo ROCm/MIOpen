@@ -166,21 +166,11 @@ enable_cppcheck(
         duplicateCondition
         noExplicitConstructor
         passedByValue
-        # preprocessorErrorDirective
+        preprocessorErrorDirective
         shadowVariable
         unusedFunction
         unusedPrivateFunction
         unusedStructMember
-        # Ignore initializer lists in the tests
-       #useInitializationList:*test/*.cpp
-       #*:*src/sqlite/*.cpp
-       #*:*.cl
-       #*:*src/kernels/*.h
-       #knownConditionTrueFalse:*src/kernels/composable_kernel/*/*
-       #redundantAssignment:*src/kernels/composable_kernel/*/*
-       #unreadVariable:*src/kernels/composable_kernel/*/*
-       #unusedScopedObject:*src/kernels/composable_kernel/*/*
-       #wrongPrintfScanfArgNum:*src/kernels/composable_kernel/*/*
         unmatchedSuppression
     FORCE
     SOURCES

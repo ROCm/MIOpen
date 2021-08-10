@@ -10,9 +10,10 @@ template <typename PY,
           typename std::enable_if<is_pointer_v<PY> && is_pointer_v<PX>, bool>::type = false>
 __host__ __device__ PY c_style_pointer_cast(PX p_x)
 {
-#pragma clang diagnostic ignored "-Wold-style-cast"
 #pragma clang diagnostic push
-    return (PY)p_x; // NOLINT(old-style-cast)
+#pragma clang diagnostic ignored "-Wold-style-cast"
+#pragma clang diagnostic ignored "-Wcast-align"
+    return (PY)p_x; // NOLINT(old-style-cast, cast-align)
 #pragma clang diagnostic pop
 }
 

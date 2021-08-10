@@ -81,7 +81,7 @@ void device_dynamic_convolution_forward_implicit_gemm_v4r4r2_dlops_nhwc_kyxc_nhw
     using GemmBBlockTransferDstVectorTensorLengths_K0_N0_N1_K1 = Sequence<1, 1, 1, 1>;
 
     constexpr index_t GemmCThreadTransferDstScalarPerVector_N11 = 4;
-#elif 0
+#elif 1
     // [M, N, K0, K1] = [128, 128, 8, 2] for fp16
     // cdata = 64, BlockSize = 256
     constexpr index_t BlockSize = 256;
