@@ -91,9 +91,9 @@ struct ExecutionContext
     std::string GetPerfDbPath() const
     {
         static const auto result = [&] {
-        boost::filesystem::path pdb_path(GetSystemDbPath());
-        std::ostringstream filename;
-        // clang-format off
+            boost::filesystem::path pdb_path(GetSystemDbPath());
+            std::ostringstream filename;
+            // clang-format off
         filename << GetStream().GetDbBasename();
 #if MIOPEN_ENABLE_SQLITE
         const std::string ext = ".db";
@@ -158,7 +158,7 @@ struct ExecutionContext
                     MIOPEN_LOG_I("Database directory does not exist");
                 }
             }
-        return std::string();
+            return std::string();
         }();
         return result;
     }
