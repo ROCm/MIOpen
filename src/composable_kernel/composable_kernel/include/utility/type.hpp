@@ -22,10 +22,7 @@ template <typename T>
 using remove_cv_t = typename std::remove_cv<T>::type;
 
 template <typename T>
-constexpr std::remove_reference_t<T>&& move(T&& t) noexcept
-{
-    return static_cast<typename std::remove_reference<T>::type&&>(t);
-}
+inline constexpr bool is_pointer_v = std::is_pointer<T>::value;
 
 template <typename T>
 struct is_known_at_compile_time;

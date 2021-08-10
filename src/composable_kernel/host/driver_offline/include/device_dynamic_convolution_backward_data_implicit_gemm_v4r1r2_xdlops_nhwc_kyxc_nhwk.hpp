@@ -290,9 +290,6 @@ void device_dynamic_convolution_backward_data_implicit_gemm_v4r1r2_xdlops_nhwc_k
             const auto K = out_n_ho_wo_k_lengths[I3];
             const auto C = wei_k_y_x_c_lengths[I3];
 
-            const auto Hi = in_n_hi_wi_c_lengths[I1];
-            const auto Wi = in_n_hi_wi_c_lengths[I2];
-
             const auto Ho = out_n_ho_wo_k_lengths[I1];
             const auto Wo = out_n_ho_wo_k_lengths[I2];
 

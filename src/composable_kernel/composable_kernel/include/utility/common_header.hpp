@@ -25,6 +25,7 @@
 #include "type.hpp"
 #include "magic_division.hpp"
 #include "utility.hpp"
+#include "c_style_pointer_cast.hpp"
 #include "amd_address_space.hpp"
 #include "amd_buffer_addressing.hpp"
 #include "static_buffer.hpp"
