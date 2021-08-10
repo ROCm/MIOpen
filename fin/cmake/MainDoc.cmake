@@ -23,9 +23,15 @@
 # SOFTWARE.
 # 
 ################################################################################
-# Python 3.6+ required
-sphinx==4.1.2
-breathe==4.30.0
-docutils<0.17 # sphinx-rtd-theme 0.5.2 requires docutils<0.17
-sphinx_rtd_theme==0.5.2
-myst-parser==0.15.1
+
+if(NOT TARGET doc)
+    add_custom_target(doc)
+endif()
+
+function(mark_as_doc)
+    add_dependencies(doc ${ARGN})
+endfunction()
+
+function(clean_doc_output DIR)
+    set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${DIR})
+endfunction()

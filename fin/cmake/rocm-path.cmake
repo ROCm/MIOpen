@@ -2,7 +2,7 @@
 # 
 # MIT License
 # 
-# Copyright (c) 2017 Advanced Micro Devices, Inc.
+# Copyright (c) 2019 Advanced Micro Devices, Inc.
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -23,9 +23,7 @@
 # SOFTWARE.
 # 
 ################################################################################
-# Python 3.6+ required
-sphinx==4.1.2
-breathe==4.30.0
-docutils<0.17 # sphinx-rtd-theme 0.5.2 requires docutils<0.17
-sphinx_rtd_theme==0.5.2
-myst-parser==0.15.1
+
+# Find the compiler path when building rocBLAS
+list(APPEND CMAKE_PREFIX_PATH /opt/rocm)
+
