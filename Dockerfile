@@ -32,7 +32,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     curl \
     libnuma-dev \
     gnupg && \
-wget -q -O - https://repo.radeon.com/rocm/rocm.gpg.key | apt-key add - && \
+#get -q -O - https://repo.radeon.com/rocm/rocm.gpg.key | apt-key add - && \ THE gpg key doesn't work on bigred2 nodes
 apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     apt-utils \
     build-essential \
