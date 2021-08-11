@@ -69,6 +69,10 @@ struct GridwiseReduction
     static constexpr auto nanPropaOpt      = static_cast<NanPropagation_t>(nanPropaOpt_I);
     static constexpr auto reduceIndicesOpt = static_cast<ReduceTensorIndices_t>(reduceIndicesOpt_I);
 
+    static constexpr bool indexable = reduce_binary_operator<compType, op>::indexable;
+    static constexpr bool need_indices =
+        indexable && (reduceIndicesOpt != ReduceTensorIndices_t::NO_INDICES);
+
     // origReduceLen will be used as a divider to average the reduced values
     static constexpr auto origReduceLen = reduce_on_sequence(
         srcDesc::GetLengths(toReduceDims{}), math::multiplies<index_t>{}, Number<1>{});
@@ -147,12 +151,14 @@ struct GridwiseReduction
                                                                                      // or/and
                                                                                      // second-time
                                                                                      // reduction
-            gridwise_reduce{}.Run(alpha,
-                                  p_src_global,
-                                  beta,
-                                  p_dst_global,
-                                  const_cast<const int* const __restrict__>(ws_buf2_global),
-                                  indices_global); // ws_buf2_global will be read at the second-time
+            constexpr int RunId = need_indices ? (isFirstCall ? 2 : 3) : 1;
+            gridwise_reduce::template Run<RunId>(
+                alpha,
+                p_src_global,
+                beta,
+                p_dst_global,
+                const_cast<const int* const __restrict__>(ws_buf2_global),
+                indices_global); // ws_buf2_global will be read at the second-time
         };
     };
 
@@ -222,12 +228,15 @@ struct GridwiseReduction
                 origReduceLen,
                 GredAccessesPerThreadInWarp>; // isFirstCall & isLastCall indicates the first or/and
                                               // second-time reduction
-            gridwise_reduce{}.Run(alpha,
-                                  p_src_global,
-                                  beta,
-                                  p_dst_global,
-                                  const_cast<const int* const __restrict__>(ws_buf2_global),
-                                  indices_global); // ws_buf2_global will be read at the second-time
+                                              //
+            constexpr int RunId = need_indices ? (isFirstCall ? 2 : 3) : 1;
+            gridwise_reduce::template Run<RunId>(
+                alpha,
+                p_src_global,
+                beta,
+                p_dst_global,
+                const_cast<const int* const __restrict__>(ws_buf2_global),
+                indices_global); // ws_buf2_global will be read at the second-time
         };
     };
 
@@ -284,12 +293,14 @@ struct GridwiseReduction
                                                                                    // first or/and
                                                                                    // second-time
                                                                                    // reduction
-            gridwise_reduce{}.Run(alpha,
-                                  p_src_global,
-                                  beta,
-                                  p_dst_global,
-                                  const_cast<const int* const __restrict__>(ws_buf2_global),
-                                  indices_global); // ws_buf2_global will be read at the second-time
+            constexpr int RunId = need_indices ? (isFirstCall ? 2 : 3) : 1;
+            gridwise_reduce::template Run<RunId>(
+                alpha,
+                p_src_global,
+                beta,
+                p_dst_global,
+                const_cast<const int* const __restrict__>(ws_buf2_global),
+                indices_global); // ws_buf2_global will be read at the second-time
         };
     };
 
@@ -344,12 +355,14 @@ struct GridwiseReduction
                 GredAccessesPerThreadInBlock>; // MultiBlock case is not used by second-time
                                                // reduction
 
-            gridwise_reduce{}.Run(alpha,
-                                  p_src_global,
-                                  beta,
-                                  ws_buf1_global,
-                                  ws_buf2_global); // ws_buf1_global instead of p_dst_global,
-                                                   // ws_buf2_global instead of indices_global
+            constexpr int RunId = need_indices ? 2 : 1;
+            gridwise_reduce::template Run<RunId>(
+                alpha,
+                p_src_global,
+                beta,
+                ws_buf1_global,
+                ws_buf2_global); // ws_buf1_global instead of p_dst_global,
+                                 // ws_buf2_global instead of indices_global
         };
     };
 
