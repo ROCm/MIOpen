@@ -70,7 +70,8 @@ struct GridwiseReduction
     static constexpr auto reduceIndicesOpt = static_cast<ReduceTensorIndices_t>(reduceIndicesOpt_I);
 
     // origReduceLen will be used as a divider to average the reduced values
-    static constexpr auto origReduceLen = srcDesc::GetElementSize() / dstDesc::GetElementSize();
+    static constexpr auto origReduceLen = reduce_on_sequence(
+        srcDesc::GetLengths(toReduceDims{}), math::multiplies<index_t>{}, Number<1>{});
 
     template <ReductionMethod_t impl, bool isFirstCall, bool isLastCall>
     struct GridwiseReduction_2d_wrapper;
@@ -352,13 +353,23 @@ struct GridwiseReduction
         };
     };
 
+    template <int RunId>
     __device__ static void Run(float alpha,
                                const void* const __restrict__ p_src_global,
                                float beta,
                                void* const __restrict__ p_dst_global,
                                void* const __restrict__ ws_buf1_global,
                                long ws_buf2_bytes_offset,
-                               void* const __restrict__ indices_global)
+                               void* const __restrict__ indices_global);
+
+    template <>
+    __device__ static void Run<1>(float alpha,
+                                  const void* const __restrict__ p_src_global,
+                                  float beta,
+                                  void* const __restrict__ p_dst_global,
+                                  void* const __restrict__ ws_buf1_global,
+                                  long ws_buf2_bytes_offset,
+                                  void* const __restrict__ indices_global)
     {
         using srcLengths = decltype(srcDesc::GetLengths());
         using dstLengths = decltype(dstDesc::GetLengths());
@@ -377,102 +388,128 @@ struct GridwiseReduction
             invariantDims::Size() > 0 || (dstLengths::Size() == 1 && dstLengths{}[0] == 1),
             "If all source dimensions are reduced, the dest should have only one dimension !!");
 
-        constexpr bool reduceAllDims = (invariantDims::Size() == 0) ? true : false;
+        void* const ws_buf2_global =
+            ws_buf2_bytes_offset > 0
+                ? static_cast<void*>(static_cast<char*>(ws_buf1_global) + ws_buf2_bytes_offset)
+                : nullptr;
+
+        using toReduceDimLengths  = decltype(srcLengths::Extract(toReduceDims{}));
+        using invariantDimLengths = decltype(srcLengths::Extract(invariantDims{}));
+
+        // for re-ordering the tensor dimensions
+        using lowDimSeq  = typename sequence_merge<invariantDims, toReduceDims>::type;
+        using highDimSeq = typename arithmetic_sequence_gen<0, srcLengths::Size(), 1>::type;
+
+        // construct the reordered tensor descriptor according to the srcMode and dstMode
+        // mapping
+        constexpr auto reordered_srcDesc =
+            transform_tensor_descriptor(srcDesc{},
+                                        make_passthrough_tuple(srcLengths::Extract(lowDimSeq{})),
+                                        make_dimensions_tuple(lowDimSeq{}),
+                                        make_dimensions_tuple(highDimSeq{}));
+        constexpr auto two_dim_srcDesc = transform_tensor_descriptor(
+            reordered_srcDesc,
+            make_2d_merge_transform_tuple(invariantDimLengths{}, toReduceDimLengths{}),
+            make_tuple(typename arithmetic_sequence_gen<0, dstLengths::Size(), 1>::type{},
+                       typename arithmetic_sequence_gen<dstLengths::Size(), srcLengths::Size(), 1>::
+                           type{}),
+            make_tuple(Sequence<0>{}, Sequence<1>{}));
+
+        constexpr auto one_dim_dstDesc = transform_tensor_descriptor(
+            dstDesc{},
+            make_1d_merge_transform_tuple(dstLengths{}),
+            make_tuple(typename arithmetic_sequence_gen<0, dstLengths::Size(), 1>::type{}),
+            make_tuple(Sequence<0>{}));
+
+        using gridwise_2d_reduce = GridwiseReduction_2d_wrapper<reduceImpl, true, true>;
+
+        gridwise_2d_reduce{}.Run(
+            two_dim_srcDesc,
+            one_dim_dstDesc,
+            type_convert<srcDataType>{}(alpha),
+            const_cast<const srcDataType* const __restrict__>(
+                static_cast<const srcDataType*>(p_src_global)),
+            type_convert<dstDataType>{}(beta),
+            const_cast<dstDataType* const __restrict__>(static_cast<dstDataType*>(p_dst_global)),
+            static_cast<srcDataType* const __restrict__>(ws_buf1_global),
+            static_cast<int* const __restrict__>(ws_buf2_global),
+            static_cast<int* const __restrict__>(indices_global));
+    };
+
+    template <>
+    __device__ static void Run<2>(float alpha,
+                                  const void* const __restrict__ p_src_global,
+                                  float beta,
+                                  void* const __restrict__ p_dst_global,
+                                  void* const __restrict__ ws_buf1_global,
+                                  long ws_buf2_bytes_offset,
+                                  void* const __restrict__ indices_global)
+    {
+        using srcLengths = decltype(srcDesc::GetLengths());
+        using dstLengths = decltype(dstDesc::GetLengths());
+
+        using specDims = typename sequence_merge<invariantDims, toReduceDims>::type;
+        static_assert(is_valid_sequence_map<specDims>::value &&
+                          specDims::Size() == srcLengths::Size(),
+                      "Wrong invariant and/or toReduce dimensions!");
+
+        static_assert(toReduceDims::Size() >= 1,
+                      "Wrong specification of source mode, We should at "
+                      "least to have one dimension to be reduced !!");
+
+        // The number of invariant dimensions can be zero if all dimension are to be reduced
+        static_assert(
+            invariantDims::Size() > 0 || (dstLengths::Size() == 1 && dstLengths{}[0] == 1),
+            "If all source dimensions are reduced, the dest should have only one dimension !!");
 
         void* const ws_buf2_global =
             ws_buf2_bytes_offset > 0
                 ? static_cast<void*>(static_cast<char*>(ws_buf1_global) + ws_buf2_bytes_offset)
                 : nullptr;
 
-        static_if<!reduceAllDims>{}([&](auto) { // not all dimensions are to be reduced
-            using toReduceDimLengths  = decltype(srcLengths::Extract(toReduceDims{}));
-            using invariantDimLengths = decltype(srcLengths::Extract(invariantDims{}));
+        constexpr auto one_dim_srcDesc = transform_tensor_descriptor(
+            srcDesc{},
+            make_1d_merge_transform_tuple(srcLengths{}),
+            make_tuple(typename arithmetic_sequence_gen<0, srcLengths::Size(), 1>::type{}),
+            make_tuple(Sequence<0>{}));
 
-            // for re-ordering the tensor dimensions
-            using lowDimSeq  = typename sequence_merge<invariantDims, toReduceDims>::type;
-            using highDimSeq = typename arithmetic_sequence_gen<0, srcLengths::Size(), 1>::type;
+        constexpr auto dim_length = one_dim_srcDesc.GetLengths()[0];
 
-            // construct the reordered tensor descriptor according to the srcMode and dstMode
-            // mapping
-            constexpr auto reordered_srcDesc = transform_tensor_descriptor(
-                srcDesc{},
-                make_passthrough_tuple(srcLengths::Extract(lowDimSeq{})),
-                make_dimensions_tuple(lowDimSeq{}),
-                make_dimensions_tuple(highDimSeq{}));
-            constexpr auto two_dim_srcDesc = transform_tensor_descriptor(
-                reordered_srcDesc,
-                make_2d_merge_transform_tuple(invariantDimLengths{}, toReduceDimLengths{}),
-                make_tuple(typename arithmetic_sequence_gen<0, dstLengths::Size(), 1>::type{},
-                           typename arithmetic_sequence_gen<dstLengths::Size(),
-                                                            srcLengths::Size(),
-                                                            1>::type{}),
-                make_tuple(Sequence<0>{}, Sequence<1>{}));
+        constexpr auto two_dim_srcDesc =
+            transform_tensor_descriptor(one_dim_srcDesc,
+                                        make_tuple(UnMerge<Sequence<1, dim_length>>{}),
+                                        make_tuple(Sequence<0>{}),
+                                        make_tuple(Sequence<0, 1>{}));
 
-            constexpr auto one_dim_dstDesc = transform_tensor_descriptor(
-                dstDesc{},
-                make_1d_merge_transform_tuple(dstLengths{}),
-                make_tuple(typename arithmetic_sequence_gen<0, dstLengths::Size(), 1>::type{}),
-                make_tuple(Sequence<0>{}));
+        constexpr auto one_dim_dstDesc = transform_tensor_descriptor(
+            dstDesc{},
+            make_1d_merge_transform_tuple(dstLengths{}),
+            make_tuple(typename arithmetic_sequence_gen<0, dstLengths::Size(), 1>::type{}),
+            make_tuple(Sequence<0>{}));
 
-            using gridwise_2d_reduce = GridwiseReduction_2d_wrapper<reduceImpl, true, true>;
+        using gridwise_2d_reduce = GridwiseReduction_2d_wrapper<reduceImpl, true, true>;
 
-            gridwise_2d_reduce{}.Run(two_dim_srcDesc,
-                                     one_dim_dstDesc,
-                                     type_convert<srcDataType>{}(alpha),
-                                     const_cast<const srcDataType* const __restrict__>(
-                                         static_cast<const srcDataType*>(p_src_global)),
-                                     type_convert<dstDataType>{}(beta),
-                                     const_cast<dstDataType* const __restrict__>(
-                                         static_cast<dstDataType*>(p_dst_global)),
-                                     static_cast<srcDataType* const __restrict__>(ws_buf1_global),
-                                     static_cast<int* const __restrict__>(ws_buf2_global),
-                                     static_cast<int* const __restrict__>(indices_global));
-        })
-            .Else([&](auto) { // All dimensions are to be reduced
-                constexpr auto one_dim_srcDesc = transform_tensor_descriptor(
-                    srcDesc{},
-                    make_1d_merge_transform_tuple(srcLengths{}),
-                    make_tuple(typename arithmetic_sequence_gen<0, srcLengths::Size(), 1>::type{}),
-                    make_tuple(Sequence<0>{}));
-
-                constexpr auto dim_length = one_dim_srcDesc.GetLengths()[0];
-
-                constexpr auto two_dim_srcDesc =
-                    transform_tensor_descriptor(one_dim_srcDesc,
-                                                make_tuple(UnMerge<Sequence<1, dim_length>>{}),
-                                                make_tuple(Sequence<0>{}),
-                                                make_tuple(Sequence<0, 1>{}));
-
-                constexpr auto one_dim_dstDesc = transform_tensor_descriptor(
-                    dstDesc{},
-                    make_1d_merge_transform_tuple(dstLengths{}),
-                    make_tuple(typename arithmetic_sequence_gen<0, dstLengths::Size(), 1>::type{}),
-                    make_tuple(Sequence<0>{}));
-
-                using gridwise_2d_reduce = GridwiseReduction_2d_wrapper<reduceImpl, true, true>;
-
-                gridwise_2d_reduce{}.Run(
-                    two_dim_srcDesc,
-                    one_dim_dstDesc,
-                    type_convert<srcDataType>{}(alpha),
-                    const_cast<const srcDataType* const __restrict__>(
-                        static_cast<const srcDataType*>(p_src_global)),
-                    type_convert<dstDataType>{}(beta),
-                    const_cast<dstDataType* const __restrict__>(
-                        static_cast<dstDataType*>(p_dst_global)),
-                    static_cast<srcDataType* const __restrict__>(ws_buf1_global),
-                    static_cast<int* const __restrict__>(ws_buf2_global),
-                    static_cast<int* const __restrict__>(indices_global));
-            });
+        gridwise_2d_reduce{}.Run(
+            two_dim_srcDesc,
+            one_dim_dstDesc,
+            type_convert<srcDataType>{}(alpha),
+            const_cast<const srcDataType* const __restrict__>(
+                static_cast<const srcDataType*>(p_src_global)),
+            type_convert<dstDataType>{}(beta),
+            const_cast<dstDataType* const __restrict__>(static_cast<dstDataType*>(p_dst_global)),
+            static_cast<srcDataType* const __restrict__>(ws_buf1_global),
+            static_cast<int* const __restrict__>(ws_buf2_global),
+            static_cast<int* const __restrict__>(indices_global));
     };
 
-    __device__ static void Run_2(float alpha,
-                                 const void* const __restrict__ p_src_global,
-                                 float beta,
-                                 void* const __restrict__ p_dst_global,
-                                 void* const __restrict__ ws_buf1_global,
-                                 long ws_buf2_bytes_offset,
-                                 void* const __restrict__ indices_global)
+    template <>
+    __device__ static void Run<3>(float alpha,
+                                  const void* const __restrict__ p_src_global,
+                                  float beta,
+                                  void* const __restrict__ p_dst_global,
+                                  void* const __restrict__ ws_buf1_global,
+                                  long ws_buf2_bytes_offset,
+                                  void* const __restrict__ indices_global)
     {
         (void)p_src_global; // unused
 
@@ -494,26 +531,23 @@ struct GridwiseReduction
                 ? static_cast<void*>(static_cast<char*>(ws_buf1_global) + ws_buf2_bytes_offset)
                 : nullptr;
 
-        static_if<is_method_multiblock>{}([&](auto) {
-            constexpr ReductionMethod_t reduceImpl2 =
-                ReduceKernelSimpleConfigurator<BlockSize, warpSize>::GetReductionMethod(
-                    Number<invariantLength>{}, Number<toReduceLength>{});
+        constexpr ReductionMethod_t reduceImpl2 =
+            ReduceKernelSimpleConfigurator<BlockSize, warpSize>::GetReductionMethod(
+                Number<invariantLength>{}, Number<toReduceLength>{});
 
-            using gridwise_2d_reduce = GridwiseReduction_2d_wrapper<reduceImpl2, false, true>;
+        using gridwise_2d_reduce = GridwiseReduction_2d_wrapper<reduceImpl2, false, true>;
 
-            gridwise_2d_reduce{}.Run(
-                workspace_2d_desc,
-                one_dim_dstDesc,
-                type_convert<srcDataType>{}(alpha),
-                const_cast<const srcDataType* const __restrict__>(
-                    static_cast<srcDataType*>(ws_buf1_global)),
-                type_convert<dstDataType>{}(beta),
-                const_cast<dstDataType* const __restrict__>(
-                    static_cast<dstDataType*>(p_dst_global)),
-                const_cast<dstDataType* const __restrict__>(static_cast<dstDataType*>(nullptr)),
-                static_cast<int* const __restrict__>(ws_buf2_global),
-                static_cast<int* const __restrict__>(indices_global));
-        }).Else([&](auto) {});
+        gridwise_2d_reduce{}.Run(
+            workspace_2d_desc,
+            one_dim_dstDesc,
+            type_convert<srcDataType>{}(alpha),
+            const_cast<const srcDataType* const __restrict__>(
+                static_cast<srcDataType*>(ws_buf1_global)),
+            type_convert<dstDataType>{}(beta),
+            const_cast<dstDataType* const __restrict__>(static_cast<dstDataType*>(p_dst_global)),
+            const_cast<dstDataType* const __restrict__>(static_cast<dstDataType*>(nullptr)),
+            static_cast<int* const __restrict__>(ws_buf2_global),
+            static_cast<int* const __restrict__>(indices_global));
     };
 };
 
