@@ -48,7 +48,7 @@ void device_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw(
     const auto wei_desc_k_c_y_x   = make_naive_tensor_descriptor_packed(wei_k_c_y_x_lengths);
     const auto out_desc_n_k_ho_wo = make_naive_tensor_descriptor_packed(out_n_k_ho_wo_lengths);
 
-#if 0
+#if 1
     // [8, 1, 128, 1] * [8, 4, 32, 1] = [1, 128, 4, 32] for fp32
     // cdata = 64, BlockSize = 256
     constexpr index_t BlockSize = 256;

@@ -20,9 +20,9 @@
 #include "device_convolution_forward_implicit_gemm_v4r4r4_xdlops_nhwc_kyxc_nhwk.hpp"
 
 #define USE_MODE 1
-#define USE_CONV_FWD_V4R4_NCHW 0
-#define USE_CONV_FWD_V4R4R2_NHWC 1
-#define USE_CONV_FWD_V6R1_NCHW 1
+#define USE_CONV_FWD_V4R4_NCHW 1
+#define USE_CONV_FWD_V4R4R2_NHWC 0
+#define USE_CONV_FWD_V6R1_NCHW 0
 #define USE_CONV_FWD_V5R1_NCHW 0
 #define USE_CONV_FWD_V4R4R2_XDL_NCHW 0
 #define USE_CONV_FWD_V4R4R4_XDL_NHWC 0
@@ -126,7 +126,7 @@ int main(int argc, char* argv[])
     const index_t Wo = (Wi + in_left_pad_w + in_right_pad_w - XEff) / conv_stride_w + 1;
 #endif
 
-#if 0
+#if 1
     using in_data_t  = float;
     using acc_data_t = float;
     using out_data_t = float;

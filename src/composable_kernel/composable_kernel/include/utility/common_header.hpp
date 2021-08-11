@@ -31,13 +31,11 @@
 #include "static_buffer.hpp"
 #include "dynamic_buffer.hpp"
 
+#include "inner_product.hpp"
+
 // TODO: remove this
 #if CK_USE_AMD_INLINE_ASM
 #include "amd_inline_asm.hpp"
-#endif
-
-#if CK_USE_AMD_DLOP
-#include "amd_dlop.hpp"
 #endif
 
 #if CK_USE_AMD_XDLOPS

@@ -4,6 +4,8 @@
 #include "data_type.hpp"
 #include "c_style_pointer_cast.hpp"
 
+// TODO: deprecate all amd_assembly_outer_product_xxx
+
 namespace ck {
 
 // c0 += inner_product(a, b0)

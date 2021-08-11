@@ -97,10 +97,9 @@ struct ThreadwiseGemmDlops_km0m1_kn0n1_m0m1n0n1
                                 CThreadDesc_TM0_TM1_TN0_TN1{}.CalculateOffset(
                                     c_origin_idx + make_multi_index(tm0, tm1, tn0, tn1));
 
-                            amd_inner_product_dlop<FloatA, FloatB, FloatC>(
-                                a_buf[Number<a_offset>{}],
-                                b_buf[Number<b_offset>{}],
-                                c_buf(Number<c_offset>{}));
+                            inner_product<FloatA, FloatB, FloatC>(a_buf[Number<a_offset>{}],
+                                                                  b_buf[Number<b_offset>{}],
+                                                                  c_buf(Number<c_offset>{}));
                         });
                     });
                 });
@@ -214,7 +213,7 @@ struct ThreadwiseContractionDlops_A_TK0_TM0_TM1_TK1_B_TK0_TN0_TN1_TK1_C_TM0_TM1_
                                 CThreadDesc_TM0_TM1_TN0_TN1{}.CalculateOffset(
                                     c_origin_idx + make_multi_index(tm0, tm1, tn0, tn1));
 
-                            amd_inner_product_dlop<a_vector_t, b_vector_t, FloatC>(
+                            inner_product<a_vector_t, b_vector_t, FloatC>(
                                 a_vec.template AsType<a_vector_t>()[I0],
                                 b_vec.template AsType<b_vector_t>()[I0],
                                 c_buf(Number<c_offset>{}));

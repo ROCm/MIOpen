@@ -14,12 +14,7 @@
 // should enable one and only one GPU target
 #if !(defined(CK_AMD_GPU_GFX803) || defined(CK_AMD_GPU_GFX900) || defined(CK_AMD_GPU_GFX906) || \
       defined(CK_AMD_GPU_GFX908) || defined(CK_AMD_GPU_GFX90A) || defined(CK_AMD_GPU_GFX1030))
-#error Need to define a single GPU target
-#endif
-
-// HIP version
-#ifndef CK_HIP_VERSION_FLAT
-#define CK_HIP_VERSION_FLAT 0
+#error Need to define (only) one GPU target
 #endif
 
 // launch bounds
@@ -38,6 +33,16 @@
 #define CK_BUFFER_RESOURCE_3RD_DWORD 0x31014000
 #endif
 
+// FMA instruction
+#if defined(CK_AMD_GPU_GFX803) || defined(CK_AMD_GPU_GFX900)
+#define CK_USE_AMD_V_MAC_F32
+#elif defined(CK_AMD_GPU_GFX906) || defined(CK_AMD_GPU_GFX908) || defined(CK_AMD_GPU_GFX90a) || \
+    defined(CK_AMD_GPU_GFX1030)
+#define CK_USE_AMD_V_FMAC_F32
+#define CK_USE_AMD_V_DOT2_F32_F16
+#define CK_USE_AMD_V_DOT4_I32_I8
+#endif
+
 // multi index
 #define CK_USE_DYNAMICALLY_INDEXED_MULTI_INDEX 0
 
@@ -46,13 +51,9 @@
 #define CK_USE_AMD_INLINE_ASM 1
 #endif
 
-// AMD DLOPS
-#ifndef CK_USE_AMD_DLOP
-#define CK_USE_AMD_DLOP 1
-#endif
-
-#ifndef CK_USE_AMD_DLOP_INLINE_ASM
-#define CK_USE_AMD_DLOP_INLINE_ASM 1
+// AMD inner product (DLOP)
+#ifndef CK_USE_AMD_INNER_PRODUCT_INLINE_ASM
+#define CK_USE_AMD_INNER_PRODUCT_INLINE_ASM 1
 #endif
 
 // AMD buffer addressing
