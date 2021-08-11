@@ -5,6 +5,7 @@ ARG GPU_ARCH=";"
 ARG MIOTENSILE_VER="default"
 ARG USE_TARGETID="OFF"
 ARG USE_MLIR="OFF"
+ARG USE_FIN="OFF"
 
 # Support multiarch
 RUN dpkg --add-architecture i386
@@ -25,19 +26,13 @@ RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu xenial main universe | tee 
 
 #Add gpg keys
 # Install dependencies
-RUN if [ "$USE_TARGETID" = "ON" ]; \
-        then export ROCM_KEY_VER=4.1.1; \
-    elif [ "$USE_MLIR" = "ON" ] ; \
-        then export ROCM_KEY_VER=4.2;\
-    else export ROCM_KEY_VER=4.2; \
-    fi && \
-apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     wget \
     ca-certificates \
     curl \
     libnuma-dev \
     gnupg && \
-wget -q -O - https://repo.radeon.com/rocm/apt/$ROCM_KEY_VER/rocm.gpg.key | apt-key add - && \
+wget -q -O - https://repo.radeon.com/rocm/rocm.gpg.key | apt-key add - && \
 apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     apt-utils \
     build-essential \
@@ -105,6 +100,7 @@ RUN cget -p $PREFIX install kitware/cmake@v3.15.1
 
 ADD min-requirements.txt /min-requirements.txt
 RUN CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -f /min-requirements.txt
+RUN if [ "$USE_FIN" = "ON" ]; then cget -p $PREFIX install nlohmann/json@350ff4f7ced7c4117eae2fb93df02823c8021fcb; fi
 RUN cget -p $PREFIX install danmar/cppcheck@dd05839a7e63ef04afd34711cb3e1e0ef742882f
 
 # Install doc requirements
