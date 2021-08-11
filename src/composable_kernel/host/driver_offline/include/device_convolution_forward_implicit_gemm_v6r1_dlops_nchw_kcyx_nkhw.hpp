@@ -130,7 +130,7 @@ void device_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw(
     const auto out_grid_desc_gm0_gm1_gn0_gn1 = descs[I2];
 
     // HACK: hacks that control index calculation when iterating over A, B, C matrix
-    constexpr auto wei_grid_iterator_hacks =
+    constexpr auto wei_grid_step_hacks =
         make_tuple(make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0>{},   // 0+: GK0
                               Sequence<0, 0, 0, 0, 0, 0, 0>{},   // 1+: GM0
                               Sequence<0, 0, 0, 0, 0, 0, 0>{},   // 2+: GM10
@@ -142,7 +142,7 @@ void device_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw(
                               Sequence<0, 0, 0, 0, 0, 0, 0>{},   // 3-: GM11
                               Sequence<0, 0, 0, 0, 0, 0, 0>{})); // 4-: GK1
 
-    constexpr auto in_grid_iterator_hacks = make_tuple(
+    constexpr auto in_grid_step_hacks = make_tuple(
         make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0>{},   // 0+: GK0
                    Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0>{},   // 1+: GN0
                    Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0>{},   // 2+: GN10
@@ -154,7 +154,7 @@ void device_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw(
                    Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0>{},   // 3-: GN11
                    Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{})); // 4-: GK1
 
-    constexpr auto out_grid_iterator_hacks = make_tuple(
+    constexpr auto out_grid_step_hacks = make_tuple(
         make_tuple(
             Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},  // 0+: GM10
             Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0>{},  // 1+: BM0
@@ -170,9 +170,9 @@ void device_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw(
             Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0>{},   // 4-: BN0
             Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0>{})); // 5-: GN1
 
-    constexpr auto wei_grid_move_slice_window_iterator_hacks = Sequence<0, 0, 0, 0, 0, 0, 0>{};
+    constexpr auto wei_grid_move_slice_window_step_hacks = Sequence<0, 0, 0, 0, 0, 0, 0>{};
 
-    constexpr auto in_grid_move_slice_window_iterator_hacks =
+    constexpr auto in_grid_move_slice_window_step_hacks =
         Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 2, 0, 0, 0, 0, 0>{};
 
     for(index_t i = 0; i < 5; ++i)
@@ -211,22 +211,22 @@ void device_convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw(
             Sequence<3, 4, 5, 0, 1, 2>, // CThreadTransferSrcDstAccessOrder
             5,                          // CThreadTransferSrcDstVectorDim
             CThreadTransferDstScalarPerVector_BN1,
-            decltype(wei_grid_iterator_hacks),
-            decltype(in_grid_iterator_hacks),
-            decltype(out_grid_iterator_hacks),
-            decltype(wei_grid_move_slice_window_iterator_hacks),
-            decltype(in_grid_move_slice_window_iterator_hacks)>(
+            decltype(wei_grid_step_hacks),
+            decltype(in_grid_step_hacks),
+            decltype(out_grid_step_hacks),
+            decltype(wei_grid_move_slice_window_step_hacks),
+            decltype(in_grid_move_slice_window_step_hacks)>(
             static_cast<TInWei*>(wei_k_c_y_x_device_buf.GetDeviceBuffer()),
             static_cast<TInWei*>(in_n_c_hi_wi_device_buf.GetDeviceBuffer()),
             static_cast<TOut*>(out_n_k_ho_wo_device_buf.GetDeviceBuffer()),
             wei_grid_desc_gk0_gm0_gm1_gk1,
             in_grid_desc_gk0_gn0_gn1_gk1,
             out_grid_desc_gm0_gm1_gn0_gn1,
-            wei_grid_iterator_hacks,
-            in_grid_iterator_hacks,
-            out_grid_iterator_hacks,
-            wei_grid_move_slice_window_iterator_hacks,
-            in_grid_move_slice_window_iterator_hacks,
+            wei_grid_step_hacks,
+            in_grid_step_hacks,
+            out_grid_step_hacks,
+            wei_grid_move_slice_window_step_hacks,
+            in_grid_move_slice_window_step_hacks,
             nrepeat);
 
         float perf = static_cast<float>(calculate_convolution_flops(

@@ -11,7 +11,7 @@ namespace ck {
 //   1. Desc is known at compile-time
 //   2. Buffer is StaticBuffer
 //   3. OriginIdx is known at compile-time
-//   4. use #-iterator
+//   4. use #-step
 template <typename Data,
           typename Desc,
           typename SliceLengths,

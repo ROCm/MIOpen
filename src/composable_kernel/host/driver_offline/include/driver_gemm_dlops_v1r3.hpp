@@ -39,22 +39,22 @@ template <ck::index_t BlockSize,
           typename CThreadTransferSrcDstAccessOrder,
           ck::index_t CThreadTransferSrcDstVectorDim,
           ck::index_t CThreadTransferDstScalarPerVector,
-          typename AGridIteratorHacks,
-          typename BGridIteratorHacks,
-          typename CGridIteratorHacks,
-          typename AGridMoveSliceWindowIteratorHacks,
-          typename BGridMoveSliceWindowIteratorHacks>
+          typename AGridStepHacks,
+          typename BGridStepHacks,
+          typename CGridStepHacks,
+          typename AGridMoveSliceWindowStepHacks,
+          typename BGridMoveSliceWindowStepHacks>
 __host__ float driver_gemm_dlops_v1r3(const FloatAB* p_a_grid,
                                       const FloatAB* p_b_grid,
                                       FloatC* p_c_grid,
                                       const AK0MK1GridDesc& a_k0_m_k1_grid_desc,
                                       const BK0NK1GridDesc& b_k0_n_k1_grid_desc,
                                       const CMNGridDesc& c_m_n_grid_desc,
-                                      AGridIteratorHacks,
-                                      BGridIteratorHacks,
-                                      CGridIteratorHacks,
-                                      AGridMoveSliceWindowIteratorHacks,
-                                      BGridMoveSliceWindowIteratorHacks,
+                                      AGridStepHacks,
+                                      BGridStepHacks,
+                                      CGridStepHacks,
+                                      AGridMoveSliceWindowStepHacks,
+                                      BGridMoveSliceWindowStepHacks,
                                       ck::index_t nrepeat)
 
 {
@@ -102,11 +102,11 @@ __host__ float driver_gemm_dlops_v1r3(const FloatAB* p_a_grid,
                                         CThreadTransferSrcDstAccessOrder,
                                         CThreadTransferSrcDstVectorDim,
                                         CThreadTransferDstScalarPerVector,
-                                        AGridIteratorHacks,
-                                        BGridIteratorHacks,
-                                        CGridIteratorHacks,
-                                        AGridMoveSliceWindowIteratorHacks,
-                                        BGridMoveSliceWindowIteratorHacks>;
+                                        AGridStepHacks,
+                                        BGridStepHacks,
+                                        CGridStepHacks,
+                                        AGridMoveSliceWindowStepHacks,
+                                        BGridMoveSliceWindowStepHacks>;
 
     const auto M  = a_k0_m_k1_grid_desc.GetLength(I1);
     const auto N  = b_k0_n_k1_grid_desc.GetLength(I1);

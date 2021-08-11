@@ -39,11 +39,11 @@ template <ck::index_t BlockSize,
           typename CThreadTransferSrcDstAccessOrder,
           ck::index_t CThreadTransferSrcDstVectorDim,
           ck::index_t CThreadTransferDstScalarPerVector,
-          typename AGridIteratorHacks,
-          typename BGridIteratorHacks,
-          typename CGridIteratorHacks,
-          typename AGridMoveSliceWindowIteratorHacks,
-          typename BGridMoveSliceWindowIteratorHacks>
+          typename AGridStepHacks,
+          typename BGridStepHacks,
+          typename CGridStepHacks,
+          typename AGridMoveSliceWindowStepHacks,
+          typename BGridMoveSliceWindowStepHacks>
 __host__ float
 driver_contraction_dlops_v1r2(const FloatAB* p_a_grid,
                               const FloatAB* p_b_grid,
@@ -51,11 +51,11 @@ driver_contraction_dlops_v1r2(const FloatAB* p_a_grid,
                               const AGridDesc_GK0_GM0_GM1_GK1& a_grid_desc_gk0_gm0_gm1_gk1,
                               const BGridDesc_GK0_GN0_GN1_GK1& b_grid_desc_gk0_gn0_gn1_gk1,
                               const CGridDesc_GM0_GM1_GN0_GN1& c_grid_desc_gm0_gm1_gn0_gn1,
-                              AGridIteratorHacks,
-                              BGridIteratorHacks,
-                              CGridIteratorHacks,
-                              AGridMoveSliceWindowIteratorHacks,
-                              BGridMoveSliceWindowIteratorHacks,
+                              AGridStepHacks,
+                              BGridStepHacks,
+                              CGridStepHacks,
+                              AGridMoveSliceWindowStepHacks,
+                              BGridMoveSliceWindowStepHacks,
                               ck::index_t nrepeat)
 
 {
@@ -104,11 +104,11 @@ driver_contraction_dlops_v1r2(const FloatAB* p_a_grid,
             CThreadTransferSrcDstAccessOrder,
             CThreadTransferSrcDstVectorDim,
             CThreadTransferDstScalarPerVector,
-            AGridIteratorHacks,
-            BGridIteratorHacks,
-            CGridIteratorHacks,
-            AGridMoveSliceWindowIteratorHacks,
-            BGridMoveSliceWindowIteratorHacks>;
+            AGridStepHacks,
+            BGridStepHacks,
+            CGridStepHacks,
+            AGridMoveSliceWindowStepHacks,
+            BGridMoveSliceWindowStepHacks>;
 
     const auto GK0 = a_grid_desc_gk0_gm0_gm1_gk1.GetLength(I0);
 

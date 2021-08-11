@@ -42,11 +42,11 @@ template <index_t BlockSize,
           typename CThreadTransferSrcDstAccessOrder,
           index_t CThreadTransferSrcDstVectorDim,
           index_t CThreadTransferDstScalarPerVector,
-          typename AGlobalIteratorHacks,
-          typename BGlobalIteratorHacks,
-          typename CGlobalIteratorHacks,
-          typename AGlobalMoveSliceWindowIteratorHacks,
-          typename BGlobalMoveSliceWindowIteratorHacks>
+          typename AGlobalStepHacks,
+          typename BGlobalStepHacks,
+          typename CGlobalStepHacks,
+          typename AGlobalMoveSliceWindowStepHacks,
+          typename BGlobalMoveSliceWindowStepHacks>
 struct GridwiseGemmDlops_km_kn_mn_v3
 {
     __host__ __device__ static constexpr index_t GetSharedMemoryNumberOfByte()
@@ -239,15 +239,14 @@ struct GridwiseGemmDlops_km_kn_mn_v3
         constexpr auto b_thread_slice_copy_step = make_multi_index(EPerBlock, 0, 0, 0);
 
         // hack to control index calculation when iterating over A and B matrix for threadwise copy
-        constexpr auto a_e_k_global_iterator_hacks       = AGlobalIteratorHacks{};
-        constexpr auto b_e_n_ho_wo_global_iterator_hacks = BGlobalIteratorHacks{};
+        constexpr auto a_e_k_global_step_hacks       = AGlobalStepHacks{};
+        constexpr auto b_e_n_ho_wo_global_step_hacks = BGlobalStepHacks{};
 
         // hack to control index calculation when move slice window for A and B matrix for
         // threadwise copy
-        constexpr auto a_e_k_global_move_slice_window_iterator_hack =
-            AGlobalMoveSliceWindowIteratorHacks{};
-        constexpr auto b_e_n_ho_wo_global_move_slice_window_iterator_hack =
-            BGlobalMoveSliceWindowIteratorHacks{};
+        constexpr auto a_e_k_global_move_slice_window_step_hack = AGlobalMoveSliceWindowStepHacks{};
+        constexpr auto b_e_n_ho_wo_global_move_slice_window_step_hack =
+            BGlobalMoveSliceWindowStepHacks{};
 
         // double regsiter buffer for b
         StaticBuffer<AddressSpaceEnum_t::Vgpr,
@@ -257,14 +256,14 @@ struct GridwiseGemmDlops_km_kn_mn_v3
 
         // LDS double buffer: preload data
         {
-            a_blockwise_copy.RunRead(a_e_k_global_desc, a_global_buf, a_e_k_global_iterator_hacks);
+            a_blockwise_copy.RunRead(a_e_k_global_desc, a_global_buf, a_e_k_global_step_hacks);
 
             b_threadwise_transfer.Run(b_e_n_ho_wo_global_desc,
                                       b_global_buf,
                                       b_e_n_ho_wo_thread_desc,
                                       make_tuple(I0, I0, I0, I0),
                                       b_thread_even_buf,
-                                      b_e_n_ho_wo_global_iterator_hacks);
+                                      b_e_n_ho_wo_global_step_hacks);
 
             a_blockwise_copy.RunWrite(a_e_k_desc, a_block_buf);
         }
@@ -288,7 +287,7 @@ struct GridwiseGemmDlops_km_kn_mn_v3
                                           b_e_n_ho_wo_thread_desc,
                                           make_tuple(I0, I0, I0, I0),
                                           b_thread_odd_buf,
-                                          b_e_n_ho_wo_global_iterator_hacks);
+                                          b_e_n_ho_wo_global_step_hacks);
 
                 // LDS double buffer: GEMM on current data
                 // TODO: @Zhang Jing: blockwise gemm should be able to move slice window
@@ -304,7 +303,7 @@ struct GridwiseGemmDlops_km_kn_mn_v3
                                           b_e_n_ho_wo_thread_desc,
                                           make_tuple(I0, I0, I0, I0),
                                           b_thread_even_buf,
-                                          b_e_n_ho_wo_global_iterator_hacks);
+                                          b_e_n_ho_wo_global_step_hacks);
 
                 // LDS double buffer: GEMM on current data
                 blockwise_gemm.Run(a_block_buf, b_thread_odd_buf, c_thread_buf);
@@ -327,7 +326,7 @@ struct GridwiseGemmDlops_km_kn_mn_v3
                                       b_e_n_ho_wo_thread_desc,
                                       make_tuple(I0, I0, I0, I0),
                                       b_thread_odd_buf,
-                                      b_e_n_ho_wo_global_iterator_hacks);
+                                      b_e_n_ho_wo_global_step_hacks);
 
             // LDS double buffer: GEMM on 2nd-last data
             blockwise_gemm.Run(a_block_buf, b_thread_even_buf, c_thread_buf);
@@ -346,7 +345,7 @@ struct GridwiseGemmDlops_km_kn_mn_v3
         // output: register to global memory
         {
             // hack to control index calculation when iterating over c_k_n_ho_wo_global tensor
-            constexpr auto c_k_n_ho_wo_global_tensor_iterator_hacks = CGlobalIteratorHacks{};
+            constexpr auto c_k_n_ho_wo_global_tensor_step_hacks = CGlobalStepHacks{};
 
             const index_t k_thread_data_on_global =
                 k_block_data_on_global + k_thread_id * KPerThread;
@@ -370,7 +369,7 @@ struct GridwiseGemmDlops_km_kn_mn_v3
                      c_thread_buf,
                      c_k_n_ho_wo_global_desc,
                      c_global_buf,
-                     c_k_n_ho_wo_global_tensor_iterator_hacks);
+                     c_k_n_ho_wo_global_tensor_step_hacks);
         }
     }
 

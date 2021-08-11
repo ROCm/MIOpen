@@ -111,7 +111,7 @@ convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw_prepare(index_t N,
     using BGridDesc_GK0_GN0_GN1_GK1 = decltype(b_grid_desc_gk0_gn0_gn1_gk1);
     using CGridDesc_GM0_GM1_GN0_GN1 = decltype(c_grid_desc_gm0_gm1_gn0_gn1);
 
-    using AGridIteratorHacks =
+    using AGridStepHacks =
         decltype(make_tuple(make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0>{},    // 0+: GK0
                                        Sequence<0, 0, 0, 0, 0, 0, 0>{},    // 1+: GM0
                                        Sequence<0, 0, 0, 0, 0, 0, 0>{},    // 2+: GM10
@@ -123,7 +123,7 @@ convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw_prepare(index_t N,
                                        Sequence<0, 0, 0, 0, 0, 0, 0>{},    // 3-: GM11
                                        Sequence<0, 0, 0, 0, 0, 0, 0>{}))); // 4-: GK1
 
-    using BGridIteratorHacks = decltype(make_tuple(
+    using BGridStepHacks = decltype(make_tuple(
         make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0>{},    // 0+: GK0
                    Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0>{},    // 1+: GN0
                    Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0>{},    // 2+: GN10
@@ -135,7 +135,7 @@ convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw_prepare(index_t N,
                    Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0>{},    // 3-: GN11
                    Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{}))); // 4-: GK1
 
-    using CGridIteratorHacks = decltype(make_tuple(
+    using CGridStepHacks = decltype(make_tuple(
         make_tuple(
             Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},  // 0+: GM10
             Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0>{},  // 1+: BM0
@@ -151,9 +151,9 @@ convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw_prepare(index_t N,
             Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0>{},    // 4-: BN0
             Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0>{}))); // 5-: GN1
 
-    using AGridMoveSliceWindowIteratorHacks = Sequence<0, 0, 0, 0, 0, 0, 0>;
+    using AGridMoveSliceWindowStepHacks = Sequence<0, 0, 0, 0, 0, 0, 0>;
 
-    using BGridMoveSliceWindowIteratorHacks =
+    using BGridMoveSliceWindowStepHacks =
         Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 2, 0, 0, 0, 0, 0>;
 
     using GridwiseContraction =
@@ -191,11 +191,11 @@ convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw_prepare(index_t N,
             CThreadTransferSrcDstAccessOrder,
             CThreadTransferSrcDstVectorDim,
             CThreadTransferDstScalarPerVector,
-            AGridIteratorHacks,
-            BGridIteratorHacks,
-            CGridIteratorHacks,
-            AGridMoveSliceWindowIteratorHacks,
-            BGridMoveSliceWindowIteratorHacks>;
+            AGridStepHacks,
+            BGridStepHacks,
+            CGridStepHacks,
+            AGridMoveSliceWindowStepHacks,
+            BGridMoveSliceWindowStepHacks>;
 
     if(get_block_1d_id() == 0 && get_thread_local_1d_id() == 0)
     {
@@ -254,7 +254,7 @@ extern "C" __global__ void
     using BGridDesc_GK0_GN0_GN1_GK1 = decltype(b_grid_desc_gk0_gn0_gn1_gk1);
     using CGridDesc_GM0_GM1_GN0_GN1 = decltype(c_grid_desc_gm0_gm1_gn0_gn1);
 
-    using AGridIteratorHacks =
+    using AGridStepHacks =
         decltype(make_tuple(make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0>{},    // 0+: GK0
                                        Sequence<0, 0, 0, 0, 0, 0, 0>{},    // 1+: GM0
                                        Sequence<0, 0, 0, 0, 0, 0, 0>{},    // 2+: GM10
@@ -266,7 +266,7 @@ extern "C" __global__ void
                                        Sequence<0, 0, 0, 0, 0, 0, 0>{},    // 3-: GM11
                                        Sequence<0, 0, 0, 0, 0, 0, 0>{}))); // 4-: GK1
 
-    using BGridIteratorHacks = decltype(make_tuple(
+    using BGridStepHacks = decltype(make_tuple(
         make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0>{},    // 0+: GK0
                    Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0>{},    // 1+: GN0
                    Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0>{},    // 2+: GN10
@@ -278,7 +278,7 @@ extern "C" __global__ void
                    Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0>{},    // 3-: GN11
                    Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{}))); // 4-: GK1
 
-    using CGridIteratorHacks = decltype(make_tuple(
+    using CGridStepHacks = decltype(make_tuple(
         make_tuple(
             Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},  // 0+: GM10
             Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0>{},  // 1+: BM0
@@ -294,9 +294,9 @@ extern "C" __global__ void
             Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0>{},    // 4-: BN0
             Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0>{}))); // 5-: GN1
 
-    using AGridMoveSliceWindowIteratorHacks = Sequence<0, 0, 0, 0, 0, 0, 0>;
+    using AGridMoveSliceWindowStepHacks = Sequence<0, 0, 0, 0, 0, 0, 0>;
 
-    using BGridMoveSliceWindowIteratorHacks =
+    using BGridMoveSliceWindowStepHacks =
         Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 2, 0, 0, 0, 0, 0>;
 
     using GridwiseContraction =
@@ -334,11 +334,11 @@ extern "C" __global__ void
             CThreadTransferSrcDstAccessOrder,
             CThreadTransferSrcDstVectorDim,
             CThreadTransferDstScalarPerVector,
-            AGridIteratorHacks,
-            BGridIteratorHacks,
-            CGridIteratorHacks,
-            AGridMoveSliceWindowIteratorHacks,
-            BGridMoveSliceWindowIteratorHacks>;
+            AGridStepHacks,
+            BGridStepHacks,
+            CGridStepHacks,
+            AGridMoveSliceWindowStepHacks,
+            BGridMoveSliceWindowStepHacks>;
 
     using AGridDesc_GK0_GM0_GM10_GM11_GK1 =
         decltype(GridwiseContraction::MakeAGridDescriptor_GK0_GM0_GM10_GM11_GK1(

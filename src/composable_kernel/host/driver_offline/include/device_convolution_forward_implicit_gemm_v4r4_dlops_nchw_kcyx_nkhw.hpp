@@ -89,7 +89,7 @@ void device_convolution_forward_implicit_gemm_v4r4_dlops_nchw_kcyx_nkhw(
                                                                         in_right_pads);
 
     // HACK: hacks that control index calculation when iterating over A, B, C matrix
-    constexpr auto wei_gemmk_gemmm0_gemmn1_grid_iterator_hacks =
+    constexpr auto wei_gemmk_gemmm0_gemmn1_grid_step_hacks =
         make_tuple(make_tuple(Sequence<0, 0, 0, 0, 0>{},
                               Sequence<0, 0, 0, 0, 0>{},
                               Sequence<0, 0, 0, 0, 0>{},
@@ -99,7 +99,7 @@ void device_convolution_forward_implicit_gemm_v4r4_dlops_nchw_kcyx_nkhw(
                               Sequence<0, 0, 0, 0, 0>{},
                               Sequence<0, 0, 0, 0, 0>{}));
 
-    constexpr auto in_gemmk_gemmn0_gemmn1_grid_iterator_hacks =
+    constexpr auto in_gemmk_gemmn0_gemmn1_grid_step_hacks =
         make_tuple(make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0>{},
                               Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0>{},
                               Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0>{}),
@@ -107,7 +107,7 @@ void device_convolution_forward_implicit_gemm_v4r4_dlops_nchw_kcyx_nkhw(
                               Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0>{},
                               Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0>{}));
 
-    constexpr auto out_gemmm0_gemmm10_gemmm11_gemmn0_gemmn10_gemmn11_grid_iterator_hacks =
+    constexpr auto out_gemmm0_gemmm10_gemmm11_gemmn0_gemmn10_gemmn11_grid_step_hacks =
         make_tuple(make_tuple(Sequence<0, 0, 0, 0, 0>{},
                               Sequence<0, 0, 0, 0, 0>{},
                               Sequence<0, 0, 0, 0, 0>{},
@@ -121,10 +121,10 @@ void device_convolution_forward_implicit_gemm_v4r4_dlops_nchw_kcyx_nkhw(
                               Sequence<0, 0, 2, 0, 0>{},
                               Sequence<0, 0, 2, 0, 0>{}));
 
-    constexpr auto wei_gemmk_gemmm0_gemmm1_grid_move_slice_window_iterator_hacks =
+    constexpr auto wei_gemmk_gemmm0_gemmm1_grid_move_slice_window_step_hacks =
         Sequence<0, 0, 0, 0, 0>{};
 
-    constexpr auto in_gemmk_gemmn0_gemmn1_grid_move_slice_window_iterator_hacks =
+    constexpr auto in_gemmk_gemmn0_gemmn1_grid_move_slice_window_step_hacks =
         Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0>{};
 
     const auto wei_gemmk_gemmm_grid_desc = descs[I0];
@@ -171,22 +171,22 @@ void device_convolution_forward_implicit_gemm_v4r4_dlops_nchw_kcyx_nkhw(
             Sequence<3, 4, 5, 0, 1, 2>, // CThreadTransferSrcDstAccessOrder
             5,                          // CThreadTransferSrcDstVectorDim
             GemmCThreadTransferDstScalarPerVector_N11,
-            decltype(wei_gemmk_gemmm0_gemmn1_grid_iterator_hacks),
-            decltype(in_gemmk_gemmn0_gemmn1_grid_iterator_hacks),
-            decltype(out_gemmm0_gemmm10_gemmm11_gemmn0_gemmn10_gemmn11_grid_iterator_hacks),
-            decltype(wei_gemmk_gemmm0_gemmm1_grid_move_slice_window_iterator_hacks),
-            decltype(in_gemmk_gemmn0_gemmn1_grid_move_slice_window_iterator_hacks)>(
+            decltype(wei_gemmk_gemmm0_gemmn1_grid_step_hacks),
+            decltype(in_gemmk_gemmn0_gemmn1_grid_step_hacks),
+            decltype(out_gemmm0_gemmm10_gemmm11_gemmn0_gemmn10_gemmn11_grid_step_hacks),
+            decltype(wei_gemmk_gemmm0_gemmm1_grid_move_slice_window_step_hacks),
+            decltype(in_gemmk_gemmn0_gemmn1_grid_move_slice_window_step_hacks)>(
             static_cast<TInWei*>(wei_k_c_y_x_device_buf.GetDeviceBuffer()),
             static_cast<TInWei*>(in_n_c_hi_wi_device_buf.GetDeviceBuffer()),
             static_cast<TOut*>(out_n_k_ho_wo_device_buf.GetDeviceBuffer()),
             wei_gemmk_gemmm_grid_desc,
             in_gemmk_gemmn_grid_desc,
             out_gemmm_gemmn_grid_desc,
-            wei_gemmk_gemmm0_gemmn1_grid_iterator_hacks,
-            in_gemmk_gemmn0_gemmn1_grid_iterator_hacks,
-            out_gemmm0_gemmm10_gemmm11_gemmn0_gemmn10_gemmn11_grid_iterator_hacks,
-            wei_gemmk_gemmm0_gemmm1_grid_move_slice_window_iterator_hacks,
-            in_gemmk_gemmn0_gemmn1_grid_move_slice_window_iterator_hacks,
+            wei_gemmk_gemmm0_gemmn1_grid_step_hacks,
+            in_gemmk_gemmn0_gemmn1_grid_step_hacks,
+            out_gemmm0_gemmm10_gemmm11_gemmn0_gemmn10_gemmn11_grid_step_hacks,
+            wei_gemmk_gemmm0_gemmm1_grid_move_slice_window_step_hacks,
+            in_gemmk_gemmn0_gemmn1_grid_move_slice_window_step_hacks,
             nrepeat);
 
         float perf = static_cast<float>(calculate_convolution_flops(

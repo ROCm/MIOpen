@@ -84,11 +84,11 @@ template <index_t BlockSize,
           typename CThreadTransferSrcDstAccessOrder,
           index_t CThreadTransferSrcDstVectorDim,
           index_t CThreadTransferDstScalarPerVector,
-          typename AGridIteratorHacks,
-          typename BGridIteratorHacks,
-          typename CGridIteratorHacks,
-          typename AGridMoveSliceWindowIteratorHacks,
-          typename BGridMoveSliceWindowIteratorHacks>
+          typename AGridStepHacks,
+          typename BGridStepHacks,
+          typename CGridStepHacks,
+          typename AGridMoveSliceWindowStepHacks,
+          typename BGridMoveSliceWindowStepHacks>
 struct GridwiseContractionDlops_A_GK0_GM0_GM1_GK1_B_GK0_GN0_GN1_GK1_C_GM0_GM1_GN0_GN1
 {
     static constexpr auto I0 = Number<0>{};
@@ -496,9 +496,9 @@ struct GridwiseContractionDlops_A_GK0_GM0_GM1_GK1_B_GK0_GN0_GN1_GK1_C_GM0_GM1_GN
         // LDS double buffer: preload data into LDS
         {
             a_blockwise_copy.RunRead(
-                a_grid_desc_gk0_gm0_gm10_gm11_gk1, a_global_buf, AGridIteratorHacks{});
+                a_grid_desc_gk0_gm0_gm10_gm11_gk1, a_global_buf, AGridStepHacks{});
             b_blockwise_copy.RunRead(
-                b_grid_desc_gk0_gn0_gn10_gn11_gk1, b_global_buf, BGridIteratorHacks{});
+                b_grid_desc_gk0_gn0_gn10_gn11_gk1, b_global_buf, BGridStepHacks{});
 
             a_blockwise_copy.RunWrite(a_block_desc_gk0_gm0_gm10_gm11_gk1, a_block_even_buf);
             b_blockwise_copy.RunWrite(b_block_desc_gk0_gn0_gn10_gn11_gk1, b_block_even_buf);
@@ -515,18 +515,18 @@ struct GridwiseContractionDlops_A_GK0_GM0_GM1_GK1_B_GK0_GN0_GN1_GK1_C_GM0_GM1_GN
                 // even iteration
                 a_blockwise_copy.MoveSrcSliceWindow(a_grid_desc_gk0_gm0_gm10_gm11_gk1,
                                                     a_block_slice_copy_step,
-                                                    AGridMoveSliceWindowIteratorHacks{});
+                                                    AGridMoveSliceWindowStepHacks{});
                 b_blockwise_copy.MoveSrcSliceWindow(b_grid_desc_gk0_gn0_gn10_gn11_gk1,
                                                     b_block_slice_copy_step,
-                                                    BGridMoveSliceWindowIteratorHacks{});
+                                                    BGridMoveSliceWindowStepHacks{});
 
                 __syncthreads();
 
                 // LDS doubel buffer: load next data from device mem
                 a_blockwise_copy.RunRead(
-                    a_grid_desc_gk0_gm0_gm10_gm11_gk1, a_global_buf, AGridIteratorHacks{});
+                    a_grid_desc_gk0_gm0_gm10_gm11_gk1, a_global_buf, AGridStepHacks{});
                 b_blockwise_copy.RunRead(
-                    b_grid_desc_gk0_gn0_gn10_gn11_gk1, b_global_buf, BGridIteratorHacks{});
+                    b_grid_desc_gk0_gn0_gn10_gn11_gk1, b_global_buf, BGridStepHacks{});
 
                 // LDS double buffer: GEMM on current data
                 blockwise_gemm.Run(c_thread_desc_bm0_bm1_bn0_bn1,
@@ -541,18 +541,18 @@ struct GridwiseContractionDlops_A_GK0_GM0_GM1_GK1_B_GK0_GN0_GN1_GK1_C_GM0_GM1_GN
                 // odd iteration
                 a_blockwise_copy.MoveSrcSliceWindow(a_grid_desc_gk0_gm0_gm10_gm11_gk1,
                                                     a_block_slice_copy_step,
-                                                    AGridMoveSliceWindowIteratorHacks{});
+                                                    AGridMoveSliceWindowStepHacks{});
                 b_blockwise_copy.MoveSrcSliceWindow(b_grid_desc_gk0_gn0_gn10_gn11_gk1,
                                                     b_block_slice_copy_step,
-                                                    BGridMoveSliceWindowIteratorHacks{});
+                                                    BGridMoveSliceWindowStepHacks{});
 
                 __syncthreads();
 
                 // LDS doubel buffer: load next data from device mem
                 a_blockwise_copy.RunRead(
-                    a_grid_desc_gk0_gm0_gm10_gm11_gk1, a_global_buf, AGridIteratorHacks{});
+                    a_grid_desc_gk0_gm0_gm10_gm11_gk1, a_global_buf, AGridStepHacks{});
                 b_blockwise_copy.RunRead(
-                    b_grid_desc_gk0_gn0_gn10_gn11_gk1, b_global_buf, BGridIteratorHacks{});
+                    b_grid_desc_gk0_gn0_gn10_gn11_gk1, b_global_buf, BGridStepHacks{});
 
                 // LDS double buffer: GEMM on current data
                 blockwise_gemm.Run(
@@ -571,18 +571,18 @@ struct GridwiseContractionDlops_A_GK0_GM0_GM1_GK1_B_GK0_GN0_GN1_GK1_C_GM0_GM1_GN
         {
             a_blockwise_copy.MoveSrcSliceWindow(a_grid_desc_gk0_gm0_gm10_gm11_gk1,
                                                 a_block_slice_copy_step,
-                                                AGridMoveSliceWindowIteratorHacks{});
+                                                AGridMoveSliceWindowStepHacks{});
             b_blockwise_copy.MoveSrcSliceWindow(b_grid_desc_gk0_gn0_gn10_gn11_gk1,
                                                 b_block_slice_copy_step,
-                                                BGridMoveSliceWindowIteratorHacks{});
+                                                BGridMoveSliceWindowStepHacks{});
 
             __syncthreads();
 
             // LDS double buffer: load last data from device mem
             a_blockwise_copy.RunRead(
-                a_grid_desc_gk0_gm0_gm10_gm11_gk1, a_global_buf, AGridIteratorHacks{});
+                a_grid_desc_gk0_gm0_gm10_gm11_gk1, a_global_buf, AGridStepHacks{});
             b_blockwise_copy.RunRead(
-                b_grid_desc_gk0_gn0_gn10_gn11_gk1, b_global_buf, BGridIteratorHacks{});
+                b_grid_desc_gk0_gn0_gn10_gn11_gk1, b_global_buf, BGridStepHacks{});
 
             // LDS double buffer: GEMM on 2nd-last data
             blockwise_gemm.Run(
@@ -650,7 +650,7 @@ struct GridwiseContractionDlops_A_GK0_GM0_GM1_GK1_B_GK0_GN0_GN1_GK1_C_GM0_GM1_GN
                      c_thread_buf,
                      c_grid_desc_gm10_bm0_bm1_gn10_bn0_bn1,
                      c_grid_buf,
-                     CGridIteratorHacks{});
+                     CGridStepHacks{});
         }
     }
 };

@@ -179,7 +179,7 @@ void device_convolution_backward_data_implicit_gemm_v4r1r2_xdlops_nhwc_kyxc_nhwk
     const auto in_gemmm_gemmn_grid_desc          = descs[I2];
 
     // HACK: hacks that control index calculation when iterating over A, B, C matrix
-    constexpr auto out_gemmk0_gemmm_gemmk1_grid_iterator_hacks = make_tuple(
+    constexpr auto out_gemmk0_gemmm_gemmk1_grid_step_hacks = make_tuple(
         make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0>{},   // 0+: gemmk0
                    Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0>{},   // 1+: gemmm
                    Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{}),  // 2+: gemmk1
@@ -187,7 +187,7 @@ void device_convolution_backward_data_implicit_gemm_v4r1r2_xdlops_nhwc_kyxc_nhwk
                    Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0>{},   // 1-: gemmm
                    Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{})); // 2-: gemmk1
 
-    constexpr auto wei_gemmk0_gemmn_gemmk1_grid_iterator_hacks =
+    constexpr auto wei_gemmk0_gemmn_gemmk1_grid_step_hacks =
         make_tuple(make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0>{},   // 0+: gemmk0
                               Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},   // 1+: gemmn
                               Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{}),  // 2+: gemmk1
@@ -195,7 +195,7 @@ void device_convolution_backward_data_implicit_gemm_v4r1r2_xdlops_nhwc_kyxc_nhwk
                               Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},   // 1-: Gemmn
                               Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{})); // 2-: Gemmk1
 
-    constexpr auto in_m0_m1_m2_n_grid_iterator_hacks = make_tuple(
+    constexpr auto in_m0_m1_m2_n_grid_step_hacks = make_tuple(
         make_tuple(
             Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0>{},  // 0+: MRepeat
             Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},  // 1+: NRepeat
@@ -215,10 +215,10 @@ void device_convolution_backward_data_implicit_gemm_v4r1r2_xdlops_nhwc_kyxc_nhwk
             Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0>{},   // 6-: M2
             Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{})); // 7-: N1
 
-    constexpr auto out_gemmk0_gemmm_gemmk1_grid_move_slice_window_iterator_hacks =
+    constexpr auto out_gemmk0_gemmm_gemmk1_grid_move_slice_window_step_hacks =
         Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 0>{};
 
-    constexpr auto wei_gemmk0_gemmn_gemmk1_grid_move_slice_window_iterator_hacks =
+    constexpr auto wei_gemmk0_gemmn_gemmk1_grid_move_slice_window_step_hacks =
         Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0>{};
 
     for(index_t i = 0; i < 5; ++i)
@@ -263,11 +263,11 @@ void device_convolution_backward_data_implicit_gemm_v4r1r2_xdlops_nhwc_kyxc_nhwk
 #endif
             7,
             GemmCThreadTransferDstScalarPerVector,
-            decltype(out_gemmk0_gemmm_gemmk1_grid_iterator_hacks),
-            decltype(wei_gemmk0_gemmn_gemmk1_grid_iterator_hacks),
-            decltype(in_m0_m1_m2_n_grid_iterator_hacks),
-            decltype(out_gemmk0_gemmm_gemmk1_grid_move_slice_window_iterator_hacks),
-            decltype(wei_gemmk0_gemmn_gemmk1_grid_move_slice_window_iterator_hacks),
+            decltype(out_gemmk0_gemmm_gemmk1_grid_step_hacks),
+            decltype(wei_gemmk0_gemmn_gemmk1_grid_step_hacks),
+            decltype(in_m0_m1_m2_n_grid_step_hacks),
+            decltype(out_gemmk0_gemmm_gemmk1_grid_move_slice_window_step_hacks),
+            decltype(wei_gemmk0_gemmn_gemmk1_grid_move_slice_window_step_hacks),
             true // CAccessOrderMRepeatNRepeat
             >(static_cast<TOut*>(out_n_ho_wo_k_device_buf.GetDeviceBuffer()),
               static_cast<TInWei*>(wei_k_y_x_c_device_buf.GetDeviceBuffer()),
@@ -275,11 +275,11 @@ void device_convolution_backward_data_implicit_gemm_v4r1r2_xdlops_nhwc_kyxc_nhwk
               out_gemmk0_gemmm_gemmk1_grid_desc,
               wei_gemmk0_gemmn_gemmk1_grid_desc,
               in_gemmm_gemmn_grid_desc,
-              out_gemmk0_gemmm_gemmk1_grid_iterator_hacks,
-              wei_gemmk0_gemmn_gemmk1_grid_iterator_hacks,
-              in_m0_m1_m2_n_grid_iterator_hacks,
-              out_gemmk0_gemmm_gemmk1_grid_move_slice_window_iterator_hacks,
-              wei_gemmk0_gemmn_gemmk1_grid_move_slice_window_iterator_hacks,
+              out_gemmk0_gemmm_gemmk1_grid_step_hacks,
+              wei_gemmk0_gemmn_gemmk1_grid_step_hacks,
+              in_m0_m1_m2_n_grid_step_hacks,
+              out_gemmk0_gemmm_gemmk1_grid_move_slice_window_step_hacks,
+              wei_gemmk0_gemmn_gemmk1_grid_move_slice_window_step_hacks,
               nrepeat);
 
         {

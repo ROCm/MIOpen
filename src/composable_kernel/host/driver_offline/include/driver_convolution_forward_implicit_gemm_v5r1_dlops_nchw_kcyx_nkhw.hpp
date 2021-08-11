@@ -136,13 +136,13 @@ struct DriverDynamicConvolutionForwardImplicitGemmDlops_v5r1_nchw_kcyx_nkhw_pad
         }
 
         // hack to control index calculation when iterating over a_k_m_global tensor
-        constexpr auto a_e_k_global_iterator_hacks =
+        constexpr auto a_e_k_global_step_hacks =
             make_tuple(make_tuple(Sequence<0, 0, 0>{}, Sequence<0, 0, 0>{}),
                        make_tuple(Sequence<0, 0, 0>{}, Sequence<0, 0, 0>{}));
 
-        constexpr auto a_e_k_global_move_slice_window_iterator_hack = Sequence<0, 0, 0>{};
+        constexpr auto a_e_k_global_move_slice_window_step_hack = Sequence<0, 0, 0>{};
 
-        constexpr auto b_e_n_ho_wo_global_iterator_hacks =
+        constexpr auto b_e_n_ho_wo_global_step_hacks =
             make_tuple(make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0>{},
                                   Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},
                                   Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},
@@ -152,12 +152,12 @@ struct DriverDynamicConvolutionForwardImplicitGemmDlops_v5r1_nchw_kcyx_nkhw_pad
                                   Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},
                                   Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{}));
 
-        constexpr auto b_e_n_ho_wo_global_move_slice_window_iterator_hack =
+        constexpr auto b_e_n_ho_wo_global_move_slice_window_step_hack =
             Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0>{};
 
         // hack to control index calculation when iterating over c_m0_m1_n0_n1_global tensor
         // hack for NKHW format
-        constexpr auto c_k_n_ho_wo_global_tensor_iterator_hacks =
+        constexpr auto c_k_n_ho_wo_global_tensor_step_hacks =
             make_tuple(make_tuple(Sequence<0, 1, 0, 0, 0>{},
                                   Sequence<0, 0, 0, 0, 0>{},
                                   Sequence<0, 0, 0, 0, 0>{},
@@ -202,11 +202,11 @@ struct DriverDynamicConvolutionForwardImplicitGemmDlops_v5r1_nchw_kcyx_nkhw_pad
             Sequence<0, 2, 3, 1>,
             0,
             CThreadTransferDstScalarPerVector_W,
-            decltype(a_e_k_global_iterator_hacks),
-            decltype(b_e_n_ho_wo_global_iterator_hacks),
-            decltype(c_k_n_ho_wo_global_tensor_iterator_hacks),
-            decltype(a_e_k_global_move_slice_window_iterator_hack),
-            decltype(b_e_n_ho_wo_global_move_slice_window_iterator_hack)>;
+            decltype(a_e_k_global_step_hacks),
+            decltype(b_e_n_ho_wo_global_step_hacks),
+            decltype(c_k_n_ho_wo_global_tensor_step_hacks),
+            decltype(a_e_k_global_move_slice_window_step_hack),
+            decltype(b_e_n_ho_wo_global_move_slice_window_step_hack)>;
 
         const auto GridSize = (K / KPerBlock) * (Ho / HoPerBlock) * (Wo / WoPerBlock) * N;
 

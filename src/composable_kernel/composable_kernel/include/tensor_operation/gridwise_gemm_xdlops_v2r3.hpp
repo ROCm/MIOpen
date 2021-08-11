@@ -126,11 +126,11 @@ template <index_t BlockSize,
           typename CThreadTransferSrcDstAccessOrder,
           index_t CThreadTransferSrcDstVectorDim,
           index_t CThreadTransferDstScalarPerVector,
-          typename AGridIteratorHacks,
-          typename BGridIteratorHacks,
-          typename CGridIteratorHacks,
-          typename AGridMoveSliceWindowIteratorHacks,
-          typename BGridMoveSliceWindowIteratorHacks,
+          typename AGridStepHacks,
+          typename BGridStepHacks,
+          typename CGridStepHacks,
+          typename AGridMoveSliceWindowStepHacks,
+          typename BGridMoveSliceWindowStepHacks,
           bool CAccessOrderMRepeatNRepeat>
 struct GridwiseGemm_k0mk1_k0nk1_mn_xdlops_v2r3
 {
@@ -416,15 +416,13 @@ struct GridwiseGemm_k0mk1_k0nk1_mn_xdlops_v2r3
         constexpr auto b_block_slice_copy_step = make_multi_index(KPerBlock, 0, 0);
 
         // hack to control index calculation when iterating over A and B matrix for threadwise copy
-        constexpr auto a_k0_m_k1_grid_iterator_hacks = AGridIteratorHacks{};
-        constexpr auto b_k0_n_k1_grid_iterator_hacks = BGridIteratorHacks{};
+        constexpr auto a_k0_m_k1_grid_step_hacks = AGridStepHacks{};
+        constexpr auto b_k0_n_k1_grid_step_hacks = BGridStepHacks{};
 
         // hack to control index calculation when move slice window for A and B matrix for
         // threadwise copy
-        constexpr auto a_k0_m_k1_grid_move_slice_window_iterator_hack =
-            AGridMoveSliceWindowIteratorHacks{};
-        constexpr auto b_k0_n_k1_grid_move_slice_window_iterator_hack =
-            BGridMoveSliceWindowIteratorHacks{};
+        constexpr auto a_k0_m_k1_grid_move_slice_window_step_hack = AGridMoveSliceWindowStepHacks{};
+        constexpr auto b_k0_n_k1_grid_move_slice_window_step_hack = BGridMoveSliceWindowStepHacks{};
 
         auto a_block_buf = make_dynamic_buffer<AddressSpaceEnum_t::Lds>(
             p_a_block, a_k0_m_k1_block_desc.GetElementSpaceSize());
@@ -433,10 +431,8 @@ struct GridwiseGemm_k0mk1_k0nk1_mn_xdlops_v2r3
 
         // preload data into LDS
         {
-            a_blockwise_copy.RunRead(
-                a_k0_m_k1_grid_desc, a_grid_buf, a_k0_m_k1_grid_iterator_hacks);
-            b_blockwise_copy.RunRead(
-                b_k0_n_k1_grid_desc, b_grid_buf, b_k0_n_k1_grid_iterator_hacks);
+            a_blockwise_copy.RunRead(a_k0_m_k1_grid_desc, a_grid_buf, a_k0_m_k1_grid_step_hacks);
+            b_blockwise_copy.RunRead(b_k0_n_k1_grid_desc, b_grid_buf, b_k0_n_k1_grid_step_hacks);
 
             a_blockwise_copy.RunWrite(a_k0_m_k1_block_desc, a_block_buf);
             b_blockwise_copy.RunWrite(b_k0_n_k1_block_desc, b_block_buf);
@@ -449,18 +445,16 @@ struct GridwiseGemm_k0mk1_k0nk1_mn_xdlops_v2r3
         {
             a_blockwise_copy.MoveSrcSliceWindow(a_k0_m_k1_grid_desc,
                                                 a_block_slice_copy_step,
-                                                a_k0_m_k1_grid_move_slice_window_iterator_hack);
+                                                a_k0_m_k1_grid_move_slice_window_step_hack);
             b_blockwise_copy.MoveSrcSliceWindow(b_k0_n_k1_grid_desc,
                                                 b_block_slice_copy_step,
-                                                b_k0_n_k1_grid_move_slice_window_iterator_hack);
+                                                b_k0_n_k1_grid_move_slice_window_step_hack);
 
-            a_blockwise_copy.RunRead(
-                a_k0_m_k1_grid_desc, a_grid_buf, a_k0_m_k1_grid_iterator_hacks);
+            a_blockwise_copy.RunRead(a_k0_m_k1_grid_desc, a_grid_buf, a_k0_m_k1_grid_step_hacks);
 
             block_sync_lds();
 
-            b_blockwise_copy.RunRead(
-                b_k0_n_k1_grid_desc, b_grid_buf, b_k0_n_k1_grid_iterator_hacks);
+            b_blockwise_copy.RunRead(b_k0_n_k1_grid_desc, b_grid_buf, b_k0_n_k1_grid_step_hacks);
 
             blockwise_gemm.Run(a_block_buf, b_block_buf, c_thread_buf);
 
@@ -526,7 +520,7 @@ struct GridwiseGemm_k0mk1_k0nk1_mn_xdlops_v2r3
             const index_t n_thread_data_on_grid =
                 n_block_data_idx_on_grid + c_thread_mtx_on_block[I1];
 
-            constexpr auto c_m0_m1_m2_n_grid_tensor_iterator_hacks = CGridIteratorHacks{};
+            constexpr auto c_m0_m1_m2_n_grid_tensor_step_hacks = CGridStepHacks{};
 
             constexpr index_t MWaves = MPerBlock / (MPerWave * MRepeat);
             constexpr index_t NWaves = NPerBlock / (NPerWave * NRepeat);
@@ -557,7 +551,7 @@ struct GridwiseGemm_k0mk1_k0nk1_mn_xdlops_v2r3
                      c_blk_buf_,
                      c_m0_m1_m2_n_grid_desc,
                      c_grid_buf,
-                     c_m0_m1_m2_n_grid_tensor_iterator_hacks);
+                     c_m0_m1_m2_n_grid_tensor_step_hacks);
         }
 #else
         {
@@ -579,7 +573,7 @@ struct GridwiseGemm_k0mk1_k0nk1_mn_xdlops_v2r3
             const index_t n_thread_data_on_grid =
                 n_block_data_idx_on_grid + c_thread_mtx_on_block[I1];
 
-            constexpr auto c_m0_m1_m2_n_grid_tensor_iterator_hacks = CGridIteratorHacks{};
+            constexpr auto c_m0_m1_m2_n_grid_tensor_step_hacks = CGridStepHacks{};
 
             auto c_thread_copy =
                 ThreadwiseTensorSliceTransfer_v1r3<FloatC,
@@ -610,7 +604,7 @@ struct GridwiseGemm_k0mk1_k0nk1_mn_xdlops_v2r3
                                   c_thread_buf[Number<blk_off>{}].template AsType<FloatAcc>(),
                                   c_m0_m1_m2_n_grid_desc,
                                   c_grid_buf,
-                                  c_m0_m1_m2_n_grid_tensor_iterator_hacks);
+                                  c_m0_m1_m2_n_grid_tensor_step_hacks);
 
                 return c_thread_idx_;
             };
@@ -625,7 +619,7 @@ struct GridwiseGemm_k0mk1_k0nk1_mn_xdlops_v2r3
                                   c_thread_buf[Number<blk_off>{}].template AsType<FloatAcc>(),
                                   c_m0_m1_m2_n_grid_desc,
                                   c_grid_buf,
-                                  c_m0_m1_m2_n_grid_tensor_iterator_hacks);
+                                  c_m0_m1_m2_n_grid_tensor_step_hacks);
             };
 
             auto nrepeat_plus_copy = [&](auto c_thread_idx_) {
@@ -638,7 +632,7 @@ struct GridwiseGemm_k0mk1_k0nk1_mn_xdlops_v2r3
                                   c_thread_buf[Number<blk_off>{}].template AsType<FloatAcc>(),
                                   c_m0_m1_m2_n_grid_desc,
                                   c_grid_buf,
-                                  c_m0_m1_m2_n_grid_tensor_iterator_hacks);
+                                  c_m0_m1_m2_n_grid_tensor_step_hacks);
             };
 
             auto mrepeat_minus_copy = [&](auto c_thread_idx_) {
@@ -651,7 +645,7 @@ struct GridwiseGemm_k0mk1_k0nk1_mn_xdlops_v2r3
                                   c_thread_buf[Number<blk_off>{}].template AsType<FloatAcc>(),
                                   c_m0_m1_m2_n_grid_desc,
                                   c_grid_buf,
-                                  c_m0_m1_m2_n_grid_tensor_iterator_hacks);
+                                  c_m0_m1_m2_n_grid_tensor_step_hacks);
             };
 
             auto nrepeat_minus_copy = [&](auto c_thread_idx_) {
@@ -664,7 +658,7 @@ struct GridwiseGemm_k0mk1_k0nk1_mn_xdlops_v2r3
                                   c_thread_buf[Number<blk_off>{}].template AsType<FloatAcc>(),
                                   c_m0_m1_m2_n_grid_desc,
                                   c_grid_buf,
-                                  c_m0_m1_m2_n_grid_tensor_iterator_hacks);
+                                  c_m0_m1_m2_n_grid_tensor_step_hacks);
             };
 
             static_assert((MRepeat == 4 && NRepeat == 4) or (MRepeat == 4 && NRepeat == 2) or

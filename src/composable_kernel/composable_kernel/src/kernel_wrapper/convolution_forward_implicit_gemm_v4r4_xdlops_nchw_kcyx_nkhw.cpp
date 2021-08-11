@@ -110,12 +110,12 @@ extern "C" __global__ void convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kc
     using BK0NK1GridDesc = decltype(b_k0_n_k1_grid_desc);
     using CMNGridDesc    = decltype(c_m_n_grid_desc);
 
-    using AGridIteratorHacks = decltype(make_tuple(
+    using AGridStepHacks = decltype(make_tuple(
         make_tuple(Sequence<0, 0, 0, 0, 0>{}, Sequence<0, 0, 0, 0, 0>{}, Sequence<0, 0, 0, 0, 0>{}),
         make_tuple(
             Sequence<0, 0, 0, 0, 0>{}, Sequence<0, 0, 0, 0, 0>{}, Sequence<0, 0, 0, 0, 0>{})));
 
-    using BGridIteratorHacks =
+    using BGridStepHacks =
         decltype(make_tuple(make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0>{},
                                        Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0>{},
                                        Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0>{}),
@@ -123,25 +123,25 @@ extern "C" __global__ void convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kc
                                        Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0>{},
                                        Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0>{})));
 
-    using CGridIteratorHacks = decltype(make_tuple(make_tuple(Sequence<0, 0, 0, 0, 0>{},
-                                                              Sequence<0, 0, 1, 0, 0>{},
-                                                              Sequence<0, 0, 0, 0, 0>{},
-                                                              Sequence<0, 0, 1, 0, 0>{},
-                                                              Sequence<0, 0, 0, 0, 0>{},
-                                                              Sequence<0, 0, 0, 0, 0>{},
-                                                              Sequence<0, 0, 0, 0, 0>{},
-                                                              Sequence<0, 0, 1, 0, 0>{}),
-                                                   make_tuple(Sequence<0, 0, 0, 0, 0>{},
-                                                              Sequence<0, 0, 2, 0, 0>{},
-                                                              Sequence<0, 0, 0, 0, 0>{},
-                                                              Sequence<0, 0, 2, 0, 0>{},
-                                                              Sequence<0, 0, 0, 0, 0>{},
-                                                              Sequence<0, 0, 0, 0, 0>{},
-                                                              Sequence<0, 0, 0, 0, 0>{},
-                                                              Sequence<0, 0, 2, 0, 0>{})));
+    using CGridStepHacks = decltype(make_tuple(make_tuple(Sequence<0, 0, 0, 0, 0>{},
+                                                          Sequence<0, 0, 1, 0, 0>{},
+                                                          Sequence<0, 0, 0, 0, 0>{},
+                                                          Sequence<0, 0, 1, 0, 0>{},
+                                                          Sequence<0, 0, 0, 0, 0>{},
+                                                          Sequence<0, 0, 0, 0, 0>{},
+                                                          Sequence<0, 0, 0, 0, 0>{},
+                                                          Sequence<0, 0, 1, 0, 0>{}),
+                                               make_tuple(Sequence<0, 0, 0, 0, 0>{},
+                                                          Sequence<0, 0, 2, 0, 0>{},
+                                                          Sequence<0, 0, 0, 0, 0>{},
+                                                          Sequence<0, 0, 2, 0, 0>{},
+                                                          Sequence<0, 0, 0, 0, 0>{},
+                                                          Sequence<0, 0, 0, 0, 0>{},
+                                                          Sequence<0, 0, 0, 0, 0>{},
+                                                          Sequence<0, 0, 2, 0, 0>{})));
 
-    using AGridMoveSliceWindowIteratorHacks = Sequence<0, 0, 0, 0, 0>;
-    using BGridMoveSliceWindowIteratorHacks = Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0>;
+    using AGridMoveSliceWindowStepHacks = Sequence<0, 0, 0, 0, 0>;
+    using BGridMoveSliceWindowStepHacks = Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0>;
 
     using GridwiseGemm =
         GridwiseGemm_k0mk1_k0nk1_mn_xdlops_v2r3<BlockSize,
@@ -179,11 +179,11 @@ extern "C" __global__ void convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kc
                                                 CThreadTransferSrcDstAccessOrder,
                                                 CThreadTransferSrcDstVectorDim,
                                                 CThreadTransferDstScalarPerVector,
-                                                AGridIteratorHacks,
-                                                BGridIteratorHacks,
-                                                CGridIteratorHacks,
-                                                AGridMoveSliceWindowIteratorHacks,
-                                                BGridMoveSliceWindowIteratorHacks,
+                                                AGridStepHacks,
+                                                BGridStepHacks,
+                                                CGridStepHacks,
+                                                AGridMoveSliceWindowStepHacks,
+                                                BGridMoveSliceWindowStepHacks,
                                                 false>;
 
     auto c_m0_m1_m2_n_grid_desc = GridwiseGemm::MakeCM0M1M2NGridDescriptor(c_m_n_grid_desc);
@@ -243,12 +243,12 @@ extern "C" __global__ void
     constexpr auto b_k0_n_k1_grid_desc_tmp = descs[I1];
     constexpr auto c_m_n_grid_desc         = descs[I2];
 
-    using AGridIteratorHacks = decltype(make_tuple(
+    using AGridStepHacks = decltype(make_tuple(
         make_tuple(Sequence<0, 0, 0, 0, 0>{}, Sequence<0, 0, 0, 0, 0>{}, Sequence<0, 0, 0, 0, 0>{}),
         make_tuple(
             Sequence<0, 0, 0, 0, 0>{}, Sequence<0, 0, 0, 0, 0>{}, Sequence<0, 0, 0, 0, 0>{})));
 
-    using BGridIteratorHacks =
+    using BGridStepHacks =
         decltype(make_tuple(make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0>{},
                                        Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0>{},
                                        Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0>{}),
@@ -256,25 +256,25 @@ extern "C" __global__ void
                                        Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0>{},
                                        Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0>{})));
 
-    using CGridIteratorHacks = decltype(make_tuple(make_tuple(Sequence<0, 0, 0, 0, 0>{},
-                                                              Sequence<0, 0, 1, 0, 0>{},
-                                                              Sequence<0, 0, 0, 0, 0>{},
-                                                              Sequence<0, 0, 1, 0, 0>{},
-                                                              Sequence<0, 0, 0, 0, 0>{},
-                                                              Sequence<0, 0, 0, 0, 0>{},
-                                                              Sequence<0, 0, 0, 0, 0>{},
-                                                              Sequence<0, 0, 1, 0, 0>{}),
-                                                   make_tuple(Sequence<0, 0, 0, 0, 0>{},
-                                                              Sequence<0, 0, 2, 0, 0>{},
-                                                              Sequence<0, 0, 0, 0, 0>{},
-                                                              Sequence<0, 0, 2, 0, 0>{},
-                                                              Sequence<0, 0, 0, 0, 0>{},
-                                                              Sequence<0, 0, 0, 0, 0>{},
-                                                              Sequence<0, 0, 0, 0, 0>{},
-                                                              Sequence<0, 0, 2, 0, 0>{})));
+    using CGridStepHacks = decltype(make_tuple(make_tuple(Sequence<0, 0, 0, 0, 0>{},
+                                                          Sequence<0, 0, 1, 0, 0>{},
+                                                          Sequence<0, 0, 0, 0, 0>{},
+                                                          Sequence<0, 0, 1, 0, 0>{},
+                                                          Sequence<0, 0, 0, 0, 0>{},
+                                                          Sequence<0, 0, 0, 0, 0>{},
+                                                          Sequence<0, 0, 0, 0, 0>{},
+                                                          Sequence<0, 0, 1, 0, 0>{}),
+                                               make_tuple(Sequence<0, 0, 0, 0, 0>{},
+                                                          Sequence<0, 0, 2, 0, 0>{},
+                                                          Sequence<0, 0, 0, 0, 0>{},
+                                                          Sequence<0, 0, 2, 0, 0>{},
+                                                          Sequence<0, 0, 0, 0, 0>{},
+                                                          Sequence<0, 0, 0, 0, 0>{},
+                                                          Sequence<0, 0, 0, 0, 0>{},
+                                                          Sequence<0, 0, 2, 0, 0>{})));
 
-    using AGridMoveSliceWindowIteratorHacks = Sequence<0, 0, 0, 0, 0>;
-    using BGridMoveSliceWindowIteratorHacks = Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0>;
+    using AGridMoveSliceWindowStepHacks = Sequence<0, 0, 0, 0, 0>;
+    using BGridMoveSliceWindowStepHacks = Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0>;
 
     using AK0MK1GridDesc = decltype(a_k0_m_k1_grid_desc_tmp);
     using BK0NK1GridDesc = decltype(b_k0_n_k1_grid_desc_tmp);
@@ -316,11 +316,11 @@ extern "C" __global__ void
                                                 CThreadTransferSrcDstAccessOrder,
                                                 CThreadTransferSrcDstVectorDim,
                                                 CThreadTransferDstScalarPerVector,
-                                                AGridIteratorHacks,
-                                                BGridIteratorHacks,
-                                                CGridIteratorHacks,
-                                                AGridMoveSliceWindowIteratorHacks,
-                                                BGridMoveSliceWindowIteratorHacks,
+                                                AGridStepHacks,
+                                                BGridStepHacks,
+                                                CGridStepHacks,
+                                                AGridMoveSliceWindowStepHacks,
+                                                BGridMoveSliceWindowStepHacks,
                                                 false>;
 
     constexpr auto c_m0_m1_m2_n_grid_desc_tmp =

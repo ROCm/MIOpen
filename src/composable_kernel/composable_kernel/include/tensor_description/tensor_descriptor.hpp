@@ -10,7 +10,7 @@ template <index_t NDimHidden, typename VisibleDimensionIds>
 struct TensorCoordinate;
 
 template <index_t NTransform, index_t NDimVisible, typename UpdateLowerIndexHack>
-struct TensorCoordinateIterator;
+struct TensorCoordinateStep;
 
 // Transforms: Tuple<transforms...>
 // LowerDimensionIdss : Tuple<Sequence<...>, ...>
@@ -252,17 +252,16 @@ struct TensorCoordinate
 };
 
 template <index_t NTransform, index_t NDimVisible, typename UpdateLowerIndexHack>
-struct TensorCoordinateIterator
+struct TensorCoordinateStep
 {
     // TODO make these private
     using VisibleIndex = MultiIndex<NDimVisible>;
 
     public:
-    __host__ __device__ constexpr TensorCoordinateIterator() = default;
+    __host__ __device__ constexpr TensorCoordinateStep() = default;
 
-    __host__
-        __device__ constexpr TensorCoordinateIterator(const VisibleIndex& idx_diff_visible,
-                                                      const MultiIndex<NTransform>& do_transforms)
+    __host__ __device__ constexpr TensorCoordinateStep(const VisibleIndex& idx_diff_visible,
+                                                       const MultiIndex<NTransform>& do_transforms)
         : idx_diff_visible_{idx_diff_visible}, do_transforms_{do_transforms}
     {
     }
@@ -423,8 +422,9 @@ __host__ __device__ constexpr auto make_tensor_coordinate(const TensorDesc& tens
 // UpdateLowerIndexHack: Sequence<...>
 // HACK: control UpdateLowerIndex
 template <typename TensorDesc, typename VisibleIndex, typename UpdateLowerIndexHack>
-__host__ __device__ constexpr auto make_tensor_coordinate_iterator(
-    const TensorDesc&, const VisibleIndex& idx_diff_visible, UpdateLowerIndexHack)
+__host__ __device__ constexpr auto make_tensor_coordinate_step(const TensorDesc&,
+                                                               const VisibleIndex& idx_diff_visible,
+                                                               UpdateLowerIndexHack)
 {
     static_assert(TensorDesc::GetNumOfDimension() == VisibleIndex::Size(),
                   "wrong! # of dimension inconsistent");
@@ -471,24 +471,24 @@ __host__ __device__ constexpr auto make_tensor_coordinate_iterator(
         set_container_subset(is_non_zero_diff, dims_low, non_zero_diff_pick_low);
     });
 
-    return TensorCoordinateIterator<ntransform, ndim_visible, UpdateLowerIndexHack>{
-        idx_diff_visible, do_transforms};
+    return TensorCoordinateStep<ntransform, ndim_visible, UpdateLowerIndexHack>{idx_diff_visible,
+                                                                                do_transforms};
 }
 
 template <typename TensorDesc, typename VisibleIndex>
-__host__ __device__ constexpr auto
-make_tensor_coordinate_iterator(const TensorDesc&, const VisibleIndex& idx_diff_visible)
+__host__ __device__ constexpr auto make_tensor_coordinate_step(const TensorDesc&,
+                                                               const VisibleIndex& idx_diff_visible)
 {
     constexpr index_t ntransform = TensorDesc::GetNumOfTransform();
 
-    return make_tensor_coordinate_iterator(
+    return make_tensor_coordinate_step(
         TensorDesc{}, idx_diff_visible, typename uniform_sequence_gen<ntransform, 0>::type{});
 }
 
-template <typename TensorDesc, typename TensorCoord, typename TensorCoordIterator>
+template <typename TensorDesc, typename TensorCoord, typename TensorCoordStep>
 __host__ __device__ constexpr void move_tensor_coordinate(const TensorDesc& tensor_desc,
                                                           TensorCoord& coord,
-                                                          const TensorCoordIterator& coord_iterator)
+                                                          const TensorCoordStep& coord_step)
 {
     constexpr index_t ndim_hidden = TensorDesc::GetNumOfHiddenDimension();
     constexpr index_t ntransform  = TensorDesc::GetNumOfTransform();
@@ -497,9 +497,8 @@ __host__ __device__ constexpr void move_tensor_coordinate(const TensorDesc& tens
     auto idx_diff_hidden = make_zero_multi_index<ndim_hidden>();
 
     // initialize visible index diff
-    set_container_subset(idx_diff_hidden,
-                         TensorDesc::GetVisibleDimensionIds(),
-                         coord_iterator.GetVisibleIndexDiff());
+    set_container_subset(
+        idx_diff_hidden, TensorDesc::GetVisibleDimensionIds(), coord_step.GetVisibleIndexDiff());
 
     // this is what needs to be updated
     auto& idx_hidden = coord.GetHiddenIndex();
@@ -508,13 +507,13 @@ __host__ __device__ constexpr void move_tensor_coordinate(const TensorDesc& tens
     auto idx_hidden_pick_visible =
         get_container_subset(idx_hidden, TensorDesc::GetVisibleDimensionIds());
 
-    idx_hidden_pick_visible += coord_iterator.GetIndexDiff();
+    idx_hidden_pick_visible += coord_step.GetIndexDiff();
 
     set_container_subset(idx_hidden, TensorDesc::GetVisibleDimensionIds(), idx_hidden_pick_visible);
 
     // update rest of hidden index
     static_for<ntransform - 1, -1, -1>{}([&](auto itran) {
-        if(coord_iterator.do_transforms_[itran])
+        if(coord_step.do_transforms_[itran])
         {
             const auto& tran        = tensor_desc.GetTransforms().At(itran);
             constexpr auto dims_low = TensorDesc::GetLowerDimensionIdss().At(itran);
@@ -527,7 +526,7 @@ __host__ __device__ constexpr void move_tensor_coordinate(const TensorDesc& tens
             MultiIndex<dims_low.Size()> idx_diff_low;
 
             // HACK: control UpdateLowerIndex for Merge using hack
-            constexpr index_t Hack = decltype(coord_iterator.update_lower_index_hack_)::At(itran);
+            constexpr index_t Hack = decltype(coord_step.update_lower_index_hack_)::At(itran);
 
             tran.UpdateLowerIndex(idx_diff_low, idx_diff_up, idx_low, idx_up_new, Number<Hack>{});
 
@@ -591,7 +590,7 @@ using TensorCoordinate_t = decltype(make_tensor_coordinate(
     TensorDesc{}, MultiIndex<remove_cv_t<remove_reference_t<TensorDesc>>::GetNumOfDimension()>{}));
 
 template <typename TensorDesc>
-using TensorCoordinateIterator_t = decltype(make_tensor_coordinate_iterator(
+using TensorCoordinateStep_t = decltype(make_tensor_coordinate_step(
     TensorDesc{}, MultiIndex<remove_cv_t<remove_reference_t<TensorDesc>>::GetNumOfDimension()>{}));
 
 } // namespace ck
