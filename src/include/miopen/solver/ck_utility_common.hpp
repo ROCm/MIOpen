@@ -66,7 +66,7 @@ static inline auto get_ck_common_compiler_flag(const ConvolutionContext& ctx)
     auto compiler_flag = std::string(" --std=c++17");
 
     // GPU target
-    std::string gpu_target = ctx.GetStream().GetDeviceName();
+    static const std::string gpu_target = ctx.GetStream().GetDeviceName();
 
     if(StartsWith(gpu_target, "gfx803"))
         compiler_flag += std::string(" -DCK_AMD_GPU_GFX803");
