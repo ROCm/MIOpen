@@ -168,6 +168,8 @@ class FindDbRecord_t
     static bool HasKernel(Handle& handle, const FindDbKCacheKey& key);
 
     static std::string GetInstalledPath(Handle& handle);
+    static std::string GetInstalledPathEmbed(Handle& handle);
+    static std::string GetInstalledPathFile(Handle& handle);
     static std::string GetUserPath(Handle& handle);
 
     // Returns true if rebuild is required

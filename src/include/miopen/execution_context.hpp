@@ -29,6 +29,7 @@
 #include <miopen/db_path.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/sqlite_db.hpp>
+#include <miopen_data.hpp>
 
 #include <boost/filesystem.hpp>
 
@@ -87,8 +88,76 @@ struct ExecutionContext
     ExecutionContext(Handle* stream_) : stream(stream_) {}
 
     void DetectRocm();
+#if MIOPEN_EMBED_DB
+    std::string GetPerfDbPathEmbed() const
+    {
+        static const auto result = [&] {
+            boost::filesystem::path pdb_path(GetSystemDbPath());
+            std::ostringstream filename;
+            // clang-format off
+            filename << GetStream().GetDbBasename();
+#if MIOPEN_ENABLE_SQLITE
+            const std::string ext = ".db";
+#else
+            const std::string ext = ".cd.pdb.txt";
+#endif
+            filename << ext;
+            // clang-format on
+            if(miopen_data().find(filename.str() + ".o") != miopen_data().end())
+            {
+                MIOPEN_LOG_I("Found exact embedded perf database file");
+                return (pdb_path / filename.str()).string();
+            }
+            else
+            {
+                MIOPEN_LOG_I("Unable to find exact embedded perf database file");
+                const auto db_id        = GetStream().GetTargetProperties().DbId();
+                const int real_cu_count = GetStream().GetMaxComputeUnits();
+                namespace fs            = boost::filesystem;
+                int closest_cu          = std::numeric_limits<int>::max();
+                fs::path best_path;
+                for(auto const& entry : miopen_data())
+                {
+                    // string the .o from the filename
+                    const auto fname = entry.first.substr(0, entry.first.size() - 2);
+                    MIOPEN_LOG_I("Testing embedded file:" << fname);
+                    const auto& filepath = pdb_path / fname;
+                    if(filepath.extension() == ext &&
+                       fname.rfind(db_id, 0) == 0) // starts with db_id
+                    {
+                        MIOPEN_LOG_I("Checking embedded perf db file: " << fname);
+                        const auto pos = fname.find('_');
+                        int cur_count  = -1;
+                        try
+                        {
+                            if(pos != std::string::npos)
+                                cur_count = std::stoi(fname.substr(pos + 1));
+                            else
+                                cur_count = std::stoi(fname.substr(db_id.length()), nullptr, 16);
+                        }
+                        catch(const std::exception& e)
+                        {
+                            MIOPEN_LOG_I2("Unable to infer CU count for file: " << fname << " : "
+                                                                                << e.what());
+                            continue;
+                        }
 
-    std::string GetPerfDbPath() const
+                        if(abs(cur_count - real_cu_count) < (closest_cu))
+                        {
+                            MIOPEN_LOG_I2("Updating best candidate to: " << filepath.string());
+                            best_path  = filepath;
+                            closest_cu = abs(cur_count - real_cu_count);
+                        }
+                    }
+                }
+                return best_path.string();
+            }
+            return std::string();
+        }();
+        return result;
+    }
+#else
+    std::string GetPerfDbPathFile() const
     {
         static const auto result = [&] {
             boost::filesystem::path pdb_path(GetSystemDbPath());
@@ -161,6 +230,16 @@ struct ExecutionContext
             return std::string();
         }();
         return result;
+    }
+#endif
+
+    std::string GetPerfDbPath() const
+    {
+#if MIOPEN_EMBED_DB
+        return GetPerfDbPathEmbed();
+#else
+        return GetPerfDbPathFile();
+#endif
     }
 
     std::string GetUserPerfDbPath() const
