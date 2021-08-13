@@ -2,6 +2,7 @@
 #define CONV_IGEMM_FWD_V6R1_DLOPS_NCHW_KCYX_NKHW_HPP
 
 #include <numeric>
+#include <sstream>
 
 namespace ck {
 namespace driver {
@@ -10,93 +11,97 @@ struct CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw
 {
     auto GetCompileParameterString() const
     {
+        auto param = std::stringstream();
+
         // clang-format off
-        return
-            " -DCK_PARAM_ABDataTypeEnum=" + 
-                std::to_string(ABDataTypeEnum) + 
-            " -DCK_PARAM_AccDataTypeEnum=" + 
-                std::to_string(AccDataTypeEnum) +
-            " -DCK_PARAM_CDataTypeEnum=" + 
-                std::to_string(CDataTypeEnum) + 
-            " -DCK_PARAM_BlockSize=" +
-                std::to_string(BlockSize) +
-            " -DCK_PARAM_GN0=" +
-                std::to_string(GN0) +
-            " -DCK_PARAM_GK1=" +
-                std::to_string(GK1) +
-            " -DCK_PARAM_GM1PerBlockGM11=" +
-                std::to_string(GM1PerBlockGM11) +
-            " -DCK_PARAM_GN1PerBlockGN11=" +
-                std::to_string(GN1PerBlockGN11) +
-            " -DCK_PARAM_GK0PerBlock=" + 
-                std::to_string(GK0PerBlock) +
-            " -DCK_PARAM_BM1PerThreadBM11=" +
-                std::to_string(BM1PerThreadBM11) +
-            " -DCK_PARAM_BN1PerThreadBN11=" +
-                std::to_string(BN1PerThreadBN11) +
-            " -DCK_PARAM_BK0PerThread=" +
-                std::to_string(BK0PerThread) +
-            " -DCK_PARAM_BM10BN10ThreadClusterBM10Xs=" +
-                std::to_string(BM10BN10ThreadClusterBM10Xs[0]) + "," +
-                std::to_string(BM10BN10ThreadClusterBM10Xs[1]) +
-            " -DCK_PARAM_BM10BN10ThreadClusterBN10Xs=" +
-                std::to_string(BM10BN10ThreadClusterBN10Xs[0]) + "," +
-                std::to_string(BM10BN10ThreadClusterBN10Xs[1]) +
-            " -DCK_PARAM_ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1=" +
-                std::to_string(ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1[0]) + "," +
-                std::to_string(ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1[1]) + "," +
-                std::to_string(ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1[2]) + "," +
-                std::to_string(ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1[3]) + "," +
-                std::to_string(ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1[4]) +
-            " -DCK_PARAM_ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1=" +
-                std::to_string(ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[0]) + "," +
-                std::to_string(ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[1]) + "," +
-                std::to_string(ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[2]) + "," +
-                std::to_string(ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[3]) + "," +
-                std::to_string(ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[4]) +
-            " -DCK_PARAM_ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1=" +
-                std::to_string(ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[0]) +  "," +
-                std::to_string(ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[1]) + "," +
-                std::to_string(ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[2]) + "," +
-                std::to_string(ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[3]) + "," +
-                std::to_string(ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[4]) +
-            " -DCK_PARAM_ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1=" +
-                std::to_string(ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[0]) + "," +
-                std::to_string(ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[1]) + "," +
-                std::to_string(ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[2]) + "," +
-                std::to_string(ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[3]) + "," +
-                std::to_string(ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[4]) +
-            " -DCK_PARAM_BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1=" +
-                std::to_string(BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1[0]) + "," +
-                std::to_string(BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1[1]) + "," +
-                std::to_string(BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1[2]) + "," +
-                std::to_string(BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1[3]) + "," +
-                std::to_string(BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1[4]) +
-            " -DCK_PARAM_BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1=" +
-                std::to_string(BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[0]) + "," +
-                std::to_string(BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[1]) + "," +
-                std::to_string(BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[2]) + "," +
-                std::to_string(BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[3]) + "," +
-                std::to_string(BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[4]) +
-            " -DCK_PARAM_BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1=" +
-                std::to_string(BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[0]) + "," +
-                std::to_string(BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[1]) + "," +
-                std::to_string(BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[2]) + "," +
-                std::to_string(BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[3]) + "," +
-                std::to_string(BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[4]) +
-            " -DCK_PARAM_BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1=" +
-                std::to_string(BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[0]) + "," +
-                std::to_string(BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[1]) + "," +
-                std::to_string(BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[2]) + "," +
-                std::to_string(BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[3]) + "," +
-                std::to_string(BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[4]) +
-            " -DCK_PARAM_CThreadTransferDstScalarPerVector=" +
-                std::to_string(CThreadTransferDstScalarPerVector) +
-            " -DCK_PARAM_HasMainKBlockLoop=" +
-                std::to_string(static_cast<int>(HasMainKBlockLoop)) + 
-            " -DCK_PARAM_HasDoubleTailKBlockLoop=" +
-                std::to_string(static_cast<int>(HasDoubleTailKBlockLoop));
+        param <<
+            " -DCK_PARAM_ABDataTypeEnum=" << 
+                ABDataTypeEnum <<
+            " -DCK_PARAM_AccDataTypeEnum=" << 
+                AccDataTypeEnum <<
+            " -DCK_PARAM_CDataTypeEnum=" << 
+                CDataTypeEnum <<
+            " -DCK_PARAM_BlockSize=" << 
+                BlockSize <<
+            " -DCK_PARAM_GN0=" << 
+                GN0 <<
+            " -DCK_PARAM_GK1=" << 
+                GK1 <<
+            " -DCK_PARAM_GM1PerBlockGM11=" 
+                << GM1PerBlockGM11 <<
+            " -DCK_PARAM_GN1PerBlockGN11=" <<
+                GN1PerBlockGN11 <<
+            " -DCK_PARAM_GK0PerBlock=" <<
+                GK0PerBlock <<
+            " -DCK_PARAM_BM1PerThreadBM11=" <<
+                BM1PerThreadBM11 <<
+            " -DCK_PARAM_BN1PerThreadBN11=" <<
+                BN1PerThreadBN11 <<
+            " -DCK_PARAM_BK0PerThread=" <<
+                BK0PerThread <<
+            " -DCK_PARAM_BM10BN10ThreadClusterBM10Xs=" <<
+                BM10BN10ThreadClusterBM10Xs[0] << "," <<
+                BM10BN10ThreadClusterBM10Xs[1] <<
+            " -DCK_PARAM_BM10BN10ThreadClusterBN10Xs=" <<
+                BM10BN10ThreadClusterBN10Xs[0] << "," <<
+                BM10BN10ThreadClusterBN10Xs[1] <<
+            " -DCK_PARAM_ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1=" <<
+                ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1[0] << "," <<
+                ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1[1] << "," <<
+                ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1[2] << "," <<
+                ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1[3] << "," <<
+                ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1[4] <<
+            " -DCK_PARAM_ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1=" <<
+                ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[0] << "," <<
+                ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[1] << "," <<
+                ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[2] << "," <<
+                ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[3] << "," <<
+                ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[4] << 
+            " -DCK_PARAM_ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1=" <<
+                ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[0] << "," <<
+                ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[1] << "," <<
+                ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[2] << "," <<
+                ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[3] << "," <<
+                ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[4] <<
+            " -DCK_PARAM_ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1=" <<
+                ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[0] << "," <<
+                ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[1] << "," <<
+                ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[2] << "," <<
+                ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[3] << "," <<
+                ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[4] <<
+            " -DCK_PARAM_BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1=" <<
+                BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1[0] << "," <<
+                BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1[1] << "," <<
+                BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1[2] << "," <<
+                BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1[3] << "," <<
+                BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1[4] <<
+            " -DCK_PARAM_BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1=" <<
+                BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[0] << "," <<
+                BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[1] << "," <<
+                BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[2] << "," <<
+                BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[3] << "," <<
+                BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[4] << 
+            " -DCK_PARAM_BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1=" <<
+                BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[0] << "," <<
+                BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[1] << "," <<
+                BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[2] << "," <<
+                BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[3] << "," <<
+                BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[4] << 
+            " -DCK_PARAM_BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1=" <<
+                BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[0] << "," <<
+                BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[1] << "," <<
+                BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[2] << "," <<
+                BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[3] << "," <<
+                BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[4] << 
+            " -DCK_PARAM_CThreadTransferDstScalarPerVector=" <<
+                CThreadTransferDstScalarPerVector <<
+            " -DCK_PARAM_HasMainKBlockLoop=" <<
+                static_cast<int>(HasMainKBlockLoop) <<
+            " -DCK_PARAM_HasDoubleTailKBlockLoop=" <<
+                static_cast<int>(HasDoubleTailKBlockLoop);
         // clang-format on
+
+        return param.str();
     }
 
     ck::DataTypeEnum_t ABDataTypeEnum  = ck::DataTypeEnum_t::Unknown;

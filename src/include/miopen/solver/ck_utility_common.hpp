@@ -33,6 +33,7 @@
 #include <miopen/rocm_features.hpp>
 #include <miopen/solver/convolution_context_interpreter.hpp>
 #include <algorithm>
+#include <sstream>
 
 #include "../composable_kernel/composable_kernel/include/utility/data_type_enum.hpp"
 #include "../composable_kernel/host/solver/include/convolution_problem_descriptor.hpp"
@@ -63,39 +64,42 @@ static inline bool is_support_amd_buffer_atomic_fadd(const std::string& device_n
 
 static inline auto get_ck_common_compiler_flag(const ConvolutionContext& ctx)
 {
-    auto compiler_flag = std::string(" --std=c++17");
+    auto compiler_flag = std::stringstream();
+
+    // C++ standard
+    compiler_flag << " --std=c++17";
 
     // GPU target
     static const std::string gpu_target = ctx.GetStream().GetDeviceName();
 
     if(StartsWith(gpu_target, "gfx803"))
-        compiler_flag += std::string(" -DCK_AMD_GPU_GFX803");
+        compiler_flag << " -DCK_AMD_GPU_GFX803";
     else if(StartsWith(gpu_target, "gfx900"))
-        compiler_flag += std::string(" -DCK_AMD_GPU_GFX900");
+        compiler_flag << " -DCK_AMD_GPU_GFX900";
     else if(StartsWith(gpu_target, "gfx906"))
-        compiler_flag += std::string(" -DCK_AMD_GPU_GFX906");
+        compiler_flag << " -DCK_AMD_GPU_GFX906";
     else if(StartsWith(gpu_target, "gfx908"))
-        compiler_flag += std::string(" -DCK_AMD_GPU_GFX908");
+        compiler_flag << " -DCK_AMD_GPU_GFX908";
     else if(StartsWith(gpu_target, "gfx90a"))
-        compiler_flag += std::string(" -DCK_AMD_GPU_GFX90A");
+        compiler_flag << " -DCK_AMD_GPU_GFX90A";
     else if(StartsWith(gpu_target, "gfx1030"))
-        compiler_flag += std::string(" -DCK_AMD_GPU_GFX1030");
+        compiler_flag << " -DCK_AMD_GPU_GFX1030";
 
     // buffer atomic-fadd
-    compiler_flag +=
-        std::string(" -DCK_USE_AMD_BUFFER_ATOMIC_FADD=") +
-        (is_support_amd_buffer_atomic_fadd(ctx.GetStream().GetDeviceName()) ? '1' : '0');
+    compiler_flag << " -DCK_USE_AMD_BUFFER_ATOMIC_FADD="
+                  << (is_support_amd_buffer_atomic_fadd(ctx.GetStream().GetDeviceName()) ? '1'
+                                                                                         : '0');
 
     // sync LDS
-    compiler_flag +=
-        std::string(" -DCK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM=") +
-        (miopen::IsDisabled(MIOPEN_DEBUG_CK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM{}) ? '0' : '1');
+    compiler_flag << " -DCK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM="
+                  << (miopen::IsDisabled(MIOPEN_DEBUG_CK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM{}) ? '0'
+                                                                                             : '1');
 
     // buffer addressing
-    compiler_flag += std::string(" -DCK_USE_AMD_BUFFER_ADDRESSING=") +
-                     (miopen::IsDisabled(MIOPEN_DEBUG_CK_USE_AMD_BUFFER_ADDRESSING{}) ? '0' : '1');
+    compiler_flag << " -DCK_USE_AMD_BUFFER_ADDRESSING="
+                  << (miopen::IsDisabled(MIOPEN_DEBUG_CK_USE_AMD_BUFFER_ADDRESSING{}) ? '0' : '1');
 
-    return compiler_flag;
+    return compiler_flag.str();
 }
 
 static inline auto get_ck_convolution_problem_descriptor(const ConvolutionContext& ctx)
