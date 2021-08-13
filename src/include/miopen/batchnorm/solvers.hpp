@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,66 +24,45 @@
  *
  *******************************************************************************/
 
-#ifndef MIOPEN_GUARD_MLOPEN_SOLVER_ID_HPP
-#define MIOPEN_GUARD_MLOPEN_SOLVER_ID_HPP
+#pragma once
 
-#include <miopen/logger.hpp>
-#include <miopen/conv_algo_name.hpp>
+#include <miopen/solver.hpp>
 
-#include <cstdint>
-#include <unordered_map>
+#include <utility>
 
 namespace miopen {
 
-struct ForceInit
-{
-};
+namespace batchnorm {
+struct ProblemDescription;
+} // namespace batchnorm
 
 namespace solver {
 
-struct AnySolver;
+namespace batchnorm {
 
-enum class Primitive
+using OldStyleProblemDescription =
+    std::tuple<const ExecutionContext*, const miopen::batchnorm::ProblemDescription*>;
+
+struct BnFwdTrainingPASingle : public SolverBase<OldStyleProblemDescription>
 {
-    Convolution,
-    Activation,
-    Batchnorm,
-};
-
-struct Id
-{
-    static constexpr uint64_t invalid_value = 0;
-
-    Id() = default;
-    Id(uint64_t value_);
-    Id(ForceInit, uint64_t value_);
-    Id(const std::string& str);
-    Id(const char* str);
-
-    std::string ToString() const;
-    AnySolver GetSolver() const;
-    std::string GetAlgo(conv::Direction dir) const;
-    miopenConvAlgorithm_t GetAlgo() const;
-    Primitive GetPrimitive() const;
-
-    bool IsValid() const { return is_valid; }
-    uint64_t Value() const { return value; }
-    bool operator==(const Id& other) const
+    inline bool IsApplicable(const OldStyleProblemDescription& problem) const
     {
-        if(!is_valid && !other.is_valid)
-            return true; // invalids are equal regardless of their values
-        return value == other.value && is_valid == other.is_valid;
+        return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
-    bool operator!=(const Id& other) const { return !(*this == other); }
 
-    private:
-    uint64_t value = invalid_value;
-    bool is_valid  = false;
+    inline ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
+    {
+        return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
+    }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::batchnorm::ProblemDescription& problem) const;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::batchnorm::ProblemDescription& problem) const;
 };
 
-const std::vector<Id>& GetSolversByPrimitive(Primitive primitive);
+} // namespace batchnorm
 
 } // namespace solver
-} // namespace miopen
 
-#endif
+} // namespace miopen
