@@ -148,14 +148,14 @@ struct verify_forward_train_3d_bn_spatial
             }             // end for (n)
 #else
             for(std::size_t didx = 0; didx < depth; ++didx)
-            { // via depth            
+            { // via depth
                 for(std::size_t row = 0; row < height; row++){ //via rows
                     for(std::size_t column = 0; column < width; column++){// via columns
                         for(std::size_t bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
                             mean_accum_arr[row] += input(bidx,cidx,didx, row,column);
-                        }	
+                        }
                     }// for (column)
-                }// for (row)  
+                }// for (row)
             } // for (depth)
             for(std::size_t i = 0; i<height; i++) mean_accum += mean_accum_arr[i];
 #endif
@@ -185,16 +185,16 @@ struct verify_forward_train_3d_bn_spatial
             }                                                      // end for(n)
 
 #else
-            for(std::size_t didx = 0; didx < depth; ++didx) // via depth                
-            {    
+            for(std::size_t didx = 0; didx < depth; ++didx) // via depth
+            {
                 for(std::size_t row = 0; row < height; row++){ //via rows
                     for(std::size_t column = 0; column < width; column++){// via columns
                         for(std::size_t bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
                             out(bidx,cidx,didx,row,column) = elemStd = input(bidx,cidx,didx,row,column) - mean_accum;
                             variance_accum_arr[row] += elemStd*elemStd;
-                        }	
+                        }
                     }// for (column)
-                }// for (row)  
+                }// for (row)
             }
             for(std::size_t i = 0; i<height; i++) variance_accum += variance_accum_arr[i];
 #endif
@@ -727,15 +727,15 @@ struct verify_backward_3d_bn_spatial_recalc
             }         // for (depth)
 #else
             for(std::size_t didx = 0; didx < depth; ++didx)
-            { // via depth                  
+            { // via depth
                 for(std::size_t row = 0; row < height; row++){ //via rows
                     for(std::size_t column = 0; column < width; column++){// via columns
                         for(std::size_t bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
                             mean_accum_arr[row] += x_input(bidx,cidx,didx,row,column);
-                        }	
+                        }
                     }// for (column)
-                }// for (row)  
-            }    
+                }// for (row)
+            }
             for(std::size_t i = 0; i<height; i++) mean += mean_accum_arr[i];
 #endif
             mean /= ndhw;
@@ -768,9 +768,9 @@ struct verify_backward_3d_bn_spatial_recalc
                         for(std::size_t bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
                             elemStd = x_input(bidx,cidx,didx,row,column) - mean;
                             variance_accum_arr[row] += elemStd*elemStd;
-                        }	
+                        }
                     }// for (column)
-                }// for (row)  
+                }// for (row)
             }
             for(std::size_t i = 0; i<height; i++) variance += variance_accum_arr[i];
 #endif
@@ -800,7 +800,7 @@ struct verify_backward_3d_bn_spatial_recalc
                     }     // for (column)
                 }         // for (row)
             }
-#else   
+#else
             for(std::size_t didx = 0; didx < depth; ++didx)
             {
                 for(std::size_t row = 0; row < height; row++){ //via rows
@@ -815,13 +815,13 @@ struct verify_backward_3d_bn_spatial_recalc
                             dscale_accum_arr[row] += xhat[xhat_index]*dyelem;
                             //dscale_accum_arr[row] += x_input(bidx,cidx,row,column);;//dscale_accum_arr[row] += xhat[xhat_index];
                             //dscale_accum_arr[row] += 1.0;//DEBUG
-                        }	
+                        }
                     }// for (column)
-                }// for (row)  
+                }// for (row)
             }
             for(std::size_t i = 0; i<height; i++) {
-                dshift(0,cidx,0,0,0) += dshift_accum_arr[i];    
-                dscale(0,cidx,0,0,0) += dscale_accum_arr[i];    
+                dshift(0,cidx,0,0,0) += dshift_accum_arr[i];
+                dscale(0,cidx,0,0,0) += dscale_accum_arr[i];
             }
 #endif
             for(std::size_t didx = 0; didx < depth; ++didx)
@@ -1023,7 +1023,7 @@ struct verify_backward_3d_bn_spatial_use_saved
                     }     // for (column)
                 }         // for (row)
             }
-#else   
+#else
             for(std::size_t didx = 0; didx < depth; ++didx)
             { // via depth
                 for(std::size_t row = 0; row < height; row++){ //via rows
@@ -1038,14 +1038,14 @@ struct verify_backward_3d_bn_spatial_use_saved
                             dshift_accum_arr[row] += dyelem;
                             dscale_accum_arr[row] += xhat[xhat_index]*dyelem;
                             //dscale_accum_arr[row] += 1.0;//DEBUG
-                        }	
+                        }
                     }// for (column)
-                }// for (row)  
+                }// for (row)
             }
 
             for(std::size_t i = 0; i<height; i++) {
-                dshift(0,cidx,0,0,0) += dshift_accum_arr[i];    
-                dscale(0,cidx,0,0,0) += dscale_accum_arr[i];    
+                dshift(0,cidx,0,0,0) += dshift_accum_arr[i];
+                dscale(0,cidx,0,0,0) += dscale_accum_arr[i];
             }
 #endif
             for(std::size_t didx = 0; didx < depth; ++didx)
