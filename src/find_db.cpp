@@ -160,7 +160,7 @@ std::string FindDbRecord_t<TDb>::GetInstalledPathFile(Handle& handle)
                         return entry.string();
                     }
                     if(db_id.empty() || !miopen::StartsWith(db_id, "gfx") || real_cu_count == 0)
-                        return "";
+                        return std::string();
                     // Check for alternate ASIC any back end
                     if(fname.rfind(db_id, 0) == 0)
                     {
