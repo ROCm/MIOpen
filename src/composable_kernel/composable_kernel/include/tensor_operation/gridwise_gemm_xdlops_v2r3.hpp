@@ -402,7 +402,8 @@ struct GridwiseGemm_k0mk1_k0nk1_mn_xdlops_v2r3
 
         StaticBuffer<AddressSpaceEnum_t::Vgpr,
                      vector_type<FloatAcc, BlkSize>,
-                     c_mr_nr_blk_desc.GetElementSpaceSize()>
+                     c_mr_nr_blk_desc.GetElementSpaceSize(),
+                     true>
             c_thread_buf;
 
         // LDS allocation for A and B: be careful of alignment
@@ -493,7 +494,7 @@ struct GridwiseGemm_k0mk1_k0nk1_mn_xdlops_v2r3
                                                                           Number<M2>{},
                                                                           Number<1>{}));
 
-            StaticBuffer<AddressSpaceEnum_t::Vgpr, FloatC, c_m0_m1_m2_n_thread_desc.GetElementSpaceSize()>
+            StaticBuffer<AddressSpaceEnum_t::Vgpr, FloatC, c_m0_m1_m2_n_thread_desc.GetElementSpaceSize(), true>
                 c_blk_buf_;
 
             static_for<0, MRepeat, 1>{}([&](auto mr_i) {

@@ -227,7 +227,8 @@ struct GridwiseGemmDlops_km_kn_mn_v3
         // register allocation for output
         StaticBuffer<AddressSpaceEnum_t::Vgpr,
                      FloatAcc,
-                     c_k_n_ho_wo_thread_desc.GetElementSpaceSize()>
+                     c_k_n_ho_wo_thread_desc.GetElementSpaceSize(),
+                     true>
             c_thread_buf;
 
         // initialize output thread tensor
@@ -251,7 +252,8 @@ struct GridwiseGemmDlops_km_kn_mn_v3
         // double regsiter buffer for b
         StaticBuffer<AddressSpaceEnum_t::Vgpr,
                      FloatAB,
-                     b_e_n_ho_wo_thread_desc.GetElementSpaceSize()>
+                     b_e_n_ho_wo_thread_desc.GetElementSpaceSize(),
+                     true>
             b_thread_even_buf, b_thread_odd_buf;
 
         // LDS double buffer: preload data

@@ -602,7 +602,7 @@ struct ThreadwiseTensorSliceTransfer_v3r1
 
     static constexpr auto buffer_size_ = buffer_desc_.GetElementSpaceSize();
 
-    StaticBuffer<AddressSpaceEnum_t::Vgpr, SrcData, buffer_size_> buffer_;
+    StaticBuffer<AddressSpaceEnum_t::Vgpr, SrcData, buffer_size_, true> buffer_;
 
     SrcCoord src_coord_;
     DstCoord dst_coord_;
