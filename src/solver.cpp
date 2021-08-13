@@ -27,6 +27,7 @@
 #include <miopen/solver.hpp>
 
 #include <miopen/activ/solvers.hpp>
+#include <miopen/batchnorm/solvers.hpp>
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/db.hpp>
 #include <miopen/solver_id.hpp>
@@ -470,6 +471,8 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     Register(registry, ++id, Primitive::Activation, SolverDbId(activ::ActivBwdSolver0{}));
     Register(registry, ++id, Primitive::Activation, SolverDbId(activ::ActivBwdSolver1{}));
+
+    Register(registry, ++id, Primitive::Batchnorm, SolverDbId(batchnorm::BnFwdTrainingPASingle{}));
 
     RegisterWithSolver(
         registry, ++id, ConvCkIgemmFwdV6r1DlopsNchw{}, miopenConvolutionAlgoImplicitGEMM);

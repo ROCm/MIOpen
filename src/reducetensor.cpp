@@ -575,6 +575,8 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
         param += " -DCK_USE_AMD_BUFFER_ADDRESSING=0 ";
 #endif
 
+    float time_reduce = 0.0f;
+
     std::string param1 = param + " -DCK_PARAM_GRIDSIZE=" + std::to_string(gridSize) + " ";
 
     std::string program_name = "static_kernel_gridwise_generic_reduction.cpp";
@@ -607,6 +609,9 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
     handle.AddKernel(algo_name, network_config, program_name, kernel_name1, vld_1, vgd_1, param1)(
         alphaVal, A, betaVal, C, ws_buf1_global, ws_buf2_bytes_offset, indices);
 
+    if(handle.IsProfilingEnabled())
+        time_reduce += handle.GetKernelTime();
+
     if(useTwoCalls)
     {
         int toReduceLength_2 = blkGroupSize;
@@ -627,6 +632,15 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
         handle.AddKernel(
             algo_name, network_config2, program_name, kernel_name2, vld_2, vgd_2, param2)(
             alphaVal, A, betaVal, C, ws_buf1_global, ws_buf2_bytes_offset, indices);
+
+        if(handle.IsProfilingEnabled())
+            time_reduce += handle.GetKernelTime();
+    };
+
+    if(handle.IsProfilingEnabled())
+    {
+        handle.ResetKernelTime();
+        handle.AccumKernelTime(time_reduce);
     };
 };
 
