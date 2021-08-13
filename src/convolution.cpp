@@ -510,9 +510,7 @@ std::size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeGEMM(
         return *std::max_element(gemm_ws_szs.begin(), gemm_ws_szs.end());
     }
 #else
-    std::ignore = dyDesc;
-    std::ignore = xDesc;
-    std::ignore = dwDesc;
+    std::ignore = ctx;
 #endif
 
     return 0;
