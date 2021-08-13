@@ -30,8 +30,9 @@
 #include <miopen/finddb_kernel_cache_key.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/perf_field.hpp>
+#if MIOPEN_EMBED_DB
 #include <miopen_data.hpp>
-
+#endif
 #include <boost/filesystem.hpp>
 #include <string>
 #include <vector>
