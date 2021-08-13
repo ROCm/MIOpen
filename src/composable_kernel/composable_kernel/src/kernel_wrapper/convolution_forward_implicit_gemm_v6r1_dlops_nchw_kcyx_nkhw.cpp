@@ -62,23 +62,39 @@ constexpr bool HasMainKBlockLoop       = static_cast<bool>(CK_PARAM_HasMainKBloc
 constexpr bool HasDoubleTailKBlockLoop = static_cast<bool>(CK_PARAM_HasDoubleTailKBlockLoop);
 
 extern "C" __global__ void
-convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw_prepare(index_t N,
-                                                                    index_t C,
-                                                                    index_t Hi,
-                                                                    index_t Wi,
-                                                                    index_t K,
-                                                                    index_t Y,
-                                                                    index_t X,
-                                                                    index_t ConvStrideH,
-                                                                    index_t ConvStrideW,
-                                                                    index_t ConvDilationH,
-                                                                    index_t ConvDilationW,
-                                                                    index_t InLeftPadH,
-                                                                    index_t InLeftPadW,
-                                                                    index_t InRightPadH,
-                                                                    index_t InRightPadW,
+convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw_prepare(int N_,
+                                                                    int C_,
+                                                                    int Hi_,
+                                                                    int Wi_,
+                                                                    int K_,
+                                                                    int Y_,
+                                                                    int X_,
+                                                                    int ConvStrideH_,
+                                                                    int ConvStrideW_,
+                                                                    int ConvDilationH_,
+                                                                    int ConvDilationW_,
+                                                                    int InLeftPadH_,
+                                                                    int InLeftPadW_,
+                                                                    int InRightPadH_,
+                                                                    int InRightPadW_,
                                                                     void* p_desc_tuple)
 {
+    index_t N             = static_cast<index_t>(N_);
+    index_t C             = static_cast<index_t>(C_);
+    index_t Hi            = static_cast<index_t>(Hi_);
+    index_t Wi            = static_cast<index_t>(Wi_);
+    index_t K             = static_cast<index_t>(K_);
+    index_t Y             = static_cast<index_t>(Y_);
+    index_t X             = static_cast<index_t>(X_);
+    index_t ConvStrideH   = static_cast<index_t>(ConvStrideH_);
+    index_t ConvStrideW   = static_cast<index_t>(ConvStrideW_);
+    index_t ConvDilationH = static_cast<index_t>(ConvDilationH_);
+    index_t ConvDilationW = static_cast<index_t>(ConvDilationW_);
+    index_t InLeftPadH    = static_cast<index_t>(InLeftPadH_);
+    index_t InLeftPadW    = static_cast<index_t>(InLeftPadW_);
+    index_t InRightPadH   = static_cast<index_t>(InRightPadH_);
+    index_t InRightPadW   = static_cast<index_t>(InRightPadW_);
+
     constexpr auto I0 = Number<0>{};
     constexpr auto I1 = Number<1>{};
     constexpr auto I2 = Number<2>{};
