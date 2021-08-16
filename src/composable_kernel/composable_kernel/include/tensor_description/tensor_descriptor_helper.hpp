@@ -37,7 +37,7 @@ __host__ __device__ constexpr auto calculate_element_space_size_impl(const Lengt
 
 template <typename... Lengths,
           typename... Strides,
-          typename std::enable_if<sizeof...(Lengths) == sizeof...(Strides), bool>::type = false>
+          typename enable_if<sizeof...(Lengths) == sizeof...(Strides), bool>::type = false>
 __host__ __device__ constexpr auto make_naive_tensor_descriptor_v2(const Tuple<Lengths...>& lengths,
                                                                    const Tuple<Strides...>& strides)
 {

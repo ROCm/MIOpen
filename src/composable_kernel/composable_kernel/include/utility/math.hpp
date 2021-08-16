@@ -5,6 +5,7 @@
 #include "integral_constant.hpp"
 #include "number.hpp"
 #include "type.hpp"
+#include "enable_if.hpp"
 
 namespace ck {
 namespace math {
@@ -184,9 +185,7 @@ __host__ __device__ constexpr auto gcd(Number<X>, Number<Y>)
     return Number<r>{};
 }
 
-template <typename X,
-          typename... Ys,
-          typename std::enable_if<sizeof...(Ys) >= 2, bool>::type = false>
+template <typename X, typename... Ys, typename enable_if<sizeof...(Ys) >= 2, bool>::type = false>
 __host__ __device__ constexpr auto gcd(X x, Ys... ys)
 {
     return gcd(x, gcd(ys...));
@@ -199,9 +198,7 @@ __host__ __device__ constexpr auto lcm(X x, Y y)
     return (x * y) / gcd(x, y);
 }
 
-template <typename X,
-          typename... Ys,
-          typename std::enable_if<sizeof...(Ys) >= 2, bool>::type = false>
+template <typename X, typename... Ys, typename enable_if<sizeof...(Ys) >= 2, bool>::type = false>
 __host__ __device__ constexpr auto lcm(X x, Ys... ys)
 {
     return lcm(x, lcm(ys...));

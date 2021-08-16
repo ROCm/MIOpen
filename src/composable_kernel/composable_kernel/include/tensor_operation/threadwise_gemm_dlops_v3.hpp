@@ -19,9 +19,9 @@ template <typename FloatA,
           typename CDesc,
           index_t H,
           index_t W,
-          typename std::enable_if<ADesc::IsKnownAtCompileTime() && BDesc::IsKnownAtCompileTime() &&
-                                      CDesc::IsKnownAtCompileTime(),
-                                  bool>::type = false>
+          typename enable_if<ADesc::IsKnownAtCompileTime() && BDesc::IsKnownAtCompileTime() &&
+                                 CDesc::IsKnownAtCompileTime(),
+                             bool>::type = false>
 struct ThreadwiseGemmDlops_km_kn_mn_v3
 {
     template <typename ABuffer,

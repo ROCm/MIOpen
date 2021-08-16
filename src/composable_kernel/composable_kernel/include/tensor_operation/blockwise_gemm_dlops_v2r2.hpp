@@ -22,24 +22,24 @@ namespace ck {
 //     2. CThreadBuffer is StaticBuffer
 // Also assume:
 //   M0 = N0 = 2. It will do 2x2 pipelined read and fma (ABBA optimization)
-template <index_t BlockSize,
-          typename FloatA,
-          typename FloatB,
-          typename FloatC,
-          typename AKMBlockDesc,
-          typename BKNBlockDesc,
-          index_t M1PerThreadM11,
-          index_t N1PerThreadN11,
-          index_t KPerThread,
-          index_t M1N1ThreadClusterM100,
-          index_t M1N1ThreadClusterN100,
-          index_t M1N1ThreadClusterM101,
-          index_t M1N1ThreadClusterN101,
-          index_t AThreadCopyScalarPerVector_M11,
-          index_t BThreadCopyScalarPerVector_N11,
-          typename std::enable_if<AKMBlockDesc::IsKnownAtCompileTime() &&
-                                      BKNBlockDesc::IsKnownAtCompileTime(),
-                                  bool>::type = false>
+template <
+    index_t BlockSize,
+    typename FloatA,
+    typename FloatB,
+    typename FloatC,
+    typename AKMBlockDesc,
+    typename BKNBlockDesc,
+    index_t M1PerThreadM11,
+    index_t N1PerThreadN11,
+    index_t KPerThread,
+    index_t M1N1ThreadClusterM100,
+    index_t M1N1ThreadClusterN100,
+    index_t M1N1ThreadClusterM101,
+    index_t M1N1ThreadClusterN101,
+    index_t AThreadCopyScalarPerVector_M11,
+    index_t BThreadCopyScalarPerVector_N11,
+    typename enable_if<AKMBlockDesc::IsKnownAtCompileTime() && BKNBlockDesc::IsKnownAtCompileTime(),
+                       bool>::type = false>
 struct BlockwiseGemmDlops_km_kn_m0m1n0n1_v2r2_pipeline_2x2
 {
     using AIndex = MultiIndex<3>;

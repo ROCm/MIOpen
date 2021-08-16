@@ -15,7 +15,7 @@ namespace ck {
 template <typename Data,
           typename Desc,
           typename SliceLengths,
-          typename std::enable_if<Desc::IsKnownAtCompileTime(), bool>::type = false>
+          typename enable_if<Desc::IsKnownAtCompileTime(), bool>::type = false>
 struct ThreadwiseTensorSliceSet_v1
 {
     static constexpr index_t nDim = SliceLengths::Size();

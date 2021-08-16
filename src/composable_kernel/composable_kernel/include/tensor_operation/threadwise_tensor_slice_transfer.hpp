@@ -57,7 +57,7 @@ template <typename SrcData,
           InMemoryDataOperationEnum_t DstInMemOp,
           index_t DstScalarStrideInVector,
           bool DstResetCoordinateAfterRun,
-          typename std::enable_if<SrcDesc::IsKnownAtCompileTime(), bool>::type = false>
+          typename enable_if<SrcDesc::IsKnownAtCompileTime(), bool>::type = false>
 struct ThreadwiseTensorSliceTransfer_v1r3
 {
     static constexpr index_t nDim = SliceLengths::Size();
@@ -373,7 +373,7 @@ template <typename SrcData,
           index_t SrcScalarPerVector,
           index_t SrcScalarStrideInVector,
           bool SrcResetCoordinateAfterRun,
-          typename std::enable_if<DstDesc::IsKnownAtCompileTime(), bool>::type = false>
+          typename enable_if<DstDesc::IsKnownAtCompileTime(), bool>::type = false>
 struct ThreadwiseTensorSliceTransfer_v2
 {
     static constexpr index_t nDim = SliceLengths::Size();
@@ -1261,18 +1261,17 @@ struct ThreadwiseTensorSliceTransfer_v3
 //     3. DstOriginIdx is known at compile-time
 //     4. use direct address calculation
 //   3. vector access on src
-template <
-    typename SrcData,
-    typename DstData,
-    typename SrcDesc,
-    typename DstDesc,
-    typename SliceLengths,
-    typename DimAccessOrder,
-    index_t SrcVectorDim,
-    index_t SrcScalarPerVector,
-    index_t SrcScalarStrideInVector,
-    typename std::enable_if<SrcDesc::IsKnownAtCompileTime() && DstDesc::IsKnownAtCompileTime(),
-                            bool>::type = false>
+template <typename SrcData,
+          typename DstData,
+          typename SrcDesc,
+          typename DstDesc,
+          typename SliceLengths,
+          typename DimAccessOrder,
+          index_t SrcVectorDim,
+          index_t SrcScalarPerVector,
+          index_t SrcScalarStrideInVector,
+          typename enable_if<SrcDesc::IsKnownAtCompileTime() && DstDesc::IsKnownAtCompileTime(),
+                             bool>::type = false>
 struct ThreadwiseTensorSliceTransfer_v4
 {
     static constexpr index_t nDim = SliceLengths::Size();

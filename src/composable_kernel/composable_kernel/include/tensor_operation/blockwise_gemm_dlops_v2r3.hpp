@@ -38,9 +38,9 @@ template <index_t BlockSize,
                                                 //          BM10BN10ThreadClusterBN101, ...>
           index_t AThreadCopyScalarPerVector_BM11,
           index_t BThreadCopyScalarPerVector_BN11,
-          typename std::enable_if<ABlockDesc_BK0_BM_BK1::IsKnownAtCompileTime() &&
-                                      BBlockDesc_BK0_BN_BK1::IsKnownAtCompileTime(),
-                                  bool>::type = false>
+          typename enable_if<ABlockDesc_BK0_BM_BK1::IsKnownAtCompileTime() &&
+                                 BBlockDesc_BK0_BN_BK1::IsKnownAtCompileTime(),
+                             bool>::type = false>
 struct BlockwiseGemmDlops_A_BK0_BM_BK1_B_BK0_BN_BK1_C_BM0_BM1_BN0_BN1_pipeline_BM0_2_BN0_2
 {
     using AIndex = MultiIndex<3>;

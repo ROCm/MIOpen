@@ -2,6 +2,7 @@
 #define CK_TYPE_HPP
 
 #include "integral_constant.hpp"
+#include "enable_if.hpp"
 
 namespace ck {
 
@@ -39,9 +40,7 @@ struct is_known_at_compile_time<integral_constant<T, X>>
     static constexpr bool value = true;
 };
 
-template <typename Y,
-          typename X,
-          typename std::enable_if<sizeof(X) == sizeof(Y), bool>::type = false>
+template <typename Y, typename X, typename enable_if<sizeof(X) == sizeof(Y), bool>::type = false>
 __host__ __device__ constexpr Y as_type(X x)
 {
     union AsType

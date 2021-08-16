@@ -621,17 +621,16 @@ struct ThreadwiseTensorSliceTransfer_v3r1
 //     3. DstOriginIdx is known at compile-time
 //     4. use direct address calculation
 //   3. vector access on src
-template <
-    typename SrcData,
-    typename DstData,
-    typename SrcDesc,
-    typename DstDesc,
-    typename SliceLengths,
-    typename DimAccessOrder,
-    typename SrcVectorTensorLengths,
-    typename SrcVectorTensorContiguousDimOrder,
-    typename std::enable_if<SrcDesc::IsKnownAtCompileTime() && DstDesc::IsKnownAtCompileTime(),
-                            bool>::type = false>
+template <typename SrcData,
+          typename DstData,
+          typename SrcDesc,
+          typename DstDesc,
+          typename SliceLengths,
+          typename DimAccessOrder,
+          typename SrcVectorTensorLengths,
+          typename SrcVectorTensorContiguousDimOrder,
+          typename enable_if<SrcDesc::IsKnownAtCompileTime() && DstDesc::IsKnownAtCompileTime(),
+                             bool>::type = false>
 struct ThreadwiseTensorSliceTransfer_v4r1
 {
     static constexpr auto I0 = Number<0>{};

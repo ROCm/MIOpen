@@ -43,6 +43,7 @@ message(STATUS "Build with HIP ${hip_VERSION}")
 message("HALF_INCLUDE_DIR: ${HALF_INCLUDE_DIR}")
 
 # CMAKE_CXX_FLAGS
+SET(BUILD_DEV ON CACHE BOOL "BUILD_DEV")
 if(BUILD_DEV)
     string(APPEND CMAKE_CXX_FLAGS " -Werror -Weverything")
 endif()

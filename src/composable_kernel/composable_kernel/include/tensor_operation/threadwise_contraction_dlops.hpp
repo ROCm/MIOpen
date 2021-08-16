@@ -21,10 +21,10 @@ template <typename FloatA,
           typename TKLengths,
           typename TMLengths,
           typename TNLengths,
-          typename std::enable_if<AThreadDesc_TK0_TM0_TM1_TK1::IsKnownAtCompileTime() &&
-                                      BThreadDesc_TK0_TN0_TN1_TK1::IsKnownAtCompileTime() &&
-                                      CThreadDesc_TM0_TM1_TN0_TN1::IsKnownAtCompileTime(),
-                                  bool>::type = false>
+          typename enable_if<AThreadDesc_TK0_TM0_TM1_TK1::IsKnownAtCompileTime() &&
+                                 BThreadDesc_TK0_TN0_TN1_TK1::IsKnownAtCompileTime() &&
+                                 CThreadDesc_TM0_TM1_TN0_TN1::IsKnownAtCompileTime(),
+                             bool>::type = false>
 struct ThreadwiseGemmDlops_km0m1_kn0n1_m0m1n0n1
 {
     __device__ constexpr ThreadwiseGemmDlops_km0m1_kn0n1_m0m1n0n1()
@@ -123,10 +123,10 @@ template <typename FloatA,
           typename TKLengths,
           typename TMLengths,
           typename TNLengths,
-          typename std::enable_if<AThreadDesc_TK0_TM0_TM1_TK1::IsKnownAtCompileTime() &&
-                                      BThreadDesc_TK0_TN0_TN1_TK1::IsKnownAtCompileTime() &&
-                                      CThreadDesc_TM0_TM1_TN0_TN1::IsKnownAtCompileTime(),
-                                  bool>::type = false>
+          typename enable_if<AThreadDesc_TK0_TM0_TM1_TK1::IsKnownAtCompileTime() &&
+                                 BThreadDesc_TK0_TN0_TN1_TK1::IsKnownAtCompileTime() &&
+                                 CThreadDesc_TM0_TM1_TN0_TN1::IsKnownAtCompileTime(),
+                             bool>::type = false>
 struct ThreadwiseContractionDlops_A_TK0_TM0_TM1_TK1_B_TK0_TN0_TN1_TK1_C_TM0_TM1_TN0_TN1
 {
     __device__ constexpr ThreadwiseContractionDlops_A_TK0_TM0_TM1_TK1_B_TK0_TN0_TN1_TK1_C_TM0_TM1_TN0_TN1()

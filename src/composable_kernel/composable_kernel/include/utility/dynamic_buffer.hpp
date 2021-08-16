@@ -3,6 +3,7 @@
 
 #include "amd_buffer_addressing.hpp"
 #include "c_style_pointer_cast.hpp"
+#include "enable_if.hpp"
 
 namespace ck {
 
@@ -38,7 +39,7 @@ struct DynamicBuffer
     }
 
     template <typename X,
-              typename std::enable_if<
+              typename enable_if<
                   is_same<typename scalar_type<remove_cv_t<remove_reference_t<X>>>::type,
                           typename scalar_type<remove_cv_t<remove_reference_t<T>>>::type>::value,
                   bool>::type = false>
@@ -93,7 +94,7 @@ struct DynamicBuffer
     }
 
     template <typename X,
-              typename std::enable_if<
+              typename enable_if<
                   is_same<typename scalar_type<remove_cv_t<remove_reference_t<X>>>::type,
                           typename scalar_type<remove_cv_t<remove_reference_t<T>>>::type>::value,
                   bool>::type = false>

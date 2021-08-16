@@ -14,6 +14,7 @@
 #include "functional2.hpp"
 #include "functional3.hpp"
 #include "functional4.hpp"
+#include "enable_if.hpp"
 #include "integral_constant.hpp"
 #include "math.hpp"
 #include "number.hpp"

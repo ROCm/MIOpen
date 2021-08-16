@@ -377,7 +377,7 @@ struct RightPad
 //   at compile-time
 template <typename UpLengths,
           typename Coefficients,
-          typename std::enable_if<UpLengths::Size() == Coefficients::Size(), bool>::type = false>
+          typename enable_if<UpLengths::Size() == Coefficients::Size(), bool>::type = false>
 struct Embed
 {
     static constexpr index_t NDimUp = UpLengths::Size();

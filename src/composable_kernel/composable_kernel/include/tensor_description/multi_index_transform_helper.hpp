@@ -42,7 +42,7 @@ __host__ __device__ constexpr auto make_right_pad_transform(
 
 template <typename UpLengths,
           typename Coefficients,
-          typename std::enable_if<UpLengths::Size() == Coefficients::Size(), bool>::type = false>
+          typename enable_if<UpLengths::Size() == Coefficients::Size(), bool>::type = false>
 __host__ __device__ constexpr auto make_embed_transform(const UpLengths& up_lengths,
                                                         const Coefficients& coefficients)
 {

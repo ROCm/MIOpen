@@ -2,12 +2,13 @@
 #define CK_C_STYLE_POINTER_CAST_HPP
 
 #include "type.hpp"
+#include "enable_if.hpp"
 
 namespace ck {
 
 template <typename PY,
           typename PX,
-          typename std::enable_if<is_pointer_v<PY> && is_pointer_v<PX>, bool>::type = false>
+          typename enable_if<is_pointer_v<PY> && is_pointer_v<PX>, bool>::type = false>
 __host__ __device__ PY c_style_pointer_cast(PX p_x)
 {
 #pragma clang diagnostic push
