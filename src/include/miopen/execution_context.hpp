@@ -111,7 +111,7 @@ struct ExecutionContext
             }
             else
             {
-                MIOPEN_LOG_I("Unable to find exact embedded perf database file");
+                MIOPEN_LOG_I2("inexact embedded perf database search");
                 const auto db_id        = GetStream().GetTargetProperties().DbId();
                 const int real_cu_count = GetStream().GetMaxComputeUnits();
                 namespace fs            = boost::filesystem;
@@ -179,7 +179,7 @@ struct ExecutionContext
             }
             else
             {
-                MIOPEN_LOG_I("Unable to find exact perf database file");
+                MIOPEN_LOG_I2("inexact perf database search");
                 const auto db_id        = GetStream().GetTargetProperties().DbId();
                 const int real_cu_count = GetStream().GetMaxComputeUnits();
                 namespace fs            = boost::filesystem;

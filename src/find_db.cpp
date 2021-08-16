@@ -62,12 +62,12 @@ std::string FindDbRecord_t<TDb>::GetInstalledPathEmbed(Handle& handle)
         const auto file_path  = root_path / filename;
         if(miopen_data().find(filename + ".o") != miopen_data().end())
         {
-            MIOPEN_LOG_I("Found exact embedded find database file:" << filename);
+            MIOPEN_LOG_I2("Found exact embedded find database file:" << filename);
             return file_path.string();
         }
         else
         {
-            MIOPEN_LOG_I("Unable to find exact embedded find database file");
+            MIOPEN_LOG_I2("inexact find database search");
             std::vector<fs::path> all_files;
             for(const auto& kinder : miopen_data())
             {
@@ -128,12 +128,12 @@ std::string FindDbRecord_t<TDb>::GetInstalledPathFile(Handle& handle)
         const auto file_path  = root_path / (base_name + "." + suffix + ext);
         if(boost::filesystem::exists(file_path))
         {
-            MIOPEN_LOG_I("Found exact find database file");
+            MIOPEN_LOG_I2("Found exact find database file");
             return file_path.string();
         }
         else
         {
-            MIOPEN_LOG_I("Unable to find exact find database file");
+            MIOPEN_LOG_I2("inexact find database search");
             if(fs::exists(root_path) && fs::is_directory(root_path))
             {
                 MIOPEN_LOG_I("Iterating over find db directory " << root_path.string());
