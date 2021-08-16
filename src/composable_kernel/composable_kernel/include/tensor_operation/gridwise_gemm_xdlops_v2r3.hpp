@@ -148,12 +148,12 @@ struct GridwiseGemm_k0mk1_k0nk1_mn_xdlops_v2r3
 
         // A matrix in LDS memory, dst of blockwise copy
         //   be careful of LDS alignment
-        constexpr auto a_k0_m_k1_block_desc = make_naive_tensor_descriptor_aligned_v2(
+        constexpr auto a_k0_m_k1_block_desc = make_naive_tensor_descriptor_aligned(
             make_tuple(Number<KPerBlock>{}, Number<MPerBlock>{}, K1), max_lds_align);
 
         // B matrix in LDS memory, dst of blockwise copy
         //   be careful of LDS alignment
-        constexpr auto b_k0_n_k1_block_desc = make_naive_tensor_descriptor_aligned_v2(
+        constexpr auto b_k0_n_k1_block_desc = make_naive_tensor_descriptor_aligned(
             make_tuple(Number<KPerBlock>{}, Number<NPerBlock>{}, K1), max_lds_align);
 
         // LDS allocation for A and B: be careful of alignment
@@ -290,12 +290,12 @@ struct GridwiseGemm_k0mk1_k0nk1_mn_xdlops_v2r3
 
         // A matrix in LDS memory, dst of blockwise copy
         //   be careful of LDS alignment
-        constexpr auto a_k0_m_k1_block_desc = make_naive_tensor_descriptor_aligned_v2(
+        constexpr auto a_k0_m_k1_block_desc = make_naive_tensor_descriptor_aligned(
             make_tuple(Number<KPerBlock>{}, Number<MPerBlock>{}, K1), max_lds_align);
 
         // B matrix in LDS memory, dst of blockwise copy
         //   be careful of LDS alignment
-        constexpr auto b_k0_n_k1_block_desc = make_naive_tensor_descriptor_aligned_v2(
+        constexpr auto b_k0_n_k1_block_desc = make_naive_tensor_descriptor_aligned(
             make_tuple(Number<KPerBlock>{}, Number<NPerBlock>{}, K1), max_lds_align);
 
         // A matrix blockwise copy

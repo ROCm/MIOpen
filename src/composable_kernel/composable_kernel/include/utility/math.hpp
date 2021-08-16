@@ -28,13 +28,7 @@ struct minus
     __host__ __device__ constexpr T operator()(T a, T b) const { return a - b; }
 };
 
-template <typename T>
 struct multiplies
-{
-    __host__ __device__ constexpr T operator()(T a, T b) const { return a * b; }
-};
-
-struct multiplies_v2
 {
     template <typename A, typename B>
     __host__ __device__ constexpr auto operator()(const A& a, const B& b) const

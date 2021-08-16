@@ -38,8 +38,8 @@ __host__ __device__ constexpr auto calculate_element_space_size_impl(const Lengt
 template <typename... Lengths,
           typename... Strides,
           typename enable_if<sizeof...(Lengths) == sizeof...(Strides), bool>::type = false>
-__host__ __device__ constexpr auto make_naive_tensor_descriptor_v2(const Tuple<Lengths...>& lengths,
-                                                                   const Tuple<Strides...>& strides)
+__host__ __device__ constexpr auto make_naive_tensor_descriptor(const Tuple<Lengths...>& lengths,
+                                                                const Tuple<Strides...>& strides)
 {
     constexpr index_t N = sizeof...(Lengths);
 
@@ -100,7 +100,7 @@ make_naive_tensor_descriptor_packed(const Tuple<Lengths...>& lengths)
 
     constexpr auto visible_dim_hidden_ids = typename arithmetic_sequence_gen<1, N + 1, 1>::type{};
 
-    const auto element_space_size = container_reduce(lengths, math::multiplies_v2{}, Number<1>{});
+    const auto element_space_size = container_reduce(lengths, math::multiplies{}, Number<1>{});
 
     return TensorDescriptor<remove_cv_t<decltype(transforms)>,
                             remove_cv_t<decltype(low_dim_hidden_idss)>,
@@ -112,7 +112,7 @@ make_naive_tensor_descriptor_packed(const Tuple<Lengths...>& lengths)
 
 template <typename... Lengths, typename Align>
 __host__ __device__ constexpr auto
-make_naive_tensor_descriptor_aligned_v2(const Tuple<Lengths...>& lengths, Align align)
+make_naive_tensor_descriptor_aligned(const Tuple<Lengths...>& lengths, Align align)
 {
     constexpr auto I1 = Number<1>{};
 
@@ -133,7 +133,7 @@ make_naive_tensor_descriptor_aligned_v2(const Tuple<Lengths...>& lengths, Align 
             else
             {
                 return container_reduce(lengths,
-                                        math::multiplies_v2{},
+                                        math::multiplies{},
                                         Number<stride_n_minus_2>{},
                                         i + I1,
                                         Number<N - 1>{},
@@ -142,7 +142,7 @@ make_naive_tensor_descriptor_aligned_v2(const Tuple<Lengths...>& lengths, Align 
         },
         Number<N>{});
 
-    return make_naive_tensor_descriptor_v2(lengths, strides);
+    return make_naive_tensor_descriptor(lengths, strides);
 }
 
 } // namespace ck

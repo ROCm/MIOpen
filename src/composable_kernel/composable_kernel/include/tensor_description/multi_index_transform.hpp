@@ -481,11 +481,11 @@ struct Merge_v1_carry_check
     using LowerIndex = MultiIndex<NDimLow>;
     using UpperIndex = MultiIndex<1>;
 
-    using LowLengthsScan = decltype(
-        container_reverse_exclusive_scan(LowLengths{}, math::multiplies_v2{}, Number<1>{}));
+    using LowLengthsScan =
+        decltype(container_reverse_exclusive_scan(LowLengths{}, math::multiplies{}, Number<1>{}));
 
     using UpLengths =
-        decltype(make_tuple(container_reduce(LowLengths{}, math::multiplies_v2{}, Number<1>{})));
+        decltype(make_tuple(container_reduce(LowLengths{}, math::multiplies{}, Number<1>{})));
 
     LowLengths low_lengths_;
     LowLengthsScan low_lengths_scan_;
@@ -496,8 +496,8 @@ struct Merge_v1_carry_check
     __host__ __device__ constexpr Merge_v1_carry_check(const LowLengths& low_lengths)
         : low_lengths_{low_lengths},
           low_lengths_scan_{
-              container_reverse_exclusive_scan(low_lengths, math::multiplies_v2{}, Number<1>{})},
-          up_lengths_{make_tuple(container_reduce(low_lengths, math::multiplies_v2{}, Number<1>{}))}
+              container_reverse_exclusive_scan(low_lengths, math::multiplies{}, Number<1>{})},
+          up_lengths_{make_tuple(container_reduce(low_lengths, math::multiplies{}, Number<1>{}))}
     {
         static_assert(LowerIndex::Size() == NDimLow, "wrong!");
     }
@@ -1037,7 +1037,7 @@ struct Merge_v2_magic_division
     using UpperIndex = MultiIndex<1>;
 
     using UpLengths =
-        decltype(make_tuple(container_reduce(LowLengths{}, math::multiplies_v2{}, Number<1>{})));
+        decltype(make_tuple(container_reduce(LowLengths{}, math::multiplies{}, Number<1>{})));
 
     using LowLengthsMagicDivisorMultipiler = decltype(
         generate_tuple(lambda_merge_generate_MagicDivision_calculate_magic_multiplier<LowLengths>{},
@@ -1062,7 +1062,7 @@ struct Merge_v2_magic_division
           low_lengths_magic_divisor_shift_{generate_tuple(
               [&](auto i) { return MagicDivision::CalculateMagicShift(low_lengths[i]); },
               Number<NDimLow>{})},
-          up_lengths_{make_tuple(container_reduce(low_lengths, math::multiplies_v2{}, Number<1>{}))}
+          up_lengths_{make_tuple(container_reduce(low_lengths, math::multiplies{}, Number<1>{}))}
     {
         static_assert(LowerIndex::Size() == NDimLow, "wrong!");
     }
@@ -1188,11 +1188,11 @@ struct Merge_v2r2_magic_division
     using LowerIndex = MultiIndex<NDimLow>;
     using UpperIndex = MultiIndex<1>;
 
-    using LowLengthsScan = decltype(
-        container_reverse_exclusive_scan(LowLengths{}, math::multiplies_v2{}, Number<1>{}));
+    using LowLengthsScan =
+        decltype(container_reverse_exclusive_scan(LowLengths{}, math::multiplies{}, Number<1>{}));
 
     using UpLengths =
-        decltype(make_tuple(container_reduce(LowLengths{}, math::multiplies_v2{}, Number<1>{})));
+        decltype(make_tuple(container_reduce(LowLengths{}, math::multiplies{}, Number<1>{})));
 
     using LowLengthsScanMagicDivisorMultipiler = decltype(generate_tuple(
         lambda_merge_generate_MagicDivision_calculate_magic_multiplier<LowLengthsScan>{},
@@ -1213,14 +1213,14 @@ struct Merge_v2r2_magic_division
     __host__ __device__ constexpr Merge_v2r2_magic_division(const LowLengths& low_lengths)
         : low_lengths_{low_lengths},
           low_lengths_scan_{
-              container_reverse_exclusive_scan(low_lengths, math::multiplies_v2{}, Number<1>{})},
+              container_reverse_exclusive_scan(low_lengths, math::multiplies{}, Number<1>{})},
           low_lengths_scan_magic_divisor_multiplier_{generate_tuple(
               [&](auto i) { return MagicDivision::CalculateMagicMultiplier(low_lengths_scan_[i]); },
               Number<NDimLow>{})},
           low_lengths_scan_magic_divisor_shift_{generate_tuple(
               [&](auto i) { return MagicDivision::CalculateMagicShift(low_lengths_scan_[i]); },
               Number<NDimLow>{})},
-          up_lengths_{make_tuple(container_reduce(low_lengths, math::multiplies_v2{}, Number<1>{}))}
+          up_lengths_{make_tuple(container_reduce(low_lengths, math::multiplies{}, Number<1>{}))}
     {
         static_assert(LowerIndex::Size() == NDimLow, "wrong!");
     }
@@ -1336,7 +1336,7 @@ struct UnMerge
     using UpperIndex = MultiIndex<NDimUp>;
 
     using UpLengthsScan =
-        decltype(container_reverse_exclusive_scan(UpLengths{}, math::multiplies_v2{}, Number<1>{}));
+        decltype(container_reverse_exclusive_scan(UpLengths{}, math::multiplies{}, Number<1>{}));
 
     UpLengths up_lengths_;
     UpLengthsScan up_lengths_scan_;
@@ -1346,7 +1346,7 @@ struct UnMerge
     __host__ __device__ constexpr UnMerge(const UpLengths& up_lengths)
         : up_lengths_{up_lengths},
           up_lengths_scan_{
-              container_reverse_exclusive_scan(up_lengths, math::multiplies_v2{}, Number<1>{})}
+              container_reverse_exclusive_scan(up_lengths, math::multiplies{}, Number<1>{})}
     {
     }
 

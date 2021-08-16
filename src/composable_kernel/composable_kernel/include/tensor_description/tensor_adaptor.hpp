@@ -64,7 +64,7 @@ struct TensorAdaptor
             Number<ndim_top_>{});
 
         // TODO: make container_reduce support tuple of Number and index_t
-        return container_reduce(lengths, math::multiplies_v2{}, Number<1>{});
+        return container_reduce(lengths, math::multiplies{}, Number<1>{});
     }
 
     template <index_t IDim>

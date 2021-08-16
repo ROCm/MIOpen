@@ -8,7 +8,7 @@ namespace ck {
 
 template <typename Lengths,
           typename ArrangeOrder = typename arithmetic_sequence_gen<0, Lengths::Size(), 1>::type>
-__host__ __device__ constexpr auto make_cluster_descriptor_v2(
+__host__ __device__ constexpr auto make_cluster_descriptor(
     const Lengths& lengths,
     ArrangeOrder order = typename arithmetic_sequence_gen<0, Lengths::Size(), 1>::type{})
 {

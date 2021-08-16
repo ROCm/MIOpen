@@ -91,13 +91,13 @@ struct ThreadwiseTensorSliceTransfer_v3r1
             container_reverse_exclusive_scan(
                 container_reorder_given_new2old(src_vector_tensor_lengths,
                                                 SrcVectorTensorContiguousDimOrder{}),
-                math::multiplies_v2{},
+                math::multiplies{},
                 I1),
             SrcVectorTensorContiguousDimOrder{});
 
         constexpr auto src_vector_desc =
-            make_naive_tensor_descriptor_v2(sequence_to_tuple_of_number(src_vector_tensor_lengths),
-                                            sequence_to_tuple_of_number(src_vector_tensor_strides));
+            make_naive_tensor_descriptor(sequence_to_tuple_of_number(src_vector_tensor_lengths),
+                                         sequence_to_tuple_of_number(src_vector_tensor_strides));
 
         // access order and lengths
         constexpr auto src_access_lengths = SliceLengths{} / src_vector_tensor_lengths;
@@ -259,13 +259,13 @@ struct ThreadwiseTensorSliceTransfer_v3r1
             container_reverse_exclusive_scan(
                 container_reorder_given_new2old(dst_vector_tensor_lengths,
                                                 DstVectorTensorContiguousDimOrder{}),
-                math::multiplies_v2{},
+                math::multiplies{},
                 I1),
             DstVectorTensorContiguousDimOrder{});
 
         constexpr auto dst_vector_desc =
-            make_naive_tensor_descriptor_v2(sequence_to_tuple_of_number(dst_vector_tensor_lengths),
-                                            sequence_to_tuple_of_number(dst_vector_tensor_strides));
+            make_naive_tensor_descriptor(sequence_to_tuple_of_number(dst_vector_tensor_lengths),
+                                         sequence_to_tuple_of_number(dst_vector_tensor_strides));
 
         // dst access order and lengths
         constexpr auto dst_access_lengths = SliceLengths{} / dst_vector_tensor_lengths;
@@ -699,13 +699,13 @@ struct ThreadwiseTensorSliceTransfer_v4r1
             container_reverse_exclusive_scan(
                 container_reorder_given_new2old(src_vector_tensor_lengths,
                                                 SrcVectorTensorContiguousDimOrder{}),
-                math::multiplies_v2{},
+                math::multiplies{},
                 I1),
             SrcVectorTensorContiguousDimOrder{});
 
         constexpr auto src_vector_desc =
-            make_naive_tensor_descriptor_v2(sequence_to_tuple_of_number(src_vector_tensor_lengths),
-                                            sequence_to_tuple_of_number(src_vector_tensor_strides));
+            make_naive_tensor_descriptor(sequence_to_tuple_of_number(src_vector_tensor_lengths),
+                                         sequence_to_tuple_of_number(src_vector_tensor_strides));
 
         // access order and lengths
         constexpr auto access_lengths = SliceLengths{} / src_vector_tensor_lengths;

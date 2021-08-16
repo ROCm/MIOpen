@@ -163,12 +163,12 @@ struct GridwiseGemmDlops_km_kn_mn_v1r3
 
         // TODO: check alignment
         // A matrix in LDS memory, dst of blockwise copy
-        constexpr auto a_k_m_block_desc = make_naive_tensor_descriptor_aligned_v2(
+        constexpr auto a_k_m_block_desc = make_naive_tensor_descriptor_aligned(
             make_tuple(Number<KPerBlock>{}, Number<MPerBlockM1>{}, K1), max_lds_align);
 
         // TODO: check alignment
         // B matrix in LDS memory, dst of blockwise copy
-        constexpr auto b_k_n_block_desc = make_naive_tensor_descriptor_aligned_v2(
+        constexpr auto b_k_n_block_desc = make_naive_tensor_descriptor_aligned(
             make_tuple(Number<KPerBlock>{}, Number<NPerBlockN1>{}, K1), max_lds_align);
 
         // TODO: check alignment
@@ -274,10 +274,10 @@ struct GridwiseGemmDlops_km_kn_mn_v1r3
         const auto N0 = N / N1;
 
         constexpr auto M11 =
-            Number<container_reduce(M11N11ThreadClusterM110Xs{}, math::multiplies_v2{}, I1) *
+            Number<container_reduce(M11N11ThreadClusterM110Xs{}, math::multiplies{}, I1) *
                    M1PerThreadM111>{};
         constexpr auto N11 =
-            Number<container_reduce(M11N11ThreadClusterN110Xs{}, math::multiplies_v2{}, I1) *
+            Number<container_reduce(M11N11ThreadClusterN110Xs{}, math::multiplies{}, I1) *
                    N1PerThreadN111>{};
 
         constexpr auto M10 = M1 / M11;
@@ -354,23 +354,23 @@ struct GridwiseGemmDlops_km_kn_mn_v1r3
         // TODO: check alignment
         // A matrix in LDS memory, dst of blockwise copy
         //   be careful of LDS alignment
-        constexpr auto a_k0_m0_m1_k1_block_desc = make_naive_tensor_descriptor_aligned_v2(
+        constexpr auto a_k0_m0_m1_k1_block_desc = make_naive_tensor_descriptor_aligned(
             make_tuple(Number<KPerBlock>{}, I1, Number<MPerBlockM1>{}, K1), max_lds_align);
 
         // TODO: check alignment
         // B matrix in LDS memory, dst of blockwise copy
         //   be careful of LDS alignment
-        constexpr auto b_k0_n0_n1_k1_block_desc = make_naive_tensor_descriptor_aligned_v2(
+        constexpr auto b_k0_n0_n1_k1_block_desc = make_naive_tensor_descriptor_aligned(
             make_tuple(Number<KPerBlock>{}, I1, Number<NPerBlockN1>{}, K1), max_lds_align);
 
         // TODO: check alignment
         // A matrix in LDS memory, for blockwise GEMM
-        constexpr auto a_k0_m_k1_block_desc = make_naive_tensor_descriptor_aligned_v2(
+        constexpr auto a_k0_m_k1_block_desc = make_naive_tensor_descriptor_aligned(
             make_tuple(Number<KPerBlock>{}, Number<MPerBlockM1>{}, K1), max_lds_align);
 
         // TODO: check alignment
         // B matrix in LDS memory, for blockwise GEMM
-        constexpr auto b_k0_n_k1_block_desc = make_naive_tensor_descriptor_aligned_v2(
+        constexpr auto b_k0_n_k1_block_desc = make_naive_tensor_descriptor_aligned(
             make_tuple(Number<KPerBlock>{}, Number<NPerBlockN1>{}, K1), max_lds_align);
 
         static_assert(a_k0_m0_m1_k1_block_desc.GetElementSpaceSize() ==
