@@ -579,8 +579,8 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
 
     std::string param1 = param + " -DCK_PARAM_GRIDSIZE=" + std::to_string(gridSize) + " ";
 
-    std::string program_name = "static_kernel_gridwise_generic_reduction.cpp";
-    std::string algo_name    = "generic_reduce_tensor";
+    std::string program_name1 = "static_kernel_gridwise_generic_reduction_first_call.cpp";
+    std::string algo_name     = "generic_reduce_tensor";
     std::string network_config;
 
     network_config = "reduce_T" + std::to_string(srcDataType) + std::to_string(dstDataType) +
@@ -606,7 +606,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
                         ? static_cast<float>(*reinterpret_cast<const double*>(beta))
                         : *reinterpret_cast<const float*>(beta);
 
-    handle.AddKernel(algo_name, network_config, program_name, kernel_name1, vld_1, vgd_1, param1)(
+    handle.AddKernel(algo_name, network_config, program_name1, kernel_name1, vld_1, vgd_1, param1)(
         alphaVal, A, betaVal, C, ws_buf1_global, ws_buf2_bytes_offset, indices);
 
     if(handle.IsProfilingEnabled())
@@ -619,6 +619,8 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
 
         std::string param2 = param + " -DCK_PARAM_GRIDSIZE=" + std::to_string(gridSize_2) + " ";
 
+        std::string program_name2 = "static_kernel_gridwise_generic_reduction_second_call.cpp";
+
         std::string network_config2 = network_config + "_C2";
 
         // compile option and network config for the second-time call
@@ -630,7 +632,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
         std::string kernel_name2 = "gridwise_generic_reduce_2";
 
         handle.AddKernel(
-            algo_name, network_config2, program_name, kernel_name2, vld_2, vgd_2, param2)(
+            algo_name, network_config2, program_name2, kernel_name2, vld_2, vgd_2, param2)(
             alphaVal, A, betaVal, C, ws_buf1_global, ws_buf2_bytes_offset, indices);
 
         if(handle.IsProfilingEnabled())

@@ -50,10 +50,6 @@ template <index_t BlockSize,
           index_t GredAccessesPerThreadInBlock>
 struct GridwiseReduction_xy_to_x_multiblock
 {
-    static constexpr bool indexable = reduce_binary_operator<compType, op>::indexable;
-    static constexpr bool need_indices =
-        indexable && (reduceIndicesOpt != ReduceTensorIndices_t::NO_INDICES);
-
     static constexpr auto toReduceLength = src2dDesc::GetLength(Number<1>{});
 
     static constexpr auto divider = static_cast<int>(origReduceLen);
@@ -64,22 +60,21 @@ struct GridwiseReduction_xy_to_x_multiblock
     using posUnaryOp =
         typename reduce_unary_operator<compType, op, divider, true, false>::posUnaryOp;
 
-    __device__ void Run(srcDataType alpha,
-                        const srcDataType* const __restrict__ p_src_global,
-                        dstDataType beta,
-                        srcDataType* const __restrict__ workspace_global,
-                        int* const __restrict__ ws_indices_global)
-    {
-        static_if<need_indices>{}([&](auto) {
-            RunImpl2(alpha, p_src_global, beta, workspace_global, ws_indices_global);
-        }).Else([&](auto) { RunImpl1(alpha, p_src_global, beta, workspace_global); });
-    };
+    template <int RunId>
+    __device__ static void Run(srcDataType alpha,
+                               const srcDataType* const __restrict__ p_src_global,
+                               dstDataType beta,
+                               srcDataType* const __restrict__ workspace_global,
+                               int* const __restrict__ ws_indices_global);
 
-    __device__ static void RunImpl1(srcDataType alpha,
-                                    const srcDataType* const __restrict__ p_src_global,
-                                    dstDataType beta,
-                                    srcDataType* const __restrict__ workspace_global)
+    template <>
+    __device__ static void Run<1>(srcDataType alpha,
+                                  const srcDataType* const __restrict__ p_src_global,
+                                  dstDataType beta,
+                                  srcDataType* const __restrict__ workspace_global,
+                                  int* const __restrict__ ws_indices_global)
     {
+        (void)ws_indices_global;
         (void)alpha; // unused
         (void)beta;  // unused
 
@@ -188,11 +183,12 @@ struct GridwiseReduction_xy_to_x_multiblock
         }
     };
 
-    __device__ static void RunImpl2(srcDataType alpha,
-                                    const srcDataType* const __restrict__ p_src_global,
-                                    dstDataType beta,
-                                    srcDataType* const __restrict__ workspace_global,
-                                    int* const __restrict__ ws_indices_global)
+    template <>
+    __device__ static void Run<2>(srcDataType alpha,
+                                  const srcDataType* const __restrict__ p_src_global,
+                                  dstDataType beta,
+                                  srcDataType* const __restrict__ workspace_global,
+                                  int* const __restrict__ ws_indices_global)
     {
         (void)alpha; // unused
         (void)beta;  // unused
