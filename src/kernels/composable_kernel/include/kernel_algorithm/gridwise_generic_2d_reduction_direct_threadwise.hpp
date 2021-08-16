@@ -50,10 +50,6 @@ template <index_t BlockSize,
           index_t GredThreadBufferLength>
 struct GridwiseReduction_xy_to_x_direct_threadwise
 {
-    static constexpr bool indexable = reduce_binary_operator<compType, op>::indexable;
-    static constexpr bool need_indices =
-        indexable && (reduceIndicesOpt != ReduceTensorIndices_t::NO_INDICES);
-
     static constexpr auto toReduceLength = src2dDesc::GetLength(Number<1>{});
 
     static constexpr auto divider = static_cast<int>(origReduceLen);
@@ -64,28 +60,25 @@ struct GridwiseReduction_xy_to_x_direct_threadwise
     using posUnaryOp =
         typename reduce_unary_operator<compType, op, divider, isFirstCall, isLastCall>::posUnaryOp;
 
-    __device__ void Run(srcDataType alpha,
-                        const srcDataType* const __restrict__ p_src_global,
-                        dstDataType beta,
-                        dstDataType* const __restrict__ p_dst_global,
-                        const int* const __restrict__ ws_indices_global,
-                        int* const __restrict__ indices_global)
-    {
-        static_if<need_indices>{}([&](auto) {
-            static_if<isFirstCall>{}([&](auto) {
-                RunImpl2(alpha, p_src_global, beta, p_dst_global, indices_global);
-            }).Else([&](auto) {
-                RunImpl3(
-                    alpha, p_src_global, beta, p_dst_global, ws_indices_global, indices_global);
-            });
-        }).Else([&](auto) { RunImpl1(alpha, p_src_global, beta, p_dst_global); });
-    };
+    template <int RunId>
+    __device__ static void Run(srcDataType alpha,
+                               const srcDataType* const __restrict__ p_src_global,
+                               dstDataType beta,
+                               dstDataType* const __restrict__ p_dst_global,
+                               const int* const __restrict__ ws_indices_global,
+                               int* const __restrict__ indices_global);
 
-    __device__ static void RunImpl1(srcDataType alpha,
-                                    const srcDataType* const __restrict__ p_src_global,
-                                    dstDataType beta,
-                                    dstDataType* const __restrict__ p_dst_global)
+    template <>
+    __device__ static void Run<1>(srcDataType alpha,
+                                  const srcDataType* const __restrict__ p_src_global,
+                                  dstDataType beta,
+                                  dstDataType* const __restrict__ p_dst_global,
+                                  const int* const __restrict__ ws_indices_global,
+                                  int* const __restrict__ indices_global)
     {
+        (void)ws_indices_global;
+        (void)indices_global;
+
         compType p_in_thread_buffer[GredThreadBufferLength];
 
         auto zeroVal       = opReduce::GetZeroVal();
@@ -177,12 +170,16 @@ struct GridwiseReduction_xy_to_x_direct_threadwise
         threadwise_dst_store.Run(&accuValue, p_dst_global, zeroVal);
     };
 
-    __device__ static void RunImpl2(srcDataType alpha,
-                                    const srcDataType* const __restrict__ p_src_global,
-                                    dstDataType beta,
-                                    dstDataType* const __restrict__ p_dst_global,
-                                    int* const __restrict__ indices_global)
+    template <>
+    __device__ static void Run<2>(srcDataType alpha,
+                                  const srcDataType* const __restrict__ p_src_global,
+                                  dstDataType beta,
+                                  dstDataType* const __restrict__ p_dst_global,
+                                  const int* const __restrict__ ws_indices_global,
+                                  int* const __restrict__ indices_global)
     {
+        (void)ws_indices_global;
+
         compType p_in_thread_buffer[GredThreadBufferLength];
 
         auto zeroVal       = opReduce::GetZeroVal();
@@ -277,12 +274,13 @@ struct GridwiseReduction_xy_to_x_direct_threadwise
         threadwise_dst_store.Run(&accuIndex, indices_global, 0);
     };
 
-    __device__ static void RunImpl3(srcDataType alpha,
-                                    const srcDataType* const __restrict__ p_src_global,
-                                    dstDataType beta,
-                                    dstDataType* const __restrict__ p_dst_global,
-                                    const int* const __restrict__ ws_indices_global,
-                                    int* const __restrict__ indices_global)
+    template <>
+    __device__ static void Run<3>(srcDataType alpha,
+                                  const srcDataType* const __restrict__ p_src_global,
+                                  dstDataType beta,
+                                  dstDataType* const __restrict__ p_dst_global,
+                                  const int* const __restrict__ ws_indices_global,
+                                  int* const __restrict__ indices_global)
     {
         compType p_in_thread_buffer[GredThreadBufferLength];
         int thread_indices_buffer[GredThreadBufferLength]; // for store the indices from previous

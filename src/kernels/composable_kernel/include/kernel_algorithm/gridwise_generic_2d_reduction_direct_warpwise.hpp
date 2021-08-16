@@ -50,10 +50,6 @@ template <index_t BlockSize,
           index_t GredAccessesPerThreadInWarp>
 struct GridwiseReduction_xy_to_x_direct_warpwise
 {
-    static constexpr bool indexable = reduce_binary_operator<compType, op>::indexable;
-    static constexpr bool need_indices =
-        indexable && (reduceIndicesOpt != ReduceTensorIndices_t::NO_INDICES);
-
     static constexpr auto toReduceLength = src2dDesc::GetLengths()[1];
 
     static constexpr auto divider = static_cast<int>(origReduceLen);
@@ -64,33 +60,25 @@ struct GridwiseReduction_xy_to_x_direct_warpwise
     using posUnaryOp =
         typename reduce_unary_operator<compType, op, divider, isFirstCall, isLastCall>::posUnaryOp;
 
-    __device__ void Run(srcDataType alpha,
-                        const srcDataType* const __restrict__ p_src_global,
-                        dstDataType beta,
-                        dstDataType* const __restrict__ p_dst_global,
-                        const int* const __restrict__ ws_indices_global,
-                        int* const __restrict__ indices_global)
-    {
-        static_if<need_indices>{}([&](auto) {
-            static_if<isFirstCall>{}([&](auto) {
-                RunImpl2(alpha, p_src_global, beta, p_dst_global, indices_global);
-            }).Else([&](auto) {
-                RunImpl3(alpha,
-                         p_src_global,
-                         beta,
-                         p_dst_global,
-                         ws_indices_global,
-                         indices_global); // wc_indices_global is needed to read the indices
-                                          // from last reduction
-            });
-        }).Else([&](auto) { RunImpl1(alpha, p_src_global, beta, p_dst_global); });
-    };
+    template <int RunId>
+    __device__ static void Run(srcDataType alpha,
+                               const srcDataType* const __restrict__ p_src_global,
+                               dstDataType beta,
+                               dstDataType* const __restrict__ p_dst_global,
+                               const int* const __restrict__ ws_indices_global,
+                               int* const __restrict__ indices_global);
 
-    __device__ static void RunImpl1(srcDataType alpha,
-                                    const srcDataType* const __restrict__ p_src_global,
-                                    dstDataType beta,
-                                    dstDataType* const __restrict__ p_dst_global)
+    template <>
+    __device__ static void Run<1>(srcDataType alpha,
+                                  const srcDataType* const __restrict__ p_src_global,
+                                  dstDataType beta,
+                                  dstDataType* const __restrict__ p_dst_global,
+                                  const int* const __restrict__ ws_indices_global,
+                                  int* const __restrict__ indices_global)
     {
+        (void)ws_indices_global;
+        (void)indices_global;
+
         compType p_in_thread_buffer[GredAccessesPerThreadInWarp];
 
         auto zeroVal       = opReduce::GetZeroVal();
@@ -190,12 +178,16 @@ struct GridwiseReduction_xy_to_x_direct_warpwise
         }
     };
 
-    __device__ static void RunImpl2(srcDataType alpha,
-                                    const srcDataType* const __restrict__ p_src_global,
-                                    dstDataType beta,
-                                    dstDataType* const __restrict__ p_dst_global,
-                                    int* const __restrict__ indices_global)
+    template <>
+    __device__ static void Run<2>(srcDataType alpha,
+                                  const srcDataType* const __restrict__ p_src_global,
+                                  dstDataType beta,
+                                  dstDataType* const __restrict__ p_dst_global,
+                                  const int* const __restrict__ ws_indices_global,
+                                  int* const __restrict__ indices_global)
     {
+        (void)ws_indices_global;
+
         compType p_in_thread_buffer[GredAccessesPerThreadInWarp];
 
         auto zeroVal       = opReduce::GetZeroVal();
@@ -299,12 +291,13 @@ struct GridwiseReduction_xy_to_x_direct_warpwise
         }
     };
 
-    __device__ static void RunImpl3(srcDataType alpha,
-                                    const srcDataType* const __restrict__ p_src_global,
-                                    dstDataType beta,
-                                    dstDataType* const __restrict__ p_dst_global,
-                                    const int* const __restrict__ ws_indices_global,
-                                    int* const __restrict__ indices_global)
+    template <>
+    __device__ static void Run<3>(srcDataType alpha,
+                                  const srcDataType* const __restrict__ p_src_global,
+                                  dstDataType beta,
+                                  dstDataType* const __restrict__ p_dst_global,
+                                  const int* const __restrict__ ws_indices_global,
+                                  int* const __restrict__ indices_global)
     {
         compType p_in_thread_buffer[GredAccessesPerThreadInWarp];
         int thread_indices_buffer[GredAccessesPerThreadInWarp];

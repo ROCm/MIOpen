@@ -116,51 +116,6 @@ constexpr index_t GredThreadBufferLength       = CK_PARAM_THREAD_BUFFER_LENGTH; 
 constexpr index_t GredAccessesPerThreadInBlock = CK_PARAM_ACCESSES_PER_THREAD_INBLOCK; // tunable
 constexpr index_t GredAccessesPerThreadInWarp  = CK_PARAM_ACCESSES_PER_THREAD_INWARP;  // tunable
 
-extern "C" __global__ void gridwise_generic_reduce_1(float alpha,
-                                                     const void* p_src_global,
-                                                     float beta,
-                                                     void* p_dst_global,
-                                                     void* ws_buf1_global,
-                                                     long ws_buf2_bytes_offset,
-                                                     void* indices_global)
-{
-    static_assert(srcLengths::Size() > 0 && srcLengths::Size() == srcStrides::Size(),
-                  "The source desc specification is invalid!");
-    static_assert(dstLengths::Size() > 0 && dstLengths::Size() == dstStrides::Size(),
-                  "The destination desc specification is invalid!");
-    static_assert(dstLengths::Size() <= srcLengths::Size(),
-                  "The destination lengths should be less than source lengths!");
-
-    constexpr auto srcDesc = make_native_tensor_descriptor(srcLengths{}, srcStrides{});
-    constexpr auto dstDesc = make_native_tensor_descriptor(dstLengths{}, dstStrides{});
-
-    constexpr auto gridwise_reduce = GridwiseReduction<blkGroupSize,
-                                                       gridSize,
-                                                       blockSize,
-                                                       srcDataType,
-                                                       dstDataType,
-                                                       compType,
-                                                       decltype(srcDesc),
-                                                       toReduceDims,
-                                                       invariantDims,
-                                                       decltype(dstDesc),
-                                                       static_cast<index_t>(op),
-                                                       static_cast<index_t>(reduceImpl),
-                                                       static_cast<index_t>(nanPropaOpt),
-                                                       static_cast<index_t>(reduceIndicesOpt),
-                                                       GredThreadBufferLength,
-                                                       GredAccessesPerThreadInBlock,
-                                                       GredAccessesPerThreadInWarp>{};
-
-    gridwise_reduce.Run(alpha,
-                        const_cast<const void* const __restrict__>(p_src_global),
-                        beta,
-                        const_cast<void* const __restrict__>(p_dst_global),
-                        const_cast<void* const __restrict__>(ws_buf1_global),
-                        ws_buf2_bytes_offset,
-                        const_cast<void* const __restrict__>(indices_global));
-};
-
 extern "C" __global__ void gridwise_generic_reduce_2(float alpha,
                                                      const void* p_src_global,
                                                      float beta,
@@ -197,11 +152,11 @@ extern "C" __global__ void gridwise_generic_reduce_2(float alpha,
                                                        GredAccessesPerThreadInBlock,
                                                        GredAccessesPerThreadInWarp>{};
 
-    gridwise_reduce.Run_2(alpha,
-                          const_cast<const void* const __restrict__>(p_src_global),
-                          beta,
-                          const_cast<void* const __restrict__>(p_dst_global),
-                          const_cast<void* const __restrict__>(ws_buf1_global),
-                          ws_buf2_bytes_offset,
-                          const_cast<void* const __restrict__>(indices_global));
+    gridwise_reduce.Run<3>(alpha,
+                           const_cast<const void* const __restrict__>(p_src_global),
+                           beta,
+                           const_cast<void* const __restrict__>(p_dst_global),
+                           const_cast<void* const __restrict__>(ws_buf1_global),
+                           ws_buf2_bytes_offset,
+                           const_cast<void* const __restrict__>(indices_global));
 };
