@@ -85,7 +85,7 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx) co
         return false;
     if(!ctx.use_hip_kernels)
         return false;
-    if(!ck_utility::is_ck_supported_hardware(ctx))
+    if(!ck_utility::is_ck_supported_hardware(ctx.GetStream()))
         return false;
     if(!ctx.IsLayoutDefault())
         return false;
@@ -151,7 +151,7 @@ ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(
         kernel0_info.g_wk = {1, 1, 1};
 
         kernel0_info.comp_options = ck_compile_param.GetCompileParameterString() +
-                                    ck_utility::get_ck_common_compiler_flag(ctx);
+                                    ck_utility::get_ck_common_compiler_flag(ctx.GetStream());
     }
 
     // kernel1: compute
@@ -173,7 +173,7 @@ ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(
         kernel1_info.g_wk = {block_size * grid_size, 1, 1};
 
         kernel1_info.comp_options = ck_compile_param.GetCompileParameterString() +
-                                    ck_utility::get_ck_common_compiler_flag(ctx);
+                                    ck_utility::get_ck_common_compiler_flag(ctx.GetStream());
     }
 
     sol.construction_params.push_back(kernel0_info);

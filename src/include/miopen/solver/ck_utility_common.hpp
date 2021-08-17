@@ -46,15 +46,14 @@ namespace miopen {
 namespace solver {
 namespace ck_utility {
 
-static inline bool is_ck_supported_hardware(const ConvolutionContext& c)
+static inline bool is_ck_supported_hardware(const Handle& handle)
 {
-    return (StartsWith(c.GetStream().GetDeviceName(), "gfx803") &&
-            c.GetStream().GetMaxComputeUnits() == 64) ||
-           StartsWith(c.GetStream().GetDeviceName(), "gfx900") ||
-           StartsWith(c.GetStream().GetDeviceName(), "gfx906") ||
-           StartsWith(c.GetStream().GetDeviceName(), "gfx908") ||
-           StartsWith(c.GetStream().GetDeviceName(), "gfx90a") ||
-           StartsWith(c.GetStream().GetDeviceName(), "gfx1030");
+    return (StartsWith(handle.GetDeviceName(), "gfx803") && handle.GetMaxComputeUnits() == 64) ||
+           StartsWith(handle.GetDeviceName(), "gfx900") ||
+           StartsWith(handle.GetDeviceName(), "gfx906") ||
+           StartsWith(handle.GetDeviceName(), "gfx908") ||
+           StartsWith(handle.GetDeviceName(), "gfx90a") ||
+           StartsWith(handle.GetDeviceName(), "gfx1030");
 }
 
 static inline bool is_support_amd_buffer_atomic_fadd(const std::string& device_name)
@@ -62,7 +61,7 @@ static inline bool is_support_amd_buffer_atomic_fadd(const std::string& device_n
     return StartsWith(device_name, "gfx908");
 }
 
-static inline auto get_ck_common_compiler_flag(const ConvolutionContext& ctx)
+static inline auto get_ck_common_compiler_flag(const Handle& handle)
 {
     auto compiler_flag = std::stringstream();
 
@@ -70,25 +69,24 @@ static inline auto get_ck_common_compiler_flag(const ConvolutionContext& ctx)
     compiler_flag << " --std=c++17";
 
     // GPU target
-    static const std::string gpu_target = ctx.GetStream().GetDeviceName();
+    static const std::string device_name = handle.GetDeviceName();
 
-    if(StartsWith(gpu_target, "gfx803"))
+    if(StartsWith(device_name, "gfx803"))
         compiler_flag << " -DCK_AMD_GPU_GFX803";
-    else if(StartsWith(gpu_target, "gfx900"))
+    else if(StartsWith(device_name, "gfx900"))
         compiler_flag << " -DCK_AMD_GPU_GFX900";
-    else if(StartsWith(gpu_target, "gfx906"))
+    else if(StartsWith(device_name, "gfx906"))
         compiler_flag << " -DCK_AMD_GPU_GFX906";
-    else if(StartsWith(gpu_target, "gfx908"))
+    else if(StartsWith(device_name, "gfx908"))
         compiler_flag << " -DCK_AMD_GPU_GFX908";
-    else if(StartsWith(gpu_target, "gfx90a"))
+    else if(StartsWith(device_name, "gfx90a"))
         compiler_flag << " -DCK_AMD_GPU_GFX90A";
-    else if(StartsWith(gpu_target, "gfx1030"))
+    else if(StartsWith(device_name, "gfx1030"))
         compiler_flag << " -DCK_AMD_GPU_GFX1030";
 
     // buffer atomic-fadd
     compiler_flag << " -DCK_USE_AMD_BUFFER_ATOMIC_FADD="
-                  << (is_support_amd_buffer_atomic_fadd(ctx.GetStream().GetDeviceName()) ? '1'
-                                                                                         : '0');
+                  << (is_support_amd_buffer_atomic_fadd(device_name) ? '1' : '0');
 
     // sync LDS
     compiler_flag << " -DCK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM="
