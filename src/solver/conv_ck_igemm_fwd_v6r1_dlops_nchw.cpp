@@ -98,6 +98,15 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx) co
     if(ctx.group_counts != 1)
         return false;
 
+    {
+        // this kernel use int32_t for memory offset, which covers 2GB of memory maximum
+        const std::size_t max_index_range = std::size_t(2) * 1024 * 1024 * 1024;
+
+        if(!(ctx.bot_sz < max_index_range && ctx.weights_sz < max_index_range &&
+             ctx.top_sz < max_index_range))
+            return false;
+    }
+
     return ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::IsApplicable(
         ck_utility::get_ck_convolution_problem_descriptor(ctx));
 }
