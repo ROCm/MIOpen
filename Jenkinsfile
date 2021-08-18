@@ -217,6 +217,7 @@ pipeline {
     agent none
     options {
         parallelsAlwaysFailFast()
+        timeout(time: 90, unit:'MINUTES')
     }
     parameters {
         booleanParam(
@@ -654,6 +655,10 @@ pipeline {
                 }
                 stage('Fp32 OpenCL All gfx1030') {
                     agent{ label rocmnode("navi21") }
+                    options {
+                        timeout(time: 90, unit: 'MINUTES')
+                        retry(2)
+                    }
                     steps{
                         buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, build_env: extra_log_env, gpu_arch: "gfx1030")
                     }
