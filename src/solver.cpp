@@ -474,6 +474,9 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     Register(registry, ++id, Primitive::Batchnorm, SolverDbId(batchnorm::BnFwdTrainingPASingle{}));
 
+    RegisterWithSolver(
+        registry, ++id, ConvCkIgemmFwdV6r1DlopsNchw{}, miopenConvolutionAlgoImplicitGEMM);
+
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 

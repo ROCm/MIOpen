@@ -52,7 +52,7 @@ miopenDataType_t GetDataType<bfloat16>();
 using status_t = cl_int;
 #else // FIN_BACKEND_HIP
 #define STATUS_SUCCESS 0
-using status_t               = int;
+using status_t = int;
 #endif
 
 template <typename Tgpu, typename Tcpu>

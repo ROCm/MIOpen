@@ -2134,6 +2134,7 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
     CalculateGemmBBlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
     std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
 };
+
 struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm : SolverBase<ConvolutionContext>
 {
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
@@ -2148,6 +2149,45 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm : SolverBase<ConvolutionCont
 
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
     Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const;
+};
+
+struct PerformanceConvCkIgemmFwdV6r1DlopsNchw : Serializable<PerformanceConvCkIgemmFwdV6r1DlopsNchw>
+{
+    int ck_tunable_list_id;
+
+    PerformanceConvCkIgemmFwdV6r1DlopsNchw(int a) : ck_tunable_list_id(a) {}
+
+    PerformanceConvCkIgemmFwdV6r1DlopsNchw() : PerformanceConvCkIgemmFwdV6r1DlopsNchw(-1) {}
+
+    PerformanceConvCkIgemmFwdV6r1DlopsNchw(bool) : PerformanceConvCkIgemmFwdV6r1DlopsNchw(0) {}
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.ck_tunable_list_id, "ck_tunable_list_id");
+    }
+
+    bool SetNextValue(const ConvolutionContext&);
+    bool IsValid(const ConvolutionContext&) const;
+    bool operator==(const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config) const
+    {
+        return ck_tunable_list_id == config.ck_tunable_list_id;
+    }
+};
+
+struct ConvCkIgemmFwdV6r1DlopsNchw : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext&) const;
+    std::size_t GetWorkspaceSize(const ConvolutionContext&) const;
+    bool IsDynamic() const { return true; }
+    PerformanceConvCkIgemmFwdV6r1DlopsNchw GetPerformanceConfig(const ConvolutionContext&) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
+                                  const PerformanceConvCkIgemmFwdV6r1DlopsNchw&) const;
+    PerformanceConvCkIgemmFwdV6r1DlopsNchw Search(const ConvolutionContext&,
+                                                  const AnyInvokeParams&) const;
+    ConvSolution GetSolution(const ConvolutionContext&,
+                             const PerformanceConvCkIgemmFwdV6r1DlopsNchw&,
+                             bool disableConfigOverrideFromEnv = false) const;
 };
 
 struct ConvDirectNaiveConvFwd : SolverBase<ConvolutionContext>

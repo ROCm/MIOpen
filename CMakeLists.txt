@@ -378,6 +378,7 @@ add_definitions(-DBOOST_ALL_NO_LIB=1)
 find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
 find_path(HALF_INCLUDE_DIR half.hpp)
+message("HALF_INCLUDE_DIR: ${HALF_INCLUDE_DIR}")
 
 option( MIOPEN_DEBUG_FIND_DB_CACHING "Use system find-db caching" ON)
 
@@ -563,11 +564,18 @@ enable_cppcheck(
         *:*src/sqlite/*.cpp
         *:*.cl
         *:*src/kernels/*.h
-        knownConditionTrueFalse:*src/kernels/composable_kernel/*/*
-        redundantAssignment:*src/kernels/composable_kernel/*/*
-        unreadVariable:*src/kernels/composable_kernel/*/*
-        unusedScopedObject:*src/kernels/composable_kernel/*/*
-        wrongPrintfScanfArgNum:*src/kernels/composable_kernel/*/*
+        knownConditionTrueFalse:*src/kernels/static_composable_kernel/*/*
+        redundantAssignment:*src/kernels/static_composable_kernel/*/*
+        unreadVariable:*src/kernels/static_composable_kernel/*/*
+        unusedScopedObject:*src/kernels/static_composable_kernel/*/*
+        wrongPrintfScanfArgNum:*src/kernels/static_composable_kernel/*/*
+        knownConditionTrueFalse:*src/composable_kernel/composable_kernel/*/*
+        identicalConditionAfterEarlyExit:*src/composable_kernel/composable_kernel/*/*
+        duplicateExpression:*src/composable_kernel/composable_kernel/*/*
+        multiCondition:*src/composable_kernel/composable_kernel/*/*
+        unreadVariable:*src/composable_kernel/composable_kernel/*/*
+        unreadVariable:*src/composable_kernel/host/*/*
+        unreadVariable:*src/composable_kernel/external/*/*
         unmatchedSuppression
     FORCE
     SOURCES
