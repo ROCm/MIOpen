@@ -443,7 +443,7 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
         if(rec.GetSize() == 0)
             return boost::none;
         else
-            return boost::optional<DbRecord>(rec);
+            return {rec};
     }
 
     /// Removes ID with associated VALUES from record with key PROBLEM_CONFIG from db.
