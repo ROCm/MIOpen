@@ -692,7 +692,7 @@ OpKernelArg BatchNormFwdTrainFusionOpDescriptor::GetOpAttr(const std::string& k)
     }
     else if(k == "diff_scale")
     {
-        return OpKernelArg(static_cast<float>(0.0));
+        return {static_cast<float>(0.0)};
     }
     else if(k == "iNHW")
     {
