@@ -84,7 +84,7 @@ std::string FindDbRecord_t<TDb>::GetInstalledPathEmbed(Handle& handle)
             for(const auto& entry : all_files)
             {
                 const auto fname = entry.stem().string();
-                MIOPEN_LOG_I("Checking embedded find db file: " << fname);
+                MIOPEN_LOG_I2("Checking embedded find db file: " << fname);
                 // Check for alternate back end same ASIC
                 if(fname.rfind(base_name, 0) == 0)
                 {
@@ -136,7 +136,7 @@ std::string FindDbRecord_t<TDb>::GetInstalledPathFile(Handle& handle)
             MIOPEN_LOG_I2("inexact find database search");
             if(fs::exists(root_path) && fs::is_directory(root_path))
             {
-                MIOPEN_LOG_I("Iterating over find db directory " << root_path.string());
+                MIOPEN_LOG_I2("Iterating over find db directory " << root_path.string());
                 std::vector<fs::path> all_files;
                 for(const auto& kinder : fs::recursive_directory_iterator(root_path))
                 {

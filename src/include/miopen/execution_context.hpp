@@ -121,12 +121,12 @@ struct ExecutionContext
                 {
                     // string the .o from the filename
                     const auto fname = entry.first.substr(0, entry.first.size() - 2);
-                    MIOPEN_LOG_I("Testing embedded file:" << fname);
+                    MIOPEN_LOG_I2("Testing embedded file:" << fname);
                     const auto& filepath = pdb_path / fname;
                     if(filepath.extension() == ext &&
                        fname.rfind(db_id, 0) == 0) // starts with db_id
                     {
-                        MIOPEN_LOG_I("Checking embedded perf db file: " << fname);
+                        MIOPEN_LOG_I2("Checking embedded perf db file: " << fname);
                         const auto pos = fname.find('_');
                         int cur_count  = -1;
                         try
@@ -185,7 +185,7 @@ struct ExecutionContext
                 namespace fs            = boost::filesystem;
                 if(fs::exists(pdb_path) && fs::is_directory(pdb_path))
                 {
-                    MIOPEN_LOG_I("Iterating over perf db directory " << pdb_path.string());
+                    MIOPEN_LOG_I2("Iterating over perf db directory " << pdb_path.string());
                     int closest_cu = std::numeric_limits<int>::max();
                     fs::path best_path;
                     for(auto const& entry : fs::recursive_directory_iterator(pdb_path))
@@ -195,7 +195,7 @@ struct ExecutionContext
                         if(fs::is_regular_file(entry) && filepath.extension() == ext &&
                            fname.rfind(db_id, 0) == 0) // starts with db_id
                         {
-                            MIOPEN_LOG_I("Checking perf db file: " << fname);
+                            MIOPEN_LOG_I2("Checking perf db file: " << fname);
                             const auto pos = fname.find('_');
                             int cur_count  = -1;
                             try
