@@ -520,6 +520,7 @@ int ConvFin<Tgpu, Tref>::MIOpenFindEval()
             res_item["reason"] = "Success";
 
             return true;
+
         };
 
         auto res              = process_solver();
@@ -702,6 +703,7 @@ int ConvFin<Tgpu, Tref>::MIOpenFind()
             res_item["reason"] = "Success";
 
             return true;
+
         };
 
         auto res              = process_solver();

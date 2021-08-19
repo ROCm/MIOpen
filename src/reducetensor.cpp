@@ -254,14 +254,22 @@ inline int GetReduceTensorOpId(miopenReduceTensorOp_t t)
 {
     switch(t)
     {
-    case MIOPEN_REDUCE_TENSOR_ADD: return (656868);   // 'A' * 10000 + 'D' * 100 + 'D'
-    case MIOPEN_REDUCE_TENSOR_MUL: return (778576);   // 'M' * 10000 + 'U' * 100 + 'L'
-    case MIOPEN_REDUCE_TENSOR_MIN: return (777378);   // 'M' * 10000 + 'I' * 100 + 'N'
-    case MIOPEN_REDUCE_TENSOR_MAX: return (776588);   // 'M' * 10000 + 'A' * 100 + 'X'
-    case MIOPEN_REDUCE_TENSOR_AMAX: return (657788);  // 'A' * 10000 + 'M' * 100 + 'X'
-    case MIOPEN_REDUCE_TENSOR_AVG: return (658671);   // 'A' * 10000 + 'V' * 100 + 'G'
-    case MIOPEN_REDUCE_TENSOR_NORM1: return (788201); // 'N' * 10000 + 'R' * 100 + '1'
-    case MIOPEN_REDUCE_TENSOR_NORM2: return (788202); // 'N' * 10000 + 'R' * 100 + '2'
+    case MIOPEN_REDUCE_TENSOR_ADD:
+        return (656868); // 'A' * 10000 + 'D' * 100 + 'D'
+    case MIOPEN_REDUCE_TENSOR_MUL:
+        return (778576); // 'M' * 10000 + 'U' * 100 + 'L'
+    case MIOPEN_REDUCE_TENSOR_MIN:
+        return (777378); // 'M' * 10000 + 'I' * 100 + 'N'
+    case MIOPEN_REDUCE_TENSOR_MAX:
+        return (776588); // 'M' * 10000 + 'A' * 100 + 'X'
+    case MIOPEN_REDUCE_TENSOR_AMAX:
+        return (657788); // 'A' * 10000 + 'M' * 100 + 'X'
+    case MIOPEN_REDUCE_TENSOR_AVG:
+        return (658671); // 'A' * 10000 + 'V' * 100 + 'G'
+    case MIOPEN_REDUCE_TENSOR_NORM1:
+        return (788201); // 'N' * 10000 + 'R' * 100 + '1'
+    case MIOPEN_REDUCE_TENSOR_NORM2:
+        return (788202); // 'N' * 10000 + 'R' * 100 + '2'
 
     default: MIOPEN_THROW("Operation is not supported"); break;
     };
@@ -579,7 +587,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
 
     std::string param1 = param + " -DCK_PARAM_GRIDSIZE=" + std::to_string(gridSize) + " ";
 
-    std::string program_name1 = "static_kernel_gridwise_generic_reduction_first_call.cpp";
+    std::string program_name1 = "gridwise_generic_reduction_first_call.cpp";
     std::string algo_name     = "generic_reduce_tensor";
     std::string network_config;
 
@@ -619,7 +627,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
 
         std::string param2 = param + " -DCK_PARAM_GRIDSIZE=" + std::to_string(gridSize_2) + " ";
 
-        std::string program_name2 = "static_kernel_gridwise_generic_reduction_second_call.cpp";
+        std::string program_name2 = "gridwise_generic_reduction_second_call.cpp";
 
         std::string network_config2 = network_config + "_C2";
 
