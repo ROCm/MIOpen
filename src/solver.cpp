@@ -112,6 +112,7 @@ struct IdRegistryEntry
     Primitive primitive            = Primitive::Convolution;
     miopenConvAlgorithm_t convAlgo = miopenConvolutionAlgoDirect;
     AnySolver solver               = {};
+    bool is_tunable                = false;
 };
 
 struct IdRegistryData
@@ -174,6 +175,14 @@ std::string Id::GetAlgo(conv::Direction dir) const
     return ConvolutionAlgoToDirectionalString(GetAlgo(), dir);
 }
 
+bool Id::IsTunable() const
+{
+    const auto it = IdRegistry().value_to_entry.find(value);
+    if(it == IdRegistry().value_to_entry.end())
+        MIOPEN_THROW(miopenStatusInternalError);
+    return it->second.is_tunable;
+}
+
 Primitive Id::GetPrimitive() const
 {
     const auto it = IdRegistry().value_to_entry.find(value);
@@ -191,7 +200,7 @@ miopenConvAlgorithm_t Id::GetAlgo() const
 }
 
 inline bool
-Register(IdRegistryData& registry, uint64_t value, Primitive primitive, const std::string& str)
+Register(IdRegistryData& registry, uint64_t value, Primitive primitive, const std::string& str, bool is_tunable)
 {
     if(value == Id::invalid_value)
     {
@@ -222,6 +231,7 @@ Register(IdRegistryData& registry, uint64_t value, Primitive primitive, const st
     auto entry      = IdRegistryEntry{};
     entry.str_value = str;
     entry.primitive = primitive;
+    entry.is_tunable = is_tunable;
 
     registry.value_to_entry.emplace(value, std::move(entry));
     registry.str_to_value.emplace(str, value);
@@ -229,22 +239,48 @@ Register(IdRegistryData& registry, uint64_t value, Primitive primitive, const st
     return true;
 }
 
+inline bool
+Register(IdRegistryData& registry, uint64_t value, Primitive primitive, const std::string& str)
+{
+    return Register(registry, value, primitive, str, false);
+}
+
 inline bool Register(IdRegistryData& registry,
                      uint64_t value,
                      const std::string& str,
-                     miopenConvAlgorithm_t algo)
+                     miopenConvAlgorithm_t algo,
+		     bool is_tunable)
 {
-    if(!Register(registry, value, Primitive::Convolution, str))
+    if(!Register(registry, value, Primitive::Convolution, str, is_tunable))
         return false;
     registry.value_to_entry.at(value).convAlgo = algo;
     return true;
+}
+
+inline bool Register(IdRegistryData& registry, uint64_t value, const std::string& str, miopenConvAlgorithm_t algo)
+{
+    return Register(registry, value, str, algo, false);
+}
+
+template <class TSolver,
+          typename Z =
+              decltype(std::declval<TSolver>().GetPerformanceConfig(std::declval<const miopen::ConvolutionContext &>()))>
+bool IsTunable(int prio1)
+{
+    return true;
+}
+
+template <class TSolver>
+bool IsTunable(...)
+{
+    return false;
 }
 
 template <class TSolver>
 inline void
 RegisterWithSolver(IdRegistryData& registry, uint64_t value, TSolver, miopenConvAlgorithm_t algo)
 {
-    if(!Register(registry, value, SolverDbId(TSolver{}), algo))
+    if(!Register(registry, value, SolverDbId(TSolver{}), algo, IsTunable<TSolver>()))
         return;
     registry.value_to_entry.at(value).solver = TSolver{};
 }

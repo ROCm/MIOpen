@@ -63,6 +63,7 @@ struct Id
     AnySolver GetSolver() const;
     std::string GetAlgo(conv::Direction dir) const;
     miopenConvAlgorithm_t GetAlgo() const;
+    bool IsTunable() const;
     Primitive GetPrimitive() const;
 
     bool IsValid() const { return is_valid; }
