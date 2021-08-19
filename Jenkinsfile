@@ -217,7 +217,8 @@ pipeline {
     agent none
     options {
         parallelsAlwaysFailFast()
-        timeout(time: 90, unit:'MINUTES')
+        // disable stage-wise timeout due to long wait with queue (limited resources)
+        // timeout(time: 90, unit:'MINUTES')
     }
     parameters {
         booleanParam(
