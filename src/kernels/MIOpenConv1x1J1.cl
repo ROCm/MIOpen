@@ -171,7 +171,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 #endif
               __global _FLOAT* __restrict out_ptr,
               UNUSED _FLOAT dummy_val // nothing
-              )
+)
 {
 
     uint grp_id0       = get_group_id(0);

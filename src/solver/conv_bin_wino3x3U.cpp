@@ -151,22 +151,9 @@ ConvSolution ConvBinWinograd3x3U::GetSolution(const ConvolutionContext& params) 
         GetCompiledInParameters(
             params, &N, &C, &H, &W, &K, &n_groups_, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
         MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
-                            << " n_groups="
-                            << n_groups_
-                            << " flags="
-                            << flags
-                            << " R="
-                            << R
-                            << " S="
-                            << S
-                            << " pad_H="
-                            << pad_H
-                            << " pad_W="
-                            << pad_W
-                            << " out_H="
-                            << out_H
-                            << " out_W="
-                            << out_W);
+                            << " n_groups=" << n_groups_ << " flags=" << flags << " R=" << R
+                            << " S=" << S << " pad_H=" << pad_H << " pad_W=" << pad_W
+                            << " out_H=" << out_H << " out_W=" << out_W);
 
         return [=](const Handle& handle, const AnyInvokeParams& ctx) {
             const auto k        = handle.Run(kernels[0]);

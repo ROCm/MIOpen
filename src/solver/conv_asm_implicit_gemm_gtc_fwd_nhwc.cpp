@@ -202,9 +202,8 @@ GetFwdXdlopsNHWCConfigList()
 static std::tuple<std::string, // kernel_name
                   size_t,      // block_size
                   size_t>      // grid_size
-    GetImplicitGemmGtcDynamicFwdXdlopsNHWCKernel(
-        const ConvolutionContext& ctx,
-        const PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC& config)
+GetImplicitGemmGtcDynamicFwdXdlopsNHWCKernel(
+    const ConvolutionContext& ctx, const PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC& config)
 {
     const auto& n     = ctx.batch_sz;
     const auto& k     = ctx.n_outputs;
@@ -264,7 +263,7 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
     {
         int mp, np, kp;
         std::tie(mp, np, kp) = tile;
-        bool found = false;
+        bool found           = false;
         for(const auto& config : c_list)
         {
             if(config.precision == miopenFloat)
@@ -288,7 +287,7 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
     {
         int mp, np, kp;
         std::tie(mp, np, kp) = tile;
-        bool found = false;
+        bool found           = false;
         for(const auto& config : c_list)
         {
             if(config.precision == miopenHalf)
@@ -417,7 +416,8 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
     }
 }
 
-bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::SetNextValue()
+bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::SetNextValue(
+    const ConvolutionContext& /*config*/)
 {
     if(use_spare_set)
     {

@@ -60,15 +60,18 @@ auto PerfFieldRules()
 
 } // namespace
 
-bool PerformanceConfigConvAsm3x3U::SetNextValue() { return !PerfFieldRules().Next(*this); }
+bool PerformanceConfigConvAsm3x3U::SetNextValue(const ConvolutionContext& /*config*/)
+{
+    return !PerfFieldRules().Next(*this);
+}
 
 PerformanceConfigConvAsm3x3U::PerformanceConfigConvAsm3x3U(int lwc, int fpw, int olpw)
     : limit_wave_cnt(lwc), filters_per_wave(fpw), output_lines_per_wave(olpw)
 {
 }
 
-inline bool PerformanceConfigConvAsm3x3U::
-operator==(const PerformanceConfigConvAsm3x3U& other) const
+inline bool
+PerformanceConfigConvAsm3x3U::operator==(const PerformanceConfigConvAsm3x3U& other) const
 {
     return PerfFieldRules().Compare(*this, other);
 }
