@@ -528,7 +528,7 @@ function(add_custom_test NAME)
     set(is_gfx90a_check)
     set(GFX90A_TEST_DEFAULT FALSE)
     option_support_check(${PARSE_GFX90A_ENABLED} ${PARSE_GFX90A_DISABLED} ${GFX90A_TEST_DEFAULT} is_gfx90a_check)
-    bool_and_f(${MIOPEN_TEST_GFX90A} ${is_gfx90a_check} is_gfx90a_check)
+    bool_and_f(${MIOPEN_TEST_GFX90a} ${is_gfx90a_check} is_gfx90a_check)
 
     set(is_gfx1030_check)
     set(GFX1030_TEST_DEFAULT FALSE)
