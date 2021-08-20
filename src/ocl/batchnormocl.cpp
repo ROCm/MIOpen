@@ -42,7 +42,6 @@
 #include <miopen/batchnorm/solvers.hpp>
 #include <miopen/find_solution.hpp>
 
-#define WORKAROUND_SWDEV_253606 1
 #include <chrono>
 
 namespace miopen {
