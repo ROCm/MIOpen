@@ -47,6 +47,7 @@ enum class Primitive
 {
     Convolution,
     Activation,
+    Batchnorm,
 };
 
 struct Id

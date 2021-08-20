@@ -246,8 +246,7 @@ int ActivationDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         case MIOPEN_NEURON_ABS:
             in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
             break;
-        case MIOPEN_NEURON_POWER:
-        {
+        case MIOPEN_NEURON_POWER: {
             double v = -alpha / beta;
             in[i]    = i % 2 ? RAN_GEN<Tgpu>(static_cast<Tgpu>((v + 0.005) / beta),
                                           static_cast<Tgpu>((v + 2.0) / beta))

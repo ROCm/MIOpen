@@ -258,7 +258,7 @@ __kernel void transpose_NCHW2CNHW_V2_2D_WG(const global data_t* in,
     const global data_t* cin = (const global data_t*)(in + in_offset);
     global data_t* cout      = (global data_t*)(out + out_offset);
 
-    for(uint n_i           = 0; n_i < N; n_i++)
+    for(uint n_i = 0; n_i < N; n_i++)
         cout[hw_out * n_i] = cin[C * hw_in * n_i];
 }
 

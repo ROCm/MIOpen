@@ -33,8 +33,10 @@
 #pragma clang diagnostic ignored "-Wsometimes-uninitialized"
 #endif
 
-#if(MIO_BN_GFX1030 == 1 && __AMDGCN__)
-#undef __AMDGCN__
+#define MIOPEN_USE_AMDGCN 0
+#if defined(__AMDGCN__) && MIO_BN_GFX1030 != 1
+#undef MIOPEN_USE_AMDGCN
+#define MIOPEN_USE_AMDGCN 1
 #endif
 
 #include "batchnorm_functions.h"
@@ -61,7 +63,7 @@ MIOpenBatchNormActivBwdPerActivation(const __global _FLOAT* __restrict x_in,
                                      __global _FLOAT* __restrict bn_out_dev,
                                      __global _FLOAT* __restrict bn_dyin_dev
 #endif
-                                     )
+)
 {
 
     int xgid    = get_global_id(0);

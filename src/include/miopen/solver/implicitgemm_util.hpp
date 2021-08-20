@@ -217,6 +217,16 @@ struct ConvolutionContextInterpreter
             return c.in_width;
     }
 
+    static auto GetOutputDataType(const ConvolutionContext& c)
+    {
+        return c.direction.IsForward() ? c.out_data_type : c.in_data_type;
+    }
+
+    static auto GetInputDataType(const ConvolutionContext& c)
+    {
+        return c.direction.IsForward() ? c.in_data_type : c.out_data_type;
+    }
+
     static auto GetFilterDepthZ(const ConvolutionContext& c) { return c.kernel_size_d; }
 
     static auto GetFilterLayout(const ConvolutionContext& c) { return c.weights_layout; }
@@ -600,7 +610,7 @@ static inline bool IsValidBlockwiseGemmXdlops(const ConvolutionContext& ctx,
 
     if(!std::any_of(validWaveGemmSize.cbegin(),
                     validWaveGemmSize.cend(),
-                    [ GemmMPerWave, GemmNPerWave, GemmKPerBlock ](const auto it) noexcept->bool {
+                    [GemmMPerWave, GemmNPerWave, GemmKPerBlock](const auto it) noexcept -> bool {
                         int validMPerWave, validNPerWave, validKPerWave;
                         std::tie(validMPerWave, validNPerWave, validKPerWave) = it;
                         return (GemmMPerWave == validMPerWave) && (GemmNPerWave == validNPerWave) &&

@@ -123,6 +123,22 @@ static inline size_t ComputeLog2GemmKGlobalSplitsWith2DMerge(size_t current_grid
     return log2_gemm_k_global_splits;
 }
 
+// calculate gemm_k_global_splits
+// with assumption that some dimensions will merge into a single dimension
+static inline size_t ComputeGemmKGlobalSplitsWith2DMerge(size_t current_grid_size,
+                                                         // size_t merge_dimension,
+                                                         // size_t gemm_k_per_block,
+                                                         size_t occupancy,
+                                                         size_t num_cus)
+{
+    size_t gemm_k_global_splits = num_cus * occupancy / current_grid_size;
+    // int gemm_k_per_wg = math::integer_divide_ceil(merge_dimension / gemm_k_global_splits);
+    // gemm_k_per_wg = (gemm_k_per_wg + gemm_k_per_block - 1) / gemm_k_per_block * gemm_k_per_block;
+    // gemm_k_global_splits = math::integer_divide_ceil(merge_dimension / gemm_k_per_wg);
+
+    return gemm_k_global_splits;
+}
+
 static inline size_t
 ComputeMatrixPadSize(size_t col, size_t col_per_block, size_t row, size_t row_per_block)
 {
@@ -135,10 +151,10 @@ ComputeMatrixPadSize(size_t col, size_t col_per_block, size_t row, size_t row_pe
 }
 
 static inline std::tuple<int, int, int> // m_per_block, n_per_block, k_per_block
-    HeuristicInitMacroTileNoPadGemmK(size_t gemm_m,
-                                     size_t gemm_n,
-                                     size_t gemm_k,
-                                     const std::vector<std::tuple<int, int, int>>& tile_list)
+HeuristicInitMacroTileNoPadGemmK(size_t gemm_m,
+                                 size_t gemm_n,
+                                 size_t gemm_k,
+                                 const std::vector<std::tuple<int, int, int>>& tile_list)
 {
     int m_per_block, n_per_block, k_per_block;
     bool found = false;

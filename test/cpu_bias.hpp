@@ -90,27 +90,24 @@ void cpu_bias_forward(tensor<Tout>& out, const tensor<Tbias>& bias)
 {
     switch(out.desc.GetSize())
     {
-    case 3:
-    {
+    case 3: {
         cpu_bias_forward_impl<1>(out, bias);
         break;
     }
-    case 4:
-    {
+    case 4: {
         cpu_bias_forward_impl<2>(out, bias);
         break;
     }
-    case 5:
-    {
+    case 5: {
         cpu_bias_forward_impl<3>(out, bias);
         break;
     }
-    case 6:
-    {
+    case 6: {
         cpu_bias_forward_impl<4>(out, bias);
         break;
     }
-    default: { MIOPEN_THROW("not belong to any case");
+    default: {
+        MIOPEN_THROW("not belong to any case");
     }
     }
 }
@@ -120,27 +117,24 @@ void cpu_bias_backward_data(const tensor<Tout>& out, tensor<Tbias>& bias)
 {
     switch(out.desc.GetSize())
     {
-    case 3:
-    {
+    case 3: {
         cpu_bias_backward_data_impl<1>(out, bias);
         break;
     }
-    case 4:
-    {
+    case 4: {
         cpu_bias_backward_data_impl<2>(out, bias);
         break;
     }
-    case 5:
-    {
+    case 5: {
         cpu_bias_backward_data_impl<3>(out, bias);
         break;
     }
-    case 6:
-    {
+    case 6: {
         cpu_bias_backward_data_impl<4>(out, bias);
         break;
     }
-    default: { MIOPEN_THROW("not belong to any case");
+    default: {
+        MIOPEN_THROW("not belong to any case");
     }
     }
 }

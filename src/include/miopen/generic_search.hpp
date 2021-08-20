@@ -1,28 +1,28 @@
 /*******************************************************************************
-*
-* MIT License
-*
-* Copyright (c) 2017 Advanced Micro Devices, Inc.
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*******************************************************************************/
+ *
+ * MIT License
+ *
+ * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 
 #ifndef GUARD_MIOPEN_GENERIC_SEARCH_HPP_
 #define GUARD_MIOPEN_GENERIC_SEARCH_HPP_
@@ -63,7 +63,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMPILE_ONLY)
 ///     Constructs an instance with invalid value.
 /// - (ctor)(bool)
 ///     Constructs an instance with minimal value.
-/// - SetNextValue()
+/// - SetNextValue(const Context& c)
 ///     Advances instance value to the next available value and returns true.
 ///     If max value reached, returns false.
 /// - IsValid(const Context& c) const
@@ -86,7 +86,7 @@ class ComputedIterator : public std::iterator<std::input_iterator_tag, Performan
         {
             do
             {
-                if(!v.SetNextValue())
+                if(!v.SetNextValue(*p))
                 { // Wraparound, end reached. Iterator is useless from now.
                     p = nullptr;
                     break;
@@ -114,8 +114,7 @@ class ComputedIterator : public std::iterator<std::input_iterator_tag, Performan
     {
         if(p == other.p)
             if(p == nullptr // Ends are always equal.
-               ||
-               v == other.v)
+               || v == other.v)
                 return false;
         return true;
     }
@@ -205,16 +204,8 @@ class HeartBeat
                                   (elapsed_cumulative / static_cast<float>(n_recent)) / 1000.0f)
                                : 0.0f; // paraniod
             MIOPEN_LOG_W(n_recent << '/' << n_failed << '/' << n_total << ' ' << total_best
-                                  << ", best within recent "
-                                  << n_within_beat
-                                  << ": "
-                                  << best_time
-                                  << " #"
-                                  << n_best
-                                  << ' '
-                                  << best_config
-                                  << ", ETA:"
-                                  << eta_sec
+                                  << ", best within recent " << n_within_beat << ": " << best_time
+                                  << " #" << n_best << ' ' << best_config << ", ETA:" << eta_sec
                                   << " sec.");
             Continue();
         }
@@ -340,8 +331,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     const ComputedContainer<PerformanceConfig, Context> all_configs = useSpare ? spare : main;
     const int n_runs_total = useSpare ? spare_size : main_size;
     MIOPEN_LOG_W(SolverDbId(s) << ": Searching the best solution among " << n_runs_total
-                               << (useSpare ? " (spare)" : "")
-                               << "...");
+                               << (useSpare ? " (spare)" : "") << "...");
 
     bool is_passed  = false; // left false only if all iterations failed.
     float best_time = std::numeric_limits<float>::max();
@@ -388,8 +378,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
                     MIOPEN_LOG_E('#' << n_current << " (" << n_runs_total << ") "
                                      << "Workspace size should not depend on PerformanceConfig: "
                                      << default_solution.workspce_sz
-                                     << " != "
-                                     << current_solution.workspce_sz);
+                                     << " != " << current_solution.workspce_sz);
                 }
 
                 invoker = profile_h.PrepareInvoker(*current_solution.invoker_factory,
@@ -403,18 +392,9 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
             }
 
             MIOPEN_LOG_T("##"
-                         << "(n_current, n_failed, n_runs_total):  "
-                         << n_current
-                         << '/'
-                         << n_failed
-                         << '/'
-                         << n_runs_total
-                         << " elapsed_time: "
-                         << elapsed_time
-                         << ", best_time: "
-                         << best_time
-                         << ", "
-                         << current_config);
+                         << "(n_current, n_failed, n_runs_total):  " << n_current << '/' << n_failed
+                         << '/' << n_runs_total << " elapsed_time: " << elapsed_time
+                         << ", best_time: " << best_time << ", " << current_config);
 
             if(ret == 0)
             {
@@ -425,8 +405,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
                 if(elapsed_time / best_time < 1.05f)
                 {
                     MIOPEN_LOG_I2("Finding average for: " << elapsed_time << " / " << best_time
-                                                          << " = "
-                                                          << (elapsed_time / best_time));
+                                                          << " = " << (elapsed_time / best_time));
 
                     try
                     {
@@ -448,11 +427,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
                         if(elapsed_time < best_time)
                         {
                             MIOPEN_LOG_I('#' << n_current << '/' << n_failed << '/' << n_runs_total
-                                             << ' '
-                                             << elapsed_time
-                                             << " < "
-                                             << best_time
-                                             << ' '
+                                             << ' ' << elapsed_time << " < " << best_time << ' '
                                              << current_config);
                             best_config = current_config;
                             best_time   = elapsed_time;
@@ -460,8 +435,8 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
                         }
                         else
                         {
-                            MIOPEN_LOG_I2(
-                                "Average is not better: " << elapsed_time << " >= " << best_time);
+                            MIOPEN_LOG_I2("Average is not better: " << elapsed_time
+                                                                    << " >= " << best_time);
                         }
                     }
                 }
@@ -470,8 +445,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
             if(ret != 0)
             {
                 MIOPEN_LOG_E('#' << n_current << " (" << n_runs_total << ") "
-                                 << " Failed rc="
-                                 << ret);
+                                 << " Failed rc=" << ret);
                 ++n_failed;
             }
             heartbeat.Monitor(ret != 0,
@@ -491,11 +465,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     }
 
     MIOPEN_LOG_W("Done: " << n_runs_total << '/' << n_failed << '/' << n_runs_total << ", best #"
-                          << n_best
-                          << ' '
-                          << best_time
-                          << ' '
-                          << best_config);
+                          << n_best << ' ' << best_time << ' ' << best_config);
     if(!is_passed)
         MIOPEN_THROW("Search failed");
     // Run once with the default config and show score.

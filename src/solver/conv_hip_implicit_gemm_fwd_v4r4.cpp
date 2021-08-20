@@ -469,7 +469,7 @@ bool PerformanceImplicitGemmV4R4Fwd::IsValid(const ConvolutionContext& ctx) cons
         return false;
 
     // check LDS allocation
-    std::size_t lds_size = 0;
+    std::size_t lds_size      = 0;
     std::tie(lds_size, valid) = CalculateLdsNumberOfByte(ctx);
 
     return (valid and lds_size <= get_lds_max_number_of_byte());
@@ -530,7 +530,7 @@ void PerformanceImplicitGemmV4R4Fwd::HeuristicInit(const ConvolutionContext& ctx
     MIOPEN_LOG_I(ToString());
 }
 
-bool PerformanceImplicitGemmV4R4Fwd::SetNextValue()
+bool PerformanceImplicitGemmV4R4Fwd::SetNextValue(const ConvolutionContext& /*config*/)
 {
     // always search full space, no matter if use_spare_set or not
     do

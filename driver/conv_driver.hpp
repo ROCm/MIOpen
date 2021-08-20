@@ -93,7 +93,8 @@ typedef int status_t;
 // Use values which are distinctively greater then miopenStatus_t,
 // so that these can be ORed with any miopen status code
 // without loss of information.
-typedef enum {
+typedef enum
+{
     // These four codes could be returned together, ORed:
     EC_VerifyFwd     = 0x100,
     EC_VerifyBwd     = 0x200,
@@ -1043,7 +1044,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                 break;
             }
 
-            warmup_in = tensor<warmup_Tgpu>(miopen::deref(warmupInputTensor).GetLengths(),
+            warmup_in  = tensor<warmup_Tgpu>(miopen::deref(warmupInputTensor).GetLengths(),
                                             miopen::deref(warmupInputTensor).GetStrides());
             warmup_wei = tensor<warmup_Tgpu>(miopen::deref(warmupWeightTensor).GetLengths(),
                                              miopen::deref(warmupWeightTensor).GetStrides());
@@ -1158,9 +1159,9 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             new GPUMem(ctx, GetTensorSize(weightTensor_vect4), sizeof(Tgpu)));
     }
 
-    outhost = tensor<Tref>(miopen::deref(outputTensor).GetLengths(),
+    outhost   = tensor<Tref>(miopen::deref(outputTensor).GetLengths(),
                            miopen::deref(outputTensor).GetStrides());
-    din_host = tensor<Tref>(miopen::deref(inputTensor).GetLengths(),
+    din_host  = tensor<Tref>(miopen::deref(inputTensor).GetLengths(),
                             miopen::deref(inputTensor).GetStrides());
     dwei_host = tensor<Tref>(miopen::deref(weightTensor).GetLengths(),
                              miopen::deref(weightTensor).GetStrides());
@@ -1272,8 +1273,8 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             db_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, b_sz, sizeof(Tgpu)));
             b           = tensor<Tgpu>(miopen::deref(biasTensor).GetLengths(),
                              miopen::deref(biasTensor).GetStrides());
-            db      = std::vector<Tgpu>(b_sz, static_cast<Tgpu>(0));
-            db_host = tensor<Tref>(miopen::deref(biasTensor).GetLengths(),
+            db          = std::vector<Tgpu>(b_sz, static_cast<Tgpu>(0));
+            db_host     = tensor<Tref>(miopen::deref(biasTensor).GetLengths(),
                                    miopen::deref(biasTensor).GetStrides());
             for(int i = 0; i < b_sz; i++)
             {
@@ -1732,13 +1733,10 @@ void ConvDriver<Tgpu, Tref>::GetSolutionAfterFind(
     case Direction::BwdBias: // nop
         break;
     }
-    if(rc != miopenStatusSuccess // (formatting)
-       ||
-       immed_count < 1 // It should not be so if Find succeeded.
-       ||
-       found_algo != solution.algorithm // These must match.
-       ||
-       solution.time < 0) // Fallback mode (no entry in find-db -- disabled?)
+    if(rc != miopenStatusSuccess           // (formatting)
+       || immed_count < 1                  // It should not be so if Find succeeded.
+       || found_algo != solution.algorithm // These must match.
+       || solution.time < 0)               // Fallback mode (no entry in find-db -- disabled?)
     {
         // Ignore errors, just skip printing the solver information.
         solution.solution_id = 0;
