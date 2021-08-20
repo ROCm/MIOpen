@@ -18,6 +18,8 @@ RUN if [ "$USE_TARGETID" = "ON" ] ; \
         then export ROCM_APT_VER=.apt_4.1.1;\
     elif [ "$USE_MLIR" = "ON" ] ; \
         then export ROCM_APT_VER=.apt_4.2;\
+    elif [ "$GPU_ARCH" = "gfx90a:xnack-" ] ; \
+        then export ROCM_APT_VER=.apt_4.3;\
     else export ROCM_APT_VER=.apt_4.2;  \
     fi && \
 echo $ROCM_APT_VER &&\
@@ -125,3 +127,4 @@ RUN if [ "$USE_MLIR" = "ON" ]; \
     make -j$(nproc) libMLIRMIOpen && \
     $PREFIX/bin/cmake --install . --component libMLIRMIOpen --prefix /opt/rocm && \
     cd ~ && rm -rf llvm-project-mlir-$MLIR_COMMIT; fi
+    
