@@ -262,18 +262,41 @@ inline bool Register(IdRegistryData& registry, uint64_t value, const std::string
     return Register(registry, value, str, algo, false);
 }
 
-template <class TSolver,
-          typename Z =
-              decltype(std::declval<TSolver>().GetPerformanceConfig(std::declval<const miopen::ConvolutionContext &>()))>
-bool IsTunable(int prio1)
+template<typename T>
+struct TunableSolution
+{
+    template<typename U> static constexpr auto Test(U*)
+	->typename
+		std::is_same<
+			decltype(std::declval<U>().GetSolution(std::declval<const ConvolutionContext&>(),
+				std::declval<const decltype(std::declval<U>().GetPerformanceConfig(
+					std::declval<const ConvolutionContext&>()))&>(),
+				std::declval<const bool>())),
+			ConvSolution
+		>::type;
+
+    template<typename U> static constexpr std::false_type Test(...);
+
+    typedef decltype(Test<T>(0)) type;
+    static constexpr bool Has = type::value;
+};
+
+template <class TSolver>
+bool IsTunable(std::true_type)
 {
     return true;
 }
 
 template <class TSolver>
-bool IsTunable(...)
+bool IsTunable(std::false_type)
 {
     return false;
+}
+
+template <class TSolver>
+bool IsTunable()
+{
+    return IsTunable<TSolver>(std::integral_constant<bool, TunableSolution<TSolver>::Has>());
 }
 
 template <class TSolver>
