@@ -276,7 +276,7 @@ struct TunableSolution
 
     template<typename U> static constexpr std::false_type Test(...);
 
-    typedef decltype(Test<T>(0)) type;
+    typedef decltype(Test<T>(nullptr)) type;
     static constexpr bool Has = type::value;
 };
 
