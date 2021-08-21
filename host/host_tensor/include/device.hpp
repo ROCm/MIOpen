@@ -34,24 +34,16 @@ struct KernelTimer
 using device_stream_t = hipStream_t;
 
 template <typename... Args, typename F>
-void launch_kernel(F kernel,
-                   dim3 grid_dim,
-                   dim3 block_dim,
-                   std::size_t lds_byte,
-                   hipStream_t stream_id,
-                   Args... args)
+void launch_kernel(F kernel, dim3 grid_dim, dim3 block_dim, std::size_t lds_byte, Args... args)
 {
+    hipStream_t stream_id = nullptr;
+
     hipLaunchKernelGGL(kernel, grid_dim, block_dim, lds_byte, stream_id, args...);
 }
 
 template <typename... Args, typename F>
-float launch_and_time_kernel(F kernel,
-                             int nrepeat,
-                             dim3 grid_dim,
-                             dim3 block_dim,
-                             std::size_t lds_byte,
-                             hipStream_t stream_id,
-                             Args... args)
+float launch_and_time_kernel(
+    F kernel, int nrepeat, dim3 grid_dim, dim3 block_dim, std::size_t lds_byte, Args... args)
 {
     KernelTimer timer;
 
@@ -65,6 +57,8 @@ float launch_and_time_kernel(F kernel,
            block_dim.z);
 
     printf("Warm up\n");
+
+    hipStream_t stream_id = nullptr;
 
     // warm up
     hipLaunchKernelGGL(kernel, grid_dim, block_dim, lds_byte, stream_id, args...);

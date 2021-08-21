@@ -1,20 +1,35 @@
-#ifndef CK_DYNAMIC_BUFFER_HPP
-#define CK_DYNAMIC_BUFFER_HPP
+#ifndef CK_BUFFER_HPP
+#define CK_BUFFER_HPP
+
+#include "amd_buffer_addressing.hpp"
+#include "c_style_pointer_cast.hpp"
+#include "enable_if.hpp"
 
 namespace ck {
 
-#include "amd_buffer_addressing_v2.hpp"
-
-template <AddressSpaceEnum_t BufferAddressSpace, typename T, typename ElementSpaceSize>
+template <AddressSpaceEnum_t BufferAddressSpace,
+          typename T,
+          typename ElementSpaceSize,
+          bool InvalidElementUseNumericalZeroValue>
 struct DynamicBuffer
 {
     using type = T;
 
     T* p_data_;
     ElementSpaceSize element_space_size_;
+    T invalid_element_value_ = T{0};
 
     __host__ __device__ constexpr DynamicBuffer(T* p_data, ElementSpaceSize element_space_size)
         : p_data_{p_data}, element_space_size_{element_space_size}
+    {
+    }
+
+    __host__ __device__ constexpr DynamicBuffer(T* p_data,
+                                                ElementSpaceSize element_space_size,
+                                                T invalid_element_value)
+        : p_data_{p_data},
+          element_space_size_{element_space_size},
+          invalid_element_value_{invalid_element_value}
     {
     }
 
@@ -23,16 +38,12 @@ struct DynamicBuffer
         return BufferAddressSpace;
     }
 
-    __host__ __device__ constexpr const T& operator[](index_t i) const { return p_data_[i]; }
-
-    __host__ __device__ constexpr T& operator()(index_t i) { return p_data_[i]; }
-
     template <typename X,
-              typename std::enable_if<
+              typename enable_if<
                   is_same<typename scalar_type<remove_cv_t<remove_reference_t<X>>>::type,
                           typename scalar_type<remove_cv_t<remove_reference_t<T>>>::type>::value,
                   bool>::type = false>
-    __host__ __device__ constexpr auto Get(index_t i, bool is_valid_offset) const
+    __host__ __device__ constexpr auto Get(index_t i, bool is_valid_element) const
     {
         // X contains multiple T
         constexpr index_t scalar_per_t_vector =
@@ -44,29 +55,50 @@ struct DynamicBuffer
         static_assert(scalar_per_x_vector % scalar_per_t_vector == 0,
                       "wrong! X need to be multiple T");
 
-        constexpr index_t t_per_x = scalar_per_x_vector / scalar_per_t_vector;
-
-        if constexpr(GetAddressSpace() == AddressSpaceEnum_t::Global)
-        {
 #if CK_USE_AMD_BUFFER_ADDRESSING
-            return amd_buffer_load_v2<remove_cv_t<remove_reference_t<T>>, t_per_x>(
-                p_data_, i, is_valid_offset, element_space_size_);
+        bool constexpr use_amd_buffer_addressing = true;
 #else
-            return is_valid_offset ? *reinterpret_cast<const X*>(&p_data_[i]) : X{0};
+        bool constexpr use_amd_buffer_addressing = false;
 #endif
+
+        if constexpr(GetAddressSpace() == AddressSpaceEnum_t::Global && use_amd_buffer_addressing)
+        {
+            constexpr index_t t_per_x = scalar_per_x_vector / scalar_per_t_vector;
+
+            if constexpr(InvalidElementUseNumericalZeroValue)
+            {
+                return amd_buffer_load_invalid_element_return_return_zero<
+                    remove_cv_t<remove_reference_t<T>>,
+                    t_per_x>(p_data_, i, is_valid_element, element_space_size_);
+            }
+            else
+            {
+                return amd_buffer_load_invalid_element_return_customized_value<
+                    remove_cv_t<remove_reference_t<T>>,
+                    t_per_x>(
+                    p_data_, i, is_valid_element, element_space_size_, invalid_element_value_);
+            }
         }
         else
         {
-            return is_valid_offset ? *reinterpret_cast<const X*>(&p_data_[i]) : X{0};
+            if constexpr(InvalidElementUseNumericalZeroValue)
+            {
+                return is_valid_element ? *c_style_pointer_cast<const X*>(&p_data_[i]) : X{0};
+            }
+            else
+            {
+                return is_valid_element ? *c_style_pointer_cast<const X*>(&p_data_[i])
+                                        : X{invalid_element_value_};
+            }
         }
     }
 
     template <typename X,
-              typename std::enable_if<
+              typename enable_if<
                   is_same<typename scalar_type<remove_cv_t<remove_reference_t<X>>>::type,
                           typename scalar_type<remove_cv_t<remove_reference_t<T>>>::type>::value,
                   bool>::type = false>
-    __host__ __device__ void Set(index_t i, bool is_valid_offset, const X& x)
+    __host__ __device__ void Set(index_t i, bool is_valid_element, const X& x)
     {
         // X contains multiple T
         constexpr index_t scalar_per_t_vector =
@@ -78,26 +110,26 @@ struct DynamicBuffer
         static_assert(scalar_per_x_vector % scalar_per_t_vector == 0,
                       "wrong! X need to be multiple T");
 
-        constexpr index_t t_per_x = scalar_per_x_vector / scalar_per_t_vector;
-
         if constexpr(GetAddressSpace() == AddressSpaceEnum_t::Global)
         {
 #if CK_USE_AMD_BUFFER_ADDRESSING
-            amd_buffer_store_v2<remove_cv_t<remove_reference_t<T>>, t_per_x>(
-                x, p_data_, i, is_valid_offset, element_space_size_);
+            constexpr index_t t_per_x = scalar_per_x_vector / scalar_per_t_vector;
+
+            amd_buffer_store<remove_cv_t<remove_reference_t<T>>, t_per_x>(
+                x, p_data_, i, is_valid_element, element_space_size_);
 #else
-            if(is_valid_offset)
+            if(is_valid_element)
             {
-                *reinterpret_cast<X*>(&p_data_[i]) = x;
+                *c_style_pointer_cast<X*>(&p_data_[i]) = x;
             }
 #endif
         }
         else if constexpr(GetAddressSpace() == AddressSpaceEnum_t::Lds)
         {
-            if(is_valid_offset)
+            if(is_valid_element)
             {
 #if !CK_WORKAROUND_SWDEV_XXXXXX_INT8_DS_WRITE_ISSUE
-                *reinterpret_cast<X*>(&p_data_[i]) = x;
+                *c_style_pointer_cast<X*>(&p_data_[i]) = x;
 #else
                 // HACK: compiler would lower IR "store<i8, 16> address_space(3)" into
                 // inefficient
@@ -128,24 +160,24 @@ struct DynamicBuffer
                     {
                         // HACK: cast pointer of x is bad
                         // TODO: remove this after compiler fix
-                        *reinterpret_cast<int8_t*>(&p_data_[i]) =
-                            *reinterpret_cast<const int8_t*>(&x);
+                        *c_style_pointer_cast<int8_t*>(&p_data_[i]) =
+                            *c_style_pointer_cast<const int8_t*>(&x);
                     }
                     else if constexpr(is_same<remove_cv_t<remove_reference_t<T>>, int8_t>::value &&
                                       is_same<remove_cv_t<remove_reference_t<X>>, int8x2_t>::value)
                     {
                         // HACK: cast pointer of x is bad
                         // TODO: remove this after compiler fix
-                        *reinterpret_cast<int16_t*>(&p_data_[i]) =
-                            *reinterpret_cast<const int16_t*>(&x);
+                        *c_style_pointer_cast<int16_t*>(&p_data_[i]) =
+                            *c_style_pointer_cast<const int16_t*>(&x);
                     }
                     else if constexpr(is_same<remove_cv_t<remove_reference_t<T>>, int8_t>::value &&
                                       is_same<remove_cv_t<remove_reference_t<X>>, int8x4_t>::value)
                     {
                         // HACK: cast pointer of x is bad
                         // TODO: remove this after compiler fix
-                        *reinterpret_cast<int32_t*>(&p_data_[i]) =
-                            *reinterpret_cast<const int32_t*>(&x);
+                        *c_style_pointer_cast<int32_t*>(&p_data_[i]) =
+                            *c_style_pointer_cast<const int32_t*>(&x);
                     }
                     else if constexpr(is_same<remove_cv_t<remove_reference_t<T>>,
                                               int8x4_t>::value &&
@@ -153,8 +185,8 @@ struct DynamicBuffer
                     {
                         // HACK: cast pointer of x is bad
                         // TODO: remove this after compiler fix
-                        *reinterpret_cast<int32_t*>(&p_data_[i]) =
-                            *reinterpret_cast<const int32_t*>(&x);
+                        *c_style_pointer_cast<int32_t*>(&p_data_[i]) =
+                            *c_style_pointer_cast<const int32_t*>(&x);
                     }
                     else if constexpr(is_same<remove_cv_t<remove_reference_t<T>>,
                                               int8x8_t>::value &&
@@ -162,8 +194,8 @@ struct DynamicBuffer
                     {
                         // HACK: cast pointer of x is bad
                         // TODO: remove this after compiler fix
-                        *reinterpret_cast<int32x2_t*>(&p_data_[i]) =
-                            *reinterpret_cast<const int32x2_t*>(&x);
+                        *c_style_pointer_cast<int32x2_t*>(&p_data_[i]) =
+                            *c_style_pointer_cast<const int32x2_t*>(&x);
                     }
                     else if constexpr(is_same<remove_cv_t<remove_reference_t<T>>,
                                               int8x16_t>::value &&
@@ -171,22 +203,22 @@ struct DynamicBuffer
                     {
                         // HACK: cast pointer of x is bad
                         // TODO: remove this after compiler fix
-                        *reinterpret_cast<int32x4_t*>(&p_data_[i]) =
-                            *reinterpret_cast<const int32x4_t*>(&x);
+                        *c_style_pointer_cast<int32x4_t*>(&p_data_[i]) =
+                            *c_style_pointer_cast<const int32x4_t*>(&x);
                     }
                 }
                 else
                 {
-                    *reinterpret_cast<X*>(&p_data_[i]) = x;
+                    *c_style_pointer_cast<X*>(&p_data_[i]) = x;
                 }
 #endif
             }
         }
         else
         {
-            if(is_valid_offset)
+            if(is_valid_element)
             {
-                *reinterpret_cast<X*>(&p_data_[i]) = x;
+                *c_style_pointer_cast<X*>(&p_data_[i]) = x;
             }
         }
     }
@@ -196,12 +228,18 @@ struct DynamicBuffer
     __host__ __device__ static constexpr bool IsDynamicBuffer() { return true; }
 };
 
-template <AddressSpaceEnum_t BufferAddressSpace = AddressSpaceEnum_t::Generic,
-          typename T,
-          typename ElementSpaceSize>
+template <AddressSpaceEnum_t BufferAddressSpace, typename T, typename ElementSpaceSize>
 __host__ __device__ constexpr auto make_dynamic_buffer(T* p, ElementSpaceSize element_space_size)
 {
-    return DynamicBuffer<BufferAddressSpace, T, ElementSpaceSize>{p, element_space_size};
+    return DynamicBuffer<BufferAddressSpace, T, ElementSpaceSize, true>{p, element_space_size};
+}
+
+template <AddressSpaceEnum_t BufferAddressSpace, typename T, typename ElementSpaceSize>
+__host__ __device__ constexpr auto
+make_dynamic_buffer(T* p, ElementSpaceSize element_space_size, T invalid_element_value)
+{
+    return DynamicBuffer<BufferAddressSpace, T, ElementSpaceSize, false>{
+        p, element_space_size, invalid_element_value};
 }
 
 } // namespace ck

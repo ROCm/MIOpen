@@ -3,8 +3,7 @@
 
 namespace ck {
 
-// this enumerate should be synchronized with include/miopen.h
-typedef enum
+enum DataTypeEnum_t
 {
     Half     = 0,
     Float    = 1,
@@ -14,7 +13,7 @@ typedef enum
     BFloat16 = 5,
     Double   = 6,
     Unknown  = 100,
-} DataTypeEnum_t;
+};
 
 } // namespace ck
 #endif

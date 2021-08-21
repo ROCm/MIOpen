@@ -2,8 +2,8 @@
 #define CK_TRANSFORM_FORWARD_CONVOLUTION_INTO_GEMM_V4R4_NCHW_KCYX_NKHW_HPP
 
 #include "common_header.hpp"
-#include "dynamic_tensor_descriptor.hpp"
-#include "dynamic_tensor_descriptor_helper.hpp"
+#include "tensor_descriptor.hpp"
+#include "tensor_descriptor_helper.hpp"
 
 namespace ck {
 
@@ -18,9 +18,9 @@ template <typename... Wei,
           typename InLeftPads,
           typename InRightPads>
 __host__ __device__ constexpr auto transform_forward_convolution_into_gemm_v4r4_nchw_kcyx_nkhw_pad(
-    const DynamicTensorDescriptor<Wei...>& wei_k_c_y_x_global_desc,
-    const DynamicTensorDescriptor<In...>& in_n_c_hi_wi_global_desc,
-    const DynamicTensorDescriptor<Out...>& out_n_k_ho_wo_global_desc,
+    const TensorDescriptor<Wei...>& wei_k_c_y_x_global_desc,
+    const TensorDescriptor<In...>& in_n_c_hi_wi_global_desc,
+    const TensorDescriptor<Out...>& out_n_k_ho_wo_global_desc,
     const ConvStrides& conv_strides,
     const ConvDilations& conv_dilations,
     const InLeftPads& in_left_pads,
@@ -57,14 +57,14 @@ __host__ __device__ constexpr auto transform_forward_convolution_into_gemm_v4r4_
     const auto InRightPadW = in_right_pads[I1];
 
     // weight tensor
-    const auto wei_gemmk_gemmm_global_desc = transform_dynamic_tensor_descriptor(
-        make_dynamic_naive_tensor_descriptor_packed_v2(make_tuple(K, C * Y * X)),
+    const auto wei_gemmk_gemmm_global_desc = transform_tensor_descriptor(
+        make_naive_tensor_descriptor_packed(make_tuple(K, C * Y * X)),
         make_tuple(make_pass_through_transform(K), make_pass_through_transform(C * Y * X)),
         make_tuple(Sequence<0>{}, Sequence<1>{}),
         make_tuple(Sequence<1>{}, Sequence<0>{}));
 
     // input tensor
-    const auto in_n_c_hip_wip_global_desc = transform_dynamic_tensor_descriptor(
+    const auto in_n_c_hip_wip_global_desc = transform_tensor_descriptor(
         in_n_c_hi_wi_global_desc,
         make_tuple(make_pass_through_transform(N),
                    make_pass_through_transform(C),
@@ -73,7 +73,7 @@ __host__ __device__ constexpr auto transform_forward_convolution_into_gemm_v4r4_
         make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
         make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}));
 
-    const auto in_n_c_y_ho_x_wo_global_desc = transform_dynamic_tensor_descriptor(
+    const auto in_n_c_y_ho_x_wo_global_desc = transform_tensor_descriptor(
         in_n_c_hip_wip_global_desc,
         make_tuple(make_pass_through_transform(N),
                    make_pass_through_transform(C),
@@ -83,15 +83,15 @@ __host__ __device__ constexpr auto transform_forward_convolution_into_gemm_v4r4_
         make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2, 3>{}, Sequence<4, 5>{}));
 
     const auto in_gemmk_gemmn_global_desc =
-        transform_dynamic_tensor_descriptor(in_n_c_y_ho_x_wo_global_desc,
-                                            make_tuple(make_merge_transform(make_tuple(C, Y, X)),
-                                                       make_merge_transform(make_tuple(N, Ho, Wo))),
-                                            make_tuple(Sequence<1, 2, 4>{}, Sequence<0, 3, 5>{}),
-                                            make_tuple(Sequence<0>{}, Sequence<1>{}));
+        transform_tensor_descriptor(in_n_c_y_ho_x_wo_global_desc,
+                                    make_tuple(make_merge_transform(make_tuple(C, Y, X)),
+                                               make_merge_transform(make_tuple(N, Ho, Wo))),
+                                    make_tuple(Sequence<1, 2, 4>{}, Sequence<0, 3, 5>{}),
+                                    make_tuple(Sequence<0>{}, Sequence<1>{}));
 
     // output tensor
-    const auto out_gemmm_gemmn_global_desc = transform_dynamic_tensor_descriptor(
-        make_dynamic_naive_tensor_descriptor_packed_v2(make_tuple(N, K, Ho * Wo)),
+    const auto out_gemmm_gemmn_global_desc = transform_tensor_descriptor(
+        make_naive_tensor_descriptor_packed(make_tuple(N, K, Ho * Wo)),
         make_tuple(make_pass_through_transform(K), make_merge_transform(make_tuple(N, Ho * Wo))),
         make_tuple(Sequence<1>{}, Sequence<0, 2>{}),
         make_tuple(Sequence<0>{}, Sequence<1>{}));
@@ -109,9 +109,9 @@ template <typename... Wei,
           typename InRightPads>
 __host__ __device__ constexpr auto
 transform_forward_convolution_into_gemm_v4r4_nchw_kcyx_nkhw_no_pad(
-    const DynamicTensorDescriptor<Wei...>& wei_k_c_y_x_global_desc,
-    const DynamicTensorDescriptor<In...>& in_n_c_hi_wi_global_desc,
-    const DynamicTensorDescriptor<Out...>& out_n_k_ho_wo_global_desc,
+    const TensorDescriptor<Wei...>& wei_k_c_y_x_global_desc,
+    const TensorDescriptor<In...>& in_n_c_hi_wi_global_desc,
+    const TensorDescriptor<Out...>& out_n_k_ho_wo_global_desc,
     const ConvStrides& conv_strides,
     const ConvDilations& conv_dilations,
     const InLeftPads& in_left_pads,
@@ -125,9 +125,6 @@ transform_forward_convolution_into_gemm_v4r4_nchw_kcyx_nkhw_no_pad(
     const auto N = in_n_c_hi_wi_global_desc.GetLength(I0);
     const auto C = in_n_c_hi_wi_global_desc.GetLength(I1);
     const auto K = out_n_k_ho_wo_global_desc.GetLength(I1);
-
-    const auto Hi = in_n_c_hi_wi_global_desc.GetLength(I2);
-    const auto Wi = in_n_c_hi_wi_global_desc.GetLength(I3);
 
     const auto Ho = out_n_k_ho_wo_global_desc.GetLength(I2);
     const auto Wo = out_n_k_ho_wo_global_desc.GetLength(I3);
@@ -150,14 +147,14 @@ transform_forward_convolution_into_gemm_v4r4_nchw_kcyx_nkhw_no_pad(
     assert(InLeftPadH == 0 && InLeftPadW == 0 && InRightPadH == 0 && InRightPadW == 0);
 
     // weight tensor
-    const auto wei_gemmk_gemmm_global_desc = transform_dynamic_tensor_descriptor(
-        make_dynamic_naive_tensor_descriptor_packed_v2(make_tuple(K, C * Y * X)),
+    const auto wei_gemmk_gemmm_global_desc = transform_tensor_descriptor(
+        make_naive_tensor_descriptor_packed(make_tuple(K, C * Y * X)),
         make_tuple(make_pass_through_transform(K), make_pass_through_transform(C * Y * X)),
         make_tuple(Sequence<0>{}, Sequence<1>{}),
         make_tuple(Sequence<1>{}, Sequence<0>{}));
 
     // input tensor
-    const auto in_n_c_y_ho_x_wo_global_desc = transform_dynamic_tensor_descriptor(
+    const auto in_n_c_y_ho_x_wo_global_desc = transform_tensor_descriptor(
         in_n_c_hi_wi_global_desc,
         make_tuple(make_pass_through_transform(N),
                    make_pass_through_transform(C),
@@ -167,15 +164,15 @@ transform_forward_convolution_into_gemm_v4r4_nchw_kcyx_nkhw_no_pad(
         make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2, 3>{}, Sequence<4, 5>{}));
 
     const auto in_gemmk_gemmn_global_desc =
-        transform_dynamic_tensor_descriptor(in_n_c_y_ho_x_wo_global_desc,
-                                            make_tuple(make_merge_transform(make_tuple(C, Y, X)),
-                                                       make_merge_transform(make_tuple(N, Ho, Wo))),
-                                            make_tuple(Sequence<1, 2, 4>{}, Sequence<0, 3, 5>{}),
-                                            make_tuple(Sequence<0>{}, Sequence<1>{}));
+        transform_tensor_descriptor(in_n_c_y_ho_x_wo_global_desc,
+                                    make_tuple(make_merge_transform(make_tuple(C, Y, X)),
+                                               make_merge_transform(make_tuple(N, Ho, Wo))),
+                                    make_tuple(Sequence<1, 2, 4>{}, Sequence<0, 3, 5>{}),
+                                    make_tuple(Sequence<0>{}, Sequence<1>{}));
 
     // output tensor
-    const auto out_gemmm_gemmn_global_desc = transform_dynamic_tensor_descriptor(
-        make_dynamic_naive_tensor_descriptor_packed_v2(make_tuple(N, K, Ho * Wo)),
+    const auto out_gemmm_gemmn_global_desc = transform_tensor_descriptor(
+        make_naive_tensor_descriptor_packed(make_tuple(N, K, Ho * Wo)),
         make_tuple(make_pass_through_transform(K), make_merge_transform(make_tuple(N, Ho * Wo))),
         make_tuple(Sequence<1>{}, Sequence<0, 2>{}),
         make_tuple(Sequence<0>{}, Sequence<1>{}));
@@ -192,9 +189,9 @@ template <typename... Wei,
           typename InLeftPads,
           typename InRightPads>
 __host__ __device__ constexpr auto transform_forward_convolution_into_gemm_v4r4_nchw_kcyx_nkhw_1x1(
-    const DynamicTensorDescriptor<Wei...>& wei_k_c_y_x_global_desc,
-    const DynamicTensorDescriptor<In...>& in_n_c_hi_wi_global_desc,
-    const DynamicTensorDescriptor<Out...>& out_n_k_ho_wo_global_desc,
+    const TensorDescriptor<Wei...>& wei_k_c_y_x_global_desc,
+    const TensorDescriptor<In...>& in_n_c_hi_wi_global_desc,
+    const TensorDescriptor<Out...>& out_n_k_ho_wo_global_desc,
     const ConvStrides& conv_strides,
     const ConvDilations& conv_dilations,
     const InLeftPads& in_left_pads,
@@ -208,9 +205,6 @@ __host__ __device__ constexpr auto transform_forward_convolution_into_gemm_v4r4_
     const auto N = in_n_c_hi_wi_global_desc.GetLength(I0);
     const auto C = in_n_c_hi_wi_global_desc.GetLength(I1);
     const auto K = out_n_k_ho_wo_global_desc.GetLength(I1);
-
-    const auto Hi = in_n_c_hi_wi_global_desc.GetLength(I2);
-    const auto Wi = in_n_c_hi_wi_global_desc.GetLength(I3);
 
     const auto Ho = out_n_k_ho_wo_global_desc.GetLength(I2);
     const auto Wo = out_n_k_ho_wo_global_desc.GetLength(I3);
@@ -235,22 +229,22 @@ __host__ __device__ constexpr auto transform_forward_convolution_into_gemm_v4r4_
            InRightPadW == 0);
 
     // weight tensor
-    const auto wei_gemmk_gemmm_global_desc = transform_dynamic_tensor_descriptor(
-        make_dynamic_naive_tensor_descriptor_packed_v2(make_tuple(K, C)),
+    const auto wei_gemmk_gemmm_global_desc = transform_tensor_descriptor(
+        make_naive_tensor_descriptor_packed(make_tuple(K, C)),
         make_tuple(make_pass_through_transform(K), make_pass_through_transform(C)),
         make_tuple(Sequence<0>{}, Sequence<1>{}),
         make_tuple(Sequence<1>{}, Sequence<0>{}));
 
     // input tensor
-    const auto in_gemmk_gemmn_global_desc = transform_dynamic_tensor_descriptor(
+    const auto in_gemmk_gemmn_global_desc = transform_tensor_descriptor(
         in_n_c_hi_wi_global_desc,
         make_tuple(make_pass_through_transform(C), make_merge_transform(make_tuple(N, Ho, Wo))),
         make_tuple(Sequence<1>{}, Sequence<0, 2, 3>{}),
         make_tuple(Sequence<0>{}, Sequence<1>{}));
 
     // output tensor
-    const auto out_gemmm_gemmn_global_desc = transform_dynamic_tensor_descriptor(
-        make_dynamic_naive_tensor_descriptor_packed_v2(make_tuple(N, K, Ho * Wo)),
+    const auto out_gemmm_gemmn_global_desc = transform_tensor_descriptor(
+        make_naive_tensor_descriptor_packed(make_tuple(N, K, Ho * Wo)),
         make_tuple(make_pass_through_transform(K), make_merge_transform(make_tuple(N, Ho * Wo))),
         make_tuple(Sequence<1>{}, Sequence<0, 2>{}),
         make_tuple(Sequence<0>{}, Sequence<1>{}));

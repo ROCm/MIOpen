@@ -1,7 +1,7 @@
 #ifndef CONV_COMMON_HPP
 #define CONV_COMMON_HPP
 
-#include "dynamic_tensor_descriptor.hpp"
+#include "tensor_descriptor.hpp"
 
 enum ConvTensorLayout
 {
@@ -19,8 +19,8 @@ template <typename... InDesc,
           typename LeftPads,
           typename RightPads>
 constexpr auto get_convolution_output_default_4d_tensor_descriptor(
-    const ck::DynamicTensorDescriptor<InDesc...>& in_desc,
-    const ck::DynamicTensorDescriptor<WeiDesc...>& wei_desc,
+    const ck::TensorDescriptor<InDesc...>& in_desc,
+    const ck::TensorDescriptor<WeiDesc...>& wei_desc,
     const ConvStrides& conv_strides,
     const ConvDilations conv_dilations,
     const LeftPads& left_pads,
@@ -57,12 +57,12 @@ constexpr auto get_convolution_output_default_4d_tensor_descriptor(
     const auto Ho = (Hi + LeftPadH + RightPadH - YEff) / conv_strides[I0] + I1;
     const auto Wo = (Wi + LeftPadW + RightPadW - XEff) / conv_strides[I1] + I1;
 
-    return make_dynamic_naive_tensor_descriptor_packed_v2(make_tuple(N, K, Ho, Wo));
+    return make_naive_tensor_descriptor_packed(make_tuple(N, K, Ho, Wo));
 }
 
 template <class InDesc, class WeiDesc, class OutDesc>
 constexpr std::size_t
-calculate_convolution_flops(const InDesc& in_desc, const WeiDesc& wei_desc, const OutDesc& out_desc)
+calculate_convolution_flops(const InDesc&, const WeiDesc& wei_desc, const OutDesc& out_desc)
 {
     using namespace ck;
 

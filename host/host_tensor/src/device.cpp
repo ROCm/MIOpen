@@ -24,32 +24,32 @@ struct KernelTimerImpl
 {
     KernelTimerImpl()
     {
-        hipEventCreate(&mStart);
-        hipEventCreate(&mEnd);
+        hipGetErrorString(hipEventCreate(&mStart));
+        hipGetErrorString(hipEventCreate(&mEnd));
     }
 
     ~KernelTimerImpl()
     {
-        hipEventDestroy(mStart);
-        hipEventDestroy(mEnd);
+        hipGetErrorString(hipEventDestroy(mStart));
+        hipGetErrorString(hipEventDestroy(mEnd));
     }
 
     void Start()
     {
-        hipDeviceSynchronize();
-        hipEventRecord(mStart, 0);
+        hipGetErrorString(hipDeviceSynchronize());
+        hipGetErrorString(hipEventRecord(mStart, nullptr));
     }
 
     void End()
     {
-        hipEventRecord(mEnd, 0);
-        hipEventSynchronize(mEnd);
+        hipGetErrorString(hipEventRecord(mEnd, nullptr));
+        hipGetErrorString(hipEventSynchronize(mEnd));
     }
 
     float GetElapsedTime() const
     {
         float time;
-        hipEventElapsedTime(&time, mStart, mEnd);
+        hipGetErrorString(hipEventElapsedTime(&time, mStart, mEnd));
         return time;
     }
 

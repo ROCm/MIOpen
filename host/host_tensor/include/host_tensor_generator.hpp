@@ -9,7 +9,7 @@ struct GeneratorTensor_1
     int value = 1;
 
     template <typename... Is>
-    float operator()(Is... is)
+    float operator()(Is...)
     {
         return value;
     }

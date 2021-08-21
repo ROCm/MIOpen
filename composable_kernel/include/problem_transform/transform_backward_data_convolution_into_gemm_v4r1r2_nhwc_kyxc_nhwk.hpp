@@ -2,8 +2,8 @@
 #define CK_TRANSFORM_BACKWARD_DATA_CONVOLUTION_INTO_GEMM_V4R1R2_NHWC_KYXC_NHWK_HPP
 
 #include "common_header.hpp"
-#include "dynamic_tensor_descriptor.hpp"
-#include "dynamic_tensor_descriptor_helper.hpp"
+#include "tensor_descriptor.hpp"
+#include "tensor_descriptor_helper.hpp"
 
 namespace ck {
 
@@ -26,9 +26,9 @@ template <typename... Wei,
           index_t GemmK1Value>
 __host__ __device__ constexpr auto
 transform_backward_data_convolution_into_gemm_v4r1r2_nhwc_kyxc_nhwk(
-    const DynamicTensorDescriptor<Out...>& out_n_ho_wo_k_grid_desc,
-    const DynamicTensorDescriptor<Wei...>& wei_k_y_x_c_grid_desc,
-    const DynamicTensorDescriptor<In...>& in_n_hi_wi_c_grid_desc,
+    const TensorDescriptor<Out...>& out_n_ho_wo_k_grid_desc,
+    const TensorDescriptor<Wei...>& wei_k_y_x_c_grid_desc,
+    const TensorDescriptor<In...>& in_n_hi_wi_c_grid_desc,
     const ConvStrides& conv_strides,
     const ConvDilations& conv_dilations,
     const InLeftPads& in_left_pads,
@@ -106,7 +106,7 @@ transform_backward_data_convolution_into_gemm_v4r1r2_nhwc_kyxc_nhwk(
 
     // A: output tensor
     // this add padding check
-    const auto out_n_hop_wop_k_grid_desc = transform_dynamic_tensor_descriptor(
+    const auto out_n_hop_wop_k_grid_desc = transform_tensor_descriptor(
         out_n_ho_wo_k_grid_desc,
         make_tuple(make_pass_through_transform(N),
                    make_pad_transform(Ho, I0, I0),
@@ -115,7 +115,7 @@ transform_backward_data_convolution_into_gemm_v4r1r2_nhwc_kyxc_nhwk(
         make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
         make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}));
 
-    const auto out_n_ydot_htilda_xdot_wtilda_k_grid_desc = transform_dynamic_tensor_descriptor(
+    const auto out_n_ydot_htilda_xdot_wtilda_k_grid_desc = transform_tensor_descriptor(
         out_n_hop_wop_k_grid_desc,
         make_tuple(make_pass_through_transform(N),
                    make_embed_transform(make_tuple(YDot, HTilda),
@@ -127,7 +127,7 @@ transform_backward_data_convolution_into_gemm_v4r1r2_nhwc_kyxc_nhwk(
         make_tuple(Sequence<0>{}, Sequence<1, 2>{}, Sequence<3, 4>{}, Sequence<5>{}));
 
     const auto out_n_ydotslice_htildaslice_xdotslice_wtildaslice_k0_k1_grid_desc =
-        transform_dynamic_tensor_descriptor(
+        transform_tensor_descriptor(
             out_n_ydot_htilda_xdot_wtilda_k_grid_desc,
             make_tuple(make_pass_through_transform(N),
                        make_slice_transform(YDot, I0, YDotSlice),
@@ -149,7 +149,7 @@ transform_backward_data_convolution_into_gemm_v4r1r2_nhwc_kyxc_nhwk(
                        Sequence<5, 6>{}));
 
 #if 1
-    const auto out_gemmk0_gemmm_gemmk1_grid_desc = transform_dynamic_tensor_descriptor(
+    const auto out_gemmk0_gemmm_gemmk1_grid_desc = transform_tensor_descriptor(
         out_n_ydotslice_htildaslice_xdotslice_wtildaslice_k0_k1_grid_desc,
         make_tuple(make_merge_transform(make_tuple(YDotSlice, XDotSlice, K0)),
                    make_merge_transform(make_tuple(N, HTildaSlice, WTildaSlice)),
@@ -157,7 +157,7 @@ transform_backward_data_convolution_into_gemm_v4r1r2_nhwc_kyxc_nhwk(
         make_tuple(Sequence<1, 3, 5>{}, Sequence<0, 2, 4>{}, Sequence<6>{}),
         make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
 #else
-    const auto out_gemmk0_gemmm_gemmk1_grid_desc = transform_dynamic_tensor_descriptor(
+    const auto out_gemmk0_gemmm_gemmk1_grid_desc = transform_tensor_descriptor(
         out_n_ydotslice_htildaslice_xdotslice_wtildaslice_k0_k1_grid_desc,
         make_tuple(make_merge_transform(make_tuple(K0, YDotSlice, XDotSlice)),
                    make_merge_transform(make_tuple(N, HTildaSlice, WTildaSlice)),
@@ -167,7 +167,7 @@ transform_backward_data_convolution_into_gemm_v4r1r2_nhwc_kyxc_nhwk(
 #endif
 
     // B: weight tensor
-    const auto wei_k_ydot_ytilda_xdot_xtilda_c_grid_desc = transform_dynamic_tensor_descriptor(
+    const auto wei_k_ydot_ytilda_xdot_xtilda_c_grid_desc = transform_tensor_descriptor(
         wei_k_y_x_c_grid_desc,
         make_tuple(make_pass_through_transform(K),
                    make_embed_transform(make_tuple(YDot, YTilda),
@@ -179,28 +179,28 @@ transform_backward_data_convolution_into_gemm_v4r1r2_nhwc_kyxc_nhwk(
         make_tuple(Sequence<0>{}, Sequence<1, 2>{}, Sequence<3, 4>{}, Sequence<5>{}));
 
     const auto wei_k0_k1_ydotslice_xdotslice_c_grid_desc =
-        transform_dynamic_tensor_descriptor(wei_k_ydot_ytilda_xdot_xtilda_c_grid_desc,
-                                            make_tuple(make_unmerge_transform(make_tuple(K0, K1)),
-                                                       make_slice_transform(YDot, I0, YDotSlice),
-                                                       make_slice_transform(XDot, I0, XDotSlice),
-                                                       make_freeze_transform(IYTilda),
-                                                       make_freeze_transform(IXTilda),
-                                                       make_pass_through_transform(C)),
-                                            make_tuple(Sequence<0>{},
-                                                       Sequence<1>{},
-                                                       Sequence<3>{},
-                                                       Sequence<2>{},
-                                                       Sequence<4>{},
-                                                       Sequence<5>{}),
-                                            make_tuple(Sequence<0, 1>{},
-                                                       Sequence<2>{},
-                                                       Sequence<3>{},
-                                                       Sequence<>{},
-                                                       Sequence<>{},
-                                                       Sequence<4>{}));
+        transform_tensor_descriptor(wei_k_ydot_ytilda_xdot_xtilda_c_grid_desc,
+                                    make_tuple(make_unmerge_transform(make_tuple(K0, K1)),
+                                               make_slice_transform(YDot, I0, YDotSlice),
+                                               make_slice_transform(XDot, I0, XDotSlice),
+                                               make_freeze_transform(IYTilda),
+                                               make_freeze_transform(IXTilda),
+                                               make_pass_through_transform(C)),
+                                    make_tuple(Sequence<0>{},
+                                               Sequence<1>{},
+                                               Sequence<3>{},
+                                               Sequence<2>{},
+                                               Sequence<4>{},
+                                               Sequence<5>{}),
+                                    make_tuple(Sequence<0, 1>{},
+                                               Sequence<2>{},
+                                               Sequence<3>{},
+                                               Sequence<>{},
+                                               Sequence<>{},
+                                               Sequence<4>{}));
 
 #if 1
-    const auto wei_gemmk0_gemmn_gemmk1_grid_desc = transform_dynamic_tensor_descriptor(
+    const auto wei_gemmk0_gemmn_gemmk1_grid_desc = transform_tensor_descriptor(
         wei_k0_k1_ydotslice_xdotslice_c_grid_desc,
         make_tuple(make_merge_transform(make_tuple(YDotSlice, XDotSlice, K0)),
                    make_pass_through_transform(C),
@@ -208,7 +208,7 @@ transform_backward_data_convolution_into_gemm_v4r1r2_nhwc_kyxc_nhwk(
         make_tuple(Sequence<2, 3, 0>{}, Sequence<4>{}, Sequence<1>{}),
         make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
 #else
-    const auto wei_gemmk0_gemmn_gemmk1_grid_desc = transform_dynamic_tensor_descriptor(
+    const auto wei_gemmk0_gemmn_gemmk1_grid_desc = transform_tensor_descriptor(
         wei_k0_k1_ydotslice_xdotslice_c_grid_desc,
         make_tuple(make_merge_transform(make_tuple(K0, YDotSlice, XDotSlice)),
                    make_pass_through_transform(C),
@@ -218,7 +218,7 @@ transform_backward_data_convolution_into_gemm_v4r1r2_nhwc_kyxc_nhwk(
 #endif
 
     // C: input tensor
-    const auto in_n_hip_wip_c_grid_desc = transform_dynamic_tensor_descriptor(
+    const auto in_n_hip_wip_c_grid_desc = transform_tensor_descriptor(
         in_n_hi_wi_c_grid_desc,
         make_tuple(make_pass_through_transform(N),
                    make_pad_transform(Hi, InLeftPadH, InRightPadH),
@@ -227,7 +227,7 @@ transform_backward_data_convolution_into_gemm_v4r1r2_nhwc_kyxc_nhwk(
         make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
         make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}));
 
-    const auto in_n_ytilda_htilda_xtilda_wtilda_c_grid_desc = transform_dynamic_tensor_descriptor(
+    const auto in_n_ytilda_htilda_xtilda_wtilda_c_grid_desc = transform_tensor_descriptor(
         in_n_hip_wip_c_grid_desc,
         make_tuple(make_pass_through_transform(N),
                    make_embed_transform(make_tuple(YTilda, HTilda),
@@ -238,7 +238,7 @@ transform_backward_data_convolution_into_gemm_v4r1r2_nhwc_kyxc_nhwk(
         make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
         make_tuple(Sequence<0>{}, Sequence<1, 2>{}, Sequence<3, 4>{}, Sequence<5>{}));
 
-    const auto in_n_htildaslice_wtildaslice_c_grid_desc = transform_dynamic_tensor_descriptor(
+    const auto in_n_htildaslice_wtildaslice_c_grid_desc = transform_tensor_descriptor(
         in_n_ytilda_htilda_xtilda_wtilda_c_grid_desc,
         make_tuple(make_pass_through_transform(N),
                    make_freeze_transform(IYTilda),
@@ -259,7 +259,7 @@ transform_backward_data_convolution_into_gemm_v4r1r2_nhwc_kyxc_nhwk(
                    Sequence<2>{},
                    Sequence<3>{}));
 
-    const auto in_gemmm_gemmn_grid_desc = transform_dynamic_tensor_descriptor(
+    const auto in_gemmm_gemmn_grid_desc = transform_tensor_descriptor(
         in_n_htildaslice_wtildaslice_c_grid_desc,
         make_tuple(make_merge_transform(make_tuple(N, HTildaSlice, WTildaSlice)),
                    make_pass_through_transform(C)),
