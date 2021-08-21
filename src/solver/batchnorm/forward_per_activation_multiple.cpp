@@ -72,11 +72,9 @@ BnFwdTrainingPAMultiple::GetSolution(const ExecutionContext& context,
         xlocalsize = 256;
 
     size_t ylocalsize = 1;
-    size_t zlocalsize = 1;
 
     size_t xgridsize = c * xlocalsize;
     size_t ygridsize = 1;
-    size_t zgridsize = 1;
 
     bool bfpmixparm = false;
     bool bfp16parm  = false;
@@ -153,6 +151,9 @@ BnFwdTrainingPAMultiple::GetSolution(const ExecutionContext& context,
 
         kernel.kernel_name = "MIOpenBatchNormFwdTrainSpatial";
         kernel.kernel_file = "MIOpenBatchNormFwdTrainSpatial.cl";
+
+        size_t zlocalsize = 1;
+        size_t zgridsize  = 1;
 
         auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int>(bfp16parm)},
