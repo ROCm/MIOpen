@@ -154,8 +154,7 @@ BnFwdTrainingPAMultiple::GetSolution(const ExecutionContext& context,
         kernel.kernel_name = "MIOpenBatchNormFwdTrainSpatial";
         kernel.kernel_file = "MIOpenBatchNormFwdTrainSpatial.cl";
 
-        auto build_params = KernelBuildParameters
-        {
+        auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int>(bfp16parm)},
             {"MIOPEN_USE_FP32", static_cast<int>(bfp32parm)},
             {"MIOPEN_USE_FPMIX", static_cast<int>(bfpmixparm)},
@@ -187,7 +186,7 @@ BnFwdTrainingPAMultiple::GetSolution(const ExecutionContext& context,
         kernel.g_wk.push_back(ygridsize);
         kernel.g_wk.push_back(zgridsize);
 
-        auto copy = kernel;
+        auto copy        = kernel;
         copy.kernel_name = kernel.kernel_name + "MeanVariance";
         result.construction_params.push_back(copy);
 
