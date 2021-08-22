@@ -123,3 +123,4 @@ RUN if [ "$USE_MLIR" = "ON" ]; \
     make -j$(nproc) libMLIRMIOpen && \
     $PREFIX/bin/cmake --install . --component libMLIRMIOpen --prefix /opt/rocm && \
     cd ~ && rm -rf llvm-project-mlir-$MLIR_COMMIT; fi
+    
