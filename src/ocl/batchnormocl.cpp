@@ -180,35 +180,11 @@ void BatchNormForwardTraining(Handle& handle,
     }
     else // else run per activation
     {
-        static const auto ctx = GetContext(handle);
-
         int n, c, h, w;
         std::tie(n, c, h, w) = tien<4>(xDesc.GetLengths());
 
         unsigned int in_cstride = h * w;
         unsigned int in_nstride = c * in_cstride;
-        unsigned int in_nhw     = n * in_cstride;
-        unsigned int in_nchw    = n * in_nstride;
-
-        bool bfpmixparm = false;
-        bool bfp16parm  = false;
-        bool bfp32parm  = true;
-        if(xDesc.GetType() == miopenHalf && bnScaleBiasMeanVarDesc.GetType() == miopenHalf)
-        {
-            bfp16parm = true;
-            bfp32parm = false;
-        }
-        else if(xDesc.GetType() == miopenHalf && bnScaleBiasMeanVarDesc.GetType() == miopenFloat)
-        {
-            bfpmixparm = true;
-            bfp32parm  = false;
-        }
-
-        std::size_t xlocalsize = 1;
-        std::size_t ylocalsize = 256;
-        std::size_t segment    = (in_cstride + ylocalsize - 1) / ylocalsize;
-        std::size_t xgridsize  = c;
-        std::size_t ygridsize  = segment * ylocalsize;
         std::string algo_name  = "miopenBatchNormForwardTrainingPerActivation";
 
         auto&& kernels = handle.GetKernels(algo_name, network_config);
@@ -263,8 +239,31 @@ void BatchNormForwardTraining(Handle& handle,
         }
         else // kernels empty
         {
-            size_t zlocalsize = 1;
-            size_t zgridsize  = 1;
+            unsigned int in_nhw  = n * in_cstride;
+            unsigned int in_nchw = n * in_nstride;
+
+            bool bfpmixparm = false;
+            bool bfp16parm  = false;
+            bool bfp32parm  = true;
+            if(xDesc.GetType() == miopenHalf && bnScaleBiasMeanVarDesc.GetType() == miopenHalf)
+            {
+                bfp16parm = true;
+                bfp32parm = false;
+            }
+            else if(xDesc.GetType() == miopenHalf &&
+                    bnScaleBiasMeanVarDesc.GetType() == miopenFloat)
+            {
+                bfpmixparm = true;
+                bfp32parm  = false;
+            }
+
+            std::size_t xlocalsize = 1;
+            std::size_t ylocalsize = 256;
+            std::size_t zlocalsize = 1;
+            std::size_t segment    = (in_cstride + ylocalsize - 1) / ylocalsize;
+            std::size_t xgridsize  = c;
+            std::size_t ygridsize  = segment * ylocalsize;
+            std::size_t zgridsize  = 1;
 
             std::vector<size_t> vld;
             std::vector<size_t> vgd;
