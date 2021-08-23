@@ -259,7 +259,7 @@ struct BlockwiseReduction_2d_block_buffer
                                  ? buffer2dDesc.CalculateOffset(make_tuple(otherDimInd, thread_id))
                                  : buffer2dDesc.CalculateOffset(make_tuple(thread_id, otherDimInd));
 
-            unary_op(block_buffer[offset]);
+            block_buffer[offset] = unary_op(block_buffer[offset]);
 
             __syncthreads();
         }

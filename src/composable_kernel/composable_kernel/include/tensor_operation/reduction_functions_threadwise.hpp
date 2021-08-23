@@ -77,7 +77,8 @@ struct ThreadReduce
     template <typename unary_op_type>
     __device__ static void operate_on_elements(unary_op_type& unary_op, BufferType& thread_buffer)
     {
-        static_for<0, ThreadBufferLen, 1>{}([&](auto I) { unary_op(thread_buffer(I)); });
+        static_for<0, ThreadBufferLen, 1>{}(
+            [&](auto I) { thread_buffer(I) = unary_op(thread_buffer[I]); });
     };
 };
 
@@ -128,7 +129,8 @@ struct ThreadReduceWithIndicesInput
     template <typename unary_op_type>
     __device__ static void operate_on_elements(unary_op_type& unary_op, BufferType& thread_buffer)
     {
-        static_for<0, ThreadBufferLen, 1>{}([&](auto I) { unary_op(thread_buffer(I)); });
+        static_for<0, ThreadBufferLen, 1>{}(
+            [&](auto I) { thread_buffer(I) = unary_op(thread_buffer[I]); });
     };
 };
 

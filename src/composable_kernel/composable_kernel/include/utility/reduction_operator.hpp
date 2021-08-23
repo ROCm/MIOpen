@@ -150,7 +150,7 @@ struct unary_identic
         scaler = 1.0f / static_cast<float>(divider);
     };
 
-    __device__ inline constexpr void operator()(T& a) const { a = a * type_convert<T>{}(scaler); };
+    __device__ inline constexpr T operator()(T a) const { return a * type_convert<T>{}(scaler); };
 
     float scaler = 1.0f;
 };
@@ -160,7 +160,7 @@ struct unary_identic<T, false>
 {
     __device__ unary_identic(const int divider = 1) { (void)divider; };
 
-    __device__ inline constexpr void operator()(T&) const {};
+    __device__ inline constexpr T operator()(T a) const { return a; };
 };
 
 template <class T, bool hasDividing>
@@ -168,11 +168,11 @@ struct unary_square
 {
     __device__ unary_square(const int divider = 1) { scaler = 1.0f / static_cast<float>(divider); };
 
-    __device__ inline constexpr void operator()(T& a) const
+    __device__ inline constexpr T operator()(T a) const
     {
         a = a * a;
 
-        a = a * type_convert<T>{}(scaler);
+        return a * type_convert<T>{}(scaler);
     };
 
     float scaler = 1.0f;
@@ -183,7 +183,7 @@ struct unary_square<T, false>
 {
     __device__ unary_square(const int divider = 1) { (void)divider; };
 
-    __device__ inline constexpr void operator()(T& a) const { a = a * a; };
+    __device__ inline constexpr T operator()(T a) const { return a * a; };
 };
 
 template <class T, bool hasDividing>
@@ -191,11 +191,11 @@ struct unary_abs
 {
     __device__ unary_abs(const int divider = 1) { scaler = 1.0f / static_cast<float>(divider); };
 
-    __device__ inline constexpr void operator()(T& a) const
+    __device__ inline constexpr T operator()(T a) const
     {
         a = abs(a);
 
-        a = a * type_convert<T>{}(scaler);
+        return a * type_convert<T>{}(scaler);
     };
 
     float scaler = 1.0f;
@@ -206,7 +206,7 @@ struct unary_abs<T, false>
 {
     __device__ unary_abs(const int divider = 1) { (void)divider; };
 
-    __device__ inline constexpr void operator()(T& a) const { a = abs(a); };
+    __device__ inline constexpr T operator()(T a) const { return abs(a); };
 };
 
 // We know for sure that 4.0 has __habs(), but 3.0 does not have it.
@@ -230,11 +230,11 @@ struct unary_abs<half_t, hasDividing>
 {
     __device__ unary_abs(const int divider = 1) { scaler = 1.0f / static_cast<float>(divider); };
 
-    __device__ inline void operator()(half_t& a) const
+    __device__ inline half_t operator()(half_t a) const
     {
         a = static_cast<half_t>(__habs(a));
 
-        a = a * type_convert<half_t>{}(scaler);
+        return a * type_convert<half_t>{}(scaler);
     };
 
     float scaler = 1.0f;
@@ -245,7 +245,7 @@ struct unary_abs<half_t, false>
 {
     __device__ unary_abs(const int divider = 1) { (void)divider; };
 
-    __device__ inline void operator()(half_t& a) const { a = static_cast<half_t>(__habs(a)); };
+    __device__ inline half_t operator()(half_t a) const { return static_cast<half_t>(__habs(a)); };
 };
 
 template <class T>
@@ -253,7 +253,7 @@ struct unary_sqrt
 {
     __device__ unary_sqrt(const int divider = 1) { (void)divider; };
 
-    __device__ inline constexpr void operator()(T& a) const { a = sqrtf(a); };
+    __device__ inline T operator()(T a) const { return sqrtf(a); };
 };
 
 template <>
@@ -261,7 +261,7 @@ struct unary_sqrt<half_t>
 {
     __device__ unary_sqrt(const int divider = 1) { (void)divider; };
 
-    __device__ inline void operator()(half_t& a) const { a = static_cast<half_t>(hsqrt(a)); };
+    __device__ inline half_t operator()(half_t a) const { return static_cast<half_t>(hsqrt(a)); };
 };
 
 }; // end of namespace reduce

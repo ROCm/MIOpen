@@ -170,7 +170,7 @@ struct GridwiseReduction_xy_to_x_blockwise
             blockwise_src_load.MoveSrcSliceWindow(src2dDesc, in_block_copy_step);
         }
 
-        posUnaryOp(accuValue_buf(I0));
+        accuValue_buf(I0) = posUnaryOp(accuValue_buf[I0]);
 
         constexpr auto ReducedDataDesc =
             make_naive_tensor_descriptor_packed(make_tuple(Number<1>{}));
