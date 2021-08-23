@@ -199,7 +199,7 @@ endif()
 
 if (MIOPEN_TEST_GFX90a)
     if(WORKAROUND_ISSUE_1093)
-        list(APPEND SKIP_TESTS test_find_db test_main test_immed_conv2d)
+        list(APPEND SKIP_TESTS test_conv2d test_find_db test_main test_immed_conv2d)
     endif()
     if(WORKAROUND_ISSUE_1095)
         list(APPEND SKIP_TESTS test_dropout)
