@@ -786,9 +786,9 @@ int ConvFin<Tgpu, Tref>::GetSolverList()
         solver["id"]      = std::to_string(id.Value());
         solver["name"]    = id.ToString();
         solver["tunable"] = "0";
+        solver["dynamic"] = "0";
         if(id.GetSolver().IsTunable())
             solver["tunable"] = "1";
-        solver["dynamic"] = "0";
         if(id.GetSolver().IsDynamic())
             solver["dynamic"] = "1";
         solvers.push_back(solver);
