@@ -9,6 +9,6 @@ struct tunable_generic_reduction
     int GredAccessesPerThreadInWarp;
 };
 
-static struct tunable_generic_reduction default_tunable_generic_reduction = {256, 8, 2, 2};
+static const struct tunable_generic_reduction default_tunable_generic_reduction = {256, 8, 2, 2};
 
 #endif

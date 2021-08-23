@@ -362,34 +362,45 @@ static std::pair<bool, bool> get_padding_need(ReductionMethod_t reduceImpl,
     switch(reduceImpl)
     {
     case Reduce_DirectThreadWise:
-        copySliceLen = tunable->GredThreadBufferLength;
-        src_need_padding =
-            (invariantLen < GridSize * BlockSize || toReduceLen % copySliceLen > 0) ? true : false;
-        dst_need_padding = (invariantLen < GridSize * BlockSize) ? true : false;
+        copySliceLen     = tunable->GredThreadBufferLength;
+        src_need_padding = (invariantLen < GridSize * BlockSize || toReduceLen % copySliceLen > 0);
+        dst_need_padding = (invariantLen < GridSize * BlockSize);
         break;
     case Reduce_DirectWarpWise:
         copySliceLen = warpSize * tunable->GredAccessesPerThreadInWarp;
         src_need_padding =
-            (invariantLen < GridSize * BlockSize / warpSize || toReduceLen % copySliceLen > 0)
-                ? true
-                : false;
-        dst_need_padding = (invariantLen < GridSize * BlockSize / warpSize) ? true : false;
+            (invariantLen < GridSize * BlockSize / warpSize || toReduceLen % copySliceLen > 0);
+        dst_need_padding = (invariantLen < GridSize * BlockSize / warpSize);
         break;
     case Reduce_BlockWise:
         copySliceLen     = BlockSize * tunable->GredAccessesPerThreadInBlock;
-        src_need_padding = (toReduceLen % copySliceLen > 0) ? true : false;
+        src_need_padding = (toReduceLen % copySliceLen > 0);
         break;
     case Reduce_MultiBlock:
         copySliceLen = BlockSize * tunable->GredAccessesPerThreadInBlock;
         reduceSizePerBlock =
             (((toReduceLen + BlkGroupSize - 1) / BlkGroupSize + copySliceLen - 1) / copySliceLen) *
             copySliceLen;
-        src_need_padding = (toReduceLen < reduceSizePerBlock * BlkGroupSize) ? true : false;
+        src_need_padding = (toReduceLen < reduceSizePerBlock * BlkGroupSize);
         break;
     default: MIOPEN_THROW("Invalid reduction method ID!"); break;
     };
 
     return (std::make_pair(src_need_padding, dst_need_padding));
+};
+
+static std::string get_first_call_kernel_file(const ReductionMethod_t reduceImpl,
+                                              const bool allDimsReduced)
+{
+    std::ostringstream outs;
+
+    outs << "gridwise_generic_reduction_first_call_" << detail::getReductionMethodStr(reduceImpl);
+    if(allDimsReduced)
+        outs << "_reduce_all_dims.cpp";
+    else
+        outs << "_reduce_partial_dims.cpp";
+
+    return (outs.str());
 };
 
 }; // end of namespace detail
@@ -511,9 +522,9 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
     const auto& outDescLengths = cDesc.GetLengths();
     const auto& outDescStrides = cDesc.GetStrides();
 
-    tunable_generic_reduction* tunable = &default_tunable_generic_reduction;
+    const tunable_generic_reduction* tunable = &default_tunable_generic_reduction;
 
-    bool need_indices =
+    const bool need_indices =
         (reduceIndicesOpt == MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES) &&
         (reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX ||
          reduceOp == MIOPEN_REDUCE_TENSOR_AMAX);
@@ -543,10 +554,11 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
     if(indices_sizeInBytes > indicesSizeInBytes)
         MIOPEN_THROW("The indices size allocated is not enough!");
 
-    // void* ws_buf1_global = static_cast<void*>(workspace);
-    Data_t ws_buf1_global = miopen::IsEnabled(MIOPEN_DISABLE_DYNAMIC_REDUCTION{})
-                                ? workspace
-                                : static_cast<char*>(workspace) + 4096;
+    void* raw_ws_buff = workspace;
+    void* ws_buf1_global =
+        (!miopen::IsEnabled(MIOPEN_DISABLE_DYNAMIC_REDUCTION{}) && raw_ws_buff != nullptr)
+            ? (static_cast<char*>(raw_ws_buff) + 4096)
+            : raw_ws_buff;
     long ws_buf2_bytes_offset = 0;
 
     if(need_indices && workspace != nullptr)
@@ -792,10 +804,10 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
     { // use dynamic reduction
         const int origReduceLen = toReduceLength;
 
-        int p_inLengths[6];
-        int p_inStrides[6];
-        int p_outLengths[6];
-        int p_outStrides[6];
+        int p_inLengths[6]  = {0};
+        int p_inStrides[6]  = {0};
+        int p_outLengths[6] = {0};
+        int p_outStrides[6] = {0};
 
         for(int i = 0; i < inDescLengths.size(); i++)
             p_inLengths[i] = static_cast<int>(inDescLengths[i]);
@@ -820,8 +832,9 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
             p_outStrides[0] = 1;
         };
 
-        void* p_dev_src2dDesc = workspace;
-        void* p_dev_dst1dDesc = static_cast<char*>(workspace) + 2048;
+        void* p_dev_src2dDesc = raw_ws_buff;
+        void* p_dev_dst1dDesc =
+            (raw_ws_buff != nullptr ? (static_cast<char*>(raw_ws_buff) + 2048) : nullptr);
 
         const std::vector<size_t> vld  = {static_cast<size_t>(tunable->BlockSize), 1, 1};
         const std::vector<size_t> vgd1 = {static_cast<size_t>(tunable->BlockSize), 1, 1};
@@ -889,17 +902,17 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
                                                     blkGroupSize,
                                                     tunable);
 
-        std::string param1 = param +
-                             " -DCK_PARAM_SRC2D_PADDING=" + std::to_string(use_padding.first) +
-                             " -DCK_PARAM_DST1D_PADDING=" + std::to_string(use_padding.second);
+        std::string param1 =
+            param +
+            " -DCK_PARAM_SRC2D_PADDING=" + std::to_string(static_cast<int>(use_padding.first)) +
+            " -DCK_PARAM_DST1D_PADDING=" + std::to_string(static_cast<int>(use_padding.second));
 
-        std::string program_name1 =
-            "gridwise_generic_reduction_first_call_" + detail::getReductionMethodStr(reduceImpl) +
-            (reduceAllDims ? "_reduce_all_dims.cpp" : "_reduce_partial_dims.cpp");
+        const std::string program_name1 =
+            detail::get_first_call_kernel_file(reduceImpl, reduceAllDims);
         std::string kernel_name1     = "gridwise_generic_reduce_1_prepare";
         std::string network_config_1 = network_config + "_1_P" + std::to_string(reduceImpl) +
-                                       std::to_string(use_padding.first) +
-                                       std::to_string(use_padding.second);
+                                       std::to_string(static_cast<int>(use_padding.first)) +
+                                       std::to_string(static_cast<int>(use_padding.second));
 
         handle.AddKernel(
             algo_name, network_config_1, program_name1, kernel_name1, vld, vgd1, param1)(
@@ -937,7 +950,8 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
 
         kernel_name1     = "gridwise_generic_reduce_1";
         network_config_1 = network_config + "_1" + std::to_string(reduceImpl) +
-                           std::to_string(use_padding.first) + std::to_string(use_padding.second);
+                           std::to_string(static_cast<int>(use_padding.first)) +
+                           std::to_string(static_cast<int>(use_padding.second));
 
         handle.AddKernel(
             algo_name, network_config_1, program_name1, kernel_name1, vld, vgd2, param1)(
@@ -971,19 +985,20 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
                                                                gridSize_2,
                                                                tunable->BlockSize,
                                                                handle.GetWavefrontWidth(),
-                                                               0,
+                                                               1,
                                                                tunable);
 
-            std::string param2 = param +
-                                 " -DCK_PARAM_SRC2D_PADDING=" + std::to_string(use_padding2.first) +
-                                 " -DCK_PARAM_DST1D_PADDING=" + std::to_string(use_padding2.second);
+            std::string param2 = param + " -DCK_PARAM_SRC2D_PADDING=" +
+                                 std::to_string(static_cast<int>(use_padding2.first)) +
+                                 " -DCK_PARAM_DST1D_PADDING=" +
+                                 std::to_string(static_cast<int>(use_padding2.second));
 
             std::string program_name2 = "gridwise_generic_reduction_second_call_" +
                                         detail::getReductionMethodStr(reduceImpl2) + ".cpp";
             std::string kernel_name2     = "gridwise_generic_reduce_2_prepare";
             std::string network_config_2 = network_config + "_2_P" + std::to_string(reduceImpl2) +
-                                           std::to_string(use_padding2.first) +
-                                           std::to_string(use_padding2.second);
+                                           std::to_string(static_cast<int>(use_padding2.first)) +
+                                           std::to_string(static_cast<int>(use_padding2.second));
 
             handle.AddKernel(
                 algo_name, network_config_2, program_name2, kernel_name2, vld, vgd1, param2)(
@@ -1009,8 +1024,8 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
 
             kernel_name2     = "gridwise_generic_reduce_2";
             network_config_2 = network_config + "_2" + std::to_string(reduceImpl2) +
-                               std::to_string(use_padding2.first) +
-                               std::to_string(use_padding2.second);
+                               std::to_string(static_cast<int>(use_padding2.first)) +
+                               std::to_string(static_cast<int>(use_padding2.second));
 
             handle.AddKernel(
                 algo_name, network_config_2, program_name2, kernel_name2, vld, vgd2_2, param2)(
