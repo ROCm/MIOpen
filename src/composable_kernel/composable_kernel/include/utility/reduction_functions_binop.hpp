@@ -49,8 +49,8 @@ struct binop_with_nan_check<NanPropagation_t::NOT_PROPAGATE_NAN, opReduce, compT
     };
 
     // The method is called when the opReduce is indexable and the user asked for indices
-    // cppcheck-suppress constParameter
     __device__ static inline void
+    // cppcheck-suppress constParameter
     calculate(compType& accuVal, compType currVal, int& accuIndex, int currIndex)
     {
         bool changed = false;
