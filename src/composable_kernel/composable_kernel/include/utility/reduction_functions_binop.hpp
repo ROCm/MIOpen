@@ -39,23 +39,23 @@ static inline __device__ bool isnan(half_t x) { return __hisnan(x); };
 template <NanPropagation_t nanPropaOpt, typename opReduce, typename compType>
 struct binop_with_nan_check;
 
-// ToDo: remove the "const" from the "accuVal" parameter declaration, this is added
-//       to avoid the "constParameter" warning during tidy checking
 template <typename opReduce, typename compType>
 struct binop_with_nan_check<NanPropagation_t::NOT_PROPAGATE_NAN, opReduce, compType>
 {
-    __device__ static inline void calculate(const compType& accuVal, compType currVal)
+    // cppcheck-suppress constParameter
+    __device__ static inline void calculate(compType& accuVal, compType currVal)
     {
-        opReduce{}(const_cast<compType&>(accuVal), currVal);
+        opReduce{}(accuVal, currVal);
     };
 
     // The method is called when the opReduce is indexable and the user asked for indices
+    // cppcheck-suppress constParameter
     __device__ static inline void
-    calculate(const compType& accuVal, compType currVal, int& accuIndex, int currIndex)
+    calculate(compType& accuVal, compType currVal, int& accuIndex, int currIndex)
     {
         bool changed = false;
 
-        opReduce{}(const_cast<compType&>(accuVal), currVal, changed);
+        opReduce{}(accuVal, currVal, changed);
 
         if(changed)
             accuIndex = currIndex;

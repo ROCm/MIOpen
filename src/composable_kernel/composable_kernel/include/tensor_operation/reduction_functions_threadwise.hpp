@@ -68,6 +68,7 @@ struct ThreadReduce
     };
 
     // Set the elements in the per-thread buffer to a specific value
+    // cppcheck-suppress constParameter
     __device__ static void set_buffer_value(BufferType& thread_buffer, compType value)
     {
         static_for<0, ThreadBufferLen, 1>{}([&](auto I) { thread_buffer(I) = value; });
@@ -120,6 +121,7 @@ struct ThreadReduceWithIndicesInput
     };
 
     // Set the elements in the per-thread buffer to a specific value
+    // cppcheck-suppress constParameter
     __device__ static void set_buffer_value(BufferType& thread_buffer, compType value)
     {
         static_for<0, ThreadBufferLen, 1>{}([&](auto I) { thread_buffer(I) = value; });
