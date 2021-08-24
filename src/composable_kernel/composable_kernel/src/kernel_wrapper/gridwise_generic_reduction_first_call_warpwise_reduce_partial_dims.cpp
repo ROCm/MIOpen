@@ -297,10 +297,10 @@ extern "C" __global__ void gridwise_generic_reduce_1(int origReduceLen,
                                                      void* __restrict__ indices_global)
 {
     (void)BlkGroupSize;
+    (void)ws_buf2_bytes_offset;
 
     const void* p_src2dDesc = ws_global;
     const void* p_dst1dDesc = static_cast<char*>(ws_global) + 2048;
-    void* ws_buf1_global    = static_cast<char*>(ws_global) + 4096;
 
     const auto src2dDesc = get_reduction_src2d_descriptor<src2d_need_padding>(p_src2dDesc);
     const auto dst1dDesc = get_reduction_dst1d_descriptor<dst1d_need_padding>(p_dst1dDesc);
@@ -319,11 +319,6 @@ extern "C" __global__ void gridwise_generic_reduce_1(int origReduceLen,
                                                   true,
                                                   GredAccessesPerThreadInWarp>;
 
-    void* const ws_buf2_global =
-        ws_buf2_bytes_offset > 0
-            ? static_cast<void*>(static_cast<char*>(ws_buf1_global) + ws_buf2_bytes_offset)
-            : nullptr;
-
     constexpr int RunId = need_indices ? 2 : 1;
     gridwise_2d_reduce::template Run<RunId>(
         src2dDesc,
@@ -333,6 +328,6 @@ extern "C" __global__ void gridwise_generic_reduce_1(int origReduceLen,
         static_cast<const srcDataType* const __restrict__>(p_src_global),
         beta,
         static_cast<dstDataType* const __restrict__>(p_dst_global),
-        static_cast<const int* const __restrict__>(ws_buf2_global),
+        static_cast<const int* const __restrict__>(nullptr),
         static_cast<int* const __restrict__>(indices_global));
 };
