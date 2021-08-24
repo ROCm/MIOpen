@@ -554,11 +554,6 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
     if(indices_sizeInBytes > indicesSizeInBytes)
         MIOPEN_THROW("The indices size allocated is not enough!");
 
-    void* raw_ws_buff = workspace;
-    void* ws_buf1_global =
-        (!miopen::IsEnabled(MIOPEN_DISABLE_DYNAMIC_REDUCTION{}) && raw_ws_buff != nullptr)
-            ? (static_cast<char*>(raw_ws_buff) + 4096)
-            : raw_ws_buff;
     long ws_buf2_bytes_offset = 0;
 
     if(need_indices && workspace != nullptr)
@@ -735,6 +730,8 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
             param += " -DCK_USE_AMD_BUFFER_ADDRESSING=0 ";
 #endif
 
+        Data_t ws_buf1_global = workspace;
+
         float time_reduce = 0.0f;
 
         std::string param1 = param + " -DCK_PARAM_GRIDSIZE=" + std::to_string(gridSize) + " ";
@@ -831,10 +828,6 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
             p_outLengths[0] = 1;
             p_outStrides[0] = 1;
         };
-
-        void* p_dev_src2dDesc = raw_ws_buff;
-        void* p_dev_dst1dDesc =
-            (raw_ws_buff != nullptr ? (static_cast<char*>(raw_ws_buff) + 2048) : nullptr);
 
         const std::vector<size_t> vld  = {static_cast<size_t>(tunable->BlockSize), 1, 1};
         const std::vector<size_t> vgd1 = {static_cast<size_t>(tunable->BlockSize), 1, 1};
@@ -942,8 +935,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
             p_outStrides[3],
             p_outStrides[4],
             p_outStrides[5],
-            p_dev_src2dDesc,
-            p_dev_dst1dDesc);
+            workspace);
 
         if(handle.IsProfilingEnabled())
             time_reduce += handle.GetKernelTime();
@@ -957,13 +949,11 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
             algo_name, network_config_1, program_name1, kernel_name1, vld, vgd2, param1)(
             origReduceLen,
             blkGroupSize,
-            p_dev_src2dDesc,
-            p_dev_dst1dDesc,
             alphaVal,
             A,
             betaVal,
             C,
-            ws_buf1_global,
+            workspace,
             ws_buf2_bytes_offset,
             indices);
 
@@ -1016,8 +1006,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
                 p_outStrides[3],
                 p_outStrides[4],
                 p_outStrides[5],
-                p_dev_src2dDesc,
-                p_dev_dst1dDesc);
+                workspace);
 
             if(handle.IsProfilingEnabled())
                 time_reduce += handle.GetKernelTime();
@@ -1029,16 +1018,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
 
             handle.AddKernel(
                 algo_name, network_config_2, program_name2, kernel_name2, vld, vgd2_2, param2)(
-                origReduceLen,
-                p_dev_src2dDesc,
-                p_dev_dst1dDesc,
-                alphaVal,
-                A,
-                betaVal,
-                C,
-                ws_buf1_global,
-                ws_buf2_bytes_offset,
-                indices);
+                origReduceLen, alphaVal, A, betaVal, C, workspace, ws_buf2_bytes_offset, indices);
 
             if(handle.IsProfilingEnabled())
                 time_reduce += handle.GetKernelTime();

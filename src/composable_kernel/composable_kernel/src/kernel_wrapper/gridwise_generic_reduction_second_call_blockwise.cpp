@@ -111,10 +111,12 @@ extern "C" __global__ void gridwise_generic_reduce_2_prepare(int GridSize,
                                                              int outStride3,
                                                              int outStride4,
                                                              int outStride5,
-                                                             void* p_src2dDesc,
-                                                             void* p_dst1dDesc)
+                                                             void* __restrict__ ws_global)
 {
     (void)GridSize;
+
+    void* p_src2dDesc = ws_global;
+    void* p_dst1dDesc = static_cast<char*>(ws_global) + 2048;
 
     const int dstLengths[6] = {
         outLength0, outLength1, outLength2, outLength3, outLength4, outLength5};
@@ -231,17 +233,19 @@ static __device__ auto get_reduction_dst1d_descriptor(const void* p_dst1dDesc)
 };
 
 extern "C" __global__ void gridwise_generic_reduce_2(int origReduceLen,
-                                                     const void* p_src2dDesc,
-                                                     const void* p_dst1dDesc,
                                                      float alpha,
                                                      const void* __restrict__ p_src_global,
                                                      float beta,
                                                      void* __restrict__ p_dst_global,
-                                                     void* __restrict__ ws_buf1_global,
+                                                     void* __restrict__ ws_global,
                                                      long ws_buf2_bytes_offset,
                                                      void* __restrict__ indices_global)
 {
     (void)p_src_global;
+
+    const void* p_src2dDesc = ws_global;
+    const void* p_dst1dDesc = static_cast<char*>(ws_global) + 2048;
+    void* ws_buf1_global    = static_cast<char*>(ws_global) + 4096;
 
     const auto src2dDesc = get_reduction_src2d_descriptor<src2d_need_padding>(p_src2dDesc);
     const auto dst1dDesc = get_reduction_dst1d_descriptor<dst1d_need_padding>(p_dst1dDesc);
