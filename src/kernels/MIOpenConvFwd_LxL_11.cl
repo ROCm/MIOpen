@@ -80,8 +80,9 @@
 #endif
 
 // number of loops to flush put full output map
-#define MLO_N_OUT_BLKS 1 //((MLO_OUT_HEIGHT + (MLO_OUT_PIX_TILE1*MLO_N_OUT_FOLDS1) -1) /
-                         //(MLO_OUT_PIX_TILE1*MLO_N_OUT_FOLDS1))
+#define MLO_N_OUT_BLKS \
+    1 //((MLO_OUT_HEIGHT + (MLO_OUT_PIX_TILE1*MLO_N_OUT_FOLDS1) -1) /
+      //(MLO_OUT_PIX_TILE1*MLO_N_OUT_FOLDS1))
 
 #define MLO_HW_WAVE_ID_SETTING 1
 
@@ -102,9 +103,9 @@ uint getWaveId()
     extern uint __llvm_amdgcn_readfirstlane(uint) __asm("llvm.amdgcn.readfirstlane");
 
     wave_id = __llvm_amdgcn_readfirstlane((uint)(get_local_id(0) >> MLO_LG2_WAVE_SZ));
-// Alternate implementation:
-//__asm__ ("v_readfirstlane_b32 %0, %1" : "=s" (wave_id) : "v" ((uint)(get_local_id(0) >>
-// MLO_LG2_WAVE_SZ)) );
+    // Alternate implementation:
+    //__asm__ ("v_readfirstlane_b32 %0, %1" : "=s" (wave_id) : "v" ((uint)(get_local_id(0) >>
+    // MLO_LG2_WAVE_SZ)) );
 
 #elif MLO_HW_WAVE_ID_SETTING
     // FIXME Conduct enabling from the host code.
@@ -415,10 +416,10 @@ MIOpenCvFwd11x11(const __global _FLOAT* __restrict bot,
     uint ex_row = iDiv_legacy(lcl_id, MLO_PROCESSING_WIDTH);
     uint ex_col = iMod(lcl_id, ex_row, MLO_PROCESSING_WIDTH);
 #else
-    uint ex_row     = lcl_id / MLO_PROCESSING_WIDTH;
-    uint ex_col     = lcl_id & (MLO_PROCESSING_WIDTH - 1);
+    uint ex_row = lcl_id / MLO_PROCESSING_WIDTH;
+    uint ex_col = lcl_id & (MLO_PROCESSING_WIDTH - 1);
 #if MLO_PROCESSING_WIDTH >= 64
-    ex_row          = uniform(ex_row);
+    ex_row = uniform(ex_row);
 #endif
 #endif
     uint ex_pix = ex_col * MLO_OUT_PIX_TILE0;
@@ -632,7 +633,7 @@ void fetchData2(uint ib,
         c_scan      = iDiv_legacy(t0, MLO_N_IN_HORIZ_READS);
         uint c_pix4 = iMod(t0, c_scan, MLO_N_IN_HORIZ_READS);
 #else
-        c_scan      = t0 / MLO_N_IN_HORIZ_READS;
+        c_scan = t0 / MLO_N_IN_HORIZ_READS;
         uint c_pix4 = t0 & (MLO_N_IN_HORIZ_READS - 1);
 #endif
         int in_scan = (c_scan + lcl_scan) * MLO_FILTER_STRIDE1 + f_s;
@@ -812,10 +813,10 @@ MIOpenCvFwd11x11_2(const __global _FLOAT* __restrict bot,
     uint bb = iDiv_legacy(lcl_id, (MLO_PROCESSING_WIDTH * MLO_LAST_OUT_EXTENT1));
     uint t0 = iMod(lcl_id, bb, (MLO_PROCESSING_WIDTH * MLO_LAST_OUT_EXTENT1));
 #elif(MLO_PROCESSING_WIDTH * MLO_LAST_OUT_EXTENT1) != 0
-    uint bb         = lcl_id / (MLO_PROCESSING_WIDTH * MLO_LAST_OUT_EXTENT1);
-    uint t0         = lcl_id & ((MLO_PROCESSING_WIDTH * MLO_LAST_OUT_EXTENT1) - 1);
+    uint bb = lcl_id / (MLO_PROCESSING_WIDTH * MLO_LAST_OUT_EXTENT1);
+    uint t0 = lcl_id & ((MLO_PROCESSING_WIDTH * MLO_LAST_OUT_EXTENT1) - 1);
 #if(MLO_PROCESSING_WIDTH * MLO_LAST_OUT_EXTENT1) >= 64
-    bb              = uniform(bb);
+    bb = uniform(bb);
 #endif
 #else
     uint bb = lcl_id;
@@ -825,8 +826,8 @@ MIOpenCvFwd11x11_2(const __global _FLOAT* __restrict bot,
     uint ex_row = iDiv_legacy(t0, MLO_PROCESSING_WIDTH);
     uint ex_col = iMod(t0, ex_row, MLO_PROCESSING_WIDTH);
 #else
-    uint ex_row     = t0 / MLO_PROCESSING_WIDTH;
-    uint ex_col     = t0 & (MLO_PROCESSING_WIDTH - 1);
+    uint ex_row = t0 / MLO_PROCESSING_WIDTH;
+    uint ex_col = t0 & (MLO_PROCESSING_WIDTH - 1);
 #endif
     uint ex_pix = ex_col * MLO_OUT_PIX_TILE0;
 
@@ -1072,7 +1073,7 @@ void MoveDataIn(_FLOAT proc_dat[MLO_IN_PIX_TILE1][MLO_IN_PIX_TILE0],
     {
         for(int i = 0; i < MLO_IN_PIX_TILE0; ++i)
         {
-            uint lcl_off   = (lcl_in_y + j) * MLO_N_IN_BWD_HORIZ_READS + lcl_in_x + i;
+            uint lcl_off = (lcl_in_y + j) * MLO_N_IN_BWD_HORIZ_READS + lcl_in_x + i;
             proc_dat[j][i] = lcl_mem[lcl_off];
         }
     }
@@ -1107,7 +1108,7 @@ void Convolve(_FLOAT_ACCUM* pvt_accum,
               int map_out_y,
               int map_out_x
 #endif
-              )
+)
 {
     // convolve
     for(uint k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
@@ -1124,7 +1125,7 @@ void Convolve(_FLOAT_ACCUM* pvt_accum,
                     for(uint i = 0; i < MLO_OUT_PIX_TILE0; ++i)
                     {
                         uint pvt_off = (k * MLO_OUT_PIX_TILE1 + j) * MLO_OUT_PIX_TILE0 + i;
-                        uint y       = ((MLO_N_FILTER_SPLITS1 - 1 - jj) * MLO_FILTER_STRIDE1 +
+                        uint y = ((MLO_N_FILTER_SPLITS1 - 1 - jj) * MLO_FILTER_STRIDE1 +
                                   j % MLO_FILTER_STRIDE1);
                         uint x = (MLO_N_FILTER_SPLITS0 - 1 - ii) * MLO_FILTER_STRIDE0 +
                                  i % MLO_FILTER_STRIDE0;
@@ -1165,7 +1166,7 @@ void Convolve(_FLOAT_ACCUM* pvt_accum,
                             ++i)
                         {
                             uint pvt_off = (k * MLO_OUT_PIX_TILE1 + j) * MLO_OUT_PIX_TILE0 + i;
-                            uint y       = ((MLO_N_FILTER_SPLITS1 - 1 - jj) * MLO_FILTER_STRIDE1 +
+                            uint y = ((MLO_N_FILTER_SPLITS1 - 1 - jj) * MLO_FILTER_STRIDE1 +
                                       j % MLO_FILTER_STRIDE1);
                             uint x = (MLO_N_FILTER_SPLITS0 - 1 - ii) * MLO_FILTER_STRIDE0 +
                                      i % MLO_FILTER_STRIDE0;
@@ -1215,7 +1216,7 @@ void Convolve(_FLOAT_ACCUM* pvt_accum,
                         for(uint i = 0; i < MLO_OUT_PIX_TILE0; ++i)
                         {
                             uint pvt_off = (k * MLO_OUT_PIX_TILE1 + j) * MLO_OUT_PIX_TILE0 + i;
-                            uint y       = ((MLO_N_FILTER_SPLITS1 - 1 - jj) * MLO_FILTER_STRIDE1 +
+                            uint y = ((MLO_N_FILTER_SPLITS1 - 1 - jj) * MLO_FILTER_STRIDE1 +
                                       j % MLO_FILTER_STRIDE1);
                             uint x = (MLO_N_FILTER_SPLITS0 - 1 - ii) * MLO_FILTER_STRIDE0 +
                                      i % MLO_FILTER_STRIDE0;
@@ -1320,7 +1321,7 @@ MIOpenCvBwd11x11(const __global _FLOAT* __restrict bot,
     __local _FLOAT lcl_mem[MLO_LCL_BWD_MEM_SZ];
 
     uint lcl_wei_write_off = 0;
-    uint lcl_wei_read_off  = 0;
+    uint lcl_wei_read_off = 0;
 
 #undef MLO_ACCUM_SZ
 #define MLO_ACCUM_SZ (MLO_OUT_PIX_TILE1 * MLO_OUT_PIX_TILE0 * MLO_N_LCL_OUT_MAPS)
@@ -1431,7 +1432,7 @@ MIOpenCvBwd11x11(const __global _FLOAT* __restrict bot,
                  map_out_y,
                  map_out_x
 #endif
-                 );
+        );
 
     } // for (int c = 0; c < MLO_N_INPUTS; ++c, gbl_in_off += MLO_IN_CHANNEL_STRIDE, gbl_wei_off +=
       // MLO_WEI_BATCH_STRIDE)

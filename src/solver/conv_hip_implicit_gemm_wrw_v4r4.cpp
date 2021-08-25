@@ -474,7 +474,7 @@ bool PerformanceImplicitGemmV4R4WrW::IsValid(const ConvolutionContext& ctx) cons
         return false;
 
     // check LDS allocation
-    std::size_t lds_size = 0;
+    std::size_t lds_size      = 0;
     std::tie(lds_size, valid) = CalculateLdsNumberOfByte(ctx);
 
     return (valid and lds_size <= get_lds_max_number_of_byte());
@@ -535,7 +535,7 @@ void PerformanceImplicitGemmV4R4WrW::HeuristicInit(const ConvolutionContext& ctx
     MIOPEN_LOG_I(ToString());
 }
 
-bool PerformanceImplicitGemmV4R4WrW::SetNextValue()
+bool PerformanceImplicitGemmV4R4WrW::SetNextValue(const ConvolutionContext& /*config*/)
 {
     // always search full space, no matter if use_spare_set or not
     do
@@ -659,19 +659,23 @@ ConvSolution ConvHipImplicitGemmV4R4WrW::GetSolution(const ConvolutionContext& c
 
     if(ctx.Is3d())
     {
+        // clang-format off
         construction_parameters.kernel_file =
-            "gridwise_convolution_backward_weights_implicit_gemm_v4r4_ncdhw_kczyx_nkdhw.cpp";
+            "static_kernel_gridwise_convolution_backward_weights_implicit_gemm_v4r4_ncdhw_kczyx_nkdhw.cpp";
 
         construction_parameters.kernel_name =
             "gridwise_convolution_backward_weights_implicit_gemm_v4r4_ncdhw_kczyx_nkdhw";
+        // clang-format on
     }
     else
     {
+        // clang-format off
         construction_parameters.kernel_file =
-            "gridwise_convolution_backward_weights_implicit_gemm_v4r4_nchw_kcyx_nkhw.cpp";
+            "static_kernel_gridwise_convolution_backward_weights_implicit_gemm_v4r4_nchw_kcyx_nkhw.cpp";
 
         construction_parameters.kernel_name =
             "gridwise_convolution_backward_weights_implicit_gemm_v4r4_nchw_kcyx_nkhw";
+        // clang-format on
     }
 
     int GemmMLevel0Cluster                    = 0;
@@ -753,7 +757,7 @@ ConvSolution ConvHipImplicitGemmV4R4WrW::GetSolution(const ConvolutionContext& c
         std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size) +
         std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
-        get_ck_common_compiler_flag(ctx) +
+        get_static_ck_common_compiler_flag(ctx) +
         ctx.general_compile_options;
 
         if (ctx.Is3d()){

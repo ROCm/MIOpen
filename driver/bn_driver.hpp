@@ -877,7 +877,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunForwardGPU()
                    iters - 1);
         int in_n, in_c, in_h, in_w;
         std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(miopen::deref(inputTensor).GetLengths());
-        size_t M      = in_n * in_c * in_h * in_w;
+        size_t M                         = in_n * in_c * in_h * in_w;
         size_t dataSz = (M + 2 * in_c) * miopen::GetTypeSize(miopen::deref(inputTensor).GetType());
         float rdCnt   = -1.0;
         float wrCnt   = 1.0;
@@ -1399,7 +1399,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunBackwardCPU()
     else if(bn_mode == miopenBNSpatial)
     {                                               // 1xCx1x1
         miopenBNBwdSpatialRunHost<Tgpu, Tref, Tmix>(/* alphaDiff, betaDiff, alphaParam, betaParam,
-                                                       */
+                                                     */
                                                     batch_sz,
                                                     channels,
                                                     (isDepthSpecified ? depth : 1),
@@ -1443,7 +1443,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyBackward()
     dbias_dev->FromGPU(GetStream(), dbias.data());
 #if(MIO_BN_DEBUG == 1)
     const Tref tolerance =
-        static_cast<Tref>(1000 * ((sizeof(Tgpu) == 4) ? ERRTOL_FP32 : ERRTOL_FP16));
+        static_cast<Tref>(1000 * (sizeof(Tgpu) == 4) ? ERRTOL_FP32 : ERRTOL_FP16);
     Tref diff = static_cast<Tref>(0.0);
 #endif
     maxval          = static_cast<Tref>(0.0);

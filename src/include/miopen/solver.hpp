@@ -1,28 +1,28 @@
 /*******************************************************************************
-*
-* MIT License
-*
-* Copyright (c) 2017 Advanced Micro Devices, Inc.
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*******************************************************************************/
+ *
+ * MIT License
+ *
+ * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 
 #ifndef GUARD_MIOPEN_SOLVER_HPP_
 #define GUARD_MIOPEN_SOLVER_HPP_
@@ -166,7 +166,7 @@ struct PerformanceConfigConvAsm3x3U : Serializable<PerformanceConfigConvAsm3x3U>
 
     void HeuristicInit(const ConvolutionContext& config);
     bool IsValidValue() const;
-    bool SetNextValue();
+    bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& config) const;
     bool operator==(const PerformanceConfigConvAsm3x3U& other) const;
     std::string ToString() const;
@@ -233,7 +233,7 @@ struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
 
     void HeuristicInit(const ConvolutionContext& config);
     bool IsValidValue() const;
-    bool SetNextValue();
+    bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& config) const;
     bool operator==(const PerformanceConfigConvAsm1x1U& other) const;
     std::string ToString() const;
@@ -329,7 +329,7 @@ struct PerformanceConfigConvAsm1x1UV2 : Serializable<PerformanceConfigConvAsm1x1
 
     void HeuristicInit(const ConvolutionContext& config);
     bool IsValidValue() const;
-    bool SetNextValue();
+    bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& config) const;
     bool operator==(const PerformanceConfigConvAsm1x1UV2& other) const;
     std::string ToString() const;
@@ -438,7 +438,7 @@ struct PerformanceImplicitGemm : Serializable<PerformanceImplicitGemm>
 
     void HeuristicInit(const ConvolutionContext& config);
     bool IsValidValue() const;
-    bool SetNextValue();
+    bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& ctx) const;
     bool operator==(const PerformanceImplicitGemm& other) const;
     std::string ToString() const;
@@ -530,7 +530,7 @@ struct PerformanceImplicitGemmV4R4Fwd : Serializable<PerformanceImplicitGemmV4R4
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
     void HeuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue();
+    bool SetNextValue(const ConvolutionContext& config);
     std::string ToString() const;
 };
 
@@ -586,7 +586,7 @@ struct PerformanceImplicitGemmV4R4WrW : Serializable<PerformanceImplicitGemmV4R4
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
     void HeuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue();
+    bool SetNextValue(const ConvolutionContext& config);
     std::string ToString() const;
 };
 
@@ -643,7 +643,7 @@ struct PerformanceImplicitGemmBwdDataV1R1 : Serializable<PerformanceImplicitGemm
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
     void HeuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue();
+    bool SetNextValue(const ConvolutionContext& config);
     std::string ToString() const;
 };
 
@@ -700,7 +700,7 @@ struct PerformanceImplicitGemmBwdDataV4R1 : Serializable<PerformanceImplicitGemm
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
     void HeuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue();
+    bool SetNextValue(const ConvolutionContext& config);
     std::string ToString() const;
 };
 
@@ -757,7 +757,7 @@ struct PerformanceImplicitGemmBwdDataV4R1Xdlops
     bool IsReallyValid(const ConvolutionContext& ctx) const;
     bool IsFastToBeUsedForTuning(const ConvolutionContext& ctx) const;
     void HeuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue();
+    bool SetNextValue(const ConvolutionContext& config);
     std::string ToString() const;
 };
 
@@ -842,7 +842,7 @@ struct PerformanceImplicitGemmV4R4GenXdlopsFwdFp32
 
     void HeuristicInit(const ConvolutionContext& ctx);
     bool IsValidValue() const;
-    bool SetNextValue();
+    bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& ctx) const;
     bool operator==(const PerformanceImplicitGemmV4R4GenXdlopsFwdFp32& other) const;
     std::string ToString() const;
@@ -933,7 +933,7 @@ struct PerformanceImplicitGemmXdlops : Serializable<PerformanceImplicitGemmXdlop
 
     void HeuristicInit(const ConvolutionContext& ctx);
     bool IsValidValue() const;
-    bool SetNextValue();
+    bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& ctx) const;
     bool operator==(const PerformanceImplicitGemmXdlops& other) const;
     std::string ToString() const;
@@ -974,7 +974,7 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops
     std::string ToString() const;
 
     void HeuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue();
+    bool SetNextValue(const ConvolutionContext& config);
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
     bool IsReallyValid(const ConvolutionContext& ctx) const;
@@ -1032,7 +1032,7 @@ struct PerformanceImplicitGemmForwardV4R5Xdlops
     std::string ToString() const;
 
     void HeuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue();
+    bool SetNextValue(const ConvolutionContext& config);
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
     bool IsReallyValid(const ConvolutionContext& ctx) const;
@@ -1092,7 +1092,7 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm
     std::string ToString() const;
 
     void HeuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue();
+    bool SetNextValue(const ConvolutionContext& config);
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
     bool IsReallyValid(const ConvolutionContext& ctx) const;
@@ -1139,7 +1139,7 @@ struct PerformanceImplicitGemmBwdV1R1Xdlops : Serializable<PerformanceImplicitGe
     std::string ToString() const;
 
     void HeuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue();
+    bool SetNextValue(const ConvolutionContext& config);
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
     bool IsReallyValid(const ConvolutionContext& ctx) const;
@@ -1237,7 +1237,7 @@ struct PerformanceImplicitGemmV4R4GenXdlopsWrWFp32
 
     void HeuristicInit(const ConvolutionContext& ctx);
     bool IsValidValue() const;
-    bool SetNextValue();
+    bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& ctx) const;
     bool operator==(const PerformanceImplicitGemmV4R4GenXdlopsWrWFp32& other) const;
     std::string ToString() const;
@@ -1468,7 +1468,7 @@ struct PerformanceConfigConvBinWinogradRxSf3x2
 
     void HeuristicInit(const ConvolutionContext& config);
     bool IsValidValue() const;
-    bool SetNextValue();
+    bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& config) const;
     bool operator==(const PerformanceConfigConvBinWinogradRxSf3x2& other) const;
     std::string ToString() const;
@@ -1511,7 +1511,7 @@ struct PerformanceConfigConvBinWinogradRxSf2x3
 
     void HeuristicInit(const ConvolutionContext& config);
     bool IsValidValue() const;
-    bool SetNextValue();
+    bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& config) const;
     bool operator==(const PerformanceConfigConvBinWinogradRxSf2x3& other) const;
     std::string ToString() const;
@@ -1756,7 +1756,7 @@ struct PerformanceConfigAsmDirect3x3WrW : Serializable<PerformanceConfigAsmDirec
 
     void HeuristicInit(const ConvolutionContext& config);
     bool IsValidValue() const;
-    bool SetNextValue();
+    bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& config) const;
     bool operator==(const PerformanceConfigAsmDirect3x3WrW& other) const;
     std::string ToString() const;
@@ -1860,7 +1860,7 @@ struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsm
 
     void HeuristicInit(const ConvolutionContext& config);
     bool IsValidValue() const;
-    bool SetNextValue();
+    bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& config) const;
     bool operator==(const PerformanceConfigConvAsmBwdWrW1x1& other) const;
     std::string ToString() const;
@@ -1935,7 +1935,7 @@ struct PerformanceConfigConvOclBwdWrw2
 
     void HeuristicInit(const ConvolutionContext& params);
     bool IsValidValue() const;
-    bool SetNextValue();
+    bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& params) const;
     bool operator==(const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& other) const;
     std::string ToString() const;
@@ -2042,7 +2042,7 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops : Serializable<PerformanceImplicitGe
     std::string ToString() const;
 
     void HeuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue();
+    bool SetNextValue(const ConvolutionContext& config);
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
     bool IsReallyValid(const ConvolutionContext& ctx) const;
@@ -2117,7 +2117,7 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
     std::string ToString() const;
 
     void HeuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue();
+    bool SetNextValue(const ConvolutionContext& config);
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
     bool IsReallyValid(const ConvolutionContext& ctx) const;
@@ -2134,6 +2134,7 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
     CalculateGemmBBlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
     std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
 };
+
 struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm : SolverBase<ConvolutionContext>
 {
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
@@ -2148,6 +2149,45 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm : SolverBase<ConvolutionCont
 
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
     Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const;
+};
+
+struct PerformanceConvCkIgemmFwdV6r1DlopsNchw : Serializable<PerformanceConvCkIgemmFwdV6r1DlopsNchw>
+{
+    int ck_tunable_list_id;
+
+    PerformanceConvCkIgemmFwdV6r1DlopsNchw(int a) : ck_tunable_list_id(a) {}
+
+    PerformanceConvCkIgemmFwdV6r1DlopsNchw() : PerformanceConvCkIgemmFwdV6r1DlopsNchw(-1) {}
+
+    PerformanceConvCkIgemmFwdV6r1DlopsNchw(bool) : PerformanceConvCkIgemmFwdV6r1DlopsNchw(0) {}
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.ck_tunable_list_id, "ck_tunable_list_id");
+    }
+
+    bool SetNextValue(const ConvolutionContext&);
+    bool IsValid(const ConvolutionContext&) const;
+    bool operator==(const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config) const
+    {
+        return ck_tunable_list_id == config.ck_tunable_list_id;
+    }
+};
+
+struct ConvCkIgemmFwdV6r1DlopsNchw : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext&) const;
+    std::size_t GetWorkspaceSize(const ConvolutionContext&) const;
+    bool IsDynamic() const { return true; }
+    PerformanceConvCkIgemmFwdV6r1DlopsNchw GetPerformanceConfig(const ConvolutionContext&) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
+                                  const PerformanceConvCkIgemmFwdV6r1DlopsNchw&) const;
+    PerformanceConvCkIgemmFwdV6r1DlopsNchw Search(const ConvolutionContext&,
+                                                  const AnyInvokeParams&) const;
+    ConvSolution GetSolution(const ConvolutionContext&,
+                             const PerformanceConvCkIgemmFwdV6r1DlopsNchw&,
+                             bool disableConfigOverrideFromEnv = false) const;
 };
 
 struct ConvDirectNaiveConvFwd : SolverBase<ConvolutionContext>
@@ -2406,7 +2446,7 @@ struct PerformanceConfigAsmImplicitGemmGTC : Serializable<PerformanceConfigAsmIm
 {
     std::string direction;
     std::string tensor_layout;
-    std::string precision;
+    miopenDataType_t precision;
     int nxb;
     int nxe;
 
@@ -2438,7 +2478,7 @@ struct PerformanceConfigAsmImplicitGemmGTC : Serializable<PerformanceConfigAsmIm
 
     PerformanceConfigAsmImplicitGemmGTC(std::string dir,
                                         std::string layout,
-                                        std::string prec,
+                                        miopenDataType_t prec,
                                         int b,
                                         int e,
                                         int mpb,
@@ -2464,7 +2504,7 @@ struct PerformanceConfigAsmImplicitGemmGTC : Serializable<PerformanceConfigAsmIm
     PerformanceConfigAsmImplicitGemmGTC()
         : PerformanceConfigAsmImplicitGemmGTC("fwd",
                                               "nchw",
-                                              "fp32",
+                                              miopenFloat,
                                               1,
                                               1,
                                               1,
@@ -2492,7 +2532,7 @@ struct PerformanceConfigAsmImplicitGemmGTC : Serializable<PerformanceConfigAsmIm
     PerformanceConfigAsmImplicitGemmGTC(bool spare)
         : PerformanceConfigAsmImplicitGemmGTC("fwd",
                                               "nchw",
-                                              "fp32",
+                                              miopenFloat,
                                               1,
                                               1,
                                               1,
@@ -2521,9 +2561,10 @@ struct PerformanceConfigAsmImplicitGemmGTC : Serializable<PerformanceConfigAsmIm
     template <class Self, class F>
     static void Visit(Self&& self, F f)
     {
+        std::string prec_string = self.precision == miopenFloat ? "fp32" : "fp16";
         f(self.direction, "dir");
         f(self.tensor_layout, "lyt");
-        f(self.precision, "pre");
+        f(prec_string, "pre");
         f(self.nxb, "nxb");
         f(self.nxe, "nxe");
         f(self.gemm_m_per_block, "mpb");
@@ -2566,10 +2607,12 @@ struct PerformanceConfigAsmImplicitGemmGTC : Serializable<PerformanceConfigAsmIm
         f(self.index, "index");
     }
 
-    void HeuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue();
-    bool IsValidValue() const;
-    bool IsValid(const ConvolutionContext& ctx) const;
+    // Chilrden must provide support for ComputedContainer.
+    void HeuristicInit(const ConvolutionContext&) = delete;
+    bool SetNextValue(const ConvolutionContext&)  = delete;
+    bool IsValidValue() const                     = delete;
+    bool IsValid(const ConvolutionContext&) const = delete;
+
     bool IsDefaultConstructed() const;
     bool operator==(const PerformanceConfigAsmImplicitGemmGTC& other) const;
     void CopyParameters(const PerformanceConfigAsmImplicitGemmGTC& other);
@@ -2582,7 +2625,7 @@ struct PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC : PerformanceConfigAsmIm
 {
     PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC(std::string dir,
                                                      std::string layout,
-                                                     std::string prec,
+                                                     miopenDataType_t prec,
                                                      int b,
                                                      int e,
                                                      int mpb,
@@ -2635,7 +2678,7 @@ struct PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC : PerformanceConfigAsmIm
     PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC()
         : PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC("fwd",
                                                            "nchw",
-                                                           "fp32",
+                                                           miopenFloat,
                                                            1,
                                                            1,
                                                            1,
@@ -2663,7 +2706,7 @@ struct PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC : PerformanceConfigAsmIm
     PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC(bool spare)
         : PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC("fwd",
                                                            "nchw",
-                                                           "fp32",
+                                                           miopenFloat,
                                                            1,
                                                            1,
                                                            1,
@@ -2690,7 +2733,7 @@ struct PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC : PerformanceConfigAsmIm
     }
 
     void HeuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue();
+    bool SetNextValue(const ConvolutionContext& config);
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
 };
@@ -2715,7 +2758,7 @@ struct PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC : PerformanceConfigAsmIm
 {
     PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC(std::string dir,
                                                      std::string layout,
-                                                     std::string prec,
+                                                     miopenDataType_t prec,
                                                      int b,
                                                      int e,
                                                      int mpb,
@@ -2768,7 +2811,7 @@ struct PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC : PerformanceConfigAsmIm
     PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC()
         : PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC("fwd",
                                                            "nchw",
-                                                           "fp32",
+                                                           miopenFloat,
                                                            1,
                                                            1,
                                                            1,
@@ -2796,7 +2839,7 @@ struct PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC : PerformanceConfigAsmIm
     PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC(bool spare)
         : PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC("fwd",
                                                            "nchw",
-                                                           "fp32",
+                                                           miopenFloat,
                                                            1,
                                                            1,
                                                            1,
@@ -2822,7 +2865,7 @@ struct PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC : PerformanceConfigAsmIm
     {
     }
     void HeuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue();
+    bool SetNextValue(const ConvolutionContext& config);
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
 };
@@ -2840,6 +2883,142 @@ struct ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC : SolverBase<ConvolutionContex
     bool IsDynamic() const { return true; }
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC& config,
+                             bool disableConfigOverrideFromEnv = false) const;
+};
+
+struct PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC : PerformanceConfigAsmImplicitGemmGTC
+{
+    PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC(std::string dir,
+                                                     std::string layout,
+                                                     miopenDataType_t prec,
+                                                     int b,
+                                                     int e,
+                                                     int mpb,
+                                                     int npb,
+                                                     int kpb,
+                                                     int wtm,
+                                                     int wtn,
+                                                     int wtk,
+                                                     int wsm,
+                                                     int wsn,
+                                                     int wrm,
+                                                     int wrn,
+                                                     int mh,
+                                                     int vs,
+                                                     int gks,
+                                                     int me,
+                                                     int pta,
+                                                     std::initializer_list<int> ta_t,
+                                                     std::initializer_list<int> ta_c,
+                                                     std::initializer_list<int> tb_t,
+                                                     std::initializer_list<int> tb_c,
+                                                     bool spare = false)
+        : PerformanceConfigAsmImplicitGemmGTC(dir,
+                                              layout,
+                                              prec,
+                                              b,
+                                              e,
+                                              mpb,
+                                              npb,
+                                              kpb,
+                                              wtm,
+                                              wtn,
+                                              wtk,
+                                              wsm,
+                                              wsn,
+                                              wrm,
+                                              wrn,
+                                              mh,
+                                              vs,
+                                              gks,
+                                              me,
+                                              pta,
+                                              ta_t,
+                                              ta_c,
+                                              tb_t,
+                                              tb_c,
+                                              spare)
+    {
+    }
+    PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC()
+        : PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC("fwd",
+                                                           "nchw",
+                                                           miopenFloat,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           {1, 1, 1, 1},
+                                                           {1, 1, 1, 1},
+                                                           {1, 1, 1, 1},
+                                                           {1, 1, 1, 1},
+                                                           false)
+    {
+    }
+    PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC(bool spare)
+        : PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC("fwd",
+                                                           "nchw",
+                                                           miopenFloat,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           1,
+                                                           {1, 1, 1, 1},
+                                                           {1, 1, 1, 1},
+                                                           {1, 1, 1, 1},
+                                                           {1, 1, 1, 1},
+                                                           spare)
+    {
+    }
+
+    void HeuristicInit(const ConvolutionContext& ctx);
+    bool SetNextValue(const ConvolutionContext& config);
+    bool IsValidValue() const;
+    bool IsValid(const ConvolutionContext& ctx) const;
+    size_t ComputeKernelOccupancy() const;
+};
+
+struct ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC : SolverBase<ConvolutionContext>
+{
+    PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC
+    GetPerformanceConfig(const ConvolutionContext&) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
+                                  const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC&) const;
+    PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC
+    Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const;
+
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const;
+
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    bool IsDynamic() const { return true; }
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC& config,
                              bool disableConfigOverrideFromEnv = false) const;
 };
 

@@ -148,7 +148,7 @@ static inline _FLOAT LogAddExp(const _FLOAT x, const _FLOAT y)
  * J. L. Greathouse, M. Daga, Efficient sparse matrix-vector multiplication
  * on GPUs using the CSR storage format, in: Proc. Int'l Conf. High Performance
  * Computing, Networking, Storage and Analysis (SC'14)
-*/
+ */
 
 #if RUN_FORWARD
 __kernel void SoftmaxForward(global _FLOAT* x,
@@ -413,7 +413,7 @@ __kernel void SoftmaxForward(global _FLOAT* x,
      * E.g. a 256 thread workgroup with c=31 has 8 batches and a batchsize of 32.
      * The number of workgroups launched are exactly the number as required
      * hence, there is no for-loop.
-    */
+     */
 
     local _FLOAT l_helper[256];
 
@@ -864,7 +864,7 @@ __kernel void SoftmaxBackward(global _FLOAT* y,
     for(int i = 0; i < U_BATCH_SIZE; i++)
     {
 #if MIOPEN_USE_FP16 == 1 // Refer to Comment1 above for different fp16 and fp32 impl
-        y_value[lid * U_BATCH_SIZE + i] = 0;
+        y_value[lid * U_BATCH_SIZE + i]  = 0;
         dx_value[lid * U_BATCH_SIZE + i] = 0;
 #else
         y_value[i]  = 0;
