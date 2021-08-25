@@ -280,58 +280,58 @@ pipeline {
         Tensile_setup = " -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF"
     }
     stages{
-        stage("Static checks"){
-            when { expression { params.STATIC_CHECKS && !params.DISABLE_ALL_STAGES } }
-            // parallel{
-            //     stage('Hip Tidy') {
-            //         agent{  label rocmnode("nogpu") }
-            //         environment{
-            //             setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DMIOPEN_BACKEND=HIP -DBUILD_DEV=On .. "
-            //             build_cmd = "make -j\$(nproc) -k analyze"
-            //         }
-            //         steps{
-            //             buildHipClangJobAndReboot(setup_cmd: setup_cmd, build_cmd: build_cmd, no_reboot:true)
-            //         }
-            //     }
-            //     stage('OpenCL Tidy') {
-            //         agent{  label rocmnode("nogpu") }
-            //         environment{
-            //             setup_cmd = "cmake -DMIOPEN_BACKEND=OpenCL -DBUILD_DEV=On .."
-            //             build_cmd = "make -j\$(nproc) -k analyze"
-            //         }
-            //         steps{
-            //             buildHipClangJobAndReboot(setup_cmd: setup_cmd, build_cmd: build_cmd, no_reboot:true)
-            //         }
-            //     }
-            //     stage('Clang Format') {
-            //         agent{ label rocmnode("nogpu") }
-            //         environment{
-            //             execute_cmd = "find . -iname \'*.h\' \
-            //                     -o -iname \'*.hpp\' \
-            //                     -o -iname \'*.cpp\' \
-            //                     -o -iname \'*.h.in\' \
-            //                     -o -iname \'*.hpp.in\' \
-            //                     -o -iname \'*.cpp.in\' \
-            //                     -o -iname \'*.cl\' \
-            //                     | grep -v 'build/' \
-            //                     | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-10 -style=file {} | diff - {}\'"
-            //         }
-            //         steps{
-            //             buildHipClangJobAndReboot(setup_cmd: "", build_cmd: "", execute_cmd: execute_cmd, no_reboot:true)
-            //         }
-            //     }
-            //   stage('Tuna Fin Build Test') {
-            //       agent{ label rocmnode("nogpu") }
-            //       environment{
-            //           setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON .. "
-            //           build_cmd = "make -j\$(nproc) "
-            //       }
-            //       steps{
-            //           buildHipClangJobAndReboot(setup_cmd: setup_cmd, execute_cmd: "", no_reboot:true, build_cmd: build_cmd, build_fin: "ON")
-            //       }
-            //   }
-            // }
-        }
+        // stage("Static checks"){
+        //     when { expression { params.STATIC_CHECKS && !params.DISABLE_ALL_STAGES } }
+        //     // parallel{
+        //     //     stage('Hip Tidy') {
+        //     //         agent{  label rocmnode("nogpu") }
+        //     //         environment{
+        //     //             setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DMIOPEN_BACKEND=HIP -DBUILD_DEV=On .. "
+        //     //             build_cmd = "make -j\$(nproc) -k analyze"
+        //     //         }
+        //     //         steps{
+        //     //             buildHipClangJobAndReboot(setup_cmd: setup_cmd, build_cmd: build_cmd, no_reboot:true)
+        //     //         }
+        //     //     }
+        //     //     stage('OpenCL Tidy') {
+        //     //         agent{  label rocmnode("nogpu") }
+        //     //         environment{
+        //     //             setup_cmd = "cmake -DMIOPEN_BACKEND=OpenCL -DBUILD_DEV=On .."
+        //     //             build_cmd = "make -j\$(nproc) -k analyze"
+        //     //         }
+        //     //         steps{
+        //     //             buildHipClangJobAndReboot(setup_cmd: setup_cmd, build_cmd: build_cmd, no_reboot:true)
+        //     //         }
+        //     //     }
+        //     //     stage('Clang Format') {
+        //     //         agent{ label rocmnode("nogpu") }
+        //     //         environment{
+        //     //             execute_cmd = "find . -iname \'*.h\' \
+        //     //                     -o -iname \'*.hpp\' \
+        //     //                     -o -iname \'*.cpp\' \
+        //     //                     -o -iname \'*.h.in\' \
+        //     //                     -o -iname \'*.hpp.in\' \
+        //     //                     -o -iname \'*.cpp.in\' \
+        //     //                     -o -iname \'*.cl\' \
+        //     //                     | grep -v 'build/' \
+        //     //                     | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-10 -style=file {} | diff - {}\'"
+        //     //         }
+        //     //         steps{
+        //     //             buildHipClangJobAndReboot(setup_cmd: "", build_cmd: "", execute_cmd: execute_cmd, no_reboot:true)
+        //     //         }
+        //     //     }
+        //     //   stage('Tuna Fin Build Test') {
+        //     //       agent{ label rocmnode("nogpu") }
+        //     //       environment{
+        //     //           setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON .. "
+        //     //           build_cmd = "make -j\$(nproc) "
+        //     //       }
+        //     //       steps{
+        //     //           buildHipClangJobAndReboot(setup_cmd: setup_cmd, execute_cmd: "", no_reboot:true, build_cmd: build_cmd, build_fin: "ON")
+        //     //       }
+        //     //   }
+        //     // }
+        // }
         stage("Smoke Fp32"){
             when { expression { params.SMOKE_FP32_AUX1 && !params.DISABLE_ALL_STAGES } }
             environment{
@@ -406,91 +406,91 @@ pipeline {
             //     }
             }
         }
-        stage("Smoke Aux 1"){
-            when { expression { params.SMOKE_FP32_AUX1 && !params.DISABLE_ALL_STAGES } }
-            // parallel{
-            //     stage('Fp32 Hip Debug COMGR') {
-            //         agent{ label rocmnode("vega") }
-            //         environment{
-            //             COMGR_build_cmd = "CTEST_PARALLEL_LEVEL=2 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
-            //         }
-            //         steps{
-            //             buildHipClangJobAndReboot( build_type: 'debug', setup_flags: "-DMIOPEN_USE_COMGR=On", build_cmd: COMGR_build_cmd, test_flags: ' --verbose ')
-            //         }
-            //     }
-            //     stage('Fp32 Hip Debug Embedded Vega20') {
-            //         agent{ label rocmnode("vega20") }
-            //         environment{
-            //             Embedded_flags = "-DMIOPEN_EMBED_DB='gfx906_60;gfx906_64'"
-            //         }
-            //         steps{
-            //             buildHipClangJobAndReboot( build_type: 'debug', setup_flags: Embedded_flags, build_env: extra_log_env, test_flags: ' --verbose ')
-            //         }
-            //     }
-            //     stage('Fp32 Hip Static') {
-            //         agent{ label rocmnode("vega") }
-            //         steps{
-            //             buildHipClangJobAndReboot( setup_flags: "-DBUILD_SHARED_LIBS=Off")
-            //         }
-            //     }
-            //     stage('Fp32 Hip Normal-Find') {
-            //         agent{ label rocmnode("vega") }
-            //         environment{
-            //             config_targets = "test_conv2d"
-            //             execute_cmd = "MIOPEN_FIND_MODE=1 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --disable-verification-cache"
-            //         }
-            //         steps{
-            //             buildHipClangJobAndReboot(config_targets: config_targets, execute_cmd: execute_cmd)
-            //         }
-            //     }
-            //     stage('Fp32 Hip Fast-Find') {
-            //         agent{ label rocmnode("vega") }
-            //         environment{
-            //             config_targets =   "test_conv2d"
-            //             execute_cmd = "MIOPEN_FIND_MODE=2 CTEST_PARALLEL_LEVEL=4  MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --disable-verification-cache"
-            //         }
-            //         steps{
-            //             buildHipClangJobAndReboot( config_targets: config_targets, execute_cmd: execute_cmd)
-            //         }
-            //     }
-            //     stage('Fp32 Hip') {
-            //         agent{ label rocmnode("vega") }
-            //         steps{
-            //             buildHipClangJobAndReboot()
-            //         }
-            //     }
-            // }
-        }
-        stage("Smoke MLIR"){
-            when { expression { params.SMOKE_MLIR && !params.DISABLE_ALL_STAGES } }
-            environment{ MLIR_flags = "-DMIOPEN_USE_MLIR=On" }
-            // parallel{
-            //     stage('Fp32 Hip MLIR') {
-            //         agent{ label rocmnode("vega") }
-            //         steps{
-            //             buildHipClangJobAndReboot(setup_flags: MLIR_flags, build_env: extra_log_env, test_flags: ' --verbose ', mlir_build: "ON")
-            //         }
-            //     }
-            //     stage('Fp16 Hip MLIR') {
-            //         agent{ label rocmnode("vega") }
-            //         steps{
-            //             buildHipClangJobAndReboot(setup_flags: MLIR_flags + Fp16_flags, build_env: extra_log_env, test_flags: ' --verbose ', mlir_build: "ON")
-            //         }
-            //     }
-            //     stage('Fp16 Hip MLIR gfx908') {
-            //         agent{ label rocmnode("gfx908") }
-            //         steps{
-            //             buildHipClangJobAndReboot(setup_flags: MLIR_flags + Fp16_flags, build_env: extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908", mlir_build: "ON")
-            //         }
-            //     }
-            //     stage('Fp32 Hip MLIR gfx908') {
-            //         agent{ label rocmnode("gfx908") }
-            //         steps{
-            //             buildHipClangJobAndReboot(setup_flags: MLIR_flags, build_env: extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908", mlir_build: "ON")
-            //         }
-            //     }
-            // }
-        }
+        // stage("Smoke Aux 1"){
+        //     when { expression { params.SMOKE_FP32_AUX1 && !params.DISABLE_ALL_STAGES } }
+        //     // parallel{
+        //     //     stage('Fp32 Hip Debug COMGR') {
+        //     //         agent{ label rocmnode("vega") }
+        //     //         environment{
+        //     //             COMGR_build_cmd = "CTEST_PARALLEL_LEVEL=2 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
+        //     //         }
+        //     //         steps{
+        //     //             buildHipClangJobAndReboot( build_type: 'debug', setup_flags: "-DMIOPEN_USE_COMGR=On", build_cmd: COMGR_build_cmd, test_flags: ' --verbose ')
+        //     //         }
+        //     //     }
+        //     //     stage('Fp32 Hip Debug Embedded Vega20') {
+        //     //         agent{ label rocmnode("vega20") }
+        //     //         environment{
+        //     //             Embedded_flags = "-DMIOPEN_EMBED_DB='gfx906_60;gfx906_64'"
+        //     //         }
+        //     //         steps{
+        //     //             buildHipClangJobAndReboot( build_type: 'debug', setup_flags: Embedded_flags, build_env: extra_log_env, test_flags: ' --verbose ')
+        //     //         }
+        //     //     }
+        //     //     stage('Fp32 Hip Static') {
+        //     //         agent{ label rocmnode("vega") }
+        //     //         steps{
+        //     //             buildHipClangJobAndReboot( setup_flags: "-DBUILD_SHARED_LIBS=Off")
+        //     //         }
+        //     //     }
+        //     //     stage('Fp32 Hip Normal-Find') {
+        //     //         agent{ label rocmnode("vega") }
+        //     //         environment{
+        //     //             config_targets = "test_conv2d"
+        //     //             execute_cmd = "MIOPEN_FIND_MODE=1 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --disable-verification-cache"
+        //     //         }
+        //     //         steps{
+        //     //             buildHipClangJobAndReboot(config_targets: config_targets, execute_cmd: execute_cmd)
+        //     //         }
+        //     //     }
+        //     //     stage('Fp32 Hip Fast-Find') {
+        //     //         agent{ label rocmnode("vega") }
+        //     //         environment{
+        //     //             config_targets =   "test_conv2d"
+        //     //             execute_cmd = "MIOPEN_FIND_MODE=2 CTEST_PARALLEL_LEVEL=4  MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --disable-verification-cache"
+        //     //         }
+        //     //         steps{
+        //     //             buildHipClangJobAndReboot( config_targets: config_targets, execute_cmd: execute_cmd)
+        //     //         }
+        //     //     }
+        //     //     stage('Fp32 Hip') {
+        //     //         agent{ label rocmnode("vega") }
+        //     //         steps{
+        //     //             buildHipClangJobAndReboot()
+        //     //         }
+        //     //     }
+        //     // }
+        // }
+        // stage("Smoke MLIR"){
+        //     when { expression { params.SMOKE_MLIR && !params.DISABLE_ALL_STAGES } }
+        //     environment{ MLIR_flags = "-DMIOPEN_USE_MLIR=On" }
+        //     // parallel{
+        //     //     stage('Fp32 Hip MLIR') {
+        //     //         agent{ label rocmnode("vega") }
+        //     //         steps{
+        //     //             buildHipClangJobAndReboot(setup_flags: MLIR_flags, build_env: extra_log_env, test_flags: ' --verbose ', mlir_build: "ON")
+        //     //         }
+        //     //     }
+        //     //     stage('Fp16 Hip MLIR') {
+        //     //         agent{ label rocmnode("vega") }
+        //     //         steps{
+        //     //             buildHipClangJobAndReboot(setup_flags: MLIR_flags + Fp16_flags, build_env: extra_log_env, test_flags: ' --verbose ', mlir_build: "ON")
+        //     //         }
+        //     //     }
+        //     //     stage('Fp16 Hip MLIR gfx908') {
+        //     //         agent{ label rocmnode("gfx908") }
+        //     //         steps{
+        //     //             buildHipClangJobAndReboot(setup_flags: MLIR_flags + Fp16_flags, build_env: extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908", mlir_build: "ON")
+        //     //         }
+        //     //     }
+        //     //     stage('Fp32 Hip MLIR gfx908') {
+        //     //         agent{ label rocmnode("gfx908") }
+        //     //         steps{
+        //     //             buildHipClangJobAndReboot(setup_flags: MLIR_flags, build_env: extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908", mlir_build: "ON")
+        //     //         }
+        //     //     }
+        //     // }
+        // }
         stage("Smoke Fp16/Bf16/Int8"){
             when { expression { params.SMOKE_FP16_BF16_INT8 && !params.DISABLE_ALL_STAGES } }
             environment{
@@ -547,55 +547,55 @@ pipeline {
                 }
             }
         }
-        stage("Smoke MIOpenTensile Latest"){
-            environment{
-                Tensile_version = "latest"
-            }
-            // parallel{
-                // stage('Fp16 Hip Tensile-Latest All Vega20') {
-                //     when { expression { params.SMOKE_MIOPENTENSILE_LATEST && !params.DISABLE_ALL_STAGES } }
-                //     agent{ label rocmnode("vega20") }
-                //     steps{
-                //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Fp16_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                //     }
-                // }
-                // stage('Int8 Hip Tensile-Latest All Vega20') {
-                //     when { expression { params.SMOKE_MIOPENTENSILE_LATEST && !params.DISABLE_ALL_STAGES } }
-                //     agent{ label rocmnode("vega20") }
-                //     steps{
-                //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + extra_log_env + Int8_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                //     }
-                // }
-                // stage('Fp32 Hip Tensile-Latest All gfx908') {
-                //     when { expression { params.SMOKE_MIOPENTENSILE_LATEST && !params.DISABLE_ALL_STAGES } }
-                //     agent{ label rocmnode("gfx908") }
-                //     steps{
-                //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + extra_log_env, build_env: Tensile_build_env + extra_log_env, gpu_arch: "gfx908:xnack-", test_flags: ' --verbose ', miotensile_version: Tensile_version, target_id: "ON")
-                //     }
-                // }
-                // stage('Bf16 Hip Tensile-Latest All gfx908') {
-                //     when { expression { params.SMOKE_MIOPENTENSILE_LATEST && !params.DISABLE_ALL_STAGES } }
-                //     agent{ label rocmnode("gfx908") }
-                //     steps{
-                //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + extra_log_env + Bf16_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                //     }
-                // }
-                // stage('Fp32 Hip Tensile-Latest All gfx90a') {
-                //     when { expression { params.SMOKE_MIOPENTENSILE_LATEST && !params.DISABLE_ALL_STAGES } }
-                //     agent{ label rocmnode("gfx90a") }
-                //     steps{
-                //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + extra_log_env, build_env: Tensile_build_env + extra_log_env, gpu_arch: "gfx90a:xnack-", test_flags: ' --verbose ', miotensile_version: Tensile_version, target_id: "ON")
-                //     }
-                // }
-                // stage('Bf16 Hip Tensile-Latest All gfx90a') {
-                //     when { expression { params.SMOKE_MIOPENTENSILE_LATEST && !params.DISABLE_ALL_STAGES } }
-                //     agent{ label rocmnode("gfx90a") }
-                //     steps{
-                //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + extra_log_env + Bf16_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx90a:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                //     }
-                // }
-            // }
-        }
+        // stage("Smoke MIOpenTensile Latest"){
+        //     environment{
+        //         Tensile_version = "latest"
+        //     }
+        //     // parallel{
+        //         // stage('Fp16 Hip Tensile-Latest All Vega20') {
+        //         //     when { expression { params.SMOKE_MIOPENTENSILE_LATEST && !params.DISABLE_ALL_STAGES } }
+        //         //     agent{ label rocmnode("vega20") }
+        //         //     steps{
+        //         //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Fp16_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+        //         //     }
+        //         // }
+        //         // stage('Int8 Hip Tensile-Latest All Vega20') {
+        //         //     when { expression { params.SMOKE_MIOPENTENSILE_LATEST && !params.DISABLE_ALL_STAGES } }
+        //         //     agent{ label rocmnode("vega20") }
+        //         //     steps{
+        //         //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + extra_log_env + Int8_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+        //         //     }
+        //         // }
+        //         // stage('Fp32 Hip Tensile-Latest All gfx908') {
+        //         //     when { expression { params.SMOKE_MIOPENTENSILE_LATEST && !params.DISABLE_ALL_STAGES } }
+        //         //     agent{ label rocmnode("gfx908") }
+        //         //     steps{
+        //         //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + extra_log_env, build_env: Tensile_build_env + extra_log_env, gpu_arch: "gfx908:xnack-", test_flags: ' --verbose ', miotensile_version: Tensile_version, target_id: "ON")
+        //         //     }
+        //         // }
+        //         // stage('Bf16 Hip Tensile-Latest All gfx908') {
+        //         //     when { expression { params.SMOKE_MIOPENTENSILE_LATEST && !params.DISABLE_ALL_STAGES } }
+        //         //     agent{ label rocmnode("gfx908") }
+        //         //     steps{
+        //         //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + extra_log_env + Bf16_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+        //         //     }
+        //         // }
+        //         // stage('Fp32 Hip Tensile-Latest All gfx90a') {
+        //         //     when { expression { params.SMOKE_MIOPENTENSILE_LATEST && !params.DISABLE_ALL_STAGES } }
+        //         //     agent{ label rocmnode("gfx90a") }
+        //         //     steps{
+        //         //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + extra_log_env, build_env: Tensile_build_env + extra_log_env, gpu_arch: "gfx90a:xnack-", test_flags: ' --verbose ', miotensile_version: Tensile_version, target_id: "ON")
+        //         //     }
+        //         // }
+        //         // stage('Bf16 Hip Tensile-Latest All gfx90a') {
+        //         //     when { expression { params.SMOKE_MIOPENTENSILE_LATEST && !params.DISABLE_ALL_STAGES } }
+        //         //     agent{ label rocmnode("gfx90a") }
+        //         //     steps{
+        //         //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + extra_log_env + Bf16_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx90a:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+        //         //     }
+        //         // }
+        //     // }
+        // }
         stage("Full Tests I"){
             when { expression { params.FULL_TESTS && !params.DISABLE_ALL_STAGES } }
             parallel{
@@ -681,166 +681,166 @@ pipeline {
             }
         }
 
-        stage("MIOpenTensile"){
-            when { expression { params.MIOPENTENSILE && !params.DISABLE_ALL_STAGES } }
-            environment{
-                Tensile_version = "default"
-            }
-            // parallel{
-            //     stage('Fp32 Hip Tensile All Vega20') {
-            //         agent{ label rocmnode("vega20") }
-            //         steps{
-            //             buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-            //         }
-            //     }
-            //     stage('Fp16 Hip Tensile All Vega20') {
-            //         agent{ label rocmnode("vega20") }
-            //         steps{
-            //             buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + Fp16_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-            //         }
-            //     }
-            //     stage('Bf16 Hip Tensile All Vega20') {
-            //         agent{ label rocmnode("vega20") }
-            //         steps{
-            //             buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Bf16_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-            //         }
-            //     }
-            //     stage('Int8 Hip Tensile All Vega20') {
-            //         agent{ label rocmnode("vega20") }
-            //         steps{
-            //             buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Int8_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-            //         }
-            //     }
-            //     stage('Fp32 Hip Tensile All gfx908') {
-            //         agent{ label rocmnode("gfx908") }
-            //         steps{
-            //             buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-            //         }
-            //     }
-            //     stage('Fp16 Hip Tensile All gfx908') {
-            //         agent{ label rocmnode("gfx908") }
-            //         steps{
-            //             buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Fp16_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-            //         }
-            //     }
-            //     stage('Bf16 Hip Tensile All gfx908') {
-            //         agent{ label rocmnode("gfx908") }
-            //         steps{
-            //             buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Bf16_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-            //         }
-            //     }
-            //     stage('Int8 Hip Tensile All gfx908') {
-            //         agent{ label rocmnode("gfx908") }
-            //         steps{
-            //             buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Int8_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-            //         }
-            //     }
-            //     // stage('Fp32 Hip Tensile All gfx90a') {
-            //     //     agent{ label rocmnode("gfx90a") }
-            //     //     steps{
-            //     //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx90a:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-            //     //     }
-            //     // }
-            //     // stage('Fp16 Hip Tensile All gfx90a') {
-            //     //     agent{ label rocmnode("gfx90a") }
-            //     //     steps{
-            //     //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Fp16_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx90a:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-            //     //     }
-            //     // }
-            //     // stage('Bf16 Hip Tensile All gfx90a') {
-            //     //     agent{ label rocmnode("gfx90a") }
-            //     //     steps{
-            //     //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Bf16_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx90a:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-            //     //     }
-            //     // }
-            //     // stage('Int8 Hip Tensile All gfx90a') {
-            //     //     agent{ label rocmnode("gfx90a") }
-            //     //     steps{
-            //     //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Int8_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx90a:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-            //     //     }
-            //     // }
-            // }
-        }
-        stage("MIOpenTensile Latest"){
-            when { expression { params.MIOPENTENSILE_LATEST && !params.DISABLE_ALL_STAGES  } }
-            environment{
-                Tensile_version = "latest"
-            }
-            // parallel{
-            //     stage('Fp32 Hip Tensile-Latest All Vega20') {
-            //         agent{ label rocmnode("vega20") }
-            //         steps{
-            //             buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-            //         }
-            //     }
-            //     stage('Fp16 Hip Tensile-Latest All Vega20') {
-            //         agent{ label rocmnode("vega20") }
-            //         steps{
-            //             buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + Fp16_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-            //         }
-            //     }
-            //     stage('Bf16 Hip Tensile-Latest All Vega20') {
-            //         agent{ label rocmnode("vega20") }
-            //         steps{
-            //             buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Bf16_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-            //         }
-            //     }
-            //     stage('Int8 Hip Tensile-Latest All Vega20') {
-            //         agent{ label rocmnode("vega20") }
-            //         steps{
-            //             buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Int8_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-            //         }
-            //     }
-            //     stage('Fp32 Hip Tensile-Latest All gfx908') {
-            //         agent{ label rocmnode("gfx908") }
-            //         steps{
-            //             buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-            //         }
-            //     }
-            //     stage('Fp16 Hip Tensile-Latest All gfx908') {
-            //         agent{ label rocmnode("gfx908") }
-            //         steps{
-            //             buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Fp16_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-            //         }
-            //     }
-            //     stage('Bf16 Hip Tensile-Latest All gfx908') {
-            //         agent{ label rocmnode("gfx908") }
-            //         steps{
-            //             buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Bf16_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-            //         }
-            //     }
-            //     stage('Int8 Hip Tensile-Latest All gfx908') {
-            //         agent{ label rocmnode("gfx908") }
-            //         steps{
-            //             buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Int8_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-            //         }
-            //     }
-            //     // stage('Fp32 Hip Tensile-Latest All gfx90a') {
-            //     //     agent{ label rocmnode("gfx90a") }
-            //     //     steps{
-            //     //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx90a:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-            //     //     }
-            //     // }
-            //     // stage('Fp16 Hip Tensile-Latest All gfx90a') {
-            //     //     agent{ label rocmnode("gfx90a") }
-            //     //     steps{
-            //     //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Fp16_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx90a:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-            //     //     }
-            //     // }
-            //     // stage('Bf16 Hip Tensile-Latest All gfx90a') {
-            //     //     agent{ label rocmnode("gfx90a") }
-            //     //     steps{
-            //     //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Bf16_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx90a:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-            //     //     }
-            //     // }
-            //     // stage('Int8 Hip Tensile-Latest All gfx90a') {
-            //     //     agent{ label rocmnode("gfx90a") }
-            //     //     steps{
-            //     //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Int8_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx90a:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-            //     //     }
-            //     // }
-            // }
-        }
+        // stage("MIOpenTensile"){
+        //     when { expression { params.MIOPENTENSILE && !params.DISABLE_ALL_STAGES } }
+        //     environment{
+        //         Tensile_version = "default"
+        //     }
+        //     // parallel{
+        //     //     stage('Fp32 Hip Tensile All Vega20') {
+        //     //         agent{ label rocmnode("vega20") }
+        //     //         steps{
+        //     //             buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+        //     //         }
+        //     //     }
+        //     //     stage('Fp16 Hip Tensile All Vega20') {
+        //     //         agent{ label rocmnode("vega20") }
+        //     //         steps{
+        //     //             buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + Fp16_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+        //     //         }
+        //     //     }
+        //     //     stage('Bf16 Hip Tensile All Vega20') {
+        //     //         agent{ label rocmnode("vega20") }
+        //     //         steps{
+        //     //             buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Bf16_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+        //     //         }
+        //     //     }
+        //     //     stage('Int8 Hip Tensile All Vega20') {
+        //     //         agent{ label rocmnode("vega20") }
+        //     //         steps{
+        //     //             buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Int8_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+        //     //         }
+        //     //     }
+        //     //     stage('Fp32 Hip Tensile All gfx908') {
+        //     //         agent{ label rocmnode("gfx908") }
+        //     //         steps{
+        //     //             buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+        //     //         }
+        //     //     }
+        //     //     stage('Fp16 Hip Tensile All gfx908') {
+        //     //         agent{ label rocmnode("gfx908") }
+        //     //         steps{
+        //     //             buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Fp16_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+        //     //         }
+        //     //     }
+        //     //     stage('Bf16 Hip Tensile All gfx908') {
+        //     //         agent{ label rocmnode("gfx908") }
+        //     //         steps{
+        //     //             buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Bf16_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+        //     //         }
+        //     //     }
+        //     //     stage('Int8 Hip Tensile All gfx908') {
+        //     //         agent{ label rocmnode("gfx908") }
+        //     //         steps{
+        //     //             buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Int8_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+        //     //         }
+        //     //     }
+        //     //     // stage('Fp32 Hip Tensile All gfx90a') {
+        //     //     //     agent{ label rocmnode("gfx90a") }
+        //     //     //     steps{
+        //     //     //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx90a:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+        //     //     //     }
+        //     //     // }
+        //     //     // stage('Fp16 Hip Tensile All gfx90a') {
+        //     //     //     agent{ label rocmnode("gfx90a") }
+        //     //     //     steps{
+        //     //     //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Fp16_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx90a:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+        //     //     //     }
+        //     //     // }
+        //     //     // stage('Bf16 Hip Tensile All gfx90a') {
+        //     //     //     agent{ label rocmnode("gfx90a") }
+        //     //     //     steps{
+        //     //     //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Bf16_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx90a:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+        //     //     //     }
+        //     //     // }
+        //     //     // stage('Int8 Hip Tensile All gfx90a') {
+        //     //     //     agent{ label rocmnode("gfx90a") }
+        //     //     //     steps{
+        //     //     //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Int8_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx90a:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+        //     //     //     }
+        //     //     // }
+        //     // }
+        // }
+        // stage("MIOpenTensile Latest"){
+        //     when { expression { params.MIOPENTENSILE_LATEST && !params.DISABLE_ALL_STAGES  } }
+        //     environment{
+        //         Tensile_version = "latest"
+        //     }
+        //     // parallel{
+        //     //     stage('Fp32 Hip Tensile-Latest All Vega20') {
+        //     //         agent{ label rocmnode("vega20") }
+        //     //         steps{
+        //     //             buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+        //     //         }
+        //     //     }
+        //     //     stage('Fp16 Hip Tensile-Latest All Vega20') {
+        //     //         agent{ label rocmnode("vega20") }
+        //     //         steps{
+        //     //             buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + Fp16_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+        //     //         }
+        //     //     }
+        //     //     stage('Bf16 Hip Tensile-Latest All Vega20') {
+        //     //         agent{ label rocmnode("vega20") }
+        //     //         steps{
+        //     //             buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Bf16_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+        //     //         }
+        //     //     }
+        //     //     stage('Int8 Hip Tensile-Latest All Vega20') {
+        //     //         agent{ label rocmnode("vega20") }
+        //     //         steps{
+        //     //             buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Int8_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+        //     //         }
+        //     //     }
+        //     //     stage('Fp32 Hip Tensile-Latest All gfx908') {
+        //     //         agent{ label rocmnode("gfx908") }
+        //     //         steps{
+        //     //             buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+        //     //         }
+        //     //     }
+        //     //     stage('Fp16 Hip Tensile-Latest All gfx908') {
+        //     //         agent{ label rocmnode("gfx908") }
+        //     //         steps{
+        //     //             buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Fp16_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+        //     //         }
+        //     //     }
+        //     //     stage('Bf16 Hip Tensile-Latest All gfx908') {
+        //     //         agent{ label rocmnode("gfx908") }
+        //     //         steps{
+        //     //             buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Bf16_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+        //     //         }
+        //     //     }
+        //     //     stage('Int8 Hip Tensile-Latest All gfx908') {
+        //     //         agent{ label rocmnode("gfx908") }
+        //     //         steps{
+        //     //             buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Int8_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+        //     //         }
+        //     //     }
+        //     //     // stage('Fp32 Hip Tensile-Latest All gfx90a') {
+        //     //     //     agent{ label rocmnode("gfx90a") }
+        //     //     //     steps{
+        //     //     //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx90a:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+        //     //     //     }
+        //     //     // }
+        //     //     // stage('Fp16 Hip Tensile-Latest All gfx90a') {
+        //     //     //     agent{ label rocmnode("gfx90a") }
+        //     //     //     steps{
+        //     //     //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Fp16_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx90a:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+        //     //     //     }
+        //     //     // }
+        //     //     // stage('Bf16 Hip Tensile-Latest All gfx90a') {
+        //     //     //     agent{ label rocmnode("gfx90a") }
+        //     //     //     steps{
+        //     //     //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Bf16_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx90a:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+        //     //     //     }
+        //     //     // }
+        //     //     // stage('Int8 Hip Tensile-Latest All gfx90a') {
+        //     //     //     agent{ label rocmnode("gfx90a") }
+        //     //     //     steps{
+        //     //     //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Int8_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx90a:xnack-", miotensile_version: Tensile_version, target_id: "ON")
+        //     //     //     }
+        //     //     // }
+        //     // }
+        // }
         stage("Packages"){
             when { expression { params.PACKAGES && !params.DISABLE_ALL_STAGES } }
             parallel {
