@@ -185,7 +185,7 @@ void BatchNormForwardTraining(Handle& handle,
 
         unsigned int in_cstride = h * w;
         unsigned int in_nstride = c * in_cstride;
-        std::string algo_name  = "miopenBatchNormForwardTrainingPerActivation";
+        std::string algo_name   = "miopenBatchNormForwardTrainingPerActivation";
 
         auto&& kernels = handle.GetKernels(algo_name, network_config);
 
