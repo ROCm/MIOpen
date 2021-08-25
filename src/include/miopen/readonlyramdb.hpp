@@ -41,10 +41,7 @@ class ReadonlyRamDb
     public:
     ReadonlyRamDb(std::string path) : db_path(path) {}
 
-    static ReadonlyRamDb& GetCached(const std::string& path,
-                                    bool warn_if_unreadable,
-                                    const std::string& arch = "",
-                                    std::size_t num_cu      = 0);
+    static ReadonlyRamDb& GetCached(const std::string& path, bool warn_if_unreadable);
 
     boost::optional<DbRecord> FindRecord(const std::string& problem) const
     {
