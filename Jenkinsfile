@@ -656,7 +656,7 @@ pipeline {
                 stage('Fp32 OpenCL All gfx1030') {
                     agent{ label rocmnode("navi21") }
                     options {
-                        timeout(time: 90, unit: 'MINUTES')
+                        timeout(time: 150, unit: 'MINUTES')
                         retry(2)
                     }
                     steps{
