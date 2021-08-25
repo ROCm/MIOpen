@@ -46,9 +46,9 @@ bool ActivBwdSolver0::IsApplicable(const ExecutionContext&,
         return false;
 
     const auto& xDesc  = problem.GetXDesc();
-    const auto& yDesc  = problem.GetXDesc();
+    const auto& yDesc  = problem.GetYDesc();
     const auto& dxDesc = problem.GetDXDesc();
-    const auto& dyDesc = problem.GetDXDesc();
+    const auto& dyDesc = problem.GetDYDesc();
 
     const auto x_elem_sz  = xDesc.GetElementSize();
     const auto y_elem_sz  = yDesc.GetElementSize();
@@ -107,9 +107,9 @@ ConvSolution ActivBwdSolver0::GetSolution(const ExecutionContext&,
     auto result = ConvSolution{miopenStatusSuccess};
 
     const auto& xDesc  = problem.GetXDesc();
-    const auto& yDesc  = problem.GetXDesc();
+    const auto& yDesc  = problem.GetYDesc();
     const auto& dxDesc = problem.GetDXDesc();
-    const auto& dyDesc = problem.GetDXDesc();
+    const auto& dyDesc = problem.GetDYDesc();
 
     const auto& x_lens  = xDesc.GetLengths();
     const auto& dx_lens = dxDesc.GetLengths();
