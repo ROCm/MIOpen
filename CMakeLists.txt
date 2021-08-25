@@ -116,7 +116,7 @@ set(MIOPEN_INSTALL_CXX_HEADERS Off CACHE BOOL "Install MIOpen's C++ header inter
 
 
 # Embedded Build Configuration
-set(MIOPEN_EMBED_DB "" CACHE STRING "Semi-colon separated list of architecture CU pairs to embed on-disk DBs in the binary. Example gfx906_60;gfx900_56")
+set(MIOPEN_EMBED_DB "" CACHE STRING "Semi-colon separated list of architecture to embed on-disk DBs in the binary. Example gfx906_60;gfx900_56")
 if(NOT MIOPEN_EMBED_DB STREQUAL "")
     option(MIOPEN_DISABLE_SYSDB  "Disable sys database access" Off)
 else()

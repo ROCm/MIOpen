@@ -91,14 +91,14 @@ void check_kern_db()
     cfg0.kernel_args = random_string(512);
     cfg0.kernel_blob = random_string(8192);
 
-    miopen::KernDb empty_db("", false, "gfx906", 60);
+    miopen::KernDb empty_db("", false);
     CHECK(empty_db.RemoveRecordUnsafe(cfg0)); // for empty file, remove should succeed
     CHECK(!empty_db.FindRecordUnsafe(cfg0));  // no record in empty database
     CHECK(!empty_db.StoreRecordUnsafe(cfg0)); // storing in an empty database should fail
 
     {
         miopen::TempFile temp_file("tmp-kerndb");
-        miopen::KernDb clean_db(std::string(temp_file), false, "gfx906", 60);
+        miopen::KernDb clean_db(std::string(temp_file), false);
 
         CHECK(clean_db.StoreRecordUnsafe(cfg0));
         auto readout = clean_db.FindRecordUnsafe(cfg0);
@@ -113,8 +113,6 @@ void check_kern_db()
         miopen::KernDb err_db(
             std::string(temp_file),
             false,
-            "gfx906",
-            60,
             [](std::string str, bool* success) {
                 std::ignore = str;
                 *success    = false;
