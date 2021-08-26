@@ -170,10 +170,7 @@ def buildHipClangJob(Map conf=[:]){
 }
 
 def reboot(){
-    sh  '''
-	echo "disabled reboot on MI200"
-	'''
-    
+    build job: 'reboot-slaves', propagate: false , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
 }
 
 def buildHipClangJobAndReboot(Map conf=[:]){
