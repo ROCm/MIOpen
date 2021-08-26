@@ -132,9 +132,6 @@ struct GridwiseReduction_xy_to_x_direct_warpwise
         for(index_t reducedLength = 0; reducedLength < toReduceLength;
             reducedLength += warpSize * GredAccessesPerThreadInWarp)
         {
-            // zero the data on the Thread Buffer
-            warpwise_reduce::set_buffer_value(in_thread_buf, zeroVal);
-
             threadwise_src_load.Run(
                 src2dDesc, src_global_buf, ThreadBufferDesc, make_tuple(I0, I0), in_thread_buf);
 
@@ -268,9 +265,6 @@ struct GridwiseReduction_xy_to_x_direct_warpwise
         for(index_t reducedLength = 0; reducedLength < toReduceLength;
             reducedLength += warpSize * GredAccessesPerThreadInWarp)
         {
-            // zero the data on the Thread Buffer
-            warpwise_reduce::set_buffer_value(in_thread_buf, zeroVal);
-
             threadwise_src_load.Run(
                 src2dDesc, src_global_buf, ThreadBufferDesc, make_tuple(I0, I0), in_thread_buf);
 
@@ -440,9 +434,6 @@ struct GridwiseReduction_xy_to_x_direct_warpwise
         constexpr auto in_thread_copy_step =
             make_multi_index(0, warpSize * GredAccessesPerThreadInWarp);
 
-        // zero the data on the Thread Buffer
-        warpwise_reduce::set_buffer_value(in_thread_val_buf, zeroVal);
-
         for(index_t reducedLength = 0; reducedLength < toReduceLength;
             reducedLength += warpSize * GredAccessesPerThreadInWarp)
         {
@@ -460,9 +451,6 @@ struct GridwiseReduction_xy_to_x_direct_warpwise
             // do the warp-wise reduction on data of all thread buffers
             warpwise_reduce::Reduce(
                 in_thread_val_buf, in_thread_idx_buf, accuValue_buf(I0), accuIndex_buf(I0));
-
-            // zero the data on the Thread Buffer
-            warpwise_reduce::set_buffer_value(in_thread_val_buf, zeroVal);
 
             threadwise_src_val_load.MoveSrcSliceWindow(src2dDesc, in_thread_copy_step);
             threadwise_src_idx_load.MoveSrcSliceWindow(src2dDesc, in_thread_copy_step);

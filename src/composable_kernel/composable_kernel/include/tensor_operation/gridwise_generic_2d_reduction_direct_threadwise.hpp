@@ -127,9 +127,6 @@ struct GridwiseReduction_xy_to_x_direct_threadwise
         for(index_t reducedLength = 0; reducedLength < toReduceLength;
             reducedLength += GredThreadBufferLength)
         {
-            // zero the data on the Thread Buffer
-            threadwise_reduce::set_buffer_value(in_thread_buf, zeroVal);
-
             threadwise_src_load.Run(
                 src2dDesc, src_global_buf, ThreadBufferDesc, make_tuple(I0, I0), in_thread_buf);
 
@@ -252,9 +249,6 @@ struct GridwiseReduction_xy_to_x_direct_threadwise
         for(index_t reducedLength = 0; reducedLength < toReduceLength;
             reducedLength += GredThreadBufferLength)
         {
-            // zero the data on the Thread Buffer
-            threadwise_reduce::set_buffer_value(in_thread_buf, zeroVal);
-
             threadwise_src_load.Run(
                 src2dDesc, src_global_buf, ThreadBufferDesc, make_tuple(I0, I0), in_thread_buf);
 
@@ -411,9 +405,6 @@ struct GridwiseReduction_xy_to_x_direct_threadwise
         for(index_t reducedLength = 0; reducedLength < toReduceLength;
             reducedLength += GredThreadBufferLength)
         {
-            // zero the data on the Thread Buffer
-            threadwise_reduce::set_buffer_value(in_thread_val_buf, zeroVal);
-
             threadwise_src_val_load.Run(src2dDesc,
                                         src_global_val_buf,
                                         ThreadBufferDesc,

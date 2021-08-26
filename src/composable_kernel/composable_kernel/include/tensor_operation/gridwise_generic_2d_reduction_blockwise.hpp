@@ -152,8 +152,6 @@ struct GridwiseReduction_xy_to_x_blockwise
         for(index_t reducedBlocks = 0; reducedBlocks < toReduceBlocks;
             reducedBlocks += GredAccessesPerThreadInBlock)
         {
-            blockwise_reduce::set_buffer_value(in_block_buf, zeroVal);
-
             blockwise_src_load.RunRead(src2dDesc, src_global_buf);
             blockwise_src_load.RunWrite(in_block_desc, in_block_buf);
 
@@ -309,8 +307,6 @@ struct GridwiseReduction_xy_to_x_blockwise
         for(index_t reducedBlocks = 0; reducedBlocks < toReduceBlocks;
             reducedBlocks += GredAccessesPerThreadInBlock)
         {
-            blockwise_reduce::set_buffer_value(in_block_val_buf, zeroVal);
-
             // load block data from global to LDS, no use of double buffers (to be improved)
             blockwise_src_load.RunRead(src2dDesc, src_global_buf);
             blockwise_src_load.RunWrite(in_block_desc, in_block_val_buf);
@@ -519,8 +515,6 @@ struct GridwiseReduction_xy_to_x_blockwise
         for(index_t reducedBlocks = 0; reducedBlocks < toReduceBlocks;
             reducedBlocks += GredAccessesPerThreadInBlock)
         {
-            blockwise_reduce::set_buffer_value(in_block_val_buf, zeroVal);
-
             // load block data from global to LDS, no use of double buffers (to be improved)
             blockwise_src_val_load.RunRead(src2dDesc, src_global_val_buf);
             blockwise_src_idx_load.RunRead(src2dDesc, src_global_idx_buf);

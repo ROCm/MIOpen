@@ -155,8 +155,6 @@ struct GridwiseReduction_xy_to_x_multiblock
         for(index_t reducedBlocks = 0; reducedBlocks < toReduceBlocks;
             reducedBlocks += GredAccessesPerThreadInBlock)
         {
-            blockwise_reduce::set_buffer_value(in_block_buf, zeroVal);
-
             blockwise_src_load.RunRead(src2dDesc, src_global_buf);
             blockwise_src_load.RunWrite(in_block_desc, in_block_buf);
             __syncthreads();
@@ -291,8 +289,6 @@ struct GridwiseReduction_xy_to_x_multiblock
 
         const index_t toReduceBlocks = (reduceSizePerBlock + BlockSize - 1) / BlockSize;
 
-        blockwise_reduce::set_buffer_value(in_block_val_buf, zeroVal);
-
         int indexOffset = block_local_id * reduceSizePerBlock;
 
         for(index_t reducedBlocks = 0; reducedBlocks < toReduceBlocks;
@@ -318,8 +314,6 @@ struct GridwiseReduction_xy_to_x_multiblock
                                       BlocksInOneOp,
                                       accuValue_buf(I0),
                                       accuIndex_buf(I0));
-
-            blockwise_reduce::set_buffer_value(in_block_val_buf, zeroVal);
 
             indexOffset += BlockBufferSize;
 
