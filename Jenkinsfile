@@ -418,7 +418,7 @@ pipeline {
                 stage('Fp32 Hip Debug Embedded Vega20') {
                     agent{ label rocmnode("vega20") }
                     environment{
-                        Embedded_flags = "-DMIOPEN_EMBED_DB='gfx906_60;gfx906_64'"
+                        Embedded_flags = "-DMIOPEN_EMBED_DB='gfx906_60'"
                     }
                     steps{
                         buildHipClangJobAndReboot( build_type: 'debug', setup_flags: Embedded_flags, build_env: extra_log_env, test_flags: ' --verbose ')
