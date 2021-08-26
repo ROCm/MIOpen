@@ -14,13 +14,9 @@ RUN dpkg --add-architecture i386
 # Note: The ROCm version with $USE_MLIR should keep in sync with default ROCm version
 # unless MLIR library is incompatible with current ROCm.
 
-RUN if [ "$USE_TARGETID" = "ON" ] ; \
-        then export ROCM_APT_VER=.apt_4.1.1;\
-    elif [ "$USE_MLIR" = "ON" ] ; \
+RUN if [ "$USE_MLIR" = "ON" ] ; \
         then export ROCM_APT_VER=.apt_4.2;\
-    elif [ "$GPU_ARCH" = "gfx90a:xnack-" ] ; \
-        then export ROCM_APT_VER=.apt_4.3;\
-    else export ROCM_APT_VER=.apt_4.2;  \
+    else export ROCM_APT_VER=.apt_4.3;  \
     fi && \
 echo $ROCM_APT_VER &&\
 sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/$ROCM_APT_VER/ xenial main > /etc/apt/sources.list.d/rocm.list'
@@ -114,7 +110,7 @@ RUN pip3 install -r /doc-requirements.txt
 RUN if [ "$USE_TARGETID" = "ON" ] ; then export HIPCC_LINK_FLAGS_APPEND='-O3 -parallel-jobs=4' && export HIPCC_COMPILE_FLAGS_APPEND='-O3 -Wno-format-nonliteral -parallel-jobs=4' && rm /usr/bin/hipcc; fi
 
 # install last released miopentensile in default (master), install latest commits when MIOTENSILE_VER="latest" (develop)
-RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."; elif [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@94a9047741d16a8eccd290131b78fb1aa69cdcdf; else cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@94a9047741d16a8eccd290131b78fb1aa69cdcdf; fi
+RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."; elif [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@60b8404f813d73df106518f587efb7dbb28c79c3; else cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@94a9047741d16a8eccd290131b78fb1aa69cdcdf; fi
 
 RUN if [ "$USE_MLIR" = "ON" ]; \
     then cd ~ && \
@@ -127,4 +123,4 @@ RUN if [ "$USE_MLIR" = "ON" ]; \
     make -j$(nproc) libMLIRMIOpen && \
     $PREFIX/bin/cmake --install . --component libMLIRMIOpen --prefix /opt/rocm && \
     cd ~ && rm -rf llvm-project-mlir-$MLIR_COMMIT; fi
-    
+ 
