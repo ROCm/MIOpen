@@ -40,6 +40,7 @@
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HIP_ENFORCE_COV3)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HIP_VERBOSE)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HIP_DUMP)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HIP_COMPILER_ARGS)
 
 namespace miopen {
 
@@ -182,6 +183,15 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 
     params += " ";
     auto bin_file = tmp_dir->path / (filename + ".o");
+
+    // add the args in env var
+    const std::string env_args = miopen::GetStringEnv(MIOPEN_DEBUG_HIP_COMPILER_ARGS{});
+    if(!env_args.empty())
+    {
+        MIOPEN_LOG_I2("Appending kernel compile args with: " << env_args);
+        params += env_args;
+        params += " ";
+    }
 
     // compile
     const std::string redirector = testing_mode ? " 1>/dev/null 2>&1" : "";
