@@ -688,18 +688,18 @@ OpKernelArg BatchNormFwdTrainFusionOpDescriptor::GetOpAttr(const std::string& k)
     int v;
     if(GetOpAttr(k, v))
     {
-        return OpKernelArg(v);
+        return {v};
     }
     else if(k == "diff_scale")
     {
-        return OpKernelArg(static_cast<float>(0.0));
+        return {static_cast<float>(0.0)};
     }
     else if(k == "iNHW")
     {
         int n, h, w;
         std::tie(n, std::ignore, h, w) = tien<4>(input_desc.GetLengths());
         auto nhw                       = static_cast<float>(n * h * w);
-        return OpKernelArg(static_cast<float>(1.0f / nhw));
+        return {static_cast<float>(1.0f / nhw)};
     }
     else
         MIOPEN_THROW("BatchNormFwdTrainFusionOpDescriptor does not support attribute: " + k);
