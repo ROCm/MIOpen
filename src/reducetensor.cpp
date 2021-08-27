@@ -337,10 +337,10 @@ static std::string getReductionMethodStr(ReductionMethod_t reduceImpl)
 {
     switch(reduceImpl)
     {
-    case Reduce_DirectThreadWise: return (std::string("threadwise"));
-    case Reduce_DirectWarpWise: return (std::string("warpwise"));
-    case Reduce_BlockWise: return (std::string("blockwise"));
-    case Reduce_MultiBlock: return (std::string("multiblock"));
+    case Reduce_DirectThreadWise: return {"threadwise"};
+    case Reduce_DirectWarpWise: return {"warpwise"};
+    case Reduce_BlockWise: return {"blockwise"};
+    case Reduce_MultiBlock: return {"multiblock"};
     default: MIOPEN_THROW("Invalid reduction method ID!"); break;
     };
 };
