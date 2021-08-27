@@ -14,13 +14,9 @@ RUN dpkg --add-architecture i386
 # Note: The ROCm version with $USE_MLIR should keep in sync with default ROCm version
 # unless MLIR library is incompatible with current ROCm.
 
-RUN if [ "$USE_TARGETID" = "ON" ] ; \
-        then export ROCM_APT_VER=.apt_4.1.1;\
-    elif [ "$USE_MLIR" = "ON" ] ; \
+RUN if [ "$USE_MLIR" = "ON" ] ; \
         then export ROCM_APT_VER=.apt_4.2;\
-    elif [ "$GPU_ARCH" = "gfx90a:xnack-" ] ; \
-        then export ROCM_APT_VER=.apt_4.3;\
-    else export ROCM_APT_VER=.apt_4.2;  \
+    else export ROCM_APT_VER=.apt_4.3;  \
     fi && \
 echo $ROCM_APT_VER &&\
 sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/$ROCM_APT_VER/ xenial main > /etc/apt/sources.list.d/rocm.list'
