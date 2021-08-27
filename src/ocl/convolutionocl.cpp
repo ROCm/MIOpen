@@ -118,8 +118,7 @@ static inline void ValidateGroupCount(const TensorDescriptor& xDesc,
     {
         if(xDesc.GetLengths()[1] % conv.group_count != 0 ||
            wDesc.GetLengths()[0] % conv.group_count != 0 ||
-           conv.group_count > xDesc.GetLengths()[1] || conv.group_count > wDesc.GetLengths()[0] ||
-           conv.group_count < 1)
+           conv.group_count > xDesc.GetLengths()[1] || conv.group_count > wDesc.GetLengths()[0])
             MIOPEN_THROW(miopenStatusBadParm, "Invalid group number");
         if(xDesc.GetLengths()[1] / conv.group_count != wDesc.GetLengths()[1])
             MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");

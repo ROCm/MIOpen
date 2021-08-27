@@ -246,7 +246,7 @@ inline int GetDataTypeId(miopenDataType_t t)
     case miopenInt8:
     case miopenInt8x4:
     case miopenInt32: return (static_cast<int>('O'));
-    default: MIOPEN_THROW("Only float, half, bfloat16 data type is supported."); break;
+    default: MIOPEN_THROW("Only float, half, bfloat16 data type is supported.");
     };
 };
 
@@ -263,7 +263,7 @@ inline int GetReduceTensorOpId(miopenReduceTensorOp_t t)
     case MIOPEN_REDUCE_TENSOR_NORM1: return (788201); // 'N' * 10000 + 'R' * 100 + '1'
     case MIOPEN_REDUCE_TENSOR_NORM2: return (788202); // 'N' * 10000 + 'R' * 100 + '2'
 
-    default: MIOPEN_THROW("Operation is not supported"); break;
+    default: MIOPEN_THROW("Operation is not supported");
     };
 };
 
