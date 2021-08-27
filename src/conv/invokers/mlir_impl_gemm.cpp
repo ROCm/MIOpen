@@ -303,6 +303,14 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx)
             const auto& wrw_invoke_params = primitive_parameters.CastTo<conv::WrWInvokeParams>();
             const auto& tensors           = wrw_invoke_params.tensors;
 
+            // Only fp32 use atomic_add, which accumulate the result into dw.
+            // Therefore the need for setting to zero beforehand.
+            if(tensors.dwDesc.GetType() == miopenFloat)
+            {
+                float zero = 0.f;
+                SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
+            }
+
             SetMlirConvArgsPtr(tensors.x, tensors.dy, tensors.dw, args);
             handle.Run(kernels[0])(args);
         };
