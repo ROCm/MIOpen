@@ -60,6 +60,15 @@ enum ReductionMethod_t
 
 namespace detail {
 
+static bool IsDynamicReductionEnabled()
+{
+#if WORKAROUND_ISSUE_1123
+    return miopen::IsEnabled(MIOPEN_DEBUG_DYNAMIC_REDUCTION{});
+#else
+    return !miopen::IsDisabled(MIOPEN_DEBUG_DYNAMIC_REDUCTION{});
+#endif
+}
+
 struct get_tunable_reduction_kernel_constants
 {
     int GredThreadBufferLength;
@@ -285,15 +294,6 @@ inline int GetReduceTensorOpId(miopenReduceTensorOp_t t)
     default: MIOPEN_THROW("Operation is not supported");
     };
 };
-
-static bool IsDynamicReductionEnabled()
-{
-#if WORKAROUND_ISSUE_1123
-    return miopen::IsEnabled(MIOPEN_DEBUG_DYNAMIC_REDUCTION{});
-#else
-    return !miopen::IsEnabled(MIOPEN_DEBUG_DYNAMIC_REDUCTION{});
-#endif
-}
 
 static std::string get_network_config_string_from_type_enums(miopenDataType_t TSrc,
                                                              miopenDataType_t TComp,
@@ -580,8 +580,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
     const auto invariantLength = cDesc.GetElementSize();
     const auto toReduceLength  = aDesc.GetElementSize() / invariantLength;
 
-    const int blockSize =
-        detail::IsDynamicReductionEnabled() ? tunable->BlockSize : 256;
+    const int blockSize = detail::IsDynamicReductionEnabled() ? tunable->BlockSize : 256;
     detail::ReductionKernelConfigurator configurator(blockSize, handle.GetWavefrontWidth());
 
     const ReductionMethod_t reduceImpl =
