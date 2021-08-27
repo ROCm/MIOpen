@@ -209,13 +209,49 @@ __device__ typename vector_type<T, N>::type amd_buffer_load_impl(int32x4_t src_w
                                                                  index_t src_wave_addr_offset)
 {
     static_assert(
-        (is_same<T, float>::value && (N == 1 || N == 2 || N == 4 || N == 8)) ||
-            (is_same<T, int8_t>::value && (N == 1 || N == 2 || N == 4 || N == 8 || N == 16)) ||
+        (is_same<T, double>::value && (N == 1 || N == 2 || N == 4)) ||
+            (is_same<T, float>::value && (N == 1 || N == 2 || N == 4 || N == 8)) ||
             (is_same<T, half_t>::value && (N == 1 || N == 2 || N == 4 || N == 8)) ||
-            (is_same<T, int32_t>::value && (N == 1 || N == 2 || N == 4 || N == 8)),
+            (is_same<T, int32_t>::value && (N == 1 || N == 2 || N == 4 || N == 8)) ||
+            (is_same<T, int8_t>::value && (N == 1 || N == 2 || N == 4 || N == 8 || N == 16)),
         "wrong! not implemented");
 
-    if constexpr(is_same<T, float>::value)
+    if constexpr(is_same<T, double>::value)
+    {
+        // use fp32 load to mimic fp64 load
+        if constexpr(N == 1)
+        {
+            const float2_t tmp = llvm_amdgcn_raw_buffer_load_fp32x2(
+                src_wave_buffer_resource, src_thread_addr_offset, src_wave_addr_offset, 0);
+
+            return as_type<double>(tmp);
+        }
+        else if constexpr(N == 2)
+        {
+            const float4_t tmp = llvm_amdgcn_raw_buffer_load_fp32x4(
+                src_wave_buffer_resource, src_thread_addr_offset, src_wave_addr_offset, 0);
+
+            return as_type<double2_t>(tmp);
+        }
+        else if constexpr(N == 4)
+        {
+            const float4_t f32_0 = llvm_amdgcn_raw_buffer_load_fp32x4(
+                src_wave_buffer_resource, src_thread_addr_offset, src_wave_addr_offset, 0);
+
+            const float4_t f32_1 =
+                llvm_amdgcn_raw_buffer_load_fp32x4(src_wave_buffer_resource,
+                                                   src_thread_addr_offset,
+                                                   src_wave_addr_offset + 4 * sizeof(float),
+                                                   0);
+            vector_type<double, 4> tmp;
+
+            tmp.AsType<double2_t>()(Number<0>{}) = as_type<double2_t>(f32_0);
+            tmp.AsType<double2_t>()(Number<1>{}) = as_type<double2_t>(f32_1);
+
+            return tmp.AsType<double4_t>()(Number<0>{});
+        }
+    }
+    else if constexpr(is_same<T, float>::value)
     {
         if constexpr(N == 1)
         {
@@ -267,25 +303,11 @@ __device__ typename vector_type<T, N>::type amd_buffer_load_impl(int32x4_t src_w
         }
         else if constexpr(N == 8)
         {
-#if 0
-            vector_type<half_t, 8> tmp;
-
-            tmp.AsType<half4_t>()(Number<0>{}) = llvm_amdgcn_raw_buffer_load_fp16x4(
-                src_wave_buffer_resource, src_thread_addr_offset, src_wave_addr_offset, 0);
-
-            tmp.AsType<half4_t>()(Number<1>{}) =
-                llvm_amdgcn_raw_buffer_load_fp16x4(src_wave_buffer_resource,
-                                                     src_thread_addr_offset,
-                                                     src_wave_addr_offset + 4 * sizeof(half_t),
-                                                     0);
-
-            return tmp.AsType<half8_t>()(Number<0>{});
-#else
+            // use fp32 load to mimic fp16 load
             float4_t tmp = llvm_amdgcn_raw_buffer_load_fp32x4(
                 src_wave_buffer_resource, src_thread_addr_offset, src_wave_addr_offset, 0);
 
             return as_type<half8_t>(tmp);
-#endif
         }
     }
     else if constexpr(is_same<T, int32_t>::value)
@@ -417,13 +439,34 @@ __device__ void amd_buffer_store_impl(const typename vector_type<T, N>::type src
                                       index_t dst_wave_addr_offset)
 {
     static_assert(
-        (is_same<T, float>::value && (N == 1 || N == 2 || N == 4)) ||
+        (is_same<T, double>::value && (N == 1 || N == 2)) ||
+            (is_same<T, float>::value && (N == 1 || N == 2 || N == 4)) ||
+            (is_same<T, half_t>::value && (N == 1 || N == 2 || N == 4 || N == 8)) ||
             (is_same<T, int32_t>::value && (N == 1 || N == 2 || N == 4)) ||
-            (is_same<T, int8_t>::value && (N == 1 || N == 2 || N == 4 || N == 8 || N == 16)) ||
-            (is_same<T, half_t>::value && (N == 1 || N == 2 || N == 4 || N == 8)),
+            (is_same<T, int8_t>::value && (N == 1 || N == 2 || N == 4 || N == 8 || N == 16)),
         "wrong! not implemented");
 
-    if constexpr(is_same<T, float>::value)
+    if constexpr(is_same<T, double>::value)
+    {
+        // use fp32 store to mimic fp64 store
+        if constexpr(N == 1)
+        {
+            llvm_amdgcn_raw_buffer_store_fp32x2(as_type<float2_t>(src_thread_data),
+                                                dst_wave_buffer_resource,
+                                                dst_thread_addr_offset,
+                                                dst_wave_addr_offset,
+                                                0);
+        }
+        else if constexpr(N == 2)
+        {
+            llvm_amdgcn_raw_buffer_store_fp32x4(as_type<float4_t>(src_thread_data),
+                                                dst_wave_buffer_resource,
+                                                dst_thread_addr_offset,
+                                                dst_wave_addr_offset,
+                                                0);
+        }
+    }
+    else if constexpr(is_same<T, float>::value)
     {
         if constexpr(N == 1)
         {
@@ -447,6 +490,49 @@ __device__ void amd_buffer_store_impl(const typename vector_type<T, N>::type src
                                                 dst_wave_buffer_resource,
                                                 dst_thread_addr_offset,
                                                 dst_wave_addr_offset,
+                                                0);
+        }
+    }
+    else if constexpr(is_same<T, half_t>::value)
+    {
+        if constexpr(N == 1)
+        {
+            llvm_amdgcn_raw_buffer_store_fp16(src_thread_data,
+                                              dst_wave_buffer_resource,
+                                              dst_thread_addr_offset,
+                                              dst_wave_addr_offset,
+                                              0);
+        }
+        else if constexpr(N == 2)
+        {
+            llvm_amdgcn_raw_buffer_store_fp16x2(src_thread_data,
+                                                dst_wave_buffer_resource,
+                                                dst_thread_addr_offset,
+                                                dst_wave_addr_offset,
+                                                0);
+        }
+        else if constexpr(N == 4)
+        {
+            llvm_amdgcn_raw_buffer_store_fp16x4(src_thread_data,
+                                                dst_wave_buffer_resource,
+                                                dst_thread_addr_offset,
+                                                dst_wave_addr_offset,
+                                                0);
+        }
+        else if constexpr(N == 8)
+        {
+            vector_type<half_t, 8> tmp{src_thread_data};
+
+            llvm_amdgcn_raw_buffer_store_fp16x4(tmp.AsType<half4_t>()[Number<0>{}],
+                                                dst_wave_buffer_resource,
+                                                dst_thread_addr_offset,
+                                                dst_wave_addr_offset,
+                                                0);
+
+            llvm_amdgcn_raw_buffer_store_fp16x4(tmp.AsType<half4_t>()[Number<1>{}],
+                                                dst_wave_buffer_resource,
+                                                dst_thread_addr_offset,
+                                                dst_wave_addr_offset + 4 * sizeof(half_t),
                                                 0);
         }
     }
@@ -534,49 +620,6 @@ __device__ void amd_buffer_store_impl(const typename vector_type<T, N>::type src
                                                dst_thread_addr_offset,
                                                dst_wave_addr_offset,
                                                0);
-        }
-    }
-    else if constexpr(is_same<T, half_t>::value)
-    {
-        if constexpr(N == 1)
-        {
-            llvm_amdgcn_raw_buffer_store_fp16(src_thread_data,
-                                              dst_wave_buffer_resource,
-                                              dst_thread_addr_offset,
-                                              dst_wave_addr_offset,
-                                              0);
-        }
-        else if constexpr(N == 2)
-        {
-            llvm_amdgcn_raw_buffer_store_fp16x2(src_thread_data,
-                                                dst_wave_buffer_resource,
-                                                dst_thread_addr_offset,
-                                                dst_wave_addr_offset,
-                                                0);
-        }
-        else if constexpr(N == 4)
-        {
-            llvm_amdgcn_raw_buffer_store_fp16x4(src_thread_data,
-                                                dst_wave_buffer_resource,
-                                                dst_thread_addr_offset,
-                                                dst_wave_addr_offset,
-                                                0);
-        }
-        else if constexpr(N == 8)
-        {
-            vector_type<half_t, 8> tmp{src_thread_data};
-
-            llvm_amdgcn_raw_buffer_store_fp16x4(tmp.AsType<half4_t>()[Number<0>{}],
-                                                dst_wave_buffer_resource,
-                                                dst_thread_addr_offset,
-                                                dst_wave_addr_offset,
-                                                0);
-
-            llvm_amdgcn_raw_buffer_store_fp16x4(tmp.AsType<half4_t>()[Number<1>{}],
-                                                dst_wave_buffer_resource,
-                                                dst_thread_addr_offset,
-                                                dst_wave_addr_offset + 4 * sizeof(half_t),
-                                                0);
         }
     }
 }
