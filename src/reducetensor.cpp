@@ -616,7 +616,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
                         ? static_cast<float>(*reinterpret_cast<const double*>(beta))
                         : *reinterpret_cast<const float*>(beta);
 
-    if(!detail::IsDynamicReductionEnabled()))
+    if(!detail::IsDynamicReductionEnabled())
     { // use static reduction
         std::vector<std::size_t> invariantLengths;
         std::vector<std::size_t> invariantStrides;
