@@ -116,6 +116,10 @@ class ConvFin : public Fin
         {
             assert(num_cu == 72 || num_cu == 36);
         }
+        else if(arch == "gfx90a")
+        {
+            assert(num_cu == 110);
+        }
         else
             throw std::runtime_error("Invalid Arch Name");
     }
@@ -772,10 +776,22 @@ template <typename Tgpu, typename Tref>
 int ConvFin<Tgpu, Tref>::GetSolverList()
 {
     // pair.first = id, pair. second = string id
-    std::vector<std::pair<uint64_t, std::string>> solvers;
+    std::vector<std::unordered_map<std::string, std::string>> solvers;
     for(const auto& id :
         miopen::solver::GetSolversByPrimitive(miopen::solver::Primitive::Convolution))
-        solvers.push_back(std::make_pair(id.Value(), id.ToString()));
+    {
+        std::unordered_map<std::string, std::string> solver;
+        solver["id"]      = std::to_string(id.Value());
+        solver["name"]    = id.ToString();
+        solver["tunable"] = "0";
+        solver["dynamic"] = "0";
+        if(id.GetSolver().IsTunable())
+            solver["tunable"] = "1";
+        if(id.GetSolver().IsDynamic())
+            solver["dynamic"] = "1";
+        solvers.push_back(solver);
+    }
+
     output["all_solvers"] = solvers;
     return 0;
 }
