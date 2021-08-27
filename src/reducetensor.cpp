@@ -43,9 +43,10 @@
 #include <iostream>
 #include <sstream>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DISABLE_DYNAMIC_REDUCTION);
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DYNAMIC_REDUCTION);
 
 #define WORKAROUND_MIOPEN_ISSUE_557 1
+#define WORKAROUND_ISSUE_1123 ((HIP_PACKAGE_VERSION_FLAT >= 4003000000ULL) && MIOPEN_BACKEND_HIP)
 
 namespace miopen {
 
@@ -285,6 +286,15 @@ inline int GetReduceTensorOpId(miopenReduceTensorOp_t t)
     };
 };
 
+static bool IsDynamicReductionEnabled()
+{
+#if WORKAROUND_ISSUE_1123
+    return miopen::IsEnabled(MIOPEN_DEBUG_DYNAMIC_REDUCTION{});
+#else
+    return !miopen::IsEnabled(MIOPEN_DEBUG_DYNAMIC_REDUCTION{});
+#endif
+}
+
 static std::string get_network_config_string_from_type_enums(miopenDataType_t TSrc,
                                                              miopenDataType_t TComp,
                                                              miopenDataType_t TDst)
@@ -460,7 +470,7 @@ std::size_t ReduceTensorDescriptor::GetWorkspaceSize(const Handle& handle,
                             64 + sizeof(int);
 
     // dynamic reduction use one additional page for storing tensor descriptors
-    if(!miopen::IsEnabled(MIOPEN_DISABLE_DYNAMIC_REDUCTION{}))
+    if(detail::IsDynamicReductionEnabled())
         wsSizeInBytes += 4096;
 
     return (wsSizeInBytes);
@@ -571,7 +581,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
     const auto toReduceLength  = aDesc.GetElementSize() / invariantLength;
 
     const int blockSize =
-        miopen::IsEnabled(MIOPEN_DISABLE_DYNAMIC_REDUCTION{}) ? 256 : tunable->BlockSize;
+        detail::IsDynamicReductionEnabled() ? tunable->BlockSize : 256;
     detail::ReductionKernelConfigurator configurator(blockSize, handle.GetWavefrontWidth());
 
     const ReductionMethod_t reduceImpl =
@@ -606,7 +616,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
                         ? static_cast<float>(*reinterpret_cast<const double*>(beta))
                         : *reinterpret_cast<const float*>(beta);
 
-    if(miopen::IsEnabled(MIOPEN_DISABLE_DYNAMIC_REDUCTION{}))
+    if(!detail::IsDynamicReductionEnabled()))
     { // use static reduction
         std::vector<std::size_t> invariantLengths;
         std::vector<std::size_t> invariantStrides;
