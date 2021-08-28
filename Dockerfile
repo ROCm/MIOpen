@@ -16,7 +16,7 @@ RUN dpkg --add-architecture i386
 
 RUN if [ "$USE_MLIR" = "ON" ] ; \
         then export ROCM_APT_VER=.apt_4.2;\
-    else export ROCM_APT_VER=.apt_4.3;  \
+    else export ROCM_APT_VER=.apt_4.3.1;  \
     fi && \
 echo $ROCM_APT_VER &&\
 sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/$ROCM_APT_VER/ xenial main > /etc/apt/sources.list.d/rocm.list'
