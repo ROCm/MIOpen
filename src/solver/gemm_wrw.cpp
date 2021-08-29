@@ -19,6 +19,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 namespace miopen {
 namespace solver {
 
+#if MIOPEN_USE_GEMM
 #ifdef CPPCHECK
 // Keep the value unknown in cppcheck since this can differ between opencl and hip
 static bool IsBF16PathValid;
@@ -43,6 +44,7 @@ static inline bool IsAnyBufferFp16(const TensorDescriptor& xDesc,
     return xDesc.GetType() == miopenHalf || yDesc.GetType() == miopenHalf ||
            wDesc.GetType() == miopenHalf;
 }
+#endif
 
 static double
 SlowdownFactor(int n_oper, const double oper_factor, const double multiple_oper_factor)
@@ -320,6 +322,7 @@ size_t GemmWrwUniversal::GetWorkspaceSize(const ExecutionContext& context,
 
     return ws_size;
 #else
+    std::ignore = context;
     std::ignore = problem;
     return 0;
 #endif

@@ -116,7 +116,7 @@ set(MIOPEN_INSTALL_CXX_HEADERS Off CACHE BOOL "Install MIOpen's C++ header inter
 
 
 # Embedded Build Configuration
-set(MIOPEN_EMBED_DB "" CACHE STRING "Semi-colon separated list of architecture CU pairs to embed on-disk DBs in the binary. Example gfx906_60;gfx900_56")
+set(MIOPEN_EMBED_DB "" CACHE STRING "Semi-colon separated list of architecture to embed on-disk DBs in the binary. Example gfx906_60;gfx900_56")
 if(NOT MIOPEN_EMBED_DB STREQUAL "")
     option(MIOPEN_DISABLE_SYSDB  "Disable sys database access" Off)
 else()
@@ -378,6 +378,7 @@ add_definitions(-DBOOST_ALL_NO_LIB=1)
 find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
 find_path(HALF_INCLUDE_DIR half.hpp)
+message("HALF_INCLUDE_DIR: ${HALF_INCLUDE_DIR}")
 
 option( MIOPEN_DEBUG_FIND_DB_CACHING "Use system find-db caching" ON)
 
@@ -563,11 +564,18 @@ enable_cppcheck(
         *:*src/sqlite/*.cpp
         *:*.cl
         *:*src/kernels/*.h
-        knownConditionTrueFalse:*src/kernels/composable_kernel/*/*
-        redundantAssignment:*src/kernels/composable_kernel/*/*
-        unreadVariable:*src/kernels/composable_kernel/*/*
-        unusedScopedObject:*src/kernels/composable_kernel/*/*
-        wrongPrintfScanfArgNum:*src/kernels/composable_kernel/*/*
+        knownConditionTrueFalse:*src/kernels/static_composable_kernel/*/*
+        redundantAssignment:*src/kernels/static_composable_kernel/*/*
+        unreadVariable:*src/kernels/static_composable_kernel/*/*
+        unusedScopedObject:*src/kernels/static_composable_kernel/*/*
+        wrongPrintfScanfArgNum:*src/kernels/static_composable_kernel/*/*
+        knownConditionTrueFalse:*src/composable_kernel/composable_kernel/*/*
+        identicalConditionAfterEarlyExit:*src/composable_kernel/composable_kernel/*/*
+        duplicateExpression:*src/composable_kernel/composable_kernel/*/*
+        multiCondition:*src/composable_kernel/composable_kernel/*/*
+        unreadVariable:*src/composable_kernel/composable_kernel/*/*
+        unreadVariable:*src/composable_kernel/host/*/*
+        unreadVariable:*src/composable_kernel/external/*/*
         unmatchedSuppression
     FORCE
     SOURCES

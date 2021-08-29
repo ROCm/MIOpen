@@ -223,7 +223,7 @@ TensorDescriptor PoolingDescriptor::GetForwardOutputTensor(const TensorDescripto
     std::vector<int> out_strides;
     tensor_layout_to_strides(out_dim, default_layout, in_layout, out_strides);
 
-    return TensorDescriptor(xDesc.GetType(), out_dim, out_strides);
+    return {xDesc.GetType(), out_dim, out_strides};
 }
 
 std::size_t PoolingDescriptor::GetWorkSpaceSize(const TensorDescriptor& yDesc) const
