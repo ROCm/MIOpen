@@ -648,14 +648,18 @@ pipeline {
                 //         buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_env: WORKAROUND_iGemm_936, build_install: "true")
                 //     }
                 // }
-                // stage('Fp32 Hip All Vega20') {
-                //     agent{ label rocmnode("vega20") }
-                //     steps{
-                //         buildHipClangJobAndReboot(setup_flags: Full_test, build_env: WORKAROUND_iGemm_936)
-                //     }
-                // }
+                stage('Fp32 Hip All Vega20') {
+                    agent{ label rocmnode("vega20") }
+                    steps{
+                        buildHipClangJobAndReboot(setup_flags: Full_test, build_env: WORKAROUND_iGemm_936)
+                    }
+                }
                 stage('Fp32 Hip All Install gfx1030') {
                     agent{ label rocmnode("navi21") }
+                    options {
+                        // timeout(time: 150, unit: 'MINUTES')
+                        retry(2)
+                    }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: Full_test, build_env: WORKAROUND_iGemm_936, build_install: "true", gpu_arch: "gfx1030")
                     }
