@@ -39,6 +39,8 @@
 #define WORKAROUND_MLOPEN_ISSUE_2335 \
     ((HIP_PACKAGE_VERSION_FLAT < 3007000000ULL) && MIOPEN_BACKEND_OPENCL)
 
+static int num_test_case = 0;
+
 template <class T>
 struct verify_forward_dropout
 {

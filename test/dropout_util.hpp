@@ -51,9 +51,6 @@
 #define XORWOW_JUMP_LOG2 2
 #define XORWOW_JUMP_LOG2_MASK ((1 << XORWOW_JUMP_LOG2) - 1)
 
-// Workaround for issue #1128
-static int num_test_case = 0;
-
 inline unsigned int xorwow_next(prngStates* cur_state)
 {
     const unsigned int t = cur_state->x ^ (cur_state->x >> 2);
