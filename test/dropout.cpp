@@ -39,6 +39,8 @@
 #define WORKAROUND_MLOPEN_ISSUE_2335 \
     ((HIP_PACKAGE_VERSION_FLAT < 3007000000ULL) && MIOPEN_BACKEND_OPENCL)
 
+static int num_test_case = 0;
+
 template <class T>
 struct verify_forward_dropout
 {
@@ -269,6 +271,12 @@ struct dropout_driver : test_driver
         return;
 #endif
 
+        // Workaround for issue #1128
+        if(mask || num_test_case > 0)
+        {
+            return;
+        }
+
         miopen::DropoutDescriptor DropoutDesc;
         unsigned long max_value  = miopen_type<T>{} == miopenHalf ? 5 : 17;
         auto&& handle            = get_handle();
@@ -348,6 +356,8 @@ struct dropout_driver : test_driver
             verify(
                 verify_backward_dropout<T>{DropoutDesc, din, dout, reserveSpace, 0, 0, 0, false});
         }
+
+        num_test_case++;
     }
 };
 
