@@ -46,7 +46,6 @@
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DYNAMIC_REDUCTION);
 
 #define WORKAROUND_MIOPEN_ISSUE_557 1
-#define WORKAROUND_ISSUE_1123 ((HIP_PACKAGE_VERSION_FLAT == 4003000000ULL) && MIOPEN_BACKEND_HIP)
 
 namespace miopen {
 
@@ -62,11 +61,7 @@ namespace detail {
 
 static bool IsDynamicReductionEnabled()
 {
-#if WORKAROUND_ISSUE_1123
-    return miopen::IsEnabled(MIOPEN_DEBUG_DYNAMIC_REDUCTION{});
-#else
     return !miopen::IsDisabled(MIOPEN_DEBUG_DYNAMIC_REDUCTION{});
-#endif
 }
 
 struct get_tunable_reduction_kernel_constants
@@ -568,10 +563,13 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
 
     if(need_indices && workspace != nullptr)
     {
-        std::size_t aTypeSize = detail::GetDataTypeSize(aDesc.GetType());
+        std::size_t aTypeSize     = detail::GetDataTypeSize(aDesc.GetType());
+        auto ws_buf12_sizeInBytes = detail::IsDynamicReductionEnabled()
+                                        ? workspaceSizeInBytes - 4096
+                                        : workspaceSizeInBytes;
 
         long byteOffset =
-            static_cast<long>((workspaceSizeInBytes / (aTypeSize + sizeof(int))) * aTypeSize);
+            static_cast<long>((ws_buf12_sizeInBytes / (aTypeSize + sizeof(int))) * aTypeSize);
 
         ws_buf2_bytes_offset = ((byteOffset + 63) / 64) * 64;
     };
