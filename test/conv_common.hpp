@@ -1800,7 +1800,7 @@ struct conv_driver : test_driver
         // by default, this member is constructed when conv2d/3d is constructed (see
         // test_driver::add())
         // but this requires the dimensions come from commandline, which is hard for non-NCHW layout
-        if(in_layout != "NCHW" || in_layout != "NCDHW")
+        if(in_layout != "NCHW" && in_layout != "NCDHW")
         {
             const std::vector<std::size_t> dim_lens = input.desc.GetLengths();
             std::vector<std::size_t> dim_strides;
@@ -1811,7 +1811,7 @@ struct conv_driver : test_driver
                 dim_strides);
             input.desc = miopen::TensorDescriptor(miopen_type<T>{}, dim_lens, dim_strides);
         }
-        if(fil_layout != "NCHW" || fil_layout != "NCDHW")
+        if(fil_layout != "NCHW" && fil_layout != "NCDHW")
         {
             const std::vector<std::size_t> dim_lens = weights.desc.GetLengths();
             std::vector<std::size_t> dim_strides;
