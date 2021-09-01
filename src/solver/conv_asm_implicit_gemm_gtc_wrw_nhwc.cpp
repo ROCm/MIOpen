@@ -196,7 +196,7 @@ GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel(
     size_t block_size = config.BlockSize();
     size_t grid_size  = group * integer_divide_ceil(gemm_m, config.gemm_m_per_block) *
                        integer_divide_ceil(gemm_n, config.gemm_n_per_block);
-    std::string kernel_name = config.ToKernelName();
+    std::string kernel_name = config.ToKernelName(ctx);
     size_t occupancy        = config.ComputeKernelOccupancy();
     return std::make_tuple(kernel_name, block_size, grid_size, occupancy);
 }
@@ -596,7 +596,7 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(const ConvolutionC
         return false;
 
     const auto device_name = ctx.GetStream().GetDeviceName();
-    if(device_name != "gfx908")
+    if((device_name != "gfx908") && (device_name != "gfx90a"))
         return false;
 
     if(!ctx.use_asm_kernels)
