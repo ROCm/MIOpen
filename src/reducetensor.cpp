@@ -534,6 +534,10 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
 
     const tunable_generic_reduction* tunable = &default_tunable_generic_reduction;
 
+    const int blockSize =
+        !miopen::IsDisabled(MIOPEN_DEBUG_DYNAMIC_REDUCTION{}) ? tunable->BlockSize : 256;
+    detail::ReductionKernelConfigurator configurator(blockSize, handle.GetWavefrontWidth());
+
     const bool need_indices =
         (reduceIndicesOpt == MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES) &&
         (reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX ||
@@ -564,28 +568,19 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
     if(indices_sizeInBytes > indicesSizeInBytes)
         MIOPEN_THROW("The indices size allocated is not enough!");
 
-    long ws_buf2_bytes_offset = 0;
-
-    if(need_indices && workspace != nullptr)
-    {
-        std::size_t aTypeSize     = detail::GetDataTypeSize(aDesc.GetType());
-        auto ws_buf12_sizeInBytes = !miopen::IsDisabled(MIOPEN_DEBUG_DYNAMIC_REDUCTION{})
-                                        ? workspaceSizeInBytes - 4096
-                                        : workspaceSizeInBytes;
-
-        long byteOffset =
-            static_cast<long>((ws_buf12_sizeInBytes / (aTypeSize + sizeof(int))) * aTypeSize);
-
-        ws_buf2_bytes_offset = ((byteOffset + 63) / 64) * 64;
-    };
-
     // invariantLength and toReduceLength are used to determine the kernel configuration
     const auto invariantLength = cDesc.GetElementSize();
     const auto toReduceLength  = aDesc.GetElementSize() / invariantLength;
 
-    const int blockSize =
-        !miopen::IsDisabled(MIOPEN_DEBUG_DYNAMIC_REDUCTION{}) ? tunable->BlockSize : 256;
-    detail::ReductionKernelConfigurator configurator(blockSize, handle.GetWavefrontWidth());
+    long ws_buf2_bytes_offset = 0;
+
+    if(need_indices && workspace != nullptr)
+    {
+        auto aTypeSize      = detail::GetDataTypeSize(aDesc.GetType());
+        auto workspace_size = configurator.getWorkspaceSize(invariantLength, toReduceLength);
+
+        ws_buf2_bytes_offset = ((workspace_size * aTypeSize + 63) / 64) * 64;
+    };
 
     const ReductionMethod_t reduceImpl =
         configurator.getReductionMethod(invariantLength, toReduceLength);
