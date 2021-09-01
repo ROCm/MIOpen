@@ -33,7 +33,6 @@
 #include "random.hpp"
 
 #define DROPOUT_DEBUG_CTEST 0
-#define DROPOUT_LARGE_CTEST 0
 // Workaround for issue #1128
 #define DROPOUT_SINGLE_CTEST 1
 
@@ -247,6 +246,7 @@ struct dropout_driver : test_driver
         add(mask, "use-mask", generate_data({false}));
         add(rng_mode_cmd, "rng-mode", generate_data({0}));
 #else
+#define DROPOUT_LARGE_CTEST 0
 #if DROPOUT_LARGE_CTEST
         input_dims.insert(input_dims.end(), get_inputs_set.begin(), get_inputs_set.end());
         input_dims.insert(input_dims.end(),
