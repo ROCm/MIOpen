@@ -443,7 +443,17 @@ std::size_t ReduceTensorDescriptor::GetWorkspaceSize(const Handle& handle,
     auto invariantLength = outDesc.GetElementSize();
     auto toReduceLength  = inDesc.GetElementSize() / invariantLength;
 
-    detail::ReductionKernelConfigurator configurator(256, handle.GetWavefrontWidth());
+    int blockSize;
+
+    if(!miopen::IsDisabled(MIOPEN_DEBUG_DYNAMIC_REDUCTION{}))
+    {
+        const tunable_generic_reduction* tunable = &default_tunable_generic_reduction;
+        blockSize                                = tunable->BlockSize;
+    }
+    else
+        blockSize = 256;
+
+    detail::ReductionKernelConfigurator configurator(blockSize, handle.GetWavefrontWidth());
 
     auto workspace_size = configurator.getWorkspaceSize(invariantLength, toReduceLength);
 
