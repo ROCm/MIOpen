@@ -128,6 +128,24 @@ std::string ConstructBuildOptions(const ConvolutionContext& ctx,
     return mlir_handle.str();
 }
 
+std::string ConstructBuildOptions(const ConvolutionContext& ctx,
+                                  const std::string& operation,
+                                  const std::string& kernel_name,
+                                  const std::string& config,
+                                  bool is_xdlops,
+                                  int kernel_id)
+{
+    std::ostringstream mlir_handle;
+
+    // clang-format off
+    mlir_handle
+        << ConstructBuildOptions(ctx, operation, kernel_name, is_xdlops, kernel_id)
+        << " --perf_config " << config;
+    // clang-format on
+
+    return mlir_handle.str();
+}
+
 } // namespace mlir
 } // namespace solver
 } // namespace miopen
