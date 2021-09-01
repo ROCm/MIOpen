@@ -122,6 +122,7 @@ set( MIOpen_Source
     solver/activ/bwd_1.cpp
     batchnorm/problem_description.cpp
     solver/batchnorm/forward_per_activation_single.cpp
+    solver/batchnorm/forward_per_activation_multiple.cpp
     include/miopen/buffer_info.hpp
     include/miopen/temp_file.hpp
     include/miopen/bfloat16.hpp
