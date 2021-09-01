@@ -42,6 +42,12 @@ std::string ConstructBuildOptions(const ConvolutionContext& ctx,
                                   bool is_xdlops,
                                   int kernel_id = 0);
 
+std::string ConstructBuildOptions(const ConvolutionContext& ctx,
+                                  const std::string& operation,
+                                  const std::string& kernel_name,
+                                  const std::string& config,
+                                  bool is_xdlops,
+                                  int kernel_id = 0);
 } // namespace mlir
 } // namespace solver
 } // namespace miopen
