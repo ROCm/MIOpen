@@ -179,12 +179,12 @@ extern "C" __global__ void gridwise_generic_reduce_1_prepare(int GridSize,
                                                    make_pad_transform(toReduceLen, 0, srcPad2)),
                                         make_tuple(Sequence<0>{}, Sequence<1>{}),
                                         make_tuple(Sequence<0>{}, Sequence<1>{}));
-        if(hipThreadIdx_x == 0)
+        if(get_thread_local_1d_id() == 0)
             *static_cast<decltype(src2dDesc_2)*>(p_src2dDesc) = src2dDesc_2;
     }
     else
     {
-        if(hipThreadIdx_x == 0)
+        if(get_thread_local_1d_id() == 0)
             *static_cast<decltype(src2dDesc)*>(p_src2dDesc) = src2dDesc;
     }
 
@@ -196,12 +196,12 @@ extern "C" __global__ void gridwise_generic_reduce_1_prepare(int GridSize,
                                         make_tuple(make_pad_transform(invariantLen, 0, dstPad)),
                                         make_tuple(Sequence<0>{}),
                                         make_tuple(Sequence<0>{}));
-        if(hipThreadIdx_x == 0)
+        if(get_thread_local_1d_id() == 0)
             *static_cast<decltype(dst1dDesc_2)*>(p_dst1dDesc) = dst1dDesc_2;
     }
     else
     {
-        if(hipThreadIdx_x == 0)
+        if(get_thread_local_1d_id() == 0)
             *static_cast<decltype(dst1dDesc)*>(p_dst1dDesc) = dst1dDesc;
     }
 };
