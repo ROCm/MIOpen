@@ -137,52 +137,52 @@ BnFwdTrainingPerActivation::GetSolution(const ExecutionContext& context,
             if(resultsave && resultrunning)
             {
                 kernel(params.x,
-                        in_nstride,
-                        in_cstride,
-                        params.y,
-                        params.bnScale,
-                        params.bnBias,
-                        params.expAvgFactor,
-                        params.resultRunningMean,
-                        params.resultRunningVariance,
-                        params.epsilon,
-                        params.resultSaveMean,
-                        params.resultSaveInvVariance);
+                       in_nstride,
+                       in_cstride,
+                       params.y,
+                       params.bnScale,
+                       params.bnBias,
+                       params.expAvgFactor,
+                       params.resultRunningMean,
+                       params.resultRunningVariance,
+                       params.epsilon,
+                       params.resultSaveMean,
+                       params.resultSaveInvVariance);
             }
             else if(resultsave)
             {
                 kernel(params.x,
-                        in_nstride,
-                        in_cstride,
-                        params.y,
-                        params.bnScale,
-                        params.bnBias,
-                        params.epsilon,
-                        params.resultSaveMean,
-                        params.resultSaveInvVariance);
+                       in_nstride,
+                       in_cstride,
+                       params.y,
+                       params.bnScale,
+                       params.bnBias,
+                       params.epsilon,
+                       params.resultSaveMean,
+                       params.resultSaveInvVariance);
             }
             else if(resultrunning)
             {
                 kernel(params.x,
-                        in_nstride,
-                        in_cstride,
-                        params.y,
-                        params.bnScale,
-                        params.bnBias,
-                        params.expAvgFactor,
-                        params.resultRunningMean,
-                        params.resultRunningVariance,
-                        params.epsilon);
+                       in_nstride,
+                       in_cstride,
+                       params.y,
+                       params.bnScale,
+                       params.bnBias,
+                       params.expAvgFactor,
+                       params.resultRunningMean,
+                       params.resultRunningVariance,
+                       params.epsilon);
             }
             else
             {
                 kernel(params.x,
-                        in_nstride,
-                        in_cstride,
-                        params.y,
-                        params.bnScale,
-                        params.bnBias,
-                        params.epsilon);
+                       in_nstride,
+                       in_cstride,
+                       params.y,
+                       params.bnScale,
+                       params.bnBias,
+                       params.epsilon);
             }
         };
     };
