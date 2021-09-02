@@ -93,7 +93,7 @@ PerformanceConvMlirIgemmXdlops::PerformanceConvMlirIgemmXdlops(int GemmMPerBlock
 
 PerformanceConvMlirIgemmXdlops::PerformanceConvMlirIgemmXdlops(bool spare)
     : PerformanceConvMlirIgemmXdlops::PerformanceConvMlirIgemmXdlops(
-          4, 16, 1, 4, 16, 1, false, false, spare)
+          4, 16, 1, 4, 16, 4, false, false, spare)
 {
 }
 
@@ -146,7 +146,7 @@ bool PerformanceConvMlirIgemmXdlops::SetNextValue(const ConvolutionContext& /*co
             break;
         if(!NextTwoPower<16, 128>(GemmNPerWave))
             break;
-        if(!NextTwoPower<1, 8>(GemmKPACKSize))
+        if(!NextTwoPower<4, 8>(GemmKPACKSize))
             break;
 
         return false;
