@@ -278,15 +278,15 @@ extern "C" __global__ void gridwise_generic_reduce_1(int origReduceLen,
                                                      const void* __restrict__ p_src_global,
                                                      float beta,
                                                      void* __restrict__ p_dst_global,
-                                                     void* __restrict__ ws_global,
+                                                     const void CONSTANT* ws_global,
                                                      long ws_buf2_bytes_offset,
                                                      void* __restrict__ indices_global)
 {
     (void)BlkGroupSize;
     (void)ws_buf2_bytes_offset;
 
-    const void* p_src2dDesc = ws_global;
-    const void* p_dst1dDesc = static_cast<char*>(ws_global) + 2048;
+    const void* p_src2dDesc = cast_pointer_to_generic_address_space(ws_global);
+    const void* p_dst1dDesc = static_cast<const char*>(p_src2dDesc) + 2048;
 
     const auto src2dDesc = get_reduction_src2d_descriptor<src2d_need_padding>(p_src2dDesc);
     const auto dst1dDesc = get_reduction_dst1d_descriptor<dst1d_need_padding>(p_dst1dDesc);
