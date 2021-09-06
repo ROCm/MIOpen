@@ -472,10 +472,19 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Activation, SolverDbId(activ::ActivBwdSolver0{}));
     Register(registry, ++id, Primitive::Activation, SolverDbId(activ::ActivBwdSolver1{}));
 
-    Register(registry, ++id, Primitive::Batchnorm, SolverDbId(batchnorm::BnFwdTrainingPASingle{}));
+    Register(
+        registry, ++id, Primitive::Batchnorm, SolverDbId(batchnorm::BnFwdTrainingSpatialSingle{}));
 
     RegisterWithSolver(
         registry, ++id, ConvCkIgemmFwdV6r1DlopsNchw{}, miopenConvolutionAlgoImplicitGEMM);
+
+    Register(registry,
+             ++id,
+             Primitive::Batchnorm,
+             SolverDbId(batchnorm::BnFwdTrainingSpatialMultiple{}));
+
+    Register(
+        registry, ++id, Primitive::Batchnorm, SolverDbId(batchnorm::BnFwdTrainingPerActivation{}));
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }
