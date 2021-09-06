@@ -39,8 +39,8 @@ namespace solver {
 
 namespace batchnorm {
 
-bool BnFwdTrainingPASingle::IsApplicable(const ExecutionContext&,
-                                         const miopen::batchnorm::ProblemDescription& problem) const
+bool BnFwdTrainingSpatialSingle::IsApplicable(
+    const ExecutionContext&, const miopen::batchnorm::ProblemDescription& problem) const
 {
     if(problem.GetDirection() != miopen::batchnorm::Direction::ForwardTraining ||
        problem.GetMode() != miopenBNSpatial)
@@ -85,8 +85,8 @@ bool BnFwdTrainingPASingle::IsApplicable(const ExecutionContext&,
 }
 
 ConvSolution
-BnFwdTrainingPASingle::GetSolution(const ExecutionContext& context,
-                                   const miopen::batchnorm::ProblemDescription& problem) const
+BnFwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
+                                        const miopen::batchnorm::ProblemDescription& problem) const
 {
     const auto& handle = context.GetStream();
 

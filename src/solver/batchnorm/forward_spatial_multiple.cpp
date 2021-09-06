@@ -40,19 +40,18 @@ namespace solver {
 
 namespace batchnorm {
 
-bool BnFwdTrainingPAMultiple::IsApplicable(
+bool BnFwdTrainingSpatialMultiple::IsApplicable(
     const ExecutionContext& context, const miopen::batchnorm::ProblemDescription& problem) const
 {
     if(problem.GetDirection() != miopen::batchnorm::Direction::ForwardTraining ||
        problem.GetMode() != miopenBNSpatial)
         return false;
 
-    return !BnFwdTrainingPASingle{}.IsApplicable(context, problem);
+    return !BnFwdTrainingSpatialSingle{}.IsApplicable(context, problem);
 }
 
-ConvSolution
-BnFwdTrainingPAMultiple::GetSolution(const ExecutionContext& context,
-                                     const miopen::batchnorm::ProblemDescription& problem) const
+ConvSolution BnFwdTrainingSpatialMultiple::GetSolution(
+    const ExecutionContext& context, const miopen::batchnorm::ProblemDescription& problem) const
 {
     const auto& handle                 = context.GetStream();
     const auto& xDesc                  = problem.GetXDesc();
