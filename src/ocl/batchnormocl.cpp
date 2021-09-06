@@ -128,232 +128,43 @@ void BatchNormForwardTraining(Handle& handle,
                           : AlgorithmName{"miopenBatchNormForwardTrainingPerActivation"};
     const auto network_config = problem.MakeNetworkConfig();
 
+    const auto invoke_params = [&]() {
+        auto tmp                  = batchnorm::InvokeParams{};
+        tmp.type                  = InvokeType::Run;
+        tmp.x                     = x;
+        tmp.y                     = y;
+        tmp.bnScale               = bnScale;
+        tmp.bnBias                = bnBias;
+        tmp.expAvgFactor          = expAvgFactor;
+        tmp.resultRunningMean     = resultRunningMean;
+        tmp.resultRunningVariance = resultRunningVariance;
+        tmp.epsilon               = epsilon;
+        tmp.resultSaveMean        = resultSaveMean;
+        tmp.resultSaveInvVariance = resultSaveInvVariance;
+        return tmp;
+    }();
+
+    if(const auto invoker = handle.GetInvoker(network_config, boost::none, algo))
     {
-        const auto invoke_params = [&]() {
-            auto tmp                  = batchnorm::InvokeParams{};
-            tmp.type                  = InvokeType::Run;
-            tmp.x                     = x;
-            tmp.y                     = y;
-            tmp.bnScale               = bnScale;
-            tmp.bnBias                = bnBias;
-            tmp.expAvgFactor          = expAvgFactor;
-            tmp.resultRunningMean     = resultRunningMean;
-            tmp.resultRunningVariance = resultRunningVariance;
-            tmp.epsilon               = epsilon;
-            tmp.resultSaveMean        = resultSaveMean;
-            tmp.resultSaveInvVariance = resultSaveInvVariance;
-            return tmp;
-        }();
-
-        if(const auto invoker = handle.GetInvoker(network_config, boost::none, algo))
-        {
-            (*invoker)(handle, invoke_params);
-            return;
-        }
-
-        const auto ctx     = ExecutionContext{&handle};
-        const auto solvers = solver::SolverContainer<solver::batchnorm::BnFwdTrainingPASingle,
-                                                     solver::batchnorm::BnFwdTrainingPAMultiple>{};
-        const auto slns    = solvers.SearchForSolutions(ctx, problem, 1);
-
-        // if(slns.empty())
-        //    MIOPEN_THROW(miopenStatusNotImplemented, "No solver found for activation forward.");
-
-        if(!slns.empty())
-        {
-            const auto& sln = slns.front();
-            if(!sln.invoker_factory)
-                MIOPEN_THROW(miopenStatusInternalError,
-                             "Invoker missing in solver " + sln.solver_id);
-            const auto invoker =
-                handle.PrepareInvoker(*sln.invoker_factory, sln.construction_params);
-            handle.RegisterInvoker(invoker, network_config, sln.solver_id, algo);
-            invoker(handle, invoke_params);
-            return;
-        }
+        (*invoker)(handle, invoke_params);
+        return;
     }
 
-    if(bn_mode == miopenBNSpatial)
-    {
-        MIOPEN_THROW(miopenStatusInternalError,
-                     "Batch norm forward spatial path has been already implemented as a solver.");
-    }
-    else // else run per activation
-    {
-        int n, c, h, w;
-        std::tie(n, c, h, w) = tien<4>(xDesc.GetLengths());
+    const auto ctx     = ExecutionContext{&handle};
+    const auto solvers = solver::SolverContainer<solver::batchnorm::BnFwdTrainingSpatialSingle,
+                                                 solver::batchnorm::BnFwdTrainingSpatialMultiple,
+                                                 solver::batchnorm::BnFwdTrainingPerActivation>{};
+    const auto slns    = solvers.SearchForSolutions(ctx, problem, 1);
 
-        unsigned int in_cstride = h * w;
-        unsigned int in_nstride = c * in_cstride;
-        std::string algo_name   = "miopenBatchNormForwardTrainingPerActivation";
+    if(slns.empty())
+        MIOPEN_THROW(miopenStatusNotImplemented, "No solver found for activation forward.");
 
-        auto&& kernels = handle.GetKernels(algo_name, network_config);
-
-        if(!kernels.empty())
-        {
-            auto kernel = kernels.front();
-            if(resultsave && resultrunning)
-            {
-                kernel(x,
-                       in_nstride,
-                       in_cstride,
-                       y,
-                       bnScale,
-                       bnBias,
-                       expAvgFactor,
-                       resultRunningMean,
-                       resultRunningVariance,
-                       epsilon,
-                       resultSaveMean,
-                       resultSaveInvVariance);
-            }
-            else if(resultsave)
-            {
-                kernel(x,
-                       in_nstride,
-                       in_cstride,
-                       y,
-                       bnScale,
-                       bnBias,
-                       epsilon,
-                       resultSaveMean,
-                       resultSaveInvVariance);
-            }
-            else if(resultrunning)
-            {
-                kernel(x,
-                       in_nstride,
-                       in_cstride,
-                       y,
-                       bnScale,
-                       bnBias,
-                       expAvgFactor,
-                       resultRunningMean,
-                       resultRunningVariance,
-                       epsilon);
-            }
-            else
-            {
-                kernel(x, in_nstride, in_cstride, y, bnScale, bnBias, epsilon);
-            }
-        }
-        else // kernels empty
-        {
-            unsigned int in_nhw  = n * in_cstride;
-            unsigned int in_nchw = n * in_nstride;
-
-            bool bfpmixparm = false;
-            bool bfp16parm  = false;
-            bool bfp32parm  = true;
-            if(xDesc.GetType() == miopenHalf && bnScaleBiasMeanVarDesc.GetType() == miopenHalf)
-            {
-                bfp16parm = true;
-                bfp32parm = false;
-            }
-            else if(xDesc.GetType() == miopenHalf &&
-                    bnScaleBiasMeanVarDesc.GetType() == miopenFloat)
-            {
-                bfpmixparm = true;
-                bfp32parm  = false;
-            }
-
-            std::size_t xlocalsize = 1;
-            std::size_t ylocalsize = 256;
-            std::size_t zlocalsize = 1;
-            std::size_t segment    = (in_cstride + ylocalsize - 1) / ylocalsize;
-            std::size_t xgridsize  = c;
-            std::size_t ygridsize  = segment * ylocalsize;
-            std::size_t zgridsize  = 1;
-
-            std::vector<size_t> vld;
-            std::vector<size_t> vgd;
-
-            vgd.push_back(xgridsize);
-            vgd.push_back(ygridsize);
-            vgd.push_back(zgridsize);
-
-            vld.push_back(xlocalsize);
-            vld.push_back(ylocalsize);
-            vld.push_back(zlocalsize);
-
-            std::string parms =
-                " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
-                " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
-                " -DMIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
-                " -DMIO_SAVE_MEAN_VARIANCE=" + std::to_string(static_cast<int>(resultsave)) +
-                " -DMIO_RUNNING_RESULT=" + std::to_string(static_cast<int>(resultrunning)) +
-                " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) +
-                " -DMIO_BN_HW=" + std::to_string(in_cstride) +
-                " -DMIO_BN_NHW=" + std::to_string(in_nhw) +
-                " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
-                " -DMIO_BN_LDS_SIZE=" + std::to_string(ylocalsize) +
-                " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) +
-                " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
-                " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) +
-                " -DMIO_BN_NCHW=" + std::to_string(in_nchw) +
-                " -DMIO_BN_GFX1030=" + ((handle.GetDeviceName() == "gfx1030") ? "1" : "0");
-
-            std::string program_name = "MIOpenBatchNormFwdTrainPerAct.cl";
-            std::string kernel_name  = "MIOpenBatchNormFwdTrainPerActivation";
-
-            MIOPEN_LOG_I2(kernel_name << ":: " << parms);
-            MIOPEN_LOG_I2("No kernel found, adding kernel.");
-            MIOPEN_LOG_I2("xgridsize: " << xgridsize << " ygridsize: " << ygridsize);
-
-            if(resultsave && resultrunning)
-            {
-                handle.AddKernel(
-                    algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-                    x,
-                    in_nstride,
-                    in_cstride,
-                    y,
-                    bnScale,
-                    bnBias,
-                    expAvgFactor,
-                    resultRunningMean,
-                    resultRunningVariance,
-                    epsilon,
-                    resultSaveMean,
-                    resultSaveInvVariance);
-            }
-            else if(resultsave)
-            {
-                handle.AddKernel(
-                    algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-                    x,
-                    in_nstride,
-                    in_cstride,
-                    y,
-                    bnScale,
-                    bnBias,
-                    epsilon,
-                    resultSaveMean,
-                    resultSaveInvVariance);
-            }
-            else if(resultrunning)
-            {
-                handle.AddKernel(
-                    algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-                    x,
-                    in_nstride,
-                    in_cstride,
-                    y,
-                    bnScale,
-                    bnBias,
-                    expAvgFactor,
-                    resultRunningMean,
-                    resultRunningVariance,
-                    epsilon);
-            }
-            else
-            {
-                handle.AddKernel(
-                    algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-                    x, in_nstride, in_cstride, y, bnScale, bnBias, epsilon);
-            }
-        }
-    } // end per-activation
+    const auto& sln = slns.front();
+    if(!sln.invoker_factory)
+        MIOPEN_THROW(miopenStatusInternalError, "Invoker missing in solver " + sln.solver_id);
+    const auto invoker = handle.PrepareInvoker(*sln.invoker_factory, sln.construction_params);
+    handle.RegisterInvoker(invoker, network_config, sln.solver_id, algo);
+    invoker(handle, invoke_params);
 
     if(miopen::CheckNumericsEnabled())
     {
