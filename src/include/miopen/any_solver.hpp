@@ -45,6 +45,8 @@ struct AnySolver
     AnySolver() : ptr_value(nullptr){};
     template <class U>
     AnySolver(U src) : ptr_value(new AnySolver_tmpl<U>(std::forward<U>(src))){};
+
+
     bool IsApplicable(const ConvolutionContext& ctx) const
     {
         assert(ptr_value != nullptr);
@@ -54,6 +56,11 @@ struct AnySolver
     {
         assert(ptr_value != nullptr);
         return ptr_value->IsTunable();
+    };
+    bool TestSysDbRecord(DbRecord& record) const
+    {
+        assert(ptr_value != nullptr);
+        return ptr_value->TestSysDbRecord(record);
     };
     bool IsDynamic() const
     {
@@ -98,6 +105,7 @@ struct AnySolver
         virtual ~AnySolver_base(){};
         virtual bool IsApplicable(const ConvolutionContext& ctx) const                     = 0;
         virtual bool IsTunable() const                                                     = 0;
+        virtual bool TestSysDbRecord(DbRecord& record) const                               = 0;
         virtual bool IsDynamic() const                                                     = 0;
         virtual float GetWti(const ConvolutionContext& ctx) const                          = 0;
         virtual const std::type_info& Type() const                                         = 0;
@@ -114,6 +122,9 @@ struct AnySolver
     {
         struct TunableSolver
         {
+            //using PerformanceConfig = decltype(std::declval<T>().GetPerformanceConfig(
+            //                std::declval<const ConvolutionContext&>()));
+
             template<typename U> static constexpr auto Test(U*)
             ->typename
                 std::is_same<
@@ -129,6 +140,23 @@ struct AnySolver
             using type = decltype(Test<T>(nullptr));
             static constexpr bool Is = type::value;
         };
+
+        bool TestSysDbRecord(DbRecord& record, std::true_type) const
+        {
+            using PerformanceConfig = decltype(value.GetPerformanceConfig(std::declval<const ConvolutionContext&>()));
+            PerformanceConfig config{};
+            return record.GetValues(SolverDbId(value), config);
+        }
+        bool TestSysDbRecord(DbRecord& record, std::false_type) const
+        {
+            return false;
+        }
+
+        bool TestSysDbRecord(DbRecord& record) const override
+        {
+            return TestSysDbRecord(record, std::integral_constant<bool, TunableSolver::Is>());
+        }
+
 
         AnySolver_tmpl(T obj) : value(std::move(obj)){};
         bool IsApplicable(const ConvolutionContext& ctx) const override
