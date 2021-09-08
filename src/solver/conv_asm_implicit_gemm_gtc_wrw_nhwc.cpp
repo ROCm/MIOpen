@@ -619,7 +619,8 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(const ConvolutionC
 
     const auto target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
-        return false;
+        return false; // NOLINT (readability-simplify-boolean-expr)
+
     return true;
 }
 
