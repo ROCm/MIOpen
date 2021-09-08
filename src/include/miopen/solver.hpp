@@ -849,10 +849,63 @@ struct ConvMlirIgemmFwd : SolverBase<ConvolutionContext>
                              bool disableConfigOverrideFromEnv = false) const;
 };
 
+struct PerformanceConvMlirIgemmXdlops : Serializable<PerformanceConvMlirIgemmXdlops>
+{
+    int GemmMPerBlock; // 2^n[32..128]
+    int GemmNPerBlock; // 2^n[8..16]
+    int GemmKPerBlock; // 2^n[4..16]
+
+    int GemmMPerWave;
+    int GemmNPerWave;
+
+    int GemmKPACKSize; // 2^[1..4]
+
+    // GemmAThreadCopyMoreGemmK is currently a fix value, is untunable
+    bool GemmAThreadCopyMoreGemmK;
+    bool GemmBThreadCopyMoreGemmKPack;
+
+    bool use_spare_set;
+    PerformanceConvMlirIgemmXdlops(int, int, int, int, int, int, bool, bool, bool);
+
+    PerformanceConvMlirIgemmXdlops();
+    PerformanceConvMlirIgemmXdlops(bool spare);
+    PerformanceConvMlirIgemmXdlops(int a, int b, int c, int d, int e, int f, bool g, bool h)
+        : PerformanceConvMlirIgemmXdlops(a, b, c, d, e, f, g, h, false)
+    {
+    }
+
+    bool operator==(const PerformanceConvMlirIgemmXdlops& other) const;
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.GemmNPerBlock, "GemmNPerBlock");
+        f(self.GemmMPerBlock, "GemmMPerBlock");
+        f(self.GemmKPerBlock, "GemmKPerBlock");
+        f(self.GemmMPerWave, "GemmMPerWave");
+        f(self.GemmNPerWave, "GemmNPerWave");
+        f(self.GemmKPACKSize, "GemmKPACKSize");
+        f(self.GemmAThreadCopyMoreGemmK, "GemmAThreadCopyMoreGemmK");
+        f(self.GemmBThreadCopyMoreGemmKPack, "GemmBThreadCopyMoreGemmKPack");
+    }
+
+    bool IsValid(const ConvolutionContext& ctx) const;
+    bool SetNextValue(const ConvolutionContext& config);
+    std::string ToString() const;
+};
+
 struct ConvMlirIgemmFwdXdlops : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& ctx) const;
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+    PerformanceConvMlirIgemmXdlops GetPerformanceConfig(const ConvolutionContext& ctx) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                  const PerformanceConvMlirIgemmXdlops& config) const;
+    PerformanceConvMlirIgemmXdlops Search(const ConvolutionContext&,
+                                          const AnyInvokeParams& invoke_ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const PerformanceConvMlirIgemmXdlops& config,
+                             bool disableConfigOverrideFromEnv = false) const;
 };
 
 struct PerformanceImplicitGemmV4R4GenXdlopsFwdFp32
