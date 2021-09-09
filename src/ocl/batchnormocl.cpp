@@ -144,9 +144,9 @@ void BatchNormForwardTraining(Handle& handle,
         return tmp;
     }();
 
-    if(const auto invoker = handle.GetInvoker(network_config, boost::none, algo))
+    if(const auto existingInvoker = handle.GetInvoker(network_config, boost::none, algo))
     {
-        (*invoker)(handle, invoke_params);
+        (*existingInvoker)(handle, invoke_params);
     }
     else
     {
