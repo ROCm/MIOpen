@@ -2,7 +2,6 @@ def rocmnode(name) {
     return 'rocmtest && miopen && ' + name
 }
 
-
 def show_node_info() {
     sh """
         echo "NODE_NAME = \$NODE_NAME"
@@ -281,7 +280,7 @@ pipeline {
             when { expression { params.STATIC_CHECKS } }
             parallel{
                 stage('Hip Tidy') {
-                    agent{  label rocmnode("nogpu") }
+                    agent{ label rocmnode("nogpu") }
                     environment{
                         setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DMIOPEN_BACKEND=HIP -DBUILD_DEV=On .. "
                         build_cmd = "make -j\$(nproc) -k analyze"
@@ -291,7 +290,7 @@ pipeline {
                     }
                 }
                 stage('OpenCL Tidy') {
-                    agent{  label rocmnode("nogpu") }
+                    agent{ label rocmnode("nogpu") }
                     environment{
                         setup_cmd = "cmake -DMIOPEN_BACKEND=OpenCL -DBUILD_DEV=On .."
                         build_cmd = "make -j\$(nproc) -k analyze"
@@ -317,16 +316,16 @@ pipeline {
                         buildHipClangJobAndReboot(setup_cmd: "", build_cmd: "", execute_cmd: execute_cmd, no_reboot:true)
                     }
                 }
-              stage('Tuna Fin Build Test') {
-                  agent{ label rocmnode("nogpu") }
-                  environment{
+                stage('Tuna Fin Build Test') {
+                    agent{ label rocmnode("nogpu") }
+                    environment{
                       setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON .. "
                       build_cmd = "make -j\$(nproc) "
-                  }
-                  steps{
+                    }
+                    steps{
                       buildHipClangJobAndReboot(setup_cmd: setup_cmd, execute_cmd: "", no_reboot:true, build_cmd: build_cmd, build_fin: "ON")
-                  }
-              }
+                    }
+                }
             }
         }
         stage("Smoke Fp32"){
@@ -392,7 +391,7 @@ pipeline {
                     }
                 }
                 stage('Fp32 HipNoGPU Debug') {
-                    agent{  label rocmnode("nogpu") }
+                    agent{ label rocmnode("nogpu") }
                     environment{
                         HipNoGPU_flags = "-DMIOPEN_BACKEND=HIPNOGPU -DMIOPEN_INSTALL_CXX_HEADERS=On"
                         build_cmd = "make -j\$(nproc)"
