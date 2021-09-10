@@ -278,7 +278,7 @@ pipeline {
     }
     stages{
         stage("Static checks"){
-            when { expression { params.STATIC_CHECKS && !params.DISABLE_ALL_STAGES } }
+            when { expression { params.STATIC_CHECKS } }
             parallel{
                 stage('Hip Tidy') {
                     agent{  label rocmnode("nogpu") }
@@ -330,7 +330,7 @@ pipeline {
             }
         }
         stage("Smoke Fp32"){
-            when { expression { params.SMOKE_FP32_AUX1 && !params.DISABLE_ALL_STAGES } }
+            when { expression { params.SMOKE_FP32_AUX1 } }
             environment{
                 Smoke_targets = "check doc MIOpenDriver"
             }
@@ -404,7 +404,7 @@ pipeline {
             }
         }
         stage("Smoke Aux 1"){
-            when { expression { params.SMOKE_FP32_AUX1 && !params.DISABLE_ALL_STAGES } }
+            when { expression { params.SMOKE_FP32_AUX1 } }
             parallel{
                 stage('Fp32 Hip Debug COMGR') {
                     agent{ label rocmnode("vega") }
@@ -460,7 +460,7 @@ pipeline {
             }
         }
         stage("Smoke MLIR"){
-            when { expression { params.SMOKE_MLIR && !params.DISABLE_ALL_STAGES } }
+            when { expression { params.SMOKE_MLIR } }
             environment{ MLIR_flags = "-DMIOPEN_USE_MLIR=On" }
             parallel{
                 stage('Fp32 Hip MLIR') {
@@ -490,7 +490,7 @@ pipeline {
             }
         }
         stage("Smoke Fp16/Bf16/Int8"){
-            when { expression { params.SMOKE_FP16_BF16_INT8 && !params.DISABLE_ALL_STAGES } }
+            when { expression { params.SMOKE_FP16_BF16_INT8 } }
             environment{
                 Smoke_targets = "check doc MIOpenDriver"
             }
@@ -551,42 +551,42 @@ pipeline {
             }
             parallel{
                 stage('Fp16 Hip Tensile-Latest All Vega20') {
-                    when { expression { params.SMOKE_MIOPENTENSILE_LATEST && !params.DISABLE_ALL_STAGES } }
+                    when { expression { params.SMOKE_MIOPENTENSILE_LATEST } }
                     agent{ label rocmnode("vega20") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Fp16_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
                     }
                 }
                 stage('Int8 Hip Tensile-Latest All Vega20') {
-                    when { expression { params.SMOKE_MIOPENTENSILE_LATEST && !params.DISABLE_ALL_STAGES } }
+                    when { expression { params.SMOKE_MIOPENTENSILE_LATEST } }
                     agent{ label rocmnode("vega20") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Tensile_setup + extra_log_env + Int8_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
                     }
                 }
                 stage('Fp32 Hip Tensile-Latest All gfx908') {
-                    when { expression { params.SMOKE_MIOPENTENSILE_LATEST && !params.DISABLE_ALL_STAGES } }
+                    when { expression { params.SMOKE_MIOPENTENSILE_LATEST } }
                     agent{ label rocmnode("gfx908") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Tensile_setup + extra_log_env, build_env: Tensile_build_env + extra_log_env, gpu_arch: "gfx908:xnack-", test_flags: ' --verbose ', miotensile_version: Tensile_version, target_id: "ON")
                     }
                 }
                 stage('Bf16 Hip Tensile-Latest All gfx908') {
-                    when { expression { params.SMOKE_MIOPENTENSILE_LATEST && !params.DISABLE_ALL_STAGES } }
+                    when { expression { params.SMOKE_MIOPENTENSILE_LATEST } }
                     agent{ label rocmnode("gfx908") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Tensile_setup + extra_log_env + Bf16_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908:xnack-", miotensile_version: Tensile_version, target_id: "ON")
                     }
                 }
                 // stage('Fp32 Hip Tensile-Latest All gfx90a') {
-                //     when { expression { params.SMOKE_MIOPENTENSILE_LATEST && !params.DISABLE_ALL_STAGES } }
+                //     when { expression { params.SMOKE_MIOPENTENSILE_LATEST } }
                 //     agent{ label rocmnode("gfx90a") }
                 //     steps{
                 //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + extra_log_env, build_env: Tensile_build_env + extra_log_env, gpu_arch: "gfx90a:xnack-", test_flags: ' --verbose ', miotensile_version: Tensile_version, target_id: "ON")
                 //     }
                 // }
                 // stage('Bf16 Hip Tensile-Latest All gfx90a') {
-                //     when { expression { params.SMOKE_MIOPENTENSILE_LATEST && !params.DISABLE_ALL_STAGES } }
+                //     when { expression { params.SMOKE_MIOPENTENSILE_LATEST } }
                 //     agent{ label rocmnode("gfx90a") }
                 //     steps{
                 //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + extra_log_env + Bf16_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx90a:xnack-", miotensile_version: Tensile_version, target_id: "ON")
@@ -595,7 +595,7 @@ pipeline {
             }
         }
         stage("Full Tests I"){
-            when { expression { params.FULL_TESTS && !params.DISABLE_ALL_STAGES } }
+            when { expression { params.FULL_TESTS } }
             parallel{
                 stage('Int8 HIP All Vega20 /opt/rocm') {
                     agent{ label rocmnode("vega20") }
@@ -625,7 +625,7 @@ pipeline {
         }
 
         stage("Full Tests II"){
-            when { expression { params.FULL_TESTS && !params.DISABLE_ALL_STAGES } }
+            when { expression { params.FULL_TESTS } }
             environment{
                 WORKAROUND_iGemm_936 = " MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0"
             }
@@ -680,7 +680,7 @@ pipeline {
         }
 
         stage("MIOpenTensile"){
-            when { expression { params.MIOPENTENSILE && !params.DISABLE_ALL_STAGES } }
+            when { expression { params.MIOPENTENSILE } }
             environment{
                 Tensile_version = "default"
             }
@@ -760,7 +760,7 @@ pipeline {
             }
         }
         stage("MIOpenTensile Latest"){
-            when { expression { params.MIOPENTENSILE_LATEST && !params.DISABLE_ALL_STAGES  } }
+            when { expression { params.MIOPENTENSILE_LATEST  } }
             environment{
                 Tensile_version = "latest"
             }
@@ -840,7 +840,7 @@ pipeline {
             }
         }
         stage("Packages"){
-            when { expression { params.PACKAGES && !params.DISABLE_ALL_STAGES } }
+            when { expression { params.PACKAGES } }
             parallel {
                 stage('OpenCL Package') {
                     agent{ label rocmnode("nogpu") }
