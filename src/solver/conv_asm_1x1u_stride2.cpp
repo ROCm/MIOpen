@@ -488,6 +488,11 @@ bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!params.IsFp32())
         return false;
+
+    const auto target = params.GetStream().GetTargetProperties();
+    if(target.Xnack() && *target.Xnack())
+        return false;
+
     const std::string name = params.GetStream().GetDeviceName();
     if(name.find("gfx8") == std::string::npos && name.find("gfx9") == std::string::npos)
     {

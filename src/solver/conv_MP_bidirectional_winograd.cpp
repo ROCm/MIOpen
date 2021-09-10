@@ -188,6 +188,10 @@ inline bool IsApplicableTransform(const ConvolutionContext& params)
     if(!(params.IsFp32() || params.IsFp16()))
         return false;
 
+    const auto target = params.GetStream().GetTargetProperties();
+    if(target.Xnack() && *target.Xnack())
+        return false;
+
     const std::string name = params.GetStream().GetDeviceName();
     if(!StartsWith(name, "gfx9") || name == "gfx90a")
         return false;
