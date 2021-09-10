@@ -250,10 +250,6 @@ pipeline {
             defaultValue: true,
             description: "")
         booleanParam(
-            name: "MIOPENNAVI21",
-            defaultValue: false,
-            description: "")
-        booleanParam(
             name: "MIOPENTENSILE",
             defaultValue: false,
             description: "")
@@ -658,6 +654,16 @@ pipeline {
                         buildHipClangJobAndReboot( setup_flags: Full_test, build_env: WORKAROUND_iGemm_936)
                     }
                 }
+                stage('Fp32 OpenCL All gfx1030') {
+                    agent{ label rocmnode("navi21") }
+                    options {
+                        // timeout(time: 150, unit: 'MINUTES')
+                        retry(2)
+                    }
+                    steps{
+                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, build_env: extra_log_env, gpu_arch: "gfx1030")
+                    }
+                }
                 stage('Fp16 Hip All Install gfx908') {
                     agent{ label rocmnode("gfx908") }
                     steps{
@@ -670,27 +676,6 @@ pipeline {
                         buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_env: WORKAROUND_iGemm_936, build_install: "true", gpu_arch: "gfx90a:xnack-")
                     }
                 }
-            }
-        }
-
-        stage("Full Tests gfx1030"){
-            when { expression { params.MIOPENNAVI21 && !params.DISABLE_ALL_STAGES } }
-            environment{
-                WORKAROUND_iGemm_936 = " MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0"
-            }
-            parallel{
-                stage('Fp32 OpenCL All gfx1030') {
-                        agent{ label rocmnode("navi21") }
-                        steps{
-                            buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, build_env: extra_log_env, gpu_arch: "gfx1030")
-                        }
-                    }
-                stage('Fp32 Hip All Install gfx1030') {
-                        agent{ label rocmnode("navi21") }
-                        steps{
-                            buildHipClangJobAndReboot(setup_flags: Full_test, build_env: WORKAROUND_iGemm_936, build_install: "true", gpu_arch: "gfx1030")
-                        }
-                    }
             }
         }
 
