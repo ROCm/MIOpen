@@ -245,6 +245,10 @@ pipeline {
             defaultValue: true,
             description: "")
         booleanParam(
+            name: "FULL_TESTS_NAVI21_OPTIONAL",
+            defaultValue: false,
+            description: "")
+        booleanParam(
             name: "MIOPENTENSILE",
             defaultValue: false,
             description: "")
@@ -706,14 +710,17 @@ pipeline {
                     }
                 }
                 stage('Fp32 OpenCL All gfx1030') {
-                    when { expression { params.TARGET_NAVI21 } }
+                    when { expression { params.TARGET_NAVI21 && params.FULL_TESTS_NAVI21_OPTIONAL } }
                     agent{ label rocmnode("navi21") }
-                    options {
-                        // timeout(time: 150, unit: 'MINUTES')
-                        retry(2)
-                    }
                     steps{
                         buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, build_env: extra_log_env, gpu_arch: "gfx1030")
+                    }
+                }
+                stage('Fp32 Hip All Install gfx1030') {
+                    when { expression { params.TARGET_NAVI21 && params.FULL_TESTS_NAVI21_OPTIONAL } }
+                    agent{ label rocmnode("navi21") }
+                    steps{
+                        buildHipClangJobAndReboot(setup_flags: Full_test, build_env: WORKAROUND_iGemm_936, build_install: "true", gpu_arch: "gfx1030")
                     }
                 }
                 stage('Fp16 Hip All Install gfx908') {
