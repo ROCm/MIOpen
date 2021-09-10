@@ -685,14 +685,14 @@ pipeline {
                     when { expression { params.TARGET_GFX908 } }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Full_test, build_env: WORKAROUND_iGemm_936, gpu_arch: "gfx908")
+                        buildHipClangJobAndReboot(setup_flags: Full_test, gpu_arch: "gfx908")
                     }
                 }
                 stage('Fp32 Hip All gfx90a') {
                     when { expression { params.TARGET_GFX90A } }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Full_test, build_env: WORKAROUND_iGemm_936, gpu_arch: "gfx90a:xnack-")
+                        buildHipClangJobAndReboot(setup_flags: Full_test, gpu_arch: "gfx90a:xnack-")
                     }
                 }
                 stage('Fp16 Hip Install All Vega20') {
@@ -706,7 +706,7 @@ pipeline {
                     when { expression { params.TARGET_VEGA20 } }
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Full_test, build_env: WORKAROUND_iGemm_936)
+                        buildHipClangJobAndReboot( setup_flags: Full_test)
                     }
                 }
                 stage('Fp32 OpenCL All gfx1030') {
@@ -720,7 +720,7 @@ pipeline {
                     when { expression { params.TARGET_NAVI21 && params.FULL_TESTS_NAVI21_OPTIONAL } }
                     agent{ label rocmnode("navi21") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Full_test, build_env: WORKAROUND_iGemm_936, build_install: "true", gpu_arch: "gfx1030")
+                        buildHipClangJobAndReboot(setup_flags: Full_test, build_install: "true", gpu_arch: "gfx1030")
                     }
                 }
                 stage('Fp16 Hip All Install gfx908') {
