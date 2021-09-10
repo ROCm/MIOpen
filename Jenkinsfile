@@ -256,10 +256,6 @@ pipeline {
             name: "PACKAGES",
             defaultValue: true,
             description: "")
-        booleanParam(
-                name: "BUILD_PACKAGES",
-                defaultValue: true,
-                description: "Run packages stage")
     }
 
     environment{
