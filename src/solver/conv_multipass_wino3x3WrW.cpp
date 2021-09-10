@@ -37,6 +37,7 @@
 #if(MIOPEN_BACKEND_HIP && (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE))
 #define WORKAROUND_SWDEV_203031 1 // See also issues #2075, #2067
 #define WORKAROUND_SWDEV_234193 1
+#define WORKAROUND_ISSUE_1146 1 // check asm solver applicability for gfx90a
 #endif
 
 namespace miopen {
@@ -436,8 +437,12 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
          FilterTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(params)))
         return false;
 
-    if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")) || name == "gfx90a")
+    if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")))
         return false;
+#if WORKAROUND_ISSUE_1146
+    if(name == "gfx90a")
+        return false;
+#endif
 
     {
         std::size_t limit = miopen::Value(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX{});

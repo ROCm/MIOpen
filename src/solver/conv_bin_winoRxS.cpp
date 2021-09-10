@@ -36,6 +36,8 @@
 
 #include <boost/any.hpp>
 
+#define WORKAROUND_ISSUE_1146 1 // check asm solver applicability for gfx90a
+
 /// Global switch
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS)
 /// Sub-switches for testing/debugging
@@ -242,6 +244,11 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
 
     const auto name = params.GetStream().GetDeviceName();
     const bool fp16 = params.IsFp16();
+
+#if WORKAROUND_ISSUE_1146
+    if(name == "gfx90a")
+        return false;
+#endif
     if(fp16)
     {
         if(!(name == "gfx906" || name == "gfx908"))
