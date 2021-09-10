@@ -386,6 +386,7 @@ pipeline {
                     }
                 }
                 stage('Fp32 OpenCL Debug gfx1030') {
+                    when { expression { params.TARGET_NAVI21 } }
                     agent{ label rocmnode("navi21") }
                     steps{
                         buildHipClangJobAndReboot(compiler: 'g++', build_type: 'debug', config_targets: Smoke_targets, build_env: extra_log_env, gpu_arch: "gfx1030")
@@ -705,6 +706,7 @@ pipeline {
                     }
                 }
                 stage('Fp32 OpenCL All gfx1030') {
+                    when { expression { params.TARGET_NAVI21 } }
                     agent{ label rocmnode("navi21") }
                     options {
                         // timeout(time: 150, unit: 'MINUTES')
