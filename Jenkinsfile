@@ -256,6 +256,30 @@ pipeline {
             name: "PACKAGES",
             defaultValue: true,
             description: "")
+        booleanParam(
+            name: "TARGET_NOGPU",
+            defaultValue: true,
+            description: "")
+        booleanParam(
+            name: "TARGET_VEGA10",
+            defaultValue: true,
+            description: "")
+        booleanParam(
+            name: "TARGET_VEGA20",
+            defaultValue: true,
+            description: "")
+        booleanParam(
+            name: "TARGET_GFX908",
+            defaultValue: true,
+            description: "")
+        booleanParam(
+            name: "TARGET_GFX90A",
+            defaultValue: true,
+            description: "")
+        booleanParam(
+            name: "TARGET_NAVI21",
+            defaultValue: true,
+            description: "")
     }
 
     environment{
@@ -269,7 +293,7 @@ pipeline {
     }
     stages{
         stage("Static checks"){
-            when { expression { params.STATIC_CHECKS } }
+            when { expression { params.STATIC_CHECKS && params.TARGET_NOGPU } }
             parallel{
                 stage('Hip Tidy') {
                     agent{ label rocmnode("nogpu") }
@@ -383,6 +407,7 @@ pipeline {
                     }
                 }
                 stage('Fp32 HipNoGPU Debug') {
+                    when { expression { params.TARGET_NOGPU } }
                     agent{ label rocmnode("nogpu") }
                     environment{
                         HipNoGPU_flags = "-DMIOPEN_BACKEND=HIPNOGPU -DMIOPEN_INSTALL_CXX_HEADERS=On"
@@ -826,7 +851,7 @@ pipeline {
             }
         }
         stage("Packages"){
-            when { expression { params.PACKAGES } }
+            when { expression { params.PACKAGES && params.TARGET_NOGPU } }
             parallel {
                 stage('OpenCL Package') {
                     agent{ label rocmnode("nogpu") }
