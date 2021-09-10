@@ -393,6 +393,10 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
     if(!(params.IsFp32() || params.IsFp16()))
         return false;
 
+    const auto target = params.GetStream().GetTargetProperties();
+    if(target.Xnack() && *target.Xnack())
+        return false;
+
     const std::string name = params.GetStream().GetDeviceName();
     if(name.find("gfx9") == std::string::npos)
     {

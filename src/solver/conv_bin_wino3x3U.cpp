@@ -51,6 +51,10 @@ bool ConvBinWinograd3x3U::IsApplicable(const ConvolutionContext& params) const
     if(!(params.rmv.IsV2orV3() && params.use_asm_kernels))
         return false;
 
+    const auto target = params.GetStream().GetTargetProperties();
+    if(target.Xnack() && *target.Xnack())
+        return false;
+
     const auto name = params.GetStream().GetDeviceName();
     if(!(name == "gfx803" || name == "gfx900" || name == "gfx906" || name == "gfx908"))
         return false;

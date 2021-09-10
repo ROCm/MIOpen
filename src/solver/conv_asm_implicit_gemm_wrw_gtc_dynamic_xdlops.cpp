@@ -836,6 +836,10 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlops::IsApplicable(const ConvolutionConte
     {
         return false;
     }
+
+    const auto target = ctx.GetStream().GetTargetProperties();
+    if(target.Xnack() && *target.Xnack())
+        return false;
     bool is_valid;
     std::tie(is_valid, std::ignore, std::ignore, std::ignore, std::ignore) =
         FindImplicitGemmWrwGTCDynamicXdlopsKernel(ctx);
