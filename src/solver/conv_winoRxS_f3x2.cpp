@@ -316,6 +316,10 @@ bool ConvBinWinogradRxSf3x2::IsApplicable(const ConvolutionContext& params) cons
     if(!params.IsLayoutDefault())
         return false;
 
+    const auto target = params.GetStream().GetTargetProperties();
+    if(target.Xnack() && *target.Xnack())
+        return false;
+
     const auto max_cu = params.GetStream().GetMaxHardwareComputeUnits();
     if(max_cu > MAX_CU_LIMIT)
         return false;

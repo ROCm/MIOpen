@@ -602,7 +602,9 @@ void BatchNormBackward(Handle& handle,
 #if WORKAROUND_ISSUE_1146
                      && (handle.GetDeviceName() != "gfx90a")
 #endif
-                         )))
+                         )) &&
+                   (!handle.GetTargetProperties().Xnack() ||
+                    !*handle.GetTargetProperties().Xnack()))
                 {
                     kernel_name  = "miopenGcnAsmBNBwdTrainSpatial";
                     program_name = "gcnAsmBNBwdTrainSpatial.s";

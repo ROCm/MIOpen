@@ -335,6 +335,10 @@ bool ConvAsmImplicitGemmV4R1DynamicWrw::IsApplicable(const ConvolutionContext& c
     {
         return false;
     }
+
+    const auto target = ctx.GetStream().GetTargetProperties();
+    if(target.Xnack() && *target.Xnack())
+        return false;
     std::string kernel_name;
     int block_size;
     int grid_size;

@@ -242,6 +242,10 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
     if(!params.rmv.IsV2orV3())
         return false;
 
+    const auto target = params.GetStream().GetTargetProperties();
+    if(target.Xnack() && *target.Xnack())
+        return false;
+
     const auto name = params.GetStream().GetDeviceName();
     const bool fp16 = params.IsFp16();
 

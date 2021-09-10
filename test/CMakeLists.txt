@@ -47,7 +47,6 @@ option( WORKAROUND_ISSUE_898 "" ON)
 option( WORKAROUND_ISSUE_936 "" ON)
 option( WORKAROUND_ISSUE_1053 "" ON)
 option( WORKAROUND_ISSUE_1064 "" ON)
-option( WORKAROUND_ISSUE_1093 "" ON)
 option( WORKAROUND_ISSUE_1095 "" ON)
 
 # Run the test suite to a depth limit
@@ -198,9 +197,6 @@ if(MIOPEN_TEST_GFX908)
 endif()
 
 if (MIOPEN_TEST_GFX90a)
-    if(WORKAROUND_ISSUE_1093)
-        list(APPEND SKIP_TESTS test_find_db test_main test_immed_conv2d)
-    endif()
     if(WORKAROUND_ISSUE_1095)
         list(APPEND SKIP_TESTS test_dropout)
     endif()
