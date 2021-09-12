@@ -348,7 +348,7 @@ function(add_doxygen_doc)
     if(PARSE_OUTPUT_DIRECTORY)
         clean_doc_output(${PARSE_OUTPUT_DIRECTORY})
     endif()
-    mark_as_doc(doxygen)
+
     if(PARSE_DEPENDS)
         add_dependencies(doxygen ${PARSE_DEPENDS})
     endif()
