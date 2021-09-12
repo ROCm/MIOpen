@@ -665,6 +665,11 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(const ConvolutionC
 
     if(!ctx.IsLayoutNHWC())
         return false;
+
+    const auto target = ctx.GetStream().GetTargetProperties();
+    if(target.Xnack() && *target.Xnack())
+        return false; // NOLINT (readability-simplify-boolean-expr)
+
     return true;
 }
 ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(

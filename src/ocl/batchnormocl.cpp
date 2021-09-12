@@ -144,27 +144,29 @@ void BatchNormForwardTraining(Handle& handle,
         return tmp;
     }();
 
-    if(const auto invoker = handle.GetInvoker(network_config, boost::none, algo))
+    if(const auto existingInvoker = handle.GetInvoker(network_config, boost::none, algo))
     {
-        (*invoker)(handle, invoke_params);
-        return;
+        (*existingInvoker)(handle, invoke_params);
     }
+    else
+    {
+        const auto ctx = ExecutionContext{&handle};
+        const auto solvers =
+            solver::SolverContainer<solver::batchnorm::BnFwdTrainingSpatialSingle,
+                                    solver::batchnorm::BnFwdTrainingSpatialMultiple,
+                                    solver::batchnorm::BnFwdTrainingPerActivation>{};
+        const auto slns = solvers.SearchForSolutions(ctx, problem, 1);
 
-    const auto ctx     = ExecutionContext{&handle};
-    const auto solvers = solver::SolverContainer<solver::batchnorm::BnFwdTrainingSpatialSingle,
-                                                 solver::batchnorm::BnFwdTrainingSpatialMultiple,
-                                                 solver::batchnorm::BnFwdTrainingPerActivation>{};
-    const auto slns    = solvers.SearchForSolutions(ctx, problem, 1);
+        if(slns.empty())
+            MIOPEN_THROW(miopenStatusNotImplemented, "No solver found for activation forward.");
 
-    if(slns.empty())
-        MIOPEN_THROW(miopenStatusNotImplemented, "No solver found for activation forward.");
-
-    const auto& sln = slns.front();
-    if(!sln.invoker_factory)
-        MIOPEN_THROW(miopenStatusInternalError, "Invoker missing in solver " + sln.solver_id);
-    const auto invoker = handle.PrepareInvoker(*sln.invoker_factory, sln.construction_params);
-    handle.RegisterInvoker(invoker, network_config, sln.solver_id, algo);
-    invoker(handle, invoke_params);
+        const auto& sln = slns.front();
+        if(!sln.invoker_factory)
+            MIOPEN_THROW(miopenStatusInternalError, "Invoker missing in solver " + sln.solver_id);
+        const auto invoker = handle.PrepareInvoker(*sln.invoker_factory, sln.construction_params);
+        handle.RegisterInvoker(invoker, network_config, sln.solver_id, algo);
+        invoker(handle, invoke_params);
+    }
 
     if(miopen::CheckNumericsEnabled())
     {
@@ -597,7 +599,9 @@ void BatchNormBackward(Handle& handle,
                    ctx.use_asm_kernels && ctx.rmv.IsV2orV3() &&
                    (StartsWith(handle.GetDeviceName(), "gfx8") ||
                     (StartsWith(handle.GetDeviceName(), "gfx9") &&
-                     (handle.GetDeviceName() != "gfx90a"))))
+                     (handle.GetDeviceName() != "gfx90a"))) &&
+                   (!handle.GetTargetProperties().Xnack() ||
+                    !*handle.GetTargetProperties().Xnack()))
                 {
                     kernel_name  = "miopenGcnAsmBNBwdTrainSpatial";
                     program_name = "gcnAsmBNBwdTrainSpatial.s";
