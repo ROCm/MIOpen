@@ -1387,13 +1387,27 @@ struct ConvHipImplicitGemmMlirCppBwd : SolverBase<ConvolutionContext>
 struct ConvMlirIgemmBwd : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+    PerformanceConvMlirIgemm GetPerformanceConfig(const ConvolutionContext& ctx) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                  const PerformanceConvMlirIgemm& config) const;
+    PerformanceConvMlirIgemm Search(const ConvolutionContext&,
+                                    const AnyInvokeParams& invoke_ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const PerformanceConvMlirIgemm& config,
+                             bool disableConfigOverrideFromEnv = false) const;
 };
 
 struct ConvMlirIgemmBwdXdlops : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+    PerformanceConvMlirIgemmXdlops GetPerformanceConfig(const ConvolutionContext& ctx) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                  const PerformanceConvMlirIgemmXdlops& config) const;
+    PerformanceConvMlirIgemmXdlops Search(const ConvolutionContext&,
+                                          const AnyInvokeParams& invoke_ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const PerformanceConvMlirIgemmXdlops& config,
+                             bool disableConfigOverrideFromEnv = false) const;
 };
 
 struct ConvHipImplicitGemmBwdDataV4R1 : SolverBase<ConvolutionContext>
