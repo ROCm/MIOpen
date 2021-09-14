@@ -246,7 +246,6 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
 
     const auto name = params.GetStream().GetDeviceName();
     const bool fp16 = params.IsFp16();
-
     if(fp16)
     {
         if(!(name == "gfx906" || name == "gfx908"))
