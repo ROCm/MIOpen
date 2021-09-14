@@ -38,6 +38,7 @@
 #include <miopen/generic_search.hpp>
 
 #define WORKAROUND_ISSUE_532 1 // ConvAsmBwdWrW3x3 has precision issues with some PerformanceConfigs
+#define WORKAROUND_ISSUE_1146 1 // check asm solver applicability for gfx90a
 #define MIOPEN_GCN_ASM_DIRECT_3X3WRW_SEARCH_LWC_FIXED 0
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS)
@@ -357,8 +358,12 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
         return false;
 
     const std::string name = params.GetStream().GetDeviceName();
-    if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")) || name == "gfx90a")
+    if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")))
         return false;
+#if WORKAROUND_ISSUE_1146
+    if(name == "gfx90a")
+        return false;
+#endif
     if(!params.IsLayoutDefault())
     {
         return false;

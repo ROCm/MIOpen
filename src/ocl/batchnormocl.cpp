@@ -45,6 +45,8 @@
 #define WORKAROUND_SWDEV_253606 1
 #include <chrono>
 
+#define WORKAROUND_ISSUE_1146 1 // check asm solver applicability for gfx90a
+
 namespace miopen {
 
 /// Reusing the dummy instance of of the ConvolutionContext class
@@ -989,8 +991,11 @@ void BatchNormBackward(Handle& handle,
                 if((n > 64) && (n % 2 == 0) && (variant == 3) && (bfpmixparm) && (useSaved) &&
                    ctx.use_asm_kernels && ctx.rmv.IsV2orV3() &&
                    (StartsWith(handle.GetDeviceName(), "gfx8") ||
-                    (StartsWith(handle.GetDeviceName(), "gfx9") &&
-                     (handle.GetDeviceName() != "gfx90a"))) &&
+                    (StartsWith(handle.GetDeviceName(), "gfx9")
+#if WORKAROUND_ISSUE_1146
+                     && (handle.GetDeviceName() != "gfx90a")
+#endif
+                         )) &&
                    (!handle.GetTargetProperties().Xnack() ||
                     !*handle.GetTargetProperties().Xnack()))
                 {
