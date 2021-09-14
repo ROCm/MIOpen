@@ -46,8 +46,6 @@ option( MIOPEN_TEST_MLIR "Add tests for MLIR -- EXPERIMENTAL" ${MIOPEN_USE_MLIR}
 option( WORKAROUND_ISSUE_898 "" ON)
 option( WORKAROUND_ISSUE_936 "" ON)
 option( WORKAROUND_ISSUE_1053 "" ON)
-option( WORKAROUND_ISSUE_1064 "" ON)
-option( WORKAROUND_ISSUE_1095 "" ON)
 
 # Run the test suite to a depth limit
 #limit greater than 2 leads to prolonged testing more than 5hrs per stage.
@@ -190,24 +188,9 @@ if (MIOPEN_NO_GPU)
             test_pooling3d test_perfdb)
 endif()
 
-if(MIOPEN_TEST_GFX908)
-    if(WORKAROUND_ISSUE_1064)
-        list(APPEND SKIP_TESTS test_dropout)
-    endif()
-endif()
-
-if (MIOPEN_TEST_GFX90a)
-    if(WORKAROUND_ISSUE_1095)
-        list(APPEND SKIP_TESTS test_dropout)
-    endif()
-endif()
-
 if(MIOPEN_TEST_GFX1030)
     if(WORKAROUND_ISSUE_1053 AND MIOPEN_TEST_ALL)
         list(APPEND SKIP_TESTS test_lrn_test)
-    endif()
-    if(WORKAROUND_ISSUE_1095)
-        list(APPEND SKIP_TESTS test_dropout)
     endif()
 endif()
 
