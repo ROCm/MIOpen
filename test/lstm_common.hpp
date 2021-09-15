@@ -2070,14 +2070,13 @@ struct verify_forward_infer_lstm : verify_forward_lstm<T>
                                cellState,   // current/final cell state
                                initCell,    // initial cell state
                                output,
-                               batch_seq,   // input batch size
-                               inputVecLen, // input data length
-                               seqLength,   // Number of iterations to unroll over
-                               dirMode,     // whether using bidirectional net
-                               biasMode,    // whether using bias
-                               bi *
-                                   nLayers, // 1 by numlayer (number of stacks of hidden layers) for
-                                            // unidirection, 2 by numlayer for bidirection
+                               batch_seq,       // input batch size
+                               inputVecLen,     // input data length
+                               seqLength,       // Number of iterations to unroll over
+                               dirMode,         // whether using bidirectional net
+                               biasMode,        // whether using bias
+                               bi * nLayers,    // 1 by numlayer (number of stacks of hidden layers)
+                                                // for unidirection, 2 by numlayer for bidirection
                                batch_seq.at(0), // equal to input batch size in_n[0]
                                hiddenSize,      // hidden state number
                                bi_stride, // 1 by hy_h related function for unidirection, 2 by hy_h
@@ -2378,14 +2377,13 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
                                cellState,   // current/final cell state
                                initCell,    // initial cell state
                                output,
-                               batch_seq,   // input batch size
-                               inputVecLen, // input data length
-                               seqLength,   // Number of iterations to unroll over
-                               dirMode,     // whether using bidirectional net
-                               biasMode,    // whether using bias
-                               bi *
-                                   nLayers, // 1 by numlayer (number of stacks of hidden layers) for
-                                            // unidirection, 2 by numlayer for bidirection
+                               batch_seq,       // input batch size
+                               inputVecLen,     // input data length
+                               seqLength,       // Number of iterations to unroll over
+                               dirMode,         // whether using bidirectional net
+                               biasMode,        // whether using bias
+                               bi * nLayers,    // 1 by numlayer (number of stacks of hidden layers)
+                                                // for unidirection, 2 by numlayer for bidirection
                                batch_seq.at(0), // equal to input batch size in_n[0]
                                hiddenSize,      // hidden state number
                                bi_stride, // 1 by hy_h related function for unidirection, 2 by hy_h

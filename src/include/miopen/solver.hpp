@@ -1,28 +1,28 @@
 /*******************************************************************************
-*
-* MIT License
-*
-* Copyright (c) 2017 Advanced Micro Devices, Inc.
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*******************************************************************************/
+ *
+ * MIT License
+ *
+ * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 
 #ifndef GUARD_MIOPEN_SOLVER_HPP_
 #define GUARD_MIOPEN_SOLVER_HPP_
@@ -797,16 +797,115 @@ struct ConvHipImplicitGemmMlirCppFwd : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
+struct PerformanceConvMlirIgemm : Serializable<PerformanceConvMlirIgemm>
+{
+    int BlockSize;
+    int GemmMPerBlock;
+    int GemmNPerBlock;
+    int GemmKPerBlock;
+    int GemmMPerThread;
+    int GemmNPerThread;
+    bool use_spare_set;
+
+    PerformanceConvMlirIgemm(int, int, int, int, int, int, bool);
+
+    PerformanceConvMlirIgemm(int a, int b, int c, int d, int e, int f)
+        : PerformanceConvMlirIgemm(a, b, c, d, e, f, false)
+    {
+    }
+
+    PerformanceConvMlirIgemm() : PerformanceConvMlirIgemm(-1, -1, -1, -1, -1, -1, false) {}
+
+    PerformanceConvMlirIgemm(bool spare);
+
+    bool operator==(const PerformanceConvMlirIgemm& other) const;
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.BlockSize, "BlockSize");
+        f(self.GemmMPerBlock, "GemmMPerBlock");
+        f(self.GemmNPerBlock, "GemmNPerBlock");
+        f(self.GemmKPerBlock, "GemmKPerBlock");
+        f(self.GemmMPerThread, "GemmMPerThread");
+        f(self.GemmNPerThread, "GemmNPerThread");
+    }
+
+    bool IsValid(const ConvolutionContext& ctx) const;
+    bool SetNextValue(const ConvolutionContext& config);
+    std::string ToString() const;
+};
+
 struct ConvMlirIgemmFwd : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+    PerformanceConvMlirIgemm GetPerformanceConfig(const ConvolutionContext& ctx) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                  const PerformanceConvMlirIgemm& config) const;
+    PerformanceConvMlirIgemm Search(const ConvolutionContext&,
+                                    const AnyInvokeParams& invoke_ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const PerformanceConvMlirIgemm& config,
+                             bool disableConfigOverrideFromEnv = false) const;
+};
+
+struct PerformanceConvMlirIgemmXdlops : Serializable<PerformanceConvMlirIgemmXdlops>
+{
+    int GemmMPerBlock; // 2^n[32..128]
+    int GemmNPerBlock; // 2^n[8..16]
+    int GemmKPerBlock; // 2^n[4..16]
+
+    int GemmMPerWave;
+    int GemmNPerWave;
+
+    int GemmKPACKSize; // 2^[1..4]
+
+    // GemmAThreadCopyMoreGemmK is currently a fix value, is untunable
+    bool GemmAThreadCopyMoreGemmK;
+    bool GemmBThreadCopyMoreGemmKPack;
+
+    bool use_spare_set;
+    PerformanceConvMlirIgemmXdlops(int, int, int, int, int, int, bool, bool, bool);
+
+    PerformanceConvMlirIgemmXdlops();
+    PerformanceConvMlirIgemmXdlops(bool spare);
+    PerformanceConvMlirIgemmXdlops(int a, int b, int c, int d, int e, int f, bool g, bool h)
+        : PerformanceConvMlirIgemmXdlops(a, b, c, d, e, f, g, h, false)
+    {
+    }
+
+    bool operator==(const PerformanceConvMlirIgemmXdlops& other) const;
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.GemmNPerBlock, "GemmNPerBlock");
+        f(self.GemmMPerBlock, "GemmMPerBlock");
+        f(self.GemmKPerBlock, "GemmKPerBlock");
+        f(self.GemmMPerWave, "GemmMPerWave");
+        f(self.GemmNPerWave, "GemmNPerWave");
+        f(self.GemmKPACKSize, "GemmKPACKSize");
+        f(self.GemmAThreadCopyMoreGemmK, "GemmAThreadCopyMoreGemmK");
+        f(self.GemmBThreadCopyMoreGemmKPack, "GemmBThreadCopyMoreGemmKPack");
+    }
+
+    bool IsValid(const ConvolutionContext& ctx) const;
+    bool SetNextValue(const ConvolutionContext& config);
+    std::string ToString() const;
 };
 
 struct ConvMlirIgemmFwdXdlops : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& ctx) const;
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+    PerformanceConvMlirIgemmXdlops GetPerformanceConfig(const ConvolutionContext& ctx) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                  const PerformanceConvMlirIgemmXdlops& config) const;
+    PerformanceConvMlirIgemmXdlops Search(const ConvolutionContext&,
+                                          const AnyInvokeParams& invoke_ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const PerformanceConvMlirIgemmXdlops& config,
+                             bool disableConfigOverrideFromEnv = false) const;
 };
 
 struct PerformanceImplicitGemmV4R4GenXdlopsFwdFp32
@@ -1288,13 +1387,27 @@ struct ConvHipImplicitGemmMlirCppBwd : SolverBase<ConvolutionContext>
 struct ConvMlirIgemmBwd : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+    PerformanceConvMlirIgemm GetPerformanceConfig(const ConvolutionContext& ctx) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                  const PerformanceConvMlirIgemm& config) const;
+    PerformanceConvMlirIgemm Search(const ConvolutionContext&,
+                                    const AnyInvokeParams& invoke_ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const PerformanceConvMlirIgemm& config,
+                             bool disableConfigOverrideFromEnv = false) const;
 };
 
 struct ConvMlirIgemmBwdXdlops : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+    PerformanceConvMlirIgemmXdlops GetPerformanceConfig(const ConvolutionContext& ctx) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                  const PerformanceConvMlirIgemmXdlops& config) const;
+    PerformanceConvMlirIgemmXdlops Search(const ConvolutionContext&,
+                                          const AnyInvokeParams& invoke_ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const PerformanceConvMlirIgemmXdlops& config,
+                             bool disableConfigOverrideFromEnv = false) const;
 };
 
 struct ConvHipImplicitGemmBwdDataV4R1 : SolverBase<ConvolutionContext>
@@ -2134,6 +2247,7 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
     CalculateGemmBBlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
     std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
 };
+
 struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm : SolverBase<ConvolutionContext>
 {
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
@@ -2148,6 +2262,45 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm : SolverBase<ConvolutionCont
 
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
     Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const;
+};
+
+struct PerformanceConvCkIgemmFwdV6r1DlopsNchw : Serializable<PerformanceConvCkIgemmFwdV6r1DlopsNchw>
+{
+    int ck_tunable_list_id;
+
+    PerformanceConvCkIgemmFwdV6r1DlopsNchw(int a) : ck_tunable_list_id(a) {}
+
+    PerformanceConvCkIgemmFwdV6r1DlopsNchw() : PerformanceConvCkIgemmFwdV6r1DlopsNchw(-1) {}
+
+    PerformanceConvCkIgemmFwdV6r1DlopsNchw(bool) : PerformanceConvCkIgemmFwdV6r1DlopsNchw(0) {}
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.ck_tunable_list_id, "ck_tunable_list_id");
+    }
+
+    bool SetNextValue(const ConvolutionContext&);
+    bool IsValid(const ConvolutionContext&) const;
+    bool operator==(const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config) const
+    {
+        return ck_tunable_list_id == config.ck_tunable_list_id;
+    }
+};
+
+struct ConvCkIgemmFwdV6r1DlopsNchw : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext&) const;
+    std::size_t GetWorkspaceSize(const ConvolutionContext&) const;
+    bool IsDynamic() const { return true; }
+    PerformanceConvCkIgemmFwdV6r1DlopsNchw GetPerformanceConfig(const ConvolutionContext&) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
+                                  const PerformanceConvCkIgemmFwdV6r1DlopsNchw&) const;
+    PerformanceConvCkIgemmFwdV6r1DlopsNchw Search(const ConvolutionContext&,
+                                                  const AnyInvokeParams&) const;
+    ConvSolution GetSolution(const ConvolutionContext&,
+                             const PerformanceConvCkIgemmFwdV6r1DlopsNchw&,
+                             bool disableConfigOverrideFromEnv = false) const;
 };
 
 struct ConvDirectNaiveConvFwd : SolverBase<ConvolutionContext>
@@ -2577,7 +2730,7 @@ struct PerformanceConfigAsmImplicitGemmGTC : Serializable<PerformanceConfigAsmIm
     bool operator==(const PerformanceConfigAsmImplicitGemmGTC& other) const;
     void CopyParameters(const PerformanceConfigAsmImplicitGemmGTC& other);
     std::string ToString() const;
-    std::string ToKernelName() const;
+    std::string ToKernelName(const ConvolutionContext& ctx) const;
     int BlockSize() const;
 };
 

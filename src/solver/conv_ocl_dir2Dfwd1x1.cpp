@@ -30,12 +30,6 @@
 #include <miopen/env.hpp>
 #include <miopen/conv/invokers/gen_x_w_y_pad.hpp>
 
-/// Disable kernel due to compiler bug: Compiler runs out of registers.
-/// JIRA: SWDEV-216194, SWDEV-216489.
-/// The bug shows up in MIOpenConv1x1J1 and MIOpenConv1x1S.
-/// Known since ROCm 2.9.
-#define WORKAROUND_ISSUE_2298 1
-
 #define WORKAROUND_SWDEV_271887 1
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1)
@@ -48,10 +42,6 @@ bool ConvOclDirectFwd1x1::IsApplicable(const ConvolutionContext& params) const
     const auto name = params.GetStream().GetDeviceName();
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1{}))
         return false;
-#if WORKAROUND_ISSUE_2298
-    if(name == "gfx908")
-        return false;
-#endif
 
 #if WORKAROUND_SWDEV_271887
     if(name.find("gfx10") != std::string::npos)

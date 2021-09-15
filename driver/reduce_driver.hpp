@@ -146,7 +146,7 @@ int ReduceDriver<Tgpu, Tref>::GetandSetData()
         assert(toReduceDims[i] < inLengths.size());
 
     // set the lengths of the dimensions to be reduced to 1 to represent the output Tensor
-    for(int i                       = 0; i < toReduceDims.size(); i++)
+    for(int i = 0; i < toReduceDims.size(); i++)
         outLengths[toReduceDims[i]] = 1;
 
     SetTensorNd(inputTensor, inLengths, data_type);
@@ -442,9 +442,9 @@ int ReduceDriver<Tgpu, Tref>::RunForwardGPU()
 
         STOP_TIME
         if(WALL_CLOCK)
-            printf("Wall-clock Time Forward LRN Elapsed: %f ms\n",
+            printf("Wall-clock Time Reduction Elapsed: %f ms\n",
                    t.gettime_ms() / inflags.GetValueInt("iter"));
-        printf("GPU Kernel Time Forward LRN Elapsed: %f ms\n", time);
+        printf("GPU Kernel Time Reduction Elapsed: %f ms\n", time);
     }
 
     return miopenStatusSuccess;

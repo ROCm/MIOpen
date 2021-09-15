@@ -26,6 +26,8 @@
 
 #include <miopen/miopen.h>
 #include <miopen/errors.hpp>
+#include <miopen/hip_build_utils.hpp>
+#include <miopen/rocm_features.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/solver/mlir_common.hpp>
 
@@ -36,7 +38,7 @@ namespace miopen {
 namespace solver {
 namespace mlir {
 
-std::string InsertGToLayout(const std::string& layout, char dim)
+static std::string InsertGToLayout(const std::string& layout, char dim)
 {
     std::string layout_with_g = layout;
     std::size_t index         = layout.find(dim);
@@ -45,7 +47,7 @@ std::string InsertGToLayout(const std::string& layout, char dim)
     return layout_with_g.insert(index, 1, 'G');
 }
 
-const char* DTypeName(miopenDataType_t ty)
+static const char* DTypeName(miopenDataType_t ty)
 {
     switch(ty)
     {
@@ -60,18 +62,74 @@ const char* DTypeName(miopenDataType_t ty)
     MIOPEN_THROW(miopenStatusInternalError, "Value outside of datatype enum");
 }
 
+static std::string GetIsaName(const miopen::TargetProperties& target)
+{
+#if ROCM_FEATURE_TARGETID_OFF
+    const char* const ecc_suffix = (target.Sramecc() && *target.Sramecc()) ? ":sramecc+" : "";
+    return {"amdgcn-amd-amdhsa:" + target.Name() + ecc_suffix};
+#else
+    const LcOptionTargetStrings lots(target);
+    return "amdgcn-amd-amdhsa:" + lots.targetId;
+#endif
+}
+
+std::string GetKernelName(const ConvolutionContext& ctx, bool is_xdlops, int kernel_id)
+{
+    std::string version;
+    std::string direction;
+    if(ctx.direction.IsForward())
+    {
+        version   = "_v4r4";
+        direction = "_fwd";
+    }
+    else if(ctx.direction.IsBackwardData())
+    {
+        version   = "_v4r1";
+        direction = "_bwd";
+    }
+    else
+    {
+        version   = "_v4r4";
+        direction = "_wrw";
+    }
+
+    std::string kernel_name = "mlir_gen_igemm_conv2d" + version + direction;
+
+    if(is_xdlops)
+        kernel_name += "_xdlops";
+
+    return kernel_name + std::to_string(kernel_id);
+}
+
+static std::string GetOperation(const ConvolutionContext& ctx)
+{
+    if(ctx.direction.IsForward())
+    {
+        return "conv2d";
+    }
+    else if(ctx.direction.IsBackwardData())
+    {
+        return "conv2d_bwd_data";
+    }
+    else
+    {
+        return "conv2d_bwd_weight";
+    }
+}
+
 /* Construct the options string passed to MLIR to cause it
 to generate a given convolution.*/
 std::string ConstructBuildOptions(const ConvolutionContext& ctx,
-                                  const std::string& operation,
-                                  const std::string& kernel_name,
                                   bool is_xdlops,
                                   int kernel_id)
 {
     // Arguments for mlir-miopen-driver.
     using CI = ConvolutionContextInterpreter;
 
-    std::string in_layout = InsertGToLayout(CI::GetInputLayout(ctx), 'C');
+    std::string operation   = GetOperation(ctx);
+    std::string kernel_name = GetKernelName(ctx, is_xdlops, kernel_id);
+
+    std::string in_layout  = InsertGToLayout(CI::GetInputLayout(ctx), 'C');
     std::string fil_layout = InsertGToLayout(CI::GetFilterLayout(ctx), 'N');
     std::string out_layout = InsertGToLayout(CI::GetOutputLayout(ctx), 'C');
 
@@ -87,7 +145,7 @@ std::string ConstructBuildOptions(const ConvolutionContext& ctx,
         << " --operation " << operation
         << " --kernel_id " << kernel_id
         << " --num_cu " << ctx.GetStream().GetMaxComputeUnits()
-        << " --arch " << ctx.GetStream().GetDeviceName()
+        << " --arch " << GetIsaName(ctx.GetStream().GetTargetProperties())
         << " --groupsize " << CI::GetGroupCountG(ctx)
         << " --fil_layout " << fil_layout
         << " --fil_type " << DTypeName(ctx.weights_data_type)
@@ -112,6 +170,22 @@ std::string ConstructBuildOptions(const ConvolutionContext& ctx,
         << " --padding_w " << CI::GetInputLeftPadW(ctx)
         << " --kernel_name " << kernel_name;
     // clang-format on
+    return mlir_handle.str();
+}
+
+std::string ConstructBuildOptions(const ConvolutionContext& ctx,
+                                  const std::string& config,
+                                  bool is_xdlops,
+                                  int kernel_id)
+{
+    std::ostringstream mlir_handle;
+
+    // clang-format off
+    mlir_handle
+        << ConstructBuildOptions(ctx, is_xdlops, kernel_id)
+        << " --perf_config " << config;
+    // clang-format on
+
     return mlir_handle.str();
 }
 

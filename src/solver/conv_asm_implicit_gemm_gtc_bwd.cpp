@@ -784,7 +784,7 @@ static std::tuple<bool, // is suitable kernel found
                   std::string, // kernel_name
                   int,         // block_size
                   int>         // grid_size
-    FindImplicitGemmGtcDynamicBwdKernel(const ConvolutionContext& ctx)
+FindImplicitGemmGtcDynamicBwdKernel(const ConvolutionContext& ctx)
 {
     auto tunables = GetImplicitGemmGtcDynamicBwdTunablesList(ctx);
 
@@ -1005,6 +1005,10 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlops::IsApplicable(const ConvolutionConte
     {
         return false;
     }
+
+    const auto target = ctx.GetStream().GetTargetProperties();
+    if(target.Xnack() && *target.Xnack())
+        return false;
 
     bool isValid;
     std::tie(isValid, std::ignore, std::ignore, std::ignore, std::ignore) =

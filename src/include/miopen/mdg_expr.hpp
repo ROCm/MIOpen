@@ -77,9 +77,9 @@ struct tree_visit
     tree_visit(std::function<bool(const std::string&, int&)> f,
                std::unordered_map<std::string, int> t)
         : tabl(t), var_lookup(f){};
-    visit_res operator()(spirit::utree::invalid_type) const { return visit_res(); }
+    visit_res operator()(spirit::utree::invalid_type) const { return {}; }
 
-    visit_res operator()(spirit::utree::nil_type) const { return visit_res(); };
+    visit_res operator()(spirit::utree::nil_type) const { return {}; };
 
     visit_res operator()(double d)
     {
@@ -98,7 +98,7 @@ struct tree_visit
     template <typename T>
     visit_res operator()(T /*val*/)
     {
-        return visit_res();
+        return {};
     }
 
     visit_res operator()(bool b)
@@ -108,7 +108,7 @@ struct tree_visit
         return r;
     }
 
-    visit_res operator()(spirit::binary_range_type const& /*b*/) const { return visit_res(); }
+    visit_res operator()(spirit::binary_range_type const& /*b*/) const { return {}; }
 
     visit_res operator()(spirit::utf8_string_range_type const& str)
     {
@@ -198,21 +198,19 @@ struct tree_visit
         switch(op_res.op)
         {
         // Arith ops
-        case OpAdd: r.res    = lhs_res.res + rhs_res.res; break;
-        case OpSub: r.res    = lhs_res.res - rhs_res.res; break;
-        case OpMul: r.res    = lhs_res.res * rhs_res.res; break;
-        case OpDiv: r.res    = lhs_res.res / rhs_res.res; break;
+        case OpAdd: r.res = lhs_res.res + rhs_res.res; break;
+        case OpSub: r.res = lhs_res.res - rhs_res.res; break;
+        case OpMul: r.res = lhs_res.res * rhs_res.res; break;
+        case OpDiv: r.res = lhs_res.res / rhs_res.res; break;
         case OpModulo: r.res = lhs_res.res % rhs_res.res; break;
-        case OpPow: r.res    = static_cast<int>(std::pow(lhs_res.res, rhs_res.res)); break;
-        case OpCeil:
-        {
+        case OpPow: r.res = static_cast<int>(std::pow(lhs_res.res, rhs_res.res)); break;
+        case OpCeil: {
             int vv = lhs_res.res;
             int mm = rhs_res.res;
             r.res  = (vv % mm != 0) ? (vv / mm + 1) * mm : vv;
             break;
         }
-        case OpAssign:
-        {
+        case OpAssign: {
             int val = 0;
             if(var_lookup(lhs_res.sym, val))
                 MIOPEN_THROW("Invalid variable assignment: " + lhs_res.sym);
@@ -260,9 +258,9 @@ struct tree_visit
         return r;
     }
 
-    visit_res operator()(spirit::any_ptr const&) const { return visit_res(); }
+    visit_res operator()(spirit::any_ptr const&) const { return {}; }
 
-    visit_res operator()(spirit::function_base const&) const { return visit_res(); }
+    visit_res operator()(spirit::function_base const&) const { return {}; }
 };
 } // namespace miopen
 

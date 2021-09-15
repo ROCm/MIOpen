@@ -174,9 +174,8 @@ static std::tuple<std::string, // kernel_name
                   size_t,      // block_size
                   size_t,      // grid_size
                   size_t>      // occupancy
-    GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel(
-        const ConvolutionContext& ctx,
-        const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC& config)
+GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel(
+    const ConvolutionContext& ctx, const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC& config)
 {
     // const auto& n     = ctx.batch_sz;
     const auto& k = ctx.n_inputs;
@@ -197,7 +196,7 @@ static std::tuple<std::string, // kernel_name
     size_t block_size = config.BlockSize();
     size_t grid_size  = group * integer_divide_ceil(gemm_m, config.gemm_m_per_block) *
                        integer_divide_ceil(gemm_n, config.gemm_n_per_block);
-    std::string kernel_name = config.ToKernelName();
+    std::string kernel_name = config.ToKernelName(ctx);
     size_t occupancy        = config.ComputeKernelOccupancy();
     return std::make_tuple(kernel_name, block_size, grid_size, occupancy);
 }
@@ -269,8 +268,8 @@ size_t PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::ComputeKernelOccupancy(
         lds_usage = lds_single;
     }
 
-    MIOPEN_LOG_T(
-        "lds_usage=" << lds_usage << ", acc_usage=" << acc_usage << ", vgpr_usage=" << vgpr_usage);
+    MIOPEN_LOG_T("lds_usage=" << lds_usage << ", acc_usage=" << acc_usage
+                              << ", vgpr_usage=" << vgpr_usage);
 
     occupancy =
         std::min(lds_size / lds_usage, std::min(num_acc / acc_usage, num_vpgrs / vgpr_usage));
@@ -309,7 +308,7 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
     {
         int mp, np, kp;
         std::tie(mp, np, kp) = tile;
-        bool found = false;
+        bool found           = false;
         for(const auto& config : c_list)
         {
             if(config.precision == miopenFloat)
@@ -331,7 +330,7 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
     {
         int mp, np, kp;
         std::tie(mp, np, kp) = tile;
-        bool found = false;
+        bool found           = false;
         for(const auto& config : c_list)
         {
             if(config.precision == miopenHalf)
@@ -597,7 +596,7 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(const ConvolutionC
         return false;
 
     const auto device_name = ctx.GetStream().GetDeviceName();
-    if(device_name != "gfx908")
+    if((device_name != "gfx908") && (device_name != "gfx90a"))
         return false;
 
     if(!ctx.use_asm_kernels)
@@ -617,6 +616,11 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(const ConvolutionC
 
     if(!ctx.IsLayoutNHWC())
         return false;
+
+    const auto target = ctx.GetStream().GetTargetProperties();
+    if(target.Xnack() && *target.Xnack())
+        return false; // NOLINT (readability-simplify-boolean-expr)
+
     return true;
 }
 
