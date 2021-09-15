@@ -5,17 +5,18 @@ ARG GPU_ARCH=";"
 ARG MIOTENSILE_VER="default"
 ARG USE_TARGETID="OFF"
 ARG USE_MLIR="OFF"
+ARG USE_FIN="OFF"
 
 # Support multiarch
 RUN dpkg --add-architecture i386
 
 # Add rocm repository
+# Note: The ROCm version with $USE_MLIR should keep in sync with default ROCm version
+# unless MLIR library is incompatible with current ROCm.
 
-RUN if [ "$USE_TARGETID" = "ON" ] ; \
-        then export ROCM_APT_VER=.apt_4.1.1;\
-    elif [ "$USE_MLIR" = "ON" ] ; \
-        then export ROCM_APT_VER=.apt_3.7;\
-    else export ROCM_APT_VER=.apt_4.2;  \
+RUN if [ "$USE_MLIR" = "ON" ] ; \
+        then export ROCM_APT_VER=.apt_4.2;\
+    else export ROCM_APT_VER=.apt_4.3.1;  \
     fi && \
 echo $ROCM_APT_VER &&\
 sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/$ROCM_APT_VER/ xenial main > /etc/apt/sources.list.d/rocm.list'
@@ -23,25 +24,19 @@ RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu xenial main universe | tee 
 
 #Add gpg keys
 # Install dependencies
-RUN if [ "$USE_TARGETID" = "ON" ]; \
-        then export ROCM_KEY_VER=4.1.1; \
-    elif [ "$USE_MLIR" = "ON" ] ; \
-        then export ROCM_KEY_VER=3.7;\
-    else export ROCM_KEY_VER=4.2; \
-    fi && \
-apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     wget \
     ca-certificates \
     curl \
     libnuma-dev \
     gnupg && \
-wget -q -O - https://repo.radeon.com/rocm/apt/$ROCM_KEY_VER/rocm.gpg.key | apt-key add - && \
+wget -q -O - https://repo.radeon.com/rocm/rocm.gpg.key | apt-key add - && \
 apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     apt-utils \
     build-essential \
     cmake \
     comgr \
-    clang-format-3.8 \
+    clang-format-10 \
     doxygen \
     g++ \
     gdb \
@@ -69,7 +64,8 @@ apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unau
     rocm-opencl-dev \
     rocm-cmake \
     rocblas \
-    zlib1g-dev && \
+    zlib1g-dev \
+    kmod && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -102,22 +98,23 @@ RUN cget -p $PREFIX install kitware/cmake@v3.15.1
 
 ADD min-requirements.txt /min-requirements.txt
 RUN CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -f /min-requirements.txt
+RUN if [ "$USE_FIN" = "ON" ]; then cget -p $PREFIX install nlohmann/json@350ff4f7ced7c4117eae2fb93df02823c8021fcb; fi
 RUN cget -p $PREFIX install danmar/cppcheck@dd05839a7e63ef04afd34711cb3e1e0ef742882f
 
 # Install doc requirements
 ADD doc/requirements.txt /doc-requirements.txt
-RUN pip install -r /doc-requirements.txt
+RUN pip3 install -r /doc-requirements.txt
 
 # Use parallel job to accelerate tensile build
 # Workaround for Tensile with TargetID feature
 RUN if [ "$USE_TARGETID" = "ON" ] ; then export HIPCC_LINK_FLAGS_APPEND='-O3 -parallel-jobs=4' && export HIPCC_COMPILE_FLAGS_APPEND='-O3 -Wno-format-nonliteral -parallel-jobs=4' && rm /usr/bin/hipcc; fi
 
 # install last released miopentensile in default (master), install latest commits when MIOTENSILE_VER="latest" (develop)
-RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."; elif [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@4fda8d57c6b088333b0392ba0617b0d6eec5d5b7; else cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@403fc13acb8518c3f82a79dc501b21ef1751e470; fi
+RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."; elif [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@94a9047741d16a8eccd290131b78fb1aa69cdcdf; else cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@94a9047741d16a8eccd290131b78fb1aa69cdcdf; fi
 
 RUN if [ "$USE_MLIR" = "ON" ]; \
     then cd ~ && \
-    export MLIR_COMMIT=44abc4783fe2f6b4415871f7c44aa52ab89bccab && \
+    export MLIR_COMMIT=199d667b9d8caaf283436aaa8a48fd20e074f42c && \
     wget https://github.com/ROCmSoftwarePlatform/llvm-project-mlir/archive/$MLIR_COMMIT.tar.gz && \
     tar -xvzf $MLIR_COMMIT.tar.gz && \
     rm -rf $MLIR_COMMIT.tar.gz && \
@@ -126,3 +123,4 @@ RUN if [ "$USE_MLIR" = "ON" ]; \
     make -j$(nproc) libMLIRMIOpen && \
     $PREFIX/bin/cmake --install . --component libMLIRMIOpen --prefix /opt/rocm && \
     cd ~ && rm -rf llvm-project-mlir-$MLIR_COMMIT; fi
+    

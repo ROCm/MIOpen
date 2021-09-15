@@ -43,10 +43,7 @@
 namespace miopen {
 extern boost::optional<std::string>&
 testing_find_db_path_override(); /// \todo Remove when #1723 is resolved.
-ReadonlyRamDb& ReadonlyRamDb::GetCached(const std::string& path,
-                                        bool warn_if_unreadable,
-                                        const std::string& /*arch*/,
-                                        const std::size_t /*num_cu*/)
+ReadonlyRamDb& ReadonlyRamDb::GetCached(const std::string& path, bool warn_if_unreadable)
 {
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::mutex mutex;
@@ -125,7 +122,8 @@ void ReadonlyRamDb::ParseAndLoadDb(std::istream& input_stream,
 void ReadonlyRamDb::Prefetch(const std::string& path, bool warn_if_unreadable)
 {
     Measure("Prefetch", [this, &path, warn_if_unreadable]() {
-
+        if(path.empty())
+            return;
         constexpr bool isEmbedded = MIOPEN_EMBED_DB;
         if(!testing_find_db_path_override() && isEmbedded)
         {
@@ -134,7 +132,8 @@ void ReadonlyRamDb::Prefetch(const std::string& path, bool warn_if_unreadable)
             const auto& it_p = miopen_data().find(filepath.filename().string() + ".o");
             if(it_p == miopen_data().end())
                 MIOPEN_THROW(miopenStatusInternalError,
-                             "Unknown database: " + filepath.string() + " in internal filesystem");
+                             "Unknown database: " + filepath.filename().string() +
+                                 " in internal filesystem");
 
             const auto& p = it_p->second;
             ptrdiff_t sz  = p.second - p.first;
@@ -148,7 +147,6 @@ void ReadonlyRamDb::Prefetch(const std::string& path, bool warn_if_unreadable)
             auto input_stream = std::ifstream{path};
             ParseAndLoadDb(input_stream, path, warn_if_unreadable);
         }
-
     });
 }
 } // namespace miopen

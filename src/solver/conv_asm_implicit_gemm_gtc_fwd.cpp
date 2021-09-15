@@ -1346,7 +1346,7 @@ static std::tuple<bool, // is suitable kernel found
                   std::string, // kernel_name
                   int,         // block_size
                   int>         // grid_size
-    FindImplicitGemmGtcDynamicFwdKernel(const ConvolutionContext& ctx)
+FindImplicitGemmGtcDynamicFwdKernel(const ConvolutionContext& ctx)
 {
     auto tunables         = GetImplicitGemmGtcDynamicFwdXdlopsTunablesList();
     const auto& n         = ctx.batch_sz;
@@ -1437,8 +1437,9 @@ static std::tuple<bool, // is suitable kernel found
     // second try, try find if packed image size match
     for(const auto& cfg : tunables)
     {
-        const auto b = cfg.nxe == 0 ? (ho * wo) : ((ho * wo + cfg.nxb - 1) / cfg.nxb) *
-                                                      cfg.nxb; // pad to nxb modulo when nxe != 0
+        const auto b = cfg.nxe == 0 ? (ho * wo)
+                                    : ((ho * wo + cfg.nxb - 1) / cfg.nxb) *
+                                          cfg.nxb; // pad to nxb modulo when nxe != 0
         const auto gemm_n_packed = n * b;
         if(precision != cfg.precision)
             continue;
@@ -1528,6 +1529,10 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ConvolutionConte
         return false;
     }
 
+    const auto target = ctx.GetStream().GetTargetProperties();
+    if(target.Xnack() && *target.Xnack())
+        return false;
+
     bool isValid;
     std::tie(isValid, std::ignore, std::ignore, std::ignore, std::ignore) =
         FindImplicitGemmGtcDynamicFwdKernel(ctx);
@@ -1549,14 +1554,10 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlops::GetSolution(const ConvolutionContext& ct
     std::tie(std::ignore, cfg, kernel_name, block_size, grid_size) =
         FindImplicitGemmGtcDynamicFwdKernel(ctx);
 
-    if(ctx.IsFp32())
-        kernel.kernel_file = "igemm_fwd_gtc_gfx908.s";
-    else if(ctx.IsFp16())
-    {
-        std::ostringstream kernel_file_name;
-        kernel_file_name << kernel_name << ".s";
-        kernel.kernel_file = kernel_file_name.str();
-    }
+    std::ostringstream kernel_file_name;
+    kernel_file_name << kernel_name << ".s";
+    kernel.kernel_file = kernel_file_name.str();
+
     kernel.kernel_name = kernel_name;
     kernel.g_wk.clear();
     kernel.g_wk.push_back(grid_size * block_size);

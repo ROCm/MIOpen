@@ -38,41 +38,19 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_WRW_XDLOPS)
 namespace miopen {
 namespace solver {
 
-namespace {
-#if MIOPEN_USE_MLIR
-std::string GetKernelName()
-{
-    std::string version   = "_v4r4";
-    std::string direction = "_wrw";
-    std::string operation = "conv2d_bwd_weight";
-
-    return "mlir_gen_igemm_conv2d" + version + direction + "_xdlops";
-}
-
-std::string GetOperation() { return "conv2d_bwd_weight"; }
-#endif
-} // Anonymous namespace
-
 bool ConvMlirIgemmWrWXdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
 #if MIOPEN_USE_MLIR
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_WRW_XDLOPS{}))
         return false;
-    // Future: MLIR will support non-default layouts.
-    if(!ctx.IsLayoutDefault() && !ctx.IsLayoutNHWC())
-        return false;
-    // Future: MLIR will support 3d convolution
-    if(!ctx.Is2d())
-        return false;
-    if(!IsComposableKernelSupportedHardware(ctx))
+    if(!IsXdlopsSupport(ctx))
         return false;
     if(!ctx.direction.IsBackwardWrW())
         return false;
-    if(!ctx.IsFp32() && !ctx.IsFp16())
+    if(!IsComposableKernelSupportedHardware(ctx))
         return false;
 
-    return MiirIsConfigApplicable(
-        mlir::ConstructBuildOptions(ctx, GetOperation(), GetKernelName(), true));
+    return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, true));
 #else
     std::ignore = ctx;
     return false;
@@ -85,10 +63,9 @@ ConvSolution ConvMlirIgemmWrWXdlops::GetSolution(const ConvolutionContext& ctx) 
     ConvSolution result;
     KernelInfo construction_parameters;
 
-    construction_parameters.kernel_name = GetKernelName();
+    construction_parameters.kernel_name  = mlir::GetKernelName(ctx, true);
     construction_parameters.kernel_file = construction_parameters.kernel_name + ".mlir";
-    construction_parameters.comp_options =
-        mlir::ConstructBuildOptions(ctx, GetOperation(), GetKernelName(), true);
+    construction_parameters.comp_options = mlir::ConstructBuildOptions(ctx, true);
 
     size_t local_size  = 0;
     size_t global_size = 0;

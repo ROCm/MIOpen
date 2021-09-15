@@ -27,6 +27,7 @@
 #include <miopen/conv/invokers/mlir_impl_gemm.hpp>
 #include <miopen/config.h>
 #include <miopen/env.hpp>
+#include <miopen/generic_search.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/solver/mlir_common.hpp>
@@ -36,54 +37,148 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD)
 namespace miopen {
 namespace solver {
 
-namespace {
-#if MIOPEN_USE_MLIR
-std::string GetKernelName()
+PerformanceConvMlirIgemm::PerformanceConvMlirIgemm(int BlockSize_,
+                                                   int GemmMPerBlock_,
+                                                   int GemmNPerBlock_,
+                                                   int GemmKPerBlock_,
+                                                   int GemmMPerThread_,
+                                                   int GemmNPerThread_,
+                                                   bool use_spare_set_)
+    : BlockSize(BlockSize_),
+      GemmMPerBlock(GemmMPerBlock_),
+      GemmNPerBlock(GemmNPerBlock_),
+      GemmKPerBlock(GemmKPerBlock_),
+      GemmMPerThread(GemmMPerThread_),
+      GemmNPerThread(GemmNPerThread_),
+      use_spare_set(use_spare_set_)
 {
-    std::string version   = "_v4r4";
-    std::string direction = "_fwd";
-    return "mlir_gen_igemm_conv2d" + version + direction;
 }
 
-std::string GetOperation() { return "conv2d"; }
-#endif
-} // Anonymous namespace
+PerformanceConvMlirIgemm::PerformanceConvMlirIgemm(bool spare)
+{
+    // always search full space, no matter if use_spare_set or not
+    BlockSize = 64;
 
-bool ConvMlirIgemmFwd::IsApplicable(const ConvolutionContext& ctx) const
+    GemmMPerBlock = 32;
+    GemmNPerBlock = 32;
+    GemmKPerBlock = 4;
+
+    GemmMPerThread = 2;
+    GemmNPerThread = 2;
+
+    use_spare_set = spare;
+}
+
+bool PerformanceConvMlirIgemm::operator==(const PerformanceConvMlirIgemm& other) const
+{
+    // clang-format off
+    return BlockSize == other.BlockSize
+        && GemmMPerBlock == other.GemmMPerBlock
+        && GemmNPerBlock == other.GemmNPerBlock
+        && GemmKPerBlock == other.GemmKPerBlock
+        && GemmMPerThread == other.GemmMPerThread
+        && GemmNPerThread == other.GemmNPerThread
+        && use_spare_set == other.use_spare_set;
+    // clang-format on
+}
+
+bool PerformanceConvMlirIgemm::IsValid(const ConvolutionContext& ctx) const
 {
 #if MIOPEN_USE_MLIR
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD{}))
-        return false;
-    if(!ctx.IsLayoutDefault() && !ctx.IsLayoutNHWC())
-        return false;
-    // Future: MLIR will support 3d convolution
-    if(!ctx.Is2d())
-        return false;
-    if(!IsComposableKernelSupportedHardware(ctx))
-        return false;
-    if(!ctx.direction.IsForward())
-        return false;
-    if(!ctx.IsFp32() && !ctx.IsFp16())
-        return false;
-
-    return MiirIsConfigApplicable(
-        mlir::ConstructBuildOptions(ctx, GetOperation(), GetKernelName(), false));
+    return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, ToString(), false));
 #else
     std::ignore = ctx;
     return false;
 #endif
 }
 
-ConvSolution ConvMlirIgemmFwd::GetSolution(const ConvolutionContext& ctx) const
+bool PerformanceConvMlirIgemm::SetNextValue(const ConvolutionContext& /*config*/)
+{
+    // always search full space, no matter if use_spare_set or not
+    do
+    {
+        if(!NextTwoPower<64, 256>(BlockSize))
+            break;
+        if(!NextTwoPower<32, 128>(GemmMPerBlock))
+            break;
+        if(!NextTwoPower<32, 128>(GemmNPerBlock))
+            break;
+        if(!NextTwoPower<4, 16>(GemmKPerBlock))
+            break;
+        if(!NextTwoPower<2, 4>(GemmMPerThread))
+            break;
+        if(!NextTwoPower<2, 4>(GemmNPerThread))
+            break;
+
+        return false;
+    } while(false);
+
+    return true;
+}
+
+std::string PerformanceConvMlirIgemm::ToString() const
+{
+    std::ostringstream ss;
+    Serialize(ss);
+    return ss.str();
+}
+
+PerformanceConvMlirIgemm ConvMlirIgemmFwd::GetPerformanceConfig(const ConvolutionContext& ctx) const
+{
+    // Return the invalid config as the default to signal MLIR do heuristic intialization
+    std::ignore = ctx;
+    return {};
+}
+
+bool ConvMlirIgemmFwd::IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                                const PerformanceConvMlirIgemm& config) const
+{
+    MIOPEN_LOG_I("");
+    return config.IsValid(ctx);
+}
+
+PerformanceConvMlirIgemm ConvMlirIgemmFwd::Search(const ConvolutionContext& context,
+                                                  const AnyInvokeParams& invoke_ctx) const
+{
+    return GenericSearch(*this, context, invoke_ctx);
+}
+
+bool ConvMlirIgemmFwd::IsApplicable(const ConvolutionContext& ctx) const
+{
+#if MIOPEN_USE_MLIR
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD{}))
+        return false;
+    if(!ctx.direction.IsForward())
+        return false;
+    if(!IsComposableKernelSupportedHardware(ctx))
+        return false;
+
+    return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, false));
+#else
+    std::ignore = ctx;
+    return false;
+#endif
+}
+
+ConvSolution ConvMlirIgemmFwd::GetSolution(const ConvolutionContext& ctx,
+                                           const PerformanceConvMlirIgemm& config,
+                                           bool) const
 {
 #if MIOPEN_USE_MLIR
     ConvSolution result;
     KernelInfo construction_parameters;
 
-    construction_parameters.kernel_name = GetKernelName();
+    construction_parameters.kernel_name = mlir::GetKernelName(ctx, false);
     construction_parameters.kernel_file = construction_parameters.kernel_name + ".mlir";
-    construction_parameters.comp_options =
-        mlir::ConstructBuildOptions(ctx, GetOperation(), GetKernelName(), false);
+
+    if(config == PerformanceConvMlirIgemm())
+        // At this case, do not pass in the invalid perf config and instead make Miir library to do
+        // heuristic initialization
+        construction_parameters.comp_options = mlir::ConstructBuildOptions(ctx, false);
+    else
+        // At this case, Make Miir library to use the valid perf config
+        construction_parameters.comp_options =
+            mlir::ConstructBuildOptions(ctx, config.ToString(), false);
 
     size_t local_size  = 0;
     size_t global_size = 0;
@@ -102,6 +197,7 @@ ConvSolution ConvMlirIgemmFwd::GetSolution(const ConvolutionContext& ctx) const
     return result;
 #else
     std::ignore = ctx;
+    std::ignore = config;
     return {};
 #endif
 }

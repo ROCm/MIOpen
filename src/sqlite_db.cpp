@@ -129,9 +129,7 @@ class SQLite::impl
                 sqlite3_close(ptr_tmp);
                 MIOPEN_THROW(miopenStatusInternalError);
             }
-            for(rc = sqlite3_step(stmt); rc == SQLITE_ROW; rc = sqlite3_step(stmt))
-            {
-            }
+            for(rc = sqlite3_step(stmt); rc == SQLITE_ROW; rc = sqlite3_step(stmt)) {}
             if(rc == SQLITE_DONE)
                 rc = 0;
 
@@ -182,7 +180,7 @@ static int find_callback(void* _res, int argc, char** argv, char** azColName)
 {
     SQLite::result_type* res = static_cast<SQLite::result_type*>(_res);
     std::unordered_map<std::string, std::string> record;
-    for(auto i               = 0; i < argc; i++)
+    for(auto i = 0; i < argc; i++)
         record[azColName[i]] = (argv[i] != nullptr) ? argv[i] : "NULL";
     if(res != nullptr)
         res->push_back(record);
@@ -361,11 +359,8 @@ int SQLite::Statement::BindInt64(int idx, const int64_t num)
     return 0;
 }
 
-SQLitePerfDb::SQLitePerfDb(const std::string& filename_,
-                           bool is_system,
-                           const std::string& arch_,
-                           const std::size_t num_cu_)
-    : SQLiteBase(filename_, is_system, arch_, num_cu_)
+SQLitePerfDb::SQLitePerfDb(const std::string& filename_, bool is_system)
+    : SQLiteBase(filename_, is_system)
 {
     if(dbInvalid)
     {
@@ -389,13 +384,11 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_,
             "`id` INTEGER PRIMARY KEY ASC,"
             "`solver` TEXT NOT NULL,"
             "`config` INTEGER NOT NULL,"
-            "`arch` TEXT NOT NULL,"
-            "`num_cu` INTEGER NOT NULL,"
             "`params` TEXT NOT NULL"
             ");"
             "CREATE UNIQUE INDEX IF NOT EXISTS "
             "`idx_perf_db` "
-            "ON perf_db(solver, config, arch, num_cu);";
+            "ON perf_db(solver, config);";
 
         // clang-format on
         {
@@ -439,7 +432,7 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_,
             MIOPEN_LOG_W(ss.str());
             dbInvalid = true;
         }
-        if(!CheckTableColumns("perf_db", {"solver", "config", "arch", "num_cu", "params"}))
+        if(!CheckTableColumns("perf_db", {"solver", "config", "params"}))
         {
             MIOPEN_LOG_W("Invalid fields in table: perf_db disabling access to " + filename);
             dbInvalid = true;

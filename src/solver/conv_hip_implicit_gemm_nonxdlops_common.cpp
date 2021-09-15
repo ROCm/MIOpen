@@ -138,9 +138,8 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
     if(block_size < 64 || block_size > 512)
         return false;
 
-    if(block_size !=
-       InBlockCopyClusterLengths_E * InBlockCopyClusterLengths_N1 * InBlockCopyClusterLengths_B *
-           InBlockCopyClusterLengths_N2)
+    if(block_size != InBlockCopyClusterLengths_E * InBlockCopyClusterLengths_N1 *
+                         InBlockCopyClusterLengths_B * InBlockCopyClusterLengths_N2)
         return false;
 
     if(block_size != WeiBlockCopyClusterLengths_K * WeiBlockCopyClusterLengths_E)
@@ -242,9 +241,8 @@ bool PerformanceImplicitGemmV4R1::IsValid(const ConvolutionContext& ctx) const
     if(block_size < 64 || block_size > 512)
         return false;
 
-    if(block_size !=
-       InBlockCopyClusterLengths_E * InBlockCopyClusterLengths_N1 * InBlockCopyClusterLengths_B *
-           InBlockCopyClusterLengths_N2)
+    if(block_size != InBlockCopyClusterLengths_E * InBlockCopyClusterLengths_N1 *
+                         InBlockCopyClusterLengths_B * InBlockCopyClusterLengths_N2)
         return false;
 
     if(block_size != WeiBlockCopyClusterLengths_K * WeiBlockCopyClusterLengths_E)
@@ -429,7 +427,7 @@ bool PerformanceImplicitGemm::IsValidValue() const
         && IsTwoPower<16,128>(WeiBlockCopyClusterLengths_K); // clang-format on
 }
 
-bool PerformanceImplicitGemm::SetNextValue()
+bool PerformanceImplicitGemm::SetNextValue(const ConvolutionContext& /*config*/)
 {
     // GemmNRepeat = 2 cosntant
     do

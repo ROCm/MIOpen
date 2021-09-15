@@ -34,7 +34,7 @@ namespace solver {
 PerformanceConfigAsmImplicitGemmGTC::PerformanceConfigAsmImplicitGemmGTC(
     std::string dir,
     std::string layout,
-    std::string prec,
+    miopenDataType_t prec,
     int b,
     int e,
     int mpb,
@@ -88,34 +88,13 @@ PerformanceConfigAsmImplicitGemmGTC::PerformanceConfigAsmImplicitGemmGTC(
 {
 }
 
-void PerformanceConfigAsmImplicitGemmGTC::HeuristicInit(const ConvolutionContext& ctx)
-{
-    // need override in child struct
-    (void)ctx;
-}
-bool PerformanceConfigAsmImplicitGemmGTC::SetNextValue()
-{
-    // need override in child struct
-    return false;
-}
-bool PerformanceConfigAsmImplicitGemmGTC::IsValidValue() const
-{
-    // need override in child struct
-    return false;
-}
-bool PerformanceConfigAsmImplicitGemmGTC::IsValid(const ConvolutionContext& ctx) const
-{
-    // need override in child struct
-    (void)ctx;
-    return false;
-}
 bool PerformanceConfigAsmImplicitGemmGTC::IsDefaultConstructed() const
 {
     int default_lengths[4] = {1, 1, 1, 1};
     // clang-format off
     return direction == "fwd"
         && tensor_layout == "nchw"
-        && precision == "fp32"
+        && precision == miopenFloat
         && nxb == 1
         && nxe == 1
         && gemm_m_per_block == 1
@@ -141,8 +120,8 @@ bool PerformanceConfigAsmImplicitGemmGTC::IsDefaultConstructed() const
     // clang-format on
 }
 
-bool PerformanceConfigAsmImplicitGemmGTC::
-operator==(const PerformanceConfigAsmImplicitGemmGTC& other) const
+bool PerformanceConfigAsmImplicitGemmGTC::operator==(
+    const PerformanceConfigAsmImplicitGemmGTC& other) const
 {
     // clang-format off
     return direction == other.direction
@@ -213,16 +192,19 @@ void PerformanceConfigAsmImplicitGemmGTC::CopyParameters(
 std::string PerformanceConfigAsmImplicitGemmGTC::ToString() const
 {
     std::ostringstream ss;
-    ss << ToKernelName();
+    // ss << ToKernelName();
+    Serialize(ss);
     if(gemm_k_global_split != 0)
         ss << "[" << gemm_k_global_split << "]";
     return ss.str();
 }
-std::string PerformanceConfigAsmImplicitGemmGTC::ToKernelName() const
+std::string PerformanceConfigAsmImplicitGemmGTC::ToKernelName(const ConvolutionContext& ctx) const
 {
     std::ostringstream kernel_name;
-    std::string kernel_precision = precision;
-    kernel_name << "igemm_" << direction << "_gtcx_" << tensor_layout << "_" << kernel_precision
+    std::string kernel_precision = precision == miopenFloat ? "fp32" : "fp16";
+    const auto device_name       = ctx.GetStream().GetDeviceName();
+    std::string gtc_str          = device_name == "gfx908" ? "_gtcx_" : "_gtcx2_";
+    kernel_name << "igemm_" << direction << gtc_str << tensor_layout << "_" << kernel_precision
                 << "_bx" << nxb << "_ex" << nxe << "_bt" << gemm_m_per_block << "x"
                 << gemm_n_per_block << "x" << gemm_k_per_block << "_wt" << wave_tile_m << "x"
                 << wave_tile_n << "x" << wave_tile_k << "_ws" << wave_step_m << "x" << wave_step_n

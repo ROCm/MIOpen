@@ -233,21 +233,19 @@ struct gpu_reference_kernel_base
 #define MAX_INTEGER_INTERVAL 4.0
 
 /*
-* for half, if we use integer, half can express -2048 ~ 2048 without data-loss.
-* e.g. 2049 can not expressed by half.
-* from 2048~4096, half can only express 1/2 the number. number 2049, 2051, 2053, 2055.... can not be
-* expressed. (max interval is 2)
-* from 4096~8192, half can only express 1/4 the number. number 4097, 4098, 4099, 4101, 4102, 4103,
-* 4105, 4106, 4107, 4109...
-*               can not expressd. (max interval is 4)
-* from 8192~16384, half can only express 1/8 the number. (max interval is 8)
-*/
+ * for half, if we use integer, half can express -2048 ~ 2048 without data-loss.
+ * e.g. 2049 can not expressed by half.
+ * from 2048~4096, half can only express 1/2 the number. number 2049, 2051, 2053, 2055.... can not
+ * be expressed. (max interval is 2) from 4096~8192, half can only express 1/4 the number. number
+ * 4097, 4098, 4099, 4101, 4102, 4103, 4105, 4106, 4107, 4109... can not expressd. (max interval is
+ * 4) from 8192~16384, half can only express 1/8 the number. (max interval is 8)
+ */
 template <typename T>
 void rand_tensor_integer(tensor<T>& t, int max = RAND_INTEGER_MAX, int min = RAND_INTEGER_MIN)
 {
     // use integer to random.
     for(int i = 0; i < t.data.size(); i++)
-        t[i]  = static_cast<T>(gen_rand_integer() % (max - min) + min);
+        t[i] = static_cast<T>(gen_rand_integer() % (max - min) + min);
 }
 
 template <typename T>

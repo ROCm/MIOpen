@@ -118,8 +118,7 @@ static inline void ValidateGroupCount(const TensorDescriptor& xDesc,
     {
         if(xDesc.GetLengths()[1] % conv.group_count != 0 ||
            wDesc.GetLengths()[0] % conv.group_count != 0 ||
-           conv.group_count > xDesc.GetLengths()[1] || conv.group_count > wDesc.GetLengths()[0] ||
-           conv.group_count < 1)
+           conv.group_count > xDesc.GetLengths()[1] || conv.group_count > wDesc.GetLengths()[0])
             MIOPEN_THROW(miopenStatusBadParm, "Invalid group number");
         if(xDesc.GetLengths()[1] / conv.group_count != wDesc.GetLengths()[1])
             MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
@@ -160,6 +159,8 @@ ConvolutionDescriptor::FindDataGemmSolutions(const ConvolutionContext& ctx,
         return {};
     }
 #else
+    std::ignore = ctx;
+    std::ignore = invoke_ctx;
     return {};
 #endif
 }
@@ -286,18 +287,14 @@ static void EvaluateInvokers(Handle& handle,
             {
                 MIOPEN_LOG_I("Warning: skipping solver <" << sol.solver_id
                                                           << "> due to no workspace provided ("
-                                                          << sol.workspce_sz
-                                                          << " required)");
+                                                          << sol.workspce_sz << " required)");
                 continue;
             }
             if(invoke_ctx.workSpaceSize < sol.workspce_sz)
             {
-                MIOPEN_LOG_I("Warning: skipping solver <" << sol.solver_id
-                                                          << "> due to insufficient workspace ("
-                                                          << invoke_ctx.workSpaceSize
-                                                          << " < "
-                                                          << sol.workspce_sz
-                                                          << ")");
+                MIOPEN_LOG_I("Warning: skipping solver <"
+                             << sol.solver_id << "> due to insufficient workspace ("
+                             << invoke_ctx.workSpaceSize << " < " << sol.workspce_sz << ")");
                 continue;
             }
         }
@@ -328,8 +325,8 @@ static void EvaluateInvokers(Handle& handle,
     if(selected.Succeeded())
     {
         handle.RegisterInvoker(best_invoker, network_config, selected.solver_id, algorithm_name);
-        MIOPEN_LOG_I(
-            "Selected: " << selected << ": " << best << ", workspce_sz = " << selected.workspce_sz);
+        MIOPEN_LOG_I("Selected: " << selected << ": " << best
+                                  << ", workspce_sz = " << selected.workspce_sz);
         record.SetValues(algorithm_name,
                          FindDbData{selected.solver_id,
                                     best,
@@ -538,8 +535,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     }
 
     MIOPEN_LOG_I("FW Chosen Algorithm: " << perf_db[0].solver_id << " , " << perf_db[0].workspace
-                                         << ", "
-                                         << perf_db[0].time);
+                                         << ", " << perf_db[0].time);
 }
 
 void ValidateConvTensors(const ConvTensors& tensors)
@@ -656,7 +652,7 @@ std::size_t ConvolutionDescriptor::GetSolutionCountFallback(Handle& handle,
                                                             const ProblemDescription& problem) const
 {
     size_t n                    = 0;
-    const auto maxSolutionCount = miopen::solver::GetMapValueToAnySolver()
+    const auto maxSolutionCount = solver::GetSolversByPrimitive(solver::Primitive::Convolution)
                                       .size(); // Simple and guarantees to provide enough space.
     GetSolutionsFallback(handle, problem, maxSolutionCount, &n, nullptr);
     if(n > 0)
@@ -770,16 +766,16 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
         return 10.0f / wti; // Assume WTI == 1.0 (100%) is 10 ms.
     };
 
-    const auto& map = miopen::solver::GetMapValueToAnySolver();
-    for(const auto& item : map)
+    for(const auto& solver_id : solver::GetSolversByPrimitive(solver::Primitive::Convolution))
     {
-        const auto solver_id = solver::Id{item.first};
         // solver_id is always valid here, because taken from registry.
         // Validity check is not required.
         const auto algo = solver_id.GetAlgo();
         if(IsAlgorithmDisabled(algo)) // Algos can be disabled globally.
             continue;
-        const auto& s = item.second;
+        const auto& s = solver_id.GetSolver();
+        if(s.IsEmpty())
+            continue;
         if(!s.IsDynamic()) // Let's allow non-dynamic later, if necessary.
             continue;
         if(!s.IsApplicable(ctx))
@@ -796,10 +792,8 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
     MIOPEN_LOG_I2("maxSolutionCount = " << maxSolutionCount << ", available = " << interim.size());
     for(const auto& s : interim)
         MIOPEN_LOG_I2("id: " << s.solution_id << " algo: " << s.algorithm << ", time: " << s.time
-                             << " ms, ws: "
-                             << s.workspace_size
-                             << ", name: "
-                             << miopen::solver::Id(s.solution_id).ToString());
+                             << " ms, ws: " << s.workspace_size
+                             << ", name: " << miopen::solver::Id(s.solution_id).ToString());
     // Dual purpose variable:
     // * Used as index for writing into output array (solutions).
     // * Counts the number of entries written, yielding value for solutionsCount.
@@ -1231,8 +1225,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     }
 
     MIOPEN_LOG_I("BWD Chosen Algorithm: " << perf_db[0].solver_id << " , " << perf_db[0].workspace
-                                          << ", "
-                                          << perf_db[0].time);
+                                          << ", " << perf_db[0].time);
 }
 static void ConvBwdCheckNumerics(const Handle& handle,
                                  const ConvBwdTensors& tensors,
@@ -1575,8 +1568,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         perfResults[i].memory           = perf_db[i].workspace;
     }
     MIOPEN_LOG_I("BWrW Chosen Algorithm: " << perf_db[0].solver_id << " , " << perf_db[0].workspace
-                                           << ", "
-                                           << perf_db[0].time);
+                                           << ", " << perf_db[0].time);
 }
 
 static void ConvWrwCheckNumerics(const Handle& handle,
@@ -1797,9 +1789,9 @@ void ConvolutionBackwardBias(const Handle& handle,
     std::size_t out_n, out_k, stride_n, stride_k;
     std::tie(out_n, out_k)       = tie_pick<0, 1>()(dyDesc.GetLengths());
     std::tie(stride_n, stride_k) = tie_pick<0, 1>()(dyDesc.GetStrides());
-    std::string algo_name    = "miopenConvolutionBwdBias";
-    std::string program_name = "MIOpenConvBwdBias.cl";
-    std::string kernel_name  = "MIOpenConvBwdB";
+    std::string algo_name        = "miopenConvolutionBwdBias";
+    std::string program_name     = "MIOpenConvBwdBias.cl";
+    std::string kernel_name      = "MIOpenConvBwdB";
     std::string network_config =
         "convbwdbias-" +
         std::string(dyDesc.GetType() == miopenFloat
@@ -1813,7 +1805,7 @@ void ConvolutionBackwardBias(const Handle& handle,
     std::size_t lcl_grp_size1 = 1;
     std::size_t local_mem_sz  = 256;
 
-    std::size_t map_size = std::accumulate(dyDesc.GetLengths().begin() + 2,
+    std::size_t map_size         = std::accumulate(dyDesc.GetLengths().begin() + 2,
                                            dyDesc.GetLengths().end(),
                                            std::size_t(1),
                                            std::multiplies<std::size_t>());

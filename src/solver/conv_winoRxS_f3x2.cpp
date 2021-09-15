@@ -38,6 +38,8 @@
 
 #include <boost/any.hpp>
 
+#define WORKAROUND_ISSUE_1146 1 // check asm solver applicability for gfx90a
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS)
 
@@ -244,7 +246,7 @@ void PerformanceConfigConvBinWinogradRxSf3x2::HeuristicInit(const ConvolutionCon
     }
 }
 
-bool PerformanceConfigConvBinWinogradRxSf3x2::SetNextValue()
+bool PerformanceConfigConvBinWinogradRxSf3x2::SetNextValue(const ConvolutionContext& /*config*/)
 {
     return !PerfFieldRules().Next(*this);
 }
@@ -264,8 +266,8 @@ bool PerformanceConfigConvBinWinogradRxSf3x2::IsValid(const ConvolutionContext& 
     return true;
 }
 
-inline bool PerformanceConfigConvBinWinogradRxSf3x2::
-operator==(const PerformanceConfigConvBinWinogradRxSf3x2& other) const
+inline bool PerformanceConfigConvBinWinogradRxSf3x2::operator==(
+    const PerformanceConfigConvBinWinogradRxSf3x2& other) const
 {
     return n_groups == other.n_groups;
 }
@@ -303,7 +305,7 @@ bool ConvBinWinogradRxSf3x2::IsApplicable(const ConvolutionContext& params) cons
 {
     if(!params.Is2d())
         return false;
-    if(!params.IsFp32())
+    if(!(params.IsFp32() || params.IsFp16()))
         return false;
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2{}))
         return false;
@@ -314,12 +316,25 @@ bool ConvBinWinogradRxSf3x2::IsApplicable(const ConvolutionContext& params) cons
     if(!params.IsLayoutDefault())
         return false;
 
+    const auto target = params.GetStream().GetTargetProperties();
+    if(target.Xnack() && *target.Xnack())
+        return false;
+
     const auto max_cu = params.GetStream().GetMaxHardwareComputeUnits();
     if(max_cu > MAX_CU_LIMIT)
         return false;
 
     const auto name = params.GetStream().GetDeviceName();
-    if(!(StartsWith(name, "gfx9") || StartsWith(name, "gfx10")) || name == "gfx90a")
+    if(!(StartsWith(name, "gfx9") || StartsWith(name, "gfx10")))
+        return false;
+#if WORKAROUND_ISSUE_1146
+    if(name == "gfx90a")
+        return false;
+#endif
+
+    if(params.IsFp16() &&
+       !(StartsWith(name, "gfx906") || StartsWith(name, "gfx908") || StartsWith(name, "gfx1011") ||
+         StartsWith(name, "gfx1012") || StartsWith(name, "gfx103")))
         return false;
 
     // clang-format off

@@ -469,7 +469,7 @@ bool PerformanceImplicitGemmV4R4Fwd::IsValid(const ConvolutionContext& ctx) cons
         return false;
 
     // check LDS allocation
-    std::size_t lds_size = 0;
+    std::size_t lds_size      = 0;
     std::tie(lds_size, valid) = CalculateLdsNumberOfByte(ctx);
 
     return (valid and lds_size <= get_lds_max_number_of_byte());
@@ -530,7 +530,7 @@ void PerformanceImplicitGemmV4R4Fwd::HeuristicInit(const ConvolutionContext& ctx
     MIOPEN_LOG_I(ToString());
 }
 
-bool PerformanceImplicitGemmV4R4Fwd::SetNextValue()
+bool PerformanceImplicitGemmV4R4Fwd::SetNextValue(const ConvolutionContext& /*config*/)
 {
     // always search full space, no matter if use_spare_set or not
     do
@@ -656,7 +656,7 @@ ConvSolution ConvHipImplicitGemmV4R4Fwd::GetSolution(const ConvolutionContext& c
     if(ctx.Is3d())
     {
         construction_parameters.kernel_file =
-            "gridwise_convolution_implicit_gemm_v4r4_ncdhw_kczyx_nkdhw.cpp";
+            "static_kernel_gridwise_convolution_implicit_gemm_v4r4_ncdhw_kczyx_nkdhw.cpp";
 
         construction_parameters.kernel_name =
             "gridwise_convolution_implicit_gemm_v4r4_ncdhw_kczyx_nkdhw";
@@ -664,7 +664,7 @@ ConvSolution ConvHipImplicitGemmV4R4Fwd::GetSolution(const ConvolutionContext& c
     else
     {
         construction_parameters.kernel_file =
-            "gridwise_convolution_implicit_gemm_v4r4_nchw_kcyx_nkhw.cpp";
+            "static_kernel_gridwise_convolution_implicit_gemm_v4r4_nchw_kcyx_nkhw.cpp";
 
         construction_parameters.kernel_name =
             "gridwise_convolution_implicit_gemm_v4r4_nchw_kcyx_nkhw";
@@ -749,7 +749,7 @@ ConvSolution ConvHipImplicitGemmV4R4Fwd::GetSolution(const ConvolutionContext& c
         std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size) +
         std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
-        get_ck_common_compiler_flag(ctx) +
+        get_static_ck_common_compiler_flag(ctx) +
         ctx.general_compile_options;
 
         if (ctx.Is3d()){

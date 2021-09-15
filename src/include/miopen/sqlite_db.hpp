@@ -1,28 +1,28 @@
 /*******************************************************************************
-*
-* MIT License
-*
-* Copyright (c) 2019 Advanced Micro Devices, Inc.
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*******************************************************************************/
+ *
+ * MIT License
+ *
+ * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 #pragma once
 
 #include <miopen/config.h>
@@ -211,15 +211,10 @@ class SQLiteBase
 {
     protected:
     public:
-    SQLiteBase(const std::string& filename_,
-               bool is_system,
-               const std::string& arch_,
-               std::size_t num_cu_)
-        : filename(filename_), arch(arch_), num_cu(num_cu_)
+    SQLiteBase(const std::string& filename_, bool is_system) : filename(filename_)
     {
         MIOPEN_LOG_I2("Initializing " << (InMemDb ? "In Memory " : "")
-                                      << (is_system ? "system" : "user")
-                                      << " database file "
+                                      << (is_system ? "system" : "user") << " database file "
                                       << filename);
 
         if(filename.empty())
@@ -276,8 +271,7 @@ class SQLiteBase
         }
     }
 
-    static Derived&
-    GetCached(const std::string& path, bool is_system, const std::string& arch, std::size_t num_cu);
+    static Derived& GetCached(const std::string& path, bool is_system);
     // TODO: Fix this for the overhead of having fields per record
 
     inline auto CheckTableColumns(const std::string& tableName,
@@ -341,17 +335,12 @@ class SQLiteBase
     }
 
     std::string filename;
-    std::string arch;
-    size_t num_cu;
     bool dbInvalid;
     SQLite sql;
 };
 
 template <typename Derived>
-Derived& SQLiteBase<Derived>::GetCached(const std::string& path,
-                                        bool is_system,
-                                        const std::string& arch,
-                                        const size_t num_cu)
+Derived& SQLiteBase<Derived>::GetCached(const std::string& path, bool is_system)
 {
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::mutex mutex;
@@ -364,18 +353,15 @@ Derived& SQLiteBase<Derived>::GetCached(const std::string& path,
     if(it != instances.end())
         return it->second;
 
-    instances.emplace(path, Derived{path, is_system, arch, num_cu});
+    instances.emplace(path, Derived{path, is_system});
     return instances.at(path);
 }
 
 class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
 {
     public:
-    static constexpr char const* MIOPEN_PERFDB_SCHEMA_VER = "1.0.0";
-    SQLitePerfDb(const std::string& filename_,
-                 bool is_system,
-                 const std::string& arch_,
-                 std::size_t num_cu_);
+    static constexpr char const* MIOPEN_PERFDB_SCHEMA_VER = "1.1.0";
+    SQLitePerfDb(const std::string& filename_, bool is_system);
 
     template <class T>
     inline void InsertConfig(const T& prob_desc)
@@ -383,8 +369,8 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
         std::string clause;
         std::vector<std::string> vals;
         std::tie(clause, vals) = prob_desc.InsertQuery();
-        auto stmt = SQLite::Statement{sql, clause, vals};
-        auto rc   = stmt.Step(sql);
+        auto stmt              = SQLite::Statement{sql, clause, vals};
+        auto rc                = stmt.Step(sql);
         if(rc != SQLITE_DONE)
             MIOPEN_THROW(miopenStatusInternalError,
                          "Failed to insert config: " + sql.ErrorMessage());
@@ -425,9 +411,7 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
             "INNER JOIN " + problem_config.table_name() + " "
             "ON perf_db.config = " + problem_config.table_name() +".id "
             "WHERE "
-            "( " + clause + " )"
-            "AND (arch = '" + arch + "' ) "
-            "AND (num_cu = '" + std::to_string(num_cu) + "');";
+            "( " + clause + " );";
         // clang-format on
         auto stmt = SQLite::Statement{sql, select_query, values};
         DbRecord rec;
@@ -444,7 +428,7 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
         if(rec.GetSize() == 0)
             return boost::none;
         else
-            return boost::optional<DbRecord>(rec);
+            return {rec};
     }
 
     /// Removes ID with associated VALUES from record with key PROBLEM_CONFIG from db.
@@ -492,8 +476,8 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
             std::string clause;
             std::vector<std::string> vals;
             std::tie(clause, vals) = problem_config.InsertQuery();
-            auto stmt = SQLite::Statement{sql, clause, vals};
-            auto rc   = stmt.Step(sql);
+            auto stmt              = SQLite::Statement{sql, clause, vals};
+            auto rc                = stmt.Step(sql);
             if(rc != SQLITE_DONE)
                 MIOPEN_THROW(miopenStatusInternalError,
                              "Failed to insert config: " + sql.ErrorMessage());
@@ -506,21 +490,19 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
             std::ostringstream params;
             values.Serialize(params);
             std::string clause;
-            std::vector<std::string> vals;
+            std::vector<std::string> vals(2);
             std::tie(clause, vals) = problem_config.WhereClause();
 
             // clang-format off
             std::string query =
                 "INSERT OR REPLACE INTO "
-                "perf_db(config, solver, params, arch, num_cu) "
+                "perf_db(config, solver, params) "
                 "VALUES("
                 "(SELECT id FROM " + problem_config.table_name() +  " "
-                "WHERE ( " + clause + " ) ) , ? , ? , ? , ?);";
+                "WHERE ( " + clause + " ) ) , ? , ?);";
             // clang-format on
             vals.push_back(id);
             vals.push_back(params.str());
-            vals.push_back(arch);
-            vals.push_back(std::to_string(num_cu));
             auto stmt = SQLite::Statement{sql, query, vals};
             auto rc   = stmt.Step(sql);
             if(rc != SQLITE_DONE)

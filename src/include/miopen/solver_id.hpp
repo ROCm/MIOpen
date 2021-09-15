@@ -34,9 +34,21 @@
 #include <unordered_map>
 
 namespace miopen {
+
+struct ForceInit
+{
+};
+
 namespace solver {
 
 struct AnySolver;
+
+enum class Primitive
+{
+    Convolution,
+    Activation,
+    Batchnorm,
+};
 
 struct Id
 {
@@ -44,6 +56,7 @@ struct Id
 
     Id() = default;
     Id(uint64_t value_);
+    Id(ForceInit, uint64_t value_);
     Id(const std::string& str);
     Id(const char* str);
 
@@ -51,6 +64,7 @@ struct Id
     AnySolver GetSolver() const;
     std::string GetAlgo(conv::Direction dir) const;
     miopenConvAlgorithm_t GetAlgo() const;
+    Primitive GetPrimitive() const;
 
     bool IsValid() const { return is_valid; }
     uint64_t Value() const { return value; }
@@ -67,7 +81,7 @@ struct Id
     bool is_valid  = false;
 };
 
-const std::unordered_map<uint64_t, AnySolver>& GetMapValueToAnySolver();
+const std::vector<Id>& GetSolversByPrimitive(Primitive primitive);
 
 } // namespace solver
 } // namespace miopen

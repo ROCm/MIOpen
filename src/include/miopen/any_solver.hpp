@@ -50,6 +50,11 @@ struct AnySolver
         assert(ptr_value != nullptr);
         return ptr_value->IsApplicable(ctx);
     };
+    bool IsTunable() const
+    {
+        assert(ptr_value != nullptr);
+        return ptr_value->IsTunable();
+    };
     bool IsDynamic() const
     {
         assert(ptr_value != nullptr);
@@ -91,11 +96,12 @@ struct AnySolver
         using ptr = std::shared_ptr<const AnySolver_base>;
 
         virtual ~AnySolver_base(){};
-        virtual bool IsApplicable(const ConvolutionContext& ctx) const = 0;
-        virtual bool IsDynamic() const                                 = 0;
-        virtual float GetWti(const ConvolutionContext& ctx) const      = 0;
-        virtual const std::type_info& Type() const                     = 0;
-        virtual std::string GetSolverDbId() const                      = 0;
+        virtual bool IsApplicable(const ConvolutionContext& ctx) const                     = 0;
+        virtual bool IsTunable() const                                                     = 0;
+        virtual bool IsDynamic() const                                                     = 0;
+        virtual float GetWti(const ConvolutionContext& ctx) const                          = 0;
+        virtual const std::type_info& Type() const                                         = 0;
+        virtual std::string GetSolverDbId() const                                          = 0;
         virtual ConvSolution FindSolution(const ConvolutionContext& ctx,
                                           Db& db,
                                           const miopen::AnyInvokeParams& invoke_ctx) const = 0;
@@ -106,10 +112,32 @@ struct AnySolver
     template <class T>
     struct AnySolver_tmpl : AnySolver_base
     {
+        struct TunableSolver
+        {
+            template<typename U> static constexpr auto Test(U*)
+            ->typename
+                std::is_same<
+                    decltype(std::declval<U>().GetSolution(std::declval<const ConvolutionContext&>(),
+                        std::declval<const decltype(std::declval<U>().GetPerformanceConfig(
+                            std::declval<const ConvolutionContext&>()))&>(),
+                        std::declval<const bool>())),
+                    ConvSolution
+                >::type;
+
+            template<typename U> static constexpr std::false_type Test(...);
+
+            using type = decltype(Test<T>(nullptr));
+            static constexpr bool Is = type::value;
+        };
+
         AnySolver_tmpl(T obj) : value(std::move(obj)){};
         bool IsApplicable(const ConvolutionContext& ctx) const override
         {
             return value.IsApplicable(ctx);
+        }
+        bool IsTunable() const override
+        {
+            return TunableSolver::Is;
         }
         bool IsDynamic() const override { return value.IsDynamic(); }
         float GetWti(const ConvolutionContext& ctx) const override { return value.GetWti(ctx); }

@@ -67,6 +67,7 @@ set(MIOPEN_LOG_FUNC_TIME_ENABLE Off CACHE BOOL "")
 set(MIOPEN_ENABLE_SQLITE_BACKOFF On CACHE BOOL "")
 
 option( BUILD_DEV "Build for development only" OFF)
+option(MIOPEN_ENABLE_FIN "Enable the fin driver for MIOpen"  OFF)
 
 
 # Strip symbols for release
@@ -75,7 +76,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 2.13.0)
+rocm_setup_version(VERSION 2.14.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -115,7 +116,7 @@ set(MIOPEN_INSTALL_CXX_HEADERS Off CACHE BOOL "Install MIOpen's C++ header inter
 
 
 # Embedded Build Configuration
-set(MIOPEN_EMBED_DB "" CACHE STRING "Semi-colon separated list of architecture CU pairs to embed on-disk DBs in the binary. Example gfx906_60;gfx900_56")
+set(MIOPEN_EMBED_DB "" CACHE STRING "Semi-colon separated list of architecture to embed on-disk DBs in the binary. Example gfx906_60;gfx900_56")
 if(NOT MIOPEN_EMBED_DB STREQUAL "")
     option(MIOPEN_DISABLE_SYSDB  "Disable sys database access" Off)
 else()
@@ -150,9 +151,9 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     set(MIOPEN_BACKEND_OPENCL 1)
     find_package( OpenCL REQUIRED )
     find_program(MIOPEN_HIP_COMPILER hcc
-            PATH_SUFFIXES bin
-            PATHS 
-	        /opt/rocm
+        PATH_SUFFIXES bin
+        PATHS
+            /opt/rocm
     )
     set(MIOPEN_USE_MIOPENGEMM ON CACHE BOOL "")
     if(MIOPEN_HIP_COMPILER)
@@ -160,9 +161,9 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     else()
         find_program(MIOPEN_HIP_COMPILER clang++
             PATH_SUFFIXES bin
-	        PATHS 
-		    /opt/rocm/llvm
-		    ${CMAKE_INSTALL_PREFIX}/llvm
+            PATHS
+                /opt/rocm/llvm
+                ${CMAKE_INSTALL_PREFIX}/llvm
         )
         if(MIOPEN_HIP_COMPILER)
             message("hip compiler: ${MIOPEN_HIP_COMPILER}")
@@ -193,6 +194,8 @@ target_flags(HIP_COMPILER_FLAGS hip::device)
 # Remove cuda arch flags
 string(REGEX REPLACE --cuda-gpu-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
 string(REGEX REPLACE --offload-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
+string(REPLACE "$<LINK_LANGUAGE:CXX>" "1" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
+string(REPLACE "SHELL:" "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
 
 # Override HIP version in config.h, if necessary.
 # The variables set by find_package() can't be overwritten,
@@ -231,10 +234,9 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
 
     find_program(HIP_OC_COMPILER clang-ocl
         PATH_SUFFIXES bin
-        PATHS 
-	    /opt/rocm
-	    ${CMAKE_INSTALL_PREFIX}
-
+        PATHS
+            /opt/rocm
+            ${CMAKE_INSTALL_PREFIX}
     )
     if(HIP_OC_COMPILER)
         message(STATUS "hip compiler: ${HIP_OC_COMPILER}")
@@ -282,9 +284,9 @@ message( STATUS "${MIOPEN_BACKEND} backend selected." )
 if(MIOPEN_HIP_COMPILER MATCHES ".*clang\\+\\+$")
     find_program(MIOPEN_OFFLOADBUNDLER_BIN clang-offload-bundler
         PATH_SUFFIXES bin
-        PATHS 
-	    /opt/rocm/llvm
-	    ${CMAKE_INSTALL_PREFIX}/llvm
+        PATHS
+            /opt/rocm/llvm
+            ${CMAKE_INSTALL_PREFIX}/llvm
     )
 endif()
 if(MIOPEN_OFFLOADBUNDLER_BIN)
@@ -300,10 +302,9 @@ else()
             /opt/rocm/hip
             /opt/rocm/hcc
             /opt/rocm
-	        ${CMAKE_INSTALL_PREFIX}/hip
+            ${CMAKE_INSTALL_PREFIX}/hip
             ${CMAKE_INSTALL_PREFIX}/hcc
             ${CMAKE_INSTALL_PREFIX}
-
     )
     if(EXTRACTKERNEL_BIN)
         message(STATUS "extractkernel found: ${EXTRACTKERNEL_BIN}")
@@ -340,7 +341,6 @@ find_program(MIOPEN_AMDGCN_ASSEMBLER
         /opencl/bin/x86_64
         /opencl/bin
         /bin
-    NO_DEFAULT_PATH
 )
 message(STATUS "AMDGCN assembler: ${MIOPEN_AMDGCN_ASSEMBLER}")
 
@@ -378,6 +378,7 @@ add_definitions(-DBOOST_ALL_NO_LIB=1)
 find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
 find_path(HALF_INCLUDE_DIR half.hpp)
+message("HALF_INCLUDE_DIR: ${HALF_INCLUDE_DIR}")
 
 option( MIOPEN_DEBUG_FIND_DB_CACHING "Use system find-db caching" ON)
 
@@ -563,11 +564,18 @@ enable_cppcheck(
         *:*src/sqlite/*.cpp
         *:*.cl
         *:*src/kernels/*.h
-        knownConditionTrueFalse:*src/kernels/composable_kernel/*/*
-        redundantAssignment:*src/kernels/composable_kernel/*/*
-        unreadVariable:*src/kernels/composable_kernel/*/*
-        unusedScopedObject:*src/kernels/composable_kernel/*/*
-        wrongPrintfScanfArgNum:*src/kernels/composable_kernel/*/*
+        knownConditionTrueFalse:*src/kernels/static_composable_kernel/*/*
+        redundantAssignment:*src/kernels/static_composable_kernel/*/*
+        unreadVariable:*src/kernels/static_composable_kernel/*/*
+        unusedScopedObject:*src/kernels/static_composable_kernel/*/*
+        wrongPrintfScanfArgNum:*src/kernels/static_composable_kernel/*/*
+        knownConditionTrueFalse:*src/composable_kernel/composable_kernel/*/*
+        identicalConditionAfterEarlyExit:*src/composable_kernel/composable_kernel/*/*
+        duplicateExpression:*src/composable_kernel/composable_kernel/*/*
+        multiCondition:*src/composable_kernel/composable_kernel/*/*
+        unreadVariable:*src/composable_kernel/composable_kernel/*/*
+        unreadVariable:*src/composable_kernel/host/*/*
+        unreadVariable:*src/composable_kernel/external/*/*
         unmatchedSuppression
     FORCE
     SOURCES
@@ -600,3 +608,6 @@ endif()
 add_subdirectory(test)
 add_subdirectory(speedtests)
 add_subdirectory(utils)
+if(MIOPEN_ENABLE_FIN)
+add_subdirectory(fin)
+endif()
