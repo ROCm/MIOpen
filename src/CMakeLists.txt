@@ -121,7 +121,9 @@ set( MIOpen_Source
     solver/activ/bwd_0.cpp
     solver/activ/bwd_1.cpp
     batchnorm/problem_description.cpp
-    solver/batchnorm/forward_per_activation_single.cpp
+    solver/batchnorm/forward_spatial_single.cpp
+    solver/batchnorm/forward_spatial_multiple.cpp
+    solver/batchnorm/forward_per_activation.cpp
     include/miopen/buffer_info.hpp
     include/miopen/temp_file.hpp
     include/miopen/bfloat16.hpp
@@ -755,12 +757,12 @@ rocm_export_targets(
 if(NOT MIOPEN_EMBED_DB STREQUAL "")
     include(embed)
     set(CODE_OBJECTS)
-# embed perf db
-    list(APPEND CODE_OBJECTS "kernels/miopen.db")
 # embed find db
     foreach(EMBED_ARCH ${MIOPEN_EMBED_DB})
         message(STATUS "Adding find db for arch: ${EMBED_ARCH}")
         list(APPEND CODE_OBJECTS "kernels/${EMBED_ARCH}.${MIOPEN_BACKEND}.fdb.txt")
+        message(STATUS "Adding perf db for arch: ${EMBED_ARCH}")
+        list(APPEND CODE_OBJECTS "kernels/${EMBED_ARCH}.db")
     endforeach()
 # Embed Bin Cache
     if(NOT MIOPEN_BINCACHE_PATH STREQUAL "")
@@ -774,7 +776,8 @@ if(NOT MIOPEN_EMBED_DB STREQUAL "")
     target_link_libraries(MIOpen PRIVATE $<BUILD_INTERFACE:miopen_data> )
 else()
     file(GLOB FIND_DB_FILES kernels/*.fdb.txt)
-    list(APPEND FIND_DB_FILES kernels/miopen.db)
+    file(GLOB PERF_DB_FILES kernels/*.db)
+    list(APPEND FIND_DB_FILES ${PERF_DB_FILES})
     if(NOT MIOPEN_DISABLE_SYSDB)
         install(FILES
             ${FIND_DB_FILES}

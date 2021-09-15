@@ -74,6 +74,13 @@ struct scalar_type<vector_type<T, N>>
 
 //
 template <>
+struct scalar_type<double>
+{
+    using type                           = double;
+    static constexpr index_t vector_size = 1;
+};
+
+template <>
 struct scalar_type<float>
 {
     using type                           = float;
@@ -863,6 +870,10 @@ struct vector_type<T, 256>
         }
     }
 };
+
+// fp64
+using double2_t = typename vector_type<double, 2>::type;
+using double4_t = typename vector_type<double, 4>::type;
 
 // fp32
 using float2_t  = typename vector_type<float, 2>::type;

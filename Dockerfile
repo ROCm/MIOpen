@@ -14,18 +14,12 @@ RUN dpkg --add-architecture i386
 # Note: The ROCm version with $USE_MLIR should keep in sync with default ROCm version
 # unless MLIR library is incompatible with current ROCm.
 
-RUN if [ "$USE_TARGETID" = "ON" ] ; \
-        then export ROCM_APT_VER=.apt_4.1.1;\
-    elif [ "$USE_MLIR" = "ON" ] ; \
+RUN if [ "$USE_MLIR" = "ON" ] ; \
         then export ROCM_APT_VER=.apt_4.2;\
-    elif [ "$GPU_ARCH" = "gfx90a:xnack-" ] ; \
-        then export ROCM_APT_VER=.apt_4.3;\
-    else export ROCM_APT_VER=.apt_4.2;  \
+    else export ROCM_APT_VER=.apt_4.3.1;  \
     fi && \
 echo $ROCM_APT_VER &&\
-#sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/$ROCM_APT_VER/ xenial main > /etc/apt/sources.list.d/rocm.list'
-#sh -c 'echo deb [arch=amd64 trusted=yes] http://compute-artifactory.amd.com/artifactory/list/rocm-osdb-deb/ compute-rocm-dkms-no-npi-hipclang 6562> /etc/apt/sources.list.d/rocm.list'
-sh -c 'echo deb [arch=amd64 trusted=yes] http://compute-artifactory.amd.com/artifactory/list/rocm-release-archive-deb/ 4.3 rel-34 > /etc/apt/sources.list.d/rocm.list'
+sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/$ROCM_APT_VER/ xenial main > /etc/apt/sources.list.d/rocm.list'
 RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu xenial main universe | tee -a /etc/apt/sources.list"
 
 #Add gpg keys
@@ -120,7 +114,7 @@ RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."
 
 RUN if [ "$USE_MLIR" = "ON" ]; \
     then cd ~ && \
-    export MLIR_COMMIT=7416cfaee140068921b64996ba945ce615c36f44 && \
+    export MLIR_COMMIT=199d667b9d8caaf283436aaa8a48fd20e074f42c && \
     wget https://github.com/ROCmSoftwarePlatform/llvm-project-mlir/archive/$MLIR_COMMIT.tar.gz && \
     tar -xvzf $MLIR_COMMIT.tar.gz && \
     rm -rf $MLIR_COMMIT.tar.gz && \
