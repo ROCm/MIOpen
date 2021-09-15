@@ -232,7 +232,7 @@ struct GridwiseReduction_xy_to_x_direct_threadwise
         index_t thread_global_1d_id = get_block_1d_id() * BlockSize + get_thread_local_1d_id();
 
         auto threadwise_src_load = ThreadwiseTensorSliceTransfer_v2<srcDataType,
-                                                                    dstDataType,
+                                                                    compType,
                                                                     src2dDescType,
                                                                     decltype(ThreadBufferDesc),
                                                                     ThreadBufferLengths,
@@ -377,7 +377,7 @@ struct GridwiseReduction_xy_to_x_direct_threadwise
         index_t thread_global_1d_id = get_block_1d_id() * BlockSize + get_thread_local_1d_id();
 
         auto threadwise_src_val_load = ThreadwiseTensorSliceTransfer_v2<srcDataType,
-                                                                        dstDataType,
+                                                                        compType,
                                                                         src2dDescType,
                                                                         decltype(ThreadBufferDesc),
                                                                         ThreadBufferLengths,

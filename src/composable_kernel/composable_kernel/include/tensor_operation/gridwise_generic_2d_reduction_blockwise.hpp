@@ -281,7 +281,7 @@ struct GridwiseReduction_xy_to_x_blockwise
                                             ThreadClusterLengths,
                                             Sequence<0, 1>,
                                             srcDataType,
-                                            dstDataType,
+                                            compType,
                                             src2dDescType,
                                             decltype(in_block_desc),
                                             Sequence<0, 1>,
