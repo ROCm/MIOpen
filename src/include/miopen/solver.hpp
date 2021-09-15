@@ -797,10 +797,56 @@ struct ConvHipImplicitGemmMlirCppFwd : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
+struct PerformanceConvMlirIgemm : Serializable<PerformanceConvMlirIgemm>
+{
+    int BlockSize;
+    int GemmMPerBlock;
+    int GemmNPerBlock;
+    int GemmKPerBlock;
+    int GemmMPerThread;
+    int GemmNPerThread;
+    bool use_spare_set;
+
+    PerformanceConvMlirIgemm(int, int, int, int, int, int, bool);
+
+    PerformanceConvMlirIgemm(int a, int b, int c, int d, int e, int f)
+        : PerformanceConvMlirIgemm(a, b, c, d, e, f, false)
+    {
+    }
+
+    PerformanceConvMlirIgemm() : PerformanceConvMlirIgemm(-1, -1, -1, -1, -1, -1, false) {}
+
+    PerformanceConvMlirIgemm(bool spare);
+
+    bool operator==(const PerformanceConvMlirIgemm& other) const;
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.BlockSize, "BlockSize");
+        f(self.GemmMPerBlock, "GemmMPerBlock");
+        f(self.GemmNPerBlock, "GemmNPerBlock");
+        f(self.GemmKPerBlock, "GemmKPerBlock");
+        f(self.GemmMPerThread, "GemmMPerThread");
+        f(self.GemmNPerThread, "GemmNPerThread");
+    }
+
+    bool IsValid(const ConvolutionContext& ctx) const;
+    bool SetNextValue(const ConvolutionContext& config);
+    std::string ToString() const;
+};
+
 struct ConvMlirIgemmFwd : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+    PerformanceConvMlirIgemm GetPerformanceConfig(const ConvolutionContext& ctx) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                  const PerformanceConvMlirIgemm& config) const;
+    PerformanceConvMlirIgemm Search(const ConvolutionContext&,
+                                    const AnyInvokeParams& invoke_ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const PerformanceConvMlirIgemm& config,
+                             bool disableConfigOverrideFromEnv = false) const;
 };
 
 struct ConvMlirIgemmFwdXdlops : SolverBase<ConvolutionContext>
@@ -2617,7 +2663,7 @@ struct PerformanceConfigAsmImplicitGemmGTC : Serializable<PerformanceConfigAsmIm
     bool operator==(const PerformanceConfigAsmImplicitGemmGTC& other) const;
     void CopyParameters(const PerformanceConfigAsmImplicitGemmGTC& other);
     std::string ToString() const;
-    std::string ToKernelName() const;
+    std::string ToKernelName(const ConvolutionContext& ctx) const;
     int BlockSize() const;
 };
 

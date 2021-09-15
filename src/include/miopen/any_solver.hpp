@@ -38,38 +38,6 @@
 namespace miopen {
 namespace solver {
 
-template<typename T>
-struct TunableSolution
-{
-    template<typename U> static constexpr auto Test(U*)
-    ->typename
-        std::is_same<
-            decltype(std::declval<U>().GetSolution(std::declval<const ConvolutionContext&>(),
-                std::declval<const decltype(std::declval<U>().GetPerformanceConfig(
-                    std::declval<const ConvolutionContext&>()))&>(),
-                std::declval<const bool>())),
-            ConvSolution
-        >::type;
-
-    template<typename U> static constexpr std::false_type Test(...);
-
-    using type = decltype(Test<T>(nullptr));
-    static constexpr bool Has = type::value;
-};
-
-template <class TSolver>
-bool StatIsTunable(std::true_type)
-{
-    return true;
-}
-
-template <class TSolver>
-bool StatIsTunable(std::false_type)
-{
-    return false;
-}
-
-
 struct AnySolver
 {
     using Db = decltype(std::declval<mlo_construct_base>().GetDb());
@@ -144,6 +112,24 @@ struct AnySolver
     template <class T>
     struct AnySolver_tmpl : AnySolver_base
     {
+        struct TunableSolver
+        {
+            template<typename U> static constexpr auto Test(U*)
+            ->typename
+                std::is_same<
+                    decltype(std::declval<U>().GetSolution(std::declval<const ConvolutionContext&>(),
+                        std::declval<const decltype(std::declval<U>().GetPerformanceConfig(
+                            std::declval<const ConvolutionContext&>()))&>(),
+                        std::declval<const bool>())),
+                    ConvSolution
+                >::type;
+
+            template<typename U> static constexpr std::false_type Test(...);
+
+            using type = decltype(Test<T>(nullptr));
+            static constexpr bool Is = type::value;
+        };
+
         AnySolver_tmpl(T obj) : value(std::move(obj)){};
         bool IsApplicable(const ConvolutionContext& ctx) const override
         {
@@ -151,7 +137,7 @@ struct AnySolver
         }
         bool IsTunable() const override
         {
-            return StatIsTunable<T>(std::integral_constant<bool, TunableSolution<T>::Has>());
+            return TunableSolver::Is;
         }
         bool IsDynamic() const override { return value.IsDynamic(); }
         float GetWti(const ConvolutionContext& ctx) const override { return value.GetWti(ctx); }
