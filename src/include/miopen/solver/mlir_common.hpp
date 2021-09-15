@@ -45,6 +45,32 @@ std::string ConstructBuildOptions(const ConvolutionContext& ctx,
                                   const std::string& config,
                                   bool is_xdlops,
                                   int kernel_id = 0);
+
+template <typename T>
+std::string ConstructBuildOptions(const ConvolutionContext& ctx,
+                                  const T& perf_config,
+                                  bool is_xdlops,
+                                  int kernel_id = 0)
+{
+    std::ostringstream mlir_handle;
+
+    bool isHeuristicRequest = false;
+    if(perf_config == T::GetHeuristicInitRequest())
+    {
+        isHeuristicRequest = true;
+    }
+
+    // Library does heuristic initialization when no perf_config
+    // is specified
+    // clang-format off
+    mlir_handle
+        << ConstructBuildOptions(ctx, is_xdlops, kernel_id)
+        << (isHeuristicRequest? "" : " --perf_config " + perf_config.ToString());
+    // clang-format on
+
+    return mlir_handle.str();
+}
+
 } // namespace mlir
 } // namespace solver
 } // namespace miopen

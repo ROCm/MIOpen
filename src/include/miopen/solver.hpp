@@ -807,6 +807,8 @@ struct PerformanceConvMlirIgemm : Serializable<PerformanceConvMlirIgemm>
     int GemmNPerThread;
     bool use_spare_set;
 
+    static const PerformanceConvMlirIgemm& GetHeuristicInitRequest();
+
     PerformanceConvMlirIgemm(int, int, int, int, int, int, bool);
 
     PerformanceConvMlirIgemm(int a, int b, int c, int d, int e, int f)

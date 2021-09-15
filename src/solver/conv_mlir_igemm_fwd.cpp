@@ -37,6 +37,14 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD)
 namespace miopen {
 namespace solver {
 
+const PerformanceConvMlirIgemm& PerformanceConvMlirIgemm::GetHeuristicInitRequest()
+{
+    // Special value to represent the heuristic initialized perf_config.
+    static const PerformanceConvMlirIgemm p =
+        PerformanceConvMlirIgemm(-2, -2, -2, -2, -2, -2, false);
+    return p;
+}
+
 PerformanceConvMlirIgemm::PerformanceConvMlirIgemm(int BlockSize_,
                                                    int GemmMPerBlock_,
                                                    int GemmNPerBlock_,
@@ -85,7 +93,10 @@ bool PerformanceConvMlirIgemm::operator==(const PerformanceConvMlirIgemm& other)
 bool PerformanceConvMlirIgemm::IsValid(const ConvolutionContext& ctx) const
 {
 #if MIOPEN_USE_MLIR
-    return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, ToString(), false));
+    if(*this == GetHeuristicInitRequest())
+        return true;
+
+    return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, *this, false));
 #else
     std::ignore = ctx;
     return false;
@@ -94,6 +105,14 @@ bool PerformanceConvMlirIgemm::IsValid(const ConvolutionContext& ctx) const
 
 bool PerformanceConvMlirIgemm::SetNextValue(const ConvolutionContext& /*config*/)
 {
+    if(*this == GetHeuristicInitRequest())
+    {
+        // If we ever attempt to iterate starting from the heuristic value,
+        // make its next iterator to be the minimal valid value.
+        *this = PerformanceConvMlirIgemm(use_spare_set);
+        return false;
+    }
+
     // always search full space, no matter if use_spare_set or not
     do
     {
@@ -125,9 +144,8 @@ std::string PerformanceConvMlirIgemm::ToString() const
 
 PerformanceConvMlirIgemm ConvMlirIgemmFwd::GetPerformanceConfig(const ConvolutionContext& ctx) const
 {
-    // Return the invalid config as the default to signal MLIR do heuristic intialization
     std::ignore = ctx;
-    return {};
+    return PerformanceConvMlirIgemm::GetHeuristicInitRequest();
 }
 
 bool ConvMlirIgemmFwd::IsValidPerformanceConfig(const ConvolutionContext& ctx,
@@ -168,17 +186,9 @@ ConvSolution ConvMlirIgemmFwd::GetSolution(const ConvolutionContext& ctx,
     ConvSolution result;
     KernelInfo construction_parameters;
 
-    construction_parameters.kernel_name = mlir::GetKernelName(ctx, false);
-    construction_parameters.kernel_file = construction_parameters.kernel_name + ".mlir";
-
-    if(config == PerformanceConvMlirIgemm())
-        // At this case, do not pass in the invalid perf config and instead make Miir library to do
-        // heuristic initialization
-        construction_parameters.comp_options = mlir::ConstructBuildOptions(ctx, false);
-    else
-        // At this case, Make Miir library to use the valid perf config
-        construction_parameters.comp_options =
-            mlir::ConstructBuildOptions(ctx, config.ToString(), false);
+    construction_parameters.kernel_name  = mlir::GetKernelName(ctx, false);
+    construction_parameters.kernel_file  = construction_parameters.kernel_name + ".mlir";
+    construction_parameters.comp_options = mlir::ConstructBuildOptions(ctx, config, false);
 
     size_t local_size  = 0;
     size_t global_size = 0;
