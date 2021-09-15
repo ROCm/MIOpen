@@ -142,7 +142,7 @@ inline static bool Inc_1_2_4(int& v)
 
 inline static bool Is_1_2_4(const int& v) { return v == 1 || v == 2 || v == 4; }
 
-bool PerformanceConfigConvAsmBwdWrW1x1::SetNextValue()
+bool PerformanceConfigConvAsmBwdWrW1x1::SetNextValue(const ConvolutionContext& /*config*/)
 {
     // Increment with wrap-around:
     // select fast or full method
@@ -274,8 +274,8 @@ PerformanceConfigConvAsmBwdWrW1x1::PerformanceConfigConvAsmBwdWrW1x1(int chunk_s
 {
 }
 
-inline bool PerformanceConfigConvAsmBwdWrW1x1::
-operator==(const PerformanceConfigConvAsmBwdWrW1x1& other) const
+inline bool
+PerformanceConfigConvAsmBwdWrW1x1::operator==(const PerformanceConfigConvAsmBwdWrW1x1& other) const
 {
     // clang-format off
     return chunk_size == other.chunk_size
@@ -479,6 +479,10 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
     if(!params.rmv.IsV2orV3())
         return false;
 
+    const auto target = params.GetStream().GetTargetProperties();
+    if(target.Xnack() && *target.Xnack())
+        return false;
+
     const std::string name = params.GetStream().GetDeviceName();
     if(name.find("gfx8") == std::string::npos && name.find("gfx9") == std::string::npos)
     {
@@ -560,9 +564,9 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     {
         // subsampled input, in_height equals to image size after downsampling
         int in_batch_stride = params.in_stride * params.in_height * params.n_outputs;
-        int write_unit      = (params.in_width % 4 == 0) ? 4 : (params.in_width % 3 == 0)
-                                                              ? 3
-                                                              : (params.in_width % 2 == 0) ? 2 : 1;
+        int write_unit      = (params.in_width % 4 == 0)
+                             ? 4
+                             : (params.in_width % 3 == 0) ? 3 : (params.in_width % 2 == 0) ? 2 : 1;
         int n_grp0_size0 = 256;
 
         const auto subsample_kernel_compilation_options =

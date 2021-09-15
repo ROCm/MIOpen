@@ -175,6 +175,7 @@ struct test_driver
     std::string cache_path = compute_cache_path();
     miopenDataType_t type  = miopenFloat;
     bool full_set          = false;
+    int limit_set          = 2;
     bool verbose           = false;
     double tolerance       = 80;
     bool time              = false;
@@ -198,6 +199,7 @@ struct test_driver
     template <class Visitor>
     void parse(Visitor v)
     {
+        v(limit_set, {"--limit"}, "Limits the number of generated test elements.");
         v(full_set, {"--all"}, "Run all tests");
         v(verbose, {"--verbose", "-v"}, "Run verbose mode");
         v(tolerance, {"--tolerance", "-t"}, "Set test tolerance");
@@ -478,6 +480,28 @@ struct test_driver
     }
 
     template <class T>
+    generate_data_t<std::vector<T>>
+    generate_data_limited(std::vector<T> dims, int limit_multiplier, T single)
+    {
+        return {[=]() -> std::vector<T> {
+            if(full_set)
+            {
+                if(limit_set > 0)
+                {
+                    auto endpoint =
+                        std::min(static_cast<int>(dims.size()), limit_set * limit_multiplier);
+                    std::vector<T> subvec(dims.cbegin(), dims.cbegin() + endpoint);
+                    return subvec;
+                }
+                else
+                    return dims;
+            }
+            else
+                return {single};
+        }};
+    }
+
+    template <class T>
     generate_data_t<std::vector<T>> generate_data(std::initializer_list<T> dims)
     {
         return generate_data(std::vector<T>(dims));
@@ -496,6 +520,27 @@ struct test_driver
         return {[=]() -> std::vector<T> {
             if(full_set)
                 return dims;
+            else
+                return {dims.front()};
+        }};
+    }
+
+    template <class T>
+    generate_data_t<std::vector<T>> generate_data_limited(std::vector<T> dims, int limit_multiplier)
+    {
+        return {[=]() -> std::vector<T> {
+            if(full_set)
+            {
+                if(limit_set > 0)
+                {
+                    auto endpoint =
+                        std::min(static_cast<int>(dims.size()), limit_set * limit_multiplier);
+                    std::vector<T> subvec(dims.cbegin(), dims.cbegin() + endpoint);
+                    return subvec;
+                }
+                else
+                    return dims;
+            }
             else
                 return {dims.front()};
         }};

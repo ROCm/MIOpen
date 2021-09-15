@@ -62,8 +62,8 @@ PerformanceImplicitGemmBwdV1R1Xdlops::PerformanceImplicitGemmBwdV1R1Xdlops(
 {
 }
 
-bool PerformanceImplicitGemmBwdV1R1Xdlops::
-operator==(const PerformanceImplicitGemmBwdV1R1Xdlops& other) const
+bool PerformanceImplicitGemmBwdV1R1Xdlops::operator==(
+    const PerformanceImplicitGemmBwdV1R1Xdlops& other) const
 {
     // clang-format off
     return GemmMPerBlock == other.GemmMPerBlock
@@ -77,7 +77,7 @@ operator==(const PerformanceImplicitGemmBwdV1R1Xdlops& other) const
     // clang-format on
 }
 
-bool PerformanceImplicitGemmBwdV1R1Xdlops::SetNextValue()
+bool PerformanceImplicitGemmBwdV1R1Xdlops::SetNextValue(const ConvolutionContext& /*config*/)
 {
     do
     {
@@ -515,7 +515,7 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::IsReallyValid(const ConvolutionContex
     }
 
     // check LDS allocation
-    std::size_t lds_size = 0;
+    std::size_t lds_size      = 0;
     std::tie(lds_size, valid) = CalculateLdsNumberOfByte(ctx);
 
     return (valid and lds_size <= get_lds_max_number_of_byte());
@@ -812,10 +812,13 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(
 
     KernelInfo construction_parameters;
 
+    // clang-format off
     construction_parameters.kernel_file =
-        "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_nchw_kcyx_nkhw.cpp";
+        "static_kernel_gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_nchw_kcyx_nkhw.cpp";
+
     construction_parameters.kernel_name =
         "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_nchw_kcyx_nkhw";
+    // clang-format on
 
     result.workspce_sz = GetWorkspaceSize(ctx);
 
@@ -900,7 +903,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(
         std::string(" -DCK_USE_AMD_XDLOPS=") + std::to_string(IsXdlopsSupport(ctx) ? 1 : 0) +
         std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + std::to_string(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}) ? 1 : 0) +
         std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}) ? '1' : '0') +
-        get_ck_common_compiler_flag(ctx) +
+        get_static_ck_common_compiler_flag(ctx) +
         ctx.general_compile_options;
 
     result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);

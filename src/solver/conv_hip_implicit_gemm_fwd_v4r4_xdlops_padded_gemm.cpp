@@ -91,8 +91,8 @@ PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::
 {
 }
 
-bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::
-operator==(const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm& other) const
+bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::operator==(
+    const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm& other) const
 {
     // clang-format off
     return GemmMPerBlock == other.GemmMPerBlock
@@ -110,7 +110,8 @@ operator==(const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm& other) co
     // clang-format on
 }
 
-bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::SetNextValue()
+bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::SetNextValue(
+    const ConvolutionContext& /*config*/)
 {
     do
     {
@@ -660,7 +661,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsReallyValid(
     }
 
     // check LDS allocation
-    std::size_t lds_size = 0;
+    std::size_t lds_size      = 0;
     std::tie(lds_size, valid) = CalculateLdsNumberOfByte(ctx);
 
     return (valid and lds_size <= get_lds_max_number_of_byte());
@@ -830,7 +831,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsFastToBeUsedForTuni
                          std::ignore,
                          SrcDataPerRead_GemmN,
                          DstDataPerWrite_GemmKPack,
-                         valid) = CalculateGemmBBlockCopyPerformanceParameters(ctx);
+                         valid)               = CalculateGemmBBlockCopyPerformanceParameters(ctx);
                 if(valid)
                 {
                     if((SrcDataPerRead_GemmN > 1) &&
@@ -922,11 +923,13 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::GetSolution(
 
     KernelInfo construction_parameters;
 
-    construction_parameters.kernel_file = //
-        "gridwise_convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw_padded_gemm.cpp";
+    // clang-format off
+    construction_parameters.kernel_file =
+        "static_kernel_gridwise_convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw_padded_gemm.cpp";
 
     construction_parameters.kernel_name =
         "gridwise_convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw_padded_gemm";
+    // clang-format on
 
     int grid_size  = 0;
     int block_size = 0;
@@ -1025,7 +1028,7 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::GetSolution(
         std::string(" -DCK_USE_AMD_XDLOPS=") + std::to_string(IsXdlopsSupport(ctx) ? 1 : 0) +
         std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + std::to_string(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}) ? 1 : 0) +
         std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}) ? '1' : '0') +
-        get_ck_common_compiler_flag(ctx) +
+        get_static_ck_common_compiler_flag(ctx) +
         ctx.general_compile_options;
     // clang-format on
 
@@ -1092,11 +1095,10 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
     {
         if((ctx.n_inputs == 3 && ctx.n_outputs == 1 && ctx.in_width == 227 &&
             ctx.in_height == 227 && ctx.kernel_size_w == 3 && ctx.kernel_size_h == 3) //
-           ||
-           (ctx.n_inputs == 64 && ctx.n_outputs == 1 && ctx.in_width == 112 &&
-            ctx.in_height == 112 && ctx.kernel_size_w == 3 && ctx.kernel_size_h == 3 &&
-            ctx.kernel_stride_w >= 2 && ctx.kernel_stride_h >= 2 && ctx.kernel_dilation_w >= 3 &&
-            ctx.kernel_dilation_h >= 3))
+           || (ctx.n_inputs == 64 && ctx.n_outputs == 1 && ctx.in_width == 112 &&
+               ctx.in_height == 112 && ctx.kernel_size_w == 3 && ctx.kernel_size_h == 3 &&
+               ctx.kernel_stride_w >= 2 && ctx.kernel_stride_h >= 2 && ctx.kernel_dilation_w >= 3 &&
+               ctx.kernel_dilation_h >= 3))
         {
             return false;
         }

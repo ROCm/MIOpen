@@ -196,8 +196,8 @@ template <typename Tgpu, typename Tref>
 int ActivationDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
 
-    size_t in_sz  = GetTensorSize(inputTensor);
-    size_t out_sz = GetTensorSize(outputTensor);
+    size_t in_sz  = GetTensorSpace(inputTensor);
+    size_t out_sz = GetTensorSpace(outputTensor);
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
 
@@ -246,8 +246,7 @@ int ActivationDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         case MIOPEN_NEURON_ABS:
             in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
             break;
-        case MIOPEN_NEURON_POWER:
-        {
+        case MIOPEN_NEURON_POWER: {
             double v = -alpha / beta;
             in[i]    = i % 2 ? RAN_GEN<Tgpu>(static_cast<Tgpu>((v + 0.005) / beta),
                                           static_cast<Tgpu>((v + 2.0) / beta))

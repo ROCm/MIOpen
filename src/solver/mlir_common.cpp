@@ -24,15 +24,21 @@
  *
  *******************************************************************************/
 
+#include <miopen/miopen.h>
 #include <miopen/errors.hpp>
+#include <miopen/hip_build_utils.hpp>
+#include <miopen/rocm_features.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/solver/mlir_common.hpp>
+
+#include <sstream>
+#include <string>
 
 namespace miopen {
 namespace solver {
 namespace mlir {
 
-std::string InsertGToLayout(const std::string& layout, char dim)
+static std::string InsertGToLayout(const std::string& layout, char dim)
 {
     std::string layout_with_g = layout;
     std::size_t index         = layout.find(dim);
@@ -41,56 +47,146 @@ std::string InsertGToLayout(const std::string& layout, char dim)
     return layout_with_g.insert(index, 1, 'G');
 }
 
+static const char* DTypeName(miopenDataType_t ty)
+{
+    switch(ty)
+    {
+    case miopenHalf: return "fp16";
+    case miopenFloat: return "fp32";
+    case miopenDouble: return "fp64";
+    case miopenBFloat16: return "bf16";
+    case miopenInt32: return "i32";
+    case miopenInt8: return "i8";
+    case miopenInt8x4: return "i8x4";
+    }
+    MIOPEN_THROW(miopenStatusInternalError, "Value outside of datatype enum");
+}
+
+static std::string GetIsaName(const miopen::TargetProperties& target)
+{
+#if ROCM_FEATURE_TARGETID_OFF
+    const char* const ecc_suffix = (target.Sramecc() && *target.Sramecc()) ? ":sramecc+" : "";
+    return {"amdgcn-amd-amdhsa:" + target.Name() + ecc_suffix};
+#else
+    const LcOptionTargetStrings lots(target);
+    return "amdgcn-amd-amdhsa:" + lots.targetId;
+#endif
+}
+
+std::string GetKernelName(const ConvolutionContext& ctx, bool is_xdlops, int kernel_id)
+{
+    std::string version;
+    std::string direction;
+    if(ctx.direction.IsForward())
+    {
+        version   = "_v4r4";
+        direction = "_fwd";
+    }
+    else if(ctx.direction.IsBackwardData())
+    {
+        version   = "_v4r1";
+        direction = "_bwd";
+    }
+    else
+    {
+        version   = "_v4r4";
+        direction = "_wrw";
+    }
+
+    std::string kernel_name = "mlir_gen_igemm_conv2d" + version + direction;
+
+    if(is_xdlops)
+        kernel_name += "_xdlops";
+
+    return kernel_name + std::to_string(kernel_id);
+}
+
+static std::string GetOperation(const ConvolutionContext& ctx)
+{
+    if(ctx.direction.IsForward())
+    {
+        return "conv2d";
+    }
+    else if(ctx.direction.IsBackwardData())
+    {
+        return "conv2d_bwd_data";
+    }
+    else
+    {
+        return "conv2d_bwd_weight";
+    }
+}
+
+/* Construct the options string passed to MLIR to cause it
+to generate a given convolution.*/
 std::string ConstructBuildOptions(const ConvolutionContext& ctx,
-                                  const std::string& operation,
-                                  const std::string& kernel_name,
                                   bool is_xdlops,
                                   int kernel_id)
 {
     // Arguments for mlir-miopen-driver.
-    // clang-format off
     using CI = ConvolutionContextInterpreter;
 
-    std::string in_layout = InsertGToLayout(CI::GetInputLayout(ctx), 'C');
+    std::string operation   = GetOperation(ctx);
+    std::string kernel_name = GetKernelName(ctx, is_xdlops, kernel_id);
+
+    std::string in_layout  = InsertGToLayout(CI::GetInputLayout(ctx), 'C');
     std::string fil_layout = InsertGToLayout(CI::GetFilterLayout(ctx), 'N');
     std::string out_layout = InsertGToLayout(CI::GetOutputLayout(ctx), 'C');
 
-    std::string mlir_handle;
-    if (is_xdlops)
-        mlir_handle += std::string(" --x2 ") + "1";
+    std::ostringstream mlir_handle;
 
-    std::string data_type = ctx.IsFp32() ? "fp32" : "fp16";
+    if(is_xdlops)
+    {
+        mlir_handle << " --x2 1";
+    }
 
-    mlir_handle +=
-        std::string(" --operation ") + operation +
-        std::string(" --kernel_id ") + std::to_string(kernel_id) +
-        std::string(" --num_cu ") + std::to_string(ctx.GetStream().GetMaxComputeUnits()) +
-        std::string(" --arch ") + ctx.GetStream().GetDeviceName() +
-        std::string(" --groupsize ") + std::to_string(CI::GetGroupCountG(ctx)) +
-        std::string(" --fil_layout ") + fil_layout +
-        std::string(" --fil_type ") + data_type +
-        std::string(" --in_layout ") + in_layout +
-        std::string(" --in_type ") + data_type +
-        std::string(" --out_layout ") + out_layout +
-        std::string(" --out_type ") + data_type +
-        std::string(" --batchsize ") + std::to_string(CI::GetBatchN(ctx)) +
-        std::string(" --in_channels ") + std::to_string(CI::GetInputChannelC(ctx)) +
-        std::string(" --out_channels ") + std::to_string(CI::GetOutputChannelK(ctx)) +
-        std::string(" --in_h ") + std::to_string(CI::GetInputHeightHi(ctx)) +
-        std::string(" --in_w ") + std::to_string(CI::GetInputWidthWi(ctx)) +
-        std::string(" --out_h ") + std::to_string(CI::GetOutputHeightHo(ctx)) +
-        std::string(" --out_w ") + std::to_string(CI::GetOutputWidthWo(ctx)) +
-        std::string(" --fil_h ") + std::to_string(CI::GetFilterHeightY(ctx)) +
-        std::string(" --fil_w ") + std::to_string(CI::GetFilterWidthX(ctx)) +
-        std::string(" --dilation_h ") + std::to_string(CI::GetAdjustedConvolutionDilationH(ctx)) +
-        std::string(" --dilation_w ") + std::to_string(CI::GetAdjustedConvolutionDilationW(ctx)) +
-        std::string(" --conv_stride_h ") + std::to_string(CI::GetAdjustedConvolutionStrideH(ctx)) +
-        std::string(" --conv_stride_w ") + std::to_string(CI::GetAdjustedConvolutionStrideW(ctx)) +
-        std::string(" --padding_h ") + std::to_string(CI::GetInputLeftPadH(ctx)) +
-        std::string(" --padding_w ") + std::to_string(CI::GetInputLeftPadW(ctx)) +
-        std::string(" --kernel_name ") + kernel_name;
+    // clang-format off
+    mlir_handle
+        << " --operation " << operation
+        << " --kernel_id " << kernel_id
+        << " --num_cu " << ctx.GetStream().GetMaxComputeUnits()
+        << " --arch " << GetIsaName(ctx.GetStream().GetTargetProperties())
+        << " --groupsize " << CI::GetGroupCountG(ctx)
+        << " --fil_layout " << fil_layout
+        << " --fil_type " << DTypeName(ctx.weights_data_type)
+        << " --in_layout " << in_layout
+        << " --out_layout " << out_layout
+        << " --in_type " << DTypeName(CI::GetInputDataType(ctx))
+        << " --out_type " << DTypeName(CI::GetOutputDataType(ctx))
+        << " --batchsize " << CI::GetBatchN(ctx)
+        << " --in_channels " << CI::GetInputChannelC(ctx)
+        << " --out_channels " << CI::GetOutputChannelK(ctx)
+        << " --in_h " << CI::GetInputHeightHi(ctx)
+        << " --in_w " << CI::GetInputWidthWi(ctx)
+        << " --out_h " << CI::GetOutputHeightHo(ctx)
+        << " --out_w " << CI::GetOutputWidthWo(ctx)
+        << " --fil_h " << CI::GetFilterHeightY(ctx)
+        << " --fil_w " << CI::GetFilterWidthX(ctx)
+        << " --dilation_h " << CI::GetAdjustedConvolutionDilationH(ctx)
+        << " --dilation_w " << CI::GetAdjustedConvolutionDilationW(ctx)
+        << " --conv_stride_h " << CI::GetAdjustedConvolutionStrideH(ctx)
+        << " --conv_stride_w " << CI::GetAdjustedConvolutionStrideW(ctx)
+        << " --padding_h " << CI::GetInputLeftPadH(ctx)
+        << " --padding_w " << CI::GetInputLeftPadW(ctx)
+        << " --kernel_name " << kernel_name;
     // clang-format on
-    return mlir_handle;
+    return mlir_handle.str();
+}
+
+std::string ConstructBuildOptions(const ConvolutionContext& ctx,
+                                  const std::string& config,
+                                  bool is_xdlops,
+                                  int kernel_id)
+{
+    std::ostringstream mlir_handle;
+
+    // clang-format off
+    mlir_handle
+        << ConstructBuildOptions(ctx, is_xdlops, kernel_id)
+        << " --perf_config " << config;
+    // clang-format on
+
+    return mlir_handle.str();
 }
 
 } // namespace mlir

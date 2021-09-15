@@ -1,35 +1,37 @@
 /*******************************************************************************
-*
-* MIT License
-*
-* Copyright (c) 2019 Advanced Micro Devices, Inc.
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*******************************************************************************/
+ *
+ * MIT License
+ *
+ * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 
 #pragma once
 
 #include <miopen/db_path.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/sqlite_db.hpp>
-
+#if MIOPEN_EMBED_DB
+#include <miopen_data.hpp>
+#endif
 #include <boost/filesystem.hpp>
 
 #include <string>
@@ -87,20 +89,158 @@ struct ExecutionContext
     ExecutionContext(Handle* stream_) : stream(stream_) {}
 
     void DetectRocm();
+#if MIOPEN_EMBED_DB
+    std::string GetPerfDbPathEmbed() const
+    {
+        static const auto result = [&] {
+            boost::filesystem::path pdb_path(GetSystemDbPath());
+            std::ostringstream filename;
+            // clang-format off
+            filename << GetStream().GetDbBasename();
+#if MIOPEN_ENABLE_SQLITE
+            const std::string ext = ".db";
+#else
+            const std::string ext = ".cd.pdb.txt";
+#endif
+            filename << ext;
+            // clang-format on
+            if(miopen_data().find(filename.str() + ".o") != miopen_data().end())
+            {
+                MIOPEN_LOG_I("Found exact embedded perf database file");
+                return (pdb_path / filename.str()).string();
+            }
+            else
+            {
+                MIOPEN_LOG_I2("inexact embedded perf database search");
+                const auto db_id        = GetStream().GetTargetProperties().DbId();
+                const int real_cu_count = GetStream().GetMaxComputeUnits();
+                namespace fs            = boost::filesystem;
+                int closest_cu          = std::numeric_limits<int>::max();
+                fs::path best_path;
+                for(auto const& entry : miopen_data())
+                {
+                    // string the .o from the filename
+                    const auto fname = entry.first.substr(0, entry.first.size() - 2);
+                    MIOPEN_LOG_I2("Testing embedded file:" << fname);
+                    const auto& filepath = pdb_path / fname;
+                    if(filepath.extension() == ext &&
+                       fname.rfind(db_id, 0) == 0) // starts with db_id
+                    {
+                        MIOPEN_LOG_I2("Checking embedded perf db file: " << fname);
+                        const auto pos = fname.find('_');
+                        int cur_count  = -1;
+                        try
+                        {
+                            if(pos != std::string::npos)
+                                cur_count = std::stoi(fname.substr(pos + 1));
+                            else
+                                cur_count = std::stoi(fname.substr(db_id.length()), nullptr, 16);
+                        }
+                        catch(const std::exception& e)
+                        {
+                            MIOPEN_LOG_I2("Unable to infer CU count for file: " << fname << " : "
+                                                                                << e.what());
+                            continue;
+                        }
+
+                        if(abs(cur_count - real_cu_count) < (closest_cu))
+                        {
+                            MIOPEN_LOG_I2("Updating best candidate to: " << filepath.string());
+                            best_path  = filepath;
+                            closest_cu = abs(cur_count - real_cu_count);
+                        }
+                    }
+                }
+                return best_path.string();
+            }
+            return std::string();
+        }();
+        return result;
+    }
+#else
+    std::string GetPerfDbPathFile() const
+    {
+        static const auto result = [&] {
+            boost::filesystem::path pdb_path(GetSystemDbPath());
+            std::ostringstream filename;
+            // clang-format off
+        filename << GetStream().GetDbBasename();
+#if MIOPEN_ENABLE_SQLITE
+        const std::string ext = ".db";
+#else
+        const std::string ext = ".cd.pdb.txt";
+#endif
+        filename << ext;
+            // clang-format on
+            if(boost::filesystem::exists(pdb_path / filename.str()))
+            {
+                MIOPEN_LOG_I("Found exact perf database file");
+                return (pdb_path / filename.str()).string();
+            }
+            else
+            {
+                MIOPEN_LOG_I2("inexact perf database search");
+                const auto db_id        = GetStream().GetTargetProperties().DbId();
+                const int real_cu_count = GetStream().GetMaxComputeUnits();
+                namespace fs            = boost::filesystem;
+                if(fs::exists(pdb_path) && fs::is_directory(pdb_path))
+                {
+                    MIOPEN_LOG_I2("Iterating over perf db directory " << pdb_path.string());
+                    int closest_cu = std::numeric_limits<int>::max();
+                    fs::path best_path;
+                    for(auto const& entry : fs::recursive_directory_iterator(pdb_path))
+                    {
+                        const auto& filepath = entry.path();
+                        const auto fname     = filepath.stem().string();
+                        if(fs::is_regular_file(entry) && filepath.extension() == ext &&
+                           fname.rfind(db_id, 0) == 0) // starts with db_id
+                        {
+                            MIOPEN_LOG_I2("Checking perf db file: " << fname);
+                            const auto pos = fname.find('_');
+                            int cur_count  = -1;
+                            try
+                            {
+                                if(pos != std::string::npos)
+                                    cur_count = std::stoi(fname.substr(pos + 1));
+                                else
+                                    cur_count =
+                                        std::stoi(fname.substr(db_id.length()), nullptr, 16);
+                            }
+                            catch(const std::exception& e)
+                            {
+                                MIOPEN_LOG_I2("Unable to infer CU count for file: "
+                                              << fname << " : " << e.what());
+                                continue;
+                            }
+
+                            if(abs(cur_count - real_cu_count) < (closest_cu))
+                            {
+                                MIOPEN_LOG_I2("Updating best candidate to: " << filepath.string());
+                                best_path  = filepath;
+                                closest_cu = abs(cur_count - real_cu_count);
+                            }
+                        }
+                    }
+                    return best_path.string();
+                }
+                else
+                {
+                    MIOPEN_LOG_I("Database directory does not exist");
+                }
+            }
+            return std::string();
+        }();
+        return result;
+    }
+#endif
 
     std::string GetPerfDbPath() const
     {
-        boost::filesystem::path pdb_path(GetSystemDbPath());
-        std::ostringstream filename;
-// clang-format off
-#if MIOPEN_ENABLE_SQLITE
-            filename << "miopen.db";
+#if MIOPEN_EMBED_DB
+        return GetPerfDbPathEmbed();
 #else
-            filename << GetStream().GetDbBasename()
-            << ".cd.pdb.txt";
+        return GetPerfDbPathFile();
 #endif
-        // clang-format on
-        return (pdb_path / filename.str()).string();
     }
 
     std::string GetUserPerfDbPath() const
@@ -113,11 +253,11 @@ struct ExecutionContext
 		return "";
         boost::filesystem::path pdb_path(udb);
         std::ostringstream filename;
+        filename << GetStream().GetDbBasename();
 #if MIOPEN_ENABLE_SQLITE
-             filename << "miopen_" << SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER << ".udb";
+        filename << "_" << SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER << ".udb";
 #else
-             filename << GetStream().GetDbBasename()
-             << "."
+        filename << "."
              << GetUserDbSuffix()
              << ".cd.updb.txt";
 #endif

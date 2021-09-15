@@ -37,40 +37,17 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_WRW)
 namespace miopen {
 namespace solver {
 
-namespace {
-#if MIOPEN_USE_MLIR
-std::string GetKernelName()
-{
-    std::string version   = "_v4r4";
-    std::string direction = "_wrw";
-    std::string operation = "conv2d_bwd_weight";
-
-    return "mlir_gen_igemm_conv2d" + version + direction;
-}
-
-std::string GetOperation() { return "conv2d_bwd_weight"; }
-#endif
-} // Anonymous namespace
-
 bool ConvMlirIgemmWrW::IsApplicable(const ConvolutionContext& ctx) const
 {
 #if MIOPEN_USE_MLIR
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_WRW{}))
         return false;
-    if(!ctx.IsLayoutDefault() && !ctx.IsLayoutNHWC())
-        return false;
-    // Future: MLIR will support 3d convolution
-    if(!ctx.Is2d())
+    if(!ctx.direction.IsBackwardWrW())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
-    if(!ctx.direction.IsBackwardWrW())
-        return false;
-    if(!ctx.IsFp32() && !ctx.IsFp16())
-        return false;
 
-    return MiirIsConfigApplicable(
-        mlir::ConstructBuildOptions(ctx, GetOperation(), GetKernelName(), false));
+    return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, false));
 #else
     std::ignore = ctx;
     return false;
@@ -83,10 +60,9 @@ ConvSolution ConvMlirIgemmWrW::GetSolution(const ConvolutionContext& ctx) const
     ConvSolution result;
     KernelInfo construction_parameters;
 
-    construction_parameters.kernel_name = GetKernelName();
+    construction_parameters.kernel_name  = mlir::GetKernelName(ctx, false);
     construction_parameters.kernel_file = construction_parameters.kernel_name + ".mlir";
-    construction_parameters.comp_options =
-        mlir::ConstructBuildOptions(ctx, GetOperation(), GetKernelName(), false);
+    construction_parameters.comp_options = mlir::ConstructBuildOptions(ctx, false);
 
     size_t local_size  = 0;
     size_t global_size = 0;

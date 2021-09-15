@@ -90,7 +90,7 @@ class FindDbRecord_t
                                                          : GetInstalledPath(handle)),
           db(boost::make_optional<DbTimer<TDb>>(testing_find_db_enabled &&
                                                     !IsEnabled(MIOPEN_DEBUG_DISABLE_FIND_DB{}),
-                                                DbTimer<TDb>{installed_path, path, "", 0}))
+                                                DbTimer<TDb>{installed_path, path}))
     {
         if(!db.is_initialized())
             return;
@@ -108,7 +108,7 @@ class FindDbRecord_t
 #else
           db(boost::make_optional<DbTimer<TDb>>(testing_find_db_enabled &&
                                                     !IsEnabled(MIOPEN_DEBUG_DISABLE_FIND_DB{}),
-                                                DbTimer<TDb>{path, false, "", 0}))
+                                                DbTimer<TDb>{path, false}))
 #endif
     {
         if(!db.is_initialized())
@@ -168,6 +168,8 @@ class FindDbRecord_t
     static bool HasKernel(Handle& handle, const FindDbKCacheKey& key);
 
     static std::string GetInstalledPath(Handle& handle);
+    static std::string GetInstalledPathEmbed(Handle& handle);
+    static std::string GetInstalledPathFile(Handle& handle);
     static std::string GetUserPath(Handle& handle);
 
     // Returns true if rebuild is required

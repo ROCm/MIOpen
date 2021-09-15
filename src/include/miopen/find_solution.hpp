@@ -75,9 +75,8 @@ auto FindSolutionImpl(
                 {
                     return s.GetSolution(context, config);
                 }
-                MIOPEN_LOG_WE(
-                    "Invalid config loaded from Perf Db: " << SolverDbId(s) << ": " << config
-                                                           << ". Performance may degrade.");
+                MIOPEN_LOG_WE("Invalid config loaded from Perf Db: "
+                              << SolverDbId(s) << ": " << config << ". Performance may degrade.");
             }
             else
             {
@@ -217,13 +216,7 @@ struct SolverContainer
                     }
                     else
                     {
-                        /// \todo If Solver is applicable it must provide an appropriate Solution.
-                        /// This is not the case for some 20x5 convolutions (and possibly others).
-                        /// Normally we should not get here and message level should be Error.
-                        /// For now, let's use Info (not Warning) level to avoid
-                        /// flooding the console.
-                        MIOPEN_LOG_I(SolverDbId(solver)
-                                     << ": [Warning] Applicable Solver not succeeded.");
+                        MIOPEN_LOG_E(SolverDbId(solver) << ": Applicable Solver not succeeded.");
                     }
                 }
             },

@@ -37,6 +37,7 @@
 #if(MIOPEN_BACKEND_HIP && (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE))
 #define WORKAROUND_SWDEV_203031 1 // See also issues #2075, #2067
 #define WORKAROUND_SWDEV_234193 1
+#define WORKAROUND_ISSUE_1146 1 // check asm solver applicability for gfx90a
 #endif
 
 namespace miopen {
@@ -360,8 +361,8 @@ template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(
     const ConvolutionContext& params) const
 {
-// HIP backend required for sending ptr (buffer + offset)
-// ROCBLAS for GEMM step
+    // HIP backend required for sending ptr (buffer + offset)
+    // ROCBLAS for GEMM step
 
 #if(MIOPEN_BACKEND_HIP && (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE))
     static const int wino_data_tile   = std::max(WinoDataH, WinoDataW);
@@ -431,13 +432,21 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
         return false;
     }
 
+    const auto target = params.GetStream().GetTargetProperties();
+    if(target.Xnack() && *target.Xnack())
+        return false;
+
     if(!(InTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(params) &&
          OutTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(params) &&
          FilterTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(params)))
         return false;
 
-    if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")) || name == "gfx90a")
+    if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")))
         return false;
+#if WORKAROUND_ISSUE_1146
+    if(name == "gfx90a")
+        return false;
+#endif
 
     {
         std::size_t limit = miopen::Value(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX{});

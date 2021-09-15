@@ -40,6 +40,8 @@
 #include <cassert>
 #include <tuple>
 
+#define WORKAROUND_ISSUE_1146 1 // check asm solver applicability for gfx90a
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U_PERF_VALS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U)
 
@@ -60,15 +62,18 @@ auto PerfFieldRules()
 
 } // namespace
 
-bool PerformanceConfigConvAsm3x3U::SetNextValue() { return !PerfFieldRules().Next(*this); }
+bool PerformanceConfigConvAsm3x3U::SetNextValue(const ConvolutionContext& /*config*/)
+{
+    return !PerfFieldRules().Next(*this);
+}
 
 PerformanceConfigConvAsm3x3U::PerformanceConfigConvAsm3x3U(int lwc, int fpw, int olpw)
     : limit_wave_cnt(lwc), filters_per_wave(fpw), output_lines_per_wave(olpw)
 {
 }
 
-inline bool PerformanceConfigConvAsm3x3U::
-operator==(const PerformanceConfigConvAsm3x3U& other) const
+inline bool
+PerformanceConfigConvAsm3x3U::operator==(const PerformanceConfigConvAsm3x3U& other) const
 {
     return PerfFieldRules().Compare(*this, other);
 }
@@ -182,9 +187,18 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!params.rmv.IsV2orV3())
         return false;
-    const std::string name = params.GetStream().GetDeviceName();
-    if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")) || name == "gfx90a")
+
+    const auto target = params.GetStream().GetTargetProperties();
+    if(target.Xnack() && *target.Xnack())
         return false;
+
+    const std::string name = params.GetStream().GetDeviceName();
+    if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")))
+        return false;
+#if WORKAROUND_ISSUE_1146
+    if(name == "gfx90a")
+        return false;
+#endif
     if(!params.IsLayoutDefault())
     {
         return false;

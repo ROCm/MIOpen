@@ -258,7 +258,7 @@ void PerformanceConfigConvBinWinogradRxSf2x3::HeuristicInit(const ConvolutionCon
     }
 }
 
-bool PerformanceConfigConvBinWinogradRxSf2x3::SetNextValue()
+bool PerformanceConfigConvBinWinogradRxSf2x3::SetNextValue(const ConvolutionContext& /*config*/)
 {
     return !PerfFieldRules().Next(*this);
 }
@@ -278,8 +278,8 @@ bool PerformanceConfigConvBinWinogradRxSf2x3::IsValid(const ConvolutionContext& 
     return true;
 }
 
-inline bool PerformanceConfigConvBinWinogradRxSf2x3::
-operator==(const PerformanceConfigConvBinWinogradRxSf2x3& other) const
+inline bool PerformanceConfigConvBinWinogradRxSf2x3::operator==(
+    const PerformanceConfigConvBinWinogradRxSf2x3& other) const
 {
     return n_groups == other.n_groups;
 }
@@ -451,6 +451,10 @@ static bool IsApplicableBase(const ConvolutionContext& params)
     if(!params.rmv.IsV3())
         return false;
 
+    const auto target = params.GetStream().GetTargetProperties();
+    if(target.Xnack() && *target.Xnack())
+        return false;
+
     const auto name = params.GetStream().GetDeviceName();
     if(!(StartsWith(name, "gfx9") || StartsWith(name, "gfx10")))
         return false;
@@ -524,11 +528,10 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
     if(!IsWarned)
     {
         if(params.GetStream().GetMaxHardwareComputeUnits() > MAX_CU_LIMIT)
-            MIOPEN_LOG_WE(SolverDbId(*this) << ": GPU has "
-                                            << params.GetStream().GetMaxHardwareComputeUnits()
-                                            << "CUs, but this solver supports max "
-                                            << MAX_CU_LIMIT
-                                            << "and thus may show sub-optimal performance.");
+            MIOPEN_LOG_WE(SolverDbId(*this)
+                          << ": GPU has " << params.GetStream().GetMaxHardwareComputeUnits()
+                          << "CUs, but this solver supports max " << MAX_CU_LIMIT
+                          << "and thus may show sub-optimal performance.");
         IsWarned = true;
     }
 

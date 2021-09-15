@@ -43,6 +43,15 @@ bool ActivFwdSolver0::IsApplicable(const ExecutionContext&,
     if(problem.GetDirection() != miopen::activ::Direction::Forward)
         return false;
 
+    const auto x_elem_sz = problem.GetXDesc().GetElementSize();
+    const auto y_elem_sz = problem.GetYDesc().GetElementSize();
+
+    if(x_elem_sz != y_elem_sz)
+        return false;
+
+    if(problem.GetXDesc().IsPacked() && problem.GetYDesc().IsPacked())
+        return true;
+
     // short cut for packed tensors and 2D tensors with stride != width
     const auto& x_lens = problem.GetXDesc().GetLengths();
     const auto& y_lens = problem.GetYDesc().GetLengths();
@@ -50,41 +59,19 @@ bool ActivFwdSolver0::IsApplicable(const ExecutionContext&,
     const auto& x_strides = problem.GetXDesc().GetStrides();
     const auto& y_strides = problem.GetYDesc().GetStrides();
 
-    const auto x_elem_sz = problem.GetXDesc().GetElementSize();
-    const auto y_elem_sz = problem.GetYDesc().GetElementSize();
+    const auto x_stride2D = x_strides[x_lens.size() - 2];
+    const auto y_stride2D = y_strides[y_lens.size() - 2];
+    const auto x_width2D  = x_lens[x_lens.size() - 1];
+    const auto y_width2D  = y_lens[y_lens.size() - 1];
 
-    const auto x_stride2D = static_cast<unsigned int>(
-        (x_lens.size() == 2) ? x_strides[0] : (x_lens.size() == 3)
-                                                  ? x_strides[1]
-                                                  : (x_lens.size() == 4) ? x_strides[2]
-                                                                         : x_strides[3]);
-    const auto y_stride2D = static_cast<unsigned int>(
-        (y_lens.size() == 2) ? y_strides[0] : (y_lens.size() == 3)
-                                                  ? y_strides[1]
-                                                  : (y_lens.size() == 4) ? y_strides[2]
-                                                                         : y_strides[3]);
-
-    const auto x_width2D =
-        ((x_lens.size() == 2) ? x_lens[1] : (x_lens.size() == 3) ? x_lens[2] : (x_lens.size() == 4)
-                                                                                   ? x_lens[3]
-                                                                                   : x_lens[4]);
-
-    const auto y_width2D =
-        ((y_lens.size() == 2) ? y_lens[1] : (y_lens.size() == 3) ? y_lens[2] : (y_lens.size() == 4)
-                                                                                   ? y_lens[3]
-                                                                                   : y_lens[4]);
-
-    const auto t2D =
-        (x_lens.size() == y_lens.size() &&
-         ((x_width2D != x_stride2D) || (y_width2D != y_stride2D)) &&
-         (x_lens.size() == 2 || (x_lens.size() == 3 && x_lens[0] == 1 && y_lens[0] == 1) ||
-          (x_lens.size() == 4 && x_lens[0] == 1 && x_lens[1] == 1 && y_lens[0] == 1 &&
-           y_lens[1] == 1) ||
-          (x_lens.size() == 5 && x_lens[0] == 1 && x_lens[1] == 1 && x_lens[2] == 1 &&
-           y_lens[0] == 1 && y_lens[1] == 1 && y_lens[2] == 1)));
-    const auto packed = problem.GetXDesc().IsPacked() && problem.GetYDesc().IsPacked();
-
-    return x_elem_sz == y_elem_sz && (packed || t2D);
+    // clang-format off
+    return x_lens.size() == y_lens.size()
+        && ((x_width2D != x_stride2D) || (y_width2D != y_stride2D))
+        && (x_lens.size() == 2
+            || (x_lens.size() == 3 && x_lens[0] == 1 && y_lens[0] == 1)
+            || (x_lens.size() == 4 && x_lens[0] == 1 && x_lens[1] == 1 && y_lens[0] == 1 && y_lens[1] == 1)
+            || (x_lens.size() == 5 && x_lens[0] == 1 && x_lens[1] == 1 && x_lens[2] == 1 && y_lens[0] == 1 && y_lens[1] == 1 && y_lens[2] == 1));
+    // clang-format on
 }
 
 ConvSolution ActivFwdSolver0::GetSolution(const ExecutionContext&,
@@ -99,9 +86,9 @@ ConvSolution ActivFwdSolver0::GetSolution(const ExecutionContext&,
     const auto x_elem_sz = problem.GetXDesc().GetElementSize();
 
     const auto x_width2D =
-        ((x_lens.size() == 2) ? x_lens[1] : (x_lens.size() == 3) ? x_lens[2] : (x_lens.size() == 4)
-                                                                                   ? x_lens[3]
-                                                                                   : x_lens[4]);
+        ((x_lens.size() == 2)
+             ? x_lens[1]
+             : (x_lens.size() == 3) ? x_lens[2] : (x_lens.size() == 4) ? x_lens[3] : x_lens[4]);
 
     const auto packed    = problem.GetXDesc().IsPacked() && problem.GetYDesc().IsPacked();
     const auto read_len  = (packed) ? x_elem_sz : x_width2D;
@@ -110,9 +97,9 @@ ConvSolution ActivFwdSolver0::GetSolution(const ExecutionContext&,
     const auto READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(read_unit);
 
     const auto height =
-        (x_lens.size() == 2) ? x_lens[0] : (x_lens.size() == 3) ? x_lens[1] : (x_lens.size() == 4)
-                                                                                  ? x_lens[2]
-                                                                                  : x_lens[3];
+        (x_lens.size() == 2)
+            ? x_lens[0]
+            : (x_lens.size() == 3) ? x_lens[1] : (x_lens.size() == 4) ? x_lens[2] : x_lens[3];
 
     auto build_params = KernelBuildParameters{
         {"LITE"},
@@ -130,6 +117,13 @@ ConvSolution ActivFwdSolver0::GetSolution(const ExecutionContext&,
     {
         build_params.Define("MIOPEN_USE_FP16", 1);
         build_params.Define("MIOPEN_USE_FP32", 0);
+    }
+    else
+    {
+        MIOPEN_LOG_E("Unsupported data types configuration: "
+                     << miopen::GetDataTypeName(problem.GetXDesc().GetType()) << "x"
+                     << miopen::GetDataTypeName(problem.GetYDesc().GetType()));
+        return {miopenStatusInternalError};
     }
 
     {
@@ -181,17 +175,17 @@ ConvSolution ActivFwdSolver0::GetSolution(const ExecutionContext&,
                     const auto y_strides = params.y_desc.GetStrides();
 
                     const auto x_stride2D = static_cast<unsigned int>(
-                        (x_lens_.size() == 2) ? x_strides[0] : (x_lens_.size() == 3)
-                                                                   ? x_strides[1]
-                                                                   : (x_lens_.size() == 4)
-                                                                         ? x_strides[2]
-                                                                         : x_strides[3]);
+                        (x_lens_.size() == 2)
+                            ? x_strides[0]
+                            : (x_lens_.size() == 3)
+                                  ? x_strides[1]
+                                  : (x_lens_.size() == 4) ? x_strides[2] : x_strides[3]);
                     const auto y_stride2D = static_cast<unsigned int>(
-                        (y_lens_.size() == 2) ? y_strides[0] : (y_lens_.size() == 3)
-                                                                   ? y_strides[1]
-                                                                   : (y_lens_.size() == 4)
-                                                                         ? y_strides[2]
-                                                                         : y_strides[3]);
+                        (y_lens_.size() == 2)
+                            ? y_strides[0]
+                            : (y_lens_.size() == 3)
+                                  ? y_strides[1]
+                                  : (y_lens_.size() == 4) ? y_strides[2] : y_strides[3]);
 
                     kernel(params.x,
                            params.y,

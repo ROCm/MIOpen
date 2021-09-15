@@ -101,9 +101,7 @@ inline static bool Inc_6__12_optimized(int& v) // NOLINT (bugprone-reserved-iden
     {
     case 12: v = 7; return true;
     case 11: v = 6; return true;
-    default:
-        v += 2;
-        return false; // 6,8,10,7,9
+    default: v += 2; return false; // 6,8,10,7,9
     }
 }
 
@@ -162,8 +160,8 @@ ConvSolution ConvOclBwdWrW2NonTunable::GetSolution(const ConvolutionContext& par
 }
 
 template <int N_BATCH_LOOPS>
-inline bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::
-operator==(const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& other) const
+inline bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::operator==(
+    const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& other) const
 {
     // clang-format off
     return n_waves == other.n_waves
@@ -174,7 +172,8 @@ operator==(const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& other) const
 }
 
 template <int N_BATCH_LOOPS>
-bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::SetNextValue()
+bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::SetNextValue(
+    const ConvolutionContext& /*config*/)
 {
     // Increment with wrap-around:
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2_SEARCH_OPTIMIZED{}))
@@ -280,23 +279,6 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(const ConvolutionCo
     if(params.group_counts > 1 && n_out_channels_per_tile > n_output_channels_per_group)
     {
         return false;
-    }
-
-    // For group config, reducing search space
-    bool met = (n_output_channels_per_group % 4 == 0 && n_out_channels_per_tile % 4 == 0);
-    if(!met)
-    {
-        met = (n_output_channels_per_group % 3 == 0 && n_out_channels_per_tile % 3 == 0);
-        if(!met)
-        {
-            met = (n_output_channels_per_group % 2 == 0 && n_out_channels_per_tile % 2 == 0);
-            if(!met)
-            {
-                met = (n_output_channels_per_group % 1 == 0 && n_out_channels_per_tile % 1 == 0);
-                if(!met)
-                    return false;
-            }
-        }
     }
 
     // group config requires n_out_channels_tiles to be 1 or else
@@ -449,8 +431,8 @@ void PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::HeuristicInit(const Convolu
         n_out_channels_per_tile = 2;
     else
         n_out_channels_per_tile = 1;
-    n_out_channels_tiles        = 1;
-    n_out_rows_in_lcl           = params.kernel_size_h;
+    n_out_channels_tiles = 1;
+    n_out_rows_in_lcl    = params.kernel_size_h;
 }
 
 template <int N_BATCH_LOOPS>

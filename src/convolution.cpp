@@ -258,11 +258,11 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
     std::vector<std::size_t> out_strides;
     tensor_layout_to_strides(out_lens, default_layout, yLayout, out_strides);
 
-    return TensorDescriptor((xDesc.GetType() == miopenInt8 || xDesc.GetType() == miopenInt8x4
-                                 ? (yType == miopenInt32 ? yType : miopenFloat)
-                                 : xDesc.GetType()),
-                            out_lens,
-                            out_strides);
+    return {(xDesc.GetType() == miopenInt8 || xDesc.GetType() == miopenInt8x4
+                 ? (yType == miopenInt32 ? yType : miopenFloat)
+                 : xDesc.GetType()),
+            out_lens,
+            out_strides};
 }
 
 TensorDescriptor ConvolutionDescriptor::GetForwardOutputTensor(const TensorDescriptor& xDesc,
@@ -510,9 +510,7 @@ std::size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeGEMM(
         return *std::max_element(gemm_ws_szs.begin(), gemm_ws_szs.end());
     }
 #else
-    std::ignore = dyDesc;
-    std::ignore = xDesc;
-    std::ignore = dwDesc;
+    std::ignore = ctx;
 #endif
 
     return 0;

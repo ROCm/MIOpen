@@ -146,7 +146,7 @@ inline static bool Next_1_4(int& v)
     return false;
 }
 
-bool PerformanceConfigConvAsm1x1U::SetNextValue()
+bool PerformanceConfigConvAsm1x1U::SetNextValue(const ConvolutionContext& /*config*/)
 {
     // Increment with wrap-around:
     do
@@ -225,8 +225,8 @@ PerformanceConfigConvAsm1x1U::PerformanceConfigConvAsm1x1U(int read_size_,
 {
 }
 
-inline bool PerformanceConfigConvAsm1x1U::
-operator==(const PerformanceConfigConvAsm1x1U& other) const
+inline bool
+PerformanceConfigConvAsm1x1U::operator==(const PerformanceConfigConvAsm1x1U& other) const
 {
     // clang-format off
     return read_size == other.read_size
@@ -393,6 +393,10 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
     if(!(params.IsFp32() || params.IsFp16()))
         return false;
 
+    const auto target = params.GetStream().GetTargetProperties();
+    if(target.Xnack() && *target.Xnack())
+        return false;
+
     const std::string name = params.GetStream().GetDeviceName();
     if(name.find("gfx9") == std::string::npos)
     {
@@ -496,9 +500,9 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
         int in_batch_stride = AsmImgWidth(params) * AsmImgHeight(params) *
                               (UseSubsample(params) ? params.n_inputs : params.n_outputs);
         int write_unit =
-            (AsmImgWidth(params) % 4 == 0) ? 4 : (AsmImgWidth(params) % 3 == 0)
-                                                     ? 3
-                                                     : (AsmImgWidth(params) % 2 == 0) ? 2 : 1;
+            (AsmImgWidth(params) % 4 == 0)
+                ? 4
+                : (AsmImgWidth(params) % 3 == 0) ? 3 : (AsmImgWidth(params) % 2 == 0) ? 2 : 1;
 
         int n_grp0_size0 = 256;
 

@@ -30,6 +30,8 @@
 #include <miopen/env.hpp>
 #include <miopen/conv/invokers/gen_x_w_y_pad.hpp>
 
+#define WORKAROUND_ISSUE_1146 1 // check asm solver applicability for gfx90a
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2)
 
 namespace miopen {
@@ -48,10 +50,18 @@ bool ConvAsm5x10u2v2f1::IsApplicable(const ConvolutionContext& params) const
     if(!params.rmv.IsV2orV3())
         return false;
 
+    const auto target = params.GetStream().GetTargetProperties();
+    if(target.Xnack() && *target.Xnack())
+        return false;
+
     const std::string name = params.GetStream().GetDeviceName();
     const bool device_is_gfx8_9_no_xnack =
         (name == "gfx800" || name == "gfx802" || name == "gfx803" || name == "gfx804" ||
          name == "gfx900" || name == "gfx904" || name == "gfx906" || name == "gfx908");
+#if WORKAROUND_ISSUE_1146
+    if(name == "gfx90a")
+        return false;
+#endif
     if(!device_is_gfx8_9_no_xnack)
     {
         return false;
