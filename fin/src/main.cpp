@@ -154,7 +154,9 @@ int main(int argc, char* argv[], char* envp[])
         }
         else
         {
-            f = std::make_unique<fin::ConvFin<float, float>>();
+            f = new fin::ConvFin<float, float>();
+            dynamic_cast<fin::ConvFin<float,float>*>(f)->job["arch"] = command["arch"];
+            dynamic_cast<fin::ConvFin<float,float>*>(f)->job["num_cu"] = command["num_cu"];
         }
 
         for(auto& step_it : command["steps"])
