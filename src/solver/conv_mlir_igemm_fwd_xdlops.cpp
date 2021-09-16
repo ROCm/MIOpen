@@ -38,6 +38,14 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD_XDLOPS)
 namespace miopen {
 namespace solver {
 
+const PerformanceConvMlirIgemmXdlops& PerformanceConvMlirIgemmXdlops::GetHeuristicInitRequest()
+{
+    // Special value to represent the heuristic initialized perf_config.
+    static const PerformanceConvMlirIgemmXdlops p =
+        PerformanceConvMlirIgemmXdlops(-2, -2, -2, -2, -2, -2, false, false, false);
+    return p;
+}
+
 bool ConvMlirIgemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
 #if MIOPEN_USE_MLIR
@@ -107,8 +115,10 @@ bool PerformanceConvMlirIgemmXdlops::operator==(const PerformanceConvMlirIgemmXd
 bool PerformanceConvMlirIgemmXdlops::IsValid(const ConvolutionContext& ctx) const
 {
 #if MIOPEN_USE_MLIR
-    bool isValid = MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, ToString(), true));
-    return isValid;
+    if(*this == GetHeuristicInitRequest())
+        return true;
+
+    return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, *this, true));
 #else
     std::ignore = ctx;
     return false;
@@ -117,6 +127,14 @@ bool PerformanceConvMlirIgemmXdlops::IsValid(const ConvolutionContext& ctx) cons
 
 bool PerformanceConvMlirIgemmXdlops::SetNextValue(const ConvolutionContext& /*config*/)
 {
+    if(*this == GetHeuristicInitRequest())
+    {
+        // If we ever attempt to iterate starting from the heuristic value,
+        // make its next iterator to be the minimal value.
+        *this = PerformanceConvMlirIgemmXdlops(use_spare_set);
+        return false;
+    }
+
     GemmBThreadCopyMoreGemmKPack = true;
     GemmAThreadCopyMoreGemmK     = true;
     do
@@ -151,7 +169,7 @@ PerformanceConvMlirIgemmXdlops
 ConvMlirIgemmFwdXdlops::GetPerformanceConfig(const ConvolutionContext& ctx) const
 {
     std::ignore = ctx;
-    return {};
+    return PerformanceConvMlirIgemmXdlops::GetHeuristicInitRequest();
 }
 
 bool ConvMlirIgemmFwdXdlops::IsValidPerformanceConfig(
@@ -176,17 +194,9 @@ ConvSolution ConvMlirIgemmFwdXdlops::GetSolution(const ConvolutionContext& ctx,
     ConvSolution result;
     KernelInfo construction_parameters;
 
-    construction_parameters.kernel_name = mlir::GetKernelName(ctx, true);
-    construction_parameters.kernel_file = construction_parameters.kernel_name + ".mlir";
-
-    if(config == PerformanceConvMlirIgemmXdlops())
-        // At this case, do not pass in the invalid perf config and instead make Miir library to do
-        // heuristic initialization
-        construction_parameters.comp_options = mlir::ConstructBuildOptions(ctx, true);
-    else
-        // At this case, Make Miir library to use the valid perf config
-        construction_parameters.comp_options =
-            mlir::ConstructBuildOptions(ctx, config.ToString(), true);
+    construction_parameters.kernel_name  = mlir::GetKernelName(ctx, true);
+    construction_parameters.kernel_file  = construction_parameters.kernel_name + ".mlir";
+    construction_parameters.comp_options = mlir::ConstructBuildOptions(ctx, config, true);
 
     size_t local_size  = 0;
     size_t global_size = 0;

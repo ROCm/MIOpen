@@ -856,10 +856,8 @@ struct PerformanceConvMlirIgemmXdlops : Serializable<PerformanceConvMlirIgemmXdl
     int GemmMPerBlock; // 2^n[32..128]
     int GemmNPerBlock; // 2^n[8..16]
     int GemmKPerBlock; // 2^n[4..16]
-
     int GemmMPerWave;
     int GemmNPerWave;
-
     int GemmKPACKSize; // 2^[1..4]
 
     // GemmAThreadCopyMoreGemmK is currently a fix value, is untunable
@@ -867,6 +865,9 @@ struct PerformanceConvMlirIgemmXdlops : Serializable<PerformanceConvMlirIgemmXdl
     bool GemmBThreadCopyMoreGemmKPack;
 
     bool use_spare_set;
+
+    static const PerformanceConvMlirIgemmXdlops& GetHeuristicInitRequest();
+
     PerformanceConvMlirIgemmXdlops(int, int, int, int, int, int, bool, bool, bool);
 
     PerformanceConvMlirIgemmXdlops();
