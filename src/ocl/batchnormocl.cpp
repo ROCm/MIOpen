@@ -450,6 +450,15 @@ void BatchNormBackward(Handle& handle,
     if(const auto existingInvoker = handle.GetInvoker(network_config, boost::none, algo))
     {
         (*existingInvoker)(handle, invoke_params);
+
+        if(miopen::CheckNumericsEnabled())
+        {
+            miopen::checkNumericsOutput(handle, dxDesc, dx);
+            miopen::checkNumericsOutput(handle, bnScaleBiasDiffDesc, resultBnScaleDiff);
+            miopen::checkNumericsOutput(handle, bnScaleBiasDiffDesc, resultBnBiasDiff);
+        }
+
+        return;
     }
     else
     {
@@ -470,6 +479,15 @@ void BatchNormBackward(Handle& handle,
                 handle.PrepareInvoker(*sln.invoker_factory, sln.construction_params);
             handle.RegisterInvoker(invoker, network_config, sln.solver_id, algo);
             invoker(handle, invoke_params);
+
+            if(miopen::CheckNumericsEnabled())
+            {
+                miopen::checkNumericsOutput(handle, dxDesc, dx);
+                miopen::checkNumericsOutput(handle, bnScaleBiasDiffDesc, resultBnScaleDiff);
+                miopen::checkNumericsOutput(handle, bnScaleBiasDiffDesc, resultBnBiasDiff);
+            }
+
+            return;
         }
     }
 
