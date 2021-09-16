@@ -1,0 +1,7 @@
+[
+{
+"arch": "gfx908",
+"num_cu": 120,
+"steps": ["perf_db_test"]
+}
+]
