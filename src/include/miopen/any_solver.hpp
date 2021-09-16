@@ -122,9 +122,6 @@ struct AnySolver
     {
         struct TunableSolver
         {
-            //using PerformanceConfig = decltype(std::declval<T>().GetPerformanceConfig(
-            //                std::declval<const ConvolutionContext&>()));
-
             template<typename U> static constexpr auto Test(U*)
             ->typename
                 std::is_same<
