@@ -50,6 +50,7 @@
 #include <miopen/perf_field.hpp>
 #include <miopen/solver_id.hpp>
 
+
 #if MIOPEN_MODE_NOGPU
 #include <miopen/kernel_cache.hpp>
 #include <miopen/nogpu/handle_impl.hpp>
@@ -116,6 +117,10 @@ class ConvFin : public Fin
         {
             assert(num_cu == 72 || num_cu == 36);
         }
+        else if(arch == "gfx90a")
+        {
+            assert(num_cu == 110);
+        }
         else
             throw std::runtime_error("Invalid Arch Name");
     }
@@ -142,6 +147,7 @@ class ConvFin : public Fin
     int CopyFromDevice();
     int RunGPU();
     int TestApplicability();
+    int TestPerfDbValid();
     int GetandSetData();
     int GetSolverList();
     int MIOpenFind();
@@ -770,14 +776,148 @@ int ConvFin<Tgpu, Tref>::TestApplicability()
     return 0;
 }
 
+class ParamString
+{
+    std::string values;
+
+    public:
+    ParamString(){}
+    ParamString(std::string in_val) : values(in_val){}
+
+    void Serialize(std::ostream& stream) const
+    {
+        stream << values;
+    }
+    bool Deserialize(const std::string& s)
+    {
+        values = s;
+        return true;
+    }
+};
+
+template <typename Tgpu, typename Tref>
+int ConvFin<Tgpu, Tref>::TestPerfDbValid()
+{
+    bool ret = true;
+    std::cout << miopen::GetSystemDbPath()<<std::endl;
+    
+    for(auto db_file : boost::filesystem::directory_iterator(miopen::GetSystemDbPath()))
+    {
+        std::string pathstr = db_file.path().native();
+        std::string filestr = db_file.path().filename().native();
+
+        if(job["arch"].size() > 0 and job["num_cu"].size() > 0) 
+        {
+            std::string arch = job["arch"];
+            int num_cu       = job["num_cu"];
+            std::stringstream db_name;
+            db_name << arch;
+            if(num_cu > 64)
+                db_name << std::hex << num_cu << ".db";
+            else
+                db_name << "_" << num_cu << ".db";
+                
+            if(filestr.compare(db_name.str()) != 0)
+                continue;
+        }
+
+
+        if(pathstr.compare(pathstr.size()-3, 3, ".db") != 0)
+            continue;
+
+        std::cout << pathstr << "/" << filestr <<std::endl;
+
+        auto sql = miopen::SQLite{pathstr, true};
+
+        //pull out records for all configs from perf_db
+        std::unordered_map<std::string, std::unordered_map<std::string, miopen::DbRecord>> records;
+        std::map<std::string, std::unordered_map<std::string, std::string>> perfdb_entries;
+        std::vector<std::map<std::string, std::string>> err_list;
+        //std::vector<std::string> values;
+        auto select_query = "SELECT config, solver, params, id FROM perf_db;";
+        auto stmt = miopen::SQLite::Statement{sql, select_query};//, values};
+        while(true)
+        {
+            auto rc = stmt.Step(sql);
+            if(rc == SQLITE_ROW)
+            {
+                const auto config_id = stmt.ColumnText(0);
+                const auto solver_id = stmt.ColumnText(1);
+                const auto params = stmt.ColumnText(2);
+                const auto perf_id = stmt.ColumnText(3);
+                records[config_id][solver_id].SetValues(solver_id, ParamString(params));
+                perfdb_entries[perf_id]["config"] = config_id;
+                perfdb_entries[perf_id]["solver"] = solver_id;
+            }
+            else if(rc == SQLITE_DONE)
+                break;
+            else if(rc == SQLITE_ERROR || rc == SQLITE_MISUSE)
+                MIOPEN_THROW(miopenStatusInternalError, sql.ErrorMessage());
+        }
+
+        //iterate through each config
+        for(auto it = perfdb_entries.begin(); it != perfdb_entries.end(); it++)
+        {
+            auto solver_nm = it->second["solver"];
+            auto config_id = it->second["config"];
+            auto record = records.find(config_id)->second.find(solver_nm)->second;
+
+            auto slv_id = miopen::solver::Id(solver_nm);
+            if(!slv_id.IsValid())
+            {
+                std::map<std::string, std::string> err;
+                err["perfdb_id"] = it->first;
+                err["config"] = config_id;
+                err["solver"] = solver_nm;
+                err_list.push_back(err);
+                ret = false;
+                continue;
+            }
+
+            auto solver = slv_id.GetSolver();
+
+            //check if the params in the record deserialize
+            bool ok = solver.TestSysDbRecord(record);
+            if(!ok)
+            {
+                std::map<std::string, std::string> err;
+                err["perfdb_id"] = it->first;
+                err["config"] = config_id;
+                err["solver"] = solver_nm;
+                err_list.push_back(err);
+                ret = false;
+            }
+        }
+        std::string listing = filestr+"_errors";
+        output[listing] = err_list;
+    }
+
+    if(ret)
+        output["clear"] = "true";
+
+    return ret;
+}
+
 template <typename Tgpu, typename Tref>
 int ConvFin<Tgpu, Tref>::GetSolverList()
 {
     // pair.first = id, pair. second = string id
-    std::vector<std::pair<uint64_t, std::string>> solvers;
+    std::vector<std::unordered_map<std::string, std::string>> solvers;
     for(const auto& id :
         miopen::solver::GetSolversByPrimitive(miopen::solver::Primitive::Convolution))
-        solvers.push_back(std::make_pair(id.Value(), id.ToString()));
+    {
+        std::unordered_map<std::string, std::string> solver;
+        solver["id"]      = std::to_string(id.Value());
+        solver["name"]    = id.ToString();
+        solver["tunable"] = "0";
+        solver["dynamic"] = "0";
+        if(id.GetSolver().IsTunable())
+            solver["tunable"] = "1";
+        if(id.GetSolver().IsDynamic())
+            solver["dynamic"] = "1";
+        solvers.push_back(solver);
+    }
+
     output["all_solvers"] = solvers;
     return 0;
 }
@@ -837,6 +977,8 @@ int ConvFin<Tgpu, Tref>::ProcessStep(const std::string& step_name)
         return CopyFromDevice();
     if(step_name == "applicability")
         return TestApplicability();
+    if(step_name == "perf_db_test")
+        return TestPerfDbValid();
     if(step_name == "get_solvers")
         return GetSolverList();
     if(step_name == "miopen_find")
