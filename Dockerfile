@@ -114,7 +114,7 @@ RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."
 
 RUN if [ "$USE_MLIR" = "ON" ]; \
     then cd ~ && \
-    export MLIR_COMMIT=7416cfaee140068921b64996ba945ce615c36f44 && \
+    export MLIR_COMMIT=199d667b9d8caaf283436aaa8a48fd20e074f42c && \
     wget https://github.com/ROCmSoftwarePlatform/llvm-project-mlir/archive/$MLIR_COMMIT.tar.gz && \
     tar -xvzf $MLIR_COMMIT.tar.gz && \
     rm -rf $MLIR_COMMIT.tar.gz && \

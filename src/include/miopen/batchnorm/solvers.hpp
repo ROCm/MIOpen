@@ -43,7 +43,43 @@ namespace batchnorm {
 using OldStyleProblemDescription =
     std::tuple<const ExecutionContext*, const miopen::batchnorm::ProblemDescription*>;
 
-struct BnFwdTrainingPASingle : public SolverBase<OldStyleProblemDescription>
+struct BnFwdTrainingSpatialSingle : public SolverBase<OldStyleProblemDescription>
+{
+    inline bool IsApplicable(const OldStyleProblemDescription& problem) const
+    {
+        return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
+    }
+
+    inline ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
+    {
+        return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
+    }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::batchnorm::ProblemDescription& problem) const;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::batchnorm::ProblemDescription& problem) const;
+};
+
+struct BnFwdTrainingSpatialMultiple : public SolverBase<OldStyleProblemDescription>
+{
+    inline bool IsApplicable(const OldStyleProblemDescription& problem) const
+    {
+        return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
+    }
+
+    inline ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
+    {
+        return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
+    }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::batchnorm::ProblemDescription& problem) const;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::batchnorm::ProblemDescription& problem) const;
+};
+
+struct BnFwdTrainingPerActivation : public SolverBase<OldStyleProblemDescription>
 {
     inline bool IsApplicable(const OldStyleProblemDescription& problem) const
     {

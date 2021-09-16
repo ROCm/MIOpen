@@ -35,13 +35,16 @@ namespace miopen {
 namespace solver {
 namespace mlir {
 
-std::string InsertGToLayout(const std::string& layout, char dim);
+std::string GetKernelName(const ConvolutionContext& ctx, bool is_xdlops, int kernel_id = 0);
+
 std::string ConstructBuildOptions(const ConvolutionContext& ctx,
-                                  const std::string& operation,
-                                  const std::string& kernel_name,
                                   bool is_xdlops,
                                   int kernel_id = 0);
 
+std::string ConstructBuildOptions(const ConvolutionContext& ctx,
+                                  const std::string& config,
+                                  bool is_xdlops,
+                                  int kernel_id = 0);
 } // namespace mlir
 } // namespace solver
 } // namespace miopen
