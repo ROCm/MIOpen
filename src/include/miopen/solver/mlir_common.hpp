@@ -41,11 +41,6 @@ std::string ConstructBuildOptions(const ConvolutionContext& ctx,
                                   bool is_xdlops,
                                   int kernel_id = 0);
 
-std::string ConstructBuildOptions(const ConvolutionContext& ctx,
-                                  const std::string& config,
-                                  bool is_xdlops,
-                                  int kernel_id = 0);
-
 template <typename T>
 std::string ConstructBuildOptions(const ConvolutionContext& ctx,
                                   const T& perf_config,
