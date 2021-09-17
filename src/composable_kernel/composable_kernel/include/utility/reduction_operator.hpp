@@ -35,8 +35,8 @@ namespace reduce {
 // Every binary operator used in reduction is represented by a templated functor class. Each functor
 // class must provide at least
 // three members:
-// 1) GetZeroVal() -- the interface to return the "identity element" for the binary operator,
-// "identity element" is the unique
+// 1) GetReductionZeroVal() -- the interface to return the "identity element" for the binary
+// operator, "identity element" is the unique
 //                    element in the algebraic space that doesn't affect the value of other elements
 //                    when operated with any of them.
 // 2) indexable -- boolean value indicating whether indices of the operated elements could be
@@ -58,7 +58,7 @@ struct Add
 {
     using dataType = T;
 
-    __device__ static constexpr T GetZeroVal() { return static_cast<T>(0.0f); };
+    __device__ static constexpr T GetReductionZeroVal() { return static_cast<T>(0.0f); };
 
     __device__ inline constexpr void operator()(T& a, T b) const { a = a + b; }
 
@@ -70,7 +70,7 @@ struct Mul
 {
     using dataType = T;
 
-    __device__ static constexpr T GetZeroVal() { return static_cast<T>(1.0f); };
+    __device__ static constexpr T GetReductionZeroVal() { return static_cast<T>(1.0f); };
 
     __device__ inline constexpr void operator()(T& a, T b) const { a = a * b; }
 
@@ -82,7 +82,7 @@ struct Max
 {
     using dataType = T;
 
-    __device__ static constexpr T GetZeroVal() { return NumericLimits<T>::lowest(); };
+    __device__ static constexpr T GetReductionZeroVal() { return NumericLimits<T>::lowest(); };
 
     __device__ inline constexpr void operator()(T& a, T b) const
     {
@@ -107,7 +107,7 @@ struct Min
 {
     using dataType = T;
 
-    __device__ static constexpr T GetZeroVal() { return NumericLimits<T>::Max(); };
+    __device__ static constexpr T GetReductionZeroVal() { return NumericLimits<T>::Max(); };
 
     __device__ inline constexpr void operator()(T& a, T b) const
     {
@@ -132,7 +132,7 @@ struct AMax
 {
     using dataType = T;
 
-    __device__ static constexpr T GetZeroVal() { return static_cast<T>(0.0f); };
+    __device__ static constexpr T GetReductionZeroVal() { return static_cast<T>(0.0f); };
 
     __device__ inline constexpr void operator()(T& a, T b) const
     {
@@ -281,7 +281,7 @@ struct unary_sqrt<half_t>
 
 // The templated struct reduce_binary_operator maps the enum Ids of binary operators to their
 // respective functor classes.
-// The "GetZeroVal()" interface and boolean member "indexable" are also provided in
+// The "GetReductionZeroVal()" interface and boolean member "indexable" are also provided in
 // reduce_binary_operactor for
 // easier checking by the upper-layer codes in the kernels.
 
