@@ -82,7 +82,7 @@ struct Max
 {
     using dataType = T;
 
-    __device__ static constexpr T GetReductionZeroVal() { return NumericLimits<T>::lowest(); };
+    __device__ static constexpr T GetReductionZeroVal() { return NumericLimits<T>::Lowest(); };
 
     __device__ inline constexpr void operator()(T& a, T b) const
     {
