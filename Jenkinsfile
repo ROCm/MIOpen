@@ -296,8 +296,10 @@ pipeline {
         Tensile_setup = " -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF"
     }
     stages{
-        stage("Static checks"){
-            when { expression { params.STATIC_CHECKS && params.TARGET_NOGPU } }
+        stage("Static checks") {
+            when {
+                expression { params.STATIC_CHECKS && params.TARGET_NOGPU }
+            }
             parallel{
                 stage('Hip Tidy') {
                     agent{ label rocmnode("nogpu") }
@@ -348,8 +350,10 @@ pipeline {
                 }
             }
         }
-        stage("Smoke Fp32"){
-            when { expression { params.SMOKE_FP32_AUX1 } }
+        stage("Smoke Fp32") {
+            when {
+                expression { params.SMOKE_FP32_AUX1 }
+            }
             environent{
                 Smoke_targets = "check doc MIOpenDriver"
             }
@@ -458,8 +462,10 @@ pipeline {
                 }
             }
         }
-        stage("Smoke Aux 1"){
-            when { expression { params.SMOKE_FP32_AUX1 } }
+        stage("Smoke Aux 1") {
+            when {
+                expression { params.SMOKE_FP32_AUX1 }
+            }
             parallel{
                 stage('Fp32 Hip Debug COMGR') {
                     when {
@@ -538,9 +544,13 @@ pipeline {
                 }
             }
         }
-        stage("Smoke MLIR"){
-            when { expression { params.SMOKE_MLIR } }
-            environment{ MLIR_flags = "-DMIOPEN_USE_MLIR=On" }
+        stage("Smoke MLIR") {
+            when {
+                expression { params.SMOKE_MLIR }
+            }
+            environment {
+                MLIR_flags = "-DMIOPEN_USE_MLIR=On"
+            }
             parallel{
                 stage('Fp32 Hip MLIR') {
                     when {
@@ -584,8 +594,10 @@ pipeline {
                 }
             }
         }
-        stage("Smoke Fp16/Bf16/Int8"){
-            when { expression { params.SMOKE_FP16_BF16_INT8 } }
+        stage("Smoke Fp16/Bf16/Int8") {
+            when {
+                expression { params.SMOKE_FP16_BF16_INT8 }
+            }
             environment{
                 Smoke_targets = "check doc MIOpenDriver"
             }
@@ -672,8 +684,10 @@ pipeline {
                 }
             }
         }
-        stage("Smoke MIOpenTensile Latest"){
-            when { expression { params.SMOKE_MIOPENTENSILE_LATEST } }
+        stage("Smoke MIOpenTensile Latest") {
+            when {
+                expression { params.SMOKE_MIOPENTENSILE_LATEST }
+            }
             environment{
                 Tensile_version = "latest"
             }
@@ -740,8 +754,10 @@ pipeline {
                 // }
             }
         }
-        stage("Full Tests I"){
-            when { expression { params.FULL_TESTS } }
+        stage("Full Tests I") {
+            when {
+                expression { params.FULL_TESTS }
+            }
             parallel{
                 stage('Int8 HIP All Vega20 /opt/rocm') {
                     when {
@@ -786,8 +802,10 @@ pipeline {
             }
         }
 
-        stage("Full Tests II"){
-            when { expression { params.FULL_TESTS } }
+        stage("Full Tests II") {
+            when {
+                expression { params.FULL_TESTS }
+            }
             environment{
                 WORKAROUND_iGemm_936 = " MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0"
             }
@@ -875,8 +893,10 @@ pipeline {
             }
         }
 
-        stage("MIOpenTensile"){
-            when { expression { params.MIOPENTENSILE } }
+        stage("MIOpenTensile") {
+            when {
+                expression { params.MIOPENTENSILE }
+            }
             environment{
                 Tensile_version = "default"
             }
@@ -1003,8 +1023,10 @@ pipeline {
                 // }
             }
         }
-        stage("MIOpenTensile Latest"){
-            when { expression { params.MIOPENTENSILE_LATEST  } }
+        stage("MIOpenTensile Latest") {
+            when {
+                expression { params.MIOPENTENSILE_LATEST  }
+            }
             environment{
                 Tensile_version = "latest"
             }
@@ -1131,8 +1153,10 @@ pipeline {
                 // }
             }
         }
-        stage("Packages"){
-            when { expression { params.PACKAGES && params.TARGET_NOGPU } }
+        stage("Packages") {
+            when {
+                expression { params.PACKAGES && params.TARGET_NOGPU }
+            }
             parallel {
                 stage('OpenCL Package') {
                     agent{ label rocmnode("nogpu") }
@@ -1140,7 +1164,7 @@ pipeline {
                         buildHipClangJobAndReboot(compiler: 'g++', package_build: "true", gpu_arch: "gfx900;gfx906;gfx908;gfx90a")
                     }
                 }
-                stage("HIP Package /opt/rocm"){
+                stage("HIP Package /opt/rocm") {
                     agent{ label rocmnode("nogpu") }
                     steps{
                         buildHipClangJobAndReboot( package_build: "true", prefixpath: '/opt/rocm', gpu_arch: "gfx900;gfx906;gfx908;gfx90a")
