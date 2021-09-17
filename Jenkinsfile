@@ -294,6 +294,8 @@ pipeline {
         Full_test       = " -DMIOPEN_TEST_ALL=On"
         Tensile_build_env = "MIOPEN_DEBUG_HIP_KERNELS=0 "
         Tensile_setup = " -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF"
+        Smoke_targets = "check doc MIOpenDriver"
+        MLIR_flags    = "-DMIOPEN_USE_MLIR=On"
     }
     stages{
         stage("Static checks") {
@@ -353,9 +355,6 @@ pipeline {
         stage("Smoke Fp32") {
             when {
                 expression { params.SMOKE_FP32_AUX1 }
-            }
-            environent{
-                Smoke_targets = "check doc MIOpenDriver"
             }
             parallel{
                stage('Fp32 OpenCL Debug + Codecov') {
@@ -548,9 +547,6 @@ pipeline {
             when {
                 expression { params.SMOKE_MLIR }
             }
-            environment {
-                MLIR_flags = "-DMIOPEN_USE_MLIR=On"
-            }
             parallel{
                 stage('Fp32 Hip MLIR') {
                     when {
@@ -597,9 +593,6 @@ pipeline {
         stage("Smoke Fp16/Bf16/Int8") {
             when {
                 expression { params.SMOKE_FP16_BF16_INT8 }
-            }
-            environment{
-                Smoke_targets = "check doc MIOpenDriver"
             }
             parallel{
                 stage('Fp16 OpenCL Vega20') {
