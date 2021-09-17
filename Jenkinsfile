@@ -328,7 +328,7 @@ pipeline {
                       buildHipClangJobAndReboot(setup_cmd: setup_cmd, execute_cmd: execute_cmd, no_reboot:true, build_cmd: build_cmd, build_fin: "ON")
                       archiveArtifacts "pdb_deserialize_error.json"
                       sh "grep clear pdb_deserialize_error.json"
-                      def has_error = sh "echo $?"
+                      def has_error = sh "echo \$?"
                       assert has_error.toInteger() == 0
                   }
               }
