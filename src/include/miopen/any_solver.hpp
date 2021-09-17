@@ -146,6 +146,7 @@ struct AnySolver
         }
         bool TestSysDbRecord(DbRecord& record, std::false_type) const
         {
+            (void)(record);
             return false;
         }
 
