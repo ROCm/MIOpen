@@ -29,6 +29,7 @@
 #include <miopen/activ.hpp>
 #include <miopen/tensor.hpp>
 
+#include <cassert>
 #include <string>
 
 namespace miopen {
@@ -46,6 +47,7 @@ enum class Direction
 
 struct ProblemDescription
 {
+    // Forward
     ProblemDescription(Direction direction_,
                        miopenBatchNormMode_t bn_mode_,
                        const TensorDescriptor& xDesc_,
@@ -58,8 +60,8 @@ struct ProblemDescription
         : direction(direction_),
           bn_mode(bn_mode_),
           xDesc(xDesc_),
-          yDesc(yDesc_),
-          bnScaleBiasMeanVarDesc(bnScaleBiasMeanVarDesc_),
+          yOrDyDesc(yDesc_),
+          scaleBiasDesc(bnScaleBiasMeanVarDesc_),
           expAvgFactor(expAvgFactor_),
           epsilon(epsilon_),
           resultsave(resultsave_),
@@ -67,13 +69,76 @@ struct ProblemDescription
     {
     }
 
+    // Backward
+    ProblemDescription(miopenBatchNormMode_t bn_mode_,
+                       const TensorDescriptor& xDesc_,
+                       const TensorDescriptor& dyDesc_,
+                       const TensorDescriptor& dxDesc_,
+                       const TensorDescriptor& bnScaleBiasDiffDesc_,
+                       double epsilon_,
+                       bool useSaved_)
+        : direction(Direction::Backward),
+          bn_mode(bn_mode_),
+          xDesc(xDesc_),
+          yOrDyDesc(dyDesc_),
+          dxDesc(dxDesc_),
+          scaleBiasDesc(bnScaleBiasDiffDesc_),
+          epsilon(epsilon_),
+          useSaved(useSaved_)
+    {
+    }
+
     Direction GetDirection() const { return direction; }
     miopenBatchNormMode_t GetMode() const { return bn_mode; }
     const TensorDescriptor& GetXDesc() const { return xDesc; }
-    const TensorDescriptor& GetYDesc() const { return yDesc; }
-    const TensorDescriptor& GetBnScaleBiasMeanVarDesc() const { return bnScaleBiasMeanVarDesc; }
-    bool GetResultSave() const { return resultsave; }
-    bool GetResultRunning() const { return resultrunning; }
+
+    const TensorDescriptor& GetYDesc() const
+    {
+        assert(direction == Direction::ForwardTraining || direction == Direction::ForwardInference);
+        return yOrDyDesc;
+    }
+
+    const TensorDescriptor& GetDYDesc() const
+    {
+        assert(direction == Direction::Backward);
+        return yOrDyDesc;
+    }
+
+    const TensorDescriptor& GetDXDesc() const
+    {
+        assert(direction == Direction::Backward);
+        return dxDesc;
+    }
+
+    const TensorDescriptor& GetBnScaleBiasMeanVarDesc() const
+    {
+        assert(direction == Direction::ForwardTraining || direction == Direction::ForwardInference);
+        return scaleBiasDesc;
+    }
+
+    const TensorDescriptor& GetScaleBiasDiffDesc() const
+    {
+        assert(direction == Direction::Backward);
+        return scaleBiasDesc;
+    }
+
+    bool GetResultSave() const
+    {
+        assert(direction == Direction::ForwardTraining);
+        return resultsave;
+    }
+
+    bool GetResultRunning() const
+    {
+        assert(direction == Direction::ForwardTraining);
+        return resultrunning;
+    }
+
+    bool UseSaved() const
+    {
+        assert(direction == Direction::Backward);
+        return useSaved;
+    }
 
     NetworkConfig MakeNetworkConfig() const;
 
@@ -89,12 +154,18 @@ struct ProblemDescription
     Direction direction;
     miopenBatchNormMode_t bn_mode;
     TensorDescriptor xDesc;
-    TensorDescriptor yDesc;
-    TensorDescriptor bnScaleBiasMeanVarDesc;
-    double expAvgFactor;
+    TensorDescriptor yOrDyDesc;
+    TensorDescriptor dxDesc;
+    TensorDescriptor scaleBiasDesc;
+    double expAvgFactor = 0;
     double epsilon;
-    bool resultsave;
-    bool resultrunning;
+    bool resultsave    = false;
+    bool resultrunning = false;
+    bool useSaved      = false;
+
+    NetworkConfig MakeForwardTrainingNetworkConfig() const;
+    NetworkConfig MakeForwardInferenceNetworkConfig() const;
+    NetworkConfig MakeBackwardNetworkConfig() const;
 };
 
 } // namespace batchnorm
