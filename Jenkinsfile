@@ -189,6 +189,19 @@ def buildHipClangJobAndReboot(Map conf=[:]){
     }
 }
 
+def CheckDeserializePerfDb(Map conf=[:]){
+    def pdb_image = buildHipClangJob(conf)
+    pdb_image.inside(){
+        sh "ls"
+        sh "ls .."
+        sh "/opt/rocm/bin/fin -i fin/test/pdb_check_all.json -o pdb_deserialize_error.json"
+        archiveArtifacts "pdb_deserialize_error.json"
+        sh "grep clear pdb_deserialize_error.json"
+        def has_error = sh "echo \$?"
+        assert has_error.toInteger() == 0
+    }
+}
+
 
 /// Stage name format:
 /// [DataType] Backend[/Compiler] BuildType [TestSet] [Target]
@@ -321,15 +334,20 @@ pipeline {
                   agent{ label rocmnode("nogpu") }
                   environment{
                       setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON .. "
-                      build_cmd = "make install -j\$(nproc) "
-                      execute_cmd = "/opt/rocm/bin/fin -i fin/test/pdb_check_all.json -o pdb_serialized.json"
+                      build_cmd = "make -j\$(nproc) "
                   }
                   steps{
-                      buildHipClangJobAndReboot(setup_cmd: setup_cmd, execute_cmd: execute_cmd, no_reboot:true, build_cmd: build_cmd, build_fin: "ON")
-                      archiveArtifacts "pdb_deserialize_error.json"
-                      sh "grep clear pdb_deserialize_error.json"
-                      def has_error = sh "echo \$?"
-                      assert has_error.toInteger() == 0
+                      buildHipClangJobAndReboot(setup_cmd: setup_cmd, execute_cmd: "", no_reboot:true, build_cmd: build_cmd, build_fin: "ON")
+                  }
+              }
+              stage('Perf DB Deserialize Test') {
+                  agent{ label rocmnode("nogpu") }
+                  environment{
+                      setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON .. "
+                      build_cmd = "make install -j\$(nproc) "
+                  }
+                  steps{
+                      CheckDeserializePerfDb(setup_cmd: setup_cmd, execute_cmd: "", no_reboot:true, build_cmd: build_cmd, build_fin: "ON")
                   }
               }
             }
