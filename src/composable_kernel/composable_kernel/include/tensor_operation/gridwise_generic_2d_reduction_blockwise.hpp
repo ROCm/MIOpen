@@ -92,7 +92,7 @@ struct GridwiseReduction_xy_to_x_blockwise
         // LDS
         __shared__ compType p_in_block_buffer[BlockBufferSize];
 
-        auto zeroVal = opReduce::GetZeroVal();
+        constexpr auto zeroVal = opReduce::GetZeroVal();
 
         const auto src_global_buf = make_dynamic_buffer<AddressSpaceEnum_t::Global>(
             p_src_global, src2dDesc.GetElementSpaceSize(), type_convert<srcDataType>{}(zeroVal));
@@ -243,7 +243,7 @@ struct GridwiseReduction_xy_to_x_blockwise
         __shared__ compType p_in_block_buffer[BlockBufferSize];
         __shared__ int block_indices_buffer[BlockBufferSize];
 
-        auto zeroVal = opReduce::GetZeroVal();
+        constexpr auto zeroVal = opReduce::GetZeroVal();
 
         const auto src_global_buf = make_dynamic_buffer<AddressSpaceEnum_t::Global>(
             p_src_global, src2dDesc.GetElementSpaceSize(), type_convert<srcDataType>{}(zeroVal));
@@ -431,7 +431,7 @@ struct GridwiseReduction_xy_to_x_blockwise
         __shared__ compType p_in_block_buffer[BlockBufferSize];
         __shared__ int block_indices_buffer[BlockBufferSize];
 
-        auto zeroVal = opReduce::GetZeroVal();
+        constexpr auto zeroVal = opReduce::GetZeroVal();
 
         const auto src_global_val_buf =
             make_dynamic_buffer<AddressSpaceEnum_t::Global>(ws_values_global,

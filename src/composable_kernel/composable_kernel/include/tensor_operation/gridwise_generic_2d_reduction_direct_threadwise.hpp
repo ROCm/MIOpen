@@ -82,7 +82,7 @@ struct GridwiseReduction_xy_to_x_direct_threadwise
         (void)ws_indices_global;
         (void)indices_global;
 
-        const auto zeroVal = opReduce::GetZeroVal();
+        constexpr auto zeroVal = opReduce::GetZeroVal();
 
         const auto src_global_buf = make_dynamic_buffer<AddressSpaceEnum_t::Global>(
             p_src_global, src2dDesc.GetElementSpaceSize(), type_convert<srcDataType>{}(zeroVal));
@@ -204,7 +204,7 @@ struct GridwiseReduction_xy_to_x_direct_threadwise
     {
         (void)ws_indices_global;
 
-        const auto zeroVal = opReduce::GetZeroVal();
+        constexpr auto zeroVal = opReduce::GetZeroVal();
 
         const auto src_global_buf = make_dynamic_buffer<AddressSpaceEnum_t::Global>(
             p_src_global, src2dDesc.GetElementSpaceSize(), type_convert<srcDataType>{}(zeroVal));
@@ -348,7 +348,7 @@ struct GridwiseReduction_xy_to_x_direct_threadwise
     {
         (void)origReduceLen;
 
-        const auto zeroVal = opReduce::GetZeroVal();
+        constexpr auto zeroVal = opReduce::GetZeroVal();
 
         const auto src_global_val_buf =
             make_dynamic_buffer<AddressSpaceEnum_t::Global>(ws_values_global,

@@ -58,7 +58,7 @@ struct Add
 {
     using dataType = T;
 
-    __device__ static T GetZeroVal() { return type_convert<T>{}(0.0f); };
+    __device__ static constexpr T GetZeroVal() { return static_cast<T>(0.0f); };
 
     __device__ inline constexpr void operator()(T& a, T b) const { a = a + b; }
 
@@ -70,7 +70,7 @@ struct Mul
 {
     using dataType = T;
 
-    __device__ static T GetZeroVal() { return type_convert<T>{}(1.0f); };
+    __device__ static constexpr T GetZeroVal() { return static_cast<T>(1.0f); };
 
     __device__ inline constexpr void operator()(T& a, T b) const { a = a * b; }
 
@@ -82,7 +82,7 @@ struct Max
 {
     using dataType = T;
 
-    __device__ static T GetZeroVal() { return std::numeric_limits<T>::lowest(); };
+    __device__ static constexpr T GetZeroVal() { return NumericLimits<T>::lowest(); };
 
     __device__ inline constexpr void operator()(T& a, T b) const
     {
@@ -107,7 +107,7 @@ struct Min
 {
     using dataType = T;
 
-    __device__ static T GetZeroVal() { return std::numeric_limits<T>::max(); };
+    __device__ static constexpr T GetZeroVal() { return NumericLimits<T>::Max(); };
 
     __device__ inline constexpr void operator()(T& a, T b) const
     {
@@ -132,7 +132,7 @@ struct AMax
 {
     using dataType = T;
 
-    __device__ static T GetZeroVal() { return type_convert<T>{}(0.0f); };
+    __device__ static constexpr T GetZeroVal() { return static_cast<T>(0.0f); };
 
     __device__ inline constexpr void operator()(T& a, T b) const
     {
@@ -150,22 +150,6 @@ struct AMax
     }
 
     static constexpr bool indexable = true;
-};
-
-template <>
-__device__ half_t Max<half_t>::GetZeroVal()
-{
-    const unsigned short binary_lowest = 0xFBFF;
-
-    return *reinterpret_cast<const half_t*>(&binary_lowest);
-};
-
-template <>
-__device__ half_t Min<half_t>::GetZeroVal()
-{
-    const unsigned short binary_max = 0x7BFF;
-
-    return *reinterpret_cast<const half_t*>(&binary_max);
 };
 
 // Unary operators are usually called element-wisely before the reduction is executed on the
