@@ -57,7 +57,7 @@ bool ConvMlirIgemmBwd::IsApplicable(const ConvolutionContext& ctx) const
 PerformanceConvMlirIgemm ConvMlirIgemmBwd::GetPerformanceConfig(const ConvolutionContext& ctx) const
 {
     std::ignore = ctx;
-    return PerformanceConvMlirIgemm::GetHeuristicInitRequest();
+    return PerformanceConvMlirIgemm::MlirHeuristicInitRequest();
 }
 
 bool ConvMlirIgemmBwd::IsValidPerformanceConfig(const ConvolutionContext& ctx,

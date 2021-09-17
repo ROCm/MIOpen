@@ -47,23 +47,14 @@ std::string ConstructBuildOptions(const ConvolutionContext& ctx,
                                   bool is_xdlops,
                                   int kernel_id = 0)
 {
-    std::ostringstream mlir_handle;
-
-    bool isHeuristicRequest = false;
-    if(perf_config == T::GetHeuristicInitRequest())
-    {
-        isHeuristicRequest = true;
-    }
+    std::ostringstream options{ConstructBuildOptions(ctx, is_xdlops, kernel_id), std::ios::ate};
 
     // Library does heuristic initialization when no perf_config
     // is specified
-    // clang-format off
-    mlir_handle
-        << ConstructBuildOptions(ctx, is_xdlops, kernel_id)
-        << (isHeuristicRequest? "" : " --perf_config " + perf_config.ToString());
-    // clang-format on
+    if(!(perf_config == T::MlirHeuristicInitRequest()))
+        options << " --perf_config " + perf_config.ToString();
 
-    return mlir_handle.str();
+    return options.str();
 }
 
 } // namespace mlir

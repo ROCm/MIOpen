@@ -61,7 +61,7 @@ PerformanceConvMlirIgemmXdlops
 ConvMlirIgemmBwdXdlops::GetPerformanceConfig(const ConvolutionContext& ctx) const
 {
     std::ignore = ctx;
-    return PerformanceConvMlirIgemmXdlops::GetHeuristicInitRequest();
+    return PerformanceConvMlirIgemmXdlops::MlirHeuristicInitRequest();
 }
 
 bool ConvMlirIgemmBwdXdlops::IsValidPerformanceConfig(

@@ -37,9 +37,8 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD)
 namespace miopen {
 namespace solver {
 
-const PerformanceConvMlirIgemm& PerformanceConvMlirIgemm::GetHeuristicInitRequest()
+const PerformanceConvMlirIgemm& PerformanceConvMlirIgemm::MlirHeuristicInitRequest()
 {
-    // Special value to represent the heuristic initialized perf_config.
     static const PerformanceConvMlirIgemm p =
         PerformanceConvMlirIgemm(-2, -2, -2, -2, -2, -2, false);
     return p;
@@ -93,7 +92,7 @@ bool PerformanceConvMlirIgemm::operator==(const PerformanceConvMlirIgemm& other)
 bool PerformanceConvMlirIgemm::IsValid(const ConvolutionContext& ctx) const
 {
 #if MIOPEN_USE_MLIR
-    if(*this == GetHeuristicInitRequest())
+    if(*this == MlirHeuristicInitRequest())
         return true;
 
     return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, *this, false));
@@ -105,13 +104,8 @@ bool PerformanceConvMlirIgemm::IsValid(const ConvolutionContext& ctx) const
 
 bool PerformanceConvMlirIgemm::SetNextValue(const ConvolutionContext& /*config*/)
 {
-    if(*this == GetHeuristicInitRequest())
-    {
-        // If we ever attempt to iterate starting from the heuristic value,
-        // make its next iterator to be the minimal valid value.
-        *this = PerformanceConvMlirIgemm(use_spare_set);
-        return false;
-    }
+    if(*this == MlirHeuristicInitRequest())
+        MIOPEN_THROW("Should not iterate from the heuristic value");
 
     // always search full space, no matter if use_spare_set or not
     do
@@ -145,7 +139,7 @@ std::string PerformanceConvMlirIgemm::ToString() const
 PerformanceConvMlirIgemm ConvMlirIgemmFwd::GetPerformanceConfig(const ConvolutionContext& ctx) const
 {
     std::ignore = ctx;
-    return PerformanceConvMlirIgemm::GetHeuristicInitRequest();
+    return PerformanceConvMlirIgemm::MlirHeuristicInitRequest();
 }
 
 bool ConvMlirIgemmFwd::IsValidPerformanceConfig(const ConvolutionContext& ctx,

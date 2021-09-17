@@ -38,9 +38,8 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD_XDLOPS)
 namespace miopen {
 namespace solver {
 
-const PerformanceConvMlirIgemmXdlops& PerformanceConvMlirIgemmXdlops::GetHeuristicInitRequest()
+const PerformanceConvMlirIgemmXdlops& PerformanceConvMlirIgemmXdlops::MlirHeuristicInitRequest()
 {
-    // Special value to represent the heuristic initialized perf_config.
     static const PerformanceConvMlirIgemmXdlops p =
         PerformanceConvMlirIgemmXdlops(-2, -2, -2, -2, -2, -2, false, false, false);
     return p;
@@ -115,7 +114,7 @@ bool PerformanceConvMlirIgemmXdlops::operator==(const PerformanceConvMlirIgemmXd
 bool PerformanceConvMlirIgemmXdlops::IsValid(const ConvolutionContext& ctx) const
 {
 #if MIOPEN_USE_MLIR
-    if(*this == GetHeuristicInitRequest())
+    if(*this == MlirHeuristicInitRequest())
         return true;
 
     return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, *this, true));
@@ -127,13 +126,8 @@ bool PerformanceConvMlirIgemmXdlops::IsValid(const ConvolutionContext& ctx) cons
 
 bool PerformanceConvMlirIgemmXdlops::SetNextValue(const ConvolutionContext& /*config*/)
 {
-    if(*this == GetHeuristicInitRequest())
-    {
-        // If we ever attempt to iterate starting from the heuristic value,
-        // make its next iterator to be the minimal value.
-        *this = PerformanceConvMlirIgemmXdlops(use_spare_set);
-        return false;
-    }
+    if(*this == MlirHeuristicInitRequest())
+        MIOPEN_THROW("Should not iterate from the heuristic value");
 
     GemmBThreadCopyMoreGemmKPack = true;
     GemmAThreadCopyMoreGemmK     = true;
@@ -169,7 +163,7 @@ PerformanceConvMlirIgemmXdlops
 ConvMlirIgemmFwdXdlops::GetPerformanceConfig(const ConvolutionContext& ctx) const
 {
     std::ignore = ctx;
-    return PerformanceConvMlirIgemmXdlops::GetHeuristicInitRequest();
+    return PerformanceConvMlirIgemmXdlops::MlirHeuristicInitRequest();
 }
 
 bool ConvMlirIgemmFwdXdlops::IsValidPerformanceConfig(

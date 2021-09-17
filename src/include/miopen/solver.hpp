@@ -807,7 +807,8 @@ struct PerformanceConvMlirIgemm : Serializable<PerformanceConvMlirIgemm>
     int GemmNPerThread;
     bool use_spare_set;
 
-    static const PerformanceConvMlirIgemm& GetHeuristicInitRequest();
+    /// \ref https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1154
+    static const PerformanceConvMlirIgemm& MlirHeuristicInitRequest();
 
     PerformanceConvMlirIgemm(int, int, int, int, int, int, bool);
 
@@ -866,7 +867,8 @@ struct PerformanceConvMlirIgemmXdlops : Serializable<PerformanceConvMlirIgemmXdl
 
     bool use_spare_set;
 
-    static const PerformanceConvMlirIgemmXdlops& GetHeuristicInitRequest();
+    /// \ref https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1154
+    static const PerformanceConvMlirIgemmXdlops& MlirHeuristicInitRequest();
 
     PerformanceConvMlirIgemmXdlops(int, int, int, int, int, int, bool, bool, bool);
 
