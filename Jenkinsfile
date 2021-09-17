@@ -321,10 +321,15 @@ pipeline {
                   agent{ label rocmnode("nogpu") }
                   environment{
                       setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON .. "
-                      build_cmd = "make -j\$(nproc) "
+                      build_cmd = "make install -j\$(nproc) "
+                      execute_cmd = "/opt/rocm/bin/fin -i fin/test/pdb_check_all.json -o pdb_serialized.json"
                   }
                   steps{
-                      buildHipClangJobAndReboot(setup_cmd: setup_cmd, execute_cmd: "", no_reboot:true, build_cmd: build_cmd, build_fin: "ON")
+                      buildHipClangJobAndReboot(setup_cmd: setup_cmd, execute_cmd: execute_cmd, no_reboot:true, build_cmd: build_cmd, build_fin: "ON")
+                      archiveArtifacts "pdb_deserialize_error.json"
+                      sh "grep clear pdb_deserialize_error.json"
+                      def has_error = sh "echo $?"
+                      assert has_error.toInteger() == 0
                   }
               }
             }
