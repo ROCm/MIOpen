@@ -27,6 +27,7 @@
 #include <miopen/conv/invokers/mlir_impl_gemm.hpp>
 #include <miopen/config.h>
 #include <miopen/env.hpp>
+#include <miopen/generic_search.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/solver/mlir_common.hpp>
@@ -35,19 +36,6 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD)
 
 namespace miopen {
 namespace solver {
-
-namespace {
-#if MIOPEN_USE_MLIR
-std::string GetKernelName()
-{
-    std::string version   = "_v4r1";
-    std::string direction = "_bwd";
-    return "mlir_gen_igemm_conv2d" + version + direction;
-}
-
-std::string GetOperation() { return "conv2d_bwd_data"; }
-#endif
-} // Anonymous namespace
 
 bool ConvMlirIgemmBwd::IsApplicable(const ConvolutionContext& ctx) const
 {
@@ -59,29 +47,56 @@ bool ConvMlirIgemmBwd::IsApplicable(const ConvolutionContext& ctx) const
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
 
-    return MiirIsConfigApplicable(
-        mlir::ConstructBuildOptions(ctx, GetOperation(), GetKernelName(), false));
+    return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, false));
 #else
     std::ignore = ctx;
     return false;
 #endif
 }
 
-ConvSolution ConvMlirIgemmBwd::GetSolution(const ConvolutionContext& ctx) const
+PerformanceConvMlirIgemm ConvMlirIgemmBwd::GetPerformanceConfig(const ConvolutionContext& ctx) const
+{
+    std::ignore = ctx;
+    return {};
+}
+
+bool ConvMlirIgemmBwd::IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                                const PerformanceConvMlirIgemm& config) const
+{
+    MIOPEN_LOG_I("");
+    return config.IsValid(ctx);
+}
+
+PerformanceConvMlirIgemm ConvMlirIgemmBwd::Search(const ConvolutionContext& ctx,
+                                                  const AnyInvokeParams& invoke_ctx) const
+{
+    return GenericSearch(*this, ctx, invoke_ctx);
+}
+
+ConvSolution ConvMlirIgemmBwd::GetSolution(const ConvolutionContext& ctx,
+                                           const PerformanceConvMlirIgemm& config,
+                                           bool) const
 {
 #if MIOPEN_USE_MLIR
     ConvSolution result;
-    int kernel_count = MiirGetKernelCount(
-        mlir::ConstructBuildOptions(ctx, GetOperation(), GetKernelName(), false));
+    int kernel_count = MiirGetKernelCount(mlir::ConstructBuildOptions(ctx, false));
 
     for(int kernel_id = 0; kernel_id < kernel_count; ++kernel_id)
     {
         KernelInfo construction_parameters;
 
-        construction_parameters.kernel_name  = GetKernelName() + std::to_string(kernel_id);
+        construction_parameters.kernel_name  = mlir::GetKernelName(ctx, false, kernel_id);
         construction_parameters.kernel_file  = construction_parameters.kernel_name + ".mlir";
-        construction_parameters.comp_options = mlir::ConstructBuildOptions(
-            ctx, GetOperation(), construction_parameters.kernel_name, false, kernel_id);
+
+        if(config == PerformanceConvMlirIgemm())
+            // At this case, do not pass in the invalid perf config and instead make Miir library to
+            // do heuristic initialization
+            construction_parameters.comp_options =
+                mlir::ConstructBuildOptions(ctx, false, kernel_id);
+        else
+            // At this case, Make Miir library to use the valid perf config
+            construction_parameters.comp_options =
+                mlir::ConstructBuildOptions(ctx, config.ToString(), false, kernel_id);
 
         size_t local_size  = 0;
         size_t global_size = 0;
@@ -100,6 +115,7 @@ ConvSolution ConvMlirIgemmBwd::GetSolution(const ConvolutionContext& ctx) const
     return result;
 #else
     std::ignore = ctx;
+    std::ignore = config;
     return {};
 #endif
 }

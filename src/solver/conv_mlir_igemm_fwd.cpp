@@ -37,19 +37,6 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD)
 namespace miopen {
 namespace solver {
 
-namespace {
-#if MIOPEN_USE_MLIR
-std::string GetKernelName()
-{
-    std::string version   = "_v4r4";
-    std::string direction = "_fwd";
-    return "mlir_gen_igemm_conv2d" + version + direction;
-}
-
-std::string GetOperation() { return "conv2d"; }
-#endif
-} // Anonymous namespace
-
 PerformanceConvMlirIgemm::PerformanceConvMlirIgemm(int BlockSize_,
                                                    int GemmMPerBlock_,
                                                    int GemmNPerBlock_,
@@ -98,8 +85,7 @@ bool PerformanceConvMlirIgemm::operator==(const PerformanceConvMlirIgemm& other)
 bool PerformanceConvMlirIgemm::IsValid(const ConvolutionContext& ctx) const
 {
 #if MIOPEN_USE_MLIR
-    return MiirIsConfigApplicable(
-        mlir::ConstructBuildOptions(ctx, GetOperation(), GetKernelName(), ToString(), false));
+    return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, ToString(), false));
 #else
     std::ignore = ctx;
     return false;
@@ -167,8 +153,7 @@ bool ConvMlirIgemmFwd::IsApplicable(const ConvolutionContext& ctx) const
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
 
-    return MiirIsConfigApplicable(
-        mlir::ConstructBuildOptions(ctx, GetOperation(), GetKernelName(), false));
+    return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, false));
 #else
     std::ignore = ctx;
     return false;
@@ -183,18 +168,17 @@ ConvSolution ConvMlirIgemmFwd::GetSolution(const ConvolutionContext& ctx,
     ConvSolution result;
     KernelInfo construction_parameters;
 
-    construction_parameters.kernel_name = GetKernelName();
+    construction_parameters.kernel_name = mlir::GetKernelName(ctx, false);
     construction_parameters.kernel_file = construction_parameters.kernel_name + ".mlir";
 
     if(config == PerformanceConvMlirIgemm())
         // At this case, do not pass in the invalid perf config and instead make Miir library to do
         // heuristic initialization
-        construction_parameters.comp_options =
-            mlir::ConstructBuildOptions(ctx, GetOperation(), GetKernelName(), false);
+        construction_parameters.comp_options = mlir::ConstructBuildOptions(ctx, false);
     else
         // At this case, Make Miir library to use the valid perf config
-        construction_parameters.comp_options = mlir::ConstructBuildOptions(
-            ctx, GetOperation(), GetKernelName(), config.ToString(), false);
+        construction_parameters.comp_options =
+            mlir::ConstructBuildOptions(ctx, config.ToString(), false);
 
     size_t local_size  = 0;
     size_t global_size = 0;

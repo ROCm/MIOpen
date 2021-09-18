@@ -29,7 +29,7 @@ KERNEL_PROLOG f3x2_fp32_stride1_group
 
 .if (.amdgcn.gfx_generation_number == 9)
     .if (.amdgcn.gfx_generation_stepping == 10)
-        .error "gfx90a is not supported yet"
+        .include "Conv_Winograd_v21_1_2_gfx90a_f3x2_fp32_stride1_group.inc"
     .else
         .include "Conv_Winograd_v21_1_2_gfx9_f3x2_fp32_stride1_group.inc"
     .endif
