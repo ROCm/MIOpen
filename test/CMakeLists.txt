@@ -196,7 +196,7 @@ if(MIOPEN_TEST_GFX1030)
 endif()
 
 if(MIOPEN_TEST_VEGA)
-    if(WORKAROUND_ISSUE_1161 AND MIOPEN_TEST_ALL)
+    if(WORKAROUND_ISSUE_1061 AND MIOPEN_TEST_ALL)
         list(APPEND SKIP_TESTS test_conv_embed_db)
     endif()
 endif()
