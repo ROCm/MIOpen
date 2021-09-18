@@ -46,7 +46,6 @@ option( MIOPEN_TEST_MLIR "Add tests for MLIR -- EXPERIMENTAL" ${MIOPEN_USE_MLIR}
 option( WORKAROUND_ISSUE_898 "" ON)
 option( WORKAROUND_ISSUE_936 "" ON)
 option( WORKAROUND_ISSUE_1053 "" ON)
-option( WORKAROUND_ISSUE_1061 "" ON)
 
 # Run the test suite to a depth limit
 #limit greater than 2 leads to prolonged testing more than 5hrs per stage.
@@ -192,12 +191,6 @@ endif()
 if(MIOPEN_TEST_GFX1030)
     if(WORKAROUND_ISSUE_1053 AND MIOPEN_TEST_ALL)
         list(APPEND SKIP_TESTS test_lrn_test)
-    endif()
-endif()
-
-if(MIOPEN_TEST_VEGA)
-    if(WORKAROUND_ISSUE_1061 AND MIOPEN_TEST_ALL)
-        list(APPEND SKIP_TESTS test_conv_embed_db)
     endif()
 endif()
 
@@ -569,7 +562,8 @@ set(IMPLICITGEMM_ARGS ${MIOPEN_TEST_FLOAT_ARG})
 
 # ./bin/MIOpenDriver conv -n 128 -c 1024 -H 14 -W 14 -k 2048 -y 1 -x 1 -p 0 -q 0 -u 2 -v 2 -l 1 -j 1 -m conv -g 1 -F 1 -t 1
 # MIOPEN_DEBUG_CONV_IMMED_FALLBACK=0
-if(MIOPEN_EMBED_DB)
+# WORKAROUND_ISSUE_1061 : not MIOPEN_TEST_VEGA
+if(MIOPEN_EMBED_DB AND NOT MIOPEN_TEST_VEGA)
     set(MIOPEN_EMBED_TEST_ARG ${MIOPEN_TEST_FLOAT_ARG} --disable-validation --verbose)
     # WORKAROUND for issue #874
     set(MIOPEN_WA_ISSUE_874_F  MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0)
