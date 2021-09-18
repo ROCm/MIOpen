@@ -29,7 +29,7 @@
 #include "tensor_descriptor_helper.hpp"
 #include "data_type_enum_helper.hpp"
 #include "reduction_common.hpp"
-#include "gridwise_generic_2d_reduction_direct_threadwise.hpp"
+#include "gridwise_generic_2d_reduction_direct_warpwise.hpp"
 
 using namespace ck;
 
@@ -45,8 +45,11 @@ constexpr index_t BlockSize = CK_PARAM_BLOCKSIZE; // tunable
 constexpr index_t srcDims = CK_PARAM_IN_DIMS;
 constexpr index_t dstDims = CK_PARAM_OUT_DIMS;
 
-using toReduceDims  = Sequence<CK_PARAM_TOREDUCE_DIMS>;
-using invariantDims = Sequence<CK_PARAM_INVARIANT_DIMS>; // this could be empty
+constexpr index_t num_toReduceDims  = CK_PARAM_NUM_TOREDUCE_DIMS;
+constexpr index_t num_invariantDims = srcDims - num_toReduceDims;
+
+using invariantDims = typename arithmetic_sequence_gen<0, num_invariantDims, 1>::type;
+using toReduceDims  = typename arithmetic_sequence_gen<num_invariantDims, srcDims, 1>::type;
 
 constexpr ReduceTensorOp_t op          = static_cast<ReduceTensorOp_t>(CK_PARAM_REDUCE_OP);
 constexpr NanPropagation_t nanPropaOpt = CK_PARAM_NAN_PROPAGATE == 0
@@ -59,20 +62,12 @@ constexpr ReduceTensorIndices_t reduceIndicesOpt = CK_PARAM_REDUCE_INDICES == 0
 constexpr bool src2d_need_padding = static_cast<bool>(CK_PARAM_SRC2D_PADDING);
 constexpr bool dst1d_need_padding = static_cast<bool>(CK_PARAM_DST1D_PADDING);
 
-////////////////////////////////////////////////////////////////////////////////////////
-using specDims = typename sequence_merge<invariantDims, toReduceDims>::type;
-
-static_assert(is_valid_sequence_map<specDims>::value && specDims::Size() == srcDims,
-              "Wrong invariant and/or toReduce dimensions!");
-
-// The number of invariant dimensions can be zero if all dimension are to be reduced
-static_assert(invariantDims::Size() > 0 || dstDims == 1,
-              "If all source dimensions are reduced, the dest should have only one dimension !!");
+static_assert(num_toReduceDims > 0, "At least one dimension need be reduced!!!");
 
 constexpr bool indexable    = reduce_binary_operator<compType, op>::indexable;
 constexpr bool need_indices = indexable && (reduceIndicesOpt != ReduceTensorIndices_t::NO_INDICES);
 
-constexpr index_t GredThreadBufferLength = CK_PARAM_THREAD_BUFFER_LENGTH; // tunable
+constexpr index_t GredAccessesPerThreadInWarp = CK_PARAM_ACCESSES_PER_THREAD_INWARP; // tunable
 
 // helper functions using variadic template arguments
 template <index_t... Ns>
@@ -139,13 +134,14 @@ extern "C" __global__ void gridwise_generic_reduce_2_prepare(int GridSize,
 
     auto src2dDesc = make_naive_tensor_descriptor_packed(make_tuple(invariantLen, toReduceLen));
 
-    constexpr auto copySliceLen = GredThreadBufferLength;
+    constexpr auto copySliceLen = warpSize * GredAccessesPerThreadInWarp;
 
     if constexpr(src2d_need_padding)
     {
-        const auto srcPad1 = GridSize * BlockSize - invariantLen;
+        const auto srcPad1 = GridSize * BlockSize / warpSize - invariantLen;
         const auto srcPad2 =
             ((toReduceLen + copySliceLen - 1) / copySliceLen) * copySliceLen - toReduceLen;
+
         auto src2dDesc_2 =
             transform_tensor_descriptor(src2dDesc,
                                         make_tuple(make_pad_transform(invariantLen, 0, srcPad1),
@@ -163,7 +159,7 @@ extern "C" __global__ void gridwise_generic_reduce_2_prepare(int GridSize,
 
     if constexpr(dst1d_need_padding)
     {
-        const auto dstPad = GridSize * BlockSize - invariantLen;
+        const auto dstPad = GridSize * BlockSize / warpSize - invariantLen;
         auto dst1dDesc_2 =
             transform_tensor_descriptor(dst1dDesc,
                                         make_tuple(make_pad_transform(invariantLen, 0, dstPad)),
@@ -264,18 +260,19 @@ extern "C" __global__ void gridwise_generic_reduce_2(int origReduceLen,
     const auto src2dDesc = get_reduction_src2d_descriptor<src2d_need_padding>(p_src2dDesc);
     const auto dst1dDesc = get_reduction_dst1d_descriptor<dst1d_need_padding>(p_dst1dDesc);
 
-    using gridwise_2d_reduce = GridwiseReduction_xy_to_x_direct_threadwise<BlockSize,
-                                                                           srcDataType,
-                                                                           dstDataType,
-                                                                           compType,
-                                                                           decltype(src2dDesc),
-                                                                           decltype(dst1dDesc),
-                                                                           op,
-                                                                           nanPropaOpt,
-                                                                           reduceIndicesOpt,
-                                                                           false,
-                                                                           true,
-                                                                           GredThreadBufferLength>;
+    using gridwise_2d_reduce =
+        GridwiseReduction_xy_to_x_direct_warpwise<BlockSize,
+                                                  srcDataType,
+                                                  dstDataType,
+                                                  compType,
+                                                  decltype(src2dDesc),
+                                                  decltype(dst1dDesc),
+                                                  op,
+                                                  nanPropaOpt,
+                                                  reduceIndicesOpt,
+                                                  false,
+                                                  true,
+                                                  GredAccessesPerThreadInWarp>;
 
     void* const ws_buf2_global =
         ws_buf2_bytes_offset > 0

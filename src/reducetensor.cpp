@@ -437,12 +437,17 @@ static std::pair<bool, bool> get_padding_need(ReductionMethod_t reduceImpl,
     return (std::make_pair(src_need_padding, dst_need_padding));
 };
 
-static std::string get_first_call_kernel_file(const ReductionMethod_t reduceImpl,
-                                              const bool allDimsReduced)
+static std::string get_kernel_file_name(const bool isFirstCall,
+                                        const ReductionMethod_t reduceImpl,
+                                        const bool allDimsReduced)
 {
     std::ostringstream outs;
 
-    outs << "gridwise_generic_reduction_first_call_" << getReductionMethodStr(reduceImpl);
+    if(isFirstCall)
+        outs << "gridwise_generic_reduction_first_call_" << getReductionMethodStr(reduceImpl);
+    else
+        outs << "gridwise_generic_reduction_second_call_" << getReductionMethodStr(reduceImpl);
+
     if(allDimsReduced)
         outs << "_reduce_all_dims.cpp";
     else
@@ -862,19 +867,27 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
         int p_outLengths[6] = {0};
         int p_outStrides[6] = {0};
 
-        for(int i = 0; i < inDescLengths.size(); i++)
-            p_inLengths[i] = static_cast<int>(inDescLengths[i]);
-
-        for(int i = 0; i < inDescStrides.size(); i++)
-            p_inStrides[i] = static_cast<int>(inDescStrides[i]);
-
         int pos = 0;
         for(int i = 0; i < outDescLengths.size(); i++)
         {
+            // invariant dimensions
             if(outDescLengths[i] > 1)
             {
                 p_outLengths[pos] = static_cast<int>(outDescLengths[i]);
                 p_outStrides[pos] = static_cast<int>(outDescStrides[i]);
+                p_inLengths[pos]  = static_cast<int>(inDescLengths[i]);
+                p_inStrides[pos]  = static_cast<int>(inDescStrides[i]);
+                pos++;
+            };
+        };
+
+        for(int i = 0; i < outDescLengths.size(); i++)
+        {
+            // toReduce dimensions
+            if(outDescLengths[i] == 1)
+            {
+                p_inLengths[pos] = static_cast<int>(inDescLengths[i]);
+                p_inStrides[pos] = static_cast<int>(inDescStrides[i]);
                 pos++;
             };
         };
@@ -900,26 +913,8 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
             detailD::get_definition_string_from_type_enums(srcDataType, compType, dstDataType) +
             " " + detailD::get_definition_string_from_tunable(tunable);
 
-        param += " -DCK_PARAM_TOREDUCE_DIMS=";
-        for(int i = 0; i < toReduceDims.size(); i++)
-        {
-            param += std::to_string(toReduceDims[i]);
-            if(i < toReduceDims.size() - 1)
-                param += ",";
-        };
-
         if(!reduceAllDims)
-        {
-            param += " -DCK_PARAM_INVARIANT_DIMS=";
-            for(int i = 0; i < invariantDims.size(); i++)
-            {
-                param += std::to_string(invariantDims[i]);
-                if(i < invariantDims.size() - 1)
-                    param += ",";
-            };
-        }
-        else
-            param += " -DCK_PARAM_INVARIANT_DIMS= ";
+            param += " -DCK_PARAM_NUM_TOREDUCE_DIMS=" + std::to_string(toReduceDims.size());
 
         param += " -DCK_PARAM_REDUCE_OP=" +
                  std::to_string(static_cast<int>(detailD::mapReduceOpId(reduceOp)));
@@ -959,41 +954,54 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
             " -DCK_PARAM_DST1D_PADDING=" + std::to_string(static_cast<int>(use_padding.second));
 
         const std::string program_name1 =
-            detailD::get_first_call_kernel_file(reduceImpl, reduceAllDims);
+            detailD::get_kernel_file_name(true, reduceImpl, reduceAllDims);
         std::string kernel_name1     = "gridwise_generic_reduce_1_prepare";
         std::string network_config_1 = network_config + "_1_P" + std::to_string(reduceImpl) +
                                        std::to_string(static_cast<int>(use_padding.first)) +
                                        std::to_string(static_cast<int>(use_padding.second));
 
-        handle.AddKernel(
-            algo_name, network_config_1, program_name1, kernel_name1, vld, vgd1, param1)(
-            gridSize,
-            blkGroupSize,
-            p_inLengths[0],
-            p_inLengths[1],
-            p_inLengths[2],
-            p_inLengths[3],
-            p_inLengths[4],
-            p_inLengths[5],
-            p_inStrides[0],
-            p_inStrides[1],
-            p_inStrides[2],
-            p_inStrides[3],
-            p_inStrides[4],
-            p_inStrides[5],
-            p_outLengths[0],
-            p_outLengths[1],
-            p_outLengths[2],
-            p_outLengths[3],
-            p_outLengths[4],
-            p_outLengths[5],
-            p_outStrides[0],
-            p_outStrides[1],
-            p_outStrides[2],
-            p_outStrides[3],
-            p_outStrides[4],
-            p_outStrides[5],
-            workspace);
+        if(!reduceAllDims)
+            handle.AddKernel(
+                algo_name, network_config_1, program_name1, kernel_name1, vld, vgd1, param1)(
+                gridSize,
+                blkGroupSize,
+                p_inLengths[0],
+                p_inLengths[1],
+                p_inLengths[2],
+                p_inLengths[3],
+                p_inLengths[4],
+                p_inLengths[5],
+                p_inStrides[0],
+                p_inStrides[1],
+                p_inStrides[2],
+                p_inStrides[3],
+                p_inStrides[4],
+                p_inStrides[5],
+                p_outStrides[0],
+                p_outStrides[1],
+                p_outStrides[2],
+                p_outStrides[3],
+                p_outStrides[4],
+                p_outStrides[5],
+                workspace);
+        else
+            handle.AddKernel(
+                algo_name, network_config_1, program_name1, kernel_name1, vld, vgd1, param1)(
+                gridSize,
+                blkGroupSize,
+                p_inLengths[0],
+                p_inLengths[1],
+                p_inLengths[2],
+                p_inLengths[3],
+                p_inLengths[4],
+                p_inLengths[5],
+                p_inStrides[0],
+                p_inStrides[1],
+                p_inStrides[2],
+                p_inStrides[3],
+                p_inStrides[4],
+                p_inStrides[5],
+                workspace);
 
         if(handle.IsProfilingEnabled())
             time_reduce += handle.GetKernelTime();
@@ -1041,30 +1049,35 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
                                  " -DCK_PARAM_DST1D_PADDING=" +
                                  std::to_string(static_cast<int>(use_padding2.second));
 
-            std::string program_name2 = "gridwise_generic_reduction_second_call_" +
-                                        detailD::getReductionMethodStr(reduceImpl2) + ".cpp";
+            std::string program_name2 =
+                detailD::get_kernel_file_name(false, reduceImpl2, reduceAllDims);
             std::string kernel_name2     = "gridwise_generic_reduce_2_prepare";
             std::string network_config_2 = network_config + "_2_P" + std::to_string(reduceImpl2) +
                                            std::to_string(static_cast<int>(use_padding2.first)) +
                                            std::to_string(static_cast<int>(use_padding2.second));
 
-            handle.AddKernel(
-                algo_name, network_config_2, program_name2, kernel_name2, vld, vgd1, param2)(
-                gridSize_2,
-                blkGroupSize,
-                p_outLengths[0],
-                p_outLengths[1],
-                p_outLengths[2],
-                p_outLengths[3],
-                p_outLengths[4],
-                p_outLengths[5],
-                p_outStrides[0],
-                p_outStrides[1],
-                p_outStrides[2],
-                p_outStrides[3],
-                p_outStrides[4],
-                p_outStrides[5],
-                workspace);
+            if(!reduceAllDims)
+                handle.AddKernel(
+                    algo_name, network_config_2, program_name2, kernel_name2, vld, vgd1, param2)(
+                    gridSize_2,
+                    blkGroupSize,
+                    p_outLengths[0],
+                    p_outLengths[1],
+                    p_outLengths[2],
+                    p_outLengths[3],
+                    p_outLengths[4],
+                    p_outLengths[5],
+                    p_outStrides[0],
+                    p_outStrides[1],
+                    p_outStrides[2],
+                    p_outStrides[3],
+                    p_outStrides[4],
+                    p_outStrides[5],
+                    workspace);
+            else
+                handle.AddKernel(
+                    algo_name, network_config_2, program_name2, kernel_name2, vld, vgd1, param2)(
+                    gridSize_2, blkGroupSize, workspace);
 
             if(handle.IsProfilingEnabled())
                 time_reduce += handle.GetKernelTime();
