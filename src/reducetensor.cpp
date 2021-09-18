@@ -45,7 +45,7 @@
 
 // headers from composable kernel, to get consistent ID mapping
 #include "../composable_kernel/composable_kernel/include/utility/data_type_enum.hpp"
-#include "../composable_kernel/composable_kernel/include/utility/reduction_common.hpp"
+#include "../composable_kernel/composable_kernel/include/utility/reduction_enums.hpp"
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DYNAMIC_REDUCTION);
 
@@ -299,7 +299,7 @@ namespace detailD {
 
 static ck::DataTypeEnum_t mapDataTypeId(miopenDataType_t t)
 {
-    using namespace ck;
+    using ck::DataTypeEnum_t;
 
     switch(t)
     {
@@ -316,7 +316,7 @@ static ck::DataTypeEnum_t mapDataTypeId(miopenDataType_t t)
 
 static ck::ReduceTensorOp_t mapReduceOpId(miopenReduceTensorOp_t t)
 {
-    using namespace ck;
+    using ck::ReduceTensorOp_t;
 
     switch(t)
     {
