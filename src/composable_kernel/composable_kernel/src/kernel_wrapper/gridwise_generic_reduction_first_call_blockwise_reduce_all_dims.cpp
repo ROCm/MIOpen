@@ -253,7 +253,7 @@ using refType_src2dDesc_padded_34 =
 using refType_dst1dDesc_padded =
     typename get_ref_desc_types<srcDims, dstDims, toReduceDims>::refType_dst1dDesc_padded;
 
-template <ReductionMethod_t impl, bool need_padding>
+template <bool need_padding>
 static __device__ auto get_reduction_src2d_descriptor(const void* p_src2dDesc)
 {
     if constexpr(need_padding)
