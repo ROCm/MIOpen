@@ -194,7 +194,9 @@ def CheckDeserializePerfDb(Map conf=[:]){
     pdb_image.inside(){
         sh "ls"
         sh "ls .."
-        sh "/opt/rocm/bin/fin -i fin/test/pdb_check_all.json -o pdb_deserialize_error.json"
+        sh "which fin"
+        sh "ls /opt/rocm/bin/"
+        sh "fin -i fin/test/pdb_check_all.json -o pdb_deserialize_error.json"
         archiveArtifacts "pdb_deserialize_error.json"
         sh "grep clear pdb_deserialize_error.json"
         def has_error = sh "echo \$?"
@@ -343,11 +345,13 @@ pipeline {
               stage('Perf DB Deserialize Test') {
                   agent{ label rocmnode("nogpu") }
                   environment{
-                      setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON .. "
-                      build_cmd = "make -j\$(nproc) "
+                      prefixpath = "/opt/rocm"
+                      //setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON .. "
+                      //build_cmd = "make -j\$(nproc) "
                   }
                   steps{
-                      CheckDeserializePerfDb(setup_cmd: setup_cmd, execute_cmd: "", no_reboot:true, build_cmd: build_cmd, build_fin: "ON")
+                      //CheckDeserializePerfDb(setup_cmd: setup_cmd, execute_cmd: "", no_reboot:true, build_cmd: build_cmd, build_fin: "ON")
+                      CheckDeserializePerfDb(prefixpath: prefixpath, build_type: 'debug', no_reboot:true, build_fin: "ON")
                   }
               }
             }
