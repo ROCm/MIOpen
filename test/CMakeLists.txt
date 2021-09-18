@@ -46,6 +46,7 @@ option( MIOPEN_TEST_MLIR "Add tests for MLIR -- EXPERIMENTAL" ${MIOPEN_USE_MLIR}
 option( WORKAROUND_ISSUE_898 "" ON)
 option( WORKAROUND_ISSUE_936 "" ON)
 option( WORKAROUND_ISSUE_1053 "" ON)
+option( WORKAROUND_ISSUE_1061 "" ON)
 
 # Run the test suite to a depth limit
 #limit greater than 2 leads to prolonged testing more than 5hrs per stage.
@@ -191,6 +192,12 @@ endif()
 if(MIOPEN_TEST_GFX1030)
     if(WORKAROUND_ISSUE_1053 AND MIOPEN_TEST_ALL)
         list(APPEND SKIP_TESTS test_lrn_test)
+    endif()
+endif()
+
+if(MIOPEN_TEST_VEGA)
+    if(WORKAROUND_ISSUE_1161 AND MIOPEN_TEST_ALL)
+        list(APPEND SKIP_TESTS test_conv_embed_db)
     endif()
 endif()
 
