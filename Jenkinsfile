@@ -115,7 +115,7 @@ def buildHipClangJob(Map conf=[:]){
         def target_id = conf.get("target_id", "OFF")
         def mlir_build = conf.get("mlir_build", "OFF")
         def build_fin = conf.get("build_fin", "OFF")
-        def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
+        def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --group-add render --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
         def dockerArgs = "--build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' --build-arg USE_TARGETID='${target_id}' --build-arg USE_MLIR='${mlir_build}' --build-arg USE_FIN='${build_fin}' "
 
         def variant = env.STAGE_NAME
