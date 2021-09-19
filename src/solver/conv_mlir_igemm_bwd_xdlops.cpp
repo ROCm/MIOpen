@@ -61,7 +61,7 @@ PerformanceConvMlirIgemmXdlops
 ConvMlirIgemmBwdXdlops::GetPerformanceConfig(const ConvolutionContext& ctx) const
 {
     std::ignore = ctx;
-    return {};
+    return PerformanceConvMlirIgemmXdlops::MlirHeuristicInitRequest();
 }
 
 bool ConvMlirIgemmBwdXdlops::IsValidPerformanceConfig(
@@ -92,16 +92,8 @@ ConvSolution ConvMlirIgemmBwdXdlops::GetSolution(const ConvolutionContext& ctx,
 
         construction_parameters.kernel_name  = mlir::GetKernelName(ctx, true, kernel_id);
         construction_parameters.kernel_file  = construction_parameters.kernel_name + ".mlir";
-
-        if(config == PerformanceConvMlirIgemmXdlops())
-            // At this case, do not pass in the invalid perf config and instead make Miir library to
-            // do heuristic initialization
-            construction_parameters.comp_options =
-                mlir::ConstructBuildOptions(ctx, true, kernel_id);
-        else
-            // At this case, Make Miir library to use the valid perf config
-            construction_parameters.comp_options =
-                mlir::ConstructBuildOptions(ctx, config.ToString(), true, kernel_id);
+        construction_parameters.comp_options =
+            mlir::ConstructBuildOptions(ctx, config, true, kernel_id);
 
         size_t local_size  = 0;
         size_t global_size = 0;
