@@ -57,7 +57,7 @@ struct AnySolver
         assert(ptr_value != nullptr);
         return ptr_value->IsTunable();
     };
-    bool TestSysDbRecord(DbRecord& record) const
+    bool TestSysDbRecord(const DbRecord& record) const
     {
         assert(ptr_value != nullptr);
         return ptr_value->TestSysDbRecord(record);
@@ -105,7 +105,7 @@ struct AnySolver
         virtual ~AnySolver_base(){};
         virtual bool IsApplicable(const ConvolutionContext& ctx) const                     = 0;
         virtual bool IsTunable() const                                                     = 0;
-        virtual bool TestSysDbRecord(DbRecord& record) const                               = 0;
+        virtual bool TestSysDbRecord(const DbRecord& record) const                         = 0;
         virtual bool IsDynamic() const                                                     = 0;
         virtual float GetWti(const ConvolutionContext& ctx) const                          = 0;
         virtual const std::type_info& Type() const                                         = 0;
@@ -138,19 +138,19 @@ struct AnySolver
             static constexpr bool Is = type::value;
         };
 
-        bool TestSysDbRecord(DbRecord& record, std::true_type) const
+        bool TestSysDbRecord(const DbRecord& record, std::true_type) const
         {
             using PerformanceConfig = decltype(value.GetPerformanceConfig(std::declval<const ConvolutionContext&>()));
             PerformanceConfig config{};
             return record.GetValues(SolverDbId(value), config);
         }
-        bool TestSysDbRecord(DbRecord& record, std::false_type) const
+        bool TestSysDbRecord(const DbRecord& record, std::false_type) const
         {
             (void)(record);
             return false;
         }
 
-        bool TestSysDbRecord(DbRecord& record) const override
+        bool TestSysDbRecord(const DbRecord& record) const override
         {
             return TestSysDbRecord(record, std::integral_constant<bool, TunableSolver::Is>());
         }
