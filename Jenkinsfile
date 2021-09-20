@@ -351,7 +351,7 @@ pipeline {
                   }
                   steps{
                       //CheckDeserializePerfDb(setup_cmd: setup_cmd, execute_cmd: "", no_reboot:true, build_cmd: build_cmd, build_fin: "ON")
-                      CheckDeserializePerfDb(prefixpath: prefixpath, build_type: 'debug', no_reboot:true, build_fin: "ON")
+                      CheckDeserializePerfDb(prefixpath: prefixpath, no_reboot:true, build_fin: "ON", build_install: "true")
                   }
               }
             }
