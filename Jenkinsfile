@@ -194,6 +194,8 @@ def CheckDeserializePerfDb(Map conf=[:]){
     pdb_image.inside(){
         sh "ls"
         sh "ls .."
+        sh "ls /opt/rocm/" 
+        sh "ls /opt/rocm/bin/" 
         sh "which fin"
         sh "ls /opt/rocm/bin/"
         sh "fin -i fin/test/pdb_check_all.json -o pdb_deserialize_error.json"
