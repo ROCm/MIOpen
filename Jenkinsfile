@@ -337,7 +337,10 @@ pipeline {
               stage('Tuna Fin Build Test') {
                   agent{ label rocmnode("nogpu") }
                   environment{
-                      setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON .. "
+                      setup_cmd = """
+                          apt-get install -y sqlite3;
+                          CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON ..;
+                      """
                       build_cmd = "make -j\$(nproc) "
                   }
                   steps{
