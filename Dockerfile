@@ -46,6 +46,7 @@ apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unau
     libelf-dev \
     libncurses5-dev \
     libpthread-stubs0-dev \
+    libsqlite3-dev \
     llvm-amdgpu \
     miopengemm \
     pkg-config \
