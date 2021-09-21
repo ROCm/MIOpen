@@ -353,10 +353,10 @@ pipeline {
                       //starts in miopen build dir
                       execute_cmd = """
                           cd ../fin;
-                          cmake -P install_deps.cmake;
+                          cmake -P install_deps.cmake --prefix \$PWD/deps;
                           mkdir _hip;
                           cd _hip;
-                          CXX=/opt/rocm/llvm/bin/clang++ cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH=../../cget/ ..; 
+                          CXX=/opt/rocm/llvm/bin/clang++ cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH='../../cget/:../deps/' ..; 
                           make -j\$(nproc);
                           make install;
                       """
