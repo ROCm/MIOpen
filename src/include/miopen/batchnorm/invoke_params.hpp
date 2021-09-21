@@ -48,6 +48,21 @@ struct InvokeParams : public miopen::InvokeParams
     Data_t resultSaveInvVariance = nullptr;
 };
 
+struct BwdInvokeParams : public miopen::InvokeParams
+{
+    BwdInvokeParams() = default;
+
+    ConstData_t x                = nullptr;
+    ConstData_t dy               = nullptr;
+    Data_t dx                    = nullptr;
+    ConstData_t bnScale          = nullptr;
+    Data_t resultBnScaleDiff     = nullptr;
+    Data_t resultBnBiasDiff      = nullptr;
+    double epsilon               = 0;
+    ConstData_t savedMean        = nullptr;
+    ConstData_t savedInvVariance = nullptr;
+};
+
 } // namespace batchnorm
 
 } // namespace miopen
