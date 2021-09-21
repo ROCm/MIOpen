@@ -807,6 +807,9 @@ struct PerformanceConvMlirIgemm : Serializable<PerformanceConvMlirIgemm>
     int GemmNPerThread;
     bool use_spare_set;
 
+    /// \ref https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1154
+    static const PerformanceConvMlirIgemm& MlirHeuristicInitRequest();
+
     PerformanceConvMlirIgemm(int, int, int, int, int, int, bool);
 
     PerformanceConvMlirIgemm(int a, int b, int c, int d, int e, int f)
@@ -854,10 +857,8 @@ struct PerformanceConvMlirIgemmXdlops : Serializable<PerformanceConvMlirIgemmXdl
     int GemmMPerBlock; // 2^n[32..128]
     int GemmNPerBlock; // 2^n[8..16]
     int GemmKPerBlock; // 2^n[4..16]
-
     int GemmMPerWave;
     int GemmNPerWave;
-
     int GemmKPACKSize; // 2^[1..4]
 
     // GemmAThreadCopyMoreGemmK is currently a fix value, is untunable
@@ -865,6 +866,10 @@ struct PerformanceConvMlirIgemmXdlops : Serializable<PerformanceConvMlirIgemmXdl
     bool GemmBThreadCopyMoreGemmKPack;
 
     bool use_spare_set;
+
+    /// \ref https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1154
+    static const PerformanceConvMlirIgemmXdlops& MlirHeuristicInitRequest();
+
     PerformanceConvMlirIgemmXdlops(int, int, int, int, int, int, bool, bool, bool);
 
     PerformanceConvMlirIgemmXdlops();
@@ -977,13 +982,27 @@ struct ConvHipImplicitGemmMlirCppWrW : SolverBase<ConvolutionContext>
 struct ConvMlirIgemmWrW : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+    PerformanceConvMlirIgemm GetPerformanceConfig(const ConvolutionContext& ctx) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                  const PerformanceConvMlirIgemm& config) const;
+    PerformanceConvMlirIgemm Search(const ConvolutionContext&,
+                                    const AnyInvokeParams& invoke_ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const PerformanceConvMlirIgemm& config,
+                             bool disableConfigOverrideFromEnv = false) const;
 };
 
 struct ConvMlirIgemmWrWXdlops : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+    PerformanceConvMlirIgemmXdlops GetPerformanceConfig(const ConvolutionContext& ctx) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                  const PerformanceConvMlirIgemmXdlops& config) const;
+    PerformanceConvMlirIgemmXdlops Search(const ConvolutionContext&,
+                                          const AnyInvokeParams& invoke_ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const PerformanceConvMlirIgemmXdlops& config,
+                             bool disableConfigOverrideFromEnv = false) const;
 };
 
 struct PerformanceImplicitGemmXdlops : Serializable<PerformanceImplicitGemmXdlops>
