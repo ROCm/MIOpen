@@ -196,9 +196,8 @@ def CheckDeserializePerfDb(Map conf=[:]){
         sh "ls .."
         sh "ls /opt/rocm/" 
         sh "ls /opt/rocm/bin/" 
-        sh "which fin"
-        sh "ls /opt/rocm/bin/"
-        sh "fin -i fin/test/pdb_check_all.json -o pdb_deserialize_error.json"
+        sh "ls bin/"
+        sh "bin/fin -i fin/test/pdb_check_all.json -o pdb_deserialize_error.json"
         archiveArtifacts "pdb_deserialize_error.json"
         sh "grep clear pdb_deserialize_error.json"
         def has_error = sh "echo \$?"
@@ -351,19 +350,19 @@ pipeline {
                       setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON .. "
                       build_cmd = "make -j\$(nproc) "
                       //starts in miopen build dir
-                      execute_cmd = """
-                          cd ../fin;
-                          cmake -P install_deps.cmake --prefix \$PWD/deps;
-                          mkdir -p _hip;
-                          cd _hip;
-                          CXX=/opt/rocm/llvm/bin/clang++ cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH='/opt/rocm:../../cget:../deps' ..; 
-                          make -j\$(nproc);
-                          make install;
-                      """
+                      //execute_cmd = """
+                      //    cd ../fin;
+                      //    cmake -P install_deps.cmake --prefix \$PWD/deps;
+                      //    mkdir -p _hip;
+                      //    cd _hip;
+                      //    CXX=/opt/rocm/llvm/bin/clang++ cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH='/opt/rocm:../../cget:../deps' ..; 
+                      //    make -j\$(nproc);
+                      //    make install;
+                      //"""
                   }
                   steps{
                       //CheckDeserializePerfDb(setup_cmd: setup_cmd, execute_cmd: execute_cmd, no_reboot:true, build_cmd: build_cmd, build_fin: "ON")
-                      CheckDeserializePerfDb(setup_cmd: setup_cmd, build_cmd: build_cmd, execute_cmd: execute_cmd, prefixpath: prefixpath, no_reboot:true, build_fin: "ON", package_build: "true", build_install: "true")
+                      CheckDeserializePerfDb(setup_cmd: setup_cmd, build_cmd: build_cmd, prefixpath: prefixpath, no_reboot:true, build_fin: "ON", package_build: "true", build_install: "true")
                   }
               }
             }
