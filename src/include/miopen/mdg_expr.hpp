@@ -77,9 +77,9 @@ struct tree_visit
     tree_visit(std::function<bool(const std::string&, int&)> f,
                std::unordered_map<std::string, int> t)
         : tabl(t), var_lookup(f){};
-    visit_res operator()(spirit::utree::invalid_type) const { return visit_res(); }
+    visit_res operator()(spirit::utree::invalid_type) const { return {}; }
 
-    visit_res operator()(spirit::utree::nil_type) const { return visit_res(); };
+    visit_res operator()(spirit::utree::nil_type) const { return {}; };
 
     visit_res operator()(double d)
     {
@@ -98,7 +98,7 @@ struct tree_visit
     template <typename T>
     visit_res operator()(T /*val*/)
     {
-        return visit_res();
+        return {};
     }
 
     visit_res operator()(bool b)
@@ -108,7 +108,7 @@ struct tree_visit
         return r;
     }
 
-    visit_res operator()(spirit::binary_range_type const& /*b*/) const { return visit_res(); }
+    visit_res operator()(spirit::binary_range_type const& /*b*/) const { return {}; }
 
     visit_res operator()(spirit::utf8_string_range_type const& str)
     {
@@ -258,9 +258,9 @@ struct tree_visit
         return r;
     }
 
-    visit_res operator()(spirit::any_ptr const&) const { return visit_res(); }
+    visit_res operator()(spirit::any_ptr const&) const { return {}; }
 
-    visit_res operator()(spirit::function_base const&) const { return visit_res(); }
+    visit_res operator()(spirit::function_base const&) const { return {}; }
 };
 } // namespace miopen
 
