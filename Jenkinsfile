@@ -348,8 +348,8 @@ pipeline {
                   agent{ label rocmnode("nogpu") }
                   environment{
                       prefixpath = "/opt/rocm"
-                      //setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON .. "
-                      //build_cmd = "make -j\$(nproc) "
+                      setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON .. "
+                      build_cmd = "make -j\$(nproc) "
                       //starts in miopen build dir
                       execute_cmd = """
                           cd ../fin;
@@ -363,7 +363,7 @@ pipeline {
                   }
                   steps{
                       //CheckDeserializePerfDb(setup_cmd: setup_cmd, execute_cmd: execute_cmd, no_reboot:true, build_cmd: build_cmd, build_fin: "ON")
-                      CheckDeserializePerfDb(execute_cmd: execute_cmd, prefixpath: prefixpath, no_reboot:true, build_fin: "ON", build_install: "true")
+                      CheckDeserializePerfDb(setup_cmd: setup_cmd, build_cmd: build_cmd, execute_cmd: execute_cmd, prefixpath: prefixpath, no_reboot:true, build_fin: "ON", package_build: "true", build_install: "true")
                   }
               }
             }
