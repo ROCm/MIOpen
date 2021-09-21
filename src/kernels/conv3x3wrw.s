@@ -77,6 +77,21 @@ default reverse_inout, 0
 default weights_layout, 0
 default reverse_weights, 0
 
+// gfx90a requires 64bit aligned vgpr tuples
+// Tuples are used only in buffer_load_dwordx/buffer_store_dwordx instructions
+//
+// To meet this requirement, the following approach is used ('buffer_load_dwordx4 v[x:y]' as an example):
+//    if 'x' 64bit aligned:
+//       buffer_load_dwordx4 v[x:y], ...
+//    if 'x' not 64bit aligned:
+//       buffer_load_dword   v[x], ...
+//       buffer_load_dwordx3 v[x+1:y], ...
+.if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_stepping == 10)
+   tuple_alignment = 1
+.else
+   tuple_alignment = 0
+.endif
+
 default elements_in_dword, 1
 static_assert(elements_in_dword == 1 || elements_in_dword == 2)
 .if elements_in_dword == 2
@@ -476,6 +491,9 @@ miopenGcnAsmConv3x3WrW:
           imm_off = 0
           line_base = lines_\inout + gprs_per_line_\inout * \line + n_cnt * gprs_per_batch_\inout
 
+          .if tuple_alignment && ((line_base+vals_loaded) % 2)
+             .single_vload line_base, vo, so, desc, \mbufs_inflight, 1
+          .endif
           .rept (full_chunks_\inout / 4)
              .single_vload line_base, vo, so, desc, \mbufs_inflight, 4
           .endr
@@ -485,6 +503,9 @@ miopenGcnAsmConv3x3WrW:
 
           vals_to_load = partial_chunks_\inout
           vo = voffset_part_\inout
+          .if tuple_alignment && ((line_base+vals_loaded) % 2)
+             .single_vload line_base, vo, so, desc, \mbufs_inflight, 1
+          .endif
           .rept (partial_chunks_\inout / 4)
              .single_vload line_base, vo, so, desc, \mbufs_inflight, 4
           .endr
@@ -891,13 +912,24 @@ last_wave:
          v_cvt_pkrtz_f16_f32 v[acc_base+1], v[acc_base+2], v[acc_base+3]
          v_cvt_pkrtz_f16_f32 v[acc_base+2], v[acc_base+4], v[acc_base+5]
          v_cvt_pkrtz_f16_f32 v[acc_base+3], v[acc_base+6], v[acc_base+7]
-         buffer_store_dwordx4 v[acc_base:acc_base+3], v[voffset_wei], s[desc_wei:desc_wei+3], s[soffset_wei] offen offset:0
+         .if tuple_alignment && (acc_base % 2)
+            buffer_store_dword v[acc_base], v[voffset_wei], s[desc_wei:desc_wei+3], s[soffset_wei] offen offset:0
+            buffer_store_dwordx3 v[acc_base+1:acc_base+3], v[voffset_wei], s[desc_wei:desc_wei+3], s[soffset_wei] offen offset:0+4
+         .else
+            buffer_store_dwordx4 v[acc_base:acc_base+3], v[voffset_wei], s[desc_wei:desc_wei+3], s[soffset_wei] offen offset:0
+         .endif   
          v_cvt_f16_f32 v[acc_base+8], v[acc_base+8]
          buffer_store_short v[acc_base+8], v[voffset_wei], s[desc_wei:desc_wei+3], s[soffset_wei] offen offset:0+4*4
       .else
-         buffer_store_dwordx4 v[acc_base+0:acc_base+3], v[voffset_wei], s[desc_wei:desc_wei+3], s[soffset_wei] offen offset:0
-         buffer_store_dwordx4 v[acc_base+4:acc_base+7], v[voffset_wei], s[desc_wei:desc_wei+3], s[soffset_wei] offen offset:0+4*4
-         buffer_store_dword v[acc_base+8], v[voffset_wei], s[desc_wei:desc_wei+3], s[soffset_wei] offen offset:0+8*4
+         .if tuple_alignment && (acc_base % 2)
+            buffer_store_dword v[acc_base], v[voffset_wei], s[desc_wei:desc_wei+3], s[soffset_wei] offen offset:0
+            buffer_store_dwordx4 v[acc_base+1:acc_base+4], v[voffset_wei], s[desc_wei:desc_wei+3], s[soffset_wei] offen offset:0+1*4
+            buffer_store_dwordx4 v[acc_base+5:acc_base+8], v[voffset_wei], s[desc_wei:desc_wei+3], s[soffset_wei] offen offset:0+5*4
+         .else
+            buffer_store_dwordx4 v[acc_base+0:acc_base+3], v[voffset_wei], s[desc_wei:desc_wei+3], s[soffset_wei] offen offset:0
+            buffer_store_dwordx4 v[acc_base+4:acc_base+7], v[voffset_wei], s[desc_wei:desc_wei+3], s[soffset_wei] offen offset:0+4*4
+            buffer_store_dword v[acc_base+8], v[voffset_wei], s[desc_wei:desc_wei+3], s[soffset_wei] offen offset:0+8*4
+         .endif
       .endif
    .endm
 
@@ -938,6 +970,28 @@ workgroup_size_x = n_per_group * 64
 .if ROCM_METADATA_VERSION == 5
 .rodata
 .p2align 6
+.if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_stepping == 10)
+.amdhsa_kernel miopenGcnAsmConv3x3WrW
+        .amdhsa_user_sgpr_kernarg_segment_ptr 1
+        .amdhsa_system_sgpr_workgroup_id_x 1
+        .amdhsa_system_sgpr_workgroup_id_y 1
+        .amdhsa_system_sgpr_workgroup_id_z 1
+        .amdhsa_system_vgpr_workitem_id 1
+        .amdhsa_next_free_sgpr __amdhsa_next_free_sgpr
+        .amdhsa_accum_offset ((.AUTO_VGPR_COUNT + 3) / 4) * 4
+        .amdhsa_next_free_vgpr .AUTO_VGPR_COUNT
+        .amdhsa_group_segment_fixed_size .AUTO_LDS_BYTE_SIZE
+        .amdhsa_dx10_clamp 0
+        .amdhsa_ieee_mode 0
+        .amdhsa_float_round_mode_32 0
+        .amdhsa_float_round_mode_16_64 0
+        .amdhsa_float_denorm_mode_32 0
+        .amdhsa_float_denorm_mode_16_64 3
+        .amdhsa_reserve_flat_scratch __sgpr_reserve_flatscr
+        .amdhsa_reserve_xnack_mask __sgpr_reserve_xnack
+        .amdhsa_reserve_vcc __sgpr_reserve_vcc
+.end_amdhsa_kernel
+.else
 .amdhsa_kernel miopenGcnAsmConv3x3WrW
         .amdhsa_user_sgpr_kernarg_segment_ptr 1
         .amdhsa_system_sgpr_workgroup_id_x 1
@@ -957,6 +1011,7 @@ workgroup_size_x = n_per_group * 64
         .amdhsa_reserve_xnack_mask __sgpr_reserve_xnack
         .amdhsa_reserve_vcc __sgpr_reserve_vcc
 .end_amdhsa_kernel
+.endif
 
 .altmacro
 .macro METADATA sc, vc, wg_x, lds_size, kernarg_size
