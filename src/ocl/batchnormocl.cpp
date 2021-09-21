@@ -421,6 +421,76 @@ void BatchNormBackward(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
+    const auto useSaved = savedMean != nullptr && savedInvVariance != nullptr;
+
+    const auto problem = batchnorm::ProblemDescription{
+        bn_mode, xDesc, dyDesc, dxDesc, bnScaleBiasDiffDesc, epsilon, useSaved};
+
+    const auto algo = bn_mode == miopenBNSpatial
+                          ? AlgorithmName{"miopenBatchNormBackwardPropSpatial"}
+                          : AlgorithmName{"miopenBatchNormBackwardPropPerActivation"};
+    const auto network_config = problem.MakeNetworkConfig();
+
+    const auto invoke_params = [&]() {
+        auto tmp              = batchnorm::BwdInvokeParams{};
+        tmp.type              = InvokeType::Run;
+        tmp.x                 = x;
+        tmp.dy                = dy;
+        tmp.dx                = dx;
+        tmp.bnScale           = bnScale;
+        tmp.resultBnScaleDiff = resultBnScaleDiff;
+        tmp.resultBnScaleDiff = resultBnScaleDiff;
+        tmp.resultBnBiasDiff  = resultBnBiasDiff;
+        tmp.epsilon           = epsilon;
+        tmp.savedMean         = savedMean;
+        tmp.savedInvVariance  = savedInvVariance;
+        return tmp;
+    }();
+
+    if(const auto existingInvoker = handle.GetInvoker(network_config, boost::none, algo))
+    {
+        (*existingInvoker)(handle, invoke_params);
+
+        if(miopen::CheckNumericsEnabled())
+        {
+            miopen::checkNumericsOutput(handle, dxDesc, dx);
+            miopen::checkNumericsOutput(handle, bnScaleBiasDiffDesc, resultBnScaleDiff);
+            miopen::checkNumericsOutput(handle, bnScaleBiasDiffDesc, resultBnBiasDiff);
+        }
+
+        return;
+    }
+    else
+    {
+        const auto ctx     = ExecutionContext{&handle};
+        const auto solvers = solver::SolverContainer<>{};
+        const auto slns    = solvers.SearchForSolutions(ctx, problem, 1);
+
+        // if(slns.empty())
+        //    MIOPEN_THROW(miopenStatusNotImplemented, "No solver found for activation forward.");
+
+        if(!slns.empty())
+        {
+            const auto& sln = slns.front();
+            if(!sln.invoker_factory)
+                MIOPEN_THROW(miopenStatusInternalError,
+                             "Invoker missing in solver " + sln.solver_id);
+            const auto invoker =
+                handle.PrepareInvoker(*sln.invoker_factory, sln.construction_params);
+            handle.RegisterInvoker(invoker, network_config, sln.solver_id, algo);
+            invoker(handle, invoke_params);
+
+            if(miopen::CheckNumericsEnabled())
+            {
+                miopen::checkNumericsOutput(handle, dxDesc, dx);
+                miopen::checkNumericsOutput(handle, bnScaleBiasDiffDesc, resultBnScaleDiff);
+                miopen::checkNumericsOutput(handle, bnScaleBiasDiffDesc, resultBnBiasDiff);
+            }
+
+            return;
+        }
+    }
+
     static const auto ctx = GetContext(handle);
 
     std::vector<size_t> vld;
@@ -457,12 +527,6 @@ void BatchNormBackward(Handle& handle,
     size_t xgridsize = 1;
     size_t ygridsize = 1;
     size_t zgridsize = 1;
-
-    bool useSaved = false;
-    if(savedMean != nullptr && savedInvVariance != nullptr)
-    {
-        useSaved = true;
-    }
 
     if(bn_mode == miopenBNSpatial)
     { // SPATIAL kernels
@@ -553,17 +617,7 @@ void BatchNormBackward(Handle& handle,
             ldsnogcn   = xlocalsize;
         }
 
-        std::string algo_name = "miopenBatchNormBackwardPropSpatial";
-        std::string network_config =
-            "variant" + std::to_string(variant) + "gx" + std::to_string(xgridsize) + "n" +
-            std::to_string(n) + "c" + std::to_string(c) + "hw" + std::to_string(in_cstride) + "gy" +
-            std::to_string(ygridsize) + "lx" + std::to_string(xlocalsize) + "ly" +
-            std::to_string(ylocalsize) + "us" + std::to_string(static_cast<int>(useSaved)) +
-            "fp16" + std::to_string(static_cast<int>(bfp16parm)) + "fp32" +
-            std::to_string(static_cast<int>(bfp32parm)) + "single" +
-            std::to_string(static_cast<int>(single)) + "gcn" + std::to_string(ldsgcn);
-
-        auto&& kernels = handle.GetKernels(algo_name, network_config);
+        auto&& kernels = handle.GetKernels(algo, network_config);
 
         if(single)
         {
@@ -668,9 +722,9 @@ void BatchNormBackward(Handle& handle,
                         " -DMIO_BN_GFX1030=" + ((handle.GetDeviceName() == "gfx1030") ? "1" : "0");
                 }
 
-                MIOPEN_LOG_I2(kernel_name << ":: " << algo_name);
+                MIOPEN_LOG_I2(kernel_name << ":: " << algo.ToString());
                 MIOPEN_LOG_I2("..." << parms);
-                MIOPEN_LOG_I2("..." << network_config);
+                MIOPEN_LOG_I2("..." << network_config.ToString());
                 vld.push_back(xlocalsize);
                 vld.push_back(ylocalsize);
                 vld.push_back(zlocalsize);
@@ -684,7 +738,7 @@ void BatchNormBackward(Handle& handle,
                 bnBwdTrainSelectSingle(handle,
                                        bnScaleBiasDiffDesc.GetType(),
                                        program_name,
-                                       algo_name,
+                                       algo,
                                        kernel_name,
                                        network_config,
                                        parms,
@@ -790,7 +844,7 @@ void BatchNormBackward(Handle& handle,
                 bnBwdTrainSelectMulti(handle,
                                       bnScaleBiasDiffDesc.GetType(),
                                       program_name,
-                                      algo_name,
+                                      algo,
                                       kernel_name,
                                       network_config,
                                       parms,
@@ -818,21 +872,7 @@ void BatchNormBackward(Handle& handle,
         xgridsize            = c;
         ygridsize            = segment * ylocalsize;
 
-        if(savedMean == nullptr || savedInvVariance == nullptr)
-        {
-            useSaved = false;
-        }
-
-        std::string algo_name = "miopenBatchNormBackwardPropPerActivation";
-        std::string network_config =
-            "gx" + std::to_string(xgridsize) + "gy" + std::to_string(ygridsize) + "lx" +
-            std::to_string(xlocalsize) + "ly" + std::to_string(ylocalsize) + "n" +
-            std::to_string(n) + "c" + std::to_string(c) + "hw" + std::to_string(in_cstride) + "u" +
-            std::to_string(static_cast<int>(useSaved)) + "fp16" +
-            std::to_string(static_cast<int>(bfp16parm)) + "fp32" +
-            std::to_string(static_cast<int>(bfp32parm)) + "nhw" + std::to_string(in_nhw);
-
-        auto&& kernels = handle.GetKernels(algo_name, network_config);
+        auto&& kernels = handle.GetKernels(algo, network_config);
 
         if(!kernels.empty())
         {
@@ -898,8 +938,7 @@ void BatchNormBackward(Handle& handle,
             if(useSaved)
             {
                 kernel_name += "Saved";
-                handle.AddKernel(
-                    algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+                handle.AddKernel(algo, network_config, program_name, kernel_name, vld, vgd, parms)(
                     x,
                     dy,
                     n,
@@ -914,8 +953,7 @@ void BatchNormBackward(Handle& handle,
             }
             else
             {
-                handle.AddKernel(
-                    algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+                handle.AddKernel(algo, network_config, program_name, kernel_name, vld, vgd, parms)(
                     x,
                     dy,
                     n,
