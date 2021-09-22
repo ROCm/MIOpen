@@ -114,7 +114,7 @@ RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."
 
 RUN if [ "$USE_MLIR" = "ON" ]; \
     then cd ~ && \
-    export MLIR_COMMIT=199d667b9d8caaf283436aaa8a48fd20e074f42c && \
+    export MLIR_COMMIT=31579e0c5cf6eb4d7b1db0d349407f8bab547d9b && \
     wget https://github.com/ROCmSoftwarePlatform/llvm-project-mlir/archive/$MLIR_COMMIT.tar.gz && \
     tar -xvzf $MLIR_COMMIT.tar.gz && \
     rm -rf $MLIR_COMMIT.tar.gz && \
@@ -124,3 +124,4 @@ RUN if [ "$USE_MLIR" = "ON" ]; \
     $PREFIX/bin/cmake --install . --component libMLIRMIOpen --prefix /opt/rocm && \
     cd ~ && rm -rf llvm-project-mlir-$MLIR_COMMIT; fi
     
+RUN groupadd -f render

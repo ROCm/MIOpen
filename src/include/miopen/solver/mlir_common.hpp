@@ -35,19 +35,28 @@ namespace miopen {
 namespace solver {
 namespace mlir {
 
-std::string InsertGToLayout(const std::string& layout, char dim);
+std::string GetKernelName(const ConvolutionContext& ctx, bool is_xdlops, int kernel_id = 0);
+
 std::string ConstructBuildOptions(const ConvolutionContext& ctx,
-                                  const std::string& operation,
-                                  const std::string& kernel_name,
                                   bool is_xdlops,
                                   int kernel_id = 0);
 
+template <typename T>
 std::string ConstructBuildOptions(const ConvolutionContext& ctx,
-                                  const std::string& operation,
-                                  const std::string& kernel_name,
-                                  const std::string& config,
+                                  const T& perf_config,
                                   bool is_xdlops,
-                                  int kernel_id = 0);
+                                  int kernel_id = 0)
+{
+    std::ostringstream options{ConstructBuildOptions(ctx, is_xdlops, kernel_id), std::ios::ate};
+
+    // Library does heuristic initialization when no perf_config
+    // is specified
+    if(!(perf_config == T::MlirHeuristicInitRequest()))
+        options << " --perf_config " + perf_config.ToString();
+
+    return options.str();
+}
+
 } // namespace mlir
 } // namespace solver
 } // namespace miopen
