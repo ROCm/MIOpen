@@ -44,8 +44,6 @@
 
 #include <chrono>
 
-#define WORKAROUND_ISSUE_1146 1 // check asm solver applicability for gfx90a
-
 namespace miopen {
 
 /// Reusing the dummy instance of of the ConvolutionContext class
@@ -462,9 +460,10 @@ void BatchNormBackward(Handle& handle,
     }
     else
     {
-        const auto ctx     = ExecutionContext{&handle};
-        const auto solvers = solver::SolverContainer<solver::batchnorm::BnBwdTrainingSpatialSingle>{};
-        const auto slns    = solvers.SearchForSolutions(ctx, problem, 1);
+        const auto ctx = ExecutionContext{&handle};
+        const auto solvers =
+            solver::SolverContainer<solver::batchnorm::BnBwdTrainingSpatialSingle>{};
+        const auto slns = solvers.SearchForSolutions(ctx, problem, 1);
 
         // if(slns.empty())
         //    MIOPEN_THROW(miopenStatusNotImplemented, "No solver found for activation forward.");
