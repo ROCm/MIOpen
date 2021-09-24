@@ -38,7 +38,9 @@ namespace reduce {
 // 1) GetReductionZeroVal() -- the interface to return the "identity element" for the binary
 // operator, "identity element" is the unique
 //                    element in the algebraic space that doesn't affect the value of other elements
-//                    when operated with any of them.
+//                    when operated against them, and the concept is similar to zero vector in
+//                    vector space
+//                    (http://pages.cs.wisc.edu/~matthewb/pages/notes/pdf/linearalgebra/VectorSpaces.pdf).
 // 2) indexable -- boolean value indicating whether indices of the operated elements could be
 // recorded. Usually, Min/Max operator could
 //                 need to record the indices of elements. For operator like Add/Mul, no need to
