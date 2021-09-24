@@ -783,6 +783,11 @@ else()
         install(FILES
             ${FIND_DB_FILES}
          DESTINATION ${DATA_INSTALL_DIR}/db)
+         foreach(DB_FILE ${FIND_DB_FILES})
+            get_filename_component(DB_FILE_FILENAME "${DB_FILE}" NAME)
+            configure_file("${DB_FILE}" "${PROJECT_BINARY_DIR}/share/miopen/db/${DB_FILE_FILENAME}" COPYONLY)
+         endforeach()
+         
     endif()
 endif()
 rocm_install_symlink_subdir(${MIOPEN_INSTALL_DIR})
