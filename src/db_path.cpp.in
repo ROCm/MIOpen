@@ -48,7 +48,7 @@ boost::filesystem::path GetLibPath()
 #ifdef __linux__
     Dl_info info;
 
-    if(dladdr(reinterpret_cast<void*>(miopenCreate), &info))
+    if(dladdr(reinterpret_cast<void*>(miopenCreate), &info) != 0)
     {
         path = boost::filesystem::canonical(boost::filesystem::path{info.dli_fname});
         MIOPEN_LOG_I2(std::string("Lib Path: ") + path.string());
