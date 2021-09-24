@@ -68,7 +68,6 @@ struct verify_lrn_foward
         {
             auto alphaoverarea = alpha / lrn_n;
             par_ford(n_batch, channels, height, width)([&](int b, int c, int h, int w) {
-
                 int start = c < radius_lower ? 0 : (c - radius_lower);
                 int end   = (c + radius_upper + 1) > channels ? channels : (c + radius_upper + 1);
 
@@ -104,7 +103,7 @@ struct verify_lrn_foward
                 }
                 scale *= alphaoverarea;
                 scale += K;
-                scale = std::pow(scale, -beta);
+                scale              = std::pow(scale, -beta);
                 output(b, c, h, w) = static_cast<T>(scale * input(b, c, h, w));
             });
         }
@@ -186,7 +185,6 @@ struct verify_lrn_bwd
             auto cache_ratio_value = 2 * alpha * beta / adjust_area;
 
             par_ford(n_batch, channels, height, width)([&](int b, int c, int h, int w) {
-
                 int left   = w < radius_upper ? 0 : (w - radius_upper);
                 int right  = (w + radius_lower + 1) > width ? width : (w + radius_lower + 1);
                 int top    = h < radius_upper ? 0 : (h - radius_upper);

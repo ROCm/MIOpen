@@ -23,10 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "miopen/solver.hpp"
-#include "miopen/handle.hpp"
-#include "miopen/stringutils.hpp"
-#include "implicitgemm_util.hpp"
+#include <miopen/solver.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/stringutils.hpp>
+#include <miopen/solver/implicitgemm_util.hpp>
 
 namespace miopen {
 namespace solver {
@@ -215,7 +215,7 @@ bool PerformanceImplicitGemmXdlops::operator==(const PerformanceImplicitGemmXdlo
         && KPerBlock == other.KPerBlock
         && EPerBlock == other.EPerBlock
         && EBlocks == other.EBlocks
-        && EPACKSize == other.EPACKSize 
+        && EPACKSize == other.EPACKSize
         && GemmMPerWave == other.GemmMPerWave
         && GemmNPerWave == other.GemmNPerWave
         && InBlockCopyClusterLengths_E == other.InBlockCopyClusterLengths_E
@@ -242,7 +242,7 @@ bool PerformanceImplicitGemmXdlops::IsValidValue() const
         && IsTwoPower<4,128>(WeiBlockCopyClusterLengths_K); // clang-format on
 }
 
-bool PerformanceImplicitGemmXdlops::SetNextValue()
+bool PerformanceImplicitGemmXdlops::SetNextValue(const ConvolutionContext& /*config*/)
 {
     do
     {
@@ -288,7 +288,7 @@ bool PerformanceImplicitGemmXdlops::SetNextValue()
     return true;
 }
 
-void PerformanceImplicitGemmXdlops::EuristicInit(const ConvolutionContext& ctx)
+void PerformanceImplicitGemmXdlops::HeuristicInit(const ConvolutionContext& ctx)
 {
     PerformanceImplicitGemmXdlops tmp;
     if(ctx.IsFp32())

@@ -25,11 +25,11 @@
  *******************************************************************************/
 
 #include <cstddef>
-#include "miopen/solver.hpp"
-#include "miopen/handle.hpp"
+#include <miopen/solver.hpp>
+#include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
-#include "implicitgemm_util.hpp"
+#include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_V4R1)
@@ -208,7 +208,7 @@ static inline bool FindImplicitGemmWrwV4R1DynamicKernel(const ConvolutionContext
         grid_size  = (GemmM / GemmMPerBlock) *
                     (GemmN / (GemmNRepeat * GemmNPerThreadSubC * GemmN0YXPerBlock)) * GemmKGroups;
 
-        if((ho * wo) % 4 == 0)
+        if((ho * wo) % 16 == 0)
             kernel_name = "igemm_v4r1_dynamic_wrw_128x128x16_8x8_4x4x4x4x4x4_16x1x16x1_4x64";
         else
             kernel_name = "igemm_v4r1_dynamic_wrw_128x128x16_8x8_4x4x4x4x4x4_16x1x16x1_16x16";
@@ -329,6 +329,10 @@ bool ConvAsmImplicitGemmV4R1DynamicWrw::IsApplicable(const ConvolutionContext& c
     {
         return false;
     }
+
+    const auto target = ctx.GetStream().GetTargetProperties();
+    if(target.Xnack() && *target.Xnack())
+        return false;
     std::string kernel_name;
     int block_size;
     int grid_size;
@@ -357,9 +361,9 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ConvolutionCon
     kernel.kernel_name = kernel_name;
     kernel.g_wk.clear();
     /* Note here, for API like hipHccModuleLaunchKernel(), hipExtModuleLaunchKernel()
-    * grid dims is in unit of work item.
-    * But for api like hipModuleLaunchKernel(), grid dim is in unit of block.
-    */
+     * grid dims is in unit of work item.
+     * But for api like hipModuleLaunchKernel(), grid dim is in unit of block.
+     */
     kernel.g_wk.push_back(grid_size * block_size);
     kernel.g_wk.push_back(1);
     kernel.g_wk.push_back(1);

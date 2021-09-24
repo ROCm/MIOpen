@@ -28,9 +28,8 @@
 #include <miopen/conv/invokers/impl_gemm_dynamic.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/gcn_asm_utils.hpp>
-#include <miopen/numeric.hpp>
 #include <algorithm>
-#include "implicitgemm_util.hpp"
+#include <miopen/solver/implicitgemm_util.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_V4R1)
 
@@ -160,6 +159,10 @@ bool ConvAsmImplicitGemmV4R1DynamicBwd::IsApplicable(const ConvolutionContext& c
         return false;
     }
 
+    const auto target = ctx.GetStream().GetTargetProperties();
+    if(target.Xnack() && *target.Xnack())
+        return false;
+
     std::string kernel_name;
     int block_size;
     int grid_size;
@@ -184,9 +187,9 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicBwd::GetSolution(const ConvolutionCon
     kernel.kernel_name = kernel_name;
     kernel.g_wk.clear();
     /* Note here, for API like hipHccModuleLaunchKernel(), hipExtModuleLaunchKernel()
-    * grid dims is in unit of work item.
-    * But for api like hipModuleLaunchKernel(), grid dim is in unit of block.
-    */
+     * grid dims is in unit of work item.
+     * But for api like hipModuleLaunchKernel(), grid dim is in unit of block.
+     */
     kernel.g_wk.push_back(grid_size * block_size);
     kernel.g_wk.push_back(1);
     kernel.g_wk.push_back(1);
@@ -199,7 +202,7 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicBwd::GetSolution(const ConvolutionCon
 
     kernel.comp_options = options.str();
 
-    result.invoker_factory = conv::MakeImplGemmDynamicBackwardDataInvokerFactory(ctx);
+    result.invoker_factory = conv::MakeImplGemmDynamicBackwardDataInvokerFactory(ctx, int(0));
     result.construction_params.push_back(kernel);
     return result;
 }

@@ -29,6 +29,7 @@
 #include <miopen/convolution.hpp>
 #include <miopen/problem_description.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/tensor_layout.hpp>
 #include <miopen/bfloat16.hpp>
 #include <vector>
 #include <cstdlib>
@@ -39,7 +40,7 @@
 #include "driver.hpp"
 #include "tensor_holder.hpp"
 #include "cpu_conv.hpp"
-#include "tensor_layout.hpp"
+#include "random.hpp"
 
 enum tensor_layout_t
 {
@@ -74,7 +75,7 @@ static int gen_rand_integer()
         std::srand(std::time(nullptr));
         inited = 1;
     }
-    return std::rand();
+    return GET_RAND();
 }
 
 struct gpu_reference_kernel_base
@@ -232,21 +233,19 @@ struct gpu_reference_kernel_base
 #define MAX_INTEGER_INTERVAL 4.0
 
 /*
-* for half, if we use integer, half can express -2048 ~ 2048 without data-loss.
-* e.g. 2049 can not expressed by half.
-* from 2048~4096, half can only express 1/2 the number. number 2049, 2051, 2053, 2055.... can not be
-* expressed. (max interval is 2)
-* from 4096~8192, half can only express 1/4 the number. number 4097, 4098, 4099, 4101, 4102, 4103,
-* 4105, 4106, 4107, 4109...
-*               can not expressd. (max interval is 4)
-* from 8192~16384, half can only express 1/8 the number. (max interval is 8)
-*/
+ * for half, if we use integer, half can express -2048 ~ 2048 without data-loss.
+ * e.g. 2049 can not expressed by half.
+ * from 2048~4096, half can only express 1/2 the number. number 2049, 2051, 2053, 2055.... can not
+ * be expressed. (max interval is 2) from 4096~8192, half can only express 1/4 the number. number
+ * 4097, 4098, 4099, 4101, 4102, 4103, 4105, 4106, 4107, 4109... can not expressd. (max interval is
+ * 4) from 8192~16384, half can only express 1/8 the number. (max interval is 8)
+ */
 template <typename T>
 void rand_tensor_integer(tensor<T>& t, int max = RAND_INTEGER_MAX, int min = RAND_INTEGER_MIN)
 {
     // use integer to random.
     for(int i = 0; i < t.data.size(); i++)
-        t[i]  = static_cast<T>(gen_rand_integer() % (max - min) + min);
+        t[i] = static_cast<T>(gen_rand_integer() % (max - min) + min);
 }
 
 template <typename T>
@@ -356,12 +355,12 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
             std::vector<int> wei_strides;
             std::vector<int> out_strides;
 
-            std::string layout_default = tensor_layout_get_default(4);
+            std::string layout_default = miopen::tensor_layout_get_default(4);
             std::string layout_string  = tensor_layout_to_string(tensor_layout);
 
-            tensor_layout_to_strides(in_len, layout_default, layout_string, in_strides);
-            tensor_layout_to_strides(wei_len, layout_default, layout_string, wei_strides);
-            tensor_layout_to_strides(out_len, layout_default, layout_string, out_strides);
+            miopen::tensor_layout_to_strides(in_len, layout_default, layout_string, in_strides);
+            miopen::tensor_layout_to_strides(wei_len, layout_default, layout_string, wei_strides);
+            miopen::tensor_layout_to_strides(out_len, layout_default, layout_string, out_strides);
 
             tensor<TRef> in(in_len, in_strides);
             tensor<TRef> wei(wei_len, wei_strides);
@@ -731,12 +730,12 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
             std::vector<int> wei_strides;
             std::vector<int> out_strides;
 
-            std::string layout_default = tensor_layout_get_default(5);
+            std::string layout_default = miopen::tensor_layout_get_default(5);
             std::string layout_string  = tensor_layout_to_string(tensor_layout);
 
-            tensor_layout_to_strides(in_len, layout_default, layout_string, in_strides);
-            tensor_layout_to_strides(wei_len, layout_default, layout_string, wei_strides);
-            tensor_layout_to_strides(out_len, layout_default, layout_string, out_strides);
+            miopen::tensor_layout_to_strides(in_len, layout_default, layout_string, in_strides);
+            miopen::tensor_layout_to_strides(wei_len, layout_default, layout_string, wei_strides);
+            miopen::tensor_layout_to_strides(out_len, layout_default, layout_string, out_strides);
 
             tensor<TRef> in(in_len, in_strides);
             tensor<TRef> wei(wei_len, wei_strides);

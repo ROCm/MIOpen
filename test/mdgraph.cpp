@@ -33,8 +33,6 @@
 #include "get_handle.hpp"
 #include "test.hpp"
 
-#define WORKAROUND_ISSUE_763 1
-
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 void BNAlgTest(std::vector<int> inputs,
@@ -107,22 +105,74 @@ void ConvAlgTest(std::vector<int> inputs,
     miopenDestroyConvolutionDescriptor(convDesc);
 }
 
+void ConvBiasAlgTest(std::vector<int> inputs,
+                     std::vector<int> conv_filter,
+                     std::vector<int> conv_desc,
+                     std::string& pgm,
+                     std::string& krn,
+                     std::string& alg)
+{
+    MIOPEN_LOG_I("*********************************************************");
+    auto&& handle = get_handle();
+    miopen::TensorDescriptor inputTensor;
+    miopen::TensorDescriptor convFilter;
+    miopen::TensorDescriptor biasTensor;
+    miopenConvolutionDescriptor_t convDesc{};
+    miopenFusionOpDescriptor_t convOp;
+    miopenFusionOpDescriptor_t biasOp;
+
+    // input descriptor
+    STATUS(miopenSet4dTensorDescriptor(
+        &inputTensor, miopenFloat, inputs[0], inputs[1], inputs[2], inputs[3]));
+    // convolution descriptor
+    STATUS(miopenSet4dTensorDescriptor(&convFilter,
+                                       miopenFloat,
+                                       conv_filter[0], // outputs k
+                                       conv_filter[1], // inputs c
+                                       conv_filter[2], // kernel size
+                                       conv_filter[3]));
+    // bias descriptor
+    STATUS(miopenSet4dTensorDescriptor(&biasTensor, miopenFloat, 1, conv_filter[0], 1, 1));
+
+    STATUS(miopenCreateConvolutionDescriptor(&convDesc));
+    STATUS(miopenInitConvolutionDescriptor(convDesc,
+                                           miopenConvolution,
+                                           conv_desc[0],
+                                           conv_desc[1],
+                                           conv_desc[2],
+                                           conv_desc[3],
+                                           conv_desc[4],
+                                           conv_desc[5]));
+
+    miopen::FusionPlanDescriptor fp(miopenVerticalFusion, inputTensor);
+
+    STATUS(miopenCreateOpConvForward(&fp, &convOp, convDesc, &convFilter));
+    STATUS(miopenCreateOpBiasForward(&fp, &biasOp, &biasTensor));
+    pgm = fp.GetProgramName(handle);
+    krn = fp.GetKernelName(handle);
+    alg = fp.GetAlgorithmName(handle);
+
+    // Cleanup
+    miopenDestroyConvolutionDescriptor(convDesc);
+}
+
 int main()
 {
     std::string pgm_name;
     std::string krn_name;
     std::string alg_name;
 
-    bool skip_unsupported_alg = false;
+    auto&& h = get_handle();
 
-#if WORKAROUND_ISSUE_763
-    auto&& h       = get_handle();
     auto this_arch = h.GetDeviceName();
-    if(this_arch.find("gfx10") != std::string::npos)
-        skip_unsupported_alg = true;
-#endif
 
-    if(!miopen::IsDisabled(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD{}) && !skip_unsupported_alg)
+    auto wino_supported_arch = {"gfx908", "gfx906", "gfx900", "gfx803"};
+
+    bool is_wino_support = std::any_of(wino_supported_arch.begin(),
+                                       wino_supported_arch.end(),
+                                       [&](std::string arch) { return arch == this_arch; });
+
+    if(!miopen::IsDisabled(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD{}) && is_wino_support)
     {
         const auto name = get_handle().GetDeviceName();
         if(miopen::StartsWith(name, "gfx8"))
@@ -177,10 +227,23 @@ int main()
             EXPECT(alg_name == "miopenConvolutionWinogradBiasActiv");
         }
     }
+
+    auto asm_supported_arch = {"gfx908", "gfx906", "gfx900", "gfx803"};
+
+    bool is_asm_support = std::any_of(asm_supported_arch.begin(),
+                                      asm_supported_arch.end(),
+                                      [&](std::string arch) { return arch == this_arch; });
+
     // the asm kernel is the fastest for 1x1 and padding
-    if(!miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) && !skip_unsupported_alg)
+    if(!miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) && is_asm_support)
     {
         ConvAlgTest(
+            {100, 32, 8, 8}, {64, 32, 1, 1}, {0, 0, 1, 1, 1, 1}, pgm_name, krn_name, alg_name);
+        EXPECT(pgm_name == "conv1x1u_bias_activ.s");
+        EXPECT(krn_name == "miopenGcnAsmConv1x1U");
+        EXPECT(alg_name == "miopenConvolutionDirectBiasActivAsm");
+
+        ConvBiasAlgTest(
             {100, 32, 8, 8}, {64, 32, 1, 1}, {0, 0, 1, 1, 1, 1}, pgm_name, krn_name, alg_name);
         EXPECT(pgm_name == "conv1x1u_bias_activ.s");
         EXPECT(krn_name == "miopenGcnAsmConv1x1U");

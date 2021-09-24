@@ -34,6 +34,7 @@
 #include "test.hpp"
 #include "verify.hpp"
 #include "rnn_util.hpp"
+#include "random.hpp"
 #include <array>
 #include <cmath>
 #include <ctime>
@@ -2069,14 +2070,13 @@ struct verify_forward_infer_lstm : verify_forward_lstm<T>
                                cellState,   // current/final cell state
                                initCell,    // initial cell state
                                output,
-                               batch_seq,   // input batch size
-                               inputVecLen, // input data length
-                               seqLength,   // Number of iterations to unroll over
-                               dirMode,     // whether using bidirectional net
-                               biasMode,    // whether using bias
-                               bi *
-                                   nLayers, // 1 by numlayer (number of stacks of hidden layers) for
-                                            // unidirection, 2 by numlayer for bidirection
+                               batch_seq,       // input batch size
+                               inputVecLen,     // input data length
+                               seqLength,       // Number of iterations to unroll over
+                               dirMode,         // whether using bidirectional net
+                               biasMode,        // whether using bias
+                               bi * nLayers,    // 1 by numlayer (number of stacks of hidden layers)
+                                                // for unidirection, 2 by numlayer for bidirection
                                batch_seq.at(0), // equal to input batch size in_n[0]
                                hiddenSize,      // hidden state number
                                bi_stride, // 1 by hy_h related function for unidirection, 2 by hy_h
@@ -2377,14 +2377,13 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
                                cellState,   // current/final cell state
                                initCell,    // initial cell state
                                output,
-                               batch_seq,   // input batch size
-                               inputVecLen, // input data length
-                               seqLength,   // Number of iterations to unroll over
-                               dirMode,     // whether using bidirectional net
-                               biasMode,    // whether using bias
-                               bi *
-                                   nLayers, // 1 by numlayer (number of stacks of hidden layers) for
-                                            // unidirection, 2 by numlayer for bidirection
+                               batch_seq,       // input batch size
+                               inputVecLen,     // input data length
+                               seqLength,       // Number of iterations to unroll over
+                               dirMode,         // whether using bidirectional net
+                               biasMode,        // whether using bias
+                               bi * nLayers,    // 1 by numlayer (number of stacks of hidden layers)
+                                                // for unidirection, 2 by numlayer for bidirection
                                batch_seq.at(0), // equal to input batch size in_n[0]
                                hiddenSize,      // hidden state number
                                bi_stride, // 1 by hy_h related function for unidirection, 2 by hy_h
@@ -2932,10 +2931,10 @@ struct lstm_basic_driver : test_driver
 #if(MIOPEN_BACKEND_OPENCL == 1)
 #if WORKAROUND_ISSUE_692 == 1
         std::cout << "Skip test for Issue #692: " << std::endl;
-        exit(EXIT_SUCCESS);
+        exit(EXIT_SUCCESS); // NOLINT (concurrency-mt-unsafe)
 #endif
         if(type == miopenHalf)
-            exit(EXIT_SUCCESS);
+            exit(EXIT_SUCCESS); // NOLINT (concurrency-mt-unsafe)
 #endif
 
         if(batchSeq.empty() || 0 == batchSeq[0])
@@ -3045,7 +3044,7 @@ struct lstm_basic_driver : test_driver
         srand(0);
         for(std::size_t i = 0; i < in_sz; i++)
         {
-            input[i] = /*(((rand()%2)==1)?-1:1)**/ 0.001 * float(rand() % 100);
+            input[i] = /*(((GET_RAND()%2)==1)?-1:1)**/ 0.001 * float(GET_RAND() % 100);
         }
 
         std::size_t hx_sz = ((dirMode != 0) ? 2 : 1) * hiddenSize * batchSize * numLayers;
@@ -3066,7 +3065,7 @@ struct lstm_basic_driver : test_driver
         std::vector<T> weights(wei_sz);
         for(std::size_t i = 0; i < wei_sz; i++)
         {
-            weights[i] = (((rand() % 2) == 1) ? -1 : 1) * 0.001 * float(rand() % 100);
+            weights[i] = (((GET_RAND() % 2) == 1) ? -1 : 1) * 0.001 * float(GET_RAND() % 100);
         }
 
 #if(MIO_LSTM_TEST_DEBUG > 0)
@@ -3091,7 +3090,7 @@ struct lstm_basic_driver : test_driver
         {
             for(std::size_t i = 0; i < hx_sz; i++)
             {
-                hx[i] = 0.001 * float(rand() % 100);
+                hx[i] = 0.001 * float(GET_RAND() % 100);
             }
         }
 
@@ -3099,7 +3098,7 @@ struct lstm_basic_driver : test_driver
         {
             for(std::size_t i = 0; i < hx_sz; i++)
             {
-                dhyin[i] = 0.001 * float(rand() % 100);
+                dhyin[i] = 0.001 * float(GET_RAND() % 100);
             }
         }
 
@@ -3107,7 +3106,7 @@ struct lstm_basic_driver : test_driver
         {
             for(std::size_t i = 0; i < hx_sz; i++)
             {
-                cx[i] = 0.001 * float(rand() % 100);
+                cx[i] = 0.001 * float(GET_RAND() % 100);
             }
         }
 
@@ -3115,7 +3114,7 @@ struct lstm_basic_driver : test_driver
         {
             for(std::size_t i = 0; i < hx_sz; i++)
             {
-                dcyin[i] = 0.001 * float(rand() % 100);
+                dcyin[i] = 0.001 * float(GET_RAND() % 100);
             }
         }
 
@@ -3186,7 +3185,7 @@ struct lstm_basic_driver : test_driver
         std::vector<T> dyin(yin.size());
         for(std::size_t i = 0; i < yin.size(); i++)
         {
-            dyin[i] = /*(((rand()%2)==1)?-1:1)**/ 0.001 * float(rand() % 100);
+            dyin[i] = /*(((GET_RAND()%2)==1)?-1:1)**/ 0.001 * float(GET_RAND() % 100);
         }
 
 #if(MIO_LSTM_TEST_DEBUG > 0)

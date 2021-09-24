@@ -30,9 +30,15 @@
 #include "tensor_holder.hpp"
 #include "test.hpp"
 #include "verify.hpp"
+#include "random.hpp"
 
 #define DROPOUT_DEBUG_CTEST 0
-#define DROPOUT_LARGE_CTEST 0
+// Workaround for issue #1128
+#define DROPOUT_SINGLE_CTEST 1
+
+// OpenCL error creating buffer: 0 Invalid Buffer Size
+#define WORKAROUND_MLOPEN_ISSUE_2335 \
+    ((HIP_PACKAGE_VERSION_FLAT < 3007000000ULL) && MIOPEN_BACKEND_OPENCL)
 
 template <class T>
 struct verify_forward_dropout
@@ -231,6 +237,16 @@ struct dropout_driver : test_driver
         std::set<std::vector<int>> get_inputs_set               = get_inputs(1);
         std::set<std::vector<int>> get_3d_conv_input_shapes_set = get_3d_conv_input_shapes(1);
 
+// Workaround for issue #1128
+#if DROPOUT_SINGLE_CTEST
+        input_dims.resize(1);
+        add(in_dim, "input-dim", generate_data(input_dims));
+        add(dropout_rate, "dropout", generate_data({float(0.5)}));
+        add(seed, "seed", generate_data({0x0ULL}));
+        add(mask, "use-mask", generate_data({false}));
+        add(rng_mode_cmd, "rng-mode", generate_data({0}));
+#else
+#define DROPOUT_LARGE_CTEST 0
 #if DROPOUT_LARGE_CTEST
         input_dims.insert(input_dims.end(), get_inputs_set.begin(), get_inputs_set.end());
         input_dims.insert(input_dims.end(),
@@ -253,17 +269,17 @@ struct dropout_driver : test_driver
         add(seed, "seed", generate_data({0x0ULL, 0xFFFFFFFFFFFFFFFFULL}));
         add(mask, "use-mask", generate_data({false, true}));
         add(rng_mode_cmd, "rng-mode", generate_data({0}));
+#endif
     }
 
     void run()
     {
 // Workaround for issue #2335.
 // OpenCL error creating buffer: 0 Invalid Buffer Size
-#if MIOPEN_BACKEND_OPENCL
+#if WORKAROUND_MLOPEN_ISSUE_2335
         std::cout << "Skip test for Issue #2335: " << std::endl;
         return;
 #endif
-
         miopen::DropoutDescriptor DropoutDesc;
         unsigned long max_value  = miopen_type<T>{} == miopenHalf ? 5 : 17;
         auto&& handle            = get_handle();
@@ -307,7 +323,7 @@ struct dropout_driver : test_driver
             srand(0);
             for(size_t i = 0; i < in.desc.GetElementSize(); i++)
                 reserveSpace[i] =
-                    static_cast<unsigned char>(float(rand()) / float(RAND_MAX) > dropout_rate);
+                    static_cast<unsigned char>(float(GET_RAND()) / float(RAND_MAX) > dropout_rate);
         }
 
         DropoutDesc.dropout          = dropout_rate;

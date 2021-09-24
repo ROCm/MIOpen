@@ -179,7 +179,9 @@ static std::string CleanupPath(const char* p)
  * Not intended to be used in production code, so error handling is very straghtforward,
  * just catch whatever possible and throw an exception.
  */
-std::string AmdgcnAssemble(const std::string& source, const std::string& params)
+std::string AmdgcnAssemble(const std::string& source,
+                           const std::string& params,
+                           const miopen::TargetProperties& target)
 {
 #ifdef __linux__
     miopen::TempFile outfile("amdgcn-asm-out-XXXXXX");
@@ -188,7 +190,8 @@ std::string AmdgcnAssemble(const std::string& source, const std::string& params)
     options << " -x assembler -target amdgcn--amdhsa";
 #if WORKAROUND_SWDEV_255735
     if(miopen::HipCompilerVersion() >= miopen::external_tool_version_t{3, 8, 20403})
-        options << " -mno-xnack";
+        if(target.Xnack() && !*target.Xnack())
+            options << " -mno-xnack";
 #endif
     /// \todo Hacky way to find out which CO version we need to assemble for.
     if(params.find("ROCM_METADATA_VERSION=5", 0) == std::string::npos) // Assume that !COv3 == COv2.
@@ -273,7 +276,7 @@ static void AmdgcnAssembleQuiet(const std::string& source, const std::string& pa
 static bool GcnAssemblerHasBug34765Impl()
 {
     auto p = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
-    miopen::WriteFile(miopen::GetKernelSrc("bugzilla_34765_detect"), p);
+    miopen::WriteFile(miopen::GetKernelSrc("bugzilla_34765_detect.s"), p);
     const auto& src = p.string();
     try
     {
@@ -296,7 +299,7 @@ static bool GcnAssemblerHasBug34765()
 static bool GcnAssemblerSupportsOption(const std::string& option)
 {
     auto p = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
-    miopen::WriteFile(miopen::GetKernelSrc("dummy_kernel"), p);
+    miopen::WriteFile(miopen::GetKernelSrc("dummy_kernel.s"), p);
     const auto& src = p.string();
     try
     {

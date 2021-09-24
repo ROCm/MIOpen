@@ -26,6 +26,7 @@
 #ifndef GUARD_TARGET_PROPERTIES_HPP
 #define GUARD_TARGET_PROPERTIES_HPP
 
+#include <boost/optional.hpp>
 #include <string>
 
 namespace miopen {
@@ -36,16 +37,18 @@ struct TargetProperties
 {
     const std::string& Name() const { return name; }
     const std::string& DbId() const { return dbId; }
-    bool Xnack() const { return xnack; }
-    bool Sramecc() const { return sramecc; }
+    boost::optional<bool> Xnack() const { return xnack; }
+    boost::optional<bool> Sramecc() const { return sramecc; }
+    boost::optional<bool> SrameccReported() const { return sramecc_reported; }
     void Init(const Handle*);
 
     private:
     void InitDbId();
     std::string name;
     std::string dbId;
-    bool xnack   = false;
-    bool sramecc = false;
+    boost::optional<bool> xnack            = boost::none;
+    boost::optional<bool> sramecc          = boost::none;
+    boost::optional<bool> sramecc_reported = boost::none;
 };
 
 } // namespace miopen

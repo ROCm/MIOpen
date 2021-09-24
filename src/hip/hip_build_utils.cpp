@@ -1,28 +1,28 @@
 /*******************************************************************************
-*
-* MIT License
-*
-* Copyright (c) 2019 Advanced Micro Devices, Inc.
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*******************************************************************************/
+ *
+ * MIT License
+ *
+ * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 
 #include <miopen/config.h>
 #include <miopen/hip_build_utils.hpp>
@@ -30,6 +30,8 @@
 #include <miopen/exec_utils.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/env.hpp>
+#include <miopen/rocm_features.hpp>
+#include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/target_properties.hpp>
 #include <boost/optional.hpp>
 #include <sstream>
@@ -83,19 +85,6 @@ inline const std::string& GetCoV3Option(const bool enable)
         return no_option;
 }
 } // namespace
-
-struct LcOptionTargetStrings
-{
-    const std::string& device;
-    const std::string xnack;
-    const std::string sramecc;
-    LcOptionTargetStrings(const TargetProperties& target)
-        : device(target.Name()),
-          xnack(std::string{":xnack"} + (target.Xnack() ? "+" : "-")),
-          sramecc(std::string{":sramecc"} + (target.Sramecc() ? "+" : "-"))
-    {
-    }
-};
 
 static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
                                             const std::string& filename,
@@ -206,9 +195,9 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
         // call extract kernel
         tmp_dir->Execute(EXTRACTKERNEL_BIN, " -i " + bin_file.string());
         auto hsaco =
-            std::find_if(boost::filesystem::directory_iterator{tmp_dir->path},
-                         {},
-                         [](auto entry) { return (entry.path().extension() == ".hsaco"); });
+            std::find_if(boost::filesystem::directory_iterator{tmp_dir->path}, {}, [](auto entry) {
+                return (entry.path().extension() == ".hsaco");
+            });
 
         if(hsaco == boost::filesystem::directory_iterator{})
         {
@@ -230,17 +219,16 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 #else
                          "--targets=hip-amdgcn-amd-amdhsa-"
 #endif
-                             +
-                             (HipCompilerVersion() < external_tool_version_t{4, 1, 0}
-                                  ? lots.device
-                                  : (std::string{'-'} + lots.device + lots.xnack)) +
+                             + (HipCompilerVersion() < external_tool_version_t{4, 1, 0}
+                                    ? lots.device
+                                    : (std::string{'-'} + lots.device + lots.xnack)) +
                              " --inputs=" + bin_file.string() + " --outputs=" + bin_file.string() +
                              ".hsaco --unbundle");
 
         auto hsaco =
-            std::find_if(boost::filesystem::directory_iterator{tmp_dir->path},
-                         {},
-                         [](auto entry) { return (entry.path().extension() == ".hsaco"); });
+            std::find_if(boost::filesystem::directory_iterator{tmp_dir->path}, {}, [](auto entry) {
+                return (entry.path().extension() == ".hsaco");
+            });
 
         if(hsaco == boost::filesystem::directory_iterator{})
         {
@@ -260,6 +248,7 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 #endif
 }
 
+#ifndef ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
 static bool
 HipBuildTest(const std::string& program_name, std::string params, const TargetProperties& target)
 {
@@ -295,6 +284,7 @@ static bool DetectIfBufferAtomicFaddReturnsFloat(const TargetProperties& target)
     static const bool once = DetectIfBufferAtomicFaddReturnsFloatImpl(target);
     return once;
 }
+#endif
 
 boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
                                  const std::string& filename,
@@ -303,9 +293,14 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
                                  const TargetProperties& target,
                                  const bool sources_already_reside_on_filesystem)
 {
-    if(target.Name() == "gfx908")
+#ifndef ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
+    if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
         if(DetectIfBufferAtomicFaddReturnsFloat(target))
             params += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
+#elif ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
+    if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
+        params += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
+#endif
     return HipBuildImpl(
         tmp_dir, filename, src, params, target, false, sources_already_reside_on_filesystem);
 }

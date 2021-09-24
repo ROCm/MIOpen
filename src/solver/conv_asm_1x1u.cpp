@@ -146,7 +146,7 @@ inline static bool Next_1_4(int& v)
     return false;
 }
 
-bool PerformanceConfigConvAsm1x1U::SetNextValue()
+bool PerformanceConfigConvAsm1x1U::SetNextValue(const ConvolutionContext& /*config*/)
 {
     // Increment with wrap-around:
     do
@@ -225,8 +225,8 @@ PerformanceConfigConvAsm1x1U::PerformanceConfigConvAsm1x1U(int read_size_,
 {
 }
 
-inline bool PerformanceConfigConvAsm1x1U::
-operator==(const PerformanceConfigConvAsm1x1U& other) const
+inline bool
+PerformanceConfigConvAsm1x1U::operator==(const PerformanceConfigConvAsm1x1U& other) const
 {
     // clang-format off
     return read_size == other.read_size
@@ -306,8 +306,11 @@ bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) con
     return (c_per_wave % c_mult == 0) && (c_per_last_wave % c_mult == 0);
 }
 
-void PerformanceConfigConvAsm1x1U::EuristicInit(const ConvolutionContext& config)
+void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& config)
 {
+    if(config.in_data_type == miopenDouble)
+        MIOPEN_THROW("Double data type is not supported by ConvAsm1x1U");
+
     const auto elements_in_dword = 4 / GetTypeSize(config.in_data_type);
     read_size                    = 4;
     k_mult                       = 16;
@@ -362,7 +365,7 @@ PerformanceConfigConvAsm1x1U
 ConvAsm1x1U::GetPerformanceConfig(const ConvolutionContext& params) const
 {
     PerformanceConfigConvAsm1x1U pp;
-    pp.EuristicInit(params);
+    pp.HeuristicInit(params);
     MIOPEN_LOG_I(pp.ToString());
     return pp;
 }
@@ -388,6 +391,10 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
     if(!params.rmv.IsV2orV3())
         return false;
     if(!(params.IsFp32() || params.IsFp16()))
+        return false;
+
+    const auto target = params.GetStream().GetTargetProperties();
+    if(target.Xnack() && *target.Xnack())
         return false;
 
     const std::string name = params.GetStream().GetDeviceName();
@@ -493,9 +500,9 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
         int in_batch_stride = AsmImgWidth(params) * AsmImgHeight(params) *
                               (UseSubsample(params) ? params.n_inputs : params.n_outputs);
         int write_unit =
-            (AsmImgWidth(params) % 4 == 0) ? 4 : (AsmImgWidth(params) % 3 == 0)
-                                                     ? 3
-                                                     : (AsmImgWidth(params) % 2 == 0) ? 2 : 1;
+            (AsmImgWidth(params) % 4 == 0)
+                ? 4
+                : (AsmImgWidth(params) % 3 == 0) ? 3 : (AsmImgWidth(params) % 2 == 0) ? 2 : 1;
 
         int n_grp0_size0 = 256;
 

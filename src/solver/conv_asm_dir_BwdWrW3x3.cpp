@@ -61,7 +61,7 @@ inline static bool Inc_1_2_4_8(int& v)
 
 inline static bool Is_1_2_4_8(const int& v) { return v == 1 || v == 2 || v == 4 || v == 8; }
 
-bool PerformanceConfigAsmDirect3x3WrW::SetNextValue()
+bool PerformanceConfigAsmDirect3x3WrW::SetNextValue(const ConvolutionContext& /*config*/)
 {
     // Increment with wrap-around:
     do
@@ -111,8 +111,8 @@ PerformanceConfigAsmDirect3x3WrW::PerformanceConfigAsmDirect3x3WrW(
 {
 }
 
-inline bool PerformanceConfigAsmDirect3x3WrW::
-operator==(const PerformanceConfigAsmDirect3x3WrW& other) const
+inline bool
+PerformanceConfigAsmDirect3x3WrW::operator==(const PerformanceConfigAsmDirect3x3WrW& other) const
 {
     // clang-format off
     return limit_wave_cnt == other.limit_wave_cnt
@@ -240,7 +240,7 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& config)
     return true;
 }
 
-void PerformanceConfigAsmDirect3x3WrW::EuristicInit(const ConvolutionContext& config)
+void PerformanceConfigAsmDirect3x3WrW::HeuristicInit(const ConvolutionContext& config)
 {
     limit_wave_cnt = 0;
 
@@ -326,7 +326,7 @@ PerformanceConfigAsmDirect3x3WrW
 ConvAsmBwdWrW3x3::GetPerformanceConfig(const ConvolutionContext& params) const
 {
     PerformanceConfigAsmDirect3x3WrW pp;
-    pp.EuristicInit(params);
+    pp.HeuristicInit(params);
     MIOPEN_LOG_I(pp.ToString());
     return pp;
 }
@@ -351,6 +351,11 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!params.rmv.IsV2orV3())
         return false;
+
+    const auto target = params.GetStream().GetTargetProperties();
+    if(target.Xnack() && *target.Xnack())
+        return false;
+
     const std::string name = params.GetStream().GetDeviceName();
     if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")))
         return false;

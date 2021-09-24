@@ -31,6 +31,7 @@
 #include <miopen/gemm_v2.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/kernel.hpp>
+#include <miopen/rocm_features.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/util.hpp>
@@ -52,9 +53,11 @@ namespace solver {
 #if MIOPEN_USE_GEMM
 #ifdef CPPCHECK
 // Keep the value unknown in cppcheck since this can differ between opencl and hip
-static bool IsUseRocBlas;
+static bool IsBf16Supported;
+static bool IsFp16Supported;
 #else
-static constexpr const bool IsUseRocBlas = (MIOPEN_USE_ROCBLAS == 1);
+static constexpr const bool IsBf16Supported = (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE);
+static constexpr const bool IsFp16Supported = (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE);
 #endif
 
 static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
@@ -63,6 +66,14 @@ static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
 {
     return xDesc.GetType() == miopenBFloat16 || yDesc.GetType() == miopenBFloat16 ||
            wDesc.GetType() == miopenBFloat16;
+}
+
+static inline bool IsAnyBufferFp16(const TensorDescriptor& xDesc,
+                                   const TensorDescriptor& yDesc,
+                                   const TensorDescriptor& wDesc)
+{
+    return xDesc.GetType() == miopenHalf || yDesc.GetType() == miopenHalf ||
+           wDesc.GetType() == miopenHalf;
 }
 #endif
 
@@ -74,9 +85,10 @@ bool GemmFwdBase::IsApplicable(const ExecutionContext&,
     const auto& wDesc = problem.GetWeights();
     const auto& yDesc = problem.GetOut();
     return problem.GetDirection() == conv::Direction::Forward && problem.IsLayoutDefault() &&
-           !(IsAnyBufferBF16(xDesc, yDesc, wDesc) && !IsUseRocBlas);
+           !(IsAnyBufferBF16(xDesc, yDesc, wDesc) && !IsBf16Supported) &&
+           !(IsAnyBufferFp16(xDesc, yDesc, wDesc) && !IsFp16Supported);
 #else
-    std::ignore                          = problem;
+    std::ignore = problem;
     return false;
 #endif
 };
@@ -111,7 +123,7 @@ float GemmFwdBase::GetWti(const ExecutionContext&, const conv::ProblemDescriptio
     int n_Im2ColGPU              = 0;
 
     std::size_t in_n, in_c;
-    std::tie(in_n, in_c) = tie_pick<0, 1>()(xDesc.GetLengths());
+    std::tie(in_n, in_c)    = tie_pick<0, 1>()(xDesc.GetLengths());
     std::size_t spatial_dim = conv.GetSpatialDimension();
     auto wei_spatial        = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
 
@@ -124,8 +136,8 @@ float GemmFwdBase::GetWti(const ExecutionContext&, const conv::ProblemDescriptio
         n_transpose_NCHW2CNHW = 1;
         if(wDesc.GetType() == miopenInt8)
             n_transpose_packed_MN2NM = 1;
-        n_gemm_strided_batched       = conv.group_count;
-        n_transpose_CNHW2NCHW        = 1;
+        n_gemm_strided_batched = conv.group_count;
+        n_transpose_CNHW2NCHW  = 1;
         if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
            yDesc.GetType() != miopenInt32)
             n_CastTensor = 1;
@@ -155,8 +167,8 @@ float GemmFwdBase::GetWti(const ExecutionContext&, const conv::ProblemDescriptio
         n_Im2ColGPU = in_n;
         if(wDesc.GetType() == miopenInt8)
             n_transpose_packed_MN2NM = in_n;
-        n_gemm_strided_batched       = conv.group_count;
-        n_gemm_runs                  = in_n;
+        n_gemm_strided_batched = conv.group_count;
+        n_gemm_runs            = in_n;
         if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
            yDesc.GetType() != miopenInt32)
             n_CastTensor = 1;
@@ -205,7 +217,10 @@ size_t GemmFwd1x1_0_2::GetWorkspaceSize(const ExecutionContext& context,
     const auto gemm_trans = x_t_size + y_t_size;
 
     if(gemm_trans > MAX_MEM_ALLOC_SZ)
+    {
+        MIOPEN_LOG_I2(gemm_trans << " > " << MAX_MEM_ALLOC_SZ);
         return 0;
+    }
     return gemm_trans;
 #else
     std::ignore = context;
@@ -230,7 +245,8 @@ bool GemmFwd1x1_0_2::IsApplicable(const ExecutionContext& context,
     return conv.GetSpatialDimension() == 2 &&
            miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
            miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
-           miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; });
+           miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; }) &&
+           GetWorkspaceSize(context, problem) > 0;
 #else
     std::ignore = context;
     std::ignore = problem;
@@ -448,10 +464,11 @@ size_t GemmFwd1x1_0_1_int8::GetWorkspaceSize(const ExecutionContext& context,
     const auto out_spatial = boost::adaptors::slice(yDesc.GetLengths(), 2, 2 + spatial_dim);
     const auto wei_c       = wDesc.GetLengths()[1];
 
-    const auto ws_size = wei_c * std::accumulate(wei_spatial.begin(),
-                                                 wei_spatial.end(),
-                                                 std::size_t(1),
-                                                 std::multiplies<std::size_t>()) *
+    const auto ws_size = wei_c *
+                         std::accumulate(wei_spatial.begin(),
+                                         wei_spatial.end(),
+                                         std::size_t(1),
+                                         std::multiplies<std::size_t>()) *
                          std::accumulate(out_spatial.begin(),
                                          out_spatial.end(),
                                          std::size_t(1),
@@ -459,7 +476,10 @@ size_t GemmFwd1x1_0_1_int8::GetWorkspaceSize(const ExecutionContext& context,
                          GetTypeSize(wDesc.GetType()) * conv.group_count;
 
     if(ws_size > MAX_MEM_ALLOC_SZ)
+    {
+        MIOPEN_LOG_I2(ws_size << " > " << MAX_MEM_ALLOC_SZ);
         return 0;
+    }
     return ws_size;
 #else
     std::ignore = context;
@@ -484,7 +504,8 @@ bool GemmFwd1x1_0_1_int8::IsApplicable(const ExecutionContext& context,
     return miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
            miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
            miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 1; }) &&
-           wDesc.GetType() == miopenInt8 && conv.group_count == 1;
+           wDesc.GetType() == miopenInt8 && conv.group_count == 1 &&
+           GetWorkspaceSize(context, problem) > 0;
 #else
     std::ignore = context;
     std::ignore = problem;
@@ -847,10 +868,11 @@ size_t GemmFwdRest::GetWorkspaceSize(const ExecutionContext& context,
     const auto out_spatial = boost::adaptors::slice(yDesc.GetLengths(), 2, 2 + spatial_dim);
     const auto wei_c       = wDesc.GetLengths()[1];
 
-    const auto workspace_size = wei_c * std::accumulate(wei_spatial.begin(),
-                                                        wei_spatial.end(),
-                                                        std::size_t(1),
-                                                        std::multiplies<std::size_t>()) *
+    const auto workspace_size = wei_c *
+                                std::accumulate(wei_spatial.begin(),
+                                                wei_spatial.end(),
+                                                std::size_t(1),
+                                                std::multiplies<std::size_t>()) *
                                 std::accumulate(out_spatial.begin(),
                                                 out_spatial.end(),
                                                 std::size_t(1),
@@ -860,7 +882,10 @@ size_t GemmFwdRest::GetWorkspaceSize(const ExecutionContext& context,
     const auto ws_sz = (wDesc.GetType() == miopenInt8 ? 2 * workspace_size : workspace_size);
 
     if(ws_sz > MAX_MEM_ALLOC_SZ)
+    {
+        MIOPEN_LOG_I2(ws_sz << " > " << MAX_MEM_ALLOC_SZ);
         return 0;
+    }
     return ws_sz;
 #else
     std::ignore = context;
@@ -877,23 +902,40 @@ bool GemmFwdRest::IsApplicable(const ExecutionContext& context,
         return false;
 
 #if WORKAROUND_MIOPENGEMM_ROCM37
-    decltype(auto) conv  = problem.GetConv();
-    decltype(auto) xDesc = problem.GetIn();
-    decltype(auto) wDesc = problem.GetWeights();
+    {
+        decltype(auto) conv  = problem.GetConv();
+        decltype(auto) xDesc = problem.GetIn();
+        decltype(auto) wDesc = problem.GetWeights();
 
-    const auto spatial_dim  = conv.GetSpatialDimension();
-    const auto& in_spatial  = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
-    const auto& wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
+        const auto spatial_dim  = conv.GetSpatialDimension();
+        const auto& in_spatial  = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
+        const auto& wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
 
-    const auto in_c = xDesc.GetLengths()[1];
+        const auto in_c = xDesc.GetLengths()[1];
 
-    if(conv.GetSpatialDimension() == 2 && conv.group_count == 4 && in_c == 4 &&
-       in_spatial[0] == 161 && in_spatial[1] == 700 && wDesc.GetLengths()[0] == 32 &&
-       wDesc.GetLengths()[1] == 1 && wei_spatial[0] == 5 && wei_spatial[1] == 20 &&
-       miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
-       miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; }) &&
-       miopen::all_of(conv.GetConvDilations(), [](auto v) { return v == 1; }))
-        return false;
+        if(conv.GetSpatialDimension() == 2 && conv.group_count == 4 && in_c == 4 &&
+           in_spatial[0] == 161 && in_spatial[1] == 700 && wDesc.GetLengths()[0] == 32 &&
+           wDesc.GetLengths()[1] == 1 && wei_spatial[0] == 5 && wei_spatial[1] == 20 &&
+           miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
+           miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; }) &&
+           miopen::all_of(conv.GetConvDilations(), [](auto v) { return v == 1; }))
+            return false;
+    }
+#endif
+#if WORKAROUND_MIOPENGEMM_SINCE_ROCM41
+    {
+        decltype(auto) conv  = problem.GetConv();
+        decltype(auto) xDesc = problem.GetIn();
+        decltype(auto) wDesc = problem.GetWeights();
+
+        const std::size_t spatial_dim = conv.GetSpatialDimension();
+        const auto in_spatial  = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
+        const auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
+
+        if(miopen::any_of(in_spatial, [](auto v) { return v >= 161; }) &&
+           miopen::any_of(wei_spatial, [](auto v) { return v >= 7; }))
+            return false;
+    }
 #endif
 
     // Todo: This is a rest-of kind of logic. Should be revised later.
@@ -904,7 +946,7 @@ bool GemmFwdRest::IsApplicable(const ExecutionContext& context,
     if(GemmFwd1x1_0_2{}.IsApplicable(context, problem))
         return false;
 
-    return true;
+    return GetWorkspaceSize(context, problem) > 0;
 #else
     std::ignore = context;
     std::ignore = problem;

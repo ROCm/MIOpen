@@ -235,7 +235,7 @@ Handle::Handle() : impl(new HandleImpl())
     this->impl->stream = impl->create_stream();
 #else
     this->impl->device = get_device_id();
-    this->impl->ctx    = get_ctx();
+    this->impl->ctx = get_ctx();
     this->impl->stream = HandleImpl::reference_stream(nullptr);
 #endif
     this->SetAllocator(nullptr, nullptr, nullptr);
@@ -391,12 +391,7 @@ Program Handle::LoadProgram(const std::string& program_name,
 {
     this->impl->set_ctx();
 
-    if(miopen::EndsWith(program_name, ".mlir-cpp"))
-    {
-        params += " --num_cu " + std::to_string(this->GetMaxComputeUnits());
-        params += " --arch " + this->GetTargetProperties().Name();
-    }
-    else
+    if((!miopen::EndsWith(program_name, ".mlir-cpp")) && (!miopen::EndsWith(program_name, ".mlir")))
     {
         params += " -mcpu=" + this->GetTargetProperties().Name();
     }
@@ -424,14 +419,14 @@ Program Handle::LoadProgram(const std::string& program_name,
                            params,
                            is_kernel_str);
 #else
-        auto path      = miopen::GetCachePath(false) / boost::filesystem::unique_path();
+        auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path();
         if(p.IsCodeObjectInMemory())
             miopen::WriteFile(p.GetCodeObjectBlob(), path);
         else
             boost::filesystem::copy_file(p.GetCodeObjectPathname(), path);
         miopen::SaveBinary(path, this->GetTargetProperties(), program_name, params, is_kernel_str);
 #endif
-
+        p.FreeCodeObjectFileStorage();
         return p;
     }
     else
@@ -508,12 +503,11 @@ std::size_t Handle::GetGlobalMemorySize() const
 
 std::size_t Handle::GetMaxComputeUnits() const
 {
+    const std::size_t num_cu = Value(MIOPEN_DEVICE_CU{});
+    if(num_cu > 0)
+        return num_cu;
+
     int result;
-    const char* const num_cu = miopen::GetStringEnv(MIOPEN_DEVICE_CU{});
-    if(num_cu != nullptr && strlen(num_cu) > 0)
-    {
-        return boost::lexical_cast<std::size_t>(num_cu);
-    }
     auto status =
         hipDeviceGetAttribute(&result, hipDeviceAttributeMultiprocessorCount, this->impl->device);
     if(status != hipSuccess)

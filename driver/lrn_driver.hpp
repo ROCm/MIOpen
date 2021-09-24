@@ -131,7 +131,7 @@ int LRNDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 #if 0
 	if(inflags.GetValueInt("back") == 0 && inflags.GetValueStr("mode") == "cross") {
 		printf("Cross channel LRN needs do_backward=1\n");
-		exit(0);
+		exit(0); // NOLINT (concurrency-mt-unsafe)
 	}
 #endif
     return 0;
@@ -210,7 +210,7 @@ int LRNDriver<Tgpu, Tref>::SetLRNDescriptorFromCmdLineArgs()
     else
     {
         printf("Incorrect LRN Mode\n");
-        exit(0);
+        exit(0); // NOLINT (concurrency-mt-unsafe)
     }
 
     return (miopenSetLRNDescriptor(lrnDesc, mode, lrnN, lrnAlpha, lrnBeta, lrnK));
@@ -250,6 +250,14 @@ int LRNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     {
         scale     = std::vector<Tgpu>(workSpaceNbVal, static_cast<Tgpu>(0));
         scalehost = std::vector<Tref>(workSpaceNbVal, static_cast<Tref>(0));
+        if(inflags.GetValueInt("forw") == 2)
+        {
+            for(int i = 0; i < scale.size(); i++)
+            {
+                scale[i]     = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+                scalehost[i] = Tref(scale[i]);
+            }
+        }
     }
     din     = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
     dout    = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));

@@ -202,8 +202,8 @@ miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetCompileParms(
 
     // The output_desc should be fully formed by this stage.
     std::tie(n, c, h, w) = tien<4>(input_desc.GetLengths());
-    size_t read_unit = 1;
-    size_t read_len  = (mode == miopenBNSpatial) ? h * w : c * h * w;
+    size_t read_unit     = 1;
+    size_t read_len      = (mode == miopenBNSpatial) ? h * w : c * h * w;
 
     if(mode == miopenBNSpatial && input_desc.GetType() != miopenHalf)
     {
@@ -248,8 +248,8 @@ BatchNormInferenceFusionOpDescriptor::GetGlobalWGSz(Handle& /*handle*/,
 
     // The output_desc should be fully formed by this stage.
     std::tie(n, c, h, w) = tien<4>(input_desc.GetLengths());
-    size_t read_unit = 1;
-    size_t read_len  = (mode == miopenBNSpatial) ? h * w : c * h * w;
+    size_t read_unit     = 1;
+    size_t read_len      = (mode == miopenBNSpatial) ? h * w : c * h * w;
 
     if(mode == miopenBNSpatial && input_desc.GetType() != miopenHalf)
     {
@@ -284,11 +284,11 @@ void BatchNormBwdTrainFusionOpDescriptor::calcBNParams(Handle& handle,
     size_t zgridsize, ygridsize, xgridsize;
     std::tie(xgridsize, ygridsize, zgridsize) = tien<3>(GetGlobalWGSz(handle, ""));
     int n, c, h, w;
-    variant = 0;
+    variant              = 0;
     std::tie(n, c, h, w) = tien<4>(in_lens);
-    in_cstride = h * w;
-    in_nstride = c * in_cstride;
-    in_nchw    = n * in_nstride;
+    in_cstride           = h * w;
+    in_nstride           = c * in_cstride;
+    in_nchw              = n * in_nstride;
 
     variant = 0;
 
@@ -314,15 +314,15 @@ miopenStatus_t BatchNormBwdTrainFusionOpDescriptor::GetNetworkConfig(std::string
                                                                      Handle& handle)
 {
     int n, c, h, w;
-    int variant = 0;
+    int variant          = 0;
     std::tie(n, c, h, w) = tien<4>(input_desc.GetLengths());
     size_t in_cstride, in_nstride, in_nchw;
     size_t xlocalsize, ylocalsize, zlocalsize;
     std::tie(xlocalsize, ylocalsize, zlocalsize) = tien<3>(GetLocalWGSz(handle, ""));
     size_t zgridsize, ygridsize, xgridsize;
     std::tie(xgridsize, ygridsize, zgridsize) = tien<3>(GetGlobalWGSz(handle, ""));
-    unsigned int ldsgcn   = 0;
-    unsigned int ldsnogcn = 0;
+    unsigned int ldsgcn                       = 0;
+    unsigned int ldsnogcn                     = 0;
     calcBNParams(handle,
                  input_desc.GetLengths(),
                  variant,
@@ -353,15 +353,15 @@ miopenStatus_t BatchNormBwdTrainFusionOpDescriptor::GetCompileParms(
 {
     std::string add;
     int n, c, h, w;
-    int variant = 0;
+    int variant          = 0;
     std::tie(n, c, h, w) = tien<4>(input_desc.GetLengths());
     size_t in_cstride, in_nstride, in_nchw;
     size_t xlocalsize, ylocalsize, zlocalsize;
     std::tie(xlocalsize, ylocalsize, zlocalsize) = tien<3>(GetLocalWGSz(handle, ""));
     size_t zgridsize, ygridsize, xgridsize;
     std::tie(xgridsize, ygridsize, zgridsize) = tien<3>(GetGlobalWGSz(handle, ""));
-    unsigned int ldsgcn   = 0;
-    unsigned int ldsnogcn = 0;
+    unsigned int ldsgcn                       = 0;
+    unsigned int ldsnogcn                     = 0;
     calcBNParams(handle,
                  input_desc.GetLengths(),
                  variant,
@@ -380,14 +380,18 @@ miopenStatus_t BatchNormBwdTrainFusionOpDescriptor::GetCompileParms(
     }
 
     add += " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) +
-           " -DMIO_BN_HW=" + std::to_string(in_cstride) + " -DMIO_BN_NHW=" +
-           std::to_string(n * h * w) + " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
-           " -DMIO_BN_NCHW=" + std::to_string(in_nchw) + " -DMIO_BN_GRP0=" +
-           std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
-           " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) + " -DMIO_BN_LDS_SIZE=" +
-           std::to_string(ldsnogcn) + " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) +
-           " -DMIO_BN_USESAVED=" + std::to_string(static_cast<int>(true)) + " -DMIO_BN_VARIANT=" +
-           std::to_string(variant) + " -DMIO_BN_CBA_WRITE_INTERMEDIATE=" + std::to_string(0) +
+           " -DMIO_BN_HW=" + std::to_string(in_cstride) +
+           " -DMIO_BN_NHW=" + std::to_string(n * h * w) +
+           " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
+           " -DMIO_BN_NCHW=" + std::to_string(in_nchw) +
+           " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) +
+           " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
+           " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) +
+           " -DMIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) +
+           " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) +
+           " -DMIO_BN_USESAVED=" + std::to_string(static_cast<int>(true)) +
+           " -DMIO_BN_VARIANT=" + std::to_string(variant) +
+           " -DMIO_BN_CBA_WRITE_INTERMEDIATE=" + std::to_string(0) +
            " -DMIO_BN_GFX1030=" + ((handle.GetDeviceName() == "gfx1030") ? "1" : "0");
 
     compile_config += add;
@@ -402,7 +406,7 @@ BatchNormBwdTrainFusionOpDescriptor::GetLocalWGSz(Handle& /*handle*/,
     size_t xlocalsize, ylocalsize, zlocalsize;
     int h, w;
     std::tie(std::ignore, std::ignore, h, w) = tien<4>(input_desc.GetLengths());
-    size_t in_cstride = h * w;
+    size_t in_cstride                        = h * w;
 
     xlocalsize = 1;
     ylocalsize = 1;
@@ -479,11 +483,11 @@ void BatchNormFwdTrainFusionOpDescriptor::calcBNParams(Handle& handle,
     size_t zgridsize, ygridsize, xgridsize;
     std::tie(xgridsize, ygridsize, zgridsize) = tien<3>(GetGlobalWGSz(handle, ""));
     int n, c, h, w;
-    variant = 0;
+    variant              = 0;
     std::tie(n, c, h, w) = tien<4>(in_lens);
-    in_cstride = h * w;
-    in_nstride = c * in_cstride;
-    in_nchw    = n * in_nstride;
+    in_cstride           = h * w;
+    in_nstride           = c * in_cstride;
+    in_nchw              = n * in_nstride;
 
     ldsgcn   = xlocalsize / 64;
     ldsnogcn = xlocalsize;
@@ -510,7 +514,7 @@ miopenStatus_t BatchNormFwdTrainFusionOpDescriptor::GetNetworkConfig(std::string
     int variant               = 0;
     const bool saveBatchStats = true;
     bool savePopStats         = runningMeanVar;
-    std::tie(n, c, h, w) = tien<4>(input_desc.GetLengths());
+    std::tie(n, c, h, w)      = tien<4>(input_desc.GetLengths());
     size_t in_cstride, in_nstride, in_nchw;
     size_t xlocalsize, ylocalsize, zlocalsize;
     std::tie(xlocalsize, ylocalsize, zlocalsize) = tien<3>(GetLocalWGSz(handle, ""));
@@ -551,7 +555,7 @@ miopenStatus_t BatchNormFwdTrainFusionOpDescriptor::GetCompileParms(
     int variant               = 0;
     const bool saveBatchStats = true;
     bool savePopStats         = runningMeanVar;
-    std::tie(n, c, h, w) = tien<4>(input_desc.GetLengths());
+    std::tie(n, c, h, w)      = tien<4>(input_desc.GetLengths());
     size_t in_cstride, in_nstride, in_nchw;
     size_t xlocalsize, ylocalsize, zlocalsize;
     std::tie(xlocalsize, ylocalsize, zlocalsize) = tien<3>(GetLocalWGSz(handle, ""));
@@ -590,15 +594,19 @@ miopenStatus_t BatchNormFwdTrainFusionOpDescriptor::GetCompileParms(
     }
 
     add += " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) +
-           " -DMIO_BN_HW=" + std::to_string(in_cstride) + " -DMIO_BN_NHW=" +
-           std::to_string(n * h * w) + " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
-           " -DMIO_BN_NCHW=" + std::to_string(in_nchw) + " -DMIO_BN_GRP0=" +
-           std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
-           " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) + " -DMIO_BN_LDS_SIZE=" +
-           std::to_string(ldsnogcn) + " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) +
+           " -DMIO_BN_HW=" + std::to_string(in_cstride) +
+           " -DMIO_BN_NHW=" + std::to_string(n * h * w) +
+           " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
+           " -DMIO_BN_NCHW=" + std::to_string(in_nchw) +
+           " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) +
+           " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
+           " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) +
+           " -DMIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) +
+           " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) +
            " -DMIOPEN_READ_UNIT=" + std::to_string(read_unit) + " -DMIOPEN_READ_TYPE=" + READ_TYPE +
-           " -DMIO_SAVE_MEAN_VARIANCE=" + (saveBatchStats ? "1" : "0") + " -DMIO_RUNNING_RESULT=" +
-           ((savePopStats) ? "1" : "0") + " -DMIO_BN_VARIANT=" + std::to_string(variant) +
+           " -DMIO_SAVE_MEAN_VARIANCE=" + (saveBatchStats ? "1" : "0") +
+           " -DMIO_RUNNING_RESULT=" + ((savePopStats) ? "1" : "0") +
+           " -DMIO_BN_VARIANT=" + std::to_string(variant) +
            " -DMIO_BN_GFX1030=" + ((handle.GetDeviceName() == "gfx1030") ? "1" : "0");
 
     compile_config += add;
@@ -613,7 +621,7 @@ BatchNormFwdTrainFusionOpDescriptor::GetLocalWGSz(Handle& /*handle*/,
     size_t xlocalsize, ylocalsize, zlocalsize;
     int h, w;
     std::tie(std::ignore, std::ignore, h, w) = tien<4>(input_desc.GetLengths());
-    size_t in_cstride = h * w;
+    size_t in_cstride                        = h * w;
 
     xlocalsize = 1024;
     ylocalsize = 1;
@@ -680,18 +688,18 @@ OpKernelArg BatchNormFwdTrainFusionOpDescriptor::GetOpAttr(const std::string& k)
     int v;
     if(GetOpAttr(k, v))
     {
-        return OpKernelArg(v);
+        return {v};
     }
     else if(k == "diff_scale")
     {
-        return OpKernelArg(static_cast<float>(0.0));
+        return {static_cast<float>(0.0)};
     }
     else if(k == "iNHW")
     {
         int n, h, w;
         std::tie(n, std::ignore, h, w) = tien<4>(input_desc.GetLengths());
-        auto nhw = static_cast<float>(n * h * w);
-        return OpKernelArg(static_cast<float>(1.0f / nhw));
+        auto nhw                       = static_cast<float>(n * h * w);
+        return {static_cast<float>(1.0f / nhw)};
     }
     else
         MIOPEN_THROW("BatchNormFwdTrainFusionOpDescriptor does not support attribute: " + k);

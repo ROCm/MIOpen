@@ -33,6 +33,7 @@
 #include <miopen/convolution.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
+#include <miopen/tensor_layout.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/solver.hpp>
@@ -50,6 +51,7 @@
 #include "network_data.hpp"
 #include "miopen/find_db.hpp"
 #include "cpu_bias.hpp"
+#include "random.hpp"
 
 #define TEST_DIRECT_SUPPORTED_CONFIG_ONLY (!MIOPEN_USE_ROCBLAS && !MIOPEN_USE_MIOPENTENSILE)
 
@@ -145,7 +147,7 @@ struct scalar_gen_random_float
 
     double operator()() const
     {
-        return min_val + (max_val - min_val) * double(std::rand()) / RAND_MAX;
+        return min_val + (max_val - min_val) * double(GET_RAND()) / RAND_MAX;
     }
 };
 
@@ -156,7 +158,7 @@ struct scalar_gen_random_integer
 
     double operator()() const
     {
-        return static_cast<double>(min_val + std::rand() % (max_val - min_val + 1));
+        return static_cast<double>(min_val + GET_RAND() % (max_val - min_val + 1));
     }
 };
 
@@ -178,11 +180,18 @@ struct conv_stats
 template <class T, class Tout = T>
 tensor<Tout> get_output_tensor(const miopen::ConvolutionDescriptor& filter,
                                const tensor<T>& input,
-                               const tensor<T>& weights)
+                               const tensor<T>& weights,
+                               const std::string& out_layout)
 {
-    return tensor<Tout>{filter.GetForwardOutputTensor(
+
+    std::string yLayout =
+        out_layout.empty()
+            ? input.desc.GetLayout(miopen::tensor_layout_get_default(input.desc.GetSize()))
+            : out_layout;
+    return tensor<Tout>{filter.GetForwardOutputTensorWithLayout(
         input.desc,
         weights.desc,
+        yLayout,
         weights.desc.GetType() == miopenInt8 || weights.desc.GetType() == miopenInt8x4
             ? (std::is_same<Tout, int>{} ? miopenInt32 : miopenFloat)
             : weights.desc.GetType())};
@@ -220,6 +229,7 @@ struct verify_forward_conv : conv_base<T, Tout>
 {
     using conv_base<T, Tout>::input;
     using conv_base<T, Tout>::weights;
+    using conv_base<T, Tout>::out;
     using conv_base<T, Tout>::filter;
     using conv_base<T, Tout>::bias;
     using conv_base<T, Tout>::search;
@@ -229,6 +239,7 @@ struct verify_forward_conv : conv_base<T, Tout>
 
     verify_forward_conv(const tensor<T>& pinput,
                         const tensor<T>& pweights,
+                        const tensor<Tout>& pout,
                         const miopen::ConvolutionDescriptor& pfilter,
                         conv_stats& pstats,
                         int pbias,
@@ -238,6 +249,7 @@ struct verify_forward_conv : conv_base<T, Tout>
     {
         input   = pinput;
         weights = pweights;
+        out     = pout;
         filter  = pfilter;
         bias    = pbias;
         search  = psearch;
@@ -248,7 +260,7 @@ struct verify_forward_conv : conv_base<T, Tout>
 
     tensor<Tout> cpu() const
     {
-        auto rout = get_output_tensor<T, Tout>(filter, input, weights);
+        auto rout = out;
 
         if(filter.mode == miopenTranspose)
         {
@@ -302,7 +314,7 @@ struct verify_forward_conv : conv_base<T, Tout>
     tensor<Tout> gpu() const
     {
         auto&& handle = get_handle();
-        auto rout     = get_output_tensor<T, Tout>(filter, input, weights);
+        auto rout     = out;
 
         auto in_dev  = handle.Write(input.data);
         auto wei_dev = handle.Write(weights.data);
@@ -355,7 +367,7 @@ struct verify_forward_conv : conv_base<T, Tout>
                 {
                     std::cout << "FAILED: Using immediate mode error in GetSolutionCount."
                               << std::endl;
-                    exit(-1);
+                    exit(-1); // NOLINT (concurrency-mt-unsafe)
                 }
 
                 auto solutions = std::vector<miopenConvSolution_t>(count);
@@ -373,7 +385,7 @@ struct verify_forward_conv : conv_base<T, Tout>
                 {
                     std::cout << "FAILED: Immediate mode has no fallback for this configuration."
                               << " Solution count: " << count << std::endl;
-                    exit(-1);
+                    exit(-1); // NOLINT (concurrency-mt-unsafe)
                 }
                 selected = solutions.front();
 
@@ -431,7 +443,7 @@ struct verify_forward_conv : conv_base<T, Tout>
                 {
                     std::cout << "FAILED: Using immediate mode error in GetSolutionCount."
                               << std::endl;
-                    exit(-1);
+                    exit(-1); // NOLINT (concurrency-mt-unsafe)
                 }
 
                 // std::cout << "Forward Conv solutions available: " << count << std::endl;
@@ -450,7 +462,7 @@ struct verify_forward_conv : conv_base<T, Tout>
                 {
                     std::cout << "FAILED: Immediate mode has no fallback for this configuration."
                               << " Solution count: " << count << std::endl;
-                    exit(-1);
+                    exit(-1); // NOLINT (concurrency-mt-unsafe)
                 }
                 selected = solutions.front();
 
@@ -824,7 +836,7 @@ struct verify_backward_conv : conv_base<T>
                 {
                     std::cout << "FAILED: Using immediate mode error in GetSolutionCount."
                               << std::endl;
-                    exit(-1);
+                    exit(-1); // NOLINT (concurrency-mt-unsafe)
                 }
 
                 // std::cout << "backward transpose Conv solutions available: " << count <<
@@ -844,7 +856,7 @@ struct verify_backward_conv : conv_base<T>
                 {
                     std::cout << "FAILED: Immediate mode has no fallback for this configuration."
                               << " Solution count: " << count << std::endl;
-                    exit(-1);
+                    exit(-1); // NOLINT (concurrency-mt-unsafe)
                 }
                 solutions.resize(count);
                 std::sort(solutions.begin(), solutions.end(), [](const auto& l, const auto& r) {
@@ -903,7 +915,7 @@ struct verify_backward_conv : conv_base<T>
                 {
                     std::cout << "FAILED: Using immediate mode error in GetSolutionCount."
                               << std::endl;
-                    exit(-1);
+                    exit(-1); // NOLINT (concurrency-mt-unsafe)
                 }
 
                 // std::cout << "Backward Conv solutions available: " << count << std::endl;
@@ -922,7 +934,7 @@ struct verify_backward_conv : conv_base<T>
                 {
                     std::cout << "FAILED: Immediate mode has no fallback for this configuration."
                               << " Solution count: " << count << std::endl;
-                    exit(-1);
+                    exit(-1); // NOLINT (concurrency-mt-unsafe)
                 }
                 solutions.resize(count);
                 std::sort(solutions.begin(), solutions.end(), [](const auto& l, const auto& r) {
@@ -1200,7 +1212,7 @@ struct verify_backward_weights_conv : conv_base<T>
             if(count == 0)
             {
                 std::cout << "FAILED: Using immediate mode error in GetSolutionCount." << std::endl;
-                exit(-1);
+                exit(-1); // NOLINT (concurrency-mt-unsafe)
             }
 
             // std::cout << "Backward weights conv solutions available: " << count << std::endl;
@@ -1219,7 +1231,7 @@ struct verify_backward_weights_conv : conv_base<T>
             {
                 std::cout << "FAILED: Immediate mode has no fallback for this configuration."
                           << " Solution count: " << count << std::endl;
-                exit(-1);
+                exit(-1); // NOLINT (concurrency-mt-unsafe)
             }
             solutions.resize(count);
             std::sort(solutions.begin(), solutions.end(), [](const auto& l, const auto& r) {
@@ -1471,7 +1483,7 @@ struct verify_forward_conv_int8 : conv_base<T>
         if(count == 0)
         {
             std::cout << "FAILED: Using immediate mode error in GetSolutionCount." << std::endl;
-            exit(-1);
+            exit(-1); // NOLINT (concurrency-mt-unsafe)
         }
 
         // std::cout << "Forward Conv solutions available: " << count << std::endl;
@@ -1491,7 +1503,7 @@ struct verify_forward_conv_int8 : conv_base<T>
         {
             std::cout << "FAILED: Immediate mode has no fallback for this configuration."
                       << " Solution count: " << count << std::endl;
-            exit(-1);
+            exit(-1); // NOLINT (concurrency-mt-unsafe)
         }
         solutions.resize(count);
         std::sort(solutions.begin(), solutions.end(), [](const auto& l, const auto& r) {
@@ -1559,6 +1571,16 @@ struct conv_driver : test_driver
     miopen::ConvolutionDescriptor filter;
     std::string conv_mode;
     std::string pad_mode;
+    std::vector<std::size_t> spatial_dim_elements{};
+    std::vector<std::size_t> input_dims{};
+    std::vector<std::size_t> weight_tensor_dims{};
+    std::vector<std::size_t> filter_dims{};
+    std::size_t batch_size{};
+    std::size_t input_channels{};
+    std::size_t output_channels{};
+    std::string in_layout;
+    std::string fil_layout; // keep same as MIOpenDriver argument name
+    std::string out_layout;
     std::vector<int> pads_strides_dilations;
     std::vector<int> trans_output_pads;
     int groupCount{};
@@ -1581,6 +1603,41 @@ struct conv_driver : test_driver
         {"VALID", miopenPaddingValid},
         {"DEFAULT", miopenPaddingDefault}};
 
+    std::vector<std::size_t> get_batch_sizes() { return {1, 8, 2, 64, 30, 128, 352, 512}; }
+
+    std::vector<std::vector<std::size_t>> get_2d_spatial_dims()
+    {
+        return {{14, 14},
+                {28, 28},
+                {32, 32},
+                {7, 7},
+                {17, 17},
+                {56, 56},
+                {55, 55},
+                {64, 128},
+                {224, 224},
+                {1024, 2048},
+                {3072, 3072},
+                {1, 1},
+                {1, 7},
+                {7, 1}};
+    }
+
+    std::vector<std::vector<std::size_t>> get_2d_filter_dims()
+    {
+        return {{1, 1}, {3, 3}, {1, 7}, {5, 5}, {7, 1}, {7, 7}, {11, 11}, {2, 2}, {4, 4}};
+    }
+
+    std::vector<std::size_t> get_output_channels()
+    {
+        return {32, 64, 16, 128, 96, 112, 192, 256, 320, 512, 1024};
+    }
+
+    std::vector<std::size_t> get_input_channels()
+    {
+        return {16, 32, 3, 128, 96, 112, 192, 256, 320, 512, 1024};
+    }
+
     std::vector<std::vector<int>> get_2d_pads_strides_dilations()
     {
         return {{0, 0, 1, 1, 1, 1},
@@ -1594,6 +1651,32 @@ struct conv_driver : test_driver
                 {3, 3, 2, 2, 4, 4},
                 {0, 0, 1, 1, 1, 2},
                 {1, 1, 2, 2, 2, 1}};
+    }
+
+    std::vector<std::vector<std::size_t>> get_3d_spatial_dims()
+    {
+        return {{3, 4, 4},
+                {4, 9, 9},
+                {3, 14, 14},
+                {4, 28, 28},
+                {4, 56, 56},
+                {4, 161, 700},
+                {4, 227, 227},
+                {1, 1, 1},
+                {1, 2, 2}};
+    }
+
+    std::vector<std::vector<std::size_t>> get_3d_filter_dims()
+    {
+        return {{1, 1, 1},
+                {3, 3, 3},
+                {3, 5, 5},
+                {3, 7, 7},
+                {5, 7, 7},
+                {3, 11, 11},
+                {3, 1, 7},
+                {3, 7, 1},
+                {3, 5, 20}};
     }
 
     std::vector<std::vector<int>> get_2d_trans_output_pads() { return {{0, 0}}; }
@@ -1621,11 +1704,12 @@ struct conv_driver : test_driver
     {
         for(int i = 2; i < 4; i++)
         {
-            if(input.desc.GetSize() == i + 2 and weights.desc.GetSize() == i + 2 and
+            if(input_dims.size() == i + 2 and weight_tensor_dims.size() == i + 2 and
                pads_strides_dilations.size() == i * 3 and trans_output_pads.size() == i)
                 return i;
         }
-        return -1;
+        std::cout << "FAILED: get_spatial_dim() can't calculate dims count." << std::endl;
+        exit(-1); // NOLINT (concurrency-mt-unsafe)
     }
 
     conv_driver()
@@ -1646,16 +1730,105 @@ struct conv_driver : test_driver
 
     void run()
     {
-        filter.spatialDim       = get_spatial_dim();
+
+        if(!input_dims.empty())
+            filter.spatialDim = get_spatial_dim();
+        else
+            filter.spatialDim = filter_dims.size();
+
         filter.mode             = cmode_lookup[miopen::ToUpper(conv_mode)];
         filter.paddingMode      = pmode_lookup[miopen::ToUpper(pad_mode)];
         std::size_t spatial_dim = filter.GetSpatialDimension();
+        filter.group_count      = std::max(static_cast<int>(groupCount), 1);
+
+        if(!input_dims.empty())
+        {
+            input          = tensor<T>{input_dims}.generate(tensor_elem_gen_integer{17});
+            batch_size     = input_dims.at(0);
+            input_channels = input_dims.at(1);
+            std::copy(input_dims.begin() + 2, input_dims.end(), spatial_dim_elements.begin());
+        }
+        else if(spatial_dim == 2)
+        {
+            input = tensor<T>{batch_size,
+                              input_channels,
+                              spatial_dim_elements.at(0),
+                              spatial_dim_elements.at(1)}
+                        .generate(tensor_elem_gen_integer{17});
+        }
+        else if(spatial_dim == 3)
+        {
+            input = tensor<T>{batch_size,
+                              input_channels,
+                              spatial_dim_elements.at(0),
+                              spatial_dim_elements.at(1),
+                              spatial_dim_elements.at(2)}
+                        .generate(tensor_elem_gen_integer{17});
+        }
+
+        if(!weight_tensor_dims.empty())
+        {
+            weights         = tensor<T>{weight_tensor_dims}.generate(tensor_elem_gen_integer{17});
+            output_channels = weight_tensor_dims.at(0);
+        }
+        else if(spatial_dim == 2)
+        {
+            weights = tensor<T>{output_channels,
+                                input_channels / filter.group_count,
+                                filter_dims.at(0),
+                                filter_dims.at(1)}
+                          .generate(tensor_elem_gen_integer{17});
+        }
+        else if(spatial_dim == 3)
+        {
+            weights = tensor<T>{output_channels,
+                                input_channels / filter.group_count,
+                                filter_dims.at(0),
+                                filter_dims.at(1),
+                                filter_dims.at(2)}
+                          .generate(tensor_elem_gen_integer{17});
+        }
+
+        if(input.desc.GetSize() != in_layout.size() ||
+           weights.desc.GetSize() != fil_layout.size() || input.desc.GetSize() != out_layout.size())
+        {
+            std::cerr << "FAILED: layout not match dimension size!" << std::endl;
+            return;
+        }
+
+        // reconstruct tensor descriptor(desc) when layout is not the default NCHW layout.
+        // by default, this member is constructed when conv2d/3d is constructed (see
+        // test_driver::add())
+        // but this requires the dimensions come from commandline, which is hard for non-NCHW layout
+        if(in_layout != "NCHW" && in_layout != "NCDHW")
+        {
+            const std::vector<std::size_t> dim_lens = input.desc.GetLengths();
+            std::vector<std::size_t> dim_strides;
+            miopen::tensor_layout_to_strides(
+                dim_lens,
+                miopen::tensor_layout_get_default(input.desc.GetSize()),
+                in_layout,
+                dim_strides);
+            input.desc = miopen::TensorDescriptor(miopen_type<T>{}, dim_lens, dim_strides);
+        }
+        if(fil_layout != "NCHW" && fil_layout != "NCDHW")
+        {
+            const std::vector<std::size_t> dim_lens = weights.desc.GetLengths();
+            std::vector<std::size_t> dim_strides;
+            miopen::tensor_layout_to_strides(
+                dim_lens,
+                miopen::tensor_layout_get_default(weights.desc.GetSize()),
+                fil_layout,
+                dim_strides);
+            weights.desc = miopen::TensorDescriptor(miopen_type<T>{}, dim_lens, dim_strides);
+        }
 
         if(input.desc.GetSize() != 2 + spatial_dim || weights.desc.GetSize() != 2 + spatial_dim ||
            pads_strides_dilations.size() != 3 * spatial_dim ||
            trans_output_pads.size() != spatial_dim)
         {
-            MIOPEN_LOG_E("dimension is wrong!");
+            std::cerr << "FAILED: dimension is wrong!" << std::endl;
+            return;
         }
 
         filter.pads.resize(spatial_dim);
@@ -1670,8 +1843,6 @@ struct conv_driver : test_driver
                     spatial_dim,
                     filter.dilations.begin());
         std::copy_n(trans_output_pads.begin(), spatial_dim, filter.trans_output_pads.begin());
-
-        filter.group_count = std::max(static_cast<int>(groupCount), 1);
 
         std::size_t in_c_len  = input.desc.GetLengths()[1];
         std::size_t wei_k_len = weights.desc.GetLengths()[0];
@@ -1787,7 +1958,7 @@ struct conv_driver : test_driver
                  (filter.group_count > 1 &&
                   (input.desc.GetLengths().at(1) % weights.desc.GetLengths().at(1) == 0)))))
             {
-                auto output = get_output_tensor(filter, input, weights);
+                auto output = get_output_tensor(filter, input, weights, out_layout);
 
                 auto gen_positive_value = [=](auto...) {
                     auto data_type    = input.desc.GetType();
@@ -1872,7 +2043,8 @@ struct conv_driver : test_driver
                 size_t total_mem;
                 if(is_int8)
                 {
-                    auto output_int8      = get_output_tensor<T, float>(filter, input, weights);
+                    auto output_int8 =
+                        get_output_tensor<T, float>(filter, input, weights, out_layout);
                     size_t workspace_size = filter.ForwardGetWorkSpaceSize(
                         handle, weights.desc, input.desc, output_int8.desc);
 
@@ -1936,18 +2108,50 @@ struct conv_driver : test_driver
                     if(is_int8)
                     {
                         verify(verify_forward_conv<T, float>{
-                            input, weights, filter, stats, 0, search, false, immed});
+                            input,
+                            weights,
+                            get_output_tensor<T, float>(filter, input, weights, out_layout),
+                            filter,
+                            stats,
+                            0,
+                            search,
+                            false,
+                            immed});
                         verify(verify_forward_conv<T, float>{
-                            input, weights, filter, stats, 0, search, true, immed});
+                            input,
+                            weights,
+                            get_output_tensor<T, float>(filter, input, weights, out_layout),
+                            filter,
+                            stats,
+                            0,
+                            search,
+                            true,
+                            immed});
                         verify(verify_forward_conv<T, int>{
-                            input, weights, filter, stats, 0, search, false, immed});
+                            input,
+                            weights,
+                            get_output_tensor<T, int>(filter, input, weights, out_layout),
+                            filter,
+                            stats,
+                            0,
+                            search,
+                            false,
+                            immed});
                         verify(verify_forward_conv<T, int>{
-                            input, weights, filter, stats, 0, search, true, immed});
+                            input,
+                            weights,
+                            get_output_tensor<T, int>(filter, input, weights, out_layout),
+                            filter,
+                            stats,
+                            0,
+                            search,
+                            true,
+                            immed});
                     }
                     else
                     {
                         verify(verify_forward_conv<T>{
-                            input, weights, filter, stats, 0, search, false, immed});
+                            input, weights, output, filter, stats, 0, search, false, immed});
                     }
                 }
 
@@ -2029,6 +2233,15 @@ struct conv_bias_driver : test_driver
         bias_lens[1] = output.desc.GetLengths()[1];
 
         tensor<T> bias(bias_lens);
+
+        if(!(bias.desc.GetLengths()[0] == 1 &&
+             bias.desc.GetLengths()[1] == output.desc.GetLengths()[0] &&
+             std::all_of(bias.desc.GetLengths().begin() + 2,
+                         bias.desc.GetLengths().end(),
+                         [](auto v) { return v == 1; })))
+        {
+            return;
+        }
 
         size_t total_mem =
             bias.desc.GetNumBytes() + output.desc.GetNumBytes(); // estimate based on backward pass

@@ -31,9 +31,9 @@
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_extra.hpp>
+#include <miopen/tensor_layout.hpp>
 #include <numeric>
 #include <vector>
-#include "../test/tensor_layout.hpp"
 
 std::vector<int> GetTensorLengths(miopenTensorDescriptor_t& tensor)
 {
@@ -125,23 +125,37 @@ int SetTensorNd(miopenTensorDescriptor_t t,
     }
 
     // Dimension lengths vector 'len' comes with a default layout.
-    std::string len_layout = tensor_layout_get_default(layout.size());
+    std::string len_layout = miopen::tensor_layout_get_default(layout.size());
     if(len_layout.empty())
     {
         return SetTensorNd(t, len, data_type);
     }
 
     std::vector<int> strides;
-    tensor_layout_to_strides(len, len_layout, layout, strides);
+    miopen::tensor_layout_to_strides(len, len_layout, layout, strides);
 
     return miopenSetTensorDescriptor(t, data_type, len.size(), len.data(), strides.data());
 }
 
+// This function ignores tensor strides completely and its result should not be interpreted as
+// memory required for an "unpacked" tensor. In such cases GetTensorSpace should be used instead.
+// For "packed" tensors result may be interpreted as an amount of memory required for the tensor.
+// The implementation is a copy-paste from miopen::TensorDescriptor.
 size_t GetTensorSize(miopenTensorDescriptor_t& tensor)
 {
+    assert(miopen::deref(tensor).IsPacked() &&
+           "GetTensorSize should not be used on an unpacked tensor.");
     const auto len = GetTensorLengths(tensor);
     size_t sz      = std::accumulate(len.begin(), len.end(), size_t{1}, std::multiplies<size_t>());
 
     return sz;
+}
+
+// The result of this function may be interpreted as a correct amount of memory required for both
+// "packed" and "unpacked" tensors. In general it should be used for such purposes rather than
+// GetTensorSize. Unless, of course, there is absolutely zero chance to receive an unpacked tensor.
+size_t GetTensorSpace(miopenTensorDescriptor_t& tensor)
+{
+    return miopen::deref(tensor).GetElementSpace();
 }
 #endif // GUARD_MIOPEN_TENSOR_DRIVER_HPP

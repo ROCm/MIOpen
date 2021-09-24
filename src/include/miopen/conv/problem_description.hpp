@@ -49,6 +49,7 @@ inline std::string GetDataTypeName(miopenDataType_t data_type)
     case miopenInt8x4: return "INT8x4";
     case miopenInt32: return "INT32";
     case miopenBFloat16: return "BF16";
+    case miopenDouble: return "FP64";
     }
 
     return "Unknown(" + std::to_string(data_type) + ")";
@@ -144,6 +145,7 @@ struct ProblemDescription
           direction(direction_),
           bias(bias_)
     {
+        HeuristicUpdateLayouts();
     }
 
     // Conv descriptor getters
@@ -303,6 +305,9 @@ struct ProblemDescription
     }
 
     bool IsLayoutDefault() const;
+
+    void HeuristicUpdateLayouts();
+
     void BuildConfKey(std::string& conf_key) const;
 
     NetworkConfig BuildConfKey() const
