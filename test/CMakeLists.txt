@@ -189,20 +189,6 @@ if (MIOPEN_NO_GPU)
             test_pooling3d test_perfdb)
 endif()
 
-if(MIOPEN_TEST_GFX1030)
-    if(WORKAROUND_ISSUE_1053 AND MIOPEN_TEST_ALL)
-        list(APPEND SKIP_TESTS test_lrn_test)
-    endif()
-    if(WORKAROUND_ISSUE_1148 AND MIOPEN_TEST_ALL)
-        set_tests_properties(
-            test_conv_3d
-            test_conv_group
-            test_conv_extra
-            test_conv_for_implicit_gemm
-        PROPERTIES RUN_SERIAL On)
-    endif()
-endif()
-
 # The usage is non-trivial, see function add_test_command.
 if(SKIP_TESTS)
     list(REMOVE_DUPLICATES SKIP_TESTS)
@@ -350,6 +336,20 @@ endforeach()
 
 set_tests_properties(test_sqlite_perfdb test_perfdb
     PROPERTIES RUN_SERIAL On)
+
+if(MIOPEN_TEST_GFX1030)
+    if(WORKAROUND_ISSUE_1053 AND MIOPEN_TEST_ALL)
+        list(APPEND SKIP_TESTS test_lrn_test)
+    endif()
+    if(WORKAROUND_ISSUE_1148 AND MIOPEN_TEST_ALL)
+        set_tests_properties(
+            test_conv_3d
+            test_conv_group
+            test_conv_extra
+            test_conv_for_implicit_gemm
+        PROPERTIES RUN_SERIAL On)
+    endif()
+endif()
 
 # add_sanitize_test(perfdb.cpp)
 # add_sanitize_test(cache.cpp)
