@@ -46,6 +46,7 @@ option( MIOPEN_TEST_MLIR "Add tests for MLIR -- EXPERIMENTAL" ${MIOPEN_USE_MLIR}
 option( WORKAROUND_ISSUE_898 "" ON)
 option( WORKAROUND_ISSUE_936 "" ON)
 option( WORKAROUND_ISSUE_1053 "" ON)
+option( WORKAROUND_ISSUE_1148 "" ON)
 
 # Run the test suite to a depth limit
 #limit greater than 2 leads to prolonged testing more than 5hrs per stage.
@@ -192,6 +193,14 @@ if(MIOPEN_TEST_GFX1030)
     if(WORKAROUND_ISSUE_1053 AND MIOPEN_TEST_ALL)
         list(APPEND SKIP_TESTS test_lrn_test)
     endif()
+    if(WORKAROUND_ISSUE_1148 AND MIOPEN_TEST_ALL)
+        set_tests_properties(
+            test_conv_3d
+            test_conv_group
+            test_conv_extra
+            test_conv_for_implicit_gemm
+        PROPERTIES RUN_SERIAL On)
+    endif()
 endif()
 
 # The usage is non-trivial, see function add_test_command.
@@ -334,14 +343,10 @@ function(rate_added_test NAME)
     endif()
 endfunction()
 
-
-
 foreach(TEST ${TESTS})
     get_filename_component(BASE_NAME ${TEST} NAME_WE)
     add_test_executable(test_${BASE_NAME} ${TEST})
 endforeach()
-
-
 
 set_tests_properties(test_sqlite_perfdb test_perfdb
     PROPERTIES RUN_SERIAL On)
