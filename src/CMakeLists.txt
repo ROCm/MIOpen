@@ -334,6 +334,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v21_1_2_gfx9_fp32_dilation2_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_fp32_stride1_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_fp32_stride2_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx90a_fp16_dot2_edc_dilation2_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx90a_fp16_dot2_edc_stride1_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx90a_fp16_dot2_edc_stride2_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx90a_fp32_dilation2_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx90a_fp32_stride1_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx90a_fp32_stride2_group.inc
