@@ -337,20 +337,6 @@ endforeach()
 set_tests_properties(test_sqlite_perfdb test_perfdb
     PROPERTIES RUN_SERIAL On)
 
-if(MIOPEN_TEST_GFX1030)
-    if(WORKAROUND_ISSUE_1053 AND MIOPEN_TEST_ALL)
-        list(APPEND SKIP_TESTS test_lrn_test)
-    endif()
-    if(WORKAROUND_ISSUE_1148 AND MIOPEN_TEST_ALL)
-        set_tests_properties(
-            test_conv_3d
-            test_conv_group
-            test_conv_extra
-            test_conv_for_implicit_gemm
-        PROPERTIES RUN_SERIAL On)
-    endif()
-endif()
-
 # add_sanitize_test(perfdb.cpp)
 # add_sanitize_test(cache.cpp)
 # add_sanitize_test(tensor_test.cpp)
@@ -1461,3 +1447,17 @@ add_custom_test(test_regression_opencl_float_mi100 GFX908_ENABLED VEGA_DISABLED 
     COMMAND	${ENVS_REGRESSION_ISSUE_1012} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  512, 28, 28 --weights 128, 512, 1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
     COMMAND	${ENVS_REGRESSION_ISSUE_1012} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  64,  56, 56 --weights 256, 64,  1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
 )
+
+if(MIOPEN_TEST_GFX1030)
+    if(WORKAROUND_ISSUE_1053 AND MIOPEN_TEST_ALL)
+        list(APPEND SKIP_TESTS test_lrn_test)
+    endif()
+    if(WORKAROUND_ISSUE_1148 AND MIOPEN_TEST_ALL)
+        set_tests_properties(
+            test_conv_3d
+            test_conv_group
+            test_conv_extra
+            test_conv_for_implicit_gemm
+        PROPERTIES RUN_SERIAL On)
+    endif()
+endif()
