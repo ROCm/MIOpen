@@ -44,8 +44,6 @@
 
 #include <chrono>
 
-#define WORKAROUND_ISSUE_1146 1 // check asm solver applicability for gfx90a
-
 namespace miopen {
 
 /// Reusing the dummy instance of of the ConvolutionContext class
@@ -462,9 +460,10 @@ void BatchNormBackward(Handle& handle,
     }
     else
     {
-        const auto ctx     = ExecutionContext{&handle};
-        const auto solvers = solver::SolverContainer<>{};
-        const auto slns    = solvers.SearchForSolutions(ctx, problem, 1);
+        const auto ctx = ExecutionContext{&handle};
+        const auto solvers =
+            solver::SolverContainer<solver::batchnorm::BnBwdTrainingSpatialSingle>{};
+        const auto slns = solvers.SearchForSolutions(ctx, problem, 1);
 
         // if(slns.empty())
         //    MIOPEN_THROW(miopenStatusNotImplemented, "No solver found for activation forward.");
@@ -617,148 +616,16 @@ void BatchNormBackward(Handle& handle,
             ldsnogcn   = xlocalsize;
         }
 
-        auto&& kernels = handle.GetKernels(algo, network_config);
-
         if(single)
         {
-            if(!kernels.empty())
-            {
-                auto kernel = kernels.front();
-                visit_float(bnScaleBiasDiffDesc.GetType(), [&](auto as_float) {
-                    if(useSaved)
-                    {
-                        kernel(x,
-                               dy,
-                               dx,
-                               bnScale,
-                               resultBnScaleDiff,
-                               resultBnBiasDiff,
-                               savedMean,
-                               savedInvVariance,
-                               as_float(inhw));
-                    }
-                    else
-                    {
-                        kernel(
-                            x, dy, dx, bnScale, resultBnScaleDiff, resultBnBiasDiff, epsilon, inhw);
-                    }
-                });
-            }
-            else
-            {
-
-                std::string kernel_name;
-                std::string program_name;
-                std::string parms;
-
-                if((n > 64) && (n % 2 == 0) && (variant == 3) && (bfpmixparm) && (useSaved) &&
-                   ctx.use_asm_kernels && ctx.rmv.IsV2orV3() &&
-                   (StartsWith(handle.GetDeviceName(), "gfx8") ||
-                    (StartsWith(handle.GetDeviceName(), "gfx9")
-#if WORKAROUND_ISSUE_1146
-                     && (handle.GetDeviceName() != "gfx90a")
-#endif
-                         )) &&
-                   (!handle.GetTargetProperties().Xnack() ||
-                    !*handle.GetTargetProperties().Xnack()))
-                {
-                    kernel_name  = "miopenGcnAsmBNBwdTrainSpatial";
-                    program_name = "gcnAsmBNBwdTrainSpatial.s";
-
-                    union nhw_val
-                    {
-                        unsigned u32;
-                        float f32;
-                        nhw_val()
-                        {
-                            u32 = 0;
-                            f32 = 0;
-                        }
-                    } NHW_value;
-                    NHW_value.f32 = static_cast<float>(in_nhw);
-
-                    // clang-format off
-                    parms = std::string() +
-                            " -Wa,-defsym,ROCM_METADATA_VERSION=" + (ctx.rmv.UseV3() ? "5" : "4") +
-                            " -Wa,-defsym,MIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
-                            " -Wa,-defsym,MIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
-                            " -Wa,-defsym,MIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
-                            " -Wa,-defsym,MIO_BN_USESAVED=" + std::to_string(static_cast<int>(useSaved)) +
-                            " -Wa,-defsym,MIO_BN_N=" + std::to_string(n) +
-                            " -Wa,-defsym,MIO_BN_C=" + std::to_string(c) +
-                            " -Wa,-defsym,MIO_BN_HW=" + std::to_string(in_cstride) +
-                            " -Wa,-defsym,MIO_BN_NHW=" + std::to_string(in_nhw) +
-                            " -Wa,-defsym,MIO_BN_NHW_FLOAT=" + std::to_string(NHW_value.u32) +
-                            " -Wa,-defsym,MIO_BN_CHW=" + std::to_string(in_nstride) +
-                            " -Wa,-defsym,MIO_BN_NCHW=" + std::to_string(in_nchw) +
-                            " -Wa,-defsym,MIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) +
-                            " -Wa,-defsym,MIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) +
-                            " -Wa,-defsym,MIO_BN_VARIANT=" + std::to_string(variant) +
-                            " -Wa,-defsym,MIO_BN_GRP0=" + std::to_string(xlocalsize) +
-                            " -Wa,-defsym,MIO_BN_GRP1=" + std::to_string(ylocalsize) +
-                            " -Wa,-defsym,MIO_BN_GRP2=" + std::to_string(zlocalsize); // clang-format on
-                }
-                else
-                {
-                    program_name = "MIOpenBatchNormBwdSpatial.cl";
-                    kernel_name  = "MIOpenBatchNormBwdSpatial";
-
-                    parms =
-                        " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
-                        " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
-                        " -DMIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
-                        " -DMIO_BN_USESAVED=" + std::to_string(static_cast<int>(useSaved)) +
-                        " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) +
-                        " -DMIO_BN_HW=" + std::to_string(in_cstride) +
-                        " -DMIO_BN_NHW=" + std::to_string(in_nhw) +
-                        " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
-                        " -DMIO_BN_NCHW=" + std::to_string(in_nchw) +
-                        " -DMIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) +
-                        " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) +
-                        " -DMIO_BN_VARIANT=" + std::to_string(variant) +
-                        " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) +
-                        " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
-                        " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) +
-                        " -DMIO_BN_GFX1030=" + ((handle.GetDeviceName() == "gfx1030") ? "1" : "0");
-                }
-
-                MIOPEN_LOG_I2(kernel_name << ":: " << algo.ToString());
-                MIOPEN_LOG_I2("..." << parms);
-                MIOPEN_LOG_I2("..." << network_config.ToString());
-                vld.push_back(xlocalsize);
-                vld.push_back(ylocalsize);
-                vld.push_back(zlocalsize);
-
-                vgd.push_back(xgridsize);
-                vgd.push_back(ygridsize);
-                vgd.push_back(zgridsize);
-
-                MIOPEN_LOG_I2(kernel_name << ":: " << parms);
-
-                bnBwdTrainSelectSingle(handle,
-                                       bnScaleBiasDiffDesc.GetType(),
-                                       program_name,
-                                       algo,
-                                       kernel_name,
-                                       network_config,
-                                       parms,
-                                       vld,
-                                       vgd,
-                                       x,
-                                       dy,
-                                       dx,
-                                       bnScale,
-                                       resultBnScaleDiff,
-                                       resultBnBiasDiff,
-                                       useSaved,
-                                       epsilon,
-                                       savedMean,
-                                       savedInvVariance,
-                                       inhw);
-            }
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "Batchnorm spatial single-kernel has already been implemented as a "
+                         "solver-invoker pair");
         }
         else // Use multi-kernel
         {
+            auto&& kernels = handle.GetKernels(algo, network_config);
+
             if(!kernels.empty())
             {
                 float ctime = 0.;
