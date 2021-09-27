@@ -147,7 +147,9 @@ struct SolverContainer
             [&](auto solver) {
                 if(count >= limit)
                     return;
-                if(find_only.IsValid() && find_only != Id{SolverDbId(solver)})
+                if(find_only &&
+                   (std::find(find_only->begin(), find_only->end(), Id{SolverDbId(solver)}) ==
+                    find_only->end()))
                 { // Do nothing (and keep silence for the sake of Tuna), just skip.
                 }
                 // For better performance, check IsDynamic() first, because
@@ -195,7 +197,9 @@ struct SolverContainer
             [&](auto solver) {
                 if(count >= limit)
                     return;
-                if(find_only.IsValid() && find_only != Id{SolverDbId(solver)})
+                if(find_only &&
+                   (std::find(find_only->begin(), find_only->end(), Id{SolverDbId(solver)}) ==
+                    find_only->end()))
                 { // Do nothing (and keep silence for the sake of Tuna), just skip.
                 }
                 // For better performance, check IsDynamic() first, because
@@ -237,7 +241,9 @@ struct SolverContainer
                 if(count >= limit)
                     return;
 
-                if(find_only.IsValid() && find_only != Id{SolverDbId(solver)})
+                if(find_only &&
+                   (std::find(find_only->begin(), find_only->end(), Id{SolverDbId(solver)}) ==
+                    find_only->end()))
                 { // Do nothing (and keep silence for the sake of Tuna), just skip.
                 }
                 else if(!solver.IsApplicable(search_params))
@@ -265,7 +271,9 @@ struct SolverContainer
 
         miopen::each_args(
             [&](auto solver) {
-                if(found || (find_only.IsValid() && find_only != Id{SolverDbId(solver)}))
+                if(found || (find_only && (std::find(find_only->begin(),
+                                                     find_only->end(),
+                                                     Id{SolverDbId(solver)}) == find_only->end())))
                     return;
 
                 // For better performance, check IsDynamic() first, because
