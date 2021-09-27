@@ -42,9 +42,6 @@ using compType =
 
 constexpr index_t BlockSize = CK_PARAM_BLOCKSIZE; // tunable
 
-constexpr index_t srcDims = CK_PARAM_IN_DIMS;
-constexpr index_t dstDims = CK_PARAM_OUT_DIMS;
-
 using toReduceDims  = Sequence<CK_PARAM_TOREDUCE_DIMS>;
 using invariantDims = Sequence<CK_PARAM_INVARIANT_DIMS>; // this could be empty
 
@@ -58,9 +55,6 @@ constexpr ReduceTensorIndices_t reduceIndicesOpt = CK_PARAM_REDUCE_INDICES == 0
 
 constexpr bool src2d_need_padding = static_cast<bool>(CK_PARAM_SRC2D_PADDING);
 constexpr bool dst1d_need_padding = static_cast<bool>(CK_PARAM_DST1D_PADDING);
-
-static_assert(dstDims == 1,
-              "If all source dimensions are reduced, the dest should have only one dimension !!");
 
 constexpr bool indexable    = reduce_binary_operator<compType, op>::indexable;
 constexpr bool need_indices = indexable && (reduceIndicesOpt != ReduceTensorIndices_t::NO_INDICES);
@@ -125,7 +119,6 @@ gridwise_generic_reduce_2_prepare(int GridSize, int BlkGroupSize, void* __restri
     }
 };
 
-template <index_t srcDims>
 struct get_ref_desc_types
 {
     static constexpr auto ref_tupleDstLengths = make_tuple(8);
@@ -156,11 +149,10 @@ struct get_ref_desc_types
                                              make_tuple(Sequence<0>{})));
 };
 
-using refType_src2dDesc = typename get_ref_desc_types<srcDims>::refType_src2dDesc;
-using refType_dst1dDesc = typename get_ref_desc_types<srcDims>::refType_dst1dDesc;
-using refType_src2dDesc_padded_12 =
-    typename get_ref_desc_types<srcDims>::refType_src2dDesc_padded_12;
-using refType_dst1dDesc_padded = typename get_ref_desc_types<srcDims>::refType_dst1dDesc_padded;
+using refType_src2dDesc           = typename get_ref_desc_types::refType_src2dDesc;
+using refType_dst1dDesc           = typename get_ref_desc_types::refType_dst1dDesc;
+using refType_src2dDesc_padded_12 = typename get_ref_desc_types::refType_src2dDesc_padded_12;
+using refType_dst1dDesc_padded    = typename get_ref_desc_types::refType_dst1dDesc_padded;
 
 template <bool need_padding>
 static __device__ auto get_reduction_src2d_descriptor(const void* p_src2dDesc)

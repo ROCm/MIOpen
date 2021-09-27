@@ -43,9 +43,6 @@ using compType =
 constexpr index_t BlockSize = CK_PARAM_BLOCKSIZE; // tunable
 
 constexpr index_t srcDims = CK_PARAM_IN_DIMS;
-constexpr index_t dstDims = CK_PARAM_OUT_DIMS;
-
-using toReduceDims = typename arithmetic_sequence_gen<0, srcDims, 1>::type;
 
 constexpr ReduceTensorOp_t op          = static_cast<ReduceTensorOp_t>(CK_PARAM_REDUCE_OP);
 constexpr NanPropagation_t nanPropaOpt = CK_PARAM_NAN_PROPAGATE == 0
@@ -57,9 +54,6 @@ constexpr ReduceTensorIndices_t reduceIndicesOpt = CK_PARAM_REDUCE_INDICES == 0
 
 constexpr bool src2d_need_padding = static_cast<bool>(CK_PARAM_SRC2D_PADDING);
 constexpr bool dst1d_need_padding = static_cast<bool>(CK_PARAM_DST1D_PADDING);
-
-static_assert(dstDims == 1,
-              "If all source dimensions are reduced, the dest should have only one dimension !!");
 
 constexpr bool indexable    = reduce_binary_operator<compType, op>::indexable;
 constexpr bool need_indices = indexable && (reduceIndicesOpt != ReduceTensorIndices_t::NO_INDICES);

@@ -42,14 +42,7 @@ using compType =
 
 constexpr index_t BlockSize = CK_PARAM_BLOCKSIZE; // tunable
 
-constexpr index_t srcDims = CK_PARAM_IN_DIMS;
 constexpr index_t dstDims = CK_PARAM_OUT_DIMS;
-
-constexpr index_t num_toReduceDims  = CK_PARAM_NUM_TOREDUCE_DIMS;
-constexpr index_t num_invariantDims = srcDims - num_toReduceDims;
-
-using invariantDims = typename arithmetic_sequence_gen<0, num_invariantDims, 1>::type;
-using toReduceDims  = typename arithmetic_sequence_gen<num_invariantDims, srcDims, 1>::type;
 
 constexpr ReduceTensorOp_t op          = static_cast<ReduceTensorOp_t>(CK_PARAM_REDUCE_OP);
 constexpr NanPropagation_t nanPropaOpt = CK_PARAM_NAN_PROPAGATE == 0
@@ -61,8 +54,6 @@ constexpr ReduceTensorIndices_t reduceIndicesOpt = CK_PARAM_REDUCE_INDICES == 0
 
 constexpr bool src2d_need_padding = static_cast<bool>(CK_PARAM_SRC2D_PADDING);
 constexpr bool dst1d_need_padding = static_cast<bool>(CK_PARAM_DST1D_PADDING);
-
-static_assert(num_toReduceDims > 0, "At least one dimension need be reduced!!!");
 
 constexpr bool indexable    = reduce_binary_operator<compType, op>::indexable;
 constexpr bool need_indices = indexable && (reduceIndicesOpt != ReduceTensorIndices_t::NO_INDICES);
@@ -175,7 +166,7 @@ extern "C" __global__ void gridwise_generic_reduce_2_prepare(int GridSize,
     }
 };
 
-template <index_t srcDims, index_t dstDims, typename invariantDims, typename toReduceDims>
+template <index_t dstDims>
 struct get_ref_desc_types
 {
     static constexpr auto ref_tupleDstLengths =
@@ -213,16 +204,11 @@ struct get_ref_desc_types
                                              make_tuple(Sequence<0>{})));
 };
 
-using refType_src2dDesc =
-    typename get_ref_desc_types<srcDims, dstDims, invariantDims, toReduceDims>::refType_src2dDesc;
-using refType_dst1dDesc =
-    typename get_ref_desc_types<srcDims, dstDims, invariantDims, toReduceDims>::refType_dst1dDesc;
+using refType_src2dDesc = typename get_ref_desc_types<dstDims>::refType_src2dDesc;
+using refType_dst1dDesc = typename get_ref_desc_types<dstDims>::refType_dst1dDesc;
 using refType_src2dDesc_padded_12 =
-    typename get_ref_desc_types<srcDims, dstDims, invariantDims, toReduceDims>::
-        refType_src2dDesc_padded_12;
-using refType_dst1dDesc_padded =
-    typename get_ref_desc_types<srcDims, dstDims, invariantDims, toReduceDims>::
-        refType_dst1dDesc_padded;
+    typename get_ref_desc_types<dstDims>::refType_src2dDesc_padded_12;
+using refType_dst1dDesc_padded = typename get_ref_desc_types<dstDims>::refType_dst1dDesc_padded;
 
 template <bool need_padding>
 static __device__ auto get_reduction_src2d_descriptor(const void* p_src2dDesc)
