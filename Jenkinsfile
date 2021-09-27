@@ -124,7 +124,7 @@ def buildHipClangJob(Map conf=[:]){
 
         def retimage
         gitStatusWrapper(credentialsId: '7126e5fe-eb51-4576-b52b-9aaf1de8f0fd', gitHubContext: "Jenkins - ${variant}", account: 'ROCmSoftwarePlatform', repo: 'MIOpen') {
-U            try {
+            try {
                 retimage = docker.build("${image}", dockerArgs + '.')
                 withDockerContainer(image: image, args: dockerOpts) {
                     timeout(time: 5, unit: 'MINUTES')
