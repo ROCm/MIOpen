@@ -284,6 +284,26 @@ pipeline {
             name: "TARGET_NAVI21",
             defaultValue: true,
             description: "")
+        booleanParam(
+            name: "DATATYPE_NA",
+            defaultValue: true,
+            description: "")
+        booleanParam(
+            name: "DATATYPE_FP32",
+            defaultValue: true,
+            description: "")
+        booleanParam(
+            name: "DATATYPE_FP16",
+            defaultValue: true,
+            description: "")
+        booleanParam(
+            name: "DATATYPE_BF16",
+            defaultValue: true,
+            description: "")
+        booleanParam(
+            name: "DATATYPE_INT8",
+            defaultValue: true,
+            description: "")
     }
 
     environment{
@@ -300,7 +320,7 @@ pipeline {
     stages{
         stage("Static checks") {
             when {
-                expression { params.BUILD_STATIC_CHECKS && params.TARGET_NOGPU }
+                expression { params.BUILD_STATIC_CHECKS && params.TARGET_NOGPU && params.DATATYPE_NA }
             }
             parallel{
                 stage('Hip Tidy') {
@@ -350,11 +370,25 @@ pipeline {
                       buildHipClangJobAndReboot(setup_cmd: setup_cmd, execute_cmd: "", no_reboot:true, build_cmd: build_cmd, build_fin: "ON")
                     }
                 }
+                stage('HipNoGPU Debug Build Test') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_NOGPU }
+                    }
+                    agent{ label rocmnode("nogpu") }
+                    environment{
+                        HipNoGPU_flags = "-DMIOPEN_BACKEND=HIPNOGPU -DMIOPEN_INSTALL_CXX_HEADERS=On"
+                        build_cmd = "make -j\$(nproc)"
+                    }
+                    steps{
+                        buildHipClangJob( build_type: 'debug', setup_flags: HipNoGPU_flags, build_cmd: build_cmd)
+                    }
+                }
             }
         }
         stage("Smoke Fp32") {
             when {
-                expression { params.BUILD_SMOKE_FP32_AUX1 }
+                expression { params.BUILD_SMOKE_FP32_AUX1 && params.DATATYPE_FP32 }
             }
             parallel{
                stage('Fp32 OpenCL Debug + Codecov') {
@@ -445,25 +479,11 @@ pipeline {
                         buildHipClangJobAndReboot(prefixpath: prefixpath, build_type: 'debug', config_targets: Smoke_targets, gpu_arch: gpu_arch)
                     }
                 }
-                stage('Fp32 HipNoGPU Debug') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_NOGPU }
-                    }
-                    agent{ label rocmnode("nogpu") }
-                    environment{
-                        HipNoGPU_flags = "-DMIOPEN_BACKEND=HIPNOGPU -DMIOPEN_INSTALL_CXX_HEADERS=On"
-                        build_cmd = "make -j\$(nproc)"
-                    }
-                    steps{
-                        buildHipClangJob( build_type: 'debug', setup_flags: HipNoGPU_flags, build_cmd: build_cmd)
-                    }
-                }
             }
         }
         stage("Smoke Aux 1") {
             when {
-                expression { params.BUILD_SMOKE_FP32_AUX1 }
+                expression { params.BUILD_SMOKE_FP32_AUX1 && params.DATATYPE_FP32 }
             }
             parallel{
                 stage('Fp32 Hip Debug COMGR') {
@@ -551,7 +571,7 @@ pipeline {
                 stage('Fp32 Hip MLIR') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
+                        expression { (params.TARGET_VEGA20 || params.TARGET_VEGA10) && params.DATATYPE_FP32 }
                     }
                     agent{ label rocmnode("vega") }
                     steps{
@@ -561,7 +581,7 @@ pipeline {
                 stage('Fp16 Hip MLIR') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
+                        expression { (params.TARGET_VEGA20 || params.TARGET_VEGA10) && params.DATATYPE_FP16 }
                     }
                     agent{ label rocmnode("vega") }
                     steps{
@@ -571,7 +591,7 @@ pipeline {
                 stage('Fp16 Hip MLIR gfx908') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX908 }
+                        expression { params.TARGET_GFX908 && params.DATATYPE_FP16 }
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
@@ -581,7 +601,7 @@ pipeline {
                 stage('Fp32 Hip MLIR gfx908') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX908 }
+                        expression { params.TARGET_GFX908 && params.DATATYPE_FP32 }
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
@@ -598,7 +618,7 @@ pipeline {
                 stage('Fp16 OpenCL Vega20') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 }
+                        expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 }
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
@@ -608,7 +628,7 @@ pipeline {
                 stage('Int8 OpenCL Vega20') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 }
+                        expression { params.TARGET_VEGA20 && params.DATATYPE_INT8 }
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
@@ -618,7 +638,7 @@ pipeline {
                 stage('Fp16 Hip Vega20 /opt/rocm') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 }
+                        expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 }
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
@@ -628,7 +648,7 @@ pipeline {
                 stage('Bf16 Hip Vega20 /opt/rocm') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 }
+                        expression { params.TARGET_VEGA20 && params.DATATYPE_BF16 }
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
@@ -638,7 +658,7 @@ pipeline {
                 stage('Fp16 Hip gfx908 /opt/rocm') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX908 }
+                        expression { params.TARGET_GFX908 && params.DATATYPE_FP16 }
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
@@ -648,7 +668,7 @@ pipeline {
                 stage('Bf16 Hip gfx908 /opt/rocm') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX908 }
+                        expression { params.TARGET_GFX908 && params.DATATYPE_BF16 }
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
@@ -658,7 +678,7 @@ pipeline {
                 stage('Fp16 Hip gfx90a /opt/rocm') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX90A }
+                        expression { params.TARGET_GFX90A && params.DATATYPE_FP16 }
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -668,7 +688,7 @@ pipeline {
                 stage('Bf16 Hip gfx90a /opt/rocm') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX90A }
+                        expression { params.TARGET_GFX90A && params.DATATYPE_BF16 }
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -688,7 +708,7 @@ pipeline {
                 stage('Fp16 Hip Tensile-Latest All Vega20') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 }
+                        expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 }
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
@@ -698,7 +718,7 @@ pipeline {
                 stage('Int8 Hip Tensile-Latest All Vega20') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 }
+                        expression { params.TARGET_VEGA20 && params.DATATYPE_INT8 }
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
@@ -708,7 +728,7 @@ pipeline {
                 stage('Fp32 Hip Tensile-Latest All gfx908') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX908 }
+                        expression { params.TARGET_GFX908 && params.DATATYPE_FP32 }
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
@@ -718,7 +738,7 @@ pipeline {
                 stage('Bf16 Hip Tensile-Latest All gfx908') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX908 }
+                        expression { params.TARGET_GFX908 && params.DATATYPE_BF16 }
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
@@ -728,7 +748,7 @@ pipeline {
                 // stage('Fp32 Hip Tensile-Latest All gfx90a') {
                 //     when {
                 //         beforeAgent true
-                //         expression { params.TARGET_GFX90A }
+                //         expression { params.TARGET_GFX90A && params.DATATYPE_FP32 }
                 //     }
                 //     agent{ label rocmnode("gfx90a") }
                 //     steps{
@@ -738,7 +758,7 @@ pipeline {
                 // stage('Bf16 Hip Tensile-Latest All gfx90a') {
                 //     when {
                 //         beforeAgent true
-                //         expression { params.TARGET_GFX90A }
+                //         expression { params.TARGET_GFX90A && params.DATATYPE_BF16 }
                 //     }
                 //     agent{ label rocmnode("gfx90a") }
                 //     steps{
@@ -755,7 +775,7 @@ pipeline {
                 stage('Int8 HIP All Vega20 /opt/rocm') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 }
+                        expression { params.TARGET_VEGA20 && params.DATATYPE_INT8 }
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
@@ -765,7 +785,7 @@ pipeline {
                 stage('Fp32 OpenCL Install All') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
+                        expression { (params.TARGET_VEGA20 || params.TARGET_VEGA10) && params.DATATYPE_FP32 }
                     }
                     agent{ label rocmnode("vega") }
                     steps{
@@ -775,7 +795,7 @@ pipeline {
                 stage('Bf16 Hip Install All gfx908') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX908 }
+                        expression { params.TARGET_GFX908 && params.DATATYPE_BF16 }
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
@@ -785,7 +805,7 @@ pipeline {
                 stage('Bf16 Hip Install All gfx90a') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX90A }
+                        expression { params.TARGET_GFX90A && params.DATATYPE_BF16 }
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -806,7 +826,7 @@ pipeline {
                 stage('Fp32 Hip All gfx908') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX908 }
+                        expression { params.TARGET_GFX908 && params.DATATYPE_FP32 }
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
@@ -816,7 +836,7 @@ pipeline {
                 stage('Fp32 Hip All gfx90a') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX90A }
+                        expression { params.TARGET_GFX90A && params.DATATYPE_FP32 }
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -826,7 +846,7 @@ pipeline {
                 stage('Fp16 Hip Install All Vega20') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 }
+                        expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 }
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
@@ -836,7 +856,7 @@ pipeline {
                 stage('Fp32 Hip All Vega20') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 }
+                        expression { params.TARGET_VEGA20 && params.DATATYPE_FP32 }
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
@@ -846,7 +866,7 @@ pipeline {
                 stage('Fp32 OpenCL All gfx1030') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_NAVI21 && params.BUILD_FULL_TESTS_NAVI21_OPTIONAL }
+                        expression { params.TARGET_NAVI21 && params.BUILD_FULL_TESTS_NAVI21_OPTIONAL && params.DATATYPE_FP32 }
                     }
                     agent{ label rocmnode("navi21") }
                     steps{
@@ -856,7 +876,7 @@ pipeline {
                 stage('Fp32 Hip All Install gfx1030') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_NAVI21 && params.BUILD_FULL_TESTS_NAVI21_OPTIONAL }
+                        expression { params.TARGET_NAVI21 && params.BUILD_FULL_TESTS_NAVI21_OPTIONAL && params.DATATYPE_FP32 }
                     }
                     agent{ label rocmnode("navi21") }
                     steps{
@@ -866,7 +886,7 @@ pipeline {
                 stage('Fp16 Hip All Install gfx908') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX908 }
+                        expression { params.TARGET_GFX908 && params.DATATYPE_FP16 }
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
@@ -876,7 +896,7 @@ pipeline {
                 stage('Fp16 Hip All Install gfx90a') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX90A }
+                        expression { params.TARGET_GFX90A && params.DATATYPE_FP16 }
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -897,7 +917,7 @@ pipeline {
                 stage('Fp32 Hip Tensile All Vega20') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 }
+                        expression { params.TARGET_VEGA20 && params.DATATYPE_FP32 }
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
@@ -907,7 +927,7 @@ pipeline {
                 stage('Fp16 Hip Tensile All Vega20') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 }
+                        expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 }
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
@@ -917,7 +937,7 @@ pipeline {
                 stage('Bf16 Hip Tensile All Vega20') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 }
+                        expression { params.TARGET_VEGA20 && params.DATATYPE_BF16 }
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
@@ -927,7 +947,7 @@ pipeline {
                 stage('Int8 Hip Tensile All Vega20') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 }
+                        expression { params.TARGET_VEGA20 && params.DATATYPE_INT8 }
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
@@ -937,7 +957,7 @@ pipeline {
                 stage('Fp32 Hip Tensile All gfx908') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX908 }
+                        expression { params.TARGET_GFX908 && params.DATATYPE_FP32 }
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
@@ -947,7 +967,7 @@ pipeline {
                 stage('Fp16 Hip Tensile All gfx908') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX908 }
+                        expression { params.TARGET_GFX908 && params.DATATYPE_FP16 }
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
@@ -957,7 +977,7 @@ pipeline {
                 stage('Bf16 Hip Tensile All gfx908') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX908 }
+                        expression { params.TARGET_GFX908 && params.DATATYPE_BF16 }
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
@@ -967,7 +987,7 @@ pipeline {
                 stage('Int8 Hip Tensile All gfx908') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX908 }
+                        expression { params.TARGET_GFX908 && params.DATATYPE_INT8 }
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
@@ -977,7 +997,7 @@ pipeline {
                 // stage('Fp32 Hip Tensile All gfx90a') {
                 //     when {
                 //         beforeAgent true
-                //         expression { params.TARGET_GFX90A }
+                //         expression { params.TARGET_GFX90A && params.DATATYPE_FP32 }
                 //     }
                 //     agent{ label rocmnode("gfx90a") }
                 //     steps{
@@ -987,7 +1007,7 @@ pipeline {
                 // stage('Fp16 Hip Tensile All gfx90a') {
                 //     when {
                 //         beforeAgent true
-                //         expression { params.TARGET_GFX90A }
+                //         expression { params.TARGET_GFX90A && params.DATATYPE_FP16 }
                 //     }
                 //     agent{ label rocmnode("gfx90a") }
                 //     steps{
@@ -997,7 +1017,7 @@ pipeline {
                 // stage('Bf16 Hip Tensile All gfx90a') {
                 //     when {
                 //         beforeAgent true
-                //         expression { params.TARGET_GFX90A }
+                //         expression { params.TARGET_GFX90A && params.DATATYPE_BF16 }
                 //     }
                 //     agent{ label rocmnode("gfx90a") }
                 //     steps{
@@ -1007,7 +1027,7 @@ pipeline {
                 // stage('Int8 Hip Tensile All gfx90a') {
                 //     when {
                 //         beforeAgent true
-                //         expression { params.TARGET_GFX90A }
+                //         expression { params.TARGET_GFX90A && params.DATATYPE_INT8 }
                 //     }
                 //     agent{ label rocmnode("gfx90a") }
                 //     steps{
@@ -1027,7 +1047,7 @@ pipeline {
                 stage('Fp32 Hip Tensile-Latest All Vega20') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 }
+                        expression { params.TARGET_VEGA20 && params.DATATYPE_FP32 }
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
@@ -1037,7 +1057,7 @@ pipeline {
                 stage('Fp16 Hip Tensile-Latest All Vega20') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 }
+                        expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 }
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
@@ -1047,7 +1067,7 @@ pipeline {
                 stage('Bf16 Hip Tensile-Latest All Vega20') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 }
+                        expression { params.TARGET_VEGA20 && params.DATATYPE_BF16 }
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
@@ -1057,7 +1077,7 @@ pipeline {
                 stage('Int8 Hip Tensile-Latest All Vega20') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 }
+                        expression { params.TARGET_VEGA20 && params.DATATYPE_INT8 }
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
@@ -1067,7 +1087,7 @@ pipeline {
                 stage('Fp32 Hip Tensile-Latest All gfx908') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX908 }
+                        expression { params.TARGET_GFX908 && params.DATATYPE_FP32 }
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
@@ -1077,7 +1097,7 @@ pipeline {
                 stage('Fp16 Hip Tensile-Latest All gfx908') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX908 }
+                        expression { params.TARGET_GFX908 && params.DATATYPE_FP16 }
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
@@ -1087,7 +1107,7 @@ pipeline {
                 stage('Bf16 Hip Tensile-Latest All gfx908') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX908 }
+                        expression { params.TARGET_GFX908 && params.DATATYPE_BF16 }
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
@@ -1097,7 +1117,7 @@ pipeline {
                 stage('Int8 Hip Tensile-Latest All gfx908') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX908 }
+                        expression { params.TARGET_GFX908 && params.DATATYPE_INT8 }
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
@@ -1107,7 +1127,7 @@ pipeline {
                 // stage('Fp32 Hip Tensile-Latest All gfx90a') {
                 //     when {
                 //         beforeAgent true
-                //         expression { params.TARGET_GFX90A }
+                //         expression { params.TARGET_GFX90A && params.DATATYPE_FP32 }
                 //     }
                 //     agent{ label rocmnode("gfx90a") }
                 //     steps{
@@ -1117,7 +1137,7 @@ pipeline {
                 // stage('Fp16 Hip Tensile-Latest All gfx90a') {
                 //     when {
                 //         beforeAgent true
-                //         expression { params.TARGET_GFX90A }
+                //         expression { params.TARGET_GFX90A && params.DATATYPE_FP16 }
                 //     }
                 //     agent{ label rocmnode("gfx90a") }
                 //     steps{
@@ -1127,7 +1147,7 @@ pipeline {
                 // stage('Bf16 Hip Tensile-Latest All gfx90a') {
                 //     when {
                 //         beforeAgent true
-                //         expression { params.TARGET_GFX90A }
+                //         expression { params.TARGET_GFX90A && params.DATATYPE_BF16 }
                 //     }
                 //     agent{ label rocmnode("gfx90a") }
                 //     steps{
@@ -1137,7 +1157,7 @@ pipeline {
                 // stage('Int8 Hip Tensile-Latest All gfx90a') {
                 //     when {
                 //         beforeAgent true
-                //         expression { params.TARGET_GFX90A }
+                //         expression { params.TARGET_GFX90A && params.DATATYPE_INT8 }
                 //     }
                 //     agent{ label rocmnode("gfx90a") }
                 //     steps{
@@ -1148,7 +1168,7 @@ pipeline {
         }
         stage("Packages") {
             when {
-                expression { params.BUILD_PACKAGES && params.TARGET_NOGPU }
+                expression { params.BUILD_PACKAGES && params.TARGET_NOGPU && params.DATATYPE_NA }
             }
             parallel {
                 stage('OpenCL Package') {
