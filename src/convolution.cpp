@@ -287,7 +287,7 @@ bool ConvolutionDescriptor::IsWinograd3x3SupportedAndFast(miopen::ConvolutionCon
 
     // Disable this performance optimization when we want to run some specific Solver.
     // Other Solvers will be skipped anyway.
-    if(GetEnvFindOnlySolver().IsValid())
+    if(GetEnvFindOnlySolver())
         return false;
 
     // Filter out configs where 3x3 Winograd does not have high WTI.

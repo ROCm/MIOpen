@@ -29,6 +29,9 @@
 
 #include <miopen/logger.hpp>
 #include <miopen/solver_id.hpp>
+
+#include <boost/optional.hpp>
+
 #include <ostream>
 
 namespace miopen {
@@ -100,7 +103,7 @@ class FindEnforce
     friend std::ostream& operator<<(std::ostream&, const FindEnforce&);
 };
 
-solver::Id GetEnvFindOnlySolver();
+boost::optional<std::vector<solver::Id>> GetEnvFindOnlySolver();
 
 class FindMode
 {

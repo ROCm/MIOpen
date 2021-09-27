@@ -129,6 +129,19 @@ inline std::vector<std::string> SplitSpaceSeparated(const std::string& in,
     return rv;
 }
 
+inline std::vector<std::string> SplitDelim(const std::string& in, const char delim)
+{
+    std::vector<std::string> rv;
+    std::string token;
+    std::istringstream ss(in);
+
+    while(std::getline(ss, token, delim))
+    {
+        rv.push_back(token);
+    }
+    return rv;
+}
+
 } // namespace miopen
 
 #endif // GUARD_MIOPEN_STRINGUTILS_HPP
