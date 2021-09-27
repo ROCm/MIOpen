@@ -312,6 +312,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv_3x3_wheel_alpha_v9_0_15_gfx9_stride_2_dec.inc
         kernels/conv_3x3_wheel_alpha_v9_0_15_gfx9.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_f3x2_fp16_dot2_edc_stride1_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx90a_f3x2_fp16_dot2_edc_stride1_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx10_f3x2_fp16_dot2_edc_stride1_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_f3x2_fp32_stride1_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx90a_f3x2_fp32_stride1_group.inc
