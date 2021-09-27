@@ -124,7 +124,7 @@ def buildHipClangJob(Map conf=[:]){
 
         def retimage
         gitStatusWrapper(credentialsId: '7126e5fe-eb51-4576-b52b-9aaf1de8f0fd', gitHubContext: "Jenkins - ${variant}", account: 'ROCmSoftwarePlatform', repo: 'MIOpen') {
-            try {
+U            try {
                 retimage = docker.build("${image}", dockerArgs + '.')
                 withDockerContainer(image: image, args: dockerOpts) {
                     timeout(time: 5, unit: 'MINUTES')
@@ -221,43 +221,43 @@ pipeline {
     }
     parameters {
         booleanParam(
-            name: "STATIC_CHECKS",
+            name: "BUILD_STATIC_CHECKS",
             defaultValue: true,
             description: "")
         booleanParam(
-            name: "SMOKE_FP32_AUX1",
+            name: "BUILD_SMOKE_FP32_AUX1",
             defaultValue: true,
             description: "")
         booleanParam(
-            name: "SMOKE_FP16_BF16_INT8",
+            name: "BUILD_SMOKE_FP16_BF16_INT8",
             defaultValue: true,
             description: "")
         booleanParam(
-            name: "SMOKE_MLIR",
+            name: "BUILD_SMOKE_MLIR",
             defaultValue: true,
             description: "")
         booleanParam(
-            name: "SMOKE_MIOPENTENSILE_LATEST",
+            name: "BUILD_SMOKE_MIOPENTENSILE_LATEST",
             defaultValue: true,
             description: "")
         booleanParam(
-            name: "FULL_TESTS",
+            name: "BUILD_FULL_TESTS",
             defaultValue: true,
             description: "")
         booleanParam(
-            name: "FULL_TESTS_NAVI21_OPTIONAL",
+            name: "BUILD_FULL_TESTS_NAVI21_OPTIONAL",
             defaultValue: false,
             description: "")
         booleanParam(
-            name: "MIOPENTENSILE",
+            name: "BUILD_MIOPENTENSILE",
             defaultValue: false,
             description: "")
         booleanParam(
-            name: "MIOPENTENSILE_LATEST",
+            name: "BUILD_MIOPENTENSILE_LATEST",
             defaultValue: false,
             description: "")
         booleanParam(
-            name: "PACKAGES",
+            name: "BUILD_PACKAGES",
             defaultValue: true,
             description: "")
         booleanParam(
@@ -300,7 +300,7 @@ pipeline {
     stages{
         stage("Static checks") {
             when {
-                expression { params.STATIC_CHECKS && params.TARGET_NOGPU }
+                expression { params.BUILD_STATIC_CHECKS && params.TARGET_NOGPU }
             }
             parallel{
                 stage('Hip Tidy') {
@@ -354,7 +354,7 @@ pipeline {
         }
         stage("Smoke Fp32") {
             when {
-                expression { params.SMOKE_FP32_AUX1 }
+                expression { params.BUILD_SMOKE_FP32_AUX1 }
             }
             parallel{
                stage('Fp32 OpenCL Debug + Codecov') {
@@ -463,7 +463,7 @@ pipeline {
         }
         stage("Smoke Aux 1") {
             when {
-                expression { params.SMOKE_FP32_AUX1 }
+                expression { params.BUILD_SMOKE_FP32_AUX1 }
             }
             parallel{
                 stage('Fp32 Hip Debug COMGR') {
@@ -545,7 +545,7 @@ pipeline {
         }
         stage("Smoke MLIR") {
             when {
-                expression { params.SMOKE_MLIR }
+                expression { params.BUILD_SMOKE_MLIR }
             }
             parallel{
                 stage('Fp32 Hip MLIR') {
@@ -592,7 +592,7 @@ pipeline {
         }
         stage("Smoke Fp16/Bf16/Int8") {
             when {
-                expression { params.SMOKE_FP16_BF16_INT8 }
+                expression { params.BUILD_SMOKE_FP16_BF16_INT8 }
             }
             parallel{
                 stage('Fp16 OpenCL Vega20') {
@@ -679,7 +679,7 @@ pipeline {
         }
         stage("Smoke MIOpenTensile Latest") {
             when {
-                expression { params.SMOKE_MIOPENTENSILE_LATEST }
+                expression { params.BUILD_SMOKE_MIOPENTENSILE_LATEST }
             }
             environment{
                 Tensile_version = "latest"
@@ -749,7 +749,7 @@ pipeline {
         }
         stage("Full Tests I") {
             when {
-                expression { params.FULL_TESTS }
+                expression { params.BUILD_FULL_TESTS }
             }
             parallel{
                 stage('Int8 HIP All Vega20 /opt/rocm') {
@@ -797,7 +797,7 @@ pipeline {
 
         stage("Full Tests II") {
             when {
-                expression { params.FULL_TESTS }
+                expression { params.BUILD_FULL_TESTS }
             }
             environment{
                 WORKAROUND_iGemm_936 = " MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0"
@@ -846,7 +846,7 @@ pipeline {
                 stage('Fp32 OpenCL All gfx1030') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_NAVI21 && params.FULL_TESTS_NAVI21_OPTIONAL }
+                        expression { params.TARGET_NAVI21 && params.BUILD_FULL_TESTS_NAVI21_OPTIONAL }
                     }
                     agent{ label rocmnode("navi21") }
                     steps{
@@ -856,7 +856,7 @@ pipeline {
                 stage('Fp32 Hip All Install gfx1030') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_NAVI21 && params.FULL_TESTS_NAVI21_OPTIONAL }
+                        expression { params.TARGET_NAVI21 && params.BUILD_FULL_TESTS_NAVI21_OPTIONAL }
                     }
                     agent{ label rocmnode("navi21") }
                     steps{
@@ -888,7 +888,7 @@ pipeline {
 
         stage("MIOpenTensile") {
             when {
-                expression { params.MIOPENTENSILE }
+                expression { params.BUILD_MIOPENTENSILE }
             }
             environment{
                 Tensile_version = "default"
@@ -1018,7 +1018,7 @@ pipeline {
         }
         stage("MIOpenTensile Latest") {
             when {
-                expression { params.MIOPENTENSILE_LATEST  }
+                expression { params.BUILD_MIOPENTENSILE_LATEST  }
             }
             environment{
                 Tensile_version = "latest"
@@ -1148,7 +1148,7 @@ pipeline {
         }
         stage("Packages") {
             when {
-                expression { params.PACKAGES && params.TARGET_NOGPU }
+                expression { params.BUILD_PACKAGES && params.TARGET_NOGPU }
             }
             parallel {
                 stage('OpenCL Package') {
