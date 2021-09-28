@@ -192,6 +192,9 @@ endif()
 if(MIOPEN_TEST_GFX1030)
     if(WORKAROUND_ISSUE_1053 AND MIOPEN_TEST_ALL)
         list(APPEND SKIP_TESTS test_lrn_test)
+        set_tests_properties(
+            test_soft_max
+            PROPERTIES RUN_SERIAL On)
     endif()
 endif()
 
