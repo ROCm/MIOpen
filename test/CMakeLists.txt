@@ -192,9 +192,6 @@ endif()
 if(MIOPEN_TEST_GFX1030)
     if(WORKAROUND_ISSUE_1053 AND MIOPEN_TEST_ALL)
         list(APPEND SKIP_TESTS test_lrn_test)
-        set_tests_properties(
-            test_soft_max
-            PROPERTIES RUN_SERIAL On)
     endif()
 endif()
 
@@ -345,6 +342,14 @@ endforeach()
 
 set_tests_properties(test_sqlite_perfdb test_perfdb
     PROPERTIES RUN_SERIAL On)
+
+if(MIOPEN_TEST_GFX1030)
+    if(WORKAROUND_ISSUE_1053 AND MIOPEN_TEST_ALL)
+        set_tests_properties(
+            test_soft_max
+            PROPERTIES RUN_SERIAL On)
+    endif()
+endif()
 
 # add_sanitize_test(perfdb.cpp)
 # add_sanitize_test(cache.cpp)
