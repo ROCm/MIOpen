@@ -367,7 +367,7 @@ pipeline {
                   steps{
                       //CheckDeserializePerfDb(setup_cmd: setup_cmd, execute_cmd: execute_cmd, no_reboot:true, build_cmd: build_cmd, build_fin: "ON")
                       //, package_build: "true"
-                      CheckDeserializePerfDb(setup_flags: Bf16_flags + Full_test, setup_cmd: setup_cmd, build_fin: "ON", build_install: "true", gpu_arch: "gfx908")
+                      CheckDeserializePerfDb(setup_cmd: setup_cmd, build_fin: "ON", build_install: "true")
                   }
               }
             }
