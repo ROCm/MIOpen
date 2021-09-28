@@ -518,8 +518,6 @@ void BatchNormBackward(Handle& handle,
     unsigned int in_nhw     = n * in_cstride;
     unsigned int in_nchw    = n * in_nstride;
 
-    auto inhw = float(1.0 / in_nhw);
-
     size_t xlocalsize = 1;
     size_t ylocalsize = 1;
     size_t zlocalsize = 1;
