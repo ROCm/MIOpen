@@ -849,7 +849,7 @@ pipeline {
                 stage('Fp32 Hip All gfx90a Xnack+') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX90A }
+                        expression { params.TARGET_GFX90A && params.DATATYPE_FP32 }
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
