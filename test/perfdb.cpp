@@ -883,7 +883,7 @@ class DbMultiThreadedTest : public DbTest
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Launching test threads...");
         threads.reserve(DBMultiThreadedTestWork::threads_count);
         const std::string p = temp_file;
-        const auto c        = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(p));
+        const auto c        = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(p, false));
 
         {
             std::unique_lock<std::mutex> lock(mutex);
@@ -927,7 +927,7 @@ class DbMultiThreadedReadTest : public DbTest
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
         const std::string p = temp_file;
-        const auto c        = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(p));
+        const auto c        = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(p, false));
         DBMultiThreadedTestWork::FillForReading(c);
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Launching test threads...");
@@ -1005,7 +1005,7 @@ class DbMultiProcessTest : public DbTest
         std::remove(lock_file_path.c_str());
 
         const std::string p = temp_file;
-        const auto c        = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(p));
+        const auto c        = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(p, false));
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Validating results...");
         DBMultiThreadedTestWork::ValidateCommonPart(c);
@@ -1019,7 +1019,7 @@ class DbMultiProcessTest : public DbTest
             std::lock_guard<LockFile> lock(file_lock);
         }
 
-        const auto c = [&db_path]() MIOPEN_RETURNS(GetDbInstance<TDb>(db_path));
+        const auto c = [&db_path]() MIOPEN_RETURNS(GetDbInstance<TDb>(db_path, false));
 
         if(write)
             DBMultiThreadedTestWork::WorkItem(id, c, "mp");
@@ -1049,7 +1049,7 @@ class DbMultiProcessReadTest : public DbTest
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
         std::string p = temp_file;
-        const auto c  = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(p));
+        const auto c  = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(p, false));
         DBMultiThreadedTestWork::FillForReading(c);
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Launching test processes...");
@@ -1097,7 +1097,7 @@ class DbMultiProcessReadTest : public DbTest
             std::lock_guard<LockFile> lock(file_lock);
         }
 
-        const auto c = [&db_path]() { return TDb(db_path); };
+        const auto c = [&db_path]() { return TDb(db_path, false); };
 
         DBMultiThreadedTestWork::WorkItem(id, c, "mp");
     }
