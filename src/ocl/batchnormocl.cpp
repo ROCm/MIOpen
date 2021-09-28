@@ -518,14 +518,6 @@ void BatchNormBackward(Handle& handle,
     unsigned int in_nhw     = n * in_cstride;
     unsigned int in_nchw    = n * in_nstride;
 
-    size_t xlocalsize = 1;
-    size_t ylocalsize = 1;
-    size_t zlocalsize = 1;
-
-    size_t xgridsize = 1;
-    size_t ygridsize = 1;
-    size_t zgridsize = 1;
-
     if(bn_mode == miopenBNSpatial)
     { // SPATIAL kernels
         MIOPEN_THROW(miopenStatusInternalError,
@@ -533,7 +525,14 @@ void BatchNormBackward(Handle& handle,
     } // END spatial
     else
     { // PER ACT
+        size_t xlocalsize = 1;
+        size_t ylocalsize = 1;
+        size_t zlocalsize = 1;
 
+        size_t xgridsize = 1;
+        size_t ygridsize = 1;
+        size_t zgridsize = 1;
+        
         ylocalsize           = (64 >= in_cstride) ? 64 : 256;
         unsigned int segment = std::ceil(double(in_cstride) / double(ylocalsize));
         xgridsize            = c;
