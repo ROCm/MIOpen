@@ -101,6 +101,7 @@ class ConvFin : public Fin
         std::string arch    = job["arch"];
         arch                = arch.substr(0, arch.find(':'));
         const size_t num_cu = job["num_cu"];
+	(void)(num_cu);
         if(arch == "gfx900")
         {
             assert(num_cu == 56 || num_cu == 64);
