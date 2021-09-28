@@ -116,6 +116,9 @@ def buildHipClangJob(Map conf=[:]){
         def mlir_build = conf.get("mlir_build", "OFF")
         def build_fin = conf.get("build_fin", "OFF")
         def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --group-add render --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
+        if (conf.get("enforce_xnack_on", false)) {
+            dockerOpts = dockerOpts + " --env HSA_XNACK=1"
+        }
         def dockerArgs = "--build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' --build-arg USE_TARGETID='${target_id}' --build-arg USE_MLIR='${mlir_build}' --build-arg USE_FIN='${build_fin}' "
 
         def variant = env.STAGE_NAME
@@ -208,7 +211,7 @@ def buildHipClangJobAndReboot(Map conf=[:]){
 ///   * "All" corresponds to "cmake -DMIOPEN_TEST_ALL=On".
 ///   * "Smoke" (-DMIOPEN_TEST_ALL=Off) is the default and usually not specified.
 ///   * "Codecov" is optional code coverage analysis.
-/// Target := { gfx908 | gfx90a | Vega20 | Vega10 | Vega* | gfx1030 }
+/// Target := { gfx908 | gfx90a | Vega20 | Vega10 | Vega* | gfx1030 } [ Xnack+ ]
 ///   * "Vega" (gfx906 or gfx900) is the default and usually not specified.
 
 
@@ -821,6 +824,16 @@ pipeline {
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: Full_test, gpu_arch: "gfx90a:xnack-")
+                    }
+                }
+                stage('Fp32 Hip All gfx90a Xnack+') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX90A }
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        buildHipClangJobAndReboot(setup_flags: Full_test, gpu_arch: "gfx90a:xnack+", enforce_xnack_on: true)
                     }
                 }
                 stage('Fp16 Hip Install All Vega20') {
