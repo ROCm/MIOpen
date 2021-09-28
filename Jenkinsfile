@@ -193,13 +193,14 @@ def CheckDeserializePerfDb(Map conf=[:]){
     def pdb_image = buildHipClangJob(conf)
     pdb_image.inside(){
         sh """
-            cd ../fin;
+            cd fin;
             cmake -P install_deps.cmake --prefix \$PWD/deps;
             mkdir -p _hip;
             cd _hip;
             CXX=/opt/rocm/llvm/bin/clang++ cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH='/opt/rocm:../../cget:../deps' ..; 
             make -j\$(nproc);
             make install;
+            cd ../..;
         """
         sh "ls"
         sh "ls .."
