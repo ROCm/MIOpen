@@ -521,6 +521,14 @@ function(add_custom_test NAME)
     if(WORKAROUND_ISSUE_898 AND MIOPEN_USE_COMGR)
         set_property(TEST ${NAME} PROPERTY ENVIRONMENT MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE=0)
     endif()
+    if(WORKAROUND_ISSUE_1148
+        AND MIOPEN_TEST_GFX1030
+        AND (${NAME} MATCHES "test_conv_3d"
+          OR ${NAME} MATCHES "test_conv_group"
+          OR ${NAME} MATCHES "test_conv_extra"
+          OR ${NAME} MATCHES "test_conv_for_implicit_gemm" ))
+        set_tests_properties(${NAME} PROPERTIES RUN_SERIAL On)
+    endif()
     if(  (is_vega_check OR is_gfx908_check OR is_gfx1030_check)
      AND is_full_check
      AND (is_miotensile_check AND is_mlir_check)
@@ -1453,14 +1461,3 @@ add_custom_test(test_regression_opencl_float_mi100 GFX908_ENABLED VEGA_DISABLED 
     COMMAND	${ENVS_REGRESSION_ISSUE_1012} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  512, 28, 28 --weights 128, 512, 1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
     COMMAND	${ENVS_REGRESSION_ISSUE_1012} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  64,  56, 56 --weights 256, 64,  1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
 )
-
-if(MIOPEN_TEST_GFX1030)
-    if(WORKAROUND_ISSUE_1148 AND MIOPEN_TEST_ALL)
-        set_tests_properties(
-            test_conv_3d
-            test_conv_group
-            test_conv_extra
-            test_conv_for_implicit_gemm
-        PROPERTIES RUN_SERIAL On)
-    endif()
-endif()
