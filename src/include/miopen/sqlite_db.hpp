@@ -212,7 +212,8 @@ class SQLiteBase
 {
     protected:
     public:
-    SQLiteBase(const std::string& filename_, bool is_system_) : filename(filename_), is_system(is_system_)
+    SQLiteBase(const std::string& filename_, bool is_system_)
+        : filename(filename_), is_system(is_system_)
     {
         if(DisableUserDbFileIO && !is_system)
             return;
