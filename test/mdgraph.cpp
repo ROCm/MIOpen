@@ -166,7 +166,7 @@ int main()
 
     auto this_arch = h.GetDeviceName();
 
-    auto wino_supported_arch = {"gfx908", "gfx906", "gfx900", "gfx803"};
+    auto wino_supported_arch = {"gfx90a", "gfx908", "gfx906", "gfx900", "gfx803"};
 
     bool is_wino_support = std::any_of(wino_supported_arch.begin(),
                                        wino_supported_arch.end(),
@@ -228,7 +228,7 @@ int main()
         }
     }
 
-    auto asm_supported_arch = {"gfx908", "gfx906", "gfx900", "gfx803"};
+    auto asm_supported_arch = {"gfx90a", "gfx908", "gfx906", "gfx900", "gfx803"};
 
     bool is_asm_support = std::any_of(asm_supported_arch.begin(),
                                       asm_supported_arch.end(),

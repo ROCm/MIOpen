@@ -721,8 +721,8 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                 add_relu(kernel_file, kernel_name, vc, WinogradV21NodeArgs, supported_arch);
             };
 
-            add_v21_wino("gfx9", {"gfx900", "gfx906", "gfx908"}, 1);
-            add_v21_wino("gfx9", {"gfx900", "gfx906", "gfx908"}, 2);
+            add_v21_wino("gfx9", {"gfx900", "gfx906", "gfx908", "gfx90a"}, 1);
+            add_v21_wino("gfx9", {"gfx900", "gfx906", "gfx908", "gfx90a"}, 2);
             add_v21_wino("gfx10", {"gfx1011", "gfx1012", "gfx1030"}, 1);
             add_v21_wino("gfx10", {"gfx1011", "gfx1012", "gfx1030"}, 2);
         }
@@ -734,7 +734,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         // single precision
         {
             const std::vector<std::string> supported_arch = {
-                "gfx803", "gfx900", "gfx906", "gfx908"};
+                "gfx803", "gfx900", "gfx906", "gfx908", "gfx90a"};
             auto conv_v            = std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward,
                                                            "conv1x1u_bias_activ.s",
                                                            "miopenGcnAsmConv1x1U",
@@ -785,7 +785,8 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         }
         // half precision
         {
-            const std::vector<std::string> supported_arch = {"gfx900", "gfx906", "gfx908"};
+            const std::vector<std::string> supported_arch = {
+                "gfx900", "gfx906", "gfx908", "gfx90a"};
             auto conv_v            = std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward,
                                                            "conv1x1u_bias_activ.s",
                                                            "miopenGcnAsmConv1x1U",
