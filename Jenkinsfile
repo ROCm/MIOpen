@@ -248,10 +248,6 @@ pipeline {
             defaultValue: true,
             description: "")
         booleanParam(
-            name: "BUILD_FULL_TESTS_NAVI21_OPTIONAL",
-            defaultValue: false,
-            description: "")
-        booleanParam(
             name: "BUILD_MIOPENTENSILE",
             defaultValue: false,
             description: "")
@@ -880,7 +876,7 @@ pipeline {
                 stage('Fp32 OpenCL All gfx1030') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_NAVI21 && params.BUILD_FULL_TESTS_NAVI21_OPTIONAL && params.DATATYPE_FP32 }
+                        expression { params.TARGET_NAVI21 && params.DATATYPE_FP32 }
                     }
                     agent{ label rocmnode("navi21") }
                     steps{
@@ -890,7 +886,7 @@ pipeline {
                 stage('Fp32 Hip All Install gfx1030') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_NAVI21 && params.BUILD_FULL_TESTS_NAVI21_OPTIONAL && params.DATATYPE_FP32 }
+                        expression { params.TARGET_NAVI21 && params.DATATYPE_FP32 }
                     }
                     agent{ label rocmnode("navi21") }
                     steps{

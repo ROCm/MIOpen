@@ -275,6 +275,11 @@ function(add_test_executable TEST_NAME)
     add_dependencies(tests ${TEST_NAME})
     add_dependencies(check ${TEST_NAME})
     set_tests_properties(${TEST_NAME} PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
+    if(MIOPEN_TEST_GFX1030 AND WORKAROUND_ISSUE_1148 AND MIOPEN_TEST_ALL)
+        set_tests_properties(
+            test_soft_max
+            PROPERTIES RUN_SERIAL On)
+    endif()
     if(NOT MIOPEN_EMBED_DB STREQUAL "")
         target_link_libraries(${TEST_NAME} MIOpen miopen_data)
     else()
@@ -342,14 +347,6 @@ endforeach()
 
 set_tests_properties(test_sqlite_perfdb test_perfdb
     PROPERTIES RUN_SERIAL On)
-
-if(MIOPEN_TEST_GFX1030)
-    if(WORKAROUND_ISSUE_1053 AND MIOPEN_TEST_ALL)
-        set_tests_properties(
-            test_soft_max
-            PROPERTIES RUN_SERIAL On)
-    endif()
-endif()
 
 # add_sanitize_test(perfdb.cpp)
 # add_sanitize_test(cache.cpp)
