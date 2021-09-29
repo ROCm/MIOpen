@@ -790,13 +790,6 @@ struct ConvHipImplicitGemmV4R4Fwd : SolverBase<ConvolutionContext>
                              bool disableConfigOverrideFromEnv = false) const;
 };
 
-struct ConvHipImplicitGemmMlirCppFwd : SolverBase<ConvolutionContext>
-{
-    static std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
-    bool IsApplicable(const ConvolutionContext& ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
-};
-
 struct PerformanceConvMlirIgemm : Serializable<PerformanceConvMlirIgemm>
 {
     int BlockSize;
@@ -970,13 +963,6 @@ struct ConvHipImplicitGemmV4R4WrW : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const PerformanceImplicitGemmV4R4WrW& config,
                              bool disableConfigOverrideFromEnv = false) const;
-};
-
-struct ConvHipImplicitGemmMlirCppWrW : SolverBase<ConvolutionContext>
-{
-    static std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
-    bool IsApplicable(const ConvolutionContext& ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
 struct ConvMlirIgemmWrW : SolverBase<ConvolutionContext>
@@ -1394,13 +1380,6 @@ struct ConvHipImplicitGemmBwdDataV1R1 : SolverBase<ConvolutionContext>
                              const PerformanceImplicitGemmBwdDataV1R1& config,
                              bool disableConfigOverrideFromEnv = false) const;
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const;
-};
-
-struct ConvHipImplicitGemmMlirCppBwd : SolverBase<ConvolutionContext>
-{
-    static std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
-    bool IsApplicable(const ConvolutionContext& ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
 struct ConvMlirIgemmBwd : SolverBase<ConvolutionContext>
