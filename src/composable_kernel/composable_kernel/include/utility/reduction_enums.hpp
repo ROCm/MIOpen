@@ -23,29 +23,42 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef CK_REDUCTION_COMMON_HPP
-#define CK_REDUCTION_COMMON_HPP
-
-#include "reduction_enums.hpp"
+#ifndef CK_REDUCTION_ENUMS_HPP
+#define CK_REDUCTION_ENUMS_HPP
 
 namespace ck {
 
-struct float_equal_one
+enum class ReduceTensorOp_t
 {
-    template <class T>
-    __device__ inline bool operator()(T x)
-    {
-        return x <= static_cast<T>(1.0f) and x >= static_cast<T>(1.0f);
-    };
+    ADD   = 0,
+    MUL   = 1,
+    MIN   = 2,
+    MAX   = 3,
+    AMAX  = 4,
+    AVG   = 5,
+    NORM1 = 6,
+    NORM2 = 7,
+    // MUL_NO_ZEROS = 8,
 };
 
-struct float_equal_zero
+enum class NanPropagation_t
 {
-    template <class T>
-    __device__ inline bool operator()(T x)
-    {
-        return x <= static_cast<T>(0.0f) and x >= static_cast<T>(0.0f);
-    };
+    NOT_PROPAGATE_NAN = 0,
+    PROPAGATE_NAN     = 1,
+};
+
+enum class ReduceTensorIndices_t
+{
+    NO_INDICES        = 0,
+    FLATTENED_INDICES = 1,
+};
+
+enum class IndicesType_t
+{
+    INDICES_32BIT = 0,
+    INDICES_64BIT = 1,
+    INDICES_16BIT = 2,
+    INDICES_8BIT  = 3,
 };
 
 }; // end of namespace ck
