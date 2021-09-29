@@ -192,22 +192,25 @@ def buildHipClangJobAndReboot(Map conf=[:]){
 def CheckDeserializePerfDb(Map conf=[:]){
     def pdb_image = buildHipClangJob(conf)
     pdb_image.inside(){
-            //cmake -P install_deps.cmake --prefix \$PWD/deps;
-        sh """
-            cd fin;
-            mkdir -p _hip;
-            cd _hip;
-            CXX=/opt/rocm/llvm/bin/clang++ cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH='/opt/rocm:../../cget' ..; 
-            make -j\$(nproc);
-            make install;
-            cd ../..;
-        """
         sh "ls"
         sh "ls .."
         sh "ls /opt/rocm/" 
         sh "ls /opt/rocm/bin/" 
-        sh "ls build/bin/"
         sh "ls fin/"
+        sh "which fin"
+        sh """
+            cd fin;
+            cmake -P install_deps.cmake --prefix \$PWD/deps;
+            mkdir -p _hip;
+            cd _hip;
+            CXX=/opt/rocm/llvm/bin/clang++ cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH='/opt/rocm:../../cget:../deps' ..; 
+            make -j\$(nproc);
+            make install;
+            cd ../..;
+        """
+        sh "ls /opt/rocm/bin/" 
+        sh "ls fin/_hip/"
+        sh "ls fin/_hip/bin/"
         sh "which fin"
         sh "fin -i fin/test/pdb_check_all.json -o pdb_deserialize_error.json"
         archiveArtifacts "pdb_deserialize_error.json"
@@ -349,21 +352,21 @@ pipeline {
                   agent{ label rocmnode("nogpu") }
                   environment{
                       setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON .. "
-                      build_cmd = "make -j\$(nproc) "
+                      build_cmd = "make install -j\$(nproc) "
                   }
                   steps{
                       buildHipClangJobAndReboot(setup_cmd: setup_cmd, execute_cmd: "", no_reboot:true, build_cmd: build_cmd, build_fin: "ON")
                   }
               }
               stage('Perf DB Deserialize Test') {
-                  //agent{ label rocmnode("nogpu") }
-                  agent{ label rocmnode("gfx908") }
+                  agent{ label rocmnode("nogpu") }
+                  //agent{ label rocmnode("gfx908") }
                   environment{
                       //prefixpath = "/opt/rocm"
                       //setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON .. "
                       //setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DMIOPEN_BACKEND=HIPNOGPU -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON .. "
                       //fin_flags = "-DMIOPEN_BACKEND=HIPNOGPU -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON -DBUILD_SHARED_LIBS=Off -DCMAKE_BUILD_TYPE=DEBUG" 
-                      fin_flags = "-DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON" 
+                      fin_flags = "-DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON" 
 
                       //build_cmd = "make -j\$(nproc) "
                       //starts in miopen build dir
@@ -378,7 +381,7 @@ pipeline {
                       //"""
                   }
                   steps{
-                      CheckDeserializePerfDb(setup_flags: fin_flags, build_fin: "ON", build_install: "true", gpu_arch: "gfx908")
+                      CheckDeserializePerfDb(setup_flags: fin_flags, build_fin: "ON", build_install: "true")
                   }
               }
             }
