@@ -188,7 +188,7 @@ struct ExecutionContext
                     MIOPEN_LOG_I2("Iterating over perf db directory " << pdb_path.string());
                     int closest_cu = std::numeric_limits<int>::max();
                     fs::path best_path;
-                    for(auto const& entry : fs::recursive_directory_iterator(pdb_path))
+                    for(auto const& entry : fs::directory_iterator(pdb_path))
                     {
                         const auto& filepath = entry.path();
                         const auto fname     = filepath.stem().string();

@@ -138,7 +138,7 @@ std::string FindDbRecord_t<TDb>::GetInstalledPathFile(Handle& handle)
             {
                 MIOPEN_LOG_I2("Iterating over find db directory " << root_path.string());
                 std::vector<fs::path> all_files;
-                for(const auto& kinder : fs::recursive_directory_iterator(root_path))
+                for(const auto& kinder : fs::directory_iterator(root_path))
                 {
                     const auto& filepath = kinder.path();
                     const auto& fname    = filepath.string();
