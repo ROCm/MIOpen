@@ -62,7 +62,7 @@ struct WarpReduce
     // This interface implementation uses HIP built-in device shuffling functions
     __device__ static void ReduceImpl1(const BufferType& thread_buffer, compType& accuData)
     {
-        compType lAccuData = opReduce::GetZeroVal();
+        compType lAccuData = opReduce::GetReductionZeroVal();
 
         static_for<0, ThreadBufferLen, 1>{}(
             [&](auto I) { binop::calculate(lAccuData, thread_buffer[I]); });
@@ -84,7 +84,7 @@ struct WarpReduce
     // since for fp16, built-in shuffling functions is not provided by HIP
     __device__ static void ReduceImpl2(const BufferType& thread_buffer, compType& accuData)
     {
-        compType lAccuData = opReduce::GetZeroVal();
+        compType lAccuData = opReduce::GetReductionZeroVal();
 
         static_for<0, ThreadBufferLen, 1>{}(
             [&](auto I) { binop::calculate(lAccuData, thread_buffer[I]); });
@@ -138,7 +138,7 @@ struct WarpReduce
                                         int& accuIndex,
                                         int indexStart)
     {
-        compType lAccuData       = opReduce::GetZeroVal();
+        compType lAccuData       = opReduce::GetReductionZeroVal();
         int lAccuIndex           = 0;
         index_t thread_inwarp_id = get_thread_local_1d_id() % warpSize;
 
@@ -170,7 +170,7 @@ struct WarpReduce
                                         int& accuIndex,
                                         int indexStart)
     {
-        compType lAccuData       = opReduce::GetZeroVal();
+        compType lAccuData       = opReduce::GetReductionZeroVal();
         int lAccuIndex           = 0;
         index_t thread_id        = get_thread_local_1d_id();
         index_t warpId           = thread_id / warpSize;
@@ -278,7 +278,7 @@ struct WarpReduceWithIndicesInput
                                        compType& accuData,
                                        int& accuIndex)
     {
-        compType lAccuData = opReduce::GetZeroVal();
+        compType lAccuData = opReduce::GetReductionZeroVal();
         int lAccuIndex     = 0;
 
         static_for<0, ThreadBufferLen, 1>{}([&](auto I) {
@@ -307,7 +307,7 @@ struct WarpReduceWithIndicesInput
                                        compType& accuData,
                                        int& accuIndex)
     {
-        compType lAccuData       = opReduce::GetZeroVal();
+        compType lAccuData       = opReduce::GetReductionZeroVal();
         int lAccuIndex           = 0;
         index_t thread_id        = get_thread_local_1d_id();
         index_t warpId           = thread_id / warpSize;

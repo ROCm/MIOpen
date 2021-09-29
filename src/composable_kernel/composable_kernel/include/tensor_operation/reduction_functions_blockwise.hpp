@@ -56,7 +56,7 @@ struct BlockwiseReduction_2d_block_buffer
     Reduce(BufferType& block_buffer, index_t toReduceBlocks, compType& accuData)
     {
         const index_t thread_local_id = get_thread_local_1d_id();
-        compType lAccuData            = opReduce::GetZeroVal();
+        compType lAccuData            = opReduce::GetReductionZeroVal();
 
         index_t offset;
         for(index_t otherDimInd = 0; otherDimInd < toReduceBlocks; otherDimInd++)
@@ -115,7 +115,7 @@ struct BlockwiseReduction_2d_block_buffer
                                    int& accuIndex)
     {
         const index_t thread_local_id = get_thread_local_1d_id();
-        compType lAccuData            = opReduce::GetZeroVal();
+        compType lAccuData            = opReduce::GetReductionZeroVal();
         int lAccuIndex                = 0;
 
         if constexpr(blockIsOneRow)
