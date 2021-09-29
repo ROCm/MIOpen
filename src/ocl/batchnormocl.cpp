@@ -525,10 +525,6 @@ void BatchNormBackward(Handle& handle,
     } // END spatial
     else
     { // PER ACT
-        size_t xlocalsize = 1;
-        size_t ylocalsize = 1;
-        size_t zlocalsize = 1;
-
         size_t xgridsize = 1;
         size_t ygridsize = 1;
         size_t zgridsize = 1;
@@ -574,6 +570,9 @@ void BatchNormBackward(Handle& handle,
         }
         else
         {
+            size_t xlocalsize = 1;
+            size_t ylocalsize = 1;
+            size_t zlocalsize = 1;
 
             vld.push_back(xlocalsize);
             vld.push_back(ylocalsize);
