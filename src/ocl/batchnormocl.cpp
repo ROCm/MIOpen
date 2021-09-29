@@ -525,14 +525,12 @@ void BatchNormBackward(Handle& handle,
     } // END spatial
     else
     { // PER ACT
-        size_t xgridsize = 1;
-        size_t ygridsize = 1;
-        size_t zgridsize = 1;
         
-        ylocalsize           = (64 >= in_cstride) ? 64 : 256;
+        size_t ylocalsize           = (64 >= in_cstride) ? 64 : 256;
         unsigned int segment = std::ceil(double(in_cstride) / double(ylocalsize));
-        xgridsize            = c;
-        ygridsize            = segment * ylocalsize;
+        
+        size_t xgridsize            = c;
+        size_t ygridsize            = segment * ylocalsize;
 
         auto&& kernels = handle.GetKernels(algo, network_config);
 
@@ -571,8 +569,9 @@ void BatchNormBackward(Handle& handle,
         else
         {
             size_t xlocalsize = 1;
-            size_t ylocalsize = 1;
             size_t zlocalsize = 1;
+
+            size_t zgridsize = 1;
 
             vld.push_back(xlocalsize);
             vld.push_back(ylocalsize);
