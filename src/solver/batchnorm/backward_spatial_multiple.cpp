@@ -32,8 +32,6 @@
 #include <miopen/visit_float.hpp>
 #include <miopen/kernel_build_params.hpp>
 
-#define WORKAROUND_ISSUE_1146 1 // check asm solver applicability for gfx90a
-
 namespace miopen {
 
 namespace solver {
