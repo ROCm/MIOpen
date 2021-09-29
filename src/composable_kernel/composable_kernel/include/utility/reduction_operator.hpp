@@ -35,10 +35,12 @@ namespace reduce {
 // Every binary operator used in reduction is represented by a templated functor class. Each functor
 // class must provide at least
 // three members:
-// 1) GetZeroVal() -- the interface to return the "identity element" for the binary operator,
-// "identity element" is the unique
+// 1) GetReductionZeroVal() -- the interface to return the "identity element" for the binary
+// operator, "identity element" is the unique
 //                    element in the algebraic space that doesn't affect the value of other elements
-//                    when operated with any of them.
+//                    when operated against them, and the concept is similar to zero vector in
+//                    vector space
+//                    (http://pages.cs.wisc.edu/~matthewb/pages/notes/pdf/linearalgebra/VectorSpaces.pdf).
 // 2) indexable -- boolean value indicating whether indices of the operated elements could be
 // recorded. Usually, Min/Max operator could
 //                 need to record the indices of elements. For operator like Add/Mul, no need to
@@ -58,7 +60,7 @@ struct Add
 {
     using dataType = T;
 
-    __device__ static T GetZeroVal() { return type_convert<T>{}(0.0f); };
+    __device__ static constexpr T GetReductionZeroVal() { return static_cast<T>(0.0f); };
 
     __device__ inline constexpr void operator()(T& a, T b) const { a = a + b; }
 
@@ -70,7 +72,7 @@ struct Mul
 {
     using dataType = T;
 
-    __device__ static T GetZeroVal() { return type_convert<T>{}(1.0f); };
+    __device__ static constexpr T GetReductionZeroVal() { return static_cast<T>(1.0f); };
 
     __device__ inline constexpr void operator()(T& a, T b) const { a = a * b; }
 
@@ -82,7 +84,7 @@ struct Max
 {
     using dataType = T;
 
-    __device__ static T GetZeroVal() { return std::numeric_limits<T>::min(); };
+    __device__ static constexpr T GetReductionZeroVal() { return NumericLimits<T>::Lowest(); };
 
     __device__ inline constexpr void operator()(T& a, T b) const
     {
@@ -107,7 +109,7 @@ struct Min
 {
     using dataType = T;
 
-    __device__ static T GetZeroVal() { return std::numeric_limits<T>::max(); };
+    __device__ static constexpr T GetReductionZeroVal() { return NumericLimits<T>::Max(); };
 
     __device__ inline constexpr void operator()(T& a, T b) const
     {
@@ -127,16 +129,29 @@ struct Min
     static constexpr bool indexable = true;
 };
 
-template <>
-__device__ half_t Max<half_t>::GetZeroVal()
+template <class T>
+struct AMax
 {
-    return type_convert<half_t>{}(std::numeric_limits<float>::min());
-};
+    using dataType = T;
 
-template <>
-__device__ half_t Min<half_t>::GetZeroVal()
-{
-    return type_convert<half_t>{}(std::numeric_limits<float>::max());
+    __device__ static constexpr T GetReductionZeroVal() { return static_cast<T>(0.0f); };
+
+    __device__ inline constexpr void operator()(T& a, T b) const
+    {
+        if(a < b)
+            a = b;
+    }
+
+    __device__ inline constexpr void operator()(T& a, T b, bool& changed) const
+    {
+        if(a < b)
+        {
+            a       = b;
+            changed = true;
+        }
+    }
+
+    static constexpr bool indexable = true;
 };
 
 // Unary operators are usually called element-wisely before the reduction is executed on the
@@ -268,7 +283,7 @@ struct unary_sqrt<half_t>
 
 // The templated struct reduce_binary_operator maps the enum Ids of binary operators to their
 // respective functor classes.
-// The "GetZeroVal()" interface and boolean member "indexable" are also provided in
+// The "GetReductionZeroVal()" interface and boolean member "indexable" are also provided in
 // reduce_binary_operactor for
 // easier checking by the upper-layer codes in the kernels.
 
@@ -281,8 +296,6 @@ struct reduce_binary_operator<T, ReduceTensorOp_t::ADD>
     using opType   = reduce::Add<T>;
     using dataType = T;
 
-    __device__ static T GetZeroVal() { return reduce::Add<T>::GetZeroVal(); };
-
     static constexpr bool indexable = reduce::Add<T>::indexable;
 };
 
@@ -291,8 +304,6 @@ struct reduce_binary_operator<T, ReduceTensorOp_t::MUL>
 {
     using opType   = reduce::Mul<T>;
     using dataType = T;
-
-    __device__ static T GetZeroVal() { return reduce::Mul<T>::GetZeroVal(); };
 
     static constexpr bool indexable = reduce::Mul<T>::indexable;
 };
@@ -303,8 +314,6 @@ struct reduce_binary_operator<T, ReduceTensorOp_t::MIN>
     using opType   = reduce::Min<T>;
     using dataType = T;
 
-    __device__ static T GetZeroVal() { return reduce::Min<T>::GetZeroVal(); };
-
     static constexpr bool indexable = reduce::Min<T>::indexable;
 };
 
@@ -314,18 +323,14 @@ struct reduce_binary_operator<T, ReduceTensorOp_t::MAX>
     using opType   = reduce::Max<T>;
     using dataType = T;
 
-    __device__ static T GetZeroVal() { return reduce::Max<T>::GetZeroVal(); };
-
     static constexpr bool indexable = reduce::Max<T>::indexable;
 };
 
 template <typename T>
 struct reduce_binary_operator<T, ReduceTensorOp_t::AMAX>
 {
-    using opType   = reduce::Max<T>;
+    using opType   = reduce::AMax<T>;
     using dataType = T;
-
-    __device__ static T GetZeroVal() { return reduce::Max<T>::GetZeroVal(); };
 
     static constexpr bool indexable = reduce::Max<T>::indexable;
 };
@@ -336,8 +341,6 @@ struct reduce_binary_operator<T, ReduceTensorOp_t::AVG>
     using opType   = reduce::Add<T>;
     using dataType = T;
 
-    __device__ static T GetZeroVal() { return reduce::Add<T>::GetZeroVal(); };
-
     static constexpr bool indexable = reduce::Add<T>::indexable;
 };
 
@@ -347,8 +350,6 @@ struct reduce_binary_operator<T, ReduceTensorOp_t::NORM1>
     using opType   = reduce::Add<T>;
     using dataType = T;
 
-    __device__ static T GetZeroVal() { return reduce::Add<T>::GetZeroVal(); };
-
     static constexpr bool indexable = reduce::Add<T>::indexable;
 };
 
@@ -357,8 +358,6 @@ struct reduce_binary_operator<T, ReduceTensorOp_t::NORM2>
 {
     using opType   = reduce::Add<T>;
     using dataType = T;
-
-    __device__ static T GetZeroVal() { return reduce::Add<T>::GetZeroVal(); };
 
     static constexpr bool indexable = reduce::Add<T>::indexable;
 };
