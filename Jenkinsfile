@@ -212,7 +212,7 @@ def buildHipClangJobAndReboot(Map conf=[:]){
 ///   * "Smoke" (-DMIOPEN_TEST_ALL=Off) is the default and usually not specified.
 ///   * "Codecov" is optional code coverage analysis.
 /// Target := { gfx908 | gfx90a | Vega20 | Vega10 | Vega* | gfx1030 } [ Xnack+ ]
-///   * "Vega" (gfx906 or gfx900) is the default and usually not specified.
+///   * "vega20" (gfx906 or gfx900) is the default and usually not specified.
 
 
 pipeline {
@@ -225,7 +225,7 @@ pipeline {
     parameters {
         booleanParam(
             name: "BUILD_STATIC_CHECKS",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "BUILD_SMOKE_FP32_AUX1",
@@ -261,7 +261,7 @@ pipeline {
             description: "")
         booleanParam(
             name: "BUILD_PACKAGES",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "TARGET_NOGPU",
@@ -399,7 +399,7 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
                     }
-                    agent{ label rocmnode("vega") }
+                    agent{ label rocmnode("vega20_64") }
                     steps{
                         buildHipClangJobAndReboot(compiler: 'g++', build_type: 'debug', config_targets: Smoke_targets, codecov: true)
                     }
@@ -429,7 +429,7 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
                     }
-                    agent{ label rocmnode("vega") }
+                    agent{ label rocmnode("vega20_64") }
                     steps{
                         buildHipClangJobAndReboot(prefixpath: '/opt/rocm', config_targets: Smoke_targets)
                     }
@@ -439,7 +439,7 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
                     }
-                    agent{ label rocmnode("vega") }
+                    agent{ label rocmnode("vega20_64") }
                     steps{
                         buildHipClangJobAndReboot(build_type: 'debug', config_targets: Smoke_targets)
                     }
@@ -494,7 +494,7 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
                     }
-                    agent{ label rocmnode("vega") }
+                    agent{ label rocmnode("vega20_64") }
                     environment{
                         // See SWDEV-290754 for why LLVM_PATH is required.
                         COMGR_build_cmd = "LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=2 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
@@ -508,7 +508,7 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 }
                     }
-                    agent{ label rocmnode("vega20") }
+                    agent{ label rocmnode("vega20_64") }
                     environment{
                         Embedded_flags = "-DMIOPEN_EMBED_DB='gfx906_60'"
                     }
@@ -521,7 +521,7 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
                     }
-                    agent{ label rocmnode("vega") }
+                    agent{ label rocmnode("vega20_64") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: "-DBUILD_SHARED_LIBS=Off")
                     }
@@ -531,7 +531,7 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
                     }
-                    agent{ label rocmnode("vega") }
+                    agent{ label rocmnode("vega20_64") }
                     environment{
                         config_targets = "test_conv2d"
                         execute_cmd = "MIOPEN_FIND_MODE=1 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --disable-verification-cache"
@@ -545,7 +545,7 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
                     }
-                    agent{ label rocmnode("vega") }
+                    agent{ label rocmnode("vega20_64") }
                     environment{
                         config_targets =   "test_conv2d"
                         execute_cmd = "MIOPEN_FIND_MODE=2 CTEST_PARALLEL_LEVEL=4  MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --disable-verification-cache"
@@ -559,7 +559,7 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
                     }
-                    agent{ label rocmnode("vega") }
+                    agent{ label rocmnode("vega20_64") }
                     steps{
                         buildHipClangJobAndReboot()
                     }
@@ -576,7 +576,7 @@ pipeline {
                         beforeAgent true
                         expression { (params.TARGET_VEGA20 || params.TARGET_VEGA10) && params.DATATYPE_FP32 }
                     }
-                    agent{ label rocmnode("vega") }
+                    agent{ label rocmnode("vega20_64") }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: MLIR_flags, build_env: extra_log_env, test_flags: ' --verbose ', mlir_build: "ON")
                     }
@@ -586,7 +586,7 @@ pipeline {
                         beforeAgent true
                         expression { (params.TARGET_VEGA20 || params.TARGET_VEGA10) && params.DATATYPE_FP16 }
                     }
-                    agent{ label rocmnode("vega") }
+                    agent{ label rocmnode("vega20_64") }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: MLIR_flags + Fp16_flags, build_env: extra_log_env, test_flags: ' --verbose ', mlir_build: "ON")
                     }
@@ -623,7 +623,7 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 }
                     }
-                    agent{ label rocmnode("vega20") }
+                    agent{ label rocmnode("vega20_64") }
                     steps{
                         buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Fp16_flags, config_targets: Smoke_targets)
                     }
@@ -633,7 +633,7 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_INT8 }
                     }
-                    agent{ label rocmnode("vega20") }
+                    agent{ label rocmnode("vega20_64") }
                     steps{
                         buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Int8_flags, config_targets: Smoke_targets)
                     }
@@ -643,7 +643,7 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 }
                     }
-                    agent{ label rocmnode("vega20") }
+                    agent{ label rocmnode("vega20_64") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Fp16_flags, prefixpath: '/opt/rocm', config_targets: Smoke_targets)
                     }
@@ -653,7 +653,7 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_BF16 }
                     }
-                    agent{ label rocmnode("vega20") }
+                    agent{ label rocmnode("vega20_64") }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: Bf16_flags, prefixpath: '/opt/rocm', config_targets: Smoke_targets)
                     }
@@ -713,7 +713,7 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 }
                     }
-                    agent{ label rocmnode("vega20") }
+                    agent{ label rocmnode("vega20_64") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Fp16_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
                     }
@@ -723,7 +723,7 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_INT8 }
                     }
-                    agent{ label rocmnode("vega20") }
+                    agent{ label rocmnode("vega20_64") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Tensile_setup + extra_log_env + Int8_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
                     }
@@ -780,7 +780,7 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_INT8 }
                     }
-                    agent{ label rocmnode("vega20") }
+                    agent{ label rocmnode("vega20_64") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Int8_flags + Full_test, prefixpath: '/opt/rocm')
                     }
@@ -790,7 +790,7 @@ pipeline {
                         beforeAgent true
                         expression { (params.TARGET_VEGA20 || params.TARGET_VEGA10) && params.DATATYPE_FP32 }
                     }
-                    agent{ label rocmnode("vega") }
+                    agent{ label rocmnode("vega20_64") }
                     steps{
                         buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, build_install: "true")
                     }
@@ -861,7 +861,7 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 }
                     }
-                    agent{ label rocmnode("vega20") }
+                    agent{ label rocmnode("vega20_64") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Full_test + Fp16_flags, build_env: WORKAROUND_iGemm_936, build_install: "true")
                     }
@@ -871,7 +871,7 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_FP32 }
                     }
-                    agent{ label rocmnode("vega20") }
+                    agent{ label rocmnode("vega20_64") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Full_test)
                     }
@@ -932,7 +932,7 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_FP32 }
                     }
-                    agent{ label rocmnode("vega20") }
+                    agent{ label rocmnode("vega20_64") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
                     }
@@ -942,7 +942,7 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 }
                     }
-                    agent{ label rocmnode("vega20") }
+                    agent{ label rocmnode("vega20_64") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + Fp16_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
                     }
@@ -952,7 +952,7 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_BF16 }
                     }
-                    agent{ label rocmnode("vega20") }
+                    agent{ label rocmnode("vega20_64") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Bf16_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
                     }
@@ -962,7 +962,7 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_INT8 }
                     }
-                    agent{ label rocmnode("vega20") }
+                    agent{ label rocmnode("vega20_64") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Int8_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
                     }
@@ -1062,7 +1062,7 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_FP32 }
                     }
-                    agent{ label rocmnode("vega20") }
+                    agent{ label rocmnode("vega20_64") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
                     }
@@ -1072,7 +1072,7 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 }
                     }
-                    agent{ label rocmnode("vega20") }
+                    agent{ label rocmnode("vega20_64") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + Fp16_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
                     }
@@ -1082,7 +1082,7 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_BF16 }
                     }
-                    agent{ label rocmnode("vega20") }
+                    agent{ label rocmnode("vega20_64") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Bf16_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
                     }
@@ -1092,7 +1092,7 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_INT8 }
                     }
-                    agent{ label rocmnode("vega20") }
+                    agent{ label rocmnode("vega20_64") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Int8_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
                     }
