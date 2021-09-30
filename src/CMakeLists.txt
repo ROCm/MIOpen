@@ -126,6 +126,7 @@ set( MIOpen_Source
     solver/batchnorm/forward_per_activation.cpp
     solver/batchnorm/backward_spatial_single.cpp
     solver/batchnorm/backward_spatial_multiple.cpp
+    solver/batchnorm/backward_per_activation.cpp
     include/miopen/buffer_info.hpp
     include/miopen/temp_file.hpp
     include/miopen/bfloat16.hpp
