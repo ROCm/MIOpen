@@ -46,6 +46,7 @@ option( MIOPEN_TEST_MLIR "Add tests for MLIR -- EXPERIMENTAL" ${MIOPEN_USE_MLIR}
 option( WORKAROUND_ISSUE_898 "" ON)
 option( WORKAROUND_ISSUE_936 "" ON)
 option( WORKAROUND_ISSUE_1053 "" ON)
+option( WORKAROUND_ISSUE_1148 "" ON)
 
 # Run the test suite to a depth limit
 #limit greater than 2 leads to prolonged testing more than 5hrs per stage.
@@ -274,6 +275,11 @@ function(add_test_executable TEST_NAME)
     add_dependencies(tests ${TEST_NAME})
     add_dependencies(check ${TEST_NAME})
     set_tests_properties(${TEST_NAME} PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
+    if(WORKAROUND_ISSUE_1148
+        AND MIOPEN_TEST_GFX1030
+        AND (${TEST_NAME} MATCHES "test_soft_max") )
+        set_tests_properties(${TEST_NAME} PROPERTIES RUN_SERIAL On)
+    endif()
     if(NOT MIOPEN_EMBED_DB STREQUAL "")
         target_link_libraries(${TEST_NAME} MIOpen miopen_data)
     else()
@@ -334,14 +340,10 @@ function(rate_added_test NAME)
     endif()
 endfunction()
 
-
-
 foreach(TEST ${TESTS})
     get_filename_component(BASE_NAME ${TEST} NAME_WE)
     add_test_executable(test_${BASE_NAME} ${TEST})
 endforeach()
-
-
 
 set_tests_properties(test_sqlite_perfdb test_perfdb
     PROPERTIES RUN_SERIAL On)
@@ -523,6 +525,14 @@ function(add_custom_test NAME)
     add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
     if(WORKAROUND_ISSUE_898 AND MIOPEN_USE_COMGR)
         set_property(TEST ${NAME} PROPERTY ENVIRONMENT MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE=0)
+    endif()
+    if(WORKAROUND_ISSUE_1148
+        AND MIOPEN_TEST_GFX1030
+        AND (${NAME} MATCHES "test_conv_3d"
+          OR ${NAME} MATCHES "test_conv_group"
+          OR ${NAME} MATCHES "test_conv_extra"
+          OR ${NAME} MATCHES "test_conv_for_implicit_gemm" ))
+        set_tests_properties(${NAME} PROPERTIES RUN_SERIAL On)
     endif()
     if(  (is_vega_check OR is_gfx908_check OR is_gfx1030_check)
      AND is_full_check
