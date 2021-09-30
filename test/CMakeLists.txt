@@ -275,10 +275,10 @@ function(add_test_executable TEST_NAME)
     add_dependencies(tests ${TEST_NAME})
     add_dependencies(check ${TEST_NAME})
     set_tests_properties(${TEST_NAME} PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
-    if(MIOPEN_TEST_GFX1030 AND WORKAROUND_ISSUE_1148 AND MIOPEN_TEST_ALL)
-        set_tests_properties(
-            test_soft_max
-            PROPERTIES RUN_SERIAL On)
+    if(WORKAROUND_ISSUE_1148
+        AND MIOPEN_TEST_GFX1030
+        AND (${TEST_NAME} MATCHES "test_soft_max") )
+        set_tests_properties(${TEST_NAME} PROPERTIES RUN_SERIAL On)
     endif()
     if(NOT MIOPEN_EMBED_DB STREQUAL "")
         target_link_libraries(${TEST_NAME} MIOpen miopen_data)
