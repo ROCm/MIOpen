@@ -42,6 +42,7 @@
 #if MIOPEN_BACKEND_HIP
 
 #define WORKAROUND_SWDEV_203031 1 // See also issues #2075, #2067
+#define WORKAROUND_ISSUE_1146 1   // check asm solver applicability for gfx90a
 #endif
 
 #define WORKAROUND_SWDEV_257202 1 // For SSD convergence issue.
@@ -188,9 +189,17 @@ inline bool IsApplicableTransform(const ConvolutionContext& params)
     if(!(params.IsFp32() || params.IsFp16()))
         return false;
 
-    const std::string name = params.GetStream().GetDeviceName();
-    if(!StartsWith(name, "gfx9") || name == "gfx90a")
+    const auto target = params.GetStream().GetTargetProperties();
+    if(target.Xnack() && *target.Xnack())
         return false;
+
+    const std::string name = params.GetStream().GetDeviceName();
+    if(!StartsWith(name, "gfx9"))
+        return false;
+#if WORKAROUND_ISSUE_1146
+    if(name == "gfx90a")
+        return false;
+#endif
 
     {
         std::size_t limit = miopen::Value(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_WORKSPACE_MAX{});
