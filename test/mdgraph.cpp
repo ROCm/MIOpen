@@ -166,11 +166,16 @@ int main()
 
     auto this_arch = h.GetDeviceName();
 
+    auto target = h.GetTargetProperties();
+
+    auto is_xnack_enabled = target.Xnack() && *target.Xnack();
+
     auto wino_supported_arch = {"gfx90a", "gfx908", "gfx906", "gfx900", "gfx803"};
 
-    bool is_wino_support = std::any_of(wino_supported_arch.begin(),
-                                       wino_supported_arch.end(),
-                                       [&](std::string arch) { return arch == this_arch; });
+    bool is_wino_support =
+        !is_xnack_enabled && std::any_of(wino_supported_arch.begin(),
+                                         wino_supported_arch.end(),
+                                         [&](std::string arch) { return arch == this_arch; });
 
     if(!miopen::IsDisabled(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD{}) && is_wino_support)
     {
@@ -230,9 +235,10 @@ int main()
 
     auto asm_supported_arch = {"gfx90a", "gfx908", "gfx906", "gfx900", "gfx803"};
 
-    bool is_asm_support = std::any_of(asm_supported_arch.begin(),
-                                      asm_supported_arch.end(),
-                                      [&](std::string arch) { return arch == this_arch; });
+    bool is_asm_support =
+        !is_xnack_enabled && std::any_of(asm_supported_arch.begin(),
+                                         asm_supported_arch.end(),
+                                         [&](std::string arch) { return arch == this_arch; });
 
     // the asm kernel is the fastest for 1x1 and padding
     if(!miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) && is_asm_support)
