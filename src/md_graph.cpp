@@ -746,14 +746,14 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         {
             const std::vector<std::string> supported_arch = {
                 "gfx803", "gfx900", "gfx906", "gfx908", "gfx90a"};
-            const boost::optional<bool> supported_xnack = false;
-            auto conv_v             = std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward,
+            const auto supported_xnack = false;
+            auto conv_v                = std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward,
                                                            "conv1x1u_bias_activ.s",
                                                            "miopenGcnAsmConv1x1U",
                                                            "miopenConvolutionDirectBiasActivAsm");
-            conv_v->solver          = solver::ConvBiasActivAsm1x1U{};
-            conv_v->supported_arch  = supported_arch;
-            conv_v->supported_xnack = supported_xnack;
+            conv_v->solver             = solver::ConvBiasActivAsm1x1U{};
+            conv_v->supported_arch     = supported_arch;
+            conv_v->supported_xnack    = supported_xnack;
 
             auto bias_v             = std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward,
                                                            "conv1x1u_bias_activ.s",
@@ -802,14 +802,14 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         {
             const std::vector<std::string> supported_arch = {
                 "gfx900", "gfx906", "gfx908", "gfx90a"};
-            const boost::optional<bool> supported_xnack = false;
-            auto conv_v             = std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward,
+            const auto supported_xnack = false;
+            auto conv_v                = std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward,
                                                            "conv1x1u_bias_activ.s",
                                                            "miopenGcnAsmConv1x1U",
                                                            "miopenConvolutionDirectBiasActivAsm");
-            conv_v->solver          = solver::ConvBiasActivAsm1x1U{};
-            conv_v->supported_arch  = supported_arch;
-            conv_v->supported_xnack = supported_xnack;
+            conv_v->solver             = solver::ConvBiasActivAsm1x1U{};
+            conv_v->supported_arch     = supported_arch;
+            conv_v->supported_xnack    = supported_xnack;
 
             auto bias_v             = std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward,
                                                            "conv1x1u_bias_activ.s",
