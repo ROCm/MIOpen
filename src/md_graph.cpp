@@ -535,69 +535,63 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
 
         auto add_relu = [&](const std::string& program,
                             const std::string& kernel,
-                            MDGraph_vertex_ptr vc,
+                            MDGraph_vertex_ptr conv_v,
                             std::function<std::vector<DefaultKernelArg>(void)> nodeArgs,
                             const std::vector<std::string> supported_arch,
                             const boost::optional<bool> supported_xnack) {
-            /// C>B>A| (4)
-            auto bias =
-                std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward, program, kernel, algo);
-            bias->default_args                = nodeArgs();
-            bias->default_args[6].default_val = OpKernelArg(1 << 7);
-            // set the bias parameters
-            bias->default_args[18].type   = OpArg;
-            bias->default_args[18].op_idx = 1;
-            bias->supported_arch          = supported_arch;
-            bias->supported_xnack         = supported_xnack;
-            g.AddEdge(vc, bias, empty_map);
-
-            auto vba_leaf = std::make_shared<MDGraph_vertex>(
-                miopenFusionOpActivForward, program, kernel, algo, true);
-            vba_leaf->default_args                = nodeArgs();
-            vba_leaf->default_args[6].default_val = OpKernelArg((1 << 7) + (1 << 8));
-            // set the bias parameters
-            vba_leaf->default_args[18].type   = OpArg;
-            vba_leaf->default_args[18].op_idx = 1;
-
-            vba_leaf->default_args[19].type   = OpArg;
-            vba_leaf->default_args[19].op_idx = 2;
-            vba_leaf->supported_arch          = supported_arch;
-            vba_leaf->supported_xnack         = supported_xnack;
-
             FusionMDGraph_Edge_Map edg_activ_relu;
             edg_activ_relu["constraints"] = {"activ_mode == miopenActivationRELU", "weight === 0"};
-            g.AddEdge(bias, vba_leaf, edg_activ_relu);
-
             FusionMDGraph_Edge_Map edg_activ_leaky_relu;
             edg_activ_leaky_relu["constraints"] = {"activ_mode == miopenActivationLEAKYRELU",
                                                    "weight === 0"};
 
-            g.AddEdge(bias, vba_leaf, edg_activ_leaky_relu);
+            // Conv -> Bias (6) // Conv -> Bias -> Activ (4)
+            {
+                auto bias_v = std::make_shared<MDGraph_vertex>(
+                    miopenFusionOpBiasForward, program, kernel, algo);
+                bias_v->default_args                = nodeArgs();
+                bias_v->default_args[6].default_val = OpKernelArg(1 << 7);
+                // set the bias parameters
+                bias_v->default_args[18].type   = OpArg;
+                bias_v->default_args[18].op_idx = 1;
+                bias_v->supported_arch          = supported_arch;
+                bias_v->supported_xnack         = supported_xnack;
 
-            /// C>A| (5)
-            auto va_leaf = std::make_shared<MDGraph_vertex>(
-                miopenFusionOpActivForward, program, kernel, algo, true);
-            va_leaf->default_args                = nodeArgs();
-            va_leaf->default_args[6].default_val = OpKernelArg((1 << 8));
-            va_leaf->default_args[19].type       = OpArg;
-            va_leaf->default_args[19].op_idx     = 1;
-            va_leaf->supported_arch              = supported_arch;
-            va_leaf->supported_xnack             = supported_xnack;
+                g.AddEdge(conv_v, bias_v, empty_map);
 
-            g.AddEdge(vc, va_leaf, edg_activ_relu);
-            g.AddEdge(vc, va_leaf, edg_activ_leaky_relu);
+                // Conv -> Bias -> Activ (4)
+                {
+                    auto activ_v = std::make_shared<MDGraph_vertex>(
+                        miopenFusionOpActivForward, program, kernel, algo, true);
+                    activ_v->default_args                = nodeArgs();
+                    activ_v->default_args[6].default_val = OpKernelArg((1 << 7) + (1 << 8));
+                    // set the bias parameters
+                    activ_v->default_args[18].type   = OpArg;
+                    activ_v->default_args[18].op_idx = 1;
+                    activ_v->default_args[19].type   = OpArg;
+                    activ_v->default_args[19].op_idx = 2;
+                    activ_v->supported_arch          = supported_arch;
+                    activ_v->supported_xnack         = supported_xnack;
 
-            /// \FIXME Bug: In spite of C>B| topology is disabled below, it is selected anyway for
-            /// Winograd. Possible reason is presence of C>B>A| configuration, which is somehow
-            /// matches
-            /// C>B| fused configuration. Fortunately, it is supported.
-            ///
-            /// C>B| (6)
-            /// \todo Shader supports this config, but it is not required for now.
-            /// auto vb_leaf = std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward,  program,
-            /// kernel, algo, true);
-            /// g.AddEdge(vc, vb_leaf, edg_activ_relu);
-            /// g.AddEdge(vc, vb_leaf, edg_activ_leaky_relu);
+                    g.AddEdge(bias_v, activ_v, edg_activ_relu);
+                    g.AddEdge(bias_v, activ_v, edg_activ_leaky_relu);
+                }
+            }
+
+            // Conv -> Activ (5)
+            {
+                auto activ_v = std::make_shared<MDGraph_vertex>(
+                    miopenFusionOpActivForward, program, kernel, algo, true);
+                activ_v->default_args                = nodeArgs();
+                activ_v->default_args[6].default_val = OpKernelArg((1 << 8));
+                activ_v->default_args[19].type       = OpArg;
+                activ_v->default_args[19].op_idx     = 1;
+                activ_v->supported_arch              = supported_arch;
+                activ_v->supported_xnack             = supported_xnack;
+
+                g.AddEdge(conv_v, activ_v, edg_activ_relu);
+                g.AddEdge(conv_v, activ_v, edg_activ_leaky_relu);
+            }
         };
 
         // Fused Winograd v9_2_7
@@ -708,29 +702,31 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                 const auto kernel_name     = "miopenSp3AsmConv_v21_1_2_" + family + kernel_postfix;
                 const auto supported_xnack = false;
 
-                auto vc = std::make_shared<MDGraph_vertex>(
+                auto conv_v = std::make_shared<MDGraph_vertex>(
                     miopenFusionOpConvForward, kernel_file, kernel_name, algo);
-                vc->solver          = solver::ConvBinWinogradRxSf2x3g1Fused{};
-                vc->default_args    = WinogradV21NodeArgs();
-                vc->supported_arch  = supported_arch;
-                vc->supported_xnack = supported_xnack;
+                conv_v->solver          = solver::ConvBinWinogradRxSf2x3g1Fused{};
+                conv_v->default_args    = WinogradV21NodeArgs();
+                conv_v->supported_arch  = supported_arch;
+                conv_v->supported_xnack = supported_xnack;
 
                 const auto stride_constr = "stride_h == " + std::to_string(stride);
 
                 FusionMDGraph_Edge_Map map_wino_conv;
                 map_wino_conv["constraints"] = {stride_constr};
                 add_meta_wino(map_wino_conv, 5);
-                g.AddEdge(nullptr, vc, map_wino_conv);
 
                 // add 3x3 with higher priority since its the fastest case
                 FusionMDGraph_Edge_Map map_wino_conv_xe3;
                 map_wino_conv_xe3["constraints"] = {stride_constr, "(y == 3) & (x == 3)"};
                 add_meta_wino(map_wino_conv_xe3, 100);
-                g.AddEdge(nullptr, vc, map_wino_conv_xe3);
 
+                g.AddEdge(nullptr, conv_v, map_wino_conv);
+                g.AddEdge(nullptr, conv_v, map_wino_conv_xe3);
+
+                // Conv -> Bias // Conv -> Bias -> Activ // Conv -> Activ
                 add_relu(kernel_file,
                          kernel_name,
-                         vc,
+                         conv_v,
                          WinogradV21NodeArgs,
                          supported_arch,
                          supported_xnack);
