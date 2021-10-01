@@ -379,7 +379,7 @@ pipeline {
                       //"""
                   }
                   steps{
-                      CheckDeserializePerfDb(setup_flags: fin_flags, build_fin: "ON", build_install: "true")
+                      CheckDeserializePerfDb(setup_flags: fin_flags, build_fin: "ON", config_targets: "MIOpenDriver", build_install: "true")
                   }
               }
             }
