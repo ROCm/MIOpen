@@ -194,6 +194,8 @@ def CheckDeserializePerfDb(Map conf=[:]){
     pdb_image.inside(){
         sh "ls"
         sh "ls .."
+        sh "ls install"
+        sh "ls install/bin"
         sh "ls /opt/rocm/" 
         sh "ls /opt/rocm/bin/" 
         sh "ls fin/"
@@ -202,7 +204,7 @@ def CheckDeserializePerfDb(Map conf=[:]){
             cmake -P install_deps.cmake --prefix \$PWD/deps;
             mkdir -p _hip;
             cd _hip;
-            CXX=/opt/rocm/llvm/bin/clang++ cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH='/opt/rocm:../../cget:../deps' ..; 
+            CXX=/opt/rocm/llvm/bin/clang++ cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH='../../install:../../cget:../deps' ..; 
             make -j\$(nproc);
             make install;
             cd ../..;
@@ -361,7 +363,7 @@ pipeline {
                   agent{ label rocmnode("nogpu") }
                   //agent{ label rocmnode("gfx908") }
                   environment{
-                      prefixpath = "/opt/rocm"
+                      //prefixpath = "/opt/rocm"
                       //setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON .. "
                       fin_flags = "-DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON" 
 
@@ -378,7 +380,7 @@ pipeline {
                       //"""
                   }
                   steps{
-                      CheckDeserializePerfDb(prefixpath: prefixpath, setup_flags: fin_flags, build_fin: "ON", config_targets: "MIOpenDriver", build_install: "true")
+                      CheckDeserializePerfDb(setup_flags: fin_flags, build_fin: "ON", config_targets: "MIOpenDriver", build_install: "true")
                   }
               }
             }
