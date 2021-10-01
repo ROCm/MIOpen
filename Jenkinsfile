@@ -199,21 +199,21 @@ def CheckDeserializePerfDb(Map conf=[:]){
         sh "ls /opt/rocm/" 
         sh "ls /opt/rocm/bin/" 
         sh "ls fin/"
-        sh """
-            cd fin;
-            cmake -P install_deps.cmake --prefix \$PWD/deps;
-            mkdir -p _hip;
-            cd _hip;
-            CXX=/opt/rocm/llvm/bin/clang++ cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH='../../install:../../cget:../deps' ..; 
-            make -j\$(nproc);
-            make install;
-            cd ../..;
-        """
-        sh "ls /opt/rocm/bin/" 
-        sh "ls fin/_hip/"
-        sh "ls fin/_hip/bin/"
-        sh "which fin"
-        sh "fin -i fin/test/pdb_check_all.json -o pdb_deserialize_error.json"
+        //sh """
+        //    cd fin;
+        //    cmake -P install_deps.cmake --prefix \$PWD/deps;
+        //    mkdir -p _hip;
+        //    cd _hip;
+        //    CXX=/opt/rocm/llvm/bin/clang++ cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH='/opt/rocm/:../../install:../../cget:../deps' ..; 
+        //    make -j\$(nproc);
+        //    make install;
+        //    cd ../..;
+        //"""
+        //sh "ls /opt/rocm/bin/" 
+        //sh "ls fin/_hip/"
+        //sh "ls fin/_hip/bin/"
+        //sh "which fin"
+        sh "install/bin/fin -i fin/test/pdb_check_all.json -o pdb_deserialize_error.json"
         archiveArtifacts "pdb_deserialize_error.json"
         sh "grep clear pdb_deserialize_error.json"
         def has_error = sh "echo \$?"
