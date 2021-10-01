@@ -197,7 +197,6 @@ def CheckDeserializePerfDb(Map conf=[:]){
         sh "ls /opt/rocm/" 
         sh "ls /opt/rocm/bin/" 
         sh "ls fin/"
-        sh "which fin"
         sh """
             cd fin;
             cmake -P install_deps.cmake --prefix \$PWD/deps;
@@ -362,7 +361,7 @@ pipeline {
                   agent{ label rocmnode("nogpu") }
                   //agent{ label rocmnode("gfx908") }
                   environment{
-                      //prefixpath = "/opt/rocm"
+                      prefixpath = "/opt/rocm"
                       //setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON .. "
                       fin_flags = "-DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON" 
 
@@ -379,7 +378,7 @@ pipeline {
                       //"""
                   }
                   steps{
-                      CheckDeserializePerfDb(setup_flags: fin_flags, build_fin: "ON", config_targets: "MIOpenDriver", build_install: "true")
+                      CheckDeserializePerfDb(prefixpath: prefixpath, setup_flags: fin_flags, build_fin: "ON", config_targets: "MIOpenDriver", build_install: "true")
                   }
               }
             }
