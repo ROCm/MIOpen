@@ -213,7 +213,7 @@ def CheckDeserializePerfDb(Map conf=[:]){
         //sh "ls fin/_hip/"
         //sh "ls fin/_hip/bin/"
         //sh "which fin"
-        sh "install/bin/fin -i fin/test/pdb_check_all.json -o pdb_deserialize_error.json"
+        sh "LD_LIBRARY_PATH='/opt/rocm/lib/' install/bin/fin -i fin/test/pdb_check_all.json -o pdb_deserialize_error.json"
         archiveArtifacts "pdb_deserialize_error.json"
         sh "grep clear pdb_deserialize_error.json"
         def has_error = sh "echo \$?"
@@ -361,23 +361,9 @@ pipeline {
               }
               stage('Perf DB Deserialize Test') {
                   agent{ label rocmnode("nogpu") }
-                  //agent{ label rocmnode("gfx908") }
                   environment{
-                      //prefixpath = "/opt/rocm"
-                      //setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON .. "
                       fin_flags = "-DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON" 
 
-                      //build_cmd = "make -j\$(nproc) "
-                      //starts in miopen build dir
-                      //execute_cmd = """
-                      //    cd ../fin;
-                      //    cmake -P install_deps.cmake --prefix \$PWD/deps;
-                      //    mkdir -p _hip;
-                      //    cd _hip;
-                      //    CXX=/opt/rocm/llvm/bin/clang++ cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH='/opt/rocm:../../cget:../deps' ..; 
-                      //    make -j\$(nproc);
-                      //    make install;
-                      //"""
                   }
                   steps{
                       CheckDeserializePerfDb(setup_flags: fin_flags, build_fin: "ON", config_targets: "MIOpenDriver", build_install: "true")
