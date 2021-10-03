@@ -261,11 +261,11 @@ pipeline {
             description: "")
         booleanParam(
             name: "TARGET_NOGPU",
-            defaultValue: false,
+            defaultValue: true,
             description: "")
         booleanParam(
             name: "TARGET_VEGA10",
-            defaultValue: false,
+            defaultValue: true,
             description: "")
         booleanParam(
             name: "TARGET_VEGA20",
@@ -273,11 +273,11 @@ pipeline {
             description: "")
         booleanParam(
             name: "TARGET_GFX908",
-            defaultValue: false,
+            defaultValue: true,
             description: "")
         booleanParam(
             name: "TARGET_GFX90A",
-            defaultValue: false,
+            defaultValue: true,
             description: "")
         booleanParam(
             name: "TARGET_NAVI21",
