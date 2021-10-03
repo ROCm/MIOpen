@@ -46,18 +46,6 @@
 
 namespace miopen {
 
-/// Reusing the dummy instance of of the ConvolutionContext class
-/// to find out if asm kernels are supported and
-/// to properly detect version of ROCm.
-/// \todo Get rid of this during implementation of #1938 (60)
-static auto GetContext(Handle& handle)
-{
-    ConvolutionContext ctx(conv::Direction::Forward);
-    ctx.SetStream(&handle);
-    ctx.DetectRocm();
-    return ctx;
-}
-
 void BatchNormForwardTraining(Handle& handle,
                               miopenBatchNormMode_t bn_mode,
                               const void* alpha,
@@ -150,7 +138,8 @@ void BatchNormForwardTraining(Handle& handle,
     }
     else
     {
-        const auto ctx = ExecutionContext{&handle};
+        auto ctx = ExecutionContext{&handle};
+        ctx.DetectRocm();
         const auto solvers =
             solver::SolverContainer<solver::batchnorm::BnFwdTrainingSpatialSingle,
                                     solver::batchnorm::BnFwdTrainingSpatialMultiple,
@@ -448,189 +437,28 @@ void BatchNormBackward(Handle& handle,
     if(const auto existingInvoker = handle.GetInvoker(network_config, boost::none, algo))
     {
         (*existingInvoker)(handle, invoke_params);
-
-        if(miopen::CheckNumericsEnabled())
-        {
-            miopen::checkNumericsOutput(handle, dxDesc, dx);
-            miopen::checkNumericsOutput(handle, bnScaleBiasDiffDesc, resultBnScaleDiff);
-            miopen::checkNumericsOutput(handle, bnScaleBiasDiffDesc, resultBnBiasDiff);
-        }
-
-        return;
     }
     else
     {
-        const auto ctx = ExecutionContext{&handle};
+        auto ctx = ExecutionContext{&handle};
+        ctx.DetectRocm();
         const auto solvers =
             solver::SolverContainer<solver::batchnorm::BnBwdTrainingSpatialSingle,
-                                    solver::batchnorm::BnBwdTrainingSpatialMultiple>{};
+                                    solver::batchnorm::BnBwdTrainingSpatialMultiple,
+                                    solver::batchnorm::BnBwdTrainingPerActivation>{};
         const auto slns = solvers.SearchForSolutions(ctx, problem, 1);
 
-        // if(slns.empty())
-        //    MIOPEN_THROW(miopenStatusNotImplemented, "No solver found for activation forward.");
+        if(slns.empty())
+            MIOPEN_THROW(miopenStatusNotImplemented, "No solver found for activation forward.");
 
-        if(!slns.empty())
-        {
-            const auto& sln = slns.front();
-            if(!sln.invoker_factory)
-                MIOPEN_THROW(miopenStatusInternalError,
-                             "Invoker missing in solver " + sln.solver_id);
-            const auto invoker =
-                handle.PrepareInvoker(*sln.invoker_factory, sln.construction_params);
-            handle.RegisterInvoker(invoker, network_config, sln.solver_id, algo);
-            invoker(handle, invoke_params);
-
-            if(miopen::CheckNumericsEnabled())
-            {
-                miopen::checkNumericsOutput(handle, dxDesc, dx);
-                miopen::checkNumericsOutput(handle, bnScaleBiasDiffDesc, resultBnScaleDiff);
-                miopen::checkNumericsOutput(handle, bnScaleBiasDiffDesc, resultBnBiasDiff);
-            }
-
-            return;
-        }
+        const auto& sln = slns.front();
+        if(!sln.invoker_factory)
+            MIOPEN_THROW(miopenStatusInternalError, "Invoker missing in solver " + sln.solver_id);
+        const auto invoker = handle.PrepareInvoker(*sln.invoker_factory, sln.construction_params);
+        handle.RegisterInvoker(invoker, network_config, sln.solver_id, algo);
+        invoker(handle, invoke_params);
     }
 
-    static const auto ctx = GetContext(handle);
-
-    std::vector<size_t> vld;
-    std::vector<size_t> vgd;
-
-    bool bfpmixparm = false;
-    bool bfp16parm  = false;
-    bool bfp32parm  = true;
-    if(xDesc.GetType() == miopenHalf && bnScaleBiasDiffDesc.GetType() == miopenHalf)
-    {
-        bfp16parm = true;
-        bfp32parm = false;
-    }
-    else if(xDesc.GetType() == miopenHalf && bnScaleBiasDiffDesc.GetType() == miopenFloat)
-    {
-        bfpmixparm = true;
-        bfp32parm  = false;
-    }
-
-    int n, c, h, w;
-    std::tie(n, c, h, w) = tien<4>(xDesc.GetLengths());
-
-    unsigned int in_cstride = h * w;
-    unsigned int in_nstride = c * in_cstride;
-    unsigned int in_nhw     = n * in_cstride;
-    unsigned int in_nchw    = n * in_nstride;
-
-    if(bn_mode == miopenBNSpatial)
-    { // SPATIAL kernels
-        MIOPEN_THROW(miopenStatusInternalError,
-                     "Batchnorm spatial has already been implemented as solver-invoker pairs");
-    } // END spatial
-    else
-    { // PER ACT
-        
-        size_t ylocalsize           = (64 >= in_cstride) ? 64 : 256;
-        unsigned int segment = std::ceil(double(in_cstride) / double(ylocalsize));
-        
-        size_t xgridsize            = c;
-        size_t ygridsize            = segment * ylocalsize;
-
-        auto&& kernels = handle.GetKernels(algo, network_config);
-
-        if(!kernels.empty())
-        {
-            auto kernel = kernels.front();
-
-            if(useSaved)
-            {
-                kernel(x,
-                       dy,
-                       n,
-                       in_nstride,
-                       in_cstride,
-                       dx,
-                       bnScale,
-                       resultBnScaleDiff,
-                       resultBnBiasDiff,
-                       savedMean,
-                       savedInvVariance);
-            }
-            else
-            {
-                kernel(x,
-                       dy,
-                       n,
-                       in_nstride,
-                       in_cstride,
-                       dx,
-                       bnScale,
-                       resultBnScaleDiff,
-                       resultBnBiasDiff,
-                       epsilon);
-            }
-        }
-        else
-        {
-            size_t xlocalsize = 1;
-            size_t zlocalsize = 1;
-
-            size_t zgridsize = 1;
-
-            vld.push_back(xlocalsize);
-            vld.push_back(ylocalsize);
-            vld.push_back(zlocalsize);
-
-            vgd.push_back(xgridsize);
-            vgd.push_back(ygridsize);
-            vgd.push_back(zgridsize);
-
-            std::string program_name = "MIOpenBatchNormBwdPerAct.cl";
-            std::string kernel_name  = "MIOpenBatchNormBwdPerActivation";
-
-            std::string parms =
-                " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
-                " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
-                " -DMIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
-                " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) +
-                " -DMIO_BN_HW=" + std::to_string(in_cstride) +
-                " -DMIO_BN_NHW=" + std::to_string(in_nhw) +
-                " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
-                " -DMIO_BN_NCHW=" + std::to_string(in_nchw) +
-                " -DMIO_BN_NGRPS=" + std::to_string(int(std::ceil(float(ygridsize) / ylocalsize))) +
-                " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) +
-                " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
-                " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) +
-                " -DMIO_BN_GFX1030=" + ((handle.GetDeviceName() == "gfx1030") ? "1" : "0");
-
-            if(useSaved)
-            {
-                kernel_name += "Saved";
-                handle.AddKernel(algo, network_config, program_name, kernel_name, vld, vgd, parms)(
-                    x,
-                    dy,
-                    n,
-                    in_nstride,
-                    in_cstride,
-                    dx,
-                    bnScale,
-                    resultBnScaleDiff,
-                    resultBnBiasDiff,
-                    savedMean,
-                    savedInvVariance);
-            }
-            else
-            {
-                handle.AddKernel(algo, network_config, program_name, kernel_name, vld, vgd, parms)(
-                    x,
-                    dy,
-                    n,
-                    in_nstride,
-                    in_cstride,
-                    dx,
-                    bnScale,
-                    resultBnScaleDiff,
-                    resultBnBiasDiff,
-                    epsilon);
-            }
-        }
-    }
     if(miopen::CheckNumericsEnabled())
     {
         miopen::checkNumericsOutput(handle, dxDesc, dx);
