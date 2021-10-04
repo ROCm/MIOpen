@@ -589,7 +589,10 @@ pipeline {
                     }
                 }
                 stage('Fp32 OpenCL MLIR gfx908') {
-                    when { expression { params.TARGET_GFX908 } }
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX908 && params.DATATYPE_FP32 }
+                    }
                     agent{ label rocmnode("gfx908") }
                     steps{
                         buildHipClangJobAndReboot(compiler: 'g++', setup_flags: MLIR_flags, build_env: extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908", mlir_build: "ON")
