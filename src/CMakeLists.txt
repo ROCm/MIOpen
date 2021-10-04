@@ -124,6 +124,9 @@ set( MIOpen_Source
     solver/batchnorm/forward_spatial_single.cpp
     solver/batchnorm/forward_spatial_multiple.cpp
     solver/batchnorm/forward_per_activation.cpp
+    solver/batchnorm/backward_spatial_single.cpp
+    solver/batchnorm/backward_spatial_multiple.cpp
+    solver/batchnorm/backward_per_activation.cpp
     include/miopen/buffer_info.hpp
     include/miopen/temp_file.hpp
     include/miopen/bfloat16.hpp
@@ -312,6 +315,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv_3x3_wheel_alpha_v9_0_15_gfx9_stride_2_dec.inc
         kernels/conv_3x3_wheel_alpha_v9_0_15_gfx9.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_f3x2_fp16_dot2_edc_stride1_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx90a_f3x2_fp16_dot2_edc_stride1_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx10_f3x2_fp16_dot2_edc_stride1_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_f3x2_fp32_stride1_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx90a_f3x2_fp32_stride1_group.inc
@@ -322,6 +326,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v21_1_2_gfx9_fp32_dilation2.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_fp32_stride1.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_fp32_stride2.inc
+        kernels/Conv_Winograd_v21_1_2_gfx90a_fp16_dot2_edc_dilation2.inc
+        kernels/Conv_Winograd_v21_1_2_gfx90a_fp16_dot2_edc_stride1.inc
+        kernels/Conv_Winograd_v21_1_2_gfx90a_fp16_dot2_edc_stride2.inc
         kernels/Conv_Winograd_v21_1_2_gfx90a_fp32_dilation2.inc
         kernels/Conv_Winograd_v21_1_2_gfx90a_fp32_stride1.inc
         kernels/Conv_Winograd_v21_1_2_gfx90a_fp32_stride2.inc
@@ -331,6 +338,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v21_1_2_gfx9_fp32_dilation2_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_fp32_stride1_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_fp32_stride2_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx90a_fp16_dot2_edc_dilation2_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx90a_fp16_dot2_edc_stride1_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx90a_fp16_dot2_edc_stride2_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx90a_fp32_dilation2_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx90a_fp32_stride1_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx90a_fp32_stride2_group.inc
