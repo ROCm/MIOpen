@@ -213,7 +213,7 @@ def CheckDeserializePerfDb(Map conf=[:]){
         //sh "ls fin/_hip/"
         //sh "ls fin/_hip/bin/"
         //sh "which fin"
-        sh "LD_LIBRARY_PATH='/opt/rocm/lib/' install/bin/fin -i fin/test/pdb_check_all.json -o pdb_deserialize_error.json"
+        sh "LD_LIBRARY_PATH='/opt/rocm/lib/' install/bin/fin -i fin/tests/pdb_check_all.json -o pdb_deserialize_error.json"
         archiveArtifacts "pdb_deserialize_error.json"
         sh "grep clear pdb_deserialize_error.json"
         def has_error = sh "echo \$?"
