@@ -46,9 +46,7 @@ option( MIOPEN_TEST_MLIR "Add tests for MLIR -- EXPERIMENTAL" ${MIOPEN_USE_MLIR}
 option( WORKAROUND_ISSUE_898 "" ON)
 option( WORKAROUND_ISSUE_936 "" ON)
 option( WORKAROUND_ISSUE_1053 "" ON)
-option( WORKAROUND_ISSUE_1064 "" ON)
-option( WORKAROUND_ISSUE_1093 "" ON)
-option( WORKAROUND_ISSUE_1095 "" ON)
+option( WORKAROUND_ISSUE_1148 "" ON)
 
 # Run the test suite to a depth limit
 #limit greater than 2 leads to prolonged testing more than 5hrs per stage.
@@ -191,27 +189,9 @@ if (MIOPEN_NO_GPU)
             test_pooling3d test_perfdb)
 endif()
 
-if(MIOPEN_TEST_GFX908)
-    if(WORKAROUND_ISSUE_1064)
-        list(APPEND SKIP_TESTS test_dropout)
-    endif()
-endif()
-
-if (MIOPEN_TEST_GFX90a)
-    if(WORKAROUND_ISSUE_1093)
-        list(APPEND SKIP_TESTS test_find_db test_main test_immed_conv2d)
-    endif()
-    if(WORKAROUND_ISSUE_1095)
-        list(APPEND SKIP_TESTS test_dropout)
-    endif()
-endif()
-
 if(MIOPEN_TEST_GFX1030)
     if(WORKAROUND_ISSUE_1053 AND MIOPEN_TEST_ALL)
         list(APPEND SKIP_TESTS test_lrn_test)
-    endif()
-    if(WORKAROUND_ISSUE_1095)
-        list(APPEND SKIP_TESTS test_dropout)
     endif()
 endif()
 
@@ -295,6 +275,11 @@ function(add_test_executable TEST_NAME)
     add_dependencies(tests ${TEST_NAME})
     add_dependencies(check ${TEST_NAME})
     set_tests_properties(${TEST_NAME} PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
+    if(WORKAROUND_ISSUE_1148
+        AND MIOPEN_TEST_GFX1030
+        AND (${TEST_NAME} MATCHES "test_soft_max") )
+        set_tests_properties(${TEST_NAME} PROPERTIES RUN_SERIAL On)
+    endif()
     if(NOT MIOPEN_EMBED_DB STREQUAL "")
         target_link_libraries(${TEST_NAME} MIOpen miopen_data)
     else()
@@ -355,14 +340,10 @@ function(rate_added_test NAME)
     endif()
 endfunction()
 
-
-
 foreach(TEST ${TESTS})
     get_filename_component(BASE_NAME ${TEST} NAME_WE)
     add_test_executable(test_${BASE_NAME} ${TEST})
 endforeach()
-
-
 
 set_tests_properties(test_sqlite_perfdb test_perfdb
     PROPERTIES RUN_SERIAL On)
@@ -544,6 +525,14 @@ function(add_custom_test NAME)
     add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
     if(WORKAROUND_ISSUE_898 AND MIOPEN_USE_COMGR)
         set_property(TEST ${NAME} PROPERTY ENVIRONMENT MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE=0)
+    endif()
+    if(WORKAROUND_ISSUE_1148
+        AND MIOPEN_TEST_GFX1030
+        AND (${NAME} MATCHES "test_conv_3d"
+          OR ${NAME} MATCHES "test_conv_group"
+          OR ${NAME} MATCHES "test_conv_extra"
+          OR ${NAME} MATCHES "test_conv_for_implicit_gemm" ))
+        set_tests_properties(${NAME} PROPERTIES RUN_SERIAL On)
     endif()
     if(  (is_vega_check OR is_gfx908_check OR is_gfx1030_check)
      AND is_full_check
@@ -1266,6 +1255,7 @@ COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> 
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64   3 78 78 --weights  64   3 7 7 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16 192 17 17 --weights 224 192 1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16   3 17 17 --weights  64   3 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
 )
 add_custom_test(test_conv_igemm_dynamic_xdlops_nhwc_bwd SKIP_UNLESS_ALL HALF_ENABLED GFX908_ENABLED GFX90A_ENABLED VEGA_DISABLED
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
@@ -1282,6 +1272,8 @@ COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> 
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 73 73 --weights  64  32 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  16 25 25 --weights  64  16 3 3 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  15 256 1  1  --weights 340 256 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  15 128 10 10 --weights 340 128 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
 )
 
 set(DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS

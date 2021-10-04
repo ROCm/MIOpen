@@ -27,6 +27,7 @@
 #include <miopen/conv/invokers/mlir_impl_gemm.hpp>
 #include <miopen/config.h>
 #include <miopen/env.hpp>
+#include <miopen/generic_search.hpp>
 #include <miopen/mlir_build.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
@@ -36,19 +37,6 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD_XDLOPS)
 
 namespace miopen {
 namespace solver {
-
-namespace {
-#if MIOPEN_USE_MLIR
-std::string GetKernelName()
-{
-    std::string version   = "_v4r1";
-    std::string direction = "_bwd";
-    return "mlir_gen_igemm_conv2d" + version + direction + "_xdlops";
-}
-
-std::string GetOperation() { return "conv2d_bwd_data"; }
-#endif
-} // Anonymous namespace
 
 bool ConvMlirIgemmBwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
@@ -62,29 +50,50 @@ bool ConvMlirIgemmBwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
 
-    return MiirIsConfigApplicable(
-        mlir::ConstructBuildOptions(ctx, GetOperation(), GetKernelName(), true));
+    return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, true));
 #else
     std::ignore = ctx;
     return false;
 #endif
 }
 
-ConvSolution ConvMlirIgemmBwdXdlops::GetSolution(const ConvolutionContext& ctx) const
+PerformanceConvMlirIgemmXdlops
+ConvMlirIgemmBwdXdlops::GetPerformanceConfig(const ConvolutionContext& ctx) const
+{
+    std::ignore = ctx;
+    return PerformanceConvMlirIgemmXdlops::MlirHeuristicInitRequest();
+}
+
+bool ConvMlirIgemmBwdXdlops::IsValidPerformanceConfig(
+    const ConvolutionContext& ctx, const PerformanceConvMlirIgemmXdlops& config) const
+{
+    MIOPEN_LOG_I("");
+    return config.IsValid(ctx);
+}
+
+PerformanceConvMlirIgemmXdlops
+ConvMlirIgemmBwdXdlops::Search(const ConvolutionContext& ctx,
+                               const AnyInvokeParams& invoke_ctx) const
+{
+    return GenericSearch(*this, ctx, invoke_ctx);
+}
+
+ConvSolution ConvMlirIgemmBwdXdlops::GetSolution(const ConvolutionContext& ctx,
+                                                 const PerformanceConvMlirIgemmXdlops& config,
+                                                 bool) const
 {
 #if MIOPEN_USE_MLIR
     ConvSolution result;
-    int kernel_count =
-        MiirGetKernelCount(mlir::ConstructBuildOptions(ctx, GetOperation(), GetKernelName(), true));
+    int kernel_count = MiirGetKernelCount(mlir::ConstructBuildOptions(ctx, true));
 
     for(int kernel_id = 0; kernel_id < kernel_count; ++kernel_id)
     {
         KernelInfo construction_parameters;
 
-        construction_parameters.kernel_name  = GetKernelName() + std::to_string(kernel_id);
+        construction_parameters.kernel_name  = mlir::GetKernelName(ctx, true, kernel_id);
         construction_parameters.kernel_file  = construction_parameters.kernel_name + ".mlir";
-        construction_parameters.comp_options = mlir::ConstructBuildOptions(
-            ctx, GetOperation(), construction_parameters.kernel_name, true, kernel_id);
+        construction_parameters.comp_options =
+            mlir::ConstructBuildOptions(ctx, config, true, kernel_id);
 
         size_t local_size  = 0;
         size_t global_size = 0;
@@ -103,6 +112,7 @@ ConvSolution ConvMlirIgemmBwdXdlops::GetSolution(const ConvolutionContext& ctx) 
     return result;
 #else
     std::ignore = ctx;
+    std::ignore = config;
     return {};
 #endif
 }

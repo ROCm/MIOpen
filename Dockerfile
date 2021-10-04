@@ -15,7 +15,7 @@ RUN dpkg --add-architecture i386
 # unless MLIR library is incompatible with current ROCm.
 
 RUN if [ "$USE_MLIR" = "ON" ] ; \
-        then export ROCM_APT_VER=.apt_4.2;\
+        then export ROCM_APT_VER=.apt_4.3.1;\
     else export ROCM_APT_VER=.apt_4.3.1;  \
     fi && \
 echo $ROCM_APT_VER &&\
@@ -114,15 +114,9 @@ RUN if [ "$USE_TARGETID" = "ON" ] ; then export HIPCC_LINK_FLAGS_APPEND='-O3 -pa
 # install last released miopentensile in default (master), install latest commits when MIOTENSILE_VER="latest" (develop)
 RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."; elif [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@94a9047741d16a8eccd290131b78fb1aa69cdcdf; else cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@94a9047741d16a8eccd290131b78fb1aa69cdcdf; fi
 
+ADD mlir-requirements.txt /mlir-requirements.txt
 RUN if [ "$USE_MLIR" = "ON" ]; \
-    then cd ~ && \
-    export MLIR_COMMIT=7416cfaee140068921b64996ba945ce615c36f44 && \
-    wget https://github.com/ROCmSoftwarePlatform/llvm-project-mlir/archive/$MLIR_COMMIT.tar.gz && \
-    tar -xvzf $MLIR_COMMIT.tar.gz && \
-    rm -rf $MLIR_COMMIT.tar.gz && \
-    cd llvm-project-mlir-$MLIR_COMMIT && mkdir -p build && cd build && \
-    $PREFIX/bin/cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_FAT_LIBMLIRMIOPEN=1 && \
-    make -j$(nproc) libMLIRMIOpen && \
-    $PREFIX/bin/cmake --install . --component libMLIRMIOpen --prefix /opt/rocm && \
-    cd ~ && rm -rf llvm-project-mlir-$MLIR_COMMIT; fi
-    
+    then CXXFLAGS='-isystem $PREFIX/include' cget -p /opt/rocm install -f /mlir-requirements.txt; \
+    fi
+
+RUN groupadd -f render
