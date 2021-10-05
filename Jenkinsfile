@@ -194,32 +194,13 @@ def buildHipClangJobAndReboot(Map conf=[:]){
 def CheckDeserializePerfDb(Map conf=[:]){
     def pdb_image = buildHipClangJob(conf)
     pdb_image.inside(){
-        sh "ls"
-        sh "ls .."
-        sh "ls install"
-        sh "ls install/bin"
-        sh "ls install/lib"
-        sh "ls /opt/rocm/" 
-        sh "ls /opt/rocm/bin/" 
-        sh "ls fin/"
-        //sh """
-        //    cd fin;
-        //    cmake -P install_deps.cmake --prefix \$PWD/deps;
-        //    mkdir -p _hip;
-        //    cd _hip;
-        //    CXX=/opt/rocm/llvm/bin/clang++ cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH='/opt/rocm/:../../install:../../cget:../deps' ..; 
-        //    make -j\$(nproc);
-        //    make install;
-        //    cd ../..;
-        //"""
-        //sh "ls /opt/rocm/bin/" 
-        //sh "ls fin/_hip/"
-        //sh "ls fin/_hip/bin/"
-        //sh "which fin"
         sh "LD_LIBRARY_PATH='install/lib:/opt/rocm/lib/' install/bin/fin -i fin/tests/pdb_check_all.json -o pdb_deserialize_error.json"
         archiveArtifacts "pdb_deserialize_error.json"
         sh "grep clear pdb_deserialize_error.json"
-        def has_error = sh "echo \$?"
+        def has_error = sh (
+            script: "echo \$?",
+            returnStdout: true
+        ).trim()
         assert has_error.toInteger() == 0
     }
 }
