@@ -130,21 +130,21 @@ int main(int argc, char* argv[], char* envp[])
     for(auto& it : j)
     {
         auto command                = it;
-        std::unique_ptr<fin::Fin> f = nullptr;
+        fin::Fin* f  = nullptr;
         // TODO : Move this to a factory function
         if(command.contains("config"))
         {
             if(command["config"]["cmd"] == "conv")
             {
-                f = std::make_unique<fin::ConvFin<float, float>>(command);
+                f = new fin::ConvFin<float, float>(command);
             }
             else if(command["config"]["cmd"] == "convfp16")
             {
-                f = std::make_unique<fin::ConvFin<float16, float>>(command);
+                f = new fin::ConvFin<float16, float>(command);
             }
             else if(command["config"]["cmd"] == "convbfp16")
             {
-                f = std::make_unique<fin::ConvFin<bfloat16, float>>(command);
+                f = new fin::ConvFin<bfloat16, float>(command);
             }
             else
             {
@@ -154,9 +154,9 @@ int main(int argc, char* argv[], char* envp[])
         }
         else
         {
-            f = std::make_unique<fin::ConvFin<float, float>>();
-            dynamic_cast<std::unique_ptr<fin::ConvFin<float, float>>&>(*f)->job["arch"] = command["arch"];
-            dynamic_cast<std::unique_ptr<fin::ConvFin<float, float>>&>(*f)->job["num_cu"] = command["num_cu"];
+            f = new fin::ConvFin<float, float>();
+            dynamic_cast<fin::ConvFin<float,float>*>(f)->job["arch"] = command["arch"];
+            dynamic_cast<fin::ConvFin<float,float>*>(f)->job["num_cu"] = command["num_cu"];
         }
 
         for(auto& step_it : command["steps"])
