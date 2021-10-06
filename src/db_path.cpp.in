@@ -28,19 +28,54 @@
 #include <miopen/env.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/expanduser.hpp>
+#include <miopen/logger.hpp>
+
+#include <boost/filesystem.hpp>
 
 #include <cstdlib>
+#ifdef __linux__
+#include <dlfcn.h>
+#endif
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_SYSTEM_DB_PATH)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_USER_DB_PATH)
 
 namespace miopen {
 
+boost::filesystem::path GetLibPath()
+{
+    boost::filesystem::path path = {""};
+#ifdef __linux__
+    Dl_info info;
+
+    if(dladdr(reinterpret_cast<void*>(miopenCreate), &info) != 0)
+    {
+        path = boost::filesystem::canonical(boost::filesystem::path{info.dli_fname});
+        MIOPEN_LOG_I2(std::string("Lib Path: ") + path.string());
+        if(path.empty())
+            return path;
+
+        path = path.parent_path();
+    }
+    return path;
+#else
+    MIOPEN_THROW(miopenStatusNotImplemented);
+#endif
+}
+
 std::string GetSystemDbPath()
 {
     auto p = GetStringEnv(MIOPEN_SYSTEM_DB_PATH{});
     if(p == nullptr)
+#if MIOPEN_BUILD_DEV
         return "${MIOPEN_SYSTEM_DB_PATH}";
+#else
+    {
+        // Get the module path and construct the db path
+        static const auto lib_path = (GetLibPath().parent_path() / "share/miopen/db/").string();
+        return lib_path;
+    }
+#endif
     else
         return p;
 }

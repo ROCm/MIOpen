@@ -128,7 +128,7 @@ std::string FindDbRecord_t<TDb>::GetInstalledPathFile(Handle& handle)
         const auto file_path  = root_path / (base_name + "." + suffix + ext);
         if(boost::filesystem::exists(file_path))
         {
-            MIOPEN_LOG_I2("Found exact find database file");
+            MIOPEN_LOG_I2("Found exact find database file: " + file_path.string());
             return file_path.string();
         }
         else
