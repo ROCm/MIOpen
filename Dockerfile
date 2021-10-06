@@ -46,7 +46,6 @@ apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unau
     libelf-dev \
     libncurses5-dev \
     libpthread-stubs0-dev \
-    libsqlite3-dev \
     llvm-amdgpu \
     miopengemm \
     pkg-config \
@@ -65,7 +64,6 @@ apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unau
     rocm-opencl-dev \
     rocm-cmake \
     rocblas \
-    sqlite3 \
     zlib1g-dev \
     kmod && \
     apt-get clean && \
