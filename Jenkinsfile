@@ -194,7 +194,7 @@ def buildHipClangJobAndReboot(Map conf=[:]){
 def CheckDeserializePerfDb(Map conf=[:]){
     def pdb_image = buildHipClangJob(conf)
     pdb_image.inside(){
-        sh "LD_LIBRARY_PATH='install/lib:/opt/rocm/lib/' install/bin/fin -i fin/tests/pdb_check_all.json -o pdb_deserialize_error.json"
+        sh "MIOPEN_LOG_LEVEL=4 LD_LIBRARY_PATH='install/lib:/opt/rocm/lib/' install/bin/fin -i fin/tests/pdb_check_all.json -o pdb_deserialize_error.json"
         archiveArtifacts "pdb_deserialize_error.json"
         sh "grep clear pdb_deserialize_error.json"
         def has_error = sh (
