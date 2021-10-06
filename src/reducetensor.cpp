@@ -46,7 +46,6 @@
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DYNAMIC_REDUCTION);
 
 #define WORKAROUND_MIOPEN_ISSUE_557 1
-#define WORKAROUND_ISSUE_1123 ((HIP_PACKAGE_VERSION_FLAT == 4003000000ULL) && MIOPEN_BACKEND_HIP)
 
 namespace miopen {
 
@@ -59,15 +58,6 @@ enum ReductionMethod_t
 };
 
 namespace detail {
-
-static bool IsDynamicReductionEnabled()
-{
-#if WORKAROUND_ISSUE_1123
-    return miopen::IsEnabled(MIOPEN_DEBUG_DYNAMIC_REDUCTION{});
-#else
-    return !miopen::IsDisabled(MIOPEN_DEBUG_DYNAMIC_REDUCTION{});
-#endif
-}
 
 struct get_tunable_reduction_kernel_constants
 {
@@ -453,7 +443,17 @@ std::size_t ReduceTensorDescriptor::GetWorkspaceSize(const Handle& handle,
     auto invariantLength = outDesc.GetElementSize();
     auto toReduceLength  = inDesc.GetElementSize() / invariantLength;
 
-    detail::ReductionKernelConfigurator configurator(256, handle.GetWavefrontWidth());
+    int blockSize;
+
+    if(!miopen::IsDisabled(MIOPEN_DEBUG_DYNAMIC_REDUCTION{}))
+    {
+        const tunable_generic_reduction* tunable = &default_tunable_generic_reduction;
+        blockSize                                = tunable->BlockSize;
+    }
+    else
+        blockSize = 256;
+
+    detail::ReductionKernelConfigurator configurator(blockSize, handle.GetWavefrontWidth());
 
     auto workspace_size = configurator.getWorkspaceSize(invariantLength, toReduceLength);
 
@@ -470,7 +470,7 @@ std::size_t ReduceTensorDescriptor::GetWorkspaceSize(const Handle& handle,
                             64 + sizeof(int);
 
     // dynamic reduction use one additional page for storing tensor descriptors
-    if(detail::IsDynamicReductionEnabled())
+    if(!miopen::IsDisabled(MIOPEN_DEBUG_DYNAMIC_REDUCTION{}))
         wsSizeInBytes += 4096;
 
     return (wsSizeInBytes);
@@ -534,6 +534,10 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
 
     const tunable_generic_reduction* tunable = &default_tunable_generic_reduction;
 
+    const int blockSize =
+        !miopen::IsDisabled(MIOPEN_DEBUG_DYNAMIC_REDUCTION{}) ? tunable->BlockSize : 256;
+    detail::ReductionKernelConfigurator configurator(blockSize, handle.GetWavefrontWidth());
+
     const bool need_indices =
         (reduceIndicesOpt == MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES) &&
         (reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX ||
@@ -564,24 +568,19 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
     if(indices_sizeInBytes > indicesSizeInBytes)
         MIOPEN_THROW("The indices size allocated is not enough!");
 
-    long ws_buf2_bytes_offset = 0;
-
-    if(need_indices && workspace != nullptr)
-    {
-        std::size_t aTypeSize = detail::GetDataTypeSize(aDesc.GetType());
-
-        long byteOffset =
-            static_cast<long>((workspaceSizeInBytes / (aTypeSize + sizeof(int))) * aTypeSize);
-
-        ws_buf2_bytes_offset = ((byteOffset + 63) / 64) * 64;
-    };
-
     // invariantLength and toReduceLength are used to determine the kernel configuration
     const auto invariantLength = cDesc.GetElementSize();
     const auto toReduceLength  = aDesc.GetElementSize() / invariantLength;
 
-    const int blockSize = detail::IsDynamicReductionEnabled() ? tunable->BlockSize : 256;
-    detail::ReductionKernelConfigurator configurator(blockSize, handle.GetWavefrontWidth());
+    long ws_buf2_bytes_offset = 0;
+
+    if(need_indices && workspace != nullptr)
+    {
+        auto aTypeSize      = detail::GetDataTypeSize(aDesc.GetType());
+        auto workspace_size = configurator.getWorkspaceSize(invariantLength, toReduceLength);
+
+        ws_buf2_bytes_offset = ((workspace_size * aTypeSize + 63) / 64) * 64;
+    };
 
     const ReductionMethod_t reduceImpl =
         configurator.getReductionMethod(invariantLength, toReduceLength);
@@ -615,7 +614,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
                         ? static_cast<float>(*reinterpret_cast<const double*>(beta))
                         : *reinterpret_cast<const float*>(beta);
 
-    if(!detail::IsDynamicReductionEnabled())
+    if(miopen::IsDisabled(MIOPEN_DEBUG_DYNAMIC_REDUCTION{}))
     { // use static reduction
         std::vector<std::size_t> invariantLengths;
         std::vector<std::size_t> invariantStrides;

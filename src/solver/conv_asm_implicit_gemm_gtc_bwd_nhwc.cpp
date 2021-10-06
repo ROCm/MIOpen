@@ -632,21 +632,10 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(const ConvolutionC
     if(!ctx.IsLayoutNHWC())
         return false;
 
-    const auto k     = ctx.n_inputs;
-    const auto c     = ctx.n_outputs;
-    const auto group = ctx.group_counts;
+    const auto target = ctx.GetStream().GetTargetProperties();
+    if(target.Xnack() && *target.Xnack())
+        return false; // NOLINT (readability-simplify-boolean-expr)
 
-    if(ctx.IsFp32() && (k / group) % 4 != 0)
-        return false; // gemm_k limitation for fp32
-
-    if(ctx.IsFp16() && (k / group) % 16 != 0)
-        return false; // gemm_k limitation for fp16
-
-    if(ctx.IsFp16())
-    {
-        if((c / group) % 2 != 0)
-            return false; // vector store limitation
-    }
     return true;
 }
 ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(
