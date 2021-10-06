@@ -169,6 +169,7 @@ int main(int argc, char* argv[], char* envp[])
         f->output["direction"]      = command["direction"];
         f->output["input"]          = command;
         final_output.push_back(f->output);
+        delete f;
     }
     output_file << std::setw(4) << final_output << std::endl;
     output_file.flush();
