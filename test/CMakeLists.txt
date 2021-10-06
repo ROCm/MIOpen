@@ -92,7 +92,7 @@ if(NOT (MIOPEN_TEST_VEGA OR MIOPEN_TEST_GFX908 OR MIOPEN_TEST_GFX90a OR MIOPEN_T
         )
         if(ROCMINFO_OUTPUT MATCHES "no GPU devices")
             message(WARNING "ROCk module is NOT loaded, possibly no GPU devices")
-            set(MIOPEN_NO_GPU TRUE)         
+            set(MIOPEN_NO_GPU TRUE)
         elseif (NOT ROCMINFO_EXIT_STATUS EQUAL 0)
             message(WARNING "ROCMINFO FAILED, GPU TYPE UNKNOWN. Manually set respective MIOPEN_TEST_GFX* CMake variable to specify target GPU for testing.")
             set(MIOPEN_TEST_GPU_DETECTION_FAILED TRUE)
@@ -184,7 +184,7 @@ else()
 endif()
 
 if (MIOPEN_NO_GPU)
-    set(SKIP_ALL_EXCEPT_TESTS test_include_inliner test_kernel_build_params test_lstm test_lstm_dropout 
+    set(SKIP_ALL_EXCEPT_TESTS test_include_inliner test_kernel_build_params test_lstm test_lstm_dropout
             test_test_errors test_type_name test_tensor_test test_sqlite_perfdb test_sequences
             test_pooling3d test_perfdb)
 endif()
@@ -694,7 +694,6 @@ set(IMPLICITGEMM_TESTING_ENV
  MIOPEN_DEBUG_CONV_FFT=0
  MIOPEN_DEBUG_CONV_DIRECT=0
  MIOPEN_DEBUG_CONV_GEMM=0
- MIOPEN_DEBUG_CONV_SCGEMM=0
  MIOPEN_DEBUG_CONV_IMPLICIT_GEMM=1
 )
 
@@ -1188,7 +1187,7 @@ COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIO
 COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  8  128 56 56 --weights 128 16 3 3 --pads_strides_dilations 1 1 1 1 1 1 --group-count 8 --disable-forward --disable-backward-weights
 )
 
-add_custom_test(test_conv_igemm_dynamic_xdlops_bwd_float SKIP_UNLESS_ALL HALF_DISABLED FLOAT_ENABLED GFX908_ENABLED VEGA_DISABLED 
+add_custom_test(test_conv_igemm_dynamic_xdlops_bwd_float SKIP_UNLESS_ALL HALF_DISABLED FLOAT_ENABLED GFX908_ENABLED VEGA_DISABLED
 COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  4  512 128 128 --weights 12  512  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
 )
 
@@ -1314,9 +1313,15 @@ COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> 
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 128 56 56 --weights 1 128 5 5 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward ${ARGS_NHWC_WRW}
 
 )
+
 add_custom_test(test_regression_half_mi100 SKIP_UNLESS_ALL FLOAT_DISABLED HALF_ENABLED GFX908_ENABLED VEGA_DISABLED
 # Regression test for SWDEV-291202
 COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmBwdDataV4R1Xdlops $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  128  24 14 14 --weights 64  24 5 5 --pads_strides_dilations 2 2 1 1 1 1 --disable-forward --disable-backward-weights
+)
+
+add_custom_test(test_regression_float_mi100 SKIP_UNLESS_ALL GFX908_ENABLED VEGA_DISABLED
+# Regression test for SWDEV-305815 (issue 1206)
+COMMAND ${IMPLICITGEMM_TESTING_ENV} MIOPEN_LOG_LEVEL=5 $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 32 256 38 38 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
 )
 
 set(CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV
