@@ -130,21 +130,21 @@ int main(int argc, char* argv[], char* envp[])
     for(auto& it : j)
     {
         auto command                = it;
-        fin::Fin* f  = nullptr;
+        std::unique_ptr<fin::Fin> f = nullptr;
         // TODO : Move this to a factory function
         if(command.contains("config"))
         {
             if(command["config"]["cmd"] == "conv")
             {
-                f = new fin::ConvFin<float, float>(command);
+                f = std::make_unique<fin::ConvFin<float, float>>(command);
             }
             else if(command["config"]["cmd"] == "convfp16")
             {
-                f = new fin::ConvFin<float16, float>(command);
+                f = std::make_unique<fin::ConvFin<float16, float>>(command);
             }
             else if(command["config"]["cmd"] == "convbfp16")
             {
-                f = new fin::ConvFin<bfloat16, float>(command);
+                f = std::make_unique<fin::ConvFin<bfloat16, float>>(command);
             }
             else
             {
@@ -152,11 +152,13 @@ int main(int argc, char* argv[], char* envp[])
                 exit(-1);
             }
         }
+        else if(command.contains("pdb_verif") and command["pdb_verif"] == true)
+        {
+            f = std::make_unique<fin::ConvFin<float, float>>(command);
+        }
         else
         {
-            f = new fin::ConvFin<float, float>();
-            dynamic_cast<fin::ConvFin<float,float>*>(f)->job["arch"] = command["arch"];
-            dynamic_cast<fin::ConvFin<float,float>*>(f)->job["num_cu"] = command["num_cu"];
+            f = std::make_unique<fin::ConvFin<float, float>>();
         }
 
         for(auto& step_it : command["steps"])
@@ -169,7 +171,6 @@ int main(int argc, char* argv[], char* envp[])
         f->output["direction"]      = command["direction"];
         f->output["input"]          = command;
         final_output.push_back(f->output);
-        delete f;
     }
     output_file << std::setw(4) << final_output << std::endl;
     output_file.flush();

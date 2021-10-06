@@ -85,6 +85,8 @@ class ConvFin : public Fin
     ConvFin() : Fin() {}
     ConvFin(json _job) : Fin(), job(_job)
     {
+        if(job.contains("pdb_verif") and job["pdb_verif"] == true)
+            return;
         VerifyDevProps();
         command         = _job["config"];
         command["bias"] = 0;
