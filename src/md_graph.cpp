@@ -72,6 +72,7 @@ MDGraph_vertex_ptr FusionMDGraph::GetCurVertex(const Handle& handle)
     int weight             = -1;
     MDGraph_vertex_ptr ptr = nullptr;
     auto cur_arch          = handle.GetDeviceName();
+    auto target            = handle.GetTargetProperties();
 
     for(auto& cur : cur_vertex)
     {
@@ -80,7 +81,10 @@ MDGraph_vertex_ptr FusionMDGraph::GetCurVertex(const Handle& handle)
         // Empty inidicates any arch is supported (say OpenCL kernels)
         bool arch_sup =
             cur.first->supported_arch.empty() || (it != cur.first->supported_arch.end());
-        if((boost::any_cast<int>(cur.second["weight"]) > weight) && arch_sup)
+
+        auto xnack_sup = !(cur.first->supported_xnack && target.Xnack() &&
+                           *cur.first->supported_xnack != *target.Xnack());
+        if((boost::any_cast<int>(cur.second["weight"]) > weight) && arch_sup && xnack_sup)
         {
             weight = boost::any_cast<int>(cur.second["weight"]);
             ptr    = cur.first;
