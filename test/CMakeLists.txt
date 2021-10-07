@@ -200,6 +200,10 @@ if(MIOPEN_TEST_GFX1030)
     endif()
 endif()
 
+if(MIOPEN_TEST_XNACK)
+    list(APPEND SKIP_TESTS test_mdgraph_xnack_disabled)
+endif()
+
 # The usage is non-trivial, see function add_test_command.
 if(SKIP_TESTS)
     list(REMOVE_DUPLICATES SKIP_TESTS)
