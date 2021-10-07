@@ -104,6 +104,18 @@ int main()
                 {100, 15, 8, 8}, {64, 15, 3, 3}, {0, 0, 1, 1, 1, 1}, pgm_name, krn_name, alg_name);
             EXPECT(krn_name == krn_name_ref);
             EXPECT(alg_name == "miopenConvolutionWinogradBiasActiv");
+
+            // Winograd because pad_h, pad_w satisfy criteria
+            ConvAlgTest(
+                {100, 32, 8, 8}, {64, 32, 3, 3}, {3, 3, 1, 1, 1, 1}, pgm_name, krn_name, alg_name);
+            EXPECT(krn_name == krn_name_ref);
+            EXPECT(alg_name == "miopenConvolutionWinogradBiasActiv");
+
+            // Winograd because x and y satisfy criteria
+            ConvAlgTest(
+                {100, 32, 8, 8}, {64, 32, 4, 4}, {0, 0, 1, 1, 1, 1}, pgm_name, krn_name, alg_name);
+            EXPECT(krn_name == krn_name_ref);
+            EXPECT(alg_name == "miopenConvolutionWinogradBiasActiv");
         }
     }
 
@@ -128,5 +140,16 @@ int main()
         EXPECT(pgm_name == "conv1x1u_bias_activ.s");
         EXPECT(krn_name == "miopenGcnAsmConv1x1U");
         EXPECT(alg_name == "miopenConvolutionDirectBiasActivAsm");
+    }
+
+    // opencl kernels do not support some cases that are supported by asm kernels 
+    if(!is_wino_support && !is_asm_support)
+    {
+        // Fails because filter size != [3, 5, 7, 9, 11] not supported by ocl kernel
+        ConvAlgFailTest({100, 32, 8, 8}, {64, 32, 1, 1}, {0, 0, 1, 1, 1, 1});
+        ConvAlgFailTest({100, 32, 8, 8}, {64, 32, 4, 4}, {0, 0, 1, 1, 1, 1});
+
+        // Fails because padding > 2 not supported by ocl kernel
+        ConvAlgFailTest({100, 32, 8, 8}, {64, 32, 3, 3}, {3, 3, 1, 1, 1, 1});
     }
 }
