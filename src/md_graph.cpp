@@ -72,7 +72,7 @@ MDGraph_vertex_ptr FusionMDGraph::GetCurVertex(const Handle& handle)
     int weight             = -1;
     MDGraph_vertex_ptr ptr = nullptr;
     auto cur_arch          = handle.GetDeviceName();
-    auto target            = handle.GetTargetProperties();
+    const auto& target     = handle.GetTargetProperties();
 
     for(auto& cur : cur_vertex)
     {
