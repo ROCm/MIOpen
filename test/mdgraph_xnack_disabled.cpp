@@ -43,7 +43,8 @@ int main()
     auto this_arch = h.GetDeviceName();
     auto target    = h.GetTargetProperties();
 
-    auto wino_supported_arch = {"gfx90a", "gfx908", "gfx906", "gfx900", "gfx803"};
+    auto wino_supported_arch = {
+        "gfx1030", "gfx1012", "gfx1011", "gfx90a", "gfx908", "gfx906", "gfx900", "gfx803"};
 
     auto is_wino_support = !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) &&
                            !miopen::IsDisabled(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD{}) &&
@@ -142,7 +143,7 @@ int main()
         EXPECT(alg_name == "miopenConvolutionDirectBiasActivAsm");
     }
 
-    // opencl kernels do not support some cases that are supported by asm kernels 
+    // opencl kernels do not support some cases that are supported by asm kernels
     if(!is_wino_support && !is_asm_support)
     {
         // Fails because filter size != [3, 5, 7, 9, 11] not supported by ocl kernel
