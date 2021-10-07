@@ -106,6 +106,7 @@ void ConvAlgFailTest(std::vector<int> inputs,
                      std::vector<int> conv_desc)
 {
     MIOPEN_LOG_I("*********************************************************");
+    auto&& handle = get_handle();
     miopen::TensorDescriptor inputTensor;
     miopen::TensorDescriptor convFilter;
     miopenConvolutionDescriptor_t convDesc{};
@@ -134,7 +135,14 @@ void ConvAlgFailTest(std::vector<int> inputs,
 
     miopen::FusionPlanDescriptor fp(miopenVerticalFusion, inputTensor);
 
-    EXPECT(miopenCreateOpConvForward(&fp, &convoOp, convDesc, &convFilter) != 0);
+    miopenCreateOpConvForward(&fp, &convoOp, convDesc, &convFilter);
+
+    std::string alg;
+    std::string pgm;
+    std::string krn;
+    EXPECT(throws([&] { alg = fp.GetAlgorithmName(handle); }));
+    EXPECT(throws([&] { pgm = fp.GetProgramName(handle); }));
+    EXPECT(throws([&] { krn = fp.GetKernelName(handle); }));
 
     // Cleanup
     miopenDestroyConvolutionDescriptor(convDesc);

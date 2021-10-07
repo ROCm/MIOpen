@@ -200,10 +200,6 @@ if(MIOPEN_TEST_GFX1030)
     endif()
 endif()
 
-if(MIOPEN_TEST_XNACK)
-    list(APPEND SKIP_TESTS test_mdgraph_xnack_disabled)
-endif()
-
 # The usage is non-trivial, see function add_test_command.
 if(SKIP_TESTS)
     list(REMOVE_DUPLICATES SKIP_TESTS)
@@ -214,6 +210,11 @@ endif()
 message(STATUS "SKIP_TESTS: ${SKIP_TESTS}")
 message(STATUS "SKIP_ALL_EXCEPT_TESTS: ${SKIP_ALL_EXCEPT_TESTS}")
 
+# List of tests that uses xnack mode.
+# Parameter that specifies xnack mode: --xnack [0|1]
+#       0: xnack OFF
+#       1: xnack ON
+set(XNACK_TESTS test_mdgraph)
 
 function(add_test_command NAME EXE)
     # Restrict the use of SKIP_ALL_EXCEPT_TESTS list in the Int8, BF16 and MIOpenTensile tests
@@ -274,6 +275,9 @@ function(add_test_executable TEST_NAME)
     endif()
     set(TEST_COMMAND ${TEST_COMMAND} ${MIOPEN_TEST_FLAGS_ARGS})
 
+    if((NOT MIOPEN_TEST_XNACK) AND (${TEST_NAME} IN_LIST XNACK_TESTS))
+        set(TEST_COMMAND ${TEST_COMMAND} --xnack 0)
+    endif()
 
     if(WORKAROUND_ISSUE_936 AND (${TEST_NAME} MATCHES "test_conv2d" OR ${TEST_NAME} MATCHES "test_immed_conv2d") )
         set(TEST_COMMAND ${TEST_COMMAND} --tolerance 130) #increased by 1.625 times
