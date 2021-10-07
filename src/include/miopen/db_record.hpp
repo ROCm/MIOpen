@@ -223,7 +223,7 @@ class DbRecord
 
         const bool ok = values.Deserialize(s);
         if(!ok)
-            MIOPEN_LOG_I("Perf db record is obsolete or corrupt: " << s
+            MIOPEN_LOG_IE("Perf db record is obsolete or corrupt: " << s
                                                                    << ". Performance may degrade.");
         return ok;
     }
