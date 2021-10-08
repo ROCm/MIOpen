@@ -74,7 +74,7 @@ s_load_dwordx2 s[26:27], s[26:27], 0x0
 s_bitcmp1_b32 s18, 7
 s_cbranch_scc0 2
 s_load_dwordx2 s[34:35], s[40:41], 0x58
-s_mov_b32 s36, 1.0
+s_mov_b32 s36, 0x3c003c00
 s_bitcmp1_b32 s18, 8
 s_cbranch_scc0 2
 s_load_dword s36, s[40:41], 0x60
@@ -149,8 +149,6 @@ s_add_u32 s24, s24, s52
 s_addc_u32 s25, s25, s53
 s_add_u32 s34, s34, s54
 s_addc_u32 s35, s35, s55
-v_cvt_f16_f32_e32 v2, s36
-v_readfirstlane_b32 s36, v2
 s_and_b32 s44, 1, s30
 s_addc_u32 s44, s32, 1
 s_ashr_i32 s44, s44, 1
