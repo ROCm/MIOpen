@@ -38,6 +38,17 @@ namespace batchnorm {
 
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
+    switch(direction)
+    {
+    case Direction::ForwardTraining: return MakeForwardTrainingNetworkConfig();
+    case Direction::ForwardInference: return MakeForwardInferenceNetworkConfig();
+    case Direction::Backward: return MakeBackwardNetworkConfig();
+    default: MIOPEN_THROW(miopenStatusInternalError);
+    }
+}
+
+NetworkConfig ProblemDescription::MakeForwardTrainingNetworkConfig() const
+{
     std::ostringstream ss;
 
     int n, c, h, w;
@@ -58,12 +69,12 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     bool bfpmixparm = false;
     bool bfp16parm  = false;
     bool bfp32parm  = true;
-    if(xDesc.GetType() == miopenHalf && bnScaleBiasMeanVarDesc.GetType() == miopenHalf)
+    if(xDesc.GetType() == miopenHalf && GetBnScaleBiasMeanVarDesc().GetType() == miopenHalf)
     {
         bfp16parm = true;
         bfp32parm = false;
     }
-    else if(xDesc.GetType() == miopenHalf && bnScaleBiasMeanVarDesc.GetType() == miopenFloat)
+    else if(xDesc.GetType() == miopenHalf && GetBnScaleBiasMeanVarDesc().GetType() == miopenFloat)
     {
         bfpmixparm = true;
         bfp32parm  = false;
@@ -173,6 +184,142 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
         ss << "n" << n;
         ss << "c" << c;
         ss << "hw" << in_cstride;
+    }
+
+    return NetworkConfig{ss.str()};
+}
+
+NetworkConfig ProblemDescription::MakeForwardInferenceNetworkConfig() const
+{
+    MIOPEN_THROW(miopenStatusNotImplemented);
+}
+
+NetworkConfig ProblemDescription::MakeBackwardNetworkConfig() const
+{
+    std::ostringstream ss;
+
+    bool bfpmixparm = false;
+    bool bfp16parm  = false;
+    bool bfp32parm  = true;
+    if(xDesc.GetType() == miopenHalf && GetScaleBiasDiffDesc().GetType() == miopenHalf)
+    {
+        bfp16parm = true;
+        bfp32parm = false;
+    }
+    else if(xDesc.GetType() == miopenHalf && GetScaleBiasDiffDesc().GetType() == miopenFloat)
+    {
+        bfpmixparm = true;
+        bfp32parm  = false;
+    }
+
+    int n, c, h, w;
+    std::tie(n, c, h, w) = tien<4>(xDesc.GetLengths());
+
+    const unsigned int in_cstride = h * w;
+    const unsigned int in_nhw     = n * in_cstride;
+
+    size_t xlocalsize = 1;
+    size_t ylocalsize = 1;
+
+    size_t xgridsize = 1;
+    size_t ygridsize = 1;
+
+    if(bn_mode == miopenBNSpatial)
+    {
+        unsigned int ldsgcn = 0;
+        bool single         = true;
+        int variant         = 1;
+
+        if((in_nhw < (32 * 1024 * 1024) && in_cstride > 1024))
+        {
+            variant    = 1;
+            xlocalsize = 1024;
+            xgridsize  = c * xlocalsize;
+            ldsgcn     = xlocalsize / 64;
+        }
+        else if(in_nhw < (32 * 1024 * 1024) && in_cstride > 512)
+        {
+            variant    = (n >= 32) ? 1 : 3;
+            xlocalsize = std::min(64 * ((in_cstride + 63) / 64), static_cast<unsigned int>(1024));
+            xgridsize  = c * xlocalsize;
+            ldsgcn     = xlocalsize / 64;
+        }
+        else if(in_cstride <= 512)
+        {
+            if((n > 64) && (in_cstride > 160))
+            {
+                variant = 3;
+                xlocalsize =
+                    std::min(64 * ((in_cstride + 63) / 64), static_cast<unsigned int>(1024));
+                xgridsize = c * xlocalsize;
+                ldsgcn    = xlocalsize / 64;
+            }
+            else
+            {
+                variant = 0;
+                if(bfp32parm)
+                {
+                    xlocalsize = 1024;
+                    xgridsize  = 1024 * c;
+                }
+                else
+                {
+                    xlocalsize = 256;
+                    xgridsize  = 256 * c;
+                }
+                ldsgcn = xlocalsize / 64;
+            }
+        }
+        else
+        {
+            variant      = 2;
+            ylocalsize   = 1024;
+            auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
+            xgridsize    = c;
+            ygridsize    = segment * ylocalsize;
+            single       = false;
+            ldsgcn       = ylocalsize / 64;
+        }
+        if((in_cstride < 200) && (in_cstride > 60) && bfpmixparm)
+        {
+            variant    = 1;
+            xlocalsize = 1024;
+            xgridsize  = c * xlocalsize;
+            ldsgcn     = xlocalsize / 64;
+        }
+
+        ss << "variant" << variant;
+        ss << "gx" << xgridsize;
+        ss << "n" << n;
+        ss << "c" << c;
+        ss << "hw" << in_cstride;
+        ss << "gy" << ygridsize;
+        ss << "lx" << xlocalsize;
+        ss << "ly" << ylocalsize;
+        ss << "us" << static_cast<int>(useSaved);
+        ss << "fp16" << static_cast<int>(bfp16parm);
+        ss << "fp32" << static_cast<int>(bfp32parm);
+        ss << "single" << static_cast<int>(single);
+        ss << "gcn" << ldsgcn;
+    }
+    else
+    {
+        ylocalsize           = (64 >= in_cstride) ? 64 : 256;
+        unsigned int segment = std::ceil(double(in_cstride) / double(ylocalsize));
+        xgridsize            = c;
+        ygridsize            = segment * ylocalsize;
+
+        ss << "gx" << xgridsize;
+        ss << "gy" << ygridsize;
+        ss << "lx" << xlocalsize;
+        ss << "ly" << ylocalsize;
+        ss << "n" << n;
+        ss << "c" << c;
+        ss << "hw" << in_cstride;
+        ss << "u" << static_cast<int>(useSaved);
+        ss << "fp16" << static_cast<int>(bfp16parm);
+        ss << "fp32" << static_cast<int>(bfp32parm);
+        ss << "nhw" << in_nhw;
     }
 
     return NetworkConfig{ss.str()};
