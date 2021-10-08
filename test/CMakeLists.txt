@@ -37,7 +37,7 @@ option( MIOPEN_TEST_GFX908 "Test on MI100 (gfx908)" OFF )
 option( MIOPEN_TEST_GFX90a "Test on gfx90a" OFF )
 option( MIOPEN_TEST_VEGA "Test on Vega10/20 (gfx900, gfx906)" OFF )
 option( MIOPEN_TEST_GFX1030 "Test on Navi21 (gfx1030)" OFF )
-option( MIOPEN_TEST_XNACK "Test with xnack+ mode" OFF )
+option( MIOPEN_TEST_GPU_XNACK_ENABLED "Test as if XNACK mode is enabled" OFF )
 option( MIOPEN_TEST_CONV Off)
 option( MIOPEN_TEST_DEEPBENCH Off)
 option( MIOPEN_TEST_DRIVER_ITER_MODE Off)
@@ -110,7 +110,7 @@ if(NOT (MIOPEN_TEST_VEGA OR MIOPEN_TEST_GFX908 OR MIOPEN_TEST_GFX90a OR MIOPEN_T
         endif()
 
         if(NOT (MIOPEN_TEST_GPU_DETECTION_FAILED) AND ROCMINFO_OUTPUT MATCHES "xnack\\+")
-            set(MIOPEN_TEST_XNACK ON)
+            set(MIOPEN_TEST_GPU_XNACK_ENABLED ON)
         endif()
     else()
         message(WARNING "ROCMINFO NOT FOUND, GPU TYPE UNKNOWN. Manually set respective MIOPEN_TEST_GFX* CMake variable to specify target GPU for testing.")
@@ -122,7 +122,7 @@ message(STATUS "MIOPEN_TEST_VEGA ${MIOPEN_TEST_VEGA}")
 message(STATUS "MIOPEN_TEST_GFX908 ${MIOPEN_TEST_GFX908}")
 message(STATUS "MIOPEN_TEST_GFX90a ${MIOPEN_TEST_GFX90a}")
 message(STATUS "MIOPEN_TEST_GFX1030 ${MIOPEN_TEST_GFX1030}")
-message(STATUS "MIOPEN_TEST_XNACK ${MIOPEN_TEST_XNACK}")
+message(STATUS "MIOPEN_TEST_GPU_XNACK_ENABLED ${MIOPEN_TEST_GPU_XNACK_ENABLED}")
 message(STATUS "MIOPEN_TEST_GPU_DETECTION_FAILED ${MIOPEN_TEST_GPU_DETECTION_FAILED}")
 
 if(MIOPEN_TEST_DRIVER_ITER_MODE)
@@ -210,10 +210,10 @@ endif()
 message(STATUS "SKIP_TESTS: ${SKIP_TESTS}")
 message(STATUS "SKIP_ALL_EXCEPT_TESTS: ${SKIP_ALL_EXCEPT_TESTS}")
 
-# List of tests that uses xnack mode.
-# Parameter that specifies xnack mode: --xnack [0|1]
-#       0: xnack OFF
-#       1: xnack ON
+# List of tests that depend on the XNACK mode.
+# Options convention: Tests that depend on the XNACK mode should support the "--xnack" option.
+# If "--xnack 0" is specified (this is the default), then such tests should run in XNACK OFF mode.
+# If XNACK is enabled on the GPU, then the testing mode must be changed by the --xnack 1 option.
 set(XNACK_TESTS test_mdgraph)
 
 function(add_test_command NAME EXE)
@@ -275,8 +275,8 @@ function(add_test_executable TEST_NAME)
     endif()
     set(TEST_COMMAND ${TEST_COMMAND} ${MIOPEN_TEST_FLAGS_ARGS})
 
-    if((NOT MIOPEN_TEST_XNACK) AND (${TEST_NAME} IN_LIST XNACK_TESTS))
-        set(TEST_COMMAND ${TEST_COMMAND} --xnack 0)
+    if(MIOPEN_TEST_GPU_XNACK_ENABLED AND (${TEST_NAME} IN_LIST XNACK_TESTS))
+        set(TEST_COMMAND ${TEST_COMMAND} --xnack 1)
     endif()
 
     if(WORKAROUND_ISSUE_936 AND (${TEST_NAME} MATCHES "test_conv2d" OR ${TEST_NAME} MATCHES "test_immed_conv2d") )

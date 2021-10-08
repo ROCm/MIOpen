@@ -207,9 +207,9 @@ void ConvBiasAlgTest(std::vector<int> inputs,
 template <class T>
 struct mdgraph_driver : test_driver
 {
-    bool xnack_enabled = true;
+    bool xnack_enabled = false;
 
-    mdgraph_driver() { add(xnack_enabled, "xnack", generate_data({true /*, false*/})); }
+    mdgraph_driver() { add(xnack_enabled, "xnack", generate_data({false /*, true*/})); }
 
     void run()
     {
