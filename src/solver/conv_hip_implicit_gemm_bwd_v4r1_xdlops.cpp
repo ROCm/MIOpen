@@ -30,6 +30,10 @@
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <cstddef>
 
+/// Disable ConvHipImplicitGemmBwdDataV4R1Xdlops for FP32 by default.
+/// \ref https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1206.
+#define WORKAROUND_ISSUE_1206 1
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS)
 
 namespace miopen {
@@ -804,8 +808,21 @@ ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateGemmSize(const ConvolutionContext
 
 bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
+#if WORKAROUND_ISSUE_1206
+    if(ctx.IsFp32())
+    {
+        if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS{}))
+            return false;
+    }
+    else
+    {
+        if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS{}))
+            return false;
+    }
+#else
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS{}))
         return false;
+#endif
     if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
