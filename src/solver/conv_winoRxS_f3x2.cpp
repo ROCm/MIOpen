@@ -421,6 +421,7 @@ ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& params,
 
     KernelBuildParameters options{
         {"ROCM_METADATA_VERSION", 5},
+        {"MIOPEN_USE_FP16", params.IsFp16()},
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
 
@@ -468,6 +469,7 @@ ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& params,
         // constexpr int L_F_TENSOR_OFFSETS  = 1 << 13;
         // constexpr int L_F_USE_EXTENDED_FLAGS_64  = 1 << 15;
         int reserved             = 0;
+        uint16_t reserved_half   = 0;
         uint64_t reserved_offset = 0;
         int* reserved_ptr        = nullptr;
         int ignore;
@@ -527,47 +529,95 @@ ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& params,
                     << " d_buf.byte_stride.g=" << d_buf.byte_stride.g  << " o_buf.byte_stride.g="  << o_buf.byte_stride.g
                     << " f_buf.byte_stride.g=" << f_buf.byte_stride.g); // clang-format on
 
-                k(N,
-                  C,
-                  H,
-                  W,
-                  K,
-                  n_groups,
-                  flags,
-                  reserved,
-                  tensors.in,
-                  tensors.w,
-                  tensors.out,
-                  reserved_ptr, // Unused return_addr.
-                  R,
-                  S,
-                  pad_H, // Like Fwd wino.
-                  pad_W,
-                  out_H,
-                  out_W,
-                  reserved_ptr,    // Unused bias_addr.
-                  reserved,        // Unused relu_alpha.
-                  reserved,        // Unused reserved2.
-                  reserved_offset, // Unused d_offset.
-                  reserved_offset, // Unused f_offset.
-                  reserved_offset, // Unused o_offset.
-                  reserved_offset, // Unused b_offset.
-                  d_buf.byte_stride.nk,
-                  d_buf.byte_stride.c,
-                  d_buf.byte_stride.h,
-                  d_buf.byte_stride.w,
-                  f_buf.byte_stride.nk,
-                  f_buf.byte_stride.c,
-                  f_buf.byte_stride.h,
-                  f_buf.byte_stride.w,
-                  o_buf.byte_stride.nk,
-                  o_buf.byte_stride.c,
-                  o_buf.byte_stride.h,
-                  o_buf.byte_stride.w,
-                  group_cnt,
-                  d_buf.byte_stride.g,
-                  f_buf.byte_stride.g,
-                  o_buf.byte_stride.g);
+                if(params.IsFp32())
+                {
+                    k(N,
+                      C,
+                      H,
+                      W,
+                      K,
+                      n_groups,
+                      flags,
+                      reserved,
+                      tensors.in,
+                      tensors.w,
+                      tensors.out,
+                      reserved_ptr, // Unused return_addr.
+                      R,
+                      S,
+                      pad_H, // Like Fwd wino.
+                      pad_W,
+                      out_H,
+                      out_W,
+                      reserved_ptr,    // Unused bias_addr.
+                      reserved,        // Unused relu_alpha.
+                      reserved,        // Unused reserved2.
+                      reserved_offset, // Unused d_offset.
+                      reserved_offset, // Unused f_offset.
+                      reserved_offset, // Unused o_offset.
+                      reserved_offset, // Unused b_offset.
+                      d_buf.byte_stride.nk,
+                      d_buf.byte_stride.c,
+                      d_buf.byte_stride.h,
+                      d_buf.byte_stride.w,
+                      f_buf.byte_stride.nk,
+                      f_buf.byte_stride.c,
+                      f_buf.byte_stride.h,
+                      f_buf.byte_stride.w,
+                      o_buf.byte_stride.nk,
+                      o_buf.byte_stride.c,
+                      o_buf.byte_stride.h,
+                      o_buf.byte_stride.w,
+                      group_cnt,
+                      d_buf.byte_stride.g,
+                      f_buf.byte_stride.g,
+                      o_buf.byte_stride.g);
+                }
+                else // params.IsFp16
+                {
+                    k(N,
+                      C,
+                      H,
+                      W,
+                      K,
+                      n_groups,
+                      flags,
+                      reserved,
+                      tensors.in,
+                      tensors.w,
+                      tensors.out,
+                      reserved_ptr, // Unused return_addr.
+                      R,
+                      S,
+                      pad_H, // Like Fwd wino.
+                      pad_W,
+                      out_H,
+                      out_W,
+                      reserved_ptr,    // Unused bias_addr.
+                      reserved_half,   // Unused relu_alpha.
+                      reserved_half,   // Unused reserved_half.
+                      reserved,        // Unused reserved2.
+                      reserved_offset, // Unused d_offset.
+                      reserved_offset, // Unused f_offset.
+                      reserved_offset, // Unused o_offset.
+                      reserved_offset, // Unused b_offset.
+                      d_buf.byte_stride.nk,
+                      d_buf.byte_stride.c,
+                      d_buf.byte_stride.h,
+                      d_buf.byte_stride.w,
+                      f_buf.byte_stride.nk,
+                      f_buf.byte_stride.c,
+                      f_buf.byte_stride.h,
+                      f_buf.byte_stride.w,
+                      o_buf.byte_stride.nk,
+                      o_buf.byte_stride.c,
+                      o_buf.byte_stride.h,
+                      o_buf.byte_stride.w,
+                      group_cnt,
+                      d_buf.byte_stride.g,
+                      f_buf.byte_stride.g,
+                      o_buf.byte_stride.g);
+                }
             };
         };
     }
@@ -614,8 +664,9 @@ ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& params,
 
         result.invoker_factory = [=](std::vector<Kernel> kernels) {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-                decltype(auto) invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
-                const auto& tensors          = invoke_params.tensors;
+                const auto k              = handle.Run(kernels[0]);
+                const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+                const auto& tensors       = invoke_params.tensors;
 
                 // clang-format off
                 MIOPEN_LOG_I2(" N=" << N << " G=" << group_cnt << " C=" << C << " H=" << H << " W=" << W << " K=" << K
@@ -632,50 +683,99 @@ ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& params,
                 MIOPEN_LOG_I2(" ctx.batch_sz=" << batch_sz << "ctx.n_inputs=" << n_inputs);
 
                 int reserved             = 0;
+                uint16_t reserved_half   = 0;
                 uint64_t reserved_offset = 0;
                 int* reserved_ptr        = nullptr;
 
-                handle.Run(kernels[0])(N,
-                                       C,
-                                       H,
-                                       W,
-                                       K,
-                                       n_groups,
-                                       flags,
-                                       reserved,
-                                       tensors.x,
-                                       tensors.dy,
-                                       tensors.dw,
-                                       reserved_ptr, // Unused return_addr.
-                                       R,
-                                       S,
-                                       pad_H,
-                                       pad_W,
-                                       out_H,
-                                       out_W,
-                                       reserved_ptr,    // Unused bias_addr.
-                                       reserved,        // Unused relu_alpha.
-                                       reserved,        // Unused reserved2.
-                                       reserved_offset, // Unused d_offset.
-                                       reserved_offset, // Unused f_offset.
-                                       reserved_offset, // Unused o_offset.
-                                       reserved_offset, // Unused b_offset.
-                                       d_buf.byte_stride.nk,
-                                       d_buf.byte_stride.c,
-                                       d_buf.byte_stride.h,
-                                       d_buf.byte_stride.w,
-                                       f_buf.byte_stride.nk,
-                                       f_buf.byte_stride.c,
-                                       f_buf.byte_stride.h,
-                                       f_buf.byte_stride.w,
-                                       o_buf.byte_stride.nk,
-                                       o_buf.byte_stride.c,
-                                       o_buf.byte_stride.h,
-                                       o_buf.byte_stride.w,
-                                       group_cnt,
-                                       d_buf.byte_stride.g,
-                                       f_buf.byte_stride.g,
-                                       o_buf.byte_stride.g);
+                if(params.IsFp32())
+                {
+                    k(N,
+                      C,
+                      H,
+                      W,
+                      K,
+                      n_groups,
+                      flags,
+                      reserved,
+                      tensors.x,
+                      tensors.dy,
+                      tensors.dw,
+                      reserved_ptr, // Unused return_addr.
+                      R,
+                      S,
+                      pad_H,
+                      pad_W,
+                      out_H,
+                      out_W,
+                      reserved_ptr,    // Unused bias_addr.
+                      reserved,        // Unused relu_alpha.
+                      reserved,        // Unused reserved2.
+                      reserved_offset, // Unused d_offset.
+                      reserved_offset, // Unused f_offset.
+                      reserved_offset, // Unused o_offset.
+                      reserved_offset, // Unused b_offset.
+                      d_buf.byte_stride.nk,
+                      d_buf.byte_stride.c,
+                      d_buf.byte_stride.h,
+                      d_buf.byte_stride.w,
+                      f_buf.byte_stride.nk,
+                      f_buf.byte_stride.c,
+                      f_buf.byte_stride.h,
+                      f_buf.byte_stride.w,
+                      o_buf.byte_stride.nk,
+                      o_buf.byte_stride.c,
+                      o_buf.byte_stride.h,
+                      o_buf.byte_stride.w,
+                      group_cnt,
+                      d_buf.byte_stride.g,
+                      f_buf.byte_stride.g,
+                      o_buf.byte_stride.g);
+                }
+                else // params.IsFp16()
+                {
+                    k(N,
+                      C,
+                      H,
+                      W,
+                      K,
+                      n_groups,
+                      flags,
+                      reserved,
+                      tensors.x,
+                      tensors.dy,
+                      tensors.dw,
+                      reserved_ptr, // Unused return_addr.
+                      R,
+                      S,
+                      pad_H,
+                      pad_W,
+                      out_H,
+                      out_W,
+                      reserved_ptr,    // Unused bias_addr.
+                      reserved_half,   // Unused relu_alpha.
+                      reserved_half,   // Unused reserved_half.
+                      reserved,        // Unused reserved2.
+                      reserved_offset, // Unused d_offset.
+                      reserved_offset, // Unused f_offset.
+                      reserved_offset, // Unused o_offset.
+                      reserved_offset, // Unused b_offset.
+                      d_buf.byte_stride.nk,
+                      d_buf.byte_stride.c,
+                      d_buf.byte_stride.h,
+                      d_buf.byte_stride.w,
+                      f_buf.byte_stride.nk,
+                      f_buf.byte_stride.c,
+                      f_buf.byte_stride.h,
+                      f_buf.byte_stride.w,
+                      o_buf.byte_stride.nk,
+                      o_buf.byte_stride.c,
+                      o_buf.byte_stride.h,
+                      o_buf.byte_stride.w,
+                      group_cnt,
+                      d_buf.byte_stride.g,
+                      f_buf.byte_stride.g,
+                      o_buf.byte_stride.g);
+                }
             };
         };
     }
