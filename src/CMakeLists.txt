@@ -230,9 +230,6 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_fwd_v4r4.cpp
     solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops_padded_gemm.cpp
     solver/conv_hip_implicit_gemm_fwd_v4r5_xdlops.cpp
-    solver/conv_hip_implicit_gemm_mlir_cpp_fwd.cpp
-    solver/conv_hip_implicit_gemm_mlir_cpp_bwd.cpp
-    solver/conv_hip_implicit_gemm_mlir_cpp_wrw.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4.cpp
     solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops.cpp
     solver/conv_hip_implicit_gemm_xdlops_common.cpp
@@ -793,6 +790,11 @@ else()
         install(FILES
             ${FIND_DB_FILES}
          DESTINATION ${DATA_INSTALL_DIR}/db)
+         foreach(DB_FILE ${FIND_DB_FILES})
+            get_filename_component(DB_FILE_FILENAME "${DB_FILE}" NAME)
+            configure_file("${DB_FILE}" "${PROJECT_BINARY_DIR}/share/miopen/db/${DB_FILE_FILENAME}" COPYONLY)
+         endforeach()
+         
     endif()
 endif()
 rocm_install_symlink_subdir(${MIOPEN_INSTALL_DIR})
