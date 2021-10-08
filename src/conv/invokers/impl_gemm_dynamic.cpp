@@ -472,6 +472,7 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     }
 
     bool need_set_zero = config.gemm_k_global_split > 0;
+    bool use_fp32_global_split_on_fp16 = config.vector_store == 1 && config.gemm_k_global_split > 0;
 
     std::vector<OpKernelArg> opArgs;
     opArgs.emplace_back(0); // placeholder
@@ -504,30 +505,67 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     opArgs.emplace_back(config.gemm_k_global_split);
     opArgs.emplace_back(pack0);
 
-    return [opArgs, need_set_zero](const std::vector<Kernel>& kernels) mutable {
+    const auto& conv       = ctx.conv_problem.GetConv();
+    const auto& lowp_quant = conv.lowp_quant;
+
+    return [opArgs, need_set_zero, use_fp32_global_split_on_fp16, lowp_quant](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
             decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors     = data_ctx.tensors;
+            const auto& workSpace   = data_ctx.workSpace;
             const auto ker          = handle.Run(kernels[0]);
             float elapsed           = 0;
+            TensorDescriptor workspaceDesc(miopenFloat,
+                                           tensors.outDesc.GetLengths(),
+                                           tensors.outDesc.GetStrides());
 
-            opArgs[0] = OpKernelArg(tensors.in);
-            opArgs[1] = OpKernelArg(tensors.w);
-            opArgs[2] = OpKernelArg(tensors.out);
+            bool need_cast = use_fp32_global_split_on_fp16 && tensors.outDesc.GetType() == miopenHalf;
+
+            if(need_cast)
+            {
+                opArgs[0] = OpKernelArg(tensors.in);
+                opArgs[1] = OpKernelArg(tensors.w);
+                opArgs[2] = OpKernelArg(workSpace);
+            }
+            else
+            {
+                opArgs[0] = OpKernelArg(tensors.in);
+                opArgs[1] = OpKernelArg(tensors.w);
+                opArgs[2] = OpKernelArg(tensors.out);
+            }
 
             if(need_set_zero)
             {
                 float zero = 0.f;
-                SetTensor(handle, tensors.outDesc, tensors.out, &zero);
+                if(need_cast)
+                    SetTensor(handle, workspaceDesc, workSpace, &zero);
+                else
+                    SetTensor(handle, tensors.outDesc, tensors.out, &zero);
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
             }
 
             ker(opArgs);
+            if(handle.IsProfilingEnabled())
+                elapsed += handle.GetKernelTime();
+            
+            if(need_cast)
+            {
+                CastTensor(handle,
+                           &lowp_quant,
+                           workspaceDesc,
+                           workSpace,
+                           tensors.outDesc,
+                           tensors.out,
+                           0,
+                           0);
+                if(handle.IsProfilingEnabled())
+                    elapsed += handle.GetKernelTime();
+            }
 
             if(handle.IsProfilingEnabled())
             {
-                elapsed += handle.GetKernelTime();
+                //elapsed += handle.GetKernelTime();
                 handle.ResetKernelTime();
                 handle.AccumKernelTime(elapsed);
             }
@@ -603,6 +641,7 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     int dtile_w  = num_of_gemms > 1 ? static_cast<int>(mdiv_group_mn.shift) : w_tilda;
 
     bool need_set_zero = false;
+    bool use_fp32_global_split_on_fp16 = config.vector_store == 1 && config.gemm_k_global_split > 0;
     if(y < stride_h || x < stride_w || dilation_h != 1 || dilation_w != 1)
         need_set_zero = true;
     need_set_zero |= config.gemm_k_global_split > 0;
@@ -651,21 +690,43 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     opArgs.emplace_back(shift_pack_0);
     opArgs.emplace_back(config.gemm_k_global_split);
 
-    return [opArgs, need_set_zero](const std::vector<Kernel>& kernels) mutable {
+    const auto& conv       = ctx.conv_problem.GetConv();
+    const auto& lowp_quant = conv.lowp_quant;
+
+    return [opArgs, need_set_zero, use_fp32_global_split_on_fp16, lowp_quant](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
             decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors     = data_ctx.tensors;
+            const auto& workSpace   = data_ctx.workSpace;
             const auto ker          = handle.Run(kernels[0]);
             float elapsed           = 0;
+            TensorDescriptor workspaceDesc(miopenFloat,
+                                           tensors.outDesc.GetLengths(),
+                                           tensors.outDesc.GetStrides());
 
-            opArgs[0] = OpKernelArg(tensors.out);
-            opArgs[1] = OpKernelArg(tensors.w);
-            opArgs[2] = OpKernelArg(tensors.in);
+            bool need_cast = use_fp32_global_split_on_fp16 && tensors.outDesc.GetType() == miopenHalf;
+
+            if(need_cast)
+            {
+                opArgs[0] = OpKernelArg(workSpace);
+                opArgs[1] = OpKernelArg(tensors.w);
+                opArgs[2] = OpKernelArg(tensors.in);
+            }
+            else
+            {
+                opArgs[0] = OpKernelArg(tensors.out);
+                opArgs[1] = OpKernelArg(tensors.w);
+                opArgs[2] = OpKernelArg(tensors.in);
+            }
 
             if(need_set_zero)
             {
                 float zero = 0.f;
-                SetTensor(handle, tensors.outDesc, tensors.out, &zero);
+                if(need_cast)
+                    SetTensor(handle, workspaceDesc, workSpace, &zero);
+                else
+                    SetTensor(handle, tensors.outDesc, tensors.out, &zero);
+
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
             }
@@ -673,8 +734,25 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
             ker(opArgs);
 
             if(handle.IsProfilingEnabled())
-            {
                 elapsed += handle.GetKernelTime();
+
+            if(need_cast)
+            {
+                CastTensor(handle,
+                           &lowp_quant,
+                           workspaceDesc,
+                           workSpace,
+                           tensors.outDesc,
+                           tensors.out,
+                           0,
+                           0);
+                if(handle.IsProfilingEnabled())
+                    elapsed += handle.GetKernelTime();
+            }
+
+            if(handle.IsProfilingEnabled())
+            {
+                //elapsed += handle.GetKernelTime();
                 handle.ResetKernelTime();
                 handle.AccumKernelTime(elapsed);
             }
