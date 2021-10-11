@@ -124,12 +124,9 @@ struct AnySolver
         {
             template<typename U> static constexpr auto Test(U*)
             ->typename
-                std::is_same<
-                    decltype(std::declval<U>().GetSolution(std::declval<const ConvolutionContext&>(),
-                        std::declval<const decltype(std::declval<U>().GetPerformanceConfig(
-                            std::declval<const ConvolutionContext&>()))&>(),
-                        std::declval<const bool>())),
-                    ConvSolution
+                std::is_class<
+                    decltype(std::declval<U>().GetPerformanceConfig(
+                        std::declval<const ConvolutionContext&>()))
                 >::type;
 
             template<typename U> static constexpr std::false_type Test(...);
