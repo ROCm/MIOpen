@@ -53,8 +53,8 @@ struct MlirConvArgs
 // arguments whereas hip can implicitly linearize the struct to
 // kernel arguments
 #if MIOPEN_BACKEND_OPENCL
-#define EXPAND_ARRAY_5(x) x[0], x[1], x[2], x[3], x[4]
-#define EXPAND_MLIR_CONV_ARGS(x) x.offset, EXPAND_ARRAY_5(x.sizes), EXPAND_ARRAY_5(x.strides)
+#define EXPAND_ARRAY_5(x) ((x)[0]), ((x)[1]), ((x)[2]), ((x)[3]), ((x)[4])
+#define EXPAND_MLIR_CONV_ARGS(x) (x).offset, EXPAND_ARRAY_5((x).sizes), EXPAND_ARRAY_5((x).strides)
 #endif
 
 // Rearrange strides correctly

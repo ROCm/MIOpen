@@ -140,6 +140,13 @@ ClProgramPtr LoadBinaryProgram(cl_context ctx, cl_device_id device, const std::s
     return result;
 }
 
+ClProgramPtr LoadBinaryProgram(cl_context ctx, cl_device_id device, const std::vector<char>& source)
+{
+    ClProgramPtr result{CreateProgramWithBinary(ctx, device, source.data(), source.size())};
+    BuildProgram(result.get(), device);
+    return result;
+}
+
 ClProgramPtr LoadProgram(cl_context ctx,
                          cl_device_id device,
                          const TargetProperties& target,
@@ -159,9 +166,8 @@ ClProgramPtr LoadProgram(cl_context ctx,
     else
     {
         program_name = program;
-        if(miopen::EndsWith(program_name, ".mlir"))
-            source = "";
-        else if(kernel_src.empty())
+        // For mlir build, leave both source and kernel_src to be empty
+        if((kernel_src.empty()) && !(miopen::EndsWith(program_name, ".mlir")))
             source = miopen::GetKernelSrc(program_name);
         else
             source = kernel_src;
@@ -197,8 +203,7 @@ ClProgramPtr LoadProgram(cl_context ctx,
     {
         std::vector<char> buffer;
         MiirGenBin(params, buffer);
-        std::string buf(buffer.begin(), buffer.end());
-        return LoadBinaryProgram(ctx, device, buf);
+        return LoadBinaryProgram(ctx, device, buffer);
     }
 #endif
     else // OpenCL programs.
