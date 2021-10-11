@@ -128,7 +128,7 @@ std::string FindDbRecord_t<TDb>::GetInstalledPathFile(Handle& handle)
         const auto file_path  = root_path / (base_name + "." + suffix + ext);
         if(boost::filesystem::exists(file_path))
         {
-            MIOPEN_LOG_I2("Found exact find database file");
+            MIOPEN_LOG_I2("Found exact find database file: " + file_path.string());
             return file_path.string();
         }
         else
@@ -138,11 +138,14 @@ std::string FindDbRecord_t<TDb>::GetInstalledPathFile(Handle& handle)
             {
                 MIOPEN_LOG_I2("Iterating over find db directory " << root_path.string());
                 std::vector<fs::path> all_files;
-                for(const auto& kinder : fs::recursive_directory_iterator(root_path))
+                std::vector<fs::path> contents;
+                std::copy(fs::directory_iterator(root_path),
+                          fs::directory_iterator(),
+                          std::back_inserter(contents));
+                for(auto const& filepath : contents)
                 {
-                    const auto& filepath = kinder.path();
-                    const auto& fname    = filepath.string();
-                    if(fs::is_regular_file(kinder) && EndsWith(fname, ".fdb.txt"))
+                    const auto& fname = filepath.string();
+                    if(fs::is_regular_file(filepath) && EndsWith(fname, ".fdb.txt"))
                         all_files.push_back(filepath);
                 }
 
