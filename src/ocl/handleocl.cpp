@@ -431,12 +431,12 @@ Program Handle::LoadProgram(const std::string& program_name,
     }
 }
 
-void Handle::ClearProgram(const std::string& program_name, const std::string& params)
+void Handle::ClearProgram(const std::string& program_name, const std::string& params) const
 {
     this->impl->cache.ClearProgram(program_name, params);
 }
 
-void Handle::ClearProgram() { this->impl->cache.ClearProgram(); }
+void Handle::ClearProgram() const { this->impl->cache.ClearProgram(); }
 
 bool Handle::HasProgram(const std::string& program_name, const std::string& params) const
 {

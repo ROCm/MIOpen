@@ -132,8 +132,8 @@ struct Handle : miopenHandle
                         const std::string& kernel_src) const;
 
     bool HasProgram(const std::string& program_name, const std::string& params) const;
-    void ClearProgram(const std::string& program_name, const std::string& params);
-    void ClearProgram();
+    void ClearProgram(const std::string& program_name, const std::string& params) const;
+    void ClearProgram() const;
 
     void AddProgram(Program prog, const std::string& program_name, const std::string& params) const;
 
