@@ -191,6 +191,20 @@ def buildHipClangJobAndReboot(Map conf=[:]){
     }
 }
 
+def CheckDeserializePerfDb(Map conf=[:]){
+    def pdb_image = buildHipClangJob(conf)
+    pdb_image.inside(){
+        sh "MIOPEN_LOG_LEVEL=4 LD_LIBRARY_PATH='install/lib:/opt/rocm/lib/' install/bin/fin -i fin/tests/pdb_check_all.json -o pdb_deserialize_error.json"
+        archiveArtifacts "pdb_deserialize_error.json"
+        sh "grep clear pdb_deserialize_error.json"
+        def has_error = sh (
+            script: "echo \$?",
+            returnStdout: true
+        ).trim()
+        assert has_error.toInteger() == 0
+    }
+}
+
 
 /// Stage name format:
 /// [DataType] Backend[/Compiler] BuildType [TestSet] [Target]
@@ -367,6 +381,16 @@ pipeline {
                     }
                     steps{
                       buildHipClangJobAndReboot(setup_cmd: setup_cmd, execute_cmd: "", no_reboot:true, build_cmd: build_cmd, build_fin: "ON")
+                  }
+                }
+                stage('Perf DB Deserialize Test') {
+                    agent{ label rocmnode("nogpu") }
+                    environment{
+                        fin_flags = "-DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON" 
+
+                    }
+                    steps{
+                        CheckDeserializePerfDb(setup_flags: fin_flags, build_fin: "ON", config_targets: "MIOpenDriver", build_install: "true")
                     }
                 }
                 stage('HipNoGPU Debug Build Test') {
