@@ -152,6 +152,10 @@ int main(int argc, char* argv[], char* envp[])
                 exit(-1);
             }
         }
+        else if(command.contains("pdb_verif") and command["pdb_verif"] == true)
+        {
+            f = std::make_unique<fin::ConvFin<float, float>>(command);
+        }
         else
         {
             f = std::make_unique<fin::ConvFin<float, float>>();
