@@ -126,6 +126,7 @@ set(MIOPEN_BINCACHE_PATH "" CACHE STRING "URL or path containing binary cache fi
 option(MIOPEN_EMBED_BUILD "Build with the set of embed flags." Off)
 option(MIOPEN_USE_MLIR "Use MLIR -- EXPERIMENTAL" Off)
 option(MIOPEN_USE_COMGR "Use comgr to build kernels instead of offline tools" ${MIOPEN_EMBED_BUILD})
+option(MIOPEN_USE_HIPTRC "Use HIPRTC to build HIP kernels instead of COMGR" Off)
 option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD})
 
 
@@ -277,6 +278,10 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
     else()
         message(STATUS "Build without rocblas")
     endif()
+else()
+    if(MIOPEN_USE_HIPRTC)
+        message(FATAL_ERROR "HIPRTC cannot be used without HIP backend")
+    endif()
 endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
 
@@ -370,6 +375,14 @@ endif()
 if(MIOPEN_USE_COMGR)
     find_package(amd_comgr REQUIRED CONFIG)
     message(STATUS "Build with comgr ${amd_comgr_VERSION}")
+endif()
+
+if(MIOPEN_USE_HIPRTC)
+    if(NOT MIOPEN_USE_COMGR)
+        message(FATAL_ERROR "HIPRTC can be used only together with COMGR")
+    else()
+        message(STATUS "Build with HIPRTC")
+    endif()
 endif()
 
 option(Boost_USE_STATIC_LIBS "Use boost static libraries" ON)
