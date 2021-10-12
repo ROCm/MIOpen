@@ -269,8 +269,10 @@ void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
             comgr::BuildHip(filename, src, params, target, binary);
         else if(miopen::EndsWith(filename, ".s"))
             comgr::BuildAsm(filename, src, params, target, binary);
+#if MIOPEN_USE_MLIR
         else if(miopen::EndsWith(filename, ".mlir"))
-            MIOPEN_THROW(miopenStatusNotImplemented, "MLIR builds are not supported with COMgr");
+            MiirGenBin(params, binary);
+#endif
         else
             comgr::BuildOcl(filename, src, params, target, binary);
     }
