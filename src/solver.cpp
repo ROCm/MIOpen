@@ -220,7 +220,7 @@ Register(IdRegistryData& registry, uint64_t value, Primitive primitive, const st
 
     auto entry      = IdRegistryEntry{};
     entry.str_value = str;
-    entry.primitive = primitive;
+    entry.primitive = {primitive};
 
     registry.value_to_entry.emplace(value, std::move(entry));
     registry.str_to_value.emplace(str, value);
@@ -262,6 +262,10 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     RegisterWithSolver(registry, ++id, ConvAsm1x1U{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvAsm1x1UV2{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvBiasActivAsm1x1U{}, miopenConvolutionAlgoDirect);
+    Register(registry,
+             ++id,
+             {Primitive::Convolution, Primitive::Bias, Primitive::Activation},
+             SolverDbId(batchnorm::BnBwdTrainingPerActivation{}));
     RegisterWithSolver(registry, ++id, ConvAsm5x10u2v2f1{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvAsm5x10u2v2b1{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(
