@@ -40,8 +40,6 @@
 #include <cassert>
 #include <tuple>
 
-#define WORKAROUND_ISSUE_1146 1 // check asm solver applicability for gfx90a
-
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U_PERF_VALS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U)
 
@@ -195,10 +193,6 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
     const std::string name = params.GetStream().GetDeviceName();
     if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")))
         return false;
-#if WORKAROUND_ISSUE_1146
-    if(name == "gfx90a")
-        return false;
-#endif
     if(!params.IsLayoutDefault())
     {
         return false;
