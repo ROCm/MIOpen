@@ -48,6 +48,15 @@ struct MlirConvArgs
     StridedMemRef5D output;
 };
 
+// Note: Below macros are required for opencl backend only because
+// opencl backend requires to invoke clSetKernelArg on every kernel
+// arguments whereas hip can implicitly linearize the struct to
+// kernel arguments
+#if MIOPEN_BACKEND_OPENCL
+#define EXPAND_ARRAY_5(x) ((x)[0]), ((x)[1]), ((x)[2]), ((x)[3]), ((x)[4])
+#define EXPAND_MLIR_CONV_ARGS(x) (x).offset, EXPAND_ARRAY_5((x).sizes), EXPAND_ARRAY_5((x).strides)
+#endif
+
 // Rearrange strides correctly
 // In MLIR: the layout, sizes and strides are coherent. The layout information is not
 // embedded into the permutation of strides.
@@ -158,23 +167,22 @@ MlirConvArgs MakeMlirConvArgs(const std::vector<size_t>& in_dims,
     return {filter, input, output};
 }
 
+// Note: This does not work for opencl backend because it is impossible
+// to extract the device pointer out from a ocl memory object. The only
+// way around is to call clSetKernelArg on a oclMemory object to pass
+// the device pointer to the kernel
+#if MIOPEN_BACKEND_HIP
 void SetMlirConvArgsPtr(ConstData_t in, ConstData_t out, ConstData_t w, MlirConvArgs& args)
 {
     void* filter = nullptr;
     void* input  = nullptr;
     void* output = nullptr;
-#if MIOPEN_BACKEND_OPENCL
-    clGetMemObjectInfo(w, CL_MEM_HOST_PTR, sizeof(filter), &filter, nullptr);
-    clGetMemObjectInfo(in, CL_MEM_HOST_PTR, sizeof(input), &input, nullptr);
-    clGetMemObjectInfo(out, CL_MEM_HOST_PTR, sizeof(output), &output, nullptr);
-#elif MIOPEN_BACKEND_HIP
     // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
     filter = const_cast<void*>(w);
     // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
     input = const_cast<void*>(in);
     // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
     output = const_cast<void*>(out);
-#endif
 
     if((filter == nullptr) || (input == nullptr) || (output == nullptr))
         MIOPEN_THROW("Invalid device pointers");
@@ -186,6 +194,7 @@ void SetMlirConvArgsPtr(ConstData_t in, ConstData_t out, ConstData_t w, MlirConv
     args.output.basePtr = output;
     args.output.data    = output;
 }
+#endif
 } // Anonymous namespace
 
 InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
@@ -212,8 +221,20 @@ InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
                 primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors = forward_invoke_params.tensors;
 
+#if MIOPEN_BACKEND_OPENCL
+            handle.Run(kernels[0])(tensors.w,
+                                   tensors.w,
+                                   EXPAND_MLIR_CONV_ARGS(args.filter),
+                                   tensors.in,
+                                   tensors.in,
+                                   EXPAND_MLIR_CONV_ARGS(args.input),
+                                   tensors.out,
+                                   tensors.out,
+                                   EXPAND_MLIR_CONV_ARGS(args.output));
+#elif MIOPEN_BACKEND_HIP
             SetMlirConvArgsPtr(tensors.in, tensors.out, tensors.w, args);
             handle.Run(kernels[0])(args);
+#endif
         };
     };
 }
@@ -265,12 +286,28 @@ InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
                     elapsed += handle.GetKernelTime();
             }
 
+#if MIOPEN_BACKEND_OPENCL
+            for(const auto& k : kernels)
+            {
+                handle.Run(k)(tensors.w,
+                              tensors.w,
+                              EXPAND_MLIR_CONV_ARGS(args.filter),
+                              tensors.out,
+                              tensors.out,
+                              EXPAND_MLIR_CONV_ARGS(args.output),
+                              tensors.in,
+                              tensors.in,
+                              EXPAND_MLIR_CONV_ARGS(args.input));
+                elapsed += handle.GetKernelTime();
+            }
+#elif MIOPEN_BACKEND_HIP
             SetMlirConvArgsPtr(tensors.out, tensors.in, tensors.w, args);
             for(const auto& k : kernels)
             {
                 handle.Run(k)(args);
                 elapsed += handle.GetKernelTime();
             }
+#endif
 
             if(handle.IsProfilingEnabled())
             {
@@ -311,8 +348,20 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx)
                 SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
             }
 
+#if MIOPEN_BACKEND_OPENCL
+            handle.Run(kernels[0])(tensors.dw,
+                                   tensors.dw,
+                                   EXPAND_MLIR_CONV_ARGS(args.filter),
+                                   tensors.x,
+                                   tensors.x,
+                                   EXPAND_MLIR_CONV_ARGS(args.input),
+                                   tensors.dy,
+                                   tensors.dy,
+                                   EXPAND_MLIR_CONV_ARGS(args.output));
+#elif MIOPEN_BACKEND_HIP
             SetMlirConvArgsPtr(tensors.x, tensors.dy, tensors.dw, args);
             handle.Run(kernels[0])(args);
+#endif
         };
     };
 }

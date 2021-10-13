@@ -30,6 +30,7 @@
 #include <miopen/kernel.hpp>
 #include <miopen/kernel_warnings.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/mlir_build.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/ocldeviceinfo.hpp>
 #include <miopen/rocm_features.hpp>
@@ -139,6 +140,13 @@ ClProgramPtr LoadBinaryProgram(cl_context ctx, cl_device_id device, const std::s
     return result;
 }
 
+ClProgramPtr LoadBinaryProgram(cl_context ctx, cl_device_id device, const std::vector<char>& source)
+{
+    ClProgramPtr result{CreateProgramWithBinary(ctx, device, source.data(), source.size())};
+    BuildProgram(result.get(), device);
+    return result;
+}
+
 ClProgramPtr LoadProgram(cl_context ctx,
                          cl_device_id device,
                          const TargetProperties& target,
@@ -158,7 +166,8 @@ ClProgramPtr LoadProgram(cl_context ctx,
     else
     {
         program_name = program;
-        if(kernel_src.empty())
+        // For mlir build, leave both source and kernel_src to be empty
+        if((kernel_src.empty()) && !(miopen::EndsWith(program_name, ".mlir")))
             source = miopen::GetKernelSrc(program_name);
         else
             source = kernel_src;
@@ -189,6 +198,14 @@ ClProgramPtr LoadProgram(cl_context ctx,
         bin_file_to_str(hsaco_file, buf);
         return LoadBinaryProgram(ctx, device, buf);
     }
+#if MIOPEN_USE_MLIR
+    else if(miopen::EndsWith(program_name, ".mlir"))
+    {
+        std::vector<char> buffer;
+        MiirGenBin(params, buffer);
+        return LoadBinaryProgram(ctx, device, buffer);
+    }
+#endif
     else // OpenCL programs.
     {
         ClProgramPtr result{CreateProgram(ctx, source.data(), source.size())};
