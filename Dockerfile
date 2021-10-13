@@ -114,7 +114,7 @@ RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."
 
 ADD mlir-requirements.txt /mlir-requirements.txt
 RUN if [ "$USE_MLIR" = "ON" ]; \
-    then CXXFLAGS='-isystem $PREFIX/include' cget -p /opt/rocm install -f /mlir-requirements.txt; \
+    then cget -p /opt/rocm install -f /mlir-requirements.txt; \
     fi
 
 RUN groupadd -f render
