@@ -246,12 +246,24 @@ class SQLiteBase
         {
             dbInvalid = true;
             filename  = "";
+            const auto log_level =
+                (!MIOPEN_DISABLE_SYSDB) ? LoggingLevel::Warning : LoggingLevel::Info;
             if(!is_system)
+            {
                 MIOPEN_THROW(miopenStatusInternalError, "Cannot open database file:" + filename_);
+            }
+            else if (!filename.empty())
+            {
+                auto file = boost::filesystem::path(filename_);
+                if(!(boost::filesystem::exists(file)))
+                {
+                    MIOPEN_LOG(log_level,
+                            "Missing system database file:" + filename_ +
+                                " Performance may degrade. Please follow instructions to install: https://github.com/ROCmSoftwarePlatform/MIOpen#installing-miopen-kernels-package");
+                }
+            }
             else
             {
-                const auto log_level =
-                    (!MIOPEN_DISABLE_SYSDB) ? LoggingLevel::Warning : LoggingLevel::Info;
                 MIOPEN_LOG(log_level,
                            "Unable to read system database file:" + filename_ +
                                " Performance may degrade");
