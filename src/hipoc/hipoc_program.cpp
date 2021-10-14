@@ -266,7 +266,11 @@ void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
         std::lock_guard<std::mutex> lock(mutex);
 #endif
         if(miopen::EndsWith(filename, ".cpp"))
+#if MIOPEN_USE_HIPRTC
+            hiprtc::BuildHip(filename, src, params, target, binary);
+#else  // MIOPEN_USE_HIPRTC
             comgr::BuildHip(filename, src, params, target, binary);
+#endif // MIOPEN_USE_HIPRTC
         else if(miopen::EndsWith(filename, ".s"))
             comgr::BuildAsm(filename, src, params, target, binary);
         else if(miopen::EndsWith(filename, ".mlir"))

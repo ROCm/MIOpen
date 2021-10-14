@@ -40,7 +40,7 @@
 #cmakedefine01 MIOPEN_ENABLE_SQLITE_KERN_CACHE
 #cmakedefine01 MIOPEN_DEBUG_FIND_DB_CACHING
 #cmakedefine01 MIOPEN_USE_COMGR
-#cmakedefine01 MIOPEN_USE_HIPRTC // This is allowed only together with COMGR.
+#cmakedefine01 MIOPEN_USE_HIPRTC
 #cmakedefine01 MIOPEN_USE_HIP_KERNELS
 #cmakedefine01 MIOPEN_HCC_ENABLE_COV3
 #cmakedefine01 MIOPEN_DISABLE_USERDB
