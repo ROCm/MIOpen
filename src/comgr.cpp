@@ -109,7 +109,17 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
 #define HIP_SUPPORTS_PCH 0
 #endif
 #endif
+
+// It seems like HIP PCH support is removed from ROCm starting from 4.4
+// There is no '__hipGetPCH' function at least.
+#if(HIP_PACKAGE_VERSION_FLAT > 4004000000)
+#undef HIP_SUPPORTS_PCH
+#define HIP_SUPPORTS_PCH 0
+#endif
+
 #endif // COMGR_SUPPORTS_PCH
+
+#define PCH_IS_SUPPORTED (COMGR_SUPPORTS_PCH && HIP_SUPPORTS_PCH)
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE)
 
@@ -238,23 +248,20 @@ static void RemoveOptionsUnwanted(OptionList& list)
 
 namespace hip {
 
-#if COMGR_SUPPORTS_PCH
+#if PCH_IS_SUPPORTED
 static bool IsPchEnabled()
 {
-    if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE{}))
-        return true;
     if(miopen::IsDisabled(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE{}))
         return false;
-    return HIP_SUPPORTS_PCH;
+    return true;
 }
 #endif
 
 static std::string GetPchEnableStatus()
 {
-#if COMGR_SUPPORTS_PCH
+#if PCH_IS_SUPPORTED
     auto rv = std::string{IsPchEnabled() ? "1" : "0"};
-    if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE{}) ||
-       miopen::IsDisabled(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE{}))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE{}))
         return rv += " (enforced)";
     return rv;
 #else
@@ -529,7 +536,7 @@ class Data : ComgrOwner
     {
         ECI_THROW(amd_comgr_set_data(handle, bytes.size(), bytes.data()), bytes.size());
     }
-#if COMGR_SUPPORTS_PCH
+#if PCH_IS_SUPPORTED
     void SetFromBuffer(const char* const buffer, const size_t size) const
     {
         ECI_THROW(amd_comgr_set_data(handle, size, buffer), size);
@@ -590,7 +597,7 @@ class Dataset : ComgrOwner
             MIOPEN_LOG_I(text);
         }
     }
-#if COMGR_SUPPORTS_PCH
+#if PCH_IS_SUPPORTED
     void AddDataHipPch(const char* const content, const size_t size) const
     {
         const char name[] = "hip.pch";
@@ -742,7 +749,7 @@ void BuildHip(const std::string& name,
         for(const auto& inc : incNames)
             inputs.AddData(inc, miopen::GetKernelInc(inc), AMD_COMGR_DATA_KIND_INCLUDE);
 
-#if COMGR_SUPPORTS_PCH
+#if PCH_IS_SUPPORTED
         if(compiler::lc::hip::IsPchEnabled())
         {
             const char* pch       = nullptr;
@@ -784,7 +791,7 @@ void BuildHip(const std::string& name,
             if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
                 raw += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
 #endif
-#if COMGR_SUPPORTS_PCH
+#if PCH_IS_SUPPORTED
             if(compiler::lc::hip::IsPchEnabled())
             {
                 raw += " -nogpuinc -DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS=1";
@@ -968,6 +975,29 @@ void BuildAsm(const std::string& name,
 #if MIOPEN_USE_HIPRTC
 
 namespace hiprtc {
+
+using OptionList = std::vector<std::string>;
+
+/// Compiler implementation-specific functionality
+namespace compiler {
+
+#if COMPILER_LC
+namespace lc {
+
+static inline void RemoveOptionsUnwanted(OptionList& list)
+{
+    list.erase(remove_if(list.begin(),
+                         list.end(),
+                         [&](const auto& option) {
+                             return miopen::StartsWith(option, "-mcpu=");
+                         }),
+               list.end());
+}
+
+} // namespace lc
+#endif // COMPILER_LC
+
+} // namespace compiler
 
 /// \ref comgr_throw_errors
 struct Error : std::exception
@@ -1202,6 +1232,8 @@ void BuildHip(const std::string& name,
 #endif
         auto opts =
             miopen::SplitSpaceSeparated(raw, miopen::comgr::compiler::lc::GetOptionsNoSplit());
+        compiler::lc::RemoveOptionsUnwanted(opts);
+
         opts.push_back("-fno-gpu-rdc");
         opts.push_back("-O3");
         opts.push_back("-Wno-cuda-compat");
