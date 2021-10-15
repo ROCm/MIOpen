@@ -2622,11 +2622,6 @@ struct rnn_basic_vanilla_driver : test_driver
             seqLength,        numLayers, biasMode,   dirMode, inputMode,
             rnnMode,          inVecReal, hx_sz,      nohx,    bool(useDropout)});
 
-/// \todo Resolve the issue and remove workaround.
-/// ROCm3.3, Radeon VII: Many test cases always fail with:
-/// "Forward Inference RNN vanilla:"
-/// "Output tensor output failed verification."
-#if 0
         if(useDropout == 0)
         {
             verify(verify_forward_infer_rnn<T>{rnnDesc,
@@ -2647,7 +2642,6 @@ struct rnn_basic_vanilla_driver : test_driver
                                                nohx,
                                                nohy});
         }
-#endif
         /* normal hx/cx/dhy/dcy input test end */
 
         // DLOWELL: This part may produce NAN and infinities. Further investigation is needed.
