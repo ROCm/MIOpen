@@ -26,6 +26,7 @@
 
 #pragma once
 
+#include <miopen/problem_description_base.hpp>
 #include <miopen/activ.hpp>
 #include <miopen/tensor.hpp>
 
@@ -45,7 +46,7 @@ enum class Direction
     Backward,
 };
 
-struct ProblemDescription
+struct ProblemDescription : ProblemDescriptionBase
 {
     // Forward
     ProblemDescription(Direction direction_,

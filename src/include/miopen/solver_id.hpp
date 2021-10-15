@@ -48,7 +48,8 @@ enum class Primitive
     Convolution,
     Activation,
     Batchnorm,
-    Bias
+    Bias,
+    Fusion,
 };
 
 struct Id

@@ -29,6 +29,7 @@
 
 #include <miopen/config.h>
 
+#include <miopen/problem_description_base.hpp>
 #include <miopen/conv_solution.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/mlo_internal.hpp>
@@ -118,7 +119,14 @@ struct SolverBase
     /// GetPerformanceConfig() so that GetSolution() would return valid
     /// solution for a problem (i.e. convolution). In other words, if a Solution
     /// says "I'm suitable" for a problem, it agrees to solve that problem correctly.
-    bool IsApplicable(const Context&) const { return false; }
+    // Perhaps these two should throw indicating that the called function was not implemented by
+    // the derived class, which would be an implementation bug.
+    bool IsApplicable(const Context&,
+                      const std::vector<ProblemDescriptionBase> = {},
+                      const std::vector<solver::Primitive>      = {}) const
+    {
+        return false;
+    }
 
     /// [Informative as of Sep 2020] The minimum requirement for Dynamic Solvers:
     /// Batch size and input picture size (N, W, H) must NOT be compiled into the
@@ -270,6 +278,9 @@ struct ConvBiasActivAsm1x1U : ConvAsm1x1U
 
     PerformanceConfigConvBiasActivAsm1x1U Search(const ConvolutionContext&,
                                                  const AnyInvokeParams& invoke_ctx) const;
+    bool IsApplicable(const ExecutionContext& exec_ctx,
+                      const std::vector<ProblemDescriptionBase> problem,
+                      const std::vector<solver::Primitive> prims) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvAsm1x1U& config,
                              bool disableConfigOverrideFromEnv = false) const;

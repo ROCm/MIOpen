@@ -109,10 +109,10 @@ std::ostream& operator<<(std::ostream& os, const ConvSolution& s)
 
 struct IdRegistryEntry
 {
-    std::string str_value            = "";
-    std::vector<Primitive> primitive = {Primitive::Convolution};
-    miopenConvAlgorithm_t convAlgo   = miopenConvolutionAlgoDirect;
-    AnySolver solver                 = {};
+    std::string str_value          = "";
+    Primitive primitive            = Primitive::Convolution;
+    miopenConvAlgorithm_t convAlgo = miopenConvolutionAlgoDirect;
+    AnySolver solver               = {};
 };
 
 struct IdRegistryData
@@ -257,17 +257,16 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     uint64_t id = 0; // 0 is reserved for invalid value.
 
     // IMPORTANT: New solvers should be added to the end of the function!
-
+#if 0
     RegisterWithSolver(registry, ++id, ConvAsm3x3U{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvAsm1x1U{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvAsm1x1UV2{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvBiasActivAsm1x1U{}, miopenConvolutionAlgoDirect);
-    Register(registry,
-             ++id,
-             {Primitive::Convolution, Primitive::Bias, Primitive::Activation},
-             SolverDbId(batchnorm::BnBwdTrainingPerActivation{}));
+#endif
+    Register(registry, ++id, Primitive::Fusion, SolverDbId(ConvBiasActivAsm1x1U{}));
     RegisterWithSolver(registry, ++id, ConvAsm5x10u2v2f1{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvAsm5x10u2v2b1{}, miopenConvolutionAlgoDirect);
+#if 0
     RegisterWithSolver(
         registry, ++id, ConvAsm7x7c3h224w224k64u2v2p3q3f1{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvOclDirectFwd11x11{}, miopenConvolutionAlgoDirect);
@@ -495,7 +494,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              SolverDbId(batchnorm::BnBwdTrainingSpatialMultiple{}));
     Register(
         registry, ++id, Primitive::Batchnorm, SolverDbId(batchnorm::BnBwdTrainingPerActivation{}));
-
+#endif
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 

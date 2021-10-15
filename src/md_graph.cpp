@@ -514,6 +514,7 @@ static std::vector<DefaultKernelArg> WinogradV21NodeArgs()
 
 void FusionMDGraph::InitConv(FusionMDGraph& g)
 {
+#if 0
     FusionMDGraph_Edge_Map empty_map;
     empty_map["constraints"] = {"weight === 0"};
 
@@ -1010,6 +1011,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
             g.AddEdge(bn_v, activ_v, empty_map);
         }
     }
+#endif
 }
 
 void FusionMDGraph::AddEdge(MDGraph_vertex_ptr src,
