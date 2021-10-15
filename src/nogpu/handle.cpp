@@ -147,6 +147,12 @@ void Handle::ClearKernels(const std::string& algorithm, const std::string& netwo
 {
     this->impl->cache.ClearKernels(algorithm, network_config);
 }
+void Handle::ClearProgram(const std::string& program_name, const std::string& params) const
+{
+    this->impl->cache.ClearProgram(program_name, params);
+}
+
+void Handle::ClearProgram() const { this->impl->cache.ClearProgram(); }
 
 const std::vector<Kernel>& Handle::GetKernelsImpl(const std::string& algorithm,
                                                   const std::string& network_config) const
@@ -166,7 +172,7 @@ Program Handle::LoadProgram(const std::string& program_name,
                             bool is_kernel_str,
                             const std::string& kernel_src) const
 {
-    if((!miopen::EndsWith(program_name, ".mlir-cpp")) && (!miopen::EndsWith(program_name, ".mlir")))
+    if(!miopen::EndsWith(program_name, ".mlir"))
     {
         params += " -mcpu=" + this->GetTargetProperties().Name();
     }

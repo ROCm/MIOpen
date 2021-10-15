@@ -31,6 +31,9 @@
 #include <miopen/logger.hpp>
 #include <miopen/env.hpp>
 #include <miopen/solver_id.hpp>
+#include <miopen/stringutils.hpp>
+
+#include <boost/optional.hpp>
 
 #include <ostream>
 #include <cstdlib>
@@ -97,29 +100,45 @@ FindEnforceAction GetFindEnforceAction()
     return val;
 }
 
-solver::Id GetEnvFindOnlySolverImpl()
+boost::optional<std::vector<solver::Id>> GetEnvFindOnlySolverImpl()
 {
     static_assert(miopen::solver::Id::invalid_value == 0, "miopen::solver::Id::invalid_value == 0");
     const char* const p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_FIND_ONLY_SOLVER{});
+    std::vector<solver::Id> res;
     if(p_asciz != nullptr && strlen(p_asciz) > 0)
     {
-        auto numeric_id = std::strtoul(p_asciz, nullptr, 10);
-        if(errno == ERANGE || numeric_id == 0)
-        { // Assume string in the environment. Try to convert it to numeric id.
-            errno      = 0;
-            numeric_id = solver::Id{p_asciz}.Value();
+        const auto solver_list = miopen::SplitDelim(std::string(p_asciz), ';');
+        for(const auto& kinder : solver_list)
+        {
+            auto numeric_id = std::strtoul(kinder.c_str(), nullptr, 10);
+            if(errno == ERANGE || numeric_id == 0)
+            { // Assume string in the environment. Try to convert it to numeric id.
+                errno      = 0;
+                numeric_id = solver::Id{kinder}.Value();
+            }
+            else
+            { // Non-zero value, assume numeric id. Check if it denotes a solver.
+                numeric_id = solver::Id{solver::Id{numeric_id}.ToString()}.Value();
+            }
+            if(numeric_id != 0)
+                MIOPEN_LOG_NQI(numeric_id);
+            else
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "Invalid value of MIOPEN_DEBUG_FIND_ONLY_SOLVER: " + kinder);
+            const auto id = solver::Id{numeric_id};
+            if(id.IsValid())
+                res.push_back(id);
+            else
+            {
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "Invalid MIOPEN_DEBUG_FIND_ONLY_SOVER specified: " + kinder);
+            }
         }
-        else
-        { // Non-zero value, assume numeric id. Check if it denotes a solver.
-            numeric_id = solver::Id{solver::Id{numeric_id}.ToString()}.Value();
-        }
-        if(numeric_id != 0)
-            MIOPEN_LOG_NQI(numeric_id);
-        else
-            MIOPEN_THROW(miopenStatusBadParm, "Invalid value of MIOPEN_DEBUG_FIND_ONLY_SOLVER");
-        return {numeric_id};
     }
-    return {};
+    if(res.empty())
+        return boost::none;
+    else
+        return {res};
 }
 
 } // namespace
@@ -131,7 +150,7 @@ std::ostream& operator<<(std::ostream& os, const FindEnforce& val)
     return os << ToCString(val.action) << '(' << static_cast<int>(val.action) << ')';
 }
 
-solver::Id GetEnvFindOnlySolver()
+boost::optional<std::vector<solver::Id>> GetEnvFindOnlySolver()
 {
     static const auto once = GetEnvFindOnlySolverImpl();
     return once;

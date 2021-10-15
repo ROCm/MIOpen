@@ -26,76 +26,25 @@
 #ifndef CK_REDUCTION_COMMON_HPP
 #define CK_REDUCTION_COMMON_HPP
 
-// this enumerate should be synchronized with include/miopen/reduce_common.hpp
+#include "reduction_enums.hpp"
+
 namespace ck {
-enum class ReductionMethod_t
-{
-    DirectThreadWise = 1,
-    DirectWarpWise   = 2,
-    BlockWise        = 3,
-    MultiBlock       = 4
-}; // end of namespace ck
-
-enum class ReduceTensorOp_t
-{
-    ADD   = 0,
-    MUL   = 1,
-    MIN   = 2,
-    MAX   = 3,
-    AMAX  = 4,
-    AVG   = 5,
-    NORM1 = 6,
-    NORM2 = 7,
-    // MUL_NO_ZEROS = 8,
-};
-
-enum class NanPropagation_t
-{
-    NOT_PROPAGATE_NAN = 0,
-    PROPAGATE_NAN     = 1,
-};
-
-enum class ReduceTensorIndices_t
-{
-    NO_INDICES        = 0,
-    FLATTENED_INDICES = 1,
-};
-
-enum class IndicesType_t
-{
-    INDICES_32BIT = 0,
-    INDICES_64BIT = 1,
-    INDICES_16BIT = 2,
-    INDICES_8BIT  = 3,
-};
 
 struct float_equal_one
 {
     template <class T>
-    __device__ static inline bool apply(T x)
-    {
-        return x <= type_convert<T>{}(1.0f) and x >= type_convert<T>{}(1.0f);
-    }
-
-    template <class T>
     __device__ inline bool operator()(T x)
     {
-        return (float_equal_one::apply(x));
+        return x <= static_cast<T>(1.0f) and x >= static_cast<T>(1.0f);
     };
 };
 
 struct float_equal_zero
 {
     template <class T>
-    __device__ static inline bool apply(T x)
-    {
-        return x <= type_convert<T>{}(0.0f) and x >= type_convert<T>{}(0.0f);
-    }
-
-    template <class T>
     __device__ inline bool operator()(T x)
     {
-        return (float_equal_zero::apply(x));
+        return x <= static_cast<T>(0.0f) and x >= static_cast<T>(0.0f);
     };
 };
 

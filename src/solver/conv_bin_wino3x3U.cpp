@@ -35,8 +35,6 @@
 
 #include <boost/any.hpp>
 
-#define WORKAROUND_ISSUE_1146 1 // check asm solver applicability for gfx90a
-
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_3X3)
 
 namespace miopen {
@@ -60,10 +58,6 @@ bool ConvBinWinograd3x3U::IsApplicable(const ConvolutionContext& params) const
     const auto name = params.GetStream().GetDeviceName();
     if(!(name == "gfx803" || name == "gfx900" || name == "gfx906" || name == "gfx908"))
         return false;
-#if WORKAROUND_ISSUE_1146
-    if(name == "gfx90a")
-        return false;
-#endif
 
     // Check if kernel is suitable for the problem description
     // and able to correctly run with given parameters.
