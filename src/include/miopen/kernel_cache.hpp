@@ -86,6 +86,8 @@ class KernelCache
     bool HasKernels(const std::string& algorithm, const std::string& network_config) const;
 
     bool HasProgram(const std::string& name, const std::string& params) const;
+    void ClearProgram(const std::string& name, const std::string& params);
+    void ClearProgram();
 
     void AddProgram(Program prog, const std::string& program_name, std::string params);
 
