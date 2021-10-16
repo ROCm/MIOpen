@@ -40,6 +40,7 @@
 #include <string>
 #include <tuple>
 #include <vector>
+#include <unordered_map>
 
 namespace miopen {
 
@@ -67,6 +68,22 @@ using ExtraKernelArgs = std::tuple<int /*N*/,
 
 struct ConvFwdTensors;
 struct ConvWrwTensors;
+
+class ConvolutionAttribute
+{
+    /*
+    attribute could in 3 state
+    1) defualt, not set this attribute before (not in the store map). we will return -1 in Get()
+    2) enable, has been set to 1 before
+    3) disable, has been set to 0 before
+    */
+    public:
+    void Set(miopenConvolutionAttrib_t attr, int value);
+    int Get(miopenConvolutionAttrib_t attr) const;
+
+    private:
+    std::unordered_map<miopenConvolutionAttrib_t, int> store;
+};
 
 struct ConvolutionDescriptor : miopenConvolutionDescriptor
 {
@@ -379,6 +396,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     int group_count;
     float lowp_quant; // quantization factor for low precision
     FindMode findMode;
+    ConvolutionAttribute attribute;
 
     void ConvBwdGemm(Handle& handle,
                      const struct ConvBwdTensors& tensors,

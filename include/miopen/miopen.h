@@ -539,6 +539,15 @@ typedef enum
     MIOPEN_8BIT_INDICES  = 3, /*!< unsigned char indices */
 } miopenIndicesType_t;
 
+/*! @ingroup convolutions
+ *  @enum miopenConvolutionAttrib_t
+ * Attribute for convolution descriptor, used for alternating the convolution behavior
+ */
+typedef enum
+{
+    MIOPEN_CONVOLUTION_ATTRIB_FP16_ALT_IMPL = 0, /*!< use alternative fp16 implementation, only supported in gfx90a >*/
+} miopenConvolutionAttrib_t;
+
 /** @addtogroup tensor
  *
  *  @{
@@ -938,6 +947,28 @@ miopenGetConvolutionNdForwardOutputDim(miopenConvolutionDescriptor_t convDesc,
  */
 MIOPEN_EXPORT miopenStatus_t
 miopenDestroyConvolutionDescriptor(miopenConvolutionDescriptor_t convDesc);
+
+/*! @brief Set the attribute of the convolution descriptor
+ *
+ * @param convDesc          Convolution layer descriptor (input)
+ * @param attr              Attribute of this convolution to set (input)
+ * @param value             Value of this attribute (input)
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenSetConvolutionAttribute(miopenConvolutionDescriptor_t convDesc,
+                                       miopenConvolutionAttrib_t attr,
+                                       int value);
+
+/*! @brief Get the attribute of the convolution descriptor
+ *
+ * @param convDesc          Convolution layer descriptor (input)
+ * @param attr              Attribute of this convolution to get (input)
+ * @param value             Value of this attribute (output)
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenGetConvolutionAttribute(miopenConvolutionDescriptor_t convDesc,
+                                       miopenConvolutionAttrib_t attr,
+                                       int* value);
 
 /*! @enum miopenConvFwdAlgorithm_t
  * Convolutional algorithm mode for forward propagation. MIOpen use cross-correlation for its
