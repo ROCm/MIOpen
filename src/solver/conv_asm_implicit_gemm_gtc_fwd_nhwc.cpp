@@ -618,6 +618,20 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
+    if(ctx.GetStream().GetDeviceName() == "gfx90a" && ctx.IsFp16())
+    {
+        const auto& conv         = ctx.conv_problem.GetConv();
+        auto fp16_alt_impl_value = conv.attribute.Get(MIOPEN_CONVOLUTION_ATTRIB_FP16_ALT_IMPL);
+        if(fp16_alt_impl_value == 1)
+        {
+            GenerateClangDefsym(options, "igemm_fwd_fp16_alt_impl", 1);
+        }
+        else if(fp16_alt_impl_value == 0)
+        {
+            GenerateClangDefsym(options, "igemm_fwd_fp16_alt_impl", 0);
+        }
+    }
+
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
 
     kernel.comp_options = options.str();
