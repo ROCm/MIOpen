@@ -2672,7 +2672,7 @@ struct PerformanceConfigAsmImplicitGemmGTC : Serializable<PerformanceConfigAsmIm
     template <class Self, class F>
     static void Visit(Self&& self, F f)
     {
-        std::string prec_string = self.precision == miopenFloat ? "fp32" : "fp16";
+        std::string prec_string = self.precision == miopenFloat ? "fp32" : {self.precision == miopenHalf ? "fp16" : "bf16"};
         f(self.direction, "dir");
         f(self.tensor_layout, "lyt");
         f(prec_string, "pre");
