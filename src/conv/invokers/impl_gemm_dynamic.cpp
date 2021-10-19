@@ -698,19 +698,13 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
             decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors     = data_ctx.tensors;
             const auto& workSpace   = data_ctx.workSpace;
-            std::cout << __LINE__ <<std::endl;
             const auto ker          = handle.Run(kernels[0]);
             float elapsed           = 0;
-            std::cout << __LINE__ <<std::endl;
             TensorDescriptor workspaceDesc(miopenFloat,
                                            tensors.outDesc.GetLengths(),
                                            tensors.outDesc.GetStrides());
 
-            std::cout << __LINE__ <<std::endl;
-
             bool need_cast = use_global_split && tensors.outDesc.GetType() == miopenBFloat16;
-
-            std::cout << __LINE__ <<std::endl;
 
             if(need_cast)
             {
@@ -725,8 +719,6 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
                 opArgs[2] = OpKernelArg(tensors.in);
             }
 
-            std::cout << __LINE__ <<std::endl;
-
             if(need_set_zero)
             {
                 float zero = 0.f;
@@ -738,13 +730,9 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
                     elapsed += handle.GetKernelTime();
             }
 
-            std::cout << __LINE__ <<std::endl;
-
             ker(opArgs);
             if(handle.IsProfilingEnabled())
                 elapsed += handle.GetKernelTime();
-
-            std::cout << __LINE__ <<std::endl;
             
             if(need_cast)
             {
