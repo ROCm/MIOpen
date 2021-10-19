@@ -698,6 +698,7 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
             decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors     = data_ctx.tensors;
             const auto& workSpace   = data_ctx.workSpace;
+            std::cout << __LINE__ <<std::endl;
             const auto ker          = handle.Run(kernels[0]);
             float elapsed           = 0;
             TensorDescriptor workspaceDesc(miopenFloat,
