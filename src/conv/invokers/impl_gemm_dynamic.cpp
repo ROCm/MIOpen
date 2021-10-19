@@ -606,6 +606,7 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     if(y < stride_h || x < stride_w || dilation_h != 1 || dilation_w != 1)
         need_set_zero = true;
     need_set_zero |= config.gemm_k_global_split > 0;
+    bool use_global_split = config.gemm_k_global_split > 0;
 
     std::vector<OpKernelArg> opArgs;
     opArgs.emplace_back(0); // placeholder
@@ -654,7 +655,7 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     const auto& conv       = ctx.conv_problem.GetConv();
     const auto& lowp_quant = conv.lowp_quant;
 
-    return [opArgs, need_set_zero, lowp_quant](const std::vector<Kernel>& kernels) mutable {
+    return [opArgs, need_set_zero, use_global_split, lowp_quant](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
             decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors     = data_ctx.tensors;
