@@ -516,7 +516,7 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
                  (ctx.IsFp32() && config.precision == miopenFloat)))
                 continue;
 
-            if(ctx.IsFp16() || (ctx.IsBfp16())
+            if(ctx.IsFp16() || ctx.IsBfp16())
             {
                 if((c / group) % config.tensor_b_thread_lengths[3] != 0)
                 {
