@@ -586,7 +586,7 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(const Convolution
     if(IsDefaultConstructed())
         return false;
 
-    if(!((ctx.IsFp16() && precision == miopenHalf) || (ctx.IsFp32() && precision == miopenFloat) || (ctx.IsBfp16() && config.precision == miopenBFloat16)))
+    if(!((ctx.IsFp16() && precision == miopenHalf) || (ctx.IsFp32() && precision == miopenFloat) || (ctx.IsBfp16() && precision == miopenBFloat16)))
         return false;
 
     const auto& c         = ctx.n_inputs;
