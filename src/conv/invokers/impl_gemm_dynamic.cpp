@@ -651,30 +651,67 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     opArgs.emplace_back(shift_pack_0);
     opArgs.emplace_back(config.gemm_k_global_split);
 
-    return [opArgs, need_set_zero](const std::vector<Kernel>& kernels) mutable {
+    const auto& conv       = ctx.conv_problem.GetConv();
+    const auto& lowp_quant = conv.lowp_quant;
+
+    return [opArgs, need_set_zero, lowp_quant](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
             decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors     = data_ctx.tensors;
+            const auto& workSpace   = data_ctx.workSpace;
             const auto ker          = handle.Run(kernels[0]);
             float elapsed           = 0;
+            TensorDescriptor workspaceDesc(miopenFloat,
+                                           tensors.outDesc.GetLengths(),
+                                           tensors.outDesc.GetStrides());
 
-            opArgs[0] = OpKernelArg(tensors.out);
-            opArgs[1] = OpKernelArg(tensors.w);
-            opArgs[2] = OpKernelArg(tensors.in);
+            bool need_cast = use_global_split && tensors.outDesc.GetType() == miopenBFloat16;
+
+            if(need_cast)
+            {
+                opArgs[0] = OpKernelArg(tensors.in);
+                opArgs[1] = OpKernelArg(tensors.w);
+                opArgs[2] = OpKernelArg(workSpace);
+            }
+            else
+            {
+                opArgs[0] = OpKernelArg(tensors.in);
+                opArgs[1] = OpKernelArg(tensors.w);
+                opArgs[2] = OpKernelArg(tensors.out);
+            }
 
             if(need_set_zero)
             {
                 float zero = 0.f;
-                SetTensor(handle, tensors.outDesc, tensors.out, &zero);
+                if(need_cast)
+                    SetTensor(handle, workspaceDesc, workSpace, &zero);
+                else
+                    SetTensor(handle, tensors.outDesc, tensors.out, &zero);
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
             }
 
             ker(opArgs);
+            if(handle.IsProfilingEnabled())
+                elapsed += handle.GetKernelTime();
+            
+            if(need_cast)
+            {
+                CastTensor(handle,
+                           &lowp_quant,
+                           workspaceDesc,
+                           workSpace,
+                           tensors.outDesc,
+                           tensors.out,
+                           0,
+                           0);
+                if(handle.IsProfilingEnabled())
+                    elapsed += handle.GetKernelTime();
+            }
 
             if(handle.IsProfilingEnabled())
             {
-                elapsed += handle.GetKernelTime();
+                //elapsed += handle.GetKernelTime();
                 handle.ResetKernelTime();
                 handle.AccumKernelTime(elapsed);
             }
