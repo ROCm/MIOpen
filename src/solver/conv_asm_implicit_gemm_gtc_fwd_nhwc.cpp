@@ -334,6 +334,23 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
         std::make_tuple(32, 64, 32),
     };
 
+    static const std::vector<std::tuple<int, int, int>> tile_list_bfp16 = {
+        std::make_tuple(128, 128, 32),
+        std::make_tuple(256, 128, 32),
+        std::make_tuple(128, 256, 32),
+        std::make_tuple(128, 64, 32),
+        std::make_tuple(64, 128, 32),
+        std::make_tuple(256, 64, 32),
+        std::make_tuple(64, 256, 32),
+        std::make_tuple(64, 64, 64),
+        std::make_tuple(256, 32, 32),
+        std::make_tuple(32, 256, 32),
+        std::make_tuple(128, 32, 32),
+        std::make_tuple(32, 128, 32),
+        std::make_tuple(64, 32, 32),
+        std::make_tuple(32, 64, 32),
+    };
+
 #ifdef DEBUG_IGEMM_ASM_FWD_NHWC_CHECK_VALID_TILE_LIST
     const auto& c_list = GetFwdXdlopsNHWCConfigList();
     for(const auto& tile : tile_list_fp16)
@@ -343,7 +360,7 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
         bool found           = false;
         for(const auto& config : c_list)
         {
-            if(config.precision == miopenFloat)
+            if(config.precision == miopenFloat || config.precision == miopenBFloat16)
                 continue;
             if(config.gemm_m_per_block == mp && config.gemm_n_per_block == np &&
                config.gemm_k_per_block == kp &&
@@ -367,7 +384,32 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
         bool found           = false;
         for(const auto& config : c_list)
         {
-            if(config.precision == miopenHalf)
+            if(config.precision == miopenHalf || config.precision == miopenBFloat16)
+                continue;
+            if(config.gemm_m_per_block == mp && config.gemm_n_per_block == np &&
+               config.gemm_k_per_block == kp &&
+               !(config.tensor_a_thread_lengths[1] == 1 && config.tensor_b_thread_lengths[1] == 1))
+            {
+                // pad c configs can't be used in tile list
+                found = true;
+                break;
+            }
+        }
+        if(!found)
+        {
+            MIOPEN_LOG_E("fp32 list can't find " << mp << "x" << np << "x" << kp);
+            MIOPEN_THROW(miopenStatusInternalError);
+        }
+    }
+
+    for(const auto& tile : tile_list_bfp16)
+    {
+        int mp, np, kp;
+        std::tie(mp, np, kp) = tile;
+        bool found           = false;
+        for(const auto& config : c_list)
+        {
+            if(config.precision == miopenHalf || config.precision == miopenFloat)
                 continue;
             if(config.gemm_m_per_block == mp && config.gemm_n_per_block == np &&
                config.gemm_k_per_block == kp &&
@@ -407,11 +449,11 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
 
     bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
                      (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);
-    bool not_support_vector_store = ctx.IsFp16() && ((k / group) % 2 != 0);
+    bool not_support_vector_store = (ctx.IsFp16() || ctx.IsBfp16()) && ((k / group) % 2 != 0);
     int m_per_block, n_per_block, k_per_block;
 
     std::tie(m_per_block, n_per_block, k_per_block) = HeuristicInitMacroTileNoPadGemmK(
-        gemm_m, gemm_n, gemm_k, ctx.IsFp32() ? tile_list_fp32 : tile_list_fp16);
+        gemm_m, gemm_n, gemm_k, ctx.IsFp32() ? tile_list_fp32 : (ctx.IsFp16() ? tile_list_fp16 : tile_list_bfp16));
 
     if((m_per_block == 0 && n_per_block == 0 && k_per_block == 0) || not_support_vector_store)
     {
@@ -423,6 +465,7 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
         {
             const auto& config = config_list[i];
             if(!((ctx.IsFp16() && config.precision == miopenHalf) ||
+                 (ctx.IsBfp16() && config.precision == miopenBFloat16) ||
                  (ctx.IsFp32() && config.precision == miopenFloat)))
                 continue;
             if(!(config.tensor_a_thread_lengths[1] == 1 && config.tensor_b_thread_lengths[1] == 1))
@@ -450,6 +493,7 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
         for(const auto& config : config_list)
         {
             if(!((ctx.IsFp16() && config.precision == miopenHalf) ||
+                 (ctx.IsBfp16() && config.precision == miopenBFloat16) ||
                  (ctx.IsFp32() && config.precision == miopenFloat)))
                 continue;
 
@@ -542,7 +586,7 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(const Convolution
     if(IsDefaultConstructed())
         return false;
 
-    if(!((ctx.IsFp16() && precision == miopenHalf) || (ctx.IsFp32() && precision == miopenFloat)))
+    if(!((ctx.IsFp16() && precision == miopenHalf) || (ctx.IsFp32() && precision == miopenFloat) || (ctx.IsBfp16() && config.precision == miopenBFloat16)))
         return false;
 
     const auto& c         = ctx.n_inputs;
@@ -593,6 +637,15 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(const Convolution
                     return false;
             }
         }
+        else if (ctx.IsBfp16())
+        {
+            if(gemm_k_global_split == 0)
+            {
+                if((k / group) % gcd(gemm_n_per_block, vector_store == 0 ? 8 : vector_store) != 0)
+                    return false;
+            }
+        }
+        
     }
 
     if((nxe == 0) && !unit_conv)
@@ -632,6 +685,22 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::Search(const ConvolutionContext& ctx
                                                    const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, invoke_ctx);
+}
+
+size_t
+ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetWorkspaceSize(const ConvolutionContext& ctx) const
+{
+    if(ctx.IsFp32())
+        return 0;
+    else
+    {
+        const auto& n         = ctx.batch_sz;
+        const auto& k         = ctx.n_outputs;
+        const auto& ho        = ctx.out_height;
+        const auto& wo        = ctx.out_width;
+
+        return static_cast<size_t>(n) * k * ho * wo * miopen::GetTypeSize(miopenFloat);
+    }
 }
 
 bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(const ConvolutionContext& ctx) const
@@ -683,6 +752,9 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
 
     std::tie(kernel_name, block_size, grid_size) =
         GetImplicitGemmGtcDynamicFwdXdlopsNHWCKernel(ctx, config);
+
+    const auto required_workspace_size = GetWorkspaceSize(ctx);
+    result.workspce_sz                 = required_workspace_size;
 
     kernel.kernel_file = kernel_name + ".s";
     kernel.kernel_name = kernel_name;
