@@ -2992,6 +2992,8 @@ struct ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC : SolverBase<ConvolutionContex
     PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC
     Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const;
 
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const;
+
     bool IsApplicable(const ConvolutionContext& ctx) const;
     bool IsDynamic() const { return true; }
     ConvSolution GetSolution(const ConvolutionContext& ctx,
