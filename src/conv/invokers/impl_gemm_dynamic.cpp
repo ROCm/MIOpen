@@ -515,6 +515,10 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
             const auto ker          = handle.Run(kernels[0]);
             float elapsed           = 0;
 
+            TensorDescriptor workspaceDesc(miopenFloat,
+                                           tensors.outDesc.GetLengths(),
+                                           tensors.outDesc.GetStrides());
+
             bool need_cast = need_set_zero && tensors.outDesc.GetType() == miopenBFloat16;
 
             if(need_cast)
