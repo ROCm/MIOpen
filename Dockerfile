@@ -79,8 +79,8 @@ ENV LANG=C.UTF-8
 RUN wget https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.2.0_amd64.deb
 RUN dpkg -i dumb-init_*.deb && rm dumb-init_*.deb
 
-# Install cget
-RUN pip3 install cget
+# Install rbuild
+RUN pip3 install https://github.com/RadeonOpenCompute/rbuild/archive/92f1c1d2bd1772dcd4b94cde19cd2355cf8fe478.tar.gz
 
 # Add symlink to /opt/rocm
 RUN [ -d /opt/rocm ] || ln -sd $(realpath /opt/rocm-*) /opt/rocm
@@ -88,18 +88,17 @@ RUN [ -d /opt/rocm ] || ln -sd $(realpath /opt/rocm-*) /opt/rocm
 # Make sure /opt/rcom is in the paths
 ENV PATH="/opt/rocm:${PATH}"
 
-# Build using hip-clang
-RUN cget -p $PREFIX init --cxx /opt/rocm/llvm/bin/clang++ --std=c++14 -DAMDGPU_TARGETS=${GPU_ARCH}
-
+# Add requirements files
+ADD rbuild.ini /rbuild.ini
+ADD requirements.txt /requirements.txt
+ADD dev-requirements.txt /dev-requirements.txt
 # Install dependencies
-RUN cget -p $PREFIX install pfultz2/rocm-recipes
-# Install a newer version of cmake for libMLIRMIOpen
-RUN cget -p $PREFIX install kitware/cmake@v3.15.1
-
-ADD min-requirements.txt /min-requirements.txt
-RUN CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -f /min-requirements.txt
-RUN if [ "$USE_FIN" = "ON" ]; then cget -p $PREFIX install nlohmann/json@350ff4f7ced7c4117eae2fb93df02823c8021fcb; fi
-RUN cget -p $PREFIX install danmar/cppcheck@dd05839a7e63ef04afd34711cb3e1e0ef742882f
+# TODO: Add --std=c++14
+RUN if [ "$USE_FIN" = "ON" ]; then \
+        rbuild prepare -s fin -d $PREFIX -DAMDGPU_TARGETS=${GPU_ARCH}; \
+    else \
+        rbuild prepare -s develop -d $PREFIX -DAMDGPU_TARGETS=${GPU_ARCH}; \
+    fi
 
 # Install doc requirements
 ADD doc/requirements.txt /doc-requirements.txt
