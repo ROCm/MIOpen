@@ -83,6 +83,7 @@ static std::vector<std::string> HipKernelWarnings()
         "-Wno-covered-switch-default",
         "-Wno-disabled-macro-expansion",
         "-Wno-undefined-reinterpret-cast",
+        "-Wno-c++17-extensions",
     };
 }
 
