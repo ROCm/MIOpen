@@ -15,7 +15,7 @@ RUN dpkg --add-architecture i386
 # unless MLIR library is incompatible with current ROCm.
 
 RUN if [ "$USE_MLIR" = "ON" ] ; \
-        then export ROCM_APT_VER=.apt_4.2;\
+        then export ROCM_APT_VER=.apt_4.3.1;\
     else export ROCM_APT_VER=.apt_4.3.1;  \
     fi && \
 echo $ROCM_APT_VER &&\
@@ -114,7 +114,7 @@ RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."
 
 ADD mlir-requirements.txt /mlir-requirements.txt
 RUN if [ "$USE_MLIR" = "ON" ]; \
-    then CXXFLAGS='-isystem $PREFIX/include' cget -p /opt/rocm install -f /mlir-requirements.txt; \
+    then cget -p /opt/rocm install -f /mlir-requirements.txt; \
     fi
 
 RUN groupadd -f render

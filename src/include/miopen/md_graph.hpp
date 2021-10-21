@@ -70,7 +70,8 @@ struct MDGraph_vertex
     bool is_leaf = false;
     std::map<std::string, std::string> vertex_data;
     std::vector<std::string> supported_arch;
-    size_t map_hash = 0;
+    boost::optional<bool> supported_xnack = boost::none;
+    size_t map_hash                       = 0;
     int id;
 
     MDGraph_vertex(const MDGraph_vertex& other) = delete;

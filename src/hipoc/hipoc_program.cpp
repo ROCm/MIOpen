@@ -231,10 +231,6 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
         hsaco_file = HipBuild(dir, filename, src, params, target);
     }
 #if MIOPEN_USE_MLIR
-    else if(miopen::EndsWith(filename, ".mlir-cpp"))
-    {
-        hsaco_file = MiirBuildViaHip(dir, filename, src, params, target);
-    }
     else if(miopen::EndsWith(filename, ".mlir"))
     {
         std::vector<char> buffer;
@@ -273,8 +269,10 @@ void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
             comgr::BuildHip(filename, src, params, target, binary);
         else if(miopen::EndsWith(filename, ".s"))
             comgr::BuildAsm(filename, src, params, target, binary);
-        else if(miopen::EndsWith(filename, ".mlir-cpp"))
-            MIOPEN_THROW(miopenStatusNotImplemented, "MLIR builds are not supported with COMgr");
+#if MIOPEN_USE_MLIR
+        else if(miopen::EndsWith(filename, ".mlir"))
+            MiirGenBin(params, binary);
+#endif
         else
             comgr::BuildOcl(filename, src, params, target, binary);
     }
@@ -291,8 +289,6 @@ void HIPOCProgramImpl::BuildCodeObject(std::string params,
                                          : program;
     const auto src = [&]() -> std::string {
         if(miopen::EndsWith(filename, ".mlir"))
-            return {}; // MLIR solutions do not use source code.
-        if(miopen::EndsWith(filename, ".mlir-cpp"))
             return {}; // MLIR solutions do not use source code.
         if(!kernel_src.empty())
             return kernel_src;
