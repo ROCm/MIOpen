@@ -132,7 +132,7 @@ else()
 endif()
 set(MIOPEN_BINCACHE_PATH "" CACHE STRING "URL or path containing binary cache files to embed")
 option(MIOPEN_EMBED_BUILD "Build with the set of embed flags." Off)
-option(MIOPEN_USE_MLIR "Use MLIR -- EXPERIMENTAL" Off)
+option(MIOPEN_USE_MLIR "Use MLIR compilation backend" NOT ${MIOPEN_EMBED_BUILD})
 option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD})
 
 
@@ -328,7 +328,7 @@ if(MIOPEN_USE_MLIR)
     # REQUIRED is not supported before cmake 3.18
     find_library(LIBMLIRMIOPEN MLIRMIOpen REQUIRED)
     if(NOT BUILD_SHARED_LIBS AND MIOPEN_USE_COMGR)
-        message(FATAL_ERROR "Potential symbol conflict between mlir and comgr in static build")
+        message(FATAL_ERROR "Potential symbol conflict between mlir and comgr in static build, please configure with -DMIOPEN_USE_MLIR=Off")
     endif()
 
     if(NOT LIBMLIRMIOPEN)
