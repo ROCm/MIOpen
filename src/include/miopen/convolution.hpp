@@ -71,12 +71,10 @@ struct ConvWrwTensors;
 
 class ConvolutionAttribute
 {
-    /*
-    attribute could in 3 state
-    1) defualt, not set this attribute before (not in the store map). we will return -1 in Get()
-    2) enable, has been set to 1 before
-    3) disable, has been set to 0 before
-    */
+    /// Tri-state attribute values:
+    /// * -1: Default (attribute-specific).
+    /// * 0: Disabled/Yes.
+    /// * 1: Enabled/No.
     public:
     void Set(miopenConvolutionAttrib_t attr, int value);
     int Get(miopenConvolutionAttrib_t attr) const;

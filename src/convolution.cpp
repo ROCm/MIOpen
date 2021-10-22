@@ -779,21 +779,21 @@ std::ostream& operator<<(std::ostream& stream, const ConvolutionDescriptor& c)
     return stream;
 }
 
+/// \todo Error handling
 void ConvolutionAttribute::Set(miopenConvolutionAttrib_t attr, int value) { store[attr] = value; }
 
 int ConvolutionAttribute::Get(miopenConvolutionAttrib_t attr) const
 {
     if(attr == MIOPEN_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
     {
-        auto p = miopen::GetStringEnv(MIOPEN_DEBUG_FP16_ALT_IMP{});
-        if(p != nullptr)
-        {
+        if(nullptr != miopen::GetStringEnv(MIOPEN_DEBUG_FP16_ALT_IMP{}))
             return miopen::Value(MIOPEN_DEBUG_FP16_ALT_IMP{});
-        }
+        if(store.count(attr) == 0) // Value unset.
+            return -1;             // The default for tri-state.
+        return store.at(attr);
     }
-    if(store.count(attr) == 0)
-        return -1; // default value, not been set before
-    return store.at(attr);
+    MIOPEN_THROW(miopenStatusBadParm,
+                 "Invalid attribute: " + std::to_string(static_cast<int>(attr)));
 }
 
 } // namespace miopen

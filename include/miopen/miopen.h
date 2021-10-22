@@ -502,7 +502,7 @@ typedef enum
     MIOPEN_REDUCE_TENSOR_NORM1 =
         6, /*!< the operation is adding the absolute values of the reduced elements */
     MIOPEN_REDUCE_TENSOR_NORM2 = 7, /*!< the operation is getting the square root of the sum of
-                                       squares of the reduced elements */
+                                     squares of the reduced elements */
     // MIOPEN_REDUCE_TENSOR_MUL_NO_ZEROS =
     //    8, /*!< the operation is same as MUL, but does not have the zero values considered */
 } miopenReduceTensorOp_t;
@@ -545,7 +545,10 @@ typedef enum
  */
 typedef enum
 {
-    MIOPEN_CONVOLUTION_ATTRIB_FP16_ALT_IMPL = 0, /*!< use alternative fp16 implementation, only supported in gfx90a >*/
+    MIOPEN_CONVOLUTION_ATTRIB_FP16_ALT_IMPL =
+        0, /*!< Use alternative fp16 implementation.
+            Only supported for gfx90a; has no effect for other targets.
+            0 - disabled, 1 - enabled, -1 or unset - default (F0B1W1) >*/
 } miopenConvolutionAttrib_t;
 
 /** @addtogroup tensor
@@ -954,10 +957,9 @@ miopenDestroyConvolutionDescriptor(miopenConvolutionDescriptor_t convDesc);
  * @param attr              Attribute of this convolution to set (input)
  * @param value             Value of this attribute (input)
  */
-MIOPEN_EXPORT miopenStatus_t
-miopenSetConvolutionAttribute(miopenConvolutionDescriptor_t convDesc,
-                                       miopenConvolutionAttrib_t attr,
-                                       int value);
+MIOPEN_EXPORT miopenStatus_t miopenSetConvolutionAttribute(miopenConvolutionDescriptor_t convDesc,
+                                                           const miopenConvolutionAttrib_t attr,
+                                                           int value);
 
 /*! @brief Get the attribute of the convolution descriptor
  *
@@ -965,10 +967,9 @@ miopenSetConvolutionAttribute(miopenConvolutionDescriptor_t convDesc,
  * @param attr              Attribute of this convolution to get (input)
  * @param value             Value of this attribute (output)
  */
-MIOPEN_EXPORT miopenStatus_t
-miopenGetConvolutionAttribute(miopenConvolutionDescriptor_t convDesc,
-                                       miopenConvolutionAttrib_t attr,
-                                       int* value);
+MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionAttribute(miopenConvolutionDescriptor_t convDesc,
+                                                           const miopenConvolutionAttrib_t attr,
+                                                           int* value);
 
 /*! @enum miopenConvFwdAlgorithm_t
  * Convolutional algorithm mode for forward propagation. MIOpen use cross-correlation for its
