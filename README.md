@@ -128,7 +128,7 @@ cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="<hip-installed-path>;<hcc-instal
 
 An example cmake step can be:
 ```
-CXX=/opt/rocm/hcc/bin/hcc cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="/opt/rocm/hcc;/opt/rocm/hip;/some/local/dir" ..
+CXX=/opt/rocm/hcc/bin/hcc cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="/opt/rocm/hcc;/opt/rocm;/some/local/dir" ..
 ```
 
 ### For the HIP backend on ROCm 3.5 and later, run:
