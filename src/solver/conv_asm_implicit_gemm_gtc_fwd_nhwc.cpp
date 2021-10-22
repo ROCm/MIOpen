@@ -442,7 +442,7 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
                     {
                         if(miopen::IsDisabled(
                                MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16{}))
-                            if(ctx.IsFp16())
+                            if(ctx.IsFp16() && gks > 0)
                                 vector_store = 1;
                         gemm_k_global_split = static_cast<int>(gks);
                     }
