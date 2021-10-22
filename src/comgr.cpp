@@ -838,6 +838,7 @@ void BuildHip(const std::string& name,
     }
     catch(ComgrError& ex)
     {
+        binary.resize(0); // Necessary when "get binary" fails.
         MIOPEN_LOG_E("comgr status = " << GetStatusText(ex.status));
         if(!ex.text.empty())
             MIOPEN_LOG_W(ex.text);
@@ -918,6 +919,7 @@ void BuildOcl(const std::string& name,
     }
     catch(ComgrError& ex)
     {
+        binary.resize(0);
         MIOPEN_LOG_E("comgr status = " << GetStatusText(ex.status));
         if(!ex.text.empty())
             MIOPEN_LOG_W(ex.text);
@@ -964,6 +966,7 @@ void BuildAsm(const std::string& name,
     }
     catch(ComgrError& ex)
     {
+        binary.resize(0);
         MIOPEN_LOG_E("comgr status = " << GetStatusText(ex.status));
         if(!ex.text.empty())
             MIOPEN_LOG_W(ex.text);
@@ -1251,6 +1254,7 @@ void BuildHip(const std::string& name,
     }
     catch(Error& ex)
     {
+        binary.resize(0);
         MIOPEN_LOG_E("HIPRTC status = " << GetStatusText(ex.status));
         if(!ex.text.empty())
             MIOPEN_LOG_W(ex.text);
