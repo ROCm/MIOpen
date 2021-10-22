@@ -1018,14 +1018,8 @@ struct Error : std::exception
     throw Error{s, text};
 }
 
-struct InfoNone
-{
-};
-static const InfoNone NoInfo;
-static inline std::string to_string(const InfoNone&) { return {}; }
 static inline std::string to_string(const std::string& v) { return {v}; }
 static inline std::string to_string(const char* v) { return {v}; }
-static inline std::string to_string(const bool& v) { return v ? "true" : "false"; }
 static inline auto to_string(const std::size_t& v) { return std::to_string(v); }
 
 static std::string GetStatusText(const hiprtcResult status)
@@ -1049,8 +1043,6 @@ static std::string GetStatusText(const hiprtcResult status)
 
 /// \ref comgr_throw_macros
 #define NOARG
-#define HIPRTC_CALL(call) HIPRTC_CALL_BASE(call, NoInfo, (void)0, const hiprtcResult)
-#define HIPRTC_CALL_THROW(call) HIPRTC_CALL_BASE(call, NoInfo, Throw(status), const hiprtcResult)
 #define HIPRTC_CALL_INFO_THROW(call, info) \
     HIPRTC_CALL_BASE(call, info, Throw(status), const hiprtcResult)
 #define HIPRTC_CALL_INFO_THROW_MSG(call, info, msg) \
@@ -1067,13 +1059,6 @@ static void PrintVersion()
         return rv;
     }();
     std::ignore = once;
-}
-
-
-static std::string GetFirstChars(const char* const c_str, const size_t n_first_max)
-{
-    const size_t text_length = (strlen(c_str) > n_first_max) ? n_first_max : strlen(c_str);
-    return {c_str, 0, text_length};
 }
 
 /// \ref
