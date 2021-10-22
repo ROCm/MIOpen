@@ -36,6 +36,10 @@
 
 namespace miopen {
 
+namespace debug {
+extern bool& rordb_embed_fs_override();
+} // namespace debug
+
 class ReadonlyRamDb
 {
     public:
@@ -98,9 +102,8 @@ class ReadonlyRamDb
     ReadonlyRamDb& operator=(const ReadonlyRamDb&) = default;
     ReadonlyRamDb& operator=(ReadonlyRamDb&&) = default;
 
-    void Prefetch(const std::string& path, bool warn_if_unreadable);
-    void
-    ParseAndLoadDb(std::istream& input_stream, const std::string& path, bool warn_if_unreadable);
+    void Prefetch(bool warn_if_unreadable);
+    void ParseAndLoadDb(std::istream& input_stream, bool warn_if_unreadable);
 };
 
 } // namespace miopen

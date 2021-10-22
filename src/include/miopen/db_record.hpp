@@ -166,6 +166,7 @@ class DbRecord
 
     bool ParseContents(std::istream& contents);
     void WriteContents(std::ostream& stream) const;
+    void WriteIdsAndValues(std::ostream& stream) const;
     bool SetValues(const std::string& id, const std::string& values);
     bool GetValues(const std::string& id, std::string& values) const;
 
@@ -242,6 +243,7 @@ class DbRecord
     friend class PlainTextDb;
     friend class SQLitePerfDb;
     friend class ReadonlyRamDb;
+    friend class RamDb;
 };
 
 } // namespace miopen

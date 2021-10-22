@@ -53,6 +53,13 @@ TmpDir::TmpDir(std::string prefix)
     boost::filesystem::create_directories(this->path);
 }
 
+TmpDir& TmpDir::operator=(TmpDir&& other) noexcept
+{
+    this->path = other.path;
+    other.path = "";
+    return *this;
+}
+
 void TmpDir::Execute(std::string exe, std::string args) const
 {
     if(miopen::IsEnabled(MIOPEN_DEBUG_SAVE_TEMP_DIR{}))
@@ -68,7 +75,8 @@ TmpDir::~TmpDir()
 {
     if(!miopen::IsEnabled(MIOPEN_DEBUG_SAVE_TEMP_DIR{}))
     {
-        boost::filesystem::remove_all(this->path);
+        if(!this->path.empty())
+            boost::filesystem::remove_all(this->path);
     }
 }
 
