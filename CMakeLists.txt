@@ -321,8 +321,12 @@ endif()
 
 
 if(MIOPEN_USE_MLIR)
-    find_library(LIBMLIRMIOPEN MLIRMIOpen REQUIRED)
     # REQUIRED is not supported before cmake 3.18
+    find_library(LIBMLIRMIOPEN MLIRMIOpen REQUIRED)
+    if(NOT BUILD_SHARED_LIBS AND MIOPEN_USE_COMGR)
+        message(FATAL_ERROR "Potential symbol conflict between mlir and comgr in static build")
+    endif()
+
     if(NOT LIBMLIRMIOPEN)
         message(FATAL_ERROR "libMLIRMIOpen not found")
     else()
