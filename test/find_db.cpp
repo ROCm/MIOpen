@@ -39,6 +39,20 @@
 #include <functional>
 
 namespace miopen {
+
+struct TestRordbEmbedFsOverrideLock
+{
+    TestRordbEmbedFsOverrideLock() : cached(debug::rordb_embed_fs_override())
+    {
+        debug::rordb_embed_fs_override() = true;
+    }
+
+    ~TestRordbEmbedFsOverrideLock() { debug::rordb_embed_fs_override() = cached; }
+
+    private:
+    bool cached;
+};
+
 static auto Duration(const std::function<void()>& func)
 {
     const auto start = std::chrono::steady_clock::now();
@@ -75,6 +89,7 @@ struct FindDbTest : test_driver
 
         const TempFile temp_file{"miopen.test.find_db"};
         testing_find_db_path_override() = temp_file;
+        TestRordbEmbedFsOverrideLock rordb_embed_fs_override;
 
         TestForward();
         TestBwdData();

@@ -149,11 +149,11 @@ class KernDb : public SQLiteBase<KernDb>
     }
 
     template <typename T>
-    boost::optional<std::string> StoreRecordUnsafe(const T& problem_config)
+    bool StoreRecordUnsafe(const T& problem_config)
     {
         if(filename.empty())
-            return boost::none;
-        auto insert_query = "INSERT OR IGNORE INTO " + T::table_name() +
+            return false;
+        auto insert_query = "INSERT OR REPLACE INTO " + T::table_name() +
                             "(kernel_name, kernel_args, kernel_blob, kernel_hash, "
                             "uncompressed_size) VALUES(?, ?, ?, ?, ?);";
         auto md5_sum           = md5(problem_config.kernel_blob);
@@ -178,7 +178,7 @@ class KernDb : public SQLiteBase<KernDb>
         auto rc = stmt.Step(sql);
         if(rc != SQLITE_DONE)
             MIOPEN_THROW(miopenStatusInternalError, sql.ErrorMessage());
-        return problem_config.kernel_blob;
+        return true;
     }
 };
 } // namespace miopen
