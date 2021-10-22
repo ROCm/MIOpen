@@ -119,9 +119,7 @@ static std::string GetOperation(const ConvolutionContext& ctx)
 
 /* Construct the options string passed to MLIR to cause it
 to generate a given convolution.*/
-std::string ConstructBuildOptions(const ConvolutionContext& ctx,
-                                  bool is_xdlops,
-                                  int kernel_id)
+std::string ConstructBuildOptions(const ConvolutionContext& ctx, bool is_xdlops, int kernel_id)
 {
     // Arguments for mlir-miopen-driver.
     using CI = ConvolutionContextInterpreter;
