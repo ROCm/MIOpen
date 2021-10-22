@@ -104,15 +104,15 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
 #endif
 
 #if WORKAROUND_SWDEV_257056_PCH_INCORRECTLY_REPORTED
-#if(HIP_PACKAGE_VERSION_FLAT <= 3009999999)
+#if HIP_SUPPORTS_PCH && (HIP_PACKAGE_VERSION_FLAT <= 3009999999)
 #undef HIP_SUPPORTS_PCH
 #define HIP_SUPPORTS_PCH 0
 #endif
 #endif
 
-// It seems like HIP PCH support is removed from ROCm starting from 4.4
-// There is no '__hipGetPCH' function at least.
-#if(HIP_PACKAGE_VERSION_FLAT > 4004000000)
+// Temporary workaround for SWDEV-308265.
+// '__hipGetPCH' is not available since 4.4
+#if HIP_SUPPORTS_PCH && (HIP_PACKAGE_VERSION_FLAT > 4004000000)
 #undef HIP_SUPPORTS_PCH
 #define HIP_SUPPORTS_PCH 0
 #endif
@@ -974,6 +974,8 @@ void BuildAsm(const std::string& name,
 
 #if MIOPEN_USE_HIPRTC
 
+#define WORKAROUND_ISSUE_HIPRTC_HIPRTC_HEADER_H 1 // See SWDEV-307838
+
 namespace hiprtc {
 
 using OptionList = std::vector<std::string>;
@@ -1067,6 +1069,13 @@ static void PrintVersion()
     std::ignore = once;
 }
 
+
+static std::string GetFirstChars(const char* const c_str, const size_t n_first_max)
+{
+    const size_t text_length = (strlen(c_str) > n_first_max) ? n_first_max : strlen(c_str);
+    return {c_str, 0, text_length};
+}
+
 /// \ref
 /// https://github.com/ROCmSoftwarePlatform/AMDMIGraphX/blob/21193e875fe2133b38872decb7b2d0f985f48496/src/targets/gpu/compile_hip.cpp#L44
 /// Workaround hiprtc's broken API
@@ -1116,6 +1125,9 @@ class HiprtcProgram
             strings.push_back(std::move(s));
             c_strs.push_back(strings.back().c_str());
         }
+        // Use to avoid invalidation of pointers to existing strings
+        // stored in 'c_strs' when new items added to 'strings'.
+        void reserve(size_t new_cap) { strings.reserve(new_cap); }
     };
 
     hiprtc_program_ptr prog = nullptr;
@@ -1131,6 +1143,7 @@ class HiprtcProgram
     {
         LogInputFile(src_name, src_text);
         const auto inc_names = miopen::GetHipKernelIncList();
+        include_names.reserve(inc_names.size());
         for(const auto& inc_name : inc_names)
         {
             const auto inc_text = miopen::GetKernelIncPtr(inc_name);
@@ -1222,23 +1235,32 @@ void BuildHip(const std::string& name,
     PrintVersion();
     try
     {
-        HiprtcProgram prog(name, text);
-
-        auto raw =
-            options + " -DHIP_PACKAGE_VERSION_FLAT=" + std::to_string(HIP_PACKAGE_VERSION_FLAT);
+        auto opts =
+            miopen::SplitSpaceSeparated(options, miopen::comgr::compiler::lc::GetOptionsNoSplit());
+        compiler::lc::RemoveOptionsUnwanted(opts);
+        opts.push_back("-DWORKAROUND_ISSUE_HIPRTC_TRUE_TYPE"); // Workaround for SWDEV-308073
+        opts.push_back("-DWORKAROUND_ISSUE_HIPRTC_HALF_CONVERSION"); // Workaround for SWDEV-308250
+        opts.push_back("-D__HIP_PLATFORM_HCC__=1"); // Workaround?
+        opts.push_back("-D__HIP_PLATFORM_AMD__=1"); // Workaround?
 #if ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
         if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
-            raw += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
+            opts.push_back("-DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1");
 #endif
-        auto opts =
-            miopen::SplitSpaceSeparated(raw, miopen::comgr::compiler::lc::GetOptionsNoSplit());
-        compiler::lc::RemoveOptionsUnwanted(opts);
-
+        opts.push_back("-DHIP_PACKAGE_VERSION_FLAT=" + std::to_string(HIP_PACKAGE_VERSION_FLAT));
+        opts.push_back("-DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS=1");
+#if WORKAROUND_ISSUE_HIPRTC_HIPRTC_HEADER_H
+        opts.push_back("-Wno-reserved-id-macro");
+        opts.push_back("-Wno-newline-eof");
+#endif
+        opts.push_back("-Wno-cuda-compat");
         opts.push_back("-fno-gpu-rdc");
         opts.push_back("-O3");
-        opts.push_back("-Wno-cuda-compat");
-        opts.push_back("--cuda-gpu-arch=" + LcOptionTargetStrings(target).targetId);
-        opts.push_back("--cuda-device-only");
+        if(std::none_of(opts.begin(), opts.end(), [](const std::string& s) {
+               return StartsWith(s, "--std=") || StartsWith(s, "-std=");
+           }))
+        opts.push_back("-std=c++17");
+
+        HiprtcProgram prog(name, text);
         prog.Compile(opts);
         prog.GetCode(binary);
     }

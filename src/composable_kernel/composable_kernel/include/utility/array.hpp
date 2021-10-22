@@ -4,7 +4,7 @@
 #include "functional2.hpp"
 #include "sequence.hpp"
 
-#ifdef MIOPEN_BUILD_HIPRTC
+#ifdef __HIPCC_RTC__
 #ifdef WORKAROUND_ISSUE_HIPRTC_TRUE_TYPE
 /// We need <utility> for std::forward. In some cases, it includes <type_traits>
 /// (this is against the Standard, but it doesn't matter in this case).
@@ -31,7 +31,7 @@ constexpr T && forward(typename remove_reference<T>::type && t_) noexcept
 #else
 #include <utility> // std::forward
 #endif
-#endif // MIOPEN_BUILD_HIPRTC
+#endif // __HIPCC_RTC__
 
 namespace ck {
 

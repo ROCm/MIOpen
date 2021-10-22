@@ -4,7 +4,7 @@
 #include "integral_constant.hpp"
 #include "enable_if.hpp"
 
-#ifdef MIOPEN_BUILD_HIPRTC
+#ifdef __HIPCC_RTC__
 #ifdef WORKAROUND_ISSUE_HIPRTC_TRUE_TYPE
 /// We need <type_traits> for std::remove_reference and std::remove_cv.
 /// But <type_traits> also defines std::true_type, per Standard.
@@ -45,7 +45,7 @@ struct is_pointer : is_pointer_helper< typename std::remove_cv<T>::type > {};
 #else
 #include <type_traits> // std::remove_reference, std::remove_cv, is_pointer
 #endif
-#endif // MIOPEN_BUILD_HIPRTC
+#endif // __HIPCC_RTC__
 
 namespace ck {
 

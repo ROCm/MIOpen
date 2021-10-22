@@ -3,7 +3,7 @@
 
 #include "statically_indexed_array.hpp"
 
-#ifdef MIOPEN_BUILD_HIPRTC
+#ifdef __HIPCC_RTC__
 #ifdef WORKAROUND_ISSUE_HIPRTC_TRUE_TYPE
 /// Definitions from <cstdint>, <cmath> conflict with
 /// /opt/rocm/include/hip/amd_detail/amd_hip_vector_types.h.
@@ -17,7 +17,7 @@ typedef float float_t;
 #include <cstdint> // int8_t, int16_t
 #include <cmath> // float_t
 #endif
-#endif // MIOPEN_BUILD_HIPRTC
+#endif // __HIPCC_RTC__
 
 namespace ck {
 
