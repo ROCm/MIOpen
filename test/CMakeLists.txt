@@ -167,7 +167,9 @@ if(NOT MIOPEN_TEST_MIOTENSILE)
 	    set(SKIP_ALL_EXCEPT_TESTS
                 test_conv2d test_tensor_copy test_tensor_set test_tensor_vec test_immed_conv2d
                 test_check_numerics_test test_conv_extra test_conv_for_implicit_gemm test_miopen_conv
-                test_deepbench_conv)
+                test_deepbench_conv test_conv_igemm_dynamic_xdlops_nhwc_wrw_bf16_gfx90a 
+                test_conv_igemm_dynamic_xdlops_nhwc_fwd_bf16_gfx90a
+                test_conv_igemm_dynamic_xdlops_nhwc_bwd_bf16_gfx90a)
     endif()
     if(${CODECOV_TEST})
         list(APPEND SKIP_TESTS test_conv3d test_immed_conv3d test_immed_conv2d test_pooling2d)
