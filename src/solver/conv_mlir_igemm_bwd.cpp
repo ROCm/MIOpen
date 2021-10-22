@@ -85,8 +85,8 @@ ConvSolution ConvMlirIgemmBwd::GetSolution(const ConvolutionContext& ctx,
     {
         KernelInfo construction_parameters;
 
-        construction_parameters.kernel_name  = mlir::GetKernelName(ctx, false, kernel_id);
-        construction_parameters.kernel_file  = construction_parameters.kernel_name + ".mlir";
+        construction_parameters.kernel_name = mlir::GetKernelName(ctx, false, kernel_id);
+        construction_parameters.kernel_file = construction_parameters.kernel_name + ".mlir";
         construction_parameters.comp_options =
             mlir::ConstructBuildOptions(ctx, config, false, kernel_id);
 

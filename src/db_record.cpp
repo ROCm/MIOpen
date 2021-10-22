@@ -122,6 +122,13 @@ void DbRecord::WriteContents(std::ostream& stream) const
         return;
 
     stream << key << '=';
+    WriteIdsAndValues(stream);
+}
+
+void DbRecord::WriteIdsAndValues(std::ostream& stream) const
+{
+    if(map.empty())
+        return;
 
     const auto pairsJoiner = [](const std::string& sum,
                                 const std::pair<std::string, std::string>& pair) {
