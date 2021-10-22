@@ -668,6 +668,9 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
     std::tie(kernel_name, block_size, grid_size) =
         GetImplicitGemmGtcDynamicFwdXdlopsNHWCKernel(ctx, config);
 
+    const auto required_workspace_size = GetWorkspaceSize(ctx);
+    result.workspce_sz                 = required_workspace_size;
+
     kernel.kernel_file = kernel_name + ".s";
     kernel.kernel_name = kernel_name;
     kernel.g_wk.clear();
