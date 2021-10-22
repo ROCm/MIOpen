@@ -1490,7 +1490,12 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             ctx.DetectRocm();
             const auto network_config = ctx.BuildConfKey();
             const auto invoke_ctx     = conv::WrWInvokeParams{
-                InvokeType::Evaluate, {dyDesc, dy, xDesc, x, dwDesc, dw}, workSpace, workSpaceSize};
+                InvokeType::Evaluate,
+                {dyDesc, dy, xDesc, x, dwDesc, dw},
+                workSpace,
+                workSpaceSize,
+                this->attribute.Get(
+                    MIOPEN_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)}; /// FIXME optimize for speed
 
             // Find solutions
             const auto gemm = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{})
@@ -1627,7 +1632,11 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(const Handle& handle,
         if(!invoker)
             MIOPEN_THROW("No invoker was registered for convolution weights. Was find executed?");
 
-        const auto invoke_ctx = conv::WrWInvokeParams{tensors, workSpace, workSpaceSize};
+        const auto invoke_ctx =
+            conv::WrWInvokeParams{tensors,
+                                  workSpace,
+                                  workSpaceSize,
+                                  this->attribute.Get(MIOPEN_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)};
         (*invoker)(handle, invoke_ctx);
     });
 }
@@ -1755,7 +1764,11 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
 
         const auto invoker =
             LoadOrPrepareInvoker(handle, ctx, solver_id, conv::Direction::BackwardWeights);
-        const auto invoke_ctx = conv::WrWInvokeParams{tensors, workSpace, workSpaceSize};
+        const auto invoke_ctx =
+            conv::WrWInvokeParams{tensors,
+                                  workSpace,
+                                  workSpaceSize,
+                                  this->attribute.Get(MIOPEN_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)};
         invoker(handle, invoke_ctx);
     });
 }
