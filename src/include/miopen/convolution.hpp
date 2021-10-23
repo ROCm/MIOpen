@@ -79,8 +79,11 @@ class ConvolutionAttribute
     void Set(miopenConvolutionAttrib_t attr, int value);
     int Get(miopenConvolutionAttrib_t attr) const;
 
+    // Accessor for internal use in the library:
+    int GetGfx90aFp16alt() const;
+
     private:
-    std::unordered_map<miopenConvolutionAttrib_t, int> store;
+    int gfx90aFp16alt = -1;
 };
 
 struct ConvolutionDescriptor : miopenConvolutionDescriptor

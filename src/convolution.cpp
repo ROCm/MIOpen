@@ -53,7 +53,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_WINOGRAD)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_GEMM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_FFT)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_FP16_ALT_IMP)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
 
 namespace miopen {
 
@@ -779,21 +779,39 @@ std::ostream& operator<<(std::ostream& stream, const ConvolutionDescriptor& c)
     return stream;
 }
 
-/// \todo Error handling
-void ConvolutionAttribute::Set(miopenConvolutionAttrib_t attr, int value) { store[attr] = value; }
+void ConvolutionAttribute::Set(miopenConvolutionAttrib_t attr, int value)
+{
+    if(attr == MIOPEN_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
+    {
+        if(value < -1 || value > 1)
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "[Set conv attribute] Error: Attempt to set invalid value of "
+                         "MIOPEN_CONVOLUTION_ATTRIB_FP16_ALT_IMPL: " +
+                             std::to_string(value));
+        gfx90aFp16alt = value;
+    }
+    else
+    {
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "[Set conv attribute] Error: Attribute [" +
+                         std::to_string(static_cast<int>(attr)) + "] does not exist.");
+    }
+}
 
 int ConvolutionAttribute::Get(miopenConvolutionAttrib_t attr) const
 {
     if(attr == MIOPEN_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
-    {
-        if(nullptr != miopen::GetStringEnv(MIOPEN_DEBUG_FP16_ALT_IMP{}))
-            return miopen::Value(MIOPEN_DEBUG_FP16_ALT_IMP{});
-        if(store.count(attr) == 0) // Value unset.
-            return -1;             // The default for tri-state.
-        return store.at(attr);
-    }
+        return gfx90aFp16alt;
     MIOPEN_THROW(miopenStatusBadParm,
-                 "Invalid attribute: " + std::to_string(static_cast<int>(attr)));
+                 "[Get conv attribute] Error: Attribute [" +
+                     std::to_string(static_cast<int>(attr)) + "] does not exist.");
+}
+
+int ConvolutionAttribute::GetGfx90aFp16alt() const
+{
+    if(nullptr != miopen::GetStringEnv(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL{}))
+        return miopen::Value(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL{});
+    return gfx90aFp16alt;
 }
 
 } // namespace miopen
