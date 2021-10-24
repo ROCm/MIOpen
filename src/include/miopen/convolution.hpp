@@ -90,13 +90,13 @@ struct ConvolutionAttribute
         inline bool GetFwd() const
         {
             const auto x = Get();
-            return x == 1 ? true : x == 0 ? false : false /* default */;
+            return (x == 1) ? true : (x == 0) ? false : /* default: */ false; // NOLINT
         }
         inline bool GetBwd() const { return GetWrW(); }
         inline bool GetWrW() const
         {
             const auto x = Get();
-            return x == 1 ? true : x == 0 ? false : true /* default */;
+            return (x == 1) ? true : (x == 0) ? false : /* default: */ true; // NOLINT
         }
     } gfx90aFp16alt;
 
