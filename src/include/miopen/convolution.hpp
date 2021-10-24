@@ -87,6 +87,12 @@ struct ConvolutionAttribute
         }
 
         public:
+        inline bool GetFwd() const
+        {
+            const auto x = Get();
+            return x == 1 ? true : x == 0 ? false : false /* default */;
+        }
+        inline bool GetBwd() const { return GetWrW(); }
         inline bool GetWrW() const
         {
             const auto x = Get();

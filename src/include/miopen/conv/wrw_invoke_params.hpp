@@ -35,9 +35,9 @@ namespace conv {
 struct WrWInvokeParams : InvokeParams
 {
     ConvWrwTensors tensors;
-    Data_t workSpace          = nullptr;
-    std::size_t workSpaceSize = 0;
-    bool gfx90aFp16alt        = false;
+    Data_t workSpace;
+    std::size_t workSpaceSize;
+    bool gfx90aFp16alt;
 
     WrWInvokeParams(ConvWrwTensors tensors_,
                     Data_t workSpace_,
