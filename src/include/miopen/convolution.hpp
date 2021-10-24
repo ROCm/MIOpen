@@ -87,17 +87,9 @@ struct ConvolutionAttribute
         }
 
         public:
-        inline bool GetFwd() const
-        {
-            const auto x = Get();
-            return (x == 1) ? true : (x == 0) ? false : /* default: */ false; // NOLINT
-        }
-        inline bool GetBwd() const { return GetWrW(); }
-        inline bool GetWrW() const
-        {
-            const auto x = Get();
-            return (x == 1) ? true : (x == 0) ? false : /* default: */ true; // NOLINT
-        }
+        inline bool GetFwd() const { return Get() == 1; } // false is the default.
+        inline bool GetBwd() const { return Get() != 0; } // true is the default.
+        inline bool GetWrW() const { return Get() != 0; } // true is the default.
     } gfx90aFp16alt;
 
     /// Tri-state attribute values:
