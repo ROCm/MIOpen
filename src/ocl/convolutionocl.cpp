@@ -1493,7 +1493,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                                           {dyDesc, dy, xDesc, x, dwDesc, dw},
                                                           workSpace,
                                                           workSpaceSize,
-                                                          this->attribute.GetGfx90aFp16alt4WrW()};
+                                                          this->attribute.gfx90aFp16alt.GetWrW()};
 
             // Find solutions
             const auto gemm = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{})
@@ -1631,7 +1631,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(const Handle& handle,
             MIOPEN_THROW("No invoker was registered for convolution weights. Was find executed?");
 
         const auto invoke_ctx = conv::WrWInvokeParams{
-            tensors, workSpace, workSpaceSize, this->attribute.GetGfx90aFp16alt4WrW()};
+            tensors, workSpace, workSpaceSize, this->attribute.gfx90aFp16alt.GetWrW()};
         (*invoker)(handle, invoke_ctx);
     });
 }
@@ -1760,7 +1760,7 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
         const auto invoker =
             LoadOrPrepareInvoker(handle, ctx, solver_id, conv::Direction::BackwardWeights);
         const auto invoke_ctx = conv::WrWInvokeParams{
-            tensors, workSpace, workSpaceSize, this->attribute.GetGfx90aFp16alt4WrW()};
+            tensors, workSpace, workSpaceSize, this->attribute.gfx90aFp16alt.GetWrW()};
         invoker(handle, invoke_ctx);
     });
 }

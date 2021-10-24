@@ -787,7 +787,7 @@ void ConvolutionAttribute::Set(miopenConvolutionAttrib_t attr, int value)
                          "[Set conv attribute] Error: Attempt to set invalid value of "
                          "MIOPEN_CONVOLUTION_ATTRIB_FP16_ALT_IMPL: " +
                              std::to_string(value));
-        gfx90aFp16alt = value;
+        gfx90aFp16alt.value = value;
     }
     else
     {
@@ -800,7 +800,7 @@ void ConvolutionAttribute::Set(miopenConvolutionAttrib_t attr, int value)
 int ConvolutionAttribute::Get(miopenConvolutionAttrib_t attr) const
 {
     if(attr == MIOPEN_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
-        return gfx90aFp16alt;
+        return gfx90aFp16alt.value;
     MIOPEN_THROW(miopenStatusBadParm,
                  "[Get conv attribute] Error: Attribute [" +
                      std::to_string(static_cast<int>(attr)) + "] does not exist.");

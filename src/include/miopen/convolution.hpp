@@ -72,32 +72,34 @@ using ExtraKernelArgs = std::tuple<int /*N*/,
 struct ConvFwdTensors;
 struct ConvWrwTensors;
 
-class ConvolutionAttribute
+struct ConvolutionAttribute
 {
+    class Gfx90aFp16alt
+    {
+        int value = -1;
+        friend struct ConvolutionAttribute; // For direct r/w.
+
+        inline int Get() const
+        {
+            if(nullptr != miopen::GetStringEnv(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL{}))
+                return miopen::Value(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL{});
+            return value;
+        }
+
+        public:
+        inline bool GetWrW() const
+        {
+            const auto x = Get();
+            return x == 1 ? true : x == 0 ? false : true /* default */;
+        }
+    } gfx90aFp16alt;
+
     /// Tri-state attribute values:
     /// * -1: Default (attribute-specific).
     /// * 0: Disabled/Yes.
     /// * 1: Enabled/No.
-    public:
     void Set(miopenConvolutionAttrib_t attr, int value);
     int Get(miopenConvolutionAttrib_t attr) const;
-
-    private:
-    int gfx90aFp16alt = -1;
-    inline int GetGfx90aFp16alt() const
-    {
-        if(nullptr != miopen::GetStringEnv(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL{}))
-            return miopen::Value(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL{});
-        return gfx90aFp16alt;
-    }
-
-    // Accessors for internal use in the library:
-    public:
-    inline bool GetGfx90aFp16alt4WrW() const
-    {
-        const bool attr = GetGfx90aFp16alt();
-        return attr == 1 ? true : attr == 0 ? false : true; // The default for WrW.
-    }
 };
 
 struct ConvolutionDescriptor : miopenConvolutionDescriptor
