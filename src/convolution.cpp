@@ -53,7 +53,6 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_WINOGRAD)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_GEMM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_FFT)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
 
 namespace miopen {
 
@@ -805,13 +804,6 @@ int ConvolutionAttribute::Get(miopenConvolutionAttrib_t attr) const
     MIOPEN_THROW(miopenStatusBadParm,
                  "[Get conv attribute] Error: Attribute [" +
                      std::to_string(static_cast<int>(attr)) + "] does not exist.");
-}
-
-int ConvolutionAttribute::GetGfx90aFp16alt() const
-{
-    if(nullptr != miopen::GetStringEnv(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL{}))
-        return miopen::Value(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL{});
-    return gfx90aFp16alt;
 }
 
 } // namespace miopen

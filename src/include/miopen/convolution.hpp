@@ -27,6 +27,7 @@
 #define GUARD_MIOPEN_CONVOLUTION_HPP_
 
 #include <miopen/common.hpp>
+#include <miopen/env.hpp>
 #include <miopen/find_controls.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/miopen.h>
@@ -41,6 +42,8 @@
 #include <tuple>
 #include <vector>
 #include <unordered_map>
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
 
 namespace miopen {
 
@@ -79,11 +82,22 @@ class ConvolutionAttribute
     void Set(miopenConvolutionAttrib_t attr, int value);
     int Get(miopenConvolutionAttrib_t attr) const;
 
-    // Accessor for internal use in the library:
-    int GetGfx90aFp16alt() const;
-
     private:
     int gfx90aFp16alt = -1;
+    inline int GetGfx90aFp16alt() const
+    {
+        if(nullptr != miopen::GetStringEnv(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL{}))
+            return miopen::Value(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL{});
+        return gfx90aFp16alt;
+    }
+
+    // Accessors for internal use in the library:
+    public:
+    inline bool GetGfx90aFp16alt4WrW() const
+    {
+        const bool attr = GetGfx90aFp16alt();
+        return attr == 1 ? true : attr == 0 ? false : true; // The default for WrW.
+    }
 };
 
 struct ConvolutionDescriptor : miopenConvolutionDescriptor
