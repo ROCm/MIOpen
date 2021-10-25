@@ -655,12 +655,16 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     opArgs.emplace_back(shift_pack_0);
     opArgs.emplace_back(config.gemm_k_global_split);
 
-    return [opArgs, need_set_zero](const std::vector<Kernel>& kernels) mutable {
+    const auto isGfx90aFp16altSupport =
+        (ctx.GetStream().GetDeviceName() == "gfx90a") && conv_problem.IsFp16();
+
+    return [=](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
             decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors     = data_ctx.tensors;
-            const auto ker          = handle.Run(kernels[0]);
-            float elapsed           = 0;
+            const auto ker =
+                handle.Run(kernels[(isGfx90aFp16altSupport && data_ctx.gfx90aFp16alt) ? 1 : 0]);
+            float elapsed = 0;
 
             opArgs[0] = OpKernelArg(tensors.out);
             opArgs[1] = OpKernelArg(tensors.w);
