@@ -739,20 +739,20 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    const auto& conv_problem = ctx.conv_problem;
-    const auto isFp16        = conv_problem.IsFp16();
-    const auto isGfx90a      = (ctx.GetStream().GetDeviceName() == "gfx90a");
+    const auto& conv_problem          = ctx.conv_problem;
+    const auto isFp16                 = conv_problem.IsFp16();
+    const auto isGfx90aFp16altSupport = (ctx.GetStream().GetDeviceName() == "gfx90a") && isFp16;
 
     result.construction_params.push_back(kernel); // Intentionally without options.
     std::ostringstream options;                   // Common options for both kernels.
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
 
     std::ostringstream opts_0(options.str()); // Options for normal kernel.
-    if(isGfx90a && isFp16)
+    if(isGfx90aFp16altSupport)
         GenerateClangDefsym(opts_0, "igemm_wrw_fp16_alt_impl", 0);
     result.construction_params[0].comp_options = opts_0.str();
 
-    if(isGfx90a && isFp16)
+    if(isGfx90aFp16altSupport)
     {
         result.construction_params.push_back(kernel);
         std::ostringstream opts_1(options.str()); // Options for alt kernel.
@@ -778,7 +778,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
                     primitive_parameters.CastTo<conv::WrWInvokeParams>();
                 const auto& tensors = wrw_invoke_params.tensors;
                 const auto k        = handle.Run(
-                    kernels[(isGfx90a && isFp16 && wrw_invoke_params.gfx90aFp16alt) ? 1 : 0]);
+                    kernels[(isGfx90aFp16altSupport && wrw_invoke_params.gfx90aFp16alt) ? 1 : 0]);
                 const auto& workSpace     = wrw_invoke_params.workSpace;
                 const auto& workSpaceSize = wrw_invoke_params.workSpaceSize;
                 float elapsed             = 0;
@@ -829,7 +829,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
                     primitive_parameters.CastTo<conv::WrWInvokeParams>();
                 const auto& tensors = wrw_invoke_params.tensors;
                 const auto k        = handle.Run(
-                    kernels[(isGfx90a && isFp16 && wrw_invoke_params.gfx90aFp16alt) ? 1 : 0]);
+                    kernels[(isGfx90aFp16altSupport && wrw_invoke_params.gfx90aFp16alt) ? 1 : 0]);
                 float elapsed = 0;
                 float zero    = 0.f;
 
