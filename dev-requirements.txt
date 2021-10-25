@@ -1,4 +1,4 @@
-pfultz2/rocm-recipes
+ROCmSoftwarePlatform/rocm-recipes
 RadeonOpenCompute/rocm-cmake@cdd0f632b3a65bd4411593bb827eb664e25c80bc --build
 -f requirements.txt
 # 1.90+
