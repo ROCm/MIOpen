@@ -607,15 +607,11 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
 {
     if(ctx.IsFp32())
         return 0;
-    else
-    {
-        const auto& n  = ctx.batch_sz;
-        const auto& k  = ctx.n_outputs;
-        const auto& ho = ctx.out_height;
-        const auto& wo = ctx.out_width;
-
-        return static_cast<size_t>(n) * k * ho * wo * miopen::GetTypeSize(miopenFloat);
-    }
+    const auto& n  = ctx.batch_sz;
+    const auto& k  = ctx.n_outputs;
+    const auto& ho = ctx.out_height;
+    const auto& wo = ctx.out_width;
+    return miopen::GetTypeSize(miopenFloat) * n * k * ho * wo;
 }
 
 bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(const ConvolutionContext& ctx) const
