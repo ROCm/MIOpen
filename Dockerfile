@@ -62,10 +62,10 @@ apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unau
     rocm-device-libs \
     rocm-opencl \
     rocm-opencl-dev \
-    rocm-cmake \
     rocblas \
     zlib1g-dev \
     kmod && \
+    apt-get remove -y rocm-cmake && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -80,7 +80,7 @@ RUN wget https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.
 RUN dpkg -i dumb-init_*.deb && rm dumb-init_*.deb
 
 # Install rbuild
-RUN pip3 install https://github.com/RadeonOpenCompute/rbuild/archive/92f1c1d2bd1772dcd4b94cde19cd2355cf8fe478.tar.gz
+RUN pip3 install https://github.com/RadeonOpenCompute/rbuild/archive/6d78a0553babdaea8d2da5de15cbda7e869594b8.tar.gz
 
 # Add symlink to /opt/rocm
 RUN [ -d /opt/rocm ] || ln -sd $(realpath /opt/rocm-*) /opt/rocm
