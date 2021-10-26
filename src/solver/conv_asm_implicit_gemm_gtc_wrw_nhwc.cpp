@@ -501,11 +501,10 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
                     CopyParameters(config);
                     if(need_k_split)
                     {
-                        if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16{}))
-                            if(ctx.IsFp16() && tensor_b_thread_lengths[3] != 1)
+                        if(ctx.IsFp16())
+                            if(tensor_b_thread_lengths[3] == 1 ||
+                               miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16{})
                                 vector_store = 1;
-                        if(ctx.IsFp16() && tensor_b_thread_lengths[3] == 1)
-                            vector_store = 1;
                         gemm_k_global_split = occupancy;
                     }
                     return;
