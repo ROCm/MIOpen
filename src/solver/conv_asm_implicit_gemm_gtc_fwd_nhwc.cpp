@@ -624,7 +624,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
     std::ostringstream options;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
 
-    std::ostringstream opts_0(options.str());
+    std::ostringstream opts_0(options.str(), std::ostringstream::ate);
     if(isGfx90aFp16altSupport)
         GenerateClangDefsym(opts_0, "igemm_fwd_fp16_alt_impl", 0);
     result.construction_params[0].comp_options = opts_0.str();
@@ -632,7 +632,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
     if(isGfx90aFp16altSupport)
     {
         result.construction_params.push_back(kernel);
-        std::ostringstream opts_1(options.str());
+        std::ostringstream opts_1(options.str(), std::ostringstream::ate);
         GenerateClangDefsym(opts_1, "igemm_fwd_fp16_alt_impl", 1);
         result.construction_params[1].comp_options = opts_1.str();
     }
