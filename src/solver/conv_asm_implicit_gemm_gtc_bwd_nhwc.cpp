@@ -741,11 +741,14 @@ ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
 {
     if(ctx.IsFp32())
         return 0;
+
+    // FP16
     const auto& hi = ctx.out_height;
     const auto& wi = ctx.out_width;
     const auto& n  = ctx.batch_sz;
     const auto& c  = ctx.n_outputs;
-    return miopen::GetTypeSize(miopenFloat) * n * c * hi * wi;
+    return miopen::GetTypeSize(miopenFloat) // The intermediate output of the 1st kernel is FP32.
+           * n * c * hi * wi;
 }
 
 ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(
