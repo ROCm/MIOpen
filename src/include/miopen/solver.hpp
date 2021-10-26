@@ -2301,6 +2301,45 @@ struct ConvCkIgemmFwdV6r1DlopsNchw : SolverBase<ConvolutionContext>
                              bool disableConfigOverrideFromEnv = false) const;
 };
 
+struct PerformanceConvCkIgemmFwdV4r4r4XdlopsNhwc : Serializable<PerformanceConvCkIgemmFwdV4r4r4XdlopsNhwc>
+{
+    int ck_tunable_list_id;
+
+    PerformanceConvCkIgemmFwdV4r4r4XdlopsNhwc(int a) : ck_tunable_list_id(a) {}
+
+    PerformanceConvCkIgemmFwdV4r4r4XdlopsNhwc() : PerformanceConvCkIgemmFwdV4r4r4XdlopsNhwc(-1) {}
+
+    PerformanceConvCkIgemmFwdV4r4r4XdlopsNhwc(bool) : PerformanceConvCkIgemmFwdV4r4r4XdlopsNhwc(0) {}
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.ck_tunable_list_id, "ck_tunable_list_id");
+    }
+
+    bool SetNextValue(const ConvolutionContext&);
+    bool IsValid(const ConvolutionContext&) const;
+    bool operator==(const PerformanceConvCkIgemmFwdV4r4r4XdlopsNhwc& config) const
+    {
+        return ck_tunable_list_id == config.ck_tunable_list_id;
+    }
+};
+
+struct ConvCkIgemmFwdV4r4r4XdlopsNhwc : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext&) const;
+    std::size_t GetWorkspaceSize(const ConvolutionContext&) const;
+    bool IsDynamic() const { return true; }
+    PerformanceConvCkIgemmFwdV4r4r4XdlopsNhwc GetPerformanceConfig(const ConvolutionContext&) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
+                                  const PerformanceConvCkIgemmFwdV4r4r4XdlopsNhwc&) const;
+    PerformanceConvCkIgemmFwdV4r4r4XdlopsNhwc Search(const ConvolutionContext&,
+                                                  const AnyInvokeParams&) const;
+    ConvSolution GetSolution(const ConvolutionContext&,
+                             const PerformanceConvCkIgemmFwdV4r4r4XdlopsNhwc&,
+                             bool disableConfigOverrideFromEnv = false) const;
+};
+
 struct ConvDirectNaiveConvFwd : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& ctx) const;
