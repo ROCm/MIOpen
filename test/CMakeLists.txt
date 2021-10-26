@@ -550,7 +550,7 @@ function(add_custom_test NAME)
           OR ${NAME} MATCHES "test_conv_for_implicit_gemm" ))
         set_tests_properties(${NAME} PROPERTIES RUN_SERIAL On)
     endif()
-    if(  (is_vega_check OR is_gfx908_check OR is_gfx1030_check)
+    if(  (is_vega_check OR is_gfx908_check OR is_gfx1030_check OR is_gfx90a_check)
      AND is_full_check
      AND (is_miotensile_check AND is_mlir_check)
      AND ( is_half_check OR is_bfloat16_check OR is_int8_check OR is_float_check)
