@@ -124,7 +124,11 @@ set( MIOpen_Source
     solver/batchnorm/forward_spatial_single.cpp
     solver/batchnorm/forward_spatial_multiple.cpp
     solver/batchnorm/forward_per_activation.cpp
+    solver/batchnorm/backward_spatial_single.cpp
+    solver/batchnorm/backward_spatial_multiple.cpp
+    solver/batchnorm/backward_per_activation.cpp
     include/miopen/buffer_info.hpp
+    ramdb.cpp
     include/miopen/temp_file.hpp
     include/miopen/bfloat16.hpp
     include/miopen/db.hpp
@@ -176,6 +180,7 @@ set( MIOpen_Source
     include/miopen/rnn_util.hpp
     include/miopen/bz2.hpp
     include/miopen/comgr.hpp
+    include/miopen/ramdb.hpp
     include/miopen/reducetensor.hpp
     include/miopen/reduce_common.hpp
     include/miopen/sequences.hpp
@@ -227,9 +232,6 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_fwd_v4r4.cpp
     solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops_padded_gemm.cpp
     solver/conv_hip_implicit_gemm_fwd_v4r5_xdlops.cpp
-    solver/conv_hip_implicit_gemm_mlir_cpp_fwd.cpp
-    solver/conv_hip_implicit_gemm_mlir_cpp_bwd.cpp
-    solver/conv_hip_implicit_gemm_mlir_cpp_wrw.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4.cpp
     solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops.cpp
     solver/conv_hip_implicit_gemm_xdlops_common.cpp
@@ -312,6 +314,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv_3x3_wheel_alpha_v9_0_15_gfx9_stride_2_dec.inc
         kernels/conv_3x3_wheel_alpha_v9_0_15_gfx9.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_f3x2_fp16_dot2_edc_stride1_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx90a_f3x2_fp16_dot2_edc_stride1_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx10_f3x2_fp16_dot2_edc_stride1_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_f3x2_fp32_stride1_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx90a_f3x2_fp32_stride1_group.inc
@@ -322,6 +325,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v21_1_2_gfx9_fp32_dilation2.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_fp32_stride1.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_fp32_stride2.inc
+        kernels/Conv_Winograd_v21_1_2_gfx90a_fp16_dot2_edc_dilation2.inc
+        kernels/Conv_Winograd_v21_1_2_gfx90a_fp16_dot2_edc_stride1.inc
+        kernels/Conv_Winograd_v21_1_2_gfx90a_fp16_dot2_edc_stride2.inc
         kernels/Conv_Winograd_v21_1_2_gfx90a_fp32_dilation2.inc
         kernels/Conv_Winograd_v21_1_2_gfx90a_fp32_stride1.inc
         kernels/Conv_Winograd_v21_1_2_gfx90a_fp32_stride2.inc
@@ -331,6 +337,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v21_1_2_gfx9_fp32_dilation2_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_fp32_stride1_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx9_fp32_stride2_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx90a_fp16_dot2_edc_dilation2_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx90a_fp16_dot2_edc_stride1_group.inc
+        kernels/Conv_Winograd_v21_1_2_gfx90a_fp16_dot2_edc_stride2_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx90a_fp32_dilation2_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx90a_fp32_stride1_group.inc
         kernels/Conv_Winograd_v21_1_2_gfx90a_fp32_stride2_group.inc
@@ -783,6 +792,11 @@ else()
         install(FILES
             ${FIND_DB_FILES}
          DESTINATION ${DATA_INSTALL_DIR}/db)
+         foreach(DB_FILE ${FIND_DB_FILES})
+            get_filename_component(DB_FILE_FILENAME "${DB_FILE}" NAME)
+            configure_file("${DB_FILE}" "${PROJECT_BINARY_DIR}/share/miopen/db/${DB_FILE_FILENAME}" COPYONLY)
+         endforeach()
+         
     endif()
 endif()
 rocm_install_symlink_subdir(${MIOPEN_INSTALL_DIR})

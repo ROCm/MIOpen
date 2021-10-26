@@ -30,6 +30,7 @@
 #if MIOPEN_ENABLE_SQLITE
 
 #include <miopen/db_record.hpp>
+#include <miopen/db.hpp>
 #include <miopen/manage_ptr.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/stringutils.hpp>
@@ -211,8 +212,12 @@ class SQLiteBase
 {
     protected:
     public:
-    SQLiteBase(const std::string& filename_, bool is_system) : filename(filename_)
+    SQLiteBase(const std::string& filename_, bool is_system_)
+        : filename(filename_), is_system(is_system_)
     {
+        if(DisableUserDbFileIO && !is_system)
+            return;
+
         MIOPEN_LOG_I2("Initializing " << (InMemDb ? "In Memory " : "")
                                       << (is_system ? "system" : "user") << " database file "
                                       << filename);
@@ -301,42 +306,57 @@ class SQLiteBase
     template <typename... U>
     inline auto FindRecord(U&... args)
     {
+        using Ret = decltype(reinterpret_cast<Derived*>(this)->FindRecordUnsafe(args...));
+        if(!is_system && DisableUserDbFileIO)
+            return Ret{};
         return reinterpret_cast<Derived*>(this)->FindRecordUnsafe(args...);
     }
 
     template <typename... U>
     inline auto RemoveRecord(U&... args)
     {
+        if(!is_system && DisableUserDbFileIO)
+            return true;
         return reinterpret_cast<Derived*>(this)->RemoveRecordUnsafe(args...);
     }
 
     template <typename... U>
     inline auto StoreRecord(U&... args)
     {
+        if(!is_system && DisableUserDbFileIO)
+            return true;
         return reinterpret_cast<Derived*>(this)->StoreRecordUnsafe(args...);
     }
 
     template <typename... U>
     inline auto Remove(const U&... args)
     {
+        if(!is_system && DisableUserDbFileIO)
+            return true;
         return reinterpret_cast<Derived*>(this)->RemoveUnsafe(args...);
     }
 
     template <typename... U>
     inline auto Update(const U&... args)
     {
+        using Ret = decltype(reinterpret_cast<Derived*>(this)->UpdateUnsafe(args...));
+        if(!is_system && DisableUserDbFileIO)
+            return Ret{};
         return reinterpret_cast<Derived*>(this)->UpdateUnsafe(args...);
     }
 
     template <typename... U>
-    inline auto Load(U&&... args)
+    inline bool Load(U&&... args)
     {
+        if(!is_system && DisableUserDbFileIO)
+            return false;
         return reinterpret_cast<Derived*>(this)->LoadUnsafe(args...);
     }
 
     std::string filename;
     bool dbInvalid;
     SQLite sql;
+    bool is_system;
 };
 
 template <typename Derived>

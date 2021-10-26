@@ -466,6 +466,8 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
 
     MIOPEN_LOG_W("Done: " << n_runs_total << '/' << n_failed << '/' << n_runs_total << ", best #"
                           << n_best << ' ' << best_time << ' ' << best_config);
+
+    profile_h.ClearProgram();
     if(!is_passed)
         MIOPEN_THROW("Search failed");
     // Run once with the default config and show score.
