@@ -2301,7 +2301,8 @@ struct ConvCkIgemmFwdV6r1DlopsNchw : SolverBase<ConvolutionContext>
                              bool disableConfigOverrideFromEnv = false) const;
 };
 
-struct PerformanceConvCkIgemmFwdV4r4r4XdlopsNhwc : Serializable<PerformanceConvCkIgemmFwdV4r4r4XdlopsNhwc>
+struct PerformanceConvCkIgemmFwdV4r4r4XdlopsNhwc
+    : Serializable<PerformanceConvCkIgemmFwdV4r4r4XdlopsNhwc>
 {
     int ck_tunable_list_id;
 
@@ -2309,7 +2310,9 @@ struct PerformanceConvCkIgemmFwdV4r4r4XdlopsNhwc : Serializable<PerformanceConvC
 
     PerformanceConvCkIgemmFwdV4r4r4XdlopsNhwc() : PerformanceConvCkIgemmFwdV4r4r4XdlopsNhwc(-1) {}
 
-    PerformanceConvCkIgemmFwdV4r4r4XdlopsNhwc(bool) : PerformanceConvCkIgemmFwdV4r4r4XdlopsNhwc(0) {}
+    PerformanceConvCkIgemmFwdV4r4r4XdlopsNhwc(bool) : PerformanceConvCkIgemmFwdV4r4r4XdlopsNhwc(0)
+    {
+    }
 
     template <class Self, class F>
     static void Visit(Self&& self, F f)
@@ -2334,7 +2337,7 @@ struct ConvCkIgemmFwdV4r4r4XdlopsNhwc : SolverBase<ConvolutionContext>
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const PerformanceConvCkIgemmFwdV4r4r4XdlopsNhwc&) const;
     PerformanceConvCkIgemmFwdV4r4r4XdlopsNhwc Search(const ConvolutionContext&,
-                                                  const AnyInvokeParams&) const;
+                                                     const AnyInvokeParams&) const;
     ConvSolution GetSolution(const ConvolutionContext&,
                              const PerformanceConvCkIgemmFwdV4r4r4XdlopsNhwc&,
                              bool disableConfigOverrideFromEnv = false) const;

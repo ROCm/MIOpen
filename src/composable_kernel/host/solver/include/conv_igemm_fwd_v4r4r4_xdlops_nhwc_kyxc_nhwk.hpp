@@ -381,9 +381,9 @@ struct ConvIgemmFwdV6r1DlopsNchwKcyxNkhw
         return found;
     }
 
-    static bool
-    IsValidCompileParameter(const ConvolutionProblemDescriptor& conv_problem_desc,
-                            const CompileParameterConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk& compile_param)
+    static bool IsValidCompileParameter(
+        const ConvolutionProblemDescriptor& conv_problem_desc,
+        const CompileParameterConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk& compile_param)
     {
         const int N  = conv_problem_desc.N;
         const int K  = conv_problem_desc.K;
@@ -640,14 +640,16 @@ struct ConvIgemmFwdV6r1DlopsNchwKcyxNkhw
         return true;
     };
 
-    static int GetBlockSize(const ConvolutionProblemDescriptor&,
-                            const CompileParameterConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk& compile_param)
+    static int
+    GetBlockSize(const ConvolutionProblemDescriptor&,
+                 const CompileParameterConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk& compile_param)
     {
         return compile_param.BlockSize;
     }
 
-    static int GetGridSize(const ConvolutionProblemDescriptor& conv_problem_desc,
-                           const CompileParameterConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk& compile_param)
+    static int
+    GetGridSize(const ConvolutionProblemDescriptor& conv_problem_desc,
+                const CompileParameterConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk& compile_param)
     {
         const int N  = conv_problem_desc.N;
         const int K  = conv_problem_desc.K;
