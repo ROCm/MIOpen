@@ -747,7 +747,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
     std::ostringstream options;                   // Common options for both kernels.
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
 
-    std::ostringstream opts_0(options.str(), std::ostringstream::ate); // Options for normal kernel.
+    std::ostringstream opts_0(options.str(), std::ios_base::ate); // Options for normal kernel.
     if(isGfx90aFp16altSupport)
         GenerateClangDefsym(opts_0, "igemm_wrw_fp16_alt_impl", 0);
     result.construction_params[0].comp_options = opts_0.str();
@@ -755,7 +755,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
     if(isGfx90aFp16altSupport)
     {
         result.construction_params.push_back(kernel);
-        std::ostringstream opts_1(options.str(), std::ostringstream::ate); // Options for alt kernel.
+        std::ostringstream opts_1(options.str(), std::ios_base::ate); // Options for alt kernel.
         GenerateClangDefsym(opts_1, "igemm_wrw_fp16_alt_impl", 1);
         result.construction_params[1].comp_options = opts_1.str();
     }
