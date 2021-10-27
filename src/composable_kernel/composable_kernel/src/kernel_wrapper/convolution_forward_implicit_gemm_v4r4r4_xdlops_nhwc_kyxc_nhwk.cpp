@@ -62,22 +62,22 @@ constexpr bool HasMainKBlockLoop       = static_cast<bool>(CK_PARAM_HasMainKBloc
 constexpr bool HasDoubleTailKBlockLoop = static_cast<bool>(CK_PARAM_HasDoubleTailKBlockLoop);
 
 extern "C" __global__ void
-convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw_prepare(int N_,
-                                                                    int C_,
-                                                                    int Hi_,
-                                                                    int Wi_,
-                                                                    int K_,
-                                                                    int Y_,
-                                                                    int X_,
-                                                                    int ConvStrideH_,
-                                                                    int ConvStrideW_,
-                                                                    int ConvDilationH_,
-                                                                    int ConvDilationW_,
-                                                                    int InLeftPadH_,
-                                                                    int InLeftPadW_,
-                                                                    int InRightPadH_,
-                                                                    int InRightPadW_,
-                                                                    void* p_desc_tuple)
+convolution_forward_implicit_gemm_v4r4r4_xdlops_nhwc_kyxc_nhwk_prepare(int N_,
+                                                                       int C_,
+                                                                       int Hi_,
+                                                                       int Wi_,
+                                                                       int K_,
+                                                                       int Y_,
+                                                                       int X_,
+                                                                       int ConvStrideH_,
+                                                                       int ConvStrideW_,
+                                                                       int ConvDilationH_,
+                                                                       int ConvDilationW_,
+                                                                       int InLeftPadH_,
+                                                                       int InLeftPadW_,
+                                                                       int InRightPadH_,
+                                                                       int InRightPadW_,
+                                                                       void* p_desc_tuple)
 {
     index_t N             = static_cast<index_t>(N_);
     index_t C             = static_cast<index_t>(C_);
@@ -233,7 +233,7 @@ extern "C" __global__ void
 #if CK_USE_LAUNCH_BOUNDS
     __launch_bounds__(CK_MAX_THREAD_PER_BLOCK, CK_MIN_BLOCK_PER_CU)
 #endif
-        convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw(
+        convolution_forward_implicit_gemm_v4r4r4_xdlops_nhwc_kyxc_nhwk(
             const FloatAB* __restrict__ p_a_grid,
             const FloatAB* __restrict__ p_b_grid,
             FloatC* __restrict__ p_c_grid,
@@ -283,13 +283,29 @@ extern "C" __global__ void
                                        Sequence<0, 0, 0, 0, 0, 0, 0>{}))); // 4-: GK1
 
     using BGridStepHacks = decltype(make_tuple(
-        make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0>{},    // 0+: GK0
-                   Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0>{},    // 1+: GN0
-                   Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0>{},    // 2+: GN10
-                   Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0>{},    // 3+: GN11
-                   Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{}),   // 4+: GK1
-        make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0>{},    // 0-: GK0
-                   Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0>{},    // 1-: GN0
+        make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0>{},  // 0+: GK0
+                   Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0>{},  // 1+: GN0
+                   Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0>{},  // 2+: GN10
+                   Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0>{},  // 3+: GN11
+                   Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{}), // 4+: GK1
+        make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0>{},  // 0-: GK0
+                   Sequence<0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw 2,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0>{},                                                    // 1-: GN0
                    Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0>{},    // 2-: GN10
                    Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0>{},    // 3-: GN11
                    Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{}))); // 4-: GK1

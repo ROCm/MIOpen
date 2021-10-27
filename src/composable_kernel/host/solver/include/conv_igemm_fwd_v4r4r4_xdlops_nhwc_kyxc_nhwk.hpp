@@ -148,7 +148,7 @@ struct CompileParameterConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
     bool HasDoubleTailKBlockLoop = false;
 };
 
-struct TunableConvIgemmFwdV6r1DlopsNchwKcyxNkhw
+struct TunableConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
 {
     ck::DataTypeEnum_t ABDataTypeEnum;
     ck::DataTypeEnum_t CDataTypeEnum;
@@ -186,7 +186,7 @@ inline static auto generate_tunable_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkh
     constexpr auto f16 = ck::DataTypeEnum_t::Half;
     constexpr auto i8  = ck::DataTypeEnum_t::Int8;
 
-    return std::vector<TunableConvIgemmFwdV6r1DlopsNchwKcyxNkhw>{
+    return std::vector<TunableConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk>{
         // clang-format off
         // fp32
         {f32, f32, 256, 1, 1, 128, 128, 16, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 2, 1}, {4, 1, 1,  64, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {2, 1, 1, 4, 1}, { 8, 1, 1,  32, 1}, {1, 1, 1, 4, 1}, {1, 1, 1, 4, 1}},
@@ -237,11 +237,11 @@ inline static auto generate_tunable_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkh
 }
 
 // TODO make this common interface and write specs for it
-struct ConvIgemmFwdV6r1DlopsNchwKcyxNkhw
+struct ConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
 {
-    static auto
-    CalculateCompileParameterBasedOnTunable(const ConvolutionProblemDescriptor& conv_problem_desc,
-                                            const TunableConvIgemmFwdV6r1DlopsNchwKcyxNkhw& tunable)
+    static auto CalculateCompileParameterBasedOnTunable(
+        const ConvolutionProblemDescriptor& conv_problem_desc,
+        const TunableConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk& tunable)
     {
         const int C  = conv_problem_desc.C;
         const int Y  = conv_problem_desc.Y;
