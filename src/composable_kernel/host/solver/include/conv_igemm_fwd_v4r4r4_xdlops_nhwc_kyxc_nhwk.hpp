@@ -247,56 +247,53 @@ struct ConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
 
         const int BlockSize = tunable.BlockSize;
 
-        const int GN0 = tunable.GN0;
-        const int GK1 = tunable.GK1;
+        const int MPerBlock  = tunable.MPerBlock;
+        const int NPerBlock  = tunable.NPerBlock;
+        const int K0PerBlock = tunable.K0PerBlock;
 
-        const int GM11        = tunable.GM1PerBlockGM11;
-        const int GN11        = tunable.GN1PerBlockGN11;
-        const int GK0PerBlock = tunable.GK0PerBlock;
+        const int MPerXDL = tunable.MPerXDL;
+        const int NPerXDL = tunable.NPerXDL;
+        const int K1      = tunable.K1;
 
-        const int BM11         = tunable.BM1PerThreadBM11;
-        const int BN11         = tunable.BN1PerThreadBN11;
-        const int BK0PerThread = tunable.BK0PerThread;
+        const int MRepeat = tunable.MRepeat;
+        const int NRepeat = tunable.NRepeat;
 
-        const auto BM10BN10ThreadClusterBM10Xs = tunable.BM10BN10ThreadClusterBM10Xs;
-        const auto BM10BN10ThreadClusterBN10Xs = tunable.BM10BN10ThreadClusterBN10Xs;
+        const auto ABlockTransferThreadSliceLengths_K0_M_K1 =
+            tunable.ABlockTransferThreadSliceLengths_K0_M_K1;
+        const auto ABlockTransferThreadClusterLengths_K0_M_K1 =
+            tunable.ABlockTransferThreadClusterLengths_K0_M_K1;
+        const auto ABlockTransferThreadClusterArrangeOrder =
+            tunable.ABlockTransferThreadClusterArrangeOrder;
+        const auto ABlockTransferSrcAccessOrder = tunable.ABlockTransferSrcAccessOrder;
 
-        const auto ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1 =
-            tunable.ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1;
-        const auto ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1 =
-            tunable.ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1;
-        const auto ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1 =
-            tunable.ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1;
-        const auto ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1 =
-            tunable.ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1;
+        const int ABlockTransferSrcVectorDim          = tunable.ABlockTransferSrcVectorDim;
+        const int ABlockTransferSrcScalarPerVector    = tunable.ABlockTransferSrcScalarPerVector;
+        const int ABlockTransferDstScalarPerVector_K1 = tunable.ABlockTransferDstScalarPerVector_K1;
+        const bool AThreadTransferSrcResetCoordinateAfterRun =
+            tunable.AThreadTransferSrcResetCoordinateAfterRun;
 
-        const auto BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1 =
-            tunable.BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1;
-        const auto BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1 =
-            tunable.BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1;
-        const auto BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1 =
-            tunable.BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1;
-        const auto BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1 =
-            tunable.BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1;
+        const auto BBlockTransferThreadSliceLengths_K0_N_K1 =
+            tunable.BBlockTransferThreadSliceLengths_K0_N_K1;
+        const auto BBlockTransferThreadClusterLengths_K0_N_K1 =
+            tunable.BBlockTransferThreadClusterLengths_K0_N_K1;
+        const auto BBlockTransferThreadClusterArrangeOrder =
+            tunable.BBlockTransferThreadClusterArrangeOrder;
+        const auto BBlockTransferSrcAccessOrder = tunable.BBlockTransferSrcAccessOrder;
 
-        // C threadwise copy: {BN11} or {BN} or {BN1} or {GN11} is Dst vector dim
-        const int CThreadTransferDstScalarPerVector = gcd(4, GN11, BN11, Ho * Wo);
+        const int BBlockTransferSrcVectorDim          = tunable.BBlockTransferSrcVectorDim;
+        const int BBlockTransferSrcScalarPerVector    = tunable.BBlockTransferSrcScalarPerVector;
+        const int BBlockTransferDstScalarPerVector_K1 = tunable.BBlockTransferDstScalarPerVector_K1;
+        const bool BThreadTransferSrcResetCoordinateAfterRun =
+            tunable.BThreadTransferSrcResetCoordinateAfterRun;
+        // C threadwise copy
+        const auto CThreadTransferSrcDstAccessOrder  = tunable.CThreadTransferSrcDstAccessOrder;
+        const auto CThreadTransferSrcDstVectorDim    = tunable.CThreadTransferSrcDstVectorDim;
+        const auto CThreadTransferDstScalarPerVector = tunable.CThreadTransferDstScalarPerVector;
 
-        const int C0 = GK1;
+        const int GK = C * Y * X;
 
-        if(!(C % C0 == 0))
+        if(!(GK % (K0PerBlock * K1) == 0))
             return std::make_tuple(CompileParameterConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk{}, false);
-
-        const int C1 = C / C0;
-
-        const int GK0 = C1 * Y * X;
-
-        if(!(GK0 % GK0PerBlock == 0))
-            return std::make_tuple(CompileParameterConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk{}, false);
-
-        const bool HasMainKBlockLoop = ((GK0 + GK0PerBlock) / (2 * GK0PerBlock) > 1);
-
-        const bool HasDoubleTailKBlockLoop = ((GK0 / GK0PerBlock) % 2 == 0);
 
         return std::make_tuple(
             CompileParameterConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk{
@@ -304,27 +301,33 @@ struct ConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
                 AccDataTypeEnum,
                 CDataTypeEnum,
                 BlockSize,
-                GN0,
-                GK1,
-                GM11,
-                GN11,
-                GK0PerBlock,
-                BM11,
-                BN11,
-                BK0PerThread,
-                BM10BN10ThreadClusterBM10Xs,
-                BM10BN10ThreadClusterBN10Xs,
-                ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1,
-                ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1,
-                ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1,
-                ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1,
-                BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1,
-                BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1,
-                BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1,
-                BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1,
-                CThreadTransferDstScalarPerVector,
-                HasMainKBlockLoop,
-                HasDoubleTailKBlockLoop},
+                MPerBlock,
+                NPerBlock,
+                K0PerBlock,
+                MPerXDL,
+                NPerXDL,
+                K1,
+                MRepeat,
+                NRepeat,
+                ABlockTransferThreadSliceLengths_K0_M_K1,
+                ABlockTransferThreadClusterLengths_K0_M_K1,
+                ABlockTransferThreadClusterArrangeOrder,
+                ABlockTransferSrcAccessOrder,
+                ABlockTransferSrcVectorDim,
+                ABlockTransferSrcScalarPerVector,
+                ABlockTransferDstScalarPerVector_K1,
+                AThreadTransferSrcResetCoordinateAfterRun,
+                BBlockTransferThreadSliceLengths_K0_N_K1,
+                BBlockTransferThreadClusterLengths_K0_N_K1,
+                BBlockTransferThreadClusterArrangeOrder,
+                BBlockTransferSrcAccessOrder,
+                BBlockTransferSrcVectorDim,
+                BBlockTransferSrcScalarPerVector,
+                BBlockTransferDstScalarPerVector_K1,
+                BThreadTransferSrcResetCoordinateAfterRun,
+                CThreadTransferSrcDstAccessOrder,
+                CThreadTransferSrcDstVectorDim,
+                CThreadTransferDstScalarPerVector},
             true);
     }
 
@@ -378,19 +381,13 @@ struct ConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
         const int Ho = conv_problem_desc.Ho;
         const int Wo = conv_problem_desc.Wo;
 
-        const int N0 = compile_param.GN0;
-        const int N1 = N / N0;
+        const auto GemmM = N * Ho * Wo;
+        const auto GemmN = K;
 
-        const int GM1 = K;
-        const int GN1 = N1 * Ho * Wo;
+        const int GemmMPerBlock = compile_param.MPerBlock;
+        const int GemmNPerBlock = compile_param.NPerBlock;
 
-        const int GM11 = compile_param.GM1PerBlockGM11;
-        const int GN11 = compile_param.GN1PerBlockGN11;
-
-        const int GM10 = GM1 / GM11;
-        const int GN10 = GN1 / GN11;
-
-        return GM10 * GN10;
+        return GemmM * GemmN / (GemmMPerBlock * GemmNPerBlock);
     }
 
     static std::size_t GetWorkSpaceSize(const ConvolutionProblemDescriptor&,
