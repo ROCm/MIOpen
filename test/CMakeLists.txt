@@ -44,6 +44,14 @@ option( MIOPEN_TEST_DRIVER_ITER_MODE Off)
 option( MIOPEN_TEST_MIOTENSILE "Test MIOpenTensile path" OFF )
 option( MIOPEN_TEST_MLIR "Add tests for MLIR -- EXPERIMENTAL" ${MIOPEN_USE_MLIR} )
 
+macro(set_var_to_condition var)
+    if(${ARGN})
+        set(${var} ON)
+    else()
+        set(${name} OFF)
+    endif()
+endmacro()
+
 option( WORKAROUND_ISSUE_898 "" ON)
 option( WORKAROUND_ISSUE_936 "" ON)
 option( WORKAROUND_ISSUE_1053 "" ON)
@@ -125,6 +133,9 @@ message(STATUS "MIOPEN_TEST_GFX90A ${MIOPEN_TEST_GFX90A}")
 message(STATUS "MIOPEN_TEST_GFX1030 ${MIOPEN_TEST_GFX1030}")
 message(STATUS "MIOPEN_TEST_GPU_XNACK_ENABLED ${MIOPEN_TEST_GPU_XNACK_ENABLED}")
 message(STATUS "MIOPEN_TEST_GPU_DETECTION_FAILED ${MIOPEN_TEST_GPU_DETECTION_FAILED}")
+
+set_var_to_condition(WORKAROUND_ISSUE_1187_DEFAULT MIOPEN_TEST_GFX90A)
+option( WORKAROUND_ISSUE_1187 "" ${WORKAROUND_ISSUE_1187_DEFAULT})
 
 if(MIOPEN_TEST_DRIVER_ITER_MODE)
     add_definitions(-DMIOPEN_TEST_DRIVER_MODE=2)
@@ -547,9 +558,11 @@ function(add_custom_test NAME)
 
     add_custom_target(${NAME} ${PARSE_UNPARSED_ARGUMENTS})
     add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
+
     if(WORKAROUND_ISSUE_898 AND MIOPEN_USE_COMGR)
         set_property(TEST ${NAME} PROPERTY ENVIRONMENT MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE=0)
     endif()
+
     if(WORKAROUND_ISSUE_1148
         AND MIOPEN_TEST_GFX1030
         AND (${NAME} MATCHES "test_conv_3d"
@@ -558,6 +571,7 @@ function(add_custom_test NAME)
           OR ${NAME} MATCHES "test_conv_for_implicit_gemm" ))
         set_tests_properties(${NAME} PROPERTIES RUN_SERIAL On)
     endif()
+
     if(  (is_vega_check OR is_gfx908_check OR is_gfx1030_check OR is_gfx90a_check)
      AND is_full_check
      AND is_xnack_on_check
@@ -572,6 +586,11 @@ function(add_custom_test NAME)
         endif()
         rate_added_test(${NAME})
     else()
+        set_tests_properties(${NAME} PROPERTIES DISABLED On)
+    endif()
+
+    if(WORKAROUND_ISSUE_1187
+        AND (${NAME} MATCHES "test_conv_for_implicit_gemm" ))
         set_tests_properties(${NAME} PROPERTIES DISABLED On)
     endif()
 endfunction()
