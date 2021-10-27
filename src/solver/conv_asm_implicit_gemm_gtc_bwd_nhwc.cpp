@@ -845,7 +845,6 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(
 {
     ConvSolution result;
     KernelInfo kernel;
-    std::ostringstream options;
     (void)disableConfigOverrideFromEnv;
 
     std::string kernel_name;
@@ -869,15 +868,30 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
+    const auto isGfx90aFp16altSupport =
+        (ctx.GetStream().GetDeviceName() == "gfx90a") && ctx.conv_problem.IsFp16();
+
+    result.construction_params.push_back(kernel);
+    std::ostringstream options;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
 
-    kernel.comp_options = options.str();
+    std::ostringstream opts_0(options.str(), std::ios_base::ate);
+    if(isGfx90aFp16altSupport)
+        GenerateClangDefsym(opts_0, "igemm_bwd_fp16_alt_impl", 0);
+    result.construction_params[0].comp_options = opts_0.str();
+
+    if(isGfx90aFp16altSupport)
+    {
+        result.construction_params.push_back(kernel);
+        std::ostringstream opts_1(options.str(), std::ios_base::ate);
+        GenerateClangDefsym(opts_1, "igemm_bwd_fp16_alt_impl", 1);
+        result.construction_params[1].comp_options = opts_1.str();
+    }
 
     MIOPEN_LOG_I2("ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC: " + config.ToString());
 
     result.invoker_factory =
         conv::MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(ctx, config);
-    result.construction_params.push_back(kernel);
     return result;
 }
 

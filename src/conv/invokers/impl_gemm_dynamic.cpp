@@ -507,13 +507,17 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     const auto& conv       = ctx.conv_problem.GetConv();
     const auto& lowp_quant = conv.lowp_quant;
 
-    return [opArgs, need_set_zero, lowp_quant](const std::vector<Kernel>& kernels) mutable {
+    const auto isGfx90aFp16altSupport =
+        (ctx.GetStream().GetDeviceName() == "gfx90a") && conv_problem.IsFp16();
+
+    return [=](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
             decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors     = data_ctx.tensors;
             const auto& workSpace   = data_ctx.workSpace;
-            const auto ker          = handle.Run(kernels[0]);
-            float elapsed           = 0;
+            const auto ker =
+                handle.Run(kernels[(isGfx90aFp16altSupport && data_ctx.gfx90aFp16alt) ? 1 : 0]);
+            float elapsed = 0;
 
             TensorDescriptor workspaceDesc(miopenFloat,
                                            tensors.outDesc.GetLengths(),
@@ -565,7 +569,6 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
 
             if(handle.IsProfilingEnabled())
             {
-                //elapsed += handle.GetKernelTime();
                 handle.ResetKernelTime();
                 handle.AccumKernelTime(elapsed);
             }
@@ -693,13 +696,18 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     const auto& conv       = ctx.conv_problem.GetConv();
     const auto& lowp_quant = conv.lowp_quant;
 
-    return [opArgs, need_set_zero, use_global_split, lowp_quant](const std::vector<Kernel>& kernels) mutable {
+    const auto isGfx90aFp16altSupport =
+        (ctx.GetStream().GetDeviceName() == "gfx90a") && conv_problem.IsFp16();
+
+    return [=](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
             decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors     = data_ctx.tensors;
             const auto& workSpace   = data_ctx.workSpace;
-            const auto ker          = handle.Run(kernels[0]);
-            float elapsed           = 0;
+            const auto ker =
+                handle.Run(kernels[(isGfx90aFp16altSupport && data_ctx.gfx90aFp16alt) ? 1 : 0]);
+            float elapsed = 0;
+
             TensorDescriptor workspaceDesc(miopenFloat,
                                            tensors.outDesc.GetLengths(),
                                            tensors.outDesc.GetStrides());
