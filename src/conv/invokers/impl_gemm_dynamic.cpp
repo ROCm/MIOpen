@@ -520,7 +520,7 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
             TensorDescriptor workspaceDesc(
                 miopenFloat, tensors.outDesc.GetLengths(), tensors.outDesc.GetStrides());
 
-            const bool need_cast = []() {
+            const bool need_cast = [&]() {
                 if(tensors.outDesc.GetType() == miopenHalf)
                     return use_fp32_global_split_on_fp16;
                 if(tensors.outDesc.GetType() == miopenBFloat16)
@@ -713,7 +713,7 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
             TensorDescriptor workspaceDesc(
                 miopenFloat, tensors.outDesc.GetLengths(), tensors.outDesc.GetStrides());
 
-            const bool need_cast = []() {
+            const bool need_cast = [&]() {
                 if(tensors.outDesc.GetType() == miopenHalf)
                     return use_fp32_global_split_on_fp16;
                 if(tensors.outDesc.GetType() == miopenBFloat16)
