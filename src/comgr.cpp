@@ -106,9 +106,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
 #endif
 #endif
 
-// It seems like HIP PCH support is removed from ROCm starting from 4.4
-// There is no '__hipGetPCH' function at least.
-#if(HIP_PACKAGE_VERSION_FLAT > 4004000000)
+// Temporary workaround for SWDEV-308265.
+// '__hipGetPCH' is not available since 4.4
+#if HIP_SUPPORTS_PCH && (HIP_PACKAGE_VERSION_FLAT > 4004000000)
 #undef HIP_SUPPORTS_PCH
 #define HIP_SUPPORTS_PCH 0
 #endif
