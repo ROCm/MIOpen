@@ -590,8 +590,10 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::Search(const ConvolutionContext& ctx
     return GenericSearch(*this, ctx, invoke_ctx);
 }
 
-bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(const ConvolutionContext& ctx) const
+bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(const boost::any& ctx_) const
 {
+    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
+
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC{}))
         return false;
 
@@ -673,8 +675,10 @@ ComputeDynamicIGemmWrwKernelArgsNHWC(const conv::ProblemDescription& conv_proble
 }
 
 size_t
-ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetWorkspaceSize(const ConvolutionContext& ctx) const
+ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetWorkspaceSize(const boost::any& ctx_) const
 {
+    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
+
     if(ctx.IsFp32())
         return 0;
     else

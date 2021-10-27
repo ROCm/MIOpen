@@ -40,8 +40,10 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1)
 namespace miopen {
 namespace solver {
 
-bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx) const
+bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const boost::any& ctx_) const
 {
+    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
+
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1{}))
         return false;
     if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
@@ -78,8 +80,10 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx) con
            (c * y * x) % eMultiple == 0 && k % 16 == 0;
 }
 
-bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx) const
+bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const boost::any& ctx_) const
 {
+    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
+
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1{}))
         return false;
     if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)

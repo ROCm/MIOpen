@@ -35,8 +35,10 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD)
 namespace miopen {
 namespace solver {
 
-bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
+bool ConvOclDirectFwd::IsApplicable(const boost::any& ctx_) const
 {
+    auto params = boost::any_cast<const ConvolutionContext&>(ctx_);
+
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD{}))
         return false;
     if(!params.use_opencl_convolutions)

@@ -586,8 +586,10 @@ ConvHipImplicitGemmV4R4WrW::CalculateGemmSize(const ConvolutionContext& ctx)
     return std::make_tuple(gemm_m, gemm_n, gemm_k);
 }
 
-bool ConvHipImplicitGemmV4R4WrW::IsApplicable(const ConvolutionContext& ctx) const
+bool ConvHipImplicitGemmV4R4WrW::IsApplicable(const boost::any& ctx_) const
 {
+    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
+
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4{}))
         return false;
     if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)

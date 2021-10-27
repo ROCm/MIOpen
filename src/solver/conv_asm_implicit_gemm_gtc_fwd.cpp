@@ -1497,8 +1497,10 @@ FindImplicitGemmGtcDynamicFwdKernel(const ConvolutionContext& ctx)
     return std::make_tuple(false, tunables[0], "", -1, -1);
 }
 
-bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
+bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const boost::any& ctx_) const
 {
+    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
+
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS{}))
         return false;
 

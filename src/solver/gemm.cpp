@@ -107,6 +107,12 @@ SlowdownFactor(int n_oper, const double oper_factor, const double multiple_oper_
         return 1.0;
 }
 
+float GemmFwdBase::GetWti(const boost::any& ctx_) const
+{
+    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
+    return GetWti(ctx, ctx.conv_problem);
+}
+
 float GemmFwdBase::GetWti(const ExecutionContext&, const conv::ProblemDescription& problem) const
 {
     decltype(auto) conv  = problem.GetConv();

@@ -43,10 +43,11 @@ namespace batchnorm {
 using OldStyleProblemDescription =
     std::tuple<const ExecutionContext*, const miopen::batchnorm::ProblemDescription*>;
 
-struct BnFwdTrainingSpatialSingle : public SolverBase<OldStyleProblemDescription>
+struct BnFwdTrainingSpatialSingle : SolverBase
 {
-    inline bool IsApplicable(const OldStyleProblemDescription& problem) const
+    bool IsApplicable(const boost::any& ctx_) const override
     {
+        auto problem = boost::any_cast<const OldStyleProblemDescription&>(ctx_);
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
 
@@ -61,10 +62,11 @@ struct BnFwdTrainingSpatialSingle : public SolverBase<OldStyleProblemDescription
                              const miopen::batchnorm::ProblemDescription& problem) const;
 };
 
-struct BnFwdTrainingSpatialMultiple : public SolverBase<OldStyleProblemDescription>
+struct BnFwdTrainingSpatialMultiple : SolverBase
 {
-    inline bool IsApplicable(const OldStyleProblemDescription& problem) const
+    bool IsApplicable(const boost::any& ctx_) const override
     {
+        auto problem = boost::any_cast<const OldStyleProblemDescription&>(ctx_);
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
 
@@ -79,10 +81,11 @@ struct BnFwdTrainingSpatialMultiple : public SolverBase<OldStyleProblemDescripti
                              const miopen::batchnorm::ProblemDescription& problem) const;
 };
 
-struct BnFwdTrainingPerActivation : public SolverBase<OldStyleProblemDescription>
+struct BnFwdTrainingPerActivation : SolverBase
 {
-    inline bool IsApplicable(const OldStyleProblemDescription& problem) const
+    bool IsApplicable(const boost::any& ctx_) const override
     {
+        auto problem = boost::any_cast<const OldStyleProblemDescription&>(ctx_);
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
 
@@ -97,10 +100,11 @@ struct BnFwdTrainingPerActivation : public SolverBase<OldStyleProblemDescription
                              const miopen::batchnorm::ProblemDescription& problem) const;
 };
 
-struct BnBwdTrainingSpatialSingle : public SolverBase<OldStyleProblemDescription>
+struct BnBwdTrainingSpatialSingle : SolverBase
 {
-    inline bool IsApplicable(const OldStyleProblemDescription& problem) const
+    bool IsApplicable(const boost::any& ctx_) const override
     {
+        auto problem = boost::any_cast<const OldStyleProblemDescription&>(ctx_);
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
 
@@ -115,10 +119,11 @@ struct BnBwdTrainingSpatialSingle : public SolverBase<OldStyleProblemDescription
                              const miopen::batchnorm::ProblemDescription& problem) const;
 };
 
-struct BnBwdTrainingSpatialMultiple : public SolverBase<OldStyleProblemDescription>
+struct BnBwdTrainingSpatialMultiple : SolverBase
 {
-    inline bool IsApplicable(const OldStyleProblemDescription& problem) const
+    bool IsApplicable(const boost::any& ctx_) const override
     {
+        auto problem = boost::any_cast<const OldStyleProblemDescription&>(ctx_);
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
 
@@ -133,10 +138,11 @@ struct BnBwdTrainingSpatialMultiple : public SolverBase<OldStyleProblemDescripti
                              const miopen::batchnorm::ProblemDescription& problem) const;
 };
 
-struct BnBwdTrainingPerActivation : public SolverBase<OldStyleProblemDescription>
+struct BnBwdTrainingPerActivation : SolverBase
 {
-    inline bool IsApplicable(const OldStyleProblemDescription& problem) const
+    bool IsApplicable(const boost::any& ctx_) const override
     {
+        auto problem = boost::any_cast<const OldStyleProblemDescription&>(ctx_);
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
 

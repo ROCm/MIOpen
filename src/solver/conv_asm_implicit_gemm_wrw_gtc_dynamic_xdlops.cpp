@@ -788,8 +788,10 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
         is_valid, sel_index, sel_block_size, sel_grid_size, sel_log2_gemm_k_global_splits);
 }
 
-size_t ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetWorkspaceSize(const ConvolutionContext& ctx) const
+size_t ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetWorkspaceSize(const boost::any& ctx_) const
 {
+    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
+
     if(ctx.IsFp32())
         return 0;
     else
@@ -805,8 +807,10 @@ size_t ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetWorkspaceSize(const Convolutio
     }
 }
 
-bool ConvAsmImplicitGemmGTCDynamicWrwXdlops::IsApplicable(const ConvolutionContext& ctx) const
+bool ConvAsmImplicitGemmGTCDynamicWrwXdlops::IsApplicable(const boost::any& ctx_) const
 {
+    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
+
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS{}))
         return false;
 

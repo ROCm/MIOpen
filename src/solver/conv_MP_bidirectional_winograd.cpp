@@ -317,10 +317,12 @@ inline bool IsApplicableTransform(const ConvolutionContext& params)
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 bool ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(
-    const ConvolutionContext& params) const
+    const boost::any& ctx_) const
 {
     // HIP backend required for sending ptr (buffer + offset)
     // ROCBLAS for GEMM step
+
+    auto params = boost::any_cast<const ConvolutionContext&>(ctx_);
 
     if(!params.IsLayoutDefault())
     {
@@ -354,8 +356,10 @@ bool ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsA
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 size_t ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetWorkspaceSize(
-    const ConvolutionContext& params) const
+    const boost::any& ctx_) const
 {
+    auto params = boost::any_cast<const ConvolutionContext&>(ctx_);
+
     const miopenDataType_t transform_data_type =
         miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM{})
             ? params.in_data_type
@@ -828,8 +832,9 @@ conv::DataInvokeParams GetTransformedInvokeContext(const ConvolutionContext& ctx
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 bool ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(
-    const ConvolutionContext& ctx) const
+    const boost::any& ctx_) const
 {
+    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
 
     static const int wino_data_tile   = std::max(WinoDataH, WinoDataW);
     static const int wino_filter_tile = std::max(WinoFilterH, WinoFilterW);

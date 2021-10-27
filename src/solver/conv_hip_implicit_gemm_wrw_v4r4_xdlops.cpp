@@ -1031,8 +1031,10 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
     return result;
 }
 
-bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ConvolutionContext& ctx) const
+bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const boost::any& ctx_) const
 {
+    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
+
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_XDLOPS{}))
         return false;
 
@@ -1095,8 +1097,10 @@ ConvHipImplicitGemmWrwV4R4Xdlops::Search(const ConvolutionContext& ctx,
     return GenericSearch(*this, ctx, invoke_ctx);
 }
 
-std::size_t ConvHipImplicitGemmWrwV4R4Xdlops::GetWorkspaceSize(const ConvolutionContext& ctx) const
+std::size_t ConvHipImplicitGemmWrwV4R4Xdlops::GetWorkspaceSize(const boost::any& ctx_) const
 {
+    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
+
     if(ctx.IsFp32())
         return 0;
     else

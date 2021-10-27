@@ -37,8 +37,10 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1)
 namespace miopen {
 namespace solver {
 
-bool ConvOclDirectFwd1x1::IsApplicable(const ConvolutionContext& params) const
+bool ConvOclDirectFwd1x1::IsApplicable(const boost::any& ctx_) const
 {
+    auto params = boost::any_cast<const ConvolutionContext&>(ctx_);
+
     const auto name = params.GetStream().GetDeviceName();
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1{}))
         return false;

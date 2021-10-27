@@ -39,8 +39,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1)
 namespace miopen {
 namespace solver {
 
-bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
+bool ConvOclBwdWrW1x1::IsApplicable(const boost::any& ctx_) const
 {
+    auto params = boost::any_cast<const ConvolutionContext&>(ctx_);
 
 #if WORKAROUND_SWDEV_266868
     const std::string name = params.GetStream().GetDeviceName();
@@ -89,8 +90,10 @@ static inline int GetNPasses(const ConvolutionContext& params)
     return n_passes;
 }
 
-size_t ConvOclBwdWrW1x1::GetWorkspaceSize(const ConvolutionContext& params) const
+size_t ConvOclBwdWrW1x1::GetWorkspaceSize(const boost::any& ctx_) const
 {
+    auto params = boost::any_cast<const ConvolutionContext&>(ctx_);
+
     const int n_passes = GetNPasses(params);
     if(((params.n_inputs & 0xF) == 0 && (params.n_outputs & 0xF) == 0) &&
        (n_passes > 1 && params.pad_h == 0 && params.pad_w == 0 &&

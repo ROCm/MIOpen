@@ -171,8 +171,10 @@ bool ConvAsm3x3U::IsValidPerformanceConfig(const ConvolutionContext& problem,
     return c.IsValidValue() && c.IsValid(problem);
 }
 
-bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
+bool ConvAsm3x3U::IsApplicable(const boost::any& ctx_) const
 {
+    auto params = boost::any_cast<const ConvolutionContext&>(ctx_);
+
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U{}))
         return false;
     if(!params.use_asm_kernels)

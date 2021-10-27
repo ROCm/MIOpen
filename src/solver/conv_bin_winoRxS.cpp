@@ -215,8 +215,10 @@ static inline bool IsShaderContraintsMet(const int R,
 namespace miopen {
 namespace solver {
 
-bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
+bool ConvBinWinogradRxS::IsApplicable(const boost::any& ctx_) const
 {
+    auto params = boost::any_cast<const ConvolutionContext&>(ctx_);
+
     if(!params.Is2d())
         return false;
     if(!(params.IsFp32() || params.IsFp16()))
@@ -494,8 +496,9 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
     return result;
 }
 
-bool ConvBinWinogradRxSFused::IsApplicable(const ConvolutionContext&) const
+bool ConvBinWinogradRxSFused::IsApplicable(const boost::any& ctx_) const
 {
+    std::ignore = ctx_;
     return true; // Actual checks moved to FusionMDGraph.
 }
 

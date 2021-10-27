@@ -77,6 +77,12 @@ bool GemmWrwBase::IsApplicable(const ExecutionContext&,
 #endif
 }
 
+float GemmWrwBase::GetWti(const boost::any& ctx_) const
+{
+    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
+    return GetWti(ctx, ctx.conv_problem);
+}
+
 float GemmWrwBase::GetWti(const ExecutionContext&, const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM

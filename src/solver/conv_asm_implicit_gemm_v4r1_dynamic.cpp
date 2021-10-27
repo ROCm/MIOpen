@@ -272,8 +272,10 @@ bool TunableImplicitGemmV4R1Dynamic::IsValid(const ConvolutionContext& ctx) cons
     return (InBlockCopySubLengths_E == 1 && InBlockCopySubLengths_B == 1);
 }
 
-bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ConvolutionContext& ctx) const
+bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const boost::any& ctx_) const
 {
+    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
+
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1{}))
         return false;
 
@@ -312,8 +314,10 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ConvolutionContext& c
         tunables.begin(), tunables.end(), [&](auto tunable) { return tunable.IsValid(ctx); });
 }
 
-bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsApplicable(const ConvolutionContext& ctx) const
+bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsApplicable(const boost::any& ctx_) const
 {
+    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
+
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1_1X1{}))
         return false;
 

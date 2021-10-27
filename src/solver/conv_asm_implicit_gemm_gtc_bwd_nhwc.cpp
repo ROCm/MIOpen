@@ -639,8 +639,10 @@ ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::Search(const ConvolutionContext& ctx
     return GenericSearch(*this, ctx, invoke_ctx);
 }
 
-bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(const ConvolutionContext& ctx) const
+bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(const boost::any& ctx_) const
 {
+    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
+
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS_NHWC{}))
         return false;
 

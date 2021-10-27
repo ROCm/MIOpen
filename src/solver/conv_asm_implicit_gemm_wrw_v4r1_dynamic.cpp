@@ -248,8 +248,10 @@ static inline bool FindImplicitGemmWrwV4R1DynamicKernel(const ConvolutionContext
         return false;
 }
 
-size_t ConvAsmImplicitGemmV4R1DynamicWrw::GetWorkspaceSize(const ConvolutionContext& ctx) const
+size_t ConvAsmImplicitGemmV4R1DynamicWrw::GetWorkspaceSize(const boost::any& ctx_) const
 {
+    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
+
     int k            = ctx.n_inputs;
     int c            = ctx.n_outputs;
     int y            = ctx.kernel_size_h;
@@ -294,8 +296,10 @@ static int GetGemmkGroups(const ConvolutionContext& ctx)
     return GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx.conv_problem, GemmKPerBlock);
 }
 
-bool ConvAsmImplicitGemmV4R1DynamicWrw::IsApplicable(const ConvolutionContext& ctx) const
+bool ConvAsmImplicitGemmV4R1DynamicWrw::IsApplicable(const boost::any& ctx_) const
 {
+    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
+
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_V4R1{}))
         return false;
 

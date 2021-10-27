@@ -42,11 +42,15 @@
 
 namespace miopen {
 namespace tests {
-class TrivialTestSolver : public solver::SolverBase<ConvolutionContext>
+class TrivialTestSolver : public solver::SolverBase
 {
     public:
     static const char* FileName() { return "TrivialTestSolver"; }
-    bool IsApplicable(const ConvolutionContext& context) const { return context.in_width == 1; }
+    bool IsApplicable(const boost::any& ctx_) const override
+    {
+        auto context = boost::any_cast<const ConvolutionContext&>(ctx_);
+        return context.in_width == 1;
+    }
 
     solver::ConvSolution GetSolution(const ConvolutionContext&) const
     {
@@ -72,13 +76,19 @@ struct TestConfig : solver::Serializable<TestConfig>
     }
 };
 
-class SearchableTestSolver : public solver::SolverBase<ConvolutionContext>
+class SearchableTestSolver : public solver::SolverBase
 {
     public:
     static int searches_done() { return _serches_done; }
     static const char* FileName() { return "SearchableTestSolver"; }
     static const char* NoSearchFileName() { return "SearchableTestSolver.NoSearch"; }
-    bool IsApplicable(const ConvolutionContext& /* context */) const { return true; }
+    bool IsApplicable(const boost::any& ctx_) const override
+    {
+        auto context = boost::any_cast<const ConvolutionContext&>(ctx_);
+        std::ignore = ctx_;
+
+        return true;
+    }
 
     TestConfig GetPerformanceConfig(const ConvolutionContext&) const
     {

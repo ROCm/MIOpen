@@ -155,8 +155,10 @@ PerformanceConvMlirIgemm ConvMlirIgemmFwd::Search(const ConvolutionContext& cont
     return GenericSearch(*this, context, invoke_ctx);
 }
 
-bool ConvMlirIgemmFwd::IsApplicable(const ConvolutionContext& ctx) const
+bool ConvMlirIgemmFwd::IsApplicable(const boost::any& ctx_) const
 {
+    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
+
 #if MIOPEN_USE_MLIR
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD{}))
         return false;

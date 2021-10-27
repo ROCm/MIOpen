@@ -464,8 +464,10 @@ bool ConvAsmBwdWrW1x1::IsValidPerformanceConfig(const ConvolutionContext& proble
     return c.IsValidValue() && c.IsValid(problem);
 }
 
-bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
+bool ConvAsmBwdWrW1x1::IsApplicable(const boost::any& ctx_) const
 {
+    auto params = boost::any_cast<const ConvolutionContext&>(ctx_);
+
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1{}))
         return false;
     if(!params.use_asm_kernels)
@@ -538,8 +540,10 @@ static int divide_round_plus_inf(const int x, const int y)
     return x / y;
 }
 
-size_t ConvAsmBwdWrW1x1::GetWorkspaceSize(const ConvolutionContext& params) const
+size_t ConvAsmBwdWrW1x1::GetWorkspaceSize(const boost::any& ctx_) const
 {
+    auto params = boost::any_cast<const ConvolutionContext&>(ctx_);
+
     if(UseSubsample(params))
     {
         int data_len        = GetTypeSize(params.out_data_type);

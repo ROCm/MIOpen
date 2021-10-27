@@ -711,8 +711,10 @@ PerformanceImplicitGemmBwdV1R1Xdlops::CalculateLdsNumberOfByte(const Convolution
 }
 
 std::size_t
-ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const ConvolutionContext& ctx) const
+ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const boost::any& ctx_) const
 {
+    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
+
     if(ctx.IsFp32())
         return 0;
     else
@@ -743,8 +745,10 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const ConvolutionContext&
     }
 }
 
-bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ConvolutionContext& ctx) const
+bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const boost::any& ctx_) const
 {
+    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
+
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1_XDLOPS{}))
         return false;
 

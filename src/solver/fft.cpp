@@ -107,8 +107,10 @@ static void cgemm_grid(size_t* global_work_size,
     global_work_size[1] = totalWorkGroups1 * local_work_size[1];
 }
 
-bool fft::IsApplicable(const ConvolutionContext& ctx) const
+bool fft::IsApplicable(const boost::any& ctx_) const
 {
+    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
+
     // disable running any FFT based convolutions by checking this env variable
     if(ctx.direction.IsBackwardWrW() || !ctx.conv_problem.IsFp32())
         return false;
@@ -156,8 +158,10 @@ bool fft::IsApplicable(const ConvolutionContext& ctx) const
     return std::tie(wei_h, wei_w) == std::make_tuple(5, 5) && cparam == std::make_tuple(2, 2, 1, 1);
 }
 
-size_t fft::GetWorkspaceSize(const ConvolutionContext& ctx) const
+size_t fft::GetWorkspaceSize(const boost::any& ctx_) const
 {
+    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
+
     const auto fwd       = ctx.direction.IsForward();
     decltype(auto) xDesc = fwd ? ctx.conv_problem.GetIn() : ctx.conv_problem.GetOut();
     decltype(auto) yDesc = fwd ? ctx.conv_problem.GetOut() : ctx.conv_problem.GetIn();
