@@ -747,7 +747,6 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
 {
     ConvSolution result;
     KernelInfo kernel;
-    std::ostringstream options;
 
     std::string kernel_name;
     size_t block_size;
@@ -790,21 +789,35 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
+    const auto& conv_problem          = ctx.conv_problem;
+    const auto isFp16                 = conv_problem.IsFp16();
+    const auto isGfx90aFp16altSupport = (ctx.GetStream().GetDeviceName() == "gfx90a") && isFp16;
+
+    result.construction_params.push_back(kernel); // Intentionally without options.
+    std::ostringstream options;                   // Common options for both kernels.
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
 
-    kernel.comp_options = options.str();
+    std::ostringstream opts_0(options.str(), std::ios_base::ate); // Options for normal kernel.
+    if(isGfx90aFp16altSupport)
+        GenerateClangDefsym(opts_0, "igemm_wrw_fp16_alt_impl", 0);
+    result.construction_params[0].comp_options = opts_0.str();
+
+    if(isGfx90aFp16altSupport)
+    {
+        result.construction_params.push_back(kernel);
+        std::ostringstream opts_1(options.str(), std::ios_base::ate); // Options for alt kernel.
+        GenerateClangDefsym(opts_1, "igemm_wrw_fp16_alt_impl", 1);
+        result.construction_params[1].comp_options = opts_1.str();
+    }
 
     MIOPEN_LOG_T("ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC: " + config.ToString());
 
-    result.construction_params.push_back(kernel);
-
-    const auto& conv_problem = ctx.conv_problem;
-    const auto& lowp_quant   = ctx.conv_problem.GetConv().lowp_quant;
+    const auto& lowp_quant = conv_problem.GetConv().lowp_quant;
 
     auto opArgs =
         ComputeDynamicIGemmWrwKernelArgsNHWC(conv_problem, gemm_k_global_splits, gemmk_per_wg);
 
-    if(conv_problem.IsFp16() && gemm_k_global_splits >= 1 && (config.tensor_b_thread_lengths[3] == 1 || config.vector_store == 1))
+    if(isFp16 && gemm_k_global_splits >= 1 && (config.tensor_b_thread_lengths[3] == 1 || config.vector_store == 1))
     {
         TensorDescriptor workspaceDesc(miopenFloat,
                                        conv_problem.GetWeights().GetLengths(),
@@ -813,8 +826,9 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
                 decltype(auto) wrw_invoke_params =
                     primitive_parameters.CastTo<conv::WrWInvokeParams>();
-                const auto& tensors       = wrw_invoke_params.tensors;
-                const auto k              = handle.Run(kernels[0]);
+                const auto& tensors = wrw_invoke_params.tensors;
+                const auto k        = handle.Run(
+                    kernels[(isGfx90aFp16altSupport && wrw_invoke_params.gfx90aFp16alt) ? 1 : 0]);
                 const auto& workSpace     = wrw_invoke_params.workSpace;
                 const auto& workSpaceSize = wrw_invoke_params.workSpaceSize;
                 float elapsed             = 0;
@@ -864,9 +878,10 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
                 decltype(auto) wrw_invoke_params =
                     primitive_parameters.CastTo<conv::WrWInvokeParams>();
                 const auto& tensors = wrw_invoke_params.tensors;
-                const auto k        = handle.Run(kernels[0]);
-                float elapsed       = 0;
-                float zero          = 0.f;
+                const auto k        = handle.Run(
+                    kernels[(isGfx90aFp16altSupport && wrw_invoke_params.gfx90aFp16alt) ? 1 : 0]);
+                float elapsed = 0;
+                float zero    = 0.f;
 
                 opArgs[0] = OpKernelArg(tensors.x);
                 opArgs[1] = OpKernelArg(tensors.dw);

@@ -1340,3 +1340,20 @@ extern "C" miopenStatus_t miopenConvolutionBackwardBias(miopenHandle_t handle,
                                 DataCast(db));
     });
 }
+
+extern "C" miopenStatus_t miopenSetConvolutionAttribute(miopenConvolutionDescriptor_t convDesc,
+                                                        const miopenConvolutionAttrib_t attr,
+                                                        const int value)
+{
+    MIOPEN_LOG_FUNCTION(convDesc, attr, value);
+    return miopen::try_([&] { miopen::deref(convDesc).attribute.Set(attr, value); });
+}
+
+extern "C" miopenStatus_t miopenGetConvolutionAttribute(miopenConvolutionDescriptor_t convDesc,
+                                                        const miopenConvolutionAttrib_t attr,
+                                                        int* const value)
+{
+    MIOPEN_LOG_FUNCTION(convDesc, attr, value);
+    return miopen::try_(
+        [&] { miopen::deref(value) = miopen::deref(convDesc).attribute.Get(attr); });
+}
