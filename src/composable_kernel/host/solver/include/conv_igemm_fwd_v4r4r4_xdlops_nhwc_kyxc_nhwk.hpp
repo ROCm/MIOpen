@@ -23,82 +23,83 @@ struct CompileParameterConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
                 CDataTypeEnum <<
             " -DCK_PARAM_BlockSize=" << 
                 BlockSize <<
-            " -DCK_PARAM_GN0=" << 
-                GN0 <<
-            " -DCK_PARAM_GK1=" << 
-                GK1 <<
-            " -DCK_PARAM_GM1PerBlockGM11=" 
-                << GM1PerBlockGM11 <<
-            " -DCK_PARAM_GN1PerBlockGN11=" <<
-                GN1PerBlockGN11 <<
-            " -DCK_PARAM_GK0PerBlock=" <<
-                GK0PerBlock <<
-            " -DCK_PARAM_BM1PerThreadBM11=" <<
-                BM1PerThreadBM11 <<
-            " -DCK_PARAM_BN1PerThreadBN11=" <<
-                BN1PerThreadBN11 <<
-            " -DCK_PARAM_BK0PerThread=" <<
-                BK0PerThread <<
-            " -DCK_PARAM_BM10BN10ThreadClusterBM10Xs=" <<
-                BM10BN10ThreadClusterBM10Xs[0] << "," <<
-                BM10BN10ThreadClusterBM10Xs[1] <<
-            " -DCK_PARAM_BM10BN10ThreadClusterBN10Xs=" <<
-                BM10BN10ThreadClusterBN10Xs[0] << "," <<
-                BM10BN10ThreadClusterBN10Xs[1] <<
-            " -DCK_PARAM_ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1=" <<
-                ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1[0] << "," <<
-                ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1[1] << "," <<
-                ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1[2] << "," <<
-                ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1[3] << "," <<
-                ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1[4] <<
-            " -DCK_PARAM_ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1=" <<
-                ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[0] << "," <<
-                ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[1] << "," <<
-                ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[2] << "," <<
-                ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[3] << "," <<
-                ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[4] << 
-            " -DCK_PARAM_ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1=" <<
-                ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[0] << "," <<
-                ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[1] << "," <<
-                ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[2] << "," <<
-                ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[3] << "," <<
-                ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[4] <<
-            " -DCK_PARAM_ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1=" <<
-                ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[0] << "," <<
-                ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[1] << "," <<
-                ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[2] << "," <<
-                ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[3] << "," <<
-                ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[4] <<
-            " -DCK_PARAM_BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1=" <<
-                BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1[0] << "," <<
-                BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1[1] << "," <<
-                BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1[2] << "," <<
-                BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1[3] << "," <<
-                BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1[4] <<
-            " -DCK_PARAM_BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1=" <<
-                BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[0] << "," <<
-                BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[1] << "," <<
-                BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[2] << "," <<
-                BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[3] << "," <<
-                BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[4] << 
-            " -DCK_PARAM_BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1=" <<
-                BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[0] << "," <<
-                BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[1] << "," <<
-                BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[2] << "," <<
-                BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[3] << "," <<
-                BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[4] << 
-            " -DCK_PARAM_BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1=" <<
-                BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[0] << "," <<
-                BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[1] << "," <<
-                BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[2] << "," <<
-                BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[3] << "," <<
-                BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[4] << 
+            " -DCK_PARAM_MPerBlock=" << 
+                MPerBlock <<
+            " -DCK_PARAM_NPerBlock=" << 
+                NPerBlock <<
+            " -DCK_PARAM_K0PerBlock=" <<
+                K0PerBlock <<
+            " -DCK_PARAM_MPerXDL=" <<
+                MPerXDL <<
+            " -DCK_PARAM_NPerXDL=" <<
+                NPerXDL <<
+            " -DCK_PARAM_K1=" <<
+                K1 <<
+            " -DCK_PARAM_MRepeat=" <<
+                MRepeat <<
+            " -DCK_PARAM_NRepeat=" <<
+                NRepeat <<
+            " -DCK_PARAM_ABlockTransferThreadSliceLengths_K0_M_K1=" <<
+                ABlockTransferThreadSliceLengths_K0_M_K1[0] << "," <<
+                ABlockTransferThreadSliceLengths_K0_M_K1[1] << "," <<
+                ABlockTransferThreadSliceLengths_K0_M_K1[2] <<
+            " -DCK_PARAM_ABlockTransferThreadClusterLengths_K0_M_K1=" <<
+                ABlockTransferThreadClusterLengths_K0_M_K1[0] << "," <<
+                ABlockTransferThreadClusterLengths_K0_M_K1[1] << "," <<
+                ABlockTransferThreadClusterLengths_K0_M_K1[2] <<
+            " -DCK_PARAM_ABlockTransferThreadClusterArrangeOrder=" <<
+                ABlockTransferThreadClusterArrangeOrder[0] << "," <<
+                ABlockTransferThreadClusterArrangeOrder[1] << "," <<
+                ABlockTransferThreadClusterArrangeOrder[2] <<
+            " -DCK_PARAM_ABlockTransferSrcAccessOrder=" <<
+                ABlockTransferSrcAccessOrder[0] << "," <<
+                ABlockTransferSrcAccessOrder[1] << "," <<
+                ABlockTransferSrcAccessOrder[2] <<
+            " -DCK_PARAM_ABlockTransferSrcVectorDim=" <<
+                ABlockTransferSrcVectorDim <<
+            " -DCK_PARAM_ABlockTransferSrcScalarPerVector=" <<
+                ABlockTransferSrcScalarPerVector <<
+            " -DCK_PARAM_ABlockTransferDstScalarPerVector_K1=" <<
+                ABlockTransferDstScalarPerVector_K1 <<
+            " -DCK_PARAM_AThreadTransferSrcResetCoordinateAfterRun=" <<
+                AThreadTransferSrcResetCoordinateAfterRun <<
+            " -DCK_PARAM_BBlockTransferThreadSliceLengths_K0_N_K1=" <<
+                BBlockTransferThreadSliceLengths_K0_N_K1[0] << "," <<
+                BBlockTransferThreadSliceLengths_K0_N_K1[1] << "," <<
+                BBlockTransferThreadSliceLengths_K0_N_K1[2] <<
+            " -DCK_PARAM_BBlockTransferThreadClusterLengths_K0_N_K1=" <<
+                BBlockTransferThreadClusterLengths_K0_N_K1[0] << "," <<
+                BBlockTransferThreadClusterLengths_K0_N_K1[1] << "," <<
+                BBlockTransferThreadClusterLengths_K0_N_K1[2] <<
+            " -DCK_PARAM_BBlockTransferThreadClusterArrangeOrder=" <<
+                BBlockTransferThreadClusterArrangeOrder[0] << "," <<
+                BBlockTransferThreadClusterArrangeOrder[1] << "," <<
+                BBlockTransferThreadClusterArrangeOrder[2] <<
+            " -DCK_PARAM_BBlockTransferSrcAccessOrder=" <<
+                BBlockTransferSrcAccessOrder[0] << "," <<
+                BBlockTransferSrcAccessOrder[1] << "," <<
+                BBlockTransferSrcAccessOrder[2] <<
+            " -DCK_PARAM_BBlockTransferSrcVectorDim=" <<
+                BBlockTransferSrcVectorDim <<
+            " -DCK_PARAM_BBlockTransferSrcScalarPerVector=" <<
+                BBlockTransferSrcScalarPerVector <<
+            " -DCK_PARAM_BBlockTransferDstScalarPerVector_K1=" <<
+                BBlockTransferDstScalarPerVector_K1 <<
+            " -DCK_PARAM_BThreadTransferSrcResetCoordinateAfterRun=" <<
+                BThreadTransferSrcResetCoordinateAfterRun <<
+            " -DCK_PARAM_CThreadTransferSrcDstAccessOrder=" <<
+                CThreadTransferSrcDstAccessOrder[0] << "," <<
+                CThreadTransferSrcDstAccessOrder[1] << "," <<
+                CThreadTransferSrcDstAccessOrder[2] << "," <<
+                CThreadTransferSrcDstAccessOrder[3] << "," <<
+                CThreadTransferSrcDstAccessOrder[4] << "," <<
+                CThreadTransferSrcDstAccessOrder[5] << "," <<
+                CThreadTransferSrcDstAccessOrder[6] << "," <<
+                CThreadTransferSrcDstAccessOrder[7] << 
+            " -DCK_PARAM_CThreadTransferSrcDstVectorDim=" <<
+                CThreadTransferSrcDstVectorDim <<
             " -DCK_PARAM_CThreadTransferDstScalarPerVector=" <<
-                CThreadTransferDstScalarPerVector <<
-            " -DCK_PARAM_HasMainKBlockLoop=" <<
-                static_cast<int>(HasMainKBlockLoop) <<
-            " -DCK_PARAM_HasDoubleTailKBlockLoop=" <<
-                static_cast<int>(HasDoubleTailKBlockLoop);
+                CThreadTransferDstScalarPerVector;
         // clang-format on
 
         return param.str();
@@ -110,42 +111,38 @@ struct CompileParameterConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
 
     int BlockSize = -1;
 
-    int GN0 = -1;
-    int GK1 = -1;
+    int MPerBlock  = -1;
+    int NPerBlock  = -1;
+    int K0PerBlock = -1;
 
-    int GM1PerBlockGM11 = -1;
-    int GN1PerBlockGN11 = -1;
-    int GK0PerBlock     = -1;
+    int MPerXDL = -1;
+    int NPerXDL = -1;
+    int K1      = -1;
 
-    int BM1PerThreadBM11 = -1;
-    int BN1PerThreadBN11 = -1;
-    int BK0PerThread     = -1;
+    int MRepeat = -1;
+    int NRepeat = -1;
 
-    std::array<int, 2> BM10BN10ThreadClusterBM10Xs = {-1, -1};
-    std::array<int, 2> BM10BN10ThreadClusterBN10Xs = {-1, -1};
+    std::array<int, 3> ABlockTransferThreadSliceLengths_K0_M_K1   = {-1, -1, -1};
+    std::array<int, 3> ABlockTransferThreadClusterLengths_K0_M_K1 = {-1, -1, -1};
+    std::array<int, 3> ABlockTransferThreadClusterArrangeOrder    = {-1, -1, -1};
+    std::array<int, 3> ABlockTransferSrcAccessOrder               = {-1, -1, -1};
+    int ABlockTransferSrcVectorDim                                = -1;
+    int ABlockTransferSrcScalarPerVector                          = -1;
+    int ABlockTransferDstScalarPerVector_K1                       = -1;
+    bool AThreadTransferSrcResetCoordinateAfterRun                = -1;
 
-    std::array<int, 5> ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1 = {
-        -1, -1, -1, -1, -1};
-    std::array<int, 5> ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1 = {
-        -1, -1, -1, -1, -1};
-    std::array<int, 5> ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1 = {
-        -1, -1, -1, -1, -1};
-    std::array<int, 5> ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1 = {
-        -1, -1, -1, -1, -1};
+    std::array<int, 3> BBlockTransferThreadSliceLengths_K0_N_K1   = {-1, -1, -1};
+    std::array<int, 3> BBlockTransferThreadClusterLengths_K0_N_K1 = {-1, -1, -1};
+    std::array<int, 3> BBlockTransferThreadClusterArrangeOrder    = {-1, -1, -1};
+    std::array<int, 3> BBlockTransferSrcAccessOrder               = {-1, -1, -1};
+    int BBlockTransferSrcVectorDim                                = -1;
+    int BBlockTransferSrcScalarPerVector                          = -1;
+    int BBlockTransferDstScalarPerVector_K1                       = -1;
+    bool BThreadTransferSrcResetCoordinateAfterRun                = -1;
 
-    std::array<int, 5> BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1 = {
-        -1, -1, -1, -1, -1};
-    std::array<int, 5> BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1 = {
-        -1, -1, -1, -1, -1};
-    std::array<int, 5> BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1 = {
-        -1, -1, -1, -1, -1};
-    std::array<int, 5> BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1 = {
-        -1, -1, -1, -1, -1};
-
-    int CThreadTransferDstScalarPerVector = -1;
-
-    bool HasMainKBlockLoop       = false;
-    bool HasDoubleTailKBlockLoop = false;
+    std::array<int, 8> CThreadTransferSrcDstAccessOrder = {-1, -1, -1, -1, -1, -1, -1, -1};
+    int CThreadTransferSrcDstVectorDim                  = -1;
+    int CThreadTransferDstScalarPerVector               = -1;
 };
 
 struct TunableConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
@@ -155,32 +152,41 @@ struct TunableConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
 
     int BlockSize;
 
-    int GN0;
-    int GK1;
+    int MPerBlock;
+    int NPerBlock;
+    int K0PerBlock;
 
-    int GM1PerBlockGM11;
-    int GN1PerBlockGN11;
-    int GK0PerBlock;
+    int MPerXDL;
+    int NPerXDL;
+    int K1;
 
-    int BM1PerThreadBM11;
-    int BN1PerThreadBN11;
-    int BK0PerThread;
+    int MRepeat;
+    int NRepeat;
 
-    std::array<int, 2> BM10BN10ThreadClusterBM10Xs;
-    std::array<int, 2> BM10BN10ThreadClusterBN10Xs;
+    std::array<int, 3> ABlockTransferThreadSliceLengths_K0_M_K1;
+    std::array<int, 3> ABlockTransferThreadClusterLengths_K0_M_K1;
+    std::array<int, 3> ABlockTransferThreadClusterArrangeOrder;
+    std::array<int, 3> ABlockTransferSrcAccessOrder;
+    int ABlockTransferSrcVectorDim;
+    int ABlockTransferSrcScalarPerVector;
+    int ABlockTransferDstScalarPerVector_K1;
+    bool AThreadTransferSrcResetCoordinateAfterRun;
 
-    std::array<int, 5> ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1;
-    std::array<int, 5> ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1;
-    std::array<int, 5> ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1;
-    std::array<int, 5> ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1;
+    std::array<int, 3> BBlockTransferThreadSliceLengths_K0_N_K1;
+    std::array<int, 3> BBlockTransferThreadClusterLengths_K0_N_K1;
+    std::array<int, 3> BBlockTransferThreadClusterArrangeOrder;
+    std::array<int, 3> BBlockTransferSrcAccessOrder;
+    int BBlockTransferSrcVectorDim;
+    int BBlockTransferSrcScalarPerVector;
+    int BBlockTransferDstScalarPerVector_K1;
+    bool BThreadTransferSrcResetCoordinateAfterRun;
 
-    std::array<int, 5> BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1;
-    std::array<int, 5> BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1;
-    std::array<int, 5> BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1;
-    std::array<int, 5> BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1;
+    std::array<int, 8> CThreadTransferSrcDstAccessOrder;
+    int CThreadTransferSrcDstVectorDim;
+    int CThreadTransferDstScalarPerVector;
 };
 
-inline static auto generate_tunable_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw()
+inline static auto generate_tunable_list_conv_igemm_fwd_v4r4r4_xdlops_nhwc_kyxc_nhwk()
 {
     constexpr auto f32 = ck::DataTypeEnum_t::Float;
     constexpr auto f16 = ck::DataTypeEnum_t::Half;
@@ -189,49 +195,16 @@ inline static auto generate_tunable_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkh
     return std::vector<TunableConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk>{
         // clang-format off
         // fp32
-        {f32, f32, 256, 1, 1, 128, 128, 16, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 2, 1}, {4, 1, 1,  64, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {2, 1, 1, 4, 1}, { 8, 1, 1,  32, 1}, {1, 1, 1, 4, 1}, {1, 1, 1, 4, 1}},
+        {f32, f32, 256, 128, 128, 4, 32, 32, 4, 2, 2, {1, 2, 4}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 4, 4, false, 
+            {1, 2, 4}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 4, 4, false, {2, 3, 0, 1, 7, 5, 4, 6}, 7, 1}
 
-        {f32, f32, 256, 1, 1, 128, 128,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 4, 1}, { 8, 1, 1,  32, 1}, {1, 1, 1, 4, 1}, {1, 1, 1, 4, 1}},
-        {f32, f32, 256, 1, 1, 128, 128,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 4, 1}, { 8, 1, 1,  32, 1}, {1, 1, 1, 2, 1}, {1, 1, 1, 4, 1}},
-        {f32, f32, 256, 1, 1, 128, 128,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 4, 1}, { 8, 1, 1,  32, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 4, 1}},
-
-        {f32, f32, 256, 1, 1, 128, 128,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {4, 1, 1, 1, 1}, { 2, 1, 1, 128, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}},
-        {f32, f32, 256, 2, 1, 128,  64,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {2, 2, 1, 1, 1}, { 4, 1, 1,  64, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}},
-        {f32, f32, 256, 4, 1, 128,  32,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 4, 1, 1, 1}, { 8, 1, 1,  32, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}},
-
-        {f32, f32, 256, 8, 1, 128,  16, 16, 4, 4, 1, {8, 2}, {8, 2}, {8, 1, 1, 1, 1}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 8, 1, 1, 1}, {16, 1, 1,  16, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}},
-
-        {f32, f32, 128, 1, 1,  64, 128,  8, 4, 4, 1, {4, 2}, {8, 2}, {4, 1, 1, 1, 1}, {2, 1, 1,  64, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {8, 1, 1, 1, 1}, { 1, 1, 1, 128, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}},
+       
 
         // fp16
-        {f16, f16, 256, 1, 2, 128, 128, 16, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 2, 2}, {4, 1, 1,  64, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {2, 1, 1, 4, 2}, { 8, 1, 1,  32, 1}, {1, 1, 1, 4, 1}, {1, 1, 1, 4, 1}},
-
-        {f16, f16, 256, 1, 2, 128, 128,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 2}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 4, 2}, { 8, 1, 1,  32, 1}, {1, 1, 1, 4, 1}, {1, 1, 1, 4, 1}},
-        {f16, f16, 256, 1, 2, 128, 128,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 2}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 4, 2}, { 8, 1, 1,  32, 1}, {1, 1, 1, 2, 1}, {1, 1, 1, 4, 1}},
-        {f16, f16, 256, 1, 2, 128, 128,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 2}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 4, 2}, { 8, 1, 1,  32, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 4, 1}},
-
-        {f16, f16, 256, 1, 2, 128, 128,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 2}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {4, 1, 1, 1, 2}, { 2, 1, 1, 128, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}},
-        {f16, f16, 256, 2, 2, 128,  64,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 2}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {2, 2, 1, 1, 2}, { 4, 1, 1,  64, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}},
-        {f16, f16, 256, 4, 2, 128,  32,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 2}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 4, 1, 1, 2}, { 8, 1, 1,  32, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}},
-
-        {f16, f16, 256, 8, 2, 128,  16, 16, 4, 4, 1, {8, 2}, {8, 2}, {8, 1, 1, 1, 2}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 8, 1, 1, 2}, {16, 1, 1,  16, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}},
-
-        {f16, f16, 128, 1, 2,  64, 128,  8, 4, 4, 1, {4, 2}, {8, 2}, {4, 1, 1, 1, 2}, {2, 1, 1,  64, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {8, 1, 1, 1, 2}, { 1, 1, 1, 128, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}},
+       
 
         // i8
-        { i8,  i8, 256, 1, 4, 128, 128, 16, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 2, 4}, {4, 1, 1,  64, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {2, 1, 1, 4, 4}, { 8, 1, 1,  32, 1}, {1, 1, 1, 4, 1}, {1, 1, 1, 4, 1}},
 
-        { i8,  i8, 256, 1, 4, 128, 128,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 4}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 4, 4}, { 8, 1, 1,  32, 1}, {1, 1, 1, 4, 1}, {1, 1, 1, 4, 1}},
-        { i8,  i8, 256, 1, 4, 128, 128,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 4}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 4, 4}, { 8, 1, 1,  32, 1}, {1, 1, 1, 2, 1}, {1, 1, 1, 4, 1}},
-        { i8,  i8, 256, 1, 4, 128, 128,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 4}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 4, 4}, { 8, 1, 1,  32, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 4, 1}},
-
-        { i8,  i8, 256, 1, 4, 128, 128,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 4}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {4, 1, 1, 1, 4}, { 2, 1, 1, 128, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}},
-        { i8,  i8, 256, 2, 4, 128,  64,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 4}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {2, 2, 1, 1, 4}, { 4, 1, 1,  64, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}},
-        { i8,  i8, 256, 4, 4, 128,  32,  8, 4, 4, 1, {8, 2}, {8, 2}, {4, 1, 1, 1, 4}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 4, 1, 1, 4}, { 8, 1, 1,  32, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}},
-
-        { i8,  i8, 256, 8, 4, 128,  16, 16, 4, 4, 1, {8, 2}, {8, 2}, {8, 1, 1, 1, 4}, {2, 1, 1, 128, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 8, 1, 1, 4}, {16, 1, 1,  16, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}},
-
-        { i8,  i8, 128, 1, 4,  64, 128,  8, 4, 4, 1, {4, 2}, {8, 2}, {4, 1, 1, 1, 4}, {2, 1, 1,  64, 1}, {4, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {8, 1, 1, 1, 4}, { 1, 1, 1, 128, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}}
         // clang-format on
     };
 }
@@ -357,7 +330,8 @@ struct ConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
 
     static auto GetDefaultCompileParameter(const ConvolutionProblemDescriptor& conv_problem_desc)
     {
-        for(const auto& tunable : generate_tunable_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw())
+        for(const auto& tunable :
+            generate_tunable_list_conv_igemm_fwd_v4r4r4_xdlops_nhwc_kyxc_nhwk())
         {
             CompileParameterConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk compile_param{};
             bool found = false;
@@ -385,258 +359,6 @@ struct ConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
         const ConvolutionProblemDescriptor& conv_problem_desc,
         const CompileParameterConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk& compile_param)
     {
-        const int N  = conv_problem_desc.N;
-        const int K  = conv_problem_desc.K;
-        const int C  = conv_problem_desc.C;
-        const int Y  = conv_problem_desc.Y;
-        const int X  = conv_problem_desc.X;
-        const int Ho = conv_problem_desc.Ho;
-        const int Wo = conv_problem_desc.Wo;
-
-        const int GK1  = compile_param.GK1;
-        const int GN0  = compile_param.GN0;
-        const int GM11 = compile_param.GM1PerBlockGM11;
-        const int GN11 = compile_param.GN1PerBlockGN11;
-
-        const int BM11 = compile_param.BM1PerThreadBM11;
-        const int BN11 = compile_param.BN1PerThreadBN11;
-
-        const int C0 = GK1;
-        const int N0 = GN0;
-
-        if(!(C % C0 == 0))
-            return false;
-
-        const int C1 = C / C0;
-
-        if(!(N % N0 == 0))
-            return false;
-
-        const int N1 = N / N0;
-
-        const int GM0 = 1;
-        const int GM1 = K;
-        const int GN1 = N1 * Ho * Wo;
-        const int GK0 = C1 * Y * X;
-
-        // check data type
-        {
-            if(!(conv_problem_desc.InDataTypeEnum == conv_problem_desc.WeiDataTypeEnum &&
-                 conv_problem_desc.InDataTypeEnum == compile_param.ABDataTypeEnum))
-                return false;
-
-            if(compile_param.ABDataTypeEnum == DataTypeEnum_t::Float ||
-               compile_param.ABDataTypeEnum == DataTypeEnum_t::Half)
-            {
-                if(!(compile_param.AccDataTypeEnum == DataTypeEnum_t::Float))
-                    return false;
-            }
-            else if(compile_param.ABDataTypeEnum == DataTypeEnum_t::Int8)
-            {
-                if(!(compile_param.AccDataTypeEnum == DataTypeEnum_t::Int32))
-                    return false;
-            }
-        }
-
-        // check gridwise contraction
-        {
-            if(!(GM1 % GM11 == 0 && GN1 % GN11 == 0 && GK0 % compile_param.GK0PerBlock == 0))
-                return false;
-
-            const bool has_main_k_block_loop =
-                ((GK0 + compile_param.GK0PerBlock) / (2 * compile_param.GK0PerBlock) > 1);
-
-            const bool has_double_tail_k_block_loop = ((GK0 / compile_param.GK0PerBlock) % 2 == 0);
-
-            if(!(has_main_k_block_loop == compile_param.HasMainKBlockLoop &&
-                 has_double_tail_k_block_loop == compile_param.HasDoubleTailKBlockLoop))
-                return false;
-        }
-
-        // check A blockwise copy
-        {
-            const auto block_slice_lengths =
-                std::array<int, 5>{compile_param.GK0PerBlock, GM0, 1, GM11, GK1};
-            const auto& cluster_lengths =
-                compile_param.ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1;
-            const auto& thread_slice_lengths =
-                compile_param.ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1;
-            const auto& src_vector_lengths =
-                compile_param.ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1;
-            const auto& dst_vector_lengths =
-                compile_param.ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1;
-
-            // check number of working thread
-            const int num_work_thread = std::accumulate(
-                cluster_lengths.begin(), cluster_lengths.end(), 1, std::multiplies<int>{});
-
-            if(!(compile_param.BlockSize >= num_work_thread))
-                return false;
-
-            // check block slice lengths vs thread slice lengths vs cluster lengths
-            for(int i = 0; i < 5; ++i)
-            {
-                if(!(cluster_lengths[i] * thread_slice_lengths[i] == block_slice_lengths[i]))
-                    return false;
-            }
-
-            // check thread slice lengths vs vector lengths
-            for(int i = 0; i < 5; ++i)
-            {
-                if(!(thread_slice_lengths[i] % src_vector_lengths[i] == 0))
-                    return false;
-
-                if(!(thread_slice_lengths[i] % dst_vector_lengths[i] == 0))
-                    return false;
-            }
-
-            // check Src vectorization, GK0 is global mem vector dim
-            if(!(src_vector_lengths[1] == 1 && src_vector_lengths[2] == 1 &&
-                 src_vector_lengths[3] == 1 && src_vector_lengths[4] == 1))
-                return false;
-
-            // check Dst vectorization, {GM11, GK1} are LDS vector dims
-            if(dst_vector_lengths[4] == GK1)
-            { // vectorize on {GM11, GK1}
-                if(!(GM11 % dst_vector_lengths[3] == 0))
-                    return false;
-            }
-            else
-            { // vectorize on {GK1} only
-                if(!(GK1 % dst_vector_lengths[4] == 0))
-                    return false;
-
-                if(!(dst_vector_lengths[3] == 1))
-                    return false;
-            }
-        }
-
-        // check B blockwise copy
-        {
-            const auto block_slice_lengths =
-                std::array<int, 5>{compile_param.GK0PerBlock, GN0, 1, GN11, GK1};
-            const auto& cluster_lengths =
-                compile_param.BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1;
-            const auto& thread_slice_lengths =
-                compile_param.BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1;
-            const auto& src_vector_lengths =
-                compile_param.BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1;
-            const auto& dst_vector_lengths =
-                compile_param.BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1;
-
-            // check number of working thread
-            const int num_work_thread = std::accumulate(
-                cluster_lengths.begin(), cluster_lengths.end(), 1, std::multiplies<int>{});
-
-            if(!(compile_param.BlockSize >= num_work_thread))
-                return false;
-
-            // check block slice lengths vs thread slice lengths vs cluster lengths
-            for(int i = 0; i < 5; ++i)
-            {
-                if(!(cluster_lengths[i] * thread_slice_lengths[i] == block_slice_lengths[i]))
-                    return false;
-            }
-
-            // check thread slice lengths vs vector lengths
-            for(int i = 0; i < 5; ++i)
-            {
-                if(!(thread_slice_lengths[i] % src_vector_lengths[i] == 0 &&
-                     thread_slice_lengths[i] % dst_vector_lengths[i] == 0))
-                    return false;
-            }
-
-            // check Src vectorization: {GN11} is global mem vector dim
-            if(!(src_vector_lengths[0] == 1 && src_vector_lengths[1] == 1 &&
-                 src_vector_lengths[2] == 1 && src_vector_lengths[4] == 1))
-                return false;
-
-            // check Src tensor layout related vectorization
-            if(Y == 1 && X == 1 && conv_problem_desc.ConvStrideH == 1 &&
-               conv_problem_desc.ConvStrideW == 1 && conv_problem_desc.InLeftPadH == 0 &&
-               conv_problem_desc.InLeftPadW == 0 && conv_problem_desc.InRightPadH == 0 &&
-               conv_problem_desc.InRightPadW == 0)
-            {
-                if(!((Ho * Wo) % src_vector_lengths[3] == 0))
-                    return false;
-            }
-            else if(conv_problem_desc.ConvStrideW == 1 && conv_problem_desc.InLeftPadW == 0 &&
-                    conv_problem_desc.InRightPadW == 0)
-            {
-                if(!(Wo % src_vector_lengths[3] == 0))
-                    return false;
-            }
-            else
-            {
-                if(!(src_vector_lengths[3] == 1))
-                    return false;
-            }
-
-            // check Dst vectorization: {GN11, GK1} are LDS vector dims
-            if(dst_vector_lengths[4] == GK1)
-            { // vectorize on {GN11, GK1}
-                if(!(GN11 % dst_vector_lengths[3] == 0))
-                    return false;
-            }
-            else
-            { // vectorize on {GK1} only
-                if(!(dst_vector_lengths[3] == 1))
-                    return false;
-
-                if(!(GK1 % dst_vector_lengths[4] == 0))
-                    return false;
-            }
-        }
-
-        // check blockwise GEMM
-        {
-            const int BM10 = std::accumulate(compile_param.BM10BN10ThreadClusterBM10Xs.begin(),
-                                             compile_param.BM10BN10ThreadClusterBM10Xs.end(),
-                                             1,
-                                             std::multiplies<int>{});
-
-            const int BN10 = std::accumulate(compile_param.BM10BN10ThreadClusterBN10Xs.begin(),
-                                             compile_param.BM10BN10ThreadClusterBN10Xs.end(),
-                                             1,
-                                             std::multiplies<int>{});
-
-            if(!(compile_param.BlockSize == BM10 * BN10))
-                return false;
-
-            const int BM = GM0 * GM11;
-            const int BN = GN0 * GN11;
-
-            const int BM1 = BM10 * BM11;
-            const int BN1 = BN10 * BN11;
-
-            if(!(BM % BM1 == 0 && BN % BN1 == 0))
-                return false;
-
-            const int BM0 = BM / BM1;
-            const int BN0 = BN / BN1;
-
-            // blockwise GEMM currently only support BM0 == 2 && BN0 == 2
-            if(!(BM0 == 2 && BN0 == 2))
-                return false;
-
-            if(!(compile_param.GK0PerBlock % compile_param.BK0PerThread == 0))
-                return false;
-        }
-
-        // check C threadwise copy
-        {
-            // {BN11} or {BN} or {BN1} or {GN11} is Dst vector dim
-            const int dst_vector_len_gn11 = compile_param.CThreadTransferDstScalarPerVector;
-
-            // check slice length vs Dst vector length:
-            if(!(BN11 % dst_vector_len_gn11 == 0 && GN11 % dst_vector_len_gn11 == 0))
-                return false;
-
-            // check Dst memory layout related vectorization:
-            if(!((Ho * Wo) % compile_param.CThreadTransferDstScalarPerVector == 0))
-                return false;
-        }
-
         return true;
     };
 
@@ -682,7 +404,7 @@ struct ConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
 
     static auto GetTunableList()
     {
-        return generate_tunable_list_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw();
+        return generate_tunable_list_conv_igemm_fwd_v4r4r4_xdlops_nhwc_kyxc_nhwk();
     }
 };
 
