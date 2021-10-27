@@ -27,6 +27,7 @@
 #define GUARD_MIOPEN_CONVOLUTION_HPP_
 
 #include <miopen/common.hpp>
+#include <miopen/env.hpp>
 #include <miopen/find_controls.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/miopen.h>
@@ -40,6 +41,9 @@
 #include <string>
 #include <tuple>
 #include <vector>
+#include <unordered_map>
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
 
 namespace miopen {
 
@@ -67,6 +71,34 @@ using ExtraKernelArgs = std::tuple<int /*N*/,
 
 struct ConvFwdTensors;
 struct ConvWrwTensors;
+
+struct ConvolutionAttribute
+{
+    class Gfx90aFp16alt
+    {
+        int value = -1;
+        friend struct ConvolutionAttribute; // For direct r/w.
+
+        inline int Get() const
+        {
+            if(nullptr != miopen::GetStringEnv(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL{}))
+                return miopen::Value(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL{});
+            return value;
+        }
+
+        public:
+        inline bool GetFwd() const { return Get() == 1; } // false is the default.
+        inline bool GetBwd() const { return Get() != 0; } // true is the default.
+        inline bool GetWrW() const { return Get() != 0; } // true is the default.
+    } gfx90aFp16alt;
+
+    /// Tri-state attribute values:
+    /// * -1: Default (attribute-specific).
+    /// * 0: Disabled/Yes.
+    /// * 1: Enabled/No.
+    void Set(miopenConvolutionAttrib_t attr, int value);
+    int Get(miopenConvolutionAttrib_t attr) const;
+};
 
 struct ConvolutionDescriptor : miopenConvolutionDescriptor
 {
@@ -379,6 +411,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     int group_count;
     float lowp_quant; // quantization factor for low precision
     FindMode findMode;
+    ConvolutionAttribute attribute;
 
     void ConvBwdGemm(Handle& handle,
                      const struct ConvBwdTensors& tensors,
