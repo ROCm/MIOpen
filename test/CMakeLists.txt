@@ -178,7 +178,7 @@ if(NOT MIOPEN_TEST_MIOTENSILE)
 	    set(SKIP_ALL_EXCEPT_TESTS
                 test_conv2d test_tensor_copy test_tensor_set test_tensor_vec test_immed_conv2d
                 test_check_numerics_test test_conv_extra test_conv_for_implicit_gemm test_miopen_conv
-                test_deepbench_conv test_conv_igemm_dynamic_xdlops_nhwc_wrw_bf16_gfx90a 
+                test_deepbench_conv test_conv_igemm_dynamic_xdlops_nhwc_wrw_bf16_gfx90a
                 test_conv_igemm_dynamic_xdlops_nhwc_fwd_bf16_gfx90a
                 test_conv_igemm_dynamic_xdlops_nhwc_bwd_bf16_gfx90a)
     endif()
@@ -332,18 +332,6 @@ function(add_sanitize_test TEST_SOURCE)
 endfunction()
 
 file(GLOB TESTS *.cpp)
-# All the tests are manually sorted in descending order of durations taken from
-# Jenkins, "Full long tests"/"HIP Release All". This is to exploit ctest's
-# parallelizm as much as possible. Before this change, there were some long
-# jobs at the end, utilizing only one CPU core. This order can potentially
-# save up to ~23 minutes (20%) of total time of "HIP Release All".
-#
-# We use two lists, LONG_TESTS and SHORT_TESTS to implement the sorting
-# mentioned above. If you would like to add a new test, insert it into the
-# LONG_TESTS if it takes more than 800 seconds, or to SHORT_TESTS otherwise.
-# Please notice that each list is also sorted and it is highly recommended
-# to keep this sorting when adding new tests.
-#For files NAME = test_ + (File name with neither the directory nor the longest extension)
 
 set(LONG_TESTS
     test_dropout
@@ -504,11 +492,13 @@ function(add_custom_test NAME)
     bool_not_f(${MIOPEN_TEST_MIOTENSILE} NOT_MIOPEN_TEST_MIOTENSILE)
     bool_or_f(${NOT_MIOPEN_TEST_MIOTENSILE} ${is_miotensile_check} is_miotensile_check)
 
+    # When MLIR_ENABLED is set, the test will be run only if MIOPEN_TEST_MLIR is ON.
+    # MLIR_DISABLED should not be used.
+    # TODO: Rename MLIR_ENABLED to SKIP_IF_NOT_MLIR. Remove MLIR_DISABLED.
     set(is_mlir_check)
     set(MLIR_TEST_DEFAULT FALSE)
     option_support_check(${PARSE_MLIR_ENABLED} ${PARSE_MLIR_DISABLED} ${MLIR_TEST_DEFAULT} is_mlir_check)
-    bool_not_f(${MIOPEN_TEST_MLIR} NOT_MIOPEN_TEST_MLIR)
-    bool_or_f(${NOT_MIOPEN_TEST_MLIR} ${is_mlir_check} is_mlir_check)
+    bool_and_f(${MIOPEN_TEST_MLIR} ${is_mlir_check} is_mlir_check)
 
     set(is_ocl_check)
     set(OCL_TEST_DEFAULT TRUE)
@@ -549,6 +539,7 @@ function(add_custom_test NAME)
     option_support_check(${PARSE_GFX1030_ENABLED} ${PARSE_GFX1030_DISABLED} ${GFX1030_TEST_DEFAULT} is_gfx1030_check)
     bool_and_f(${MIOPEN_TEST_GFX1030} ${is_gfx1030_check} is_gfx1030_check)
 
+    # When SKIP_XNACK_ON is set, the test will be skipped if MIOPEN_TEST_GPU_XNACK_ENABLED is set.
     set(is_xnack_on_check)
     bool_and_f(${PARSE_SKIP_XNACK_ON} ${MIOPEN_TEST_GPU_XNACK_ENABLED} is_xnack_on_check)
     bool_not_f(${is_xnack_on_check} is_xnack_on_check)
