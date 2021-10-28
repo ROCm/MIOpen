@@ -178,7 +178,7 @@ if(NOT MIOPEN_TEST_MIOTENSILE)
 	    set(SKIP_ALL_EXCEPT_TESTS
                 test_conv2d test_tensor_copy test_tensor_set test_tensor_vec test_immed_conv2d
                 test_check_numerics_test test_conv_extra test_conv_for_implicit_gemm test_miopen_conv
-                test_deepbench_conv test_conv_igemm_dynamic_xdlops_nhwc_wrw_bf16_gfx90a 
+                test_deepbench_conv test_conv_igemm_dynamic_xdlops_nhwc_wrw_bf16_gfx90a
                 test_conv_igemm_dynamic_xdlops_nhwc_fwd_bf16_gfx90a
                 test_conv_igemm_dynamic_xdlops_nhwc_bwd_bf16_gfx90a)
     endif()
@@ -504,11 +504,12 @@ function(add_custom_test NAME)
     bool_not_f(${MIOPEN_TEST_MIOTENSILE} NOT_MIOPEN_TEST_MIOTENSILE)
     bool_or_f(${NOT_MIOPEN_TEST_MIOTENSILE} ${is_miotensile_check} is_miotensile_check)
 
+    # If MIOPEN_TEST_MLIR, then test only if MLIR_ENABLED.
+    # If !MIOPEN_TEST_MLIR, then don't care.
     set(is_mlir_check)
     set(MLIR_TEST_DEFAULT FALSE)
     option_support_check(${PARSE_MLIR_ENABLED} ${PARSE_MLIR_DISABLED} ${MLIR_TEST_DEFAULT} is_mlir_check)
-    bool_not_f(${MIOPEN_TEST_MLIR} NOT_MIOPEN_TEST_MLIR)
-    bool_or_f(${NOT_MIOPEN_TEST_MLIR} ${is_mlir_check} is_mlir_check)
+    bool_and_f(${MIOPEN_TEST_MLIR} ${is_mlir_check} is_mlir_check)
 
     set(is_ocl_check)
     set(OCL_TEST_DEFAULT TRUE)
@@ -549,6 +550,7 @@ function(add_custom_test NAME)
     option_support_check(${PARSE_GFX1030_ENABLED} ${PARSE_GFX1030_DISABLED} ${GFX1030_TEST_DEFAULT} is_gfx1030_check)
     bool_and_f(${MIOPEN_TEST_GFX1030} ${is_gfx1030_check} is_gfx1030_check)
 
+    # If MIOPEN_TEST_GPU_XNACK_ENABLED, then test only if !SKIP_XNACK_ON
     set(is_xnack_on_check)
     bool_and_f(${PARSE_SKIP_XNACK_ON} ${MIOPEN_TEST_GPU_XNACK_ENABLED} is_xnack_on_check)
     bool_not_f(${is_xnack_on_check} is_xnack_on_check)
