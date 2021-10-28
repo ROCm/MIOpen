@@ -177,7 +177,7 @@ solver::KernelInfo BatchedTransposeSolution::GetKernel() const {
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    MIOPEN_LOG_T("BatchedTransposeSolution use kernel: " + kernel_name);
+    MIOPEN_LOG_I2("BatchedTransposeSolution use kernel: " + kernel_name);
 
     return kernel;
 }
