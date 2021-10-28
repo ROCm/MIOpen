@@ -201,9 +201,10 @@ std::string PerformanceConfigAsmImplicitGemmGTC::ToString() const
 std::string PerformanceConfigAsmImplicitGemmGTC::ToKernelName(const ConvolutionContext& ctx) const
 {
     std::ostringstream kernel_name;
-    std::string kernel_precision = precision == miopenFloat ? "fp32" : "fp16";
-    const auto device_name       = ctx.GetStream().GetDeviceName();
-    std::string gtc_str          = device_name == "gfx908" ? "_gtcx_" : "_gtcx2_";
+    std::string kernel_precision =
+        precision == miopenFloat ? "fp32" : (precision == miopenHalf ? "fp16" : "bf16");
+    const auto device_name = ctx.GetStream().GetDeviceName();
+    std::string gtc_str    = device_name == "gfx908" ? "_gtcx_" : "_gtcx2_";
     kernel_name << "igemm_" << direction << gtc_str << tensor_layout << "_" << kernel_precision
                 << "_bx" << nxb << "_ex" << nxe << "_bt" << gemm_m_per_block << "x"
                 << gemm_n_per_block << "x" << gemm_k_per_block << "_wt" << wave_tile_m << "x"
