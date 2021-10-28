@@ -388,7 +388,7 @@ struct transpose_test : transpose_base
                                          CL_TRUE,
                                          0,
                                          sizeof(T) * tensor_sz,
-                                         in_host.data.data(),
+                                         t_dst_gpu.data.data(),
                                          0,
                                          nullptr,
                                          nullptr);
